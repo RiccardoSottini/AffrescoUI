@@ -18,6 +18,24 @@ Panel& Panel::addChild(std::unique_ptr<Panel> child) {
 	return ref;
 }
 
+Panel::~Panel() {
+	if(window_) window_->forget(*this); // no dangling focus/hover/capture pointers
+}
+
+Panel& Panel::replaceChild(std::size_t index, std::unique_ptr<Panel> child) {
+	child->parent_ = this;
+	child->attachTo(window_);
+	children_.at(index) = std::move(child);
+	invalidate();
+	return *children_[index];
+}
+
+void Panel::removeChildren(std::size_t from) {
+	if(from >= children_.size()) return;
+	children_.erase(children_.begin() + static_cast<std::ptrdiff_t>(from), children_.end());
+	invalidate();
+}
+
 Panel* Panel::findById(std::string_view id) noexcept {
 	if(id_ == id) return this;
 	for(auto& child : children_)

@@ -43,7 +43,7 @@ enum class Edge {
 class Panel {
 public:
 	Panel() = default;
-	virtual ~Panel() = default;
+	virtual ~Panel();
 
 	Panel(const Panel&) = delete;
 	Panel& operator=(const Panel&) = delete;
@@ -59,6 +59,8 @@ public:
 	}
 
 	Panel& addChild(std::unique_ptr<Panel> child); // takes ownership, e.g. of a panel made by a factory
+	Panel& replaceChild(std::size_t index, std::unique_ptr<Panel> child); // destroys the child that was there
+	void removeChildren(std::size_t from = 0);                            // destroys children [from, end)
 
 	[[nodiscard]] Panel* parent() const noexcept { return parent_; }
 	[[nodiscard]] Window* window() const noexcept { return window_; }

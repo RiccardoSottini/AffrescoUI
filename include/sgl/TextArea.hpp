@@ -18,6 +18,8 @@ public:
 	void setPlaceholder(std::string_view utf8);
 	void setPlaceholderColor(Color color);
 
+	Signal<const std::string&> onTextChanged; // after the user edits the text (not after setText)
+
 protected:
 	void keyEvent(const KeyEvent& event) override;
 	void charEvent(const CharEvent& event) override;

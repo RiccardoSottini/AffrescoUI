@@ -1,8 +1,16 @@
-# sGLGUI Screen Format, version 1
+# sGLGUI Screen Format
 
-A JSON format for describing a user interface that sGLGUI builds and shows at runtime. The file describes **what is
-on screen**; the application's code adds **behaviour** (it handles named actions, finds elements by `id`, and builds
-templates on demand).
+A JSON format for describing a user interface that sGLGUI builds and shows at runtime: **what is on screen**, plus the
+app's **state, bindings and actions**, so behaviour lives in the file too. Application code can add more behaviour
+(native actions, custom types, templates).
+
+Screens are **live**: the UI follows the state, and **revisions** (JSON Patch) can change the document, layout and
+behaviour, while the app runs. A revision can come from the app itself or from a program connected over a channel,
+for example one driven by an LLM.
+
+**Current version: 1.** Every file declares `"version"`. The schema keeps each version's definition separately
+(`$defs/v1`, and later `$defs/v2`, ...) and the loader checks the version first, so future versions can be added
+without breaking existing files.
 
 - File extension: `.screen.json`
 - JSON Schema (editor autocompletion and validation): [`schema/sglgui-screen.schema.json`](schema/sglgui-screen.schema.json).
@@ -31,14 +39,17 @@ templates on demand).
 
 | Key | Required | Meaning |
 |---|---|---|
-| `version` | yes | Must be `1`. |
+| `version` | yes | `1`. |
 | `root` | yes | Node for the window's root panel. It always fills the window, so layout properties aren't allowed on it. |
 | `format` | | `"sglgui-screen"`, for tools. |
 | `window` | | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
 | `fonts` | | `name → { "file", "size" }`. Paths are relative to the screen file. `default` is used by text without a `font`. |
 | `colors` | | `name → "#rrggbb"`. Referenced anywhere a color is expected as `"@name"`. |
 | `styles` | | `name → properties`, applied to a node with `"style": "name"` or `["a", "b"]`. Later styles win, and the node's own properties win over all. |
-| `templates` | | `name → node`. Built by code on demand, any number of times (`Screen::instantiate`), e.g. one per chat message. |
+| `templates` | | `name → node`. Built by code on demand, any number of times (`Screen::instantiate`). A `repeat` in the file is usually simpler. |
+| `state` | | The app's data, any JSON object. |
+| `permissions` | | Who may change the running screen and what is locked: see [Governance](GOVERNANCE.md). `{ "authors": { "brain": "review", "*": "allow" }, "locked": ["#composer", "/actions/send"] }`. Policies: `allow`, `review`, `deny`. Revisions can never change this section. |
+| `actions` | | `name → steps`, run by `onClick`, `onSubmit` or other actions. |
 
 ## Nodes
 
@@ -65,7 +76,10 @@ parent, and later siblings on top of earlier ones.
 | `visible` | `false` hides the node and its children. |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `hover`, `pressed`, `focused` | `{ "color" }` shown in that state (pressed wins over focused, focused over hover). |
-| `onClick` | Action name, fired when the left button is released over the node. |
+| `onClick` | Fired when the left button is released over the node: an action name, or steps to run. |
+| `repeat` | `{ "for": "message", "in": "state.messages", "index": "i" }`: build the node once per list item. `for` defaults to `item` and `index` to `index`. |
+| `when` | Build the node only if the value is truthy. |
+| `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
 
 ### `label`
 | Key | Meaning |
@@ -81,6 +95,12 @@ parent, and later siblings on top of earlier ones.
 ### `textarea`
 Everything `label` has, plus `placeholder` and `placeholderColor`. It's a single-line input: click it to type.
 
+| Key | Meaning |
+|---|---|
+| `bind` | A state path kept in sync with the text in both directions (`"state.draft"`). |
+| `onSubmit` | Enter pressed: an action name or steps. `event.text` is the text. |
+| `autofocus` | Focus it when it is first built. |
+
 ### `stack`
 Places its children one below the other, in order. Children keep their horizontal anchors and width; the stack manages
 their vertical position.
@@ -89,6 +109,121 @@ their vertical position.
 |---|---|
 | `gap` | Pixels between children. |
 | `align` | `start` (from the top) or `end` (the block sits at the bottom, like a chat; overflow is clipped at the top). |
+
+## State, bindings and actions
+
+### Values
+Wherever a value is expected, it can be computed:
+
+| Form | Example | Meaning |
+|---|---|---|
+| Binding | `"{{state.threads[state.current].title}}"` | The value at a path, keeping its JSON type. |
+| Template | `"Clicked {{state.clicks}} times"` | A string with values inserted. |
+| Operator | `{ "$clamp": ["{{event.x}}", 180, 520] }` | An object with one `$` key. |
+
+**Paths** start with a variable: `state`, `event` (what triggered the action), `window` (`width`, `height`),
+`revision` (`number`, `author`, `message`), `proposals` (pending proposals: `id`, `author`, `message`,
+`operations`, `time`), `history` (every revision: `number`, `author`, `message`, `time`), `preview` (the id of the
+proposal being previewed, or `null`), or a `repeat`/`forEach` name. They continue with `.key` and `[index]`, and
+an index can itself be a path: `state.threads[state.current]`. A missing value is `null`.
+
+**Operators.** One-argument operators take their value directly (`{"$length": "{{state.items}}"}`). The others take an
+array of arguments.
+- Logic: `$if` `[condition, then, else]`, `$and`, `$or`, `$not`.
+- Comparison: `$equals`, `$notEquals`, `$greater`, `$less`, `$greaterOrEqual`, `$lessOrEqual`.
+- Numbers: `$add`, `$subtract`, `$multiply`, `$divide`, `$min`, `$max`, `$clamp` `[value, min, max]`, `$round`.
+  Integer inputs give integer results.
+- Collections and text: `$length`, `$empty`, `$concat` (strings or lists).
+
+**Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
+
+### Actions
+An action is a list of steps. Each step is an object whose first key says what it does:
+
+| Step | Example |
+|---|---|
+| `set` | `{ "set": "state.current", "to": "{{index}}" }` |
+| `push` | `{ "push": "state.threads[state.current].messages", "value": "{{state.draft}}" }` |
+| `remove` | `{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key |
+| `toggle` | `{ "toggle": "state.dark" }` |
+| `increment` | `{ "increment": "state.clicks", "by": 1 }` |
+| `if` | `{ "if": { "$empty": "{{state.draft}}" }, "then": [...], "else": [...] }` |
+| `forEach` | `{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }` |
+| `while` | `{ "while": { "$less": ["{{state.n}}", 10] }, "do": [...] }` (at most 10,000 iterations) |
+| `run` | `{ "run": "otherAction" }` |
+| `call` | `{ "call": "nativeName" }`: a C++ function registered with `Screen::onAction` |
+| `emit` | `{ "emit": "chat", "data": { "text": "{{state.draft}}" } }`: a message to the connected channel |
+| `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
+| `focus` | `{ "focus": "input" }` |
+| `log` | `{ "log": "value is {{state.n}}" }` (to stderr) |
+| `stop` | `{ "stop": true }`: end the action |
+| `preview` | `{ "preview": "{{proposals[0].id}}" }`: show a proposal live, without committing it |
+| `endPreview` | `{ "endPreview": true }`: back to the committed screen |
+| `accept` | `{ "accept": "{{proposals[0].id}}" }`: commit a proposal |
+| `reject` | `{ "reject": "{{proposals[0].id}}", "reason": "..." }` |
+| `restore` | `{ "restore": "{{entry.number}}" }`: a new revision equal to an earlier one |
+| `undo` | `{ "undo": true }`: restore the previous revision |
+
+The last six, plus `patch` and `call`, are **governance controls**: they can be written in the screen file, but no
+revision may add or change them.
+
+Only paths under `state` can be changed. After an event's actions finish, the UI is updated once. Panels are reused
+where the structure didn't change, so focus, typing and drags in progress are kept. Errors in actions are reported
+(on stderr and to the channel) and never crash the app.
+
+## Live screens: revisions and the channel
+
+### Revisions
+A revision is a version-controlled change to a running screen:
+
+```json
+{ "type": "revision", "parent": 3, "author": "assistant", "message": "Dark theme",
+  "patch": [ { "op": "replace", "path": "/colors/background", "value": "#0b1220" },
+             { "op": "add", "path": "#header/children/-", "value": { "id": "counter", "type": "label" } },
+             { "op": "replace", "path": "/state/sidebarWidth", "value": 400 } ] }
+```
+
+- `patch` is standard [JSON Patch (RFC 6902)](https://datatracker.ietf.org/doc/html/rfc6902). Paths can start with
+  `#id` to address a node by its id instead of its position: `#header/children/-`.
+- Operations on `/state/...` change the live state. All others change the document: layout, styles, colors, fonts,
+  actions and templates.
+- Revisions are **atomic**. If anything fails (invalid patch, unknown id, a property the new document gets wrong),
+  nothing changes and the revision is rejected with the error.
+- `parent` is optional. If it's given and isn't the current revision, the revision is rejected as a conflict.
+- Revisions are numbered from `0` (the file). Restoring (`restore`, `undo`) creates a new revision equal to an
+  earlier document, so history only grows. State changes aren't undone.
+- **Permissions** decide what happens to a revision from each author: applied, proposed to the user, or rejected.
+  Locked parts and governance controls can't be changed by any revision. See [GOVERNANCE.md](GOVERNANCE.md), which
+  also describes **change sets** (exported revisions, shareable like plugins).
+
+### Channel protocol
+`Screen::connect(channel)` exchanges one JSON object per line with a program on the other end
+(`sgl::ProcessChannel` runs it as a child process over stdin/stdout).
+
+| Direction | Message |
+|---|---|
+| app → | `{"type": "hello", "format": "sglgui-screen", "revision": n, "document": {...}, "state": {...}}` on connect |
+| app → | `{"type": "event", "name": "chat", "data": {...}, "revision": n}` from `emit` steps |
+| app → | `{"type": "applied", "revision": n}`, `{"type": "proposed", "proposal": p}` or `{"type": "rejected", "error": "..."}` |
+| app → | later, the user's decision: `{"type": "applied" / "rejected", "proposal": p, ...}` |
+| app → | answers: `{"type": "document", ...}`, `{"type": "history", "entries": [...]}`, `{"type": "changes", "changes": {...}}` |
+| app → | `{"type": "error", "message": "..."}` |
+| → app | `{"type": "revision", ...}`, `{"type": "restore", "revision": n}`, `{"type": "undo"}` |
+| → app | `{"type": "getDocument"}`, `{"type": "getHistory"}`, `{"type": "exportChanges", "from": n, "name": "..."}` |
+
+Requests may carry an `"id"`; answers repeat it. The app decides who the other end is (`Screen::connect(channel,
+"brain")`): revisions arriving there are authored as that name, followed by the name the sender gives itself
+(`brain/rules`). The `hello` message says which name that is (`"you"`).
+
+The Python MCP server (`mcp/sglgui_mcp.py`) is the bridge between AI agents and this protocol: see `mcp/README.md`.
+
+See `examples/brains/rules_brain.py`: a keyword-rule brain that a language model can replace without changing the app.
+Run it with either example, from the repository root:
+
+```sh
+./build/chatbot_demo --brain "python3 examples/brains/rules_brain.py"
+./build/screen_viewer examples/assets/screens/chat.screen.json --brain "python3 examples/brains/rules_brain.py"
+```
 
 ## Errors
 
@@ -114,5 +249,6 @@ auto& bubble = screen.instantiate("message", screen.get("messages"));
 app.run();
 ```
 
-See `examples/chatbot_demo.cpp` with `examples/assets/screens/chat.screen.json`, and
+See `examples/chatbot_demo.cpp` with `examples/assets/screens/chat.screen.json` (the C++ only adds a drag handle and the
+optional brain), and
 `examples/assets/screens/sign-in.screen.json` (no code at all: open it with `screen_viewer`).

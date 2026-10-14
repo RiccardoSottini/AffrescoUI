@@ -14,6 +14,7 @@
 		"sidebarItem": "#1f2937",
 		"sidebarSelected": "#374151",
 		"sidebarText": "#e5e7eb",
+		"sidebarMuted": "#6b7280",
 		"accent": "#6366f1",
 		"accentHover": "#7477f3",
 		"accentPressed": "#4f46e5",
@@ -23,7 +24,52 @@
 		"text": "#111827",
 		"mutedText": "#9ca3af",
 		"input": "#f1f5f9",
-		"inputFocused": "#eef2ff"
+		"inputFocused": "#eef2ff",
+		"review": "#fef3c7",
+		"reviewText": "#78350f",
+		"previewing": "#fde68a",
+		"approve": "#16a34a",
+		"approveHover": "#22c55e",
+		"decline": "#dc2626",
+		"declineHover": "#ef4444",
+		"neutral": "#e5e7eb",
+		"neutralHover": "#d1d5db"
+	},
+
+	"permissions": {
+		"authors": { "user": "allow", "app": "allow", "brain": "review", "mcp": "review", "*": "review" },
+		"locked": ["#composer", "#reviewBar", "#historyPanel", "/actions/send"]
+	},
+
+	"state": {
+		"threads": [{ "title": "New chat", "messages": [] }],
+		"current": 0,
+		"draft": "",
+		"sidebarWidth": 260
+	},
+
+	"actions": {
+		"newChat": [
+			{ "push": "state.threads", "value": { "title": "New chat", "messages": [] } },
+			{ "set": "state.current", "to": { "$subtract": [{ "$length": "{{state.threads}}" }, 1] } },
+			{ "focus": "input" }
+		],
+		"send": [
+			{ "if": { "$empty": "{{state.draft}}" }, "then": [{ "stop": true }] },
+			{
+				"if": { "$empty": "{{state.threads[state.current].messages}}" },
+				"then": [{ "set": "state.threads[state.current].title", "to": "{{state.draft}}" }]
+			},
+			{ "push": "state.threads[state.current].messages", "value": "{{state.draft}}" },
+			{ "emit": "chat", "data": { "thread": "{{state.current}}", "text": "{{state.draft}}" } },
+			{ "set": "state.draft", "to": "" }
+		],
+		"resizeSidebar": [
+			{
+				"set": "state.sidebarWidth",
+				"to": { "$round": { "$clamp": ["{{event.x}}", 180, { "$min": [520, { "$subtract": ["{{window.width}}", 400] }] }] } }
+			}
+		]
 	},
 
 	"styles": {
@@ -36,7 +82,14 @@
 			"hover": { "color": "@accentHover" },
 			"pressed": { "color": "@accentPressed" }
 		},
-		"divider": { "height": 1, "color": "@divider" }
+		"divider": { "height": 1, "color": "@divider" },
+		"reviewButton": {
+			"type": "label",
+			"width": 84,
+			"align": "center",
+			"textColor": "#ffffff",
+			"cursor": "hand"
+		}
 	},
 
 	"root": {
@@ -45,7 +98,7 @@
 			{
 				"id": "sidebar",
 				"anchors": { "left": 0, "top": 0, "bottom": 0 },
-				"width": 260,
+				"width": "{{state.sidebarWidth}}",
 				"color": "@sidebar",
 				"children": [
 					{
@@ -59,14 +112,67 @@
 					{
 						"id": "threadList",
 						"type": "stack",
-						"anchors": { "left": 12, "right": 12, "top": 84, "bottom": 0 },
-						"gap": 6
+						"anchors": { "left": 12, "right": 12, "top": 84, "bottom": 210 },
+						"gap": 6,
+						"children": [
+							{
+								"repeat": { "for": "thread", "in": "state.threads" },
+								"type": "label",
+								"text": "{{thread.title}}",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 40,
+								"padding": 12,
+								"align": { "horizontal": "start", "vertical": "center" },
+								"color": { "$if": [{ "$equals": ["{{index}}", "{{state.current}}"] }, "@sidebarSelected", "@sidebarItem"] },
+								"textColor": "@sidebarText",
+								"cursor": "hand",
+								"onClick": [{ "set": "state.current", "to": "{{index}}" }, { "focus": "input" }]
+							}
+						]
+					},
+					{
+						"id": "historyPanel",
+						"locked": true,
+						"anchors": { "left": 12, "right": 12, "bottom": 12 },
+						"height": 190,
+						"color": "transparent",
+						"children": [
+							{
+								"type": "label",
+								"text": "HISTORY",
+								"anchors": { "left": 4, "right": 0, "top": 0 },
+								"height": 20,
+								"textColor": "@sidebarMuted"
+							},
+							{
+								"type": "stack",
+								"anchors": { "left": 0, "right": 0, "top": 24, "bottom": 0 },
+								"gap": 2,
+								"align": "end",
+								"children": [
+									{
+										"repeat": { "for": "entry", "in": "history" },
+										"type": "label",
+										"text": "{{entry.number}} · {{entry.author}} · {{entry.message}}",
+										"anchors": { "left": 0, "right": 0 },
+										"height": 26,
+										"padding": 4,
+										"align": { "horizontal": "start", "vertical": "center" },
+										"color": { "$if": [{ "$equals": ["{{entry.number}}", "{{revision.number}}"] }, "@sidebarSelected", "transparent"] },
+										"hover": { "color": "@sidebarItem" },
+										"textColor": "@sidebarText",
+										"cursor": "hand",
+										"onClick": [{ "restore": "{{entry.number}}" }]
+									}
+								]
+							}
+						]
 					}
 				]
 			},
 			{
 				"id": "main",
-				"anchors": { "left": 260, "right": 0, "top": 0, "bottom": 0 },
+				"anchors": { "left": "{{state.sidebarWidth}}", "right": 0, "top": 0, "bottom": 0 },
 				"color": "@background",
 				"children": [
 					{
@@ -79,6 +185,7 @@
 							{
 								"id": "title",
 								"type": "label",
+								"text": "{{state.threads[state.current].title}}",
 								"fill": 0,
 								"padding": 24,
 								"align": { "horizontal": "start", "vertical": "center" },
@@ -96,6 +203,9 @@
 							{
 								"id": "input",
 								"type": "textarea",
+								"bind": "state.draft",
+								"onSubmit": "send",
+								"autofocus": true,
 								"anchors": { "top": 20, "bottom": 20, "left": 24, "right": 120 },
 								"padding": 14,
 								"placeholder": "Type a message...",
@@ -114,9 +224,94 @@
 						]
 					},
 					{
-						"id": "threadViews",
+						"id": "threadView",
 						"anchors": { "top": 64, "bottom": 96, "left": 0, "right": 0 },
-						"color": "transparent"
+						"color": "transparent",
+						"children": [
+							{
+								"id": "emptyHint",
+								"type": "label",
+								"when": { "$empty": "{{state.threads[state.current].messages}}" },
+								"text": "No messages yet. Type below to start.",
+								"fill": 0,
+								"align": "center",
+								"textColor": "@mutedText"
+							},
+							{
+								"id": "messages",
+								"type": "stack",
+								"anchors": { "left": 24, "right": 24, "top": 0, "bottom": 12 },
+								"gap": 12,
+								"align": "end",
+								"children": [
+									{
+										"repeat": { "for": "message", "in": "state.threads[state.current].messages" },
+										"type": "label",
+										"text": "{{message}}",
+										"anchors": { "right": 0 },
+										"fitText": { "maxWidth": 404 },
+										"wrap": true,
+										"padding": 12,
+										"color": "@accent",
+										"textColor": "#ffffff"
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "reviewBar",
+						"locked": true,
+						"when": { "$not": { "$empty": "{{proposals}}" } },
+						"anchors": { "top": 64, "left": 0, "right": 0 },
+						"height": 52,
+						"color": { "$if": [{ "$equals": ["{{preview}}", "{{proposals[0].id}}"] }, "@previewing", "@review"] },
+						"children": [
+							{
+								"type": "label",
+								"text": {
+									"$concat": [
+										{ "$if": [{ "$equals": ["{{preview}}", "{{proposals[0].id}}"] }, "Previewing: ", "Proposed by "] },
+										"{{proposals[0].author}}: {{proposals[0].message}}",
+										{ "$if": [{ "$greater": [{ "$length": "{{proposals}}" }, 1] }, { "$concat": ["  (+", { "$subtract": [{ "$length": "{{proposals}}" }, 1] }, " more)"] }, ""] }
+									]
+								},
+								"anchors": { "left": 24, "right": 300, "top": 0, "bottom": 0 },
+								"align": { "horizontal": "start", "vertical": "center" },
+								"textColor": "@reviewText"
+							},
+							{
+								"style": "reviewButton",
+								"text": { "$if": [{ "$equals": ["{{preview}}", "{{proposals[0].id}}"] }, "Back", "Preview"] },
+								"anchors": { "right": 200, "top": 10, "bottom": 10 },
+								"color": "@neutral",
+								"hover": { "color": "@neutralHover" },
+								"textColor": "@reviewText",
+								"onClick": [
+									{
+										"if": { "$equals": ["{{preview}}", "{{proposals[0].id}}"] },
+										"then": [{ "endPreview": true }],
+										"else": [{ "preview": "{{proposals[0].id}}" }]
+									}
+								]
+							},
+							{
+								"style": "reviewButton",
+								"text": "Accept",
+								"anchors": { "right": 108, "top": 10, "bottom": 10 },
+								"color": "@approve",
+								"hover": { "color": "@approveHover" },
+								"onClick": [{ "accept": "{{proposals[0].id}}" }]
+							},
+							{
+								"style": "reviewButton",
+								"text": "Reject",
+								"anchors": { "right": 16, "top": 10, "bottom": 10 },
+								"color": "@decline",
+								"hover": { "color": "@declineHover" },
+								"onClick": [{ "reject": "{{proposals[0].id}}" }]
+							}
+						]
 					}
 				]
 			},
@@ -124,54 +319,9 @@
 				"id": "splitter",
 				"type": "resizeHandle",
 				"anchors": { "top": 0, "bottom": 0 },
-				"x": 257,
+				"x": { "$subtract": ["{{state.sidebarWidth}}", 3] },
 				"width": 6
 			}
 		]
-	},
-
-	"templates": {
-		"threadItem": {
-			"type": "label",
-			"text": "New chat",
-			"anchors": { "left": 0, "right": 0 },
-			"height": 40,
-			"padding": 12,
-			"align": { "horizontal": "start", "vertical": "center" },
-			"color": "@sidebarItem",
-			"textColor": "@sidebarText",
-			"cursor": "hand",
-			"onClick": "selectThread"
-		},
-		"thread": {
-			"fill": 0,
-			"color": "transparent",
-			"children": [
-				{
-					"id": "emptyHint",
-					"type": "label",
-					"text": "No messages yet. Type below to start.",
-					"fill": 0,
-					"align": "center",
-					"textColor": "@mutedText"
-				},
-				{
-					"id": "messages",
-					"type": "stack",
-					"anchors": { "left": 24, "right": 24, "top": 0, "bottom": 12 },
-					"gap": 12,
-					"align": "end"
-				}
-			]
-		},
-		"message": {
-			"type": "label",
-			"anchors": { "right": 0 },
-			"fitText": { "maxWidth": 404 },
-			"wrap": true,
-			"padding": 12,
-			"color": "@accent",
-			"textColor": "#ffffff"
-		}
 	}
 }
