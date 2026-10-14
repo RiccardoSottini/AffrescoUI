@@ -1,15 +1,18 @@
-*.a
-*.so
+# Build output
 build/
-lib/
-bin/
-examples/main
-examples/a.out
-vgcore.*
+build-*/
+out/
+compile_commands.json
+
+# Editors & OS
+.vscode/
+.idea/
 .vs/
-x64/
-Debug/
-sGLGUI.sln
-sGLGUI.vcxproj
-sGLGUI.vcxproj.filters
-sGLGUI.vcxproj.user
+.cache/
+.DS_Store
+
+# Screenshots produced by SGLGUI_SCREENSHOT
+*.ppm
+
+# Personal project notes and screenshots stay local
+docs/
