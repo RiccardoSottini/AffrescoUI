@@ -1,0 +1,15 @@
+#pragma once
+
+#include "sgl/Application.hpp"
+#include "sgl/Color.hpp"
+#include "sgl/Events.hpp"
+#include "sgl/Font.hpp"
+#include "sgl/Geometry.hpp"
+#include "sgl/Input.hpp"
+#include "sgl/Label.hpp"
+#include "sgl/Length.hpp"
+#include "sgl/Painter.hpp"
+#include "sgl/Panel.hpp"
+#include "sgl/Signal.hpp"
+#include "sgl/TextArea.hpp"
+#include "sgl/Window.hpp"

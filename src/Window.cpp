@@ -1,251 +1,272 @@
-#include "Window.h"
+#include "sgl/Window.hpp"
 
-Window::Window(Gui* gui, const GLfloat Width, const GLfloat Height, const char* name) {
-	this->gui = gui;
-	this->window = glfwCreateWindow(Width, Height, name, NULL, NULL);
-	this->name = (char*) name;
+#include "detail/Ppm.hpp"
+#include "gl/Context.hpp"
+#include "gl/QuadRenderer.hpp"
 
-	gui->windows.push_back(this);
-	gui->glfw_windows[this->window] = this;
+#include <GLFW/glfw3.h>
 
-	InitGL();
+#include <algorithm>
+#include <array>
+#include <stdexcept>
+#include <utility>
 
-	windowPanel.windowParent = this;
-	windowPanel.panelParent = &windowPanel;
+namespace sgl {
 
-	addPanelQuad(&this->windowPanel.pQuad);
-	windowPanel.updatePanel();
+void Window::HandleDeleter::operator()(GLFWwindow* handle) const noexcept { glfwDestroyWindow(handle); }
 
-	setSize(Width, Height);
+Window::Window(std::string title, int width, int height) : title_(std::move(title)), width_(width), height_(height) {
+	handle_.reset(glfwCreateWindow(width, height, title_.c_str(), nullptr, nullptr));
+	if(!handle_) throw std::runtime_error("sGLGUI: could not create a window with an OpenGL 4.1 core context");
+
+	glfwMakeContextCurrent(handle_.get());
+	if(!gl::loadFunctions(reinterpret_cast<gl::ProcAddressLoader>(glfwGetProcAddress)))
+		throw std::runtime_error("sGLGUI: could not load the OpenGL functions");
+	glfwSwapInterval(1); // vsync: never render faster than the display
+
+	renderer_ = std::make_unique<gl::QuadRenderer>();
+
+	root_.attachTo(this);
+	installCallbacks();
 }
 
-GLFWwindow* Window::getWindow() {
-	return window;
+Window::~Window() {
+	for(GLFWcursor* cursor : cursors_)
+		if(cursor) glfwDestroyCursor(cursor);
+
+	// GL objects owned by the renderer are deleted in this window's context
+	if(handle_) glfwMakeContextCurrent(handle_.get());
 }
 
-Panel* Window::getWindowPanel() {
-	return &windowPanel;
+/* Properties */
+
+void Window::setTitle(std::string title) {
+	title_ = std::move(title);
+	glfwSetWindowTitle(handle_.get(), title_.c_str());
 }
 
-const bool Window::isVisible() {
-	return visible;
+void Window::setSize(int width, int height) {
+	width_ = std::max(width, minWidth_);
+	height_ = std::max(height, minHeight_);
+	glfwSetWindowSize(handle_.get(), width_, height_);
+	invalidate();
 }
 
-void Window::setVisible(const bool visible) {
-	this->visible = visible;
+void Window::setMinSize(int minWidth, int minHeight) {
+	minWidth_ = minWidth;
+	minHeight_ = minHeight;
+	glfwSetWindowSizeLimits(handle_.get(), minWidth_, minHeight_, GLFW_DONT_CARE, GLFW_DONT_CARE);
+
+	if(width_ < minWidth_ || height_ < minHeight_) setSize(width_, height_);
 }
 
-const std::array<GLfloat, 2> Window::getSize() {
-	return std::array<GLfloat, 2> { this->getWidth(), this->getHeight() };
+bool Window::isVisible() const { return glfwGetWindowAttrib(handle_.get(), GLFW_VISIBLE) == GLFW_TRUE; }
+
+void Window::setVisible(bool visible) {
+	if(visible) glfwShowWindow(handle_.get());
+	else glfwHideWindow(handle_.get());
 }
 
-void Window::setSize(const GLfloat Width, const GLfloat Height) {
-	this->Width = (Width >= minWidth) ? Width : minWidth;
-	this->Height = (Height >= minHeight) ? Height : minHeight;
+bool Window::shouldClose() const { return glfwWindowShouldClose(handle_.get()) == GLFW_TRUE; }
 
-	glfwSetWindowSize(window, this->Width, this->Height);
-	windowPanel.setSize(this->Width, this->Height, SIZE_PIXEL);
+/* Content */
 
-	ResizeWindow(this->Width, this->Height);
+void Window::setFocus(Panel* panel) {
+	if(panel == focused_) return;
+
+	Panel* previous = std::exchange(focused_, panel);
+	if(previous) previous->focusEvent(false);
+	if(focused_) focused_->focusEvent(true);
 }
 
-const GLfloat Window::getWidth() {
-	return Width;
+void Window::setDefaultFont(std::shared_ptr<const Font> font) {
+	defaultFont_ = std::move(font);
+	invalidate();
 }
 
-const GLfloat Window::getMinWidth() {
-	return minWidth;
+Panel* Window::panelAt(Vec2 point) {
+	updateLayout();
+	return root_.hitTest(point);
 }
 
-void Window::setWidth(const GLfloat Width) {
-	this->Width = (Width >= minWidth) ? Width : minWidth;
+/* Rendering */
 
-	glfwSetWindowSize(window, this->Width, this->Height);
-	windowPanel.setWidth(this->Width, SIZE_PIXEL);
+void Window::updateLayout() {
+	if(!layoutDirty_) return;
 
-	ResizeWindow(this->Width, this->Height);
+	const auto width = static_cast<float>(width_);
+	const auto height = static_cast<float>(height_);
+
+	// The root always fills the window
+	root_.width_ = px(width);
+	root_.height_ = px(height);
+	root_.layout(Rect{0.0f, 0.0f, width, height}, Vec2{width, height}, true);
+
+	layoutDirty_ = false;
 }
 
-void Window::setMinWidth(const GLfloat minWidth) {
-	this->minWidth = minWidth;
-	windowPanel.setMinWidth(this->minWidth, SIZE_PIXEL);
+void Window::draw() {
+	if(glfwGetCurrentContext() != handle_.get()) glfwMakeContextCurrent(handle_.get());
 
-	if(this->minWidth > Width) setWidth(this->minWidth);
+	// On HiDPI screens the framebuffer has more pixels than the window has units
+	int framebufferWidth = 0, framebufferHeight = 0;
+	glfwGetFramebufferSize(handle_.get(), &framebufferWidth, &framebufferHeight);
+	gl::beginFrame(framebufferWidth, framebufferHeight);
 
-	glfwSetWindowSizeLimits(window, this->minWidth, this->minHeight, GLFW_DONT_CARE, GLFW_DONT_CARE);
+	updateLayout();
+	renderer_->draw(root_, width_, height_);
 }
 
-const GLfloat Window::getHeight() {
-	return Height;
+void Window::render() {
+	if(!redrawDirty_) return;
+
+	draw();
+	glfwSwapBuffers(handle_.get());
+	redrawDirty_ = false;
 }
 
-const GLfloat Window::getMinHeight() {
-	return minHeight;
+bool Window::saveScreenshot(const std::filesystem::path& path) {
+	draw(); // into the back buffer, without presenting it
+
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(handle_.get(), &width, &height);
+
+	return detail::writePpm(path, width, height, gl::readBackBuffer(width, height));
 }
 
-void Window::setHeight(const GLfloat Height) {
-	this->Height = (Height >= minHeight) ? Height : minHeight;
+/* Input: GLFW callbacks are converted to typed events and routed immediately */
 
-	glfwSetWindowSize(window, this->Width, this->Height);
-	windowPanel.setHeight(this->Height, SIZE_PIXEL);
+void Window::installCallbacks() {
+	GLFWwindow* handle = handle_.get();
+	glfwSetWindowUserPointer(handle, this);
 
-	ResizeWindow(this->Width, this->Height);
+	static constexpr auto self = [](GLFWwindow* window) -> Window& {
+		return *static_cast<Window*>(glfwGetWindowUserPointer(window));
+	};
+
+	// Size changes only mark the window dirty; the main loop or the refresh callback draws once.
+	// (During a live resize on macOS the loop is blocked and the refresh callback fires after every step.)
+	glfwSetWindowSizeCallback(handle, [](GLFWwindow* window, int width, int height) {
+		Window& w = self(window);
+		w.width_ = width;
+		w.height_ = height;
+		w.invalidate();
+		w.onResize(ResizeEvent{width, height});
+	});
+
+	glfwSetFramebufferSizeCallback(handle, [](GLFWwindow* window, int, int) { self(window).invalidate(); });
+
+	glfwSetWindowRefreshCallback(handle, [](GLFWwindow* window) {
+		Window& w = self(window);
+		w.redrawDirty_ = true;
+		w.render();
+	});
+
+	glfwSetKeyCallback(handle, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+		self(window).routeKey({static_cast<Key>(key), scancode, static_cast<Action>(action), Mods{mods}});
+	});
+
+	glfwSetCharCallback(handle, [](GLFWwindow* window, unsigned int codepoint) {
+		self(window).routeChar({static_cast<char32_t>(codepoint)});
+	});
+
+	glfwSetCursorPosCallback(handle, [](GLFWwindow* window, double x, double y) {
+		self(window).routeMouseMove({static_cast<float>(x), static_cast<float>(y)});
+	});
+
+	glfwSetMouseButtonCallback(handle, [](GLFWwindow* window, int button, int action, int mods) {
+		// Asked rather than taken from the last move: a click can come before any move event
+		double x = 0.0, y = 0.0;
+		glfwGetCursorPos(window, &x, &y);
+		self(window).routeMouseButton({static_cast<MouseButton>(button),
+		                               static_cast<Action>(action),
+		                               Mods{mods},
+		                               {static_cast<float>(x), static_cast<float>(y)}});
+	});
+
+	glfwSetScrollCallback(handle, [](GLFWwindow* window, double dx, double dy) {
+		Window& w = self(window);
+		w.routeScroll({{static_cast<float>(dx), static_cast<float>(dy)}, w.cursor_});
+	});
+
+	glfwSetCursorEnterCallback(
+	    handle, [](GLFWwindow* window, int entered) { self(window).routeCursorEnter(entered == GLFW_TRUE); });
 }
 
-void Window::setMinHeight(const GLfloat minHeight) {
-	this->minHeight = minHeight;
-	windowPanel.setMinHeight(this->minHeight, SIZE_PIXEL);
-
-	if(this->minHeight > Height) setHeight(this->minHeight);
-
-	glfwSetWindowSizeLimits(window, this->minWidth, this->minHeight, GLFW_DONT_CARE, GLFW_DONT_CARE);
+void Window::routeKey(const KeyEvent& event) {
+	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
+	onKey(event);
 }
 
-void Window::addPanel(Panel* panel) {
-	windowPanel.addPanel(panel);
+void Window::routeChar(const CharEvent& event) {
+	if(focused_ && focused_->isShown()) focused_->charEvent(event);
+	onChar(event);
 }
 
-void Window::addPanelQuad(PanelQuad* pQuad) {
-	panelsQuad.push_back(pQuad);
-	pQuad->n_quad = n_quads;
-	updateVertices(n_quads++);
+void Window::routeMouseMove(Vec2 position) {
+	cursor_ = position;
+	setHovered(panelAt(position));
+
+	const MouseMoveEvent event{position};
+	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(event);
+	onMouseMove(event);
 }
 
-Panel* Window::getPanelClicked(Panel* panel, const GLfloat posX, const GLfloat posY) {
-	for(int i = panel->list.size() - 1; i >= 0; i--) {
-		Panel* selected = panel->list[i];
+void Window::routeMouseButton(const MouseButtonEvent& event) {
+	cursor_ = event.position;
+	Panel* hit = panelAt(event.position);
+	setHovered(hit);
 
-		if((posX >= selected->getPosX()) && (posX <= selected->getPosX() + selected->getWidth()) &&
-	  	   (posY >= selected->getPosY()) && (posY <= selected->getPosY() + selected->getHeight())) {
-			return getPanelClicked(selected, posX - selected->getPosX(), posY - selected->getPosY());
-		}
+	if(event.action == Action::Press) {
+		if(event.button == MouseButton::Left) setFocus(hit);
+		if(!grabbed_) grabbed_ = hit;
 	}
 
-	return panel;
-}
+	if(Panel* target = grabbed_ ? grabbed_ : hit) target->mouseButtonEvent(event);
 
-const char* vertexSource = R"glsl(
-	#version 450 core
-
-	layout(location = 0) uniform vec2 WindowSize;
-	layout(location = 1) in vec2 vPosition;
-	layout(location = 2) in vec4 vColor;
-
-	out vec4 fs_color;
-
-	void main() {
-		fs_color = vColor;
-
-		gl_Position[0] = (vPosition[0] / (WindowSize[0] / 2.0)) - 1;
-		gl_Position[1] = 1 - (vPosition[1] / (WindowSize[1] / 2.0));
-		gl_Position[2] = 0.0;
-		gl_Position[3] = 1.0;
+	if(event.action == Action::Release) {
+		grabbed_ = nullptr;
+		updateCursor(); // the drag may have ended over a panel with another cursor
 	}
-)glsl";
 
-const char* fragmentSource = R"glsl(
-	#version 450 core
+	onMouseButton(event);
+}
 
-	layout(location = 0) out vec4 fColor;
-	layout(location = 1) in vec4 fs_color;
+void Window::routeScroll(const ScrollEvent& event) {
+	if(Panel* target = panelAt(event.position)) target->scrollEvent(event);
+	onScroll(event);
+}
 
-	void main() {
-		fColor = fs_color;
+void Window::routeCursorEnter(bool entered) {
+	if(!entered) setHovered(nullptr);
+	onCursorEnter(CursorEnterEvent{entered});
+}
+
+void Window::setHovered(Panel* panel) {
+	if(panel == hovered_) return;
+
+	Panel* previous = std::exchange(hovered_, panel);
+	if(previous) previous->hoverEvent(false);
+	if(hovered_) hovered_->hoverEvent(true);
+	updateCursor();
+}
+
+void Window::updateCursor() {
+	const Panel* owner = grabbed_ ? grabbed_ : hovered_;
+	const Cursor shape = owner ? owner->cursor() : Cursor::Arrow;
+	if(shape == currentCursor_) return;
+	currentCursor_ = shape;
+
+	if(shape == Cursor::Arrow) {
+		glfwSetCursor(handle_.get(), nullptr); // the system default
+		return;
 	}
-)glsl";
 
-void Window::InitGL() {
-	glfwMakeContextCurrent(window);
-	glewInit();
-	SetupShaders();
-
-	glCreateBuffers(1, Buffers);
-	glBindBuffer(GL_ARRAY_BUFFER, Buffers[0]);
-	glBufferData(GL_ARRAY_BUFFER, MAX_PANELS * 24 * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-
-	glGenVertexArrays(1, VAOs);
-	glBindVertexArray(VAOs[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, Buffers[0]);
-
-	glUniform2f(0, Width, Height);
-
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 0);
-	glEnableVertexAttribArray(1);
-
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_TRUE, 6 * sizeof(GLfloat), (void(*)) (2 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(2);
+	static constexpr std::array<int, 5> standardShapes = {
+	    GLFW_ARROW_CURSOR, GLFW_IBEAM_CURSOR, GLFW_POINTING_HAND_CURSOR, GLFW_RESIZE_EW_CURSOR, GLFW_RESIZE_NS_CURSOR};
+	const auto index = static_cast<std::size_t>(shape);
+	if(!cursors_[index]) cursors_[index] = glfwCreateStandardCursor(standardShapes[index]);
+	glfwSetCursor(handle_.get(), cursors_[index]);
 }
 
-void Window::SetupShaders() {
-	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexSource, NULL);
-	glCompileShader(vertexShader);
-
-	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-	glCompileShader(fragmentShader);
-
-	shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-
-	glLinkProgram(shaderProgram);
-	glUseProgram(shaderProgram);
-}
-
-void Window::Display() {
-	glfwMakeContextCurrent(window);
-
-	static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	glClearBufferfv(GL_COLOR, 0, black);
-
-	glBindVertexArray(VAOs[0]);
-	glDrawArrays(GL_QUADS, 0, n_quads * 8);
-
-	glfwSwapBuffers(window);
-}
-
-void Window::ResizeWindow(int Width, int Height) {
-	glfwMakeContextCurrent(window);
-
-	glViewport(0, 0, Width, Height);
-
-	glBindBuffer(GL_ARRAY_BUFFER, Buffers[0]);
-	glUniform2f(0, Width, Height);
-
-	//DISPLAY INSTRUCTIONS (Without calling Display Function)
-	static const float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	glClearBufferfv(GL_COLOR, 0, black);
-
-	glBindVertexArray(VAOs[0]);
-	glDrawArrays(GL_QUADS, 0, n_quads * 8);
-
-	glfwSwapBuffers(window);
-}
-
-void Window::updateVertices(int n_quad) {
-	glfwMakeContextCurrent(window);
-	glBindBuffer(GL_ARRAY_BUFFER, Buffers[0]);
-
-	if(panelsQuad[n_quad]->visible) {
-		std::array<GLfloat, 4> color = panelsQuad[n_quad]->color;
-		std::array<GLfloat, 4> lines = panelsQuad[n_quad]->lines;
-
-		std::vector<GLfloat> vertex = {
-			lines[2], lines[0],
-			lines[3], lines[0],
-			lines[3], lines[1],
-			lines[2], lines[1]
-		};
-
-		for(int v = 0; v < 4; v++) {
-			GLfloat data[6] = {vertex[v*2], vertex[(v*2)+1], color[0], color[1], color[2], color[3]};
-			glBufferSubData(GL_ARRAY_BUFFER, n_quad * sizeof(GLfloat) * 24 + (v * sizeof(data)), sizeof(data), &data);
-		}
-	} else {
-		for(int v = 0; v < 4; v++) {
-			GLfloat data[2] = {0.0, 0.0};
-			glBufferSubData(GL_ARRAY_BUFFER, n_quad * sizeof(GLfloat) * 24 + (v * sizeof(GLfloat) * 6), sizeof(data), &data);
-		}
-	}
-}
+} // namespace sgl
