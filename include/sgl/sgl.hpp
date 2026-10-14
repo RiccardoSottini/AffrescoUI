@@ -10,6 +10,8 @@
 #include "sgl/Length.hpp"
 #include "sgl/Painter.hpp"
 #include "sgl/Panel.hpp"
+#include "sgl/Screen.hpp"
 #include "sgl/Signal.hpp"
+#include "sgl/Stack.hpp"
 #include "sgl/TextArea.hpp"
 #include "sgl/Window.hpp"

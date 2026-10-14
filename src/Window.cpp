@@ -100,7 +100,9 @@ void Window::updateLayout() {
 	// The root always fills the window
 	root_.width_ = px(width);
 	root_.height_ = px(height);
+	layingOut_ = true;
 	root_.layout(Rect{0.0f, 0.0f, width, height}, Vec2{width, height}, true);
+	layingOut_ = false;
 
 	layoutDirty_ = false;
 }

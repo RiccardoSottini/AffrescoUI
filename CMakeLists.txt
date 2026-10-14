@@ -15,6 +15,12 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git GIT_TAG 3.4 GIT_SHALLOW TRUE SYSTEM)
 FetchContent_MakeAvailable(glfw)
 
+# nlohmann/json: parses screen files (used only inside the library, not exposed by its headers)
+set(JSON_Install OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+	URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d SYSTEM)
+FetchContent_MakeAvailable(json)
+
 # Library. Vendored in external/: glad (OpenGL 4.1 core loader) and stb_truetype (font rasteriser).
 add_library(sglgui
 	src/Application.cpp
@@ -22,6 +28,8 @@ add_library(sglgui
 	src/Font.cpp
 	src/Label.cpp
 	src/Panel.cpp
+	src/Screen.cpp
+	src/Stack.cpp
 	src/TextArea.cpp
 	src/Window.cpp
 	src/gl/Context.cpp
@@ -35,7 +43,7 @@ target_compile_features(sglgui PUBLIC cxx_std_23)
 set_target_properties(sglgui PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(sglgui PUBLIC include PRIVATE src)
 target_include_directories(sglgui SYSTEM PRIVATE external/glad/include external/stb)
-target_link_libraries(sglgui PRIVATE glfw)
+target_link_libraries(sglgui PRIVATE glfw nlohmann_json::nlohmann_json)
 target_compile_definitions(sglgui PRIVATE GLFW_INCLUDE_NONE)
 
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
@@ -48,8 +56,10 @@ endif()
 target_compile_options(sglgui PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${SGLGUI_WARNINGS}>)
 
 if(SGLGUI_BUILD_EXAMPLES)
-	add_executable(chatbot_demo examples/chatbot_demo.cpp)
-	target_link_libraries(chatbot_demo PRIVATE sglgui)
-	target_compile_options(chatbot_demo PRIVATE ${SGLGUI_WARNINGS})
-	target_compile_definitions(chatbot_demo PRIVATE SGLGUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+	foreach(example chatbot_demo screen_viewer)
+		add_executable(${example} examples/${example}.cpp)
+		target_link_libraries(${example} PRIVATE sglgui)
+		target_compile_options(${example} PRIVATE ${SGLGUI_WARNINGS})
+		target_compile_definitions(${example} PRIVATE SGLGUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+	endforeach()
 endif()

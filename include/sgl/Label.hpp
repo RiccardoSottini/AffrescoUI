@@ -3,17 +3,12 @@
 #include "sgl/Font.hpp"
 #include "sgl/Panel.hpp"
 
+#include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
 
 namespace sgl {
-
-enum class Align {
-	Start,
-	Center,
-	End,
-};
 
 // Panel that draws text. Transparent background by default; uses the window's default font unless given one.
 class Label : public Panel {
@@ -37,7 +32,11 @@ public:
 	void setAlignment(Align horizontal, Align vertical);
 	void setWrap(bool wrap); // break lines that don't fit the width
 
+	// Size the label to its text (plus padding) instead of width/height; with wrap, lines break at `maxWidth`
+	void setFitToText(bool fit, float maxWidth = std::numeric_limits<float>::infinity());
+
 protected:
+	void prepareLayout() override;
 	void paint(Painter& painter) const override;
 
 	[[nodiscard]] Rect contentRect() const noexcept; // frame minus padding
@@ -51,6 +50,8 @@ private:
 	Align horizontal_ = Align::Start;
 	Align vertical_ = Align::Start;
 	bool wrap_ = false;
+	bool fitToText_ = false;
+	float fitMaxWidth_ = std::numeric_limits<float>::infinity();
 };
 
 } // namespace sgl

@@ -77,7 +77,9 @@ public:
 	Signal<const ResizeEvent&> onResize;
 
 	/* Rendering */
-	void invalidate() noexcept { layoutDirty_ = redrawDirty_ = true; }
+	void invalidate() noexcept {
+		if(!layingOut_) layoutDirty_ = redrawDirty_ = true; // changes made by the layout pass itself don't count
+	}
 	void render();                                          // lays out and draws only if something changed
 	bool saveScreenshot(const std::filesystem::path& path); // draws the current frame to a binary PPM image
 
@@ -119,6 +121,7 @@ private:
 	Vec2 cursor_;
 	bool layoutDirty_ = true;
 	bool redrawDirty_ = true;
+	bool layingOut_ = false;
 
 	std::shared_ptr<const Font> defaultFont_;
 	Panel* focused_ = nullptr;

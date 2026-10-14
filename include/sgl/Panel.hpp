@@ -11,6 +11,8 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -56,9 +58,16 @@ public:
 		return ref;
 	}
 
+	Panel& addChild(std::unique_ptr<Panel> child); // takes ownership, e.g. of a panel made by a factory
+
 	[[nodiscard]] Panel* parent() const noexcept { return parent_; }
 	[[nodiscard]] Window* window() const noexcept { return window_; }
 	[[nodiscard]] std::span<const std::unique_ptr<Panel>> children() const noexcept { return children_; }
+
+	/* Identity: lets code find panels built elsewhere (e.g. from a screen file) */
+	void setId(std::string id) { id_ = std::move(id); }
+	[[nodiscard]] const std::string& id() const noexcept { return id_; }
+	[[nodiscard]] Panel* findById(std::string_view id) noexcept; // this panel or the first matching descendant
 
 	/* Position */
 	void setPosition(Length x, Length y);
@@ -104,6 +113,9 @@ public:
 	[[nodiscard]] Vec2 resolvedSize() const noexcept { return size_; }    // size before clipping
 	[[nodiscard]] Vec2 relativePosition() const noexcept;                 // top-left corner relative to the parent
 
+	// Height this panel takes in a layout pass, against a parent of height `reference`. Used by containers (Stack).
+	[[nodiscard]] float measuredHeight(float reference);
+
 	// Deepest shown panel (this or a descendant) containing `point`; later siblings are on top
 	[[nodiscard]] Panel* hitTest(Vec2 point) noexcept;
 
@@ -128,6 +140,10 @@ protected:
 	virtual void focusEvent(bool focused) { onFocusChanged(focused); }
 	virtual void hoverEvent(bool hovered) { onHover(hovered); }
 
+	// Called at the start of each layout pass, before this panel's size is resolved: lets it size itself, e.g. to
+	// its content. Property changes made here don't trigger another layout.
+	virtual void prepareLayout() {}
+
 	// Draws this panel (not its children, which are drawn after it, on top). Default: fills the bounds with color().
 	virtual void paint(Painter& painter) const;
 
@@ -144,6 +160,7 @@ private:
 	void adopt(std::unique_ptr<Panel> child);
 	void attachTo(Window* window) noexcept;
 
+	std::string id_;
 	Panel* parent_ = nullptr;
 	Window* window_ = nullptr;
 	std::vector<std::unique_ptr<Panel>> children_;

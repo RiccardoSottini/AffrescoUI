@@ -1,0 +1,147 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/RiccardoSottini/sGLGUI/schema/sglgui-screen.schema.json",
+	"title": "sGLGUI Screen Format, version 1",
+	"description": "A user interface for the sGLGUI library. Specification: SCREEN_FORMAT.md",
+	"type": "object",
+	"required": ["version", "root"],
+	"additionalProperties": false,
+	"properties": {
+		"$schema": { "type": "string" },
+		"format": { "const": "sglgui-screen" },
+		"version": { "const": 1 },
+		"window": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"title": { "type": "string" },
+				"width": { "type": "integer", "minimum": 1 },
+				"height": { "type": "integer", "minimum": 1 },
+				"minWidth": { "type": "integer", "minimum": 0 },
+				"minHeight": { "type": "integer", "minimum": 0 }
+			}
+		},
+		"fonts": {
+			"description": "Fonts by name. The font named \"default\" is used by every text without a \"font\".",
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"required": ["file", "size"],
+				"additionalProperties": false,
+				"properties": {
+					"file": { "type": "string", "description": "TrueType file, relative to the screen file" },
+					"size": { "type": "number", "exclusiveMinimum": 0, "description": "Pixel height" }
+				}
+			}
+		},
+		"colors": {
+			"description": "Named colors, referenced elsewhere as \"@name\"",
+			"type": "object",
+			"additionalProperties": { "$ref": "#/$defs/hexColor" }
+		},
+		"styles": {
+			"description": "Reusable sets of node properties, applied with \"style\"",
+			"type": "object",
+			"additionalProperties": { "$ref": "#/$defs/node" }
+		},
+		"templates": {
+			"description": "Nodes that code builds on demand (Screen::instantiate), e.g. one per chat message",
+			"type": "object",
+			"additionalProperties": { "$ref": "#/$defs/node" }
+		},
+		"root": { "$ref": "#/$defs/node", "description": "The window's root panel: it always fills the window" }
+	},
+	"$defs": {
+		"hexColor": { "type": "string", "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$" },
+		"color": {
+			"type": "string",
+			"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_-]*|transparent)$",
+			"description": "\"#rgb\", \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\""
+		},
+		"length": {
+			"description": "Pixels (120 or \"120px\") or a percentage of the parent (\"50%\")",
+			"oneOf": [{ "type": "number" }, { "type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?(px|%)?$" }]
+		},
+		"align": { "enum": ["start", "center", "end"] },
+		"state": {
+			"type": "object",
+			"required": ["color"],
+			"additionalProperties": false,
+			"properties": { "color": { "$ref": "#/$defs/color" } }
+		},
+		"node": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"description": "panel (default), label, textarea, stack, or a type registered by the application",
+					"anyOf": [{ "enum": ["panel", "label", "textarea", "stack"] }, { "type": "string" }]
+				},
+				"id": { "type": "string" },
+				"style": {
+					"oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }]
+				},
+				"children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+
+				"x": { "$ref": "#/$defs/length" },
+				"y": { "$ref": "#/$defs/length" },
+				"width": { "$ref": "#/$defs/length" },
+				"height": { "$ref": "#/$defs/length" },
+				"minWidth": { "$ref": "#/$defs/length" },
+				"minHeight": { "$ref": "#/$defs/length" },
+				"anchors": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"top": { "$ref": "#/$defs/length" },
+						"bottom": { "$ref": "#/$defs/length" },
+						"left": { "$ref": "#/$defs/length" },
+						"right": { "$ref": "#/$defs/length" }
+					}
+				},
+				"fill": { "description": "Anchor all four edges, this far in", "oneOf": [{ "const": true }, { "$ref": "#/$defs/length" }] },
+
+				"color": { "$ref": "#/$defs/color" },
+				"visible": { "type": "boolean" },
+				"cursor": { "enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"] },
+				"hover": { "$ref": "#/$defs/state" },
+				"pressed": { "$ref": "#/$defs/state" },
+				"focused": { "$ref": "#/$defs/state" },
+				"onClick": { "type": "string", "description": "Name of the action the application handles" },
+
+				"text": { "type": "string", "description": "label, textarea" },
+				"textColor": { "$ref": "#/$defs/color" },
+				"font": { "type": "string", "description": "Name from \"fonts\"" },
+				"padding": { "type": "number", "minimum": 0 },
+				"align": {
+					"description": "label: text alignment (one value for both axes, or per axis). stack: start or end.",
+					"oneOf": [
+						{ "$ref": "#/$defs/align" },
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": { "horizontal": { "$ref": "#/$defs/align" }, "vertical": { "$ref": "#/$defs/align" } }
+						}
+					]
+				},
+				"wrap": { "type": "boolean" },
+				"fitText": {
+					"description": "Size the label to its text",
+					"oneOf": [
+						{ "type": "boolean" },
+						{
+							"type": "object",
+							"required": ["maxWidth"],
+							"additionalProperties": false,
+							"properties": { "maxWidth": { "type": "number", "exclusiveMinimum": 0 } }
+						}
+					]
+				},
+				"placeholder": { "type": "string", "description": "textarea" },
+				"placeholderColor": { "$ref": "#/$defs/color" },
+				"gap": { "type": "number", "minimum": 0, "description": "stack" }
+			}
+		}
+	}
+}
