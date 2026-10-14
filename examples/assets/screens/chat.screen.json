@@ -1,0 +1,177 @@
+{
+	"$schema": "../../../schema/sglgui-screen.schema.json",
+	"format": "sglgui-screen",
+	"version": 1,
+
+	"window": { "title": "sGLGUI Chat", "width": 1200, "height": 800, "minWidth": 760, "minHeight": 520 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 16 }
+	},
+
+	"colors": {
+		"sidebar": "#111827",
+		"sidebarItem": "#1f2937",
+		"sidebarSelected": "#374151",
+		"sidebarText": "#e5e7eb",
+		"accent": "#6366f1",
+		"accentHover": "#7477f3",
+		"accentPressed": "#4f46e5",
+		"background": "#f8fafc",
+		"surface": "#ffffff",
+		"divider": "#e5e7eb",
+		"text": "#111827",
+		"mutedText": "#9ca3af",
+		"input": "#f1f5f9",
+		"inputFocused": "#eef2ff"
+	},
+
+	"styles": {
+		"button": {
+			"type": "label",
+			"color": "@accent",
+			"textColor": "#ffffff",
+			"align": "center",
+			"cursor": "hand",
+			"hover": { "color": "@accentHover" },
+			"pressed": { "color": "@accentPressed" }
+		},
+		"divider": { "height": 1, "color": "@divider" }
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "sidebar",
+				"anchors": { "left": 0, "top": 0, "bottom": 0 },
+				"width": 260,
+				"color": "@sidebar",
+				"children": [
+					{
+						"id": "newChat",
+						"style": "button",
+						"text": "+  New chat",
+						"anchors": { "left": 16, "right": 16, "top": 16 },
+						"height": 44,
+						"onClick": "newChat"
+					},
+					{
+						"id": "threadList",
+						"type": "stack",
+						"anchors": { "left": 12, "right": 12, "top": 84, "bottom": 0 },
+						"gap": 6
+					}
+				]
+			},
+			{
+				"id": "main",
+				"anchors": { "left": 260, "right": 0, "top": 0, "bottom": 0 },
+				"color": "@background",
+				"children": [
+					{
+						"id": "header",
+						"anchors": { "top": 0, "left": 0, "right": 0 },
+						"height": 64,
+						"color": "@surface",
+						"children": [
+							{ "style": "divider", "anchors": { "bottom": 0, "left": 0, "right": 0 } },
+							{
+								"id": "title",
+								"type": "label",
+								"fill": 0,
+								"padding": 24,
+								"align": { "horizontal": "start", "vertical": "center" },
+								"textColor": "@text"
+							}
+						]
+					},
+					{
+						"id": "composer",
+						"anchors": { "bottom": 0, "left": 0, "right": 0 },
+						"height": 96,
+						"color": "@surface",
+						"children": [
+							{ "style": "divider", "anchors": { "top": 0, "left": 0, "right": 0 } },
+							{
+								"id": "input",
+								"type": "textarea",
+								"anchors": { "top": 20, "bottom": 20, "left": 24, "right": 120 },
+								"padding": 14,
+								"placeholder": "Type a message...",
+								"color": "@input",
+								"focused": { "color": "@inputFocused" },
+								"textColor": "@text"
+							},
+							{
+								"id": "send",
+								"style": "button",
+								"text": "Send",
+								"anchors": { "top": 20, "bottom": 20, "right": 24 },
+								"width": 80,
+								"onClick": "send"
+							}
+						]
+					},
+					{
+						"id": "threadViews",
+						"anchors": { "top": 64, "bottom": 96, "left": 0, "right": 0 },
+						"color": "transparent"
+					}
+				]
+			},
+			{
+				"id": "splitter",
+				"type": "resizeHandle",
+				"anchors": { "top": 0, "bottom": 0 },
+				"x": 257,
+				"width": 6
+			}
+		]
+	},
+
+	"templates": {
+		"threadItem": {
+			"type": "label",
+			"text": "New chat",
+			"anchors": { "left": 0, "right": 0 },
+			"height": 40,
+			"padding": 12,
+			"align": { "horizontal": "start", "vertical": "center" },
+			"color": "@sidebarItem",
+			"textColor": "@sidebarText",
+			"cursor": "hand",
+			"onClick": "selectThread"
+		},
+		"thread": {
+			"fill": 0,
+			"color": "transparent",
+			"children": [
+				{
+					"id": "emptyHint",
+					"type": "label",
+					"text": "No messages yet. Type below to start.",
+					"fill": 0,
+					"align": "center",
+					"textColor": "@mutedText"
+				},
+				{
+					"id": "messages",
+					"type": "stack",
+					"anchors": { "left": 24, "right": 24, "top": 0, "bottom": 12 },
+					"gap": 12,
+					"align": "end"
+				}
+			]
+		},
+		"message": {
+			"type": "label",
+			"anchors": { "right": 0 },
+			"fitText": { "maxWidth": 404 },
+			"wrap": true,
+			"padding": 12,
+			"color": "@accent",
+			"textColor": "#ffffff"
+		}
+	}
+}

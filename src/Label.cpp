@@ -4,6 +4,7 @@
 
 #include "detail/Utf8.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -66,6 +67,26 @@ void Label::setAlignment(Align horizontal, Align vertical) {
 void Label::setWrap(bool wrap) {
 	wrap_ = wrap;
 	invalidate();
+}
+
+void Label::setFitToText(bool fit, float maxWidth) {
+	fitToText_ = fit;
+	fitMaxWidth_ = maxWidth;
+	invalidate();
+}
+
+void Label::prepareLayout() {
+	const Font* f = font();
+	if(!fitToText_ || !f) return;
+
+	const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
+	const std::vector<std::u32string_view> lines = f->wrap(text_, maxTextWidth);
+
+	float textWidth = 0.0f;
+	for(std::u32string_view line : lines) textWidth = std::max(textWidth, f->measure(line));
+
+	const auto lineCount = static_cast<float>(std::max<std::size_t>(lines.size(), 1));
+	setSize(px(std::ceil(textWidth) + 2.0f * padding_), px(lineCount * f->lineHeight() + 2.0f * padding_));
 }
 
 Rect Label::contentRect() const noexcept {

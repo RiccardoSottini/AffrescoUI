@@ -9,6 +9,13 @@ struct Vec2 {
 	constexpr bool operator==(const Vec2&) const noexcept = default;
 };
 
+// Placement of content inside a larger space, along one axis
+enum class Align {
+	Start,
+	Center,
+	End,
+};
+
 // Axis-aligned rectangle stored as its 4 edges, in window units (origin top-left, y pointing down)
 struct Rect {
 	float left = 0.0f;

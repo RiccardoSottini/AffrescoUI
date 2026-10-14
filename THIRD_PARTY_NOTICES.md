@@ -9,5 +9,6 @@ following components, which keep their own licenses:
 | stb_truetype 1.26 | `external/stb/` (vendored) | Public domain or MIT (end of `stb_truetype.h`) |
 | Roboto font | `examples/assets/fonts/` (vendored) | Apache License 2.0 (`examples/assets/fonts/LICENSE-Roboto.txt`) |
 | GLFW 3.4 | downloaded by CMake | zlib/libpng license |
+| nlohmann/json 3.11.3 | downloaded by CMake | MIT |
 
 Versions of sGLGUI published before this change were licensed under the GNU LGPL 3.0; those copies keep that license.

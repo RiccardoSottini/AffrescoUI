@@ -12,6 +12,24 @@ constexpr std::size_t index(Edge edge) noexcept { return static_cast<std::size_t
 
 } // namespace
 
+Panel& Panel::addChild(std::unique_ptr<Panel> child) {
+	Panel& ref = *child;
+	adopt(std::move(child));
+	return ref;
+}
+
+Panel* Panel::findById(std::string_view id) noexcept {
+	if(id_ == id) return this;
+	for(auto& child : children_)
+		if(Panel* found = child->findById(id)) return found;
+	return nullptr;
+}
+
+float Panel::measuredHeight(float reference) {
+	prepareLayout();
+	return std::max(height_.resolve(reference), minHeight_.resolve(reference));
+}
+
 void Panel::adopt(std::unique_ptr<Panel> child) {
 	child->parent_ = this;
 	child->attachTo(window_);
@@ -119,6 +137,8 @@ void Panel::setVisible(bool visible) {
 /* Layout */
 
 void Panel::layout(const Rect& parentBounds, Vec2 parentSize, bool parentShown) {
+	prepareLayout();
+
 	size_ = {std::max(width_.resolve(parentSize.x), minWidth_.resolve(parentSize.x)),
 	         std::max(height_.resolve(parentSize.y), minHeight_.resolve(parentSize.y))};
 
