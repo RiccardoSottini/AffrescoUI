@@ -13,3 +13,4 @@ At the end of every session:
 Build & check: `cmake -S . -B build -G Ninja && cmake --build build`, then
 `SGLGUI_SCREENSHOT=out.ppm ./build/chatbot_demo` and compare against `docs/media/chatbot-demo.png` (the empty first frame).
 Rules: never commit; keep things simple; no tests until asked.
+License: Apache-2.0 (the NOTICE file and its credit lines must stay). MCP server: `mcp/sglgui_mcp.py`.

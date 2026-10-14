@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sgl/Application.hpp"
+#include "sgl/Channel.hpp"
 #include "sgl/Color.hpp"
 #include "sgl/Events.hpp"
 #include "sgl/Font.hpp"

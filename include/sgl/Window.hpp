@@ -8,9 +8,11 @@
 #include <array>
 #include <concepts>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 struct GLFWwindow;
 struct GLFWcursor;
@@ -80,6 +82,10 @@ public:
 	void invalidate() noexcept {
 		if(!layingOut_) layoutDirty_ = redrawDirty_ = true; // changes made by the layout pass itself don't count
 	}
+	// Runs `task` once the event being handled has been fully delivered (or before the next frame).
+	// Lets event handlers rebuild parts of the UI, even the panel whose handler is running.
+	void defer(std::function<void()> task);
+
 	void render();                                          // lays out and draws only if something changed
 	bool saveScreenshot(const std::filesystem::path& path); // draws the current frame to a binary PPM image
 
@@ -105,6 +111,8 @@ private:
 	void routeCursorEnter(bool entered);
 
 	void setHovered(Panel* panel);
+	void forget(const Panel& panel) noexcept; // called by a panel being destroyed
+	void runDeferred();
 	void updateCursor();
 
 	struct HandleDeleter {
@@ -122,6 +130,8 @@ private:
 	bool layoutDirty_ = true;
 	bool redrawDirty_ = true;
 	bool layingOut_ = false;
+	int routing_ = 0; // depth of event delivery in progress
+	std::vector<std::function<void()>> deferred_;
 
 	std::shared_ptr<const Font> defaultFont_;
 	Panel* focused_ = nullptr;

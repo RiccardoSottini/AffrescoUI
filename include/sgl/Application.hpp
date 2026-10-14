@@ -2,7 +2,9 @@
 
 #include "sgl/Window.hpp"
 
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -26,9 +28,17 @@ public:
 	int run();
 	void quit();
 
+	// Runs `task` on the main thread, inside run(). Safe to call from any thread (e.g. a channel's reader).
+	void post(std::function<void()> task);
+
 private:
 	std::vector<std::unique_ptr<Window>> windows_;
 	bool running_ = false;
+
+	void runPostedTasks();
+
+	std::mutex tasksMutex_;
+	std::vector<std::function<void()>> tasks_;
 };
 
 } // namespace sgl

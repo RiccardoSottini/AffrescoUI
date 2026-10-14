@@ -119,7 +119,22 @@ void Window::draw() {
 	renderer_->draw(root_, width_, height_);
 }
 
+void Window::defer(std::function<void()> task) {
+	deferred_.push_back(std::move(task));
+	if(routing_ == 0) invalidate(); // make sure a frame comes, which runs it
+}
+
+void Window::runDeferred() {
+	// Tasks may defer more tasks: keep going until there are none
+	while(!deferred_.empty()) {
+		std::vector<std::function<void()>> tasks;
+		tasks.swap(deferred_);
+		for(auto& task : tasks) task();
+	}
+}
+
 void Window::render() {
+	runDeferred();
 	if(!redrawDirty_) return;
 
 	draw();
@@ -128,7 +143,8 @@ void Window::render() {
 }
 
 bool Window::saveScreenshot(const std::filesystem::path& path) {
-	draw(); // into the back buffer, without presenting it
+	runDeferred(); // pending UI updates belong in the picture
+	draw();        // into the back buffer, without presenting it
 
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(handle_.get(), &width, &height);
@@ -196,25 +212,35 @@ void Window::installCallbacks() {
 }
 
 void Window::routeKey(const KeyEvent& event) {
+	++routing_;
 	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
 	onKey(event);
+
+	if(--routing_ == 0) runDeferred();
 }
 
 void Window::routeChar(const CharEvent& event) {
+	++routing_;
 	if(focused_ && focused_->isShown()) focused_->charEvent(event);
 	onChar(event);
+
+	if(--routing_ == 0) runDeferred();
 }
 
 void Window::routeMouseMove(Vec2 position) {
+	++routing_;
 	cursor_ = position;
 	setHovered(panelAt(position));
 
 	const MouseMoveEvent event{position};
 	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(event);
 	onMouseMove(event);
+
+	if(--routing_ == 0) runDeferred();
 }
 
 void Window::routeMouseButton(const MouseButtonEvent& event) {
+	++routing_;
 	cursor_ = event.position;
 	Panel* hit = panelAt(event.position);
 	setHovered(hit);
@@ -232,16 +258,27 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 	}
 
 	onMouseButton(event);
+
+	if(--routing_ == 0) runDeferred();
 }
 
 void Window::routeScroll(const ScrollEvent& event) {
+	++routing_;
 	if(Panel* target = panelAt(event.position)) target->scrollEvent(event);
 	onScroll(event);
+
+	if(--routing_ == 0) runDeferred();
 }
 
 void Window::routeCursorEnter(bool entered) {
 	if(!entered) setHovered(nullptr);
 	onCursorEnter(CursorEnterEvent{entered});
+}
+
+void Window::forget(const Panel& panel) noexcept {
+	if(focused_ == &panel) focused_ = nullptr;
+	if(hovered_ == &panel) hovered_ = nullptr;
+	if(grabbed_ == &panel) grabbed_ = nullptr;
 }
 
 void Window::setHovered(Panel* panel) {

@@ -24,12 +24,14 @@ FetchContent_MakeAvailable(json)
 # Library. Vendored in external/: glad (OpenGL 4.1 core loader) and stb_truetype (font rasteriser).
 add_library(sglgui
 	src/Application.cpp
+	src/Channel.cpp
 	src/Color.cpp
 	src/Font.cpp
 	src/Label.cpp
 	src/Panel.cpp
 	src/Screen.cpp
 	src/Stack.cpp
+	src/screen/Expression.cpp
 	src/TextArea.cpp
 	src/Window.cpp
 	src/gl/Context.cpp

@@ -32,6 +32,7 @@ void TextArea::keyEvent(const KeyEvent& event) {
 	if(event.key == Key::Backspace && event.action != Action::Release && !text_.empty()) {
 		text_.pop_back();
 		invalidate();
+		onTextChanged(text());
 	}
 
 	Label::keyEvent(event);
@@ -40,6 +41,7 @@ void TextArea::keyEvent(const KeyEvent& event) {
 void TextArea::charEvent(const CharEvent& event) {
 	text_.push_back(event.codepoint);
 	invalidate();
+	onTextChanged(text());
 
 	Label::charEvent(event);
 }

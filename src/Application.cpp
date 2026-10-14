@@ -69,10 +69,28 @@ int Application::run() {
 		if(!anyOpen) break;
 
 		glfwWaitEvents(); // sleeps until there is input: no CPU or GPU used while idle
+		runPostedTasks();
 	}
 
 	running_ = false;
 	return EXIT_SUCCESS;
+}
+
+void Application::post(std::function<void()> task) {
+	{
+		const std::lock_guard lock(tasksMutex_);
+		tasks_.push_back(std::move(task));
+	}
+	glfwPostEmptyEvent(); // wake up glfwWaitEvents
+}
+
+void Application::runPostedTasks() {
+	std::vector<std::function<void()>> tasks;
+	{
+		const std::lock_guard lock(tasksMutex_);
+		tasks.swap(tasks_);
+	}
+	for(auto& task : tasks) task();
 }
 
 void Application::quit() {
