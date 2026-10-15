@@ -1,0 +1,450 @@
+{
+	"$schema": "../../../schema/sglgui-screen.schema.json",
+	"format": "sglgui-screen",
+	"version": 1,
+
+	"window": { "title": "Pulse: an sGLGUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 13 },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 18 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 24 },
+		"figure": { "file": "../fonts/Roboto-Regular.ttf", "size": 32 }
+	},
+
+	"colors": {
+		"background": "#f1f5f9",
+		"surface": "#ffffff",
+		"sidebar": "#0f172a",
+		"sidebarHover": "#1e293b",
+		"sidebarSelected": "#312e81",
+		"sidebarText": "#cbd5e1",
+		"sidebarMuted": "#64748b",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"border": "#e2e8f0",
+		"input": "#f1f5f9",
+		"inputFocused": "#e0e7ff",
+		"accent": "#6366f1",
+		"accentSoft": "#e0e7ff",
+		"bar": "#a5b4fc",
+		"barHover": "#818cf8",
+		"good": "#15803d",
+		"goodSoft": "#dcfce7",
+		"bad": "#b91c1c",
+		"badSoft": "#fee2e2",
+		"rowHover": "#f8fafc",
+		"track": "#e2e8f0"
+	},
+
+	"permissions": {
+		"authors": { "studio": "allow", "app": "allow", "agent": "review", "*": "review" },
+		"reviewers": ["studio"],
+		"locked": ["#statusBar"]
+	},
+
+	"state": {
+		"page": 0,
+		"pages": [{ "name": "Overview" }, { "name": "Analytics" }, { "name": "Customers" }, { "name": "Settings" }],
+		"search": "",
+		"kpis": [
+			{ "title": "Revenue", "value": "$84.2k", "delta": 12.4, "color": "#6366f1" },
+			{ "title": "Active users", "value": "12,480", "delta": 4.1, "color": "#0ea5e9" },
+			{ "title": "Conversion", "value": "3.6%", "delta": -0.8, "color": "#f59e0b" },
+			{ "title": "Avg. order", "value": "$68", "delta": 2.7, "color": "#10b981" }
+		],
+		"revenue": [
+			{ "month": "Jan", "value": 42 }, { "month": "Feb", "value": 48 }, { "month": "Mar", "value": 45 },
+			{ "month": "Apr", "value": 57 }, { "month": "May", "value": 61 }, { "month": "Jun", "value": 58 },
+			{ "month": "Jul", "value": 66 }, { "month": "Aug", "value": 71 }, { "month": "Sep", "value": 69 },
+			{ "month": "Oct", "value": 78 }, { "month": "Nov", "value": 84 }, { "month": "Dec", "value": 92 }
+		],
+		"selectedMonth": 11,
+		"tasks": [
+			{ "title": "Ship the dashboard template", "done": true },
+			{ "title": "Connect the sGLGUI Studio", "done": true },
+			{ "title": "Ask the AI for a dark theme", "done": false },
+			{ "title": "Build the Customers page", "done": false },
+			{ "title": "Export the changes as a plugin", "done": false }
+		],
+		"doneCount": 2,
+		"newTask": "",
+		"storage": 64
+	},
+
+	"styles": {
+		"card": { "fill": 8, "color": "@surface" },
+		"cardTitle": { "type": "label", "font": "heading", "textColor": "@text", "anchors": { "left": 24, "top": 20 }, "fitText": true },
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true }
+	},
+
+	"actions": {
+		"countDone": [
+			{ "set": "state.doneCount", "to": 0 },
+			{ "forEach": "state.tasks", "as": "task", "do": [{ "if": "{{task.done}}", "then": [{ "increment": "state.doneCount" }] }] }
+		],
+		"addTask": [
+			{ "if": { "$empty": "{{state.newTask}}" }, "then": [{ "stop": true }] },
+			{ "push": "state.tasks", "value": { "title": "{{state.newTask}}", "done": false } },
+			{ "set": "state.newTask", "to": "" },
+			{ "run": "countDone" }
+		]
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "sidebar",
+				"anchors": { "left": 0, "top": 0, "bottom": 0 },
+				"width": 232,
+				"color": "@sidebar",
+				"children": [
+					{ "type": "label", "text": "Pulse", "font": "title", "textColor": "#ffffff", "anchors": { "left": 28, "top": 26 }, "fitText": true },
+					{ "style": "caption", "text": "an sGLGUI template", "textColor": "@sidebarMuted", "anchors": { "left": 28, "top": 60 } },
+					{
+						"id": "nav",
+						"type": "stack",
+						"anchors": { "left": 12, "right": 12, "top": 108 },
+						"height": 200,
+						"gap": 4,
+						"children": [
+							{
+								"repeat": { "for": "page", "in": "state.pages" },
+								"type": "label",
+								"text": "{{page.name}}",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 42,
+								"padding": 16,
+								"align": { "horizontal": "start", "vertical": "center" },
+								"color": { "$if": [{ "$equals": ["{{index}}", "{{state.page}}"] }, "@sidebarSelected", "@sidebar"] },
+								"hover": { "color": { "$if": [{ "$equals": ["{{index}}", "{{state.page}}"] }, "@sidebarSelected", "@sidebarHover"] } },
+								"textColor": { "$if": [{ "$equals": ["{{index}}", "{{state.page}}"] }, "#ffffff", "@sidebarText"] },
+								"cursor": "hand",
+								"onClick": [{ "set": "state.page", "to": "{{index}}" }],
+								"children": [
+									{ "when": { "$equals": ["{{index}}", "{{state.page}}"] }, "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": 3, "color": "@accent" }
+								]
+							}
+						]
+					},
+					{
+						"id": "storage",
+						"anchors": { "left": 16, "right": 16, "bottom": 20 },
+						"height": 76,
+						"color": "@sidebarHover",
+						"children": [
+							{ "style": "caption", "text": "Storage", "textColor": "@sidebarText", "anchors": { "left": 16, "top": 14 } },
+							{ "style": "caption", "text": "{{state.storage}}% used", "textColor": "@sidebarMuted", "anchors": { "right": 16, "top": 14 } },
+							{
+								"anchors": { "left": 16, "right": 16, "top": 46 },
+								"height": 6,
+								"color": "@sidebar",
+								"children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{state.storage}}%", "color": "@accent" }]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "main",
+				"anchors": { "left": 232, "right": 0, "top": 0, "bottom": 0 },
+				"color": "transparent",
+				"children": [
+					{
+						"id": "header",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 76,
+						"color": "@surface",
+						"children": [
+							{
+								"id": "pageTitle",
+								"type": "label",
+								"text": "{{state.pages[state.page].name}}",
+								"font": "title",
+								"textColor": "@text",
+								"anchors": { "left": 32, "top": 0, "bottom": 0 },
+								"width": 360,
+								"align": { "horizontal": "start", "vertical": "center" }
+							},
+							{
+								"id": "search",
+								"type": "textarea",
+								"anchors": { "right": 96, "top": 20 },
+								"width": 300,
+								"height": 36,
+								"padding": 12,
+								"color": "@input",
+								"focused": { "color": "@inputFocused" },
+								"textColor": "@text",
+								"placeholder": "Search...",
+								"placeholderColor": "@muted",
+								"bind": "state.search"
+							},
+							{
+								"id": "avatar",
+								"type": "label",
+								"text": "RS",
+								"anchors": { "right": 32, "top": 18 },
+								"width": 40,
+								"height": 40,
+								"align": "center",
+								"color": "@accent",
+								"textColor": "#ffffff",
+								"cursor": "hand"
+							},
+							{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@border" }
+						]
+					},
+					{
+						"id": "overview",
+						"when": { "$equals": ["{{state.page}}", 0] },
+						"anchors": { "left": 24, "right": 24, "top": 100, "bottom": 52 },
+						"color": "transparent",
+						"children": [
+							{
+								"id": "kpis",
+								"anchors": { "left": 0, "right": 0, "top": 0 },
+								"height": 128,
+								"color": "transparent",
+								"children": [
+									{
+										"repeat": { "for": "kpi", "in": "state.kpis" },
+										"anchors": { "top": 0, "bottom": 0 },
+										"x": { "$concat": [{ "$multiply": ["{{index}}", 25] }, "%"] },
+										"width": "25%",
+										"color": "transparent",
+										"children": [
+											{
+												"style": "card",
+												"children": [
+													{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 3, "color": "{{kpi.color}}" },
+													{ "style": "caption", "text": "{{kpi.title}}", "anchors": { "left": 20, "top": 20 } },
+													{ "type": "label", "text": "{{kpi.value}}", "font": "figure", "textColor": "@text", "anchors": { "left": 20, "top": 42 }, "fitText": true },
+													{
+														"style": "caption",
+														"text": { "$concat": [{ "$if": [{ "$greaterOrEqual": ["{{kpi.delta}}", 0] }, "+", ""] }, "{{kpi.delta}}% vs last month"] },
+														"anchors": { "left": 20, "bottom": 14 },
+														"padding": 4,
+														"color": { "$if": [{ "$greaterOrEqual": ["{{kpi.delta}}", 0] }, "@goodSoft", "@badSoft"] },
+														"textColor": { "$if": [{ "$greaterOrEqual": ["{{kpi.delta}}", 0] }, "@good", "@bad"] }
+													}
+												]
+											}
+										]
+									}
+								]
+							},
+							{
+								"id": "revenueCard",
+								"anchors": { "top": 144, "bottom": 0 },
+								"x": 0,
+								"width": "64%",
+								"color": "transparent",
+								"children": [
+									{
+										"style": "card",
+										"children": [
+											{ "style": "cardTitle", "text": "Revenue" },
+											{ "style": "caption", "text": "Last 12 months, in thousands of dollars. Click a bar.", "anchors": { "left": 24, "top": 48 } },
+											{
+												"type": "label",
+												"text": "{{state.revenue[state.selectedMonth].month}}:  ${{state.revenue[state.selectedMonth].value}}k",
+												"font": "heading",
+												"textColor": "@accent",
+												"anchors": { "right": 24, "top": 20 },
+												"fitText": true
+											},
+											{
+												"id": "chart",
+												"anchors": { "left": 24, "right": 24, "top": 88, "bottom": 44 },
+												"color": "transparent",
+												"children": [
+													{
+														"repeat": { "for": "line", "in": [0, 25, 50, 75] },
+														"anchors": { "left": 0, "right": 0 },
+														"y": { "$concat": ["{{line}}", "%"] },
+														"height": 1,
+														"color": "@border"
+													},
+													{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@track" },
+													{
+														"repeat": { "for": "month", "in": "state.revenue" },
+														"anchors": { "top": 0, "bottom": 0 },
+														"x": { "$concat": [{ "$multiply": ["{{index}}", 8.3333] }, "%"] },
+														"width": "8.3333%",
+														"color": "transparent",
+														"children": [
+															{
+																"anchors": { "left": 8, "right": 8, "bottom": 1 },
+																"height": "{{month.value}}%",
+																"color": { "$if": [{ "$equals": ["{{index}}", "{{state.selectedMonth}}"] }, "@accent", "@bar"] },
+																"hover": { "color": { "$if": [{ "$equals": ["{{index}}", "{{state.selectedMonth}}"] }, "@accent", "@barHover"] } },
+																"cursor": "hand",
+																"onClick": [{ "set": "state.selectedMonth", "to": "{{index}}" }]
+															}
+														]
+													}
+												]
+											},
+											{
+												"anchors": { "left": 24, "right": 24, "bottom": 16 },
+												"height": 20,
+												"color": "transparent",
+												"children": [
+													{
+														"repeat": { "for": "month", "in": "state.revenue" },
+														"type": "label",
+														"text": "{{month.month}}",
+														"font": "small",
+														"textColor": "@muted",
+														"anchors": { "top": 0, "bottom": 0 },
+														"x": { "$concat": [{ "$multiply": ["{{index}}", 8.3333] }, "%"] },
+														"width": "8.3333%",
+														"align": "center"
+													}
+												]
+											}
+										]
+									}
+								]
+							},
+							{
+								"id": "tasksCard",
+								"anchors": { "top": 144, "bottom": 0 },
+								"x": "64%",
+								"width": "36%",
+								"color": "transparent",
+								"children": [
+									{
+										"style": "card",
+										"children": [
+											{ "style": "cardTitle", "text": "Tasks" },
+											{
+												"style": "caption",
+												"text": { "$concat": ["{{state.doneCount}} of ", { "$length": "{{state.tasks}}" }, " done"] },
+												"anchors": { "right": 24, "top": 24 }
+											},
+											{
+												"anchors": { "left": 24, "right": 24, "top": 58 },
+												"height": 6,
+												"color": "@track",
+												"children": [
+													{
+														"anchors": { "left": 0, "top": 0, "bottom": 0 },
+														"width": { "$concat": [{ "$round": { "$divide": [{ "$multiply": ["{{state.doneCount}}", 100] }, { "$max": [{ "$length": "{{state.tasks}}" }, 1] }] } }, "%"] },
+														"color": "@good"
+													}
+												]
+											},
+											{
+												"id": "taskList",
+												"type": "stack",
+												"anchors": { "left": 12, "right": 12, "top": 80, "bottom": 72 },
+												"gap": 2,
+												"children": [
+													{
+														"repeat": { "for": "task", "in": "state.tasks" },
+														"anchors": { "left": 0, "right": 0 },
+														"height": 40,
+														"color": "@surface",
+														"hover": { "color": "@rowHover" },
+														"cursor": "hand",
+														"onClick": [{ "toggle": "state.tasks[index].done" }, { "run": "countDone" }],
+														"children": [
+															{
+																"anchors": { "left": 12, "top": 11 },
+																"width": 18,
+																"height": 18,
+																"color": { "$if": ["{{task.done}}", "@good", "@track"] },
+																"children": [
+																	{ "when": { "$not": "{{task.done}}" }, "fill": 2, "color": "@surface" },
+																	{ "when": "{{task.done}}", "fill": 6, "color": "#ffffff" }
+																]
+															},
+															{
+																"type": "label",
+																"text": "{{task.title}}",
+																"textColor": { "$if": ["{{task.done}}", "@muted", "@text"] },
+																"anchors": { "left": 42, "right": 8, "top": 0, "bottom": 0 },
+																"align": { "horizontal": "start", "vertical": "center" }
+															}
+														]
+													}
+												]
+											},
+											{
+												"id": "newTask",
+												"type": "textarea",
+												"anchors": { "left": 24, "right": 24, "bottom": 20 },
+												"height": 38,
+												"padding": 12,
+												"color": "@input",
+												"focused": { "color": "@inputFocused" },
+												"textColor": "@text",
+												"placeholder": "Add a task and press Enter",
+												"placeholderColor": "@muted",
+												"bind": "state.newTask",
+												"onSubmit": "addTask"
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "emptyPage",
+						"when": { "$notEquals": ["{{state.page}}", 0] },
+						"anchors": { "left": 32, "right": 32, "top": 100, "bottom": 52 },
+						"color": "@surface",
+						"children": [
+							{
+								"type": "label",
+								"text": "{{state.pages[state.page].name}} has nothing on it yet",
+								"font": "heading",
+								"textColor": "@text",
+								"anchors": { "left": 0, "right": 0, "top": 0, "bottom": 24 },
+								"align": "center"
+							},
+							{
+								"type": "label",
+								"text": "Describe it in the sGLGUI Studio and an AI agent will build it, live.",
+								"textColor": "@muted",
+								"anchors": { "left": 0, "right": 0, "top": 40, "bottom": 0 },
+								"align": "center"
+							}
+						]
+					},
+					{
+						"id": "statusBar",
+						"anchors": { "left": 0, "right": 0, "bottom": 0 },
+						"height": 32,
+						"color": "@surface",
+						"children": [
+							{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+							{
+								"type": "label",
+								"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
+								"font": "small",
+								"textColor": "@muted",
+								"anchors": { "left": 32, "top": 0, "bottom": 0, "right": 200 },
+								"align": { "horizontal": "start", "vertical": "center" }
+							},
+							{
+								"type": "label",
+								"text": "{{window.width}} × {{window.height}}",
+								"font": "small",
+								"textColor": "@muted",
+								"anchors": { "right": 32, "top": 0, "bottom": 0 },
+								"width": 160,
+								"align": { "horizontal": "end", "vertical": "center" }
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+}
