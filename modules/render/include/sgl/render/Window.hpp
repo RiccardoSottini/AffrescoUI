@@ -66,6 +66,10 @@ public:
 	void setDefaultFont(std::shared_ptr<const Font> font);
 	[[nodiscard]] const Font* defaultFont() const noexcept { return defaultFont_.get(); }
 
+	// The system clipboard, as UTF-8
+	[[nodiscard]] std::string clipboardText() const;
+	void setClipboardText(const std::string& utf8);
+
 	[[nodiscard]] Panel* hoveredPanel() const noexcept { return hovered_; }
 	[[nodiscard]] Panel* mouseGrabber() const noexcept { return grabbed_; } // panel receiving the mouse during a drag
 

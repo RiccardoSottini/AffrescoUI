@@ -1,0 +1,55 @@
+#pragma once
+
+// Line framing shared by the POSIX channels: one message per line, read on a background thread
+
+#include "sgl/core/Channel.hpp"
+#include "sgl/core/Executor.hpp"
+
+#include <atomic>
+#include <memory>
+#include <string>
+#include <string_view>
+
+#include <unistd.h>
+
+namespace sgl::channel::detail {
+
+// Splits what arrives on `fd` into lines and hands each one to the main thread, then reports the end of the stream
+inline void readLines(int fd, Executor& executor, Channel& channel, std::shared_ptr<bool> alive,
+                      std::atomic<bool>* running) {
+	std::string buffer;
+	char chunk[4096];
+
+	while(true) {
+		const ssize_t n = read(fd, chunk, sizeof(chunk));
+		if(n <= 0) break;
+		buffer.append(chunk, static_cast<std::size_t>(n));
+
+		for(std::size_t end; (end = buffer.find('\n')) != std::string::npos;) {
+			std::string line = buffer.substr(0, end);
+			buffer.erase(0, end + 1);
+			if(line.empty()) continue;
+			executor.post([&channel, alive, line = std::move(line)] {
+				if(*alive) channel.onMessage(line);
+			});
+		}
+	}
+
+	if(running) *running = false;
+	executor.post([&channel, alive] {
+		if(*alive) channel.onClosed();
+	});
+}
+
+inline bool writeAll(int fd, std::string_view message) {
+	std::string line(message);
+	line += '\n';
+	for(std::size_t written = 0; written < line.size();) {
+		const ssize_t n = write(fd, line.data() + written, line.size() - written);
+		if(n <= 0) return false;
+		written += static_cast<std::size_t>(n);
+	}
+	return true;
+}
+
+} // namespace sgl::channel::detail

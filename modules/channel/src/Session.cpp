@@ -1,6 +1,7 @@
 #include "sgl/channel/Session.hpp"
 
 #include <iostream>
+#include <utility>
 
 namespace sgl::channel {
 
@@ -16,6 +17,13 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author)
 			      {"revision", decision.revision}});
 		else send({{"type", "applied"}, {"proposal", decision.proposal}, {"revision", decision.revision}});
 	});
+	commits_ = versions_.onCommit.connect([this](const HistoryEntry& entry) {
+		json message = toJson(entry);
+		message["type"] = "committed";
+		message["revision"] = entry.number;
+		send(message);
+	});
+	reviews_ = versions_.onReviewChanged.connect([this] { send(reviewState()); });
 
 	// Introduce ourselves: whoever is on the other end gets the full picture to work from
 	send({{"type", "hello"},
@@ -23,15 +31,30 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author)
 	      {"revision", versions_.head().number},
 	      {"document", versions_.document()},
 	      {"state", versions_.state()},
-	      {"you", author_}});
+	      {"you", author_},
+	      {"canReview", versions_.mayReview(author_)}});
 }
 
 Session::~Session() {
 	channel_.onMessage.disconnect(messages_);
 	versions_.onDecision.disconnect(decisions_);
+	versions_.onCommit.disconnect(commits_);
+	versions_.onReviewChanged.disconnect(reviews_);
 }
 
 void Session::send(const json& message) { channel_.send(message.dump()); }
+
+// Proposals waiting for a decision, the one being previewed, and whether auto-accept is on
+json Session::reviewState() const {
+	json proposals = json::array();
+	for(const ProposalInfo& p : versions_.proposals()) proposals.push_back(toJson(p));
+	const auto previewing = versions_.previewing();
+	return {{"type", "review"},
+	        {"proposals", proposals},
+	        {"previewing", previewing ? json(*previewing) : json()},
+	        {"autoAccept", versions_.autoAccept()},
+	        {"revision", versions_.head().number}};
+}
 
 // One JSON object per line
 void Session::handle(const std::string& line) {
@@ -65,6 +88,21 @@ void Session::handle(const std::string& line) {
 		}
 	};
 
+	// Deciding on proposals is for reviewers only: an agent must not approve its own changes
+	auto review = [&](auto&& decide) {
+		if(!versions_.mayReview(author_)) {
+			send({{"type", "rejected"},
+			      {"error", "permission denied: '" + author_ + "' may not review changes"},
+			      {"revision", versions_.head().number},
+			      {"id", id}});
+			return;
+		}
+		const std::optional<std::string> error = decide();
+		if(error) send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", id}});
+		else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", id}});
+	};
+	auto proposal = [&] { return expect::integer(message.value("proposal", json()), type + ".proposal"); };
+
 	try {
 		if(type == "revision") {
 			reply(versions_.submit(authored(message)));
@@ -72,19 +110,46 @@ void Session::handle(const std::string& line) {
 			// Going back is a change like any other: it follows the author's policy too
 			const std::string author = authored(json::object())["author"];
 			const auto history = versions_.history();
-			const int target = type == "restore"    ? expect::integer(message.value("revision", json()), "restore.revision")
+			const int target = type == "restore"
+			                       ? expect::integer(message.value("revision", json()), "restore.revision")
 			                   : history.size() > 1 ? history[history.size() - 2].number
 			                                        : history.back().number;
 			reply(versions_.submit(versions_.restoreRevision(target, author)));
+		} else if(type == "accept") {
+			review([&] { return versions_.accept(proposal()); });
+		} else if(type == "reject") {
+			review([&]() -> std::optional<std::string> {
+				const int p = proposal();
+				if(versions_.reject(p, toText(message.value("reason", json(""))))) return std::nullopt;
+				return "sGLGUI screen: no proposal " + std::to_string(p);
+			});
+		} else if(type == "preview") {
+			review([&] { return versions_.preview(proposal()); });
+		} else if(type == "endPreview") {
+			review([&]() -> std::optional<std::string> {
+				versions_.endPreview();
+				return std::nullopt;
+			});
+		} else if(type == "setAutoAccept") {
+			review([&]() -> std::optional<std::string> {
+				versions_.setAutoAccept(expect::boolean(message.value("enabled", json()), "setAutoAccept.enabled"));
+				return std::nullopt;
+			});
+		} else if(type == "request" || type == "reply") {
+			json relayed = message;
+			relayed["from"] = authored(json::object())["author"];
+			onRelay(relayed);
 		} else if(type == "getDocument") {
-			json proposals = json::array();
-			for(const ProposalInfo& p : versions_.proposals()) proposals.push_back(toJson(p));
+			json state = reviewState();
 			send({{"type", "document"},
 			      {"revision", versions_.head().number},
 			      {"document", versions_.document()},
 			      {"state", versions_.state()},
-			      {"proposals", proposals},
+			      {"proposals", state["proposals"]},
+			      {"previewing", state["previewing"]},
+			      {"autoAccept", state["autoAccept"]},
 			      {"you", author_},
+			      {"canReview", versions_.mayReview(author_)},
 			      {"id", id}});
 		} else if(type == "getHistory") {
 			json entries = json::array();

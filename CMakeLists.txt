@@ -78,7 +78,7 @@ target_link_libraries(sglgui_format PUBLIC sglgui::core sglgui::render nlohmann_
 sglgui_module(vcs modules/vcs/src/Repository.cpp)
 target_link_libraries(sglgui_vcs PUBLIC sglgui::core nlohmann_json::nlohmann_json)
 
-sglgui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp)
+sglgui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
 target_link_libraries(sglgui_channel PUBLIC sglgui::core nlohmann_json::nlohmann_json)
 
 # sglgui: the whole library

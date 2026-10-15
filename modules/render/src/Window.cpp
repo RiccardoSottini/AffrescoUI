@@ -79,6 +79,13 @@ void Window::setFocus(Panel* panel) {
 	if(focused_) focused_->focusEvent(true);
 }
 
+std::string Window::clipboardText() const {
+	const char* text = glfwGetClipboardString(handle_.get());
+	return text ? text : "";
+}
+
+void Window::setClipboardText(const std::string& utf8) { glfwSetClipboardString(handle_.get(), utf8.c_str()); }
+
 void Window::setDefaultFont(std::shared_ptr<const Font> font) {
 	defaultFont_ = std::move(font);
 	invalidate();

@@ -2,6 +2,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
@@ -44,19 +45,14 @@ Window& Application::createWindow(std::string title, int width, int height) {
 }
 
 int Application::run() {
-	if(const char* screenshot = std::getenv("SGLGUI_SCREENSHOT")) {
-		bool saved = true;
-		for(std::size_t i = 0; i < windows_.size(); ++i) {
-			const std::string path = i == 0 ? screenshot : std::string(screenshot) + "." + std::to_string(i);
-			const bool ok = windows_[i]->saveScreenshot(path);
-			std::cout << "sGLGUI: screenshot " << (ok ? "saved: " : "FAILED: ") << path << '\n';
-			saved = saved && ok;
-		}
-		return saved ? EXIT_SUCCESS : EXIT_FAILURE;
-	}
+	// SGLGUI_SCREENSHOT=<file.ppm>: save a frame of each window and return. SGLGUI_SCREENSHOT_AFTER=<ms>: run normally
+	// for that long first (e.g. so peers can connect and change the screen)
+	const char* screenshot = std::getenv("SGLGUI_SCREENSHOT");
+	const char* after = std::getenv("SGLGUI_SCREENSHOT_AFTER");
+	const double deadline = glfwGetTime() + (after ? std::atof(after) / 1000.0 : 0.0);
 
 	running_ = true;
-	while(running_) {
+	while(running_ && !(screenshot && glfwGetTime() >= deadline)) {
 		bool anyOpen = false;
 		for(auto& window : windows_) {
 			if(window->shouldClose()) {
@@ -68,12 +64,22 @@ int Application::run() {
 		}
 		if(!anyOpen) break;
 
-		glfwWaitEvents(); // sleeps until there is input: no CPU or GPU used while idle
+		// Sleeps until there is input: no CPU or GPU used while idle
+		if(screenshot) glfwWaitEventsTimeout(std::max(0.0, deadline - glfwGetTime()));
+		else glfwWaitEvents();
 		runPostedTasks();
 	}
-
 	running_ = false;
-	return EXIT_SUCCESS;
+
+	if(!screenshot) return EXIT_SUCCESS;
+	bool saved = true;
+	for(std::size_t i = 0; i < windows_.size(); ++i) {
+		const std::string path = i == 0 ? screenshot : std::string(screenshot) + "." + std::to_string(i);
+		const bool ok = windows_[i]->saveScreenshot(path);
+		std::cout << "sGLGUI: screenshot " << (ok ? "saved: " : "FAILED: ") << path << '\n';
+		saved = saved && ok;
+	}
+	return saved ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void Application::post(std::function<void()> task) {

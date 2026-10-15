@@ -159,6 +159,11 @@
 									"pattern": "^(#|/)"
 								},
 								"description": "\"#id\" nodes or JSON Pointer paths (\"/actions/send\", \"/state/account\") no revision may change"
+							},
+							"reviewers": {
+								"type": "array",
+								"items": { "type": "string" },
+								"description": "Authors who may accept, reject or preview proposals and switch auto-accept over the live protocol (exact name or channel name). Without it, no peer may."
 							}
 						}
 					}
