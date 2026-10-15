@@ -232,8 +232,10 @@ json lookup(std::string_view path, const Context& context, const std::string& wh
 	else if(root == "event") current = &context.event;
 	else if(context.locals.contains(root)) current = &context.locals[root];
 	else if(context.globals.contains(root)) current = &context.globals[root];
-	else fail(where, "unknown variable '" + root + "' (state, event, window, revision, proposals, history, preview, or a "
-	                 "repeat/forEach name)");
+	else
+		fail(where, "unknown variable '" + root +
+		                "' (state, event, window, revision, proposals, history, preview, or a "
+		                "repeat/forEach name)");
 
 	for(std::size_t i = 1; i < keys.size(); ++i) {
 		const json& key = keys[i];

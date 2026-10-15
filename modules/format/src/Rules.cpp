@@ -67,8 +67,11 @@ void Rules::validate(const json& doc) const {
 			} else if(key == "locked") {
 				if(!value.is_array()) fail(at, "expected a list of \"#id\" or JSON Pointer paths");
 				for(const json& path : value) expect::string(path, at);
+			} else if(key == "reviewers") {
+				if(!value.is_array()) fail(at, "expected a list of author names");
+				for(const json& name : value) expect::string(name, at);
 			} else {
-				fail(at, "unknown property (expected authors or locked)");
+				fail(at, "unknown property (expected authors, reviewers or locked)");
 			}
 		}
 	}
@@ -111,6 +114,16 @@ Policy Rules::policyFor(const json& doc, std::string_view author) const {
 	if(policy == "deny") return Policy::Deny;
 	if(policy == "review") return Policy::Review;
 	return Policy::Allow;
+}
+
+// Without a "permissions" section anyone may; otherwise the authors in "permissions.reviewers" (exact name or channel
+// name: "studio" covers "studio/riccardo")
+bool Rules::mayReview(const json& doc, std::string_view author) const {
+	if(!doc.contains("permissions")) return true;
+	const json reviewers = doc["permissions"].value("reviewers", json::array());
+	const std::string name(author);
+	const std::string channel = name.substr(0, name.find('/'));
+	return std::ranges::any_of(reviewers, [&](const json& r) { return r == name || r == channel; });
 }
 
 // Listed in "permissions.locked", or nodes with "locked": true

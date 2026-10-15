@@ -26,7 +26,8 @@ public:
 	Window& createWindow(std::string title, int width, int height);
 
 	// Blocks until every window is closed or quit() is called.
-	// SGLGUI_SCREENSHOT=<file.ppm> saves the first frame of each window and returns instead.
+	// SGLGUI_SCREENSHOT=<file.ppm> saves the first frame of each window and returns instead; with
+	// SGLGUI_SCREENSHOT_AFTER=<ms>, after running normally for that long.
 	int run();
 	void quit();
 

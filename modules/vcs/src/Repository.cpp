@@ -43,6 +43,7 @@ void Repository::documentChanged() {
 
 void Repository::proposalsChanged() {
 	if(observer_) observer_->proposalsChanged();
+	onReviewChanged();
 }
 
 /* Checks */
@@ -145,6 +146,7 @@ std::optional<std::string> Repository::commit(const json& revision) {
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
+	if(!importing_) onCommit(head());
 	return std::nullopt;
 }
 
@@ -157,7 +159,7 @@ RevisionResult Repository::submit(const json& revision) {
 		return {RevisionStatus::Rejected, headNumber, 0,
 		        "permission denied: '" + author + "' may not change this screen"};
 
-	if(policy == Policy::Review) {
+	if(policy == Policy::Review && !autoAccept_) {
 		try {
 			(void)prepare(revision); // reject what could never apply now, while its author is still listening
 		} catch(const DocumentError& error) {
@@ -233,6 +235,7 @@ std::optional<std::string> Repository::preview(int proposal) {
 		endPreview();
 		return error.what();
 	}
+	onReviewChanged();
 	return std::nullopt;
 }
 
@@ -242,6 +245,15 @@ void Repository::endPreview() {
 	document_ = std::move(committedDocument_);
 	state_ = std::move(committedState_);
 	documentChanged();
+	onReviewChanged();
+}
+
+bool Repository::mayReview(std::string_view author) const { return rules_.mayReview(document_, author); }
+
+void Repository::setAutoAccept(bool enabled) {
+	if(autoAccept_ == enabled) return;
+	autoAccept_ = enabled;
+	onReviewChanged();
 }
 
 /* History */
@@ -283,6 +295,7 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 	const std::size_t oldHistory = history_.size();
 	const std::string name = changes.value("name", "changes");
 
+	importing_ = true;
 	for(std::size_t i = 0; i < changes["revisions"].size(); ++i) {
 		json revision = changes["revisions"][i];
 		if(revision.is_object()) {
@@ -290,12 +303,18 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 			revision["author"] = "plugin:" + name;
 		}
 		if(const auto error = commit(revision)) {
+			importing_ = false;
 			history_.resize(oldHistory, history_.front());
 			document_ = oldDocument;
 			state_ = oldState;
 			documentChanged();
 			return "changes.revisions[" + std::to_string(i) + "]: " + *error;
 		}
+	}
+	importing_ = false;
+	for(std::size_t i = oldHistory; i < history_.size(); ++i) {
+		const Revision& r = history_[i];
+		onCommit({r.number, r.author, r.message, r.time});
 	}
 	return std::nullopt;
 }

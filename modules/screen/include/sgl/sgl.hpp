@@ -26,6 +26,7 @@
 
 #include "sgl/channel/Channels.hpp"
 #include "sgl/channel/Session.hpp"
+#include "sgl/channel/Sockets.hpp"
 #include "sgl/format/Rules.hpp"
 #include "sgl/format/Runtime.hpp"
 #include "sgl/vcs/Repository.hpp"

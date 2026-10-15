@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sgl/core/Channel.hpp"
+#include "sgl/core/Executor.hpp"
 #include "sgl/core/Json.hpp"
 #include "sgl/core/Signal.hpp"
 #include "sgl/core/VersionControl.hpp"
@@ -31,7 +32,7 @@ using ScreenError = DocumentError;
 //   format::Rules      the screen format's rules          (DocumentRules)
 //   vcs::Repository    document, state, history, review   (VersionControl, uses DocumentRules)
 //   format::Runtime    panels, reconciliation, actions    (observes VersionControl, uses the rendering engine)
-//   channel::Session   the live protocol over a Channel   (uses VersionControl)
+//   channel::Session   the live protocol, one per peer    (uses VersionControl, any Channel)
 // Use the modules directly to put them together differently. Keep the Screen alive while its window is used.
 class Screen {
 public:
@@ -99,11 +100,22 @@ public:
 	[[nodiscard]] std::string stateJson() const;
 	Connection onEvent(std::function<void(const std::string& eventJson)> listener); // "emit" events
 
-	// Talks to whatever is on the other end of `channel` (the channel must outlive this screen): sends the document
-	// and "emit" events, receives revisions. Protocol: SCREEN_FORMAT.md, "Live screens".
-	// Everything arriving there is authored by `author` (the name "permissions.authors" knows it by), whatever
-	// name it gives itself: a channel can't claim to be someone it isn't.
+	/* Peers: programs that read and change the screen over the live protocol (SCREEN_FORMAT.md, "Live screens").
+	   The screen doesn't care what they are: a client app, an AI agent's MCP server, a script. Everything a peer sends
+	   is authored by the name it was connected with (the name "permissions" knows it by), whatever name it gives
+	   itself. Every peer hears about commits, proposals and "emit" events; "request"/"reply" messages are passed on
+	   to the other peers. */
+
+	// A peer at the other end of `channel` (which must outlive this screen)
 	void connect(Channel& channel, std::string author = "channel");
+
+	// Accepts any number of peers on a local socket at `path` (POSIX). Each one is authored as `author`: give
+	// different kinds of peer different sockets, e.g. "studio.sock" for the user's client and "agent.sock" for an
+	// AI agent. Throws std::runtime_error if the socket can't be created.
+	void listen(Executor& executor, const std::filesystem::path& path, std::string author);
+
+	// See VersionControl::setAutoAccept: changes that would wait for review are applied right away
+	void setAutoAccept(bool enabled);
 
 	/* The modules, for code that needs more than this class offers */
 	[[nodiscard]] VersionControl& versions() noexcept;

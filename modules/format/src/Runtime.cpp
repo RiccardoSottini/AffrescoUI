@@ -272,7 +272,8 @@ const Runtime::Impl::Globals& Runtime::Impl::globals() const {
 
 json Runtime::Impl::evaluate(const json& value, const json& locals, const json& event, const std::string& where) const {
 	const Globals& g = globals();
-	return format::evaluate(value, format::Context{versions.state(), g.window, g.revision, event, locals, g.other}, where);
+	return format::evaluate(value, format::Context{versions.state(), g.window, g.revision, event, locals, g.other},
+	                        where);
 }
 
 // "#rrggbb", "@name" (from "colors") or "transparent"
@@ -384,7 +385,8 @@ void Runtime::Impl::hookUp(Panel& panel) {
 			try {
 				const json event = json::object();
 				const Globals& g = globals();
-				const format::Context context{versions.state(), g.window, g.revision, event, it->second.locals, g.other};
+				const format::Context context{versions.state(),  g.window, g.revision, event,
+				                              it->second.locals, g.other};
 				versions.state()[format::statePointer(*it->second.bind, context, it->second.path + ".bind")] = value;
 				requestReconcile();
 			} catch(const DocumentError& error) {
@@ -492,7 +494,7 @@ void Runtime::Impl::reset(Panel& panel, Record& record) {
 }
 
 void Runtime::Impl::apply(Panel& panel, Record& record, const json& properties, const std::string& path, bool isRoot,
-                         bool created) {
+                          bool created) {
 	reset(panel, record);
 
 	auto* label = dynamic_cast<Label*>(&panel);
@@ -706,7 +708,7 @@ void Runtime::Impl::report(const std::string& message) {
 
 // Runs an event handler: an action name or inline steps. Errors are reported, never thrown into the event loop.
 void Runtime::Impl::handle(const json& handler, Panel& sender, const json& event, const json& locals,
-                          const std::string& where) {
+                           const std::string& where) {
 	try {
 		json scope = locals;
 		if(handler.is_string()) runNamed(handler.get<std::string>(), sender, event, scope, where);
@@ -718,7 +720,7 @@ void Runtime::Impl::handle(const json& handler, Panel& sender, const json& event
 }
 
 void Runtime::Impl::runNamed(const std::string& name, Panel& sender, const json& event, const json& locals,
-                            const std::string& where) {
+                             const std::string& where) {
 	const json& document = versions.document();
 	if(document.contains("actions") && document["actions"].contains(name)) {
 		json scope = locals;
@@ -734,7 +736,7 @@ void Runtime::Impl::runNamed(const std::string& name, Panel& sender, const json&
 
 // Returns false when a "stop" step ends the action
 bool Runtime::Impl::runSteps(const json& steps, Panel& sender, const json& event, json& locals,
-                            const std::string& where) {
+                             const std::string& where) {
 	if(++actionDepth > maxActionDepth) {
 		--actionDepth;
 		fail(where, "actions nested too deeply (more than 32 levels)");
@@ -752,7 +754,8 @@ bool Runtime::Impl::runSteps(const json& steps, Panel& sender, const json& event
 	return keepGoing;
 }
 
-bool Runtime::Impl::runStep(const json& step, Panel& sender, const json& event, json& locals, const std::string& where) {
+bool Runtime::Impl::runStep(const json& step, Panel& sender, const json& event, json& locals,
+                            const std::string& where) {
 	object(step, where);
 	json& state = versions.state();
 	const Globals& g = globals();

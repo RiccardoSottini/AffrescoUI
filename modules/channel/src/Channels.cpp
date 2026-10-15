@@ -22,6 +22,8 @@ void StdioChannel::send(std::string_view) {}
 
 #else
 
+#include "Lines.hpp"
+
 #include <csignal>
 #include <spawn.h>
 #include <sys/wait.h>
@@ -31,46 +33,8 @@ extern char** environ;
 
 namespace sgl::channel {
 
-namespace {
-
-// Splits what arrives on `fd` into lines and hands each one to the main thread, then reports the end of the stream
-void readLines(int fd, Executor& executor, Channel& channel, std::shared_ptr<bool> alive, std::atomic<bool>* running) {
-	std::string buffer;
-	char chunk[4096];
-
-	while(true) {
-		const ssize_t n = read(fd, chunk, sizeof(chunk));
-		if(n <= 0) break;
-		buffer.append(chunk, static_cast<std::size_t>(n));
-
-		for(std::size_t end; (end = buffer.find('\n')) != std::string::npos;) {
-			std::string line = buffer.substr(0, end);
-			buffer.erase(0, end + 1);
-			if(line.empty()) continue;
-			executor.post([&channel, alive, line = std::move(line)] {
-				if(*alive) channel.onMessage(line);
-			});
-		}
-	}
-
-	if(running) *running = false;
-	executor.post([&channel, alive] {
-		if(*alive) channel.onClosed();
-	});
-}
-
-bool writeAll(int fd, std::string_view message) {
-	std::string line(message);
-	line += '\n';
-	for(std::size_t written = 0; written < line.size();) {
-		const ssize_t n = write(fd, line.data() + written, line.size() - written);
-		if(n <= 0) return false;
-		written += static_cast<std::size_t>(n);
-	}
-	return true;
-}
-
-} // namespace
+using detail::readLines;
+using detail::writeAll;
 
 ProcessChannel::ProcessChannel(Executor& executor, const std::string& command) : executor_(executor) {
 	std::signal(SIGPIPE, SIG_IGN); // writing to a brain that exited must not kill the app
@@ -126,7 +90,9 @@ void ProcessChannel::send(std::string_view message) {
 StdioChannel::StdioChannel(Executor& executor) {
 	std::signal(SIGPIPE, SIG_IGN);
 	// Detached: a read() on stdin can't be interrupted, and the thread ends with the process anyway
-	std::thread([this, &executor, alive = alive_] { readLines(STDIN_FILENO, executor, *this, alive, nullptr); }).detach();
+	std::thread([this, &executor, alive = alive_] {
+		readLines(STDIN_FILENO, executor, *this, alive, nullptr);
+	}).detach();
 }
 
 StdioChannel::~StdioChannel() { *alive_ = false; }

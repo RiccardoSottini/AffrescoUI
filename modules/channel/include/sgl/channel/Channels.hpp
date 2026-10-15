@@ -16,7 +16,7 @@ namespace sgl::channel {
 class ProcessChannel final : public Channel {
 public:
 	ProcessChannel(Executor& executor, const std::string& command); // throws std::runtime_error
-	~ProcessChannel() override;                                   // closes its stdin and waits for it to exit
+	~ProcessChannel() override;                                     // closes its stdin and waits for it to exit
 
 	ProcessChannel(const ProcessChannel&) = delete;
 	ProcessChannel& operator=(const ProcessChannel&) = delete;

@@ -1,34 +1,79 @@
 #include "sgl/Screen.hpp"
 
 #include "sgl/channel/Session.hpp"
+#include "sgl/channel/Sockets.hpp"
 #include "sgl/format/Rules.hpp"
 #include "sgl/format/Runtime.hpp"
 #include "sgl/vcs/Repository.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
 namespace sgl {
 
+// A program connected to the screen: its channel (owned if it came through a socket) and its protocol session
+struct Peer {
+	std::unique_ptr<Channel> owned;
+	Channel* channel = nullptr;
+	std::unique_ptr<channel::Session> session;
+};
+
 // Declaration order is construction order: rules, then the repository that uses them, then the runtime and the
-// session that use the repository (destroyed the other way round)
+// peers that use the repository (destroyed the other way round; servers stop before their peers go)
 struct Screen::Impl {
 	format::Rules rules;
 	vcs::Repository repository;
 	format::Runtime runtime;
-	std::unique_ptr<channel::Session> session;
+	std::vector<std::unique_ptr<Peer>> peers;
+	std::vector<std::unique_ptr<channel::SocketServer>> servers;
 	Signal<const std::string&> events;
+	std::shared_ptr<bool> alive = std::make_shared<bool>(true); // guards removals still queued after destruction
 
 	Impl(json document, std::filesystem::path baseDirectory)
 	    : repository(rules, std::move(document)), runtime(repository, std::move(baseDirectory)) {
 		runtime.onEvent.connect([this](const json& event) {
-			if(session) session->send(event);
+			broadcast(event);
 			events(event.dump());
 		});
 		runtime.onError.connect([this](const std::string& message) {
-			if(session)
-				session->send({{"type", "error"}, {"message", message}, {"revision", repository.head().number}});
+			broadcast({{"type", "error"}, {"message", message}, {"revision", repository.head().number}});
 		});
+	}
+
+	~Impl() {
+		*alive = false;
+		servers.clear();
+	}
+
+	void broadcast(const json& message, const Peer* except = nullptr) {
+		for(const auto& peer : peers)
+			if(peer.get() != except) peer->session->send(message);
+	}
+
+	Peer& add(Channel& channel, std::unique_ptr<Channel> owned, std::string author) {
+		auto peer = std::make_unique<Peer>();
+		peer->owned = std::move(owned);
+		peer->channel = &channel;
+		peer->session = std::make_unique<channel::Session>(channel, repository, std::move(author));
+
+		// A request in plain words from one peer (e.g. the user's client) is for the others (e.g. an AI agent)
+		peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {
+			if(peers.size() < 2) {
+				sender->session->send({{"type", "error"},
+				                       {"message", "nobody else is connected to receive this " +
+				                                       message.value("type", std::string("message"))},
+				                       {"id", message.value("id", json())}});
+				return;
+			}
+			broadcast(message, sender);
+		});
+		peers.push_back(std::move(peer));
+		return *peers.back();
+	}
+
+	void remove(const Peer* peer) {
+		std::erase_if(peers, [peer](const auto& p) { return p.get() == peer; });
 	}
 };
 
@@ -185,9 +230,23 @@ VersionControl& Screen::versions() noexcept { return impl_->repository; }
 
 /* Channel */
 
-void Screen::connect(Channel& channel, std::string author) {
-	impl_->session.reset(); // one channel at a time
-	impl_->session = std::make_unique<channel::Session>(channel, impl_->repository, std::move(author));
+void Screen::connect(Channel& channel, std::string author) { impl_->add(channel, nullptr, std::move(author)); }
+
+void Screen::listen(Executor& executor, const std::filesystem::path& path, std::string author) {
+	Impl* impl = impl_.get();
+	impl->servers.push_back(std::make_unique<channel::SocketServer>(
+	    executor, path, [impl, &executor, author](std::unique_ptr<Channel> connection) {
+		    Channel& channel = *connection;
+		    Peer& peer = impl->add(channel, std::move(connection), author);
+		    // Gone: removed after the signal that says so has finished
+		    channel.onClosed.connect([impl, &executor, peer = &peer] {
+			    executor.post([impl, peer, alive = impl->alive] {
+				    if(*alive) impl->remove(peer);
+			    });
+		    });
+	    }));
 }
+
+void Screen::setAutoAccept(bool enabled) { impl_->repository.setAutoAccept(enabled); }
 
 } // namespace sgl

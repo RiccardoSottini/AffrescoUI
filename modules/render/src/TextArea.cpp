@@ -1,5 +1,6 @@
 #include "sgl/render/TextArea.hpp"
 #include "sgl/render/Painter.hpp"
+#include "sgl/render/Window.hpp"
 
 #include "detail/Utf8.hpp"
 
@@ -33,6 +34,18 @@ void TextArea::keyEvent(const KeyEvent& event) {
 		text_.pop_back();
 		invalidate();
 		onTextChanged(text());
+	}
+
+	const bool paste =
+	    event.key == Key::V && event.action != Action::Release && (event.mods.super() || event.mods.control());
+	if(paste && window()) {
+		std::u32string pasted = detail::fromUtf8(window()->clipboardText());
+		std::ranges::replace_if(pasted, [](char32_t c) { return c == U'\n' || c == U'\r' || c == U'\t'; }, U' ');
+		if(!pasted.empty()) {
+			text_ += pasted;
+			invalidate();
+			onTextChanged(text());
+		}
 	}
 
 	Label::keyEvent(event);

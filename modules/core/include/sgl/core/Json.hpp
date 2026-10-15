@@ -14,7 +14,8 @@ namespace sgl {
 
 using json = nlohmann::json;
 
-// A malformed document or a refused change. what() names the place, e.g. "root.children[1].anchors: unknown edge 'lefft'"
+// A malformed document or a refused change. what() names the place, e.g. "root.children[1].anchors: unknown edge
+// 'lefft'"
 class DocumentError : public std::runtime_error {
 public:
 	using std::runtime_error::runtime_error;

@@ -9,6 +9,7 @@ namespace sgl {
 
 // Single-line text input: collects what is typed while it has focus (click it to focus it).
 // Shows a placeholder when empty, a caret when focused, and scrolls so the end of the text stays visible.
+// Cmd+V / Ctrl+V pastes (line breaks become spaces).
 class TextArea : public Label {
 public:
 	TextArea();

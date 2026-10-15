@@ -11,6 +11,7 @@ public:
 	void validate(const json& document) const override;
 	[[nodiscard]] std::optional<std::string> findNode(const json& document, std::string_view id) const override;
 	[[nodiscard]] Policy policyFor(const json& document, std::string_view author) const override;
+	[[nodiscard]] bool mayReview(const json& document, std::string_view author) const override;
 	[[nodiscard]] std::vector<std::string> lockedPaths(const json& document) const override;
 	void checkChange(const json& before, const json& after) const override;
 };

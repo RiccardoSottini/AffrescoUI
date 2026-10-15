@@ -38,6 +38,9 @@ public:
 	std::optional<std::string> preview(int proposal) override;
 	void endPreview() override;
 	[[nodiscard]] std::optional<int> previewing() const override { return previewing_; }
+	[[nodiscard]] bool mayReview(std::string_view author) const override;
+	void setAutoAccept(bool enabled) override;
+	[[nodiscard]] bool autoAccept() const override { return autoAccept_; }
 
 	/* History */
 	[[nodiscard]] std::vector<HistoryEntry> history() const override;
@@ -84,6 +87,8 @@ private:
 	int nextProposal_ = 1;
 	std::optional<int> previewing_; // proposal shown in place of the committed document
 	json committedDocument_, committedState_;
+	bool autoAccept_ = false;
+	bool importing_ = false; // commits are announced once the whole change set is in
 };
 
 } // namespace sgl::vcs

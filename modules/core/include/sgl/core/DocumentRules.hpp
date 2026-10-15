@@ -32,6 +32,9 @@ public:
 	// What `document` lets `author` do
 	[[nodiscard]] virtual Policy policyFor(const json& document, std::string_view author) const = 0;
 
+	// Whether `author` may decide on proposals (accept, reject, preview) and switch auto-accept
+	[[nodiscard]] virtual bool mayReview(const json& document, std::string_view author) const = 0;
+
 	// Paths no revision may change: "#id", "/state/..." (the live state) or JSON Pointers into the document
 	[[nodiscard]] virtual std::vector<std::string> lockedPaths(const json& document) const = 0;
 

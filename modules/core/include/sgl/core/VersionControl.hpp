@@ -89,6 +89,12 @@ public:
 	virtual std::optional<std::string> preview(int proposal) = 0; // shows it live, without committing it
 	virtual void endPreview() = 0;
 	[[nodiscard]] virtual std::optional<int> previewing() const = 0;
+	[[nodiscard]] virtual bool mayReview(std::string_view author) const = 0; // from the document's rules
+
+	// Auto-accept: revisions that would be proposed for review are applied right away (the rules, locks and
+	// protected parts still apply). Proposals already waiting stay until someone decides on them.
+	virtual void setAutoAccept(bool enabled) = 0;
+	[[nodiscard]] virtual bool autoAccept() const = 0;
 
 	/* History */
 	[[nodiscard]] virtual std::vector<HistoryEntry> history() const = 0;
@@ -96,7 +102,10 @@ public:
 	[[nodiscard]] virtual json exportChanges(int fromRevision, std::string_view name) const = 0;
 	virtual std::optional<std::string> importChanges(const json& changes) = 0; // all or nothing
 
+	/* Notifications, e.g. for every connected peer (the VersionObserver is for the one that renders) */
 	Signal<const Decision&> onDecision;
+	Signal<const HistoryEntry&> onCommit; // a revision was committed, by anyone
+	Signal<> onReviewChanged;             // proposals, preview or auto-accept changed
 };
 
 inline json toJson(const ProposalInfo& p) {
