@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief vcs::Repository: version control for any JSON document and its live state.
+
 #include "sgl/core/DocumentRules.hpp"
 #include "sgl/core/VersionControl.hpp"
 
@@ -10,12 +13,17 @@
 
 namespace sgl::vcs {
 
-// Keeps a JSON document and its live state under version control. Knows nothing about what the document describes:
-// `rules` (which must outlive the repository) say what is valid, where "#id" nodes are, and who may change what.
-// See GOVERNANCE.md.
+/// @brief Keeps a JSON document and its live state under version control (see VERSION_CONTROL.md).
+///
+/// Knows nothing about what the document describes: the DocumentRules say what is valid, where "#id" nodes are, and
+/// who may change what. "review" revisions are checked against the current document before they are queued, so what
+/// could never apply is rejected while its author is still listening.
 class Repository final : public VersionControl {
 public:
-	// `document` becomes revision 0, its "state" the live state. Throws DocumentError if it isn't valid.
+	/// @brief Puts a document under version control as revision 0.
+	/// @param rules The document's rules; must outlive the repository.
+	/// @param document The document; its "state" becomes the live state.
+	/// @throws DocumentError If the document is not valid.
 	Repository(const DocumentRules& rules, json document);
 
 	void setObserver(VersionObserver* observer) override { observer_ = observer; }
@@ -48,47 +56,68 @@ public:
 	std::optional<std::string> importChanges(const json& changes) override;
 
 private:
+	/// @brief A committed revision.
 	struct Revision {
-		int number;
-		std::string author;
-		std::string message;
-		json document;
-		json patch = json::array(); // as submitted (with #id paths): what a change set carries
-		std::string time;           // UTC, ISO 8601
+		int number;                 ///< 0 is the document as loaded.
+		std::string author;         ///< Who made it.
+		std::string message;        ///< Why.
+		json document;              ///< The document after it.
+		json patch = json::array(); ///< As submitted (with #id paths): what a change set carries.
+		std::string time;           ///< UTC, ISO 8601.
 	};
 
-	// A revision waiting for the user's decision (author policy "review")
+	/// @brief A revision waiting for a reviewer (author policy "review").
 	struct Proposal {
-		int id;
-		json revision;
-		std::string time;
+		int id;           ///< Unique for the repository's lifetime.
+		json revision;    ///< As submitted.
+		std::string time; ///< UTC, ISO 8601.
 	};
 
-	// A document and state ready to commit, already checked against the permissions
+	/// @brief A document and state ready to commit, already checked against the permissions.
 	struct Prepared {
-		json document;
-		json state;
+		json document; ///< The document after the revision.
+		json state;    ///< The state after the revision.
 	};
 
+	/// @brief Resolves a "#id/rest" path to the node's JSON Pointer followed by "/rest".
+	/// @param doc The document to search.
+	/// @param path A JSON Pointer or an "#id" path.
+	/// @param where Its place in the revision, for errors.
+	/// @return A JSON Pointer.
+	/// @throws DocumentError If no node has that id.
 	[[nodiscard]] std::string resolvePath(const json& doc, const std::string& path, const std::string& where) const;
+	/// @brief Checks the rules every revision follows, whoever wrote it: the format's checkChange() and the locks.
+	/// @param newDocument The document after the revision.
+	/// @param newState The state after the revision.
+	/// @throws DocumentError If a rule is broken.
 	void checkPermissions(const json& newDocument, const json& newState) const;
+	/// @brief Computes what a revision leads to, changing nothing.
+	///
+	/// Checks "parent" against the head, resolves "#id" paths, sends "/state" operations to the state and the rest
+	/// to the document, then checks the permissions and validates the result.
+	/// @param revision The revision.
+	/// @return The new document and state.
+	/// @throws DocumentError If the revision can't apply.
 	[[nodiscard]] Prepared prepare(const json& revision) const;
+	/// @brief Tells the observer that the working copy changed.
+	/// @throws DocumentError If the observer refuses it.
 	void documentChanged();
+	/// @brief Tells the observer and onReviewChanged that the proposals changed.
 	void proposalsChanged();
 
-	const DocumentRules& rules_;
-	VersionObserver* observer_ = nullptr;
+	const DocumentRules& rules_;          ///< What is valid and who may change what.
+	VersionObserver* observer_ = nullptr; ///< The renderer.
 
-	json document_;
-	json state_ = json::object();
-	std::vector<Revision> history_; // history_.front() is the document as loaded
+	json document_;                 ///< The head, or the proposal being previewed.
+	json state_ = json::object();   ///< The live state.
+	std::vector<Revision> history_; ///< history_.front() is the document as loaded.
 
-	std::vector<Proposal> proposals_;
-	int nextProposal_ = 1;
-	std::optional<int> previewing_; // proposal shown in place of the committed document
-	json committedDocument_, committedState_;
-	bool autoAccept_ = false;
-	bool importing_ = false; // commits are announced once the whole change set is in
+	std::vector<Proposal> proposals_;         ///< Oldest first.
+	int nextProposal_ = 1;                    ///< Next proposal id.
+	std::optional<int> previewing_;           ///< Proposal shown in place of the committed document.
+	json committedDocument_, committedState_; ///< Kept aside during a preview.
+	bool autoAccept_ = false;                 ///< See setAutoAccept().
+	bool importing_ = false;                  ///< Commits are announced once the whole change set is in.
 };
 
 } // namespace sgl::vcs

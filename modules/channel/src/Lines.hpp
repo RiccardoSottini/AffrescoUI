@@ -1,6 +1,7 @@
 #pragma once
 
-// Line framing shared by the POSIX channels: one message per line, read on a background thread
+/// @file
+/// @brief Line framing shared by the POSIX channels: one message per line, read on a background thread.
 
 #include "sgl/core/Channel.hpp"
 #include "sgl/core/Executor.hpp"
@@ -14,7 +15,12 @@
 
 namespace sgl::channel::detail {
 
-// Splits what arrives on `fd` into lines and hands each one to the main thread, then reports the end of the stream
+/// @brief Reads @p fd until it closes, posting each line to the channel's onMessage, then onClosed.
+/// @param fd The descriptor to read.
+/// @param executor Delivers on the main thread.
+/// @param channel The channel whose signals fire.
+/// @param alive Cleared when the channel is destroyed; queued deliveries then do nothing.
+/// @param running Set to false when the stream ends (may be nullptr).
 inline void readLines(int fd, Executor& executor, Channel& channel, std::shared_ptr<bool> alive,
                       std::atomic<bool>* running) {
 	std::string buffer;
@@ -41,6 +47,10 @@ inline void readLines(int fd, Executor& executor, Channel& channel, std::shared_
 	});
 }
 
+/// @brief Writes a message followed by a line break.
+/// @param fd The descriptor.
+/// @param message The message.
+/// @return false if the write failed (the other end went away).
 inline bool writeAll(int fd, std::string_view message) {
 	std::string line(message);
 	line += '\n';

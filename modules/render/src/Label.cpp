@@ -13,6 +13,12 @@ namespace sgl {
 
 namespace {
 
+/// @brief Places content in a space, along one axis.
+/// @param align The placement.
+/// @param start Where the space starts.
+/// @param available The space's size.
+/// @param used The content's size.
+/// @return Where the content starts.
 float aligned(Align align, float start, float available, float used) noexcept {
 	switch(align) {
 	case Align::Start:

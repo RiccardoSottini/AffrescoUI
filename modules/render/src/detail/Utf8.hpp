@@ -1,10 +1,16 @@
 #pragma once
 
+/// @file
+/// @brief UTF-8 and UTF-32 conversion.
+
 #include <string>
 #include <string_view>
 
 namespace sgl::detail {
 
+/// @brief Appends a code point as UTF-8.
+/// @param out The string.
+/// @param cp The code point; invalid ones become U+FFFD.
 inline void appendUtf8(std::string& out, char32_t cp) {
 	auto byte = [&](char32_t value) { out.push_back(static_cast<char>(value)); };
 
@@ -27,6 +33,9 @@ inline void appendUtf8(std::string& out, char32_t cp) {
 	}
 }
 
+/// @brief Encodes code points as UTF-8.
+/// @param text The code points.
+/// @return UTF-8 text.
 inline std::string toUtf8(std::u32string_view text) {
 	std::string out;
 	out.reserve(text.size());
@@ -34,7 +43,9 @@ inline std::string toUtf8(std::u32string_view text) {
 	return out;
 }
 
-// Invalid or truncated sequences become U+FFFD
+/// @brief Decodes UTF-8.
+/// @param text UTF-8 text.
+/// @return The code points; invalid or truncated sequences become U+FFFD.
 inline std::u32string fromUtf8(std::string_view text) {
 	std::u32string out;
 	out.reserve(text.size());

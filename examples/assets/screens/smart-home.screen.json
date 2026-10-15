@@ -1,0 +1,528 @@
+{
+	"$schema": "../../../schema/sglgui-screen.schema.json",
+	"format": "sglgui-screen",
+	"version": 1,
+
+	"window": { "title": "Haven: an sGLGUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 26 },
+		"figure": { "file": "../fonts/Roboto-Regular.ttf", "size": 56 }
+	},
+
+	"colors": {
+		"background": "#0b1020",
+		"sidebar": "#0f1529",
+		"card": "#161d33",
+		"cardHover": "#1c2440",
+		"raised": "#222b48",
+		"raisedHover": "#2b355a",
+		"text": "#e5e9f5",
+		"muted": "#8b93ad",
+		"border": "#232b45",
+		"accent": "#22d3ee",
+		"accentSoft": "#0e3a4a",
+		"warm": "#fbbf24",
+		"warmSoft": "#3d3214",
+		"off": "#3a4363",
+		"selected": "#1f2a4a"
+	},
+
+	"permissions": {
+		"authors": { "studio": "allow", "app": "allow", "agent": "review", "*": "review" },
+		"reviewers": ["studio"],
+		"locked": ["#statusBar"]
+	},
+
+	"state": {
+		"room": 0,
+		"lightsOn": 2,
+		"mode": "Heat",
+		"modes": ["Heat", "Cool", "Auto"],
+		"scene": "",
+		"rooms": [
+			{
+				"name": "Living room",
+				"temp": 21.5,
+				"target": 22,
+				"humidity": 44,
+				"blinds": 60,
+				"lights": [
+					{ "name": "Ceiling", "on": true, "level": 80 },
+					{ "name": "Floor lamp", "on": true, "level": 40 },
+					{ "name": "TV backlight", "on": false, "level": 30 },
+					{ "name": "Shelf strip", "on": false, "level": 60 }
+				]
+			},
+			{
+				"name": "Kitchen",
+				"temp": 20.5,
+				"target": 21,
+				"humidity": 51,
+				"blinds": 100,
+				"lights": [
+					{ "name": "Pendants", "on": true, "level": 90 },
+					{ "name": "Under cabinet", "on": false, "level": 70 }
+				]
+			},
+			{
+				"name": "Bedroom",
+				"temp": 19,
+				"target": 18.5,
+				"humidity": 47,
+				"blinds": 0,
+				"lights": [
+					{ "name": "Bedside left", "on": false, "level": 30 },
+					{ "name": "Bedside right", "on": false, "level": 30 },
+					{ "name": "Wardrobe", "on": false, "level": 100 }
+				]
+			},
+			{
+				"name": "Office",
+				"temp": 22,
+				"target": 22,
+				"humidity": 40,
+				"blinds": 80,
+				"lights": [
+					{ "name": "Desk lamp", "on": true, "level": 100 },
+					{ "name": "Ceiling", "on": false, "level": 70 }
+				]
+			}
+		],
+		"scenes": [
+			"Morning",
+			"Movie night",
+			"Away",
+			"Good night"
+		],
+		"energy": [
+			{ "day": "Mon", "kwh": 62 }, { "day": "Tue", "kwh": 55 }, { "day": "Wed", "kwh": 71 }, { "day": "Thu", "kwh": 48 },
+			{ "day": "Fri", "kwh": 66 }, { "day": "Sat", "kwh": 83 }, { "day": "Sun", "kwh": 58 }
+		]
+	},
+
+	"styles": {
+		"card": { "color": "@card" },
+		"cardTitle": { "type": "label", "font": "heading", "textColor": "@text", "anchors": { "left": 24, "top": 20 }, "fitText": true },
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
+		"round": {
+			"type": "label",
+			"font": "heading",
+			"width": 44,
+			"height": 44,
+			"align": "center",
+			"color": "@raised",
+			"hover": { "color": "@raisedHover" },
+			"textColor": "@text",
+			"cursor": "hand"
+		}
+	},
+
+	"actions": {
+		"countLights": [
+			{ "set": "state.lightsOn", "to": 0 },
+			{ "forEach": "state.rooms[state.room].lights", "as": "light", "do": [{ "if": "{{light.on}}", "then": [{ "increment": "state.lightsOn" }] }] }
+		],
+		"sceneMorning": [
+			{ "forEach": "state.rooms[state.room].lights", "index": "i", "do": [{ "set": "state.rooms[state.room].lights[i].on", "to": true }, { "set": "state.rooms[state.room].lights[i].level", "to": 80 }] },
+			{ "set": "state.rooms[state.room].blinds", "to": 100 },
+			{ "set": "state.scene", "to": "Morning" },
+			{ "run": "countLights" }
+		],
+		"sceneMovie": [
+			{ "forEach": "state.rooms[state.room].lights", "index": "i", "do": [{ "set": "state.rooms[state.room].lights[i].level", "to": 20 }] },
+			{ "set": "state.rooms[state.room].blinds", "to": 0 },
+			{ "set": "state.scene", "to": "Movie night" },
+			{ "run": "countLights" }
+		],
+		"sceneAway": [
+			{ "forEach": "state.rooms", "index": "r", "do": [
+				{ "forEach": "state.rooms[r].lights", "index": "i", "do": [{ "set": "state.rooms[r].lights[i].on", "to": false }] },
+				{ "set": "state.rooms[r].target", "to": 17 }
+			] },
+			{ "set": "state.scene", "to": "Away" },
+			{ "run": "countLights" }
+		],
+		"sceneNight": [
+			{ "forEach": "state.rooms", "index": "r", "do": [
+				{ "forEach": "state.rooms[r].lights", "index": "i", "do": [{ "set": "state.rooms[r].lights[i].on", "to": false }] },
+				{ "set": "state.rooms[r].blinds", "to": 0 }
+			] },
+			{ "set": "state.scene", "to": "Good night" },
+			{ "run": "countLights" }
+		]
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "sidebar",
+				"anchors": { "left": 0, "top": 0, "bottom": 0 },
+				"width": 248,
+				"color": "@sidebar",
+				"children": [
+					{ "type": "label", "text": "Haven", "font": "title", "textColor": "@text", "anchors": { "left": 28, "top": 28 }, "fitText": true },
+					{ "style": "caption", "text": "an sGLGUI template", "anchors": { "left": 28, "top": 66 } },
+					{ "style": "caption", "text": "ROOMS", "anchors": { "left": 28, "top": 116 } },
+					{
+						"id": "rooms",
+						"type": "stack",
+						"anchors": { "left": 12, "right": 12, "top": 140 },
+						"height": 260,
+						"gap": 4,
+						"children": [
+							{
+								"repeat": { "for": "room", "in": "state.rooms" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 52,
+								"color": { "$if": [{ "$equals": ["{{index}}", "{{state.room}}"] }, "@selected", "@sidebar"] },
+								"children": [
+									{ "when": { "$equals": ["{{index}}", "{{state.room}}"] }, "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": 3, "color": "@accent" },
+									{
+										"type": "label",
+										"text": "{{room.name}}",
+										"textColor": "@text",
+										"anchors": { "left": 18, "top": 0, "bottom": 0 },
+										"width": 140,
+										"align": { "horizontal": "start", "vertical": "center" }
+									},
+									{
+										"type": "label",
+										"text": "{{room.temp}}°",
+										"font": "small",
+										"textColor": "@muted",
+										"anchors": { "right": 16, "top": 0, "bottom": 0 },
+										"width": 60,
+										"align": { "horizontal": "end", "vertical": "center" }
+									},
+									{
+										"fill": 0,
+										"color": "transparent",
+										"hover": { "color": "#ffffff0f" },
+										"cursor": "hand",
+										"onClick": [{ "set": "state.room", "to": "{{index}}" }, { "run": "countLights" }]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "energy",
+						"anchors": { "left": 16, "right": 16, "bottom": 52 },
+						"height": 176,
+						"style": "card",
+						"children": [
+							{ "style": "caption", "text": "Energy this week", "anchors": { "left": 16, "top": 16 } },
+							{ "type": "label", "text": "443 kWh", "font": "heading", "textColor": "@text", "anchors": { "left": 16, "top": 36 }, "fitText": true },
+							{
+								"anchors": { "left": 16, "right": 16, "top": 70, "bottom": 34 },
+								"color": "transparent",
+								"children": [
+									{
+										"repeat": { "for": "d", "in": "state.energy" },
+										"anchors": { "top": 0, "bottom": 0 },
+										"x": { "$concat": [{ "$multiply": ["{{index}}", 14.2857] }, "%"] },
+										"width": "14.2857%",
+										"color": "transparent",
+										"children": [{ "anchors": { "left": 4, "right": 4, "bottom": 0 }, "height": "{{d.kwh}}%", "color": { "$if": [{ "$equals": ["{{index}}", 5] }, "@warm", "@accent"] } }]
+									}
+								]
+							},
+							{
+								"anchors": { "left": 16, "right": 16, "bottom": 10 },
+								"height": 18,
+								"color": "transparent",
+								"children": [
+									{
+										"repeat": { "for": "d", "in": "state.energy" },
+										"type": "label",
+										"text": { "$concat": ["{{d.day}}"] },
+										"font": "small",
+										"textColor": "@muted",
+										"anchors": { "top": 0, "bottom": 0 },
+										"x": { "$concat": [{ "$multiply": ["{{index}}", 14.2857] }, "%"] },
+										"width": "14.2857%",
+										"align": "center"
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "main",
+				"anchors": { "left": 248, "right": 0, "top": 0, "bottom": 32 },
+				"color": "transparent",
+				"children": [
+					{
+						"id": "greeting",
+						"type": "label",
+						"text": "{{state.rooms[state.room].name}}",
+						"font": "title",
+						"textColor": "@text",
+						"anchors": { "left": 32, "top": 28 },
+						"fitText": true
+					},
+					{
+						"style": "caption",
+						"text": { "$concat": ["{{state.lightsOn}} of ", { "$length": "{{state.rooms[state.room].lights}}" }, " lights on", { "$if": ["{{state.scene}}", { "$concat": ["  ·  scene: ", "{{state.scene}}"] }, ""] }] },
+						"anchors": { "left": 32, "top": 66 }
+					},
+					{
+						"id": "weather",
+						"anchors": { "right": 32, "top": 24 },
+						"width": 220,
+						"height": 56,
+						"style": "card",
+						"children": [
+							{ "type": "label", "text": "14°", "font": "title", "textColor": "@warm", "anchors": { "left": 16, "top": 0, "bottom": 0 }, "width": 60, "align": { "horizontal": "start", "vertical": "center" } },
+							{ "style": "caption", "text": "Outside", "anchors": { "left": 80, "top": 12 } },
+							{ "style": "caption", "text": "Cloudy, light wind", "textColor": "@text", "anchors": { "left": 80, "top": 29 } }
+						]
+					},
+					{
+						"id": "scenes",
+						"anchors": { "left": 24, "right": 24, "top": 104 },
+						"height": 64,
+						"color": "transparent",
+						"children": [
+							{
+								"repeat": { "for": "scene", "in": "state.scenes" },
+								"anchors": { "top": 0, "bottom": 0 },
+								"x": { "$concat": [{ "$multiply": ["{{index}}", 25] }, "%"] },
+								"width": "25%",
+								"color": "transparent",
+								"children": [
+									{
+										"type": "label",
+										"text": "{{scene}}",
+										"fill": 8,
+										"align": "center",
+										"color": { "$if": [{ "$equals": ["{{scene}}", "{{state.scene}}"] }, "@accentSoft", "@card"] },
+										"hover": { "color": "@cardHover" },
+										"textColor": { "$if": [{ "$equals": ["{{scene}}", "{{state.scene}}"] }, "@accent", "@text"] },
+										"cursor": "hand",
+										"onClick": [
+											{ "if": { "$equals": ["{{scene}}", "Morning"] }, "then": [{ "run": "sceneMorning" }] },
+											{ "if": { "$equals": ["{{scene}}", "Movie night"] }, "then": [{ "run": "sceneMovie" }] },
+											{ "if": { "$equals": ["{{scene}}", "Away"] }, "then": [{ "run": "sceneAway" }] },
+											{ "if": { "$equals": ["{{scene}}", "Good night"] }, "then": [{ "run": "sceneNight" }] }
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "lightsCard",
+						"anchors": { "left": 32, "top": 184, "bottom": 24 },
+						"width": "56%",
+						"style": "card",
+						"children": [
+							{ "style": "cardTitle", "text": "Lights" },
+							{ "style": "caption", "text": "Click a light to switch it, - and + to dim it", "anchors": { "right": 24, "top": 24 } },
+							{
+								"type": "stack",
+								"anchors": { "left": 16, "right": 16, "top": 64, "bottom": 16 },
+								"gap": 8,
+								"children": [
+									{
+										"repeat": { "for": "light", "in": "state.rooms[state.room].lights", "index": "i" },
+										"anchors": { "left": 0, "right": 0 },
+										"height": 76,
+										"color": { "$if": ["{{light.on}}", "@warmSoft", "@raised"] },
+										"children": [
+											{
+												"anchors": { "left": 0, "top": 0, "bottom": 0, "right": 196 },
+												"color": "transparent",
+												"children": [
+													{
+														"anchors": { "left": 16, "top": 26 },
+														"width": 44,
+														"height": 24,
+														"color": { "$if": ["{{light.on}}", "@warm", "@off"] },
+														"children": [{ "anchors": { "left": { "$if": ["{{light.on}}", 23, 3] }, "top": 3 }, "width": 18, "height": 18, "color": "#ffffff" }]
+													},
+													{ "type": "label", "text": "{{light.name}}", "textColor": "@text", "anchors": { "left": 76, "top": 18 }, "fitText": true },
+													{
+														"style": "caption",
+														"text": { "$if": ["{{light.on}}", { "$concat": ["On  ·  ", "{{light.level}}", "%"] }, "Off"] },
+														"textColor": { "$if": ["{{light.on}}", "@warm", "@muted"] },
+														"anchors": { "left": 76, "top": 42 }
+													},
+													{
+														"fill": 0,
+														"color": "transparent",
+														"hover": { "color": "#ffffff0a" },
+														"cursor": "hand",
+														"onClick": [{ "toggle": "state.rooms[state.room].lights[i].on" }, { "set": "state.scene", "to": "" }, { "run": "countLights" }]
+													}
+												]
+											},
+											{
+												"anchors": { "right": 72, "top": 36 },
+												"width": 110,
+												"height": 4,
+												"color": "@off",
+												"children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{light.level}}%", "color": { "$if": ["{{light.on}}", "@warm", "@muted"] } }]
+											},
+											{
+												"style": "round",
+												"text": "-",
+												"width": 28,
+												"height": 28,
+												"color": "@card",
+												"hover": { "color": "@cardHover" },
+												"anchors": { "right": 40, "top": 24 },
+												"onClick": [{ "set": "state.rooms[state.room].lights[i].level", "to": { "$max": [{ "$subtract": ["{{light.level}}", 10] }, 10] } }]
+											},
+											{
+												"style": "round",
+												"text": "+",
+												"width": 28,
+												"height": 28,
+												"color": "@card",
+												"hover": { "color": "@cardHover" },
+												"anchors": { "right": 8, "top": 24 },
+												"onClick": [{ "set": "state.rooms[state.room].lights[i].level", "to": { "$min": [{ "$add": ["{{light.level}}", 10] }, 100] } }]
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "climateCard",
+						"anchors": { "right": 32, "top": 184 },
+						"x": "60%",
+						"width": "37%",
+						"height": 300,
+						"style": "card",
+						"children": [
+							{ "style": "cardTitle", "text": "Climate" },
+							{ "style": "caption", "text": "Now {{state.rooms[state.room].temp}}°  ·  humidity {{state.rooms[state.room].humidity}}%", "anchors": { "right": 24, "top": 24 } },
+							{
+								"type": "label",
+								"text": "{{state.rooms[state.room].target}}°",
+								"font": "figure",
+								"textColor": "@accent",
+								"anchors": { "left": 0, "right": 0, "top": 76 },
+								"height": 80,
+								"align": "center"
+							},
+							{ "style": "caption", "text": "target", "anchors": { "left": 0, "right": 0, "top": 156 }, "fitText": false, "height": 18, "align": "center" },
+							{
+								"style": "round",
+								"text": "-",
+								"anchors": { "left": 32, "top": 94 },
+								"onClick": [{ "set": "state.rooms[state.room].target", "to": { "$max": [{ "$subtract": ["{{state.rooms[state.room].target}}", 0.5] }, 16] } }]
+							},
+							{
+								"style": "round",
+								"text": "+",
+								"anchors": { "right": 32, "top": 94 },
+								"onClick": [{ "set": "state.rooms[state.room].target", "to": { "$min": [{ "$add": ["{{state.rooms[state.room].target}}", 0.5] }, 28] } }]
+							},
+							{
+								"anchors": { "left": 24, "right": 24, "bottom": 24 },
+								"height": 44,
+								"color": "transparent",
+								"children": [
+									{
+										"repeat": { "for": "mode", "in": "state.modes" },
+										"type": "label",
+										"text": "{{mode}}",
+										"anchors": { "top": 0, "bottom": 0 },
+										"x": { "$concat": [{ "$multiply": ["{{index}}", 33.3333] }, "%"] },
+										"width": "33.3333%",
+										"align": "center",
+										"color": { "$if": [{ "$equals": ["{{mode}}", "{{state.mode}}"] }, "@accentSoft", "@raised"] },
+										"hover": { "color": { "$if": [{ "$equals": ["{{mode}}", "{{state.mode}}"] }, "@accentSoft", "@raisedHover"] } },
+										"textColor": { "$if": [{ "$equals": ["{{mode}}", "{{state.mode}}"] }, "@accent", "@text"] },
+										"cursor": "hand",
+										"onClick": [{ "set": "state.mode", "to": "{{mode}}" }]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "blindsCard",
+						"anchors": { "right": 32, "top": 500, "bottom": 24 },
+						"x": "60%",
+						"width": "37%",
+						"style": "card",
+						"children": [
+							{ "style": "cardTitle", "text": "Blinds" },
+							{ "style": "caption", "text": "{{state.rooms[state.room].blinds}}% open", "anchors": { "right": 24, "top": 24 } },
+							{
+								"anchors": { "left": 24, "right": 24, "top": 66 },
+								"height": 8,
+								"color": "@off",
+								"children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{state.rooms[state.room].blinds}}%", "color": "@accent" }]
+							},
+							{
+								"type": "label",
+								"text": "Close",
+								"anchors": { "left": 24, "bottom": 20 },
+								"width": 120,
+								"height": 40,
+								"align": "center",
+								"color": "@raised",
+								"hover": { "color": "@raisedHover" },
+								"textColor": "@text",
+								"cursor": "hand",
+								"onClick": [{ "set": "state.rooms[state.room].blinds", "to": { "$max": [{ "$subtract": ["{{state.rooms[state.room].blinds}}", 20] }, 0] } }]
+							},
+							{
+								"type": "label",
+								"text": "Open",
+								"anchors": { "right": 24, "bottom": 20 },
+								"width": 120,
+								"height": 40,
+								"align": "center",
+								"color": "@raised",
+								"hover": { "color": "@raisedHover" },
+								"textColor": "@text",
+								"cursor": "hand",
+								"onClick": [{ "set": "state.rooms[state.room].blinds", "to": { "$min": [{ "$add": ["{{state.rooms[state.room].blinds}}", 20] }, 100] } }]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "statusBar",
+				"anchors": { "left": 248, "right": 0, "bottom": 0 },
+				"height": 32,
+				"color": "@sidebar",
+				"children": [
+					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{
+						"type": "label",
+						"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "left": 32, "top": 0, "bottom": 0, "right": 200 },
+						"align": { "horizontal": "start", "vertical": "center" }
+					},
+					{
+						"type": "label",
+						"text": "{{window.width}} × {{window.height}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "right": 32, "top": 0, "bottom": 0 },
+						"width": 160,
+						"align": { "horizontal": "end", "vertical": "center" }
+					}
+				]
+			}
+		]
+	}
+}

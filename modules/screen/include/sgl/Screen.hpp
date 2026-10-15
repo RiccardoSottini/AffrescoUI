@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Screen: a live UI described in the sGLGUI Screen Format, with all the modules put together.
+
 #include "sgl/core/Channel.hpp"
 #include "sgl/core/Executor.hpp"
 #include "sgl/core/Json.hpp"
@@ -22,28 +25,34 @@
 
 namespace sgl {
 
-// A malformed screen file. what() names the place in the JSON, e.g. "root.children[1].anchors: unknown edge 'lefft'"
+/// @brief A malformed screen file; what() names the place, e.g. "root.children[1].anchors: unknown edge 'lefft'".
 using ScreenError = DocumentError;
 
-// A live UI described in the sGLGUI Screen Format (JSON, see SCREEN_FORMAT.md), built into a Window.
-//
-// A Screen puts the library's modules together, each talking to the others only through the interfaces in
-// sgl/core:
-//   format::Rules      the screen format's rules          (DocumentRules)
-//   vcs::Repository    document, state, history, review   (VersionControl, uses DocumentRules)
-//   format::Runtime    panels, reconciliation, actions    (observes VersionControl, uses the rendering engine)
-//   channel::Session   the live protocol, one per peer    (uses VersionControl, any Channel)
-// Use the modules directly to put them together differently. Keep the Screen alive while its window is used.
+/// @brief A live UI described in the sGLGUI Screen Format (JSON, see SCREEN_FORMAT.md), built into a Window.
+///
+/// The composition root of the library: format::Rules (DocumentRules), vcs::Repository (VersionControl),
+/// format::Runtime (panels, reconciliation, actions) and one channel::Session per peer, talking only through the
+/// interfaces in sgl/core. Use the modules directly to put them together differently. Keep the Screen alive while
+/// its window is used.
 class Screen {
 public:
-	using Action = std::function<void(Panel& sender)>;
-	using Factory = std::function<std::unique_ptr<Panel>()>;
-	using UnhandledAction = std::function<void(const std::string& action, Panel& sender)>;
-	using ProposalInfo = sgl::ProposalInfo;
-	using HistoryEntry = sgl::HistoryEntry;
+	using Action = std::function<void(Panel& sender)>;                                      ///< A native action.
+	using Factory = std::function<std::unique_ptr<Panel>()>;                                ///< Creates a custom type.
+	using UnhandledAction = std::function<void(const std::string& action, Panel& sender)>; ///< Fallback handler.
+	using ProposalInfo = sgl::ProposalInfo;                                                 ///< A waiting proposal.
+	using HistoryEntry = sgl::HistoryEntry;                                                 ///< A committed revision.
 
-	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path); // throws ScreenError
-	// `baseDirectory` is where relative paths (fonts) are resolved from
+	/// @brief Loads a screen file.
+	/// @param path The file; relative font paths are resolved from its directory.
+	/// @return The screen, not yet built.
+	/// @throws ScreenError If the file can't be read or is not a valid screen.
+	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
+
+	/// @brief Loads a screen from JSON text.
+	/// @param json The document.
+	/// @param baseDirectory Where relative paths (fonts) are resolved from.
+	/// @return The screen, not yet built.
+	/// @throws ScreenError If it is not a valid screen.
 	[[nodiscard]] static Screen fromString(std::string_view json, std::filesystem::path baseDirectory = {});
 
 	Screen(Screen&&) noexcept;
@@ -51,92 +60,201 @@ public:
 	~Screen();
 
 	/* Before building */
-	void registerType(std::string name, Factory factory); // a custom "type" usable in the file
-	void setPlaceholderTypes(bool enabled);               // unknown types become plain panels instead of an error
+
+	/// @brief Registers a custom "type" usable in the file.
+	/// @param name The type name.
+	/// @param factory Creates its panel.
+	void registerType(std::string name, Factory factory);
+
+	/// @brief Makes unknown types plain panels instead of an error.
+	/// @param enabled true to allow them.
+	void setPlaceholderTypes(bool enabled);
 
 	/* Building */
-	Window& createWindow(Application& app); // window from the "window" section, then build()
-	void build(Window& window);             // fonts, then "root" into the window's root panel
 
-	// Builds a copy of the template `name` as a new child of `parent` (a "repeat" in the file is usually simpler)
+	/// @brief Creates a window from the "window" section, then builds the screen into it.
+	/// @param app The application that owns the window.
+	/// @return The window.
+	/// @throws ScreenError If the screen can't be built.
+	Window& createWindow(Application& app);
+
+	/// @brief Loads the fonts, then builds "root" into a window's root panel.
+	/// @param window The window.
+	/// @throws ScreenError If the screen can't be built.
+	void build(Window& window);
+
+	/// @brief Builds a copy of a template as a new child ("repeat" in the file is usually simpler).
+	/// @param name The template.
+	/// @param parent Where to add it.
+	/// @return The new panel.
+	/// @throws ScreenError If there is no such template.
 	Panel& instantiate(std::string_view name, Panel& parent);
 
 	/* Behaviour */
-	// A native action: called for "onClick": "name" or a {"call": "name"} step, when the file has no action `name`
-	void onAction(std::string name, Action action);
-	void onUnhandledAction(UnhandledAction fallback); // for actions nobody handles (default: report on stderr)
 
-	// Runs the action `name` (from the file, else native) as if `sender` triggered it; `eventJson` becomes "event"
+	/// @brief Registers a native action, used for "onClick": "name" or a {"call": "name"} step when the file has none.
+	/// @param name The action.
+	/// @param action The handler.
+	void onAction(std::string name, Action action);
+
+	/// @brief Sets what happens with actions nobody handles (default: a message on stderr).
+	/// @param fallback The handler.
+	void onUnhandledAction(UnhandledAction fallback);
+
+	/// @brief Runs an action as if a panel triggered it.
+	/// @param name The action (from the file, else native).
+	/// @param sender The panel it comes from.
+	/// @param eventJson Available to the action as "event".
 	void runAction(std::string_view name, Panel& sender, std::string_view eventJson = "{}");
 
-	/* Live document: revisions (see GOVERNANCE.md) */
-	// A revision {"author", "message", "parent"?, "patch": [JSON Patch ops]} from someone who must follow the file's
-	// "permissions": applied, proposed for review, or rejected. On any error nothing changes.
+	/* Live document: revisions (see VERSION_CONTROL.md) */
+
+	/// @brief Applies, proposes or rejects a revision, following the file's "permissions". On error nothing changes.
+	/// @param revisionJson `{"author", "message", "parent"?, "patch": [JSON Patch ops]}`.
+	/// @return What happened.
 	RevisionResult submitRevision(std::string_view revisionJson);
-	// A revision from the application itself: not reviewed, but locks and the other rules still apply
+
+	/// @brief Applies a revision from the application itself: not reviewed, but locks and rules still apply.
+	/// @param revisionJson The revision.
+	/// @param error Receives the error, if any (may be nullptr).
+	/// @return true if it was applied.
 	bool applyRevision(std::string_view revisionJson, std::string* error = nullptr);
 
 	/* Review before apply */
+
+	/// @brief The proposals waiting for a decision.
 	[[nodiscard]] std::vector<ProposalInfo> proposals() const;
+
+	/// @brief Applies a proposal.
+	/// @param id The proposal.
+	/// @param error Receives the error, if any (may be nullptr).
+	/// @return true if it was applied.
 	bool acceptProposal(int id, std::string* error = nullptr);
+
+	/// @brief Rejects a proposal.
+	/// @param id The proposal.
+	/// @param reason Told to its author.
+	/// @return false if there is no such proposal.
 	bool rejectProposal(int id, std::string_view reason = {});
-	bool previewProposal(int id, std::string* error = nullptr); // shows it live, without committing it
+
+	/// @brief Shows a proposal live, without committing it.
+	/// @param id The proposal.
+	/// @param error Receives the error, if any (may be nullptr).
+	/// @return true if it is shown.
+	bool previewProposal(int id, std::string* error = nullptr);
+
+	/// @brief Goes back to the committed screen after previewProposal().
 	void endPreview();
+	/// @brief The proposal being previewed, if any.
 	[[nodiscard]] std::optional<int> previewedProposal() const noexcept;
 
 	/* History */
+
+	/// @brief Every revision, oldest first.
 	[[nodiscard]] std::vector<HistoryEntry> history() const;
-	// A new revision equal to an old one (the history keeps growing), applied as the application's own change
+
+	/// @brief Brings the screen back to an earlier revision, as a new revision (the history keeps growing).
+	/// @param revision The revision to go back to.
+	/// @param error Receives the error, if any (may be nullptr).
+	/// @return true if it was restored.
 	bool restore(int revision, std::string* error = nullptr);
-	RevisionResult submitRestore(int revision, std::string_view author); // the same, following `author`'s permissions
-	bool undo(std::string* error = nullptr);                             // restore the previous revision
-	[[nodiscard]] int revision() const noexcept;                         // 0 = the file as loaded
 
-	// Change sets ("plugins"): the revisions after `fromRevision`, portable to other copies of the same screen
+	/// @brief Same as restore(), following an author's permissions.
+	/// @param revision The revision to go back to.
+	/// @param author The author.
+	/// @return What happened.
+	RevisionResult submitRestore(int revision, std::string_view author);
+
+	/// @brief Restores the previous revision.
+	/// @param error Receives the error, if any (may be nullptr).
+	/// @return true if it was restored.
+	bool undo(std::string* error = nullptr);
+
+	/// @brief The current revision; 0 is the file as loaded.
+	[[nodiscard]] int revision() const noexcept;
+
+	/// @brief Exports a change set ("plugin"), portable to other copies of the same screen.
+	/// @param fromRevision Revisions after this one are included.
+	/// @param name The change set's name.
+	/// @return The change set, as JSON text.
 	[[nodiscard]] std::string exportChanges(int fromRevision = 0, std::string_view name = {}) const;
-	bool importChanges(std::string_view changesJson, std::string* error = nullptr); // all or nothing
 
+	/// @brief Applies a change set, all or nothing.
+	/// @param changesJson A change set from exportChanges().
+	/// @param error Receives the error, if any (may be nullptr).
+	/// @return true if it was applied.
+	bool importChanges(std::string_view changesJson, std::string* error = nullptr);
+
+	/// @brief The current document, as JSON text.
 	[[nodiscard]] std::string documentJson() const;
+	/// @brief The live state, as JSON text.
 	[[nodiscard]] std::string stateJson() const;
-	Connection onEvent(std::function<void(const std::string& eventJson)> listener); // "emit" events
+
+	/// @brief Listens to "emit" events.
+	/// @param listener Receives each event, as JSON text.
+	/// @return The connection.
+	Connection onEvent(std::function<void(const std::string& eventJson)> listener);
 
 	/* Peers: programs that read and change the screen over the live protocol (SCREEN_FORMAT.md, "Live screens").
-	   The screen doesn't care what they are: a client app, an AI agent's MCP server, a script. Everything a peer sends
-	   is authored by the name it was connected with (the name "permissions" knows it by), whatever name it gives
-	   itself. Every peer hears about commits, proposals and "emit" events; "request"/"reply" messages are passed on
-	   to the other peers. */
+	   A peer's changes are authored by the name it was connected with, whatever name it gives itself. Every peer hears
+	   about commits, proposals and "emit" events; "request" and "reply" messages are passed on to the other peers. */
 
-	// A peer at the other end of `channel` (which must outlive this screen)
+	/// @brief Adds a peer at the other end of a channel.
+	/// @param channel The channel; must outlive the screen.
+	/// @param author The name "permissions" knows the peer by.
 	void connect(Channel& channel, std::string author = "channel");
 
-	// Accepts any number of peers on a local socket at `path` (POSIX). Each one is authored as `author`: give
-	// different kinds of peer different sockets, e.g. "studio.sock" for the user's client and "agent.sock" for an
-	// AI agent. Throws std::runtime_error if the socket can't be created.
+	/// @brief Accepts any number of peers on a local socket (POSIX). Give each kind of peer its own socket.
+	/// @param executor Delivers messages on the main thread (the Application).
+	/// @param path The socket file, e.g. ".../agent.sock".
+	/// @param author The name its peers are authored as, e.g. "agent".
+	/// @throws std::runtime_error If the socket can't be created.
 	void listen(Executor& executor, const std::filesystem::path& path, std::string author);
 
-	// See VersionControl::setAutoAccept: changes that would wait for review are applied right away
+	/// @brief Turns auto-accept on or off (see VersionControl::setAutoAccept).
+	/// @param enabled true to apply changes that would wait for review.
 	void setAutoAccept(bool enabled);
 
-	/* The modules, for code that needs more than this class offers */
+	/// @brief The version control module, for code that needs more than this class offers.
 	[[nodiscard]] VersionControl& versions() noexcept;
 
 	/* Lookup (after build) */
+
+	/// @brief Finds a panel by id.
+	/// @param id The id.
+	/// @return The panel, or nullptr.
 	[[nodiscard]] Panel* find(std::string_view id) noexcept;
 
+	/// @brief Finds a panel by id and type.
+	/// @tparam T The expected panel type.
+	/// @param id The id.
+	/// @return The panel.
+	/// @throws ScreenError If there is no panel with that id and type.
 	template <std::derived_from<Panel> T = Panel> [[nodiscard]] T& get(std::string_view id) {
 		T* panel = dynamic_cast<T*>(find(id));
 		if(!panel) throw ScreenError("sGLGUI screen: no panel with id '" + std::string(id) + "' of the requested type");
 		return *panel;
 	}
 
-	[[nodiscard]] Color color(std::string_view name) const;                      // from "colors"
-	[[nodiscard]] std::shared_ptr<const Font> font(std::string_view name) const; // from "fonts"
+	/// @brief Looks a colour up in "colors".
+	/// @param name The name.
+	/// @return The colour.
+	/// @throws ScreenError If there is no such colour.
+	[[nodiscard]] Color color(std::string_view name) const;
+
+	/// @brief Looks a font up in "fonts".
+	/// @param name The name.
+	/// @return The font.
+	/// @throws ScreenError If there is no such font.
+	[[nodiscard]] std::shared_ptr<const Font> font(std::string_view name) const;
 
 private:
 	struct Impl;
+	/// @brief Wraps a loaded screen.
+	/// @param impl The modules.
 	explicit Screen(std::unique_ptr<Impl> impl);
 
-	std::unique_ptr<Impl> impl_;
+	std::unique_ptr<Impl> impl_; ///< The modules and the peers.
 };
 
 } // namespace sgl

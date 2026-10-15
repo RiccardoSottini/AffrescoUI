@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Local (Unix domain) socket channels: a server and its connections.
+
 #include "sgl/core/Channel.hpp"
 #include "sgl/core/Executor.hpp"
 
@@ -12,51 +15,66 @@
 
 namespace sgl::channel {
 
-// A Channel over a connected local socket: one JSON object per line, in both directions. POSIX only for now.
+/// @brief A Channel over a connected local socket: one JSON object per line, both ways. POSIX only for now.
 class SocketChannel final : public Channel {
 public:
-	// Connects to a SocketServer listening at `path`. Throws std::runtime_error if nothing is listening there.
+	/// @brief Connects to a SocketServer.
+	/// @param executor Where messages are delivered (the main thread).
+	/// @param path The server's socket.
+	/// @return The channel.
+	/// @throws std::runtime_error If nothing is listening there.
 	[[nodiscard]] static std::unique_ptr<SocketChannel> connect(Executor& executor, const std::filesystem::path& path);
 
-	SocketChannel(Executor& executor, int socket); // takes ownership of a connected socket
+	/// @brief Wraps a connected socket and starts a thread reading it.
+	/// @param executor Where messages are delivered (the main thread).
+	/// @param socket A connected socket; the channel takes ownership.
+	SocketChannel(Executor& executor, int socket);
 	~SocketChannel() override;
 
 	SocketChannel(const SocketChannel&) = delete;
 	SocketChannel& operator=(const SocketChannel&) = delete;
 
 	void send(std::string_view message) override;
+	/// @brief Whether the other end is still connected.
 	[[nodiscard]] bool isOpen() const noexcept { return open_; }
 
 private:
-	int socket_ = -1;
-	std::atomic<bool> open_ = true;
-	std::thread reader_;
-	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); // guards tasks still queued after destruction
+	int socket_ = -1;               ///< The connection.
+	std::atomic<bool> open_ = true; ///< See isOpen().
+	std::thread reader_;            ///< Reads the socket.
+	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards tasks still queued after destruction.
 };
 
-// Listens on a local (Unix domain) socket, readable and writable only by this user. Every connection becomes a
-// SocketChannel, handed to `onConnection` on the main thread. POSIX only for now.
+/// @brief Listens on a local socket, accessible only to this user. POSIX only for now.
+///
+/// Every connection becomes a SocketChannel, handed to `onConnection` on the main thread.
 class SocketServer {
 public:
-	using Connected = std::function<void(std::unique_ptr<Channel>)>;
+	using Connected = std::function<void(std::unique_ptr<Channel>)>; ///< Receives each new connection.
 
-	// Throws std::runtime_error, e.g. if another server is already listening at `path`
+	/// @brief Starts listening.
+	/// @param executor Where connections are delivered (the main thread).
+	/// @param path The socket file to create.
+	/// @param onConnection Receives each new connection.
+	/// @throws std::runtime_error If the socket can't be created, e.g. another server is listening there.
 	SocketServer(Executor& executor, std::filesystem::path path, Connected onConnection);
-	~SocketServer(); // stops listening and removes the socket file
+	/// @brief Stops listening and removes the socket file.
+	~SocketServer();
 
 	SocketServer(const SocketServer&) = delete;
 	SocketServer& operator=(const SocketServer&) = delete;
 
+	/// @brief The socket file.
 	[[nodiscard]] const std::filesystem::path& path() const noexcept { return path_; }
 
 private:
-	Executor& executor_;
-	std::filesystem::path path_;
-	Connected onConnection_;
-	int listener_ = -1;
-	int wake_[2] = {-1, -1}; // written to by the destructor to stop the accept loop
-	std::thread acceptor_;
-	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);
+	Executor& executor_;         ///< Delivers connections on the main thread.
+	std::filesystem::path path_; ///< See path().
+	Connected onConnection_;     ///< Receives each new connection.
+	int listener_ = -1;          ///< The listening socket.
+	int wake_[2] = {-1, -1};     ///< Pipe written by the destructor to stop the accept loop.
+	std::thread acceptor_;       ///< Accepts connections.
+	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards tasks still queued after destruction.
 };
 
 } // namespace sgl::channel

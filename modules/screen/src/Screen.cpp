@@ -12,24 +12,30 @@
 
 namespace sgl {
 
-// A program connected to the screen: its channel (owned if it came through a socket) and its protocol session
+/// @brief A program connected to the screen.
 struct Peer {
-	std::unique_ptr<Channel> owned;
-	Channel* channel = nullptr;
-	std::unique_ptr<channel::Session> session;
+	std::unique_ptr<Channel> owned;            ///< Its channel, if it came through a socket.
+	Channel* channel = nullptr;                ///< Its channel.
+	std::unique_ptr<channel::Session> session; ///< Its protocol session.
 };
 
-// Declaration order is construction order: rules, then the repository that uses them, then the runtime and the
-// peers that use the repository (destroyed the other way round; servers stop before their peers go)
+/// @brief The modules and the peers.
+///
+/// Declaration order is construction order: rules, then the repository that uses them, then the runtime and the
+/// peers that use the repository (destroyed the other way round; servers stop before their peers go).
 struct Screen::Impl {
-	format::Rules rules;
-	vcs::Repository repository;
-	format::Runtime runtime;
-	std::vector<std::unique_ptr<Peer>> peers;
-	std::vector<std::unique_ptr<channel::SocketServer>> servers;
-	Signal<const std::string&> events;
-	std::shared_ptr<bool> alive = std::make_shared<bool>(true); // guards removals still queued after destruction
+	format::Rules rules;                                         ///< The format's rules.
+	vcs::Repository repository;                                  ///< Document, state, history, review.
+	format::Runtime runtime;                                     ///< Panels and actions.
+	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
+	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
+	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
+	std::shared_ptr<bool> alive = std::make_shared<bool>(true); ///< Guards removals still queued after destruction.
 
+	/// @brief Builds the modules and forwards runtime events and errors to every peer.
+	/// @param document The screen.
+	/// @param baseDirectory Where relative paths are resolved from.
+	/// @throws DocumentError If the screen is invalid.
 	Impl(json document, std::filesystem::path baseDirectory)
 	    : repository(rules, std::move(document)), runtime(repository, std::move(baseDirectory)) {
 		runtime.onEvent.connect([this](const json& event) {
@@ -46,11 +52,19 @@ struct Screen::Impl {
 		servers.clear();
 	}
 
+	/// @brief Sends a message to every peer.
+	/// @param message The message.
+	/// @param except A peer to skip (may be nullptr).
 	void broadcast(const json& message, const Peer* except = nullptr) {
 		for(const auto& peer : peers)
 			if(peer.get() != except) peer->session->send(message);
 	}
 
+	/// @brief Adds a peer and relays its "request"/"reply" messages to the others.
+	/// @param channel Its channel.
+	/// @param owned Its channel, if the screen owns it (may be null).
+	/// @param author The name it is authored as.
+	/// @return The peer.
 	Peer& add(Channel& channel, std::unique_ptr<Channel> owned, std::string author) {
 		auto peer = std::make_unique<Peer>();
 		peer->owned = std::move(owned);
@@ -72,6 +86,8 @@ struct Screen::Impl {
 		return *peers.back();
 	}
 
+	/// @brief Removes a peer that went away.
+	/// @param peer The peer.
 	void remove(const Peer* peer) {
 		std::erase_if(peers, [peer](const auto& p) { return p.get() == peer; });
 	}
@@ -79,6 +95,11 @@ struct Screen::Impl {
 
 namespace {
 
+/// @brief Parses JSON text.
+/// @param text The text.
+/// @param what What it is, for the error.
+/// @param error Receives the error, if any (may be nullptr).
+/// @return The value, or std::nullopt.
 std::optional<json> parseJson(std::string_view text, const char* what, std::string* error) {
 	try {
 		return json::parse(text);
@@ -88,6 +109,10 @@ std::optional<json> parseJson(std::string_view text, const char* what, std::stri
 	}
 }
 
+/// @brief Turns an optional error into a bool.
+/// @param failure The error, if any.
+/// @param error Receives it (may be nullptr).
+/// @return true if there was no error.
 bool succeeded(const std::optional<std::string>& failure, std::string* error) {
 	if(failure && error) *error = *failure;
 	return !failure;

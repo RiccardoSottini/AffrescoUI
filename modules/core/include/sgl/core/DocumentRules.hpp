@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief The DocumentRules interface: what version control needs to know about a document format.
+
 #include "sgl/core/Json.hpp"
 
 #include <optional>
@@ -9,36 +12,53 @@
 
 namespace sgl {
 
-// What an author's revisions do: applied, proposed to the user for review, or refused
+/// @brief What an author's revisions do.
 enum class Policy {
-	Allow,
-	Review,
-	Deny,
+	Allow,  ///< Applied right away.
+	Review, ///< Proposed to a reviewer.
+	Deny,   ///< Refused.
 };
 
-// What version control needs to know about the documents it stores. Version control can patch and keep any JSON;
-// the format that gives the JSON its meaning (implemented by format::Rules) says what is valid, where nodes are,
-// and who may change what.
+/// @brief What version control needs to know about the documents it stores.
+///
+/// Version control can patch and keep any JSON; the format that gives the JSON its meaning (format::Rules) says what
+/// is valid, where nodes are, and who may change what.
 class DocumentRules {
 public:
 	virtual ~DocumentRules() = default;
 
-	// Throws DocumentError if `document` is not a valid document
+	/// @brief Checks that a document is valid.
+	/// @param document The document.
+	/// @throws DocumentError If it is not; what() names the place.
 	virtual void validate(const json& document) const = 0;
 
-	// JSON Pointer of the node with that id (what "#id" paths in a patch refer to), or nothing
+	/// @brief Finds a node by id (what "#id" patch paths refer to).
+	/// @param document The document.
+	/// @param id The id, without '#'.
+	/// @return The node's JSON Pointer, or std::nullopt.
 	[[nodiscard]] virtual std::optional<std::string> findNode(const json& document, std::string_view id) const = 0;
 
-	// What `document` lets `author` do
+	/// @brief Tells what a document lets an author do.
+	/// @param document The document.
+	/// @param author The author's full name, e.g. "agent/claude-code".
+	/// @return The author's policy.
 	[[nodiscard]] virtual Policy policyFor(const json& document, std::string_view author) const = 0;
 
-	// Whether `author` may decide on proposals (accept, reject, preview) and switch auto-accept
+	/// @brief Tells whether an author may decide on proposals and switch auto-accept.
+	/// @param document The document.
+	/// @param author The author's full name.
+	/// @return true for a reviewer.
 	[[nodiscard]] virtual bool mayReview(const json& document, std::string_view author) const = 0;
 
-	// Paths no revision may change: "#id", "/state/..." (the live state) or JSON Pointers into the document
+	/// @brief Lists the paths no revision may change.
+	/// @param document The document.
+	/// @return "#id" paths, "/state/..." paths (the live state) or JSON Pointers into the document.
 	[[nodiscard]] virtual std::vector<std::string> lockedPaths(const json& document) const = 0;
 
-	// Throws DocumentError if the format forbids going from `before` to `after` (e.g. changing the permissions)
+	/// @brief Checks changes the format forbids for everyone (e.g. editing the permissions).
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @throws DocumentError If the change is forbidden.
 	virtual void checkChange(const json& before, const json& after) const = 0;
 };
 

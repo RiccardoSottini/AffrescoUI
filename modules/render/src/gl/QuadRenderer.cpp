@@ -12,6 +12,7 @@ namespace sgl::gl {
 
 namespace {
 
+/// @brief Vertex shader: window units to clip space.
 constexpr std::string_view vertexSource = R"glsl(
 	#version 410 core
 
@@ -31,7 +32,8 @@ constexpr std::string_view vertexSource = R"glsl(
 	}
 )glsl";
 
-// The texture holds coverage: 1 for the white texel (solid rectangles), the glyph's shape for text
+/// @brief Fragment shader. The texture holds coverage: 1 for the white texel (solid rectangles), the glyph's shape
+/// for text.
 constexpr std::string_view fragmentSource = R"glsl(
 	#version 410 core
 
@@ -46,9 +48,12 @@ constexpr std::string_view fragmentSource = R"glsl(
 	}
 )glsl";
 
-constexpr std::size_t verticesPerQuad = 4;
-constexpr std::size_t indicesPerQuad = 6;
+constexpr std::size_t verticesPerQuad = 4; ///< Corners.
+constexpr std::size_t indicesPerQuad = 6;  ///< Two triangles.
 
+/// @brief Converts to a normalized 16-bit integer.
+/// @param value In [0, 1]; clamped.
+/// @return In [0, 65535].
 std::uint16_t toUnorm16(float value) noexcept {
 	return static_cast<std::uint16_t>(std::lround(std::clamp(value, 0.0f, 1.0f) * 65535.0f));
 }

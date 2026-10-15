@@ -12,8 +12,12 @@ namespace sgl {
 
 namespace {
 
-constexpr int whiteRows = 2; // rows reserved at the top of the atlas for the 2x2 white block
+constexpr int whiteRows = 2; ///< Rows reserved at the top of the atlas for the 2x2 white block.
 
+/// @brief Reads a whole file.
+/// @param path The file.
+/// @return Its bytes.
+/// @throws std::runtime_error If it can't be opened.
 std::vector<unsigned char> readFile(const std::filesystem::path& path) {
 	std::ifstream file(path, std::ios::binary);
 	if(!file) throw std::runtime_error("sGLGUI: could not open font file " + path.string());

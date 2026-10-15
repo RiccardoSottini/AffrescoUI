@@ -10,6 +10,8 @@ using expect::fail;
 
 namespace {
 
+/// @brief The current time.
+/// @return UTC, ISO 8601.
 std::string utcNow() {
 	const std::time_t now = std::time(nullptr);
 	char buffer[32];
@@ -17,6 +19,10 @@ std::string utcNow() {
 	return buffer;
 }
 
+/// @brief Reads the value at a JSON Pointer.
+/// @param value The JSON.
+/// @param pointer The pointer.
+/// @return A copy, or std::nullopt if absent.
 std::optional<json> at(const json& value, const std::string& pointer) {
 	const json::json_pointer p(pointer);
 	if(!value.contains(p)) return std::nullopt;

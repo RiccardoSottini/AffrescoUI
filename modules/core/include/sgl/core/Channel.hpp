@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief The Channel interface: a two-way, line-based message stream.
+
 #include "sgl/core/Signal.hpp"
 
 #include <string>
@@ -7,17 +10,20 @@
 
 namespace sgl {
 
-// A two-way stream of text messages (one JSON object per line) between the app and something outside it,
-// e.g. a program that turns chat messages into screen revisions. Implemented by the channel module
-// (ProcessChannel, StdioChannel); onMessage and onClosed always fire on the main thread.
+/// @brief A two-way stream of text messages (one JSON object per line) between the app and another program.
+///
+/// Implemented by the channel module (SocketChannel, ProcessChannel, StdioChannel). onMessage and onClosed always
+/// fire on the main thread.
 class Channel {
 public:
 	virtual ~Channel() = default;
 
+	/// @brief Sends one message.
+	/// @param message The message, without a line break (the transport adds it).
 	virtual void send(std::string_view message) = 0;
 
-	Signal<const std::string&> onMessage;
-	Signal<> onClosed; // the other end went away
+	Signal<const std::string&> onMessage; ///< A message arrived (without its line break).
+	Signal<> onClosed;                    ///< The other end went away.
 };
 
 } // namespace sgl
