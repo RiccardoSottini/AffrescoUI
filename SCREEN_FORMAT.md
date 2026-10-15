@@ -15,7 +15,7 @@ without breaking existing files.
 - File extension: `.screen.json`
 - JSON Schema (editor autocompletion and validation): [`schema/sglgui-screen.schema.json`](schema/sglgui-screen.schema.json).
   Point a file at it with `"$schema"`.
-- Try any file without writing code: `./build/screen_viewer path/to/file.screen.json`
+- Try any file without writing code: `./build/sglgui_host path/to/file.screen.json`
 
 ```json
 {
@@ -48,7 +48,7 @@ without breaking existing files.
 | `styles` | | `name → properties`, applied to a node with `"style": "name"` or `["a", "b"]`. Later styles win, and the node's own properties win over all. |
 | `templates` | | `name → node`. Built by code on demand, any number of times (`Screen::instantiate`). A `repeat` in the file is usually simpler. |
 | `state` | | The app's data, any JSON object. |
-| `permissions` | | Who may change the running screen and what is locked: see [Governance](GOVERNANCE.md). `{ "authors": { "brain": "review", "*": "allow" }, "locked": ["#composer", "/actions/send"] }`. Policies: `allow`, `review`, `deny`. Revisions can never change this section. |
+| `permissions` | | Who may change the running screen and what is locked: see [Governance](GOVERNANCE.md). `{ "authors": { "agent": "review", "*": "allow" }, "reviewers": ["studio"], "locked": ["#statusBar", "/actions/send"] }`. Policies: `allow`, `review`, `deny`. `reviewers` may decide on proposals over the live protocol. Revisions can never change this section. |
 | `actions` | | `name → steps`, run by `onClick`, `onSubmit` or other actions. |
 
 ## Nodes
@@ -152,7 +152,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `while` | `{ "while": { "$less": ["{{state.n}}", 10] }, "do": [...] }` (at most 10,000 iterations) |
 | `run` | `{ "run": "otherAction" }` |
 | `call` | `{ "call": "nativeName" }`: a C++ function registered with `Screen::onAction` |
-| `emit` | `{ "emit": "chat", "data": { "text": "{{state.draft}}" } }`: a message to the connected channel |
+| `emit` | `{ "emit": "saved", "data": { "id": "{{state.current}}" } }`: an event for every connected peer |
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `focus` | `{ "focus": "input" }` |
 | `log` | `{ "log": "value is {{state.n}}" }` (to stderr) |
@@ -169,7 +169,7 @@ revision may add or change them.
 
 Only paths under `state` can be changed. After an event's actions finish, the UI is updated once. Panels are reused
 where the structure didn't change, so focus, typing and drags in progress are kept. Errors in actions are reported
-(on stderr and to the channel) and never crash the app.
+(on stderr and to the peers) and never crash the app.
 
 ## Live screens: revisions and the channel
 
@@ -196,34 +196,36 @@ A revision is a version-controlled change to a running screen:
   Locked parts and governance controls can't be changed by any revision. See [GOVERNANCE.md](GOVERNANCE.md), which
   also describes **change sets** (exported revisions, shareable like plugins).
 
-### Channel protocol
-`Screen::connect(channel)` exchanges one JSON object per line with a program on the other end
-(`sgl::channel::ProcessChannel` runs it as a child process over stdin/stdout).
+### Peers and the live protocol
+The screen doesn't care where changes come from. Any number of **peers** (programs on the other end of a channel)
+read and change it with one JSON object per line:
+
+- `Screen::listen(executor, "/tmp/sglgui-501/agent.sock", "agent")` accepts peers on a local socket
+  (`sgl::channel::SocketServer`); `Screen::connect(channel, "name")` adds one over any `sgl::Channel` (a
+  `ProcessChannel` child process, `StdioChannel`, or your own).
+- **The host decides who a peer is**, by the socket or channel it came through: its revisions are authored as that
+  name, followed by the name the peer gives itself (`agent/claude-code`). The `hello` message says which name that is
+  (`"you"`) and whether it may review (`"canReview"`).
 
 | Direction | Message |
 |---|---|
-| app → | `{"type": "hello", "format": "sglgui-screen", "revision": n, "document": {...}, "state": {...}}` on connect |
-| app → | `{"type": "event", "name": "chat", "data": {...}, "revision": n}` from `emit` steps |
-| app → | `{"type": "applied", "revision": n}`, `{"type": "proposed", "proposal": p}` or `{"type": "rejected", "error": "..."}` |
-| app → | later, the user's decision: `{"type": "applied" / "rejected", "proposal": p, ...}` |
-| app → | answers: `{"type": "document", ...}`, `{"type": "history", "entries": [...]}`, `{"type": "changes", "changes": {...}}` |
-| app → | `{"type": "error", "message": "..."}` |
-| → app | `{"type": "revision", ...}`, `{"type": "restore", "revision": n}`, `{"type": "undo"}` |
-| → app | `{"type": "getDocument"}`, `{"type": "getHistory"}`, `{"type": "exportChanges", "from": n, "name": "..."}` |
+| → peer | `{"type": "hello", "format": "sglgui-screen", "revision": n, "document": {...}, "state": {...}, "you": "agent", "canReview": false}` on connect |
+| → peer | answers to its revisions: `{"type": "applied", "revision": n}`, `{"type": "proposed", "proposal": p}` or `{"type": "rejected", "error": "..."}` |
+| → all peers | `{"type": "committed", "revision": n, "author", "message", "time"}` whenever anyone's revision is committed |
+| → all peers | `{"type": "review", "proposals": [...], "previewing": p or null, "autoAccept": bool}` whenever that changes |
+| → all peers | a reviewer's decision: `{"type": "applied" / "rejected", "proposal": p, ...}` |
+| → all peers | `{"type": "event", "name": "...", "data": {...}, "revision": n}` from `emit` steps, `{"type": "error", "message": "..."}` |
+| → peer | answers: `{"type": "document", ...}` (with proposals and auto-accept), `{"type": "history", "entries": [...]}`, `{"type": "changes", "changes": {...}}`, `{"type": "done"}` |
+| peer → | `{"type": "revision", ...}`, `{"type": "restore", "revision": n}`, `{"type": "undo"}` (all follow the author's policy) |
+| peer → | `{"type": "getDocument"}`, `{"type": "getHistory"}`, `{"type": "exportChanges", "from": n, "name": "..."}` |
+| reviewer → | `{"type": "accept" / "reject" / "preview", "proposal": p}`, `{"type": "endPreview"}`, `{"type": "setAutoAccept", "enabled": true}`: only for authors in `permissions.reviewers` |
+| peer → other peers | `{"type": "request", "id", "text"}` and `{"type": "reply", "request", "text"}`: passed on to every other peer with `"from"` added, never interpreted (e.g. a person's request in plain words, for an AI agent) |
 
-Requests may carry an `"id"`; answers repeat it. The app decides who the other end is (`Screen::connect(channel,
-"brain")`): revisions arriving there are authored as that name, followed by the name the sender gives itself
-(`brain/rules`). The `hello` message says which name that is (`"you"`).
+Requests may carry an `"id"`; answers repeat it.
 
-The Python MCP server (`mcp/sglgui_mcp.py`) is the bridge between AI agents and this protocol: see `mcp/README.md`.
-
-See `examples/brains/rules_brain.py`: a keyword-rule brain that a language model can replace without changing the app.
-Run it with either example, from the repository root:
-
-```sh
-./build/chatbot_demo --brain "python3 examples/brains/rules_brain.py"
-./build/screen_viewer examples/assets/screens/chat.screen.json --brain "python3 examples/brains/rules_brain.py"
-```
+The examples put this together (see the README): `sglgui_host` shows a screen and listens on `studio.sock` (author
+`studio`, a reviewer) and `agent.sock` (author `agent`); `sglgui_studio` is the person's client; the Python MCP server
+(`mcp/sglgui_mcp.py`) connects an AI agent to `agent.sock` in both directions.
 
 ## Errors
 
@@ -239,16 +241,15 @@ sGLGUI screen: root.children[0].text: unknown property 'text' for this type
 
 ```cpp
 sgl::Application app;
-sgl::Screen screen = sgl::Screen::fromFile("chat.screen.json");
-screen.registerType("resizeHandle", [] { return std::make_unique<ResizeHandle>(); }); // before createWindow
+sgl::Screen screen = sgl::Screen::fromFile("dashboard.screen.json");
+screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a custom type, before createWindow
 sgl::Window& window = screen.createWindow(app);
 
-screen.onAction("send", [&](sgl::Panel&) { /* ... */ });
-auto& input = screen.get<sgl::TextArea>("input");
-auto& bubble = screen.instantiate("message", screen.get("messages"));
+screen.onAction("save", [&](sgl::Panel&) { /* ... */ });
+auto& search = screen.get<sgl::TextArea>("search");
+screen.listen(app, "/tmp/sglgui-501/agent.sock", "agent"); // peers can change it from now on
 app.run();
 ```
 
-See `examples/chatbot_demo.cpp` with `examples/assets/screens/chat.screen.json` (the C++ only adds a drag handle and the
-optional brain), and
-`examples/assets/screens/sign-in.screen.json` (no code at all: open it with `screen_viewer`).
+See `examples/assets/screens/dashboard.screen.json` (the template `sglgui_host` opens), `studio.screen.json` (the
+Studio client: its whole UI and behaviour, with a few lines of C++ to plug it into the host) and `sign-in.screen.json`.
