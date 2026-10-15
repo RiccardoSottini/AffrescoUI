@@ -11,13 +11,22 @@ namespace sgl::format {
 
 namespace {
 
+/// @brief Reports an invalid value.
+/// @param where Its place in the document.
+/// @param message What is wrong.
+/// @throws DocumentError Always.
 [[noreturn]] void fail(const std::string& where, const std::string& message) {
 	throw DocumentError("sGLGUI screen: " + where + ": " + message);
 }
 
 /* Paths */
 
-// A path split into object keys (strings) and array indices (numbers)
+/// @brief Splits a path into object keys (strings) and array indices (numbers); `[expr]` indices are evaluated.
+/// @param path The path.
+/// @param context What paths can see.
+/// @param where Its place in the document, for errors.
+/// @return The segments, the variable first.
+/// @throws DocumentError If the path is malformed.
 std::vector<json> segments(std::string_view path, const Context& context, const std::string& where) {
 	std::vector<json> result;
 	std::size_t i = 0;
@@ -63,6 +72,9 @@ std::vector<json> segments(std::string_view path, const Context& context, const 
 	return result;
 }
 
+/// @brief Removes surrounding whitespace.
+/// @param text The text.
+/// @return A view without it.
 std::string_view trim(std::string_view text) {
 	while(!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) text.remove_prefix(1);
 	while(!text.empty() && std::isspace(static_cast<unsigned char>(text.back()))) text.remove_suffix(1);
@@ -71,22 +83,38 @@ std::string_view trim(std::string_view text) {
 
 /* Operators */
 
+/// @brief Reads an operator's number argument.
+/// @param value The argument.
+/// @param where Its place, for errors.
+/// @return The number.
+/// @throws DocumentError If it is not a number.
 double numberOf(const json& value, const std::string& where) {
 	if(!value.is_number()) fail(where, "expected a number, got " + value.dump());
 	return value.get<double>();
 }
 
-// Integer in, integer out: indices and counters stay integers
+/// @brief Makes an operator's numeric result; integer in, integer out, so indices and counters stay integers.
+/// @param value The result.
+/// @param integral Whether every argument was an integer.
+/// @return An integer when possible, else a double.
 json numeric(double value, bool integral) {
 	if(integral && std::trunc(value) == value) return static_cast<std::int64_t>(value);
 	return value;
 }
 
+/// @brief Tells whether every value is an integer.
+/// @param values An array.
+/// @return true if all are.
 bool allIntegers(const json& values) {
 	return std::ranges::all_of(values, [](const json& v) { return v.is_number_integer(); });
 }
 
-// Operators with several arguments take a literal array of them: {"$add": [1, "{{state.n}}"]}
+/// @brief Evaluates an operator's arguments: a literal array, e.g. `{"$add": [1, "{{state.n}}"]}`.
+/// @param raw The array.
+/// @param context What paths can see.
+/// @param where Its place, for errors.
+/// @return The evaluated arguments.
+/// @throws DocumentError If @p raw is not an array or an argument is invalid.
 json arguments(const json& raw, const Context& context, const std::string& where) {
 	if(!raw.is_array()) fail(where, "expected an array of arguments");
 	json values = json::array();
@@ -95,6 +123,13 @@ json arguments(const json& raw, const Context& context, const std::string& where
 	return values;
 }
 
+/// @brief Evaluates one `$` operator.
+/// @param name The operator, e.g. "$add".
+/// @param raw Its arguments, unevaluated.
+/// @param context What paths can see.
+/// @param where Its place, for errors.
+/// @return The result.
+/// @throws DocumentError If the operator is unknown or its arguments are invalid.
 json applyOperator(const std::string& name, const json& raw, const Context& context, const std::string& where) {
 	const std::string at = where + "." + name;
 
@@ -176,6 +211,12 @@ json applyOperator(const std::string& name, const json& raw, const Context& cont
 
 /* Templates */
 
+/// @brief Evaluates a string with `{{path}}` placeholders. A lone placeholder keeps the value's own type.
+/// @param text The string.
+/// @param context What paths can see.
+/// @param where Its place, for errors.
+/// @return The value, or the interpolated string.
+/// @throws DocumentError If a placeholder is unclosed or its path invalid.
 json evaluateString(const std::string& text, const Context& context, const std::string& where) {
 	const std::size_t open = text.find("{{");
 	if(open == std::string::npos) return text;

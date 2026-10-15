@@ -26,10 +26,16 @@ namespace {
 
 /* Reading values */
 
-// Text properties accept any value: numbers and booleans from bindings are shown as text
+/// @brief Reads a text property; numbers and booleans from bindings are shown as text.
+/// @param value The value.
+/// @return The text.
 std::string text(const json& value) { return toText(value); }
 
-// 120 or "120px" -> pixels, "50%" -> percentage of the parent
+/// @brief Reads a length: 120 or "120px" (pixels), "50%" (of the parent).
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The length.
+/// @throws DocumentError If it is not a length.
 Length length(const json& value, const std::string& path) {
 	if(value.is_number()) return px(value.get<float>());
 
@@ -54,6 +60,11 @@ Length length(const json& value, const std::string& path) {
 	fail(path, "expected a length: a number of pixels, \"12px\" or \"50%\"");
 }
 
+/// @brief Reads "start", "center" or "end".
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The alignment.
+/// @throws DocumentError If it is something else.
 Align align(const json& value, const std::string& path) {
 	const std::string name = string(value, path);
 	if(name == "start") return Align::Start;
@@ -62,6 +73,11 @@ Align align(const json& value, const std::string& path) {
 	fail(path, "expected \"start\", \"center\" or \"end\"");
 }
 
+/// @brief Reads a cursor name, e.g. "hand".
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The cursor.
+/// @throws DocumentError If the name is unknown.
 Cursor cursor(const json& value, const std::string& path) {
 	const std::string name = string(value, path);
 	if(name == "arrow") return Cursor::Arrow;
@@ -72,6 +88,11 @@ Cursor cursor(const json& value, const std::string& path) {
 	fail(path, "expected \"arrow\", \"ibeam\", \"hand\", \"resize-horizontal\" or \"resize-vertical\"");
 }
 
+/// @brief Reads an edge name: "top", "bottom", "left" or "right".
+/// @param name The name.
+/// @param path Its place, for errors.
+/// @return The edge.
+/// @throws DocumentError If the name is unknown.
 Edge edge(const std::string& name, const std::string& path) {
 	if(name == "top") return Edge::Top;
 	if(name == "bottom") return Edge::Bottom;
@@ -80,23 +101,27 @@ Edge edge(const std::string& name, const std::string& path) {
 	fail(path, "unknown edge '" + name + "' (expected top, bottom, left or right)");
 }
 
-// Node keys that describe structure or behaviour: never evaluated as values, never applied as properties
+/// @brief Tells whether a node key describes structure or behaviour, so it is never evaluated or applied.
+/// @param key The key.
+/// @return true for children, repeat, when, onClick, onSubmit and bind.
 bool structural(const std::string& key) {
 	return key == "children" || key == "repeat" || key == "when" || key == "onClick" || key == "onSubmit" ||
 	       key == "bind";
 }
 
-// State colors: while pressed, focused or under the pointer ("pressed", "focused", "hover" in the file)
+/// @brief State colours: while pressed, focused or under the pointer ("pressed", "focused", "hover" in the file).
 struct Interaction {
-	Color base;
-	std::optional<Color> hover;
-	std::optional<Color> pressed;
-	std::optional<Color> focus;
-	bool hovered = false;
-	bool down = false;
-	bool focused = false;
+	Color base;                   ///< Colour at rest.
+	std::optional<Color> hover;   ///< Under the pointer.
+	std::optional<Color> pressed; ///< While pressed.
+	std::optional<Color> focus;   ///< While focused.
+	bool hovered = false;         ///< Under the pointer now.
+	bool down = false;            ///< Pressed now.
+	bool focused = false;         ///< Focused now.
 
+	/// @brief Whether any state colour is set.
 	[[nodiscard]] bool any() const { return hover || pressed || focus; }
+	/// @brief The colour to show now: pressed, then focused, then hovered, then base.
 	[[nodiscard]] Color current() const {
 		if(down && pressed) return *pressed;
 		if(focused && focus) return *focus;
@@ -105,106 +130,207 @@ struct Interaction {
 	}
 };
 
-// What the screen knows about each panel it built
+/// @brief What the runtime knows about each panel it built.
 struct Record {
-	std::string type;
-	std::size_t firstManaged = 0; // children a factory created come first and are left alone
-	std::size_t managed = 0;      // children built from the document
-	Color defaultColor;
-	Cursor defaultCursor = Cursor::Arrow;
-	json locals = json::object(); // repeat variables visible to this node's bindings and handlers
-	json onClick;                 // action name or inline steps (null: none)
-	json onSubmit;
-	std::string path; // place in the document, for error messages
-	std::optional<std::string> bind;
-	std::optional<std::string> lastText; // "text" applied last time
-	Interaction interaction;
+	std::string type;                     ///< The node's "type".
+	std::size_t firstManaged = 0;         ///< Children a factory created come first and are left alone.
+	std::size_t managed = 0;              ///< Children built from the document.
+	Color defaultColor;                   ///< Restored when "color" goes away.
+	Cursor defaultCursor = Cursor::Arrow; ///< Restored when "cursor" goes away.
+	json locals = json::object();         ///< Repeat variables visible to its bindings and handlers.
+	json onClick;                         ///< Action name or inline steps (null: none).
+	json onSubmit;                        ///< Same, for Enter in a text area.
+	std::string path;                     ///< Place in the document, for errors.
+	std::optional<std::string> bind;      ///< State path a text area mirrors.
+	std::optional<std::string> lastText;  ///< "text" applied last time.
+	Interaction interaction;              ///< State colours.
 };
 
-// A child to build: the node (styles merged), its variables and its place in the document
+/// @brief A child to build.
 struct Item {
-	json node;
-	json locals;
-	std::string path;
+	json node;        ///< Styles merged.
+	json locals;      ///< Its variables.
+	std::string path; ///< Its place in the document.
 };
 
-constexpr int maxActionDepth = 32;
-constexpr std::size_t maxLoopIterations = 10000;
+constexpr int maxActionDepth = 32;              ///< Nested action calls before giving up (recursion guard).
+constexpr std::size_t maxLoopIterations = 10000; ///< "while" iterations before giving up.
 
 } // namespace
 
+/// @brief The runtime's state and logic; observes the VersionControl.
 struct Runtime::Impl final : VersionObserver {
-	Runtime& owner;
-	VersionControl& versions;
-	std::filesystem::path baseDirectory;
+	Runtime& owner;                      ///< For onEvent and onError.
+	VersionControl& versions;            ///< The document and state.
+	std::filesystem::path baseDirectory; ///< Where font paths are resolved from.
 
-	std::map<std::string, Color, std::less<>> colors;
-	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts;
-	std::map<std::string, std::shared_ptr<const Font>> fontCache; // by "file@size": revisions don't reload fonts
+	std::map<std::string, Color, std::less<>> colors;                      ///< From "colors".
+	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts; ///< From "fonts".
+	std::map<std::string, std::shared_ptr<const Font>> fontCache; ///< By "file@size": revisions don't reload fonts.
 
-	std::map<std::string, Factory, std::less<>> types;
-	std::map<std::string, Action, std::less<>> nativeActions;
+	std::map<std::string, Factory, std::less<>> types;        ///< Custom node types.
+	std::map<std::string, Action, std::less<>> nativeActions; ///< Native actions.
 	UnhandledAction unhandled = [](const std::string& action, Panel& sender) {
 		std::cerr << "sGLGUI screen: no handler for action '" << action << "' (from '" << sender.id() << "')\n";
 	};
-	bool placeholderTypes = false;
+	bool placeholderTypes = false; ///< Unknown types become plain panels.
 
-	Window* window = nullptr;
-	std::unordered_map<const Panel*, Record> records;
+	Window* window = nullptr;                         ///< Set by build().
+	std::unordered_map<const Panel*, Record> records; ///< Every panel built from the document.
 
-	bool stateChanged = false;
-	bool reconcileQueued = false;
-	int actionDepth = 0;
+	bool stateChanged = false;    ///< An action changed the state.
+	bool reconcileQueued = false; ///< A reconcile is deferred to the end of the event.
+	int actionDepth = 0;          ///< Nested action calls in progress.
 
 	Impl(Runtime& runtime, VersionControl& vcs, std::filesystem::path base)
 	    : owner(runtime), versions(vcs), baseDirectory(std::move(base)) {}
 
 	/* VersionObserver */
+	/// @brief Re-reads colours and fonts, then reconciles.
 	void documentChanged() override {
 		readDerived();
 		reconcile();
 	}
+	/// @brief Refreshes the globals and schedules a reconcile (a review UI may list the proposals).
 	void proposalsChanged() override {
 		globalsChanged();
 		requestReconcile(); // a review UI may list the proposals
 	}
 
 	/* Document */
-	void readDerived(); // colors and fonts
+	/// @brief Reads "colors" and "fonts", changing nothing on error.
+	/// @throws DocumentError If a colour or font is invalid.
+	void readDerived();
 
 	/* Values */
+	/// @brief Screen-wide variables for expressions.
 	struct Globals {
-		json window, revision, other;
+		json window, revision, other; ///< Window size, current revision, proposals/history/preview.
 	};
-	// Built once and reused by every evaluation until the history, proposals, preview or window size change
+	/// @brief The globals, built once and reused until the history, proposals, preview or window size change.
 	const Globals& globals() const;
+	/// @brief Drops the cached globals.
 	void globalsChanged() const { globalsCache.reset(); }
-	mutable std::optional<Globals> globalsCache;
+	mutable std::optional<Globals> globalsCache; ///< See globals().
+	/// @brief Evaluates a value with the state, the globals and the given variables.
+	/// @param value The value.
+	/// @param locals "repeat" / "forEach" variables.
+	/// @param event The event being handled.
+	/// @param where Its place, for errors.
+	/// @return The evaluated value.
+	/// @throws DocumentError If it is invalid.
 	json evaluate(const json& value, const json& locals, const json& event, const std::string& where) const;
+	/// @brief Reads a colour: "#rrggbb", "@name" (from "colors") or "transparent".
+	/// @param value The value.
+	/// @param path Its place, for errors.
+	/// @return The colour.
+	/// @throws DocumentError If it is not a colour.
 	Color color(const json& value, const std::string& path) const;
+	/// @brief Merges a node's properties on top of its styles' (later styles override earlier ones).
+	/// @param node The node.
+	/// @param path Its place, for errors.
+	/// @return The merged node.
+	/// @throws DocumentError If a style is unknown.
 	json withStyles(const json& node, const std::string& path) const;
 
 	/* Building */
+	/// @brief Creates the panel for a node type (built-in, registered, or a placeholder).
+	/// @param type The "type".
+	/// @param path Its place, for errors.
+	/// @return The panel.
+	/// @throws DocumentError If the type is unknown.
 	std::unique_ptr<Panel> create(const std::string& type, const std::string& path) const;
+	/// @brief Starts tracking a new panel, remembering its defaults.
+	/// @param panel The panel.
+	/// @param type Its "type".
+	/// @return Its record.
 	Record& adopt(Panel& panel, const std::string& type);
+	/// @brief Connects a panel's signals once; handlers read its current record.
+	/// @param panel The panel.
 	void hookUp(Panel& panel);
+	/// @brief Evaluates a node's properties (structural keys are left as they are).
+	/// @param merged The node, styles merged.
+	/// @param locals Its variables.
+	/// @param path Its place, for errors.
+	/// @return The evaluated properties.
 	json evaluateNode(const json& merged, const json& locals, const std::string& path) const;
+	/// @brief Expands "repeat" and "when" into the children to build.
+	/// @param children The "children" array.
+	/// @param locals The parent's variables.
+	/// @param path Its place, for errors.
+	/// @return The children.
 	std::vector<Item> expand(const json& children, const json& locals, const std::string& path) const;
+	/// @brief Restores a panel's defaults, so properties no longer in the document disappear.
+	/// @param panel The panel.
+	/// @param record Its record.
 	void reset(Panel& panel, Record& record);
+	/// @brief Applies evaluated properties to a panel.
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param properties The evaluated node.
+	/// @param path Its place, for errors.
+	/// @param isRoot Whether it is the window's root.
+	/// @param created Whether it was just created.
 	void apply(Panel& panel, Record& record, const json& properties, const std::string& path, bool isRoot,
 	           bool created);
+	/// @brief Updates a panel's children in place, creating, replacing or removing only what changed.
+	/// @param properties The evaluated node.
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param path Its place, for errors.
 	void reconcileChildren(const json& properties, Panel& panel, Record& record, const std::string& path);
+	/// @brief Drops the records of a subtree about to be destroyed.
+	/// @param panel The subtree's root.
 	void forgetSubtree(const Panel& panel);
+	/// @brief Brings the panels in line with the document and the state.
+	/// @throws DocumentError If the document can't be built (the version is then refused).
 	void reconcile();
+	/// @brief Schedules one reconcile after the current event (batches state changes).
 	void requestReconcile();
+	/// @brief Builds a node outside reconciliation (Runtime::instantiate).
+	/// @param node The node.
+	/// @param parent Where to add it.
+	/// @param path Its place, for errors.
+	/// @return The panel.
 	Panel& buildDetached(const json& node, Panel& parent, const std::string& path);
 
 	/* Behaviour */
+	/// @brief Runs an event handler (an action name or inline steps); errors are reported, never thrown.
+	/// @param handler The handler.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The sender's variables.
+	/// @param where Its place, for errors.
 	void handle(const json& handler, Panel& sender, const json& event, const json& locals, const std::string& where);
+	/// @brief Runs an action from "actions", else a native one, else the unhandled fallback.
+	/// @param name The action.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The caller's variables.
+	/// @param where Its place, for errors.
+	/// @throws DocumentError If a step fails, or nobody handles the action.
 	void runNamed(const std::string& name, Panel& sender, const json& event, const json& locals,
 	              const std::string& where);
+	/// @brief Runs steps in order.
+	/// @param steps A step or an array of steps.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals Variables; steps may add some.
+	/// @param where Its place, for errors.
+	/// @return false if a "stop" step ended the action.
+	/// @throws DocumentError If a step fails or actions nest more than 32 levels deep.
 	bool runSteps(const json& steps, Panel& sender, const json& event, json& locals, const std::string& where);
+	/// @brief Runs one step (set, push, if, forEach, while, emit, patch, call, ...).
+	/// @param step The step.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals Variables; the step may add some.
+	/// @param where Its place, for errors.
+	/// @return false if it was "stop".
+	/// @throws DocumentError If it fails.
 	bool runStep(const json& step, Panel& sender, const json& event, json& locals, const std::string& where);
+	/// @brief Prints an error on stderr and fires onError.
+	/// @param message The error.
 	void report(const std::string& message);
 };
 

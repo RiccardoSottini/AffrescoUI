@@ -1,7 +1,7 @@
-# Governance: how changes to a live app are controlled
+# Version control: who may change a live app, and how
 
 sGLGUI apps can be changed while they run, by the app itself, by the user, or by outside programs such as an AI agent.
-Governance is what makes that safe enough to use: **who may change what, who approves it, what happened, and how to
+Version control is what makes that safe enough to use: **who may change what, who approves it, what happened, and how to
 go back.** It is built into the engine, so every app gets it.
 
 ## Revisions: every change is a commit
@@ -40,7 +40,7 @@ The screen file decides, in a `permissions` section that no revision can change:
   protocol, e.g. the person's client. Without a `permissions` section anyone may; with one, only those listed.
 - **Locked parts** can never be changed by a revision: nodes listed by id (or marked `"locked": true`), any JSON
   Pointer in the document, or paths in the state.
-- **Protected controls:** no revision may add or alter steps that govern changes (`accept`, `reject`, `preview`,
+- **Protected controls:** no revision may add or alter steps that control changes (`accept`, `reject`, `preview`,
   `endPreview`, `restore`, `undo`, `patch`, `call`). Otherwise an agent could hide an "accept" inside a button and
   approve itself.
 
@@ -90,7 +90,7 @@ share the result as a plugin others can install.
 
 | Concept | C++ (`sgl::Screen`) | Stream protocol | MCP tool |
 |---|---|---|---|
-| Submit a change | `submitRevision` (governed), `applyRevision` (app's own) | `revision` | `submit_revision` |
+| Submit a change | `submitRevision` (permission-checked), `applyRevision` (app's own) | `revision` | `submit_revision` |
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept`, `reject` | (none: reviewers only) |
 | Auto-accept | `setAutoAccept` | reviewers: `setAutoAccept` | (none) |
 | History | `history`, `restore`, `submitRestore`, `undo` | `getHistory`, `restore`, `undo`, `committed` | `get_history`, `restore_revision` |

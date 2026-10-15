@@ -1,0 +1,369 @@
+{
+	"$schema": "../../../schema/sglgui-screen.schema.json",
+	"format": "sglgui-screen",
+	"version": 1,
+
+	"window": { "title": "Streak: an sGLGUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 26 },
+		"figure": { "file": "../fonts/Roboto-Regular.ttf", "size": 34 }
+	},
+
+	"colors": {
+		"background": "#f6f5f2",
+		"surface": "#ffffff",
+		"text": "#1c1917",
+		"muted": "#78716c",
+		"border": "#e7e5e4",
+		"rowHover": "#fafaf9",
+		"input": "#f5f5f4",
+		"inputFocused": "#ecfdf5",
+		"accent": "#16a34a",
+		"accentSoft": "#dcfce7",
+		"track": "#f0efed"
+	},
+
+	"permissions": {
+		"authors": { "studio": "allow", "app": "allow", "agent": "review", "*": "review" },
+		"reviewers": ["studio"],
+		"locked": ["#statusBar"]
+	},
+
+	"state": {
+		"today": "Thursday, 15 October",
+		"doneToday": 2,
+		"newHabit": "",
+		"palette": ["#e2ece6", "#a7f3c0", "#4ade80", "#16a34a", "#14532d"],
+		"habitColors": ["#16a34a", "#2563eb", "#d97706", "#db2777", "#7c3aed", "#0891b2"],
+		"habits": [
+			{ "name": "Read 20 pages", "done": true, "streak": 12, "week": 86, "color": "#16a34a" },
+			{ "name": "Run or walk 5 km", "done": true, "streak": 5, "week": 71, "color": "#2563eb" },
+			{ "name": "Practise C++ for an hour", "done": false, "streak": 31, "week": 100, "color": "#d97706" },
+			{ "name": "No phone after 22:00", "done": false, "streak": 3, "week": 43, "color": "#db2777" },
+			{ "name": "Ten minutes of stretching", "done": false, "streak": 0, "week": 29, "color": "#7c3aed" }
+		],
+		"days": ["Mon", "", "Wed", "", "Fri", "", "Sun"],
+		"weeks": [
+			[2, 2, 2, 1, 1, 1, 2],
+			[2, 3, 2, 2, 2, 0, 2],
+			[3, 3, 0, 0, 1, 0, 1],
+			[2, 3, 1, 2, 3, 0, 3],
+			[3, 3, 1, 1, 2, 1, 2],
+			[3, 2, 1, 2, 4, 0, 2],
+			[3, 1, 2, 4, 0, 1, 1],
+			[2, 3, 2, 1, 3, 2, 2],
+			[4, 3, 3, 1, 3, 1, 1],
+			[1, 2, 2, 4, 0, 0, 2],
+			[4, 3, 1, 0, 3, 1, 0],
+			[4, 4, 3, 3, 3, 4, 2],
+			[3, 3, 1, 4, 4, 2, 0],
+			[2, 4, 1, 3, 4, 1, 4],
+			[4, 3, 3, 4, 3, 3, 1],
+			[3, 4, 3, 2, 4, 4, 2],
+			[2, 3, 3, 3, 4, 1, 4],
+			[2, 2, 4, 4, 4, 3, 2],
+			[4, 4, 3, 4, 4, 2, 3],
+			[4, 4, 4, 2, 0, 0, 0]
+		]
+	},
+
+	"styles": {
+		"card": { "color": "@surface" },
+		"cardTitle": { "type": "label", "font": "heading", "textColor": "@text", "anchors": { "left": 24, "top": 20 }, "fitText": true },
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true }
+	},
+
+	"actions": {
+		"countToday": [
+			{ "set": "state.doneToday", "to": 0 },
+			{ "forEach": "state.habits", "as": "habit", "do": [{ "if": "{{habit.done}}", "then": [{ "increment": "state.doneToday" }] }] },
+			{ "set": "state.weeks[19][3]", "to": { "$min": ["{{state.doneToday}}", 4] } }
+		],
+		"addHabit": [
+			{ "if": { "$empty": "{{state.newHabit}}" }, "then": [{ "stop": true }] },
+			{
+				"push": "state.habits",
+				"value": { "name": "{{state.newHabit}}", "done": false, "streak": 0, "week": 0, "color": "{{state.habitColors[5]}}" }
+			},
+			{ "set": "state.newHabit", "to": "" }
+		]
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{ "type": "label", "text": "Streak", "font": "title", "textColor": "@text", "anchors": { "left": 32, "top": 28 }, "fitText": true },
+			{ "style": "caption", "text": "an sGLGUI template", "anchors": { "left": 34, "top": 64 } },
+			{
+				"type": "label",
+				"text": "{{state.today}}",
+				"font": "heading",
+				"textColor": "@muted",
+				"anchors": { "right": 32, "top": 34 },
+				"fitText": true
+			},
+			{
+				"id": "today",
+				"anchors": { "left": 24, "top": 100, "bottom": 56 },
+				"width": 400,
+				"style": "card",
+				"children": [
+					{ "style": "cardTitle", "text": "Today" },
+					{
+						"style": "caption",
+						"text": { "$concat": ["{{state.doneToday}} of ", { "$length": "{{state.habits}}" }, " done"] },
+						"anchors": { "right": 24, "top": 24 }
+					},
+					{
+						"anchors": { "left": 24, "right": 24, "top": 56 },
+						"height": 6,
+						"color": "@track",
+						"children": [
+							{
+								"anchors": { "left": 0, "top": 0, "bottom": 0 },
+								"width": { "$concat": [{ "$round": { "$divide": [{ "$multiply": ["{{state.doneToday}}", 100] }, { "$max": [{ "$length": "{{state.habits}}" }, 1] }] } }, "%"] },
+								"color": "@accent"
+							}
+						]
+					},
+					{
+						"id": "habits",
+						"type": "stack",
+						"anchors": { "left": 12, "right": 12, "top": 80, "bottom": 72 },
+						"gap": 4,
+						"children": [
+							{
+								"repeat": { "for": "habit", "in": "state.habits", "index": "h" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 64,
+								"color": "@surface",
+								"children": [
+									{ "anchors": { "left": 0, "top": 12, "bottom": 12 }, "width": 3, "color": "{{habit.color}}" },
+									{
+										"anchors": { "left": 16, "top": 21 },
+										"width": 22,
+										"height": 22,
+										"color": { "$if": ["{{habit.done}}", "{{habit.color}}", "@border"] },
+										"children": [
+											{ "when": { "$not": "{{habit.done}}" }, "fill": 2, "color": "@surface" },
+											{ "when": "{{habit.done}}", "fill": 7, "color": "#ffffff" }
+										]
+									},
+									{
+										"type": "label",
+										"text": "{{habit.name}}",
+										"textColor": { "$if": ["{{habit.done}}", "@muted", "@text"] },
+										"anchors": { "left": 54, "top": 13 },
+										"fitText": true
+									},
+									{
+										"style": "caption",
+										"text": { "$if": [{ "$greater": ["{{habit.streak}}", 0] }, "{{habit.streak}} day streak", "Start today"] },
+										"anchors": { "left": 54, "top": 36 }
+									},
+									{
+										"type": "label",
+										"text": "{{habit.week}}%",
+										"font": "small",
+										"textColor": "{{habit.color}}",
+										"anchors": { "right": 14, "top": 0, "bottom": 0 },
+										"width": 48,
+										"align": { "horizontal": "end", "vertical": "center" }
+									},
+									{
+										"fill": 0,
+										"color": "transparent",
+										"hover": { "color": "#0000000a" },
+										"cursor": "hand",
+										"onClick": [
+											{ "toggle": "state.habits[h].done" },
+											{
+												"set": "state.habits[h].streak",
+												"to": { "$if": ["{{state.habits[h].done}}", { "$add": ["{{habit.streak}}", 1] }, { "$max": [{ "$subtract": ["{{habit.streak}}", 1] }, 0] }] }
+											},
+											{ "run": "countToday" }
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "newHabit",
+						"type": "textarea",
+						"anchors": { "left": 24, "right": 24, "bottom": 20 },
+						"height": 38,
+						"padding": 12,
+						"color": "@input",
+						"focused": { "color": "@inputFocused" },
+						"textColor": "@text",
+						"placeholder": "Add a habit and press Enter",
+						"placeholderColor": "@muted",
+						"bind": "state.newHabit",
+						"onSubmit": "addHabit"
+					}
+				]
+			},
+			{
+				"id": "stats",
+				"anchors": { "left": 440, "right": 24, "top": 100 },
+				"height": 112,
+				"color": "transparent",
+				"children": [
+					{
+						"repeat": { "for": "stat", "in": [
+							{ "label": "Current streak", "value": "{{state.habits[0].streak}} days" },
+							{ "label": "Best streak", "value": "31 days" },
+							{ "label": "Completed today", "value": { "$concat": ["{{state.doneToday}} / ", { "$length": "{{state.habits}}" }] } },
+							{ "label": "Check-ins", "value": "418" }
+						] },
+						"anchors": { "top": 0, "bottom": 0 },
+						"x": { "$concat": [{ "$multiply": ["{{index}}", 25] }, "%"] },
+						"width": "25%",
+						"color": "transparent",
+						"children": [
+							{
+								"anchors": { "left": 0, "right": 16, "top": 0, "bottom": 0 },
+								"style": "card",
+								"children": [
+									{ "style": "caption", "text": "{{stat.label}}", "anchors": { "left": 20, "top": 20 } },
+									{ "type": "label", "text": "{{stat.value}}", "font": "figure", "textColor": "@text", "anchors": { "left": 20, "top": 44 }, "fitText": true }
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "grid",
+				"anchors": { "left": 440, "right": 40, "top": 228 },
+				"height": 252,
+				"style": "card",
+				"children": [
+					{ "style": "cardTitle", "text": "Last 20 weeks" },
+					{ "style": "caption", "text": "Click a day to change it", "anchors": { "right": 24, "top": 24 } },
+					{
+						"anchors": { "left": 24, "top": 62 },
+						"width": 40,
+						"height": 160,
+						"color": "transparent",
+						"children": [
+							{
+								"repeat": { "for": "day", "in": "state.days" },
+								"style": "caption",
+								"text": "{{day}}",
+								"anchors": { "left": 0 },
+								"y": { "$add": [{ "$multiply": ["{{index}}", 22] }, 2] }
+							}
+						]
+					},
+					{
+						"anchors": { "left": 72, "top": 62 },
+						"width": 440,
+						"height": 154,
+						"color": "transparent",
+						"children": [
+							{
+								"repeat": { "for": "week", "in": "state.weeks", "index": "w" },
+								"anchors": { "top": 0, "bottom": 0 },
+								"x": { "$multiply": ["{{w}}", 22] },
+								"width": 18,
+								"color": "transparent",
+								"children": [
+									{
+										"repeat": { "for": "level", "in": "week", "index": "d" },
+										"anchors": { "left": 0, "right": 0 },
+										"y": { "$multiply": ["{{d}}", 22] },
+										"height": 18,
+										"color": "{{state.palette[level]}}",
+										"cursor": "hand",
+										"onClick": [{ "set": "state.weeks[w][d]", "to": { "$if": [{ "$equals": ["{{level}}", 4] }, 0, { "$add": ["{{level}}", 1] }] } }]
+									}
+								]
+							}
+						]
+					},
+					{
+						"anchors": { "right": 24, "bottom": 18 },
+						"width": 200,
+						"height": 16,
+						"color": "transparent",
+						"children": [
+							{ "style": "caption", "text": "Less", "anchors": { "left": 0, "top": 0 } },
+							{
+								"repeat": { "for": "shade", "in": "state.palette" },
+								"anchors": { "top": 1 },
+								"x": { "$add": [{ "$multiply": ["{{index}}", 20] }, 40] },
+								"width": 14,
+								"height": 14,
+								"color": "{{shade}}"
+							},
+							{ "style": "caption", "text": "More", "anchors": { "left": 146, "top": 0 } }
+						]
+					}
+				]
+			},
+			{
+				"id": "weekly",
+				"anchors": { "left": 440, "right": 40, "top": 496, "bottom": 56 },
+				"style": "card",
+				"children": [
+					{ "style": "cardTitle", "text": "This week" },
+					{
+						"type": "stack",
+						"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 16 },
+						"gap": 14,
+						"children": [
+							{
+								"repeat": { "for": "habit", "in": "state.habits" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 18,
+								"color": "transparent",
+								"children": [
+									{ "type": "label", "text": "{{habit.name}}", "font": "small", "textColor": "@text", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": 200, "align": { "horizontal": "start", "vertical": "center" } },
+									{
+										"anchors": { "left": 210, "right": 56, "top": 6 },
+										"height": 6,
+										"color": "@track",
+										"children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{habit.week}}%", "color": "{{habit.color}}" }]
+									},
+									{ "type": "label", "text": "{{habit.week}}%", "font": "small", "textColor": "@muted", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 48, "align": { "horizontal": "end", "vertical": "center" } }
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "statusBar",
+				"anchors": { "left": 0, "right": 0, "bottom": 0 },
+				"height": 32,
+				"color": "@surface",
+				"children": [
+					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{
+						"type": "label",
+						"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "left": 32, "top": 0, "bottom": 0, "right": 200 },
+						"align": { "horizontal": "start", "vertical": "center" }
+					},
+					{
+						"type": "label",
+						"text": "{{window.width}} × {{window.height}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "right": 32, "top": 0, "bottom": 0 },
+						"width": 160,
+						"align": { "horizontal": "end", "vertical": "center" }
+					}
+				]
+			}
+		]
+	}
+}

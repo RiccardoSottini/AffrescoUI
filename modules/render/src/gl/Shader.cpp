@@ -7,6 +7,11 @@ namespace sgl::gl {
 
 namespace {
 
+/// @brief Compiles one shader.
+/// @param type GL_VERTEX_SHADER or GL_FRAGMENT_SHADER.
+/// @param source GLSL source.
+/// @return The shader; the caller deletes it.
+/// @throws std::runtime_error With the driver's log, if compiling fails.
 GLuint compile(GLenum type, std::string_view source) {
 	const GLuint shader = glCreateShader(type);
 	const GLchar* text = source.data();

@@ -1,7 +1,8 @@
 #pragma once
 
-// Everything in sGLGUI. Each module can also be included on its own: sgl/core (the interfaces between modules),
-// sgl/render, sgl/format, sgl/vcs, sgl/channel.
+/// @file
+/// @brief Everything in sGLGUI. Each module can also be included on its own: sgl/core (the interfaces between
+/// modules), sgl/render, sgl/format, sgl/vcs, sgl/channel.
 
 #include "sgl/core/Channel.hpp"
 #include "sgl/core/DocumentRules.hpp"

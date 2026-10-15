@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Window: an OS window with its own OpenGL context and a root panel.
+
 #include "sgl/render/Events.hpp"
 #include "sgl/render/Font.hpp"
 #include "sgl/render/Panel.hpp"
@@ -23,7 +26,10 @@ namespace gl {
 class QuadRenderer;
 }
 
-// An OS window with its own OpenGL context and a root Panel filling it. Created by Application.
+/// @brief An OS window with its own OpenGL context and a root Panel filling it. Created by Application.
+///
+/// Routes input to its panels and draws only when something changed. Sizes are in window units; on HiDPI screens
+/// the framebuffer has more pixels.
 class Window {
 public:
 	~Window();
@@ -34,117 +40,196 @@ public:
 	Window& operator=(Window&&) = delete;
 
 	/* Properties */
+
+	/// @brief The title.
 	[[nodiscard]] const std::string& title() const noexcept { return title_; }
+	/// @brief Sets the title.
+	/// @param title The title.
 	void setTitle(std::string title);
 
+	/// @brief The width, in window units.
 	[[nodiscard]] int width() const noexcept { return width_; }
+	/// @brief The height, in window units.
 	[[nodiscard]] int height() const noexcept { return height_; }
-	void setSize(int width, int height); // clamped to the minimum size
+	/// @brief Resizes the window, clamped to the minimum size.
+	/// @param width The width.
+	/// @param height The height.
+	void setSize(int width, int height);
 
+	/// @brief The minimum width.
 	[[nodiscard]] int minWidth() const noexcept { return minWidth_; }
+	/// @brief The minimum height.
 	[[nodiscard]] int minHeight() const noexcept { return minHeight_; }
+	/// @brief Sets the minimum size, growing the window if needed.
+	/// @param minWidth The minimum width.
+	/// @param minHeight The minimum height.
 	void setMinSize(int minWidth, int minHeight);
 
+	/// @brief Whether the window is shown.
 	[[nodiscard]] bool isVisible() const;
+	/// @brief Shows or hides the window.
+	/// @param visible true to show it.
 	void setVisible(bool visible);
 
+	/// @brief Whether the user asked to close the window.
 	[[nodiscard]] bool shouldClose() const;
 
 	/* Content */
+
+	/// @brief The root panel, which always fills the window.
 	[[nodiscard]] Panel& root() noexcept { return root_; }
 
+	/// @brief Creates a child of the root panel.
+	/// @tparam T Panel or a subclass.
+	/// @param args Forwarded to T's constructor.
+	/// @return The child.
 	template <std::derived_from<Panel> T = Panel, typename... Args> T& add(Args&&... args) {
 		return root_.add<T>(std::forward<Args>(args)...);
 	}
 
+	/// @brief The panel receiving the keyboard, or nullptr.
 	[[nodiscard]] Panel* focusedPanel() const noexcept { return focused_; }
+	/// @brief Moves the keyboard focus (a left click also does).
+	/// @param panel The panel, or nullptr.
 	void setFocus(Panel* panel);
 
-	[[nodiscard]] Panel* panelAt(Vec2 point); // nullptr outside the window
+	/// @brief Finds the panel at a point, laying out first if needed.
+	/// @param point In window units.
+	/// @return The deepest shown panel there, or nullptr outside the window.
+	[[nodiscard]] Panel* panelAt(Vec2 point);
 
-	// Font used by labels that don't have their own
+	/// @brief Sets the font of labels that don't have their own.
+	/// @param font The font.
 	void setDefaultFont(std::shared_ptr<const Font> font);
+	/// @brief The font of labels that don't have their own, or nullptr.
 	[[nodiscard]] const Font* defaultFont() const noexcept { return defaultFont_.get(); }
 
-	// The system clipboard, as UTF-8
+	/// @brief The system clipboard's text, as UTF-8.
 	[[nodiscard]] std::string clipboardText() const;
+	/// @brief Sets the system clipboard's text.
+	/// @param utf8 UTF-8 text.
 	void setClipboardText(const std::string& utf8);
 
+	/// @brief The panel under the pointer, or nullptr.
 	[[nodiscard]] Panel* hoveredPanel() const noexcept { return hovered_; }
-	[[nodiscard]] Panel* mouseGrabber() const noexcept { return grabbed_; } // panel receiving the mouse during a drag
+	/// @brief The panel holding the mouse during a drag (from button press to release), or nullptr.
+	[[nodiscard]] Panel* mouseGrabber() const noexcept { return grabbed_; }
 
-	/* Signals (fired after the focused/hovered panel handled the event) */
-	Signal<const KeyEvent&> onKey;
-	Signal<const CharEvent&> onChar;
-	Signal<const MouseMoveEvent&> onMouseMove;
-	Signal<const MouseButtonEvent&> onMouseButton;
-	Signal<const ScrollEvent&> onScroll;
-	Signal<const CursorEnterEvent&> onCursorEnter;
-	Signal<const ResizeEvent&> onResize;
+	/* Signals, fired after the focused or hovered panel handled the event */
+
+	Signal<const KeyEvent&> onKey;                 ///< Every key event.
+	Signal<const CharEvent&> onChar;               ///< Every typed character.
+	Signal<const MouseMoveEvent&> onMouseMove;     ///< Every pointer move.
+	Signal<const MouseButtonEvent&> onMouseButton; ///< Every button press or release.
+	Signal<const ScrollEvent&> onScroll;           ///< Every scroll.
+	Signal<const CursorEnterEvent&> onCursorEnter; ///< The pointer entered or left.
+	Signal<const ResizeEvent&> onResize;           ///< The window was resized.
 
 	/* Rendering */
+
+	/// @brief Marks layout and frame as out of date. Changes made by the layout pass itself don't count.
 	void invalidate() noexcept {
 		if(!layingOut_) layoutDirty_ = redrawDirty_ = true; // changes made by the layout pass itself don't count
 	}
-	// Runs `task` once the event being handled has been fully delivered (or before the next frame).
-	// Lets event handlers rebuild parts of the UI, even the panel whose handler is running.
+
+	/// @brief Runs a task once the current event has been fully delivered (or before the next frame).
+	///
+	/// Lets event handlers rebuild parts of the UI, even the panel whose handler is running.
+	/// @param task The work to run; it may defer more.
 	void defer(std::function<void()> task);
 
-	void render();                                          // lays out and draws only if something changed
-	bool saveScreenshot(const std::filesystem::path& path); // draws the current frame to a binary PPM image
+	/// @brief Runs deferred tasks, then lays out, draws and presents a frame if something changed.
+	void render();
 
+	/// @brief Draws the current frame and saves it without presenting it.
+	/// @param path Binary PPM file to write, at framebuffer resolution.
+	/// @return false if it couldn't be written.
+	bool saveScreenshot(const std::filesystem::path& path);
+
+	/// @brief The GLFW window.
 	[[nodiscard]] GLFWwindow* nativeHandle() const noexcept { return handle_.get(); }
 
 private:
 	friend class Application;
 	friend class Panel;
 
+	/// @brief Opens the OS window, loads OpenGL and turns vsync on.
+	/// @param title The title.
+	/// @param width Width in window units.
+	/// @param height Height in window units.
+	/// @throws std::runtime_error If the window, its context or OpenGL can't be set up.
 	Window(std::string title, int width, int height);
 
+	/// @brief Lays the tree out if anything changed; the root fills the window.
 	void updateLayout();
+	/// @brief Draws the tree into the back buffer, in this window's context.
 	void draw();
+	/// @brief Connects the GLFW callbacks.
 	void installCallbacks();
 
-	// Input routing: keyboard to the focused panel; mouse to the panel under the pointer, or to the panel that
-	// received the button press until it is released (mouse capture, so drags keep working outside the panel)
+	/* Input routing: keyboard to the focused panel; mouse to the panel under the pointer, or to the panel that
+	   received the button press until it is released (mouse capture, so drags work outside the panel). Deferred
+	   tasks run once the outermost event is delivered. */
+
+	/// @brief Delivers a key event to the focused panel, then onKey.
+	/// @param event The event.
 	void routeKey(const KeyEvent& event);
+	/// @brief Delivers a typed character to the focused panel, then onChar.
+	/// @param event The event.
 	void routeChar(const CharEvent& event);
+	/// @brief Updates the hovered panel and delivers the move to the grabbing or hovered panel, then onMouseMove.
+	/// @param position The pointer position.
 	void routeMouseMove(Vec2 position);
+	/// @brief Delivers a button event; a press focuses (left button) and captures, a release ends the capture.
+	/// @param event The event.
 	void routeMouseButton(const MouseButtonEvent& event);
+	/// @brief Delivers a scroll to the panel under the pointer, then onScroll.
+	/// @param event The event.
 	void routeScroll(const ScrollEvent& event);
+	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
+	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
 
+	/// @brief Changes the hovered panel, sending hover events and updating the cursor.
+	/// @param panel The panel under the pointer, or nullptr.
 	void setHovered(Panel* panel);
-	void forget(const Panel& panel) noexcept; // called by a panel being destroyed
+	/// @brief Drops the focus, hover and capture pointers to a panel being destroyed.
+	/// @param panel The panel.
+	void forget(const Panel& panel) noexcept;
+	/// @brief Runs deferred tasks until none are left.
 	void runDeferred();
+	/// @brief Shows the cursor of the grabbing or hovered panel.
 	void updateCursor();
 
+	/// @brief Destroys a GLFW window, for std::unique_ptr.
 	struct HandleDeleter {
+		/// @brief Destroys the window.
+		/// @param handle The window.
 		void operator()(GLFWwindow* handle) const noexcept;
 	};
 
 	// Declaration order matters: the renderer must be destroyed before the window (and its GL context)
-	std::unique_ptr<GLFWwindow, HandleDeleter> handle_;
-	std::unique_ptr<gl::QuadRenderer> renderer_;
+	std::unique_ptr<GLFWwindow, HandleDeleter> handle_; ///< OS window and OpenGL context.
+	std::unique_ptr<gl::QuadRenderer> renderer_;        ///< Draws the tree.
 
-	std::string title_;
-	int width_ = 0, height_ = 0;
-	int minWidth_ = 0, minHeight_ = 0;
-	Vec2 cursor_;
-	bool layoutDirty_ = true;
-	bool redrawDirty_ = true;
-	bool layingOut_ = false;
-	int routing_ = 0; // depth of event delivery in progress
-	std::vector<std::function<void()>> deferred_;
+	std::string title_;                           ///< See title().
+	int width_ = 0, height_ = 0;                  ///< Size, in window units.
+	int minWidth_ = 0, minHeight_ = 0;            ///< Minimum size.
+	Vec2 cursor_;                                 ///< Last pointer position.
+	bool layoutDirty_ = true;                     ///< Layout needed before the next frame.
+	bool redrawDirty_ = true;                     ///< render() must draw.
+	bool layingOut_ = false;                      ///< A layout pass is running.
+	int routing_ = 0;                             ///< Depth of event delivery in progress.
+	std::vector<std::function<void()>> deferred_; ///< See defer().
 
-	std::shared_ptr<const Font> defaultFont_;
-	Panel* focused_ = nullptr;
-	Panel* hovered_ = nullptr;
-	Panel* grabbed_ = nullptr;
+	std::shared_ptr<const Font> defaultFont_; ///< See defaultFont().
+	Panel* focused_ = nullptr;                ///< See focusedPanel().
+	Panel* hovered_ = nullptr;                ///< See hoveredPanel().
+	Panel* grabbed_ = nullptr;                ///< See mouseGrabber().
 
-	std::array<GLFWcursor*, 5> cursors_{}; // standard cursors, created on first use (indexed by Cursor)
-	Cursor currentCursor_ = Cursor::Arrow;
-	Panel root_;
+	std::array<GLFWcursor*, 5> cursors_{}; ///< Standard cursors, created on first use (indexed by Cursor).
+	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.
+	Panel root_;                           ///< Fills the window.
 };
 
 } // namespace sgl

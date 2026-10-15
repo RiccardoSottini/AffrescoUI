@@ -11,7 +11,7 @@ namespace sgl {
 
 namespace {
 
-bool instanceAlive = false;
+bool instanceAlive = false; ///< Only one Application may exist.
 
 } // namespace
 

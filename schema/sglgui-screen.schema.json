@@ -137,7 +137,7 @@
 						}
 					},
 					"permissions": {
-						"description": "Who may change the running screen, and what is locked (see GOVERNANCE.md). Revisions can't change this section.",
+						"description": "Who may change the running screen, and what is locked (see VERSION_CONTROL.md). Revisions can't change this section.",
 						"type": "object",
 						"additionalProperties": false,
 						"properties": {
@@ -541,7 +541,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "One of: set+to, push+value, remove(+at), toggle, increment(+by), if+then(+else), forEach+do(+as, index), while+do, run, call, emit(+data), patch(+message), focus, log, stop; governance (file only): accept, reject(+reason), preview, endPreview, restore, undo",
+				"description": "One of: set+to, push+value, remove(+at), toggle, increment(+by), if+then(+else), forEach+do(+as, index), while+do, run, call, emit(+data), patch(+message), focus, log, stop; control steps (file only): accept, reject(+reason), preview, endPreview, restore, undo",
 				"properties": {
 					"set": {
 						"type": "string"

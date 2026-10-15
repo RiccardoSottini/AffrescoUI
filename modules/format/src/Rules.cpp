@@ -9,15 +9,17 @@ using expect::fail;
 
 namespace {
 
-// Format versions this library reads. A future version gets its own entry, and its differences branch on the
-// document's "version" where they apply.
+/// Format versions this library reads. A future version gets its own entry, and its differences branch on the
+/// document's "version" where they apply.
 constexpr int supportedVersions[] = {1};
 
-// Steps that govern changes: a revision may never add or alter them (it could otherwise approve itself)
+/// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 constexpr std::string_view controlSteps[] = {"accept",  "reject", "preview", "endPreview",
                                              "restore", "undo",   "patch",   "call"};
 
-// Every governance step in a document, as text: compared before and after a revision
+/// @brief Collects every control step in a document, to compare before and after a revision.
+/// @param value The document, or part of it.
+/// @return The steps as JSON text, sorted.
 std::vector<std::string> controlsIn(const json& value) {
 	std::vector<std::string> found;
 	std::function<void(const json&)> walk = [&](const json& v) {

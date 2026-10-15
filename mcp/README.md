@@ -14,7 +14,7 @@ changes    AI agent ──tools──▶ sglgui_mcp.py ──agent.sock──▶
   this server, which pushes it into the agent's session as a Claude Code **channel event**, and also keeps it for the
   `wait_for_request` tool (for any MCP client).
 - **Out of the agent:** the agent reads the screen and sends revisions (JSON Patch) with the tools. They go through
-  the host's permissions: for the dashboard template they wait for a reviewer in the Studio, unless auto-accept is
+  the host's permissions: for the templates they wait for a reviewer in the Studio, unless auto-accept is
   on. The agent answers the person with `reply`.
 
 The server connects to the host's `agent.sock` (in `/tmp/sglgui-<uid>` by default), so its changes are authored as
@@ -25,7 +25,7 @@ The server connects to the host's `agent.sock` (in `/tmp/sglgui-<uid>` by defaul
 1. Build and start the host (and, to send requests and review, the Studio):
    ```sh
    cmake -S . -B build && cmake --build build
-   ./build/sglgui_host &        # the dashboard template
+   ./build/sglgui_host &        # the Kanban board template
    ./build/sglgui_studio &      # the client
    ```
 2. Register the server with Claude Code:
@@ -68,4 +68,4 @@ Prompt: `serve_studio` (work through the Studio's requests one after another).
 
 There are no tools to accept or reject proposals, or to switch auto-accept: only reviewers (the Studio, as the
 template's `permissions.reviewers` says) can, and the host refuses those messages from `agent`. See
-[GOVERNANCE.md](../GOVERNANCE.md).
+[VERSION_CONTROL.md](../VERSION_CONTROL.md).

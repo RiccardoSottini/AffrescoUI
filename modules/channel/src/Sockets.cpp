@@ -37,6 +37,10 @@ namespace sgl::channel {
 
 namespace {
 
+/// @brief Makes the address of a socket file.
+/// @param path The file.
+/// @return The address.
+/// @throws std::runtime_error If the path is too long.
 sockaddr_un address(const std::filesystem::path& path) {
 	sockaddr_un result{};
 	result.sun_family = AF_UNIX;
@@ -46,7 +50,9 @@ sockaddr_un address(const std::filesystem::path& path) {
 	return result;
 }
 
-// A connected socket, or -1
+/// @brief Connects to a socket file.
+/// @param path The file.
+/// @return A connected socket, or -1.
 int connectTo(const std::filesystem::path& path) {
 	const sockaddr_un target = address(path);
 	const int fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -58,6 +64,8 @@ int connectTo(const std::filesystem::path& path) {
 	return fd;
 }
 
+/// @brief Keeps writes to a peer that went away from killing the app (SIGPIPE).
+/// @param fd The socket.
 void ignoreBrokenPipes(int fd) {
 	std::signal(SIGPIPE, SIG_IGN); // writing to a peer that went away must not kill the app
 #if defined(SO_NOSIGPIPE)

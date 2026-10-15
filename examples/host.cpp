@@ -1,4 +1,5 @@
-// sglgui_host: shows a screen file and lets other programs change it while it runs.
+/// @file
+/// @brief sglgui_host: shows a screen file and lets other programs change it while it runs.
 //
 //   sglgui_host [file.screen.json] [--socket DIR] [--auto-accept] [--plugin changes.json ...]
 //
@@ -6,7 +7,8 @@
 // (default /tmp/sglgui-<uid>):
 //   studio.sock   the user's client (sglgui_studio): author "studio", which the template lets review changes
 //   agent.sock    an AI agent's MCP server (mcp/sglgui_mcp.py): author "agent", whose changes wait for review
-// What each author may do is up to the screen's "permissions". Default screen: the dashboard template.
+// What each author may do is up to the screen's "permissions". Default screen: the Kanban board template; the other
+// templates are in assets/screens (smart-home, music-player, code-editor, habit-tracker).
 
 #include "SocketDir.hpp"
 
@@ -21,7 +23,7 @@
 #include <vector>
 
 int main(int argc, char** argv) {
-	std::string file = SGLGUI_EXAMPLES_ASSETS "/screens/dashboard.screen.json";
+	std::string file = SGLGUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
 	std::filesystem::path socketDir = defaultSocketDir();
 	bool autoAccept = false;
 	std::vector<std::string> plugins;

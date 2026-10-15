@@ -1,0 +1,363 @@
+{
+	"$schema": "../../../schema/sglgui-screen.schema.json",
+	"format": "sglgui-screen",
+	"version": 1,
+
+	"window": { "title": "Flow: an sGLGUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 16 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 22 }
+	},
+
+	"colors": {
+		"background": "#eef1f6",
+		"topBar": "#111827",
+		"topText": "#f9fafb",
+		"topMuted": "#9ca3af",
+		"surface": "#ffffff",
+		"column": "#e3e8ef",
+		"text": "#111827",
+		"muted": "#6b7280",
+		"border": "#d1d9e4",
+		"input": "#ffffff",
+		"inputFocused": "#eef2ff",
+		"accent": "#4f46e5",
+		"accentSoft": "#e0e7ff",
+		"chip": "#ffffff",
+		"chipHover": "#f3f4f6",
+		"move": "#f3f4f6",
+		"moveHover": "#e0e7ff",
+		"bug": "#dc2626",
+		"bugSoft": "#fee2e2",
+		"feature": "#2563eb",
+		"featureSoft": "#dbeafe",
+		"design": "#9333ea",
+		"designSoft": "#f3e8ff",
+		"chore": "#0f766e",
+		"choreSoft": "#ccfbf1"
+	},
+
+	"permissions": {
+		"authors": { "studio": "allow", "app": "allow", "agent": "review", "*": "review" },
+		"reviewers": ["studio"],
+		"locked": ["#statusBar"]
+	},
+
+	"state": {
+		"board": "Product launch",
+		"filter": "all",
+		"filters": ["all", "bug", "feature", "design", "chore"],
+		"newCard": "",
+		"target": 0,
+		"columns": [
+			{
+				"name": "Backlog",
+				"color": "#94a3b8",
+				"cards": [
+					{ "title": "Onboarding checklist for new teams", "tag": "feature", "who": "AL", "points": 5 },
+					{ "title": "Empty states for every page", "tag": "design", "who": "MK", "points": 3 },
+					{ "title": "Crash when a board has no columns", "tag": "bug", "who": "RS", "points": 2 },
+					{ "title": "Upgrade the build toolchain", "tag": "chore", "who": "JD", "points": 1 }
+				]
+			},
+			{
+				"name": "In progress",
+				"color": "#4f46e5",
+				"cards": [
+					{ "title": "Keyboard shortcuts for moving cards", "tag": "feature", "who": "RS", "points": 3 },
+					{ "title": "New colour palette for labels", "tag": "design", "who": "MK", "points": 2 },
+					{ "title": "Card counts drift after a filter", "tag": "bug", "who": "AL", "points": 1 }
+				]
+			},
+			{
+				"name": "Review",
+				"color": "#d97706",
+				"cards": [
+					{ "title": "Invite teammates by email", "tag": "feature", "who": "JD", "points": 5 },
+					{ "title": "Document the board API", "tag": "chore", "who": "AL", "points": 2 }
+				]
+			},
+			{
+				"name": "Done",
+				"color": "#059669",
+				"cards": [
+					{ "title": "Drag-free card moves", "tag": "feature", "who": "RS", "points": 3 },
+					{ "title": "Fix blurry text on HiDPI screens", "tag": "bug", "who": "MK", "points": 2 },
+					{ "title": "Launch page illustrations", "tag": "design", "who": "JD", "points": 3 }
+				]
+			}
+		]
+	},
+
+	"styles": {
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
+		"move": {
+			"type": "label",
+			"font": "heading",
+			"width": 26,
+			"height": 22,
+			"align": "center",
+			"color": "@move",
+			"hover": { "color": "@moveHover" },
+			"textColor": "@accent",
+			"cursor": "hand"
+		}
+	},
+
+	"actions": {
+		"addCard": [
+			{ "if": { "$empty": "{{state.newCard}}" }, "then": [{ "stop": true }] },
+			{
+				"push": "state.columns[0].cards",
+				"value": {
+					"title": "{{state.newCard}}",
+					"tag": { "$if": [{ "$equals": ["{{state.filter}}", "all"] }, "feature", "{{state.filter}}"] },
+					"who": "RS",
+					"points": 1
+				}
+			},
+			{ "set": "state.newCard", "to": "" }
+		]
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "topBar",
+				"anchors": { "left": 0, "right": 0, "top": 0 },
+				"height": 64,
+				"color": "@topBar",
+				"children": [
+					{
+						"type": "label",
+						"text": "Flow",
+						"font": "title",
+						"textColor": "@topText",
+						"anchors": { "left": 28, "top": 0, "bottom": 0 },
+						"width": 80,
+						"align": { "horizontal": "start", "vertical": "center" }
+					},
+					{ "anchors": { "left": 104, "top": 20, "bottom": 20 }, "width": 1, "color": "#374151" },
+					{
+						"id": "boardName",
+						"type": "label",
+						"text": "{{state.board}}",
+						"font": "heading",
+						"textColor": "@topText",
+						"anchors": { "left": 124, "top": 0, "bottom": 0 },
+						"width": 320,
+						"align": { "horizontal": "start", "vertical": "center" }
+					},
+					{
+						"id": "members",
+						"anchors": { "right": 28, "top": 16 },
+						"width": 136,
+						"height": 32,
+						"color": "transparent",
+						"children": [
+							{
+								"repeat": { "for": "member", "in": [{ "who": "RS", "color": "#4f46e5" }, { "who": "MK", "color": "#9333ea" }, { "who": "AL", "color": "#0f766e" }, { "who": "JD", "color": "#d97706" }] },
+								"type": "label",
+								"text": "{{member.who}}",
+								"font": "small",
+								"anchors": { "top": 0 },
+								"x": { "$multiply": ["{{index}}", 36] },
+								"width": 32,
+								"height": 32,
+								"align": "center",
+								"color": "{{member.color}}",
+								"textColor": "#ffffff"
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "toolbar",
+				"anchors": { "left": 24, "right": 24, "top": 80 },
+				"height": 40,
+				"color": "transparent",
+				"children": [
+					{
+						"repeat": { "for": "tag", "in": "state.filters" },
+						"type": "label",
+						"text": { "$if": [{ "$equals": ["{{tag}}", "all"] }, "All cards", "{{tag}}"] },
+						"font": "small",
+						"anchors": { "top": 4 },
+						"x": { "$multiply": ["{{index}}", 92] },
+						"width": 84,
+						"height": 32,
+						"align": "center",
+						"color": { "$if": [{ "$equals": ["{{tag}}", "{{state.filter}}"] }, "@topBar", "@chip"] },
+						"hover": { "color": { "$if": [{ "$equals": ["{{tag}}", "{{state.filter}}"] }, "@topBar", "@chipHover"] } },
+						"textColor": { "$if": [{ "$equals": ["{{tag}}", "{{state.filter}}"] }, "#ffffff", "@text"] },
+						"cursor": "hand",
+						"onClick": [{ "set": "state.filter", "to": "{{tag}}" }]
+					},
+					{
+						"id": "newCard",
+						"type": "textarea",
+						"anchors": { "right": 0, "top": 4 },
+						"width": 340,
+						"height": 32,
+						"padding": 10,
+						"color": "@input",
+						"focused": { "color": "@inputFocused" },
+						"textColor": "@text",
+						"placeholder": "New card for the Backlog, then Enter",
+						"placeholderColor": "@muted",
+						"bind": "state.newCard",
+						"onSubmit": "addCard"
+					}
+				]
+			},
+			{
+				"id": "board",
+				"anchors": { "left": 16, "right": 16, "top": 132, "bottom": 40 },
+				"color": "transparent",
+				"children": [
+					{
+						"repeat": { "for": "column", "in": "state.columns", "index": "c" },
+						"anchors": { "top": 0, "bottom": 0 },
+						"x": { "$concat": [{ "$multiply": ["{{c}}", 25] }, "%"] },
+						"width": "25%",
+						"color": "transparent",
+						"children": [
+							{
+								"fill": 8,
+								"color": "@column",
+								"children": [
+									{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 3, "color": "{{column.color}}" },
+									{
+										"type": "label",
+										"text": "{{column.name}}",
+										"font": "heading",
+										"textColor": "@text",
+										"anchors": { "left": 16, "top": 18 },
+										"fitText": true
+									},
+									{
+										"type": "label",
+										"text": { "$length": "{{column.cards}}" },
+										"font": "small",
+										"anchors": { "right": 14, "top": 16 },
+										"width": 28,
+										"height": 22,
+										"align": "center",
+										"color": "@surface",
+										"textColor": "@muted"
+									},
+									{
+										"type": "stack",
+										"anchors": { "left": 10, "right": 10, "top": 54, "bottom": 10 },
+										"gap": 8,
+										"children": [
+											{
+												"repeat": { "for": "card", "in": "column.cards", "index": "i" },
+												"when": { "$or": [{ "$equals": ["{{state.filter}}", "all"] }, { "$equals": ["{{card.tag}}", "{{state.filter}}"] }] },
+												"anchors": { "left": 0, "right": 0 },
+												"height": 104,
+												"color": "@surface",
+												"children": [
+													{
+														"type": "label",
+														"text": "{{card.tag}}",
+														"font": "small",
+														"anchors": { "left": 14, "top": 12 },
+														"padding": 4,
+														"fitText": true,
+														"color": "@{{card.tag}}Soft",
+														"textColor": "@{{card.tag}}"
+													},
+													{
+														"type": "label",
+														"text": "{{card.points}} pt",
+														"font": "small",
+														"textColor": "@muted",
+														"anchors": { "right": 14, "top": 14 },
+														"fitText": true
+													},
+													{
+														"type": "label",
+														"text": "{{card.title}}",
+														"textColor": { "$if": [{ "$equals": ["{{column.name}}", "Done"] }, "@muted", "@text"] },
+														"anchors": { "left": 14, "right": 14, "top": 38 },
+														"height": 40,
+														"wrap": true
+													},
+													{
+														"type": "label",
+														"text": "{{card.who}}",
+														"font": "small",
+														"anchors": { "left": 14, "bottom": 10 },
+														"width": 24,
+														"height": 22,
+														"align": "center",
+														"color": "@accentSoft",
+														"textColor": "@accent"
+													},
+													{
+														"when": { "$greater": ["{{c}}", 0] },
+														"style": "move",
+														"text": "«",
+														"anchors": { "right": 46, "bottom": 10 },
+														"onClick": [
+															{ "set": "state.target", "to": { "$subtract": ["{{c}}", 1] } },
+															{ "push": "state.columns[state.target].cards", "value": "{{card}}" },
+															{ "remove": "state.columns[c].cards", "at": "{{i}}" }
+														]
+													},
+													{
+														"when": { "$less": ["{{c}}", { "$subtract": [{ "$length": "{{state.columns}}" }, 1] }] },
+														"style": "move",
+														"text": "»",
+														"anchors": { "right": 14, "bottom": 10 },
+														"onClick": [
+															{ "set": "state.target", "to": { "$add": ["{{c}}", 1] } },
+															{ "push": "state.columns[state.target].cards", "value": "{{card}}" },
+															{ "remove": "state.columns[c].cards", "at": "{{i}}" }
+														]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "statusBar",
+				"anchors": { "left": 0, "right": 0, "bottom": 0 },
+				"height": 32,
+				"color": "@surface",
+				"children": [
+					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{
+						"type": "label",
+						"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "left": 24, "top": 0, "bottom": 0, "right": 200 },
+						"align": { "horizontal": "start", "vertical": "center" }
+					},
+					{
+						"type": "label",
+						"text": "{{window.width}} × {{window.height}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "right": 24, "top": 0, "bottom": 0 },
+						"width": 160,
+						"align": { "horizontal": "end", "vertical": "center" }
+					}
+				]
+			}
+		]
+	}
+}

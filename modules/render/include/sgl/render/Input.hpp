@@ -1,11 +1,13 @@
 #pragma once
 
-// Keyboard & mouse identifiers. Values match GLFW so they convert with a static_cast.
+/// @file
+/// @brief Keyboard and mouse identifiers. Values match GLFW, so they convert with a static_cast.
 
 #include <cstdint>
 
 namespace sgl {
 
+/// @brief A key, named after its position on a US layout.
 enum class Key : int {
 	Unknown = -1,
 	Space = 32,
@@ -130,6 +132,7 @@ enum class Key : int {
 	Menu = 348,
 };
 
+/// @brief A mouse button.
 enum class MouseButton : int {
 	Button1 = 0,
 	Button2 = 1,
@@ -139,35 +142,42 @@ enum class MouseButton : int {
 	Button6 = 5,
 	Button7 = 6,
 	Button8 = 7,
-	Left = Button1,
-	Right = Button2,
-	Middle = Button3,
+	Left = Button1,   ///< Primary.
+	Right = Button2,  ///< Secondary.
+	Middle = Button3, ///< Wheel.
 };
 
+/// @brief What happened to a key or button.
 enum class Action : int {
-	Release = 0,
-	Press = 1,
-	Repeat = 2,
+	Release = 0, ///< Released.
+	Press = 1,   ///< Pressed.
+	Repeat = 2,  ///< Held down (keys only).
 };
 
-// Mouse cursor shapes a panel can ask for while the pointer is over it
+/// @brief Mouse cursor shapes a panel can ask for while the pointer is over it.
 enum class Cursor {
-	Arrow,
-	IBeam,
-	Hand,
-	ResizeHorizontal,
-	ResizeVertical,
+	Arrow,            ///< System default.
+	IBeam,            ///< Text input.
+	Hand,             ///< Clickable.
+	ResizeHorizontal, ///< Horizontal drag handle.
+	ResizeVertical,   ///< Vertical drag handle.
 };
 
-// Modifier keys held during a key or mouse button event (GLFW_MOD_* bits)
+/// @brief Modifier keys held during a key or mouse button event.
 struct Mods {
-	int bits = 0;
+	int bits = 0; ///< GLFW_MOD_* bits.
 
+	/// @brief Whether Shift was held.
 	[[nodiscard]] constexpr bool shift() const noexcept { return bits & 0x0001; }
+	/// @brief Whether Control was held.
 	[[nodiscard]] constexpr bool control() const noexcept { return bits & 0x0002; }
+	/// @brief Whether Alt (Option) was held.
 	[[nodiscard]] constexpr bool alt() const noexcept { return bits & 0x0004; }
+	/// @brief Whether Super (Cmd on macOS) was held.
 	[[nodiscard]] constexpr bool super() const noexcept { return bits & 0x0008; }
+	/// @brief Whether Caps Lock was on.
 	[[nodiscard]] constexpr bool capsLock() const noexcept { return bits & 0x0010; }
+	/// @brief Whether Num Lock was on.
 	[[nodiscard]] constexpr bool numLock() const noexcept { return bits & 0x0020; }
 
 	constexpr bool operator==(const Mods&) const noexcept = default;

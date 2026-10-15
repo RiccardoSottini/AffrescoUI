@@ -8,6 +8,9 @@ namespace sgl {
 
 namespace {
 
+/// @brief The anchors_ slot of an edge.
+/// @param edge The edge.
+/// @return Its index.
 constexpr std::size_t index(Edge edge) noexcept { return static_cast<std::size_t>(edge); }
 
 } // namespace

@@ -8,6 +8,9 @@ namespace sgl {
 
 namespace {
 
+/// @brief Reads a hex digit.
+/// @param c The character.
+/// @return Its value, or -1.
 constexpr int hexDigit(char c) noexcept {
 	if(c >= '0' && c <= '9') return c - '0';
 	if(c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -15,7 +18,9 @@ constexpr int hexDigit(char c) noexcept {
 	return -1;
 }
 
-// Rounds instead of truncating: 0.941176 must become 0xf0, not 0xef
+/// @brief Converts a channel to 8 bits, rounding: 0.941176 must become 0xf0, not 0xef.
+/// @param channel In [0, 1]; clamped.
+/// @return In [0, 255].
 std::uint8_t toByte(float channel) noexcept {
 	return static_cast<std::uint8_t>(std::lround(std::clamp(channel, 0.0f, 1.0f) * 255.0f));
 }

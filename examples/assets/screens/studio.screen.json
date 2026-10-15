@@ -202,7 +202,7 @@
 						"children": [
 							{ "style": "cardTitle", "text": "Ask the AI" },
 							{ "style": "caption", "text": "Describe a change in plain words. An AI agent connected through MCP builds it.", "anchors": { "left": 20, "top": 42 } },
-							{ "id": "draft", "style": "input", "anchors": { "left": 20, "right": 112, "top": 72 }, "placeholder": "e.g. add a dark theme, or build the Customers page", "bind": "state.draft", "onSubmit": "ask", "autofocus": true },
+							{ "id": "draft", "style": "input", "anchors": { "left": 20, "right": 112, "top": 72 }, "placeholder": "e.g. add a Blocked column, or switch to a dark theme", "bind": "state.draft", "onSubmit": "ask", "autofocus": true },
 							{ "style": "button", "text": "Send", "anchors": { "right": 20, "top": 72 }, "width": 80, "height": 40, "onClick": "ask" }
 						]
 					},
@@ -213,7 +213,7 @@
 						"height": 132,
 						"children": [
 							{ "style": "cardTitle", "text": "Direct change" },
-							{ "style": "caption", "text": "A JSON Patch, applied as you. Paste with Cmd+V. Paths can start with a node id: #pageTitle/text", "anchors": { "left": 20, "top": 42 } },
+							{ "style": "caption", "text": "A JSON Patch, applied as you. Paste with Cmd+V. Paths can start with a node id: #boardName/text", "anchors": { "left": 20, "top": 42 } },
 							{ "id": "patch", "style": "input", "anchors": { "left": 20, "right": 112, "top": 72 }, "placeholder": "[{\"op\": \"replace\", \"path\": \"/colors/accent\", \"value\": \"#e11d48\"}]", "bind": "state.patch", "onSubmit": "applyPatch" },
 							{ "style": "button", "text": "Apply", "anchors": { "right": 20, "top": 72 }, "width": 80, "height": 40, "onClick": "applyPatch" }
 						]

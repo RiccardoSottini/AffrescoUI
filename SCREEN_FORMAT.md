@@ -48,7 +48,7 @@ without breaking existing files.
 | `styles` | | `name → properties`, applied to a node with `"style": "name"` or `["a", "b"]`. Later styles win, and the node's own properties win over all. |
 | `templates` | | `name → node`. Built by code on demand, any number of times (`Screen::instantiate`). A `repeat` in the file is usually simpler. |
 | `state` | | The app's data, any JSON object. |
-| `permissions` | | Who may change the running screen and what is locked: see [Governance](GOVERNANCE.md). `{ "authors": { "agent": "review", "*": "allow" }, "reviewers": ["studio"], "locked": ["#statusBar", "/actions/send"] }`. Policies: `allow`, `review`, `deny`. `reviewers` may decide on proposals over the live protocol. Revisions can never change this section. |
+| `permissions` | | Who may change the running screen and what is locked: see [Version control](VERSION_CONTROL.md). `{ "authors": { "agent": "review", "*": "allow" }, "reviewers": ["studio"], "locked": ["#statusBar", "/actions/send"] }`. Policies: `allow`, `review`, `deny`. `reviewers` may decide on proposals over the live protocol. Revisions can never change this section. |
 | `actions` | | `name → steps`, run by `onClick`, `onSubmit` or other actions. |
 
 ## Nodes
@@ -164,7 +164,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `restore` | `{ "restore": "{{entry.number}}" }`: a new revision equal to an earlier one |
 | `undo` | `{ "undo": true }`: restore the previous revision |
 
-The last six, plus `patch` and `call`, are **governance controls**: they can be written in the screen file, but no
+The last six, plus `patch` and `call`, are **control steps**: they can be written in the screen file, but no
 revision may add or change them.
 
 Only paths under `state` can be changed. After an event's actions finish, the UI is updated once. Panels are reused
@@ -193,7 +193,7 @@ A revision is a version-controlled change to a running screen:
 - Revisions are numbered from `0` (the file). Restoring (`restore`, `undo`) creates a new revision equal to an
   earlier document, so history only grows. State changes aren't undone.
 - **Permissions** decide what happens to a revision from each author: applied, proposed to the user, or rejected.
-  Locked parts and governance controls can't be changed by any revision. See [GOVERNANCE.md](GOVERNANCE.md), which
+  Locked parts and control steps can't be changed by any revision. See [VERSION_CONTROL.md](VERSION_CONTROL.md), which
   also describes **change sets** (exported revisions, shareable like plugins).
 
 ### Peers and the live protocol
@@ -241,7 +241,7 @@ sGLGUI screen: root.children[0].text: unknown property 'text' for this type
 
 ```cpp
 sgl::Application app;
-sgl::Screen screen = sgl::Screen::fromFile("dashboard.screen.json");
+sgl::Screen screen = sgl::Screen::fromFile("kanban.screen.json");
 screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a custom type, before createWindow
 sgl::Window& window = screen.createWindow(app);
 
@@ -251,5 +251,6 @@ screen.listen(app, "/tmp/sglgui-501/agent.sock", "agent"); // peers can change i
 app.run();
 ```
 
-See `examples/assets/screens/dashboard.screen.json` (the template `sglgui_host` opens), `studio.screen.json` (the
+See the templates in `examples/assets/screens/`: `kanban.screen.json` (the one `sglgui_host` opens), `smart-home`,
+`music-player`, `code-editor` and `habit-tracker`; `studio.screen.json` (the
 Studio client: its whole UI and behaviour, with a few lines of C++ to plug it into the host) and `sign-in.screen.json`.

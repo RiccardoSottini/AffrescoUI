@@ -7,7 +7,7 @@
 
 The host (examples/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the Studio; the request reaches the agent through this server; the agent reads the screen, sends
-revisions (JSON Patch), and replies. Revisions follow the screen's permissions: the dashboard template sends the
+revisions (JSON Patch), and replies. Revisions follow the screen's permissions: the example templates send the
 agent's changes to the Studio for review, unless auto-accept is on. There is no tool to accept or reject: that is
 the reviewer's decision.
 
