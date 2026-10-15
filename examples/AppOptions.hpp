@@ -47,11 +47,11 @@ struct AppOptions {
 		}
 
 		if(stdio) {
-			channel = std::make_unique<sgl::StdioChannel>(app);
+			channel = std::make_unique<sgl::channel::StdioChannel>(app);
 			screen.connect(*channel, "mcp");
 			channel->onClosed.connect([&app] { app.quit(); }); // the MCP server went away
 		} else if(!brain.empty()) {
-			channel = std::make_unique<sgl::ProcessChannel>(app, brain);
+			channel = std::make_unique<sgl::channel::ProcessChannel>(app, brain);
 			screen.connect(*channel, "brain");
 		}
 	}

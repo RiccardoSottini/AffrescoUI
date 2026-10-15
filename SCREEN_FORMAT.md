@@ -198,7 +198,7 @@ A revision is a version-controlled change to a running screen:
 
 ### Channel protocol
 `Screen::connect(channel)` exchanges one JSON object per line with a program on the other end
-(`sgl::ProcessChannel` runs it as a child process over stdin/stdout).
+(`sgl::channel::ProcessChannel` runs it as a child process over stdin/stdout).
 
 | Direction | Message |
 |---|---|

@@ -9,49 +9,94 @@ they apply, and the full history can be restored, exported and shared.
 
 Created by Riccardo Sottini. Started in 2017 as a way to learn OpenGL and C++, revived in 2026.
 
-## How it fits together
+## Architecture
+The engine is five independent modules. Each one is its own library target and talks to the others **only through
+interfaces** in `core`: no module includes or links against another module's implementation. `sgl::Screen` is the
+composition root that plugs them together, and any of them can be swapped for another implementation of the same
+interface (another transport, another version-control backend, another document format).
 
 ```mermaid
-flowchart LR
-    user([User])
-    agent([AI agent<br/>e.g. Claude])
-    file[("*.screen.json<br/>layout · state · actions")]
-    plugins[("Change sets<br/>(plugins)")]
-
-    subgraph outside["Outside the app"]
-        mcp["MCP server (Python)<br/>mcp/sglgui_mcp.py"]
-        brain["Brain process<br/>rules / LLM bridge"]
+flowchart TB
+    subgraph core["core: the interfaces (header-only)"]
+        direction LR
+        IExec{{"Executor<br/>post work to the UI thread"}}
+        IChan{{"Channel<br/>send · onMessage · onClosed"}}
+        IVcs{{"VersionControl<br/>document · state · submit · review · history"}}
+        IObs{{"VersionObserver<br/>documentChanged · proposalsChanged"}}
+        IRules{{"DocumentRules<br/>validate · findNode · policy · locks"}}
     end
 
-    subgraph app["sGLGUI app (C++)"]
-        channel["Channel<br/>JSON-lines stream"]
-        governance["Governance<br/>permissions · review · history"]
-        screen["Screen<br/>document + state"]
-        reconcile["Reconciler<br/>updates panels in place"]
-        panels["Panel tree<br/>layout · input · text"]
-        renderer["Batched OpenGL renderer"]
-    end
+    render["<b>render</b><br/>rendering engine<br/>Application · Window · Panel · text · OpenGL"]
+    format["<b>format</b><br/>JSON screen format<br/>Rules · expressions · Runtime (build, reconcile, actions)"]
+    vcs["<b>vcs</b><br/>version control<br/>Repository: history · permissions · review · change sets"]
+    channel["<b>channel</b><br/>communication<br/>ProcessChannel · StdioChannel · Session (protocol)"]
+    screen["<b>sgl::Screen</b><br/>composition root"]
 
-    agent <-->|MCP / JSON-RPC| mcp
-    mcp <-->|revisions, events| channel
-    brain <-->|revisions, events| channel
-    channel --> governance
-    governance -->|applied revisions| screen
-    governance -.->|proposals| user
-    user -->|types, clicks, accepts| panels
-    panels -->|actions change state| screen
-    file --> screen
-    screen <-->|export / import| plugins
-    screen --> reconcile --> panels --> renderer
+    render -.->|implements| IExec
+    channel -.->|implements| IChan
+    vcs -.->|implements| IVcs
+    format -.->|implements| IRules
+    format -.->|implements| IObs
+
+    channel -->|uses| IExec
+    channel -->|Session uses| IVcs
+    vcs -->|uses| IRules
+    vcs -->|notifies| IObs
+    format -->|uses| IVcs
+    format ==>|public API: builds panels| render
+
+    screen --> render & format & vcs & channel
+```
+
+| Module | Namespace | Responsibility | Depends on |
+|---|---|---|---|
+| `core` | `sgl` | The contracts: `Executor`, `Channel`, `VersionControl`, `VersionObserver`, `DocumentRules`; `Signal`, JSON types | nlohmann/json (only for the document interfaces) |
+| `render` | `sgl` | Rendering engine: windows, panel tree, layout, input, text, batched OpenGL renderer. No JSON. | `core` |
+| `format` | `sgl::format` | The JSON screen format: validation and permission rules (`Rules`), `{{expressions}}`, and `Runtime`, which builds a document into panels, reconciles on change and runs actions | `core`, `render` |
+| `vcs` | `sgl::vcs` | Version control for any JSON document: revisions (JSON Patch, `#id` paths), per-author policies, locks, proposals, preview, history, restore, change sets | `core` |
+| `channel` | `sgl::channel` | Communication: child-process and stdio transports, and `Session`, the live JSON-lines protocol | `core` |
+| `sglgui` | `sgl` | `sgl::Screen`: wires `Rules` → `Repository` → `Runtime` + `Session` | all of the above |
+
+### How a change flows
+
+```mermaid
+sequenceDiagram
+    participant Agent as AI agent / brain
+    participant Chan as channel<br/>Channel + Session
+    participant VCS as vcs<br/>Repository
+    participant Rules as format<br/>Rules
+    participant RT as format<br/>Runtime
+    participant R as render<br/>Window · Panels
+    actor User
+
+    Agent->>Chan: {"type": "revision", "patch": [...]}
+    Chan->>VCS: submit(revision)  [VersionControl]
+    VCS->>Rules: policyFor · checkChange · lockedPaths · validate  [DocumentRules]
+    alt policy "review"
+        VCS-->>Chan: Proposed
+        VCS->>RT: proposalsChanged()  [VersionObserver]
+        RT->>R: review bar shows the proposal
+        User->>R: clicks Accept
+        R->>RT: onClick → accept step
+        RT->>VCS: accept(id)  [VersionControl]
+        VCS-->>Chan: onDecision → {"type": "applied"}
+    end
+    VCS->>RT: documentChanged()  [VersionObserver]
+    RT->>R: reconcile: update panels in place
+    Note over VCS,RT: if the runtime can't build it, the revision is rolled back
+    User->>R: types, clicks
+    R->>RT: Panel signals
+    RT->>VCS: state changes · emit
+    RT-->>Chan: {"type": "event"} back to the agent
 ```
 
 1. **The screen file** describes the UI: layout, styles, state, bindings and actions ([SCREEN_FORMAT.md](SCREEN_FORMAT.md)).
-2. **The engine** builds it into a panel tree, renders it with one batched draw call, and runs the actions when the
-   user interacts. When state changes, the reconciler updates only what changed and keeps focus, typing and drags.
-3. **The stream:** over a channel, an outside program sends **revisions** (JSON Patch) and receives what the user
-   does. It can be the **Python MCP server**, so any MCP agent such as Claude can drive the app, or any "brain" process.
-4. **Governance** checks every revision: who sent it, what it touches, and whether the user must approve it first.
-   See [GOVERNANCE.md](GOVERNANCE.md).
+2. **format** builds it into a panel tree that **render** draws with one batched draw call, and runs the actions
+   when the user interacts. When state changes, the runtime updates only what changed and keeps focus, typing and drags.
+3. **channel:** an outside program sends **revisions** (JSON Patch) and receives what the user does. It can be the
+   **Python MCP server**, so any MCP agent such as Claude can drive the app, or any "brain" process.
+4. **vcs** checks every revision against the document's rules: who sent it, what it touches, and whether the user
+   must approve it first. See [GOVERNANCE.md](GOVERNANCE.md).
 
 ## The vision
 The engine is the foundation for a larger idea, at the **application layer**: a user starts from a rich template
@@ -76,11 +121,11 @@ flowchart TB
 
     subgraph engine["sGLGUI engine: this repository"]
         direction LR
-        format["Screen format<br/>layout · state · actions"]
-        renderer["Native renderer<br/>OpenGL, live updates"]
-        stream["Stream + MCP server<br/>revisions in, events out"]
-        governance["Governance<br/>permissions · review"]
-        history["History<br/>restore · export · import"]
+        format["format<br/>layout · state · actions"]
+        renderer["render<br/>native OpenGL, live updates"]
+        stream["channel + MCP server<br/>revisions in, events out"]
+        governance["vcs: governance<br/>permissions · review"]
+        history["vcs: history<br/>restore · export · import"]
     end
 
     template -.->|is a| format
@@ -165,16 +210,19 @@ Requires CMake ≥ 3.25 and a C++23 compiler. GLFW and nlohmann/json are downloa
 
 ## Project layout
 ```
-include/sgl/      public headers (no OpenGL or GLFW headers exposed)
-src/              implementation: windows, panels, text, screens, channels
-src/screen/       screen-format internals (expressions)
-src/gl/           all OpenGL code: context, RAII objects, shaders, batched renderer
-src/detail/       internal helpers (UTF-8, PPM images)
-mcp/              the Python MCP server
-schema/           JSON Schema of the screen format
-examples/         example apps, screens, fonts and a sample brain
-external/         vendored glad (OpenGL loader) and stb_truetype
+modules/core/      interfaces between modules (include/sgl/core): Executor, Channel, VersionControl, DocumentRules
+modules/render/    rendering engine (include/sgl/render; src/gl: all OpenGL code, src/detail: UTF-8, PPM)
+modules/format/    JSON screen format: Rules, expressions, Runtime (include/sgl/format)
+modules/vcs/       version control: Repository (include/sgl/vcs)
+modules/channel/   transports and the live protocol Session (include/sgl/channel)
+modules/screen/    sgl::Screen, the composition root, and the umbrella header sgl/sgl.hpp
+mcp/               the Python MCP server
+schema/            JSON Schema of the screen format
+examples/          example apps, screens, fonts and a sample brain
+external/          vendored glad (OpenGL loader) and stb_truetype
 ```
+No public header exposes OpenGL or GLFW. Each module can be linked on its own (`sglgui::render`, `sglgui::vcs`, ...)
+or all together through `sglgui::sglgui`.
 
 ## License
 **Apache License 2.0**: free to use, modify and distribute, commercially or not. Anyone who distributes it must pass
