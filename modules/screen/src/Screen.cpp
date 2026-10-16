@@ -30,7 +30,7 @@ struct Screen::Impl {
 	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
-	std::shared_ptr<bool> alive = std::make_shared<bool>(true); ///< Guards removals still queued after destruction.
+	std::shared_ptr<bool> alive = std::make_shared<bool>(true);  ///< Guards removals still queued after destruction.
 
 	/// @brief Builds the modules and forwards runtime events and errors to every peer.
 	/// @param document The screen.
@@ -196,13 +196,15 @@ bool Screen::applyRevision(std::string_view revisionJson, std::string* error) {
 RevisionResult Screen::submitRevision(std::string_view revisionJson) {
 	std::string error;
 	const auto parsed = parseJson(revisionJson, "revision", &error);
-	if(!parsed) return {RevisionStatus::Rejected, revision(), 0, error};
+	if(!parsed) return {RevisionStatus::Rejected, revision(), {}, 0, error};
 	return impl_->repository.submit(*parsed);
 }
 
 std::vector<ProposalInfo> Screen::proposals() const { return impl_->repository.proposals(); }
 
-bool Screen::acceptProposal(int id, std::string* error) { return succeeded(impl_->repository.accept(id), error); }
+bool Screen::acceptProposal(int id, std::string* error) {
+	return succeeded(impl_->repository.accept(id, {"user", {}, false}), error);
+}
 
 bool Screen::rejectProposal(int id, std::string_view reason) { return impl_->repository.reject(id, reason); }
 
@@ -212,7 +214,7 @@ void Screen::endPreview() { impl_->repository.endPreview(); }
 
 std::optional<int> Screen::previewedProposal() const noexcept { return impl_->repository.previewing(); }
 
-std::vector<HistoryEntry> Screen::history() const { return impl_->repository.history(); }
+std::vector<CommitInfo> Screen::log() const { return impl_->repository.log(); }
 
 bool Screen::restore(int revision, std::string* error) {
 	try {
@@ -226,14 +228,21 @@ RevisionResult Screen::submitRestore(int revision, std::string_view author) {
 	try {
 		return impl_->repository.submit(impl_->repository.restoreRevision(revision, author));
 	} catch(const DocumentError& failure) {
-		return {RevisionStatus::Rejected, this->revision(), 0, failure.what()};
+		return {RevisionStatus::Rejected, this->revision(), {}, 0, failure.what()};
+	}
+}
+
+bool Screen::revert(int revision, std::string* error) {
+	try {
+		return succeeded(impl_->repository.commit(impl_->repository.revertRevision(revision, "user")), error);
+	} catch(const DocumentError& failure) {
+		return succeeded(failure.what(), error);
 	}
 }
 
 bool Screen::undo(std::string* error) {
-	const auto entries = history();
-	if(entries.size() < 2) return succeeded("sGLGUI screen: nothing to undo", error);
-	return restore(entries[entries.size() - 2].number, error);
+	if(revision() == 0) return succeeded("sGLGUI screen: nothing to undo", error);
+	return revert(revision(), error);
 }
 
 int Screen::revision() const noexcept { return impl_->repository.head().number; }
@@ -272,6 +281,6 @@ void Screen::listen(Executor& executor, const std::filesystem::path& path, std::
 	    }));
 }
 
-void Screen::setAutoAccept(bool enabled) { impl_->repository.setAutoAccept(enabled); }
+void Screen::setMode(Mode mode) { impl_->repository.setMode(mode); }
 
 } // namespace sgl

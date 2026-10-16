@@ -2,7 +2,8 @@
 /// @brief sglgui_studio: a client for a running sglgui_host.
 //
 // Ask an AI agent for changes in plain words, apply JSON Patches yourself, review the agent's proposals (preview them
-// live in the host), switch auto-accept, browse and restore the history.
+// live in the host, accept, "always allow", reject), pick the mode, revoke grants, browse, revert and restore the
+// history.
 //
 //   sglgui_studio [--socket DIR]      (default /tmp/sglgui-<uid>, where sglgui_host listens)
 //

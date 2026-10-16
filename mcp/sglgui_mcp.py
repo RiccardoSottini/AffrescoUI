@@ -7,9 +7,10 @@
 
 The host (examples/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the Studio; the request reaches the agent through this server; the agent reads the screen, sends
-revisions (JSON Patch), and replies. Revisions follow the screen's permissions: the example templates send the
-agent's changes to the Studio for review, unless auto-accept is on. There is no tool to accept or reject: that is
-the reviewer's decision.
+revisions (JSON Patch), and replies. Revisions follow the screen's permission rules (allow / ask / deny, like
+Claude Code's): in the example templates the agent's changes become proposals the person reviews in the Studio,
+unless the mode is acceptEdits or the reviewer said "don't ask again" for that kind of change. A proposal is a
+branch the agent can keep pushing to. There is no tool to accept or reject: that is the reviewer's decision.
 
 Requests reach the agent two ways:
   - pushed, as Claude Code channel events (research preview: start Claude Code with
@@ -56,6 +57,7 @@ class Host:
         self.ids = itertools.count(1)
         self.waiting = {}  # request id -> [threading.Event, reply]
         self.events = []   # what happened since the agent last asked
+        self.rules = ("default", [])  # the mode and grants last reported
 
     def ensure(self):
         with self.lock:
@@ -99,11 +101,17 @@ class Host:
                 self.note({"event": message.get("name"), "data": message.get("data")})
             elif kind in ("applied", "rejected") and "proposal" in message:  # a reviewer decided
                 self.note({"proposal": message["proposal"],
-                           "outcome": "accepted" if kind == "applied" else "rejected",
+                           "outcome": "merged" if kind == "applied" else "rejected",
                            "revision": message.get("revision"), "detail": message.get("error")})
             elif kind == "committed":
-                self.note({"committed": message.get("revision"), "author": message.get("author"),
+                self.note({"committed": message.get("revision"), "commit": message.get("short"),
+                           "author": message.get("author"), "committer": message.get("committer"),
                            "message": message.get("message")})
+            elif kind == "review":  # only news when the reviewer changed the mode or the "don't ask again" grants
+                rules = (message.get("mode"), [g.get("rule") for g in message.get("grants", [])])
+                if rules != self.rules:
+                    self.rules = rules
+                    self.note({"mode": rules[0], "grants": rules[1]})
             elif kind == "error":
                 self.note({"error": message.get("message")})
         with self.lock:
@@ -162,38 +170,58 @@ TOOLS = [
      "inputSchema": object_schema({"request_id": {"type": "string"}, "text": {"type": "string"}},
                                   ["request_id", "text"])},
     {"name": "get_screen",
-     "description": "The running screen: its document (sGLGUI Screen Format), live state, current revision, pending "
-                    "proposals, auto-accept, and your author name for the permissions. Read it before changing "
-                    "anything.",
+     "description": "The running screen: its document (sGLGUI Screen Format, including its permission rules), live "
+                    "state, current revision and head commit, open proposals (what each touches), the mode "
+                    "(default / acceptEdits / plan), the reviewer's \"don't ask again\" grants, and your author name. "
+                    "Read it before changing anything.",
      "inputSchema": object_schema()},
     {"name": "get_format_guide",
      "description": "The sGLGUI Screen Format specification: nodes, layout, bindings, actions, revisions, permissions.",
      "inputSchema": object_schema()},
     {"name": "submit_revision",
      "description": "Change the running screen (layout, styles, colors, behaviour/actions, or state) with a JSON "
-                    "Patch (RFC 6902). Paths may address nodes by id, e.g. \"#header/children/-\"; \"/state/...\" "
-                    "changes live data. The result is: applied; proposed (a reviewer decides in the Studio: "
-                    "get_events reports the decision); or rejected with an error saying why (fix it and retry).",
+                    "Patch (RFC 6902), like a git commit. Paths may address nodes by id, e.g. "
+                    "\"#header/children/-\"; \"/state/...\" changes live data. The result is: applied (a commit on "
+                    "main); proposed (a branch a reviewer previews and merges or rejects in the Studio: get_events "
+                    "reports the decision); or rejected with an error saying why (fix it and retry). To refine an "
+                    "open proposal of yours (e.g. after the person asks for more), pass its number as `proposal`: the "
+                    "commit is added to that branch instead of opening a new one.",
      "inputSchema": object_schema({
          "message": {"type": "string", "description": "One line, for the reviewer, saying what the change does"},
          "patch": {"type": "array", "items": {"type": "object"}, "description": "JSON Patch operations"},
-         "parent": {"type": "integer", "description": "The revision this is based on (optional; conflicts are rejected)"},
+         "parent": {"type": ["integer", "string"],
+                    "description": "The revision or commit id this is based on (optional; if the screen has moved "
+                                   "on, it is rejected as a conflict)"},
+         "proposal": {"type": "integer", "description": "Push onto this open proposal of yours (optional)"},
      }, ["message", "patch"])},
     {"name": "get_history",
-     "description": "Every revision so far: number, author, message and time. Revision 0 is the file as loaded.",
-     "inputSchema": object_schema()},
+     "description": "main's commits, oldest first (like git log): number, short id, author, committer (who approved "
+                    "it), message, time, and parents (two for a merged proposal). Revision 0 is the file as loaded.",
+     "inputSchema": object_schema({"limit": {"type": "integer", "description": "Only the newest N (optional)"}})},
+    {"name": "get_diff",
+     "description": "What changed, as a JSON Patch (like git diff): between two revisions (`from`, `to`: numbers, "
+                    "commit ids, \"HEAD\", \"HEAD~1\"; default HEAD~1 to HEAD), or what accepting an open proposal "
+                    "would change now (`proposal`).",
+     "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "to": {"type": ["integer", "string"]},
+                                   "proposal": {"type": "integer"}})},
     {"name": "restore_revision",
-     "description": "Bring the screen back to how it was at an earlier revision. This creates a new revision (the "
-                    "history keeps growing) and follows the same permissions as any change.",
-     "inputSchema": object_schema({"revision": {"type": "integer"}}, ["revision"])},
+     "description": "Bring the whole screen back to how it was at an earlier revision (like git restore). This "
+                    "creates a new revision (the history only grows) and follows the same permissions as any change.",
+     "inputSchema": object_schema({"revision": {"type": ["integer", "string"]}}, ["revision"])},
+    {"name": "revert_revision",
+     "description": "Undo one earlier revision and keep everything after it (like git revert): a new revision with "
+                    "the inverse change. Refused as a conflict if later revisions changed the same parts. Follows "
+                    "the same permissions as any change.",
+     "inputSchema": object_schema({"revision": {"type": ["integer", "string"]}}, ["revision"])},
     {"name": "get_events",
-     "description": "What happened since the last call: reviewers' decisions on your proposals, commits by anyone, "
-                    "events the screen emitted, errors. Returns them and clears the list.",
+     "description": "What happened since the last call: reviewers' decisions on your proposals (merged or rejected, "
+                    "with their reason), commits by anyone, mode and grant changes, events the screen emitted, "
+                    "errors. Returns them and clears the list.",
      "inputSchema": object_schema()},
     {"name": "export_changes",
      "description": "The revisions after `from` as a change set: a portable \"plugin\" file another copy of the "
                     "same screen can import (sglgui_host --plugin).",
-     "inputSchema": object_schema({"from": {"type": "integer"}, "name": {"type": "string"}})},
+     "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "name": {"type": "string"}})},
 ]
 
 PROMPTS = [
@@ -205,7 +233,9 @@ SERVE_PROMPT = (
     "You are the builder behind a live sGLGUI app. People ask for changes in the sGLGUI Studio. Repeat: call "
     "wait_for_request; for each request, read the screen with get_screen (and get_format_guide the first time), make "
     "the change with submit_revision (fix and retry if it is rejected), then tell the person what you did with "
-    "reply. Keep changes focused on what was asked, and keep the existing style (colors, fonts, spacing).")
+    "reply. Keep changes focused on what was asked, and keep the existing style (colors, fonts, spacing). If a "
+    "follow-up request refines a change that is still waiting for review, push to that proposal instead of opening "
+    "a new one.")
 
 INSTRUCTIONS = (
     "This server connects you to a running sGLGUI app (a native C++/OpenGL UI described by a JSON screen document). "
@@ -219,10 +249,12 @@ INSTRUCTIONS = (
 def describe(reply):
     kind = reply.get("type")
     if kind == "applied":
-        return f"applied: the screen is now at revision {reply.get('revision')}", False
+        return (f"applied: the screen is now at revision {reply.get('revision')} "
+                f"(commit {str(reply.get('commit', ''))[:7]})"), False
     if kind == "proposed":
-        return (f"proposed as proposal {reply.get('proposal')}: a reviewer decides in the Studio. It is not applied "
-                f"yet; get_events will report the decision."), False
+        return (f"proposed as proposal {reply.get('proposal')} (head {str(reply.get('commit', ''))[:7]}): a reviewer "
+                f"decides in the Studio. It is not applied yet; get_events will report the decision. Pass "
+                f"proposal={reply.get('proposal')} to submit_revision to add to it."), False
     return f"rejected, nothing changed: {reply.get('error')}", True
 
 
@@ -283,7 +315,7 @@ class Server:
             return "sent to the Studio", False
         if name == "get_screen":
             reply = host.request({"type": "getDocument"})
-            keys = ("revision", "you", "canReview", "autoAccept", "proposals", "state", "document")
+            keys = ("revision", "head", "you", "canReview", "mode", "grants", "proposals", "state", "document")
             return json.dumps({k: reply.get(k) for k in keys}, indent=2), False
         if name == "get_format_guide":
             with open(os.path.join(ROOT, "SCREEN_FORMAT.md"), encoding="utf-8") as guide:
@@ -291,13 +323,21 @@ class Server:
         if name == "submit_revision":
             revision = {"type": "revision", "author": self.client, "message": args.get("message", ""),
                         "patch": args.get("patch", [])}
-            if "parent" in args:
-                revision["parent"] = args["parent"]
+            for key in ("parent", "proposal"):
+                if key in args:
+                    revision[key] = args[key]
             return describe(host.request(revision))
         if name == "get_history":
-            return json.dumps(host.request({"type": "getHistory"}).get("entries"), indent=2), False
-        if name == "restore_revision":
-            return describe(host.request({"type": "restore", "author": self.client, "revision": args.get("revision")}))
+            reply = host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
+            return json.dumps(reply.get("entries"), indent=2), False
+        if name == "get_diff":
+            reply = host.request({"type": "diff", **{k: args[k] for k in ("from", "to", "proposal") if k in args}})
+            if reply.get("type") != "diff":
+                return f"error: {reply.get('error')}", True
+            return json.dumps(reply.get("patch"), indent=2), False
+        if name in ("restore_revision", "revert_revision"):
+            kind = "restore" if name == "restore_revision" else "revert"
+            return describe(host.request({"type": kind, "author": self.client, "revision": args.get("revision")}))
         if name == "get_events":
             return json.dumps(host.take_events(), indent=2), False
         if name == "export_changes":
@@ -330,7 +370,7 @@ class Server:
             result({"protocolVersion": requested if requested in PROTOCOLS else PROTOCOLS[0],
                     "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False},
                                      "experimental": {"claude/channel": {}}},
-                    "serverInfo": {"name": "sglgui", "version": "0.3.0"},
+                    "serverInfo": {"name": "sglgui", "version": "0.4.0"},
                     "instructions": INSTRUCTIONS})
         elif method == "ping":
             result({})

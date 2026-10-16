@@ -14,8 +14,9 @@ namespace sgl::channel {
 
 /// @brief The live-document protocol (SCREEN_FORMAT.md, "Live screens") over a Channel.
 ///
-/// The peer on the other end reads the document, sends revisions and, if the document lets it review, decides on
-/// proposals and switches auto-accept. It is told about every commit and every change to the proposals.
+/// The peer on the other end reads the document and its history, sends revisions and, if the document lets it
+/// review, decides on proposals, sets the mode and revokes grants. It is told about every commit and every change
+/// to the proposals.
 /// Everything it sends is authored by `author` (followed by the name it gives itself): a channel can't claim to be
 /// someone it isn't. "request" and "reply" messages are not interpreted: they come out of onRelay, stamped with
 /// "from", for whoever connects peers to each other.
@@ -43,12 +44,12 @@ private:
 	/// @brief Handles one message from the peer; malformed or refused ones get an "error" reply.
 	/// @param line The message.
 	void handle(const std::string& line);
-	/// @brief The "review" message: proposals, preview and auto-accept.
+	/// @brief The "review" message: proposals, preview, mode and grants.
 	[[nodiscard]] json reviewState() const;
 
-	Channel& channel_;         ///< The transport.
-	VersionControl& versions_; ///< The document.
-	std::string author_;       ///< See author().
+	Channel& channel_;                                                    ///< The transport.
+	VersionControl& versions_;                                            ///< The document.
+	std::string author_;                                                  ///< See author().
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
 };
 

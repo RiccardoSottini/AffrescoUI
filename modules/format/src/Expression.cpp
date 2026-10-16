@@ -206,6 +206,15 @@ json applyOperator(const std::string& name, const json& raw, const Context& cont
 		return result;
 	}
 
+	// {"$join": [list, separator]}: the items as text, e.g. "#board, /state/cards"
+	if(name == "$join") {
+		count(2);
+		if(!args[0].is_array()) fail(at, "expected a list first");
+		std::string result;
+		for(const json& item : args[0]) result += (result.empty() ? "" : toText(args[1])) + toText(item);
+		return result;
+	}
+
 	fail(at, "unknown operator '" + name + "'");
 }
 
@@ -275,7 +284,7 @@ json lookup(std::string_view path, const Context& context, const std::string& wh
 	else if(context.globals.contains(root)) current = &context.globals[root];
 	else
 		fail(where, "unknown variable '" + root +
-		                "' (state, event, window, revision, proposals, history, preview, or a "
+		                "' (state, event, window, revision, proposals, history, preview, mode, or a "
 		                "repeat/forEach name)");
 
 	for(std::size_t i = 1; i < keys.size(); ++i) {

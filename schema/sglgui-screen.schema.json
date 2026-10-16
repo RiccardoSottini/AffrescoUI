@@ -137,37 +137,38 @@
 						}
 					},
 					"permissions": {
-						"description": "Who may change the running screen, and what is locked (see VERSION_CONTROL.md). Revisions can't change this section.",
+						"description": "Who may change the running screen, like Claude Code's permission rules (see VERSION_CONTROL.md): deny beats ask beats allow, and what no rule allows is reviewed. Revisions can't change this section.",
 						"type": "object",
 						"additionalProperties": false,
 						"properties": {
-							"authors": {
-								"type": "object",
-								"description": "Author (or channel) name → policy; \"*\" for everyone else",
-								"additionalProperties": {
-									"enum": [
-										"allow",
-										"review",
-										"deny"
-									]
-								}
-							},
-							"locked": {
+							"allow": {
 								"type": "array",
-								"items": {
-									"type": "string",
-									"pattern": "^(#|/)"
-								},
-								"description": "\"#id\" nodes or JSON Pointer paths (\"/actions/send\", \"/state/account\") no revision may change"
+								"items": { "$ref": "#/$defs/v1/permissionRule" },
+								"description": "Changes that apply without review, if these rules (and the reviewer's grants) cover everything they change"
+							},
+							"ask": {
+								"type": "array",
+								"items": { "$ref": "#/$defs/v1/permissionRule" },
+								"description": "Changes that always wait for review, even in acceptEdits mode and over allow rules"
+							},
+							"deny": {
+								"type": "array",
+								"items": { "$ref": "#/$defs/v1/permissionRule" },
+								"description": "Changes no one may make, the app and reviewers included"
 							},
 							"reviewers": {
 								"type": "array",
 								"items": { "type": "string" },
-								"description": "Authors who may accept, reject or preview proposals and switch auto-accept over the live protocol (exact name or channel name). Without it, no peer may."
+								"description": "Authors who may accept, reject or preview proposals, set the mode and revoke grants over the live protocol (exact name or channel name). With a permissions section and no reviewers, no peer may."
 							}
 						}
 					}
 				}
+			},
+			"permissionRule": {
+				"type": "string",
+				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
+				"description": "\"author\" or \"author(pattern)\": author is \"*\", a channel name (\"agent\") or a full name; pattern a JSON Pointer or \"#id\" path, \"*\" for one segment, e.g. \"agent(#board)\", \"*(#statusBar)\""
 			},
 			"hexColor": {
 				"type": "string",
@@ -499,7 +500,8 @@
 						"$max",
 						"$clamp",
 						"$round",
-						"$concat"
+						"$concat",
+						"$join"
 					]
 				}
 			},

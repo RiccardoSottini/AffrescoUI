@@ -61,7 +61,8 @@ atomic, and reconciled **in place**.
 <td width="33%" valign="top">
 
 ### 🛡️ Version control built in
-Per-author permissions, locked parts, **proposals with live preview**, accept/reject, full history and restore.
+**Git's model with Claude Code's approvals:** content-addressed commits, proposals as branches with **live
+preview**, merge, revert and diff; `allow` / `ask` / `deny` rules, modes and *"don't ask again"*.
 An AI can change your app but **can never approve its own changes**.
 
 </td>
@@ -138,17 +139,19 @@ flowchart LR
 1. **The app** (`sglgui_host`) renders a screen, here the *Flow* Kanban board template, and nothing else. It has no chat
    box or command line: it listens for **peers** on local sockets and treats them all the same way.
 2. **You** use a separate client, the **sGLGUI Studio**. From there you can ask the AI for a change in plain words, apply
-   a JSON Patch yourself, preview the agent's proposals live in the app, accept or reject them, turn on auto-accept,
-   and browse or restore the history.
+   a JSON Patch yourself, preview the agent's proposals live in the app, accept, *always allow* or reject them, pick
+   the mode (ask first, accept edits, plan), and browse, revert or restore the history.
 3. **The MCP server works both ways.** Your requests are pushed into the agent's session (Claude Code channel events),
    or the agent picks them up with `wait_for_request`. The agent's tool calls become revisions of the running app, and
    its `reply` goes back to the Studio.
-4. **Every change is checked** against the screen's own permissions. The template lets the Studio change anything and
-   review; the agent's changes wait for review unless auto-accept is on. See [VERSION_CONTROL.md](VERSION_CONTROL.md).
+4. **Every change is checked** against the screen's own permission rules, written like Claude Code's. The templates let
+   the Studio change anything and review, always ask before the agent changes behaviour, and never let anyone touch
+   the status bar. The agent's other changes wait for review unless the mode is *accept edits* or you said *"don't
+   ask again"* for that kind of change. See [VERSION_CONTROL.md](VERSION_CONTROL.md).
 
 <p align="center">
-<img src=".github/media/studio.png" width="640" alt="The sGLGUI Studio: ask the AI, direct JSON Patch, review with auto-accept, activity and history"><br/>
-<sub>The <b>sGLGUI Studio</b>, a client that is itself an sGLGUI screen: ask the AI, patch directly, review, auto-accept, restore.</sub>
+<img src=".github/media/studio.png" width="640" alt="The sGLGUI Studio: ask the AI, direct JSON Patch, review with modes and grants, activity and history"><br/>
+<sub>The <b>sGLGUI Studio</b>, a client that is itself an sGLGUI screen: ask the AI, patch directly, review, always allow, revert, restore.</sub>
 </p>
 
 ## Quick start
@@ -169,10 +172,11 @@ claude --dangerously-load-development-channels server:sglgui   # requests are pu
 
 Type *"add a Blocked column between In progress and Review"* in the Studio. The request reaches Claude, Claude
 changes the running board, and the change shows up in the Studio for review. Click **Accept** and the app updates
-in place. Turn on **Auto-accept** to let changes apply as they arrive.
+in place, or **Always allow** to stop being asked about that part of the screen. Switch to **Accept edits** to let
+changes apply as they arrive.
 
 ```sh
-./build/sglgui_host --auto-accept                                    # agent changes apply without review
+./build/sglgui_host --mode acceptEdits                              # agent changes apply unless a rule asks
 ./build/sglgui_host examples/assets/screens/smart-home.screen.json   # any template or screen file, no C++
 ./build/sglgui_host --plugin my-changes.json                         # start with a change set applied
 ```
@@ -217,15 +221,15 @@ flowchart TB
 
     subgraph VC["🛡️ vcs · sgl::vcs: version control"]
         direction LR
-        SUB["<b>submit</b><br/>JSON Patch · #id paths"] --> POL{"author's<br/>policy"}
-        POL -- "review" --> PRO["<b>Proposal</b><br/>live preview"] -- "accept" --> COM
-        POL -- "allow · auto-accept" --> COM["<b>Commit</b><br/>history · restore<br/>change sets"]
-        POL -- "deny · locked" --> REJ["<b>Rejected</b><br/>nothing changes"]
+        SUB["<b>submit</b><br/>JSON Patch · #id paths"] --> POL{"rules<br/>deny · ask · allow<br/>+ mode, grants"}
+        POL -- "ask" --> PRO["<b>Proposal</b><br/>a branch · live preview"] -- "merge" --> COM
+        POL -- "allow" --> COM["<b>Commit on main</b><br/>SHA-256 · log · revert<br/>change sets"]
+        POL -- "deny" --> REJ["<b>Rejected</b><br/>nothing changes"]
     end
 
     subgraph FM["📄 format · sgl::format: the live document"]
         direction LR
-        RU["<b>Rules</b><br/>validate · locks<br/>permissions"] ~~~ RT["<b>Runtime</b><br/>build · reconcile<br/>in place"] --- EXP["<b>Expressions</b><br/>{{bindings}}<br/>$operators"] --- ACT["<b>Actions</b><br/>set · push · if<br/>forEach · emit"]
+        RU["<b>Rules</b><br/>validate · permission<br/>rules · locks"] ~~~ RT["<b>Runtime</b><br/>build · reconcile<br/>in place"] --- EXP["<b>Expressions</b><br/>{{bindings}}<br/>$operators"] --- ACT["<b>Actions</b><br/>set · push · if<br/>forEach · emit"]
     end
 
     subgraph RD["🎨 render · sgl: pixels out"]
@@ -260,7 +264,7 @@ flowchart TB
 | `core` | `sgl` | The contracts: `Executor`, `Channel`, `VersionControl`, `VersionObserver`, `DocumentRules`; `Signal`, JSON types | nlohmann/json (only for the document interfaces) |
 | `render` | `sgl` | Rendering engine: windows, panel tree, layout, input, text, clipboard, batched OpenGL renderer. No JSON. | `core` |
 | `format` | `sgl::format` | The JSON screen format: validation and permission rules (`Rules`), `{{expressions}}`, and `Runtime`, which builds a document into panels, reconciles on change and runs actions | `core`, `render` |
-| `vcs` | `sgl::vcs` | Version control for any JSON document: revisions (JSON Patch, `#id` paths), per-author policies, reviewers, auto-accept, locks, proposals, preview, history, restore, change sets | `core` |
+| `vcs` | `sgl::vcs` | Git-like version control for any JSON document: content-addressed commits, `main`, proposals as branches, merge, preview, log, diff, revert, restore, change sets; allow / ask / deny rules judged by effect, modes, grants | `core` |
 | `channel` | `sgl::channel` | Communication: local-socket server and client, child-process and stdio transports, and `Session`, the live JSON-lines protocol | `core` |
 | `sglgui` | `sgl` | `sgl::Screen`: wires `Rules` → `Repository` → `Runtime`, plus one `Session` per peer, relaying requests between peers | all of the above |
 
@@ -284,13 +288,13 @@ sequenceDiagram
     Agent->>MCP: get_screen, submit_revision
     MCP->>Peers: {"type": "revision", "patch": [...]}
     Peers->>VCS: submit(revision)  [VersionControl]
-    Note over VCS: format Rules check policy, locks, validity  [DocumentRules]
+    Note over VCS: deny · ask · allow rules, mode and grants, validity  [DocumentRules]
     rect rgba(245, 158, 11, 0.15)
-    alt policy "review" and auto-accept off
-        VCS-->>Peers: onReviewChanged → {"type": "review"} to every peer
-        Person->>Studio: Preview, then Accept
-        Studio->>Peers: {"type": "preview"}, {"type": "accept"}  (reviewers only)
-        Peers->>VCS: preview(id), accept(id)
+    alt no rule allows it (mode "default")
+        VCS-->>Peers: a proposal branch → {"type": "review"} to every peer
+        Person->>Studio: Preview, then Accept (or Always allow)
+        Studio->>Peers: {"type": "preview"}, {"type": "accept", "head"}  (reviewers only)
+        Peers->>VCS: preview(id), accept(id, approval) → merge commit
     end
     end
     rect rgba(139, 92, 246, 0.15)
@@ -353,8 +357,10 @@ target_link_libraries(my_app PRIVATE sglgui::sglgui)
   autocompletion.
 - **Live documents:** in-place reconciliation, revisions (JSON Patch, atomic, `#id` paths), any number of peers
   over local sockets (or any channel), broadcasts of commits and proposals, request/reply relaying between peers.
-- **Version control:** per-author policies (allow / review / deny), reviewers, auto-accept, locked parts, protected
-  controls, proposals with live preview, accept/reject, an audit history, restore, change sets (plugins).
+- **Version control:** Git's model (SHA-256 commits, an append-only `main`, proposals as branches merged with a merge
+  commit, log, diff, revert, restore, `HEAD~1` names) with Claude Code's approvals (`allow` / `ask` / `deny` rules
+  judged by effect, modes `default` / `acceptEdits` / `plan`, "don't ask again" grants), reviewers, protected
+  controls, approvals pinned to the version reviewed, change sets (plugins).
 - **Agents:** a two-way Python MCP server (requests pushed into the agent as channel events, or pulled; changes and
   replies sent back). Authors are assigned by the socket a peer uses, never self-declared.
 - **UI engine:** nested panels in pixels or percentages, anchors, clipping, stacks, typed input events, mouse
