@@ -35,7 +35,7 @@ endif()
 #   core     interfaces + Signal: Executor, Channel, VersionControl, DocumentRules   (header-only)
 #   render   rendering engine: windows, panels, text, OpenGL                         core
 #   format   JSON screen format: rules, expressions, building panels, actions        core, render
-#   vcs      version control: history, permissions, review, change sets              core
+#   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
 #   sglgui   sgl::Screen, which puts them together                                   all of the above
 function(sglgui_module name)
@@ -75,7 +75,7 @@ target_compile_definitions(sglgui_render PRIVATE GLFW_INCLUDE_NONE)
 sglgui_module(format modules/format/src/Expression.cpp modules/format/src/Rules.cpp modules/format/src/Runtime.cpp)
 target_link_libraries(sglgui_format PUBLIC sglgui::core sglgui::render nlohmann_json::nlohmann_json)
 
-sglgui_module(vcs modules/vcs/src/Repository.cpp)
+sglgui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
 target_link_libraries(sglgui_vcs PUBLIC sglgui::core nlohmann_json::nlohmann_json)
 
 sglgui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)

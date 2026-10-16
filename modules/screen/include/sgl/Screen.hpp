@@ -36,11 +36,11 @@ using ScreenError = DocumentError;
 /// its window is used.
 class Screen {
 public:
-	using Action = std::function<void(Panel& sender)>;                                      ///< A native action.
-	using Factory = std::function<std::unique_ptr<Panel>()>;                                ///< Creates a custom type.
+	using Action = std::function<void(Panel& sender)>;                                     ///< A native action.
+	using Factory = std::function<std::unique_ptr<Panel>()>;                               ///< Creates a custom type.
 	using UnhandledAction = std::function<void(const std::string& action, Panel& sender)>; ///< Fallback handler.
-	using ProposalInfo = sgl::ProposalInfo;                                                 ///< A waiting proposal.
-	using HistoryEntry = sgl::HistoryEntry;                                                 ///< A committed revision.
+	using ProposalInfo = sgl::ProposalInfo;                                                ///< An open proposal.
+	using CommitInfo = sgl::CommitInfo;                                                    ///< A commit.
 
 	/// @brief Loads a screen file.
 	/// @param path The file; relative font paths are resolved from its directory.
@@ -110,11 +110,11 @@ public:
 	/* Live document: revisions (see VERSION_CONTROL.md) */
 
 	/// @brief Applies, proposes or rejects a revision, following the file's "permissions". On error nothing changes.
-	/// @param revisionJson `{"author", "message", "parent"?, "patch": [JSON Patch ops]}`.
+	/// @param revisionJson `{"author", "message", "parent"?, "proposal"?, "patch": [JSON Patch ops]}`.
 	/// @return What happened.
 	RevisionResult submitRevision(std::string_view revisionJson);
 
-	/// @brief Applies a revision from the application itself: not reviewed, but locks and rules still apply.
+	/// @brief Applies a revision from the application itself: not reviewed, but deny rules still apply.
 	/// @param revisionJson The revision.
 	/// @param error Receives the error, if any (may be nullptr).
 	/// @return true if it was applied.
@@ -122,13 +122,13 @@ public:
 
 	/* Review before apply */
 
-	/// @brief The proposals waiting for a decision.
+	/// @brief The open proposals.
 	[[nodiscard]] std::vector<ProposalInfo> proposals() const;
 
-	/// @brief Applies a proposal.
+	/// @brief Merges a proposal, approved by "user" (VersionControl::accept takes more).
 	/// @param id The proposal.
 	/// @param error Receives the error, if any (may be nullptr).
-	/// @return true if it was applied.
+	/// @return true if it was merged.
 	bool acceptProposal(int id, std::string* error = nullptr);
 
 	/// @brief Rejects a proposal.
@@ -150,8 +150,8 @@ public:
 
 	/* History */
 
-	/// @brief Every revision, oldest first.
-	[[nodiscard]] std::vector<HistoryEntry> history() const;
+	/// @brief main's commits, oldest first.
+	[[nodiscard]] std::vector<CommitInfo> log() const;
 
 	/// @brief Brings the screen back to an earlier revision, as a new revision (the history keeps growing).
 	/// @param revision The revision to go back to.
@@ -165,9 +165,15 @@ public:
 	/// @return What happened.
 	RevisionResult submitRestore(int revision, std::string_view author);
 
-	/// @brief Restores the previous revision.
+	/// @brief Undoes one revision and keeps the ones after it, as a new revision (like `git revert`).
+	/// @param revision The revision to undo.
 	/// @param error Receives the error, if any (may be nullptr).
-	/// @return true if it was restored.
+	/// @return true if it was reverted.
+	bool revert(int revision, std::string* error = nullptr);
+
+	/// @brief Reverts the latest revision.
+	/// @param error Receives the error, if any (may be nullptr).
+	/// @return true if it was reverted.
 	bool undo(std::string* error = nullptr);
 
 	/// @brief The current revision; 0 is the file as loaded.
@@ -211,9 +217,9 @@ public:
 	/// @throws std::runtime_error If the socket can't be created.
 	void listen(Executor& executor, const std::filesystem::path& path, std::string author);
 
-	/// @brief Turns auto-accept on or off (see VersionControl::setAutoAccept).
-	/// @param enabled true to apply changes that would wait for review.
-	void setAutoAccept(bool enabled);
+	/// @brief Sets how much reviewers are asked (see VersionControl::setMode).
+	/// @param mode Default, AcceptEdits (apply what no rule allows, like auto-accept) or Plan (peers only propose).
+	void setMode(Mode mode);
 
 	/// @brief The version control module, for code that needs more than this class offers.
 	[[nodiscard]] VersionControl& versions() noexcept;

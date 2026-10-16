@@ -48,7 +48,7 @@ without breaking existing files.
 | `styles` | | `name → properties`, applied to a node with `"style": "name"` or `["a", "b"]`. Later styles win, and the node's own properties win over all. |
 | `templates` | | `name → node`. Built by code on demand, any number of times (`Screen::instantiate`). A `repeat` in the file is usually simpler. |
 | `state` | | The app's data, any JSON object. |
-| `permissions` | | Who may change the running screen and what is locked: see [Version control](VERSION_CONTROL.md). `{ "authors": { "agent": "review", "*": "allow" }, "reviewers": ["studio"], "locked": ["#statusBar", "/actions/send"] }`. Policies: `allow`, `review`, `deny`. `reviewers` may decide on proposals over the live protocol. Revisions can never change this section. |
+| `permissions` | | Who may change the running screen, like Claude Code's permission rules: see [Version control](VERSION_CONTROL.md). `{ "allow": ["studio"], "ask": ["agent(/actions)"], "deny": ["*(#statusBar)"], "reviewers": ["studio"] }`. A rule is `author` or `author(pattern)`; deny beats ask beats allow, and what no rule allows is reviewed. `reviewers` may decide on proposals over the live protocol. Revisions can never change this section. |
 | `actions` | | `name → steps`, run by `onClick`, `onSubmit` or other actions. |
 
 ## Nodes
@@ -79,7 +79,7 @@ parent, and later siblings on top of earlier ones.
 | `onClick` | Fired when the left button is released over the node: an action name, or steps to run. |
 | `repeat` | `{ "for": "message", "in": "state.messages", "index": "i" }`: build the node once per list item. `for` defaults to `item` and `index` to `index`. |
 | `when` | Build the node only if the value is truthy. |
-| `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
+| `locked` | `true`: no revision may change this node or anything inside it (short for the rule `"deny": ["*(#id)"]`). Needs an `id`. |
 
 ### `label`
 | Key | Meaning |
@@ -122,9 +122,10 @@ Wherever a value is expected, it can be computed:
 | Operator | `{ "$clamp": ["{{event.x}}", 180, 520] }` | An object with one `$` key. |
 
 **Paths** start with a variable: `state`, `event` (what triggered the action), `window` (`width`, `height`),
-`revision` (`number`, `author`, `message`), `proposals` (pending proposals: `id`, `author`, `message`,
-`operations`, `time`), `history` (every revision: `number`, `author`, `message`, `time`), `preview` (the id of the
-proposal being previewed, or `null`), or a `repeat`/`forEach` name. They continue with `.key` and `[index]`, and
+`revision` (the current commit: `number`, `id`, `short`, `author`, `committer`, `message`, `time`), `proposals` (open
+proposals: `id`, `author`, `message`, `head`, `short`, `commits`, `operations`, `touches`, `remember`, `reason`,
+`time`), `history` (the commits on `main`, like `revision`), `preview` (the id of the proposal being previewed, or
+`null`), `mode` (`default`, `acceptEdits` or `plan`), or a `repeat`/`forEach` name. They continue with `.key` and `[index]`, and
 an index can itself be a path: `state.threads[state.current]`. A missing value is `null`.
 
 **Operators.** One-argument operators take their value directly (`{"$length": "{{state.items}}"}`). The others take an
@@ -133,7 +134,7 @@ array of arguments.
 - Comparison: `$equals`, `$notEquals`, `$greater`, `$less`, `$greaterOrEqual`, `$lessOrEqual`.
 - Numbers: `$add`, `$subtract`, `$multiply`, `$divide`, `$min`, `$max`, `$clamp` `[value, min, max]`, `$round`.
   Integer inputs give integer results.
-- Collections and text: `$length`, `$empty`, `$concat` (strings or lists).
+- Collections and text: `$length`, `$empty`, `$concat` (strings or lists), `$join` (`[list, ", "]`: the items as text).
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
 
@@ -159,12 +160,13 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `stop` | `{ "stop": true }`: end the action |
 | `preview` | `{ "preview": "{{proposals[0].id}}" }`: show a proposal live, without committing it |
 | `endPreview` | `{ "endPreview": true }`: back to the committed screen |
-| `accept` | `{ "accept": "{{proposals[0].id}}" }`: commit a proposal |
+| `accept` | `{ "accept": "{{proposals[0].id}}" }`: merge a proposal, approved by `user` |
 | `reject` | `{ "reject": "{{proposals[0].id}}", "reason": "..." }` |
-| `restore` | `{ "restore": "{{entry.number}}" }`: a new revision equal to an earlier one |
-| `undo` | `{ "undo": true }`: restore the previous revision |
+| `restore` | `{ "restore": "{{entry.number}}" }`: a new revision equal to an earlier one (a number or a commit id) |
+| `revert` | `{ "revert": "{{entry.number}}" }`: a new revision that undoes that one and keeps the later ones |
+| `undo` | `{ "undo": true }`: revert the latest revision |
 
-The last six, plus `patch` and `call`, are **control steps**: they can be written in the screen file, but no
+The last seven, plus `patch` and `call`, are **control steps**: they can be written in the screen file, but no
 revision may add or change them.
 
 Only paths under `state` can be changed. After an event's actions finish, the UI is updated once. Panels are reused
@@ -183,18 +185,20 @@ A revision is a version-controlled change to a running screen:
              { "op": "replace", "path": "/state/sidebarWidth", "value": 400 } ] }
 ```
 
-- `patch` is standard [JSON Patch (RFC 6902)](https://datatracker.ietf.org/doc/html/rfc6902). Paths can start with
-  `#id` to address a node by its id instead of its position: `#header/children/-`.
+- `patch` is standard [JSON Patch (RFC 6902)](https://datatracker.ietf.org/doc/html/rfc6902), applied one operation
+  at a time. Paths can start with `#id` to address a node by its id instead of its position: `#header/children/-`.
 - Operations on `/state/...` change the live state. All others change the document: layout, styles, colors, fonts,
   actions and templates.
 - Revisions are **atomic**. If anything fails (invalid patch, unknown id, a property the new document gets wrong),
   nothing changes and the revision is rejected with the error.
-- `parent` is optional. If it's given and isn't the current revision, the revision is rejected as a conflict.
-- Revisions are numbered from `0` (the file). Restoring (`restore`, `undo`) creates a new revision equal to an
-  earlier document, so history only grows. State changes aren't undone.
-- **Permissions** decide what happens to a revision from each author: applied, proposed to the user, or rejected.
-  Locked parts and control steps can't be changed by any revision. See [VERSION_CONTROL.md](VERSION_CONTROL.md), which
-  also describes **change sets** (exported revisions, shareable like plugins).
+- `parent` is optional: a revision number or commit id. If it's given and isn't the current revision, the revision is
+  rejected as a conflict. `proposal` (optional) pushes onto the author's own open proposal.
+- Every applied revision is a **commit** on `main`, named by its SHA-256 (`a3f9c21` for short) and numbered from `0`
+  (the file). Reverting, restoring and undoing create new commits, so history only grows. State changes aren't undone.
+- **Permissions** decide what happens to a revision from each author: applied, proposed (a branch a reviewer merges or
+  rejects), or rejected. Deny rules and control steps hold for every revision. See
+  [VERSION_CONTROL.md](VERSION_CONTROL.md), which also describes the modes, "don't ask again" grants and **change
+  sets** (exported revisions, shareable like plugins).
 
 ### Peers and the live protocol
 The screen doesn't care where changes come from. Any number of **peers** (programs on the other end of a channel)
@@ -209,16 +213,16 @@ read and change it with one JSON object per line:
 
 | Direction | Message |
 |---|---|
-| → peer | `{"type": "hello", "format": "sglgui-screen", "revision": n, "document": {...}, "state": {...}, "you": "agent", "canReview": false}` on connect |
-| → peer | answers to its revisions: `{"type": "applied", "revision": n}`, `{"type": "proposed", "proposal": p}` or `{"type": "rejected", "error": "..."}` |
-| → all peers | `{"type": "committed", "revision": n, "author", "message", "time"}` whenever anyone's revision is committed |
-| → all peers | `{"type": "review", "proposals": [...], "previewing": p or null, "autoAccept": bool}` whenever that changes |
-| → all peers | a reviewer's decision: `{"type": "applied" / "rejected", "proposal": p, ...}` |
+| → peer | `{"type": "hello", "format": "sglgui-screen", "revision": n, "head": {commit}, "document": {...}, "state": {...}, "mode": "default", "you": "agent", "canReview": false}` on connect |
+| → peer | answers to its revisions: `{"type": "applied", "revision": n, "commit": id}`, `{"type": "proposed", "proposal": p, "commit": head}` or `{"type": "rejected", "error": "..."}` |
+| → all peers | `{"type": "committed", "revision": n, "id", "short", "parents", "author", "committer", "message", "time", "proposal"}` whenever a commit lands on `main` |
+| → all peers | `{"type": "review", "proposals": [...], "previewing": p or null, "mode": "default", "grants": [...]}` whenever that changes |
+| → all peers | a reviewer's decision: `{"type": "applied", "proposal": p, "commit": merge}` or `{"type": "rejected", "proposal": p, "error": reason}` |
 | → all peers | `{"type": "event", "name": "...", "data": {...}, "revision": n}` from `emit` steps, `{"type": "error", "message": "..."}` |
-| → peer | answers: `{"type": "document", ...}` (with proposals and auto-accept), `{"type": "history", "entries": [...]}`, `{"type": "changes", "changes": {...}}`, `{"type": "done"}` |
-| peer → | `{"type": "revision", ...}`, `{"type": "restore", "revision": n}`, `{"type": "undo"}` (all follow the author's policy) |
-| peer → | `{"type": "getDocument"}`, `{"type": "getHistory"}`, `{"type": "exportChanges", "from": n, "name": "..."}` |
-| reviewer → | `{"type": "accept" / "reject" / "preview", "proposal": p}`, `{"type": "endPreview"}`, `{"type": "setAutoAccept", "enabled": true}`: only for authors in `permissions.reviewers` |
+| → peer | answers: `{"type": "document", ...}` (with head, proposals, mode and grants), `{"type": "history", "entries": [...]}`, `{"type": "diff", "patch": [...]}`, `{"type": "changes", "changes": {...}}`, `{"type": "done"}` |
+| peer → | `{"type": "revision", ..., "proposal"?: p}`, `{"type": "revert" / "restore", "revision": n or id}`, `{"type": "undo"}` (all follow the author's permissions) |
+| peer → | `{"type": "getDocument"}`, `{"type": "getHistory", "limit"?: n}`, `{"type": "diff", "from", "to"}` or `{"type": "diff", "proposal": p}`, `{"type": "exportChanges", "from": n, "name": "..."}` |
+| reviewer → | `{"type": "accept", "proposal": p, "head": id, "dontAskAgain"?: true}` (`head`: the version reviewed), `{"type": "reject", "proposal": p, "reason"?}`, `{"type": "preview", "proposal": p}`, `{"type": "endPreview"}`, `{"type": "setMode", "mode": "acceptEdits"}`, `{"type": "revoke", "rule": "agent(#board)"}`: only for authors in `permissions.reviewers` |
 | peer → other peers | `{"type": "request", "id", "text"}` and `{"type": "reply", "request", "text"}`: passed on to every other peer with `"from"` added, never interpreted (e.g. a person's request in plain words, for an AI agent) |
 
 Requests may carry an `"id"`; answers repeat it.

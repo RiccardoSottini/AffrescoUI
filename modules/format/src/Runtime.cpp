@@ -153,7 +153,7 @@ struct Item {
 	std::string path; ///< Its place in the document.
 };
 
-constexpr int maxActionDepth = 32;              ///< Nested action calls before giving up (recursion guard).
+constexpr int maxActionDepth = 32;               ///< Nested action calls before giving up (recursion guard).
 constexpr std::size_t maxLoopIterations = 10000; ///< "while" iterations before giving up.
 
 } // namespace
@@ -383,16 +383,18 @@ const Runtime::Impl::Globals& Runtime::Impl::globals() const {
 	if(globalsCache) return *globalsCache;
 	Globals& g = globalsCache.emplace();
 	g.window = window ? json{{"width", window->width()}, {"height", window->height()}} : json::object();
-	const HistoryEntry head = versions.head();
-	g.revision = {{"number", head.number}, {"author", head.author}, {"message", head.message}};
+	g.revision = toJson(versions.head());
 
 	json list = json::array();
 	for(const ProposalInfo& p : versions.proposals()) list.push_back(toJson(p));
 	json log = json::array();
-	for(const HistoryEntry& h : versions.history()) log.push_back(toJson(h));
+	for(const CommitInfo& c : versions.log()) log.push_back(toJson(c));
 
 	const auto previewing = versions.previewing();
-	g.other = {{"proposals", list}, {"history", log}, {"preview", previewing ? json(*previewing) : json()}};
+	g.other = {{"proposals", list},
+	           {"history", log},
+	           {"preview", previewing ? json(*previewing) : json()},
+	           {"mode", toString(versions.mode())}};
 	return g;
 }
 
@@ -980,27 +982,32 @@ bool Runtime::Impl::runStep(const json& step, Panel& sender, const json& event, 
 			});
 		}
 	} else if(step.contains("accept") || step.contains("reject") || step.contains("preview") ||
-	          step.contains("restore") || step.contains("undo") || step.contains("endPreview")) {
+	          step.contains("restore") || step.contains("revert") || step.contains("undo") ||
+	          step.contains("endPreview")) {
 		// Review and history controls change the document: done after the event, like revisions
 		json control = step;
-		for(const char* key : {"accept", "reject", "preview", "restore", "reason"})
+		for(const char* key : {"accept", "reject", "preview", "restore", "revert", "reason"})
 			if(control.contains(key)) control[key] = value(control[key], where + "." + key);
-		for(const char* key : {"accept", "reject", "preview", "restore"})
+		for(const char* key : {"accept", "reject", "preview"})
 			if(control.contains(key) && !control[key].is_number_integer()) fail(where + "." + key, "expected a number");
+		for(const char* key : {"restore", "revert"})
+			if(control.contains(key) && !control[key].is_number_integer() && !control[key].is_string())
+				fail(where + "." + key, "expected a revision number or a commit");
 		if(window) {
 			window->defer([this, control = std::move(control)] {
 				std::optional<std::string> error;
 				try {
-					const auto history = versions.history();
-					if(control.contains("accept")) error = versions.accept(control["accept"].get<int>());
+					if(control.contains("accept"))
+						error = versions.accept(control["accept"].get<int>(), {"user", {}, false});
 					else if(control.contains("reject"))
 						versions.reject(control["reject"].get<int>(), text(control.value("reason", json(""))));
 					else if(control.contains("preview")) error = versions.preview(control["preview"].get<int>());
 					else if(control.contains("endPreview")) versions.endPreview();
 					else if(control.contains("restore"))
-						error = versions.commit(versions.restoreRevision(control["restore"].get<int>(), "user"));
-					else if(history.size() > 1)
-						error = versions.commit(versions.restoreRevision(history[history.size() - 2].number, "user"));
+						error = versions.commit(versions.restoreRevision(control["restore"], "user"));
+					else if(control.contains("revert"))
+						error = versions.commit(versions.revertRevision(control["revert"], "user"));
+					else error = versions.commit(versions.revertRevision("HEAD", "user")); // undo
 				} catch(const DocumentError& failure) {
 					error = failure.what();
 				}
@@ -1021,7 +1028,7 @@ bool Runtime::Impl::runStep(const json& step, Panel& sender, const json& event, 
 		return false;
 	} else {
 		fail(where, "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
-		            "patch, focus, log, stop, accept, reject, preview, endPreview, restore or undo)");
+		            "patch, focus, log, stop, accept, reject, preview, endPreview, restore, revert or undo)");
 	}
 
 	return true;

@@ -14,8 +14,8 @@ namespace {
 constexpr int supportedVersions[] = {1};
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
-constexpr std::string_view controlSteps[] = {"accept",  "reject", "preview", "endPreview",
-                                             "restore", "undo",   "patch",   "call"};
+constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "endPreview", "restore",
+                                             "revert", "undo",   "patch",   "call"};
 
 /// @brief Collects every control step in a document, to compare before and after a revision.
 /// @param value The document, or part of it.
@@ -60,20 +60,16 @@ void Rules::validate(const json& doc) const {
 	if(doc.contains("permissions")) {
 		for(const auto& [key, value] : expect::object(doc["permissions"], "permissions").items()) {
 			const std::string at = "permissions." + key;
-			if(key == "authors") {
-				for(const auto& [author, policy] : expect::object(value, at).items()) {
-					const std::string name = expect::string(policy, at + "." + author);
-					if(name != "allow" && name != "review" && name != "deny")
-						fail(at + "." + author, "expected \"allow\", \"review\" or \"deny\"");
-				}
-			} else if(key == "locked") {
-				if(!value.is_array()) fail(at, "expected a list of \"#id\" or JSON Pointer paths");
-				for(const json& path : value) expect::string(path, at);
-			} else if(key == "reviewers") {
-				if(!value.is_array()) fail(at, "expected a list of author names");
-				for(const json& name : value) expect::string(name, at);
-			} else {
-				fail(at, "unknown property (expected authors, reviewers or locked)");
+			if(key != "allow" && key != "ask" && key != "deny" && key != "reviewers")
+				fail(at, "unknown property (expected allow, ask, deny or reviewers)");
+			if(!value.is_array())
+				fail(at, key == "reviewers" ? "expected a list of author names" : "expected a list of rules");
+			for(std::size_t i = 0; i < value.size(); ++i) {
+				const std::string item = expect::string(value[i], at + "[" + std::to_string(i) + "]");
+				if(key != "reviewers" && !parsePermissionRule(item))
+					fail(at + "[" + std::to_string(i) + "]",
+					     "expected \"author\" or \"author(pattern)\", the pattern a JSON Pointer or \"#id\" path, e.g. "
+					     "\"agent(#board)\"");
 			}
 		}
 	}
@@ -102,46 +98,33 @@ std::optional<std::string> Rules::findNode(const json& doc, std::string_view nod
 	return std::nullopt;
 }
 
-// From "permissions.authors": the exact name, else the channel's identity ("mcp" for "mcp/Claude"), else "*"
-Policy Rules::policyFor(const json& doc, std::string_view author) const {
-	auto policy = [&]() -> std::string {
-		if(!doc.contains("permissions") || !doc["permissions"].contains("authors")) return "allow";
-		const json& authors = doc["permissions"]["authors"];
-		const std::string name(author);
-		if(authors.contains(name)) return authors[name].get<std::string>();
-		if(const auto slash = name.find('/'); slash != std::string::npos && authors.contains(name.substr(0, slash)))
-			return authors[name.substr(0, slash)].get<std::string>();
-		return authors.value("*", "allow");
-	}();
-	if(policy == "deny") return Policy::Deny;
-	if(policy == "review") return Policy::Review;
-	return Policy::Allow;
-}
-
-// Without a "permissions" section anyone may; otherwise the authors in "permissions.reviewers" (exact name or channel
-// name: "studio" covers "studio/riccardo")
-bool Rules::mayReview(const json& doc, std::string_view author) const {
-	if(!doc.contains("permissions")) return true;
-	const json reviewers = doc["permissions"].value("reviewers", json::array());
-	const std::string name(author);
-	const std::string channel = name.substr(0, name.find('/'));
-	return std::ranges::any_of(reviewers, [&](const json& r) { return r == name || r == channel; });
-}
-
-// Listed in "permissions.locked", or nodes with "locked": true
-std::vector<std::string> Rules::lockedPaths(const json& doc) const {
-	std::vector<std::string> locked;
-	if(doc.contains("permissions") && doc["permissions"].contains("locked"))
-		for(const json& path : doc["permissions"]["locked"]) locked.push_back(path.get<std::string>());
+// "permissions" as rules, plus every node with "locked": true denied to everyone
+Permissions Rules::permissions(const json& doc) const {
+	Permissions result;
+	if(doc.contains("permissions") && doc["permissions"].is_object()) {
+		const json& section = doc["permissions"];
+		result.configured = true;
+		auto read = [&](const char* key, std::vector<PermissionRule>& into) {
+			for(const json& text : section.value(key, json::array()))
+				if(const auto rule = parsePermissionRule(text.get<std::string>())) into.push_back(*rule);
+		};
+		read("allow", result.allow);
+		read("ask", result.ask);
+		read("deny", result.deny);
+		for(const json& name : section.value("reviewers", json::array()))
+			result.reviewers.push_back(name.get<std::string>());
+	}
 
 	std::function<void(const json&)> collect = [&](const json& node) {
 		if(!node.is_object()) return;
-		if(node.value("locked", false) && node.contains("id")) locked.push_back("#" + node["id"].get<std::string>());
+		if(node.contains("locked") && node["locked"] == true && node.contains("id") && node["id"].is_string())
+			if(auto rule = parsePermissionRule("*(#" + node["id"].get<std::string>() + ")"))
+				result.deny.push_back(std::move(*rule));
 		if(node.contains("children") && node["children"].is_array())
 			for(const json& child : node["children"]) collect(child);
 	};
 	if(doc.contains("root")) collect(doc["root"]);
-	return locked;
+	return result;
 }
 
 void Rules::checkChange(const json& before, const json& after) const {
@@ -150,7 +133,7 @@ void Rules::checkChange(const json& before, const json& after) const {
 
 	if(controlsIn(before) != controlsIn(after))
 		fail("revision", "permission denied: revisions can't add or change accept, reject, preview, endPreview, "
-		                 "restore, undo, patch or call steps");
+		                 "restore, revert, undo, patch or call steps");
 }
 
 } // namespace sgl::format

@@ -39,9 +39,10 @@
 	},
 
 	"permissions": {
-		"authors": { "studio": "allow", "app": "allow", "agent": "review", "*": "review" },
-		"reviewers": ["studio"],
-		"locked": ["#statusBar"]
+		"allow": ["studio"],
+		"ask": ["agent(/actions)"],
+		"deny": ["*(#statusBar)"],
+		"reviewers": ["studio"]
 	},
 
 	"state": {
