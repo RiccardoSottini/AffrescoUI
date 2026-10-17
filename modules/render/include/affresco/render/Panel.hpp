@@ -10,6 +10,7 @@
 #include "affresco/core/Signal.hpp"
 
 #include <array>
+#include <cstdint>
 #include <concepts>
 #include <memory>
 #include <optional>
@@ -36,17 +37,33 @@ enum class Edge {
 	Right,  ///< Right edge.
 };
 
+/// @brief Where an overlay panel is placed (see Panel::setOverlay).
+enum class Placement {
+	Below,    ///< Under its anchor, left edges aligned.
+	BelowEnd, ///< Under its anchor, right edges aligned.
+	Above,    ///< Over its anchor, left edges aligned.
+	AboveEnd, ///< Over its anchor, right edges aligned.
+	Right,    ///< To the right of its anchor, top edges aligned.
+	Left,     ///< To the left of its anchor, top edges aligned.
+	Center,   ///< Centred in the window.
+	Window,   ///< In the window, placed by its own x, y and anchors, as if the window were its parent.
+};
+
 /// @brief A rectangle in the UI tree. Owns its children; positions and sizes are relative to the parent.
 ///
 /// Layout rules, per axis (vertical shown):
 /// - anchored to Top: `top = parent.top + offset`
 /// - anchored to Bottom: `bottom = parent.top + parent.height - offset` (with Top too, the panel stretches)
+/// - anchored to another panel's edge: `top = other.edge + offset` (the other panel must be laid out earlier)
 /// - not anchored: `top = parent.top + y`
 /// - `size = max(height, minHeight)`; percentages refer to the parent's size
 /// - the result is clipped to the parent; a panel clipped to nothing is not shown
 ///
+/// A scrollable panel shifts its children by its scroll offset. An overlay panel is laid out, drawn and hit-tested
+/// after the whole tree, unclipped, next to its anchor.
+///
 /// Setters only mark the window dirty: layout runs once, before the next frame. Subclasses draw in paint(), react in
-/// the event hooks and size themselves in prepareLayout().
+/// the event hooks, size themselves in prepareLayout() and place their children in arrange().
 class Panel {
 public:
 	Panel() = default;
@@ -86,6 +103,12 @@ public:
 	/// @brief Destroys the children from a position to the end.
 	/// @param from The first child to destroy.
 	void removeChildren(std::size_t from = 0);
+
+	/// @brief Moves a child to another position, keeping the panel (and its focus, hover and scroll).
+	/// @param from Its position.
+	/// @param to The new position.
+	/// @throws std::out_of_range If either position is past the end.
+	void moveChild(std::size_t from, std::size_t to);
 
 	/// @brief The parent, or nullptr for a root.
 	[[nodiscard]] Panel* parent() const noexcept { return parent_; }
@@ -161,13 +184,59 @@ public:
 	/// @param edge The edge.
 	/// @param offset Distance from the parent's same edge.
 	void setAnchor(Edge edge, Length offset);
+	/// @brief Anchors an edge to an edge of another panel, found by id: `edge = other.targetEdge + offset`.
+	/// @param edge The edge.
+	/// @param id The other panel's id; it should be laid out before this one (e.g. an earlier sibling).
+	/// @param targetEdge Its edge.
+	/// @param offset Pixels added to that edge's position (negative moves up or left).
+	void setAnchorTo(Edge edge, std::string id, Edge targetEdge, float offset);
 	/// @brief Removes an anchor.
 	/// @param edge The edge.
 	void clearAnchor(Edge edge);
 	/// @brief An edge's anchor.
 	/// @param edge The edge.
-	/// @return Its offset, or std::nullopt if not anchored.
+	/// @return Its offset, or std::nullopt if not anchored (an anchor to another panel reports 0).
 	[[nodiscard]] std::optional<Length> anchor(Edge edge) const noexcept;
+
+	/// @brief Sets how much of a container's spare room this panel takes (Stack and Grid), like CSS flex-grow.
+	/// @param grow 0 (the default) keeps its own size; otherwise the share of the room left over.
+	void setGrow(float grow);
+	/// @brief The share of spare room it takes in a Stack.
+	[[nodiscard]] float grow() const noexcept { return grow_; }
+
+	/* Scrolling */
+
+	/// @brief Lets the wheel or trackpad scroll the children (clipped to this panel).
+	/// @param horizontal Along x.
+	/// @param vertical Along y.
+	void setScrollable(bool horizontal, bool vertical);
+	/// @brief Whether it scrolls along either axis.
+	[[nodiscard]] bool isScrollable() const noexcept { return scrollX_ || scrollY_; }
+	/// @brief How far the children are scrolled, in pixels (positive: content moved up or left).
+	[[nodiscard]] Vec2 scrollOffset() const noexcept { return scroll_; }
+	/// @brief Scrolls by an amount, within the content.
+	/// @param delta Pixels; positive scrolls towards the end.
+	/// @return true if the offset changed.
+	bool scrollBy(Vec2 delta);
+	/// @brief Scrolls every scrollable ancestor so this panel's frame is inside their visible area.
+	void scrollIntoView();
+
+	/* Overlays: menus, popovers, dialogs */
+
+	/// @brief Makes this panel an overlay: drawn above everything, unclipped, placed next to an anchor panel.
+	/// @param anchorId The anchor's id; empty for the parent.
+	/// @param placement Where it goes.
+	void setOverlay(std::string anchorId, Placement placement);
+	/// @brief Makes it an ordinary panel again.
+	void clearOverlay();
+	/// @brief Whether it is an overlay.
+	[[nodiscard]] bool isOverlay() const noexcept { return overlay_; }
+
+	/// @brief Sets the text of the tooltip the window shows after the pointer rests on this panel.
+	/// @param text UTF-8; empty for none.
+	void setTooltip(std::string text);
+	/// @brief The tooltip text; empty if none.
+	[[nodiscard]] const std::string& tooltip() const noexcept { return tooltip_; }
 
 	/* Appearance */
 
@@ -208,6 +277,10 @@ public:
 	/// @param reference The parent's height, for percentages.
 	/// @return max(height, minHeight), after prepareLayout().
 	[[nodiscard]] float measuredHeight(float reference);
+	/// @brief Measures the width this panel takes in a layout pass, for containers such as Stack.
+	/// @param reference The parent's width, for percentages.
+	/// @return max(width, minWidth), after prepareLayout().
+	[[nodiscard]] float measuredWidth(float reference);
 
 	/// @brief Finds the deepest shown panel at a point; later siblings are on top.
 	/// @param point In window units.
@@ -225,7 +298,7 @@ public:
 	Signal<const MouseButtonEvent&> onMouseButton; ///< Button pressed on it, or released while it holds the mouse.
 	Signal<const ScrollEvent&> onScroll;           ///< Scroll with the pointer over it.
 	Signal<bool> onFocusChanged;                   ///< Focus gained (true) or lost (false).
-	Signal<bool> onHover;                          ///< Pointer entered (true) or left (false).
+	Signal<bool> onHover; ///< Pointer entered (true) or left (false) this panel or one of its descendants.
 
 protected:
 	/* Event hooks called by the Window. Widgets override them; call the base to keep the signals firing. */
@@ -257,22 +330,52 @@ protected:
 	/// Property changes made here don't trigger another layout.
 	virtual void prepareLayout() {}
 
+	/// @brief Called once this panel's frame is known, before its children are laid out, so containers can place
+	/// them (with setAnchor() and arrangeSize()). Property changes made here don't trigger another layout.
+	virtual void arrange() {}
+
 	/// @brief Draws this panel; the children are drawn after it, on top. The default fills bounds() with color().
 	/// @param painter Clips to bounds().
 	virtual void paint(Painter& painter) const;
 
+	/// @brief Draws over the children (the default draws the scroll bar of a scrollable panel).
+	/// @param painter Clips to bounds().
+	virtual void paintOver(Painter& painter) const;
+
 	/// @brief Tells the window that the layout or the drawing changed.
 	void invalidate() noexcept;
+
+	/// @brief Gives a child the size a container decided, for this layout pass, instead of its own.
+	/// @param child The child.
+	/// @param width Its width, or std::nullopt to keep its own.
+	/// @param height Its height, or std::nullopt to keep its own.
+	static void arrangeSize(Panel& child, std::optional<float> width, std::optional<float> height) noexcept;
 
 private:
 	friend class Window;
 	friend class gl::QuadRenderer;
 
 	/// @brief Computes frame, bounds and visibility for this panel and its subtree.
-	/// @param parentBounds The parent's visible area, which clips this panel.
+	/// @param origin The parent's frame, moved by its scroll offset: what positions and anchors are measured from.
+	/// @param clip The parent's visible area, which clips this panel.
 	/// @param parentSize The parent's unclipped size, for percentages and bottom/right anchors.
 	/// @param parentShown Whether the parent is shown.
-	void layout(const Rect& parentBounds, Vec2 parentSize, bool parentShown);
+	void layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief Lays out the children (not overlays) inside this panel's frame, moved by the scroll offset.
+	void layoutChildren();
+	/// @brief The absolute position of an anchored edge.
+	/// @param edge The edge.
+	/// @param origin See layout().
+	/// @param parentSize See layout().
+	/// @return The position, or std::nullopt if the edge isn't anchored (or its other panel isn't there).
+	[[nodiscard]] std::optional<float> anchoredEdge(Edge edge, const Rect& origin, Vec2 parentSize) const;
+
+	/// @brief An anchor to another panel's edge.
+	struct AnchorTarget {
+		std::string id; ///< The other panel.
+		Edge edge;      ///< Its edge.
+		float offset;   ///< Added to that edge's position.
+	};
 
 	/// @brief Takes ownership of a new last child.
 	/// @param child The child.
@@ -290,11 +393,24 @@ private:
 	Length x_, y_;                                 ///< Position on unanchored axes.
 	Length width_, height_;                        ///< Size.
 	Length minWidth_, minHeight_;                  ///< Minimum size.
-	std::array<std::optional<Length>, 4> anchors_; ///< Indexed by Edge.
-	Color color_ = colors::panel;                  ///< Background.
-	bool visible_ = true;                          ///< See setVisible().
-	Cursor cursor_ = Cursor::Arrow;                ///< See setCursor().
+	std::array<std::optional<Length>, 4> anchors_;       ///< Indexed by Edge.
+	std::array<std::optional<AnchorTarget>, 4> targets_; ///< Anchors to other panels, indexed by Edge.
+	float grow_ = 0.0f;                                  ///< See grow().
+	std::optional<float> arrangedWidth_, arrangedHeight_; ///< Set by a container for this pass (arrangeSize()).
+	Color color_ = colors::panel;                        ///< Background.
+	bool visible_ = true;                                ///< See setVisible().
+	Cursor cursor_ = Cursor::Arrow;                      ///< See setCursor().
+	std::string tooltip_;                                ///< See tooltip().
 
+	bool scrollX_ = false, scrollY_ = false; ///< See setScrollable().
+	Vec2 scroll_;                            ///< See scrollOffset().
+	Vec2 contentMin_, contentMax_;           ///< The children's extent, unscrolled, relative to the frame.
+
+	bool overlay_ = false;                   ///< See isOverlay().
+	std::string overlayAnchor_;              ///< See setOverlay().
+	Placement placement_ = Placement::Below; ///< See setOverlay().
+
+	std::uint64_t layoutPass_ = 0; ///< The window's layout pass this panel was last laid out in.
 	Rect frame_;         ///< See frame().
 	Rect bounds_;        ///< See bounds().
 	Vec2 size_;          ///< See resolvedSize().

@@ -8,6 +8,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 
+#include <functional>
 #include <string>
 
 namespace affresco::channel {
@@ -26,7 +27,8 @@ public:
 	/// @param channel The transport; must outlive the session.
 	/// @param versions The document; must outlive the session.
 	/// @param author The name the document's permissions know this peer by.
-	Session(Channel& channel, VersionControl& versions, std::string author);
+	/// @param catalog What the format offers, for "getCatalog" (may be empty: answered with an empty catalog).
+	Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog = {});
 	~Session();
 
 	Session(const Session&) = delete;
@@ -50,6 +52,7 @@ private:
 	Channel& channel_;                                                    ///< The transport.
 	VersionControl& versions_;                                            ///< The document.
 	std::string author_;                                                  ///< See author().
+	std::function<json()> catalog_;                                       ///< For "getCatalog".
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
 };
 

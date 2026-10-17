@@ -33,15 +33,20 @@ A revision is one change to the running screen:
 
 ```json
 { "author": "mcp/claude-code", "message": "Add a filter to the task list", "parent": "a3f9c21",
-  "patch": [ { "op": "add", "path": "#taskList/children/0", "value": { "id": "filter", "type": "textarea" } },
-             { "op": "add", "path": "/state/filter", "value": "" } ] }
+  "add": { "#taskList/children/0": { "id": "filter", "type": "textarea", "bind": "state.filter" } },
+  "set": { "/state/filter": "" } }
 ```
 
-- The patch is standard **JSON Patch (RFC 6902)**, applied one operation at a time. Paths can address nodes by **id**
-  (`#taskList/...`), so they survive layout changes, even nodes an earlier operation in the same patch added.
-  `/state/...` changes live data; everything else changes the document (layout, styles, actions, templates, fonts,
+- Changes are written as **compact edits**: `set` (replace, or add where nothing is yet), `add` (insert; `/-` appends),
+  `remove` (a list of paths) and `move` (from → to), applied in that order. Or as standard **JSON Patch (RFC 6902)**
+  in `patch`, applied first, when the order of operations matters. Either way they are stored as plain JSON Patch, so
+  history, diffs, reverts and change sets have one form.
+- Operations apply one at a time. Paths can address nodes by **id** (`#taskList/...`, or `#filter` for the node
+  itself), so they survive layout changes, even nodes an earlier operation in the same revision added. `/state/...`
+  changes live data; everything else changes the document (layout, styles, actions, components, screens, fonts,
   colors).
-- **Atomic:** if anything is wrong, nothing changes, and the error says exactly what and where.
+- **Atomic:** if anything is wrong, nothing changes, and the error names the operation and the place:
+  `revision.patch[0] (set #nope/color).path: no node with id 'nope'`.
 - **`parent`** (optional): the revision it was based on, as a number or a commit id. If `main` has moved on, it is
   rejected as a conflict.
 - **`proposal`** (optional): push onto your own open proposal instead of opening a new one.
@@ -49,7 +54,7 @@ A revision is one change to the running screen:
 ## Commits and `main`
 Every applied change is a commit on `main`. A commit records the whole document, its parents, the author (who wrote
 the change), the committer (who applied it: the author, or the reviewer who accepted it), the time, the message and
-the patch as submitted. Its id is the **SHA-256** of all of that, parents included, so an id stands for exactly one
+the patch (compact edits written out as JSON Patch). Its id is the **SHA-256** of all of that, parents included, so an id stands for exactly one
 history.
 
 - Revision **numbers** are positions on `main`: `0` is the file as loaded.
@@ -86,8 +91,11 @@ The screen file decides, in a `permissions` section that no revision can change:
 - **Locked nodes:** `"locked": true` on a node is short for `deny: ["*(#id)"]`. Deny rules hold for everyone,
   including the app's own changes and the reviewer.
 - **Protected controls:** no revision may change `permissions`, or add or alter steps that control changes (`accept`,
-  `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`, `patch`, `call`). Otherwise an agent could hide an
-  "accept" inside a button and approve itself.
+  `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`, `patch`). Otherwise an agent could hide an "accept"
+  inside a button and approve itself.
+- **Protected capabilities:** no revision may change `channels` (the programs the screen talks to) or `persist` (what
+  it writes to disk), or add or alter `call`, `send` and `connect` steps. An agent can rearrange how the app uses the
+  outside world, never give it new access to it.
 - **Authors are assigned by the channel.** A program on a channel is that channel's author (`studio`, `agent`),
   whatever it calls itself. The host decides that, e.g. by which socket a peer connects to. The name a peer gives
   itself is kept after a `/` for display (`agent/claude-code`), and it is chosen by the peer. Give rules to channel
@@ -112,7 +120,8 @@ A revision that needs review becomes a **proposal**, the equivalent of a pull re
 
 1. The author is told `proposed` (with the proposal number and its head commit) and keeps working. Every peer gets the
    new list of proposals (`review`): who, the title, how many commits and operations, **what it touches** (`#board`,
-   `/state/columns`), and why it waits.
+   `/state/columns`), **its changes as lines** a person can read (`set #statusBar/color to @topBar`,
+   `add at #card/children/-: {...}`, `remove #badge`), and why it waits.
 2. The author can **push** more commits to it (`"proposal": 3` in a revision), e.g. when the person asks for more
    while it is still open. The branch is rebuilt on the current `main` each time.
 3. A reviewer can **preview** it (the running app shows exactly what accepting would produce, then goes back) and

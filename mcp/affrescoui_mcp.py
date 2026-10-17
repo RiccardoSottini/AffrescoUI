@@ -151,6 +151,120 @@ class Host:
         return events
 
 
+def compact(value):
+    """Minified JSON: what tool results carry (a reader never sees them, the agent pays per token)."""
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+
+
+def diff(before, after, path=""):
+    """A small JSON Patch from before to after: objects key by key, lists item by item when only their tail differs
+    in length, anything else replaced whole."""
+    if before == after:
+        return []
+    if isinstance(before, dict) and isinstance(after, dict):
+        ops = []
+        for key in before:
+            pointer = path + "/" + str(key).replace("~", "~0").replace("/", "~1")
+            if key not in after:
+                ops.append({"op": "remove", "path": pointer})
+            else:
+                ops.extend(diff(before[key], after[key], pointer))
+        for key in after:
+            if key not in before:
+                ops.append({"op": "add", "path": path + "/" + str(key).replace("~", "~0").replace("/", "~1"),
+                            "value": after[key]})
+        return ops
+    if isinstance(before, list) and isinstance(after, list):
+        common = min(len(before), len(after))
+        ops = []
+        for i in range(common):
+            ops.extend(diff(before[i], after[i], f"{path}/{i}"))
+        for i in range(len(before) - 1, common - 1, -1):
+            ops.append({"op": "remove", "path": f"{path}/{i}"})
+        for i in range(common, len(after)):
+            ops.append({"op": "add", "path": f"{path}/-", "value": after[i]})
+        if len(compact(ops)) > len(compact(after)):
+            return [{"op": "replace", "path": path, "value": after}]
+        return ops
+    return [{"op": "replace", "path": path, "value": after}]
+
+
+def by_id(document, pointer):
+    """A JSON Pointer written from the nearest node with an id: "/root/children/2/children/1/text" is "#title/text"."""
+    parts = pointer.split("/")[1:]
+    node, best = document, None
+    for i, part in enumerate(parts):
+        try:
+            node = node[int(part)] if isinstance(node, list) else node[part.replace("~1", "/").replace("~0", "~")]
+        except (KeyError, IndexError, ValueError, TypeError):
+            break
+        if isinstance(node, dict) and isinstance(node.get("id"), str):
+            found = find_node(document, node["id"])
+            if found and found[0] == "/" + "/".join(parts[:i + 1]):  # the id finds this very node
+                best = (node["id"], parts[i + 1:])
+    if best is None:
+        return pointer
+    return "#" + best[0] + ("/" + "/".join(best[1]) if best[1] else "")
+
+
+def find_node(document, node_id):
+    """The JSON Pointer and node with an id (in root, screens, templates, components), like the host's #id paths."""
+    def search(node, pointer):
+        if not isinstance(node, dict):
+            return None
+        if node.get("id") == node_id:
+            return pointer, node
+        for i, child in enumerate(node.get("children") or []):
+            found = search(child, f"{pointer}/children/{i}")
+            if found:
+                return found
+        return None
+    found = search(document.get("root"), "/root")
+    for section in ("screens", "templates"):
+        for name, node in (document.get(section) or {}).items():
+            found = found or search(node, f"/{section}/{name}")
+    for name, component in (document.get("components") or {}).items():
+        found = found or search((component or {}).get("node"), f"/components/{name}/node")
+    return found
+
+
+def outline(document):
+    """The node tree, one line per node: its address (#id, or a path from the nearest id), type and what it shows.
+    Enough to choose where to patch, without the styling."""
+    lines = []
+
+    def label(node):
+        kind = node.get("type") or ("use " + node["use"] if "use" in node else "panel")
+        bits = [kind]
+        for key in ("text", "placeholder", "bind", "style"):
+            if key in node and isinstance(node[key], (str, int, float)):
+                text = str(node[key])
+                bits.append(f"{key}={text[:40] + '...' if len(text) > 40 else text}")
+        if "repeat" in node:
+            bits.append(f"repeat {node['repeat'].get('for', 'item')} in {node['repeat'].get('in')}")
+        if "when" in node:
+            bits.append("when")
+        return " ".join(bits)
+
+    def walk(node, address, depth):
+        if not isinstance(node, dict):
+            return
+        if node.get("id"):
+            address = "#" + node["id"]
+        lines.append("  " * depth + f"{address}  {label(node)}")
+        for i, child in enumerate(node.get("children") or []):
+            child_address = "#" + child["id"] if isinstance(child, dict) and child.get("id") else f"{address}/children/{i}"
+            walk(child, child_address, depth + 1)
+
+    walk(document.get("root"), "/root", 0)
+    for section in ("screens", "templates"):
+        for name, node in (document.get(section) or {}).items():
+            walk(node, f"/{section}/{name}", 0)
+    for name, component in (document.get("components") or {}).items():
+        walk((component or {}).get("node"), f"/components/{name}/node", 0)
+    return "\n".join(lines)
+
+
 def object_schema(properties=None, required=None):
     schema = {"type": "object", "properties": properties or {}}
     if required:
@@ -170,30 +284,47 @@ TOOLS = [
      "inputSchema": object_schema({"request_id": {"type": "string"}, "text": {"type": "string"}},
                                   ["request_id", "text"])},
     {"name": "get_screen",
-     "description": "The running screen: its document (AffrescoUI Screen Format, including its permission rules), live "
-                    "state, current revision and head commit, open proposals (what each touches), the mode "
-                    "(default / acceptEdits / plan), the reviewer's \"don't ask again\" grants, and your author name. "
-                    "Read it before changing anything.",
+     "description": "The running screen: its document (AffrescoUI Screen Format, with the live state as its \"state\" "
+                    "and its permission rules), current revision and head commit, open proposals, the mode, the "
+                    "reviewer's \"don't ask again\" grants, and your author name. The first call returns everything; "
+                    "later calls return only what changed since your last read, as a JSON Patch (\"changes\"), or "
+                    "\"unchanged\". Pass full=true to get everything again (e.g. after your context was cleared), "
+                    "at=\"#id\" for one node only, or outline=true for the node tree with addresses and no styling.",
+     "inputSchema": object_schema({"full": {"type": "boolean", "description": "Everything, not what changed"},
+                                   "at": {"type": "string", "description": "Only this node: \"#id\" or a JSON Pointer"},
+                                   "outline": {"type": "boolean",
+                                               "description": "The node tree: one line per node (address, type, text)"}})},
+    {"name": "get_catalog",
+     "description": "What this screen's format offers: node types and their properties, events, steps, expression "
+                    "functions, variables, sections, and the app's registered custom types and native functions.",
      "inputSchema": object_schema()},
     {"name": "get_format_guide",
      "description": "The AffrescoUI Screen Format specification: nodes, layout, bindings, actions, revisions, permissions.",
      "inputSchema": object_schema()},
     {"name": "submit_revision",
-     "description": "Change the running screen (layout, styles, colors, behaviour/actions, or state) with a JSON "
-                    "Patch (RFC 6902), like a git commit. Paths may address nodes by id, e.g. "
-                    "\"#header/children/-\"; \"/state/...\" changes live data. The result is: applied (a commit on "
+     "description": "Change the running screen (layout, styles, colors, behaviour/actions, or state), like a git "
+                    "commit, with compact edits: set (path -> value: replaces, or adds where nothing is), add (path -> "
+                    "value: inserts; \"/-\" appends to a list), remove (paths), move (from -> to); or a JSON Patch "
+                    "(RFC 6902) in patch. Paths address nodes by id: \"#statusBar/color\", \"#card/children/-\", "
+                    "\"#oldBadge\" (the node itself); \"/state/...\" changes live data. Example: {\"message\": \"Dark "
+                    "status bar\", \"set\": {\"#statusBar/color\": \"@topBar\"}}. The result is: applied (a commit on "
                     "main); proposed (a branch a reviewer previews and merges or rejects in the Studio: get_events "
                     "reports the decision); or rejected with an error saying why (fix it and retry). To refine an "
                     "open proposal of yours (e.g. after the person asks for more), pass its number as `proposal`: the "
                     "commit is added to that branch instead of opening a new one.",
      "inputSchema": object_schema({
          "message": {"type": "string", "description": "One line, for the reviewer, saying what the change does"},
-         "patch": {"type": "array", "items": {"type": "object"}, "description": "JSON Patch operations"},
+         "set": {"type": "object", "description": "path -> new value (replace, or add where nothing is)"},
+         "add": {"type": "object", "description": "path -> value to insert (\"/-\" appends to a list)"},
+         "remove": {"type": "array", "items": {"type": "string"}, "description": "Paths to remove"},
+         "move": {"type": "object", "description": "from path -> to path"},
+         "patch": {"type": "array", "items": {"type": "object"}, "description": "JSON Patch operations (optional "
+                                                                             "when using set/add/remove/move)"},
          "parent": {"type": ["integer", "string"],
                     "description": "The revision or commit id this is based on (optional; if the screen has moved "
                                    "on, it is rejected as a conflict)"},
          "proposal": {"type": "integer", "description": "Push onto this open proposal of yours (optional)"},
-     }, ["message", "patch"])},
+     }, ["message"])},
     {"name": "get_history",
      "description": "main's commits, oldest first (like git log): number, short id, author, committer (who approved "
                     "it), message, time, and parents (two for a merged proposal). Revision 0 is the file as loaded.",
@@ -231,7 +362,8 @@ PROMPTS = [
 
 SERVE_PROMPT = (
     "You are the builder behind a live AffrescoUI app. People ask for changes in the AffrescoUI Studio. Repeat: call "
-    "wait_for_request; for each request, read the screen with get_screen (and get_format_guide the first time), make "
+    "wait_for_request; for each request, read the screen with get_screen (after the first read it returns only what "
+    "changed; get_format_guide the first time), make "
     "the change with submit_revision (fix and retry if it is rejected), then tell the person what you did with "
     "reply. Keep changes focused on what was asked, and keep the existing style (colors, fonts, spacing). If a "
     "follow-up request refines a change that is still waiting for review, push to that proposal instead of opening "
@@ -267,6 +399,7 @@ class Server:
         self.delivered = set()  # given out by wait_for_request
         self.arrived = threading.Condition()
         self.host = Host(socket_dir, launch, self.on_request)
+        self.seen = None  # the document (with the live state) the agent last read, for get_screen's changes
 
     def send(self, message):
         with self.out:
@@ -315,31 +448,61 @@ class Server:
             return "sent to the Studio", False
         if name == "get_screen":
             reply = host.request({"type": "getDocument"})
-            keys = ("revision", "head", "you", "canReview", "mode", "grants", "proposals", "state", "document")
-            return json.dumps({k: reply.get(k) for k in keys}, indent=2), False
+            document = dict(reply.get("document") or {})
+            document["state"] = reply.get("state")  # the live state, once (the file's initial state isn't needed)
+            head = reply.get("head") or {}
+            info = {"revision": reply.get("revision"), "head": head.get("short"), "you": reply.get("you"),
+                    "canReview": reply.get("canReview"), "mode": reply.get("mode"),
+                    "grants": [g.get("rule") for g in reply.get("grants") or []],
+                    "proposals": [{k: p.get(k) for k in ("id", "author", "message", "touches", "changes")}
+                                  for p in reply.get("proposals") or []]}
+            if args.get("outline"):
+                return compact(info) + "\n" + outline(document), False
+            if args.get("at"):
+                at = str(args["at"])
+                found = find_node(document, at[1:]) if at.startswith("#") else None
+                if found:
+                    return compact({**info, "at": found[0], "node": found[1]}), False
+                node = document
+                try:
+                    for part in [p for p in at.split("/") if p]:
+                        node = node[int(part)] if isinstance(node, list) else node[part.replace("~1", "/").replace("~0", "~")]
+                except (KeyError, IndexError, ValueError, TypeError):
+                    return f"error: nothing at {at}", True
+                return compact({**info, "at": at, "node": node}), False
+            if self.seen is not None and not args.get("full"):
+                changes = diff(self.seen, document)
+                for op in changes:  # addressed by node ids where there are some, as edits are written
+                    if op["path"].startswith(("/root", "/screens", "/templates", "/components")):
+                        op["path"] = by_id(document if op["op"] != "remove" else self.seen, op["path"])
+                self.seen = document
+                return compact({**info, "changes": changes} if changes else {**info, "unchanged": True}), False
+            self.seen = document
+            return compact({**info, "document": document}), False
+        if name == "get_catalog":
+            return compact(host.request({"type": "getCatalog"}).get("catalog")), False
         if name == "get_format_guide":
             with open(os.path.join(ROOT, "SCREEN_FORMAT.md"), encoding="utf-8") as guide:
                 return guide.read(), False
         if name == "submit_revision":
-            revision = {"type": "revision", "author": self.client, "message": args.get("message", ""),
-                        "patch": args.get("patch", [])}
-            for key in ("parent", "proposal"):
+            revision = {"type": "revision", "author": self.client, "message": args.get("message", "")}
+            for key in ("patch", "set", "add", "remove", "move", "parent", "proposal"):
                 if key in args:
                     revision[key] = args[key]
             return describe(host.request(revision))
         if name == "get_history":
             reply = host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
-            return json.dumps(reply.get("entries"), indent=2), False
+            return compact(reply.get("entries")), False
         if name == "get_diff":
             reply = host.request({"type": "diff", **{k: args[k] for k in ("from", "to", "proposal") if k in args}})
             if reply.get("type") != "diff":
                 return f"error: {reply.get('error')}", True
-            return json.dumps(reply.get("patch"), indent=2), False
+            return compact(reply.get("patch")), False
         if name in ("restore_revision", "revert_revision"):
             kind = "restore" if name == "restore_revision" else "revert"
             return describe(host.request({"type": kind, "author": self.client, "revision": args.get("revision")}))
         if name == "get_events":
-            return json.dumps(host.take_events(), indent=2), False
+            return compact(host.take_events()), False
         if name == "export_changes":
             reply = host.request({"type": "exportChanges", "from": args.get("from", 0),
                                   "name": args.get("name", "changes")})
@@ -370,7 +533,7 @@ class Server:
             result({"protocolVersion": requested if requested in PROTOCOLS else PROTOCOLS[0],
                     "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False},
                                      "experimental": {"claude/channel": {}}},
-                    "serverInfo": {"name": "affrescoui", "version": "0.4.0"},
+                    "serverInfo": {"name": "affrescoui", "version": "0.5.0"},
                     "instructions": INSTRUCTIONS})
         elif method == "ping":
             result({})

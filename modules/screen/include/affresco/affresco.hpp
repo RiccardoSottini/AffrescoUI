@@ -13,6 +13,7 @@
 
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Color.hpp"
+#include "affresco/render/Controls.hpp"
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Geometry.hpp"

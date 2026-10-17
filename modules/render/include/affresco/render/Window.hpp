@@ -9,6 +9,8 @@
 #include "affresco/core/Signal.hpp"
 
 #include <array>
+#include <cstdint>
+#include <optional>
 #include <concepts>
 #include <filesystem>
 #include <functional>
@@ -21,6 +23,8 @@ struct GLFWwindow;
 struct GLFWcursor;
 
 namespace affresco {
+
+class Label;
 
 namespace gl {
 class QuadRenderer;
@@ -110,8 +114,10 @@ public:
 	/// @param utf8 UTF-8 text.
 	void setClipboardText(const std::string& utf8);
 
-	/// @brief The panel under the pointer, or nullptr.
+	/// @brief The panel under the pointer, or nullptr. It and its ancestors count as hovered.
 	[[nodiscard]] Panel* hoveredPanel() const noexcept { return hovered_; }
+	/// @brief The last pointer position, in window units.
+	[[nodiscard]] Vec2 pointer() const noexcept { return cursor_; }
 	/// @brief The panel holding the mouse during a drag (from button press to release), or nullptr.
 	[[nodiscard]] Panel* mouseGrabber() const noexcept { return grabbed_; }
 
@@ -138,7 +144,19 @@ public:
 	/// @param task The work to run; it may defer more.
 	void defer(std::function<void()> task);
 
-	/// @brief Runs deferred tasks, then lays out, draws and presents a frame if something changed.
+	/// @brief Runs a task later, on the main thread (inside Application::run).
+	/// @param delayMs Milliseconds from now.
+	/// @param task The work to run; it may set more timers.
+	/// @return An id for cancelTimer().
+	std::uint64_t setTimer(double delayMs, std::function<void()> task);
+	/// @brief Cancels a timer that hasn't run yet.
+	/// @param id From setTimer(); unknown ids are ignored.
+	void cancelTimer(std::uint64_t id);
+	/// @brief How long until the next timer is due.
+	/// @return Seconds (0 if one is due now), or std::nullopt if none is set.
+	[[nodiscard]] std::optional<double> secondsToNextTimer() const;
+
+	/// @brief Runs due timers and deferred tasks, then lays out, draws and presents a frame if something changed.
 	void render();
 
 	/// @brief Draws the current frame and saves it without presenting it.
@@ -190,9 +208,21 @@ private:
 	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
 
-	/// @brief Changes the hovered panel, sending hover events and updating the cursor.
+	/// @brief Changes the hovered panel, sending hover events to it and to its ancestors that the pointer entered or
+	/// left, and updating the cursor and the tooltip.
 	/// @param panel The panel under the pointer, or nullptr.
 	void setHovered(Panel* panel);
+	/// @brief Lays out the overlays inside a subtree (after the tree), collecting them in drawing order.
+	/// @param panel The subtree.
+	void layoutOverlays(Panel& panel);
+	/// @brief Lays out one overlay next to its anchor.
+	/// @param overlay The overlay.
+	/// @param parent Its parent: the anchor when it names none.
+	void layoutOverlay(Panel& overlay, const Panel& parent);
+	/// @brief Starts the tooltip delay for the hovered panel or its nearest ancestor with a tooltip; hides any shown.
+	void restartTooltip();
+	/// @brief Runs the timers that are due.
+	void runTimers();
 	/// @brief Drops the focus, hover and capture pointers to a panel being destroyed.
 	/// @param panel The panel.
 	void forget(const Panel& panel) noexcept;
@@ -219,6 +249,8 @@ private:
 	bool layoutDirty_ = true;                     ///< Layout needed before the next frame.
 	bool redrawDirty_ = true;                     ///< render() must draw.
 	bool layingOut_ = false;                      ///< A layout pass is running.
+	std::uint64_t layoutPass_ = 0;                ///< Counts layout passes (Panel::layoutPass_ says which one it was in).
+	bool forwardAnchor_ = false;                  ///< A panel anchored to one not laid out yet in this pass.
 	int routing_ = 0;                             ///< Depth of event delivery in progress.
 	std::vector<std::function<void()>> deferred_; ///< See defer().
 
@@ -226,6 +258,20 @@ private:
 	Panel* focused_ = nullptr;                ///< See focusedPanel().
 	Panel* hovered_ = nullptr;                ///< See hoveredPanel().
 	Panel* grabbed_ = nullptr;                ///< See mouseGrabber().
+
+	/// @brief A task waiting for its time.
+	struct Timer {
+		std::uint64_t id;           ///< See setTimer().
+		double due;                 ///< glfwGetTime() when it runs.
+		std::function<void()> task; ///< The work.
+	};
+	std::vector<Timer> timers_;    ///< See setTimer().
+	std::uint64_t nextTimerId_ = 1; ///< The next timer's id.
+
+	std::vector<Panel*> overlays_;    ///< Overlays shown in the last layout, in drawing order.
+	std::unique_ptr<Label> tooltip_;  ///< The tooltip, created on first use.
+	bool tooltipShown_ = false;       ///< The tooltip is on screen.
+	std::uint64_t tooltipTimer_ = 0;  ///< The delay before showing it, if running.
 
 	std::array<GLFWcursor*, 5> cursors_{}; ///< Standard cursors, created on first use (indexed by Cursor).
 	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.

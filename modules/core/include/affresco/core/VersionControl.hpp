@@ -58,6 +58,7 @@ struct ProposalInfo {
 	std::size_t operations = 0;        ///< JSON Patch operations in all of them.
 	std::vector<std::string> touches;  ///< What it changes: nodes ("#board") or areas ("/state/cards").
 	std::vector<std::string> remember; ///< The rules "don't ask again" would add; empty if it can't be remembered.
+	std::vector<std::string> changes;  ///< Its operations as lines for a reviewer: "set #statusBar/color to @topBar".
 	std::string reason;                ///< Why it waits for review.
 	std::string time;                  ///< When it was opened (UTC, ISO 8601).
 };
@@ -276,7 +277,7 @@ inline json toJson(const CommitInfo& c) {
 /// @brief Converts a proposal to its live-protocol JSON.
 /// @param p The proposal.
 /// @return `{"id", "branch", "author", "message", "base", "head", "short", "commits", "operations", "touches",
-/// "remember", "reason", "time"}`.
+/// "remember", "changes", "reason", "time"}`.
 inline json toJson(const ProposalInfo& p) {
 	return {{"id", p.id},
 	        {"branch", p.branch},
@@ -289,6 +290,7 @@ inline json toJson(const ProposalInfo& p) {
 	        {"operations", p.operations},
 	        {"touches", p.touches},
 	        {"remember", p.remember},
+	        {"changes", p.changes},
 	        {"reason", p.reason},
 	        {"time", p.time}};
 }

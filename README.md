@@ -5,14 +5,13 @@
 ### Native apps that AI agents can rewrite while they run.<br/>Never without your permission.
 
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?logo=cplusplus&logoColor=white)](#use-it-in-your-app)
-[![OpenGL 4.1 core](https://img.shields.io/badge/OpenGL-4.1%20core-5586A4?logo=opengl&logoColor=white)](#under-the-hood)
+[![OpenGL 4.1 core](https://img.shields.io/badge/OpenGL-4.1%20core-5586A4?logo=opengl&logoColor=white)](#architecture)
 [![MCP](https://img.shields.io/badge/MCP-two--way-8B5CF6)](mcp/README.md)
 [![Frame time](https://img.shields.io/badge/full%20frame-0.47%20ms-10B981)](#native-performance)
-[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple)](#quick-start)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-**[Quick start](#quick-start)** · **[Templates](#templates)** · **[How it works](#how-it-works)** ·
-**[Under the hood](#under-the-hood)** ·
+**[Architecture](#architecture)** · **[Quick start](#quick-start)** · **[Templates](#templates)** ·
+**[How it works](#how-it-works)** ·
 **[Screen format](SCREEN_FORMAT.md)** · **[Version control](VERSION_CONTROL.md)** · **[MCP server](mcp/README.md)**
 
 <br/>
@@ -40,6 +39,62 @@ running. Your typing, focus and drags survive.
 </tr>
 </table>
 
+## Architecture
+
+A stack of layers, each with one job, each handing its result to the one below. The four C++ layers are separate
+libraries; the MCP server on top is a small Python program.
+
+```mermaid
+%%{init: {"theme": "base", "flowchart": {"nodeSpacing": 30, "rankSpacing": 34, "padding": 14, "wrappingWidth": 400}, "themeVariables": {"fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94A3B8", "primaryTextColor": "#0F172A", "edgeLabelBackground": "#FFFFFF"}}}%%
+flowchart TB
+    studio(["<b>You</b> · Studio or a script"])
+    agent(["<b>AI agent</b> · Claude Code"])
+
+    mcp["🤖 <b>MCP server</b> · mcp/<br/>connects AI agents, both ways"]
+    channel["🔌 <b>Channel</b> · modules/channel<br/>local sockets · one session per peer"]
+    vcs["🛡️ <b>Version control</b> · modules/vcs<br/>allow / ask / deny · proposals · commits"]
+    format["📄 <b>Screen format</b> · modules/format<br/>parses the JSON · updates panels in place"]
+    render["🎨 <b>Renderer</b> · modules/render<br/>layout · text · input · OpenGL"]
+
+    agent --> mcp
+    mcp --> channel
+    studio --> channel
+    channel -- "revision" --> vcs
+    vcs -- "accepted commit" --> format
+    format -- "panels" --> render
+
+    classDef peer fill:#FFFFFF,stroke:#CBD5E1,color:#0F172A
+    classDef c_mcp fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#3B0764
+    classDef c_channel fill:#E0F2FE,stroke:#0284C7,stroke-width:1.5px,color:#0C4A6E
+    classDef c_vcs fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#78350F
+    classDef c_format fill:#D1FAE5,stroke:#059669,stroke-width:1.5px,color:#064E3B
+    classDef c_render fill:#EDE9FE,stroke:#7C3AED,stroke-width:1.5px,color:#4C1D95
+    class studio,agent peer
+    class mcp c_mcp
+    class channel c_channel
+    class vcs c_vcs
+    class format c_format
+    class render c_render
+```
+
+The layers talk to each other only through small interfaces in `modules/core`, so any of them can be swapped (another
+transport, another version-control backend, another document format). `affresco::Screen` (`modules/screen`) plugs
+them together. No public header exposes OpenGL or GLFW, and each layer can be linked on its own
+(`affrescoui::render`, `affrescoui::vcs`, ...) or all together through `affrescoui::affrescoui`.
+
+```
+modules/render/    the renderer: panels, layout, text, input, batched OpenGL (all GL code in src/gl)
+modules/format/    the JSON screen format: validation and permission rules, {{expressions}}, Runtime
+modules/vcs/       version control: Repository
+modules/channel/   transports and the live protocol Session
+modules/core/      the interfaces between layers: Executor, Channel, VersionControl, DocumentRules
+modules/screen/    affresco::Screen, the composition root, and the umbrella header affresco/affresco.hpp
+mcp/               the Python MCP server
+schema/            JSON Schema of the screen format
+examples/          affrescoui_host, affrescoui_studio, five templates, fonts
+external/          vendored glad (OpenGL loader) and stb_truetype
+```
+
 ## Why it's different
 
 <table>
@@ -54,8 +109,8 @@ A from-scratch **C++23 / OpenGL** engine. No browser, no web view, a **~1 MB** a
 <td width="33%" valign="top">
 
 ### 📄 Live documents
-Layout, styles, state, `{{bindings}}`, loops and actions, all in JSON. Revisions are standard **JSON Patch**,
-atomic, and reconciled **in place**.
+A whole app in readable JSON: layout, components, state, JS-style `{{expressions}}`, events, timers, screens.
+Changes are **compact edits** by node id, atomic, and reconciled **in place**.
 
 </td>
 <td width="33%" valign="top">
@@ -153,7 +208,8 @@ flowchart LR
 1. **Anyone can propose a change.** The app (`affrescoui_host`) only renders a screen, here the *Flow* Kanban board, and
    listens for peers on local sockets. You use the **AffrescoUI Studio**. An AI agent connects through the MCP server,
    which works both ways: your requests are pushed into its session, and its replies come back to the Studio. Any
-   script can connect too. Every change is a **revision**: a JSON Patch.
+   script can connect too. Every change is a **revision**: compact edits like `{"set": {"#title/text": "Q4"}}`, stored
+   as JSON Patch.
 2. **The permission rules decide**, written like Claude Code's: `deny` refuses, `ask` sends the change to you, `allow`
    applies it. Rules judge what a change *does*, not how its patch is written. The templates let the Studio change
    anything, always ask before the agent changes behaviour, and protect the status bar.
@@ -165,8 +221,8 @@ flowchart LR
    or restored. See [VERSION_CONTROL.md](VERSION_CONTROL.md).
 
 <p align="center">
-<img src=".github/media/studio.png" width="640" alt="The AffrescoUI Studio: ask the AI, direct JSON Patch, review with modes and grants, activity and history"><br/>
-<sub>The <b>AffrescoUI Studio</b>, a client that is itself an AffrescoUI screen: ask the AI, patch directly, review, always allow, revert, restore.</sub>
+<img src=".github/media/studio.png" width="640" alt="The AffrescoUI Studio: ask the AI, direct changes, review each proposal's changes line by line with modes and grants, activity and history"><br/>
+<sub>The <b>AffrescoUI Studio</b>, a client that is itself an AffrescoUI screen (layout, behaviour and its connection, no C++): ask the AI, edit directly, review each change line by line, always allow, revert, restore.</sub>
 </p>
 
 ## Quick start
@@ -196,8 +252,8 @@ changes apply as they arrive.
 ./build/affrescoui_host --plugin my-changes.json                         # start with a change set applied
 ```
 
-Requires CMake ≥ 3.25 and a C++23 compiler. GLFW and nlohmann/json are downloaded automatically. Tested on macOS; the
-socket and process channels are POSIX.
+Requires CMake ≥ 3.25 and a C++23 compiler. GLFW and nlohmann/json are downloaded automatically. Developed and tested
+on macOS. Linux should work but is untested; Windows is not supported yet (the socket and process channels are POSIX).
 
 ## Templates
 
@@ -206,125 +262,19 @@ reshaped live by an agent. Open any of them with `./build/affrescoui_host exampl
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board"><br/><b>Flow</b> · <code>kanban</code><br/><sub>Columns, cards, label filters, moving cards, quick add.</sub></td>
-<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home panel"><br/><b>Haven</b> · <code>smart-home</code><br/><sub>Rooms, light switches and dimming, thermostat, blinds, scenes.</sub></td>
+<td width="50%" valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board"><br/><b>Flow</b> · <code>kanban</code><br/><sub>Columns, cards, label filters, drag and drop, a members popover, quick add.</sub></td>
+<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home panel"><br/><b>Haven</b> · <code>smart-home</code><br/><sub>Rooms, switches and dimmers, thermostat, blinds, animated scenes, light and dark themes.</sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player"><br/><b>Tempo</b> · <code>music-player</code><br/><sub>Playlists, track list, now playing, play/pause, next, volume.</sub></td>
-<td valign="top"><img src=".github/media/code-editor.png" alt="Forge, a code editor shell"><br/><b>Forge</b> · <code>code-editor</code><br/><sub>Explorer, tabs, highlighted code, a terminal that answers.</sub></td>
+<td valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player"><br/><b>Tempo</b> · <code>music-player</code><br/><sub>Playlists, a playback timer, seeking, volume, keyboard controls.</sub></td>
+<td valign="top"><img src=".github/media/code-editor.png" alt="Forge, a code editor shell"><br/><b>Forge</b> · <code>code-editor</code><br/><sub>Explorer, tabs, highlighted code, a terminal that answers, a Cmd+P palette.</sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker"><br/><b>Streak</b> · <code>habit-tracker</code><br/><sub>Daily habits, streaks, a clickable 20-week grid, weekly progress.</sub></td>
+<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker"><br/><b>Streak</b> · <code>habit-tracker</code><br/><sub>Daily habits, streaks, a clickable 20-week grid, kept on disk between runs.</sub></td>
 <td valign="top"><br/><sub>Ideas for an agent to try: <i>"add a Blocked column"</i>, <i>"a Movie night scene that dims every light"</i>,
 <i>"show the album name under the track title"</i>, <i>"a dark theme for the habit tracker"</i>.</sub></td>
 </tr>
 </table>
-
-## Under the hood
-
-The engine is **five independent modules**. Each one is its own library target and talks to the others **only through
-interfaces** in `core`: no module includes or links another module's implementation. `affresco::Screen` plugs them
-together, and any of them can be swapped for another implementation of the same interface (another transport,
-another version-control backend, another document format).
-
-```mermaid
-flowchart TB
-    subgraph CH["🔌 channel · affresco::channel: peers in"]
-        direction LR
-        SS["<b>SocketServer</b><br/>studio.sock · agent.sock"] --> SC["<b>SocketChannel</b><br/>JSON lines · reader thread<br/>Executor::post to the UI thread"] --> SE["<b>Session</b> per peer<br/>author fixed by the socket"]
-    end
-
-    subgraph VC["🛡️ vcs · affresco::vcs: version control"]
-        direction LR
-        SUB["<b>submit</b><br/>JSON Patch · #id paths"] --> POL{"rules<br/>deny · ask · allow<br/>+ mode, grants"}
-        POL -- "ask" --> PRO["<b>Proposal</b><br/>a branch · live preview"] -- "merge" --> COM
-        POL -- "allow" --> COM["<b>Commit on main</b><br/>SHA-256 · log · revert<br/>change sets"]
-        POL -- "deny" --> REJ["<b>Rejected</b><br/>nothing changes"]
-    end
-
-    subgraph FM["📄 format · affresco::format: the live document"]
-        direction LR
-        RU["<b>Rules</b><br/>validate · permission<br/>rules · locks"] ~~~ RT["<b>Runtime</b><br/>build · reconcile<br/>in place"] --- EXP["<b>Expressions</b><br/>{{bindings}}<br/>$operators"] --- ACT["<b>Actions</b><br/>set · push · if<br/>forEach · emit"]
-    end
-
-    subgraph RD["🎨 render · affresco: pixels out"]
-        direction LR
-        TREE["<b>Panel tree</b><br/>anchors · px / %"] --> LAY["<b>Layout pass</b><br/>only when dirty"] --> QR["<b>QuadRenderer</b><br/>rects + glyphs<br/>one batch"] --> GL[["glDrawElements × 1"]]
-        IN["<b>Input</b><br/>hit-test · focus<br/>capture · hover"]
-    end
-
-    SE == "VersionControl" ==> SUB
-    SUB -. "DocumentRules" .-> RU
-    COM == "VersionObserver" ==> RT
-    RT == "creates and updates panels" ==> TREE
-    IN -. "onClick · typing" .-> ACT
-    COM -. "onCommit · onReviewChanged: to every peer" .-> SE
-
-    style CH fill:#E0F2FE,stroke:#0284C7,stroke-width:2px,color:#0C4A6E
-    style VC fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F
-    style FM fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#064E3B
-    style RD fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px,color:#4C1D95
-    classDef node fill:#FFFFFF,stroke:#64748B,color:#0F172A
-    class SS,SC,SE,SUB,PRO,COM,RU,RT,EXP,ACT,TREE,LAY,QR,IN node
-    classDef decision fill:#F59E0B,stroke:#B45309,color:#111
-    class POL decision
-    classDef hot fill:#111827,stroke:#7C3AED,stroke-width:2px,color:#fff
-    class GL hot
-    classDef no fill:#FFE4E6,stroke:#E11D48,color:#881337
-    class REJ no
-```
-
-| Module | Namespace | Responsibility | Depends on |
-|---|---|---|---|
-| `core` | `affresco` | The contracts: `Executor`, `Channel`, `VersionControl`, `VersionObserver`, `DocumentRules`; `Signal`, JSON types | nlohmann/json (only for the document interfaces) |
-| `render` | `affresco` | Rendering engine: windows, panel tree, layout, input, text, clipboard, batched OpenGL renderer. No JSON. | `core` |
-| `format` | `affresco::format` | The JSON screen format: validation and permission rules (`Rules`), `{{expressions}}`, and `Runtime`, which builds a document into panels, reconciles on change and runs actions | `core`, `render` |
-| `vcs` | `affresco::vcs` | Git-like version control for any JSON document: content-addressed commits, `main`, proposals as branches, merge, preview, log, diff, revert, restore, change sets; allow / ask / deny rules judged by effect, modes, grants | `core` |
-| `channel` | `affresco::channel` | Communication: local-socket server and client, child-process and stdio transports, and `Session`, the live JSON-lines protocol | `core` |
-| `affrescoui` | `affresco` | `affresco::Screen`: wires `Rules` → `Repository` → `Runtime`, plus one `Session` per peer, relaying requests between peers | all of the above |
-
-### The life of a revision
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Person
-    participant Studio as 🧑 affrescoui_studio
-    participant Peers as 🔌 affresco::Screen<br/>Sessions
-    participant VCS as 🛡️ vcs<br/>Repository
-    participant RT as 🎨 format Runtime<br/>+ render
-    participant MCP as MCP server
-    participant Agent as 🤖 AI agent
-
-    Person->>Studio: "add a dark theme"
-    Studio->>Peers: {"type": "request"}  (studio.sock)
-    Peers->>MCP: relayed, "from": "studio"  (agent.sock)
-    MCP->>Agent: channel event (or wait_for_request)
-    Agent->>MCP: get_screen, submit_revision
-    MCP->>Peers: {"type": "revision", "patch": [...]}
-    Peers->>VCS: submit(revision)  [VersionControl]
-    Note over VCS: deny · ask · allow rules, mode and grants, validity  [DocumentRules]
-    rect rgba(245, 158, 11, 0.15)
-    alt no rule allows it (mode "default")
-        VCS-->>Peers: a proposal branch → {"type": "review"} to every peer
-        Person->>Studio: Preview, then Accept (or Always allow)
-        Studio->>Peers: {"type": "preview"}, {"type": "accept", "head"}  (reviewers only)
-        Peers->>VCS: preview(id), accept(id, approval) → merge commit
-    end
-    end
-    rect rgba(139, 92, 246, 0.15)
-    VCS->>RT: documentChanged()  [VersionObserver]
-    RT->>Person: panels updated in place
-    Note over VCS,RT: if the runtime can't build it, the revision is rolled back
-    end
-    VCS-->>Peers: onCommit → {"type": "committed"} to every peer
-    Agent->>MCP: reply("dark theme is on")
-    MCP->>Peers: {"type": "reply"}
-    Peers->>Studio: relayed
-```
-
-The app's own interactions (clicks, typing, actions in the screen file) change its state locally. `emit` steps send
-events to every peer.
 
 ## Native performance
 
@@ -337,6 +287,8 @@ items.
 | 1,000 | **0.45 ms** | 4.3 ms | 4.5 ms |
 | 3,000 | **0.47 ms** | 12.3 ms | 12.4 ms |
 
+- **Updates scale linearly:** a state change re-evaluates and updates the Kanban template (140 panels) in under 2 ms,
+  and a 400-card board (2,662 panels) in 35 ms, about 13 µs per panel.
 - **One draw call** per frame per font: rectangles and text share a shader and a texture.
 - **No work when idle:** frames are drawn only when something changed, and the app uses 0% CPU while it waits for input.
 - **16-byte vertices**, a grow-only index buffer, buffer orphaning, and glyph atlases uploaded once.
@@ -366,22 +318,28 @@ target_link_libraries(my_app PRIVATE affrescoui::affrescoui)
 <details>
 <summary><b>Everything the engine does</b></summary>
 
-- **Screen format:** layout, styles, named colors, fonts, templates, state, `{{bindings}}`, `$` operators,
-  `repeat` / `when`, two-way `bind`, actions with conditions and loops, custom native types.
+- **Screen format:** layout (anchors, edges of other nodes, rows, columns, grids, grow, scrolling, overlays), styles,
+  components with parameters, themes, fonts, screens and navigation, state, `computed` values, `watch`, JS-style
+  `{{expressions}}` (with `filter`, `map`, `sum`, `sort`, ...), `repeat` (keyed) / `when` / `let` / `check`, two-way
+  `bind`, value controls (toggle, checkbox, slider), events with bubbling and shortcuts, drag and drop, timers,
+  animations and transitions, channels to other programs, state kept on disk, includes, custom native types and
+  functions, a catalog for agents.
   Spec: [SCREEN_FORMAT.md](SCREEN_FORMAT.md), with a [JSON Schema](schema/affrescoui-screen.schema.json) for editor
   autocompletion.
-- **Live documents:** in-place reconciliation, revisions (JSON Patch, atomic, `#id` paths), any number of peers
+- **Live documents:** in-place reconciliation, revisions (compact edits or JSON Patch, atomic, `#id` paths), any number of peers
   over local sockets (or any channel), broadcasts of commits and proposals, request/reply relaying between peers.
 - **Version control:** Git's model (SHA-256 commits, an append-only `main`, proposals as branches merged with a merge
   commit, log, diff, revert, restore, `HEAD~1` names) with Claude Code's approvals (`allow` / `ask` / `deny` rules
   judged by effect, modes `default` / `acceptEdits` / `plan`, "don't ask again" grants), reviewers, protected
   controls, approvals pinned to the version reviewed, change sets (plugins).
 - **Agents:** a two-way Python MCP server (requests pushed into the agent as channel events, or pulled; changes and
-  replies sent back). Authors are assigned by the socket a peer uses, never self-declared.
-- **UI engine:** nested panels in pixels or percentages, anchors, clipping, stacks, typed input events, mouse
-  capture, hover, cursors, TrueType text with wrap and fit-to-text, a text input with caret and paste, HiDPI.
-- **Examples:** `affrescoui_host` (any screen, the Kanban template by default), five templates, `affrescoui_studio` (a client that is
-  itself an AffrescoUI screen), and the MCP server.
+  replies sent back). Reads are minified, and after the first one only the changes come back; an outline and
+  single-node reads keep context small. Authors are assigned by the socket a peer uses, never self-declared.
+- **UI engine:** nested panels in pixels or percentages, anchors, clipping, rows, columns and grids, scrolling,
+  overlays, tooltips, timers, typed input events, mouse capture, hover, cursors, TrueType text with wrap and
+  fit-to-text, a text input with caret and paste, switches and sliders, HiDPI.
+- **Examples:** `affrescoui_host` (any screen, the Kanban template by default), five templates and a sign-in screen,
+  `affrescoui_studio` (a client that is itself an AffrescoUI screen, connection included), and the MCP server.
 
 </details>
 
@@ -423,9 +381,10 @@ pixel/percent sizing, anchors and a Qt-style signal/slot system, all from scratc
 collected keystrokes but **could never draw them**, and the project stalled. A restart in 2020 rewrote the layout
 engine (the image on the right is that demo), then stalled again.
 
-In **2026** I revived it with **Claude Code**. We ported it to OpenGL 4.1 core, rewrote it in C++23, finally rendered
-text, and then took it further than the original plan: UIs described in JSON, live revisions, version control and a
-two-way MCP bridge for AI agents. The layout ideas from 2017 still drive every frame.
+In **2026** I revived it with **Claude Code**. The first goal was a library you could actually use: we ported it to
+OpenGL 4.1 core, rewrote it in C++23 and finally rendered text. Then an idea sparked: what if an AI agent could change
+a native app *while it runs*, and you approved every change? That took it far beyond the original plan: UIs described
+in JSON, live revisions, version control and a two-way MCP bridge for AI agents.
 
 ```mermaid
 timeline
@@ -434,25 +393,6 @@ timeline
     2020 : Restarted : new layout engine, stalled again
     2026 : Revived with Claude Code : C++23 · OpenGL 4.1 core · real text : live JSON screens · version control · MCP
 ```
-
-## Project layout
-
-```
-modules/core/      interfaces between modules (include/affresco/core): Executor, Channel, VersionControl, DocumentRules
-modules/render/    rendering engine (include/affresco/render; src/gl: all OpenGL code, src/detail: UTF-8, PPM)
-modules/format/    JSON screen format: Rules, expressions, Runtime (include/affresco/format)
-modules/vcs/       version control: Repository (include/affresco/vcs)
-modules/channel/   transports and the live protocol Session (include/affresco/channel)
-modules/screen/    affresco::Screen, the composition root, and the umbrella header affresco/affresco.hpp
-mcp/               the Python MCP server
-schema/            JSON Schema of the screen format
-examples/          affrescoui_host, affrescoui_studio, templates (kanban, smart-home, music-player, code-editor,
-                   habit-tracker), studio and sign-in screens, fonts
-external/          vendored glad (OpenGL loader) and stb_truetype
-```
-
-No public header exposes OpenGL or GLFW. Each module can be linked on its own (`affrescoui::render`, `affrescoui::vcs`, ...)
-or all together through `affrescoui::affrescoui`.
 
 ## License
 

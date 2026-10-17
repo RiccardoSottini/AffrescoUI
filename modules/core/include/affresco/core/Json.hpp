@@ -12,7 +12,7 @@
 
 namespace affresco {
 
-using json = nlohmann::json; ///< A JSON value.
+using json = nlohmann::ordered_json; ///< A JSON value.
 
 /// @brief A malformed document or a refused change.
 ///

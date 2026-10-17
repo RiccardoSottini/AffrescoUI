@@ -38,6 +38,21 @@ struct Color {
 	/// @return {r, g, b, a}, each clamped to [0, 255].
 	[[nodiscard]] std::array<std::uint8_t, 4> toBytes() const noexcept;
 
+	/// @brief The same colour with another opacity.
+	/// @param alpha 0 (transparent) to 1 (opaque).
+	/// @return The colour.
+	[[nodiscard]] constexpr Color withAlpha(float alpha) const noexcept { return {r, g, b, alpha}; }
+
+	/// @brief Blends two colours, e.g. for transitions.
+	/// @param from The colour at 0.
+	/// @param to The colour at 1.
+	/// @param t How far along, 0 to 1.
+	/// @return The blend.
+	[[nodiscard]] static constexpr Color mix(Color from, Color to, float t) noexcept {
+		return {from.r + (to.r - from.r) * t, from.g + (to.g - from.g) * t, from.b + (to.b - from.b) * t,
+		        from.a + (to.a - from.a) * t};
+	}
+
 	constexpr bool operator==(const Color&) const noexcept = default;
 
 private:

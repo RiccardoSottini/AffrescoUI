@@ -36,13 +36,59 @@ std::string authorOf(const json& revision) {
 /// @return "message" as text.
 std::string messageOf(const json& revision) { return toText(revision.value("message", json(""))); }
 
-/// @brief A revision's patch.
+/// @brief A revision's changes as JSON Patch: its "patch", then its compact edits in a fixed order: "set" (replace,
+/// or add where nothing is there yet), "add", "remove", "move". `{"set": {"#statusBar/color": "@topBar"}}`.
 /// @param revision The revision.
-/// @return "patch".
-/// @throws DocumentError If it has none.
-const json& patchOf(const json& revision) {
-	if(!revision.contains("patch")) fail("revision.patch", "expected a JSON Patch array");
-	return revision["patch"];
+/// @return The operations ("set" ones keep op "set" until prepare() sees the document).
+/// @throws DocumentError If it has neither, or they are malformed.
+json patchOf(const json& revision) {
+	json patch = json::array();
+	if(revision.contains("patch")) {
+		if(!revision["patch"].is_array()) fail("revision.patch", "expected a JSON Patch array");
+		patch = revision["patch"];
+	}
+	auto edits = [&](const char* key) -> const json& {
+		if(!revision[key].is_object()) fail(std::string("revision.") + key, "expected an object: path -> value");
+		return revision[key];
+	};
+	if(revision.contains("set"))
+		for(const auto& [path, value] : edits("set").items()) patch.push_back({{"op", "set"}, {"path", path}, {"value", value}});
+	if(revision.contains("add"))
+		for(const auto& [path, value] : edits("add").items()) patch.push_back({{"op", "add"}, {"path", path}, {"value", value}});
+	if(revision.contains("remove")) {
+		const json& paths = revision["remove"].is_string() ? json::array({revision["remove"]}) : revision["remove"];
+		if(!paths.is_array()) fail("revision.remove", "expected a list of paths");
+		for(const json& path : paths) patch.push_back({{"op", "remove"}, {"path", expect::string(path, "revision.remove")}});
+	}
+	if(revision.contains("move"))
+		for(const auto& [from, to] : edits("move").items())
+			patch.push_back({{"op", "move"}, {"from", from}, {"path", expect::string(to, "revision.move." + from)}});
+	if(patch.empty())
+		fail("revision", "expected changes: a JSON Patch (\"patch\") or compact edits (\"set\", \"add\", \"remove\", "
+		                 "\"move\")");
+	return patch;
+}
+
+/// @brief A short preview of a value for a reviewer: text as is, the rest as JSON, cut at 48 characters.
+/// @param value The value.
+/// @return The preview.
+std::string preview(const json& value) {
+	std::string text = value.is_string() ? value.get<std::string>() : value.dump();
+	if(text.size() > 48) text = text.substr(0, 45) + "...";
+	return text;
+}
+
+/// @brief One operation as a line for a reviewer: "set #statusBar/color to @topBar", "remove #badge".
+/// @param op The operation.
+/// @return The line.
+std::string summary(const json& op) {
+	const std::string kind = op.value("op", "");
+	const std::string path = op.value("path", "");
+	if(kind == "remove") return "remove " + path;
+	if(kind == "move" || kind == "copy") return kind + " " + op.value("from", "") + " to " + path;
+	if(kind == "test") return "check " + path;
+	if(kind == "add") return "add at " + path + ": " + preview(op.value("value", json()));
+	return "set " + path + " to " + preview(op.value("value", json()));
 }
 
 /// @brief Reads a whole decimal number.
@@ -190,9 +236,10 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	result.before = detail::view(document, state);
 	json after = result.before;
 	for(std::size_t i = 0; i < patch.size(); ++i) {
-		const std::string where = "revision.patch[" + std::to_string(i) + "]";
-		json op = expect::object(patch[i], where);
-		const std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
+		json op = expect::object(patch[i], "revision.patch[" + std::to_string(i) + "]");
+		const std::string written = op.contains("path") && op["path"].is_string() ? op["path"].get<std::string>() : "";
+		std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
+		const std::string where = "revision.patch[" + std::to_string(i) + "] (" + kind + " " + written + ")";
 		for(const char* key : {"path", "from"}) {
 			if(!op.contains(key)) continue;
 			op[key] = resolvePath(after, expect::string(op[key], where + "." + key), where + "." + key);
@@ -201,10 +248,23 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 				   std::ranges::find(result.touches, touched) == result.touches.end())
 					result.touches.push_back(std::move(touched));
 		}
+
+		// "set": replace what is there, or add it
+		if(kind == "set") {
+			kind = detail::locate(after, op["path"].get<std::string>()) ? "replace" : "add";
+			op["op"] = kind;
+		}
+		json stored = patch[i];
+		if(stored.value("op", "") == "set") stored["op"] = kind;
+		result.patch.push_back(std::move(stored));
+
 		try {
 			after.patch_inplace(json::array({std::move(op)}));
 		} catch(const json::exception& error) {
-			fail(where, error.what());
+			std::string why = error.what();
+			if(const std::size_t bracket = why.find("] "); why.starts_with("[json.exception") && bracket != std::string::npos)
+				why.erase(0, bracket + 2);
+			fail(where, why);
 		}
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
@@ -294,7 +354,7 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		c.message = messageOf(revision);
 		c.time = utcNow();
 		c.document = std::move(next.document);
-		c.patch = revision["patch"];
+		c.patch = std::move(next.patch);
 		land(std::move(c), std::move(next.state));
 	} catch(const DocumentError& error) {
 		return error.what();
@@ -345,7 +405,7 @@ RevisionResult Repository::submit(const json& revision) {
 		c.message = messageOf(revision);
 		c.time = utcNow();
 		c.document = std::move(next.document);
-		c.patch = revision["patch"];
+		c.patch = std::move(next.patch);
 		const Commit& landed = land(std::move(c), std::move(next.state));
 		return {RevisionStatus::Applied, landed.number, landed.id, 0, {}};
 	} catch(const DocumentError& error) {
@@ -376,6 +436,7 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 			if(std::ranges::find(touches, area) == touches.end()) touches.push_back(std::move(area));
 		document = next.document;
 		state = std::move(next.state);
+		c.patch = std::move(next.patch);
 		patch.insert(patch.end(), c.patch.begin(), c.patch.end());
 		c.parents = {parent};
 		c.number = ++number;
@@ -467,8 +528,12 @@ json Repository::diff(const json& from, const json& to) const {
 std::vector<ProposalInfo> Repository::proposals() const {
 	std::vector<ProposalInfo> result;
 	for(const Proposal& p : proposals_)
+	{
+		std::vector<std::string> changes;
+		for(const json& op : p.patch) changes.push_back(summary(op));
 		result.push_back({p.id, "proposal/" + std::to_string(p.id), p.author, p.message, p.base, p.head, p.commits,
-		                  p.patch.size(), p.touches, p.remember, p.reason, p.time});
+		                  p.patch.size(), p.touches, p.remember, std::move(changes), p.reason, p.time});
+	}
 	return result;
 }
 

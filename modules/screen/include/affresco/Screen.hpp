@@ -37,20 +37,23 @@ using ScreenError = DocumentError;
 class Screen {
 public:
 	using Action = std::function<void(Panel& sender)>;                                     ///< A native action.
+	/// A native function for "call" steps: gets the step's "with" as JSON text, returns what "into" stores as JSON
+	/// text. Throwing std::exception runs the step's "onError" steps.
+	using Call = std::function<std::string(const std::string& argumentsJson)>;
 	using Factory = std::function<std::unique_ptr<Panel>()>;                               ///< Creates a custom type.
 	using UnhandledAction = std::function<void(const std::string& action, Panel& sender)>; ///< Fallback handler.
 	using ProposalInfo = affresco::ProposalInfo;                                                ///< An open proposal.
 	using CommitInfo = affresco::CommitInfo;                                                    ///< A commit.
 
 	/// @brief Loads a screen file.
-	/// @param path The file; relative font paths are resolved from its directory.
+	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @return The screen, not yet built.
 	/// @throws ScreenError If the file can't be read or is not a valid screen.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
 
 	/// @brief Loads a screen from JSON text.
 	/// @param json The document.
-	/// @param baseDirectory Where relative paths (fonts) are resolved from.
+	/// @param baseDirectory Where relative paths (fonts, "include") are resolved from.
 	/// @return The screen, not yet built.
 	/// @throws ScreenError If it is not a valid screen.
 	[[nodiscard]] static Screen fromString(std::string_view json, std::filesystem::path baseDirectory = {});
@@ -97,9 +100,36 @@ public:
 	/// @param action The handler.
 	void onAction(std::string name, Action action);
 
+	/// @brief Registers a native function for `{"call": name, "with": {...}, "into": "state.x"}` steps.
+	/// @param name The function's name.
+	/// @param call The function.
+	void onCall(std::string name, Call call);
+
 	/// @brief Sets what happens with actions nobody handles (default: a message on stderr).
 	/// @param fallback The handler.
 	void onUnhandledAction(UnhandledAction fallback);
+
+	/// @brief What the format offers (node types, properties, events, steps, operators, registered types and natives),
+	/// as agents get it over the live protocol ("getCatalog").
+	/// @return JSON text.
+	[[nodiscard]] std::string catalogJson() const;
+
+	/* Capabilities the file declares: "channels" (programs to talk to) and "persist" (state kept on disk) */
+
+	/// @brief Sets where relative "channels" socket paths are found (default: $AFFRESCOUI_SOCKET_DIR, else
+	/// /tmp/affrescoui-<uid>).
+	/// @param directory The directory.
+	void setSocketDirectory(std::filesystem::path directory);
+
+	/// @brief Connects the file's "channels" (createWindow() does it; call it after build()). Each message of type T
+	/// on channel C runs the action "C:T" if the file has one; "C:open" and "C:closed" run on connect and disconnect.
+	/// @param executor Delivers messages on the main thread (the Application).
+	void startChannels(Executor& executor);
+
+	/// @brief Sets the file the "persist" paths are kept in, and loads them from it if it exists (default:
+	/// ~/.affrescoui/<screen file name>.state.json).
+	/// @param file The file.
+	void setStateFile(std::filesystem::path file);
 
 	/// @brief Runs an action as if a panel triggered it.
 	/// @param name The action (from the file, else native).
