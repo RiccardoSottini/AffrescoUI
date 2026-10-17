@@ -11,7 +11,7 @@ compile_commands.json
 .cache/
 .DS_Store
 
-# Screenshots produced by SGLGUI_SCREENSHOT
+# Screenshots produced by AFFRESCOUI_SCREENSHOT
 *.ppm
 
 # Personal project notes and screenshots stay local

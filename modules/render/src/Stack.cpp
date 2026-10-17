@@ -1,8 +1,8 @@
-#include "sgl/render/Stack.hpp"
+#include "affresco/render/Stack.hpp"
 
 #include <vector>
 
-namespace sgl {
+namespace affresco {
 
 Stack::Stack() { setColor(colors::transparent); }
 
@@ -40,4 +40,4 @@ void Stack::prepareLayout() {
 	}
 }
 
-} // namespace sgl
+} // namespace affresco

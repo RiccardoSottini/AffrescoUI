@@ -1,24 +1,24 @@
-#include "sgl/channel/Channels.hpp"
+#include "affresco/channel/Channels.hpp"
 
 #include <stdexcept>
 
 #if defined(_WIN32)
 
-namespace sgl::channel {
+namespace affresco::channel {
 
 ProcessChannel::ProcessChannel(Executor& executor, const std::string&) : executor_(executor) {
-	throw std::runtime_error("sGLGUI: ProcessChannel is not available on Windows yet");
+	throw std::runtime_error("AffrescoUI: ProcessChannel is not available on Windows yet");
 }
 ProcessChannel::~ProcessChannel() = default;
 void ProcessChannel::send(std::string_view) {}
 
 StdioChannel::StdioChannel(Executor&) {
-	throw std::runtime_error("sGLGUI: StdioChannel is not available on Windows yet");
+	throw std::runtime_error("AffrescoUI: StdioChannel is not available on Windows yet");
 }
 StdioChannel::~StdioChannel() = default;
 void StdioChannel::send(std::string_view) {}
 
-} // namespace sgl::channel
+} // namespace affresco::channel
 
 #else
 
@@ -31,7 +31,7 @@ void StdioChannel::send(std::string_view) {}
 
 extern char** environ;
 
-namespace sgl::channel {
+namespace affresco::channel {
 
 using detail::readLines;
 using detail::writeAll;
@@ -40,7 +40,7 @@ ProcessChannel::ProcessChannel(Executor& executor, const std::string& command) :
 	std::signal(SIGPIPE, SIG_IGN); // writing to a brain that exited must not kill the app
 
 	int input[2], output[2];
-	if(pipe(input) != 0 || pipe(output) != 0) throw std::runtime_error("sGLGUI: could not create pipes");
+	if(pipe(input) != 0 || pipe(output) != 0) throw std::runtime_error("AffrescoUI: could not create pipes");
 
 	posix_spawn_file_actions_t actions;
 	posix_spawn_file_actions_init(&actions);
@@ -59,7 +59,7 @@ ProcessChannel::ProcessChannel(Executor& executor, const std::string& command) :
 	if(spawned != 0) {
 		close(input[1]);
 		close(output[0]);
-		throw std::runtime_error("sGLGUI: could not start '" + command + "'");
+		throw std::runtime_error("AffrescoUI: could not start '" + command + "'");
 	}
 
 	pid_ = pid;
@@ -99,6 +99,6 @@ StdioChannel::~StdioChannel() { *alive_ = false; }
 
 void StdioChannel::send(std::string_view message) { writeAll(STDOUT_FILENO, message); }
 
-} // namespace sgl::channel
+} // namespace affresco::channel
 
 #endif

@@ -1,7 +1,7 @@
-#include "sgl/format/Runtime.hpp"
-#include "sgl/render/Label.hpp"
-#include "sgl/render/Stack.hpp"
-#include "sgl/render/TextArea.hpp"
+#include "affresco/format/Runtime.hpp"
+#include "affresco/render/Label.hpp"
+#include "affresco/render/Stack.hpp"
+#include "affresco/render/TextArea.hpp"
 
 #include "Expression.hpp"
 
@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace sgl::format {
+namespace affresco::format {
 
 using expect::boolean;
 using expect::fail;
@@ -171,7 +171,7 @@ struct Runtime::Impl final : VersionObserver {
 	std::map<std::string, Factory, std::less<>> types;        ///< Custom node types.
 	std::map<std::string, Action, std::less<>> nativeActions; ///< Native actions.
 	UnhandledAction unhandled = [](const std::string& action, Panel& sender) {
-		std::cerr << "sGLGUI screen: no handler for action '" << action << "' (from '" << sender.id() << "')\n";
+		std::cerr << "AffrescoUI screen: no handler for action '" << action << "' (from '" << sender.id() << "')\n";
 	};
 	bool placeholderTypes = false; ///< Unknown types become plain panels.
 
@@ -458,7 +458,7 @@ std::unique_ptr<Panel> Runtime::Impl::create(const std::string& type, const std:
 	}
 
 	if(placeholderTypes) {
-		std::cerr << "sGLGUI screen: " << path << ": unknown type '" << type << "', shown as a plain panel\n";
+		std::cerr << "AffrescoUI screen: " << path << ": unknown type '" << type << "', shown as a plain panel\n";
 		return std::make_unique<Panel>();
 	}
 	fail(path, "unknown type '" + type + "' (built in: panel, label, textarea, stack; others must be registered)");
@@ -495,11 +495,11 @@ void Runtime::Impl::hookUp(Panel& panel) {
 		auto it = records.find(&panel);
 		if(it == records.end()) return;
 
-		it->second.interaction.down = event.action == sgl::Action::Press;
+		it->second.interaction.down = event.action == affresco::Action::Press;
 		refresh(panel);
 
 		// A click: left button released over the panel that was pressed
-		if(event.action == sgl::Action::Release && panel.bounds().contains(event.position) &&
+		if(event.action == affresco::Action::Release && panel.bounds().contains(event.position) &&
 		   !it->second.onClick.is_null()) {
 			const json clickEvent = {{"type", "click"}, {"x", event.position.x}, {"y", event.position.y}};
 			handle(it->second.onClick, panel, clickEvent, it->second.locals, it->second.path + ".onClick");
@@ -524,7 +524,8 @@ void Runtime::Impl::hookUp(Panel& panel) {
 		textArea->onKey.connect([this, &panel, textArea](const KeyEvent& event) {
 			const bool enter = event.key == Key::Enter || event.key == Key::KeypadEnter;
 			auto it = records.find(&panel);
-			if(!enter || event.action != sgl::Action::Press || it == records.end() || it->second.onSubmit.is_null())
+			if(!enter || event.action != affresco::Action::Press || it == records.end() ||
+			   it->second.onSubmit.is_null())
 				return;
 			const json submitEvent = {{"type", "submit"}, {"text", textArea->text()}};
 			handle(it->second.onSubmit, panel, submitEvent, it->second.locals, it->second.path + ".onSubmit");
@@ -1023,7 +1024,7 @@ bool Runtime::Impl::runStep(const json& step, Panel& sender, const json& event, 
 			});
 		}
 	} else if(step.contains("log")) {
-		std::cerr << "sGLGUI screen log: " << text(value(step["log"], where + ".log")) << '\n';
+		std::cerr << "AffrescoUI screen log: " << text(value(step["log"], where + ".log")) << '\n';
 	} else if(step.contains("stop")) {
 		return false;
 	} else {
@@ -1059,9 +1060,10 @@ Window& Runtime::createWindow(Application& app) {
 			fail("window." + key, "unknown property");
 	}
 
-	Window& window = app.createWindow(settings.contains("title") ? string(settings["title"], "window.title") : "sGLGUI",
-	                                  settings.contains("width") ? integer(settings["width"], "window.width") : 800,
-	                                  settings.contains("height") ? integer(settings["height"], "window.height") : 600);
+	Window& window =
+	    app.createWindow(settings.contains("title") ? string(settings["title"], "window.title") : "AffrescoUI",
+		                 settings.contains("width") ? integer(settings["width"], "window.width") : 800,
+		                 settings.contains("height") ? integer(settings["height"], "window.height") : 600);
 	window.setMinSize(settings.contains("minWidth") ? integer(settings["minWidth"], "window.minWidth") : 0,
 	                  settings.contains("minHeight") ? integer(settings["minHeight"], "window.minHeight") : 0);
 
@@ -1081,7 +1083,7 @@ Panel& Runtime::instantiate(std::string_view name, Panel& parent) {
 	const json& document = impl_->versions.document();
 	const std::string key(name);
 	if(!document.contains("templates") || !document["templates"].contains(key))
-		throw DocumentError("sGLGUI screen: unknown template '" + key + "'");
+		throw DocumentError("AffrescoUI screen: unknown template '" + key + "'");
 	return impl_->buildDetached(document["templates"][key], parent, "templates." + key);
 }
 
@@ -1103,14 +1105,14 @@ Panel* Runtime::find(std::string_view id) noexcept {
 
 Color Runtime::color(std::string_view name) const {
 	const auto it = impl_->colors.find(name);
-	if(it == impl_->colors.end()) throw DocumentError("sGLGUI screen: unknown color '" + std::string(name) + "'");
+	if(it == impl_->colors.end()) throw DocumentError("AffrescoUI screen: unknown color '" + std::string(name) + "'");
 	return it->second;
 }
 
 std::shared_ptr<const Font> Runtime::font(std::string_view name) const {
 	const auto it = impl_->fonts.find(name);
-	if(it == impl_->fonts.end()) throw DocumentError("sGLGUI screen: unknown font '" + std::string(name) + "'");
+	if(it == impl_->fonts.end()) throw DocumentError("AffrescoUI screen: unknown font '" + std::string(name) + "'");
 	return it->second;
 }
 
-} // namespace sgl::format
+} // namespace affresco::format

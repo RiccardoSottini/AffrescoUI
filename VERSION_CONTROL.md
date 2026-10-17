@@ -1,6 +1,6 @@
 # Version control: Git for a live app, with approvals like Claude Code's
 
-sGLGUI apps can be changed while they run, by the app itself, by the user, or by outside programs such as an AI agent.
+AffrescoUI apps can be changed while they run, by the app itself, by the user, or by outside programs such as an AI agent.
 Version control is what makes that safe enough to use: **who may change what, who approves it, what happened, and how to
 go back.** It is built into the engine, so every app gets it.
 
@@ -11,7 +11,7 @@ It borrows from two places:
 - **Claude Code's tool permissions** for the approvals: `allow` / `ask` / `deny` rules, permission modes, and "Yes,
   and don't ask again".
 
-| Git | sGLGUI |
+| Git | AffrescoUI |
 |---|---|
 | a commit, named by its hash | every applied change is a commit, named by its SHA-256 (`a3f9c21` for short) |
 | `main` | the live branch: what the app shows. It only grows: no reset, no force-push |
@@ -20,7 +20,7 @@ It borrows from two places:
 | `git log`, `git diff`, `git revert`, `git restore --source`, `HEAD~1` | the same ideas, same names |
 | `git format-patch` / `git am` | change sets ("plugins") |
 
-| Claude Code | sGLGUI |
+| Claude Code | AffrescoUI |
 |---|---|
 | `allow`, `ask`, `deny` rules like `Bash(npm test)` | rules like `agent(#board)` in the screen file |
 | deny beats ask beats allow; anything else asks | the same |
@@ -96,7 +96,7 @@ The screen file decides, in a `permissions` section that no revision can change:
   `permissions` section anyone may; with one, only those listed.
 
 ## Modes
-A reviewer sets how much they are asked, like Claude Code's permission modes (`sglgui_host --mode`, the Studio's
+A reviewer sets how much they are asked, like Claude Code's permission modes (`affrescoui_host --mode`, the Studio's
 switch, or `setMode` over the live protocol):
 
 | Mode | What happens |
@@ -122,7 +122,7 @@ A revision that needs review becomes a **proposal**, the equivalent of a pull re
    it with a reason.
 5. Every peer, the author included, hears the decision (`applied` / `rejected` with the proposal number).
 
-Who reviews is up to the application. In the examples it is the person, in the **sGLGUI Studio** (a separate
+Who reviews is up to the application. In the examples it is the person, in the **AffrescoUI Studio** (a separate
 client). A screen can also have its own review controls (`accept`, `reject`, `preview` steps).
 
 ### "Don't ask again": grants
@@ -160,7 +160,7 @@ inside those areas apply without asking.
 The commits on `main` after a point can be exported as a **change set**:
 
 ```json
-{ "format": "sglgui-changes", "version": 1, "name": "task filter", "from": 0, "to": 3, "base": "35331cd…",
+{ "format": "affrescoui-changes", "version": 1, "name": "task filter", "from": 0, "to": 3, "base": "35331cd…",
   "head": "e6636b0…",
   "revisions": [ { "author": "mcp/claude-code", "committer": "studio", "message": "Add a filter to the task list",
                    "commit": "e6636b0…", "patch": [ ... ] } ] }
@@ -173,7 +173,7 @@ share the result as a plugin others can install.
 
 ## Where it lives in the API
 
-| Concept | C++ (`sgl::Screen`, or `VersionControl` via `versions()`) | Live protocol | MCP tool |
+| Concept | C++ (`affresco::Screen`, or `VersionControl` via `versions()`) | Live protocol | MCP tool |
 |---|---|---|---|
 | Submit a change | `submitRevision` (permission-checked), `applyRevision` (the app's own) | `revision` | `submit_revision` |
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |

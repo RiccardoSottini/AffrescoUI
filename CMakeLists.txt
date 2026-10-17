@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
-project(sGLGUI VERSION 0.2.0 LANGUAGES C CXX)
+project(AffrescoUI VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(SGLGUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
+option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 
 include(FetchContent)
 
@@ -23,9 +23,9 @@ FetchContent_MakeAvailable(json)
 
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
 if(MSVC)
-	set(SGLGUI_WARNINGS /W4 /permissive-)
+	set(AFFRESCOUI_WARNINGS /W4 /permissive-)
 else()
-	set(SGLGUI_WARNINGS -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast
+	set(AFFRESCOUI_WARNINGS -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast
 		-Wnon-virtual-dtor -Woverloaded-virtual)
 endif()
 
@@ -37,24 +37,24 @@ endif()
 #   format   JSON screen format: rules, expressions, building panels, actions        core, render
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
-#   sglgui   sgl::Screen, which puts them together                                   all of the above
-function(sglgui_module name)
-	add_library(sglgui_${name} ${ARGN})
-	add_library(sglgui::${name} ALIAS sglgui_${name})
-	target_include_directories(sglgui_${name} PUBLIC modules/${name}/include PRIVATE modules/${name}/src)
-	target_compile_features(sglgui_${name} PUBLIC cxx_std_23)
-	set_target_properties(sglgui_${name} PROPERTIES CXX_EXTENSIONS OFF)
-	target_compile_options(sglgui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${SGLGUI_WARNINGS}>)
+#   affrescoui  affresco::Screen, which puts them together                         all of the above
+function(affrescoui_module name)
+	add_library(affrescoui_${name} ${ARGN})
+	add_library(affrescoui::${name} ALIAS affrescoui_${name})
+	target_include_directories(affrescoui_${name} PUBLIC modules/${name}/include PRIVATE modules/${name}/src)
+	target_compile_features(affrescoui_${name} PUBLIC cxx_std_23)
+	set_target_properties(affrescoui_${name} PROPERTIES CXX_EXTENSIONS OFF)
+	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
 # core: the contracts between modules. JSON is opt-in: the rendering engine doesn't see it.
-add_library(sglgui_core INTERFACE)
-add_library(sglgui::core ALIAS sglgui_core)
-target_include_directories(sglgui_core INTERFACE modules/core/include)
-target_compile_features(sglgui_core INTERFACE cxx_std_23)
+add_library(affrescoui_core INTERFACE)
+add_library(affrescoui::core ALIAS affrescoui_core)
+target_include_directories(affrescoui_core INTERFACE modules/core/include)
+target_compile_features(affrescoui_core INTERFACE cxx_std_23)
 
 # render. Vendored in external/: glad (OpenGL 4.1 core loader) and stb_truetype (font rasteriser).
-sglgui_module(render
+affrescoui_module(render
 	modules/render/src/Application.cpp
 	modules/render/src/Color.cpp
 	modules/render/src/Font.cpp
@@ -68,33 +68,33 @@ sglgui_module(render
 	modules/render/src/gl/Shader.cpp
 	external/glad/src/glad.c
 	external/stb/stb_truetype.c)
-target_include_directories(sglgui_render SYSTEM PRIVATE external/glad/include external/stb)
-target_link_libraries(sglgui_render PUBLIC sglgui::core PRIVATE glfw)
-target_compile_definitions(sglgui_render PRIVATE GLFW_INCLUDE_NONE)
+target_include_directories(affrescoui_render SYSTEM PRIVATE external/glad/include external/stb)
+target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw)
+target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
 
-sglgui_module(format modules/format/src/Expression.cpp modules/format/src/Rules.cpp modules/format/src/Runtime.cpp)
-target_link_libraries(sglgui_format PUBLIC sglgui::core sglgui::render nlohmann_json::nlohmann_json)
+affrescoui_module(format modules/format/src/Expression.cpp modules/format/src/Rules.cpp modules/format/src/Runtime.cpp)
+target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
 
-sglgui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
-target_link_libraries(sglgui_vcs PUBLIC sglgui::core nlohmann_json::nlohmann_json)
+affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
+target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
 
-sglgui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
-target_link_libraries(sglgui_channel PUBLIC sglgui::core nlohmann_json::nlohmann_json)
+affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
+target_link_libraries(affrescoui_channel PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
 
-# sglgui: the whole library
-add_library(sglgui modules/screen/src/Screen.cpp)
-add_library(sglgui::sglgui ALIAS sglgui)
-target_include_directories(sglgui PUBLIC modules/screen/include)
-set_target_properties(sglgui PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options(sglgui PRIVATE ${SGLGUI_WARNINGS})
-target_link_libraries(sglgui PUBLIC sglgui::core sglgui::render sglgui::format sglgui::vcs sglgui::channel)
+# affrescoui: the whole library
+add_library(affrescoui modules/screen/src/Screen.cpp)
+add_library(affrescoui::affrescoui ALIAS affrescoui)
+target_include_directories(affrescoui PUBLIC modules/screen/include)
+set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(affrescoui PRIVATE ${AFFRESCOUI_WARNINGS})
+target_link_libraries(affrescoui PUBLIC affrescoui::core affrescoui::render affrescoui::format affrescoui::vcs affrescoui::channel)
 
-if(SGLGUI_BUILD_EXAMPLES)
-	# sglgui_host renders a screen and accepts peers; sglgui_studio is a client for it (itself an sGLGUI screen)
+if(AFFRESCOUI_BUILD_EXAMPLES)
+	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
 	foreach(example host studio)
-		add_executable(sglgui_${example} examples/${example}.cpp)
-		target_link_libraries(sglgui_${example} PRIVATE sglgui)
-		target_compile_options(sglgui_${example} PRIVATE ${SGLGUI_WARNINGS})
-		target_compile_definitions(sglgui_${example} PRIVATE SGLGUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+		add_executable(affrescoui_${example} examples/${example}.cpp)
+		target_link_libraries(affrescoui_${example} PRIVATE affrescoui)
+		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
+		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 	endforeach()
 endif()

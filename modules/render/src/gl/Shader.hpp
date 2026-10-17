@@ -7,7 +7,7 @@
 
 #include <string_view>
 
-namespace sgl::gl {
+namespace affresco::gl {
 
 /// @brief Compiles and links a vertex and fragment shader, in the current context.
 /// @param vertexSource GLSL vertex shader.
@@ -16,4 +16,4 @@ namespace sgl::gl {
 /// @throws std::runtime_error With the driver's log, if compiling or linking fails.
 [[nodiscard]] Program linkProgram(std::string_view vertexSource, std::string_view fragmentSource);
 
-} // namespace sgl::gl
+} // namespace affresco::gl

@@ -5,7 +5,7 @@
 
 #include "gl/GlObjects.hpp"
 
-#include "sgl/render/Painter.hpp"
+#include "affresco/render/Painter.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,11 +13,11 @@
 #include <unordered_map>
 #include <vector>
 
-namespace sgl {
+namespace affresco {
 class Panel;
 }
 
-namespace sgl::gl {
+namespace affresco::gl {
 
 /// @brief Draws a panel tree as textured quads: one buffer upload per frame, one draw call per texture switch.
 ///
@@ -100,4 +100,4 @@ private:
 	int width_ = -1, height_ = -1; ///< Size the scale uniform was last set for.
 };
 
-} // namespace sgl::gl
+} // namespace affresco::gl

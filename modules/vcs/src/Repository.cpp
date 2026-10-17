@@ -1,4 +1,4 @@
-#include "sgl/vcs/Repository.hpp"
+#include "affresco/vcs/Repository.hpp"
 
 #include "Permissions.hpp"
 #include "Sha256.hpp"
@@ -8,7 +8,7 @@
 #include <ctime>
 #include <utility>
 
-namespace sgl::vcs {
+namespace affresco::vcs {
 
 using expect::fail;
 
@@ -482,16 +482,16 @@ json Repository::proposalDiff(int id) const {
 // Always a merge commit (like `git merge --no-ff`): the history keeps who approved it, and the branch's commits
 std::optional<std::string> Repository::accept(int id, const Approval& approval) {
 	Proposal* proposal = findProposal(id);
-	if(!proposal) return "sGLGUI screen: no proposal " + std::to_string(id);
+	if(!proposal) return "AffrescoUI screen: no proposal " + std::to_string(id);
 
 	// Refused approvals leave the proposal open
 	if(detail::channelOf(approval.reviewer) == detail::channelOf(proposal->author))
-		return "sGLGUI screen: permission denied: '" + approval.reviewer + "' may not accept its own proposal";
+		return "AffrescoUI screen: permission denied: '" + approval.reviewer + "' may not accept its own proposal";
 	if(!approval.head.empty() && (approval.head.size() < 7 || !proposal->head.starts_with(approval.head)))
-		return "sGLGUI screen: proposal #" + std::to_string(id) + " changed since you reviewed it (it is now at " +
+		return "AffrescoUI screen: proposal #" + std::to_string(id) + " changed since you reviewed it (it is now at " +
 		       proposal->head.substr(0, 7) + "): review it again";
 	if(approval.dontAskAgain && proposal->remember.empty())
-		return "sGLGUI screen: proposal #" + std::to_string(id) +
+		return "AffrescoUI screen: proposal #" + std::to_string(id) +
 		       " can't be remembered (it changes parts that always ask, or too much of the screen): accept it "
 		       "without \"don't ask again\"";
 
@@ -508,7 +508,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 				return prepare(taken.patch, mainHead().document, committedState());
 			} catch(const DocumentError& failure) {
 				std::string why = failure.what();
-				if(why.starts_with("sGLGUI screen: ")) why.erase(0, 15);
+				if(why.starts_with("AffrescoUI screen: ")) why.erase(0, 15);
 				fail("proposal #" + std::to_string(id),
 				     "no longer applies on " + describe(mainHead()) + " (" + why + "): ask its author for a new one");
 			}
@@ -556,7 +556,7 @@ bool Repository::reject(int id, std::string_view reason) {
 
 std::optional<std::string> Repository::preview(int id) {
 	const Proposal* proposal = findProposal(id);
-	if(!proposal) return "sGLGUI screen: no proposal " + std::to_string(id);
+	if(!proposal) return "AffrescoUI screen: no proposal " + std::to_string(id);
 
 	endPreview();
 	try {
@@ -626,7 +626,7 @@ json Repository::exportChanges(const json& from, std::string_view name) const {
 		                     {"commit", c.id},
 		                     {"patch", c.patch}});
 	}
-	return {{"format", "sglgui-changes"},
+	return {{"format", "affrescoui-changes"},
 	        {"version", 1},
 	        {"name", name.empty() ? "changes" : std::string(name)},
 	        {"from", base.number},
@@ -640,7 +640,8 @@ json Repository::exportChanges(const json& from, std::string_view name) const {
 std::optional<std::string> Repository::importChanges(const json& changes) {
 	try {
 		expect::object(changes, "changes");
-		if(changes.value("format", "") != "sglgui-changes") fail("changes.format", "expected \"sglgui-changes\"");
+		if(changes.value("format", "") != "affrescoui-changes")
+			fail("changes.format", "expected \"affrescoui-changes\"");
 		if(changes.value("version", 0) != 1) fail("changes.version", "unsupported version (expected 1)");
 		if(!changes.contains("revisions") || !changes["revisions"].is_array())
 			fail("changes.revisions", "expected a list");
@@ -674,4 +675,4 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 	return std::nullopt;
 }
 
-} // namespace sgl::vcs
+} // namespace affresco::vcs

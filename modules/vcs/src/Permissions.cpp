@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <map>
 
-namespace sgl::vcs::detail {
+namespace affresco::vcs::detail {
 
 namespace {
 
@@ -195,4 +195,4 @@ std::string area(const DocumentRules& rules, const json& view, const std::string
 
 bool narrow(std::string_view area) { return area.starts_with('#') || split(area).size() >= 2; }
 
-} // namespace sgl::vcs::detail
+} // namespace affresco::vcs::detail

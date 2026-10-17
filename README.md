@@ -1,6 +1,6 @@
 <div align="center">
 
-# sGLGUI
+# AffrescoUI
 
 ### Native apps that AI agents can rewrite while they run.<br/>Never without your permission.
 
@@ -17,7 +17,7 @@
 
 <br/>
 
-<img src=".github/media/kanban-after.png" width="860" alt="The Flow Kanban board template, rendered natively by sGLGUI after an AI agent added a Blocked column while it ran">
+<img src=".github/media/kanban-after.png" width="860" alt="The Flow Kanban board template, rendered natively by AffrescoUI after an AI agent added a Blocked column while it ran">
 
 <sub>A native C++ / OpenGL Kanban board. Claude Code proposed a new <b>Blocked</b> column over the agent socket: new
 data and a five-column layout in one revision. It was reviewed and accepted while the app kept running, and it can
@@ -27,7 +27,7 @@ be undone.</sub>
 
 ---
 
-Today, when an AI changes an app, it edits source code, then someone rebuilds and redeploys it. **sGLGUI works
+Today, when an AI changes an app, it edits source code, then someone rebuilds and redeploys it. **AffrescoUI works
 differently.** The whole UI (layout, state and behaviour) is a **live JSON document** that a native engine renders and
 keeps running. People, scripts and AI agents send it **revisions**. The engine checks each one against the screen's
 permissions, can show you a **live preview**, and applies it **in place in milliseconds**, while the app keeps
@@ -99,7 +99,7 @@ can review and install.
 flowchart LR
     subgraph P["Who changes it"]
         direction TB
-        you["<b>You</b><br/>sGLGUI Studio"]
+        you["<b>You</b><br/>AffrescoUI Studio"]
         ai["<b>AI agent</b><br/>Claude Code · MCP"]
         any["<b>Scripts & apps</b><br/>any socket client"]
     end
@@ -150,8 +150,8 @@ flowchart LR
     linkStyle 7,8,9 stroke:#6366F1,stroke-width:2px
 ```
 
-1. **Anyone can propose a change.** The app (`sglgui_host`) only renders a screen, here the *Flow* Kanban board, and
-   listens for peers on local sockets. You use the **sGLGUI Studio**. An AI agent connects through the MCP server,
+1. **Anyone can propose a change.** The app (`affrescoui_host`) only renders a screen, here the *Flow* Kanban board, and
+   listens for peers on local sockets. You use the **AffrescoUI Studio**. An AI agent connects through the MCP server,
    which works both ways: your requests are pushed into its session, and its replies come back to the Studio. Any
    script can connect too. Every change is a **revision**: a JSON Patch.
 2. **The permission rules decide**, written like Claude Code's: `deny` refuses, `ask` sends the change to you, `allow`
@@ -165,8 +165,8 @@ flowchart LR
    or restored. See [VERSION_CONTROL.md](VERSION_CONTROL.md).
 
 <p align="center">
-<img src=".github/media/studio.png" width="640" alt="The sGLGUI Studio: ask the AI, direct JSON Patch, review with modes and grants, activity and history"><br/>
-<sub>The <b>sGLGUI Studio</b>, a client that is itself an sGLGUI screen: ask the AI, patch directly, review, always allow, revert, restore.</sub>
+<img src=".github/media/studio.png" width="640" alt="The AffrescoUI Studio: ask the AI, direct JSON Patch, review with modes and grants, activity and history"><br/>
+<sub>The <b>AffrescoUI Studio</b>, a client that is itself an AffrescoUI screen: ask the AI, patch directly, review, always allow, revert, restore.</sub>
 </p>
 
 ## Quick start
@@ -174,15 +174,15 @@ flowchart LR
 ```sh
 cmake -S . -B build && cmake --build build
 
-./build/sglgui_host                  # the Kanban board template, listening in /tmp/sglgui-<uid>
-./build/sglgui_studio                # the client: apply patches, review, ask the AI
+./build/affrescoui_host                  # the Kanban board template, listening in /tmp/affrescoui-<uid>
+./build/affrescoui_studio                # the client: apply patches, review, ask the AI
 ```
 
 Then connect an AI agent through MCP ([mcp/README.md](mcp/README.md)):
 
 ```sh
-claude mcp add sglgui -- python3 /path/to/sGLGUI/mcp/sglgui_mcp.py
-claude --dangerously-load-development-channels server:sglgui   # requests are pushed into the session
+claude mcp add affrescoui -- python3 /path/to/AffrescoUI/mcp/affrescoui_mcp.py
+claude --dangerously-load-development-channels server:affrescoui   # requests are pushed into the session
 ```
 
 Type *"add a Blocked column between In progress and Review"* in the Studio. The request reaches Claude, Claude
@@ -191,9 +191,9 @@ in place, or **Always allow** to stop being asked about that part of the screen.
 changes apply as they arrive.
 
 ```sh
-./build/sglgui_host --mode acceptEdits                              # agent changes apply unless a rule asks
-./build/sglgui_host examples/assets/screens/smart-home.screen.json   # any template or screen file, no C++
-./build/sglgui_host --plugin my-changes.json                         # start with a change set applied
+./build/affrescoui_host --mode acceptEdits                              # agent changes apply unless a rule asks
+./build/affrescoui_host examples/assets/screens/smart-home.screen.json   # any template or screen file, no C++
+./build/affrescoui_host --plugin my-changes.json                         # start with a change set applied
 ```
 
 Requires CMake ≥ 3.25 and a C++23 compiler. GLFW and nlohmann/json are downloaded automatically. Tested on macOS; the
@@ -202,7 +202,7 @@ socket and process channels are POSIX.
 ## Templates
 
 Five starting points, each a single `.screen.json` file with its layout, state and behaviour, and each ready to be
-reshaped live by an agent. Open any of them with `./build/sglgui_host examples/assets/screens/<name>.screen.json`.
+reshaped live by an agent. Open any of them with `./build/affrescoui_host examples/assets/screens/<name>.screen.json`.
 
 <table>
 <tr>
@@ -223,18 +223,18 @@ reshaped live by an agent. Open any of them with `./build/sglgui_host examples/a
 ## Under the hood
 
 The engine is **five independent modules**. Each one is its own library target and talks to the others **only through
-interfaces** in `core`: no module includes or links another module's implementation. `sgl::Screen` plugs them
+interfaces** in `core`: no module includes or links another module's implementation. `affresco::Screen` plugs them
 together, and any of them can be swapped for another implementation of the same interface (another transport,
 another version-control backend, another document format).
 
 ```mermaid
 flowchart TB
-    subgraph CH["🔌 channel · sgl::channel: peers in"]
+    subgraph CH["🔌 channel · affresco::channel: peers in"]
         direction LR
         SS["<b>SocketServer</b><br/>studio.sock · agent.sock"] --> SC["<b>SocketChannel</b><br/>JSON lines · reader thread<br/>Executor::post to the UI thread"] --> SE["<b>Session</b> per peer<br/>author fixed by the socket"]
     end
 
-    subgraph VC["🛡️ vcs · sgl::vcs: version control"]
+    subgraph VC["🛡️ vcs · affresco::vcs: version control"]
         direction LR
         SUB["<b>submit</b><br/>JSON Patch · #id paths"] --> POL{"rules<br/>deny · ask · allow<br/>+ mode, grants"}
         POL -- "ask" --> PRO["<b>Proposal</b><br/>a branch · live preview"] -- "merge" --> COM
@@ -242,12 +242,12 @@ flowchart TB
         POL -- "deny" --> REJ["<b>Rejected</b><br/>nothing changes"]
     end
 
-    subgraph FM["📄 format · sgl::format: the live document"]
+    subgraph FM["📄 format · affresco::format: the live document"]
         direction LR
         RU["<b>Rules</b><br/>validate · permission<br/>rules · locks"] ~~~ RT["<b>Runtime</b><br/>build · reconcile<br/>in place"] --- EXP["<b>Expressions</b><br/>{{bindings}}<br/>$operators"] --- ACT["<b>Actions</b><br/>set · push · if<br/>forEach · emit"]
     end
 
-    subgraph RD["🎨 render · sgl: pixels out"]
+    subgraph RD["🎨 render · affresco: pixels out"]
         direction LR
         TREE["<b>Panel tree</b><br/>anchors · px / %"] --> LAY["<b>Layout pass</b><br/>only when dirty"] --> QR["<b>QuadRenderer</b><br/>rects + glyphs<br/>one batch"] --> GL[["glDrawElements × 1"]]
         IN["<b>Input</b><br/>hit-test · focus<br/>capture · hover"]
@@ -276,12 +276,12 @@ flowchart TB
 
 | Module | Namespace | Responsibility | Depends on |
 |---|---|---|---|
-| `core` | `sgl` | The contracts: `Executor`, `Channel`, `VersionControl`, `VersionObserver`, `DocumentRules`; `Signal`, JSON types | nlohmann/json (only for the document interfaces) |
-| `render` | `sgl` | Rendering engine: windows, panel tree, layout, input, text, clipboard, batched OpenGL renderer. No JSON. | `core` |
-| `format` | `sgl::format` | The JSON screen format: validation and permission rules (`Rules`), `{{expressions}}`, and `Runtime`, which builds a document into panels, reconciles on change and runs actions | `core`, `render` |
-| `vcs` | `sgl::vcs` | Git-like version control for any JSON document: content-addressed commits, `main`, proposals as branches, merge, preview, log, diff, revert, restore, change sets; allow / ask / deny rules judged by effect, modes, grants | `core` |
-| `channel` | `sgl::channel` | Communication: local-socket server and client, child-process and stdio transports, and `Session`, the live JSON-lines protocol | `core` |
-| `sglgui` | `sgl` | `sgl::Screen`: wires `Rules` → `Repository` → `Runtime`, plus one `Session` per peer, relaying requests between peers | all of the above |
+| `core` | `affresco` | The contracts: `Executor`, `Channel`, `VersionControl`, `VersionObserver`, `DocumentRules`; `Signal`, JSON types | nlohmann/json (only for the document interfaces) |
+| `render` | `affresco` | Rendering engine: windows, panel tree, layout, input, text, clipboard, batched OpenGL renderer. No JSON. | `core` |
+| `format` | `affresco::format` | The JSON screen format: validation and permission rules (`Rules`), `{{expressions}}`, and `Runtime`, which builds a document into panels, reconciles on change and runs actions | `core`, `render` |
+| `vcs` | `affresco::vcs` | Git-like version control for any JSON document: content-addressed commits, `main`, proposals as branches, merge, preview, log, diff, revert, restore, change sets; allow / ask / deny rules judged by effect, modes, grants | `core` |
+| `channel` | `affresco::channel` | Communication: local-socket server and client, child-process and stdio transports, and `Session`, the live JSON-lines protocol | `core` |
+| `affrescoui` | `affresco` | `affresco::Screen`: wires `Rules` → `Repository` → `Runtime`, plus one `Session` per peer, relaying requests between peers | all of the above |
 
 ### The life of a revision
 
@@ -289,8 +289,8 @@ flowchart TB
 sequenceDiagram
     autonumber
     actor Person
-    participant Studio as 🧑 sglgui_studio
-    participant Peers as 🔌 sgl::Screen<br/>Sessions
+    participant Studio as 🧑 affrescoui_studio
+    participant Peers as 🔌 affresco::Screen<br/>Sessions
     participant VCS as 🛡️ vcs<br/>Repository
     participant RT as 🎨 format Runtime<br/>+ render
     participant MCP as MCP server
@@ -345,22 +345,22 @@ items.
 ## Use it in your app
 
 ```cpp
-#include <sgl/sgl.hpp>
+#include <affresco/affresco.hpp>
 
 int main() {
-	sgl::Application app;
-	sgl::Screen screen = sgl::Screen::fromFile("app.screen.json");
+	affresco::Application app;
+	affresco::Screen screen = affresco::Screen::fromFile("app.screen.json");
 	screen.createWindow(app);
 
-	screen.onAction("save", [&](sgl::Panel&) { /* native code, if needed */ });
+	screen.onAction("save", [&](affresco::Panel&) { /* native code, if needed */ });
 	screen.listen(app, "/tmp/my-app/agent.sock", "agent"); // optional: let other programs change it live
 	return app.run();
 }
 ```
 
 ```cmake
-add_subdirectory(sGLGUI)   # or FetchContent
-target_link_libraries(my_app PRIVATE sglgui::sglgui)
+add_subdirectory(AffrescoUI)   # or FetchContent
+target_link_libraries(my_app PRIVATE affrescoui::affrescoui)
 ```
 
 <details>
@@ -368,7 +368,7 @@ target_link_libraries(my_app PRIVATE sglgui::sglgui)
 
 - **Screen format:** layout, styles, named colors, fonts, templates, state, `{{bindings}}`, `$` operators,
   `repeat` / `when`, two-way `bind`, actions with conditions and loops, custom native types.
-  Spec: [SCREEN_FORMAT.md](SCREEN_FORMAT.md), with a [JSON Schema](schema/sglgui-screen.schema.json) for editor
+  Spec: [SCREEN_FORMAT.md](SCREEN_FORMAT.md), with a [JSON Schema](schema/affrescoui-screen.schema.json) for editor
   autocompletion.
 - **Live documents:** in-place reconciliation, revisions (JSON Patch, atomic, `#id` paths), any number of peers
   over local sockets (or any channel), broadcasts of commits and proposals, request/reply relaying between peers.
@@ -380,8 +380,8 @@ target_link_libraries(my_app PRIVATE sglgui::sglgui)
   replies sent back). Authors are assigned by the socket a peer uses, never self-declared.
 - **UI engine:** nested panels in pixels or percentages, anchors, clipping, stacks, typed input events, mouse
   capture, hover, cursors, TrueType text with wrap and fit-to-text, a text input with caret and paste, HiDPI.
-- **Examples:** `sglgui_host` (any screen, the Kanban template by default), five templates, `sglgui_studio` (a client that is
-  itself an sGLGUI screen), and the MCP server.
+- **Examples:** `affrescoui_host` (any screen, the Kanban template by default), five templates, `affrescoui_studio` (a client that is
+  itself an AffrescoUI screen), and the MCP server.
 
 </details>
 
@@ -418,7 +418,7 @@ change sets and the agent interfaces, plus a template and a client to show them 
 
 <img align="right" src=".github/media/2020-layout-demo.png" width="200" alt="The original layout demo, running again in 2026">
 
-sGLGUI started in **December 2017**, when I was **16**, as a way to teach myself OpenGL and C++: nested panels,
+AffrescoUI started in **December 2017** as **sGLGUI**, when I was **16**, as a way to teach myself OpenGL and C++: nested panels,
 pixel/percent sizing, anchors and a Qt-style signal/slot system, all from scratch. In 2018 I added a text area. It
 collected keystrokes but **could never draw them**, and the project stalled. A restart in 2020 rewrote the layout
 engine (the image on the right is that demo), then stalled again.
@@ -438,21 +438,21 @@ timeline
 ## Project layout
 
 ```
-modules/core/      interfaces between modules (include/sgl/core): Executor, Channel, VersionControl, DocumentRules
-modules/render/    rendering engine (include/sgl/render; src/gl: all OpenGL code, src/detail: UTF-8, PPM)
-modules/format/    JSON screen format: Rules, expressions, Runtime (include/sgl/format)
-modules/vcs/       version control: Repository (include/sgl/vcs)
-modules/channel/   transports and the live protocol Session (include/sgl/channel)
-modules/screen/    sgl::Screen, the composition root, and the umbrella header sgl/sgl.hpp
+modules/core/      interfaces between modules (include/affresco/core): Executor, Channel, VersionControl, DocumentRules
+modules/render/    rendering engine (include/affresco/render; src/gl: all OpenGL code, src/detail: UTF-8, PPM)
+modules/format/    JSON screen format: Rules, expressions, Runtime (include/affresco/format)
+modules/vcs/       version control: Repository (include/affresco/vcs)
+modules/channel/   transports and the live protocol Session (include/affresco/channel)
+modules/screen/    affresco::Screen, the composition root, and the umbrella header affresco/affresco.hpp
 mcp/               the Python MCP server
 schema/            JSON Schema of the screen format
-examples/          sglgui_host, sglgui_studio, templates (kanban, smart-home, music-player, code-editor,
+examples/          affrescoui_host, affrescoui_studio, templates (kanban, smart-home, music-player, code-editor,
                    habit-tracker), studio and sign-in screens, fonts
 external/          vendored glad (OpenGL loader) and stb_truetype
 ```
 
-No public header exposes OpenGL or GLFW. Each module can be linked on its own (`sglgui::render`, `sglgui::vcs`, ...)
-or all together through `sglgui::sglgui`.
+No public header exposes OpenGL or GLFW. Each module can be linked on its own (`affrescoui::render`, `affrescoui::vcs`, ...)
+or all together through `affrescoui::affrescoui`.
 
 ## License
 
@@ -465,6 +465,6 @@ on the [NOTICE](NOTICE) file, which credits the author. See [LICENSE](LICENSE) a
 
 **Created by [Riccardo Sottini](https://github.com/RiccardoSottini)** · 2017–2026
 
-<sub>If sGLGUI made you think "wait, an AI can change a native app *while it runs*?", leave a ⭐.</sub>
+<sub>If AffrescoUI made you think "wait, an AI can change a native app *while it runs*?", leave a ⭐.</sub>
 
 </div>

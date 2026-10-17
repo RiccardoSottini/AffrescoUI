@@ -9,7 +9,7 @@
 
 #include <utility>
 
-namespace sgl::gl {
+namespace affresco::gl {
 
 /// @brief Owns one OpenGL object name and deletes it when destroyed.
 /// @tparam Traits Provides `create()` and `destroy(GLuint)`.
@@ -89,4 +89,4 @@ using VertexArray = Object<VertexArrayTraits>; ///< An owned vertex array.
 using Program = Object<ProgramTraits>;         ///< An owned shader program.
 using Texture = Object<TextureTraits>;         ///< An owned texture.
 
-} // namespace sgl::gl
+} // namespace affresco::gl

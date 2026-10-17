@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace sgl::vcs::detail {
+namespace affresco::vcs::detail {
 
 namespace {
 
@@ -79,4 +79,4 @@ std::string sha256(std::string_view data) {
 	return hex;
 }
 
-} // namespace sgl::vcs::detail
+} // namespace affresco::vcs::detail

@@ -1,14 +1,14 @@
 #include "gl/QuadRenderer.hpp"
 #include "gl/Shader.hpp"
 
-#include "sgl/render/Font.hpp"
-#include "sgl/render/Panel.hpp"
+#include "affresco/render/Font.hpp"
+#include "affresco/render/Panel.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 
-namespace sgl::gl {
+namespace affresco::gl {
 
 namespace {
 
@@ -224,4 +224,4 @@ void QuadRenderer::reserveQuads(std::size_t quads) {
 	             GL_STATIC_DRAW);
 }
 
-} // namespace sgl::gl
+} // namespace affresco::gl

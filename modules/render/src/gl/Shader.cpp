@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace sgl::gl {
+namespace affresco::gl {
 
 namespace {
 
@@ -25,7 +25,7 @@ GLuint compile(GLenum type, std::string_view source) {
 		std::string log(1024, '\0');
 		glGetShaderInfoLog(shader, static_cast<GLsizei>(log.size()), nullptr, log.data());
 		glDeleteShader(shader);
-		throw std::runtime_error("sGLGUI: shader compilation failed: " + log);
+		throw std::runtime_error("AffrescoUI: shader compilation failed: " + log);
 	}
 
 	return shader;
@@ -53,10 +53,10 @@ Program linkProgram(std::string_view vertexSource, std::string_view fragmentSour
 	if(linked == GL_FALSE) {
 		std::string log(1024, '\0');
 		glGetProgramInfoLog(program.id(), static_cast<GLsizei>(log.size()), nullptr, log.data());
-		throw std::runtime_error("sGLGUI: shader link failed: " + log);
+		throw std::runtime_error("AffrescoUI: shader link failed: " + log);
 	}
 
 	return program;
 }
 
-} // namespace sgl::gl
+} // namespace affresco::gl

@@ -1,6 +1,6 @@
-# sGLGUI Screen Format
+# AffrescoUI Screen Format
 
-A JSON format for describing a user interface that sGLGUI builds and shows at runtime: **what is on screen**, plus the
+A JSON format for describing a user interface that AffrescoUI builds and shows at runtime: **what is on screen**, plus the
 app's **state, bindings and actions**, so behaviour lives in the file too. Application code can add more behaviour
 (native actions, custom types, templates).
 
@@ -13,14 +13,14 @@ for example one driven by an LLM.
 without breaking existing files.
 
 - File extension: `.screen.json`
-- JSON Schema (editor autocompletion and validation): [`schema/sglgui-screen.schema.json`](schema/sglgui-screen.schema.json).
+- JSON Schema (editor autocompletion and validation): [`schema/affrescoui-screen.schema.json`](schema/affrescoui-screen.schema.json).
   Point a file at it with `"$schema"`.
-- Try any file without writing code: `./build/sglgui_host path/to/file.screen.json`
+- Try any file without writing code: `./build/affrescoui_host path/to/file.screen.json`
 
 ```json
 {
-	"$schema": "../schema/sglgui-screen.schema.json",
-	"format": "sglgui-screen",
+	"$schema": "../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
 	"version": 1,
 	"window": { "title": "Hello", "width": 600, "height": 400 },
 	"fonts": { "default": { "file": "Roboto-Regular.ttf", "size": 16 } },
@@ -41,7 +41,7 @@ without breaking existing files.
 |---|---|---|
 | `version` | yes | `1`. |
 | `root` | yes | Node for the window's root panel. It always fills the window, so layout properties aren't allowed on it. |
-| `format` | | `"sglgui-screen"`, for tools. |
+| `format` | | `"affrescoui-screen"`, for tools. |
 | `window` | | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
 | `fonts` | | `name → { "file", "size" }`. Paths are relative to the screen file. `default` is used by text without a `font`. |
 | `colors` | | `name → "#rrggbb"`. Referenced anywhere a color is expected as `"@name"`. |
@@ -65,7 +65,7 @@ parent, and later siblings on top of earlier ones.
 | Key | Meaning |
 |---|---|
 | `type` | `panel` (default), `label`, `textarea`, `stack`, or a type the application registers. |
-| `id` | Name for code to find the node (`screen.get<sgl::Label>("title")`). |
+| `id` | Name for code to find the node (`screen.get<affresco::Label>("title")`). |
 | `style` | Style name or list of names. |
 | `children` | Array of nodes. |
 | `x`, `y` | Position of the top-left corner inside the parent (used when the matching edge isn't anchored). |
@@ -204,8 +204,8 @@ A revision is a version-controlled change to a running screen:
 The screen doesn't care where changes come from. Any number of **peers** (programs on the other end of a channel)
 read and change it with one JSON object per line:
 
-- `Screen::listen(executor, "/tmp/sglgui-501/agent.sock", "agent")` accepts peers on a local socket
-  (`sgl::channel::SocketServer`); `Screen::connect(channel, "name")` adds one over any `sgl::Channel` (a
+- `Screen::listen(executor, "/tmp/affrescoui-501/agent.sock", "agent")` accepts peers on a local socket
+  (`affresco::channel::SocketServer`); `Screen::connect(channel, "name")` adds one over any `affresco::Channel` (a
   `ProcessChannel` child process, `StdioChannel`, or your own).
 - **The host decides who a peer is**, by the socket or channel it came through: its revisions are authored as that
   name, followed by the name the peer gives itself (`agent/claude-code`). The `hello` message says which name that is
@@ -213,7 +213,7 @@ read and change it with one JSON object per line:
 
 | Direction | Message |
 |---|---|
-| → peer | `{"type": "hello", "format": "sglgui-screen", "revision": n, "head": {commit}, "document": {...}, "state": {...}, "mode": "default", "you": "agent", "canReview": false}` on connect |
+| → peer | `{"type": "hello", "format": "affrescoui-screen", "revision": n, "head": {commit}, "document": {...}, "state": {...}, "mode": "default", "you": "agent", "canReview": false}` on connect |
 | → peer | answers to its revisions: `{"type": "applied", "revision": n, "commit": id}`, `{"type": "proposed", "proposal": p, "commit": head}` or `{"type": "rejected", "error": "..."}` |
 | → all peers | `{"type": "committed", "revision": n, "id", "short", "parents", "author", "committer", "message", "time", "proposal"}` whenever a commit lands on `main` |
 | → all peers | `{"type": "review", "proposals": [...], "previewing": p or null, "mode": "default", "grants": [...]}` whenever that changes |
@@ -227,34 +227,34 @@ read and change it with one JSON object per line:
 
 Requests may carry an `"id"`; answers repeat it.
 
-The examples put this together (see the README): `sglgui_host` shows a screen and listens on `studio.sock` (author
-`studio`, a reviewer) and `agent.sock` (author `agent`); `sglgui_studio` is the person's client; the Python MCP server
-(`mcp/sglgui_mcp.py`) connects an AI agent to `agent.sock` in both directions.
+The examples put this together (see the README): `affrescoui_host` shows a screen and listens on `studio.sock` (author
+`studio`, a reviewer) and `agent.sock` (author `agent`); `affrescoui_studio` is the person's client; the Python MCP server
+(`mcp/affrescoui_mcp.py`) connects an AI agent to `agent.sock` in both directions.
 
 ## Errors
 
 Loading stops at the first problem and names its place in the file:
 
 ```
-sGLGUI screen: root.children[0].anchors: unknown edge 'lefft' (expected top, bottom, left or right)
-sGLGUI screen: root.children[0].width: expected a length: a number of pixels, "12px" or "50%"
-sGLGUI screen: root.children[0].text: unknown property 'text' for this type
+AffrescoUI screen: root.children[0].anchors: unknown edge 'lefft' (expected top, bottom, left or right)
+AffrescoUI screen: root.children[0].width: expected a length: a number of pixels, "12px" or "50%"
+AffrescoUI screen: root.children[0].text: unknown property 'text' for this type
 ```
 
 ## From code
 
 ```cpp
-sgl::Application app;
-sgl::Screen screen = sgl::Screen::fromFile("kanban.screen.json");
+affresco::Application app;
+affresco::Screen screen = affresco::Screen::fromFile("kanban.screen.json");
 screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a custom type, before createWindow
-sgl::Window& window = screen.createWindow(app);
+affresco::Window& window = screen.createWindow(app);
 
-screen.onAction("save", [&](sgl::Panel&) { /* ... */ });
-auto& search = screen.get<sgl::TextArea>("search");
-screen.listen(app, "/tmp/sglgui-501/agent.sock", "agent"); // peers can change it from now on
+screen.onAction("save", [&](affresco::Panel&) { /* ... */ });
+auto& search = screen.get<affresco::TextArea>("search");
+screen.listen(app, "/tmp/affrescoui-501/agent.sock", "agent"); // peers can change it from now on
 app.run();
 ```
 
-See the templates in `examples/assets/screens/`: `kanban.screen.json` (the one `sglgui_host` opens), `smart-home`,
+See the templates in `examples/assets/screens/`: `kanban.screen.json` (the one `affrescoui_host` opens), `smart-home`,
 `music-player`, `code-editor` and `habit-tracker`; `studio.screen.json` (the
 Studio client: its whole UI and behaviour, with a few lines of C++ to plug it into the host) and `sign-in.screen.json`.

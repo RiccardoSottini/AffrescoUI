@@ -1,4 +1,4 @@
-#include "sgl/render/Application.hpp"
+#include "affresco/render/Application.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace sgl {
+namespace affresco {
 
 namespace {
 
@@ -16,12 +16,12 @@ bool instanceAlive = false; ///< Only one Application may exist.
 } // namespace
 
 Application::Application() {
-	if(instanceAlive) throw std::logic_error("sGLGUI: only one sgl::Application can exist at a time");
+	if(instanceAlive) throw std::logic_error("AffrescoUI: only one affresco::Application can exist at a time");
 
 	glfwSetErrorCallback([](int code, const char* description) {
-		std::cerr << "sGLGUI: GLFW error " << code << ": " << description << '\n';
+		std::cerr << "AffrescoUI: GLFW error " << code << ": " << description << '\n';
 	});
-	if(!glfwInit()) throw std::runtime_error("sGLGUI: could not initialise GLFW");
+	if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
 
 	instanceAlive = true;
 }
@@ -45,10 +45,10 @@ Window& Application::createWindow(std::string title, int width, int height) {
 }
 
 int Application::run() {
-	// SGLGUI_SCREENSHOT=<file.ppm>: save a frame of each window and return. SGLGUI_SCREENSHOT_AFTER=<ms>: run normally
-	// for that long first (e.g. so peers can connect and change the screen)
-	const char* screenshot = std::getenv("SGLGUI_SCREENSHOT");
-	const char* after = std::getenv("SGLGUI_SCREENSHOT_AFTER");
+	// AFFRESCOUI_SCREENSHOT=<file.ppm>: save a frame of each window and return. AFFRESCOUI_SCREENSHOT_AFTER=<ms>: run
+	// normally for that long first (e.g. so peers can connect and change the screen)
+	const char* screenshot = std::getenv("AFFRESCOUI_SCREENSHOT");
+	const char* after = std::getenv("AFFRESCOUI_SCREENSHOT_AFTER");
 	const double deadline = glfwGetTime() + (after ? std::atof(after) / 1000.0 : 0.0);
 
 	running_ = true;
@@ -76,7 +76,7 @@ int Application::run() {
 	for(std::size_t i = 0; i < windows_.size(); ++i) {
 		const std::string path = i == 0 ? screenshot : std::string(screenshot) + "." + std::to_string(i);
 		const bool ok = windows_[i]->saveScreenshot(path);
-		std::cout << "sGLGUI: screenshot " << (ok ? "saved: " : "FAILED: ") << path << '\n';
+		std::cout << "AffrescoUI: screenshot " << (ok ? "saved: " : "FAILED: ") << path << '\n';
 		saved = saved && ok;
 	}
 	return saved ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -104,4 +104,4 @@ void Application::quit() {
 	glfwPostEmptyEvent(); // wake up glfwWaitEvents
 }
 
-} // namespace sgl
+} // namespace affresco

@@ -1,24 +1,24 @@
-#include "sgl/channel/Sockets.hpp"
+#include "affresco/channel/Sockets.hpp"
 
 #include <stdexcept>
 
 #if defined(_WIN32)
 
-namespace sgl::channel {
+namespace affresco::channel {
 
 std::unique_ptr<SocketChannel> SocketChannel::connect(Executor&, const std::filesystem::path&) {
-	throw std::runtime_error("sGLGUI: SocketChannel is not available on Windows yet");
+	throw std::runtime_error("AffrescoUI: SocketChannel is not available on Windows yet");
 }
 SocketChannel::SocketChannel(Executor&, int) {}
 SocketChannel::~SocketChannel() = default;
 void SocketChannel::send(std::string_view) {}
 
 SocketServer::SocketServer(Executor& executor, std::filesystem::path, Connected) : executor_(executor) {
-	throw std::runtime_error("sGLGUI: SocketServer is not available on Windows yet");
+	throw std::runtime_error("AffrescoUI: SocketServer is not available on Windows yet");
 }
 SocketServer::~SocketServer() = default;
 
-} // namespace sgl::channel
+} // namespace affresco::channel
 
 #else
 
@@ -33,7 +33,7 @@ SocketServer::~SocketServer() = default;
 #include <sys/un.h>
 #include <unistd.h>
 
-namespace sgl::channel {
+namespace affresco::channel {
 
 namespace {
 
@@ -45,7 +45,7 @@ sockaddr_un address(const std::filesystem::path& path) {
 	sockaddr_un result{};
 	result.sun_family = AF_UNIX;
 	const std::string text = path.string();
-	if(text.size() >= sizeof(result.sun_path)) throw std::runtime_error("sGLGUI: socket path too long: " + text);
+	if(text.size() >= sizeof(result.sun_path)) throw std::runtime_error("AffrescoUI: socket path too long: " + text);
 	std::memcpy(result.sun_path, text.c_str(), text.size() + 1);
 	return result;
 }
@@ -80,7 +80,7 @@ void ignoreBrokenPipes(int fd) {
 
 std::unique_ptr<SocketChannel> SocketChannel::connect(Executor& executor, const std::filesystem::path& path) {
 	const int fd = connectTo(path);
-	if(fd < 0) throw std::runtime_error("sGLGUI: nothing is listening at " + path.string());
+	if(fd < 0) throw std::runtime_error("AffrescoUI: nothing is listening at " + path.string());
 	return std::make_unique<SocketChannel>(executor, fd);
 }
 
@@ -107,7 +107,7 @@ SocketServer::SocketServer(Executor& executor, std::filesystem::path path, Conne
 	// A socket file left by a server that crashed is replaced; one that still answers is in use
 	if(const int existing = connectTo(path_); existing >= 0) {
 		close(existing);
-		throw std::runtime_error("sGLGUI: another app is already listening at " + path_.string());
+		throw std::runtime_error("AffrescoUI: another app is already listening at " + path_.string());
 	}
 	unlink(path_.c_str());
 
@@ -117,7 +117,7 @@ SocketServer::SocketServer(Executor& executor, std::filesystem::path path, Conne
 	   chmod(path_.c_str(), S_IRUSR | S_IWUSR) != 0 || listen(listener_, 8) != 0 || pipe(wake_) != 0) {
 		const std::string reason = std::strerror(errno);
 		if(listener_ >= 0) close(listener_);
-		throw std::runtime_error("sGLGUI: could not listen at " + path_.string() + ": " + reason);
+		throw std::runtime_error("AffrescoUI: could not listen at " + path_.string() + ": " + reason);
 	}
 
 	acceptor_ = std::thread([this] {
@@ -144,6 +144,6 @@ SocketServer::~SocketServer() {
 	unlink(path_.c_str());
 }
 
-} // namespace sgl::channel
+} // namespace affresco::channel
 
 #endif

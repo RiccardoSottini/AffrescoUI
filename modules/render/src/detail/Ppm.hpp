@@ -9,7 +9,7 @@
 #include <fstream>
 #include <span>
 
-namespace sgl::detail {
+namespace affresco::detail {
 
 /// @brief Writes a binary PPM (P6) image.
 /// @param path The file.
@@ -29,4 +29,4 @@ inline bool writePpm(const std::filesystem::path& path, int width, int height, s
 	return static_cast<bool>(file);
 }
 
-} // namespace sgl::detail
+} // namespace affresco::detail

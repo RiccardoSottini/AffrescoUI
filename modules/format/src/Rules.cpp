@@ -1,9 +1,9 @@
-#include "sgl/format/Rules.hpp"
+#include "affresco/format/Rules.hpp"
 
 #include <algorithm>
 #include <functional>
 
-namespace sgl::format {
+namespace affresco::format {
 
 using expect::fail;
 
@@ -48,8 +48,8 @@ void Rules::validate(const json& doc) const {
 		if(std::ranges::find(sections, key) == std::end(sections)) fail(key, "unknown section");
 	}
 
-	if(doc.contains("format") && expect::string(doc["format"], "format") != "sglgui-screen")
-		fail("format", "expected \"sglgui-screen\"");
+	if(doc.contains("format") && expect::string(doc["format"], "format") != "affrescoui-screen")
+		fail("format", "expected \"affrescoui-screen\"");
 	if(!doc.contains("version")) fail("", "missing \"version\" (this library reads version 1)");
 	const int v = expect::integer(doc["version"], "version");
 	if(std::ranges::find(supportedVersions, v) == std::end(supportedVersions))
@@ -136,4 +136,4 @@ void Rules::checkChange(const json& before, const json& after) const {
 		                 "restore, revert, undo, patch or call steps");
 }
 
-} // namespace sgl::format
+} // namespace affresco::format

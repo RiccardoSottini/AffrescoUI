@@ -7,7 +7,7 @@
 #include <map>
 #include <vector>
 
-namespace sgl::format {
+namespace affresco::format {
 
 namespace {
 
@@ -16,7 +16,7 @@ namespace {
 /// @param message What is wrong.
 /// @throws DocumentError Always.
 [[noreturn]] void fail(const std::string& where, const std::string& message) {
-	throw DocumentError("sGLGUI screen: " + where + ": " + message);
+	throw DocumentError("AffrescoUI screen: " + where + ": " + message);
 }
 
 /* Paths */
@@ -321,4 +321,4 @@ bool truthy(const json& value) noexcept {
 	return !value.empty();
 }
 
-} // namespace sgl::format
+} // namespace affresco::format

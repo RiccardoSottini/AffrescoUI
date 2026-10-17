@@ -1,6 +1,6 @@
 {
-	"$schema": "../../../schema/sglgui-screen.schema.json",
-	"format": "sglgui-screen",
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
 	"version": 1,
 
 	"window": { "title": "Sign in", "width": 900, "height": 640, "minWidth": 600, "minHeight": 560 },
@@ -49,7 +49,7 @@
 						"gap": 10,
 						"children": [
 							{ "type": "label", "text": "Welcome back", "font": "title", "height": 40, "textColor": "@text", "anchors": { "left": 0, "right": 0 } },
-							{ "style": "caption", "text": "Sign in to continue to sGLGUI" },
+							{ "style": "caption", "text": "Sign in to continue to AffrescoUI" },
 							{ "height": 10, "color": "transparent" },
 							{ "style": "caption", "text": "Email" },
 							{ "id": "email", "style": "field", "placeholder": "you@example.com" },
