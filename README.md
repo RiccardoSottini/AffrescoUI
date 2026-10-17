@@ -95,59 +95,74 @@ can review and install.
 ## How it works
 
 ```mermaid
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 28, "rankSpacing": 46, "padding": 14}, "themeVariables": {"fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94A3B8", "primaryTextColor": "#0F172A", "edgeLabelBackground": "#FFFFFF"}}}%%
 flowchart LR
-    subgraph peers["Anyone can propose a change"]
+    subgraph P["Who changes it"]
         direction TB
-        you["👤 <b>You</b><br/>sGLGUI Studio"]
-        ai["🤖 <b>AI agents</b><br/>Claude Code via MCP"]
-        tools["🛠️ <b>Scripts & apps</b><br/>any socket client"]
+        you["<b>You</b><br/>sGLGUI Studio"]
+        ai["<b>AI agent</b><br/>Claude Code · MCP"]
+        any["<b>Scripts & apps</b><br/>any socket client"]
     end
 
-    subgraph engine["⚡ The sGLGUI engine"]
-        direction LR
-        gate{{"🛡️ <b>Version control</b><br/>who may change what<br/>review · preview · history"}}
-        doc[("📄 <b>Live document</b><br/>layout · state · actions<br/>in JSON")]
-        gpu["🎨 <b>Native renderer</b><br/>C++23 · OpenGL<br/>one draw call"]
+    subgraph V["Version control"]
+        direction TB
+        rules{"<b>Permission rules</b><br/>deny · ask · allow"}
+        pr["<b>Proposal</b><br/>branch · live preview"]
+        no["<b>Rejected</b><br/>nothing changes"]
     end
 
-    app(["🖥️ <b>Your running app</b><br/>updates in place,<br/>never restarts"])
+    subgraph E["Engine"]
+        direction TB
+        main[("<b>main</b><br/>SHA-256 commits")]
+        rt["<b>Runtime</b><br/>reconcile in place"]
+        gl["<b>Renderer</b><br/>C++23 · OpenGL"]
+    end
 
-    you -- "revision" --> gate
-    ai -- "revision" --> gate
-    tools -- "revision" --> gate
-    gate == "approved" ==> doc == "reconciled" ==> gpu ==> app
-    engine -. "commits · proposals · replies" .-> peers
+    app(["<b>Your running app</b><br/>never restarts"])
 
-    classDef human fill:#6366F1,stroke:#4338CA,color:#fff
-    classDef agent fill:#E11D48,stroke:#9F1239,color:#fff
-    classDef tool fill:#0EA5E9,stroke:#0369A1,color:#fff
-    classDef gov fill:#F59E0B,stroke:#B45309,color:#111
-    classDef data fill:#10B981,stroke:#047857,color:#fff
-    classDef render fill:#8B5CF6,stroke:#6D28D9,color:#fff
-    classDef out fill:#111827,stroke:#6366F1,stroke-width:3px,color:#fff
-    class you human
-    class ai agent
-    class tools tool
-    class gate gov
-    class doc data
-    class gpu render
+    you & ai & any -- "revision" --> rules
+    rules -- "allow" --> main
+    rules -- "ask" --> pr
+    rules -- "deny" --> no
+    pr -- "you accept" --> main
+    main --> rt --> gl --> app
+
+    classDef peer fill:#FFFFFF,stroke:#CBD5E1,stroke-width:1px,color:#0F172A
+    classDef gate fill:#FFFBEB,stroke:#D97706,stroke-width:1.5px,color:#78350F
+    classDef wait fill:#FFFFFF,stroke:#D97706,stroke-width:1px,stroke-dasharray:4 3,color:#78350F
+    classDef stop fill:#FFFFFF,stroke:#E11D48,stroke-width:1px,color:#9F1239
+    classDef core fill:#EEF2FF,stroke:#6366F1,stroke-width:1.5px,color:#1E1B4B
+    classDef out fill:#0F172A,stroke:#0F172A,color:#FFFFFF
+    class you,ai,any peer
+    class rules gate
+    class pr wait
+    class no stop
+    class main,rt,gl core
     class app out
-    style peers fill:#F8FAFC,stroke:#94A3B8,stroke-dasharray:4 4,color:#334155
-    style engine fill:#F5F3FF,stroke:#8B5CF6,stroke-width:2px,color:#4C1D95
+    style P fill:#F8FAFC,stroke:#E2E8F0,color:#64748B
+    style V fill:#F8FAFC,stroke:#E2E8F0,color:#64748B
+    style E fill:#F8FAFC,stroke:#E2E8F0,color:#64748B
+    linkStyle 0,1,2 stroke:#94A3B8
+    linkStyle 3 stroke:#16A34A,stroke-width:2px
+    linkStyle 4 stroke:#D97706,stroke-width:1.5px
+    linkStyle 5 stroke:#E11D48,stroke-width:1.5px
+    linkStyle 6 stroke:#16A34A,stroke-width:2px
+    linkStyle 7,8,9 stroke:#6366F1,stroke-width:2px
 ```
 
-1. **The app** (`sglgui_host`) renders a screen, here the *Flow* Kanban board template, and nothing else. It has no chat
-   box or command line: it listens for **peers** on local sockets and treats them all the same way.
-2. **You** use a separate client, the **sGLGUI Studio**. From there you can ask the AI for a change in plain words, apply
-   a JSON Patch yourself, preview the agent's proposals live in the app, accept, *always allow* or reject them, pick
-   the mode (ask first, accept edits, plan), and browse, revert or restore the history.
-3. **The MCP server works both ways.** Your requests are pushed into the agent's session (Claude Code channel events),
-   or the agent picks them up with `wait_for_request`. The agent's tool calls become revisions of the running app, and
-   its `reply` goes back to the Studio.
-4. **Every change is checked** against the screen's own permission rules, written like Claude Code's. The templates let
-   the Studio change anything and review, always ask before the agent changes behaviour, and never let anyone touch
-   the status bar. The agent's other changes wait for review unless the mode is *accept edits* or you said *"don't
-   ask again"* for that kind of change. See [VERSION_CONTROL.md](VERSION_CONTROL.md).
+1. **Anyone can propose a change.** The app (`sglgui_host`) only renders a screen, here the *Flow* Kanban board, and
+   listens for peers on local sockets. You use the **sGLGUI Studio**. An AI agent connects through the MCP server,
+   which works both ways: your requests are pushed into its session, and its replies come back to the Studio. Any
+   script can connect too. Every change is a **revision**: a JSON Patch.
+2. **The permission rules decide**, written like Claude Code's: `deny` refuses, `ask` sends the change to you, `allow`
+   applies it. Rules judge what a change *does*, not how its patch is written. The templates let the Studio change
+   anything, always ask before the agent changes behaviour, and protect the status bar.
+3. **You review proposals.** A proposal is a branch, like a pull request: the agent can keep refining it while you
+   preview it live in the app. Then **Accept**, **Always allow** (don't ask again for that part of the screen) or
+   **Reject** with a reason. Switch the mode to *accept edits* or *plan* at any time.
+4. **Accepted changes become commits on `main`**, with SHA-256 ids and both the author and the approver recorded. The
+   runtime updates the running app in place: no restart, and focus and typing are kept. Any commit can be reverted
+   or restored. See [VERSION_CONTROL.md](VERSION_CONTROL.md).
 
 <p align="center">
 <img src=".github/media/studio.png" width="640" alt="The sGLGUI Studio: ask the AI, direct JSON Patch, review with modes and grants, activity and history"><br/>
