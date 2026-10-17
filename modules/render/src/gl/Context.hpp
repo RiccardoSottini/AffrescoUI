@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace sgl::gl {
+namespace affresco::gl {
 
 using ProcAddressLoader = void* (*)(const char* name); ///< Looks an OpenGL function up by name.
 
@@ -26,4 +26,4 @@ void beginFrame(int framebufferWidth, int framebufferHeight);
 /// @return Tightly packed 8-bit RGB, top row first.
 [[nodiscard]] std::vector<std::uint8_t> readBackBuffer(int width, int height);
 
-} // namespace sgl::gl
+} // namespace affresco::gl

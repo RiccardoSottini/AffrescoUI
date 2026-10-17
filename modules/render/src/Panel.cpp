@@ -1,10 +1,10 @@
-#include "sgl/render/Panel.hpp"
-#include "sgl/render/Painter.hpp"
-#include "sgl/render/Window.hpp"
+#include "affresco/render/Panel.hpp"
+#include "affresco/render/Painter.hpp"
+#include "affresco/render/Window.hpp"
 
 #include <algorithm>
 
-namespace sgl {
+namespace affresco {
 
 namespace {
 
@@ -217,4 +217,4 @@ void Panel::paint(Painter& painter) const { painter.fillRect(bounds_, color_); }
 
 bool Panel::hasFocus() const noexcept { return window_ && window_->focusedPanel() == this; }
 
-} // namespace sgl
+} // namespace affresco

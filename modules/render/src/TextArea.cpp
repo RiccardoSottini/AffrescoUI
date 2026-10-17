@@ -1,13 +1,13 @@
-#include "sgl/render/TextArea.hpp"
-#include "sgl/render/Painter.hpp"
-#include "sgl/render/Window.hpp"
+#include "affresco/render/TextArea.hpp"
+#include "affresco/render/Painter.hpp"
+#include "affresco/render/Window.hpp"
 
 #include "detail/Utf8.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-namespace sgl {
+namespace affresco {
 
 TextArea::TextArea() {
 	setColor(colors::white);
@@ -91,4 +91,4 @@ void TextArea::paint(Painter& painter) const {
 	}
 }
 
-} // namespace sgl
+} // namespace affresco

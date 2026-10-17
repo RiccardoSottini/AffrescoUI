@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cstddef>
 
-namespace sgl::gl {
+namespace affresco::gl {
 
 bool loadFunctions(ProcAddressLoader loader) { return gladLoadGLLoader(loader) != 0; }
 
@@ -39,4 +39,4 @@ std::vector<std::uint8_t> readBackBuffer(int width, int height) {
 	return pixels;
 }
 
-} // namespace sgl::gl
+} // namespace affresco::gl

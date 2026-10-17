@@ -1,16 +1,16 @@
-#include "sgl/Screen.hpp"
+#include "affresco/Screen.hpp"
 
-#include "sgl/channel/Session.hpp"
-#include "sgl/channel/Sockets.hpp"
-#include "sgl/format/Rules.hpp"
-#include "sgl/format/Runtime.hpp"
-#include "sgl/vcs/Repository.hpp"
+#include "affresco/channel/Session.hpp"
+#include "affresco/channel/Sockets.hpp"
+#include "affresco/format/Rules.hpp"
+#include "affresco/format/Runtime.hpp"
+#include "affresco/vcs/Repository.hpp"
 
 #include <algorithm>
 #include <fstream>
 #include <sstream>
 
-namespace sgl {
+namespace affresco {
 
 /// @brief A program connected to the screen.
 struct Peer {
@@ -104,7 +104,7 @@ std::optional<json> parseJson(std::string_view text, const char* what, std::stri
 	try {
 		return json::parse(text);
 	} catch(const json::parse_error& parseError) {
-		if(error) *error = std::string("sGLGUI screen: invalid ") + what + " JSON: " + parseError.what();
+		if(error) *error = std::string("AffrescoUI screen: invalid ") + what + " JSON: " + parseError.what();
 		return std::nullopt;
 	}
 }
@@ -129,7 +129,7 @@ Screen Screen::fromFile(const std::filesystem::path& path) {
 	std::ifstream file(path);
 	if(!file) {
 		throw ScreenError(
-		    "sGLGUI screen: could not open " + std::filesystem::absolute(path).string() +
+		    "AffrescoUI screen: could not open " + std::filesystem::absolute(path).string() +
 		    " (relative paths start from the current folder: " + std::filesystem::current_path().string() + ")");
 	}
 
@@ -143,7 +143,7 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 	try {
 		document = json::parse(content);
 	} catch(const json::parse_error& error) {
-		throw ScreenError(std::string("sGLGUI screen: invalid JSON: ") + error.what());
+		throw ScreenError(std::string("AffrescoUI screen: invalid JSON: ") + error.what());
 	}
 	return Screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
 }
@@ -171,7 +171,7 @@ void Screen::runAction(std::string_view name, Panel& sender, std::string_view ev
 	try {
 		event = json::parse(eventJson);
 	} catch(const json::parse_error& error) {
-		throw ScreenError(std::string("sGLGUI screen: runAction: invalid event JSON: ") + error.what());
+		throw ScreenError(std::string("AffrescoUI screen: runAction: invalid event JSON: ") + error.what());
 	}
 	impl_->runtime.runAction(name, sender, event);
 }
@@ -241,7 +241,7 @@ bool Screen::revert(int revision, std::string* error) {
 }
 
 bool Screen::undo(std::string* error) {
-	if(revision() == 0) return succeeded("sGLGUI screen: nothing to undo", error);
+	if(revision() == 0) return succeeded("AffrescoUI screen: nothing to undo", error);
 	return revert(revision(), error);
 }
 
@@ -283,4 +283,4 @@ void Screen::listen(Executor& executor, const std::filesystem::path& path, std::
 
 void Screen::setMode(Mode mode) { impl_->repository.setMode(mode); }
 
-} // namespace sgl
+} // namespace affresco

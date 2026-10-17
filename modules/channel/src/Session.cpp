@@ -1,9 +1,9 @@
-#include "sgl/channel/Session.hpp"
+#include "affresco/channel/Session.hpp"
 
 #include <iostream>
 #include <utility>
 
-namespace sgl::channel {
+namespace affresco::channel {
 
 Session::Session(Channel& channel, VersionControl& versions, std::string author)
     : channel_(channel), versions_(versions), author_(std::move(author)) {
@@ -31,7 +31,7 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author)
 
 	// Introduce ourselves: whoever is on the other end gets the full picture to work from
 	send({{"type", "hello"},
-	      {"format", "sglgui-screen"},
+	      {"format", "affrescoui-screen"},
 	      {"revision", versions_.head().number},
 	      {"head", toJson(versions_.head())},
 	      {"document", versions_.document()},
@@ -150,7 +150,7 @@ void Session::handle(const std::string& line) {
 			review([&]() -> std::optional<std::string> {
 				const int p = proposal();
 				if(versions_.reject(p, toText(message.value("reason", json(""))))) return std::nullopt;
-				return "sGLGUI screen: no proposal " + std::to_string(p);
+				return "AffrescoUI screen: no proposal " + std::to_string(p);
 			});
 		} else if(type == "preview") {
 			review([&] { return versions_.preview(proposal()); });
@@ -162,7 +162,7 @@ void Session::handle(const std::string& line) {
 		} else if(type == "setMode") {
 			review([&]() -> std::optional<std::string> {
 				const auto mode = modeFromString(expect::string(message.value("mode", json()), "setMode.mode"));
-				if(!mode) return "sGLGUI screen: setMode.mode: expected \"default\", \"acceptEdits\" or \"plan\"";
+				if(!mode) return "AffrescoUI screen: setMode.mode: expected \"default\", \"acceptEdits\" or \"plan\"";
 				versions_.setMode(*mode);
 				return std::nullopt;
 			});
@@ -170,7 +170,7 @@ void Session::handle(const std::string& line) {
 			review([&]() -> std::optional<std::string> {
 				const std::string rule = expect::string(message.value("rule", json()), "revoke.rule");
 				if(versions_.revokeGrant(rule)) return std::nullopt;
-				return "sGLGUI screen: no grant '" + rule + "'";
+				return "AffrescoUI screen: no grant '" + rule + "'";
 			});
 		} else if(type == "request" || type == "reply") {
 			json relayed = message;
@@ -218,10 +218,10 @@ void Session::handle(const std::string& line) {
 		send({{"type", "rejected"}, {"error", error.what()}, {"revision", versions_.head().number}, {"id", id}});
 	} catch(const json::exception& error) {
 		send({{"type", "rejected"},
-		      {"error", std::string("sGLGUI screen: ") + error.what()},
+		      {"error", std::string("AffrescoUI screen: ") + error.what()},
 		      {"revision", versions_.head().number},
 		      {"id", id}});
 	}
 }
 
-} // namespace sgl::channel
+} // namespace affresco::channel

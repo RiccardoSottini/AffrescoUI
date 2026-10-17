@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace sgl::detail {
+namespace affresco::detail {
 
 /// @brief Appends a code point as UTF-8.
 /// @param out The string.
@@ -83,4 +83,4 @@ inline std::u32string fromUtf8(std::string_view text) {
 	return out;
 }
 
-} // namespace sgl::detail
+} // namespace affresco::detail

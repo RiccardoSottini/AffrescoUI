@@ -7,13 +7,13 @@
 /// rules compare the document before and after instead. A protected node that ends up identical wasn't changed,
 /// however the patch was written; a change outside an allowed area is caught even if the patch never names it.
 
-#include "sgl/core/DocumentRules.hpp"
+#include "affresco/core/DocumentRules.hpp"
 
 #include <string>
 #include <string_view>
 #include <vector>
 
-namespace sgl::vcs::detail {
+namespace affresco::vcs::detail {
 
 /// @brief The document as revisions address it: "/state" is the live state.
 /// @param document The document.
@@ -70,4 +70,4 @@ namespace sgl::vcs::detail {
 /// @return false for the whole layout or a whole section ("/root", "/actions").
 [[nodiscard]] bool narrow(std::string_view area);
 
-} // namespace sgl::vcs::detail
+} // namespace affresco::vcs::detail

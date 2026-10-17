@@ -1,4 +1,4 @@
-#include "sgl/render/Window.hpp"
+#include "affresco/render/Window.hpp"
 
 #include "detail/Ppm.hpp"
 #include "gl/Context.hpp"
@@ -11,17 +11,17 @@
 #include <stdexcept>
 #include <utility>
 
-namespace sgl {
+namespace affresco {
 
 void Window::HandleDeleter::operator()(GLFWwindow* handle) const noexcept { glfwDestroyWindow(handle); }
 
 Window::Window(std::string title, int width, int height) : title_(std::move(title)), width_(width), height_(height) {
 	handle_.reset(glfwCreateWindow(width, height, title_.c_str(), nullptr, nullptr));
-	if(!handle_) throw std::runtime_error("sGLGUI: could not create a window with an OpenGL 4.1 core context");
+	if(!handle_) throw std::runtime_error("AffrescoUI: could not create a window with an OpenGL 4.1 core context");
 
 	glfwMakeContextCurrent(handle_.get());
 	if(!gl::loadFunctions(reinterpret_cast<gl::ProcAddressLoader>(glfwGetProcAddress)))
-		throw std::runtime_error("sGLGUI: could not load the OpenGL functions");
+		throw std::runtime_error("AffrescoUI: could not load the OpenGL functions");
 	glfwSwapInterval(1); // vsync: never render faster than the display
 
 	renderer_ = std::make_unique<gl::QuadRenderer>();
@@ -315,4 +315,4 @@ void Window::updateCursor() {
 	glfwSetCursor(handle_.get(), cursors_[index]);
 }
 
-} // namespace sgl
+} // namespace affresco

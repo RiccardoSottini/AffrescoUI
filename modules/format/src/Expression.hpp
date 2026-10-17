@@ -10,12 +10,12 @@
 /// Paths start with a variable: state, event, window, revision, proposals, history, preview, or a name given by
 /// "repeat" / "forEach".
 
-#include "sgl/core/Json.hpp"
+#include "affresco/core/Json.hpp"
 
 #include <string>
 #include <string_view>
 
-namespace sgl::format {
+namespace affresco::format {
 
 /// @brief What a path can see while a value is evaluated.
 struct Context {
@@ -56,4 +56,4 @@ struct Context {
 /// @return false for false, null, 0, "", [] and {}.
 [[nodiscard]] bool truthy(const json& value) noexcept;
 
-} // namespace sgl::format
+} // namespace affresco::format

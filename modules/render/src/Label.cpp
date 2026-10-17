@@ -1,6 +1,6 @@
-#include "sgl/render/Label.hpp"
-#include "sgl/render/Painter.hpp"
-#include "sgl/render/Window.hpp"
+#include "affresco/render/Label.hpp"
+#include "affresco/render/Painter.hpp"
+#include "affresco/render/Window.hpp"
 
 #include "detail/Utf8.hpp"
 
@@ -9,7 +9,7 @@
 #include <limits>
 #include <vector>
 
-namespace sgl {
+namespace affresco {
 
 namespace {
 
@@ -121,4 +121,4 @@ void Label::paint(Painter& painter) const {
 	}
 }
 
-} // namespace sgl
+} // namespace affresco

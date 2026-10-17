@@ -1,0 +1,621 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/RiccardoSottini/AffrescoUI/schema/affrescoui-screen.schema.json",
+	"title": "AffrescoUI Screen Format",
+	"description": "A user interface for the AffrescoUI library. Specification: SCREEN_FORMAT.md. Each format version has its definitions under $defs/v<N>; \"version\" selects one.",
+	"type": "object",
+	"required": [
+		"version"
+	],
+	"properties": {
+		"version": {
+			"enum": [
+				1
+			],
+			"description": "Format version. This library reads: 1"
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"version": {
+						"const": 1
+					}
+				},
+				"required": [
+					"version"
+				]
+			},
+			"then": {
+				"$ref": "#/$defs/v1/screen"
+			}
+		}
+	],
+	"$defs": {
+		"v1": {
+			"screen": {
+				"description": "Version 1 of the format",
+				"type": "object",
+				"required": [
+					"version",
+					"root"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"type": "string"
+					},
+					"format": {
+						"const": "affrescoui-screen"
+					},
+					"version": {
+						"const": 1
+					},
+					"window": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"title": {
+								"type": "string"
+							},
+							"width": {
+								"type": "integer",
+								"minimum": 1
+							},
+							"height": {
+								"type": "integer",
+								"minimum": 1
+							},
+							"minWidth": {
+								"type": "integer",
+								"minimum": 0
+							},
+							"minHeight": {
+								"type": "integer",
+								"minimum": 0
+							}
+						}
+					},
+					"fonts": {
+						"description": "Fonts by name. The font named \"default\" is used by every text without a \"font\".",
+						"type": "object",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"file",
+								"size"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"file": {
+									"type": "string",
+									"description": "TrueType file, relative to the screen file"
+								},
+								"size": {
+									"type": "number",
+									"exclusiveMinimum": 0,
+									"description": "Pixel height"
+								}
+							}
+						}
+					},
+					"colors": {
+						"description": "Named colors, referenced elsewhere as \"@name\"",
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/hexColor"
+						}
+					},
+					"styles": {
+						"description": "Reusable sets of node properties, applied with \"style\"",
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/node"
+						}
+					},
+					"templates": {
+						"description": "Nodes that code builds on demand (Screen::instantiate), e.g. one per chat message",
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/node"
+						}
+					},
+					"root": {
+						"$ref": "#/$defs/v1/node",
+						"description": "The window's root panel: it always fills the window"
+					},
+					"state": {
+						"type": "object",
+						"description": "The app's data. Read with \"{{state.path}}\", changed by actions."
+					},
+					"actions": {
+						"type": "object",
+						"description": "Named actions, run by onClick/onSubmit or by other actions",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/steps"
+						}
+					},
+					"permissions": {
+						"description": "Who may change the running screen, like Claude Code's permission rules (see VERSION_CONTROL.md): deny beats ask beats allow, and what no rule allows is reviewed. Revisions can't change this section.",
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"allow": {
+								"type": "array",
+								"items": { "$ref": "#/$defs/v1/permissionRule" },
+								"description": "Changes that apply without review, if these rules (and the reviewer's grants) cover everything they change"
+							},
+							"ask": {
+								"type": "array",
+								"items": { "$ref": "#/$defs/v1/permissionRule" },
+								"description": "Changes that always wait for review, even in acceptEdits mode and over allow rules"
+							},
+							"deny": {
+								"type": "array",
+								"items": { "$ref": "#/$defs/v1/permissionRule" },
+								"description": "Changes no one may make, the app and reviewers included"
+							},
+							"reviewers": {
+								"type": "array",
+								"items": { "type": "string" },
+								"description": "Authors who may accept, reject or preview proposals, set the mode and revoke grants over the live protocol (exact name or channel name). With a permissions section and no reviewers, no peer may."
+							}
+						}
+					}
+				}
+			},
+			"permissionRule": {
+				"type": "string",
+				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
+				"description": "\"author\" or \"author(pattern)\": author is \"*\", a channel name (\"agent\") or a full name; pattern a JSON Pointer or \"#id\" path, \"*\" for one segment, e.g. \"agent(#board)\", \"*(#statusBar)\""
+			},
+			"hexColor": {
+				"type": "string",
+				"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+			},
+			"color": {
+				"description": "\"#rgb\", \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"",
+				"anyOf": [
+					{
+						"type": "string",
+						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_-]*|transparent)$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"length": {
+				"description": "Pixels (120 or \"120px\") or a percentage of the parent (\"50%\")",
+				"anyOf": [
+					{
+						"type": "number"
+					},
+					{
+						"type": "string",
+						"pattern": "^-?[0-9]+(\\.[0-9]+)?(px|%)?$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"align": {
+				"enum": [
+					"start",
+					"center",
+					"end"
+				]
+			},
+			"state": {
+				"type": "object",
+				"required": [
+					"color"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"color": {
+						"$ref": "#/$defs/v1/color"
+					}
+				}
+			},
+			"node": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"type": {
+						"type": "string",
+						"description": "panel (default), label, textarea, stack, or a type registered by the application",
+						"anyOf": [
+							{
+								"enum": [
+									"panel",
+									"label",
+									"textarea",
+									"stack"
+								]
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"id": {
+						"type": "string"
+					},
+					"style": {
+						"oneOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"children": {
+						"type": "array",
+						"items": {
+							"$ref": "#/$defs/v1/node"
+						}
+					},
+					"x": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"y": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"width": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"height": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"minWidth": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"minHeight": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"anchors": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"top": {
+								"$ref": "#/$defs/v1/length"
+							},
+							"bottom": {
+								"$ref": "#/$defs/v1/length"
+							},
+							"left": {
+								"$ref": "#/$defs/v1/length"
+							},
+							"right": {
+								"$ref": "#/$defs/v1/length"
+							}
+						}
+					},
+					"fill": {
+						"description": "Anchor all four edges, this far in",
+						"oneOf": [
+							{
+								"const": true
+							},
+							{
+								"$ref": "#/$defs/v1/length"
+							}
+						]
+					},
+					"color": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"visible": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"cursor": {
+						"enum": [
+							"arrow",
+							"ibeam",
+							"hand",
+							"resize-horizontal",
+							"resize-vertical"
+						]
+					},
+					"hover": {
+						"$ref": "#/$defs/v1/state"
+					},
+					"pressed": {
+						"$ref": "#/$defs/v1/state"
+					},
+					"focused": {
+						"$ref": "#/$defs/v1/state"
+					},
+					"onClick": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"text": {
+						"description": "label, textarea (may contain {{bindings}})"
+					},
+					"textColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"font": {
+						"type": "string",
+						"description": "Name from \"fonts\""
+					},
+					"padding": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"align": {
+						"description": "label: text alignment (one value for both axes, or per axis). stack: start or end.",
+						"oneOf": [
+							{
+								"$ref": "#/$defs/v1/align"
+							},
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"horizontal": {
+										"$ref": "#/$defs/v1/align"
+									},
+									"vertical": {
+										"$ref": "#/$defs/v1/align"
+									}
+								}
+							}
+						]
+					},
+					"wrap": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"fitText": {
+						"description": "Size the label to its text",
+						"oneOf": [
+							{
+								"type": "boolean"
+							},
+							{
+								"type": "object",
+								"required": [
+									"maxWidth"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"maxWidth": {
+										"type": "number",
+										"exclusiveMinimum": 0
+									}
+								}
+							}
+						]
+					},
+					"placeholder": {
+						"type": "string",
+						"description": "textarea"
+					},
+					"placeholderColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"gap": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "stack"
+					},
+					"onSubmit": {
+						"$ref": "#/$defs/v1/handler",
+						"description": "textarea: Enter pressed"
+					},
+					"bind": {
+						"type": "string",
+						"description": "textarea: state path kept in sync with the text both ways"
+					},
+					"autofocus": {
+						"type": "boolean"
+					},
+					"repeat": {
+						"type": "object",
+						"required": [
+							"in"
+						],
+						"additionalProperties": false,
+						"description": "Build this node once per item of a list",
+						"properties": {
+							"for": {
+								"type": "string",
+								"description": "Item variable name (default: item)"
+							},
+							"in": {
+								"description": "A path like \"state.messages\", or any value"
+							},
+							"index": {
+								"type": "string",
+								"description": "Index variable name (default: index)"
+							}
+						}
+					},
+					"when": {
+						"description": "Build this node only if the value is truthy"
+					},
+					"locked": {
+						"type": "boolean",
+						"description": "No revision may change this node or anything inside it (needs an id)"
+					}
+				}
+			},
+			"dynamic": {
+				"description": "A binding (\"{{state.width}}\") or an operator ({\"$clamp\": [...]})",
+				"anyOf": [
+					{
+						"type": "string",
+						"pattern": "\\{\\{.*\\}\\}"
+					},
+					{
+						"$ref": "#/$defs/v1/expression"
+					}
+				]
+			},
+			"expression": {
+				"type": "object",
+				"minProperties": 1,
+				"maxProperties": 1,
+				"propertyNames": {
+					"enum": [
+						"$if",
+						"$and",
+						"$or",
+						"$not",
+						"$equals",
+						"$notEquals",
+						"$greater",
+						"$less",
+						"$greaterOrEqual",
+						"$lessOrEqual",
+						"$empty",
+						"$length",
+						"$add",
+						"$subtract",
+						"$multiply",
+						"$divide",
+						"$min",
+						"$max",
+						"$clamp",
+						"$round",
+						"$concat",
+						"$join"
+					]
+				}
+			},
+			"flag": {
+				"anyOf": [
+					{
+						"type": "boolean"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"handler": {
+				"description": "An action name, or steps to run",
+				"anyOf": [
+					{
+						"type": "string"
+					},
+					{
+						"$ref": "#/$defs/v1/steps"
+					}
+				]
+			},
+			"steps": {
+				"anyOf": [
+					{
+						"$ref": "#/$defs/v1/step"
+					},
+					{
+						"type": "array",
+						"items": {
+							"$ref": "#/$defs/v1/step"
+						}
+					}
+				]
+			},
+			"step": {
+				"type": "object",
+				"minProperties": 1,
+				"additionalProperties": false,
+				"description": "One of: set+to, push+value, remove(+at), toggle, increment(+by), if+then(+else), forEach+do(+as, index), while+do, run, call, emit(+data), patch(+message), focus, log, stop; control steps (file only): accept, reject(+reason), preview, endPreview, restore, undo",
+				"properties": {
+					"set": {
+						"type": "string"
+					},
+					"to": {},
+					"push": {
+						"type": "string"
+					},
+					"value": {},
+					"remove": {
+						"type": "string"
+					},
+					"at": {},
+					"toggle": {
+						"type": "string"
+					},
+					"increment": {
+						"type": "string"
+					},
+					"by": {},
+					"if": {},
+					"then": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"else": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"forEach": {},
+					"as": {},
+					"index": {},
+					"do": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"while": {},
+					"run": {
+						"type": "string"
+					},
+					"call": {
+						"type": "string"
+					},
+					"emit": {
+						"type": "string"
+					},
+					"data": {},
+					"patch": {},
+					"message": {},
+					"focus": {},
+					"log": {},
+					"stop": {},
+					"accept": {
+						"description": "proposal id / revision number (may be a binding)"
+					},
+					"reject": {
+						"description": "proposal id / revision number (may be a binding)"
+					},
+					"preview": {
+						"description": "proposal id / revision number (may be a binding)"
+					},
+					"restore": {
+						"description": "proposal id / revision number (may be a binding)"
+					},
+					"endPreview": {
+						"const": true
+					},
+					"undo": {
+						"const": true
+					},
+					"reason": {
+						"type": "string"
+					}
+				}
+			}
+		}
+	}
+}

@@ -1,9 +1,9 @@
 {
-	"$schema": "../../../schema/sglgui-screen.schema.json",
-	"format": "sglgui-screen",
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
 	"version": 1,
 
-	"window": { "title": "Haven: an sGLGUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+	"window": { "title": "Haven: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
 	"fonts": {
 		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
@@ -167,7 +167,7 @@
 				"color": "@sidebar",
 				"children": [
 					{ "type": "label", "text": "Haven", "font": "title", "textColor": "@text", "anchors": { "left": 28, "top": 28 }, "fitText": true },
-					{ "style": "caption", "text": "an sGLGUI template", "anchors": { "left": 28, "top": 66 } },
+					{ "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 28, "top": 66 } },
 					{ "style": "caption", "text": "ROOMS", "anchors": { "left": 28, "top": 116 } },
 					{
 						"id": "rooms",

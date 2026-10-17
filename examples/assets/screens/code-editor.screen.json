@@ -1,9 +1,9 @@
 {
-	"$schema": "../../../schema/sglgui-screen.schema.json",
-	"format": "sglgui-screen",
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
 	"version": 1,
 
-	"window": { "title": "Forge: an sGLGUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+	"window": { "title": "Forge: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
 	"fonts": {
 		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 14 },
@@ -68,17 +68,17 @@
 				"path": "src / main.cpp",
 				"language": "C++",
 				"lines": [
-					{ "t": "#include <sgl/sgl.hpp>", "c": "keyword" },
+					{ "t": "#include <affresco/affresco.hpp>", "c": "keyword" },
 					{ "t": "#include \"Board.hpp\"", "c": "keyword" },
 					{ "t": "", "c": "plain" },
 					{ "t": "// A native board app: the UI is a live document, the logic is C++", "c": "comment" },
 					{ "t": "int main() {", "c": "type" },
-					{ "t": "    sgl::Application app;", "c": "plain" },
-					{ "t": "    sgl::Screen screen = sgl::Screen::fromFile(\"screens/board.screen.json\");", "c": "plain" },
+					{ "t": "    affresco::Application app;", "c": "plain" },
+					{ "t": "    affresco::Screen screen = affresco::Screen::fromFile(\"screens/board.screen.json\");", "c": "plain" },
 					{ "t": "    screen.createWindow(app);", "c": "plain" },
 					{ "t": "", "c": "plain" },
 					{ "t": "    Board board(screen);", "c": "plain" },
-					{ "t": "    screen.onAction(\"archive\", [&](sgl::Panel&) { board.archiveDone(); });", "c": "plain" },
+					{ "t": "    screen.onAction(\"archive\", [&](affresco::Panel&) { board.archiveDone(); });", "c": "plain" },
 					{ "t": "", "c": "plain" },
 					{ "t": "    // Let an AI agent change the running app; its changes wait for review", "c": "comment" },
 					{ "t": "    screen.listen(app, \"/tmp/board/agent.sock\", \"agent\");", "c": "string" },
@@ -93,18 +93,18 @@
 				"lines": [
 					{ "t": "#pragma once", "c": "keyword" },
 					{ "t": "", "c": "plain" },
-					{ "t": "#include <sgl/Screen.hpp>", "c": "keyword" },
+					{ "t": "#include <affresco/Screen.hpp>", "c": "keyword" },
 					{ "t": "", "c": "plain" },
 					{ "t": "/// @brief Native logic behind the board screen.", "c": "comment" },
 					{ "t": "class Board {", "c": "type" },
 					{ "t": "public:", "c": "keyword" },
-					{ "t": "    explicit Board(sgl::Screen& screen);", "c": "plain" },
+					{ "t": "    explicit Board(affresco::Screen& screen);", "c": "plain" },
 					{ "t": "", "c": "plain" },
 					{ "t": "    /// @brief Moves every card in Done to the archive.", "c": "comment" },
 					{ "t": "    void archiveDone();", "c": "plain" },
 					{ "t": "", "c": "plain" },
 					{ "t": "private:", "c": "keyword" },
-					{ "t": "    sgl::Screen& screen_; ///< The board's live document.", "c": "plain" },
+					{ "t": "    affresco::Screen& screen_; ///< The board's live document.", "c": "plain" },
 					{ "t": "};", "c": "type" }
 				]
 			},
@@ -115,7 +115,7 @@
 				"lines": [
 					{ "t": "#include \"Board.hpp\"", "c": "keyword" },
 					{ "t": "", "c": "plain" },
-					{ "t": "Board::Board(sgl::Screen& screen) : screen_(screen) {}", "c": "plain" },
+					{ "t": "Board::Board(affresco::Screen& screen) : screen_(screen) {}", "c": "plain" },
 					{ "t": "", "c": "plain" },
 					{ "t": "void Board::archiveDone() {", "c": "type" },
 					{ "t": "    // The app's own change: no review, but locks still apply", "c": "comment" },
@@ -130,7 +130,7 @@
 				"language": "JSON",
 				"lines": [
 					{ "t": "{", "c": "plain" },
-					{ "t": "    \"format\": \"sglgui-screen\",", "c": "string" },
+					{ "t": "    \"format\": \"affrescoui-screen\",", "c": "string" },
 					{ "t": "    \"version\": 1,", "c": "plain" },
 					{ "t": "    \"permissions\": { \"authors\": { \"agent\": \"review\" } },", "c": "string" },
 					{ "t": "    \"state\": { \"columns\": [ ... ] },", "c": "plain" },
@@ -146,9 +146,9 @@
 					{ "t": "cmake_minimum_required(VERSION 3.25)", "c": "keyword" },
 					{ "t": "project(board-app CXX)", "c": "keyword" },
 					{ "t": "", "c": "plain" },
-					{ "t": "add_subdirectory(external/sGLGUI)", "c": "plain" },
+					{ "t": "add_subdirectory(external/AffrescoUI)", "c": "plain" },
 					{ "t": "add_executable(board src/main.cpp src/Board.cpp)", "c": "plain" },
-					{ "t": "target_link_libraries(board PRIVATE sglgui::sglgui)", "c": "plain" }
+					{ "t": "target_link_libraries(board PRIVATE affrescoui::affrescoui)", "c": "plain" }
 				]
 			},
 			{
@@ -158,7 +158,7 @@
 				"lines": [
 					{ "t": "# board-app", "c": "heading" },
 					{ "t": "", "c": "plain" },
-					{ "t": "A native task board built on sGLGUI.", "c": "plain" },
+					{ "t": "A native task board built on AffrescoUI.", "c": "plain" },
 					{ "t": "", "c": "plain" },
 					{ "t": "## Build", "c": "heading" },
 					{ "t": "    cmake -S . -B build && cmake --build build", "c": "string" }

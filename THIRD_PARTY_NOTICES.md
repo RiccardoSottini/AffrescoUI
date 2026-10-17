@@ -1,6 +1,6 @@
 # Third-party notices
 
-sGLGUI is licensed under the Apache License 2.0 (see `LICENSE` and `NOTICE`). It includes or downloads the
+AffrescoUI is licensed under the Apache License 2.0 (see `LICENSE` and `NOTICE`). It includes or downloads the
 following components, which keep their own licenses:
 
 | Component | Where | License |
@@ -11,4 +11,4 @@ following components, which keep their own licenses:
 | GLFW 3.4 | downloaded by CMake | zlib/libpng license |
 | nlohmann/json 3.11.3 | downloaded by CMake | MIT |
 
-Versions of sGLGUI published before this change were licensed under the GNU LGPL 3.0; those copies keep that license.
+Versions published before this change (under the name sGLGUI) were licensed under the GNU LGPL 3.0; those copies keep that license.

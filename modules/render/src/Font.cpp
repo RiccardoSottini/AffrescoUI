@@ -1,4 +1,4 @@
-#include "sgl/render/Font.hpp"
+#include "affresco/render/Font.hpp"
 
 #include <stb_truetype.h>
 
@@ -8,7 +8,7 @@
 #include <iterator>
 #include <stdexcept>
 
-namespace sgl {
+namespace affresco {
 
 namespace {
 
@@ -20,7 +20,7 @@ constexpr int whiteRows = 2; ///< Rows reserved at the top of the atlas for the 
 /// @throws std::runtime_error If it can't be opened.
 std::vector<unsigned char> readFile(const std::filesystem::path& path) {
 	std::ifstream file(path, std::ios::binary);
-	if(!file) throw std::runtime_error("sGLGUI: could not open font file " + path.string());
+	if(!file) throw std::runtime_error("AffrescoUI: could not open font file " + path.string());
 	return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 }
 
@@ -33,7 +33,7 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
 
 	stbtt_fontinfo info;
 	if(!stbtt_InitFont(&info, data.data(), stbtt_GetFontOffsetForIndex(data.data(), 0)))
-		throw std::runtime_error("sGLGUI: not a usable TrueType font: " + path.string());
+		throw std::runtime_error("AffrescoUI: not a usable TrueType font: " + path.string());
 
 	std::shared_ptr<Font> font(new Font());
 	font->id_ = nextId++;
@@ -79,7 +79,7 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
 		return font;
 	}
 
-	throw std::runtime_error("sGLGUI: font too large to fit an atlas: " + path.string());
+	throw std::runtime_error("AffrescoUI: font too large to fit an atlas: " + path.string());
 }
 
 const Font::Glyph& Font::glyph(char32_t codepoint) const noexcept {
@@ -130,4 +130,4 @@ Vec2 Font::whiteTexel() const noexcept {
 	return {texel, texel};
 }
 
-} // namespace sgl
+} // namespace affresco

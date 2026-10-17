@@ -1,9 +1,9 @@
 {
-	"$schema": "../../../schema/sglgui-screen.schema.json",
-	"format": "sglgui-screen",
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
 	"version": 1,
 
-	"window": { "title": "Streak: an sGLGUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+	"window": { "title": "Streak: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
 	"fonts": {
 		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
@@ -98,7 +98,7 @@
 		"color": "@background",
 		"children": [
 			{ "type": "label", "text": "Streak", "font": "title", "textColor": "@text", "anchors": { "left": 32, "top": 28 }, "fitText": true },
-			{ "style": "caption", "text": "an sGLGUI template", "anchors": { "left": 34, "top": 64 } },
+			{ "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 34, "top": 64 } },
 			{
 				"type": "label",
 				"text": "{{state.today}}",

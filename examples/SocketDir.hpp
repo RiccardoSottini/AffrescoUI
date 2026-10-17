@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief Where the examples meet: the host listens there, the Studio and the MCP server (mcp/sglgui_mcp.py)
+/// @brief Where the examples meet: the host listens there, the Studio and the MCP server (mcp/affrescoui_mcp.py)
 /// connect there.
 
 #include <filesystem>
@@ -11,9 +11,9 @@
 #include <unistd.h>
 
 /// @brief The default socket directory.
-/// @return /tmp/sglgui-<uid>.
+/// @return /tmp/affrescoui-<uid>.
 inline std::filesystem::path defaultSocketDir() {
-	return std::filesystem::path("/tmp") / ("sglgui-" + std::to_string(getuid()));
+	return std::filesystem::path("/tmp") / ("affrescoui-" + std::to_string(getuid()));
 }
 
 /// @brief Creates the socket directory, accessible only to this user.

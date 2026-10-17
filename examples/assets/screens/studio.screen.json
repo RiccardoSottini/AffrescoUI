@@ -1,9 +1,9 @@
 {
-	"$schema": "../../../schema/sglgui-screen.schema.json",
-	"format": "sglgui-screen",
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
 	"version": 1,
 
-	"window": { "title": "sGLGUI Studio", "width": 1000, "height": 760, "minWidth": 880, "minHeight": 640 },
+	"window": { "title": "AffrescoUI Studio", "width": 1000, "height": 760, "minWidth": 880, "minHeight": 640 },
 
 	"fonts": {
 		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 14 },
@@ -158,7 +158,7 @@
 		"host:event": [{ "push": "state.log", "value": { "kind": "system", "text": "The app emitted '{{event.name}}'" } }],
 		"host:closed": [
 			{ "set": "state.connected", "to": false },
-			{ "set": "state.status", "to": "Not connected: start sglgui_host, then reconnect" },
+			{ "set": "state.status", "to": "Not connected: start affrescoui_host, then reconnect" },
 			{ "push": "state.log", "value": { "kind": "error", "text": "{{event.message}}" } }
 		],
 		"local:error": [{ "push": "state.log", "value": { "kind": "error", "text": "{{event.message}}" } }]
@@ -173,7 +173,7 @@
 				"height": 64,
 				"color": "@card",
 				"children": [
-					{ "type": "label", "text": "sGLGUI Studio", "font": "title", "textColor": "@text", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "width": 200, "align": { "horizontal": "start", "vertical": "center" } },
+					{ "type": "label", "text": "AffrescoUI Studio", "font": "title", "textColor": "@text", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "width": 200, "align": { "horizontal": "start", "vertical": "center" } },
 					{ "anchors": { "left": 214, "top": 28 }, "width": 8, "height": 8, "color": { "$if": ["{{state.connected}}", "@good", "@bad"] } },
 					{ "type": "label", "text": "{{state.status}}", "textColor": "@muted", "anchors": { "left": 232, "top": 0, "bottom": 0, "right": 300 }, "align": { "horizontal": "start", "vertical": "center" } },
 					{

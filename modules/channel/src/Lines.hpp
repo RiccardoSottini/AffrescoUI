@@ -3,8 +3,8 @@
 /// @file
 /// @brief Line framing shared by the POSIX channels: one message per line, read on a background thread.
 
-#include "sgl/core/Channel.hpp"
-#include "sgl/core/Executor.hpp"
+#include "affresco/core/Channel.hpp"
+#include "affresco/core/Executor.hpp"
 
 #include <atomic>
 #include <memory>
@@ -13,7 +13,7 @@
 
 #include <unistd.h>
 
-namespace sgl::channel::detail {
+namespace affresco::channel::detail {
 
 /// @brief Reads @p fd until it closes, posting each line to the channel's onMessage, then onClosed.
 /// @param fd The descriptor to read.
@@ -62,4 +62,4 @@ inline bool writeAll(int fd, std::string_view message) {
 	return true;
 }
 
-} // namespace sgl::channel::detail
+} // namespace affresco::channel::detail

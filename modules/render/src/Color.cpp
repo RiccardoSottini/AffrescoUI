@@ -1,10 +1,10 @@
-#include "sgl/render/Color.hpp"
+#include "affresco/render/Color.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 
-namespace sgl {
+namespace affresco {
 
 namespace {
 
@@ -61,4 +61,4 @@ std::string Color::toHex() const {
 	return out;
 }
 
-} // namespace sgl
+} // namespace affresco
