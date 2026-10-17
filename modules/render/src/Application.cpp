@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 
 namespace affresco {
@@ -64,8 +65,12 @@ int Application::run() {
 		}
 		if(!anyOpen) break;
 
-		// Sleeps until there is input: no CPU or GPU used while idle
-		if(screenshot) glfwWaitEventsTimeout(std::max(0.0, deadline - glfwGetTime()));
+		// Sleeps until there is input or a timer is due: no CPU or GPU used while idle
+		std::optional<double> wait;
+		for(auto& window : windows_)
+			if(const auto next = window->secondsToNextTimer()) wait = wait ? std::min(*wait, *next) : *next;
+		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - glfwGetTime()));
+		if(wait) glfwWaitEventsTimeout(*wait);
 		else glfwWaitEvents();
 		runPostedTasks();
 	}

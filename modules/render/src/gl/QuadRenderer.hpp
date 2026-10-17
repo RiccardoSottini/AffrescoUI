@@ -29,11 +29,14 @@ public:
 	/// @throws std::runtime_error If the shader fails.
 	QuadRenderer();
 
-	/// @brief Draws a laid-out tree: collects its quads, uploads them once, draws each batch.
+	/// @brief Draws a laid-out tree, then its overlays and the tooltip: collects the quads, uploads them once, draws
+	/// each batch.
 	/// @param root The tree.
-	/// @param width Window width in layout units (not framebuffer pixels).
-	/// @param height Window height in layout units.
-	void draw(const Panel& root, int width, int height);
+	/// @param overlays Overlay panels, in drawing order (they are skipped inside the tree).
+	/// @param tooltip The tooltip to draw last, or nullptr.
+	/// @param width Window width, in window units.
+	/// @param height Window height, in window units.
+	void draw(const Panel& root, std::span<Panel* const> overlays, const Panel* tooltip, int width, int height);
 
 	/* Painter */
 	void fillRect(const Rect& rect, Color color) override;

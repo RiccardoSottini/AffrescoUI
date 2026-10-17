@@ -29,6 +29,9 @@ namespace affresco::format {
 class Runtime {
 public:
 	using Action = std::function<void(Panel& sender)>;     ///< A native action.
+	/// A native function for "call" steps: takes the step's "with" value, returns what "into" stores. Throwing
+	/// std::exception runs the step's "onError" steps (with `error`).
+	using Call = std::function<json(const json& arguments)>;
 	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a custom node type.
 	using UnhandledAction = std::function<void(const std::string& action, Panel& sender)>; ///< Fallback handler.
 
@@ -80,6 +83,11 @@ public:
 	/// @param action The handler.
 	void onAction(std::string name, Action action);
 
+	/// @brief Registers a native function for `{"call": name, "with": ..., "into": "state.x"}` steps.
+	/// @param name The function's name.
+	/// @param call The function.
+	void onCall(std::string name, Call call);
+
 	/// @brief Sets what happens with actions nobody handles (default: a message on stderr).
 	/// @param fallback The handler.
 	void onUnhandledAction(UnhandledAction fallback);
@@ -89,6 +97,19 @@ public:
 	/// @param sender The panel it comes from.
 	/// @param event Available to the action as "event".
 	void runAction(std::string_view name, Panel& sender, const json& event);
+
+	/// @brief Tells whether the document has an action of that name.
+	/// @param name The action.
+	/// @return true if "actions" has it.
+	[[nodiscard]] bool hasAction(std::string_view name) const;
+
+	/// @brief What the format offers, for agents: node types and their properties, events, steps, operators, the
+	/// registered types, native actions and calls.
+	/// @return The catalog (see SCREEN_FORMAT.md, "Catalog").
+	[[nodiscard]] json catalog() const;
+
+	/// @brief The window built into, or nullptr before build().
+	[[nodiscard]] Window* window() const noexcept;
 
 	/* Lookup */
 
@@ -111,6 +132,9 @@ public:
 
 	Signal<const json&> onEvent;        ///< "emit" steps: `{"type": "event", "name", "data", "revision"}`.
 	Signal<const std::string&> onError; ///< Errors in handlers and deferred changes (also printed on stderr).
+	Signal<const std::string&, const json&> onSend; ///< "send" steps: a channel's name and the message.
+	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
+	Signal<> onUpdated;                             ///< The panels were brought in line with the document and state.
 
 private:
 	struct Impl;

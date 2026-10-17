@@ -3,7 +3,15 @@
 	"format": "affrescoui-screen",
 	"version": 1,
 
-	"window": { "title": "Forge: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+	"note": "Forge: a code editor. Open files from the explorer or with Cmd+P, close tabs with × or Cmd+W, run commands in the terminal (Cmd+J).",
+
+	"window": {
+		"title": "Forge: an AffrescoUI template",
+		"width": 1280,
+		"height": 800,
+		"minWidth": 1040,
+		"minHeight": 640
+	},
 
 	"fonts": {
 		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 14 },
@@ -49,8 +57,6 @@
 		"project": "board-app",
 		"tabs": [0, 1],
 		"active": 0,
-		"found": false,
-		"openFile": 0,
 		"command": "",
 		"tree": [
 			{ "label": "src/", "depth": 0, "file": -1 },
@@ -74,13 +80,22 @@
 					{ "t": "// A native board app: the UI is a live document, the logic is C++", "c": "comment" },
 					{ "t": "int main() {", "c": "type" },
 					{ "t": "    affresco::Application app;", "c": "plain" },
-					{ "t": "    affresco::Screen screen = affresco::Screen::fromFile(\"screens/board.screen.json\");", "c": "plain" },
+					{
+						"t": "    affresco::Screen screen = affresco::Screen::fromFile(\"screens/board.screen.json\");",
+						"c": "plain"
+					},
 					{ "t": "    screen.createWindow(app);", "c": "plain" },
 					{ "t": "", "c": "plain" },
 					{ "t": "    Board board(screen);", "c": "plain" },
-					{ "t": "    screen.onAction(\"archive\", [&](affresco::Panel&) { board.archiveDone(); });", "c": "plain" },
+					{
+						"t": "    screen.onAction(\"archive\", [&](affresco::Panel&) { board.archiveDone(); });",
+						"c": "plain"
+					},
 					{ "t": "", "c": "plain" },
-					{ "t": "    // Let an AI agent change the running app; its changes wait for review", "c": "comment" },
+					{
+						"t": "    // Let an AI agent change the running app; its changes wait for review",
+						"c": "comment"
+					},
 					{ "t": "    screen.listen(app, \"/tmp/board/agent.sock\", \"agent\");", "c": "string" },
 					{ "t": "    return app.run();", "c": "keyword" },
 					{ "t": "}", "c": "type" }
@@ -120,7 +135,10 @@
 					{ "t": "void Board::archiveDone() {", "c": "type" },
 					{ "t": "    // The app's own change: no review, but locks still apply", "c": "comment" },
 					{ "t": "    screen_.applyRevision(R\"({\"message\": \"Archive done cards\",", "c": "string" },
-					{ "t": "        \"patch\": [{\"op\": \"replace\", \"path\": \"/state/columns/3/cards\", \"value\": []}]})\");", "c": "string" },
+					{
+						"t": "        \"patch\": [{\"op\": \"replace\", \"path\": \"/state/columns/3/cards\", \"value\": []}]})\");",
+						"c": "string"
+					},
 					{ "t": "}", "c": "type" }
 				]
 			},
@@ -170,47 +188,79 @@
 			{ "t": "[ 50%] Building CXX object src/Board.cpp.o", "c": "plain" },
 			{ "t": "[100%] Linking CXX executable board", "c": "plain" },
 			{ "t": "Build finished: 0 warnings", "c": "comment" }
-		]
+		],
+		"activity": [
+			{ "short": "Fi", "name": "Explorer" },
+			{ "short": "Se", "name": "Search" },
+			{ "short": "Gi", "name": "Source control" },
+			{ "short": "Ru", "name": "Run and debug" }
+		],
+		"commands": {
+			"help": [{ "t": "commands: build, run, help, clear", "c": "plain" }],
+			"build": [{ "t": "[100%] Built target board: 0 warnings", "c": "comment" }],
+			"run": [{ "t": "board: listening on /tmp/board/agent.sock", "c": "plain" }]
+		},
+		"palette": false,
+		"query": ""
+	},
+
+	"computed": {
+		"file": "{{state.files[state.active]}}",
+		"matches": "{{filter(range(len(state.files)), contains(lower(state.files[it].name), lower(trim(state.query))))}}"
 	},
 
 	"styles": {
-		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true }
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
+		"codeLine": { "type": "label", "font": "code", "align": { "horizontal": "start", "vertical": "center" } }
 	},
 
 	"actions": {
 		"open": [
-			{ "set": "state.found", "to": false },
-			{ "forEach": "state.tabs", "as": "tab", "do": [{ "if": { "$equals": ["{{tab}}", "{{state.openFile}}"] }, "then": [{ "set": "state.found", "to": true }] }] },
-			{ "if": { "$not": "{{state.found}}" }, "then": [{ "push": "state.tabs", "value": "{{state.openFile}}" }] },
-			{ "set": "state.active", "to": "{{state.openFile}}" }
+			{ "note": "with: file (an index in state.files)" },
+			{ "if": "{{!contains(state.tabs, file)}}", "then": [{ "push": "state.tabs", "value": "{{file}}" }] },
+			{ "set": "state.active", "to": "{{file}}" }
+		],
+		"close": [
+			{ "note": "with: at (a tab position)" },
+			{ "remove": "state.tabs", "at": "{{at}}" },
+			{
+				"if": "{{!contains(state.tabs, state.active)}}",
+				"then": [{ "set": "state.active", "to": "{{state.tabs[min(at, len(state.tabs) - 1)]}}" }]
+			}
 		],
 		"runCommand": [
-			{ "if": { "$empty": "{{state.command}}" }, "then": [{ "stop": true }] },
+			{ "if": "{{len(trim(state.command)) == 0}}", "then": [{ "stop": true }] },
 			{ "push": "state.terminal", "value": { "t": "$ {{state.command}}", "c": "prompt" } },
 			{
-				"if": { "$equals": ["{{state.command}}", "clear"] },
+				"if": "{{state.command == 'clear'}}",
 				"then": [{ "set": "state.terminal", "to": [] }],
 				"else": [
 					{
-						"if": { "$equals": ["{{state.command}}", "help"] },
-						"then": [{ "push": "state.terminal", "value": { "t": "commands: build, run, help, clear", "c": "plain" } }],
-						"else": [
-							{
-								"if": { "$equals": ["{{state.command}}", "build"] },
-								"then": [{ "push": "state.terminal", "value": { "t": "[100%] Built target board: 0 warnings", "c": "comment" } }],
-								"else": [
-									{
-										"if": { "$equals": ["{{state.command}}", "run"] },
-										"then": [{ "push": "state.terminal", "value": { "t": "board: listening on /tmp/board/agent.sock", "c": "plain" } }],
-										"else": [{ "push": "state.terminal", "value": { "t": "{{state.command}}: command not found (try help)", "c": "string" } }]
-									}
-								]
-							}
-						]
+						"forEach": "{{state.commands[state.command] ?? [{ 't': state.command + ': command not found (try help)', 'c': 'string' }]}}",
+						"as": "out",
+						"do": [{ "push": "state.terminal", "value": "{{out}}" }]
 					}
 				]
 			},
 			{ "set": "state.command", "to": "" }
+		],
+		"openMatch": [
+			{ "if": "{{len(computed.matches) == 0}}", "then": [{ "stop": true }] },
+			{ "run": "open", "with": { "file": "{{computed.matches[0]}}" } },
+			{ "set": "state.palette", "to": false }
+		]
+	},
+
+	"keys": {
+		"mod+w": {
+			"if": "{{contains(state.tabs, state.active)}}",
+			"then": { "run": "close", "with": { "at": "{{indexOf(state.tabs, state.active)}}" } }
+		},
+		"mod+j": { "focus": "#command" },
+		"mod+p": [
+			{ "set": "state.query", "to": "" },
+			{ "set": "state.palette", "to": true },
+			{ "focus": "#paletteInput" }
 		]
 	},
 
@@ -224,18 +274,28 @@
 				"color": "@activity",
 				"children": [
 					{
-						"repeat": { "for": "item", "in": ["Fi", "Se", "Gi", "Ru"] },
-						"type": "label",
-						"text": "{{item}}",
-						"font": "small",
-						"anchors": { "left": 8, "top": { "$add": [{ "$multiply": ["{{index}}", 44] }, 12] } },
+						"id": "activity",
+						"type": "column",
+						"gap": 12,
+						"anchors": { "left": 8, "top": 12, "bottom": 0 },
 						"width": 32,
-						"height": 32,
-						"align": "center",
-						"color": { "$if": [{ "$equals": ["{{index}}", 0] }, "@selected", "@activity"] },
-						"hover": { "color": "@hover" },
-						"textColor": { "$if": [{ "$equals": ["{{index}}", 0] }, "@text", "@muted"] },
-						"cursor": "hand"
+						"children": [
+							{
+								"repeat": { "for": "item", "in": "state.activity" },
+								"let": { "selected": "{{index == 0}}" },
+								"type": "label",
+								"text": "{{item.short}}",
+								"font": "small",
+								"width": 32,
+								"height": 32,
+								"align": "center",
+								"color": "{{selected ? '@selected' : '@activity'}}",
+								"hover": { "color": "@hover" },
+								"textColor": "{{selected ? '@text' : '@muted'}}",
+								"cursor": "hand",
+								"tooltip": "{{item.name}}"
+							}
+						]
 					}
 				]
 			},
@@ -246,7 +306,14 @@
 				"color": "@sidebar",
 				"children": [
 					{ "style": "caption", "text": "EXPLORER", "anchors": { "left": 20, "top": 14 } },
-					{ "type": "label", "text": "{{state.project}}", "font": "small", "textColor": "@text", "anchors": { "left": 20, "top": 42 }, "fitText": true },
+					{
+						"type": "label",
+						"text": "{{state.project}}",
+						"font": "small",
+						"textColor": "@text",
+						"anchors": { "left": 20, "top": 42 },
+						"fitText": true
+					},
 					{
 						"id": "tree",
 						"type": "stack",
@@ -254,20 +321,26 @@
 						"gap": 0,
 						"children": [
 							{
+								"id": "entry",
 								"repeat": { "for": "entry", "in": "state.tree" },
+								"let": { "open": "{{entry.file == state.active}}" },
 								"type": "label",
 								"text": "{{entry.label}}",
-								"anchors": { "left": { "$add": [{ "$multiply": ["{{entry.depth}}", 16] }, 8] }, "right": 8 },
+								"anchors": { "left": "{{entry.depth * 16 + 8}}", "right": 8 },
 								"height": 26,
 								"padding": 12,
 								"align": { "horizontal": "start", "vertical": "center" },
-								"color": { "$if": [{ "$equals": ["{{entry.file}}", "{{state.active}}"] }, "@selected", "@sidebar"] },
-								"hover": { "color": { "$if": [{ "$equals": ["{{entry.file}}", "{{state.active}}"] }, "@selected", "@hover"] } },
-								"textColor": { "$if": [{ "$less": ["{{entry.file}}", 0] }, "@muted", "@text"] },
-								"cursor": "hand",
-								"onClick": [{ "if": { "$greaterOrEqual": ["{{entry.file}}", 0] }, "then": [{ "set": "state.openFile", "to": "{{entry.file}}" }, { "run": "open" }] }]
+								"color": "{{open ? '@selected' : '@sidebar'}}",
+								"hover": { "color": "{{open ? '@selected' : '@hover'}}" },
+								"textColor": "{{entry.file < 0 ? '@muted' : '@text'}}",
+								"cursor": "{{entry.file < 0 ? 'arrow' : 'hand'}}",
+								"onClick": {
+									"if": "{{entry.file >= 0}}",
+									"then": { "run": "open", "with": { "file": "{{entry.file}}" } }
+								}
 							}
-						]
+						],
+						"scroll": "vertical"
 					}
 				]
 			},
@@ -283,37 +356,48 @@
 						"color": "@tabs",
 						"children": [
 							{
-								"repeat": { "for": "tab", "in": "state.tabs", "index": "i" },
-								"type": "label",
-								"text": "{{state.files[tab].name}}",
-								"anchors": { "top": 0, "bottom": 0 },
-								"x": { "$multiply": ["{{i}}", 168] },
-								"width": 167,
-								"padding": 14,
-								"align": { "horizontal": "start", "vertical": "center" },
-								"color": { "$if": [{ "$equals": ["{{tab}}", "{{state.active}}"] }, "@tabActive", "@tab"] },
-								"hover": { "color": { "$if": [{ "$equals": ["{{tab}}", "{{state.active}}"] }, "@tabActive", "@hover"] } },
-								"textColor": { "$if": [{ "$equals": ["{{tab}}", "{{state.active}}"] }, "@text", "@muted"] },
-								"cursor": "hand",
-								"onClick": [{ "set": "state.active", "to": "{{tab}}" }],
+								"id": "tabRow",
+								"type": "row",
+								"gap": 1,
+								"anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 },
+								"scroll": "horizontal",
 								"children": [
-									{ "when": { "$equals": ["{{tab}}", "{{state.active}}"] }, "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 2, "color": "@accent" },
 									{
+										"id": "tab",
+										"repeat": { "for": "tab", "in": "state.tabs", "index": "i", "key": "{{tab}}" },
+										"let": { "active": "{{tab == state.active}}" },
 										"type": "label",
-										"text": "×",
-										"anchors": { "right": 8, "top": 8 },
-										"width": 20,
-										"height": 20,
-										"align": "center",
-										"color": "transparent",
-										"hover": { "color": "@selected" },
-										"textColor": "@muted",
+										"text": "{{state.files[tab].name}}",
+										"anchors": { "top": 0, "bottom": 0 },
+										"width": 167,
+										"padding": 14,
+										"align": { "horizontal": "start", "vertical": "center" },
+										"color": "{{active ? '@tabActive' : '@tab'}}",
+										"hover": { "color": "{{active ? '@tabActive' : '@hover'}}" },
+										"textColor": "{{active ? '@text' : '@muted'}}",
 										"cursor": "hand",
-										"onClick": [
+										"tooltip": "{{state.files[tab].path}}",
+										"onClick": { "set": "state.active", "to": "{{tab}}" },
+										"children": [
 											{
-												"if": { "$equals": ["{{tab}}", "{{state.active}}"] },
-												"then": [{ "remove": "state.tabs", "at": "{{i}}" }, { "set": "state.active", "to": "{{state.tabs[0]}}" }],
-												"else": [{ "remove": "state.tabs", "at": "{{i}}" }]
+												"when": "{{active}}",
+												"anchors": { "left": 0, "right": 0, "top": 0 },
+												"height": 2,
+												"color": "@accent"
+											},
+											{
+												"type": "label",
+												"text": "×",
+												"anchors": { "right": 8, "top": 8 },
+												"width": 20,
+												"height": 20,
+												"align": "center",
+												"color": "transparent",
+												"hover": { "color": "@selected" },
+												"textColor": "@muted",
+												"cursor": "hand",
+												"tooltip": "Close (Cmd+W)",
+												"onClick": { "run": "close", "with": { "at": "{{i}}" } }
 											}
 										]
 									}
@@ -323,48 +407,46 @@
 					},
 					{
 						"id": "breadcrumbs",
-						"when": "{{state.files[state.active]}}",
+						"when": "{{computed.file}}",
 						"style": "caption",
-						"text": "{{state.files[state.active].path}}",
+						"text": "{{computed.file.path}}",
 						"anchors": { "left": 20, "top": 44 }
 					},
 					{
 						"id": "editor",
-						"when": "{{state.files[state.active]}}",
+						"when": "{{computed.file}}",
 						"type": "stack",
 						"anchors": { "left": 0, "right": 0, "top": 70, "bottom": 212 },
 						"gap": 0,
 						"children": [
 							{
-								"repeat": { "for": "line", "in": "state.files[state.active].lines" },
+								"repeat": { "for": "line", "in": "computed.file.lines" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 22,
 								"color": "transparent",
 								"children": [
 									{
-										"type": "label",
-										"text": { "$add": ["{{index}}", 1] },
-										"font": "code",
+										"style": "codeLine",
+										"text": "{{index + 1}}",
 										"textColor": "@faint",
 										"anchors": { "left": 0, "top": 0, "bottom": 0 },
 										"width": 48,
 										"align": { "horizontal": "end", "vertical": "center" }
 									},
 									{
-										"type": "label",
+										"style": "codeLine",
 										"text": "{{line.t}}",
-										"font": "code",
 										"textColor": "@{{line.c}}",
-										"anchors": { "left": 72, "right": 16, "top": 0, "bottom": 0 },
-										"align": { "horizontal": "start", "vertical": "center" }
+										"anchors": { "left": 72, "right": 16, "top": 0, "bottom": 0 }
 									}
 								]
 							}
-						]
+						],
+						"scroll": "vertical"
 					},
 					{
 						"id": "welcome",
-						"when": { "$not": "{{state.files[state.active]}}" },
+						"when": "{{!computed.file}}",
 						"type": "label",
 						"text": "No file open. Pick one in the explorer.",
 						"textColor": "@muted",
@@ -378,25 +460,32 @@
 						"color": "@panel",
 						"children": [
 							{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
-							{ "type": "label", "text": "TERMINAL", "font": "small", "textColor": "@text", "anchors": { "left": 20, "top": 10 }, "fitText": true },
+							{
+								"type": "label",
+								"text": "TERMINAL",
+								"font": "small",
+								"textColor": "@text",
+								"anchors": { "left": 20, "top": 10 },
+								"fitText": true
+							},
 							{ "anchors": { "left": 20, "top": 28 }, "width": 58, "height": 1, "color": "@accent" },
 							{
 								"type": "stack",
 								"anchors": { "left": 20, "right": 20, "top": 40, "bottom": 44 },
-								"align": "end",
 								"gap": 0,
 								"children": [
 									{
 										"repeat": { "for": "out", "in": "state.terminal" },
-										"type": "label",
+										"style": "codeLine",
 										"text": "{{out.t}}",
-										"font": "code",
 										"textColor": "@{{out.c}}",
 										"anchors": { "left": 0, "right": 0 },
-										"height": 20,
-										"align": { "horizontal": "start", "vertical": "center" }
+										"height": 20
 									}
-								]
+								],
+								"from": "end",
+								"scroll": "vertical",
+								"id": "terminalOutput"
 							},
 							{
 								"id": "command",
@@ -429,16 +518,89 @@
 						"font": "small",
 						"textColor": "@statusText",
 						"anchors": { "left": 16, "top": 0, "bottom": 0, "right": 300 },
-						"align": { "horizontal": "start", "vertical": "center" }
+						"align": { "horizontal": "start", "vertical": "center" },
+						"id": "statusText"
 					},
 					{
 						"type": "label",
-						"text": "{{state.files[state.active].language}}  ·  UTF-8  ·  {{window.width}} × {{window.height}}",
+						"text": "{{computed.file.language ?? 'No file'}}  ·  UTF-8  ·  {{window.width}} × {{window.height}}",
 						"font": "small",
 						"textColor": "@statusText",
 						"anchors": { "right": 16, "top": 0, "bottom": 0 },
 						"width": 280,
-						"align": { "horizontal": "end", "vertical": "center" }
+						"align": { "horizontal": "end", "vertical": "center" },
+						"id": "statusSize"
+					}
+				]
+			},
+			{
+				"id": "paletteBackdrop",
+				"overlay": { "placement": "window", "open": "state.palette" },
+				"fill": 0,
+				"color": "#00000088",
+				"onClick": { "set": "state.palette", "to": false }
+			},
+			{
+				"id": "palette",
+				"overlay": { "placement": "center", "open": "state.palette", "dismiss": "outside" },
+				"width": 520,
+				"height": 320,
+				"color": "@sidebar",
+				"children": [
+					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 2, "color": "@accent" },
+					{
+						"id": "paletteInput",
+						"type": "textarea",
+						"anchors": { "left": 12, "right": 12, "top": 14 },
+						"height": 36,
+						"padding": 10,
+						"color": "@input",
+						"focused": { "color": "@hover" },
+						"textColor": "@text",
+						"placeholder": "Open a file by name, then Enter",
+						"placeholderColor": "@faint",
+						"bind": "state.query",
+						"onSubmit": "openMatch"
+					},
+					{
+						"type": "column",
+						"anchors": { "left": 12, "right": 12, "top": 60, "bottom": 12 },
+						"gap": 2,
+						"scroll": "vertical",
+						"children": [
+							{
+								"repeat": { "for": "f", "in": "computed.matches", "index": "n" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 40,
+								"color": "{{n == 0 ? '@selected' : '@sidebar'}}",
+								"hover": { "color": "@hover" },
+								"cursor": "hand",
+								"onClick": [
+									{ "run": "open", "with": { "file": "{{f}}" } },
+									{ "set": "state.palette", "to": false }
+								],
+								"children": [
+									{
+										"type": "label",
+										"text": "{{state.files[f].name}}",
+										"textColor": "@text",
+										"anchors": { "left": 12, "top": 4 },
+										"fitText": true
+									},
+									{
+										"style": "caption",
+										"text": "{{state.files[f].path}}",
+										"anchors": { "left": 12, "top": 22 }
+									}
+								]
+							}
+						]
+					},
+					{
+						"when": "{{len(computed.matches) == 0}}",
+						"style": "caption",
+						"text": "No file matches '{{state.query}}'",
+						"anchors": { "left": 24, "top": 72 }
 					}
 				]
 			}

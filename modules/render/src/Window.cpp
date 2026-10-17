@@ -1,4 +1,5 @@
 #include "affresco/render/Window.hpp"
+#include "affresco/render/Label.hpp"
 
 #include "detail/Ppm.hpp"
 #include "gl/Context.hpp"
@@ -7,11 +8,19 @@
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
+#include <cmath>
 #include <array>
 #include <stdexcept>
 #include <utility>
 
 namespace affresco {
+
+namespace {
+
+constexpr double tooltipDelayMs = 600.0; ///< How long the pointer rests before a tooltip shows.
+constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
+
+} // namespace
 
 void Window::HandleDeleter::operator()(GLFWwindow* handle) const noexcept { glfwDestroyWindow(handle); }
 
@@ -93,6 +102,8 @@ void Window::setDefaultFont(std::shared_ptr<const Font> font) {
 
 Panel* Window::panelAt(Vec2 point) {
 	updateLayout();
+	for(auto it = overlays_.rbegin(); it != overlays_.rend(); ++it) // above everything, the latest on top
+		if(Panel* hit = (*it)->hitTest(point)) return hit;
 	return root_.hitTest(point);
 }
 
@@ -108,10 +119,84 @@ void Window::updateLayout() {
 	root_.width_ = px(width);
 	root_.height_ = px(height);
 	layingOut_ = true;
-	root_.layout(Rect{0.0f, 0.0f, width, height}, Vec2{width, height}, true);
+	const Rect area{0.0f, 0.0f, width, height};
+
+	// A panel anchored to a later one (not placed yet) is placed again in a second pass, from the first pass's frames
+	forwardAnchor_ = false;
+	for(int pass = 0; pass < 2 && (pass == 0 || forwardAnchor_); ++pass) {
+		++layoutPass_;
+		forwardAnchor_ = false;
+		root_.layout(area, area, Vec2{width, height}, true);
+		overlays_.clear();
+		layoutOverlays(root_);
+	}
+
+	if(tooltipShown_ && tooltip_) {
+		const Vec2 size{tooltip_->measuredWidth(width), tooltip_->measuredHeight(height)};
+		const float left = std::clamp(cursor_.x + 12.0f, 0.0f, std::max(width - size.x - 4.0f, 0.0f));
+		float top = cursor_.y + 20.0f;
+		if(top + size.y > height) top = cursor_.y - size.y - 8.0f;
+		tooltip_->layout(Rect{left, top, left + size.x, top + size.y}, area, Vec2{width, height}, true);
+	}
 	layingOut_ = false;
 
 	layoutDirty_ = false;
+}
+
+// Pre-order, after the tree: an overlay's own overlays come after it, so they are drawn on top of it
+void Window::layoutOverlays(Panel& panel) {
+	for(auto& child : panel.children_) {
+		if(child->overlay_) {
+			layoutOverlay(*child, panel);
+			overlays_.push_back(child.get());
+		}
+		layoutOverlays(*child);
+	}
+}
+
+void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
+	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
+	const Rect area{0.0f, 0.0f, width, height};
+	const Panel* anchor = overlay.overlayAnchor_.empty() ? &parent : root_.findById(overlay.overlayAnchor_);
+	if(!anchor) anchor = &parent;
+	const Rect& a = anchor->frame_;
+	const Vec2 size{overlay.measuredWidth(width), overlay.measuredHeight(height)};
+
+	Vec2 at;
+	switch(overlay.placement_) {
+	case Placement::Below:
+		at = {a.left, a.bottom};
+		break;
+	case Placement::BelowEnd:
+		at = {a.right - size.x, a.bottom};
+		break;
+	case Placement::Above:
+		at = {a.left, a.top - size.y};
+		break;
+	case Placement::AboveEnd:
+		at = {a.right - size.x, a.top - size.y};
+		break;
+	case Placement::Right:
+		at = {a.right, a.top};
+		break;
+	case Placement::Left:
+		at = {a.left - size.x, a.top};
+		break;
+	case Placement::Center:
+		at = {(width - size.x) / 2.0f, (height - size.y) / 2.0f};
+		break;
+	case Placement::Window:
+		break;
+	}
+
+	// Kept inside the window; Window placement measures everything from the window itself
+	Rect origin = area;
+	if(overlay.placement_ != Placement::Window) {
+		at.x = std::clamp(at.x, 0.0f, std::max(width - size.x, 0.0f));
+		at.y = std::clamp(at.y, 0.0f, std::max(height - size.y, 0.0f));
+		origin = {std::round(at.x), std::round(at.y), std::round(at.x) + width, std::round(at.y) + height};
+	}
+	overlay.layout(origin, area, Vec2{width, height}, parent.shown_);
 }
 
 void Window::draw() {
@@ -123,7 +208,7 @@ void Window::draw() {
 	gl::beginFrame(framebufferWidth, framebufferHeight);
 
 	updateLayout();
-	renderer_->draw(root_, width_, height_);
+	renderer_->draw(root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_);
 }
 
 void Window::defer(std::function<void()> task) {
@@ -140,7 +225,42 @@ void Window::runDeferred() {
 	}
 }
 
+std::uint64_t Window::setTimer(double delayMs, std::function<void()> task) {
+	const std::uint64_t id = nextTimerId_++;
+	timers_.push_back({id, glfwGetTime() + std::max(delayMs, 0.0) / 1000.0, std::move(task)});
+	glfwPostEmptyEvent(); // the event loop recomputes how long it may sleep
+	return id;
+}
+
+void Window::cancelTimer(std::uint64_t id) {
+	std::erase_if(timers_, [id](const Timer& timer) { return timer.id == id; });
+}
+
+std::optional<double> Window::secondsToNextTimer() const {
+	if(timers_.empty()) return std::nullopt;
+	double due = timers_.front().due;
+	for(const Timer& timer : timers_) due = std::min(due, timer.due);
+	return std::max(due - glfwGetTime(), 0.0);
+}
+
+// Each due timer runs once; tasks may set new timers, which wait for their own time
+void Window::runTimers() {
+	const double now = glfwGetTime();
+	std::vector<Timer> due;
+	for(auto it = timers_.begin(); it != timers_.end();) {
+		if(it->due <= now) {
+			due.push_back(std::move(*it));
+			it = timers_.erase(it);
+		} else {
+			++it;
+		}
+	}
+	std::ranges::sort(due, {}, &Timer::due);
+	for(Timer& timer : due) timer.task();
+}
+
 void Window::render() {
+	runTimers();
 	runDeferred();
 	if(!redrawDirty_) return;
 
@@ -253,6 +373,11 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 	setHovered(hit);
 
 	if(event.action == Action::Press) {
+		if(tooltipShown_ || tooltipTimer_) { // a press dismisses the tooltip until the pointer moves to another panel
+			cancelTimer(std::exchange(tooltipTimer_, 0));
+			tooltipShown_ = false;
+			invalidate();
+		}
 		if(event.button == MouseButton::Left) setFocus(hit);
 		if(!grabbed_) grabbed_ = hit;
 	}
@@ -271,7 +396,13 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 
 void Window::routeScroll(const ScrollEvent& event) {
 	++routing_;
-	if(Panel* target = panelAt(event.position)) target->scrollEvent(event);
+	// The panel under the pointer hears it; the nearest scrollable one (it or an ancestor) scrolls
+	if(Panel* target = panelAt(event.position)) {
+		target->scrollEvent(event);
+		for(Panel* panel = target; panel; panel = panel->parent_)
+			if(panel->isScrollable() && panel->scrollBy({-event.offset.x * scrollSpeed, -event.offset.y * scrollSpeed}))
+				break;
+	}
 	onScroll(event);
 
 	if(--routing_ == 0) runDeferred();
@@ -286,15 +417,53 @@ void Window::forget(const Panel& panel) noexcept {
 	if(focused_ == &panel) focused_ = nullptr;
 	if(hovered_ == &panel) hovered_ = nullptr;
 	if(grabbed_ == &panel) grabbed_ = nullptr;
+	std::erase(overlays_, &panel);
 }
 
+// Like CSS :hover, a panel counts as hovered while the pointer is over it or over any of its descendants
 void Window::setHovered(Panel* panel) {
 	if(panel == hovered_) return;
 
-	Panel* previous = std::exchange(hovered_, panel);
-	if(previous) previous->hoverEvent(false);
-	if(hovered_) hovered_->hoverEvent(true);
+	std::vector<Panel*> before, after;
+	for(Panel* p = hovered_; p; p = p->parent_) before.push_back(p);
+	for(Panel* p = panel; p; p = p->parent_) after.push_back(p);
+	hovered_ = panel;
+
+	for(Panel* p : before) // left: innermost first
+		if(std::ranges::find(after, p) == after.end()) p->hoverEvent(false);
+	for(auto it = after.rbegin(); it != after.rend(); ++it) // entered: outermost first
+		if(std::ranges::find(before, *it) == before.end()) (*it)->hoverEvent(true);
+
 	updateCursor();
+	restartTooltip();
+}
+
+void Window::restartTooltip() {
+	cancelTimer(std::exchange(tooltipTimer_, 0));
+	if(tooltipShown_) {
+		tooltipShown_ = false;
+		invalidate();
+	}
+
+	const Panel* owner = hovered_;
+	while(owner && owner->tooltip().empty()) owner = owner->parent_;
+	if(!owner || grabbed_) return;
+
+	tooltipTimer_ = setTimer(tooltipDelayMs, [this, text = owner->tooltip()] {
+		tooltipTimer_ = 0;
+		if(!tooltip_) {
+			tooltip_ = std::make_unique<Label>();
+			tooltip_->attachTo(this);
+			tooltip_->setColor(Color::hex(0x111827));
+			tooltip_->setTextColor(colors::white);
+			tooltip_->setPadding(6.0f);
+			tooltip_->setFitToText(true, 320.0f);
+			tooltip_->setWrap(true);
+		}
+		tooltip_->setText(text);
+		tooltipShown_ = true;
+		invalidate();
+	});
 }
 
 void Window::updateCursor() {

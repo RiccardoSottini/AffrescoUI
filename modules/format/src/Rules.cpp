@@ -14,8 +14,11 @@ namespace {
 constexpr int supportedVersions[] = {1};
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
-constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "endPreview", "restore",
-                                             "revert", "undo",   "patch",   "call"};
+constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "endPreview", "restore", "revert",
+                                             "undo",   "patch",  "call",    "send",       "connect"};
+
+/// Sections that grant capabilities (talking to programs, writing to disk): revisions may never change them.
+constexpr std::string_view capabilities[] = {"permissions", "channels", "persist"};
 
 /// @brief Collects every control step in a document, to compare before and after a revision.
 /// @param value The document, or part of it.
@@ -41,9 +44,10 @@ std::vector<std::string> controlsIn(const json& value) {
 void Rules::validate(const json& doc) const {
 	expect::object(doc, "");
 
-	static constexpr std::string_view sections[] = {"$schema", "format", "version", "window",
-	                                                "fonts",   "colors", "styles",  "templates",
-	                                                "root",    "state",  "actions", "permissions"};
+	static constexpr std::string_view sections[] = {
+	    "$schema", "format",   "version", "note",    "window", "fonts",    "colors",   "theme",
+	    "styles",  "components", "templates", "screens", "state", "computed", "watch",    "actions",
+	    "keys",    "onLoad",   "channels", "persist", "permissions", "root"};
 	for(const auto& [key, value] : doc.items()) {
 		if(std::ranges::find(sections, key) == std::end(sections)) fail(key, "unknown section");
 	}
@@ -55,7 +59,33 @@ void Rules::validate(const json& doc) const {
 	if(std::ranges::find(supportedVersions, v) == std::end(supportedVersions))
 		fail("version", "unsupported version " + std::to_string(v) + " (this library reads version 1)");
 	if(!doc.contains("root")) fail("", "missing \"root\"");
-	if(doc.contains("actions")) expect::object(doc["actions"], "actions");
+	for(const char* section : {"actions", "styles", "components", "templates", "screens", "computed", "watch", "keys",
+	                           "channels"})
+		if(doc.contains(section)) expect::object(doc[section], section);
+	if(doc.contains("components"))
+		for(const auto& [name, component] : doc["components"].items()) {
+			expect::object(component, "components." + name);
+			if(!component.contains("node")) fail("components." + name, "a component needs a \"node\"");
+			for(const auto& [key, value] : component.items())
+				if(key != "node" && key != "params" && key != "note")
+					fail("components." + name + "." + key, "unknown property (expected node, params or note)");
+		}
+	if(doc.contains("channels"))
+		for(const auto& [name, channel] : doc["channels"].items()) {
+			const std::string at = "channels." + name;
+			expect::object(channel, at);
+			if(!channel.contains("socket")) fail(at, "a channel needs a \"socket\"");
+			for(const auto& [key, value] : channel.items())
+				if(key != "socket" && key != "reconnect" && key != "note")
+					fail(at + "." + key, "unknown property (expected socket or reconnect)");
+		}
+	if(doc.contains("persist")) {
+		const json& persist = doc["persist"];
+		if(!persist.is_array()) fail("persist", "expected a list of state paths, e.g. [\"state.habits\"]");
+		for(std::size_t i = 0; i < persist.size(); ++i)
+			if(!expect::string(persist[i], "persist[" + std::to_string(i) + "]").starts_with("state."))
+				fail("persist[" + std::to_string(i) + "]", "expected a path under state, e.g. \"state.habits\"");
+	}
 
 	if(doc.contains("permissions")) {
 		for(const auto& [key, value] : expect::object(doc["permissions"], "permissions").items()) {
@@ -91,9 +121,15 @@ std::optional<std::string> Rules::findNode(const json& doc, std::string_view nod
 
 	if(doc.contains("root"))
 		if(auto found = search(doc["root"], "/root")) return found;
-	if(doc.contains("templates")) {
-		for(const auto& [name, node] : doc["templates"].items())
-			if(auto found = search(node, "/templates/" + name)) return found;
+	for(const char* section : {"screens", "templates"}) {
+		if(!doc.contains(section) || !doc[section].is_object()) continue;
+		for(const auto& [name, node] : doc[section].items())
+			if(auto found = search(node, "/" + std::string(section) + "/" + name)) return found;
+	}
+	if(doc.contains("components") && doc["components"].is_object()) {
+		for(const auto& [name, component] : doc["components"].items())
+			if(component.is_object() && component.contains("node"))
+				if(auto found = search(component["node"], "/components/" + name + "/node")) return found;
 	}
 	return std::nullopt;
 }
@@ -124,16 +160,22 @@ Permissions Rules::permissions(const json& doc) const {
 			for(const json& child : node["children"]) collect(child);
 	};
 	if(doc.contains("root")) collect(doc["root"]);
+	for(const char* section : {"screens", "templates"})
+		if(doc.contains(section) && doc[section].is_object())
+			for(const auto& [name, node] : doc[section].items()) collect(node);
 	return result;
 }
 
 void Rules::checkChange(const json& before, const json& after) const {
-	if(before.value("permissions", json()) != after.value("permissions", json()))
-		fail("revision", "permission denied: revisions can't change \"permissions\"");
+	for(std::string_view section : capabilities) {
+		const std::string key(section);
+		if(before.value(key, json()) != after.value(key, json()))
+			fail("revision", "permission denied: revisions can't change \"" + key + "\"");
+	}
 
 	if(controlsIn(before) != controlsIn(after))
 		fail("revision", "permission denied: revisions can't add or change accept, reject, preview, endPreview, "
-		                 "restore, revert, undo, patch or call steps");
+		                 "restore, revert, undo, patch, call, send or connect steps");
 }
 
 } // namespace affresco::format

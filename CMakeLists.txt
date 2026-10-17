@@ -3,6 +3,11 @@ project(AffrescoUI VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Optimised unless asked otherwise (-DCMAKE_BUILD_TYPE=Debug): the runtime evaluates the whole screen on every update
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	set(CMAKE_BUILD_TYPE Release CACHE STRING "Debug, Release, RelWithDebInfo or MinSizeRel" FORCE)
+endif()
+
 option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 
 include(FetchContent)
@@ -57,6 +62,7 @@ target_compile_features(affrescoui_core INTERFACE cxx_std_23)
 affrescoui_module(render
 	modules/render/src/Application.cpp
 	modules/render/src/Color.cpp
+	modules/render/src/Controls.cpp
 	modules/render/src/Font.cpp
 	modules/render/src/Label.cpp
 	modules/render/src/Panel.cpp

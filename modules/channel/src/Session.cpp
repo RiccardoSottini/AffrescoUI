@@ -5,8 +5,8 @@
 
 namespace affresco::channel {
 
-Session::Session(Channel& channel, VersionControl& versions, std::string author)
-    : channel_(channel), versions_(versions), author_(std::move(author)) {
+Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog)
+    : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)) {
 	messages_ = channel_.onMessage.connect([this](const std::string& line) { handle(line); });
 
 	decisions_ = versions_.onDecision.connect([this](const Decision& decision) {
@@ -190,6 +190,8 @@ void Session::handle(const std::string& line) {
 			      {"you", author_},
 			      {"canReview", versions_.mayReview(author_)},
 			      {"id", id}});
+		} else if(type == "getCatalog") {
+			send({{"type", "catalog"}, {"catalog", catalog_ ? catalog_() : json::object()}, {"id", id}});
 		} else if(type == "getHistory") {
 			// The newest "limit" commits on main (like `git log -n`), oldest first; all without one
 			const std::vector<CommitInfo> log = versions_.log();

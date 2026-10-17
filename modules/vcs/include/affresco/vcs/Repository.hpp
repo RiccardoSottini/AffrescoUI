@@ -98,6 +98,7 @@ private:
 	struct Prepared {
 		json before, after;               ///< As rules see them (detail::view): the live state at "/state".
 		json document, state;             ///< The new document and live state.
+		json patch = json::array();       ///< Its operations as plain JSON Patch ("set" became replace or add).
 		std::vector<std::string> touches; ///< What its operations touch (detail::area), each once.
 	};
 

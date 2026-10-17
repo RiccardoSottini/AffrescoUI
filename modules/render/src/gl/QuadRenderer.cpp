@@ -88,10 +88,13 @@ QuadRenderer::QuadRenderer()
 	glBindVertexArray(0);
 }
 
-void QuadRenderer::draw(const Panel& root, int width, int height) {
+void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, const Panel* tooltip, int width,
+                        int height) {
 	vertices_.clear();
 	batches_.clear();
 	collect(root);
+	for(const Panel* overlay : overlays) collect(*overlay);
+	if(tooltip) collect(*tooltip);
 
 	const std::size_t quads = vertices_.size() / verticesPerQuad;
 	if(quads == 0) return;
@@ -129,7 +132,11 @@ void QuadRenderer::collect(const Panel& panel) {
 	clip_ = panel.bounds();
 	panel.paint(*this);
 
-	for(const auto& child : panel.children()) collect(*child);
+	for(const auto& child : panel.children())
+		if(!child->isOverlay()) collect(*child); // overlays are drawn after the whole tree
+
+	clip_ = panel.bounds();
+	panel.paintOver(*this);
 }
 
 void QuadRenderer::fillRect(const Rect& rect, Color color) {
