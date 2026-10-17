@@ -17,5 +17,6 @@ compile_commands.json
 # Personal project notes and screenshots stay local
 docs/
 
-# README media, kept locally
-.github/
+# .github: only the README media is published
+.github/*
+!.github/media/
