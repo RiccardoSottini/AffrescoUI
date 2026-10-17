@@ -39,6 +39,24 @@ running. Your typing, focus and drags survive.
 </tr>
 </table>
 
+## A new kind of application
+
+Apps have always been frozen at build time: their features are whatever the developers shipped, and changing them
+means another release. AffrescoUI apps are **agentic applications**: their behaviour and features stay **malleable
+while they run**. An app starts from a template with a set of features, and from there it is directed, not rebuilt.
+
+- **For end users.** You don't need to be a programmer or a product engineer to change how your app works. Ask for
+  it (*"create the dark theme of this app"*, *"add a Blocked column"*, *"dim the lights at sunset"*, *"warn me when a
+  habit streak breaks"*), and an agent
+  turns the request into a revision. You see it live, accept or undo it, and nothing changes without your approval.
+- **For developers.** Build a proof of concept agentically and iteratively: describe a screen, let the agent write and
+  refine it, and watch every change land in the running app **without ever closing it**. No rebuild, no restart, and
+  your state, focus and typing survive. When the PoC is right, it's already a native app: embed the same document
+  in C++ with a few lines.
+
+Behaviour that would usually need code (wiring a button to a list, validating a form, filtering on a search,
+drag and drop, timers, shortcuts, navigation) is part of the document, so an agent can change it as safely as a colour.
+
 ## Architecture
 
 A stack of layers, each with one job, each handing its result to the one below. The four C++ layers are separate
