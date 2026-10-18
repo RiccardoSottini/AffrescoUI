@@ -4,8 +4,9 @@ build-*/
 out/
 compile_commands.json
 
-# Editors & OS (and Claude Code's parallel-session worktrees)
+# Editors & OS (and Claude Code's parallel-session worktrees and local settings)
 .claude/worktrees/
+.claude/settings.local.json
 .vscode/
 .idea/
 .vs/
