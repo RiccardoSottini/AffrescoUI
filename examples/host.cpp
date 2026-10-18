@@ -12,6 +12,7 @@
 // the Kanban board template; the other templates are in assets/screens (smart-home, music-player, code-editor,
 // habit-tracker).
 
+#include "CodeEditor.hpp"
 #include "SocketDir.hpp"
 
 #include <affresco/affresco.hpp>
@@ -49,6 +50,7 @@ int main(int argc, char** argv) {
 		affresco::Application app;
 		affresco::Screen screen = affresco::Screen::fromFile(file);
 		screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
+		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 		screen.setMode(mode);
 		screen.createWindow(app);
 

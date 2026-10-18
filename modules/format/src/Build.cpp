@@ -21,7 +21,7 @@ std::unique_ptr<Panel> Runtime::Impl::create(const std::string& type, const std:
 	if(type == "panel") return std::make_unique<Panel>();
 	if(type == "label") return std::make_unique<Label>();
 	if(type == "textarea") return std::make_unique<TextArea>();
-	if(type == "code") return std::make_unique<CodeEditor>();
+	if(type == "editor") return std::make_unique<TextEditor>();
 	if(type == "stack" || type == "column") return std::make_unique<Stack>();
 	if(type == "row") {
 		auto row = std::make_unique<Stack>();
@@ -39,7 +39,7 @@ std::unique_ptr<Panel> Runtime::Impl::create(const std::string& type, const std:
 	}
 
 	if(const auto it = types.find(type); it != types.end()) {
-		auto panel = it->second();
+		auto panel = it->second.factory();
 		if(!panel) fail(path, "the factory of type '" + type + "' returned nothing");
 		return panel;
 	}
@@ -49,7 +49,7 @@ std::unique_ptr<Panel> Runtime::Impl::create(const std::string& type, const std:
 		return std::make_unique<Panel>();
 	}
 	fail(path, "unknown type '" + type +
-	               "' (built in: panel, label, textarea, code, stack, row, column, grid, toggle, checkbox, slider, outlet; "
+	               "' (built in: panel, label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, outlet; "
 	               "others must be registered)");
 }
 
@@ -89,15 +89,15 @@ void Runtime::Impl::hookUp(Panel& panel) {
 
 	if(auto* textArea = dynamic_cast<TextArea*>(&panel))
 		textArea->onTextChanged.connect([this, &panel](const std::string& value) { valueChanged(panel, value); });
-	if(auto* code = dynamic_cast<CodeEditor*>(&panel)) {
-		code->onTextChanged.connect([this, &panel](const std::string& value) { valueChanged(panel, value); });
-		code->onCaretMoved.connect([this, &panel, code](CodeEditor::Position caret) {
+	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
+		editor->onTextChanged.connect([this, &panel](const std::string& value) { valueChanged(panel, value); });
+		editor->onCaretMoved.connect([this, &panel, editor](TextEditor::Position caret) {
 			Record* record = recordOf(&panel);
 			if(!record || !record->caret) return;
 			try {
 				versions.state()[format::statePointer(*record->caret, context(*record->locals, json::object()),
 				                                      record->path + ".caret")] = {
-				    {"line", caret.line + 1}, {"column", caret.column + 1}, {"selected", code->selectedLength()}};
+				    {"line", caret.line + 1}, {"column", caret.column + 1}, {"selected", editor->selectedLength()}};
 				changed();
 				requestReconcile();
 			} catch(const DocumentError& error) {

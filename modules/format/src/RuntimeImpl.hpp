@@ -6,11 +6,11 @@
 /// properties on its panel), Events.cpp (input) and Steps.cpp (actions and their steps).
 
 #include "affresco/format/Runtime.hpp"
-#include "affresco/render/CodeEditor.hpp"
 #include "affresco/render/Controls.hpp"
 #include "affresco/render/Label.hpp"
 #include "affresco/render/Stack.hpp"
 #include "affresco/render/TextArea.hpp"
+#include "affresco/render/TextEditor.hpp"
 
 #include "Expression.hpp"
 
@@ -230,7 +230,8 @@ struct Record {
 	json drag;                            ///< "drag", unevaluated (data is read when a drag starts).
 	json key;                             ///< A keyed repeat's key for this item (null: none).
 	std::optional<std::string> bind;      ///< State path the value mirrors.
-	std::optional<std::string> caret;     ///< State path a code editor writes its caret to.
+	std::optional<std::string> caret;     ///< State path a text editor writes its caret to.
+	std::optional<json> ownProperties;    ///< A custom type's own properties, as last applied.
 	std::optional<std::string> lastText;  ///< "text" applied last time.
 	bool hovered = false, down = false, focused = false, dragOver = false, dragging = false; ///< Visual states.
 	bool disabled = false;                ///< No events but hover.
@@ -283,7 +284,13 @@ struct Runtime::Impl final : VersionObserver {
 	std::map<std::string, std::shared_ptr<const Font>> fontCache; ///< By "file@size": revisions don't reload fonts.
 	std::string theme;                                            ///< "theme", evaluated at each update.
 
-	std::map<std::string, Factory, std::less<>> types;        ///< Custom node types.
+	/// @brief A type the application registered.
+	struct CustomType {
+		Factory factory;                     ///< Creates its panel.
+		std::vector<std::string> properties; ///< Its own property names.
+		ApplyProperties apply;               ///< Applies them (may be empty).
+	};
+	std::map<std::string, CustomType, std::less<>> types;     ///< Custom node types.
 	std::map<std::string, Action, std::less<>> nativeActions; ///< Native actions.
 	std::map<std::string, Call, std::less<>> nativeCalls;     ///< Native functions for "call" with results.
 	UnhandledAction unhandled = [](const std::string& action, Panel& sender) {
@@ -492,7 +499,7 @@ struct Runtime::Impl final : VersionObserver {
 	struct Look {
 		Label* label;                            ///< The panel, if it is a label (or a text area).
 		TextArea* textArea;                      ///< The panel, if it is a text area.
-		CodeEditor* code;                        ///< The panel, if it is a code editor.
+		TextEditor* editor;                      ///< The panel, if it is a text editor.
 		Stack* stack;                            ///< The panel, if it is a row or a column.
 		Grid* grid;                              ///< The panel, if it is a grid.
 		Toggle* toggle;                          ///< The panel, if it is a toggle or a checkbox.

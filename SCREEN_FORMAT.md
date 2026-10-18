@@ -90,7 +90,7 @@ parent, later siblings on top of earlier ones.
 ### Every type
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `code`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -135,20 +135,19 @@ parent, later siblings on top of earlier ones.
 Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state path kept in sync both ways, or
 `"{{...}}"` giving one), `onChange` (`event.value`), `onSubmit` (Enter, `event.text`) and `autofocus`. Single line.
 
-### `code`
-A multi-line code editor, with the keys of common code editors (Cmd on macOS, Ctrl elsewhere): click, drag, double
-and triple click select; arrows, Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends), Shift
-to extend; Enter keeps the indentation; Tab/Shift+Tab and Cmd+]/Cmd+[ indent; brackets and quotes close themselves;
-Cmd+A/C/X/V/Z, Cmd+Shift+Z, Cmd+/ (toggle comment), Alt+Up/Down (move lines), Cmd+Shift+K (delete lines). Line numbers,
-the caret's line highlighted, wheel scrolling. Tabs become 4 spaces.
+### `editor`
+A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,
+Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends), Shift to extend; Enter keeps the
+indentation; Tab/Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. The caret's line is highlighted; the wheel scrolls.
+Tabs become 4 spaces. Applications build richer editors on it (syntax colours, commands): see
+`examples/CodeEditor.cpp`, the Forge template's `code` type.
 
 | Key | Meaning |
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
-| `language` | `c++`, `json`, `cmake` or `markdown` to colour the syntax; anything else is plain text. |
 | `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
-| `font`, `textColor` | Font (a monospaced one lines columns up) and plain text colour. |
-| `syntax` | `{ "keyword", "type", "string", "number", "comment", "heading" }`: a colour each. |
+| `font`, `textColor` | Font and text colour. |
+| `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
 | `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
 | `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
@@ -385,6 +384,9 @@ AffrescoUI screen: root.children[2].text: in {{a ? b}}: expected ':' (at column 
 affresco::Application app;
 affresco::Screen screen = affresco::Screen::fromFile("kanban.screen.json");
 screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a custom type, before createWindow
+// A custom type has the properties of the built-in type it derives from, plus its own, given here with their handler
+screen.registerType("gauge", [] { return std::make_unique<MyGauge>(); }, {"needle"},
+                    [&](affresco::Panel& panel, const std::string& propertiesJson) { /* {"needle": "@accent"} */ });
 screen.onCall("pickFile", [](const std::string& argumentsJson) { return R"("/tmp/a.png")"; }); // {"call": "pickFile"}
 affresco::Window& window = screen.createWindow(app); // also connects the file's channels
 screen.listen(app, "/tmp/affrescoui-501/agent.sock", "agent"); // peers can change it from now on
@@ -393,6 +395,6 @@ app.run();
 
 See the templates in `examples/assets/screens/`: `kanban` (the one `affrescoui_host` opens: rows, components, drag and
 drop, a popover), `smart-home` (themes, computed values, switches and sliders, animations), `music-player` (a playback
-timer, seeking), `code-editor` (tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`,
+timer, seeking), `code-editor` (an application type built on `editor`, tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`,
 `persist`), `sign-in` (screens, navigation, `check`), and `studio` (the Studio client: its whole UI, behaviour and
 connection).
