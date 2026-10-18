@@ -121,7 +121,7 @@ TEST_CASE("vcs: a change set exported and imported elsewhere gives the same docu
 	CHECK(changes.at("revisions").size() == 2);
 
 	affresco::vcs::Repository target(rules, permissionsScreen());
-	REQUIRE_FALSE(target.importChanges(json::parse(changes.dump()))); // as it would travel
+	REQUIRE_FALSE(target.importChanges(affresco::parseUntrusted(changes.dump()))); // as it would travel
 	CHECK(target.document().dump() == source.document().dump());
 	CHECK(target.state() == source.state());
 	CHECK(target.head().number == 2);
