@@ -549,7 +549,7 @@ class Server:
             result({"protocolVersion": requested if requested in PROTOCOLS else PROTOCOLS[0],
                     "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False},
                                      "experimental": {"claude/channel": {}}},
-                    "serverInfo": {"name": "affrescoui", "version": "0.5.0"},
+                    "serverInfo": {"name": "affrescoui", "version": "0.1.0"},
                     "instructions": INSTRUCTIONS})
         elif method == "ping":
             result({})

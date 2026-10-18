@@ -4,7 +4,8 @@ build-*/
 out/
 compile_commands.json
 
-# Editors & OS
+# Editors & OS (and Claude Code's parallel-session worktrees)
+.claude/worktrees/
 .vscode/
 .idea/
 .vs/
@@ -18,9 +19,10 @@ compile_commands.json
 docs/
 CLAUDE.local.md
 
-# .github: only the README media is published
+# .github: the README media and the CI workflows are published
 .github/*
 !.github/media/
+!.github/workflows/
 
 # Python
 __pycache__/
