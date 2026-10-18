@@ -127,7 +127,7 @@ TEST_CASE("format: expressions give their expected result or error") {
 		CAPTURE(shown.substr(0, 80));
 		if(c.error.empty()) {
 			json result;
-			REQUIRE_NOTHROW(result = evaluate(c.value));
+			CHECK_NOTHROW(result = evaluate(c.value)); // CHECK, not REQUIRE: one failing row doesn't hide the rest
 			CHECK(result.dump() == c.expected.dump());
 		} else {
 			CHECK_THROWS_WITH_AS((void)evaluate(c.value), doctest::Contains(c.error.c_str()), affresco::DocumentError);
