@@ -740,7 +740,7 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param where Its place, for errors.
 	/// @return The task.
 	std::function<void()> later(json steps, Panel& sender, json event, SharedScope locals, std::string where);
-	/// @brief Prints an error on stderr and fires onError.
+	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);
 };
