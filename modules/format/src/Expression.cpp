@@ -1116,7 +1116,9 @@ const json& compile(std::string_view text, const std::string& where) {
 	try {
 		compiled = Parser(key, where).parse();
 	} catch(const DocumentError&) {
-		// Paths written before expressions existed may contain '-' in names ("state.my-list")
+		// Text that isn't an expression but looks like a path is read as one (paths written before expressions). Few
+		// names with '-' get here: "state.my-list" parses, as state.my - list, so such names go in brackets:
+		// state['my-list'] (SCREEN_FORMAT.md, "Expressions")
 		const bool path = !key.empty() && std::ranges::all_of(key, [](char c) {
 			return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.' || c == '[' ||
 			       c == ']';
