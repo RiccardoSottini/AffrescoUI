@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace affresco {
 
@@ -21,6 +22,25 @@ class DocumentError : public std::runtime_error {
 public:
 	using std::runtime_error::runtime_error;
 };
+
+/// Deepest nesting accepted from outside the app: far beyond real screens (about 15 levels), shallow enough that the
+/// recursive work done on a value (copying, comparing, evaluating) can't overflow the stack.
+inline constexpr int maxNesting = 256;
+
+/// @brief Parses JSON that comes from outside the app (peers, revisions, change sets).
+/// @param text The JSON text.
+/// @param allowComments Whether to skip comments.
+/// @return The value.
+/// @throws json::parse_error If the text is not JSON.
+/// @throws DocumentError If it nests deeper than maxNesting (it is never built).
+inline json parseUntrusted(std::string_view text, bool allowComments = false) {
+	const auto limit = [](int depth, json::parse_event_t, json&) {
+		if(depth > maxNesting)
+			throw DocumentError("AffrescoUI screen: JSON nested more than " + std::to_string(maxNesting) + " levels deep");
+		return true;
+	};
+	return json::parse(text, limit, true, allowComments);
+}
 
 /// @brief Formats a value as it appears inside text.
 /// @param value Any value.

@@ -72,6 +72,10 @@ inline constexpr Color green{0.0f, 1.0f, 0.0f, 1.0f};               ///< #00ff00
 inline constexpr Color blue{0.0f, 0.0f, 1.0f, 1.0f};                ///< #0000ff.
 inline constexpr Color transparent{0.0f, 0.0f, 0.0f, 0.0f};         ///< Draws nothing.
 inline constexpr Color panel{0.941176f, 0.941176f, 0.941176f, 1.0f}; ///< Default panel background.
+inline constexpr Color accent = Color::hex(0x4f46e5); ///< Default for what is on or filled: a toggle, a slider's fill.
+inline constexpr Color idle = Color::hex(0xd1d5db);   ///< Default off toggle.
+inline constexpr Color track = Color::hex(0xe5e7eb);  ///< Default empty part of a slider.
+inline constexpr Color muted = Color::hex(0x9ca3af);  ///< Default placeholder text and scroll bars.
 
 } // namespace colors
 

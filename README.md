@@ -273,6 +273,10 @@ changes apply as they arrive.
 Requires CMake ≥ 3.25 and a C++23 compiler. GLFW and nlohmann/json are downloaded automatically. Developed and tested
 on macOS. Linux should work but is untested; Windows is not supported yet (the socket and process channels are POSIX).
 
+`python3 tests/render/check.py` (or `ctest --test-dir build`) plays scripted clicks, typing, drags and revisions on
+every template and compares each frame with a golden image, pixel for pixel
+([tests/render/README.md](tests/render/README.md)).
+
 ## Templates
 
 Five starting points, each a single `.screen.json` file with its layout, state and behaviour, and each ready to be
@@ -285,7 +289,7 @@ reshaped live by an agent. Open any of them with `./build/affrescoui_host exampl
 </tr>
 <tr>
 <td valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player"><br/><b>Tempo</b> · <code>music-player</code><br/><sub>Playlists, a playback timer, seeking, volume, keyboard controls.</sub></td>
-<td valign="top"><img src=".github/media/code-editor.png" alt="Forge, a code editor shell"><br/><b>Forge</b> · <code>code-editor</code><br/><sub>Explorer, tabs, highlighted code, a terminal that answers, a Cmd+P palette.</sub></td>
+<td valign="top"><img src=".github/media/code-editor.png" alt="Forge, a code editor"><br/><b>Forge</b> · <code>code-editor</code><br/><sub>A real code editor (selection, undo, Cmd+/, unsaved dots, Cmd+S), explorer, tabs, a terminal that answers, a Cmd+P palette.</sub></td>
 </tr>
 <tr>
 <td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker"><br/><b>Streak</b> · <code>habit-tracker</code><br/><sub>Daily habits, streaks, a clickable 20-week grid, kept on disk between runs.</sub></td>

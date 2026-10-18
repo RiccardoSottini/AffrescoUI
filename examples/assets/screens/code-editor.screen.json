@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 1,
 
-	"note": "Forge: a code editor. Open files from the explorer or with Cmd+P, close tabs with × or Cmd+W, run commands in the terminal (Cmd+J).",
+	"note": "Forge: a code editor. Edit files like in VS Code (selection, undo, Cmd+/ comments, Alt+arrows move lines), save with Cmd+S, open files from the explorer or with Cmd+P, close tabs with × or Cmd+W, run commands in the terminal (Cmd+J).",
 
 	"window": {
 		"title": "Forge: an AffrescoUI template",
@@ -16,7 +16,7 @@
 	"fonts": {
 		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 14 },
 		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
-		"code": { "file": "../fonts/Roboto-Regular.ttf", "size": 14 }
+		"code": { "file": "../fonts/JetBrainsMono-Regular.ttf", "size": 14 }
 	},
 
 	"colors": {
@@ -42,6 +42,9 @@
 		"keyword": "#c49bff",
 		"type": "#5fd0dd",
 		"string": "#e6b071",
+		"number": "#b5cea8",
+		"line": "#21242b",
+		"selection": "#2d4a7f",
 		"heading": "#7aa7ff",
 		"prompt": "#7ee2a8"
 	},
@@ -57,6 +60,7 @@
 		"project": "board-app",
 		"tabs": [0, 1],
 		"active": 0,
+		"caret": { "line": 1, "column": 1, "selected": 0 },
 		"command": "",
 		"tree": [
 			{ "label": "src/", "depth": 0, "file": -1 },
@@ -73,114 +77,43 @@
 				"name": "main.cpp",
 				"path": "src / main.cpp",
 				"language": "C++",
-				"lines": [
-					{ "t": "#include <affresco/affresco.hpp>", "c": "keyword" },
-					{ "t": "#include \"Board.hpp\"", "c": "keyword" },
-					{ "t": "", "c": "plain" },
-					{ "t": "// A native board app: the UI is a live document, the logic is C++", "c": "comment" },
-					{ "t": "int main() {", "c": "type" },
-					{ "t": "    affresco::Application app;", "c": "plain" },
-					{
-						"t": "    affresco::Screen screen = affresco::Screen::fromFile(\"screens/board.screen.json\");",
-						"c": "plain"
-					},
-					{ "t": "    screen.createWindow(app);", "c": "plain" },
-					{ "t": "", "c": "plain" },
-					{ "t": "    Board board(screen);", "c": "plain" },
-					{
-						"t": "    screen.onAction(\"archive\", [&](affresco::Panel&) { board.archiveDone(); });",
-						"c": "plain"
-					},
-					{ "t": "", "c": "plain" },
-					{
-						"t": "    // Let an AI agent change the running app; its changes wait for review",
-						"c": "comment"
-					},
-					{ "t": "    screen.listen(app, \"/tmp/board/agent.sock\", \"agent\");", "c": "string" },
-					{ "t": "    return app.run();", "c": "keyword" },
-					{ "t": "}", "c": "type" }
-				]
+				"dirty": false,
+				"text": "#include <affresco/affresco.hpp>\n#include \"Board.hpp\"\n\n// A native board app: the UI is a live document, the logic is C++\nint main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/board.screen.json\");\n    screen.createWindow(app);\n\n    Board board(screen);\n    screen.onAction(\"archive\", [&](affresco::Panel&) { board.archiveDone(); });\n\n    // Let an AI agent change the running app; its changes wait for review\n    screen.listen(app, \"/tmp/board/agent.sock\", \"agent\");\n    return app.run();\n}\n"
 			},
 			{
 				"name": "Board.hpp",
 				"path": "src / Board.hpp",
 				"language": "C++",
-				"lines": [
-					{ "t": "#pragma once", "c": "keyword" },
-					{ "t": "", "c": "plain" },
-					{ "t": "#include <affresco/Screen.hpp>", "c": "keyword" },
-					{ "t": "", "c": "plain" },
-					{ "t": "/// @brief Native logic behind the board screen.", "c": "comment" },
-					{ "t": "class Board {", "c": "type" },
-					{ "t": "public:", "c": "keyword" },
-					{ "t": "    explicit Board(affresco::Screen& screen);", "c": "plain" },
-					{ "t": "", "c": "plain" },
-					{ "t": "    /// @brief Moves every card in Done to the archive.", "c": "comment" },
-					{ "t": "    void archiveDone();", "c": "plain" },
-					{ "t": "", "c": "plain" },
-					{ "t": "private:", "c": "keyword" },
-					{ "t": "    affresco::Screen& screen_; ///< The board's live document.", "c": "plain" },
-					{ "t": "};", "c": "type" }
-				]
+				"dirty": false,
+				"text": "#pragma once\n\n#include <affresco/Screen.hpp>\n\n/// @brief Native logic behind the board screen.\nclass Board {\npublic:\n    explicit Board(affresco::Screen& screen);\n\n    /// @brief Moves every card in Done to the archive.\n    void archiveDone();\n\nprivate:\n    affresco::Screen& screen_; ///< The board's live document.\n};\n"
 			},
 			{
 				"name": "Board.cpp",
 				"path": "src / Board.cpp",
 				"language": "C++",
-				"lines": [
-					{ "t": "#include \"Board.hpp\"", "c": "keyword" },
-					{ "t": "", "c": "plain" },
-					{ "t": "Board::Board(affresco::Screen& screen) : screen_(screen) {}", "c": "plain" },
-					{ "t": "", "c": "plain" },
-					{ "t": "void Board::archiveDone() {", "c": "type" },
-					{ "t": "    // The app's own change: no review, but locks still apply", "c": "comment" },
-					{ "t": "    screen_.applyRevision(R\"({\"message\": \"Archive done cards\",", "c": "string" },
-					{
-						"t": "        \"patch\": [{\"op\": \"replace\", \"path\": \"/state/columns/3/cards\", \"value\": []}]})\");",
-						"c": "string"
-					},
-					{ "t": "}", "c": "type" }
-				]
+				"dirty": false,
+				"text": "#include \"Board.hpp\"\n\nBoard::Board(affresco::Screen& screen) : screen_(screen) {}\n\nvoid Board::archiveDone() {\n    // The app's own change: no review, but locks still apply\n    screen_.applyRevision(R\"({\"message\": \"Archive done cards\",\n        \"patch\": [{\"op\": \"replace\", \"path\": \"/state/columns/3/cards\", \"value\": []}]})\");\n}\n"
 			},
 			{
 				"name": "board.screen.json",
 				"path": "screens / board.screen.json",
 				"language": "JSON",
-				"lines": [
-					{ "t": "{", "c": "plain" },
-					{ "t": "    \"format\": \"affrescoui-screen\",", "c": "string" },
-					{ "t": "    \"version\": 1,", "c": "plain" },
-					{ "t": "    \"permissions\": { \"authors\": { \"agent\": \"review\" } },", "c": "string" },
-					{ "t": "    \"state\": { \"columns\": [ ... ] },", "c": "plain" },
-					{ "t": "    \"root\": { \"children\": [ ... ] }", "c": "plain" },
-					{ "t": "}", "c": "plain" }
-				]
+				"dirty": false,
+				"text": "{\n    \"format\": \"affrescoui-screen\",\n    \"version\": 1,\n    \"permissions\": { \"authors\": { \"agent\": \"review\" } },\n    \"state\": { \"columns\": [ ... ] },\n    \"root\": { \"children\": [ ... ] }\n}\n"
 			},
 			{
 				"name": "CMakeLists.txt",
 				"path": "CMakeLists.txt",
 				"language": "CMake",
-				"lines": [
-					{ "t": "cmake_minimum_required(VERSION 3.25)", "c": "keyword" },
-					{ "t": "project(board-app CXX)", "c": "keyword" },
-					{ "t": "", "c": "plain" },
-					{ "t": "add_subdirectory(external/AffrescoUI)", "c": "plain" },
-					{ "t": "add_executable(board src/main.cpp src/Board.cpp)", "c": "plain" },
-					{ "t": "target_link_libraries(board PRIVATE affrescoui::affrescoui)", "c": "plain" }
-				]
+				"dirty": false,
+				"text": "cmake_minimum_required(VERSION 3.25)\nproject(board-app CXX)\n\nadd_subdirectory(external/AffrescoUI)\nadd_executable(board src/main.cpp src/Board.cpp)\ntarget_link_libraries(board PRIVATE affrescoui::affrescoui)\n"
 			},
 			{
 				"name": "README.md",
 				"path": "README.md",
 				"language": "Markdown",
-				"lines": [
-					{ "t": "# board-app", "c": "heading" },
-					{ "t": "", "c": "plain" },
-					{ "t": "A native task board built on AffrescoUI.", "c": "plain" },
-					{ "t": "", "c": "plain" },
-					{ "t": "## Build", "c": "heading" },
-					{ "t": "    cmake -S . -B build && cmake --build build", "c": "string" }
-				]
+				"dirty": false,
+				"text": "# board-app\n\nA native task board built on AffrescoUI.\n\n## Build\n    cmake -S . -B build && cmake --build build\n"
 			}
 		],
 		"terminal": [
@@ -211,7 +144,7 @@
 
 	"styles": {
 		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
-		"codeLine": { "type": "label", "font": "code", "align": { "horizontal": "start", "vertical": "center" } }
+		"terminalLine": { "type": "label", "font": "code", "align": { "horizontal": "start", "vertical": "center" } }
 	},
 
 	"actions": {
@@ -252,6 +185,10 @@
 	},
 
 	"keys": {
+		"mod+s": {
+			"if": "{{computed.file}}",
+			"then": { "set": "state.files[state.active].dirty", "to": false }
+		},
 		"mod+w": {
 			"if": "{{contains(state.tabs, state.active)}}",
 			"then": { "run": "close", "with": { "at": "{{indexOf(state.tabs, state.active)}}" } }
@@ -387,7 +324,7 @@
 											},
 											{
 												"type": "label",
-												"text": "×",
+												"text": "{{state.files[tab].dirty ? '' : '×'}}",
 												"anchors": { "right": 8, "top": 8 },
 												"width": 20,
 												"height": 20,
@@ -396,8 +333,18 @@
 												"hover": { "color": "@selected" },
 												"textColor": "@muted",
 												"cursor": "hand",
-												"tooltip": "Close (Cmd+W)",
-												"onClick": { "run": "close", "with": { "at": "{{i}}" } }
+												"tooltip": "{{state.files[tab].dirty ? 'Unsaved changes: Cmd+S saves, click closes' : 'Close (Cmd+W)'}}",
+												"onClick": { "run": "close", "with": { "at": "{{i}}" } },
+												"children": [
+													{
+														"when": "{{state.files[tab].dirty}}",
+														"x": 6,
+														"y": 6,
+														"width": 8,
+														"height": 8,
+														"color": "@text"
+													}
+												]
 											}
 										]
 									}
@@ -414,35 +361,31 @@
 					},
 					{
 						"id": "editor",
-						"when": "{{computed.file}}",
-						"type": "stack",
+						"repeat": { "for": "open", "in": "{{computed.file ? [state.active] : []}}", "key": "{{open}}" },
+						"type": "code",
+						"font": "code",
+						"language": "{{state.files[open].language}}",
+						"bind": "state.files[open].text",
+						"caret": "state.caret",
+						"autofocus": true,
 						"anchors": { "left": 0, "right": 0, "top": 70, "bottom": 212 },
-						"gap": 0,
-						"children": [
-							{
-								"repeat": { "for": "line", "in": "computed.file.lines" },
-								"anchors": { "left": 0, "right": 0 },
-								"height": 22,
-								"color": "transparent",
-								"children": [
-									{
-										"style": "codeLine",
-										"text": "{{index + 1}}",
-										"textColor": "@faint",
-										"anchors": { "left": 0, "top": 0, "bottom": 0 },
-										"width": 48,
-										"align": { "horizontal": "end", "vertical": "center" }
-									},
-									{
-										"style": "codeLine",
-										"text": "{{line.t}}",
-										"textColor": "@{{line.c}}",
-										"anchors": { "left": 72, "right": 16, "top": 0, "bottom": 0 }
-									}
-								]
-							}
-						],
-						"scroll": "vertical"
+						"color": "@background",
+						"textColor": "@plain",
+						"syntax": {
+							"keyword": "@keyword",
+							"type": "@type",
+							"string": "@string",
+							"number": "@number",
+							"comment": "@comment",
+							"heading": "@heading"
+						},
+						"lineNumberColor": "@faint",
+						"activeLineNumberColor": "@text",
+						"lineColor": "@line",
+						"selectionColor": "@selection",
+						"caretColor": "@text",
+						"onShow": { "set": "state.caret", "to": { "line": 1, "column": 1, "selected": 0 } },
+						"onChange": { "set": "state.files[open].dirty", "to": true }
 					},
 					{
 						"id": "welcome",
@@ -476,7 +419,7 @@
 								"children": [
 									{
 										"repeat": { "for": "out", "in": "state.terminal" },
-										"style": "codeLine",
+										"style": "terminalLine",
 										"text": "{{out.t}}",
 										"textColor": "@{{out.c}}",
 										"anchors": { "left": 0, "right": 0 },
@@ -517,17 +460,17 @@
 						"text": "main  ·  Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
 						"font": "small",
 						"textColor": "@statusText",
-						"anchors": { "left": 16, "top": 0, "bottom": 0, "right": 300 },
+						"anchors": { "left": 16, "top": 0, "bottom": 0, "right": 420 },
 						"align": { "horizontal": "start", "vertical": "center" },
 						"id": "statusText"
 					},
 					{
 						"type": "label",
-						"text": "{{computed.file.language ?? 'No file'}}  ·  UTF-8  ·  {{window.width}} × {{window.height}}",
+						"text": "{{computed.file ? 'Ln ' + state.caret.line + ', Col ' + state.caret.column + (state.caret.selected ? ' (' + state.caret.selected + ' selected)' : '') + '  ·  Spaces: 4  ·  UTF-8  ·  ' + computed.file.language : 'No file'}}",
 						"font": "small",
 						"textColor": "@statusText",
 						"anchors": { "right": 16, "top": 0, "bottom": 0 },
-						"width": 280,
+						"width": 400,
 						"align": { "horizontal": "end", "vertical": "center" },
 						"id": "statusSize"
 					}

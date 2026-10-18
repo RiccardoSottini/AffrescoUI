@@ -200,11 +200,14 @@ void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
 }
 
 void Window::draw() {
-	if(glfwGetCurrentContext() != handle_.get()) glfwMakeContextCurrent(handle_.get());
-
 	// On HiDPI screens the framebuffer has more pixels than the window has units
 	int framebufferWidth = 0, framebufferHeight = 0;
 	glfwGetFramebufferSize(handle_.get(), &framebufferWidth, &framebufferHeight);
+	draw(framebufferWidth, framebufferHeight);
+}
+
+void Window::draw(int framebufferWidth, int framebufferHeight) {
+	if(glfwGetCurrentContext() != handle_.get()) glfwMakeContextCurrent(handle_.get());
 	gl::beginFrame(framebufferWidth, framebufferHeight);
 
 	updateLayout();
@@ -277,6 +280,16 @@ bool Window::saveScreenshot(const std::filesystem::path& path) {
 	glfwGetFramebufferSize(handle_.get(), &width, &height);
 
 	return detail::writePpm(path, width, height, gl::readBackBuffer(width, height));
+}
+
+bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
+	runDeferred();
+	if(glfwGetCurrentContext() != handle_.get()) glfwMakeContextCurrent(handle_.get()); // the image is created in it
+
+	const int width = width_ * scale, height = height_ * scale;
+	const gl::OffscreenTarget target(width, height);
+	draw(width, height);
+	return detail::writePpm(path, width, height, target.pixels());
 }
 
 /* Input: GLFW callbacks are converted to typed events and routed immediately */

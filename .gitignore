@@ -24,3 +24,6 @@ CLAUDE.local.md
 
 # Python
 __pycache__/
+
+# Rendering check golden images stay local (recorded on first run of tests/render/check.py)
+tests/render/golden/

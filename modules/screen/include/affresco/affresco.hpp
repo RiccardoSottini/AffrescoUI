@@ -12,6 +12,7 @@
 #include "affresco/core/VersionControl.hpp"
 
 #include "affresco/render/Application.hpp"
+#include "affresco/render/CodeEditor.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Controls.hpp"
 #include "affresco/render/Events.hpp"

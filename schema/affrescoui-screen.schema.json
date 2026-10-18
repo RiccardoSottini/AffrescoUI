@@ -359,13 +359,14 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, stack, row, column, grid, toggle, checkbox, slider, outlet, or a registered type",
+						"description": "panel (default), label, textarea, code, stack, row, column, grid, toggle, checkbox, slider, outlet, or a registered type",
 						"anyOf": [
 							{
 								"enum": [
 									"panel",
 									"label",
 									"textarea",
+									"code",
 									"stack",
 									"row",
 									"column",
@@ -728,9 +729,45 @@
 					"placeholderColor": {
 						"$ref": "#/$defs/v1/color"
 					},
+					"language": {
+						"description": "code: the syntax to colour (c++, json, cmake, markdown; anything else is plain), or a {{binding}}",
+						"type": "string"
+					},
+					"caret": {
+						"type": "string",
+						"description": "code: a state path the editor writes its caret to, as { line, column, selected } (from 1)"
+					},
+					"syntax": {
+						"type": "object",
+						"description": "code: colours of each kind of text",
+						"additionalProperties": false,
+						"properties": {
+							"keyword": { "$ref": "#/$defs/v1/color" },
+							"type": { "$ref": "#/$defs/v1/color" },
+							"string": { "$ref": "#/$defs/v1/color" },
+							"number": { "$ref": "#/$defs/v1/color" },
+							"comment": { "$ref": "#/$defs/v1/color" },
+							"heading": { "$ref": "#/$defs/v1/color" }
+						}
+					},
+					"lineNumberColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"activeLineNumberColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"lineColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"selectionColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"caretColor": {
+						"$ref": "#/$defs/v1/color"
+					},
 					"bind": {
 						"type": "string",
-						"description": "A state path kept in sync both ways (textarea, toggle, checkbox, slider)"
+						"description": "A state path kept in sync both ways (textarea, code, toggle, checkbox, slider)"
 					},
 					"gap": {
 						"anyOf": [

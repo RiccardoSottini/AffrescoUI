@@ -9,6 +9,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
+option(AFFRESCOUI_BUILD_TESTS "Build the rendering check (tests/render)" ${PROJECT_IS_TOP_LEVEL})
 
 include(FetchContent)
 
@@ -61,6 +62,7 @@ target_compile_features(affrescoui_core INTERFACE cxx_std_23)
 # render. Vendored in external/: glad (OpenGL 4.1 core loader) and stb_truetype (font rasteriser).
 affrescoui_module(render
 	modules/render/src/Application.cpp
+	modules/render/src/CodeEditor.cpp
 	modules/render/src/Color.cpp
 	modules/render/src/Controls.cpp
 	modules/render/src/Font.cpp
@@ -78,7 +80,14 @@ target_include_directories(affrescoui_render SYSTEM PRIVATE external/glad/includ
 target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw)
 target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
 
-affrescoui_module(format modules/format/src/Expression.cpp modules/format/src/Rules.cpp modules/format/src/Runtime.cpp)
+affrescoui_module(format
+	modules/format/src/Expression.cpp
+	modules/format/src/Rules.cpp
+	modules/format/src/Runtime.cpp
+	modules/format/src/Build.cpp
+	modules/format/src/Properties.cpp
+	modules/format/src/Events.cpp
+	modules/format/src/Steps.cpp)
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
 
 affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
@@ -103,4 +112,19 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
 		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 	endforeach()
+endif()
+
+if(AFFRESCOUI_BUILD_TESTS)
+	# Plays the scenarios in tests/render/scenarios.json; check.py compares the frames with the golden images
+	add_executable(affrescoui_render_runner tests/render/runner.cpp)
+	target_link_libraries(affrescoui_render_runner PRIVATE affrescoui nlohmann_json::nlohmann_json)
+	target_include_directories(affrescoui_render_runner PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+	target_compile_options(affrescoui_render_runner PRIVATE ${AFFRESCOUI_WARNINGS})
+
+	enable_testing()
+	find_package(Python3 COMPONENTS Interpreter)
+	if(Python3_FOUND)
+		add_test(NAME rendering COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/render/check.py
+		         --build ${CMAKE_CURRENT_BINARY_DIR})
+	endif()
 endif()

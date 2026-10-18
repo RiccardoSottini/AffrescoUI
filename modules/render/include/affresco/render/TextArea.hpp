@@ -40,7 +40,7 @@ protected:
 
 private:
 	std::u32string placeholder_;                    ///< See setPlaceholder().
-	Color placeholderColor_ = Color::hex(0x9ca3af); ///< See setPlaceholderColor().
+	Color placeholderColor_ = colors::muted; ///< See setPlaceholderColor().
 };
 
 } // namespace affresco

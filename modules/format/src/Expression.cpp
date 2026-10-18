@@ -13,15 +13,9 @@
 
 namespace affresco::format {
 
-namespace {
+using expect::fail;
 
-/// @brief Reports an invalid value.
-/// @param where Its place in the document.
-/// @param message What is wrong.
-/// @throws DocumentError Always.
-[[noreturn]] void fail(const std::string& where, const std::string& message) {
-	throw DocumentError("AffrescoUI screen: " + where + ": " + message);
-}
+namespace {
 
 /* Variables */
 
@@ -143,20 +137,42 @@ std::string_view trim(std::string_view text) {
 
 /* Expressions: the inside of {{ }} */
 
-/// Functions taking one value directly: `{"$length": x}`. The others take an array of arguments.
-constexpr std::string_view oneArgument[] = {"$not",  "$empty", "$length", "$round", "$floor",     "$ceil",
-                                            "$abs",  "$keys",  "$values", "$reverse", "$upper",   "$lower",
-                                            "$trim", "$number", "$text",  "$parseJson", "$json",  "$range", "$type", "$entries"};
+/// How an operator takes its arguments.
+enum class Takes {
+	One,  ///< One value directly: `{"$length": x}`, `len(x)`.
+	List, ///< An array of arguments: `{"$max": [a, b]}`, `max(a, b)`.
+};
 
 /// Every operator and function (functions are written without the '$' in expressions: `len(x)`, `filter(l, c)`).
-constexpr std::string_view operators[] = {
-    "$if",     "$and",      "$or",      "$not",     "$coalesce", "$equals",  "$notEquals", "$greater", "$less",
-    "$greaterOrEqual", "$lessOrEqual", "$add",  "$subtract", "$multiply", "$divide", "$mod",    "$min",
-    "$max",    "$clamp",    "$round",   "$floor",   "$ceil",     "$abs",     "$length",    "$empty",   "$concat",
-    "$join",   "$split",    "$slice",   "$contains", "$indexOf", "$keys",    "$values",    "$reverse", "$range",
-    "$upper",  "$lower",    "$trim",    "$number",  "$text",     "$fixed",   "$pad",       "$plural",  "$time",
-    "$now",    "$parseJson", "$json",   "$filter",  "$map",      "$count",   "$sum",       "$find",    "$some",
-    "$every",  "$sort",     "$type",   "$merge",   "$entries"};
+constexpr std::pair<std::string_view, Takes> operators[] = {
+    {"$if", Takes::List},         {"$and", Takes::List},           {"$or", Takes::List},
+    {"$not", Takes::One},         {"$coalesce", Takes::List},      {"$equals", Takes::List},
+    {"$notEquals", Takes::List},  {"$greater", Takes::List},       {"$less", Takes::List},
+    {"$greaterOrEqual", Takes::List}, {"$lessOrEqual", Takes::List}, {"$add", Takes::List},
+    {"$subtract", Takes::List},   {"$multiply", Takes::List},      {"$divide", Takes::List},
+    {"$mod", Takes::List},        {"$min", Takes::List},           {"$max", Takes::List},
+    {"$clamp", Takes::List},      {"$round", Takes::One},          {"$floor", Takes::One},
+    {"$ceil", Takes::One},        {"$abs", Takes::One},            {"$length", Takes::One},
+    {"$empty", Takes::One},       {"$concat", Takes::List},        {"$join", Takes::List},
+    {"$split", Takes::List},      {"$slice", Takes::List},         {"$contains", Takes::List},
+    {"$indexOf", Takes::List},    {"$keys", Takes::One},           {"$values", Takes::One},
+    {"$reverse", Takes::One},     {"$range", Takes::One},          {"$upper", Takes::One},
+    {"$lower", Takes::One},       {"$trim", Takes::One},           {"$number", Takes::One},
+    {"$text", Takes::One},        {"$fixed", Takes::List},         {"$pad", Takes::List},
+    {"$plural", Takes::List},     {"$time", Takes::List},          {"$now", Takes::List},
+    {"$parseJson", Takes::One},   {"$json", Takes::One},           {"$filter", Takes::List},
+    {"$map", Takes::List},        {"$count", Takes::List},         {"$sum", Takes::List},
+    {"$find", Takes::List},       {"$some", Takes::List},          {"$every", Takes::List},
+    {"$sort", Takes::List},       {"$type", Takes::One},           {"$merge", Takes::List},
+    {"$entries", Takes::One}};
+
+/// @brief How an operator takes its arguments.
+/// @param name E.g. "$add".
+/// @return Its entry in operators, or std::nullopt if there is no such operator.
+std::optional<Takes> takes(std::string_view name) {
+	const auto it = std::ranges::find(operators, name, &std::pair<std::string_view, Takes>::first);
+	return it == std::end(operators) ? std::nullopt : std::optional<Takes>(it->second);
+}
 
 /// @brief Makes an operator node.
 /// @param name E.g. "$add".
@@ -191,8 +207,8 @@ private:
 	/// @brief Reports a syntax error with its column.
 	/// @param message What is wrong.
 	[[noreturn]] void error(const std::string& message) const {
-		fail(where_, "in {{" + std::string(text_) + "}}: " + message + " (at column " + std::to_string(position_ + 1) +
-		                 ")");
+		const std::string shown = text_.size() > 80 ? std::string(text_.substr(0, 77)) + "..." : std::string(text_);
+		fail(where_, "in {{" + shown + "}}: " + message + " (at column " + std::to_string(position_ + 1) + ")");
 	}
 
 	/// @brief Skips whitespace.
@@ -230,9 +246,27 @@ private:
 		return node(name, json::array({std::move(left), std::move(right)}));
 	}
 
+	/// @brief Counts how deeply the rules being parsed nest, so `((((...))))` fails instead of overflowing the stack.
+	class Nesting {
+	public:
+		/// @brief Enters one level.
+		/// @param parser The parser.
+		explicit Nesting(Parser& parser) : parser_(parser) {
+			if(++parser_.depth_ > maxDepth) parser_.error("nested too deeply");
+		}
+		/// @brief Leaves it.
+		~Nesting() { --parser_.depth_; }
+		Nesting(const Nesting&) = delete;
+		Nesting& operator=(const Nesting&) = delete;
+
+	private:
+		Parser& parser_; ///< The parser.
+	};
+
 	/// @brief condition ? then : else (right-associative, lowest precedence).
 	/// @return The node.
 	json ternary() {
+		const Nesting nesting(*this); // every ( [ { and argument passes here
 		json condition = coalesce();
 		if(!accept("?")) return condition;
 		json then = ternary();
@@ -317,6 +351,7 @@ private:
 	/// @brief !a, -a.
 	/// @return The node.
 	json unary() {
+		const Nesting nesting(*this); // !!!!x
 		if(accept("!")) return node("$not", unary());
 		if(accept("-")) return node("$subtract", json::array({0, unary()}));
 		return postfix();
@@ -454,18 +489,21 @@ private:
 			expect(")");
 		}
 		const std::string name = "$" + (function == "len" ? std::string("length") : function);
-		if(std::ranges::find(operators, name) == std::end(operators))
-			error("unknown function '" + function + "'");
-		if(std::ranges::find(oneArgument, name) != std::end(oneArgument)) {
+		const std::optional<Takes> kind = takes(name);
+		if(!kind) error("unknown function '" + function + "'");
+		if(*kind == Takes::One) {
 			if(arguments.size() != 1) error("'" + function + "' takes one argument");
 			return node(name, std::move(arguments[0]));
 		}
 		return node(name, std::move(arguments));
 	}
 
+	static constexpr int maxDepth = 100; ///< Deeper nesting is refused (real expressions use a handful of levels).
+
 	std::string_view text_;    ///< The expression.
 	const std::string& where_; ///< Its place, for errors.
 	std::size_t position_ = 0; ///< Where parsing is.
+	int depth_ = 0;            ///< Nesting now (see Nesting).
 };
 
 /* Operators */
@@ -625,6 +663,330 @@ json applyToItems(const std::string& name, const json& raw, const Context& conte
 	return result;
 }
 
+/// @brief Evaluates an operator that takes one value: `{"$length": x}`, `len(x)`.
+/// @param name The operator, e.g. "$length".
+/// @param value Its value, evaluated.
+/// @param at Its place, for errors.
+/// @return The result.
+/// @throws DocumentError If the value doesn't suit the operator.
+json applyToValue(const std::string& name, const json& value, const std::string& at) {
+	if(name == "$not") return !truthy(value);
+	if(name == "$empty") return !truthy(value) && !value.is_boolean() && !value.is_number();
+	if(name == "$round") return static_cast<std::int64_t>(std::llround(numberOf(value, at)));
+	if(name == "$floor") return static_cast<std::int64_t>(std::floor(numberOf(value, at)));
+	if(name == "$ceil") return static_cast<std::int64_t>(std::ceil(numberOf(value, at)));
+	if(name == "$abs") return numeric(std::abs(numberOf(value, at)), value.is_number_integer());
+	if(name == "$text") return toText(value);
+	if(name == "$type")
+		return value.is_null()      ? "null"
+		       : value.is_boolean() ? "boolean"
+		       : value.is_number()  ? "number"
+		       : value.is_string()  ? "string"
+		       : value.is_array()   ? "list"
+		                            : "object";
+	if(name == "$entries") { // {a: 1} -> [{key: "a", value: 1}], to repeat over an object
+		json result = json::array();
+		if(value.is_object())
+			for(const auto& [key, item] : value.items()) result.push_back({{"key", key}, {"value", item}});
+		return result;
+	}
+	if(name == "$json") return value.dump();
+	if(name == "$parseJson") {
+		try {
+			return parseUntrusted(toText(value), true);
+		} catch(const std::exception&) {
+			return nullptr; // not JSON (or nested too deeply)
+		}
+	}
+	if(name == "$number") {
+		if(value.is_number()) return value;
+		try {
+			std::size_t used = 0;
+			const std::string text = toText(value);
+			const double n = std::stod(text, &used);
+			return used == text.size() ? numeric(n, text.find_first_of(".eE") == std::string::npos) : json();
+		} catch(const std::exception&) {
+			return nullptr;
+		}
+	}
+	if(name == "$upper" || name == "$lower" || name == "$trim") {
+		std::string text = toText(value);
+		if(name == "$trim") return std::string(trim(text));
+		for(char& c : text)
+			c = static_cast<char>(name == "$upper" ? std::toupper(static_cast<unsigned char>(c))
+			                                       : std::tolower(static_cast<unsigned char>(c)));
+		return text;
+	}
+	if(name == "$keys" || name == "$values") {
+		json result = json::array();
+		if(value.is_object())
+			for(const auto& [key, item] : value.items()) result.push_back(name == "$keys" ? json(key) : item);
+		return result;
+	}
+	if(name == "$reverse") {
+		if(value.is_string()) {
+			const std::string& text = value.get_ref<const std::string&>();
+			return std::string(text.rbegin(), text.rend());
+		}
+		if(!value.is_array()) fail(at, "expected a list");
+		json result = json::array();
+		for(auto it = value.rbegin(); it != value.rend(); ++it) result.push_back(*it);
+		return result;
+	}
+	if(name == "$range") {
+		const auto n = static_cast<std::int64_t>(numberOf(value, at));
+		if(n > 10000) fail(at, "range too long");
+		json result = json::array();
+		for(std::int64_t i = 0; i < n; ++i) result.push_back(i);
+		return result;
+	}
+	// $length
+	if(value.is_string()) return value.get<std::string>().size();
+	if(value.is_array() || value.is_object()) return value.size();
+	if(value.is_null()) return 0;
+	fail(at, "expected a string, a list or an object");
+}
+
+/// @brief An operator's evaluated arguments, with the checks every operator needs.
+struct Arguments {
+	json values;           ///< The arguments, an array.
+	const std::string& at; ///< The operator's place, for errors.
+
+	/// @brief The i-th argument.
+	/// @param i Its position.
+	/// @return It.
+	const json& operator[](std::size_t i) const { return values[i]; }
+	/// @brief How many there are.
+	/// @return The count.
+	[[nodiscard]] std::size_t size() const { return values.size(); }
+	/// @brief Requires exactly n arguments.
+	/// @param n The count.
+	/// @throws DocumentError If there are more or fewer.
+	void count(std::size_t n) const {
+		if(size() != n) fail(at, "expected " + std::to_string(n) + " arguments");
+	}
+	/// @brief Requires low to high arguments.
+	/// @param low The fewest.
+	/// @param high The most.
+	/// @throws DocumentError If there are more or fewer.
+	void between(std::size_t low, std::size_t high) const {
+		if(size() < low || size() > high)
+			fail(at, "expected " + std::to_string(low) + " to " + std::to_string(high) + " arguments");
+	}
+	/// @brief The i-th argument as a number.
+	/// @param i Its position.
+	/// @return The number.
+	/// @throws DocumentError If it is not one.
+	[[nodiscard]] double number(std::size_t i) const { return numberOf(values[i], at); }
+};
+
+/* Operator groups, tried in order by applyToArguments(): each returns std::nullopt for an operator that isn't one
+   of its own. */
+
+/// @brief ==, !=, <, >, <=, >=: numbers by size, text alphabetically.
+/// @param name The operator.
+/// @param args Its arguments.
+/// @return The result, or std::nullopt if it isn't a comparison.
+std::optional<json> comparison(const std::string& name, const Arguments& args) {
+	auto compare = [&](auto test) {
+		args.count(2);
+		if(args[0].is_string() && args[1].is_string())
+			return test(args[0].get<std::string>().compare(args[1].get<std::string>()));
+		const double a = args.number(0), b = args.number(1);
+		return test(a < b ? -1 : a > b ? 1 : 0);
+	};
+
+	if(name == "$equals") return args.count(2), args[0] == args[1];
+	if(name == "$notEquals") return args.count(2), args[0] != args[1];
+	if(name == "$greater") return compare([](int c) { return c > 0; });
+	if(name == "$less") return compare([](int c) { return c < 0; });
+	if(name == "$greaterOrEqual") return compare([](int c) { return c >= 0; });
+	if(name == "$lessOrEqual") return compare([](int c) { return c <= 0; });
+	return std::nullopt;
+}
+
+/// @brief +, *, min, max, -, /, %, clamp; integers in, integers out. A + with text joins it.
+/// @param name The operator.
+/// @param args Its arguments.
+/// @return The result, or std::nullopt if it isn't arithmetic.
+std::optional<json> arithmetic(const std::string& name, const Arguments& args) {
+	const std::string& at = args.at;
+
+	// Text joins: "{{n + ' cards'}}"
+	if(name == "$add" && std::ranges::any_of(args.values, [](const json& v) { return v.is_string(); })) {
+		std::string result;
+		for(const json& part : args.values) result += toText(part);
+		return result;
+	}
+	if(name == "$add" || name == "$multiply" || name == "$min" || name == "$max") {
+		if(args.size() == 0) fail(at, "expected at least one argument");
+		double result = args.number(0);
+		for(std::size_t i = 1; i < args.size(); ++i) {
+			const double v = args.number(i);
+			if(name == "$add") result += v;
+			else if(name == "$multiply") result *= v;
+			else if(name == "$min") result = std::min(result, v);
+			else result = std::max(result, v);
+		}
+		return numeric(result, allIntegers(args.values));
+	}
+	if(name == "$subtract") return args.count(2), numeric(args.number(0) - args.number(1), allIntegers(args.values));
+	if(name == "$divide" || name == "$mod") {
+		args.count(2);
+		const double divisor = args.number(1);
+		if(divisor == 0.0) fail(at, "division by zero");
+		if(name == "$mod") return numeric(std::fmod(args.number(0), divisor), allIntegers(args.values));
+		return args.number(0) / divisor;
+	}
+	if(name == "$clamp") {
+		args.count(3);
+		const double low = args.number(1), high = args.number(2);
+		return numeric(std::clamp(args.number(0), low, std::max(low, high)), allIntegers(args.values));
+	}
+	return std::nullopt;
+}
+
+/// @brief concat, join, split, slice, contains, indexOf, merge: lists, text and objects.
+/// @param name The operator.
+/// @param args Its arguments.
+/// @return The result, or std::nullopt if it isn't one of these.
+std::optional<json> listOrText(const std::string& name, const Arguments& args) {
+	const std::string& at = args.at;
+
+	if(name == "$concat") {
+		if(std::ranges::all_of(args.values, [](const json& v) { return v.is_array(); })) {
+			json result = json::array();
+			for(const json& part : args.values) result.insert(result.end(), part.begin(), part.end());
+			return result;
+		}
+		std::string result;
+		for(const json& part : args.values) result += toText(part);
+		return result;
+	}
+	// {"$join": [list, separator]}: the items as text, e.g. "#board, /state/cards"
+	if(name == "$join") {
+		args.count(2);
+		if(!args[0].is_array()) fail(at, "expected a list first");
+		std::string result;
+		for(const json& item : args[0]) result += (result.empty() ? "" : toText(args[1])) + toText(item);
+		return result;
+	}
+	if(name == "$split") {
+		args.count(2);
+		const std::string text = toText(args[0]), separator = toText(args[1]);
+		json result = json::array();
+		if(separator.empty()) {
+			for(char c : text) result.push_back(std::string(1, c));
+			return result;
+		}
+		std::size_t start = 0;
+		for(std::size_t end; (end = text.find(separator, start)) != std::string::npos; start = end + separator.size())
+			result.push_back(text.substr(start, end - start));
+		result.push_back(text.substr(start));
+		return result;
+	}
+	if(name == "$slice") {
+		args.between(2, 3);
+		const auto size = static_cast<std::int64_t>(args[0].is_string() ? args[0].get<std::string>().size()
+		                                            : args[0].is_array() ? args[0].size()
+		                                                                 : 0);
+		auto clampIndex = [&](std::size_t arg) {
+			auto i = static_cast<std::int64_t>(args.number(arg));
+			if(i < 0) i += size;
+			return std::clamp<std::int64_t>(i, 0, size);
+		};
+		const std::int64_t from = clampIndex(1), to = args.size() > 2 ? clampIndex(2) : size;
+		if(args[0].is_string())
+			return to > from ? args[0].get<std::string>().substr(static_cast<std::size_t>(from),
+			                                                     static_cast<std::size_t>(to - from))
+			                 : std::string();
+		if(!args[0].is_array()) fail(at, "expected a list or a text first");
+		json result = json::array();
+		for(std::int64_t i = from; i < to; ++i) result.push_back(args[0][static_cast<std::size_t>(i)]);
+		return result;
+	}
+	if(name == "$contains" || name == "$indexOf") {
+		args.count(2);
+		std::int64_t found = -1;
+		if(args[0].is_string()) {
+			const std::size_t i = args[0].get<std::string>().find(toText(args[1]));
+			found = i == std::string::npos ? -1 : static_cast<std::int64_t>(i);
+		} else if(args[0].is_array()) {
+			const auto it = std::ranges::find(args[0], args[1]);
+			found = it == args[0].end() ? -1 : static_cast<std::int64_t>(std::distance(args[0].begin(), it));
+		} else if(args[0].is_object()) {
+			found = args[0].contains(toText(args[1])) ? 0 : -1;
+		}
+		return name == "$contains" ? json(found >= 0) : json(found);
+	}
+	if(name == "$merge") { // objects, later keys win
+		json result = json::object();
+		for(const json& part : args.values) {
+			if(part.is_null()) continue;
+			if(!part.is_object()) fail(at, "expected objects");
+			result.update(part);
+		}
+		return result;
+	}
+	return std::nullopt;
+}
+
+/// @brief fixed, pad, plural, now, time: values as text, and the clock.
+/// @param name The operator.
+/// @param args Its arguments.
+/// @return The result, or std::nullopt if it isn't one of these.
+std::optional<json> formatting(const std::string& name, const Arguments& args) {
+	if(name == "$fixed") {
+		args.count(2);
+		const int digits = std::clamp(static_cast<int>(args.number(1)), 0, 12);
+		char buffer[64];
+		std::snprintf(buffer, sizeof(buffer), "%.*f", digits, args.number(0));
+		return std::string(buffer);
+	}
+	if(name == "$pad") {
+		args.between(2, 3);
+		std::string text = toText(args[0]);
+		const auto width = static_cast<std::size_t>(std::max(args.number(1), 0.0));
+		if(width > 10000) fail(args.at, "width too large");
+		const std::string fill = args.size() > 2 ? toText(args[2]) : "0";
+		while(text.size() < width && !fill.empty()) text = fill + text;
+		return text;
+	}
+	if(name == "$plural") {
+		args.between(2, 3);
+		const double n = args.number(0);
+		const std::string word = n == 1.0 ? toText(args[1]) : args.size() > 2 ? toText(args[2]) : toText(args[1]) + "s";
+		return toText(args[0]) + " " + word;
+	}
+	if(name == "$now") {
+		return std::chrono::duration_cast<std::chrono::milliseconds>(
+		           std::chrono::system_clock::now().time_since_epoch())
+		    .count();
+	}
+	if(name == "$time") {
+		args.count(2);
+		return formatTime(args.number(0), toText(args[1]));
+	}
+	return std::nullopt;
+}
+
+/// @brief Evaluates an operator that takes a list of arguments: `{"$max": [a, b]}`, `max(a, b)`.
+/// @param name The operator, e.g. "$max".
+/// @param values Its arguments, evaluated.
+/// @param at Its place, for errors.
+/// @return The result.
+/// @throws DocumentError If the operator is unknown or its arguments don't suit it.
+json applyToArguments(const std::string& name, json values, const std::string& at) {
+	if((name == "$min" || name == "$max") && values.size() == 1 && values[0].is_array()) {
+		json items = std::move(values[0]); // max(list): its items
+		values = std::move(items);
+	}
+	const Arguments args{std::move(values), at};
+	for(auto group : {comparison, arithmetic, listOrText, formatting})
+		if(std::optional<json> result = group(name, args)) return std::move(*result);
+	fail(at, "unknown operator '" + name + "'");
+}
+
 /// @brief Evaluates one `$` operator.
 /// @param name The operator, e.g. "$add".
 /// @param raw Its arguments, unevaluated.
@@ -683,247 +1045,8 @@ json applyOperator(const std::string& name, const json& raw, const Context& cont
 		return applyToItems(name, raw, context, at);
 
 	// One-argument operators take their value directly: {"$length": "{{state.items}}"}, {"$length": [1, 2, 3]}
-	if(std::ranges::find(oneArgument, name) != std::end(oneArgument)) {
-		const json value = evaluate(raw, context, at);
-		if(name == "$not") return !truthy(value);
-		if(name == "$empty") return !truthy(value) && !value.is_boolean() && !value.is_number();
-		if(name == "$round") return static_cast<std::int64_t>(std::llround(numberOf(value, at)));
-		if(name == "$floor") return static_cast<std::int64_t>(std::floor(numberOf(value, at)));
-		if(name == "$ceil") return static_cast<std::int64_t>(std::ceil(numberOf(value, at)));
-		if(name == "$abs") return numeric(std::abs(numberOf(value, at)), value.is_number_integer());
-		if(name == "$text") return toText(value);
-		if(name == "$type")
-			return value.is_null()      ? "null"
-			       : value.is_boolean() ? "boolean"
-			       : value.is_number()  ? "number"
-			       : value.is_string()  ? "string"
-			       : value.is_array()   ? "list"
-			                            : "object";
-		if(name == "$entries") { // {a: 1} -> [{key: "a", value: 1}], to repeat over an object
-			json result = json::array();
-			if(value.is_object())
-				for(const auto& [key, item] : value.items()) result.push_back({{"key", key}, {"value", item}});
-			return result;
-		}
-		if(name == "$json") return value.dump();
-		if(name == "$parseJson") {
-			json parsed = json::parse(toText(value), nullptr, false, true);
-			return parsed.is_discarded() ? json() : parsed;
-		}
-		if(name == "$number") {
-			if(value.is_number()) return value;
-			try {
-				std::size_t used = 0;
-				const std::string text = toText(value);
-				const double n = std::stod(text, &used);
-				return used == text.size() ? numeric(n, text.find_first_of(".eE") == std::string::npos) : json();
-			} catch(const std::exception&) {
-				return nullptr;
-			}
-		}
-		if(name == "$upper" || name == "$lower" || name == "$trim") {
-			std::string text = toText(value);
-			if(name == "$trim") return std::string(trim(text));
-			for(char& c : text)
-				c = static_cast<char>(name == "$upper" ? std::toupper(static_cast<unsigned char>(c))
-				                                       : std::tolower(static_cast<unsigned char>(c)));
-			return text;
-		}
-		if(name == "$keys" || name == "$values") {
-			json result = json::array();
-			if(value.is_object())
-				for(const auto& [key, item] : value.items()) result.push_back(name == "$keys" ? json(key) : item);
-			return result;
-		}
-		if(name == "$reverse") {
-			if(value.is_string()) {
-				const std::string& text = value.get_ref<const std::string&>();
-				return std::string(text.rbegin(), text.rend());
-			}
-			if(!value.is_array()) fail(at, "expected a list");
-			json result = json::array();
-			for(auto it = value.rbegin(); it != value.rend(); ++it) result.push_back(*it);
-			return result;
-		}
-		if(name == "$range") {
-			const auto n = static_cast<std::int64_t>(numberOf(value, at));
-			if(n > 10000) fail(at, "range too long");
-			json result = json::array();
-			for(std::int64_t i = 0; i < n; ++i) result.push_back(i);
-			return result;
-		}
-		// $length
-		if(value.is_string()) return value.get<std::string>().size();
-		if(value.is_array() || value.is_object()) return value.size();
-		if(value.is_null()) return 0;
-		fail(at, "expected a string, a list or an object");
-	}
-
-	json args = arguments(raw, context, at);
-	if((name == "$min" || name == "$max") && args.size() == 1 && args[0].is_array()) {
-		json items = std::move(args[0]); // max(list): its items
-		args = std::move(items);
-	}
-	auto count = [&](std::size_t n) {
-		if(args.size() != n) fail(at, "expected " + std::to_string(n) + " arguments");
-	};
-	auto between = [&](std::size_t low, std::size_t high) {
-		if(args.size() < low || args.size() > high)
-			fail(at, "expected " + std::to_string(low) + " to " + std::to_string(high) + " arguments");
-	};
-	auto compare = [&](auto test) {
-		count(2);
-		if(args[0].is_string() && args[1].is_string()) return test(args[0].get<std::string>().compare(args[1].get<std::string>()));
-		const double a = numberOf(args[0], at), b = numberOf(args[1], at);
-		return test(a < b ? -1 : a > b ? 1 : 0);
-	};
-
-	if(name == "$equals") return count(2), args[0] == args[1];
-	if(name == "$notEquals") return count(2), args[0] != args[1];
-	if(name == "$greater") return compare([](int c) { return c > 0; });
-	if(name == "$less") return compare([](int c) { return c < 0; });
-	if(name == "$greaterOrEqual") return compare([](int c) { return c >= 0; });
-	if(name == "$lessOrEqual") return compare([](int c) { return c <= 0; });
-
-	// Text joins: "{{n + ' cards'}}"
-	if(name == "$add" && std::ranges::any_of(args, [](const json& v) { return v.is_string(); })) {
-		std::string result;
-		for(const json& part : args) result += toText(part);
-		return result;
-	}
-	if(name == "$add" || name == "$multiply" || name == "$min" || name == "$max") {
-		if(args.empty()) fail(at, "expected at least one argument");
-		double result = numberOf(args[0], at);
-		for(std::size_t i = 1; i < args.size(); ++i) {
-			const double v = numberOf(args[i], at);
-			if(name == "$add") result += v;
-			else if(name == "$multiply") result *= v;
-			else if(name == "$min") result = std::min(result, v);
-			else result = std::max(result, v);
-		}
-		return numeric(result, allIntegers(args));
-	}
-	if(name == "$subtract") return count(2), numeric(numberOf(args[0], at) - numberOf(args[1], at), allIntegers(args));
-	if(name == "$divide" || name == "$mod") {
-		count(2);
-		const double divisor = numberOf(args[1], at);
-		if(divisor == 0.0) fail(at, "division by zero");
-		if(name == "$mod") return numeric(std::fmod(numberOf(args[0], at), divisor), allIntegers(args));
-		return numberOf(args[0], at) / divisor;
-	}
-	if(name == "$clamp") {
-		count(3);
-		const double low = numberOf(args[1], at), high = numberOf(args[2], at);
-		return numeric(std::clamp(numberOf(args[0], at), low, std::max(low, high)), allIntegers(args));
-	}
-
-	if(name == "$concat") {
-		if(std::ranges::all_of(args, [](const json& v) { return v.is_array(); })) {
-			json result = json::array();
-			for(const json& part : args) result.insert(result.end(), part.begin(), part.end());
-			return result;
-		}
-		std::string result;
-		for(const json& part : args) result += toText(part);
-		return result;
-	}
-
-	// {"$join": [list, separator]}: the items as text, e.g. "#board, /state/cards"
-	if(name == "$join") {
-		count(2);
-		if(!args[0].is_array()) fail(at, "expected a list first");
-		std::string result;
-		for(const json& item : args[0]) result += (result.empty() ? "" : toText(args[1])) + toText(item);
-		return result;
-	}
-	if(name == "$split") {
-		count(2);
-		const std::string text = toText(args[0]), separator = toText(args[1]);
-		json result = json::array();
-		if(separator.empty()) {
-			for(char c : text) result.push_back(std::string(1, c));
-			return result;
-		}
-		std::size_t start = 0;
-		for(std::size_t end; (end = text.find(separator, start)) != std::string::npos; start = end + separator.size())
-			result.push_back(text.substr(start, end - start));
-		result.push_back(text.substr(start));
-		return result;
-	}
-	if(name == "$slice") {
-		between(2, 3);
-		const auto size = static_cast<std::int64_t>(args[0].is_string() ? args[0].get<std::string>().size()
-		                                                                : args[0].is_array() ? args[0].size() : 0);
-		auto clampIndex = [&](const json& v) {
-			auto i = static_cast<std::int64_t>(numberOf(v, at));
-			if(i < 0) i += size;
-			return std::clamp<std::int64_t>(i, 0, size);
-		};
-		const std::int64_t from = clampIndex(args[1]), to = args.size() > 2 ? clampIndex(args[2]) : size;
-		if(args[0].is_string())
-			return to > from ? args[0].get<std::string>().substr(static_cast<std::size_t>(from),
-			                                                     static_cast<std::size_t>(to - from))
-			                 : std::string();
-		if(!args[0].is_array()) fail(at, "expected a list or a text first");
-		json result = json::array();
-		for(std::int64_t i = from; i < to; ++i) result.push_back(args[0][static_cast<std::size_t>(i)]);
-		return result;
-	}
-	if(name == "$contains" || name == "$indexOf") {
-		count(2);
-		std::int64_t found = -1;
-		if(args[0].is_string()) {
-			const std::size_t i = args[0].get<std::string>().find(toText(args[1]));
-			found = i == std::string::npos ? -1 : static_cast<std::int64_t>(i);
-		} else if(args[0].is_array()) {
-			const auto it = std::ranges::find(args[0], args[1]);
-			found = it == args[0].end() ? -1 : static_cast<std::int64_t>(std::distance(args[0].begin(), it));
-		} else if(args[0].is_object()) {
-			found = args[0].contains(toText(args[1])) ? 0 : -1;
-		}
-		return name == "$contains" ? json(found >= 0) : json(found);
-	}
-	if(name == "$merge") { // objects, later keys win
-		json result = json::object();
-		for(const json& part : args) {
-			if(part.is_null()) continue;
-			if(!part.is_object()) fail(at, "expected objects");
-			result.update(part);
-		}
-		return result;
-	}
-	if(name == "$fixed") {
-		count(2);
-		const int digits = std::clamp(static_cast<int>(numberOf(args[1], at)), 0, 12);
-		char buffer[64];
-		std::snprintf(buffer, sizeof(buffer), "%.*f", digits, numberOf(args[0], at));
-		return std::string(buffer);
-	}
-	if(name == "$pad") {
-		between(2, 3);
-		std::string text = toText(args[0]);
-		const auto width = static_cast<std::size_t>(std::max(numberOf(args[1], at), 0.0));
-		const std::string fill = args.size() > 2 ? toText(args[2]) : "0";
-		while(text.size() < width && !fill.empty()) text = fill + text;
-		return text;
-	}
-	if(name == "$plural") {
-		between(2, 3);
-		const double n = numberOf(args[0], at);
-		const std::string word = n == 1.0 ? toText(args[1]) : args.size() > 2 ? toText(args[2]) : toText(args[1]) + "s";
-		return toText(args[0]) + " " + word;
-	}
-	if(name == "$now") {
-		return std::chrono::duration_cast<std::chrono::milliseconds>(
-		           std::chrono::system_clock::now().time_since_epoch())
-		    .count();
-	}
-	if(name == "$time") {
-		count(2);
-		return formatTime(numberOf(args[0], at), toText(args[1]));
-	}
-
-	fail(at, "unknown operator '" + name + "'");
+	if(takes(name) == Takes::One) return applyToValue(name, evaluate(raw, context, at), at);
+	return applyToArguments(name, arguments(raw, context, at), at);
 }
 
 /* Templates */
@@ -1059,7 +1182,7 @@ bool isDynamic(const json& value) noexcept {
 
 json operatorNames() {
 	json names = json::array();
-	for(std::string_view name : operators) names.push_back(std::string(name));
+	for(const auto& [name, kind] : operators) names.push_back(std::string(name));
 	return names;
 }
 
