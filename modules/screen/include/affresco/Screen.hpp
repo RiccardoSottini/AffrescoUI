@@ -56,11 +56,11 @@ public:
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
 
 	/// @brief Loads a screen from JSON text.
-	/// @param json The document.
+	/// @param content The document.
 	/// @param baseDirectory Where relative paths (fonts, "include") are resolved from.
 	/// @return The screen, not yet built.
 	/// @throws ScreenError If it is not a valid screen.
-	[[nodiscard]] static Screen fromString(std::string_view json, std::filesystem::path baseDirectory = {});
+	[[nodiscard]] static Screen fromString(std::string_view content, std::filesystem::path baseDirectory = {});
 
 	Screen(Screen&&) noexcept;
 	Screen& operator=(Screen&&) noexcept;
