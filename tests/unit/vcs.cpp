@@ -23,7 +23,7 @@ TEST_CASE("vcs: submitting and then reverting a revision restores the document e
 	    {{"author", "studio"}, {"message", "Rename"}, {"set", {{"#title/text", "Done"}, {"#board/color", "#00ff00"}}}});
 	REQUIRE(applied.status == RevisionStatus::Applied);
 	CHECK(applied.revision == 1);
-	CHECK(repository.document()["root"]["children"][1]["text"] == "Done");
+	CHECK(repository.document().at(json::json_pointer("/root/children/1/text")) == "Done");
 
 	const affresco::RevisionResult reverted = repository.submit(repository.revertRevision("HEAD", "studio"));
 	REQUIRE(reverted.status == RevisionStatus::Applied);
@@ -73,7 +73,7 @@ TEST_CASE("vcs: an accept that names an outdated head is refused") {
 
 	CHECK_FALSE(repository.accept(proposed.proposal, {"studio", pushed.commit, false}));
 	CHECK(repository.proposals().empty());
-	CHECK(repository.document()["root"]["children"][1]["text"] == "Tomorrow");
+	CHECK(repository.document().at(json::json_pointer("/root/children/1/text")) == "Tomorrow");
 	CHECK(repository.head().committer == "studio");
 	CHECK(repository.head().author == "agent");
 }
@@ -117,8 +117,8 @@ TEST_CASE("vcs: a change set exported and imported elsewhere gives the same docu
 	        RevisionStatus::Proposed); // not on main: not exported
 
 	const json changes = source.exportChanges(0, "week view");
-	CHECK(changes["format"] == "affrescoui-changes");
-	CHECK(changes["revisions"].size() == 2);
+	CHECK(changes.at("format") == "affrescoui-changes");
+	CHECK(changes.at("revisions").size() == 2);
 
 	affresco::vcs::Repository target(rules, permissionsScreen());
 	REQUIRE_FALSE(target.importChanges(json::parse(changes.dump()))); // as it would travel

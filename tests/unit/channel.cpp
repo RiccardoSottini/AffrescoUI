@@ -32,15 +32,15 @@ TEST_CASE("channel: a Session sends hello when created") {
 
 	REQUIRE(peer.channel.sent.size() == 1);
 	const json& hello = peer.channel.sent[0];
-	CHECK(hello["type"] == "hello");
-	CHECK(hello["format"] == "affrescoui-screen");
-	CHECK(hello["revision"] == 0);
-	CHECK(hello["head"]["id"] == peer.versions.head().id);
-	CHECK(hello["document"] == peer.versions.document());
-	CHECK(hello["state"] == json{{"count", 0}});
-	CHECK(hello["mode"] == "default");
-	CHECK(hello["you"] == "agent");
-	CHECK(hello["canReview"] == false);
+	CHECK(hello.at("type") == "hello");
+	CHECK(hello.at("format") == "affrescoui-screen");
+	CHECK(hello.at("revision") == 0);
+	CHECK(hello.at("head").at("id") == peer.versions.head().id);
+	CHECK(hello.at("document") == peer.versions.document());
+	CHECK(hello.at("state") == json{{"count", 0}});
+	CHECK(hello.at("mode") == "default");
+	CHECK(hello.at("you") == "agent");
+	CHECK(hello.at("canReview") == false);
 }
 
 TEST_CASE("channel: a message of an unknown type gets an error") {
@@ -65,7 +65,7 @@ TEST_CASE("channel: an accept from a peer that may not review is rejected") {
 	// The agent proposes a change it may not make directly, then tries to approve it itself
 	peer.channel.receive(R"({"type": "revision", "id": 1, "set": {"#title/text": "Mine"}})");
 	const auto proposed =
-	    std::ranges::find(peer.channel.sent, json("proposed"), [](const json& m) { return m["type"]; });
+	    std::ranges::find(peer.channel.sent, json("proposed"), [](const json& m) { return m.value("type", json()); });
 	REQUIRE(proposed != peer.channel.sent.end());
 	const int proposal = (*proposed)["proposal"];
 	const std::string head = (*proposed)["commit"];
