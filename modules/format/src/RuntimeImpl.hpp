@@ -497,17 +497,17 @@ struct Runtime::Impl final : VersionObserver {
 	/// @brief One applyVisual() pass: the panel as each widget type it may be, and the values set at the end (they
 	/// depend on each other or animate).
 	struct Look {
-		Label* label = nullptr;                  ///< The panel, if it is a label (or a text area).
-		TextArea* textArea = nullptr;            ///< The panel, if it is a text area.
-		TextEditor* editor = nullptr;            ///< The panel, if it is a text editor.
-		Stack* stack = nullptr;                  ///< The panel, if it is a row or a column.
-		Grid* grid = nullptr;                    ///< The panel, if it is a grid.
-		Toggle* toggle = nullptr;                ///< The panel, if it is a toggle or a checkbox.
-		Slider* slider = nullptr;                ///< The panel, if it is a slider.
-		std::optional<Color> background = {};    ///< "color".
-		std::optional<Color> foreground = {};    ///< "textColor".
+		Label* label = nullptr;                           ///< The panel, if it is a label (or a text area).
+		TextArea* textArea = nullptr;                     ///< The panel, if it is a text area.
+		TextEditor* editor = nullptr;                     ///< The panel, if it is a text editor.
+		Stack* stack = nullptr;                           ///< The panel, if it is a row or a column.
+		Grid* grid = nullptr;                             ///< The panel, if it is a grid.
+		Toggle* toggle = nullptr;                         ///< The panel, if it is a toggle or a checkbox.
+		Slider* slider = nullptr;                         ///< The panel, if it is a slider.
+		std::optional<Color> background = {};             ///< "color".
+		std::optional<Color> foreground = {};             ///< "textColor".
 		std::optional<std::pair<bool, bool>> scroll = {}; ///< "scroll": horizontal, vertical.
-		std::optional<bool> overlayOpen = {};    ///< An overlay's "open", evaluated.
+		std::optional<bool> overlayOpen = {};             ///< An overlay's "open", evaluated.
 		std::optional<Color> trackColor = {}, fillColor = {}, knobColor = {}; ///< A slider's or toggle's colours.
 		double sliderMin = 0.0, sliderMax = 100.0, sliderStep = 0.0; ///< A slider's range.
 		bool sliderRange = false;                ///< Some of the range was given.
