@@ -146,8 +146,9 @@ Runtime::~Runtime() {
 		}
 }
 
-void Runtime::registerType(std::string name, Factory factory) {
-	impl_->types.insert_or_assign(std::move(name), std::move(factory));
+void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
+                           ApplyProperties apply) {
+	impl_->types.insert_or_assign(std::move(name), Impl::CustomType{std::move(factory), std::move(properties), std::move(apply)});
 }
 
 void Runtime::setPlaceholderTypes(bool enabled) { impl_->placeholderTypes = enabled; }
@@ -188,7 +189,7 @@ void Runtime::build(Window& window) {
 		if(!document.contains("keys") || !document["keys"].is_object()) return;
 		const std::string name = shortcut(event);
 		const Panel* focused = impl->window->focusedPanel();
-		const bool typing = dynamic_cast<const TextArea*>(focused) || dynamic_cast<const CodeEditor*>(focused);
+		const bool typing = dynamic_cast<const TextArea*>(focused) || dynamic_cast<const TextEditor*>(focused);
 		if(name.empty() || (typing && !event.mods.super() && !event.mods.control() && !event.mods.alt() &&
 		                    name != "escape"))
 			return;
@@ -259,34 +260,39 @@ json Runtime::catalog() const {
 	json events = json::array();
 	for(std::string_view name : handlerNames) events.push_back(std::string(name));
 
-	return {{"types",
-	         {{"panel", {{"properties", common}, {"about", "A rectangle; children are placed by their anchors"}}},
-	          {"label", {{"properties", text}, {"about", "Text"}}},
-	          {"textarea", {{"properties", textarea}, {"about", "A single-line text input"}}},
-	          {"code",
-	           {{"properties",
-	             {"bind", "text", "caret", "language", "font", "textColor", "syntax", "lineNumberColor",
-	              "activeLineNumberColor", "lineColor", "selectionColor", "caretColor", "autofocus"}},
-	            {"about", "A multi-line code editor: line numbers, syntax colours, selection, undo, clipboard"}}},
-	          {"stack", {{"properties", {"gap", "direction", "from", "wrap"}}, {"about", "Children in a column or a row"}}},
-	          {"row", {{"properties", {"gap", "from", "wrap"}}, {"about", "A stack in a row"}}},
-	          {"column", {{"properties", {"gap", "from"}}, {"about", "A stack in a column"}}},
-	          {"grid", {{"properties", {"columns", "gap"}}, {"about", "Children in equal columns"}}},
-	          {"toggle", {{"properties", {"bind", "checked", "activeColor", "trackColor", "knobColor"}}, {"about", "A switch"}}},
-	          {"checkbox",
-	           {{"properties", {"bind", "checked", "activeColor", "trackColor", "knobColor"}}, {"about", "A checkbox"}}},
-	          {"slider",
-	           {{"properties", {"bind", "value", "min", "max", "step", "trackColor", "activeColor", "knobColor"}},
-	            {"about", "A value in a range"}}},
-	          {"outlet", {{"properties", json::array()}, {"about", "Shows the current screen from \"screens\""}}}}},
+	json types = {
+	    {"panel", {{"properties", common}, {"about", "A rectangle; children are placed by their anchors"}}},
+	    {"label", {{"properties", text}, {"about", "Text"}}},
+	    {"textarea", {{"properties", textarea}, {"about", "A single-line text input"}}},
+	    {"editor",
+		 {{"properties",
+		   {"bind", "text", "caret", "font", "textColor", "lineNumbers", "lineNumberColor", "activeLineNumberColor",
+		    "lineColor", "selectionColor", "caretColor", "autofocus"}},
+		  {"about", "A multi-line text editor: selection, undo, clipboard, optional line numbers"}}},
+	    {"stack", {{"properties", {"gap", "direction", "from", "wrap"}}, {"about", "Children in a column or a row"}}},
+	    {"row", {{"properties", {"gap", "from", "wrap"}}, {"about", "A stack in a row"}}},
+	    {"column", {{"properties", {"gap", "from"}}, {"about", "A stack in a column"}}},
+	    {"grid", {{"properties", {"columns", "gap"}}, {"about", "Children in equal columns"}}},
+	    {"toggle",
+		 {{"properties", {"bind", "checked", "activeColor", "trackColor", "knobColor"}}, {"about", "A switch"}}},
+	    {"checkbox",
+		 {{"properties", {"bind", "checked", "activeColor", "trackColor", "knobColor"}}, {"about", "A checkbox"}}},
+	    {"slider",
+		 {{"properties", {"bind", "value", "min", "max", "step", "trackColor", "activeColor", "knobColor"}},
+		  {"about", "A value in a range"}}},
+	    {"outlet", {{"properties", json::array()}, {"about", "Shows the current screen from \"screens\""}}}};
+	for(const auto& [name, type] : impl_->types)
+		types[name] = {{"properties", type.properties}, {"about", "Registered by the application"}};
+
+	return {{"types", types},
 	        {"common", common},
 	        {"events", events},
-	        {"steps",
-	         {"set",    "push",     "remove", "toggle",   "increment", "if",      "forEach", "while",  "run",
-	          "call",   "emit",     "send",   "connect",  "patch",     "focus",   "scrollTo", "navigate", "after",
-	          "debounce", "animate", "copy",  "log",      "stop",      "note"}},
-	        {"controlSteps", {"accept", "reject", "preview", "endPreview", "restore", "revert", "undo", "patch", "call",
-	                          "send", "connect"}},
+	        {"steps", {"set",      "push",  "remove",   "toggle",  "increment", "if",    "forEach", "while",
+	                   "run",      "call",  "emit",     "send",    "connect",   "patch", "focus",   "scrollTo",
+	                   "navigate", "after", "debounce", "animate", "copy",      "log",   "stop",    "note"}},
+	        {"controlSteps",
+	         {"accept", "reject", "preview", "endPreview", "restore", "revert", "undo", "patch", "call", "send",
+	          "connect"}},
 	        {"operators", operatorNames()},
 	        {"variables",
 	         {"state", "event", "window", "revision", "proposals", "history", "preview", "mode", "computed", "theme",
@@ -302,6 +308,8 @@ json Runtime::catalog() const {
 Panel* Runtime::find(std::string_view id) noexcept {
 	return impl_->window ? impl_->window->root().findById(id) : nullptr;
 }
+
+Color Runtime::resolveColor(const json& value) const { return impl_->color(value, "color"); }
 
 Color Runtime::color(std::string_view name) const {
 	const auto it = impl_->colors.find(name);

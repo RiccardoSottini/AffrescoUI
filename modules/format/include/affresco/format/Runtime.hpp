@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco::format {
 
@@ -28,11 +29,15 @@ namespace affresco::format {
 /// VersionControl rolls it back.
 class Runtime {
 public:
-	using Action = std::function<void(Panel& sender)>;     ///< A native action.
+	using Action = std::function<void(Panel& sender)>; ///< A native action.
 	/// A native function for "call" steps: takes the step's "with" value, returns what "into" stores. Throwing
 	/// std::exception runs the step's "onError" steps (with `error`).
 	using Call = std::function<json(const json& arguments)>;
 	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a custom node type.
+	/// Applies a custom type's own properties to one of its panels: the node's evaluated values for the names given at
+	/// registration (only those it has; colours and fonts as written, see resolveColor() and font()). Called when they
+	/// change, so a name that is missing means its default. Throwing std::exception reports the error at the node.
+	using ApplyProperties = std::function<void(Panel& panel, const json& properties)>;
 	using UnhandledAction = std::function<void(const std::string& action, Panel& sender)>; ///< Fallback handler.
 
 	/// @brief Reads the document's colours and fonts and starts observing @p versions.
@@ -47,10 +52,14 @@ public:
 
 	/* Before building */
 
-	/// @brief Registers a custom "type" usable in the document.
+	/// @brief Registers a custom "type" usable in the document. It has the properties of the built-in type its panel
+	/// derives from (e.g. a TextEditor subclass has those of "editor"), plus its own.
 	/// @param name The type name.
 	/// @param factory Creates its panel.
-	void registerType(std::string name, Factory factory);
+	/// @param properties Its own property names.
+	/// @param apply Applies them; may be empty if there are none.
+	void registerType(std::string name, Factory factory, std::vector<std::string> properties = {},
+	                  ApplyProperties apply = {});
 
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
@@ -123,6 +132,12 @@ public:
 	/// @return The colour.
 	/// @throws DocumentError If there is no such colour.
 	[[nodiscard]] Color color(std::string_view name) const;
+
+	/// @brief Reads a colour as the document writes it, e.g. in a custom type's properties.
+	/// @param value "#rgb", "#rrggbb", "#rrggbbaa", "@name" (from "colors", in the current theme) or "transparent".
+	/// @return The colour.
+	/// @throws DocumentError If it is not a colour.
+	[[nodiscard]] Color resolveColor(const json& value) const;
 
 	/// @brief Looks a font up in "fonts".
 	/// @param name The name.

@@ -12,7 +12,6 @@
 #include "affresco/core/VersionControl.hpp"
 
 #include "affresco/render/Application.hpp"
-#include "affresco/render/CodeEditor.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Controls.hpp"
 #include "affresco/render/Events.hpp"
@@ -25,6 +24,7 @@
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Stack.hpp"
 #include "affresco/render/TextArea.hpp"
+#include "affresco/render/TextEditor.hpp"
 #include "affresco/render/Window.hpp"
 
 #include "affresco/channel/Channels.hpp"

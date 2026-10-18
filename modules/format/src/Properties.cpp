@@ -152,10 +152,6 @@ bool layoutProperty(Panel& panel, const std::string& key, const json& value, con
 	return true;
 }
 
-/// Names of the code editor's kinds of text in "syntax", indexed by CodeEditor::Token ("plain" is "textColor").
-constexpr std::string_view tokenNames[] = {"plain", "keyword", "type", "string", "number", "comment", "heading"};
-static_assert(std::size(tokenNames) == CodeEditor::tokenCount);
-
 } // namespace
 
 /* Properties */
@@ -186,10 +182,10 @@ void Runtime::Impl::reset(Panel& panel, Record& record) {
 		textArea->setPlaceholder({});
 		textArea->setPlaceholderColor(colors::muted);
 	}
-	if(auto* code = dynamic_cast<CodeEditor*>(&panel)) {
-		code->setFont(nullptr);
-		code->setLanguage({});
-		code->resetColors();
+	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
+		editor->setFont(nullptr);
+		editor->setLineNumbers(false);
+		editor->resetColors();
 	}
 	if(auto* stack = dynamic_cast<Stack*>(&panel)) {
 		stack->setGap(0.0f);
@@ -243,13 +239,13 @@ void Runtime::Impl::apply(Panel& panel, Record& record, const json& properties, 
 			if(key == "onSubmit" && !dynamic_cast<TextArea*>(&panel)) fail(at, "only text areas have \"onSubmit\"");
 			record.handlers[key] = value;
 		} else if(key == "bind") {
-			if(!dynamic_cast<TextArea*>(&panel) && !dynamic_cast<CodeEditor*>(&panel) && !dynamic_cast<Toggle*>(&panel) &&
+			if(!dynamic_cast<TextArea*>(&panel) && !dynamic_cast<TextEditor*>(&panel) && !dynamic_cast<Toggle*>(&panel) &&
 			   !dynamic_cast<Slider*>(&panel))
-				fail(at, "only text areas, code editors, toggles, checkboxes and sliders can \"bind\"");
+				fail(at, "only text areas, text editors, toggles, checkboxes and sliders can \"bind\"");
 			// A path, or "{{...}}" giving one (e.g. a component's parameter)
 			record.bind = string(isDynamic(value) ? evaluate(value, *record.locals, json::object(), at) : value, at);
 		} else if(key == "caret") {
-			if(!dynamic_cast<CodeEditor*>(&panel)) fail(at, "only code editors have \"caret\"");
+			if(!dynamic_cast<TextEditor*>(&panel)) fail(at, "only text editors have \"caret\"");
 			record.caret = string(isDynamic(value) ? evaluate(value, *record.locals, json::object(), at) : value, at);
 		} else if(key == "keys") {
 			record.keys = json::object();
@@ -301,12 +297,12 @@ void Runtime::Impl::apply(Panel& panel, Record& record, const json& properties, 
 		if(newText != record.lastText) label->setText(newText.value_or(""));
 		record.lastText = newText;
 	}
-	if(auto* code = dynamic_cast<CodeEditor*>(&panel)) {
-		if(record.bind) code->setText(text(bound));
+	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
+		if(record.bind) editor->setText(text(bound));
 		else {
 			const std::optional<std::string> newText =
 			    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
-			if(newText != record.lastText) code->setText(newText.value_or(""));
+			if(newText != record.lastText) editor->setText(newText.value_or(""));
 			record.lastText = newText;
 		}
 	}
@@ -351,7 +347,7 @@ void Runtime::Impl::refresh(Panel& panel, Record& record) {
 void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& properties, bool isRoot) {
 	Look look{.label = dynamic_cast<Label*>(&panel),
 	          .textArea = dynamic_cast<TextArea*>(&panel),
-	          .code = dynamic_cast<CodeEditor*>(&panel),
+	          .editor = dynamic_cast<TextEditor*>(&panel),
 	          .stack = dynamic_cast<Stack*>(&panel),
 	          .grid = dynamic_cast<Grid*>(&panel),
 	          .toggle = dynamic_cast<Toggle*>(&panel),
@@ -359,6 +355,9 @@ void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& proper
 	const Color shownColor = panel.color();
 	const Color shownText = look.label ? look.label->textColor() : Color{};
 	reset(panel, record);
+	const auto customIt = types.find(record.type);
+	const CustomType* custom = customIt != types.end() ? &customIt->second : nullptr;
+	json own = json::object();
 
 	for(const auto& [key, value] : properties.items()) {
 		const std::string at = record.path + "." + key;
@@ -367,7 +366,21 @@ void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& proper
 		if(commonProperty(panel, record, key, value, at, look)) continue;
 		if(isRoot) fail(at, "not allowed on the root, which always fills the window");
 		if(layoutProperty(panel, key, value, at) || widgetProperty(look, key, value, at)) continue;
+		if(custom && std::ranges::find(custom->properties, key) != custom->properties.end()) {
+			own[key] = value;
+			continue;
+		}
 		fail(at, "unknown property '" + key + "' for this type");
+	}
+
+	// A custom type's own properties go to the application when they change
+	if(custom && custom->apply && own != record.ownProperties) {
+		try {
+			custom->apply(panel, own);
+		} catch(const std::exception& error) {
+			fail(record.path, error.what());
+		}
+		record.ownProperties = own;
 	}
 
 	if(look.background) transitionColor(panel, record, "color", shownColor, *look.background);
@@ -469,26 +482,18 @@ bool Runtime::Impl::widgetProperty(Look& look, const std::string& key, const jso
 	else if(look.textArea && key == "placeholderColor") look.textArea->setPlaceholderColor(color(value, at));
 
 
-	// Code editors
-	else if(look.code && key == "textColor") look.code->setTokenColor(CodeEditor::Token::Plain, color(value, at));
-	else if(look.code && key == "font") {
+	// Text editors
+	else if(look.editor && key == "textColor") look.editor->setTextColor(color(value, at));
+	else if(look.editor && key == "font") {
 		const auto it = fonts.find(string(value, at));
 		if(it == fonts.end()) fail(at, "unknown font '" + value.get<std::string>() + "'");
-		look.code->setFont(it->second);
-	} else if(look.code && key == "language") look.code->setLanguage(string(value, at));
-	else if(look.code && key == "lineColor") look.code->setLineColor(color(value, at));
-	else if(look.code && key == "selectionColor") look.code->setSelectionColor(color(value, at));
-	else if(look.code && key == "caretColor") look.code->setCaretColor(color(value, at));
-	else if(look.code && key == "lineNumberColor") look.code->setLineNumberColor(color(value, at));
-	else if(look.code && key == "activeLineNumberColor") look.code->setActiveLineNumberColor(color(value, at));
-	else if(look.code && key == "syntax") {
-		for(const auto& [name, v] : object(value, at).items()) {
-			const auto it = std::ranges::find(tokenNames, name);
-			if(it == std::end(tokenNames) || it == std::begin(tokenNames))
-				fail(at + "." + name, "unknown kind (expected keyword, type, string, number, comment or heading)");
-			look.code->setTokenColor(static_cast<CodeEditor::Token>(it - std::begin(tokenNames)), color(v, at + "." + name));
-		}
-	}
+		look.editor->setFont(it->second);
+	} else if(look.editor && key == "lineNumbers") look.editor->setLineNumbers(boolean(value, at));
+	else if(look.editor && key == "lineColor") look.editor->setLineColor(color(value, at));
+	else if(look.editor && key == "selectionColor") look.editor->setSelectionColor(color(value, at));
+	else if(look.editor && key == "caretColor") look.editor->setCaretColor(color(value, at));
+	else if(look.editor && key == "lineNumberColor") look.editor->setLineNumberColor(color(value, at));
+	else if(look.editor && key == "activeLineNumberColor") look.editor->setActiveLineNumberColor(color(value, at));
 
 	// Rows, columns and grids
 	else if(stack && key == "gap") stack->setGap(number(value, at));

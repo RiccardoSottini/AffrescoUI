@@ -7,6 +7,8 @@
 /// steps send, captures are drawn offscreen at the scenario's "scale" (default 1) whatever the display, and screens
 /// are loaded without a state file. check.py runs every scenario and compares the frames with the golden images.
 
+#include "CodeEditor.hpp"
+
 #include <affresco/affresco.hpp>
 
 #include <GLFW/glfw3.h>
@@ -181,6 +183,7 @@ int main(int argc, char** argv) {
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // never on screen
 		affresco::Screen screen = affresco::Screen::fromString(readFile(file), file.parent_path());
 		screen.setPlaceholderTypes(true);         // as affrescoui_host does
+		examples::registerCodeEditor(screen);     // and its application-layer "code" type
 		screen.setSocketDirectory(out / "no-host"); // channels find nobody: the "disconnected" look, every time
 
 		Player player{screen, screen.createWindow(app), out, name, scenario->value("scale", 1)};

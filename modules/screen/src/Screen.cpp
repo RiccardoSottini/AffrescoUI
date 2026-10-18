@@ -361,8 +361,11 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 
 /* Runtime */
 
-void Screen::registerType(std::string name, Factory factory) {
-	impl_->runtime.registerType(std::move(name), std::move(factory));
+void Screen::registerType(std::string name, Factory factory, std::vector<std::string> properties,
+                          ApplyProperties apply) {
+	format::Runtime::ApplyProperties forward;
+	if(apply) forward = [apply = std::move(apply)](Panel& panel, const json& own) { apply(panel, own.dump()); };
+	impl_->runtime.registerType(std::move(name), std::move(factory), std::move(properties), std::move(forward));
 }
 
 void Screen::setPlaceholderTypes(bool enabled) { impl_->runtime.setPlaceholderTypes(enabled); }
@@ -430,6 +433,8 @@ void Screen::runAction(std::string_view name, Panel& sender, std::string_view ev
 Panel* Screen::find(std::string_view id) noexcept { return impl_->runtime.find(id); }
 
 Color Screen::color(std::string_view name) const { return impl_->runtime.color(name); }
+
+Color Screen::resolveColor(std::string_view value) const { return impl_->runtime.resolveColor(json(std::string(value))); }
 
 std::shared_ptr<const Font> Screen::font(std::string_view name) const { return impl_->runtime.font(name); }
 
