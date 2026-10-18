@@ -47,8 +47,17 @@ inline LogSink& logSink() {
 inline void setLogSink(LogSink sink) { detail::logSink() = sink ? std::move(sink) : LogSink(detail::defaultLogSink); }
 
 /// @brief Logs a message through the current sink.
+///
+/// If the sink throws, the message goes to the default sink instead: some messages come from C callbacks (GLFW's),
+/// which an exception must not cross.
 /// @param level The message's level.
 /// @param message The text, one line without the trailing newline.
-inline void log(LogLevel level, std::string_view message) { detail::logSink()(level, message); }
+inline void log(LogLevel level, std::string_view message) noexcept {
+	try {
+		detail::logSink()(level, message);
+	} catch(...) {
+		detail::defaultLogSink(level, message);
+	}
+}
 
 } // namespace affresco
