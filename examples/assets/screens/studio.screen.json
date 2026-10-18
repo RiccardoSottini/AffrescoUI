@@ -1,0 +1,677 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+
+	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file.",
+
+	"window": { "title": "AffrescoUI Studio", "width": 1000, "height": 760, "minWidth": 880, "minHeight": 640 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 14 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 16 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 20 }
+	},
+
+	"colors": {
+		"background": "#0b1020",
+		"card": "#131a2e",
+		"cardRaised": "#1b2440",
+		"border": "#232d4b",
+		"text": "#e2e8f0",
+		"muted": "#7c89a8",
+		"input": "#0e1426",
+		"inputFocused": "#18213d",
+		"accent": "#6366f1",
+		"accentHover": "#7c7ff5",
+		"accentPressed": "#4f46e5",
+		"good": "#22c55e",
+		"goodHover": "#4ade80",
+		"bad": "#ef4444",
+		"badHover": "#f87171",
+		"neutral": "#2a3556",
+		"neutralHover": "#35426b",
+		"logYou": "#a5b4fc",
+		"logAi": "#5eead4",
+		"logCommit": "#cbd5e1",
+		"logReview": "#fcd34d",
+		"logError": "#fca5a5",
+		"logSystem": "#7c89a8"
+	},
+
+	"channels": { "host": { "socket": "studio.sock", "reconnect": { "after": 2000 } } },
+
+	"state": {
+		"connected": false,
+		"status": "Connecting to the host...",
+		"canReview": false,
+		"revision": 0,
+		"head": "",
+		"mode": "default",
+		"grants": [],
+		"proposals": [],
+		"previewing": null,
+		"history": [],
+		"log": [],
+		"draft": "",
+		"patch": "",
+		"modes": [
+			{ "mode": "default", "label": "Ask first", "width": 70 },
+			{ "mode": "acceptEdits", "label": "Accept edits", "width": 88 },
+			{ "mode": "plan", "label": "Plan", "width": 56 }
+		],
+		"modeHelp": {
+			"default": "Ask first: AI changes no rule allows wait here for you.",
+			"acceptEdits": "Accept edits: AI changes apply right away, unless a rule always asks.",
+			"plan": "Plan: the AI can only propose, even where it is allowed."
+		},
+		"logColors": {
+			"you": "@logYou",
+			"ai": "@logAi",
+			"commit": "@logCommit",
+			"review": "@logReview",
+			"error": "@logError"
+		}
+	},
+
+	"styles": {
+		"card": { "color": "@card" },
+		"cardTitle": {
+			"type": "label",
+			"font": "heading",
+			"textColor": "@text",
+			"anchors": { "left": 20, "top": 16 },
+			"fitText": true
+		},
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
+		"input": {
+			"type": "textarea",
+			"height": 40,
+			"padding": 12,
+			"color": "@input",
+			"focused": { "color": "@inputFocused" },
+			"textColor": "@text",
+			"placeholderColor": "@muted"
+		},
+		"button": {
+			"type": "label",
+			"align": "center",
+			"color": "@accent",
+			"hover": { "color": "@accentHover" },
+			"pressed": { "color": "@accentPressed" },
+			"textColor": "#ffffff",
+			"cursor": "hand"
+		},
+		"smallButton": {
+			"type": "label",
+			"font": "small",
+			"align": "center",
+			"height": 26,
+			"color": "@neutral",
+			"hover": { "color": "@neutralHover" },
+			"textColor": "@text",
+			"cursor": "hand"
+		}
+	},
+
+	"actions": {
+		"ask": [
+			{ "if": "{{len(trim(state.draft)) == 0}}", "then": [{ "stop": true }] },
+			{
+				"send": "host",
+				"data": { "type": "request", "id": "request-{{len(state.log)}}", "text": "{{state.draft}}" }
+			},
+			{ "push": "state.log", "value": { "kind": "you", "text": "You: {{state.draft}}" } },
+			{ "set": "state.draft", "to": "" }
+		],
+		"applyPatch": [
+			{ "note": "A JSON Patch [...] or compact edits {\"set\": {...}}, as typed" },
+			{ "if": "{{len(trim(state.patch)) == 0}}", "then": [{ "stop": true }] },
+			{
+				"if": "{{type(parseJson(state.patch)) == 'list'}}",
+				"then": [
+					{
+						"send": "host",
+						"data": {
+							"type": "revision",
+							"message": "Direct change from the Studio",
+							"patch": "{{parseJson(state.patch)}}"
+						}
+					}
+				],
+				"else": [
+					{
+						"if": "{{type(parseJson(state.patch)) == 'object'}}",
+						"then": [
+							{
+								"send": "host",
+								"data": "{{merge({ type: 'revision', message: 'Direct change from the Studio' }, parseJson(state.patch))}}"
+							}
+						],
+						"else": [
+							{
+								"push": "state.log",
+								"value": {
+									"kind": "error",
+									"text": "Not JSON: a patch [{\"op\": ...}] or edits {\"set\": {...}}"
+								}
+							},
+							{ "stop": true }
+						]
+					}
+				]
+			},
+			{ "set": "state.patch", "to": "" }
+		],
+		"refreshHistory": [{ "send": "host", "data": { "type": "getHistory", "limit": 4 } }],
+		"host:hello": [
+			{ "set": "state.connected", "to": true },
+			{ "set": "state.canReview", "to": "{{event.canReview}}" },
+			{ "set": "state.revision", "to": "{{event.revision}}" },
+			{ "set": "state.head", "to": "{{event.head.short}}" },
+			{ "set": "state.status", "to": "Connected as '{{event.you}}'" },
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "system",
+					"text": "Connected to the host, at revision {{event.revision}} ({{event.head.short}})"
+				}
+			},
+			{ "send": "host", "data": { "type": "getDocument" } },
+			{ "run": "refreshHistory" }
+		],
+		"host:document": [
+			{ "set": "state.proposals", "to": "{{event.proposals}}" },
+			{ "set": "state.previewing", "to": "{{event.previewing}}" },
+			{ "set": "state.mode", "to": "{{event.mode}}" },
+			{ "set": "state.grants", "to": "{{event.grants}}" },
+			{ "set": "state.revision", "to": "{{event.revision}}" },
+			{ "set": "state.head", "to": "{{event.head.short}}" }
+		],
+		"host:review": [
+			{ "set": "state.proposals", "to": "{{event.proposals}}" },
+			{ "set": "state.previewing", "to": "{{event.previewing}}" },
+			{ "set": "state.mode", "to": "{{event.mode}}" },
+			{ "set": "state.grants", "to": "{{event.grants}}" }
+		],
+		"host:history": [{ "set": "state.history", "to": "{{event.entries}}" }],
+		"host:committed": [
+			{ "set": "state.revision", "to": "{{event.revision}}" },
+			{ "set": "state.head", "to": "{{event.short}}" },
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "commit",
+					"text": "Revision {{event.revision}} ({{event.short}}) by {{event.author}}: {{event.message}}"
+				}
+			},
+			{ "run": "refreshHistory" }
+		],
+		"host:applied": [
+			{
+				"if": "{{event.proposal != null}}",
+				"then": [
+					{
+						"push": "state.log",
+						"value": { "kind": "review", "text": "Proposal #{{event.proposal}} merged" }
+					}
+				]
+			}
+		],
+		"host:proposed": [
+			{
+				"push": "state.log",
+				"value": { "kind": "review", "text": "Waiting for review as proposal #{{event.proposal}}" }
+			}
+		],
+		"host:rejected": [
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "error",
+					"text": "{{event.proposal != null ? 'Proposal #' + event.proposal + ' rejected: ' + event.error : 'Rejected: ' + event.error}}"
+				}
+			}
+		],
+		"host:reply": [{ "push": "state.log", "value": { "kind": "ai", "text": "{{event.from}}: {{event.text}}" } }],
+		"host:error": [{ "push": "state.log", "value": { "kind": "error", "text": "{{event.message}}" } }],
+		"host:event": [
+			{ "push": "state.log", "value": { "kind": "system", "text": "The app emitted '{{event.name}}'" } }
+		],
+		"host:closed": [
+			{
+				"if": "{{state.connected}}",
+				"then": [{ "push": "state.log", "value": { "kind": "error", "text": "{{event.message}}" } }]
+			},
+			{ "set": "state.connected", "to": false },
+			{ "set": "state.status", "to": "Not connected: start affrescoui_host (retrying every 2 s)" }
+		],
+		"host:open": [{ "set": "state.status", "to": "Connected, waiting for the host" }]
+	},
+
+	"keys": { "mod+enter": "ask", "mod+z": { "send": "host", "data": { "type": "undo" } } },
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "header",
+				"anchors": { "left": 0, "right": 0, "top": 0 },
+				"height": 64,
+				"color": "@card",
+				"children": [
+					{
+						"type": "label",
+						"text": "AffrescoUI Studio",
+						"font": "title",
+						"textColor": "@text",
+						"anchors": { "left": 24, "top": 0, "bottom": 0 },
+						"width": 200,
+						"align": { "horizontal": "start", "vertical": "center" },
+						"id": "title"
+					},
+					{
+						"anchors": { "left": 214, "top": 28 },
+						"width": 8,
+						"height": 8,
+						"color": "{{state.connected ? '@good' : '@bad'}}",
+						"id": "connection",
+						"tooltip": "{{state.connected ? 'Connected' : 'Not connected'}}"
+					},
+					{
+						"type": "label",
+						"text": "{{state.status}}",
+						"textColor": "@muted",
+						"anchors": { "left": 232, "top": 0, "bottom": 0, "right": 300 },
+						"align": { "horizontal": "start", "vertical": "center" },
+						"id": "status"
+					},
+					{
+						"when": "{{!state.connected}}",
+						"style": "smallButton",
+						"text": "Reconnect",
+						"anchors": { "right": 24, "top": 19 },
+						"width": 96,
+						"onClick": [{ "connect": "host" }]
+					},
+					{
+						"when": "{{state.connected}}",
+						"type": "label",
+						"text": "main  ·  revision {{state.revision}}  ·  {{state.head}}",
+						"textColor": "@muted",
+						"anchors": { "right": 24, "top": 0, "bottom": 0 },
+						"width": 280,
+						"align": { "horizontal": "end", "vertical": "center" }
+					}
+				]
+			},
+			{
+				"id": "left",
+				"anchors": { "left": 0, "top": 64, "bottom": 0 },
+				"width": "55%",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "askCard",
+						"style": "card",
+						"anchors": { "left": 20, "right": 10, "top": 20 },
+						"height": 132,
+						"children": [
+							{ "style": "cardTitle", "text": "Ask the AI" },
+							{
+								"style": "caption",
+								"text": "Describe a change in plain words. An AI agent connected through MCP builds it.",
+								"anchors": { "left": 20, "top": 42 }
+							},
+							{
+								"id": "draft",
+								"style": "input",
+								"anchors": { "left": 20, "right": 112, "top": 72 },
+								"placeholder": "e.g. add a Blocked column, or switch to a dark theme",
+								"bind": "state.draft",
+								"onSubmit": "ask",
+								"autofocus": true
+							},
+							{
+								"style": "button",
+								"text": "Send",
+								"anchors": { "right": 20, "top": 72 },
+								"width": 80,
+								"height": 40,
+								"onClick": "ask"
+							}
+						]
+					},
+					{
+						"id": "patchCard",
+						"style": "card",
+						"anchors": { "left": 20, "right": 10, "top": 168 },
+						"height": 132,
+						"children": [
+							{ "style": "cardTitle", "text": "Direct change" },
+							{
+								"style": "caption",
+								"text": "A JSON Patch, or edits like {\"set\": {\"#boardName/text\": \"Q4\"}}, applied as you. Paste with Cmd+V.",
+								"anchors": { "left": 20, "top": 42 }
+							},
+							{
+								"id": "patch",
+								"style": "input",
+								"anchors": { "left": 20, "right": 112, "top": 72 },
+								"placeholder": "{\"set\": {\"/colors/accent\": \"#e11d48\"}}",
+								"bind": "state.patch",
+								"onSubmit": "applyPatch"
+							},
+							{
+								"style": "button",
+								"text": "Apply",
+								"anchors": { "right": 20, "top": 72 },
+								"width": 80,
+								"height": 40,
+								"onClick": "applyPatch"
+							}
+						]
+					},
+					{
+						"id": "activityCard",
+						"style": "card",
+						"anchors": { "left": 20, "right": 10, "top": 316, "bottom": 20 },
+						"children": [
+							{ "style": "cardTitle", "text": "Activity" },
+							{
+								"id": "log",
+								"type": "stack",
+								"gap": 8,
+								"anchors": { "left": 20, "right": 20, "top": 48, "bottom": 16 },
+								"children": [
+									{
+										"repeat": { "for": "entry", "in": "state.log" },
+										"type": "label",
+										"text": "{{entry.text}}",
+										"anchors": { "left": 0 },
+										"wrap": true,
+										"fitText": { "maxWidth": 460 },
+										"textColor": "{{state.logColors[entry.kind] ?? '@logSystem'}}"
+									}
+								],
+								"from": "end",
+								"scroll": "vertical"
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "right",
+				"anchors": { "right": 0, "top": 64, "bottom": 0 },
+				"width": "45%",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "reviewCard",
+						"style": "card",
+						"anchors": { "left": 10, "right": 20, "top": 20 },
+						"height": 380,
+						"children": [
+							{ "style": "cardTitle", "text": "Review ({{len(state.proposals)}})" },
+							{
+								"id": "mode",
+								"anchors": { "right": 20, "top": 14 },
+								"width": 222,
+								"height": 26,
+								"children": [
+									{
+										"repeat": { "for": "m", "in": "state.modes" },
+										"style": "smallButton",
+										"text": "{{m.label}}",
+										"width": "{{m.width}}",
+										"color": "{{state.mode == m.mode ? '@accent' : '@neutral'}}",
+										"onClick": {
+											"send": "host",
+											"data": { "type": "setMode", "mode": "{{m.mode}}" }
+										}
+									}
+								],
+								"type": "row",
+								"gap": 4
+							},
+							{
+								"style": "caption",
+								"text": "{{state.modeHelp[state.mode]}}",
+								"anchors": { "left": 20, "top": 48 }
+							},
+							{
+								"id": "proposals",
+								"type": "stack",
+								"gap": 8,
+								"anchors": {
+									"left": 20,
+									"right": 20,
+									"top": 72,
+									"bottom": "{{12 + 28 * len(state.grants)}}"
+								},
+								"children": [
+									{
+										"repeat": { "for": "p", "in": "state.proposals" },
+										"anchors": { "left": 0, "right": 0 },
+										"height": 104,
+										"color": "{{previewed ? '@neutral' : '@cardRaised'}}",
+										"children": [
+											{
+												"style": "caption",
+												"text": "#{{p.id}}  ·  {{p.author}}  ·  {{plural(p.commits, 'commit')}}, {{plural(p.operations, 'change')}}  ·  {{p.short}}",
+												"anchors": { "left": 14, "top": 8 }
+											},
+											{
+												"type": "label",
+												"text": "{{p.message}}",
+												"textColor": "@text",
+												"anchors": { "left": 14, "right": 14, "top": 26 },
+												"height": 20
+											},
+											{
+												"style": "caption",
+												"text": "{{join(slice(p.changes, 0, 2), '   ')}}{{len(p.changes) > 2 ? '   +' + (len(p.changes) - 2) + ' more' : ''}}",
+												"anchors": { "left": 14, "top": 50, "right": 14 },
+												"height": 16,
+												"tooltip": "{{join(p.changes, ',  ')}}"
+											},
+											{
+												"style": "smallButton",
+												"text": "{{previewed ? 'End preview' : 'Preview'}}",
+												"anchors": { "left": 14, "bottom": 10 },
+												"width": 84,
+												"onClick": {
+													"if": "{{previewed}}",
+													"then": { "send": "host", "data": { "type": "endPreview" } },
+													"else": {
+														"send": "host",
+														"data": { "type": "preview", "proposal": "{{p.id}}" }
+													}
+												}
+											},
+											{
+												"style": "smallButton",
+												"text": "Accept",
+												"anchors": { "left": 106, "bottom": 10 },
+												"width": 68,
+												"color": "@good",
+												"hover": { "color": "@goodHover" },
+												"textColor": "#052e16",
+												"onClick": [
+													{
+														"send": "host",
+														"data": {
+															"type": "accept",
+															"proposal": "{{p.id}}",
+															"head": "{{p.head}}"
+														}
+													}
+												]
+											},
+											{
+												"when": "{{!empty(p.remember)}}",
+												"style": "smallButton",
+												"text": "Always allow",
+												"anchors": { "left": 182, "bottom": 10 },
+												"width": 96,
+												"color": "@good",
+												"hover": { "color": "@goodHover" },
+												"textColor": "#052e16",
+												"onClick": [
+													{
+														"send": "host",
+														"data": {
+															"type": "accept",
+															"proposal": "{{p.id}}",
+															"head": "{{p.head}}",
+															"dontAskAgain": true
+														}
+													}
+												],
+												"tooltip": "Don't ask again for: {{join(p.remember, ', ')}}"
+											},
+											{
+												"style": "smallButton",
+												"text": "Reject",
+												"anchors": { "right": 14, "bottom": 10 },
+												"width": 68,
+												"color": "@bad",
+												"hover": { "color": "@badHover" },
+												"textColor": "#ffffff",
+												"onClick": [
+													{
+														"send": "host",
+														"data": { "type": "reject", "proposal": "{{p.id}}" }
+													}
+												]
+											}
+										],
+										"id": "proposal",
+										"let": { "previewed": "{{p.id == state.previewing}}" }
+									}
+								],
+								"scroll": "vertical"
+							},
+							{
+								"id": "grants",
+								"type": "stack",
+								"gap": 2,
+								"anchors": { "left": 20, "right": 20, "bottom": 12 },
+								"height": "{{28 * len(state.grants)}}",
+								"color": "transparent",
+								"children": [
+									{
+										"repeat": { "for": "g", "in": "state.grants" },
+										"anchors": { "left": 0, "right": 0 },
+										"height": 26,
+										"color": "transparent",
+										"children": [
+											{
+												"type": "label",
+												"text": "Don't ask again: {{g.rule}}",
+												"font": "small",
+												"textColor": "@logReview",
+												"anchors": { "left": 0, "right": 80, "top": 0, "bottom": 0 },
+												"align": { "horizontal": "start", "vertical": "center" }
+											},
+											{
+												"style": "smallButton",
+												"text": "Revoke",
+												"anchors": { "right": 0, "top": 0 },
+												"width": 68,
+												"onClick": [
+													{
+														"send": "host",
+														"data": { "type": "revoke", "rule": "{{g.rule}}" }
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "historyCard",
+						"style": "card",
+						"anchors": { "left": 10, "right": 20, "top": 416, "bottom": 20 },
+						"children": [
+							{ "style": "cardTitle", "text": "History" },
+							{
+								"style": "smallButton",
+								"text": "Undo",
+								"anchors": { "right": 20, "top": 14 },
+								"width": 72,
+								"onClick": [{ "send": "host", "data": { "type": "undo" } }],
+								"tooltip": "Cmd+Z"
+							},
+							{
+								"id": "history",
+								"type": "stack",
+								"gap": 4,
+								"anchors": { "left": 20, "right": 20, "top": 52, "bottom": 16 },
+								"children": [
+									{
+										"repeat": { "for": "entry", "in": "state.history" },
+										"anchors": { "left": 0, "right": 0 },
+										"height": 40,
+										"color": "{{current ? '@cardRaised' : '@card'}}",
+										"children": [
+											{
+												"type": "label",
+												"font": "small",
+												"textColor": "@muted",
+												"text": "{{entry.number}}  ·  {{entry.short}}{{entry.committer != entry.author ? '  ·  approved by ' + entry.committer : ''}}",
+												"anchors": { "left": 8, "right": 140, "top": 4 },
+												"height": 14
+											},
+											{
+												"type": "label",
+												"text": "{{entry.author}}: {{entry.message}}",
+												"textColor": "@text",
+												"anchors": { "left": 8, "right": 140, "top": 19 },
+												"height": 18
+											},
+											{
+												"when": "{{entry.number > 0}}",
+												"style": "smallButton",
+												"text": "Revert",
+												"anchors": { "right": 72, "top": 7 },
+												"width": 62,
+												"onClick": [
+													{
+														"send": "host",
+														"data": { "type": "revert", "revision": "{{entry.number}}" }
+													}
+												]
+											},
+											{
+												"when": "{{!current}}",
+												"style": "smallButton",
+												"text": "Restore",
+												"anchors": { "right": 4, "top": 7 },
+												"width": 64,
+												"onClick": [
+													{
+														"send": "host",
+														"data": { "type": "restore", "revision": "{{entry.number}}" }
+													}
+												]
+											}
+										],
+										"let": { "current": "{{entry.number == state.revision}}" }
+									}
+								],
+								"from": "end",
+								"scroll": "vertical"
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+}

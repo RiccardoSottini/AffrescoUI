@@ -1,0 +1,503 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Haven: a smart-home dashboard. Rooms, scenes, lights (switch, dim), climate, blinds; a light and a dark theme.",
+
+	"window": { "title": "Haven: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 26 },
+		"figure": { "file": "../fonts/Roboto-Regular.ttf", "size": 56 }
+	},
+
+	"theme": "{{state.theme}}",
+	"colors": {
+		"background": { "dark": "#0b1020", "light": "#eef2f7" },
+		"sidebar": { "dark": "#0f1529", "light": "#ffffff" },
+		"card": { "dark": "#161d33", "light": "#ffffff" },
+		"cardHover": { "dark": "#1c2440", "light": "#f1f5f9" },
+		"raised": { "dark": "#222b48", "light": "#e7ecf3" },
+		"raisedHover": { "dark": "#2b355a", "light": "#d8e0ea" },
+		"text": { "dark": "#e5e9f5", "light": "#0f172a" },
+		"muted": { "dark": "#8b93ad", "light": "#64748b" },
+		"border": { "dark": "#232b45", "light": "#e2e8f0" },
+		"accent": { "dark": "#22d3ee", "light": "#0891b2" },
+		"accentSoft": { "dark": "#0e3a4a", "light": "#cffafe" },
+		"warm": { "dark": "#fbbf24", "light": "#d97706" },
+		"warmSoft": { "dark": "#3d3214", "light": "#fef3c7" },
+		"off": { "dark": "#3a4363", "light": "#cbd5e1" },
+		"selected": { "dark": "#1f2a4a", "light": "#e0f2fe" },
+		"knob": { "dark": "#ffffff", "light": "#ffffff" }
+	},
+
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent(/actions)"],
+		"deny": ["*(#statusBar)"],
+		"reviewers": ["studio"]
+	},
+
+	"state": {
+		"theme": "dark",
+		"room": 0,
+		"mode": "Heat",
+		"modes": ["Heat", "Cool", "Auto"],
+		"scene": "",
+		"rooms": [
+			{
+				"name": "Living room",
+				"temp": 21.5,
+				"target": 22,
+				"humidity": 44,
+				"blinds": 60,
+				"lights": [
+					{ "name": "Ceiling", "on": true, "level": 80 },
+					{ "name": "Floor lamp", "on": true, "level": 40 },
+					{ "name": "TV backlight", "on": false, "level": 30 },
+					{ "name": "Shelf strip", "on": false, "level": 60 }
+				]
+			},
+			{
+				"name": "Kitchen",
+				"temp": 20.5,
+				"target": 21,
+				"humidity": 51,
+				"blinds": 100,
+				"lights": [
+					{ "name": "Pendants", "on": true, "level": 90 },
+					{ "name": "Under cabinet", "on": false, "level": 70 }
+				]
+			},
+			{
+				"name": "Bedroom",
+				"temp": 19,
+				"target": 18.5,
+				"humidity": 47,
+				"blinds": 0,
+				"lights": [
+					{ "name": "Bedside left", "on": false, "level": 30 },
+					{ "name": "Bedside right", "on": false, "level": 30 },
+					{ "name": "Wardrobe", "on": false, "level": 100 }
+				]
+			},
+			{
+				"name": "Office",
+				"temp": 22,
+				"target": 22,
+				"humidity": 40,
+				"blinds": 80,
+				"lights": [
+					{ "name": "Desk lamp", "on": true, "level": 100 },
+					{ "name": "Ceiling", "on": false, "level": 70 }
+				]
+			}
+		],
+		"scenes": [
+			{ "name": "Morning", "action": "sceneMorning" },
+			{ "name": "Movie night", "action": "sceneMovie" },
+			{ "name": "Away", "action": "sceneAway" },
+			{ "name": "Good night", "action": "sceneNight" }
+		],
+		"energy": [
+			{ "day": "Mon", "kwh": 62 }, { "day": "Tue", "kwh": 55 }, { "day": "Wed", "kwh": 71 }, { "day": "Thu", "kwh": 48 },
+			{ "day": "Fri", "kwh": 66 }, { "day": "Sat", "kwh": 83 }, { "day": "Sun", "kwh": 58 }
+		]
+	},
+
+	"computed": {
+		"room": "{{state.rooms[state.room]}}",
+		"lightsOn": "{{count(computed.room.lights, it.on)}}",
+		"energyTotal": "{{sum(state.energy, it.kwh)}}",
+		"peakDay": "{{sort(state.energy, it.kwh, 'desc')[0].day}}"
+	},
+
+	"styles": {
+		"card": { "color": "@card" },
+		"cardTitle": { "type": "label", "font": "heading", "textColor": "@text", "anchors": { "left": 24, "top": 20 }, "fitText": true },
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
+		"button": { "type": "label", "align": "center", "color": "@raised", "hover": { "color": "@raisedHover" }, "textColor": "@text", "cursor": "hand" },
+		"round": { "style": "button", "font": "heading", "width": 44, "height": 44 },
+		"choice": { "style": "button" },
+		"choiceOn": { "style": "button", "color": "@accentSoft", "hover": { "color": "@accentSoft" }, "textColor": "@accent" }
+	},
+
+	"actions": {
+		"sceneMorning": [
+			{ "forEach": "computed.room.lights", "index": "i", "do": [{ "set": "state.rooms[state.room].lights[i].on", "to": true }, { "set": "state.rooms[state.room].lights[i].level", "to": 80 }] },
+			{ "animate": "state.rooms[state.room].blinds", "to": 100, "ms": 600 },
+			{ "set": "state.scene", "to": "Morning" }
+		],
+		"sceneMovie": [
+			{ "forEach": "computed.room.lights", "index": "i", "do": [{ "set": "state.rooms[state.room].lights[i].level", "to": 20 }] },
+			{ "animate": "state.rooms[state.room].blinds", "to": 0, "ms": 600 },
+			{ "set": "state.scene", "to": "Movie night" }
+		],
+		"sceneAway": [
+			{ "forEach": "state.rooms", "index": "r", "do": [
+				{ "forEach": "state.rooms[r].lights", "index": "i", "do": [{ "set": "state.rooms[r].lights[i].on", "to": false }] },
+				{ "set": "state.rooms[r].target", "to": 17 }
+			] },
+			{ "set": "state.scene", "to": "Away" }
+		],
+		"sceneNight": [
+			{ "forEach": "state.rooms", "index": "r", "do": [
+				{ "forEach": "state.rooms[r].lights", "index": "i", "do": [{ "set": "state.rooms[r].lights[i].on", "to": false }] },
+				{ "set": "state.rooms[r].blinds", "to": 0 }
+			] },
+			{ "set": "state.scene", "to": "Good night" }
+		],
+		"setTarget": [
+			{ "note": "with: by (degrees)" },
+			{ "set": "state.rooms[state.room].target", "to": "{{clamp(computed.room.target + by, 16, 28)}}" }
+		]
+	},
+
+	"keys": {
+		"up": { "run": "setTarget", "with": { "by": 0.5 } },
+		"down": { "run": "setTarget", "with": { "by": -0.5 } },
+		"mod+t": { "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "sidebar",
+				"anchors": { "left": 0, "top": 0, "bottom": 0 },
+				"width": 248,
+				"color": "@sidebar",
+				"children": [
+					{ "id": "logo", "type": "label", "text": "Haven", "font": "title", "textColor": "@text", "anchors": { "left": 28, "top": 28 }, "fitText": true },
+					{ "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 28, "top": 66 } },
+					{ "style": "caption", "text": "ROOMS", "anchors": { "left": 28, "top": 116 } },
+					{
+						"id": "rooms",
+						"type": "stack",
+						"anchors": { "left": 12, "right": 12, "top": 140 },
+						"height": 260,
+						"gap": 4,
+						"children": [
+							{
+								"id": "roomRow",
+								"repeat": { "for": "room", "in": "state.rooms" },
+								"let": { "selected": "{{index == state.room}}" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 52,
+								"color": "{{selected ? '@selected' : '@sidebar'}}",
+								"hover": { "color": "{{selected ? '@selected' : '@cardHover'}}" },
+								"cursor": "hand",
+								"onClick": { "set": "state.room", "to": "{{index}}" },
+								"children": [
+									{ "when": "{{selected}}", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": 3, "color": "@accent" },
+									{
+										"type": "label",
+										"text": "{{room.name}}",
+										"textColor": "@text",
+										"anchors": { "left": 18, "top": 0, "bottom": 0 },
+										"width": 140,
+										"align": { "horizontal": "start", "vertical": "center" }
+									},
+									{
+										"type": "label",
+										"text": "{{room.temp}}°",
+										"font": "small",
+										"textColor": "@muted",
+										"anchors": { "right": 16, "top": 0, "bottom": 0 },
+										"width": 60,
+										"align": { "horizontal": "end", "vertical": "center" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "themeSwitch",
+						"anchors": { "left": 28, "right": 28, "top": 420 },
+						"height": 24,
+						"color": "transparent",
+						"tooltip": "Cmd+T",
+						"children": [
+							{ "style": "caption", "text": "Light theme", "anchors": { "left": 0, "top": 5 } },
+							{
+								"type": "toggle",
+								"anchors": { "right": 0, "top": 0 },
+								"width": 44,
+								"height": 24,
+								"checked": "{{state.theme == 'light'}}",
+								"activeColor": "@accent",
+								"trackColor": "@off",
+								"onChange": { "set": "state.theme", "to": "{{event.value ? 'light' : 'dark'}}" }
+							}
+						]
+					},
+					{
+						"id": "energy",
+						"anchors": { "left": 16, "right": 16, "bottom": 52 },
+						"height": 176,
+						"style": "card",
+						"children": [
+							{ "style": "caption", "text": "Energy this week", "anchors": { "left": 16, "top": 16 } },
+							{ "id": "energyTotal", "type": "label", "text": "{{computed.energyTotal}} kWh", "font": "heading", "textColor": "@text", "anchors": { "left": 16, "top": 36 }, "fitText": true },
+							{
+								"id": "energyBars",
+								"type": "row",
+								"anchors": { "left": 16, "right": 16, "top": 70, "bottom": 34 },
+								"children": [
+									{
+										"repeat": { "for": "d", "in": "state.energy" },
+										"anchors": { "top": 0, "bottom": 0 },
+										"grow": 1,
+										"color": "transparent",
+										"tooltip": "{{d.day}}: {{d.kwh}} kWh",
+										"children": [{ "anchors": { "left": 4, "right": 4, "bottom": 0 }, "height": "{{d.kwh}}%", "color": "{{d.day == computed.peakDay ? '@warm' : '@accent'}}" }]
+									}
+								]
+							},
+							{
+								"id": "energyDays",
+								"type": "row",
+								"anchors": { "left": 16, "right": 16, "bottom": 10 },
+								"height": 18,
+								"children": [
+									{
+										"repeat": { "for": "d", "in": "state.energy" },
+										"type": "label",
+										"text": "{{d.day}}",
+										"font": "small",
+										"textColor": "@muted",
+										"anchors": { "top": 0, "bottom": 0 },
+										"grow": 1,
+										"align": "center"
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "main",
+				"anchors": { "left": 248, "right": 0, "top": 0, "bottom": 32 },
+				"color": "transparent",
+				"children": [
+					{
+						"id": "greeting",
+						"type": "label",
+						"text": "{{computed.room.name}}",
+						"font": "title",
+						"textColor": "@text",
+						"anchors": { "left": 32, "top": 28 },
+						"fitText": true
+					},
+					{
+						"id": "summary",
+						"style": "caption",
+						"text": "{{computed.lightsOn}} of {{len(computed.room.lights)}} lights on{{state.scene ? '  ·  scene: ' + state.scene : ''}}",
+						"anchors": { "left": 32, "top": 66 }
+					},
+					{
+						"id": "weather",
+						"anchors": { "right": 32, "top": 24 },
+						"width": 220,
+						"height": 56,
+						"style": "card",
+						"children": [
+							{ "type": "label", "text": "14°", "font": "title", "textColor": "@warm", "anchors": { "left": 16, "top": 0, "bottom": 0 }, "width": 60, "align": { "horizontal": "start", "vertical": "center" } },
+							{ "style": "caption", "text": "Outside", "anchors": { "left": 80, "top": 12 } },
+							{ "style": "caption", "text": "Cloudy, light wind", "textColor": "@text", "anchors": { "left": 80, "top": 29 } }
+						]
+					},
+					{
+						"id": "scenes",
+						"type": "row",
+						"anchors": { "left": 24, "right": 24, "top": 104 },
+						"height": 64,
+						"children": [
+							{
+								"id": "scene",
+								"repeat": { "for": "scene", "in": "state.scenes" },
+								"anchors": { "top": 0, "bottom": 0 },
+								"grow": 1,
+								"color": "transparent",
+								"children": [
+									{
+										"type": "label",
+										"text": "{{scene.name}}",
+										"fill": 8,
+										"align": "center",
+										"color": "{{scene.name == state.scene ? '@accentSoft' : '@card'}}",
+										"hover": { "color": "@cardHover" },
+										"textColor": "{{scene.name == state.scene ? '@accent' : '@text'}}",
+										"cursor": "hand",
+										"onClick": { "run": "{{scene.action}}" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "lightsCard",
+						"anchors": { "left": 32, "top": 184, "bottom": 24 },
+						"width": "56%",
+						"style": "card",
+						"children": [
+							{ "style": "cardTitle", "text": "Lights" },
+							{ "style": "caption", "text": "Click a light to switch it, drag to dim it", "anchors": { "right": 24, "top": 24 } },
+							{
+								"id": "lights",
+								"type": "stack",
+								"anchors": { "left": 16, "right": 16, "top": 64, "bottom": 16 },
+								"gap": 8,
+								"scroll": "vertical",
+								"children": [
+									{
+										"id": "light",
+										"repeat": { "for": "light", "in": "computed.room.lights", "index": "i" },
+										"anchors": { "left": 0, "right": 0 },
+										"height": 76,
+										"color": "{{light.on ? '@warmSoft' : '@raised'}}",
+										"hover": { "color": "{{light.on ? '@warmSoft' : '@raisedHover'}}" },
+										"transition": { "color": 150 },
+										"cursor": "hand",
+										"onClick": [{ "toggle": "state.rooms[state.room].lights[i].on" }, { "set": "state.scene", "to": "" }],
+										"children": [
+											{
+												"type": "toggle",
+												"anchors": { "left": 16, "top": 26 },
+												"width": 44,
+												"height": 24,
+												"bind": "state.rooms[state.room].lights[i].on",
+												"activeColor": "@warm",
+												"trackColor": "@off",
+												"knobColor": "@knob",
+												"onChange": { "set": "state.scene", "to": "" }
+											},
+											{ "type": "label", "text": "{{light.name}}", "textColor": "@text", "anchors": { "left": 76, "top": 18 }, "fitText": true },
+											{
+												"style": "caption",
+												"text": "{{light.on ? 'On  ·  ' + light.level + '%' : 'Off'}}",
+												"textColor": "{{light.on ? '@warm' : '@muted'}}",
+												"anchors": { "left": 76, "top": 42 }
+											},
+											{
+												"type": "slider",
+												"anchors": { "right": 24, "top": 28 },
+												"width": 160,
+												"height": 20,
+												"min": 10,
+												"max": 100,
+												"step": 10,
+												"bind": "state.rooms[state.room].lights[i].level",
+												"trackColor": "@off",
+												"activeColor": "{{light.on ? '@warm' : '@muted'}}",
+												"knobColor": "@knob",
+												"tooltip": "Brightness"
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "climateCard",
+						"anchors": { "right": 32, "top": 184 },
+						"x": "60%",
+						"width": "37%",
+						"height": 300,
+						"style": "card",
+						"children": [
+							{ "style": "cardTitle", "text": "Climate" },
+							{ "style": "caption", "text": "Now {{computed.room.temp}}°  ·  humidity {{computed.room.humidity}}%", "anchors": { "right": 24, "top": 24 } },
+							{
+								"id": "target",
+								"type": "label",
+								"text": "{{computed.room.target}}°",
+								"font": "figure",
+								"textColor": "@accent",
+								"anchors": { "left": 0, "right": 0, "top": 76 },
+								"height": 80,
+								"align": "center"
+							},
+							{ "style": "caption", "text": "target", "anchors": { "left": 0, "right": 0, "top": 156 }, "fitText": false, "height": 18, "align": "center" },
+							{ "style": "round", "text": "-", "anchors": { "left": 32, "top": 94 }, "tooltip": "Down arrow", "onClick": { "run": "setTarget", "with": { "by": -0.5 } } },
+							{ "style": "round", "text": "+", "anchors": { "right": 32, "top": 94 }, "tooltip": "Up arrow", "onClick": { "run": "setTarget", "with": { "by": 0.5 } } },
+							{
+								"id": "modes",
+								"type": "row",
+								"anchors": { "left": 24, "right": 24, "bottom": 24 },
+								"height": 44,
+								"children": [
+									{
+										"repeat": { "for": "mode", "in": "state.modes" },
+										"style": "{{mode == state.mode ? 'choiceOn' : 'choice'}}",
+										"text": "{{mode}}",
+										"anchors": { "top": 0, "bottom": 0 },
+										"grow": 1,
+										"onClick": { "set": "state.mode", "to": "{{mode}}" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "blindsCard",
+						"anchors": { "right": 32, "top": 500, "bottom": 24 },
+						"x": "60%",
+						"width": "37%",
+						"style": "card",
+						"children": [
+							{ "style": "cardTitle", "text": "Blinds" },
+							{ "style": "caption", "text": "{{round(computed.room.blinds)}}% open", "anchors": { "right": 24, "top": 24 } },
+							{
+								"id": "blinds",
+								"type": "slider",
+								"anchors": { "left": 24, "right": 24, "top": 60 },
+								"height": 20,
+								"step": 10,
+								"bind": "state.rooms[state.room].blinds",
+								"trackColor": "@off",
+								"activeColor": "@accent",
+								"knobColor": "@knob"
+							},
+							{ "style": "button", "text": "Close", "anchors": { "left": 24, "bottom": 20 }, "width": 120, "height": 40, "onClick": { "animate": "state.rooms[state.room].blinds", "to": 0, "ms": 500 } },
+							{ "style": "button", "text": "Open", "anchors": { "right": 24, "bottom": 20 }, "width": 120, "height": 40, "onClick": { "animate": "state.rooms[state.room].blinds", "to": 100, "ms": 500 } }
+						]
+					}
+				]
+			},
+			{
+				"id": "statusBar",
+				"anchors": { "left": 248, "right": 0, "bottom": 0 },
+				"height": 32,
+				"color": "@sidebar",
+				"children": [
+					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{
+						"id": "statusText",
+						"type": "label",
+						"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "left": 32, "top": 0, "bottom": 0, "right": 200 },
+						"align": { "horizontal": "start", "vertical": "center" }
+					},
+					{
+						"id": "statusSize",
+						"type": "label",
+						"text": "{{window.width}} × {{window.height}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "right": 32, "top": 0, "bottom": 0 },
+						"width": 160,
+						"align": { "horizontal": "end", "vertical": "center" }
+					}
+				]
+			}
+		]
+	}
+}

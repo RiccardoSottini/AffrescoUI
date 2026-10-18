@@ -1,0 +1,185 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Sign in: three screens (sign in, create an account, signed in), validation with check, no code.",
+
+	"window": { "title": "Sign in", "width": 900, "height": 640, "minWidth": 600, "minHeight": 560 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 16 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 13 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 28 }
+	},
+
+	"colors": {
+		"background": "#0f172a",
+		"card": "#ffffff",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"field": "#f1f5f9",
+		"fieldFocused": "#e0e7ff",
+		"accent": "#6366f1",
+		"accentHover": "#7477f3",
+		"accentPressed": "#4f46e5",
+		"error": "#dc2626"
+	},
+
+	"state": { "email": "", "password": "", "name": "", "submitted": false },
+
+	"computed": {
+		"emailValid": "{{contains(state.email, '@') && contains(state.email, '.')}}",
+		"passwordValid": "{{len(state.password) >= 8}}"
+	},
+
+	"styles": {
+		"caption": { "type": "label", "height": 22, "textColor": "@muted", "anchors": { "left": 0, "right": 0 } },
+		"field": {
+			"type": "textarea",
+			"height": 44,
+			"padding": 12,
+			"anchors": { "left": 0, "right": 0 },
+			"color": "@field",
+			"focused": { "color": "@fieldFocused" },
+			"textColor": "@text"
+		},
+		"title": { "type": "label", "font": "title", "height": 40, "textColor": "@text", "anchors": { "left": 0, "right": 0 } },
+		"primary": {
+			"type": "label",
+			"height": 46,
+			"anchors": { "left": 0, "right": 0 },
+			"align": "center",
+			"color": "@accent",
+			"textColor": "#ffffff",
+			"cursor": "hand",
+			"hover": { "color": "@accentHover" },
+			"pressed": { "color": "@accentPressed" }
+		},
+		"link": { "type": "label", "height": 30, "anchors": { "left": 0, "right": 0 }, "align": "center", "textColor": "@accent", "cursor": "hand" },
+		"card": { "anchors": { "left": "25%", "right": "25%", "top": 70, "bottom": 70 }, "color": "@card" },
+		"form": { "type": "stack", "fill": 40, "gap": 10 }
+	},
+
+	"components": {
+		"checkedField": {
+			"note": "A field with its error under it once the form was submitted; params: bind, placeholder, valid, message",
+			"params": { "bind": "", "placeholder": "", "valid": true, "message": "" },
+			"node": {
+				"check": { "value": "{{!state.submitted || valid}}", "rule": "{{value}}", "message": "{{message}}" },
+				"anchors": { "left": 0, "right": 0 },
+				"height": "{{error ? 68 : 44}}",
+				"color": "transparent",
+				"children": [
+					{ "style": "field", "anchors": { "left": 0, "right": 0, "top": 0 }, "placeholder": "{{placeholder}}", "bind": "{{bind}}" },
+					{ "when": "{{error}}", "type": "label", "font": "small", "text": "{{error}}", "textColor": "@error", "anchors": { "left": 0, "right": 0, "top": 48 }, "height": 18 }
+				]
+			}
+		}
+	},
+
+	"actions": {
+		"signIn": [
+			{ "set": "state.submitted", "to": true },
+			{ "if": "{{!computed.emailValid || !computed.passwordValid}}", "then": [{ "stop": true }] },
+			{ "set": "state.submitted", "to": false },
+			{ "navigate": "signedIn" }
+		],
+		"createAccount": [
+			{ "set": "state.submitted", "to": true },
+			{ "if": "{{len(trim(state.name)) == 0 || !computed.emailValid || !computed.passwordValid}}", "then": [{ "stop": true }] },
+			{ "set": "state.submitted", "to": false },
+			{ "navigate": "signedIn" }
+		],
+		"signOut": [
+			{ "set": "state.password", "to": "" },
+			{ "navigate": "signIn" }
+		]
+	},
+
+	"keys": { "escape": { "navigate": "back" } },
+
+	"screens": {
+		"signIn": {
+			"color": "transparent",
+			"children": [
+				{
+					"id": "card",
+					"style": "card",
+					"children": [
+						{
+							"style": "form",
+							"children": [
+								{ "style": "title", "text": "Welcome back" },
+								{ "style": "caption", "text": "Sign in to continue to AffrescoUI" },
+								{ "height": 10, "color": "transparent" },
+								{ "style": "caption", "text": "Email" },
+								{
+									"id": "email",
+									"use": "checkedField",
+									"with": { "bind": "state.email", "placeholder": "you@example.com", "valid": "{{computed.emailValid}}", "message": "Enter an email address" }
+								},
+								{ "style": "caption", "text": "Password" },
+								{
+									"id": "password",
+									"use": "checkedField",
+									"with": { "bind": "state.password", "placeholder": "At least 8 characters", "valid": "{{computed.passwordValid}}", "message": "At least 8 characters" }
+								},
+								{ "height": 10, "color": "transparent" },
+								{ "id": "signIn", "style": "primary", "text": "Sign in", "onClick": "signIn" },
+								{ "id": "toCreate", "style": "link", "text": "No account yet? Create one", "onClick": [{ "set": "state.submitted", "to": false }, { "navigate": "createAccount" }] }
+							]
+						}
+					]
+				}
+			]
+		},
+		"createAccount": {
+			"color": "transparent",
+			"children": [
+				{
+					"style": "card",
+					"children": [
+						{
+							"style": "form",
+							"children": [
+								{ "style": "title", "text": "Create an account" },
+								{ "style": "caption", "text": "Name" },
+								{ "use": "checkedField", "with": { "bind": "state.name", "placeholder": "Your name", "valid": "{{len(trim(state.name)) > 0}}", "message": "Enter your name" } },
+								{ "style": "caption", "text": "Email" },
+								{ "use": "checkedField", "with": { "bind": "state.email", "placeholder": "you@example.com", "valid": "{{computed.emailValid}}", "message": "Enter an email address" } },
+								{ "style": "caption", "text": "Password" },
+								{ "use": "checkedField", "with": { "bind": "state.password", "placeholder": "At least 8 characters", "valid": "{{computed.passwordValid}}", "message": "At least 8 characters" } },
+								{ "style": "primary", "text": "Create account", "onClick": "createAccount" },
+								{ "style": "link", "text": "Back to sign in (Esc)", "onClick": { "navigate": "back" } }
+							]
+						}
+					]
+				}
+			]
+		},
+		"signedIn": {
+			"color": "transparent",
+			"children": [
+				{
+					"style": "card",
+					"children": [
+						{
+							"style": "form",
+							"children": [
+								{ "style": "title", "text": "You're in" },
+								{ "style": "caption", "text": "Signed in as {{state.email}}" },
+								{ "height": 10, "color": "transparent" },
+								{ "style": "primary", "text": "Sign out", "onClick": "signOut" }
+							]
+						}
+					]
+				}
+			]
+		}
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [{ "id": "screens", "type": "outlet", "fill": 0 }]
+	}
+}

@@ -1,0 +1,1113 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/RiccardoSottini/AffrescoUI/schema/affrescoui-screen.schema.json",
+	"title": "AffrescoUI Screen Format",
+	"description": "A user interface for the AffrescoUI library. Specification: SCREEN_FORMAT.md. Each format version has its definitions under $defs/v<N>; \"version\" selects one.",
+	"type": "object",
+	"required": [
+		"version"
+	],
+	"properties": {
+		"version": {
+			"enum": [
+				1
+			],
+			"description": "Format version. This library reads: 1"
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"version": {
+						"const": 1
+					}
+				},
+				"required": [
+					"version"
+				]
+			},
+			"then": {
+				"$ref": "#/$defs/v1/screen"
+			}
+		}
+	],
+	"$defs": {
+		"v1": {
+			"screen": {
+				"description": "Version 1 of the format",
+				"type": "object",
+				"required": [
+					"version",
+					"root"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"type": "string"
+					},
+					"format": {
+						"const": "affrescoui-screen"
+					},
+					"version": {
+						"const": 1
+					},
+					"note": {
+						"type": "string"
+					},
+					"window": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"title": {
+								"type": "string"
+							},
+							"width": {
+								"type": "integer",
+								"minimum": 1
+							},
+							"height": {
+								"type": "integer",
+								"minimum": 1
+							},
+							"minWidth": {
+								"type": "integer",
+								"minimum": 0
+							},
+							"minHeight": {
+								"type": "integer",
+								"minimum": 0
+							}
+						}
+					},
+					"fonts": {
+						"type": "object",
+						"description": "Fonts by name; \"default\" is used by text without a \"font\"",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"file",
+								"size"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"file": {
+									"type": "string"
+								},
+								"size": {
+									"type": "number",
+									"exclusiveMinimum": 0
+								}
+							}
+						}
+					},
+					"colors": {
+						"type": "object",
+						"description": "Named colors (\"@name\"), or per theme: {\"light\": ..., \"dark\": ...}",
+						"additionalProperties": {
+							"anyOf": [
+								{
+									"$ref": "#/$defs/v1/hexColor"
+								},
+								{
+									"type": "object",
+									"minProperties": 1,
+									"additionalProperties": {
+										"$ref": "#/$defs/v1/hexColor"
+									}
+								}
+							]
+						}
+					},
+					"theme": {
+						"description": "Which color variant is shown, e.g. \"{{state.theme}}\""
+					},
+					"styles": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/node"
+						}
+					},
+					"components": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"node"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"params": {
+									"type": "object"
+								},
+								"node": {
+									"$ref": "#/$defs/v1/node"
+								},
+								"note": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"templates": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/node"
+						}
+					},
+					"screens": {
+						"type": "object",
+						"description": "Screens an \"outlet\" shows; {\"navigate\": name} switches",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/node"
+						}
+					},
+					"root": {
+						"$ref": "#/$defs/v1/node",
+						"description": "The window's root panel: it always fills the window"
+					},
+					"state": {
+						"type": "object"
+					},
+					"computed": {
+						"type": "object",
+						"description": "Values derived from the state, read as computed.name"
+					},
+					"watch": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/handler"
+						},
+						"description": "\"state.path\" -> handler, run when it changed"
+					},
+					"actions": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/steps"
+						}
+					},
+					"keys": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/handler"
+						},
+						"description": "Screen-wide shortcuts: \"mod+k\" -> handler"
+					},
+					"onLoad": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"channels": {
+						"type": "object",
+						"description": "Programs the screen talks to; messages run \"name:type\" actions. Revisions can't change it.",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"socket"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"socket": {
+									"type": "string"
+								},
+								"note": {
+									"type": "string"
+								},
+								"reconnect": {
+									"anyOf": [
+										{
+											"type": "boolean"
+										},
+										{
+											"type": "number"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"after": {
+													"type": "number"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					"persist": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"pattern": "^state\\."
+						},
+						"description": "State paths kept on disk. Revisions can't change it."
+					},
+					"include": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"permissions": {
+						"type": "object",
+						"additionalProperties": false,
+						"description": "Who may change the running screen (VERSION_CONTROL.md). Revisions can't change it.",
+						"properties": {
+							"allow": {
+								"type": "array",
+								"items": {
+									"$ref": "#/$defs/v1/permissionRule"
+								}
+							},
+							"ask": {
+								"type": "array",
+								"items": {
+									"$ref": "#/$defs/v1/permissionRule"
+								}
+							},
+							"deny": {
+								"type": "array",
+								"items": {
+									"$ref": "#/$defs/v1/permissionRule"
+								}
+							},
+							"reviewers": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"permissionRule": {
+				"type": "string",
+				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
+				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
+			},
+			"hexColor": {
+				"type": "string",
+				"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+			},
+			"color": {
+				"description": "\"#rgb\", \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"",
+				"anyOf": [
+					{
+						"type": "string",
+						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_-]*|transparent)$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"length": {
+				"description": "Pixels (120 or \"120px\") or a percentage of the parent (\"50%\")",
+				"anyOf": [
+					{
+						"type": "number"
+					},
+					{
+						"type": "string",
+						"pattern": "^-?[0-9]+(\\.[0-9]+)?(px|%)?$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"edge": {
+				"description": "A length from the parent's edge, or another node's edge: \"#header.bottom + 8\"",
+				"anyOf": [
+					{
+						"$ref": "#/$defs/v1/length"
+					},
+					{
+						"type": "string",
+						"pattern": "^#[A-Za-z0-9_-]+\\.(top|bottom|left|right)( *[-+] *[0-9]+(\\.[0-9]+)?)?$"
+					}
+				]
+			},
+			"align": {
+				"anyOf": [
+					{
+						"enum": [
+							"start",
+							"center",
+							"end"
+						]
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"stateBlock": {
+				"type": "object",
+				"description": "Properties shown in that state (any visual property, or a style)"
+			},
+			"node": {
+				"type": "object",
+				"properties": {
+					"type": {
+						"type": "string",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, outlet, or a type the application registers (which may add properties of its own)",
+						"anyOf": [
+							{
+								"enum": [
+									"panel",
+									"label",
+									"textarea",
+									"editor",
+									"stack",
+									"row",
+									"column",
+									"grid",
+									"toggle",
+									"checkbox",
+									"slider",
+									"outlet"
+								]
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"id": {
+						"type": "string",
+						"description": "Addresses the node: #id in edits, nodes.id, anchors, focus"
+					},
+					"note": {
+						"type": "string",
+						"description": "A comment"
+					},
+					"style": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"children": {
+						"type": "array",
+						"items": {
+							"$ref": "#/$defs/v1/node"
+						}
+					},
+					"x": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"y": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"width": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"height": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"minWidth": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"minHeight": {
+						"$ref": "#/$defs/v1/length"
+					},
+					"anchors": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"top": {
+								"$ref": "#/$defs/v1/edge"
+							},
+							"bottom": {
+								"$ref": "#/$defs/v1/edge"
+							},
+							"left": {
+								"$ref": "#/$defs/v1/edge"
+							},
+							"right": {
+								"$ref": "#/$defs/v1/edge"
+							}
+						}
+					},
+					"fill": {
+						"oneOf": [
+							{
+								"const": true
+							},
+							{
+								"$ref": "#/$defs/v1/length"
+							}
+						],
+						"description": "Anchor all four edges, this far in"
+					},
+					"grow": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"color": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"visible": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"disabled": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"cursor": {
+						"anyOf": [
+							{
+								"enum": [
+									"arrow",
+									"ibeam",
+									"hand",
+									"resize-horizontal",
+									"resize-vertical"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"tooltip": {
+						"description": "Text, or a {{binding}}"
+					},
+					"scroll": {
+						"anyOf": [
+							{
+								"enum": [
+									"vertical",
+									"horizontal",
+									"both",
+									"none"
+								]
+							},
+							{
+								"type": "boolean"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"overlay": {
+						"type": "object",
+						"additionalProperties": false,
+						"description": "Drawn above everything, next to its anchor",
+						"properties": {
+							"anchor": {
+								"type": "string"
+							},
+							"placement": {
+								"enum": [
+									"below",
+									"below-end",
+									"above",
+									"above-end",
+									"right",
+									"left",
+									"center",
+									"window"
+								]
+							},
+							"open": {
+								"description": "A state path (\"state.menuOpen\") or a value"
+							},
+							"dismiss": {
+								"const": "outside"
+							}
+						}
+					},
+					"transition": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"color": {
+								"type": "number"
+							},
+							"textColor": {
+								"type": "number"
+							}
+						}
+					},
+					"hover": {
+						"$ref": "#/$defs/v1/stateBlock"
+					},
+					"focused": {
+						"$ref": "#/$defs/v1/stateBlock"
+					},
+					"dragging": {
+						"$ref": "#/$defs/v1/stateBlock"
+					},
+					"dragOver": {
+						"$ref": "#/$defs/v1/stateBlock"
+					},
+					"pressed": {
+						"$ref": "#/$defs/v1/stateBlock"
+					},
+					"repeat": {
+						"type": "object",
+						"required": [
+							"in"
+						],
+						"additionalProperties": false,
+						"description": "One node per list item",
+						"properties": {
+							"for": {
+								"type": "string"
+							},
+							"in": {
+								"description": "A path like \"state.items\", or any value"
+							},
+							"index": {
+								"type": "string"
+							},
+							"key": {
+								"description": "Identifies an item when the list is reordered"
+							}
+						}
+					},
+					"when": {
+						"description": "Build the node only if truthy"
+					},
+					"let": {
+						"type": "object",
+						"description": "Named values for the node and its children, in order"
+					},
+					"use": {
+						"type": "string",
+						"description": "A component from \"components\""
+					},
+					"with": {
+						"type": "object",
+						"description": "A component's parameters"
+					},
+					"slot": {
+						"const": true,
+						"description": "In a component: where the use's children go"
+					},
+					"check": {
+						"type": "object",
+						"additionalProperties": false,
+						"description": "Gives valid and error",
+						"properties": {
+							"rule": {},
+							"message": {},
+							"value": {}
+						}
+					},
+					"every": {
+						"type": "object",
+						"required": [
+							"ms",
+							"do"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"ms": {
+								"anyOf": [
+									{
+										"type": "number"
+									},
+									{
+										"$ref": "#/$defs/v1/dynamic"
+									}
+								]
+							},
+							"do": {
+								"$ref": "#/$defs/v1/handler"
+							}
+						}
+					},
+					"drag": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"data": {}
+						}
+					},
+					"keys": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/handler"
+						},
+						"description": "Shortcuts while focused: \"mod+k\" -> handler"
+					},
+					"locked": {
+						"type": "boolean"
+					},
+					"autofocus": {
+						"type": "boolean"
+					},
+					"text": {
+						"description": "Text, or a {{binding}}"
+					},
+					"textColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"font": {
+						"type": "string"
+					},
+					"padding": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"wrap": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"align": {
+						"oneOf": [
+							{
+								"$ref": "#/$defs/v1/align"
+							},
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"horizontal": {
+										"$ref": "#/$defs/v1/align"
+									},
+									"vertical": {
+										"$ref": "#/$defs/v1/align"
+									}
+								}
+							}
+						],
+						"description": "label: text alignment; stack: v1 name of \"from\""
+					},
+					"fitText": {
+						"oneOf": [
+							{
+								"type": "boolean"
+							},
+							{
+								"type": "object",
+								"required": [
+									"maxWidth"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"maxWidth": {
+										"type": "number",
+										"exclusiveMinimum": 0
+									}
+								}
+							}
+						]
+					},
+					"placeholder": {
+						"description": "Text, or a {{binding}}"
+					},
+					"placeholderColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"caret": {
+						"type": "string",
+						"description": "editor: a state path the editor writes its caret to, as { line, column, selected } (from 1)"
+					},
+					"lineNumbers": {
+						"type": "boolean",
+						"description": "editor: show line numbers in a gutter"
+					},
+					"lineNumberColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"activeLineNumberColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"lineColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"selectionColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"caretColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"bind": {
+						"type": "string",
+						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider)"
+					},
+					"gap": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"from": {
+						"$ref": "#/$defs/v1/align"
+					},
+					"direction": {
+						"anyOf": [
+							{
+								"enum": [
+									"row",
+									"column"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"columns": {
+						"type": "integer",
+						"minimum": 1
+					},
+					"checked": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"value": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"min": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"max": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"step": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"trackColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"activeColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"knobColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"onClick": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onDoubleClick": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onContextMenu": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onPress": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onRelease": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onDrag": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onDrop": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onHover": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onLeave": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onFocus": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onBlur": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onScroll": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onKey": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onChange": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onSubmit": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onShow": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onHide": {
+						"$ref": "#/$defs/v1/handler"
+					}
+				},
+				"if": {
+					"required": [
+						"type"
+					],
+					"properties": {
+						"type": {
+							"not": {
+								"enum": [
+									"panel",
+									"label",
+									"textarea",
+									"editor",
+									"stack",
+									"row",
+									"column",
+									"grid",
+									"toggle",
+									"checkbox",
+									"slider",
+									"outlet"
+								]
+							}
+						}
+					}
+				},
+				"then": {
+					"description": "A type the application registers: its own properties are checked by the application",
+					"additionalProperties": true
+				},
+				"unevaluatedProperties": false
+			},
+			"dynamic": {
+				"description": "A {{binding or expression}}, or an operator ({\"$clamp\": [...]})",
+				"anyOf": [
+					{
+						"type": "string",
+						"pattern": "\\{\\{.*\\}\\}"
+					},
+					{
+						"$ref": "#/$defs/v1/expression"
+					}
+				]
+			},
+			"expression": {
+				"type": "object",
+				"minProperties": 1,
+				"maxProperties": 1,
+				"propertyNames": {
+					"enum": [
+						"$if",
+						"$and",
+						"$or",
+						"$not",
+						"$coalesce",
+						"$equals",
+						"$notEquals",
+						"$greater",
+						"$less",
+						"$greaterOrEqual",
+						"$lessOrEqual",
+						"$add",
+						"$subtract",
+						"$multiply",
+						"$divide",
+						"$mod",
+						"$min",
+						"$max",
+						"$clamp",
+						"$round",
+						"$floor",
+						"$ceil",
+						"$abs",
+						"$length",
+						"$empty",
+						"$concat",
+						"$join",
+						"$split",
+						"$slice",
+						"$contains",
+						"$indexOf",
+						"$keys",
+						"$values",
+						"$reverse",
+						"$range",
+						"$upper",
+						"$lower",
+						"$trim",
+						"$number",
+						"$text",
+						"$fixed",
+						"$pad",
+						"$plural",
+						"$time",
+						"$now",
+						"$parseJson",
+						"$json",
+						"$filter",
+						"$map",
+						"$count",
+						"$sum",
+						"$find",
+						"$some",
+						"$every",
+						"$sort",
+						"$type",
+						"$merge",
+						"$entries"
+					]
+				}
+			},
+			"flag": {
+				"anyOf": [
+					{
+						"type": "boolean"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"handler": {
+				"description": "An action name, a step, or steps",
+				"anyOf": [
+					{
+						"type": "string"
+					},
+					{
+						"$ref": "#/$defs/v1/steps"
+					}
+				]
+			},
+			"steps": {
+				"anyOf": [
+					{
+						"$ref": "#/$defs/v1/step"
+					},
+					{
+						"type": "array",
+						"items": {
+							"$ref": "#/$defs/v1/step"
+						}
+					}
+				]
+			},
+			"step": {
+				"type": "object",
+				"minProperties": 1,
+				"additionalProperties": false,
+				"description": "set+to, push+value, remove(+at), toggle, increment(+by), if+then(+else), forEach+do, while+do, run(+with), call(+with, into, onError), emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, after+do, debounce+do, animate+to(+ms, easing), copy, log, stop, note; review: accept, reject(+reason), preview, endPreview, restore, revert, undo",
+				"properties": {
+					"set": {},
+					"to": {},
+					"push": {},
+					"value": {},
+					"remove": {},
+					"at": {},
+					"toggle": {},
+					"increment": {},
+					"by": {},
+					"if": {},
+					"forEach": {},
+					"as": {},
+					"index": {},
+					"while": {},
+					"run": {},
+					"with": {},
+					"call": {},
+					"into": {},
+					"emit": {},
+					"data": {},
+					"send": {},
+					"connect": {},
+					"patch": {},
+					"message": {},
+					"focus": {},
+					"scrollTo": {},
+					"navigate": {},
+					"after": {},
+					"debounce": {},
+					"animate": {},
+					"ms": {},
+					"easing": {
+						"enum": [
+							"linear",
+							"in",
+							"out",
+							"inOut"
+						]
+					},
+					"copy": {},
+					"log": {},
+					"stop": {},
+					"note": {},
+					"accept": {},
+					"reject": {},
+					"reason": {},
+					"preview": {},
+					"endPreview": {
+						"const": true
+					},
+					"restore": {},
+					"revert": {},
+					"undo": {
+						"const": true
+					},
+					"then": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"else": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"do": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"onError": {
+						"$ref": "#/$defs/v1/steps"
+					}
+				}
+			}
+		}
+	}
+}
