@@ -1,0 +1,129 @@
+# Builds on Linux, macOS and Windows, and runs the rendering check (tests/render) where OpenGL is available.
+# The check compares each frame with golden images recorded from the base commit on the same runner
+# (render-check.sh); a frame that differs is uploaded with its diff image as the "render-check-*" artifact.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1" # Mesa's llvmpipe, under Xvfb
+      MESA_GL_VERSION_OVERRIDE: "4.1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2 # HEAD^1 is the base the golden images are recorded from
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build xvfb xauth libgl1-mesa-dri \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+            libwayland-dev libxkbcommon-dev wayland-protocols
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build
+      - name: Rendering check
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
+      - name: Upload the differing frames
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-check-linux
+          path: |
+            build/render-check/
+            tests/render/golden/
+
+  sanitizers:
+    name: Linux (address + undefined sanitizers)
+    runs-on: ubuntu-latest
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      MESA_GL_VERSION_OVERRIDE: "4.1"
+      SANITIZE: -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer
+      ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build xvfb xauth libgl1-mesa-dri \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+            libwayland-dev libxkbcommon-dev wayland-protocols
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE"
+          cmake --build build
+      - name: Rendering check
+        run: |
+          # Leaks inside the system's OpenGL and X11 libraries aren't ours
+          printf 'leak:libGLX\nleak:libGL.so\nleak:libEGL\nleak:libX11\nleak:libxcb\nleak:_dri.so\nleak:libgallium\nleak:libLLVM\n' \
+            > "$RUNNER_TEMP/lsan.supp"
+          export LSAN_OPTIONS="suppressions=$RUNNER_TEMP/lsan.supp"
+          xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh -DCMAKE_BUILD_TYPE=Debug \
+            "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE"
+      - name: Upload the differing frames
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-check-sanitizers
+          path: |
+            build/render-check/
+            tests/render/golden/
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Install dependencies
+        run: brew install ninja
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build
+      - name: Rendering check
+        run: .github/workflows/render-check.sh
+      - name: Upload the differing frames
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-check-macos
+          path: |
+            build/render-check/
+            tests/render/golden/
+
+  windows:
+    name: Windows (not supported yet)
+    runs-on: windows-latest
+    continue-on-error: true # Windows support is roadmap item 1.1: its errors show here without failing CI
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build --config Release
