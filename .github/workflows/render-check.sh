@@ -17,7 +17,7 @@ record_base() {
 	git worktree add --detach "$base" HEAD^1 || return 1
 	[ -f "$base/tests/render/check.py" ] || return 1
 	cmake -S "$base" -B "$base/build" -G Ninja "$@" || return 1
-	cmake --build "$base/build" || return 1
+	cmake --build "$base/build" --target affrescoui_render_runner || return 1 # all check.py needs
 	python3 "$base/tests/render/check.py" --build "$base/build" || return 1
 	mkdir -p tests/render/golden
 	cp "$base"/tests/render/golden/*.png tests/render/golden/
