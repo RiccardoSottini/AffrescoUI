@@ -146,4 +146,14 @@ if(AFFRESCOUI_BUILD_TESTS)
 	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
+
+	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers
+	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp)
+	target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
+		$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+	target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE)
+	target_link_libraries(affrescoui_window_tests PRIVATE affrescoui)
+	set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF)
+	target_compile_options(affrescoui_window_tests PRIVATE ${AFFRESCOUI_WARNINGS})
+	add_test(NAME window COMMAND affrescoui_window_tests)
 endif()
