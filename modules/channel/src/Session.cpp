@@ -78,7 +78,8 @@ void Session::handle(const std::string& line) {
 		return;
 	}
 
-	const std::string type = message.value("type", "");
+	// Read without throwing: a peer's malformed message must not take the app down
+	const std::string type = message.contains("type") && message["type"].is_string() ? message["type"].get<std::string>() : "";
 	const json id = message.value("id", json());
 
 	// The channel decides who the author is; the name the sender gives itself is kept after a '/'
