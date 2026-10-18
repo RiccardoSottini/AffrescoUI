@@ -47,13 +47,13 @@ jobs:
         run: ctest --test-dir build -R unit --output-on-failure
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
-      - name: Upload the frames # the differing ones, or all of them when they were recorded (visual-change)
+      - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)
         if: failure() || env.RENDER_CHECK_RECORD == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: render-check-linux
           path: |
-            build/render-check/
+            build/render-check/*.png
             tests/render/golden/
 
   sanitizers:
@@ -99,7 +99,7 @@ jobs:
         with:
           name: render-check-sanitizers
           path: |
-            build/render-check/
+            build/render-check/*.png
             tests/render/golden/
 
   # Builds and runs the unit tests (the job keeps its name, which branch protection may require). The macOS runners

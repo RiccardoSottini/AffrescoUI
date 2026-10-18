@@ -62,7 +62,8 @@ if [ ! -f "$base/tests/render/check.py" ]; then
 elif record_base "$@"; then
 	echo "Golden images recorded from the base commit $(git rev-parse --short "$base_commit")"
 else
-	echo "::error title=Rendering check::The base commit $(git rev-parse --short "$base_commit") can't be built or checked, so there is nothing to compare with"
+	short=$(git rev-parse --short "$base_commit")
+	echo "::error title=Rendering check::The base commit $short can't be built or checked: nothing to compare with"
 	exit 1
 fi
 
