@@ -16,7 +16,11 @@ compile_commands.json
 
 # Personal project notes and screenshots stay local
 docs/
+CLAUDE.local.md
 
 # .github: only the README media is published
 .github/*
 !.github/media/
+
+# Python
+__pycache__/

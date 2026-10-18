@@ -31,6 +31,7 @@ import json
 import os
 import shlex
 import socket
+import stat
 import subprocess
 import sys
 import threading
@@ -43,6 +44,20 @@ TIMEOUT = 10  # seconds to wait for the host to answer
 
 def log(text):
     print(f"[affrescoui-mcp] {text}", file=sys.stderr, flush=True)
+
+
+class UnknownTool(Exception):
+    pass
+
+
+def check_socket_dir(path):
+    """Refuses a socket directory another user could control (its path in /tmp is easy to guess and take first)."""
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+        raise RuntimeError(f"{path} is not a directory owned by this user: remove it or pass --socket DIR")
 
 
 class Host:
@@ -71,6 +86,7 @@ class Host:
                 if os.path.exists(self.path):
                     break
                 time.sleep(0.1)
+        check_socket_dir(os.path.dirname(self.path))
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
             sock.connect(self.path)
@@ -507,7 +523,7 @@ class Server:
             reply = host.request({"type": "exportChanges", "from": args.get("from", 0),
                                   "name": args.get("name", "changes")})
             return json.dumps(reply.get("changes"), indent=2), False
-        raise KeyError(name)
+        raise UnknownTool(name)
 
     def handle(self, request):
         method, params = request.get("method"), request.get("params") or {}
@@ -553,7 +569,7 @@ class Server:
                 try:
                     text, is_error = self.call_tool(params.get("name"), params.get("arguments") or {})
                     result({"content": [{"type": "text", "text": text}], "isError": is_error})
-                except KeyError:
+                except UnknownTool:
                     error(-32602, f"unknown tool {params.get('name')!r}")
                 except Exception as failure:  # no host, it went away, did not answer, ...
                     result({"content": [{"type": "text", "text": f"error: {failure}"}], "isError": True})

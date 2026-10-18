@@ -29,6 +29,7 @@ int main(int argc, char** argv) {
 	}
 
 	try {
+		checkSocketDir(socketDir);
 		affresco::Application app;
 		affresco::Screen studio = affresco::Screen::fromFile(AFFRESCOUI_EXAMPLES_ASSETS "/screens/studio.screen.json");
 		studio.setSocketDirectory(socketDir);
