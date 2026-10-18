@@ -34,8 +34,10 @@ inline constexpr int maxNesting = 256;
 /// @throws json::parse_error If the text is not JSON.
 /// @throws DocumentError If it nests deeper than maxNesting (it is never built).
 inline json parseUntrusted(std::string_view text, bool allowComments = false) {
-	const auto limit = [](int depth, json::parse_event_t, json&) {
-		if(depth > maxNesting)
+	const auto limit = [](int depth, json::parse_event_t event, json&) {
+		// An array or object is reported at the depth outside it: its own level is one deeper
+		const bool opens = event == json::parse_event_t::array_start || event == json::parse_event_t::object_start;
+		if(depth + (opens ? 1 : 0) > maxNesting)
 			throw DocumentError("AffrescoUI screen: JSON nested more than " + std::to_string(maxNesting) + " levels deep");
 		return true;
 	};

@@ -46,10 +46,9 @@ TEST_CASE("core: parseUntrusted refuses JSON nested deeper than maxNesting") {
 	CHECK_THROWS_AS((void)affresco::parseUntrusted(nested(100000, "[", ']')), affresco::DocumentError);
 }
 
-// Bug: nlohmann::json reports array_start and object_start at the depth outside the new level, so 257 levels whose
-// innermost array or object is empty never report a depth over 256 and are accepted. With a value inside, 257 levels
-// are refused (the test above).
-TEST_CASE("core: parseUntrusted refuses an empty array or object nested maxNesting + 1 deep" * doctest::skip(true)) {
+// nlohmann::json reports array_start and object_start at the depth outside the new level: an empty innermost level
+// is still counted
+TEST_CASE("core: parseUntrusted refuses an empty array or object nested maxNesting + 1 deep") {
 	CHECK_THROWS_AS((void)affresco::parseUntrusted(nested(affresco::maxNesting + 1, "[", ']')),
 	                affresco::DocumentError);
 	CHECK_THROWS_AS((void)affresco::parseUntrusted(nested(affresco::maxNesting, R"({"a":)", '}', "{}")),
