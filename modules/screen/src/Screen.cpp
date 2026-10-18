@@ -110,8 +110,14 @@ struct Screen::Impl {
 		}
 		const std::string name = channel.name;
 		channel.socket->onMessage.connect([this, name](const std::string& line) {
-			const json message = json::parse(line, nullptr, false);
-			if(message.is_object()) run(name + ":" + message.value("type", std::string()), message);
+			json message;
+			try {
+				message = parseUntrusted(line);
+			} catch(const std::exception&) {
+				return; // not a message: nothing to run
+			}
+			if(message.is_object() && message.contains("type") && message["type"].is_string())
+				run(name + ":" + message["type"].get<std::string>(), message);
 		});
 		channel.socket->onClosed.connect([this, name, guard = alive] {
 			// Dropped after the signal that says so has finished
@@ -197,7 +203,7 @@ struct Screen::Impl {
 
 	/// @brief Writes the persisted part of the state if it changed since it was loaded or last written.
 	void save() {
-		if(persisted().empty()) return;
+		if(stateFile.empty() || persisted().empty()) return; // no state file: a screen from fromString()
 		json now = persistedState();
 		if(now == saved) return;
 		std::error_code error;
@@ -298,11 +304,13 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 /// @return The value, or std::nullopt.
 std::optional<json> parseJson(std::string_view text, const char* what, std::string* error) {
 	try {
-		return json::parse(text);
+		return parseUntrusted(text);
 	} catch(const json::parse_error& parseError) {
 		if(error) *error = std::string("AffrescoUI screen: invalid ") + what + " JSON: " + parseError.what();
-		return std::nullopt;
+	} catch(const DocumentError& deep) {
+		if(error) *error = deep.what();
 	}
+	return std::nullopt;
 }
 
 /// @brief Turns an optional error into a bool.

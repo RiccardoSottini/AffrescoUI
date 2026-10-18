@@ -26,4 +26,28 @@ void beginFrame(int framebufferWidth, int framebufferHeight);
 /// @return Tightly packed 8-bit RGB, top row first.
 [[nodiscard]] std::vector<std::uint8_t> readBackBuffer(int width, int height);
 
+/// @brief Draws into an offscreen image instead of the window while it exists: frames of a fixed size, whatever the
+/// display (screenshots for tests).
+class OffscreenTarget {
+public:
+	/// @brief Creates the image and draws into it from now on.
+	/// @param width In pixels.
+	/// @param height In pixels.
+	OffscreenTarget(int width, int height);
+	/// @brief Draws into the window again.
+	~OffscreenTarget();
+
+	OffscreenTarget(const OffscreenTarget&) = delete;
+	OffscreenTarget& operator=(const OffscreenTarget&) = delete;
+
+	/// @brief Reads what was drawn.
+	/// @return Tightly packed 8-bit RGB, top row first.
+	[[nodiscard]] std::vector<std::uint8_t> pixels() const;
+
+private:
+	int width_, height_;       ///< In pixels.
+	unsigned framebuffer_ = 0; ///< The framebuffer object.
+	unsigned color_ = 0;       ///< Its colour renderbuffer.
+};
+
 } // namespace affresco::gl

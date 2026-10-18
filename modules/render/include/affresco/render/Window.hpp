@@ -131,6 +131,29 @@ public:
 	Signal<const CursorEnterEvent&> onCursorEnter; ///< The pointer entered or left.
 	Signal<const ResizeEvent&> onResize;           ///< The window was resized.
 
+	/* Input routing: keyboard to the focused panel; mouse to the panel under the pointer, or to the panel that
+	   received the button press until it is released (mouse capture, so drags work outside the panel). Deferred
+	   tasks run once the outermost event is delivered. The OS callbacks call these; tests and automation can too. */
+
+	/// @brief Delivers a key event to the focused panel, then onKey.
+	/// @param event The event.
+	void routeKey(const KeyEvent& event);
+	/// @brief Delivers a typed character to the focused panel, then onChar.
+	/// @param event The event.
+	void routeChar(const CharEvent& event);
+	/// @brief Updates the hovered panel and delivers the move to the grabbing or hovered panel, then onMouseMove.
+	/// @param position The pointer position.
+	void routeMouseMove(Vec2 position);
+	/// @brief Delivers a button event; a press focuses (left button) and captures, a release ends the capture.
+	/// @param event The event.
+	void routeMouseButton(const MouseButtonEvent& event);
+	/// @brief Delivers a scroll to the panel under the pointer, then onScroll.
+	/// @param event The event.
+	void routeScroll(const ScrollEvent& event);
+	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
+	/// @param entered true if the pointer entered.
+	void routeCursorEnter(bool entered);
+
 	/* Rendering */
 
 	/// @brief Marks layout and frame as out of date. Changes made by the layout pass itself don't count.
@@ -163,6 +186,11 @@ public:
 	/// @param path Binary PPM file to write, at framebuffer resolution.
 	/// @return false if it couldn't be written.
 	bool saveScreenshot(const std::filesystem::path& path);
+	/// @brief Draws the current frame offscreen, at a fixed scale whatever the display, and saves it (for tests).
+	/// @param path Binary PPM file to write.
+	/// @param scale Pixels per window unit (2 looks like a Retina display).
+	/// @return false if it couldn't be written.
+	bool saveScreenshot(const std::filesystem::path& path, int scale);
 
 	/// @brief The GLFW window.
 	[[nodiscard]] GLFWwindow* nativeHandle() const noexcept { return handle_.get(); }
@@ -182,31 +210,12 @@ private:
 	void updateLayout();
 	/// @brief Draws the tree into the back buffer, in this window's context.
 	void draw();
+	/// @brief Draws the tree into the current framebuffer (the back buffer, or an offscreen image).
+	/// @param framebufferWidth In pixels.
+	/// @param framebufferHeight In pixels.
+	void draw(int framebufferWidth, int framebufferHeight);
 	/// @brief Connects the GLFW callbacks.
 	void installCallbacks();
-
-	/* Input routing: keyboard to the focused panel; mouse to the panel under the pointer, or to the panel that
-	   received the button press until it is released (mouse capture, so drags work outside the panel). Deferred
-	   tasks run once the outermost event is delivered. */
-
-	/// @brief Delivers a key event to the focused panel, then onKey.
-	/// @param event The event.
-	void routeKey(const KeyEvent& event);
-	/// @brief Delivers a typed character to the focused panel, then onChar.
-	/// @param event The event.
-	void routeChar(const CharEvent& event);
-	/// @brief Updates the hovered panel and delivers the move to the grabbing or hovered panel, then onMouseMove.
-	/// @param position The pointer position.
-	void routeMouseMove(Vec2 position);
-	/// @brief Delivers a button event; a press focuses (left button) and captures, a release ends the capture.
-	/// @param event The event.
-	void routeMouseButton(const MouseButtonEvent& event);
-	/// @brief Delivers a scroll to the panel under the pointer, then onScroll.
-	/// @param event The event.
-	void routeScroll(const ScrollEvent& event);
-	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
-	/// @param entered true if the pointer entered.
-	void routeCursorEnter(bool entered);
 
 	/// @brief Changes the hovered panel, sending hover events to it and to its ancestors that the pointer entered or
 	/// left, and updating the cursor and the tooltip.

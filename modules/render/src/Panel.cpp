@@ -377,7 +377,7 @@ void Panel::paint(Painter& painter) const { painter.fillRect(bounds_, color_); }
 
 void Panel::paintOver(Painter& painter) const {
 	if(!isScrollable()) return;
-	const Color thumb = Color::hex(0x9ca3af).withAlpha(0.7f);
+	const Color thumb = colors::muted.withAlpha(0.7f);
 
 	// A thumb as long as the visible share of the content, where the visible part is
 	const float contentHeight = contentMax_.y - std::min(contentMin_.y, 0.0f);

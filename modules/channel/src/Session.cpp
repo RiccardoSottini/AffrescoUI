@@ -66,165 +66,195 @@ json Session::reviewState() const {
 
 // One JSON object per line
 void Session::handle(const std::string& line) {
-	json message;
-	try {
-		message = json::parse(line);
-	} catch(const json::parse_error& error) {
-		send({{"type", "error"}, {"message", std::string("invalid JSON: ") + error.what()}});
-		return;
-	}
-	if(!message.is_object()) {
-		send({{"type", "error"}, {"message", "expected a JSON object"}});
-		return;
-	}
+	const std::optional<json> message = read(line);
+	if(!message) return;
 
 	// Read without throwing: a peer's malformed message must not take the app down
-	const std::string type = message.contains("type") && message["type"].is_string() ? message["type"].get<std::string>() : "";
-	const json id = message.value("id", json());
-
-	// The channel decides who the author is; the name the sender gives itself is kept after a '/'
-	auto authored = [&](json revision) {
-		const std::string declared =
-		    message.contains("author") && message["author"].is_string() ? message["author"].get<std::string>() : "";
-		revision["author"] = declared.empty() || declared == author_ ? author_ : author_ + "/" + declared;
-		return revision;
-	};
-	const std::string author = authored(json::object())["author"];
-
-	auto reply = [&](const RevisionResult& result) {
-		if(result.status == RevisionStatus::Applied)
-			send({{"type", "applied"}, {"revision", result.revision}, {"commit", result.commit}, {"id", id}});
-		else if(result.status == RevisionStatus::Proposed)
-			send({{"type", "proposed"},
-			      {"proposal", result.proposal},
-			      {"commit", result.commit},
-			      {"revision", result.revision},
-			      {"id", id}});
-		else {
-			std::cerr << result.error << '\n';
-			send({{"type", "rejected"}, {"error", result.error}, {"revision", result.revision}, {"id", id}});
-		}
-	};
-
-	// Deciding on proposals is for reviewers only: an agent must not approve its own changes
-	auto review = [&](auto&& decide) {
-		if(!versions_.mayReview(author_)) {
-			send({{"type", "rejected"},
-			      {"error", "permission denied: '" + author_ + "' may not review changes"},
-			      {"revision", versions_.head().number},
-			      {"id", id}});
-			return;
-		}
-		const std::optional<std::string> error = decide();
-		if(error) send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", id}});
-		else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", id}});
-	};
-	auto proposal = [&] { return expect::integer(message.value("proposal", json()), type + ".proposal"); };
-	auto revision = [&] {
-		if(!message.contains("revision")) expect::fail(type + ".revision", "expected a revision number or a commit");
-		return message["revision"];
-	};
+	const json& m = *message;
+	const Incoming in{m, m.contains("type") && m["type"].is_string() ? m["type"].get<std::string>() : "",
+	                  m.value("id", json()), authorOf(m)};
 
 	try {
-		if(type == "revision") {
-			json submitted = authored(message);
-			submitted.erase("type");
-			submitted.erase("id");
-			reply(versions_.submit(submitted));
-		} else if(type == "restore") {
-			// Going back is a change like any other: it follows the author's permissions too
-			reply(versions_.submit(versions_.restoreRevision(revision(), author)));
-		} else if(type == "revert") {
-			reply(versions_.submit(versions_.revertRevision(revision(), author)));
-		} else if(type == "undo") {
-			reply(versions_.submit(versions_.revertRevision("HEAD", author)));
-		} else if(type == "accept") {
-			// A peer says which version it approves: the branch may move while the reviewer looks at it
-			review([&] {
-				if(!message.contains("head") || !message["head"].is_string())
-					expect::fail("accept.head", "expected the proposal's head commit: the version you reviewed");
-				const Approval approval{author, message["head"].get<std::string>(),
-				                        message.value("dontAskAgain", false)};
-				return versions_.accept(proposal(), approval);
-			});
-		} else if(type == "reject") {
-			review([&]() -> std::optional<std::string> {
-				const int p = proposal();
-				if(versions_.reject(p, toText(message.value("reason", json(""))))) return std::nullopt;
-				return "AffrescoUI screen: no proposal " + std::to_string(p);
-			});
-		} else if(type == "preview") {
-			review([&] { return versions_.preview(proposal()); });
-		} else if(type == "endPreview") {
-			review([&]() -> std::optional<std::string> {
-				versions_.endPreview();
-				return std::nullopt;
-			});
-		} else if(type == "setMode") {
-			review([&]() -> std::optional<std::string> {
-				const auto mode = modeFromString(expect::string(message.value("mode", json()), "setMode.mode"));
-				if(!mode) return "AffrescoUI screen: setMode.mode: expected \"default\", \"acceptEdits\" or \"plan\"";
-				versions_.setMode(*mode);
-				return std::nullopt;
-			});
-		} else if(type == "revoke") {
-			review([&]() -> std::optional<std::string> {
-				const std::string rule = expect::string(message.value("rule", json()), "revoke.rule");
-				if(versions_.revokeGrant(rule)) return std::nullopt;
-				return "AffrescoUI screen: no grant '" + rule + "'";
-			});
-		} else if(type == "request" || type == "reply") {
-			json relayed = message;
-			relayed["from"] = author;
+		if(in.type == "request" || in.type == "reply") {
+			json relayed = m;
+			relayed["from"] = in.author;
 			onRelay(relayed);
-		} else if(type == "getDocument") {
-			json state = reviewState();
-			send({{"type", "document"},
-			      {"revision", versions_.head().number},
-			      {"head", toJson(versions_.head())},
-			      {"document", versions_.document()},
-			      {"state", versions_.state()},
-			      {"proposals", state["proposals"]},
-			      {"previewing", state["previewing"]},
-			      {"mode", state["mode"]},
-			      {"grants", state["grants"]},
-			      {"you", author_},
-			      {"canReview", versions_.mayReview(author_)},
-			      {"id", id}});
-		} else if(type == "getCatalog") {
-			send({{"type", "catalog"}, {"catalog", catalog_ ? catalog_() : json::object()}, {"id", id}});
-		} else if(type == "getHistory") {
-			// The newest "limit" commits on main (like `git log -n`), oldest first; all without one
-			const std::vector<CommitInfo> log = versions_.log();
-			const int limit = message.value("limit", 0);
-			const std::size_t skip = limit > 0 && log.size() > static_cast<std::size_t>(limit)
-			                             ? log.size() - static_cast<std::size_t>(limit)
-			                             : 0;
-			json entries = json::array();
-			for(std::size_t i = skip; i < log.size(); ++i) entries.push_back(toJson(log[i]));
-			send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", id}});
-		} else if(type == "diff") {
-			// A proposal against main's head, or any two commits (default: the previous one against HEAD)
-			const json patch = message.contains("proposal") ? versions_.proposalDiff(proposal())
-			                                                : versions_.diff(message.value("from", json("HEAD~1")),
-			                                                                 message.value("to", json("HEAD")));
-			send({{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", id}});
-		} else if(type == "exportChanges") {
-			send(
-			    {{"type", "changes"},
-				 {"changes", versions_.exportChanges(message.value("from", json(0)), message.value("name", "changes"))},
-				 {"id", id}});
-		} else {
-			send({{"type", "error"}, {"message", "unknown message type '" + type + "'"}, {"id", id}});
+		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in)) {
+			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
 	} catch(const DocumentError& error) {
-		send({{"type", "rejected"}, {"error", error.what()}, {"revision", versions_.head().number}, {"id", id}});
+		send({{"type", "rejected"}, {"error", error.what()}, {"revision", versions_.head().number}, {"id", in.id}});
 	} catch(const json::exception& error) {
 		send({{"type", "rejected"},
 		      {"error", std::string("AffrescoUI screen: ") + error.what()},
 		      {"revision", versions_.head().number},
-		      {"id", id}});
+		      {"id", in.id}});
 	}
+}
+
+std::optional<json> Session::read(const std::string& line) {
+	try {
+		json message = parseUntrusted(line);
+		if(message.is_object()) return message;
+		send({{"type", "error"}, {"message", "expected a JSON object"}});
+	} catch(const json::parse_error& error) {
+		send({{"type", "error"}, {"message", std::string("invalid JSON: ") + error.what()}});
+	} catch(const DocumentError& error) {
+		send({{"type", "error"}, {"message", error.what()}});
+	}
+	return std::nullopt;
+}
+
+// The channel decides who the author is; the name the sender gives itself is kept after a '/'
+std::string Session::authorOf(const json& message) const {
+	const std::string declared =
+	    message.contains("author") && message["author"].is_string() ? message["author"].get<std::string>() : "";
+	return declared.empty() || declared == author_ ? author_ : author_ + "/" + declared;
+}
+
+void Session::reply(const Incoming& in, const RevisionResult& result) {
+	if(result.status == RevisionStatus::Applied) {
+		send({{"type", "applied"}, {"revision", result.revision}, {"commit", result.commit}, {"id", in.id}});
+	} else if(result.status == RevisionStatus::Proposed) {
+		send({{"type", "proposed"},
+		      {"proposal", result.proposal},
+		      {"commit", result.commit},
+		      {"revision", result.revision},
+		      {"id", in.id}});
+	} else {
+		std::cerr << result.error << '\n';
+		send({{"type", "rejected"}, {"error", result.error}, {"revision", result.revision}, {"id", in.id}});
+	}
+}
+
+// revision, restore, revert, undo: changes, which follow the author's permissions like any other
+bool Session::handleChange(const Incoming& in) {
+	const json& m = in.message;
+	auto revision = [&] {
+		if(!m.contains("revision")) expect::fail(in.type + ".revision", "expected a revision number or a commit");
+		return m["revision"];
+	};
+
+	if(in.type == "revision") {
+		json submitted = m;
+		submitted["author"] = in.author;
+		submitted.erase("type");
+		submitted.erase("id");
+		reply(in, versions_.submit(submitted));
+	} else if(in.type == "restore") {
+		reply(in, versions_.submit(versions_.restoreRevision(revision(), in.author)));
+	} else if(in.type == "revert") {
+		reply(in, versions_.submit(versions_.revertRevision(revision(), in.author)));
+	} else if(in.type == "undo") {
+		reply(in, versions_.submit(versions_.revertRevision("HEAD", in.author)));
+	} else {
+		return false;
+	}
+	return true;
+}
+
+// accept, reject, preview, endPreview, setMode, revoke: decisions, for reviewers only (an agent must not approve
+// its own changes)
+bool Session::handleReview(const Incoming& in) {
+	const json& m = in.message;
+	std::function<std::optional<std::string>()> decide;
+	auto proposal = [&] { return expect::integer(m.value("proposal", json()), in.type + ".proposal"); };
+
+	if(in.type == "accept") {
+		// The peer says which version it approves: the branch may move while the reviewer looks at it
+		decide = [&]() -> std::optional<std::string> {
+			if(!m.contains("head") || !m["head"].is_string())
+				expect::fail("accept.head", "expected the proposal's head commit: the version you reviewed");
+			return versions_.accept(proposal(), {in.author, m["head"].get<std::string>(), m.value("dontAskAgain", false)});
+		};
+	} else if(in.type == "reject") {
+		decide = [&]() -> std::optional<std::string> {
+			const int p = proposal();
+			if(versions_.reject(p, toText(m.value("reason", json(""))))) return std::nullopt;
+			return "AffrescoUI screen: no proposal " + std::to_string(p);
+		};
+	} else if(in.type == "preview") {
+		decide = [&] { return versions_.preview(proposal()); };
+	} else if(in.type == "endPreview") {
+		decide = [&]() -> std::optional<std::string> {
+			versions_.endPreview();
+			return std::nullopt;
+		};
+	} else if(in.type == "setMode") {
+		decide = [&]() -> std::optional<std::string> {
+			const auto mode = modeFromString(expect::string(m.value("mode", json()), "setMode.mode"));
+			if(!mode) return "AffrescoUI screen: setMode.mode: expected \"default\", \"acceptEdits\" or \"plan\"";
+			versions_.setMode(*mode);
+			return std::nullopt;
+		};
+	} else if(in.type == "revoke") {
+		decide = [&]() -> std::optional<std::string> {
+			const std::string rule = expect::string(m.value("rule", json()), "revoke.rule");
+			if(versions_.revokeGrant(rule)) return std::nullopt;
+			return "AffrescoUI screen: no grant '" + rule + "'";
+		};
+	} else {
+		return false;
+	}
+
+	const int at = versions_.head().number;
+	if(!versions_.mayReview(author_)) {
+		send({{"type", "rejected"},
+		      {"error", "permission denied: '" + author_ + "' may not review changes"},
+		      {"revision", at},
+		      {"id", in.id}});
+		return true;
+	}
+	if(const std::optional<std::string> error = decide())
+		send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", in.id}});
+	else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", in.id}});
+	return true;
+}
+
+// getDocument, getCatalog, getHistory, diff, exportChanges: reads, which change nothing
+bool Session::handleQuery(const Incoming& in) {
+	const json& m = in.message;
+
+	if(in.type == "getDocument") {
+		const json state = reviewState();
+		send({{"type", "document"},
+		      {"revision", versions_.head().number},
+		      {"head", toJson(versions_.head())},
+		      {"document", versions_.document()},
+		      {"state", versions_.state()},
+		      {"proposals", state["proposals"]},
+		      {"previewing", state["previewing"]},
+		      {"mode", state["mode"]},
+		      {"grants", state["grants"]},
+		      {"you", author_},
+		      {"canReview", versions_.mayReview(author_)},
+		      {"id", in.id}});
+	} else if(in.type == "getCatalog") {
+		send({{"type", "catalog"}, {"catalog", catalog_ ? catalog_() : json::object()}, {"id", in.id}});
+	} else if(in.type == "getHistory") {
+		// The newest "limit" commits on main (like `git log -n`), oldest first; all without one
+		const std::vector<CommitInfo> log = versions_.log();
+		const int limit = m.value("limit", 0);
+		const std::size_t skip =
+		    limit > 0 && log.size() > static_cast<std::size_t>(limit) ? log.size() - static_cast<std::size_t>(limit) : 0;
+		json entries = json::array();
+		for(std::size_t i = skip; i < log.size(); ++i) entries.push_back(toJson(log[i]));
+		send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", in.id}});
+	} else if(in.type == "diff") {
+		// A proposal against main's head, or any two commits (default: the previous one against HEAD)
+		const json patch =
+		    m.contains("proposal")
+		        ? versions_.proposalDiff(expect::integer(m["proposal"], "diff.proposal"))
+		        : versions_.diff(m.value("from", json("HEAD~1")), m.value("to", json("HEAD")));
+		send({{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", in.id}});
+	} else if(in.type == "exportChanges") {
+		send({{"type", "changes"},
+		      {"changes", versions_.exportChanges(m.value("from", json(0)), m.value("name", "changes"))},
+		      {"id", in.id}});
+	} else {
+		return false;
+	}
+	return true;
 }
 
 } // namespace affresco::channel

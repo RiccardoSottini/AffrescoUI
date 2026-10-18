@@ -9,6 +9,7 @@
 #include "affresco/core/VersionControl.hpp"
 
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace affresco::channel {
@@ -43,9 +44,44 @@ public:
 	Signal<const json&> onRelay; ///< A "request" or "reply" for other peers, with "from" set.
 
 private:
-	/// @brief Handles one message from the peer; malformed or refused ones get an "error" reply.
+	/// @brief A message from the peer being handled.
+	struct Incoming {
+		const json& message; ///< The message, a JSON object.
+		std::string type;    ///< Its "type" ("" if it has none, or one that isn't a string).
+		json id;             ///< Its "id", echoed in the answer (null if none).
+		std::string author;  ///< Who it is authored as (see authorOf()).
+	};
+
+	/// @brief Handles one message from the peer; malformed or refused ones get an "error" or "rejected" answer.
 	/// @param line The message.
 	void handle(const std::string& line);
+	/// @brief Parses a line from the peer, answering "error" if it isn't a JSON object.
+	/// @param line The line.
+	/// @return The message, or std::nullopt.
+	std::optional<json> read(const std::string& line);
+	/// @brief The author a message is recorded under: this channel's, plus the name the peer gives itself after '/'.
+	/// @param message The message.
+	/// @return E.g. "agent" or "agent/claude-code".
+	[[nodiscard]] std::string authorOf(const json& message) const;
+	/// @brief Answers a change: "applied", "proposed" or "rejected".
+	/// @param in The message.
+	/// @param result What happened to it.
+	void reply(const Incoming& in, const RevisionResult& result);
+	/// @brief Handles revision, restore, revert and undo.
+	/// @param in The message.
+	/// @return false if it is none of these.
+	/// @throws DocumentError If it is malformed.
+	bool handleChange(const Incoming& in);
+	/// @brief Handles accept, reject, preview, endPreview, setMode and revoke (reviewers only).
+	/// @param in The message.
+	/// @return false if it is none of these.
+	/// @throws DocumentError If it is malformed.
+	bool handleReview(const Incoming& in);
+	/// @brief Handles getDocument, getCatalog, getHistory, diff and exportChanges.
+	/// @param in The message.
+	/// @return false if it is none of these.
+	/// @throws DocumentError If it is malformed.
+	bool handleQuery(const Incoming& in);
 	/// @brief The "review" message: proposals, preview, mode and grants.
 	[[nodiscard]] json reviewState() const;
 

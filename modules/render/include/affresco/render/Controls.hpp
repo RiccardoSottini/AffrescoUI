@@ -45,8 +45,8 @@ protected:
 private:
 	Look look_;                                ///< See Look.
 	bool checked_ = false;                     ///< See isChecked().
-	Color onColor_ = Color::hex(0x4f46e5);     ///< See setOnColor().
-	Color offColor_ = Color::hex(0xd1d5db);    ///< See setOffColor().
+	Color onColor_ = colors::accent;           ///< See setOnColor().
+	Color offColor_ = colors::idle;            ///< See setOffColor().
 	Color knobColor_ = colors::white;          ///< See setKnobColor().
 };
 
@@ -88,8 +88,8 @@ private:
 
 	double value_ = 0.0, minimum_ = 0.0, maximum_ = 100.0, step_ = 0.0; ///< See setValue() and setRange().
 	bool dragging_ = false;                                             ///< The button is held on it.
-	Color track_ = Color::hex(0xe5e7eb);                                ///< See setColors().
-	Color fill_ = Color::hex(0x4f46e5);                                 ///< See setColors().
+	Color track_ = colors::track;                                       ///< See setColors().
+	Color fill_ = colors::accent;                                       ///< See setColors().
 	Color knob_ = colors::white;                                        ///< See setColors().
 };
 

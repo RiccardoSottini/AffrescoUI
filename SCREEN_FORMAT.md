@@ -90,7 +90,7 @@ parent, later siblings on top of earlier ones.
 ### Every type
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `code`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -134,6 +134,24 @@ parent, later siblings on top of earlier ones.
 ### `textarea`
 Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state path kept in sync both ways, or
 `"{{...}}"` giving one), `onChange` (`event.value`), `onSubmit` (Enter, `event.text`) and `autofocus`. Single line.
+
+### `code`
+A multi-line code editor, with the keys of common code editors (Cmd on macOS, Ctrl elsewhere): click, drag, double
+and triple click select; arrows, Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends), Shift
+to extend; Enter keeps the indentation; Tab/Shift+Tab and Cmd+]/Cmd+[ indent; brackets and quotes close themselves;
+Cmd+A/C/X/V/Z, Cmd+Shift+Z, Cmd+/ (toggle comment), Alt+Up/Down (move lines), Cmd+Shift+K (delete lines). Line numbers,
+the caret's line highlighted, wheel scrolling. Tabs become 4 spaces.
+
+| Key | Meaning |
+|---|---|
+| `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
+| `language` | `c++`, `json`, `cmake` or `markdown` to colour the syntax; anything else is plain text. |
+| `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
+| `font`, `textColor` | Font (a monospaced one lines columns up) and plain text colour. |
+| `syntax` | `{ "keyword", "type", "string", "number", "comment", "heading" }`: a colour each. |
+| `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
+| `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
+| `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
 
 ### `row`, `column`, `stack`, `grid`
 `column` (also `stack`) places its children one below the other, `row` side by side; they manage their children's
@@ -193,9 +211,9 @@ Wherever a value is expected it can be computed:
   `a ?? b` (b when a is null), `c ? a : b`;
 - functions: `len`, `empty`, `round`, `floor`, `ceil`, `abs`, `min`, `max` (numbers or a list), `clamp(v, lo, hi)`,
   `concat`, `join(list, sep)`, `split(text, sep)`, `slice(list or text, from, to?)`, `contains`, `indexOf`, `keys`,
-  `values`, `entries`, `merge(a, b)`, `reverse`, `range(n)`, `upper`, `lower`, `trim`, `number`, `text`, `type`,
-  `fixed(n, digits)`, `pad(n, width, fill?)`, `plural(n, 'card', 'cards'?)`, `now()`, `time(ms, 'ddd D MMM HH:mm')`,
-  `parseJson`, `json`;
+  `values`, `entries`, `merge(a, b)`, `reverse`, `range(n)` (n up to 10000), `upper`, `lower`, `trim`, `number`, `text`,
+  `type`, `fixed(n, digits)`, `pad(n, width, fill?)` (width up to 10000), `plural(n, 'card', 'cards'?)`, `now()`,
+  `time(ms, 'ddd D MMM HH:mm')`, `parseJson`, `json`;
 - per item, with the item as `it` and its position as `index`: `filter(list, it.done)`, `map(list, it.name)`,
   `count(list, cond?)`, `sum(list, expr?)`, `find(list, cond)`, `some`, `every`, `sort(list, key?, 'desc'?)`.
 
