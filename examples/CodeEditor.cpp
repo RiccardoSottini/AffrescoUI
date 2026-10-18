@@ -334,7 +334,7 @@ std::vector<CodeEditor::Token> CodeEditor::tokenize(std::u32string_view line, bo
 	auto quoted = [&](std::size_t i) {
 		const char32_t quote = line[i];
 		std::size_t j = i + 1;
-		while(j < n && line[j] != quote) j += line[j] == U'\\' ? 2 : 1;
+		while(j < n && line[j] != quote) j += line[j] == U'\\' ? 2u : 1u;
 		return std::min(j + 1, n);
 	};
 	auto number = [&](std::size_t i) {
