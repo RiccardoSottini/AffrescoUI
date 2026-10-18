@@ -24,6 +24,7 @@ CLAUDE.local.md
 .github/*
 !.github/media/
 !.github/workflows/
+!.github/dependabot.yml
 
 # Python
 __pycache__/

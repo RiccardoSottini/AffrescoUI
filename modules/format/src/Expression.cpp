@@ -625,7 +625,8 @@ json applyToItems(const std::string& name, const json& raw, const Context& conte
 	if(name == "$count") {
 		if(raw.size() < 2) return list.size();
 		std::size_t n = 0;
-		for(std::size_t i = 0; i < list.size(); ++i) n += truthy(each(i)) ? 1 : 0;
+		for(std::size_t i = 0; i < list.size(); ++i)
+			if(truthy(each(i))) ++n;
 		return n;
 	}
 	if(name == "$sum") {

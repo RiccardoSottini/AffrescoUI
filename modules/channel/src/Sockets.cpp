@@ -66,7 +66,7 @@ int connectTo(const std::filesystem::path& path) {
 
 /// @brief Keeps writes to a peer that went away from killing the app (SIGPIPE).
 /// @param fd The socket.
-void ignoreBrokenPipes(int fd) {
+void ignoreBrokenPipes([[maybe_unused]] int fd) {
 	std::signal(SIGPIPE, SIG_IGN); // writing to a peer that went away must not kill the app
 #if defined(SO_NOSIGPIPE)
 	const int on = 1;
