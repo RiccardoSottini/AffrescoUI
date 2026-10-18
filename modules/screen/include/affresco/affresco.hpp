@@ -8,6 +8,7 @@
 #include "affresco/core/DocumentRules.hpp"
 #include "affresco/core/Executor.hpp"
 #include "affresco/core/Json.hpp"
+#include "affresco/core/Log.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 

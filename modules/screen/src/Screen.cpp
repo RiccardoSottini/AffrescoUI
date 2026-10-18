@@ -2,6 +2,7 @@
 
 #include "affresco/channel/Session.hpp"
 #include "affresco/channel/Sockets.hpp"
+#include "affresco/core/Log.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
 #include "affresco/vcs/Repository.hpp"
@@ -9,7 +10,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <sstream>
 
@@ -210,7 +210,9 @@ struct Screen::Impl {
 		std::filesystem::create_directories(stateFile.parent_path(), error);
 		std::ofstream out(stateFile);
 		if(!out) {
-			std::cerr << "AffrescoUI screen: could not write " << stateFile << '\n';
+			std::ostringstream message; // a path prints quoted, as it always has
+			message << "AffrescoUI screen: could not write " << stateFile;
+			affresco::log(LogLevel::Error, message.str());
 			return;
 		}
 		out << now.dump(2) << '\n';
