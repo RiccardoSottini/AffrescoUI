@@ -354,16 +354,17 @@ std::optional<bool> Runtime::Impl::timeStep(const Running& s) {
 		}
 		const std::string key = pointer.to_string();
 		if(const auto it = animations.find(key); it != animations.end()) window->cancelTimer(it->second);
+		// The timer owns the task, which holds itself weakly: a strong reference to itself would never be freed
 		auto frame = std::make_shared<std::function<void()>>();
-		*frame = [this, pointer, key, from, to, ms, easing, start = now(), frame] {
+		*frame = [this, pointer, key, from, to, ms, easing, start = now(), weak = std::weak_ptr(frame)] {
 			const double progress = std::min((now() - start) * 1000.0 / ms, 1.0);
 			versions.state()[pointer] = progress >= 1.0 ? to : json(from + (to.get<double>() - from) * ease(easing, progress));
 			changed();
 			requestReconcile();
-			if(progress < 1.0) animations[key] = window->setTimer(frameMs, *frame);
+			if(progress < 1.0) animations[key] = window->setTimer(frameMs, [self = weak.lock()] { (*self)(); });
 			else animations.erase(key);
 		};
-		animations[key] = window->setTimer(frameMs, *frame);
+		animations[key] = window->setTimer(frameMs, [frame] { (*frame)(); });
 		return true;
 	}
 	return std::nullopt;

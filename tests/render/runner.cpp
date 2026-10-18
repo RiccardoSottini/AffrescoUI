@@ -11,6 +11,7 @@
 
 #include <affresco/affresco.hpp>
 
+#define GLFW_INCLUDE_NONE // only window hints and events here: no OpenGL header (Linux may have none installed)
 #include <GLFW/glfw3.h>
 #include <nlohmann/json.hpp>
 
