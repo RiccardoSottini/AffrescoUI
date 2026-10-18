@@ -1,10 +1,10 @@
 #include "affresco/render/Application.hpp"
+#include "affresco/core/Log.hpp"
 
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <cstdlib>
-#include <iostream>
 #include <optional>
 #include <stdexcept>
 
@@ -20,7 +20,7 @@ Application::Application() {
 	if(instanceAlive) throw std::logic_error("AffrescoUI: only one affresco::Application can exist at a time");
 
 	glfwSetErrorCallback([](int code, const char* description) {
-		std::cerr << "AffrescoUI: GLFW error " << code << ": " << description << '\n';
+		log(LogLevel::Error, "AffrescoUI: GLFW error " + std::to_string(code) + ": " + description);
 	});
 	if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
 
@@ -81,7 +81,7 @@ int Application::run() {
 	for(std::size_t i = 0; i < windows_.size(); ++i) {
 		const std::string path = i == 0 ? screenshot : std::string(screenshot) + "." + std::to_string(i);
 		const bool ok = windows_[i]->saveScreenshot(path);
-		std::cout << "AffrescoUI: screenshot " << (ok ? "saved: " : "FAILED: ") << path << '\n';
+		log(LogLevel::Info, "AffrescoUI: screenshot " + std::string(ok ? "saved: " : "FAILED: ") + path);
 		saved = saved && ok;
 	}
 	return saved ? EXIT_SUCCESS : EXIT_FAILURE;

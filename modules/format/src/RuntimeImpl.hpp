@@ -5,6 +5,7 @@
 /// styles), Build.cpp (building panels and keeping them in line with the document), Properties.cpp (a node's
 /// properties on its panel), Events.cpp (input) and Steps.cpp (actions and their steps).
 
+#include "affresco/core/Log.hpp"
 #include "affresco/format/Runtime.hpp"
 #include "affresco/render/Controls.hpp"
 #include "affresco/render/Label.hpp"
@@ -18,7 +19,6 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
-#include <iostream>
 #include <map>
 #include <optional>
 #include <unordered_map>
@@ -294,7 +294,8 @@ struct Runtime::Impl final : VersionObserver {
 	std::map<std::string, Action, std::less<>> nativeActions; ///< Native actions.
 	std::map<std::string, Call, std::less<>> nativeCalls;     ///< Native functions for "call" with results.
 	UnhandledAction unhandled = [](const std::string& action, Panel& sender) {
-		std::cerr << "AffrescoUI screen: no handler for action '" << action << "' (from '" << sender.id() << "')\n";
+		log(LogLevel::Warning,
+		    "AffrescoUI screen: no handler for action '" + action + "' (from '" + sender.id() + "')");
 	};
 	bool placeholderTypes = false; ///< Unknown types become plain panels.
 
@@ -739,7 +740,7 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param where Its place, for errors.
 	/// @return The task.
 	std::function<void()> later(json steps, Panel& sender, json event, SharedScope locals, std::string where);
-	/// @brief Prints an error on stderr and fires onError.
+	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);
 };
