@@ -11,6 +11,7 @@
 set -euo pipefail
 
 base="${RUNNER_TEMP:-/tmp}/base"
+trap 'git worktree remove --force "$base" 2>/dev/null || true' EXIT # a second run would fail on the old one
 
 record_base() {
 	git rev-parse -q --verify HEAD^1 >/dev/null || return 1
