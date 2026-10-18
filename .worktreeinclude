@@ -1,0 +1,3 @@
+# Git-ignored files copied into every worktree Claude Code creates (parallel sessions): the rendering check's golden
+# images, recorded locally, so each worktree compares against the same frames instead of recording new ones.
+tests/render/golden/*.png

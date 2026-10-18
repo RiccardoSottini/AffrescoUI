@@ -13,3 +13,9 @@ golden images (`--update`) only for an intended visual change.
 
 Rules: keep things simple; match the surrounding code (Doxygen on every function, `.clang-format`).
 License: Apache-2.0 (the NOTICE file and its credit lines must stay).
+
+Parallel work (agents and contributors): one roadmap item per branch `roadmap/<id>`, one draft PR to `master`.
+Touch only the files the item needs, and leave `README.md` and `CHANGELOG.md` to the maintainer: describe user-visible
+changes in the PR. Before a PR is ready, rebase on `origin/master`, build with warnings as errors, and pass the
+rendering check without `--update`. Never push to `master`, merge or tag. For live tests, set `AFFRESCOUI_SOCKET_DIR`
+to a short folder of your own (`out/s`), so parallel sessions don't meet.
