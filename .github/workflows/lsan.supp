@@ -1,6 +1,4 @@
-# LeakSanitizer suppressions for the sanitizers job: memory Mesa's OpenGL driver keeps until exit. The job links
-# libGLX (KEEP_GL in ci.yml), so the driver stays loaded until the leak report and its frames are matched here by
-# module. A leak whose stack doesn't pass through Mesa is still reported, wherever it is in our code.
-leak:libGLX_mesa.so
-leak:libgallium
-leak:swrast_dri.so
+# LeakSanitizer suppressions for the sanitizers job. None are needed: the job links libGLX (KEEP_GL in ci.yml), so
+# glfwTerminate() can't unload Mesa's driver before the leak report, and the memory the driver keeps until exit is
+# still reachable from its globals. If a Mesa update leaks for real, suppress it here by module (e.g.
+# leak:libgallium), never by one of our functions, which would hide our own leaks under it too.

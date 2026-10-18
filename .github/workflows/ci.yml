@@ -66,11 +66,11 @@ jobs:
       RENDER_CHECK_RECORD: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change') }}
       SANITIZE: -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer
       # Links the GLX library GLFW loads, so glfwTerminate() can't unload it, nor Mesa's driver behind it, before the
-      # leak report. Mesa's frames then keep their module names, which lsan.supp matches.
+      # leak report: what the driver keeps until exit stays reachable, and isn't reported as a leak
       KEEP_GL: -Wl,--no-as-needed -l:libGLX.so.0 -Wl,--as-needed
       ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1
       UBSAN_OPTIONS: print_stacktrace=1
-      LSAN_OPTIONS: suppressions=${{ github.workspace }}/.github/workflows/lsan.supp # Mesa's own allocations
+      LSAN_OPTIONS: suppressions=${{ github.workspace }}/.github/workflows/lsan.supp # empty for now, see the file
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
