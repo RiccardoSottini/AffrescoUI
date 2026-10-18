@@ -509,8 +509,8 @@ struct Runtime::Impl final : VersionObserver {
 		std::optional<std::pair<bool, bool>> scroll = {}; ///< "scroll": horizontal, vertical.
 		std::optional<bool> overlayOpen = {};             ///< An overlay's "open", evaluated.
 		std::optional<Color> trackColor = {}, fillColor = {}, knobColor = {}; ///< A slider's or toggle's colours.
-		double sliderMin = 0.0, sliderMax = 100.0, sliderStep = 0.0; ///< A slider's range.
-		bool sliderRange = false;                ///< Some of the range was given.
+		double sliderMin = 0.0, sliderMax = 100.0, sliderStep = 0.0;          ///< A slider's range.
+		bool sliderRange = false;                                             ///< Some of the range was given.
 	};
 	/// @brief Applies a property every panel has (id, color, visible, cursor, tooltip, disabled, transition, scroll,
 	/// overlay).
