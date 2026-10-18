@@ -1,0 +1,13 @@
+# Style of the original 2017 code (tabs, `if(`), formalised
+BasedOnStyle: LLVM
+UseTab: ForIndentation
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 120
+AccessModifierOffset: -4
+SpaceBeforeParens: Never
+PointerAlignment: Left
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+SortIncludes: Never

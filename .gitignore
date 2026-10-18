@@ -1,15 +1,31 @@
-*.a
-*.so
+# Build output
 build/
-lib/
-bin/
-examples/main
-examples/a.out
-vgcore.*
+build-*/
+out/
+compile_commands.json
+
+# Editors & OS (and Claude Code's parallel-session worktrees)
+.claude/worktrees/
+.vscode/
+.idea/
 .vs/
-x64/
-Debug/
-sGLGUI.sln
-sGLGUI.vcxproj
-sGLGUI.vcxproj.filters
-sGLGUI.vcxproj.user
+.cache/
+.DS_Store
+
+# Screenshots produced by AFFRESCOUI_SCREENSHOT
+*.ppm
+
+# Personal project notes and screenshots stay local
+docs/
+CLAUDE.local.md
+
+# .github: the README media and the CI workflows are published
+.github/*
+!.github/media/
+!.github/workflows/
+
+# Python
+__pycache__/
+
+# Rendering check golden images stay local (recorded on first run of tests/render/check.py)
+tests/render/golden/

@@ -1,0 +1,406 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Tempo: a music player. Playback runs on a timer; drag the bar to seek. Space plays or pauses, arrows skip and set the volume.",
+
+	"window": { "title": "Tempo: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
+
+	"fonts": {
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17 },
+		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 44 },
+		"cover": { "file": "../fonts/Roboto-Regular.ttf", "size": 64 },
+		"brand": { "file": "../fonts/Roboto-Regular.ttf", "size": 24 }
+	},
+
+	"colors": {
+		"background": "#100d17",
+		"sidebar": "#0a0810",
+		"surface": "#17131f",
+		"rowHover": "#221c2e",
+		"playingRow": "#2a1f33",
+		"bar": "#0d0b13",
+		"text": "#f4f1fa",
+		"muted": "#9a92ab",
+		"faint": "#3a3347",
+		"border": "#241e2f",
+		"accent": "#fb7185",
+		"accentHover": "#fda4af",
+		"button": "#241e2f",
+		"buttonHover": "#30283d"
+	},
+
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent(/actions)"],
+		"deny": ["*(#statusBar)"],
+		"reviewers": ["studio"]
+	},
+
+	"state": {
+		"current": 0,
+		"playingList": 0,
+		"playingTrack": 2,
+		"isPlaying": true,
+		"elapsed": 84,
+		"volume": 70,
+		"menu": ["Home", "Search", "Library"],
+		"playlists": [
+			{
+				"name": "Late Night Code",
+				"initials": "LN",
+				"color": "#7c3aed",
+				"description": "Low-key beats for long sessions. Updated every Friday.",
+				"length": "38 min",
+				"tracks": [
+					{ "title": "Vertex Buffers", "artist": "The Shaders", "album": "Core Profile", "time": "3:42" },
+					{ "title": "Dirty Flags", "artist": "Nora Vale", "album": "Redraw", "time": "4:05" },
+					{ "title": "One Draw Call", "artist": "The Shaders", "album": "Core Profile", "time": "3:18" },
+					{ "title": "Glyph Atlas", "artist": "Kerning Club", "album": "Baseline", "time": "5:01" },
+					{ "title": "Sixteen Bytes", "artist": "Nora Vale", "album": "Redraw", "time": "2:57" },
+					{ "title": "Wait Events", "artist": "Idle Loop", "album": "Zero Percent", "time": "4:33" },
+					{ "title": "Reconcile", "artist": "Kerning Club", "album": "Baseline", "time": "3:50" },
+					{ "title": "Hot Path", "artist": "Idle Loop", "album": "Zero Percent", "time": "3:24" },
+					{ "title": "Retina", "artist": "The Shaders", "album": "Core Profile", "time": "4:12" }
+				]
+			},
+			{
+				"name": "Morning Run",
+				"initials": "MR",
+				"color": "#ea580c",
+				"description": "Fast, bright and loud. 160 bpm and up.",
+				"length": "24 min",
+				"tracks": [
+					{ "title": "First Light", "artist": "Halfway", "album": "Pace", "time": "3:05" },
+					{ "title": "Uphill", "artist": "Mira Sol", "album": "Stride", "time": "2:48" },
+					{ "title": "Second Wind", "artist": "Halfway", "album": "Pace", "time": "3:31" },
+					{ "title": "Finish Line", "artist": "Mira Sol", "album": "Stride", "time": "4:02" }
+				]
+			},
+			{
+				"name": "Sunday Jazz",
+				"initials": "SJ",
+				"color": "#0d9488",
+				"description": "Slow standards and new takes on old tunes.",
+				"length": "51 min",
+				"tracks": [
+					{ "title": "Blue Hour", "artist": "Ada Quartet", "album": "Standards", "time": "6:12" },
+					{ "title": "Rainy Avenue", "artist": "Leo Marsh Trio", "album": "Avenue", "time": "5:40" },
+					{ "title": "Slow Burn", "artist": "Ada Quartet", "album": "Standards", "time": "7:03" }
+				]
+			},
+			{
+				"name": "Focus",
+				"initials": "FO",
+				"color": "#2563eb",
+				"description": "Ambient textures without words.",
+				"length": "1 h 12 min",
+				"tracks": [
+					{ "title": "Deep Work", "artist": "Quiet Rooms", "album": "Hours", "time": "8:20" },
+					{ "title": "Flow State", "artist": "Quiet Rooms", "album": "Hours", "time": "9:45" }
+				]
+			}
+		]
+	},
+
+	"computed": {
+		"list": "{{state.playlists[state.current]}}",
+		"playing": "{{state.playlists[state.playingList]}}",
+		"track": "{{computed.playing.tracks[state.playingTrack]}}",
+		"duration": "{{number(split(computed.track.time, ':')[0]) * 60 + number(split(computed.track.time, ':')[1])}}",
+		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}"
+	},
+
+	"styles": {
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
+		"control": {
+			"type": "label",
+			"font": "heading",
+			"height": 36,
+			"align": "center",
+			"color": "@button",
+			"hover": { "color": "@buttonHover" },
+			"textColor": "@text",
+			"cursor": "hand"
+		},
+		"cover": { "type": "label", "align": "center", "textColor": "#ffffff" }
+	},
+
+	"actions": {
+		"play": [
+			{ "note": "with: list, track" },
+			{ "set": "state.playingList", "to": "{{list}}" },
+			{ "set": "state.playingTrack", "to": "{{track}}" },
+			{ "set": "state.elapsed", "to": 0 },
+			{ "set": "state.isPlaying", "to": true }
+		],
+		"next": [
+			{ "if": "{{state.playingTrack + 1 >= len(computed.playing.tracks)}}", "then": [{ "set": "state.isPlaying", "to": false }, { "set": "state.elapsed", "to": 0 }, { "stop": true }] },
+			{ "run": "play", "with": { "list": "{{state.playingList}}", "track": "{{state.playingTrack + 1}}" } }
+		],
+		"previous": [
+			{ "run": "play", "with": { "list": "{{state.playingList}}", "track": "{{max(state.playingTrack - 1, 0)}}" } }
+		],
+		"tick": [
+			{ "if": "{{!state.isPlaying}}", "then": [{ "stop": true }] },
+			{ "increment": "state.elapsed" },
+			{ "if": "{{state.elapsed >= computed.duration}}", "then": [{ "run": "next" }] }
+		]
+	},
+
+	"keys": {
+		"space": { "toggle": "state.isPlaying" },
+		"right": "next",
+		"left": "previous",
+		"up": { "set": "state.volume", "to": "{{min(state.volume + 10, 100)}}" },
+		"down": { "set": "state.volume", "to": "{{max(state.volume - 10, 0)}}" }
+	},
+
+	"root": {
+		"color": "@background",
+		"every": { "ms": 1000, "do": "tick" },
+		"children": [
+			{
+				"id": "sidebar",
+				"anchors": { "left": 0, "top": 0, "bottom": 96 },
+				"width": 240,
+				"color": "@sidebar",
+				"children": [
+					{ "id": "logo", "type": "label", "text": "Tempo", "font": "brand", "textColor": "@text", "anchors": { "left": 28, "top": 28 }, "fitText": true },
+					{ "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 28, "top": 62 } },
+					{
+						"id": "menu",
+						"type": "stack",
+						"anchors": { "left": 12, "right": 12, "top": 100 },
+						"height": 140,
+						"gap": 2,
+						"children": [
+							{
+								"repeat": { "for": "item", "in": "state.menu" },
+								"type": "label",
+								"text": "{{item}}",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 40,
+								"padding": 16,
+								"align": { "horizontal": "start", "vertical": "center" },
+								"color": "@sidebar",
+								"hover": { "color": "@surface" },
+								"textColor": "{{item == 'Library' ? '@text' : '@muted'}}",
+								"cursor": "hand"
+							}
+						]
+					},
+					{ "style": "caption", "text": "PLAYLISTS", "anchors": { "left": 28, "top": 252 } },
+					{
+						"id": "playlists",
+						"type": "stack",
+						"anchors": { "left": 12, "right": 12, "top": 276, "bottom": 12 },
+						"gap": 4,
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "playlist",
+								"repeat": { "for": "list", "in": "state.playlists" },
+								"let": { "open": "{{index == state.current}}" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 56,
+								"color": "{{open ? '@surface' : '@sidebar'}}",
+								"hover": { "color": "@surface" },
+								"cursor": "hand",
+								"onClick": { "set": "state.current", "to": "{{index}}" },
+								"onDoubleClick": { "run": "play", "with": { "list": "{{index}}", "track": 0 } },
+								"tooltip": "Double-click to play",
+								"children": [
+									{ "style": "cover", "text": "{{list.initials}}", "font": "small", "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40, "color": "{{list.color}}" },
+									{ "type": "label", "text": "{{list.name}}", "textColor": "@text", "anchors": { "left": 62, "top": 10 }, "fitText": true },
+									{ "style": "caption", "text": "{{plural(len(list.tracks), 'song')}}", "anchors": { "left": 62, "top": 31 } },
+									{
+										"when": "{{index == state.playingList && state.isPlaying}}",
+										"anchors": { "right": 14, "top": 25 },
+										"width": 6,
+										"height": 6,
+										"color": "@accent"
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "main",
+				"anchors": { "left": 240, "right": 0, "top": 0, "bottom": 96 },
+				"color": "transparent",
+				"children": [
+					{
+						"id": "header",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 264,
+						"color": "@surface",
+						"children": [
+							{ "id": "cover", "style": "cover", "text": "{{computed.list.initials}}", "font": "cover", "anchors": { "left": 40, "top": 40 }, "width": 184, "height": 184, "color": "{{computed.list.color}}" },
+							{ "style": "caption", "text": "PLAYLIST", "anchors": { "left": 256, "top": 74 } },
+							{ "id": "listName", "type": "label", "text": "{{computed.list.name}}", "font": "title", "textColor": "@text", "anchors": { "left": 252, "top": 92 }, "fitText": true },
+							{ "id": "listDescription", "type": "label", "text": "{{computed.list.description}}", "textColor": "@muted", "anchors": { "left": 256, "top": 152 }, "fitText": true },
+							{
+								"style": "caption",
+								"text": "{{plural(len(computed.list.tracks), 'song')}}  ·  {{computed.list.length}}",
+								"textColor": "@text",
+								"anchors": { "left": 256, "top": 178 }
+							},
+							{
+								"id": "playButton",
+								"type": "label",
+								"text": "Play",
+								"font": "heading",
+								"anchors": { "left": 256, "top": 196 },
+								"width": 112,
+								"height": 28,
+								"align": "center",
+								"color": "@accent",
+								"hover": { "color": "@accentHover" },
+								"textColor": "#1a0b10",
+								"cursor": "hand",
+								"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": 0 } }
+							}
+						]
+					},
+					{
+						"id": "columns",
+						"anchors": { "left": 40, "right": 40, "top": 284 },
+						"height": 28,
+						"color": "transparent",
+						"children": [
+							{ "style": "caption", "text": "#", "anchors": { "left": 12, "top": 6 } },
+							{ "style": "caption", "text": "TITLE", "anchors": { "left": 52, "top": 6 } },
+							{ "style": "caption", "text": "ALBUM", "x": "55%", "y": 6 },
+							{ "style": "caption", "text": "TIME", "anchors": { "right": 16, "top": 6 } },
+							{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@border" }
+						]
+					},
+					{
+						"id": "tracks",
+						"type": "stack",
+						"anchors": { "left": 40, "right": 40, "top": 320, "bottom": 8 },
+						"gap": 2,
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "track",
+								"repeat": { "for": "track", "in": "computed.list.tracks", "index": "t" },
+								"let": { "playing": "{{state.current == state.playingList && t == state.playingTrack}}" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 40,
+								"color": "{{playing ? '@playingRow' : 'transparent'}}",
+								"hover": { "color": "{{playing ? '@playingRow' : '@rowHover'}}" },
+								"cursor": "hand",
+								"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": "{{t}}" } },
+								"children": [
+									{ "type": "label", "text": "{{t + 1}}", "textColor": "@muted", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 30, "align": { "horizontal": "start", "vertical": "center" } },
+									{ "type": "label", "text": "{{track.title}}", "textColor": "{{playing ? '@accent' : '@text'}}", "anchors": { "left": 52, "top": 3 }, "fitText": true },
+									{ "style": "caption", "text": "{{track.artist}}", "anchors": { "left": 52, "top": 22 } },
+									{ "type": "label", "text": "{{track.album}}", "textColor": "@muted", "x": "55%", "y": 11, "fitText": true },
+									{ "type": "label", "text": "{{track.time}}", "textColor": "@muted", "anchors": { "right": 16, "top": 11 }, "fitText": true }
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "player",
+				"anchors": { "left": 0, "right": 0, "bottom": 32 },
+				"height": 64,
+				"color": "@bar",
+				"children": [
+					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{ "style": "cover", "text": "{{computed.playing.initials}}", "font": "small", "anchors": { "left": 16, "top": 12 }, "width": 40, "height": 40, "color": "{{computed.playing.color}}" },
+					{ "id": "nowPlaying", "type": "label", "text": "{{computed.track.title}}", "textColor": "@text", "anchors": { "left": 68, "top": 13 }, "fitText": true },
+					{ "style": "caption", "text": "{{computed.track.artist}}", "anchors": { "left": 68, "top": 35 } },
+					{
+						"id": "controls",
+						"anchors": { "left": "35%", "right": "35%", "top": 0 },
+						"height": 40,
+						"color": "transparent",
+						"children": [
+							{ "style": "control", "text": "«", "anchors": { "left": "20%", "right": "64%", "top": 8 }, "height": 28, "tooltip": "Previous (←)", "onClick": "previous" },
+							{
+								"id": "playPause",
+								"style": "control",
+								"text": "{{state.isPlaying ? '||' : '>'}}",
+								"anchors": { "left": "38%", "right": "38%", "top": 6 },
+								"height": 32,
+								"color": "@accent",
+								"hover": { "color": "@accentHover" },
+								"textColor": "#1a0b10",
+								"tooltip": "Play or pause (Space)",
+								"onClick": { "toggle": "state.isPlaying" }
+							},
+							{ "style": "control", "text": "»", "anchors": { "left": "64%", "right": "20%", "top": 8 }, "height": 28, "tooltip": "Next (→)", "onClick": "next" }
+						]
+					},
+					{
+						"id": "seek",
+						"type": "slider",
+						"x": "30%",
+						"y": 40,
+						"width": "40%",
+						"height": 16,
+						"max": "{{computed.duration}}",
+						"step": 1,
+						"bind": "state.elapsed",
+						"trackColor": "@faint",
+						"activeColor": "@accent",
+						"knobColor": "@text"
+					},
+					{ "id": "elapsed", "style": "caption", "text": "{{computed.elapsedText}}", "x": "25.5%", "y": 41 },
+					{ "style": "caption", "text": "{{computed.track.time}}", "x": "71%", "y": 41 },
+					{ "style": "caption", "text": "Volume", "anchors": { "right": 136, "top": 25 } },
+					{
+						"id": "volume",
+						"type": "slider",
+						"anchors": { "right": 16, "top": 24 },
+						"width": 108,
+						"height": 16,
+						"step": 5,
+						"bind": "state.volume",
+						"trackColor": "@faint",
+						"activeColor": "@text",
+						"knobColor": "@text",
+						"tooltip": "Volume (↑ ↓)"
+					}
+				]
+			},
+			{
+				"id": "statusBar",
+				"anchors": { "left": 0, "right": 0, "bottom": 0 },
+				"height": 32,
+				"color": "@sidebar",
+				"children": [
+					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{
+						"id": "statusText",
+						"type": "label",
+						"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "left": 24, "top": 0, "bottom": 0, "right": 200 },
+						"align": { "horizontal": "start", "vertical": "center" }
+					},
+					{
+						"id": "statusSize",
+						"type": "label",
+						"text": "{{window.width}} × {{window.height}}",
+						"font": "small",
+						"textColor": "@muted",
+						"anchors": { "right": 24, "top": 0, "bottom": 0 },
+						"width": 160,
+						"align": { "horizontal": "end", "vertical": "center" }
+					}
+				]
+			}
+		]
+	}
+}
