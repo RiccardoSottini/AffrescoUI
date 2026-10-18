@@ -359,7 +359,8 @@ target_link_libraries(my_app PRIVATE affrescoui::affrescoui)
   single-node reads keep context small. Authors are assigned by the socket a peer uses, never self-declared.
 - **UI engine:** nested panels in pixels or percentages, anchors, clipping, rows, columns and grids, scrolling,
   overlays, tooltips, timers, typed input events, mouse capture, hover, cursors, TrueType text with wrap and
-  fit-to-text, a text input with caret and paste, switches and sliders, HiDPI.
+  fit-to-text, a text input with caret and paste, a multi-line text editor (selection, undo, clipboard), switches and
+  sliders, HiDPI.
 - **Examples:** `affrescoui_host` (any screen, the Kanban template by default), five templates and a sign-in screen,
   `affrescoui_studio` (a client that is itself an AffrescoUI screen, connection included), and the MCP server.
 
@@ -407,6 +408,10 @@ In **2026** I revived it with **Claude Code**. The first goal was a library you 
 OpenGL 4.1 core, rewrote it in C++23 and finally rendered text. Then an idea sparked: what if an AI agent could change
 a native app *while it runs*, and you approved every change? That took it far beyond the original plan: UIs described
 in JSON, live revisions, version control and a two-way MCP bridge for AI agents.
+
+**How it was built.** To be clear about it: all of the 2026 code was written by Claude Code, through agent-driven
+development. What I brought is the direction and the architecture. I shaped it over many iterations, trying an idea,
+looking at what it did and changing course, until it worked the way I wanted. The git history shows every step.
 
 ```mermaid
 timeline
