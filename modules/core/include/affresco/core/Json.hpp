@@ -69,12 +69,15 @@ namespace expect {
 }
 
 /// @brief Reads an object.
+///
+/// @p path is a view, not a `const std::string&`: GCC's -Wdangling-reference would take the temporary path string
+/// for what the returned reference points into.
 /// @param value The value.
 /// @param path Its place, for the error.
 /// @return @p value.
 /// @throws DocumentError If it is not an object.
-inline const json& object(const json& value, const std::string& path) {
-	if(!value.is_object()) fail(path, "expected an object");
+inline const json& object(const json& value, std::string_view path) {
+	if(!value.is_object()) fail(std::string(path), "expected an object");
 	return value;
 }
 
