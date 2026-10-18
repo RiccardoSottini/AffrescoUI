@@ -1,6 +1,6 @@
 #include "affresco/channel/Session.hpp"
+#include "affresco/core/Log.hpp"
 
-#include <iostream>
 #include <utility>
 
 namespace affresco::channel {
@@ -122,7 +122,7 @@ void Session::reply(const Incoming& in, const RevisionResult& result) {
 		      {"revision", result.revision},
 		      {"id", in.id}});
 	} else {
-		std::cerr << result.error << '\n';
+		log(LogLevel::Warning, result.error);
 		send({{"type", "rejected"}, {"error", result.error}, {"revision", result.revision}, {"id", in.id}});
 	}
 }

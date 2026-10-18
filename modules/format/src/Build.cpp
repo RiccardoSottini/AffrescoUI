@@ -45,7 +45,7 @@ std::unique_ptr<Panel> Runtime::Impl::create(const std::string& type, const std:
 	}
 
 	if(placeholderTypes) {
-		std::cerr << "AffrescoUI screen: " << path << ": unknown type '" << type << "', shown as a plain panel\n";
+		log(LogLevel::Warning, "AffrescoUI screen: " + path + ": unknown type '" + type + "', shown as a plain panel");
 		return std::make_unique<Panel>();
 	}
 	fail(path, "unknown type '" + type +

@@ -5,7 +5,7 @@ namespace affresco::format {
 /* Behaviour */
 
 void Runtime::Impl::report(const std::string& message) {
-	std::cerr << message << '\n';
+	log(LogLevel::Error, message);
 	owner.onError(message);
 }
 
@@ -376,7 +376,7 @@ std::optional<bool> Runtime::Impl::otherStep(const Running& s) {
 		return true;
 	}
 	if(step.contains("log")) {
-		std::cerr << "AffrescoUI screen log: " << text(s.value("log")) << '\n';
+		log(LogLevel::Debug, "AffrescoUI screen log: " + text(s.value("log")));
 		return true;
 	}
 	if(step.contains("stop")) return false;
