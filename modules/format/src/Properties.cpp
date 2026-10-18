@@ -269,15 +269,16 @@ void Runtime::Impl::apply(Panel& panel, Record& record, const json& properties, 
 		if(record.everyTimer) window->cancelTimer(std::exchange(record.everyTimer, 0));
 		record.everyMs = everyMs;
 		if(everyMs > 0.0) {
+			// The timer owns the task, which holds itself weakly: a strong reference to itself would never be freed
 			auto tick = std::make_shared<std::function<void()>>();
-			*tick = [this, panel = &panel, tick] {
+			*tick = [this, panel = &panel, weak = std::weak_ptr(tick)] {
 				Record* r = recordOf(panel);
 				if(!r || !r->properties.contains("every")) return;
-				r->everyTimer = window->setTimer(r->everyMs, *tick);
+				r->everyTimer = window->setTimer(r->everyMs, [self = weak.lock()] { (*self)(); });
 				const SharedScope locals = r->locals;
 				handle(r->properties["every"]["do"], *panel, {{"type", "tick"}}, *locals, r->path + ".every.do");
 			};
-			record.everyTimer = window->setTimer(everyMs, *tick);
+			record.everyTimer = window->setTimer(everyMs, [tick] { (*tick)(); });
 		}
 	}
 
@@ -543,8 +544,8 @@ void Runtime::Impl::transitionColor(Panel& panel, Record& record, const char* pr
 	tween = {current, target, now(), ms, 0};
 	set(current);
 
-	auto step = std::make_shared<std::function<void()>>();
-	*step = [this, panel = &panel, text, step] {
+	auto step = std::make_shared<std::function<void()>>(); // owned by the timer, holds itself weakly (see "every")
+	*step = [this, panel = &panel, text, weak = std::weak_ptr(step)] {
 		Record* r = recordOf(panel);
 		if(!r) return;
 		Tween& t = text ? r->textTween : r->colorTween;
@@ -552,9 +553,9 @@ void Runtime::Impl::transitionColor(Panel& panel, Record& record, const char* pr
 		const Color c = Color::mix(t.from, t.to, static_cast<float>(ease("out", progress)));
 		if(text) static_cast<Label*>(panel)->setTextColor(c);
 		else panel->setColor(c);
-		t.timer = progress < 1.0 ? window->setTimer(frameMs, *step) : 0;
+		t.timer = progress < 1.0 ? window->setTimer(frameMs, [self = weak.lock()] { (*self)(); }) : 0;
 	};
-	tween.timer = window->setTimer(frameMs, *step);
+	tween.timer = window->setTimer(frameMs, [step] { (*step)(); });
 }
 
 } // namespace affresco::format
