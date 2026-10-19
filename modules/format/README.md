@@ -13,7 +13,8 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 
 | Header | Offers |
 |---|---|
-| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`; `findings` (the checker's findings as text); `addNativeAction` |
+| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds) and `pathHint` (hints for paths that find nothing); `findings` (the checker's findings as text); `addNativeAction` |
+| `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
 | `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
@@ -97,9 +98,11 @@ window's and its panels'), so a window can outlive its screen.
 ## Files
 
 ```
-include/affresco/format/   Rules.hpp, Runtime.hpp
+include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp
 src/
   Rules.cpp                validation, findNode, permissions, checkChange (control steps, capability sections)
+  RulesNodes.cpp           Rules for revisions' nodes and paths: ids for the nodes they add, hints for paths
+  NodeIds.cpp              where nodes are, their ids, duplicates, and readable ids for nodes without one
   Checker.hpp / .cpp       the static checker: its passes, findings and hints ("did you mean ...")
   CheckerImpl.hpp          the checker's private parts
   CheckerNodes.cpp         the checker's walk of nodes: components, styles, repeat, variables, references

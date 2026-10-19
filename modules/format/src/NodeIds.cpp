@@ -44,6 +44,22 @@ void walk(const json& node, const std::string& pointer,
 		walk((*children)[i], pointer + "/children/" + std::to_string(i), visit);
 }
 
+/// @brief Finds the first node with an id in a node and its children, parents first, stopping there.
+/// @param node The node.
+/// @param pointer Its JSON Pointer.
+/// @param id The id.
+/// @return The node's JSON Pointer, or std::nullopt.
+std::optional<std::string> search(const json& node, const std::string& pointer, std::string_view id) {
+	if(!node.is_object() || node.value("slot", json(false)) == true) return std::nullopt;
+	if(const auto own = node.find("id"); own != node.end() && own->is_string() && own->get_ref<const std::string&>() == id)
+		return pointer;
+	const auto children = node.find("children");
+	if(children == node.end() || !children->is_array()) return std::nullopt;
+	for(std::size_t i = 0; i < children->size(); ++i)
+		if(auto found = search((*children)[i], pointer + "/children/" + std::to_string(i), id)) return found;
+	return std::nullopt;
+}
+
 /// @brief Collects the ids of a node and of the nodes inside it, as views into it.
 /// @param node The node.
 /// @param ids Receives them; valid while the node is.
@@ -165,20 +181,32 @@ std::vector<std::string> describingWords(const json& node) {
 
 } // namespace
 
-void forEachNode(const json& document, const std::function<void(const json& node, const std::string& pointer)>& visit) {
-	if(!document.is_object()) return;
-	if(const auto root = document.find("root"); root != document.end()) walk(*root, "/root", visit);
+std::vector<std::pair<std::string, const json*>> nodeTrees(const json& document) {
+	std::vector<std::pair<std::string, const json*>> trees;
+	if(!document.is_object()) return trees;
+	if(const auto root = document.find("root"); root != document.end()) trees.emplace_back("/root", &*root);
 	for(const char* section : {"screens", "templates"}) {
 		const auto nodes = document.find(section);
 		if(nodes == document.end() || !nodes->is_object()) continue;
 		for(const auto& [name, node] : nodes->items())
-			walk(node, "/" + std::string(section) + "/" + escaped(name), visit);
+			trees.emplace_back("/" + std::string(section) + "/" + escaped(name), &node);
 	}
 	const auto components = document.find("components");
-	if(components == document.end() || !components->is_object()) return;
+	if(components == document.end() || !components->is_object()) return trees;
 	for(const auto& [name, component] : components->items())
-		if(component.is_object() && component.contains("node"))
-			walk(component["node"], "/components/" + escaped(name) + "/node", visit);
+		if(const auto node = component.is_object() ? component.find("node") : component.end(); node != component.end())
+			trees.emplace_back("/components/" + escaped(name) + "/node", &*node);
+	return trees;
+}
+
+void forEachNode(const json& document, const std::function<void(const json& node, const std::string& pointer)>& visit) {
+	for(const auto& [pointer, tree] : nodeTrees(document)) walk(*tree, pointer, visit);
+}
+
+std::optional<std::string> findNodeWithId(const json& document, std::string_view id) {
+	for(const auto& [pointer, tree] : nodeTrees(document))
+		if(std::optional<std::string> found = search(*tree, pointer, id)) return found;
+	return std::nullopt;
 }
 
 std::vector<DuplicateId> duplicateIds(const json& document) {

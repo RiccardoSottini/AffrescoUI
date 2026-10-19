@@ -25,7 +25,6 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SCREENS = os.path.join(ROOT, "examples", "assets", "screens")
-SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios.json")
 sys.path.insert(0, os.path.join(ROOT, "tests", "render"))
 import check as render_check  # noqa: E402  (read_png, read_ppm)
 
@@ -73,14 +72,12 @@ class Checker:
         self.expect(same, f"fmt {name}: the formatted file reads as different JSON")
         self.run("ids", "--check", path)
 
-    def render(self, scenario):
+    def render(self, scenarios_file, scenario, path):
         """The first frame of a scenario that captures it first, against the runner's."""
-        path = os.path.normpath(os.path.join(os.path.dirname(SCENARIOS), "..", "..", "examples", "assets",
-                                             "screens", scenario["screen"]))
         frames = os.path.join(self.scratch, "frames")
         os.makedirs(frames, exist_ok=True)
         capture = scenario["steps"][0]["capture"]
-        if subprocess.run([self.runner, SCENARIOS, scenario["name"], frames]).returncode != 0:
+        if subprocess.run([self.runner, scenarios_file, scenario["name"], frames]).returncode != 0:
             return self.expect(False, f"the runner failed on {scenario['name']}")
         expected = render_check.read_ppm(os.path.join(frames, f"{scenario['name']}-{capture}.ppm"))
         out = os.path.join(self.scratch, scenario["name"] + ".png")
@@ -115,11 +112,13 @@ def main():
             name = os.path.basename(path)[:-len(".screen.json")]
             checker.check(path)
             checker.format(name, path)
-        with open(SCENARIOS, encoding="utf-8") as file:
-            for scenario in json.load(file)["scenarios"]:
-                first = scenario["steps"][0]
-                if "capture" in first and "/" not in scenario["screen"]:  # the templates' first frames
-                    checker.render(scenario)
+        for scenarios_file, scenario in render_check.read_scenarios():
+            with open(scenarios_file, encoding="utf-8") as file:
+                screens = os.path.join(os.path.dirname(scenarios_file), json.load(file)["screens"])
+            path = os.path.normpath(os.path.join(screens, scenario["screen"]))
+            # The templates' first frames: scenarios that capture before any step, on a shipped template
+            if "capture" in scenario["steps"][0] and os.path.dirname(path) == os.path.normpath(SCREENS):
+                checker.render(scenarios_file, scenario, path)
         checker.history(os.path.join(SCREENS, "kanban.screen.json"))
 
         checker.run("check", expect=2)                                  # no file

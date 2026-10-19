@@ -96,6 +96,7 @@ The setup, once the host builds on Windows (work in progress) and Python can con
 | `render_screen` | A picture (PNG image block) of main, or of an open proposal applied (`proposal`), at `scale` 1 or 2: the agent checks its work before the reviewer does. Drawn offscreen, so the person's window doesn't change. Read-only |
 | `get_history` | main's commits, like `git log`: number, short id, author, committer (who approved it), message, parents |
 | `get_diff` | A JSON Patch between two revisions (`HEAD~1`, ids, numbers), or what an open proposal would change |
+| `get_blame` | Who last changed a node (`"#board"`, `"#board/text"`) or a path (`"/colors/accent"`), and when, like `git blame`: the commit's revision, id, author, committer, message and time |
 | `revert_revision` | Undo one revision and keep the later ones, like `git revert` (follows the permissions) |
 | `restore_revision` | Bring the whole screen back to an earlier revision, like `git restore` (follows the permissions) |
 | `get_events` | What happened since the last call: decisions on proposals, commits by anyone, mode and grant changes, emitted events, errors |
