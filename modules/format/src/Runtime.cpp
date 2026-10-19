@@ -181,8 +181,8 @@ Runtime::~Runtime() {
 	// The timers point at the runtime: stop them, or the window would run them on freed memory
 	for(auto& [panel, record] : impl_->records) {
 		if(record.everyTimer) window->cancelTimer(record.everyTimer);
-		if(record.colorTween.timer) window->cancelTimer(record.colorTween.timer);
-		if(record.textTween.timer) window->cancelTimer(record.textTween.timer);
+		for(const Tween* tween : record.tweens())
+			if(tween->timer) window->cancelTimer(tween->timer);
 	}
 	for(const auto& [place, timer] : impl_->debounces) window->cancelTimer(timer);
 	for(const auto& [pointer, timer] : impl_->animations) window->cancelTimer(timer);
@@ -291,11 +291,12 @@ json Runtime::catalog() const {
 		for(const auto& [name, value] : map) list.push_back(name);
 		return list;
 	};
-	const json common = {"id",       "style",    "children", "x",      "y",       "width",     "height",  "minWidth",
-	                     "minHeight", "anchors", "fill",     "grow",   "color",   "visible",   "cursor",  "tooltip",
-	                     "disabled", "scroll",   "overlay",  "transition", "hover", "pressed", "focused",
-	                     "dragging", "dragOver", "repeat",   "when",   "let",     "use",       "with",    "keys",
-	                     "every",    "drag",     "locked",   "note"};
+	const json common = {"id",          "style",       "children",   "x",       "y",       "width",   "height",
+	                     "minWidth",    "minHeight",   "anchors",    "fill",    "grow",    "color",   "radius",
+	                     "borderWidth", "borderColor", "shadow",     "visible", "cursor",  "tooltip", "disabled",
+	                     "scroll",      "overlay",     "transition", "hover",   "pressed", "focused", "dragging",
+	                     "dragOver",    "repeat",      "when",       "let",     "use",     "with",    "keys",
+	                     "every",       "drag",        "locked",     "note"};
 	const json text = {"text", "textColor", "font", "padding", "align", "wrap", "fitText"};
 	json textarea = text;
 	for(const char* key : {"placeholder", "placeholderColor", "bind", "check", "autofocus"}) textarea.push_back(key);
