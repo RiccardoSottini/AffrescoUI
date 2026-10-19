@@ -144,6 +144,9 @@ def main():
         refused = run(configure(os.path.join(work, "consumer-0.2"), options.config, "0.2", locate), False)
         if refused.returncode == 0:
             sys.exit("package check: find_package(AffrescoUI 0.2) accepted the 0.1 package")
+        if 'compatible with requested version "0.2"' not in " ".join(refused.stdout.split()):
+            print(refused.stdout)
+            sys.exit("package check: the 0.2 consumer failed for another reason than the version rule")
         print("find_package(AffrescoUI 0.2) refused the 0.1 package, as it should")
         print("package check: passed")
     finally:
