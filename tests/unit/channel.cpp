@@ -1,9 +1,12 @@
 /// @file
-/// @brief Unit tests for the channel module: the live protocol (Session) over a Channel kept in memory.
+/// @brief Unit tests for the channel module: the live protocol (Session) over a Channel kept in memory, and the
+/// line framing of SocketChannel over a socket pair.
 
 #include "Helpers.hpp"
 
 #include <affresco/channel/Session.hpp>
+#include <affresco/channel/Sockets.hpp>
+#include <affresco/core/Executor.hpp>
 #include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
@@ -11,14 +14,66 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <functional>
+#include <mutex>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
+
+#include <sys/socket.h>
+#include <unistd.h>
 
 using affresco::json;
 using affresco::test::MemoryChannel;
 
 namespace {
+
+/// @brief An Executor whose tasks wait until the test runs them, on the test's thread (the "main" thread).
+class QueueExecutor final : public affresco::Executor {
+public:
+	/// @brief Keeps a task; called from a channel's reading thread.
+	/// @param task The work.
+	void post(std::function<void()> task) override {
+		const std::lock_guard lock(mutex_);
+		tasks_.push_back(std::move(task));
+	}
+
+	/// @brief Runs the posted tasks until a condition holds, for at most 10 seconds.
+	/// @param done The condition.
+	/// @return Whether it held in time.
+	bool runUntil(const std::function<bool()>& done) {
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+		while(!done()) {
+			if(std::chrono::steady_clock::now() > deadline) return false;
+			std::vector<std::function<void()>> ready;
+			{
+				const std::lock_guard lock(mutex_);
+				ready.swap(tasks_);
+			}
+			for(auto& task : ready) task();
+			if(ready.empty()) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+		return true;
+	}
+
+private:
+	std::mutex mutex_;                         ///< Guards tasks_.
+	std::vector<std::function<void()>> tasks_; ///< Posted, not run yet.
+};
+
+/// @brief Writes all of a text to a descriptor, as the other end of a channel.
+/// @param fd The descriptor.
+/// @param text The bytes.
+void writeAll(int fd, std::string_view text) {
+	for(std::size_t written = 0; written < text.size();) {
+		const ssize_t n = write(fd, text.data() + written, text.size() - written);
+		if(n <= 0) return;
+		written += static_cast<std::size_t>(n);
+	}
+}
 
 /// @brief A screen under version control, and a peer connected to it.
 struct Peer {
@@ -96,4 +151,32 @@ TEST_CASE("channel: a peer's text in a rejected revision reaches the log as one 
 	CHECK(logged[0].find("#a\\nFAKE: approved\\x1b[2J") != std::string::npos);
 	CHECK(std::ranges::none_of(logged[0], [](char c) { return c == '\n' || c == '\x1b'; }));
 	CHECK(peer.channel.sent.back()["type"] == "rejected"); // the peer still gets its own text back, as JSON
+}
+
+// Before, a peer that never sent a line break made the app keep everything it sent, without limit, and searched
+// it all again after every 4 KiB read
+TEST_CASE("channel: a SocketChannel splits lines across reads, and closes on a line longer than maxMessageBytes") {
+	int ends[2] = {-1, -1};
+	REQUIRE(socketpair(AF_UNIX, SOCK_STREAM, 0, ends) == 0);
+	QueueExecutor executor;
+	affresco::channel::SocketChannel channel(executor, ends[0]);
+	std::vector<std::string> received;
+	bool closed = false;
+	channel.onMessage.connect([&](const std::string& line) { received.push_back(line); });
+	channel.onClosed.connect([&] { closed = true; });
+
+	std::thread peer([other = ends[1]] {
+		writeAll(other, "first\n\nsec");
+		std::this_thread::sleep_for(std::chrono::milliseconds(20)); // "second" arrives in two reads
+		writeAll(other, "ond\n");
+		// One byte too many, so the channel reads it all before it closes (or the writer would wait for it)
+		const std::string block(std::size_t{1} << 20, 'x');
+		for(std::size_t sent = 0; sent < affresco::maxMessageBytes; sent += block.size()) writeAll(other, block);
+		writeAll(other, "x");
+	});
+	CHECK(executor.runUntil([&] { return closed; }));
+	peer.join();
+	close(ends[1]);
+
+	CHECK(received == std::vector<std::string>{"first", "second"});
 }

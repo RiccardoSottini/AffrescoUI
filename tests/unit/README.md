@@ -23,7 +23,7 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 | `core.cpp` | `parseUntrusted`: the nesting limit, comments |
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
-| `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review |
+| `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review, the log; `SocketChannel` over a socket pair: lines, the length limit |
 | `screen.cpp` | `Screen::fromString`: the nesting limit on screen files |
 | `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers and deferred tasks when it is destroyed |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
