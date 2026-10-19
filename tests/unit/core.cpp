@@ -70,3 +70,14 @@ TEST_CASE("core: parseUntrusted refuses text that is not JSON, and skips comment
 	CHECK_THROWS_AS((void)affresco::parseUntrusted("// note\n{}"), affresco::json::parse_error);
 	CHECK(affresco::parseUntrusted("// note\n{}", true) == affresco::json::object());
 }
+
+// Found by fuzzing (tests/fuzz, json): nlohmann::json throws out_of_range for these, which callers let through
+TEST_CASE("core: parseUntrusted refuses a number too large for a double with a DocumentError") {
+	for(const char* text : {"1e400", R"({"type": "revision", "x": -7e777})", "[0, 1E309]"}) {
+		CAPTURE(text);
+		CHECK_THROWS_WITH_AS((void)affresco::parseUntrusted(text), doctest::Contains("number overflow"),
+		                     affresco::DocumentError);
+	}
+	CHECK(affresco::parseUntrusted("1e308") == 1e308);
+	CHECK(affresco::parseUntrusted("123456789012345678901234567890").is_number_float()); // too big for an integer
+}
