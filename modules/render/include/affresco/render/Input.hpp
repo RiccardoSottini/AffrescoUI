@@ -180,6 +180,7 @@ struct Mods {
 	/// @brief Whether Num Lock was on.
 	[[nodiscard]] constexpr bool numLock() const noexcept { return bits & 0x0020; }
 
+	/// @brief Equal when every member is equal.
 	constexpr bool operator==(const Mods&) const noexcept = default;
 };
 

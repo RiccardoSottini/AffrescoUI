@@ -1,0 +1,37 @@
+# Builds the API reference of the public headers with Doxygen (Doxyfile) and fails on any warning, so every public
+# class, function and member stays documented. The HTML is uploaded as the "api-reference" artifact.
+name: Docs
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  api-reference:
+    name: API reference
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends doxygen
+          doxygen --version
+      - name: Build the API reference
+        run: doxygen Doxyfile # WARN_AS_ERROR = FAIL_ON_WARNINGS: any warning fails the step
+      - name: Upload the API reference
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: api-reference
+          path: build/api-reference/html/
+          if-no-files-found: error

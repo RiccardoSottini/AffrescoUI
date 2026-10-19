@@ -84,7 +84,10 @@ public:
 	/// @throws ScreenError If it is not a valid screen.
 	[[nodiscard]] static Screen fromString(std::string_view content, std::filesystem::path baseDirectory = {});
 
+	/// @brief Takes over another screen, which can then only be destroyed or assigned to.
 	Screen(Screen&&) noexcept;
+	/// @brief Takes over another screen, which can then only be destroyed or assigned to.
+	/// @return This screen.
 	Screen& operator=(Screen&&) noexcept;
 	~Screen();
 
@@ -148,8 +151,8 @@ public:
 
 	/// @brief Where programs on this machine meet by default, and where relative "channels" socket paths are found:
 	/// $AFFRESCOUI_SOCKET_DIR if it is set, else a folder of this user's: %LOCALAPPDATA%\\affrescoui\\sockets on
-	/// Windows, /tmp/affrescoui-<uid> elsewhere. mcp/affrescoui_mcp.py is to follow the same rule (roadmap 1.1d); until
-	/// then it ignores the variable and defaults to /tmp/affrescoui-<uid>, so pass it --socket.
+	/// Windows, `/tmp/affrescoui-<uid>` elsewhere. mcp/affrescoui_mcp.py is to follow the same rule (roadmap 1.1d); until
+	/// then it ignores the variable and defaults to `/tmp/affrescoui-<uid>`, so pass it --socket.
 	/// @return The directory; it may not exist yet.
 	[[nodiscard]] static std::filesystem::path defaultSocketDirectory();
 
@@ -164,7 +167,7 @@ public:
 
 	/// @brief Keeps the screen's version-control history in a folder, and loads it from there if it has one, so that
 	/// main, the open proposals, the grants and the mode survive a restart (VERSION_CONTROL.md, "History on disk").
-	/// fromFile() does it with <data folder>/<screen file name>.history (defaultDataDirectory()); a screen from
+	/// fromFile() does it with `<data folder>/<screen file name>.history` (defaultDataDirectory()); a screen from
 	/// fromString() stays in memory.
 	/// Call it before build() and before any change. If another program writes that history, this one only reads it
 	/// (a warning says so); if the screen file changed since it was written, it is moved aside and a new one starts.
@@ -174,7 +177,7 @@ public:
 	void setHistoryDirectory(const std::filesystem::path& directory);
 
 	/// @brief Sets the file the "persist" paths are kept in, and loads them from it if it exists (default:
-	/// <data folder>/<screen file name>.state.json, see defaultDataDirectory()).
+	/// `<data folder>/<screen file name>.state.json`, see defaultDataDirectory()).
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
 
