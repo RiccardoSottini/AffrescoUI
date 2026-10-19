@@ -1,0 +1,49 @@
+name: Feature request
+description: Something the library, the examples, the Studio or the MCP server could do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A new key, node type, step or protocol message is a change to a public contract: use the **Format-change RFC**
+        template instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what stops you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+      description: How it would work for the person using the app, the agent editing it, or the developer embedding it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Workarounds you tried, and other ways to get there.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Rendering, layout or text (modules/render)
+        - Screen format runtime (modules/format)
+        - Version control (modules/vcs)
+        - Channels and the live protocol (modules/channel)
+        - The examples, templates or the Studio
+        - The MCP server
+        - Build, CI or docs
+  - type: checkboxes
+    id: general
+    attributes:
+      label: General, not app-specific
+      options:
+        - label: >-
+            This would serve many kinds of apps. (Features for one kind of app belong in `examples/`, built on the
+            extension points.)

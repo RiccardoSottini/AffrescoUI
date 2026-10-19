@@ -5,7 +5,7 @@
 //               [--plugin changes.json ...]
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
-// (default /tmp/affrescoui-<uid>):
+// (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
 //   studio.sock   the user's client (affrescoui_studio): author "studio", which the template lets review changes
 //   agent.sock    an AI agent's MCP server (mcp/affrescoui_mcp.py): author "agent", whose changes wait for review
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
@@ -30,6 +30,18 @@
 
 namespace {
 
+/// @brief Whether an environment variable is set (getenv_s on Windows, where getenv is deprecated).
+/// @param name The variable.
+/// @return true if it is.
+bool environmentHas(const char* name) {
+#ifdef _WIN32
+	std::size_t length = 0; // the size its value needs, 0 if it is not set
+	return getenv_s(&length, nullptr, 0, name) == 0 && length > 0;
+#else
+	return std::getenv(name) != nullptr;
+#endif
+}
+
 /// @brief Applies the --plugin change sets, skipping those the screen's history already has from an earlier start.
 /// @param screen The screen.
 /// @param plugins The change set files, in order.
@@ -53,7 +65,7 @@ void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plug
 
 int main(int argc, char** argv) {
 	std::string file = AFFRESCOUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
-	std::filesystem::path socketDir = defaultSocketDir();
+	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory();
 	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
 	// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps
 	std::optional<affresco::Mode> mode;
@@ -79,7 +91,8 @@ int main(int argc, char** argv) {
 		affresco::Application app;
 		// A plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER) draws one frame and exits.
 		// It shows the file as it is, so it neither loads nor writes the screen's history.
-		const bool firstFrameOnly = std::getenv("AFFRESCOUI_SCREENSHOT") && !std::getenv("AFFRESCOUI_SCREENSHOT_AFTER");
+		const bool firstFrameOnly =
+		    environmentHas("AFFRESCOUI_SCREENSHOT") && !environmentHas("AFFRESCOUI_SCREENSHOT_AFTER");
 		using History = affresco::Screen::History;
 		affresco::Screen screen =
 		    affresco::Screen::fromFile(file, dataDir, firstFrameOnly ? History::InMemory : History::OnDisk);

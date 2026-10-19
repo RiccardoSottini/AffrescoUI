@@ -5,7 +5,7 @@
 // live in the host, accept, "always allow", reject), pick the mode, revoke grants, browse, revert and restore the
 // history.
 //
-//   affrescoui_studio [--socket DIR]      (default /tmp/affrescoui-<uid>, where affrescoui_host listens)
+//   affrescoui_studio [--socket DIR]      (default: where affrescoui_host listens; see host.cpp)
 //
 // The Studio is itself an AffrescoUI screen (assets/screens/studio.screen.json): layout, behaviour and the connection
 // to the host. Its "channels" section connects to studio.sock (and reconnects); every message from the host runs the
@@ -19,7 +19,7 @@
 #include <string_view>
 
 int main(int argc, char** argv) {
-	std::filesystem::path socketDir = defaultSocketDir();
+	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory();
 	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
 	for(int i = 1; i < argc; ++i) {
 		if(std::string_view(argv[i]) == "--socket" && i + 1 < argc) socketDir = argv[++i];

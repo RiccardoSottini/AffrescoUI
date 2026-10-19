@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
-| `fonts` | `name → { "file", "size" }`, paths relative to the screen file. `default` is used by text without a `font`. |
+| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file. `default` is used by text without a `font`. Text is UTF-8 and shows any character the font has. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's size. A character none of them has shows as `?`. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `theme` | Which variant of the colors is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
@@ -100,14 +100,17 @@ parent, later siblings on top of earlier ones.
 | `fill` | Anchor all four edges this far in (`0` or `true` to cover the parent). |
 | `grow` | In a `row`/`column`: the share of the spare room it takes, like CSS flex-grow. |
 | `color` | Background. Default: light grey for panels, transparent for labels, stacks and controls. |
+| `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
+| `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
+| `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `visible` | `false` hides the node and its children. |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
 | `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. |
-| `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
-| `transition` | `{ "color": 150, "textColor": 150 }`: changes of these colours animate over that many milliseconds. |
+| `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
+| `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 | `repeat` | `{ "for": "card", "in": "state.cards", "index": "i", "key": "{{card.id}}" }`: one node per list item. With `key`, a node follows its item when the list is reordered (keeping focus and scroll). |
 | `when` | Build the node only if the value is truthy. |
 | `let` | `{ "on": "{{tag == state.filter}}" }`: named values for the node and its children, evaluated in order. |
@@ -284,11 +287,13 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
-| `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}" }` |
+| `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
 
 **Control steps** (`call`, `send`, `connect`, `patch` and the review and history steps) can be written in the screen
 file, but no revision may add or change them: an agent can rearrange how the app uses the outside world and its own
-history, never widen it.
+history, never widen it. Nor may a revision move one to another trigger (a button's `onClick`, an `every` timer,
+`keys`, `watch`, `onLoad`), or add a `run` or a handler that names an action with control steps, a native action, or
+a computed action name.
 
 Only paths under `state` can be changed. After an event's steps finish, the UI is updated once. Panels are reused where
 the structure didn't change, so focus, typing, scrolling and drags in progress are kept. Errors in actions are
@@ -304,15 +309,17 @@ reported (on stderr and to the peers) and never crash the app.
 	"refresh": [{ "send": "host", "data": { "type": "getHistory" } }]
 }
 ```
-A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_DIR`, else `/tmp/affrescoui-<uid>`).
+A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_DIR`, else `/tmp/affrescoui-<uid>`, or
+`%LOCALAPPDATA%\affrescoui\sockets` on Windows).
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
 disconnect. The AffrescoUI Studio is built this way: its file is the whole client.
 
-`"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json`, loaded at start and
-written when they change. A screen opened from a file keeps its version-control history next to it, in
-`~/.affrescoui/<file name>.history/` (VERSION_CONTROL.md, "History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's
-and the Studio's `--data`) puts both in another folder.
+`"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json` (on Windows,
+`%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change. A screen opened from
+a file keeps its version-control history in the same folder, in `<file name>.history/` (VERSION_CONTROL.md,
+"History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's and the Studio's `--data`) puts both
+in another folder.
 
 ## Live screens: revisions and the channel
 

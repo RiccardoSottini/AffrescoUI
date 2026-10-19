@@ -43,10 +43,11 @@ The program that embeds AffrescoUI (the host) is trusted, and so is everything i
   below, but they are not reviewed);
 - the native code it registers (`registerType`, `onAction`, `onCall`).
 
-The screen file, its includes and the state file are read without the limits applied to peers. Don't load a screen
-file or change set you wouldn't run as a program. The state file is the exception to "trusted": it holds the
-persisted parts of the live state, which peers can change, and it is read back at the next start without those
-limits. Keep the paths a screen persists out of reach of agents you don't trust.
+The screen file, its includes and the state file are read with the JSON nesting limit (256 levels), but none of the
+other checks applied to peers. Don't load a screen file or change set you wouldn't run as a program. The state file
+is the exception to "trusted": it holds the persisted parts of the live state, which peers can change, and it is read
+back at the next start with only that nesting limit. Keep the paths a screen persists out of reach of agents you
+don't trust.
 
 The history of a screen opened from a file is kept next to the state file, in `<file name>.history/` (the data
 folder: `~/.affrescoui`, `AFFRESCOUI_DATA_DIR` or `--data`; see VERSION_CONTROL.md, "History on disk"). It is read
@@ -90,9 +91,12 @@ screens, actions, and the live state.
 - `channels`, the programs the screen talks to;
 - `persist`, what the screen writes to disk;
 - **control steps**: `accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo` and `patch` (which
-  control changes), and `call`, `send` and `connect` (which reach outside the screen). A revision can't add, remove
-  or alter one. Otherwise an agent could hide an "accept" inside a button and approve itself, or give the screen new
-  access to the outside world.
+  control changes), and `call`, `send` and `connect` (which reach outside the screen). A revision can't add, remove,
+  alter or move one to another trigger (a handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could
+  hide an "accept" inside a button and approve itself, or give the screen new access to the outside world.
+- **ways to run a control step**: a revision can't add a `run`, a handler or a `do` that names an action holding
+  control steps (found through the actions it runs in turn), an action the document doesn't define (the
+  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
@@ -116,8 +120,8 @@ may accept or reject proposals, preview them, change the mode or revoke grants. 
 itself are not checked against that list: they act as `user`, for whoever uses the app. Several rules keep an author
 from approving itself:
 - a reviewer can't accept a proposal whose author is on the reviewer's own channel;
-- a revision can't add or change review controls (see above), so a proposal can't approve itself from inside the
-  screen;
+- a revision can't add, change or reach review controls (see above), so a proposal can't approve itself from inside
+  the screen;
 - the MCP server for agents has no accept tool, and the example host gives agents their own socket, which the
   templates don't list as a reviewer.
 
@@ -127,27 +131,31 @@ allow" adds a grant for exactly what the accepted proposal touched, for its auth
 Grants are allow rules, so `ask` and `deny` still win.
 
 ### You accept what you saw
-An author can keep pushing commits to its open proposal. Over the live protocol, an `accept` must name the proposal's
-head commit (at least its first 7 characters): the version the reviewer looked at. If the author pushed since, the
-approval is refused and the proposal stays open for another look. The pin protects reviewers that send it: an
-`accept` whose `head` is an empty string is not checked, so a reviewer program must always send the head it showed.
+An author can keep pushing commits to its open proposal. Every approval must name the proposal's head commit (at
+least its first 7 characters): the version the reviewer looked at. If the author pushed since, the approval is
+refused and the proposal stays open for another look. An approval without a head is refused. This holds for all
+three ways to accept: an `accept` message from a peer such as the Studio, the C++ call
+`Screen::acceptProposal(id, head, error)`, and an `accept` step in the screen, which names it with `"head"` (for
+example `"{{proposals[0].head}}"`).
 
-This holds for reviewers that connect as peers, like the Studio. The two other ways to accept, the C++ call
-`Screen::acceptProposal` and an `accept` step in the screen itself, accept the proposal as it is at that moment,
-because the code that calls them is trusted and sees the current version.
+### Previews
+Previewing a proposal makes its document live before anyone approves it, timers and all. While a proposal is shown,
+control steps run only from the user's own input (a click, a key), never from timers or from handlers that fire by
+themselves (`onLoad`, `onShow`, `watch`). The screen's own timers that use control steps pause during the preview
+and run again after it.
 
 ### What `onCall` and `onAction` expose
 A host can register native code that documents use:
 - `onCall(name, function)` makes `name` callable from `{"call": name, "with": ..., "into": "state.x"}` steps. The
   function gets the `with` value, which the screen computes, often from the live state or the event. Treat it as
-  untrusted input: check it and limit it. Revisions can't add or alter `call` steps, so only calls the screen file
-  already contains can reach it. But a revision can make an existing call run at other times (see "Known gaps"),
-  change the state its `with` reads, and add new uses of a component or template that holds it, each with its own
-  parameters: the function can get any argument an author chooses.
+  untrusted input: check it and limit it. Revisions can't add, alter or move `call` steps, or add a way to run
+  one, so only calls the screen file already contains can reach it, from the triggers it gave them. But a revision
+  can change the state its `with` reads, and add new uses of a component or template that holds it, each with its
+  own parameters: the function can get any argument an author chooses.
 - `onAction(name, action)` registers an action by name. A document reaches it wherever it names an action that the
-  file doesn't define: `"onClick": "name"`, `{"run": "name"}`, or a `call` step. Those references are not control
-  steps, so **a revision can attach any registered native action to a new button or event**. Register as native
-  actions only things any author may trigger.
+  file doesn't define: `"onClick": "name"`, `{"run": "name"}`, or a `call` step. A revision can't add such a
+  reference (see "What it can never change"), so native actions run only from the places the screen file gave them.
+  Still, register as native actions only things the person using the app may trigger.
 
 Whatever a native function or action does, it does with the host's full rights. Version control can't see inside it.
 
@@ -175,7 +183,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 
 | What | Limit |
 |---|---|
-| JSON nesting of one message from a peer, a revision, a change set or a declared channel | 256 levels |
+| JSON nesting of one message from a peer, a revision, a change set or a declared channel, and of a screen file, an include or the state file | 256 levels |
+| One message on a channel (one line) | 64 MiB; a longer line closes the channel |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
@@ -193,6 +202,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A font's glyph atlas (a larger font size is refused) | 4,096 × 4,096 pixels |
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
 
+Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, so text
+from a peer or a document can't forge a log line or send escape sequences to a terminal.
+
 ## Known gaps
 
 These are not protected today. They are stated plainly so that you can decide what to expose.
@@ -202,11 +214,10 @@ These are not protected today. They are stated plainly so that you can decide wh
   make it private, and that is the only barrier. The library doesn't check the directory of a screen's declared
   `channels`, nor the directory of a socket an embedding application passes to `listen`.
 - **There is no rate limit per peer.** A peer can send messages as fast as it likes, and every revision is checked
-  and, if it applies, rebuilds the screen. Nothing limits how many peers connect. The open-proposal limit caps
-  waiting proposals, not work.
-- **There is no limit on the size of a message.** A message is one line of any length, buffered until its line break.
-  A revision can be as large as the peer likes, and so can the lists it puts in the state, which the screen may
-  render as one panel per item.
+  and, if it applies, rebuilds the screen. The queue of messages waiting for the main thread has no limit, and
+  nothing limits how many peers connect. The open-proposal limit caps waiting proposals, not work.
+- **Large revisions.** A message can be up to 64 MiB, so a revision can be very large, and so can the lists it puts
+  in the state, which the screen may render as one panel per item.
 - **The document and state have no depth limit.** The 256 levels hold for each message, not for what it builds:
   a revision can add a value deep inside one an earlier revision added, and steps can wrap a value in itself, so
   the document and state can nest deeper with every change. Some of the code that walks them is recursive.
@@ -217,11 +228,12 @@ These are not protected today. They are stated plainly so that you can decide wh
   nodes, components and templates, and in `onLoad`, `watch` and `keys`. An `ask` rule on `/actions` alone doesn't
   cover them; only allow agents the parts of a screen that hold no steps (the templates allow agents nothing, so
   every change of theirs is reviewed).
-- **A revision can change when existing control steps run.** It can't add or alter a control step, but it can move
-  one unchanged, or run the action that holds it from a new trigger (a timer, a load event, a new button), and it can
-  change the state its expressions read. A screen that has its own `accept`, `restore`, `call` or `send` steps should
-  send to review every change to the places that hold or trigger steps (see the bullet above), and deny agents the
-  `/state` paths those steps read.
+- **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
+  it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
+  should deny agents the `/state` paths those steps read.
+- **A screen destroyed while its window lives on.** Its timers and deferred tasks are cancelled, but its panels and
+  the window's signals still call into it, so input delivered to that window afterwards uses freed memory. Destroy
+  a screen only when its window gets no more events (after `Application::run` returns).
 - **A revision can point a font at any file.** `fonts.<name>.file` can be changed by a revision, and the app then
   reads that file and parses it as a font; the error a peer gets back says whether it could be read. The font parser
   (stb_truetype) is not hardened against malformed files, and every new file and size bakes and keeps another font
@@ -233,4 +245,5 @@ These are not protected today. They are stated plainly so that you can decide wh
   only, and it is lost when the host quits.
 - **Every commit keeps a full copy of the document in memory,** so memory grows with the history. On disk, each
   distinct document is stored once.
-- **Socket channels exist only on POSIX systems.** On Windows the live protocol isn't available yet.
+- **Windows is new.** The socket channels run on Windows through Winsock's `AF_UNIX`, with an owner-only access list
+  on each socket file, but the Windows build doesn't pass CI yet, so it is far less tested than macOS and Linux.

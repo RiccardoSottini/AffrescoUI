@@ -10,6 +10,10 @@
 
 #include <doctest/doctest.h>
 
+#include <string>
+#include <utility>
+#include <vector>
+
 using affresco::json;
 using affresco::RevisionStatus;
 using affresco::test::permissionsScreen;
@@ -78,6 +82,25 @@ TEST_CASE("vcs: an accept that names an outdated head is refused") {
 	CHECK(repository.head().author == "agent");
 }
 
+// Before, an approval without a head (an "accept" step in a screen, Screen::acceptProposal) merged whatever the
+// proposal had become, including commits pushed after the review
+TEST_CASE("vcs: an accept that names no head is refused") {
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, permissionsScreen());
+	const affresco::RevisionResult proposed =
+	    repository.submit({{"author", "agent"}, {"message", "Retitle"}, {"set", {{"#title/text", "Today"}}}});
+	REQUIRE(proposed.status == RevisionStatus::Proposed);
+
+	for(const char* head : {"", "abc"}) {
+		CAPTURE(head);
+		const auto refused = repository.accept(proposed.proposal, {"user", head, false});
+		REQUIRE(refused);
+		CHECK(refused.value_or("").find("needs its head commit") != std::string::npos);
+	}
+	CHECK(repository.proposals().size() == 1);
+	CHECK(repository.head().number == 0);
+}
+
 TEST_CASE("vcs: an author can't review its own proposal") {
 	const affresco::format::Rules rules;
 	json screen = permissionsScreen();
@@ -126,6 +149,43 @@ TEST_CASE("vcs: a change set exported and imported elsewhere gives the same docu
 	CHECK(target.state() == source.state());
 	CHECK(target.head().number == 2);
 	CHECK(target.head().author == "plugin:week view");
+}
+
+// Found by fuzzing (tests/fuzz, revision and session): nlohmann::json asserts when a value is added inside a scalar
+TEST_CASE("vcs: a revision that adds inside a number, a string or a boolean is refused") {
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, permissionsScreen());
+
+	const std::vector<std::pair<json, std::string>> cases = {
+	    {{{"author", "studio"}, {"set", {{"/version/x", 1}}}}, "'/version' is a number"},
+	    {{{"author", "studio"}, {"add", {{"#title/text/x", 1}}}}, "is a string"},
+	    {{{"author", "studio"}, {"patch", {{{"op", "copy"}, {"from", "/state/count"}, {"path", "/state/count/x"}}}}},
+		 "'/state/count' is a number"},
+	    // A move removes first: the item it lands in is then the 5, not the {} that was there before
+	    {{{"author", "studio"},
+		  {"patch",
+		   {{{"op", "add"}, {"path", "/state/list"}, {"value", {json::object(), json::object(), 5}}},
+		    {{"op", "move"}, {"from", "/state/list/0"}, {"path", "/state/list/1/x"}}}}},
+		 "'/state/list/1' is a number"},
+	};
+	for(const auto& [revision, error] : cases) {
+		CAPTURE(revision.dump());
+		const affresco::RevisionResult result = repository.submit(revision);
+		CHECK(result.status == RevisionStatus::Rejected);
+		CHECK(result.error.find(error) != std::string::npos);
+	}
+	CHECK(repository.head().number == 0);
+	CHECK(repository.document() == permissionsScreen());
+
+	// A move into an object still works, and an add into null, which becomes an object
+	const affresco::RevisionResult moved =
+	    repository.submit({{"author", "studio"},
+		                   {"patch",
+		                    {{{"op", "add"}, {"path", "/state/list"}, {"value", {json::object(), nullptr}}},
+		                     {{"op", "move"}, {"from", "/state/count"}, {"path", "/state/list/0/count"}},
+		                     {{"op", "add"}, {"path", "/state/list/1/x"}, {"value", 1}}}}});
+	REQUIRE(moved.status == RevisionStatus::Applied);
+	CHECK(repository.state() == json{{"list", {{{"count", 0}}, {{"x", 1}}}}});
 }
 
 TEST_CASE("vcs: a proposal that no longer applies is closed with the whole reason") {

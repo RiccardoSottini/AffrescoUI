@@ -1,0 +1,79 @@
+# Quality gates and reports for the C++ code (tools/quality/README.md).
+# - "Quality gate" fails on a new clang-tidy finding in the lines a change touches, or on a function the change made
+#   longer than 80 lines or more complex than 15 (tools/quality/thresholds.json). Existing code isn't blocked.
+# - "Quality report" measures the whole repository (the longest and most complex functions, tidy findings per module)
+#   and the coverage of the unit tests. It never fails on what it finds: the numbers are in the job summary and in the
+#   quality-report and coverage artifacts.
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  LLVM_BIN: /usr/lib/llvm-18/bin # clang, clang-tidy, llvm-profdata and llvm-cov from one release
+  QUALITY_JOBS: "4"
+
+jobs:
+  gate:
+    name: Quality gate
+    runs-on: ubuntu-24.04
+    # A push that creates the branch has no previous commit to compare with
+    if: github.event_name == 'pull_request' || github.event.before != '0000000000000000000000000000000000000000'
+    env:
+      # The changes are compared with the merge commit's first parent (the base branch), or the commit before the push
+      QUALITY_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the base can be several commits back (a push of several commits)
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build clang-18 clang-tidy-18 llvm-18 python3-venv \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+            libwayland-dev libxkbcommon-dev wayland-protocols
+      - name: Unit tests of the quality tools
+        run: tools/quality/run.sh test
+      - name: Gate
+        run: tools/quality/run.sh gate "$QUALITY_BASE"
+
+  report:
+    name: Quality report
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build clang-18 clang-tidy-18 llvm-18 python3-venv \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+            libwayland-dev libxkbcommon-dev wayland-protocols
+      - name: Coverage of the unit tests
+        run: tools/quality/run.sh coverage
+      - name: Whole-repository report
+        run: tools/quality/run.sh report
+      - name: Upload the report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: quality-report
+          path: build-quality/quality-report.json
+      - name: Upload the coverage
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: |
+            build-quality/coverage/coverage.json
+            build-quality/coverage/coverage.lcov
+            build-quality/coverage/html/
