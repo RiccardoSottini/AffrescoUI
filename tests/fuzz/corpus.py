@@ -166,6 +166,13 @@ def dictionaries():
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session}
 
 
+def dictionary_entry(word):
+    """A word as a line of a libFuzzer dictionary, which knows only the escapes \\\\, \\" and \\xHH (not JSON's)."""
+    escaped = "".join(f"\\{chr(byte)}" if chr(byte) in '\\"' else chr(byte) if 0x20 <= byte < 0x7F else f"\\x{byte:02X}"
+                      for byte in word.encode("utf-8"))
+    return f'"{escaped}"'
+
+
 def write(out, target, seeds, words):
     """Writes one target's seeds as files, and its dictionary."""
     directory = out / target
@@ -173,7 +180,7 @@ def write(out, target, seeds, words):
     directory.mkdir(parents=True)
     for index, seed in enumerate(seeds):
         (directory / f"seed-{index:04}").write_text(seed, encoding="utf-8")
-    entries = [json.dumps(word, ensure_ascii=True) for word in dict.fromkeys(words)]
+    entries = [dictionary_entry(word) for word in dict.fromkeys(words)]
     (out / f"{target}.dict").write_text("\n".join(entries) + "\n", encoding="utf-8")
     print(f"{target}: {len(seeds)} seeds, {len(entries)} dictionary words")
 
