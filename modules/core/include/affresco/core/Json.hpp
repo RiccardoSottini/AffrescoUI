@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -31,7 +32,128 @@ public:
 /// recursive work done on a value (copying, comparing, evaluating) can't overflow the stack.
 inline constexpr int maxNesting = 256;
 
+namespace detail {
+
+/// @brief Builds a value from the parser's events, as json::parse() does, but finds the keys of a large object in a
+/// hash table.
+///
+/// An ordered_json object searches its keys one by one, so json::parse() takes time in proportion to the square of
+/// an object's size: one message of 1 MiB holding an object of 100,000 keys took 8.5 s. A repeated key keeps its
+/// first place and takes the last value, as with json::parse(). The member names follow nlohmann::json's SAX
+/// interface (json::sax_parse()).
+class UntrustedBuilder {
+public:
+	/// @brief Builds into @p root.
+	/// @param root Receives the value.
+	explicit UntrustedBuilder(json& root) noexcept : root_(root) {}
+
+	/// @brief A null. @return true, to go on.
+	bool null() { return place(json()); }
+	/// @brief A boolean. @param value It. @return true, to go on.
+	bool boolean(bool value) { return place(json(value)); }
+	/// @brief A negative integer. @param value It. @return true, to go on.
+	bool number_integer(json::number_integer_t value) { return place(json(value)); }
+	/// @brief A positive integer. @param value It. @return true, to go on.
+	bool number_unsigned(json::number_unsigned_t value) { return place(json(value)); }
+	/// @brief A number with a fraction or an exponent. @param value It. @return true, to go on.
+	bool number_float(json::number_float_t value, const json::string_t& /*text*/) { return place(json(value)); }
+	/// @brief A string. @param value It (moved from). @return true, to go on.
+	bool string(json::string_t& value) { return place(json(std::move(value))); }
+	/// @brief Binary data (never in JSON text). @param value It (moved from). @return true, to go on.
+	bool binary(json::binary_t& value) {
+		json result = json::binary({});
+		result.get_binary() = std::move(value);
+		return place(std::move(result));
+	}
+	/// @brief An object starts. @return true, to go on.
+	/// @throws DocumentError If it would nest deeper than maxNesting.
+	bool start_object(std::size_t /*size*/) { return open(json::object()); }
+	/// @brief The key of an object's next member. @param name It. @return true, to go on.
+	bool key(json::string_t& name);
+	/// @brief An object ends. @return true, to go on.
+	bool end_object() {
+		open_.pop_back();
+		return true;
+	}
+	/// @brief An array starts. @return true, to go on.
+	/// @throws DocumentError If it would nest deeper than maxNesting.
+	bool start_array(std::size_t /*size*/) { return open(json::array()); }
+	/// @brief An array ends. @return true, to go on.
+	bool end_array() {
+		open_.pop_back();
+		return true;
+	}
+	/// @brief The text isn't JSON. @param error What the parser found. @return Never: throws @p error.
+	template <typename Exception>
+	bool parse_error(std::size_t /*position*/, const std::string& /*token*/, const Exception& error) {
+		throw error;
+	}
+
+private:
+	using Members = std::vector<std::pair<const std::string, json>>; ///< What an ordered_json object stores.
+	/// Members found by a search one by one; past this many, through the hash table.
+	static constexpr std::size_t searchedMembers = 16;
+
+	/// @brief An object or array being built.
+	struct Open {
+		json* value;                                     ///< It, inside its parent (or the root).
+		json* member = nullptr;                          ///< In an object: where the value of the last key goes.
+		std::unordered_map<std::string, std::size_t> at; ///< In a large object: each key's place.
+	};
+
+	/// @brief Puts a value where the next one goes: the root, the end of an array, or an object's last key.
+	/// @param value The value.
+	/// @return Where it is now.
+	json* put(json value) {
+		if(open_.empty()) return &(root_ = std::move(value));
+		Open& parent = open_.back();
+		if(parent.value->is_array()) return &parent.value->emplace_back(std::move(value));
+		return &(*parent.member = std::move(value));
+	}
+	/// @brief Puts a value that isn't an object or an array. @param value It. @return true, to go on.
+	bool place(json value) {
+		put(std::move(value));
+		return true;
+	}
+	/// @brief Puts an empty object or array, and opens it for what goes inside.
+	/// @param container The object or array.
+	/// @return true, to go on.
+	/// @throws DocumentError If it would nest deeper than maxNesting.
+	bool open(json container) {
+		if(open_.size() + 1 > static_cast<std::size_t>(maxNesting))
+			throw DocumentError("AffrescoUI screen: JSON nested more than " + std::to_string(maxNesting) +
+			                    " levels deep");
+		open_.push_back({put(std::move(container)), nullptr, {}});
+		return true;
+	}
+
+	json& root_;             ///< See the constructor.
+	std::vector<Open> open_; ///< The objects and arrays not yet closed, outermost first.
+};
+
+inline bool UntrustedBuilder::key(json::string_t& name) {
+	Open& object = open_.back();
+	auto& members = static_cast<Members&>(object.value->get_ref<json::object_t&>());
+	if(object.at.empty() && members.size() >= searchedMembers)
+		for(std::size_t i = 0; i < members.size(); ++i) object.at.emplace(members[i].first, i);
+
+	std::size_t index = members.size();
+	if(!object.at.empty()) {
+		index = object.at.try_emplace(name, members.size()).first->second;
+	} else {
+		const auto found = std::ranges::find(members, name, &Members::value_type::first);
+		index = static_cast<std::size_t>(found - members.begin());
+	}
+	if(index == members.size()) members.emplace_back(std::move(name), json()); // the vector's own: no search
+	object.member = &members[index].second;
+	return true;
+}
+
+} // namespace detail
+
 /// @brief Parses JSON that comes from outside the app (peers, revisions, change sets).
+///
+/// Takes time in proportion to the text, however many keys an object has (see detail::UntrustedBuilder).
 /// @param text The JSON text.
 /// @param allowComments Whether to skip comments.
 /// @return The value.
@@ -39,15 +161,11 @@ inline constexpr int maxNesting = 256;
 /// @throws DocumentError If it nests deeper than maxNesting (it is never built), or holds a number too large for a
 /// double, such as 1e400.
 inline json parseUntrusted(std::string_view text, bool allowComments = false) {
-	const auto limit = [](int depth, json::parse_event_t event, json&) {
-		// An array or object is reported at the depth outside it: its own level is one deeper
-		const bool opens = event == json::parse_event_t::array_start || event == json::parse_event_t::object_start;
-		if(depth + (opens ? 1 : 0) > maxNesting)
-			throw DocumentError("AffrescoUI screen: JSON nested more than " + std::to_string(maxNesting) + " levels deep");
-		return true;
-	};
+	json result;
+	detail::UntrustedBuilder builder(result);
 	try {
-		return json::parse(text, limit, true, allowComments);
+		json::sax_parse(text, &builder, json::input_format_t::json, true, allowComments);
+		return result;
 	} catch(const json::out_of_range& error) {
 		// Valid JSON that no number can hold: nlohmann::json throws out_of_range, which callers expecting a
 		// parse_error or a DocumentError would let through (and a peer could stop the app with it)
