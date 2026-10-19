@@ -22,7 +22,9 @@ Screens load without a state file, and channels find no host.
 ## Scenarios
 
 `scenarios.json` lists screens (from `examples/assets/screens/`) and their steps. Targets are `[x, y]` in window
-units, or `"#id"`, the centre of the first shown panel with that id (`"nth": 2` picks the third).
+units, or `"#id"`, the centre of the first shown panel with that id (`"nth": 2` picks the third). Screens made only
+for the check, for what no template shows, are in `screens/` here (e.g. `unicode`: scripts, fallback fonts, editing
+by code point), named by a path relative to the templates' folder.
 
 | Step | Does |
 |---|---|

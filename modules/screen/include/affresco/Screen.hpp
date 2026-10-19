@@ -124,8 +124,14 @@ public:
 
 	/* Capabilities the file declares: "channels" (programs to talk to) and "persist" (state kept on disk) */
 
-	/// @brief Sets where relative "channels" socket paths are found (default: $AFFRESCOUI_SOCKET_DIR, else
-	/// /tmp/affrescoui-<uid>).
+	/// @brief Where programs on this machine meet by default, and where relative "channels" socket paths are found:
+	/// $AFFRESCOUI_SOCKET_DIR if it is set, else a folder of this user's: %LOCALAPPDATA%\\affrescoui\\sockets on
+	/// Windows, /tmp/affrescoui-<uid> elsewhere. mcp/affrescoui_mcp.py is to follow the same rule (roadmap 1.1d); until
+	/// then it ignores the variable and defaults to /tmp/affrescoui-<uid>, so pass it --socket.
+	/// @return The directory; it may not exist yet.
+	[[nodiscard]] static std::filesystem::path defaultSocketDirectory();
+
+	/// @brief Sets where relative "channels" socket paths are found (default: defaultSocketDirectory()).
 	/// @param directory The directory.
 	void setSocketDirectory(std::filesystem::path directory);
 
@@ -135,7 +141,8 @@ public:
 	void startChannels(Executor& executor);
 
 	/// @brief Sets the file the "persist" paths are kept in, and loads them from it if it exists (default:
-	/// ~/.affrescoui/<screen file name>.state.json).
+	/// ~/.affrescoui/<screen file name>.state.json, or %APPDATA%\\affrescoui\\<screen file name>.state.json on
+	/// Windows).
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
 
@@ -165,9 +172,11 @@ public:
 
 	/// @brief Merges a proposal, approved by "user" (VersionControl::accept takes more).
 	/// @param id The proposal.
+	/// @param head Its head commit as the user reviewed it (ProposalInfo::head, or 7+ characters of it); refused if
+	/// the proposal moved since.
 	/// @param error Receives the error, if any (may be nullptr).
 	/// @return true if it was merged.
-	bool acceptProposal(int id, std::string* error = nullptr);
+	bool acceptProposal(int id, std::string_view head, std::string* error = nullptr);
 
 	/// @brief Rejects a proposal.
 	/// @param id The proposal.

@@ -378,7 +378,7 @@ TEST_CASE("rules: a revision that brings in a finding is rejected; one that leav
 	const affresco::RevisionResult huge =
 	    repository.submit({{"author", "agent"}, {"set", {{"#title/text", "{{99999999999999999999}}"}}}});
 	CHECK(huge.status == RevisionStatus::Rejected);
-	CHECK(huge.error.find("number too large") != std::string::npos);
+	CHECK(huge.error.find("is too large") != std::string::npos);
 
 	// A key a revision adds to the live state may be read in the same revision
 	const affresco::RevisionResult added = repository.submit(

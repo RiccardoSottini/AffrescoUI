@@ -2,10 +2,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <ctime>
 #include <functional>
+#include <limits>
 #include <map>
 #include <optional>
 #include <unordered_map>
@@ -16,6 +20,18 @@ namespace affresco::format {
 using expect::fail;
 
 namespace {
+
+/// @brief Reads a whole number written in digits: a literal, or an index in a path (a '-' is an operator).
+///
+/// Unlike std::stoll, it doesn't throw std::out_of_range, which the callers of evaluate() would let through.
+/// @param digits The digits.
+/// @return The number, or std::nullopt if it doesn't fit 64 bits.
+std::optional<std::int64_t> wholeNumber(std::string_view digits) {
+	std::int64_t value = 0;
+	const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), value);
+	if(error != std::errc() || end != digits.data() + digits.size()) return std::nullopt;
+	return value;
+}
 
 /* Variables */
 
@@ -75,30 +91,6 @@ json walk(const std::string& root, std::vector<json> keys, const Context& contex
 
 /* Text paths (targets of steps, "repeat.in"): "state.items[state.current]" */
 
-/// @brief Reads what is inside a path's brackets: a number, or an expression giving a number or a key.
-/// @param inner The text inside the brackets.
-/// @param context What paths can see.
-/// @param where Its place in the document, for errors.
-/// @return The index or the key.
-/// @throws DocumentError If it gives neither, or the number is too large.
-json indexKey(std::string_view inner, const Context& context, const std::string& where) {
-	const bool number = !inner.empty() &&
-	                    std::ranges::all_of(inner, [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
-	json key;
-	if(!number) {
-		key = evaluate(compile(inner, where), context, where);
-	} else {
-		try {
-			key = std::stoll(std::string(inner));
-		} catch(const std::out_of_range&) { // an error, not an exception that ends the app
-			fail(where, "index '" + std::string(inner) + "' too large");
-		}
-	}
-	if(!key.is_number_integer() && !key.is_string())
-		fail(where, "index '" + std::string(inner) + "' is neither a number nor a key");
-	return key;
-}
-
 /// @brief Splits a path into object keys (strings) and array indices (numbers); `[expr]` indices are evaluated.
 /// @param path The path.
 /// @param context What paths can see.
@@ -134,7 +126,16 @@ std::vector<json> segments(std::string_view path, const Context& context, const 
 			}
 			if(depth != 0) fail(where, "unclosed '[' in path '" + std::string(path) + "'");
 
-			result.push_back(indexKey(path.substr(start, i - start - 1), context, where));
+			const std::string_view inner = path.substr(start, i - start - 1);
+			const bool number = !inner.empty() && std::ranges::all_of(inner, [](char c) {
+				return std::isdigit(static_cast<unsigned char>(c));
+			});
+			const std::optional<std::int64_t> index = number ? wholeNumber(inner) : std::nullopt;
+			if(number && !index) fail(where, "index '" + std::string(inner) + "' is too large");
+			json key = index ? json(*index) : evaluate(compile(inner, where), context, where);
+			if(!key.is_number_integer() && !key.is_string())
+				fail(where, "index '" + std::string(inner) + "' is neither a number nor a key");
+			result.push_back(std::move(key));
 		} else {
 			fail(where, "invalid path '" + std::string(path) + "'");
 		}
@@ -408,8 +409,8 @@ private:
 		return std::string(text_.substr(start, position_ - start));
 	}
 
-	/// @brief A number: digits, with a fraction or without.
-	/// @return It.
+	/// @brief A number literal: digits, maybe with a fraction (a '-' before it is an operator).
+	/// @return The number: an integer, or a double with a fraction.
 	json number() {
 		const std::size_t start = position_;
 		while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
@@ -421,11 +422,12 @@ private:
 			while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
 		}
 		const std::string digits(text_.substr(start, position_ - start));
-		try {
-			return fraction ? json(std::stod(digits)) : json(std::stoll(digits));
-		} catch(const std::out_of_range&) { // an error, not an exception that ends the app
-			error("number too large");
+		if(!fraction) {
+			if(const std::optional<std::int64_t> value = wholeNumber(digits)) return *value;
+		} else if(const double value = std::strtod(digits.c_str(), nullptr); std::isfinite(value)) {
+			return value; // std::stod would throw out_of_range, past evaluate()'s callers
 		}
+		error("number '" + digits + "' is too large");
 	}
 
 	/// @brief Literals, ( ), [ ], @colors, function calls and variables.
@@ -542,12 +544,26 @@ double numberOf(const json& value, const std::string& where) {
 	return value.get<double>();
 }
 
+/// 2^63: doubles from -2^63 up to, not including, this convert to a 64-bit integer. Casting any other is undefined.
+constexpr double integerLimit = 9223372036854775808.0;
+
+/// @brief Converts a number to a whole number for a count, an index or a width, saturating at the 64-bit range.
+/// @param value The number.
+/// @return It without its fraction, clamped to the 64-bit range; 0 for NaN.
+std::int64_t saturated(double value) noexcept {
+	if(std::isnan(value)) return 0;
+	if(value >= integerLimit) return std::numeric_limits<std::int64_t>::max();
+	if(value < -integerLimit) return std::numeric_limits<std::int64_t>::min();
+	return static_cast<std::int64_t>(value);
+}
+
 /// @brief Makes an operator's numeric result; integer in, integer out, so indices and counters stay integers.
 /// @param value The result.
 /// @param integral Whether every argument was an integer.
-/// @return An integer when possible, else a double.
+/// @return An integer when possible (whole, and within 64 bits), else a double.
 json numeric(double value, bool integral) {
-	if(integral && std::trunc(value) == value) return static_cast<std::int64_t>(value);
+	if(integral && std::trunc(value) == value && value >= -integerLimit && value < integerLimit)
+		return static_cast<std::int64_t>(value);
 	return value;
 }
 
@@ -591,7 +607,7 @@ int order(const json& a, const json& b) {
 /// @param pattern The format.
 /// @return The local time as text.
 std::string formatTime(double milliseconds, std::string_view pattern) {
-	const auto seconds = static_cast<std::time_t>(milliseconds / 1000.0);
+	const auto seconds = static_cast<std::time_t>(saturated(milliseconds / 1000.0));
 	std::tm local{};
 	localtime_r(&seconds, &local);
 
@@ -697,9 +713,9 @@ json applyToItems(const std::string& name, const json& raw, const Context& conte
 json applyToValue(const std::string& name, const json& value, const std::string& at) {
 	if(name == "$not") return !truthy(value);
 	if(name == "$empty") return !truthy(value) && !value.is_boolean() && !value.is_number();
-	if(name == "$round") return static_cast<std::int64_t>(std::llround(numberOf(value, at)));
-	if(name == "$floor") return static_cast<std::int64_t>(std::floor(numberOf(value, at)));
-	if(name == "$ceil") return static_cast<std::int64_t>(std::ceil(numberOf(value, at)));
+	if(name == "$round") return numeric(std::round(numberOf(value, at)), true);
+	if(name == "$floor") return numeric(std::floor(numberOf(value, at)), true);
+	if(name == "$ceil") return numeric(std::ceil(numberOf(value, at)), true);
 	if(name == "$abs") return numeric(std::abs(numberOf(value, at)), value.is_number_integer());
 	if(name == "$text") return toText(value);
 	if(name == "$type")
@@ -759,7 +775,7 @@ json applyToValue(const std::string& name, const json& value, const std::string&
 		return result;
 	}
 	if(name == "$range") {
-		const auto n = static_cast<std::int64_t>(numberOf(value, at));
+		const std::int64_t n = saturated(numberOf(value, at));
 		if(n > 10000) fail(at, "range too long");
 		json result = json::array();
 		for(std::int64_t i = 0; i < n; ++i) result.push_back(i);
@@ -916,7 +932,7 @@ std::optional<json> listOrText(const std::string& name, const Arguments& args) {
 		                                            : args[0].is_array() ? args[0].size()
 		                                                                 : 0);
 		auto clampIndex = [&](std::size_t arg) {
-			auto i = static_cast<std::int64_t>(args.number(arg));
+			std::int64_t i = saturated(args.number(arg));
 			if(i < 0) i += size;
 			return std::clamp<std::int64_t>(i, 0, size);
 		};
@@ -963,7 +979,7 @@ std::optional<json> listOrText(const std::string& name, const Arguments& args) {
 std::optional<json> formatting(const std::string& name, const Arguments& args) {
 	if(name == "$fixed") {
 		args.count(2);
-		const int digits = std::clamp(static_cast<int>(args.number(1)), 0, 12);
+		const int digits = static_cast<int>(std::clamp<std::int64_t>(saturated(args.number(1)), 0, 12));
 		char buffer[64];
 		std::snprintf(buffer, sizeof(buffer), "%.*f", digits, args.number(0));
 		return std::string(buffer);
@@ -971,7 +987,7 @@ std::optional<json> formatting(const std::string& name, const Arguments& args) {
 	if(name == "$pad") {
 		args.between(2, 3);
 		std::string text = toText(args[0]);
-		const auto width = static_cast<std::size_t>(std::max(args.number(1), 0.0));
+		const auto width = static_cast<std::size_t>(std::max<std::int64_t>(saturated(args.number(1)), 0));
 		if(width > 10000) fail(args.at, "width too large");
 		const std::string fill = args.size() > 2 ? toText(args[2]) : "0";
 		while(text.size() < width && !fill.empty()) text = fill + text;

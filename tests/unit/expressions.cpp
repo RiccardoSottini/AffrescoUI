@@ -53,6 +53,22 @@ const std::vector<Case> cases = {
     {"{{-state.count}}", -3, {}},
     {"{{1.5 + 1}}", 2.5, {}},
     {"{{1 / 0}}", {}, "division by zero"},
+    // Numbers too large to hold: found by fuzzing (tests/fuzz, expression), they threw std::out_of_range
+    {"{{9223372036854775807}}", INT64_MAX, {}},
+    {"{{0 - 9223372036854775807 - 1}}", INT64_MIN, {}}, // the smallest 64-bit integer stays an integer
+    {"{{9223372036854775808 + 1}}", {}, "number '9223372036854775808' is too large"},
+    {"{{1 + " + std::string(400, '9') + ".5}}", {}, "is too large (at column 407)"},
+    {"{{state.items[99999999999999999999]}}", {}, "index '99999999999999999999' is too large"},
+    // Whole results beyond 64 bits: found by fuzzing, they were cast to an integer (undefined behaviour)
+    {"{{3000000000000 * 3000000000000}}", 9e24, {}},
+    {"{{number('99999999999999999999999')}}", 1e23, {}},
+    {"{{round(10000000000 * 10000000000 * 0.5)}}", 5e19, {}},
+    {"{{floor(-1.5)}}", -2, {}},
+    {"{{ceil(1.2)}}", 2, {}},
+    {"{{range(10000000000 * 10000000000)}}", {}, "range too long"},
+    {"{{slice(state.items, 0 - 10000000000 * 10000000000)}}", json::array({"a", "b", "c"}), {}},
+    {"{{fixed(1, 10000000000 * 10000000000)}}", "1.000000000000", {}},
+    {"{{pad('a', 10000000000 * 10000000000)}}", {}, "width too large"},
     // Comparisons, logic, choices
     {"{{state.count > 2 ? 'big' : 'small'}}", "big", {}},
     {"{{'abc' < 'abd'}}", true, {}},

@@ -97,7 +97,9 @@ The screen file decides, in a `permissions` section that no revision can change:
   including the app's own changes and the reviewer.
 - **Protected controls:** no revision may change `permissions`, or add or alter steps that control changes (`accept`,
   `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`, `patch`). Otherwise an agent could hide an "accept"
-  inside a button and approve itself.
+  inside a button and approve itself. Nor may it move one to another trigger (from a button into a timer), or add a
+  way to run one: a `run` or a handler that names an action with control steps, an action outside the document (the
+  application's native actions), or a computed `run` (`{ "run": "{{state.name}}" }`).
 - **Protected capabilities:** no revision may change `channels` (the programs the screen talks to) or `persist` (what
   it writes to disk), or add or alter `call`, `send` and `connect` steps. An agent can rearrange how the app uses the
   outside world, never give it new access to it.
@@ -130,7 +132,9 @@ A revision that needs review becomes a **proposal**, the equivalent of a pull re
 2. The author can **push** more commits to it (`"proposal": 3` in a revision), e.g. when the person asks for more
    while it is still open. The branch is rebuilt on the current `main` each time.
 3. A reviewer can **preview** it (the running app shows exactly what accepting would produce, then goes back) and
-   **diff** it (the JSON Patch accepting would apply).
+   **diff** it (the JSON Patch accepting would apply). While a proposal is previewed, control steps (`call`, `send`,
+   `connect`, `patch`, review and history) run only from the user's own input, never from a timer or a handler that
+   fires by itself (`onLoad`, `onShow`, `watch`): the proposal's document runs, but it can't act for the user.
 4. The reviewer **accepts** it: a merge commit lands on `main`, still checked against the deny rules, with the agent
    as author and the reviewer as committer. Or **Always allow**: accept it and add a **grant** (below). Or **reject**
    it with a reason.
@@ -152,8 +156,9 @@ inside those areas apply without asking.
 ## What keeps it safe
 - **Nobody approves their own change.** Agents aren't reviewers, the MCP server has no accept tool, revisions can't
   create review controls, and a reviewer can't accept a proposal from its own channel.
-- **You accept what you saw.** Over the live protocol, `accept` must name the proposal's head commit. If the author
-  pushed since, the approval is refused and the proposal stays open for another look.
+- **You accept what you saw.** Every accept names the proposal's head commit: over the live protocol (`head`), in an
+  `accept` step (`"head"`) and through `Screen::acceptProposal(id, head)`. If the author pushed since, the approval
+  is refused and the proposal stays open for another look.
 - **Deny is final.** Deny rules are checked when a revision arrives *and* again when it is merged, against the
   current `main`.
 - **The history can't be rewritten.** `main` only grows, and commit ids chain every commit to its parents.
