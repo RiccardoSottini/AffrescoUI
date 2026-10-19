@@ -121,7 +121,7 @@ struct Group {
 
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
 /// @param directory The template screens' directory.
-/// @param cards The cards in total; 14, the template's own count, leaves it as it is.
+/// @param cards The cards in total; the template's own count, 12, leaves it as it is.
 /// @return The document.
 [[nodiscard]] json kanbanWithCards(const std::filesystem::path& directory, int cards);
 

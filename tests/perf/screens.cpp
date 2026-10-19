@@ -112,7 +112,8 @@ void runQueuedUpdates(Window& window) { window.routeKey({Key::Unknown, 0, Action
 /// @param window The window.
 void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
 
-/// @brief The card counts the Kanban workloads fill the template to: as it is, and two larger boards.
+/// @brief The card counts the Kanban workloads fill the template to, the roadmap item's: the template has 12 cards, so
+/// even the smallest board has two copies.
 constexpr std::array<int, 3> cardCounts = {14, 100, 400};
 
 /// @brief "load/<template>": parsing, validating and building each template into a window opened beforehand.

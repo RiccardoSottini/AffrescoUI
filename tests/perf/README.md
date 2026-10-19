@@ -64,7 +64,7 @@ as the OpenGL driver's, aren't counted.
 | `commits` | One small commit (a label's text) on the Kanban template's history, 1,000 per run. `retainedBytes` is the memory each commit keeps |
 | `text` | Measuring and wrapping 10,000 lines, in Roboto at 15 px, to 240 px |
 | `load/<template>` | Parsing, validating and building a template into a window. The window is opened before the run. Each run keeps its screen, so `retainedBytes` is the memory of a loaded screen |
-| `update/<cards>` | One state change on the Kanban template, filled to 14, 100 or 400 cards, followed by its reconciliation and layout. The change renames the board (`set state.board`). The board is filled by copying the template's own cards into its four columns in turn |
+| `update/<cards>` | One state change on the Kanban template, filled to 14, 100 or 400 cards, followed by its reconciliation and layout. The change renames the board (`set state.board`). The board is filled by copying the template's own 12 cards into its four columns in turn, so even `update/14` has two copies |
 | `revision/<template>/<edit>` | One canonical edit from `edits/<template>.json`, applied as a revision: the commit, the reconciliation and the layout. Each edit has its own screen. Between runs the edit is taken back, unmeasured. The history still grows (see below) |
 | `layout/400` | Laying out the largest screen, the Kanban template with 400 cards, after a resize |
 | `frame/<cards>` | Laying out and drawing a full frame of the Kanban template with 14 or 400 cards. This is the main thread's CPU time; the GPU's work isn't counted |
