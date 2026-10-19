@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -104,9 +105,26 @@ struct Server {
 	SocketServer server;                            ///< Listens.
 };
 
+#if defined(_WIN32)
+/// @brief Whether a SID is this process's user.
+/// @param sid The SID.
+/// @return false also if the user can't be read.
+bool isThisUser(PSID sid) {
+	HANDLE token = nullptr;
+	if(!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) return false;
+	DWORD size = 0;
+	GetTokenInformation(token, TokenUser, nullptr, 0, &size); // asks for the size
+	std::vector<std::byte> user(size);
+	const bool read = GetTokenInformation(token, TokenUser, user.data(), size, &size) != FALSE;
+	CloseHandle(token);
+	return read && EqualSid(sid, reinterpret_cast<TOKEN_USER*>(user.data())->User.Sid) != FALSE;
+}
+#endif
+
 /// @brief Whether only this user may open a socket file.
 /// @param path The file.
-/// @return On POSIX, mode 0600; on Windows, an access list of one entry that inherits nothing from the folder.
+/// @return On POSIX, mode 0600; on Windows, an access list that inherits nothing from the folder and has one entry,
+/// which allows this user.
 bool onlyForThisUser(const std::filesystem::path& path) {
 #if defined(_WIN32)
 	const HANDLE file = CreateFileW(path.c_str(), READ_CONTROL, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -123,9 +141,13 @@ bool onlyForThisUser(const std::filesystem::path& path) {
 	DWORD revision = 0;
 	const bool protectedList = GetSecurityDescriptorControl(descriptor, &control, &revision) &&
 	                           (control & SE_DACL_PROTECTED) != 0;
-	const bool oneEntry = access != nullptr && access->AceCount == 1;
+	ACCESS_ALLOWED_ACE* entry = nullptr;
+	const bool oneEntry = access != nullptr && access->AceCount == 1 &&
+	                      GetAce(access, 0, reinterpret_cast<void**>(&entry)) != FALSE &&
+	                      entry->Header.AceType == ACCESS_ALLOWED_ACE_TYPE;
+	const bool forThisUser = oneEntry && isThisUser(&entry->SidStart); // the SID starts at SidStart
 	LocalFree(descriptor);
-	return protectedList && oneEntry;
+	return protectedList && forThisUser;
 #else
 	struct stat info{};
 	return stat(path.c_str(), &info) == 0 && (info.st_mode & 0777) == 0600;
