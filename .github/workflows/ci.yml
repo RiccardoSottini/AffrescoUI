@@ -1,5 +1,5 @@
-# Builds on Linux, macOS and Windows, runs the unit tests (tests/unit), and runs the rendering check (tests/render)
-# where OpenGL is available. The check compares each frame with golden images recorded from the base commit on the
+# Builds on Linux, macOS and Windows, runs the unit tests (tests/unit), and runs the window tests and the rendering
+# check (tests/render) where OpenGL is available. The check compares each frame with golden images recorded from the base commit on the
 # same runner (render-check.sh); a frame that differs is uploaded with its diff image as the "render-check-*" artifact.
 # On a pull request labelled visual-change, the check records the frames instead and uploads all of them: that is how
 # an intended change in the pictures passes.
@@ -45,6 +45,8 @@ jobs:
           cmake --build build
       - name: Unit tests
         run: ctest --test-dir build -R unit --output-on-failure
+      - name: Window tests # timers and review steps on a real window, under Xvfb
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
       - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)
@@ -55,6 +57,8 @@ jobs:
           path: |
             build/render-check/*.png
             tests/render/golden/
+      - name: Package check # cmake --install, then find_package from tests/package; after the frames, never hiding them
+        run: python3 tests/package/check.py
 
   sanitizers:
     name: Linux (address + undefined sanitizers)
@@ -89,6 +93,8 @@ jobs:
           cmake --build build
       - name: Unit tests
         run: ctest --test-dir build -R unit --output-on-failure
+      - name: Window tests
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
       - name: Rendering check
         run: |
           xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh -DCMAKE_BUILD_TYPE=Debug \

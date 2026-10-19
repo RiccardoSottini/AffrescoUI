@@ -210,6 +210,24 @@
 			"name": "studio",
 			"screen": "studio.screen.json",
 			"steps": [{ "capture": "first-frame" }]
+		},
+		{
+			"name": "unicode",
+			"screen": "../../../tests/render/screens/unicode.screen.json",
+			"steps": [
+				{ "capture": "first-frame" },
+				{ "click": "#editor" },
+				{ "key": "end" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "capture": "selected" },
+				{ "key": "backspace" },
+				{ "type": "World" },
+				{ "capture": "edited" }
+			]
 		}
 	]
 }

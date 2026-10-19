@@ -287,7 +287,7 @@ struct Runtime::Impl final : VersionObserver {
 	};
 	std::map<std::string, NamedColor, std::less<>> colors;                 ///< From "colors".
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts; ///< From "fonts".
-	std::map<std::string, std::shared_ptr<const Font>> fontCache; ///< By "file@size": revisions don't reload fonts.
+	std::map<std::string, std::shared_ptr<const Font>> fontCache; ///< By file, size and fallbacks: kept across revisions.
 	std::string theme;                                            ///< "theme", evaluated at each update.
 
 	/// @brief A type the application registered.
@@ -319,6 +319,8 @@ struct Runtime::Impl final : VersionObserver {
 	std::map<std::string, std::uint64_t> debounces;  ///< "debounce" steps waiting, by place.
 	std::map<std::string, std::uint64_t> animations; ///< "animate" steps running, by state pointer.
 	std::set<std::uint64_t> onceTimers;              ///< "after", "focus" and "scrollTo" timers waiting.
+	/// Cleared by ~Runtime: the tasks deferred on the window then do nothing.
+	std::shared_ptr<bool> alive = std::make_shared<bool>(true);
 
 	/// @brief A press that may become a click, a double click or a drag.
 	struct Press {
@@ -736,14 +738,28 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
 	std::optional<bool> flowStep(const Running& s);
+	/// @brief Refuses a control step (call, send, connect, patch, review and history) while a proposal is previewed,
+	/// unless the user's input runs it.
+	/// @param where The step's place, for the error.
+	/// @throws DocumentError If it may not run now.
+	void checkControl(const std::string& where) const;
 	/// @brief call, emit, send, connect, patch: the app, peers and the document.
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
 	std::optional<bool> outsideStep(const Running& s);
+	/// @brief call: a native function or action.
+	/// @param s The step.
+	/// @return Whether to keep going.
+	bool callStep(const Running& s);
 	/// @brief accept, reject, preview, endPreview, restore, revert, undo: review and history.
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
 	std::optional<bool> reviewStep(const Running& s);
+	/// @brief Evaluates a review or history step's values, and checks their types.
+	/// @param s The step.
+	/// @return The step with its values evaluated.
+	/// @throws DocumentError If a value has the wrong type, or an accept names no head.
+	[[nodiscard]] static json evaluateControl(const Running& s);
 	/// @brief focus, scrollTo, navigate: where the user is.
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
@@ -768,6 +784,10 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param delayMs Milliseconds from now.
 	/// @param task The work.
 	void setOnceTimer(double delayMs, std::function<void()> task);
+	/// @brief Runs a task after the current event (Window::defer), unless the runtime is destroyed before then: the
+	/// window can't cancel what it has deferred.
+	/// @param task The work.
+	void defer(std::function<void()> task) const;
 	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);

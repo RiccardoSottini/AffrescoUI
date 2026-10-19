@@ -36,6 +36,35 @@ std::string authorOf(const json& revision) {
 /// @return "message" as text.
 std::string messageOf(const json& revision) { return toText(revision.value("message", json(""))); }
 
+/// @brief Applies one JSON Patch operation, its paths resolved, refusing one that adds a value inside a number, a
+/// string or a boolean.
+///
+/// RFC 6902 makes that an error, but nlohmann::json asserts on it (and without assertions silently changes nothing),
+/// so the parent is checked first. A move is applied as nlohmann::json does it, a remove and then an add of the value
+/// removed, so that the check sees the document after the remove.
+/// @param document The document, changed in place (left half changed if this throws).
+/// @param operation The operation.
+/// @param where Its place, for the error.
+/// @throws json::exception If it can't apply.
+/// @throws DocumentError If it adds inside a value that holds nothing.
+void applyOperation(json& document, json operation, const std::string& where) {
+	const auto text = [&](const char* key) { return operation.contains(key) && operation[key].is_string(); };
+	const std::string kind = text("op") ? operation["op"].get<std::string>() : "";
+	if(kind == "move" && text("path") && text("from")) {
+		json value = document.at(json::json_pointer(operation["from"].get<std::string>()));
+		document.patch_inplace(json::array({{{"op", "remove"}, {"path", operation["from"]}}}));
+		operation = {{"op", "add"}, {"path", operation["path"]}, {"value", std::move(value)}};
+	}
+	if(text("path") && (kind == "add" || kind == "copy" || kind == "move")) {
+		const json::json_pointer path(operation["path"].get<std::string>());
+		const json* parent = path.empty() ? nullptr : detail::locate(document, path.parent_pointer().to_string());
+		if(parent && !parent->is_structured() && !parent->is_null()) // null becomes an object, as in nlohmann::json
+			fail(where, "'" + path.parent_pointer().to_string() + "' is a " + parent->type_name() +
+			                ": nothing can be added inside it");
+	}
+	document.patch_inplace(json::array({std::move(operation)}));
+}
+
 /// @brief A revision's changes as JSON Patch: its "patch", then its compact edits in a fixed order: "set" (replace,
 /// or add where nothing is there yet), "add", "remove", "move". `{"set": {"#statusBar/color": "@topBar"}}`.
 /// @param revision The revision.
@@ -259,7 +288,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		result.patch.push_back(std::move(stored));
 
 		try {
-			after.patch_inplace(json::array({std::move(op)}));
+			applyOperation(after, std::move(op), where);
 		} catch(const json::exception& error) {
 			std::string why = error.what();
 			if(const std::size_t bracket = why.find("] "); why.starts_with("[json.exception") && bracket != std::string::npos)
@@ -552,7 +581,11 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 	// Refused approvals leave the proposal open
 	if(detail::channelOf(approval.reviewer) == detail::channelOf(proposal->author))
 		return "AffrescoUI screen: permission denied: '" + approval.reviewer + "' may not accept its own proposal";
-	if(!approval.head.empty() && (approval.head.size() < 7 || !proposal->head.starts_with(approval.head)))
+	// Every approval names what was reviewed: without it, a branch pushed to after the review would merge unseen
+	if(approval.head.size() < 7)
+		return "AffrescoUI screen: accepting proposal #" + std::to_string(id) +
+		       " needs its head commit, the version you reviewed (at least 7 characters)";
+	if(!proposal->head.starts_with(approval.head))
 		return "AffrescoUI screen: proposal #" + std::to_string(id) + " changed since you reviewed it (it is now at " +
 		       proposal->head.substr(0, 7) + "): review it again";
 	if(approval.dontAskAgain && proposal->remember.empty())

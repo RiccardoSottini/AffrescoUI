@@ -22,7 +22,8 @@ namespace affresco::gl {
 /// @brief Draws a panel tree as textured quads: one buffer upload per frame, one draw call per texture switch.
 ///
 /// Solid rectangles sample a white texel of the current texture, so rectangles and text share a batch: a frame using
-/// a single font is a single draw call. Quads are clipped on the CPU to the panel being painted.
+/// a single font is a single draw call, while its glyphs fit the font's first atlas page (Latin-1 always does). Quads
+/// are clipped on the CPU to the panel being painted.
 ///
 /// Rounded rectangles, outlines and shadows are white-texel quads too, in the same batch: each vertex also carries a
 /// signed-distance description of its shape, from which the fragment shader computes an anti-aliased (or blurred)
@@ -81,10 +82,18 @@ private:
 
 	/// @brief A run of quads drawn with the same texture.
 	struct Batch {
-		GLuint texture;        ///< The texture.
-		Vec2 white;            ///< Its white texel.
-		std::size_t firstQuad; ///< First quad of the run.
-		std::size_t quadCount; ///< Quads in the run.
+		GLuint texture;             ///< The texture.
+		Vec2 white;                 ///< Its white texel.
+		std::size_t firstQuad;      ///< First quad of the run.
+		std::size_t quadCount;      ///< Quads in the run.
+		const Font* font = nullptr; ///< The font whose atlas page the texture holds, if any; alive for the frame.
+		std::uint32_t page = 0;     ///< That page.
+	};
+
+	/// @brief A font's atlas page on the GPU.
+	struct PageTexture {
+		Texture texture;       ///< The texture.
+		std::uint64_t version; ///< The page's Font::atlasVersion() it holds.
 	};
 
 	/// @brief Paints a panel, then its children (pre-order: later ones land on top). Hidden subtrees are skipped.
@@ -112,10 +121,21 @@ private:
 	/// @param style How it is drawn, with the outline already clamped.
 	/// @param clip What it is clipped to.
 	void pushQuarter(const Rect& rect, const Quarter& quarter, const ShapeStyle& style, const Rect& clip);
-	/// @brief The texture of a font's atlas, uploaded on first use.
+	/// @brief Starts a new batch unless the current one draws from the same atlas page.
 	/// @param font The font.
+	/// @param page Its atlas page.
+	void useFontPage(const Font& font, std::uint32_t page);
+	/// @brief The texture of a font's atlas page, uploaded on first use.
+	/// @param font The font.
+	/// @param page The page.
 	/// @return The texture name.
-	GLuint fontTexture(const Font& font);
+	GLuint fontTexture(const Font& font, std::uint32_t page);
+	/// @brief Uploads the glyphs a font rasterised into an atlas page since its texture was last updated.
+	///
+	/// Runs after the frame's quads are collected: drawing text rasterises the glyphs it meets for the first time.
+	/// @param font The font.
+	/// @param page The page; fontTexture() made its texture.
+	void updateFontTexture(const Font& font, std::uint32_t page);
 	/// @brief Grows the index buffer to address enough quads; it never shrinks.
 	/// @param quads Quads in this frame.
 	/// @pre The vertex array is bound.
@@ -141,7 +161,7 @@ private:
 	Buffer vertexBuffer_;                                     ///< Re-specified every frame (orphaning).
 	Buffer indexBuffer_;                                      ///< 0 1 2, 2 3 0 per quad.
 	Texture whiteTexture_;                                    ///< 1x1, for frames without text.
-	std::unordered_map<std::uint64_t, Texture> fontTextures_; ///< By Font::id(), uploaded on first use.
+	std::unordered_map<std::uint64_t, std::vector<PageTexture>> fontTextures_; ///< By Font::id(), then page.
 
 	// Per frame, reused so steady-state frames don't allocate
 	std::vector<Vertex> vertices_; ///< 4 per quad.

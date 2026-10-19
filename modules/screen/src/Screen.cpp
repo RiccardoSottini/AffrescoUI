@@ -11,9 +11,13 @@
 #include <cstdlib>
 #include <fstream>
 #include <map>
+#include <memory>
+#include <optional>
 #include <sstream>
 
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 namespace affresco {
 
@@ -75,14 +79,15 @@ struct Screen::Impl {
 		});
 		runtime.onUpdated.connect([this] { save(); });
 
-		const char* dir = std::getenv("AFFRESCOUI_SOCKET_DIR");
-		socketDirectory = dir && *dir ? std::filesystem::path(dir)
-		                              : std::filesystem::path("/tmp") / ("affrescoui-" + std::to_string(getuid()));
+		socketDirectory = Screen::defaultSocketDirectory();
 	}
 
 	~Impl() {
 		*alive = false;
 		servers.clear();
+		if(Window* window = runtime.window()) // the reconnect timers point at the screen
+			for(const auto& [name, channel] : channels)
+				if(channel.retry) window->cancelTimer(channel.retry);
 		channels.clear();
 	}
 
@@ -194,7 +199,15 @@ struct Screen::Impl {
 	void load() {
 		if(persisted().empty()) return;
 		std::ifstream in(stateFile);
-		const json file = in ? json::parse(in, nullptr, false) : json();
+		std::stringstream text;
+		text << in.rdbuf();
+		json file;
+		try {
+			file = parseUntrusted(text.str());
+			// NOLINTNEXTLINE(bugprone-empty-catch): the screen keeps its own state, as the comment below says
+		} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
+			// Not a state file this screen wrote: the screen keeps its own state, as before
+		}
 		if(file.is_object())
 			for(const auto& pointer : persisted())
 				if(file.contains(pointer.to_string())) repository.state()[pointer] = file[pointer.to_string()];
@@ -263,6 +276,56 @@ struct Screen::Impl {
 
 namespace {
 
+/// @brief Reads an environment variable that holds a path.
+/// @param name The variable's name, in ASCII.
+/// @return Its value, or nothing if it is not set or empty.
+std::optional<std::filesystem::path> environmentPath(std::string_view name) {
+#ifdef _WIN32
+	// Read in UTF-16: the ANSI code page can't hold every user name, and profile paths contain it.
+	std::wstring wideName;
+	for(const char letter : name) wideName.push_back(static_cast<wchar_t>(letter));
+	wchar_t* value = nullptr;
+	std::size_t length = 0;
+	if(_wdupenv_s(&value, &length, wideName.c_str()) != 0 || !value) return std::nullopt;
+	const std::unique_ptr<wchar_t, void (*)(void*)> freer(value, [](void* memory) { std::free(memory); });
+#else
+	const char* value = std::getenv(std::string(name).c_str());
+	if(!value) return std::nullopt;
+#endif
+	if(*value == 0) return std::nullopt;
+	return std::filesystem::path(value);
+}
+
+/// @brief Where "persist" state files are kept: the folder for application data of this platform.
+/// @return %APPDATA%\\affrescoui on Windows, ~/.affrescoui elsewhere (in the current folder without a home).
+std::filesystem::path stateDirectory() {
+#ifdef _WIN32
+	return environmentPath("APPDATA").value_or(".") / "affrescoui";
+#else
+	return environmentPath("HOME").value_or(".") / ".affrescoui";
+#endif
+}
+
+/// @brief Reads an included file.
+/// @param path The file.
+/// @return Its JSON object.
+/// @throws ScreenError If it can't be read, isn't a JSON object, or nests too deeply.
+json readInclude(const std::filesystem::path& path) {
+	const std::ifstream file(path);
+	if(!file) throw ScreenError("AffrescoUI screen: include: could not open " + path.string());
+	std::stringstream text;
+	text << file.rdbuf();
+	json part;
+	try {
+		part = parseUntrusted(text.str());
+	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): reported below, as not a JSON object
+	} catch(const DocumentError& deep) {
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
+	}
+	if(!part.is_object()) throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a JSON object");
+	return part;
+}
+
 /// @brief Merges a screen's "include" files into it (recursively, at most 8 deep): each section of an included file
 /// comes first and the including file's entries win; root and window come from the including file.
 /// @param document The screen.
@@ -279,10 +342,7 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	for(const json& name : includes) {
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
-		std::ifstream file(path);
-		if(!file) throw ScreenError("AffrescoUI screen: include: could not open " + path.string());
-		json part = json::parse(file, nullptr, false);
-		if(!part.is_object()) throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a JSON object");
+		json part = readInclude(path);
 		resolveIncludes(part, path.parent_path(), depth + 1);
 
 		for(const auto& [key, value] : part.items()) {
@@ -342,18 +402,17 @@ Screen Screen::fromFile(const std::filesystem::path& path) {
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
-	const char* home = std::getenv("HOME");
 	std::string name = path.filename().string(); // "habits.screen.json" -> "habits"
 	for(const char* extension : {".json", ".screen"})
 		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
-	screen.setStateFile(std::filesystem::path(home ? home : ".") / ".affrescoui" / (name + ".state.json"));
+	screen.setStateFile(stateDirectory() / (name + ".state.json"));
 	return screen;
 }
 
 Screen Screen::fromString(std::string_view content, std::filesystem::path baseDirectory) {
 	json document;
 	try {
-		document = json::parse(content);
+		document = parseUntrusted(content); // a ScreenError if it nests too deeply
 	} catch(const json::parse_error& error) {
 		throw ScreenError(std::string("AffrescoUI screen: invalid JSON: ") + error.what());
 	}
@@ -376,6 +435,19 @@ Window& Screen::createWindow(Application& app) {
 	Window& window = impl_->runtime.createWindow(app);
 	startChannels(app);
 	return window;
+}
+
+std::filesystem::path Screen::defaultSocketDirectory() {
+	if(auto directory = environmentPath("AFFRESCOUI_SOCKET_DIR")) return *std::move(directory);
+#ifdef _WIN32
+	// Inside the user's profile, which other users can't write to, so nobody else can make the folder first.
+	if(auto local = environmentPath("LOCALAPPDATA")) return *std::move(local) / "affrescoui" / "sockets";
+	return std::filesystem::temp_directory_path() / "affrescoui" / "sockets"; // per user too: %LOCALAPPDATA%\Temp
+#else
+	// In /tmp, so that socket paths stay within their limit of about 100 bytes. The uid keeps users apart, and the
+	// examples refuse the folder if another user made it first (examples/SocketDir.hpp).
+	return std::filesystem::path("/tmp") / ("affrescoui-" + std::to_string(getuid()));
+#endif
 }
 
 void Screen::setSocketDirectory(std::filesystem::path directory) { impl_->socketDirectory = std::move(directory); }
@@ -460,8 +532,8 @@ RevisionResult Screen::submitRevision(std::string_view revisionJson) {
 
 std::vector<ProposalInfo> Screen::proposals() const { return impl_->repository.proposals(); }
 
-bool Screen::acceptProposal(int id, std::string* error) {
-	return succeeded(impl_->repository.accept(id, {"user", {}, false}), error);
+bool Screen::acceptProposal(int id, std::string_view head, std::string* error) {
+	return succeeded(impl_->repository.accept(id, {"user", std::string(head), false}), error);
 }
 
 bool Screen::rejectProposal(int id, std::string_view reason) { return impl_->repository.reject(id, reason); }

@@ -1,0 +1,82 @@
+# clang-tidy for AffrescoUI's own C++ (modules/, examples/, tests/). The quality gate (tools/quality/README.md) fails a
+# pull request on a finding in the lines it changes; the whole-repository report counts the rest per module.
+#
+# Each family is on as a whole, and every check turned off has its reason. Not here on purpose:
+# - formatting, which .clang-format owns;
+# - what the compiler already warns about (AFFRESCOUI_WARNINGS in CMakeLists.txt: -Wall -Wextra -Wpedantic -Wshadow
+#   -Wconversion -Wsign-conversion -Wold-style-cast -Wnon-virtual-dtor -Woverloaded-virtual);
+# - function length and complexity, which lizard measures (tools/quality/thresholds.json).
+Checks:
+  - -*
+
+  - bugprone-*
+  - -bugprone-easily-swappable-parameters # layout and colour APIs take (x, y), (width, height) by design
+  - -bugprone-narrowing-conversions       # -Wconversion and -Wsign-conversion
+  - -bugprone-signed-bitwise              # masks of int constants (GLFW keys, packed colours); -Wconversion covers the casts
+  - -bugprone-switch-missing-default-case # a switch over an enum class lists every case, so -Wswitch sees new ones
+
+  - performance-*
+  - -performance-enum-size    # int-sized enum classes cost nothing measurable here, and a smaller type is noise
+  - -performance-no-int-to-ptr # OpenGL takes vertex attribute offsets as pointers
+
+  - cppcoreguidelines-*
+  - -cppcoreguidelines-avoid-c-arrays                  # same as modernize-avoid-c-arrays, kept there
+  - -cppcoreguidelines-avoid-const-or-ref-data-members # a reference member documents a non-owning link that never changes
+  - -cppcoreguidelines-avoid-do-while                  # do-while is clearer than a duplicated first iteration
+  - -cppcoreguidelines-avoid-magic-numbers             # same as readability-magic-numbers, off there
+  - -cppcoreguidelines-explicit-virtual-functions      # same as modernize-use-override, kept there
+  - -cppcoreguidelines-init-variables                  # flags out-parameters filled on the next line; the compiler warns on real uses
+  - -cppcoreguidelines-macro-usage                     # the few macros are build-time paths and version strings
+  - -cppcoreguidelines-narrowing-conversions           # -Wconversion and -Wsign-conversion
+  - -cppcoreguidelines-non-private-member-variables-in-classes # same as misc-non-private-member-variables-in-classes, off there
+  - -cppcoreguidelines-owning-memory                   # needs the GSL's owner<T>, which the code doesn't use: unique_ptr owns
+  - -cppcoreguidelines-pro-bounds-array-to-pointer-decay # C APIs (OpenGL, POSIX, stb) take pointers to arrays
+  - -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access # operator[] on checked indices; the sanitizer build catches the rest
+  - -cppcoreguidelines-pro-bounds-constant-array-index # every index into a fixed table would need gsl::at
+  - -cppcoreguidelines-pro-bounds-pointer-arithmetic   # byte buffers for OpenGL, sockets and SHA-256
+  - -cppcoreguidelines-pro-type-cstyle-cast            # -Wold-style-cast
+  - -cppcoreguidelines-pro-type-reinterpret-cast       # needed at the C API boundary (sockets, OpenGL, bytes)
+  - -cppcoreguidelines-pro-type-union-access           # no unions of our own; flags C library structs
+  - -cppcoreguidelines-pro-type-vararg                 # C APIs with varargs (fcntl, ioctl, printf-style logging)
+  - -cppcoreguidelines-use-default-member-init         # same as modernize-use-default-member-init, kept there
+
+  - modernize-*
+  - -modernize-return-braced-init-list       # `return Type{...}` names the type, which reads better than `return {...}`
+  - -modernize-use-auto                      # auto only where the code chooses it, never forced
+  - -modernize-use-designated-initializers   # positional aggregates of two or three fields read fine
+  - -modernize-use-nodiscard                 # [[nodiscard]] goes where ignoring the result is a bug, by judgement
+  - -modernize-use-trailing-return-type      # the codebase uses leading return types
+
+  - readability-*
+  - -readability-avoid-nested-conditional-operator # a chain of conditionals that picks one value reads like a table
+  - -readability-avoid-return-with-void-value # `return f();` ends a branch of a void function in one line
+  - -readability-braces-around-statements # .clang-format allows short ifs and loops on one line
+  - -readability-function-cognitive-complexity # lizard measures complexity (tools/quality/thresholds.json)
+  - -readability-function-size                 # lizard measures length (tools/quality/thresholds.json)
+  - -readability-identifier-length        # short names (x, y, i, it) are clear in small scopes
+  - -readability-implicit-bool-conversion # `if(pointer)` and `if(count)` are idiomatic
+  - -readability-inconsistent-ifelse-braces # .clang-format allows a short if beside a braced else
+  - -readability-isolate-declaration      # `float x = 0, y = 0;` declares a pair that belongs together
+  - -readability-magic-numbers            # layout, colours and limits are named where they mean something
+  - -readability-math-missing-parentheses # asks for parentheses around every product in a sum
+  - -readability-redundant-member-init    # `= {}` marks a member as empty on purpose
+  - -readability-trailing-comma           # layout, which .clang-format owns
+  - -readability-uppercase-literal-suffix # 1.0f reads fine
+
+  - misc-*
+  - -misc-include-cleaner                      # its standard-library mapping differs across LLVM versions
+  - -misc-no-recursion                         # trees and expressions are walked recursively, with depth limits
+  - -misc-non-private-member-variables-in-classes # plain structs with public data are fine
+  - -misc-unused-parameters                    # -Wunused-parameter (-Wextra)
+
+# Our headers only: not external/ or the fetched dependencies in build/_deps.
+HeaderFilterRegex: '/(modules|examples|tests)/'
+WarningsAsErrors: ''
+FormatStyle: none
+
+CheckOptions:
+  # Copy and move special members may be left out of a class that declares only a destructor (e.g. `= default`)
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
+  cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted: true
+  # `const auto*` is enough: don't ask for `const auto* const`
+  readability-qualified-auto.AddConstToQualified: false

@@ -338,8 +338,8 @@ void Runtime::Impl::reconcileChildren(const json& node, Panel& panel, Record& re
 		apply(*child, childRecord, props, item.path, false, created);
 		reconcileChildren(*item.node, *child, childRecord, item.path);
 		if(created && childRecord.handlers.contains("onShow"))
-			window->defer(later(childRecord.handlers["onShow"], *child, {{"type", "show"}}, childRecord.locals,
-			                    childRecord.path + ".onShow"));
+			defer(later(childRecord.handlers["onShow"], *child, {{"type", "show"}}, childRecord.locals,
+			            childRecord.path + ".onShow"));
 		++index;
 	}
 
@@ -355,8 +355,8 @@ void Runtime::Impl::forgetSubtree(const Panel& panel) {
 			for(const Tween* tween : record->tweens())
 				if(tween->timer) window->cancelTimer(tween->timer);
 			if(record->handlers.contains("onHide"))
-				window->defer(later(record->handlers["onHide"], window->root(), {{"type", "hide"}}, record->locals,
-				                    record->path + ".onHide"));
+				defer(later(record->handlers["onHide"], window->root(), {{"type", "hide"}}, record->locals,
+				            record->path + ".onHide"));
 		}
 		if(press.panel == &panel) press = {};
 		if(press.source == &panel) press.source = nullptr;
@@ -408,8 +408,8 @@ void Runtime::Impl::reconcile() {
 		for(const auto& [path, handler] : object(document["watch"], "watch").items()) {
 			const json value = format::lookup(path, context(*noVariables(), json::object()), "watch." + path);
 			if(watched.contains(path) && watched[path] != value)
-				window->defer(later(handler, root, {{"type", "change"}, {"value", value}, {"previous", watched[path]}},
-				                    noVariables(), "watch." + path));
+				defer(later(handler, root, {{"type", "change"}, {"value", value}, {"previous", watched[path]}},
+				            noVariables(), "watch." + path));
 			watched[path] = value;
 		}
 	}
@@ -421,7 +421,7 @@ void Runtime::Impl::requestReconcile() {
 	stateChanged = true;
 	if(reconcileQueued || !window) return;
 	reconcileQueued = true;
-	window->defer([this] {
+	defer([this] {
 		if(!reconcileQueued) return;
 		try {
 			reconcile();

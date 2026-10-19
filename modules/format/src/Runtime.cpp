@@ -2,6 +2,40 @@
 
 namespace affresco::format {
 
+namespace {
+
+constexpr std::size_t fallbackLimit = 8; ///< Fallback fonts one font may name.
+
+/// @brief Reads a font's "fallback": the files of the fonts it names, in order. A fallback's own fallbacks are not
+/// followed, and its size is not used: its glyphs are drawn at the size of the font that names it.
+/// @param fonts The "fonts" section.
+/// @param font The font's entry.
+/// @param path The entry's place, for errors.
+/// @param base The directory the files are relative to.
+/// @return The files; none without "fallback".
+/// @throws DocumentError If it isn't a list of names of fonts in the section, or names more than eight.
+std::vector<std::filesystem::path> fallbackFiles(const json& fonts, const json& font, const std::string& path,
+                                                 const std::filesystem::path& base) {
+	std::vector<std::filesystem::path> files;
+	if(!font.contains("fallback")) return files;
+
+	const std::string at = path + ".fallback";
+	const json& names = font["fallback"];
+	if(!names.is_array()) fail(at, "expected a list of font names, like [\"symbols\"]");
+	if(names.size() > fallbackLimit) fail(at, "at most " + std::to_string(fallbackLimit) + " fallback fonts");
+
+	for(std::size_t i = 0; i < names.size(); ++i) {
+		const std::string place = at + "[" + std::to_string(i) + "]";
+		const std::string name = string(names[i], place);
+		if(!fonts.contains(name) || !fonts[name].is_object() || !fonts[name].contains("file"))
+			fail(place, "unknown font '" + name + "'");
+		files.push_back(base / string(fonts[name]["file"], "fonts." + name + ".file"));
+	}
+	return files;
+}
+
+} // namespace
+
 /* Document */
 
 // Throws, changing nothing, if a color or a font is invalid
@@ -39,12 +73,15 @@ void Runtime::Impl::readDerived() {
 
 			const std::string file = (baseDirectory / string(value["file"], path + ".file")).string();
 			const float size = number(value["size"], path + ".size");
-			const std::string key = file + "@" + std::to_string(size);
+			const std::vector<std::filesystem::path> fallbacks =
+			    fallbackFiles(doc["fonts"], value, path, baseDirectory);
+			std::string key = file + "@" + std::to_string(size);
+			for(const std::filesystem::path& fallback : fallbacks) key += "|" + fallback.string();
 
 			auto cached = fontCache.find(key);
 			if(cached == fontCache.end()) {
 				try {
-					cached = fontCache.emplace(key, Font::load(file, size)).first;
+					cached = fontCache.emplace(key, Font::load(file, size, fallbacks)).first;
 				} catch(const std::runtime_error& error) {
 					fail(path, error.what());
 				}
@@ -138,6 +175,7 @@ Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
 
 Runtime::~Runtime() {
 	impl_->versions.setObserver(nullptr);
+	*impl_->alive = false; // the window may still run the tasks deferred for this runtime
 	Window* window = impl_->window;
 	if(!window) return;
 	// The timers point at the runtime: stop them, or the window would run them on freed memory
@@ -215,7 +253,7 @@ void Runtime::build(Window& window) {
 	// "onLoad": once, after the first update
 	const json& document = impl->versions.document();
 	if(document.contains("onLoad"))
-		window.defer(impl->later(document["onLoad"], window.root(), {{"type", "load"}}, noVariables(), "onLoad"));
+		impl->defer(impl->later(document["onLoad"], window.root(), {{"type", "load"}}, noVariables(), "onLoad"));
 }
 
 Panel& Runtime::instantiate(std::string_view name, Panel& parent) {

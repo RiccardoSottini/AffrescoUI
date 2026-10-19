@@ -97,6 +97,14 @@
 								"size": {
 									"type": "number",
 									"exclusiveMinimum": 0
+								},
+								"fallback": {
+									"type": "array",
+									"description": "Other fonts in \"fonts\", asked in order for characters this one lacks; drawn at this font's size",
+									"maxItems": 8,
+									"items": {
+										"type": "string"
+									}
 								}
 							}
 						}
@@ -1167,6 +1175,7 @@
 					"stop": {},
 					"note": {},
 					"accept": {},
+					"head": {},
 					"reject": {},
 					"reason": {},
 					"preview": {},
