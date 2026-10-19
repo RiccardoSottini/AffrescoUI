@@ -304,13 +304,14 @@ reported (on stderr and to the peers) and never crash the app.
 	"refresh": [{ "send": "host", "data": { "type": "getHistory" } }]
 }
 ```
-A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_DIR`, else `/tmp/affrescoui-<uid>`).
+A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_DIR`, else `/tmp/affrescoui-<uid>`, or
+`%LOCALAPPDATA%\affrescoui\sockets` on Windows).
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
 disconnect. The AffrescoUI Studio is built this way: its file is the whole client.
 
-`"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json`, loaded at start and
-written when they change.
+`"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json` (on Windows,
+`%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change.
 
 ## Live screens: revisions and the channel
 
