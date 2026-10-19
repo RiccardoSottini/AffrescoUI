@@ -8,6 +8,7 @@
 #include "CheckerImpl.hpp"
 
 #include <charconv>
+#include <format>
 
 namespace affresco::format {
 
@@ -88,31 +89,45 @@ std::string missingKeyHint(const json& holder, const std::string& where, const s
 	return "'" + where + "' is a " + std::string(holder.type_name()) + ": nothing is inside it";
 }
 
+/// @brief Tells whether a pointer is a node's list of children ("/root/children").
+/// @param pointer The pointer.
+/// @return true if it is.
+bool isChildrenPlace(std::string_view pointer) {
+	constexpr std::string_view children = "/children";
+	return pointer.ends_with(children) && isNodePlace(pointer.substr(0, pointer.size() - children.size()));
+}
+
+/// @brief Gives ids to one node going to a node place, and to the nodes inside it. A node that replaces one with an
+/// id keeps that id.
+/// @param document The document before the operation.
+/// @param place Where the node goes.
+/// @param replaces true if it replaces what is there.
+/// @param node The node, changed in place.
+void nameNode(const json& document, const std::string& place, bool replaces, json& node) {
+	const json* old = replaces ? valueAt(document, place) : nullptr;
+	if(old && old->is_object() && old->contains("id") && !node.contains("id")) {
+		json kept = {{"id", (*old)["id"]}}; // first, as NodeNamer writes ids
+		for(auto& [key, member] : node.items()) kept[key] = std::move(member);
+		node = std::move(kept);
+	}
+	NodeNamer(document).name(node, place, parentIdOf(document, place));
+}
+
 } // namespace
 
 void Rules::nameNodes(const json& document, std::string_view pointer, bool replaces, json& value) const {
 	const std::string place(pointer);
-	constexpr std::string_view children = "/children";
-	if(isNodePlace(place)) {
-		if(!value.is_object()) return;
-		const json* old = replaces ? valueAt(document, place) : nullptr;
-		if(old && old->is_object() && old->contains("id") && !value.contains("id")) {
-			json kept = {{"id", (*old)["id"]}}; // first, as NodeNamer writes ids
-			for(auto& [key, member] : value.items()) kept[key] = std::move(member);
-			value = std::move(kept);
-		}
-		NodeNamer(document).name(value, place, parentIdOf(document, place));
-	} else if(place.ends_with(children) && isNodePlace(place.substr(0, place.size() - children.size())) &&
-	          value.is_array()) {
-		NodeNamer namer(document);
-		const json* parent = valueAt(document, place.substr(0, place.size() - children.size()));
-		const std::string id = parent && parent->is_object() ? parent->value("id", std::string()) : std::string();
+	const std::vector<std::string> keys = keysOfPointer(place);
+	if(isNodePlace(place) && value.is_object()) {
+		nameNode(document, place, replaces, value);
+	} else if(isChildrenPlace(place) && value.is_array()) {
+		NodeNamer namer(document); // a whole list of children
+		const std::string id = parentIdOf(document, place + "/0");
 		for(std::size_t i = 0; i < value.size(); ++i) namer.name(value[i], place + "/" + std::to_string(i), id);
 	} else if((place == "/screens" || place == "/templates") && value.is_object()) {
-		NodeNamer namer(document);
-		for(auto& [name, node] : value.items()) namer.name(node, place + "/" + name, name);
-	} else if(const std::vector<std::string> keys = keysOfPointer(place);
-	          keys.size() == 2 && keys[0] == "components" && value.is_object() && value.contains("node")) {
+		NodeNamer namer(document); // a whole section of nodes
+		for(auto& [name, node] : value.items()) namer.name(node, std::format("{}/{}", place, name), name);
+	} else if(keys.size() == 2 && keys[0] == "components" && value.is_object() && value.contains("node")) {
 		NodeNamer(document).name(value["node"], place + "/node", keys[1]);
 	}
 }

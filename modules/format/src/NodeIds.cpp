@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <map>
+#include <optional>
 
 namespace affresco::format {
 
@@ -52,6 +53,23 @@ std::string escaped(std::string_view key) {
 	return text;
 }
 
+/// @brief Tells whether a character is a small ASCII letter.
+/// @param c The character.
+/// @return true if it is.
+bool small(char c) { return c >= 'a' && c <= 'z'; }
+
+/// @brief Tells whether a character is a capital ASCII letter.
+/// @param c The character.
+/// @return true if it is.
+bool capital(char c) { return c >= 'A' && c <= 'Z'; }
+
+/// @brief Tells whether a word says something about a node: not empty, not too long, not a noise word.
+/// @param word The word, lower case.
+/// @return true if it does.
+bool telling(const std::string& word) {
+	return !word.empty() && word.size() <= maxWordLength && std::ranges::find(noiseWords, word) == noiseWords.end();
+}
+
 /// @brief Splits text into lower-case ASCII words: at anything that isn't a letter or a digit, and where a capital
 /// follows a small letter ("topBar" is "top", "bar").
 /// @param text The text.
@@ -59,24 +77,36 @@ std::string escaped(std::string_view key) {
 std::vector<std::string> wordsOf(std::string_view text) {
 	std::vector<std::string> words;
 	std::string word;
-	auto finish = [&] {
-		const bool noise = std::ranges::find(noiseWords, word) != noiseWords.end();
-		if(!word.empty() && !noise && word.size() <= maxWordLength && words.size() < maxWords) words.push_back(word);
+	const auto finish = [&] {
+		if(telling(word) && words.size() < maxWords) words.push_back(word);
 		word.clear();
 	};
 	for(std::size_t i = 0; i < text.size(); ++i) {
-		const auto c = static_cast<unsigned char>(text[i]);
-		const bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
-		if(!letter) {
+		const char c = text[i];
+		if(!small(c) && !capital(c) && (c < '0' || c > '9')) {
 			finish();
-			continue;
+		} else {
+			if(capital(c) && i > 0 && small(text[i - 1])) finish(); // "topBar": a new word
+			word += capital(c) ? static_cast<char>(c - 'A' + 'a') : c;
 		}
-		const bool capital = c >= 'A' && c <= 'Z';
-		if(capital && i > 0 && text[i - 1] >= 'a' && text[i - 1] <= 'z') finish();
-		word += static_cast<char>(capital ? c - 'A' + 'a' : c);
 	}
 	finish();
 	return words;
+}
+
+/// @brief The node a pointer to a child is in: "/root/children/2" is in "/root".
+/// @param pointer The pointer.
+/// @return The parent's pointer; an empty view without data if the key after "children" isn't an index or '-';
+/// std::nullopt if the pointer doesn't end with "/children/<key>".
+std::optional<std::string_view> parentNodeOf(std::string_view pointer) {
+	constexpr std::string_view children = "/children/";
+	const std::size_t last = pointer.rfind('/');
+	if(last == std::string_view::npos || last + 1 < children.size()) return std::nullopt;
+	const std::size_t start = last + 1 - children.size();
+	if(pointer.substr(start, children.size()) != children) return std::nullopt;
+	const std::string_view index = pointer.substr(last + 1);
+	const bool number = !index.empty() && std::ranges::all_of(index, [](char c) { return c >= '0' && c <= '9'; });
+	return number || index == "-" ? pointer.substr(0, start) : std::string_view();
 }
 
 /// @brief Joins words with '-'.
@@ -163,18 +193,12 @@ std::string placeOf(std::string_view pointer) {
 
 bool isNodePlace(std::string_view pointer) {
 	// Peel "/children/<index>" off the end, then the rest must be where a tree starts
-	while(true) {
-		const std::size_t last = pointer.rfind('/');
-		if(last == std::string_view::npos) return false;
-		const std::size_t before = pointer.rfind('/', last == 0 ? 0 : last - 1);
-		if(last == 0 || before == std::string_view::npos || pointer.substr(before, last - before) != "/children") break;
-		const std::string_view index = pointer.substr(last + 1);
-		if(index.empty() || (index != "-" && !std::ranges::all_of(index, [](char c) { return c >= '0' && c <= '9'; })))
-			return false;
-		pointer = pointer.substr(0, before);
+	for(std::optional<std::string_view> parent; (parent = parentNodeOf(pointer));) {
+		if(!parent->data()) return false; // "/children/<not an index>"
+		pointer = *parent;
 	}
 	if(pointer == "/root") return true;
-	std::size_t slashes = static_cast<std::size_t>(std::ranges::count(pointer, '/'));
+	const auto slashes = static_cast<std::size_t>(std::ranges::count(pointer, '/'));
 	if(slashes == 2 && (pointer.starts_with("/screens/") || pointer.starts_with("/templates/"))) return true;
 	return slashes == 3 && pointer.starts_with("/components/") && pointer.ends_with("/node");
 }

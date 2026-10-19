@@ -56,37 +56,55 @@ void applyPlugins(Screen& screen, const std::vector<std::string>& plugins) {
 	}
 }
 
+/// @brief What `run` is told.
+struct RunOptions {
+	std::filesystem::path file;                                         ///< The screen.
+	std::filesystem::path socketDirectory = Screen::defaultSocketDirectory(); ///< Where peers connect.
+	std::filesystem::path data = Screen::defaultDataDirectory();        ///< The history and "persist" state.
+	std::optional<Mode> mode;                                           ///< For this run only, if given.
+	std::vector<std::string> plugins;                                   ///< Change sets to apply once.
+};
+
+/// @brief Reads `run`'s command line. Options repeat (--plugin), so Arguments doesn't read it.
+/// @param args The arguments.
+/// @return The options.
+/// @throws UsageError If they are wrong.
+RunOptions runOptions(std::span<const std::string_view> args) {
+	RunOptions options;
+	for(std::size_t i = 0; i < args.size(); ++i) {
+		const std::string_view arg = args[i];
+		if(!arg.starts_with('-')) {
+			if(!options.file.empty()) throw UsageError("unexpected " + std::string(arg));
+			options.file = arg;
+			continue;
+		}
+		if(i + 1 >= args.size()) throw UsageError(std::string(arg) + " needs a value, or isn't an option of run");
+		const std::string_view value = args[++i];
+		if(arg == "--socket") options.socketDirectory = value;
+		else if(arg == "--data") options.data = value;
+		else if(arg == "--mode") options.mode = modeOf(std::string(value));
+		else if(arg == "--plugin") options.plugins.emplace_back(value);
+		else throw UsageError("unknown option " + std::string(arg));
+	}
+	if(options.file.empty()) throw UsageError("expected one screen file");
+	return options;
+}
+
 } // namespace
 
 Exit runScreen(std::span<const std::string_view> args) {
-	// Options repeat (--plugin), so they are read here, not by Arguments
-	std::filesystem::path file, socketDirectory = Screen::defaultSocketDirectory(), data = Screen::defaultDataDirectory();
-	std::optional<Mode> mode;
-	std::vector<std::string> plugins;
-	for(std::size_t i = 0; i < args.size(); ++i) {
-		const std::string_view arg = args[i];
-		const bool valued = arg == "--socket" || arg == "--data" || arg == "--mode" || arg == "--plugin";
-		if(valued && i + 1 >= args.size()) throw UsageError(std::string(arg) + " needs a value");
-		if(arg == "--socket") socketDirectory = args[++i];
-		else if(arg == "--data") data = args[++i];
-		else if(arg == "--mode") mode = modeOf(std::string(args[++i]));
-		else if(arg == "--plugin") plugins.emplace_back(args[++i]);
-		else if(arg.starts_with('-') || !file.empty()) throw UsageError("unexpected " + std::string(arg));
-		else file = arg;
-	}
-	if(file.empty()) throw UsageError("expected one screen file");
-
+	const RunOptions options = runOptions(args);
 	Application app;
-	Screen screen = Screen::fromFile(file, data);
+	Screen screen = Screen::fromFile(options.file, options.data);
 	registerApplicationTypes(screen);
-	if(mode) screen.setModeForThisRun(*mode);
+	if(options.mode) screen.setModeForThisRun(*options.mode);
 	screen.createWindow(app);
-	applyPlugins(screen, plugins);
-	createSocketDir(socketDirectory);
-	screen.listen(app, socketDirectory / "studio.sock", "studio");
-	screen.listen(app, socketDirectory / "agent.sock", "agent");
-	std::cerr << "affrescoui run: listening in " << socketDirectory.string() << " (studio.sock, agent.sock), mode "
-	          << toString(screen.versions().mode()) << '\n';
+	applyPlugins(screen, options.plugins);
+	createSocketDir(options.socketDirectory);
+	screen.listen(app, options.socketDirectory / "studio.sock", "studio");
+	screen.listen(app, options.socketDirectory / "agent.sock", "agent");
+	std::cerr << "affrescoui run: listening in " << options.socketDirectory.string()
+	          << " (studio.sock, agent.sock), mode " << toString(screen.versions().mode()) << '\n';
 	return app.run() == 0 ? Exit::Success : Exit::Failure;
 }
 

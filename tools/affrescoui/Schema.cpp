@@ -92,6 +92,39 @@ bool countInRange(const json& schema, std::size_t count, std::pair<const char*, 
 	return true;
 }
 
+/// @brief Checks a value against "type".
+/// @param schema The subschema.
+/// @param value The value.
+/// @param place Its place.
+/// @param problems Receives what doesn't match (may be nullptr).
+/// @return true if it is of a type the subschema allows, or it names none.
+bool matchesType(const json& schema, const json& value, const std::string& place,
+                 std::vector<SchemaProblem>* problems) {
+	const auto type = schema.find("type");
+	if(type == schema.end()) return true;
+	const json types = type->is_array() ? *type : json::array({*type});
+	if(std::ranges::any_of(types, [&](const json& t) { return t.is_string() && isType(value, t.get<std::string>()); }))
+		return true;
+	const std::string expected = types.size() == 1 ? "a value of type " : "one of the types ";
+	return report(problems, place, "expected " + expected + type->dump() + ", got " + shortly(value));
+}
+
+/// @brief Checks a value against "enum" and "const".
+/// @param schema The subschema.
+/// @param value The value.
+/// @param place Its place.
+/// @param problems Receives what doesn't match (may be nullptr).
+/// @return true if it is a value the subschema allows.
+bool matchesValue(const json& schema, const json& value, const std::string& place,
+                  std::vector<SchemaProblem>* problems) {
+	bool ok = true;
+	if(const auto allowed = schema.find("enum"); allowed != schema.end() && std::ranges::find(*allowed, value) == allowed->end())
+		ok = report(problems, place, "expected one of " + shortly(*allowed) + ", got " + shortly(value));
+	if(const auto constant = schema.find("const"); constant != schema.end() && *constant != value)
+		ok = report(problems, place, "expected " + shortly(*constant) + ", got " + shortly(value));
+	return ok;
+}
+
 } // namespace
 
 Schema::Schema(json schema) : schema_(std::move(schema)) {}
@@ -132,15 +165,8 @@ bool Schema::matches(const json& schema, const json& value, const std::string& p
 		ok = matches(resolve(reference->get<std::string>()), value, place, problems, evaluated);
 		--depth_;
 	}
-	if(const auto type = schema.find("type"); type != schema.end()) {
-		const json types = type->is_array() ? *type : json::array({*type});
-		if(std::ranges::none_of(types, [&](const json& t) { return isType(value, t.get<std::string>()); }))
-			return report(problems, place, "expected " + (types.size() == 1 ? "a value of type " : std::string("one of the types ")) + type->dump() + ", got " + shortly(value));
-	}
-	if(const auto allowed = schema.find("enum"); allowed != schema.end() && std::ranges::find(*allowed, value) == allowed->end())
-		ok = report(problems, place, "expected one of " + shortly(*allowed) + ", got " + shortly(value));
-	if(const auto constant = schema.find("const"); constant != schema.end() && *constant != value)
-		ok = report(problems, place, "expected " + shortly(*constant) + ", got " + shortly(value));
+	if(!matchesType(schema, value, place, problems)) return false; // the rest would only repeat it
+	ok = matchesValue(schema, value, place, problems) && ok;
 	ok = matchesKind(schema, value, place, problems, evaluated) && ok;
 	return matchesCombined(schema, value, place, problems, evaluated) && ok;
 }
@@ -149,24 +175,28 @@ bool Schema::matchesKind(const json& schema, const json& value, const std::strin
                          std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated) {
 	bool ok = true;
 	if(value.is_number()) ok = inRange(schema, value.get<double>(), place, problems);
-	if(value.is_string()) {
-		const auto& text = value.get_ref<const std::string&>();
-		ok = countInRange(schema, text.size(), {"minLength", "maxLength"}, "characters", place, problems) && ok;
-		if(const auto pattern = schema.find("pattern"); pattern != schema.end()) {
-			if(text.size() > maxPatternInput) ok = report(problems, place, "too long to check against its pattern");
-			else if(!std::regex_search(text, compiled(pattern->get<std::string>())))
-				ok = report(problems, place, "expected text matching " + pattern->dump() + ", got " + shortly(value));
-		}
-	}
+	if(value.is_string()) ok = matchesText(schema, value, place, problems);
 	if(value.is_array()) {
-		ok = countInRange(schema, value.size(), {"minItems", "maxItems"}, "items", place, problems) && ok;
+		ok = countInRange(schema, value.size(), {"minItems", "maxItems"}, "items", place, problems);
 		if(const auto items = schema.find("items"); items != schema.end())
 			for(std::size_t i = 0; i < value.size(); ++i) {
 				std::set<std::string> inner;
 				ok = matches(*items, value[i], place + "[" + std::to_string(i) + "]", problems, inner) && ok;
 			}
 	}
-	if(value.is_object()) ok = matchesMembers(schema, value, place, problems, evaluated) && ok;
+	if(value.is_object()) ok = matchesMembers(schema, value, place, problems, evaluated);
+	return ok;
+}
+
+bool Schema::matchesText(const json& schema, const json& value, const std::string& place,
+                         std::vector<SchemaProblem>* problems) {
+	const auto& text = value.get_ref<const std::string&>();
+	bool ok = countInRange(schema, text.size(), {"minLength", "maxLength"}, "characters", place, problems);
+	const auto pattern = schema.find("pattern");
+	if(pattern == schema.end()) return ok;
+	if(text.size() > maxPatternInput) return report(problems, place, "too long to check against its pattern");
+	if(!std::regex_search(text, compiled(pattern->get<std::string>())))
+		ok = report(problems, place, "expected text matching " + pattern->dump() + ", got " + shortly(value));
 	return ok;
 }
 
@@ -176,82 +206,96 @@ bool Schema::matchesMembers(const json& schema, const json& value, const std::st
 	for(const json& name : schema.value("required", json::array()))
 		if(name.is_string() && !value.contains(name.get<std::string>()))
 			ok = report(problems, place, "missing \"" + name.get<std::string>() + "\"");
+	for(const auto& [key, member] : value.items())
+		ok = matchesMember(schema, key, member, memberPlace(place, key), problems, evaluated) && ok;
+	return ok;
+}
 
-	const json none = json::object();
-	const json& properties = schema.contains("properties") ? schema["properties"] : none;
-	const json& patterns = schema.contains("patternProperties") ? schema["patternProperties"] : none;
-	for(const auto& [key, member] : value.items()) {
-		const std::string at = memberPlace(place, key);
-		std::set<std::string> inner;
-		bool known = false;
-		if(const auto it = properties.find(key); it != properties.end()) {
-			known = true;
-			ok = matches(*it, member, at, problems, inner) && ok;
-		}
-		for(const auto& [pattern, subschema] : patterns.items())
+bool Schema::matchesMember(const json& schema, const std::string& key, const json& member, const std::string& place,
+                           std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated) {
+	bool ok = true, known = false;
+	std::set<std::string> inner; // a member's own members: nothing to do with this object's
+	if(const auto properties = schema.find("properties"); properties != schema.end() && properties->contains(key)) {
+		known = true;
+		ok = matches((*properties)[key], member, place, problems, inner);
+	}
+	if(const auto patterns = schema.find("patternProperties"); patterns != schema.end())
+		for(const auto& [pattern, subschema] : patterns->items())
 			if(std::regex_search(key, compiled(pattern))) {
 				known = true;
-				ok = matches(subschema, member, at, problems, inner) && ok;
+				ok = matches(subschema, member, place, problems, inner) && ok;
 			}
-		if(const auto names = schema.find("propertyNames"); names != schema.end())
-			ok = matches(*names, json(key), at, problems, inner) && ok;
-		if(known) evaluated.insert(key);
-		else if(const auto additional = schema.find("additionalProperties"); additional != schema.end()) {
-			evaluated.insert(key);
-			if(additional->is_boolean() && !additional->get<bool>()) ok = report(problems, at, "unknown property");
-			else ok = matches(*additional, member, at, problems, inner) && ok;
-		}
-	}
-	return ok;
+	if(const auto names = schema.find("propertyNames"); names != schema.end())
+		ok = matches(*names, json(key), place, problems, inner) && ok;
+
+	const auto additional = schema.find("additionalProperties");
+	if(known || additional != schema.end()) evaluated.insert(key);
+	if(known || additional == schema.end()) return ok;
+	if(*additional == false) return report(problems, place, "unknown property");
+	return matches(*additional, member, place, problems, inner) && ok;
 }
 
 bool Schema::matchesCombined(const json& schema, const json& value, const std::string& place,
                              std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated) {
 	bool ok = true;
 	for(const json& part : schema.value("allOf", json::array())) ok = matches(part, value, place, problems, evaluated) && ok;
+	if(const auto options = schema.find("anyOf"); options != schema.end())
+		ok = matchesOptions(*options, false, value, place, problems, evaluated) && ok;
+	if(const auto options = schema.find("oneOf"); options != schema.end())
+		ok = matchesOptions(*options, true, value, place, problems, evaluated) && ok;
+	ok = matchesConditions(schema, value, place, problems, evaluated) && ok;
+	return matchesUnevaluated(schema, value, place, problems, evaluated) && ok;
+}
 
-	for(const char* key : {"anyOf", "oneOf"}) {
-		const auto options = schema.find(key);
-		if(options == schema.end()) continue;
-		std::size_t matched = 0;
-		std::vector<SchemaProblem> closest; // the problems of the option that came nearest, to report
-		for(const json& option : *options) {
-			std::vector<SchemaProblem> found;
-			std::set<std::string> inner;
-			if(matches(option, value, place, &found, inner)) {
-				++matched;
-				evaluated.insert(inner.begin(), inner.end());
-			} else if(closest.empty() || found.size() < closest.size()) {
-				closest = std::move(found);
-			}
-		}
-		if(matched == 0) {
-			if(problems) problems->insert(problems->end(), closest.begin(), closest.end());
-			ok = false;
-		} else if(key == std::string_view("oneOf") && matched > 1) {
-			ok = report(problems, place, "matches more than one of the forms \"oneOf\" allows");
+bool Schema::matchesOptions(const json& options, bool onlyOne, const json& value, const std::string& place,
+                            std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated) {
+	std::size_t matched = 0;
+	std::vector<SchemaProblem> closest; // the problems of the option that came nearest, to report
+	for(const json& option : options) {
+		std::vector<SchemaProblem> found;
+		std::set<std::string> inner;
+		if(matches(option, value, place, &found, inner)) {
+			++matched;
+			evaluated.insert(inner.begin(), inner.end());
+		} else if(closest.empty() || found.size() < closest.size()) {
+			closest = std::move(found);
 		}
 	}
+	if(matched == 0) {
+		if(problems) problems->insert(problems->end(), closest.begin(), closest.end());
+		return false;
+	}
+	return !onlyOne || matched == 1 || report(problems, place, "matches more than one of the forms \"oneOf\" allows");
+}
 
+bool Schema::matchesConditions(const json& schema, const json& value, const std::string& place,
+                               std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated) {
+	bool ok = true;
 	if(const auto negated = schema.find("not"); negated != schema.end()) {
 		std::set<std::string> inner;
 		if(matches(*negated, value, place, nullptr, inner)) ok = report(problems, place, "not allowed here: " + shortly(value));
 	}
-	if(const auto condition = schema.find("if"); condition != schema.end()) {
-		std::set<std::string> inner;
-		const bool holds = matches(*condition, value, place, nullptr, inner);
-		if(holds) evaluated.insert(inner.begin(), inner.end());
-		if(const auto branch = schema.find(holds ? "then" : "else"); branch != schema.end())
-			ok = matches(*branch, value, place, problems, evaluated) && ok;
-	}
+	const auto condition = schema.find("if");
+	if(condition == schema.end()) return ok;
+	std::set<std::string> inner;
+	const bool holds = matches(*condition, value, place, nullptr, inner);
+	if(holds) evaluated.insert(inner.begin(), inner.end());
+	if(const auto branch = schema.find(holds ? "then" : "else"); branch != schema.end())
+		ok = matches(*branch, value, place, problems, evaluated) && ok;
+	return ok;
+}
 
-	if(const auto rest = schema.find("unevaluatedProperties"); rest != schema.end() && value.is_object())
-		for(const auto& [key, member] : value.items()) {
-			if(evaluated.contains(key)) continue;
-			std::set<std::string> inner;
-			if(*rest == false) ok = report(problems, memberPlace(place, key), "unknown property");
-			else ok = matches(*rest, member, memberPlace(place, key), problems, inner) && ok;
-		}
+bool Schema::matchesUnevaluated(const json& schema, const json& value, const std::string& place,
+                                std::vector<SchemaProblem>* problems, const std::set<std::string>& evaluated) {
+	const auto rest = schema.find("unevaluatedProperties");
+	if(rest == schema.end() || !value.is_object()) return true;
+	bool ok = true;
+	for(const auto& [key, member] : value.items()) {
+		if(evaluated.contains(key)) continue;
+		std::set<std::string> inner;
+		if(*rest == false) ok = report(problems, memberPlace(place, key), "unknown property");
+		else ok = matches(*rest, member, memberPlace(place, key), problems, inner) && ok;
+	}
 	return ok;
 }
 

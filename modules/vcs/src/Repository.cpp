@@ -239,7 +239,7 @@ std::string Repository::pathsHint(const json& view, const json& paths) const {
 		const json& written = path[0];
 		const json& resolved = path[1];
 		if(!written.is_string() || !resolved.is_string()) continue;
-		if(std::string hint = hintFor(view, written.get<std::string>()); !hint.empty())
+		if(const std::string hint = hintFor(view, written.get<std::string>()); !hint.empty())
 			return " at " + resolved.get<std::string>() + hint;
 	}
 	return "";
@@ -264,6 +264,34 @@ void Repository::checkParent(const json& revision) const {
 		                            ": read the screen again");
 }
 
+// "set" becomes "replace" or "add"; nodes added without an id get one, in the commit too, so history and diffs
+// always show it
+json Repository::normalise(json& op, const json& written, const json& view) const {
+	std::string kind = op.value("op", "");
+	if(kind == "set") {
+		kind = detail::locate(view, op["path"].get<std::string>()) ? "replace" : "add";
+		op["op"] = kind;
+	}
+	if((kind == "add" || kind == "replace") && op.contains("value") && op["path"].is_string())
+		rules_.nameNodes(view, op["path"].get<std::string>(), kind == "replace", op["value"]);
+
+	json stored = written;
+	if(stored.value("op", "") == "set") stored["op"] = kind;
+	if(op.contains("value")) stored["value"] = op["value"];
+	return stored;
+}
+
+void Repository::apply(json& view, json op, const json& written, const std::string& where) const {
+	// The paths as written ("#title/colr") for the hint, and resolved, to say where it failed
+	const json paths = {{written.value("from", json()), op.value("from", json())},
+	                    {written.value("path", json()), op.value("path", json())}};
+	try {
+		detail::applyOperation(view, std::move(op), where);
+	} catch(const json::exception& error) {
+		fail(where, detail::reasonOf(error) + pathsHint(view, paths));
+	}
+}
+
 // One operation at a time, on the document as rules see it ("/state" is the live state), so "#id" paths find nodes
 // that earlier operations added or moved
 Repository::Prepared Repository::prepare(const json& patch, const json& document, const json& state) const {
@@ -275,7 +303,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	for(std::size_t i = 0; i < patch.size(); ++i) {
 		json op = expect::object(patch[i], "revision.patch[" + std::to_string(i) + "]");
 		const std::string written = op.contains("path") && op["path"].is_string() ? op["path"].get<std::string>() : "";
-		std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
+		const std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
 		const std::string where = "revision.patch[" + std::to_string(i) + "] (" + kind + " " + written + ")";
 		for(const char* key : {"path", "from"}) {
 			if(!op.contains(key)) continue;
@@ -286,27 +314,8 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 					result.touches.push_back(std::move(touched));
 		}
 
-		// "set": replace what is there, or add it
-		if(kind == "set") {
-			kind = detail::locate(after, op["path"].get<std::string>()) ? "replace" : "add";
-			op["op"] = kind;
-		}
-		// Nodes added without an id get one, in the commit too: history and diffs always show it
-		if((kind == "add" || kind == "replace") && op.contains("value") && op["path"].is_string())
-			rules_.nameNodes(after, op["path"].get<std::string>(), kind == "replace", op["value"]);
-		json stored = patch[i];
-		if(stored.value("op", "") == "set") stored["op"] = kind;
-		if(op.contains("value")) stored["value"] = op["value"];
-		result.patch.push_back(std::move(stored));
-
-		// The paths as written ("#title/colr") for the hint, and resolved, to say where it failed
-		const json paths = {{patch[i].value("from", json()), op.value("from", json())},
-		                    {patch[i].value("path", json()), op.value("path", json())}};
-		try {
-			detail::applyOperation(after, std::move(op), where);
-		} catch(const json::exception& error) {
-			fail(where, detail::reasonOf(error) + pathsHint(after, paths));
-		}
+		result.patch.push_back(normalise(op, patch[i], after));
+		apply(after, std::move(op), patch[i], where);
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
 		fail("revision.patch", "the state must stay an object");

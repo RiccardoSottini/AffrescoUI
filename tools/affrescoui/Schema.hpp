@@ -59,6 +59,15 @@ private:
 	bool matchesKind(const json& schema, const json& value, const std::string& place,
 	                 std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated);
 
+	/// @brief Checks a string against minLength, maxLength and pattern.
+	/// @param schema The subschema.
+	/// @param value The string.
+	/// @param place Its place.
+	/// @param problems Receives what doesn't match (may be nullptr).
+	/// @return true if it matches.
+	bool matchesText(const json& schema, const json& value, const std::string& place,
+	                 std::vector<SchemaProblem>* problems);
+
 	/// @brief Checks an object's members.
 	/// @param schema The subschema.
 	/// @param value The object.
@@ -69,7 +78,18 @@ private:
 	bool matchesMembers(const json& schema, const json& value, const std::string& place,
 	                    std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated);
 
-	/// @brief Checks the combining keywords: allOf, anyOf, oneOf, not, if/then/else.
+	/// @brief Checks one member against properties, patternProperties, propertyNames and additionalProperties.
+	/// @param schema The object's subschema.
+	/// @param key The member's key.
+	/// @param member Its value.
+	/// @param place Its place.
+	/// @param problems Receives what doesn't match (may be nullptr).
+	/// @param evaluated Receives the key if a keyword evaluated it.
+	/// @return true if it matches.
+	bool matchesMember(const json& schema, const std::string& key, const json& member, const std::string& place,
+	                   std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated);
+
+	/// @brief Checks the combining keywords: allOf, anyOf, oneOf, not, if/then/else, then unevaluatedProperties.
 	/// @param schema The subschema.
 	/// @param value The value.
 	/// @param place Its place.
@@ -78,6 +98,37 @@ private:
 	/// @return true if it matches.
 	bool matchesCombined(const json& schema, const json& value, const std::string& place,
 	                     std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated);
+
+	/// @brief Checks anyOf or oneOf. When no option matches, the problems of the nearest are reported.
+	/// @param options The subschemas.
+	/// @param onlyOne true for oneOf: exactly one must match.
+	/// @param value The value.
+	/// @param place Its place.
+	/// @param problems Receives what doesn't match (may be nullptr).
+	/// @param evaluated Receives the members the options that matched evaluated.
+	/// @return true if it matches.
+	bool matchesOptions(const json& options, bool onlyOne, const json& value, const std::string& place,
+	                    std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated);
+
+	/// @brief Checks not, and if with then or else.
+	/// @param schema The subschema.
+	/// @param value The value.
+	/// @param place Its place.
+	/// @param problems Receives what doesn't match (may be nullptr).
+	/// @param evaluated Receives the members a condition that held and its branch evaluated.
+	/// @return true if it matches.
+	bool matchesConditions(const json& schema, const json& value, const std::string& place,
+	                       std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated);
+
+	/// @brief Checks the members no other keyword evaluated against unevaluatedProperties.
+	/// @param schema The subschema.
+	/// @param value The value.
+	/// @param place Its place.
+	/// @param problems Receives what doesn't match (may be nullptr).
+	/// @param evaluated The members evaluated so far.
+	/// @return true if they match.
+	bool matchesUnevaluated(const json& schema, const json& value, const std::string& place,
+	                        std::vector<SchemaProblem>* problems, const std::set<std::string>& evaluated);
 
 	/// @brief Finds what a "$ref" points to.
 	/// @param reference "#/$defs/...".

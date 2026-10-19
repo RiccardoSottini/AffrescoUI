@@ -151,16 +151,24 @@ public:
 	/// @param column The column it starts at.
 	/// @param after What follows it on its last line (a ',' or nothing), so that it fits too.
 	void write(const TextValue& value, std::size_t indent, std::size_t column, std::size_t after) {
-		if(value.kind == TextValue::Kind::Scalar || value.members.empty()) {
-			out_ += value.kind == TextValue::Kind::Object && value.members.empty() ? "{}"
-			        : value.kind == TextValue::Kind::Array && value.members.empty() ? "[]"
-			                                                                        : value.text;
-			return;
-		}
-		if(const std::string flat = inlineText(value); !flat.empty() && column + flat.size() + after <= lineWidth) {
+		if(const std::string flat = inlineText(value);
+		   value.kind == TextValue::Kind::Scalar || value.members.empty() ||
+		   (!flat.empty() && column + flat.size() + after <= lineWidth)) {
 			out_ += flat;
 			return;
 		}
+		writeExpanded(value, indent);
+	}
+
+	/// @brief The text written.
+	/// @return It.
+	[[nodiscard]] std::string& text() { return out_; }
+
+private:
+	/// @brief Writes an object or an array over several lines, one member per line.
+	/// @param value The value.
+	/// @param indent How many tabs its first line starts with.
+	void writeExpanded(const TextValue& value, std::size_t indent) {
 		const bool object = value.kind == TextValue::Kind::Object;
 		out_ += object ? "{\n" : "[\n";
 		for(std::size_t i = 0; i < value.members.size(); ++i) {
@@ -179,11 +187,6 @@ public:
 		out_ += std::string(indent, '\t') + (object ? "}" : "]");
 	}
 
-	/// @brief The text written.
-	/// @return It.
-	[[nodiscard]] std::string& text() { return out_; }
-
-private:
 	/// @brief A value on one line: `{ "a": 1, "b": [2, 3] }`.
 	/// @param value The value.
 	/// @return The text, or "" if it can't be on one line (it holds an expanded object or an empty line).

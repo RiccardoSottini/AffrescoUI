@@ -143,7 +143,7 @@ TEST_CASE("ids: a node that replaces another keeps its id; an id already taken i
 TEST_CASE("ids: a rejected revision names the operation and the path, with a hint") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, permissionsScreen());
-	auto error = [&](const json& edits) {
+	const auto error = [&](const json& edits) {
 		json revision = edits;
 		revision["author"] = "studio";
 		const affresco::RevisionResult result = repository.submit(revision);

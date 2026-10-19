@@ -53,6 +53,31 @@ void printHelp(std::ostream& out) {
 	       "more: tools/affrescoui/README.md\n";
 }
 
+/// @brief Runs a command, turning what it throws into a message and an exit code.
+/// @param command The command.
+/// @param args What follows its name.
+/// @return How it ended.
+affresco::cli::Exit run(const affresco::cli::Command& command, std::span<const std::string_view> args) {
+	using affresco::cli::Exit;
+	if(!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+		std::cout << "usage: affrescoui " << command.name << ' ' << command.usage << '\n' << command.summary << '\n';
+		return Exit::Success;
+	}
+	try {
+		return command.run(args);
+	} catch(const affresco::cli::UsageError& error) {
+		std::cerr << "affrescoui " << command.name << ": " << error.what() << "\nusage: affrescoui " << command.name
+		          << ' ' << command.usage << '\n';
+		return Exit::Usage;
+	} catch(const affresco::cli::FileProblem& error) {
+		std::cerr << "affrescoui " << command.name << ": " << error.what() << '\n';
+		return Exit::Problems;
+	} catch(const std::exception& error) {
+		std::cerr << "affrescoui " << command.name << ": " << error.what() << '\n';
+		return Exit::Failure;
+	}
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -67,27 +92,8 @@ int main(int argc, char** argv) {
 		return static_cast<int>(Exit::Success);
 	}
 
-	for(const affresco::cli::Command& command : affresco::cli::commands()) {
-		if(command.name != args[0]) continue;
-		const std::span<const std::string_view> rest = std::span(args).subspan(1);
-		if(!rest.empty() && (rest[0] == "--help" || rest[0] == "-h")) {
-			std::cout << "usage: affrescoui " << command.name << ' ' << command.usage << '\n' << command.summary << '\n';
-			return static_cast<int>(Exit::Success);
-		}
-		try {
-			return static_cast<int>(command.run(rest));
-		} catch(const affresco::cli::UsageError& error) {
-			std::cerr << "affrescoui " << command.name << ": " << error.what() << "\nusage: affrescoui "
-			          << command.name << ' ' << command.usage << '\n';
-			return static_cast<int>(Exit::Usage);
-		} catch(const affresco::cli::FileProblem& error) {
-			std::cerr << "affrescoui " << command.name << ": " << error.what() << '\n';
-			return static_cast<int>(Exit::Problems);
-		} catch(const std::exception& error) {
-			std::cerr << "affrescoui " << command.name << ": " << error.what() << '\n';
-			return static_cast<int>(Exit::Failure);
-		}
-	}
+	for(const affresco::cli::Command& command : affresco::cli::commands())
+		if(command.name == args[0]) return static_cast<int>(run(command, std::span(args).subspan(1)));
 	std::cerr << "affrescoui: unknown command '" << args[0] << "'\n\n";
 	printHelp(std::cerr);
 	return static_cast<int>(Exit::Usage);
