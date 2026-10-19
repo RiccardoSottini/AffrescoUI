@@ -48,6 +48,18 @@ file or change set you wouldn't run as a program. The state file is the exceptio
 persisted parts of the live state, which peers can change, and it is read back at the next start without those
 limits. Keep the paths a screen persists out of reach of agents you don't trust.
 
+The history of a screen opened from a file is kept next to the state file, in `<file name>.history/` (the data
+folder: `~/.affrescoui`, `AFFRESCOUI_DATA_DIR` or `--data`; see VERSION_CONTROL.md, "History on disk"). It is read
+back at the next start with the limits below, and every file in it must match its SHA-256, so damage is never
+loaded. Hashes don't prove that a review made it, so a history is also checked as if written by hand:
+- `main`'s head must pass the same check as a revision against the screen file (no new channels, `persist`,
+  permissions or control steps);
+- grants must be the narrow rules that **Always allow** gives;
+- what each open proposal touches, and what **Always allow** would grant for it, are worked out again from its
+  commits.
+
+The folder is private to its owner, and a lock keeps a second host from writing it.
+
 ### Who a peer is
 A **peer** is a program connected to the running screen over a local socket. The host decides who each peer is:
 - The host listens on one socket per role. The example host listens on `studio.sock` and `agent.sock` in its socket
@@ -179,6 +191,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | An approval's head commit | at least 7 characters |
 | Undo steps kept by an `editor` | 500 |
 | A font's glyph atlas (a larger font size is refused) | 4,096 × 4,096 pixels |
+| A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
 
 ## Known gaps
 
@@ -213,7 +226,11 @@ These are not protected today. They are stated plainly so that you can decide wh
   reads that file and parses it as a font; the error a peer gets back says whether it could be read. The font parser
   (stb_truetype) is not hardened against malformed files, and every new file and size bakes and keeps another font
   in memory.
-- **The history isn't saved.** Commits, proposals and grants live in memory and are lost when the host quits, so the
-  audit trail doesn't survive a restart. Every commit also keeps a full copy of the document, so memory grows with
-  the history.
+- **A history on disk is only as safe as its folder.** Anyone who can write the data folder can write a history
+  whose hashes are valid. The checks above hold, but deny rules aren't replayed for each commit on `main`, so such a
+  history can contain changes the deny rules would have refused, as long as its head passes the revision check. This
+  is the same trust as the state file's. A screen loaded from a string (`fromString`) keeps its history in memory
+  only, and it is lost when the host quits.
+- **Every commit keeps a full copy of the document in memory,** so memory grows with the history. On disk, each
+  distinct document is stored once.
 - **Socket channels exist only on POSIX systems.** On Windows the live protocol isn't available yet.
