@@ -186,8 +186,9 @@ kanban.history/
   the history is saved: `main`'s and the open proposals'. Once no ref reaches them (a rejected proposal, or a branch
   before it was rebuilt), their files stay but are never read again: nothing deletes them yet, as in Git before its
   garbage collection runs.
-- **Atomic writes.** Every file is written to a temporary file, synced to disk, then renamed over the old one. Commits
-  are written before the refs that name them, so a crash leaves the history as it was before the change or after it.
+- **Atomic writes.** Every file is written to a temporary file, synced to disk, then renamed over the old one, and
+  the rename is synced too (its folder). Commits are written before the refs that name them, so a crash leaves the
+  history as it was before the change or after it.
   A write that fails is logged; the change stays in memory, and the next change tries again.
 - **Verified on load.** Every commit read is hashed again and must match its name. The refs file must match its
   checksum, and each proposal's branch must lead from its head to its base on `main`. A damaged history is never

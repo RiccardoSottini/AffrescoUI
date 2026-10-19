@@ -121,7 +121,8 @@ private:
 	/// @return Its bytes.
 	/// @throws HistoryError If it can't be read or is too large.
 	[[nodiscard]] static std::string read(const std::filesystem::path& file);
-	/// @brief Replaces a file atomically: writes a temporary file next to it, syncs it to disk, then renames it.
+	/// @brief Replaces a file atomically: writes a temporary file next to it, syncs it to disk, renames it, then syncs
+	/// the folder so that the rename is on the disk too.
 	/// @param file The file.
 	/// @param text Its new content.
 	/// @throws HistoryError If it can't be written.

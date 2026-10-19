@@ -54,6 +54,24 @@ bool syncToDisk(std::FILE* file) {
 #endif
 }
 
+/// @brief Waits until a folder's entries (a file renamed into it, a folder made in it) are on the disk. POSIX keeps
+/// them apart from the files' content, so without this a power cut could keep the refs and lose a commit they name.
+/// @param directory The folder.
+/// @return true if they are (always on Windows, where NTFS journals renames and there is no such call).
+bool syncDirectory([[maybe_unused]] const std::filesystem::path& directory) {
+#ifdef _WIN32
+	return true;
+#else
+	const int descriptor = ::open(directory.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if(descriptor < 0) return false;
+	const bool synced = ::fsync(descriptor) == 0;
+	const int error = errno;
+	::close(descriptor);
+	errno = error; // for lastError()
+	return synced;
+#endif
+}
+
 /// @brief The current time, for a file name.
 /// @return UTC, e.g. "20261019T120000Z" (no ':', which Windows doesn't allow in names).
 std::string fileNameTime() {
@@ -142,11 +160,12 @@ void FileLock::release() noexcept {
 
 HistoryStore::HistoryStore(std::filesystem::path directory) : directory_(std::move(directory)) {
 	std::error_code error;
-	std::filesystem::create_directories(directory_ / "objects", error);
+	const bool created = std::filesystem::create_directories(directory_ / "objects", error);
 	if(error) {
 		problem_ = "can't be created (" + error.message() + ")";
 		return;
 	}
+	if(created) syncDirectory(directory_.parent_path()); // at worst a power cut loses a new, empty history
 	// Only its owner may read it. A folder someone else made keeps its permissions, and then the lock tells.
 	std::filesystem::permissions(directory_, std::filesystem::perms::owner_all, std::filesystem::perm_options::replace,
 	                             error);
@@ -178,8 +197,10 @@ std::string HistoryStore::readObject(const std::string& id) {
 void HistoryStore::writeObject(const std::string& id, std::string_view text) {
 	const std::filesystem::path file = objectFile(id);
 	std::error_code error;
-	std::filesystem::create_directories(file.parent_path(), error);
+	const bool created = std::filesystem::create_directories(file.parent_path(), error);
 	if(error) throw HistoryError(file.parent_path(), "can't be created (" + error.message() + ")");
+	if(created && !syncDirectory(file.parent_path().parent_path()))
+		throw HistoryError(file.parent_path().parent_path(), "can't be synced (" + lastError() + ")");
 	write(file, text);
 	objects_.insert(id);
 }
@@ -228,6 +249,9 @@ void HistoryStore::write(const std::filesystem::path& file, std::string_view tex
 	std::error_code error;
 	std::filesystem::rename(temporary, file, error); // atomic: readers see the old file or the new one
 	if(error) throw HistoryError(file, "can't be replaced (" + error.message() + ")");
+	// The rename itself must be on the disk before the next file (the refs after their commits) is written
+	if(!syncDirectory(file.parent_path()))
+		throw HistoryError(file.parent_path(), "can't be synced (" + lastError() + ")");
 }
 
 bool isCommitId(std::string_view text) noexcept {
