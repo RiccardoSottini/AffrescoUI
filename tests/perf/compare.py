@@ -39,15 +39,19 @@ def number(value):
 
 
 def change(base, head):
-    """The change from base to head, in percent, or None if there is no base to compare with."""
-    if base is None or head is None or base == 0:
+    """The change from base to head, in percent (infinite from zero), or None if there is no base to compare with."""
+    if base is None or head is None:
         return None
+    if base == 0:
+        return 0.0 if head == 0 else float("inf") if head > 0 else float("-inf")
     return (head - base) / abs(base) * 100.0
 
 
 def percent(value):
     """A change for a table."""
-    return "new" if value is None else f"{value:+.2f}%"
+    if value is None:
+        return "new"
+    return f"{value:+.2f}%" if abs(value) != float("inf") else "from 0"
 
 
 def rows(base, head, names, field="value"):
