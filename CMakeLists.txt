@@ -25,19 +25,31 @@ if(AFFRESCOUI_BUILD_FUZZERS)
 	add_link_options(-fsanitize=address,undefined)
 endif()
 
+# Only static libraries can be installed (cmake/AffrescoUIInstall.cmake says why), so a shared build leaves it off
+if(BUILD_SHARED_LIBS)
+	set(AFFRESCOUI_INSTALL_DEFAULT OFF)
+else()
+	set(AFFRESCOUI_INSTALL_DEFAULT ${PROJECT_IS_TOP_LEVEL})
+endif()
+option(AFFRESCOUI_INSTALL "Generate the install rules and the AffrescoUI CMake package" ${AFFRESCOUI_INSTALL_DEFAULT})
+
 include(FetchContent)
 
-# GLFW: windows, OpenGL context, input
+# GLFW: windows, OpenGL context, input. The versions pinned here are also the ones the installed package asks for.
+set(AFFRESCOUI_GLFW_VERSION 3.4)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(glfw GIT_REPOSITORY https://github.com/glfw/glfw.git GIT_TAG 3.4 GIT_SHALLOW TRUE SYSTEM)
+set(GLFW_INSTALL ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # installed static libraries link it
+FetchContent_Declare(glfw
+	URL https://github.com/glfw/glfw/releases/download/${AFFRESCOUI_GLFW_VERSION}/glfw-${AFFRESCOUI_GLFW_VERSION}.zip
+	URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9 SYSTEM)
 FetchContent_MakeAvailable(glfw)
 
 # nlohmann/json: the documents (format, vcs and channel modules; the rendering engine does without)
-set(JSON_Install OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+set(AFFRESCOUI_JSON_VERSION 3.11.3)
+set(JSON_Install ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # core/Json.hpp includes it
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v${AFFRESCOUI_JSON_VERSION}/json.tar.xz
 	URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d SYSTEM)
 FetchContent_MakeAvailable(json)
 
@@ -61,7 +73,8 @@ endif()
 function(affrescoui_module name)
 	add_library(affrescoui_${name} ${ARGN})
 	add_library(affrescoui::${name} ALIAS affrescoui_${name})
-	target_include_directories(affrescoui_${name} PUBLIC modules/${name}/include PRIVATE modules/${name}/src)
+	target_include_directories(affrescoui_${name} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/${name}/include>
+		PRIVATE modules/${name}/src)
 	target_compile_features(affrescoui_${name} PUBLIC cxx_std_23)
 	set_target_properties(affrescoui_${name} PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
@@ -70,7 +83,7 @@ endfunction()
 # core: the contracts between modules. JSON is opt-in: the rendering engine doesn't see it.
 add_library(affrescoui_core INTERFACE)
 add_library(affrescoui::core ALIAS affrescoui_core)
-target_include_directories(affrescoui_core INTERFACE modules/core/include)
+target_include_directories(affrescoui_core INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/core/include>)
 target_compile_features(affrescoui_core INTERFACE cxx_std_23)
 
 # render. Vendored in external/: glad (OpenGL 4.1 core loader) and stb_truetype (font rasteriser).
@@ -116,10 +129,15 @@ endif()
 # affrescoui: the whole library
 add_library(affrescoui modules/screen/src/Screen.cpp)
 add_library(affrescoui::affrescoui ALIAS affrescoui)
-target_include_directories(affrescoui PUBLIC modules/screen/include)
+target_include_directories(affrescoui PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/screen/include>)
 set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(affrescoui PRIVATE ${AFFRESCOUI_WARNINGS})
 target_link_libraries(affrescoui PUBLIC affrescoui::core affrescoui::render affrescoui::format affrescoui::vcs affrescoui::channel)
+
+# cmake --install: the libraries, their headers and the AffrescoUI package for find_package
+if(AFFRESCOUI_INSTALL)
+	include(cmake/AffrescoUIInstall.cmake)
+endif()
 
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
