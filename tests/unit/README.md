@@ -34,6 +34,8 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `sockets.cpp` | `channel::SocketServer` and `SocketChannel` over a real local socket in a temporary folder: lines both ways, a peer going away, the file's owner-only access, a busy or stale socket file |
 | `screen.cpp` | `Screen`'s paths: the default socket directory, where `persist` state is read from; the nesting limit on screen files |
 | `text.cpp` | UTF-8 decoding, `Font` glyphs rasterised on demand into atlas pages, fallback fonts, the atlas limit, `fonts` with `fallback` (reads the examples' font files) |
+| `shaping.cpp` | Shaped text: ligatures and their carets, kerning, marks, Arabic joining and right-to-left runs, fallback by coverage at the font's em, colour emoji and sequences, the shaping caches, wrapping by shaped widths; font files that aren't fonts |
+| `fonts.cpp` | `FontCache`: the same font for the same file, size and fallbacks, shared files counted once, many fonts and sizes within its bound, fonts in use kept, system fonts that can't be used left out |
 | `headless.cpp` | A headless `Window`: anchors, percentages, minimum sizes, rows and columns; clicks, mouse capture, hover, scrolling, focus; the tooltip delay, timers and deferred tasks on a manual clock |
 | `timers.cpp` | `Window` timers, and a screen's timers, deferred tasks and animations, and what is left when it is destroyed (headless) |
 | `review.cpp` | `accept` steps name the reviewed head; control steps while a proposal is previewed (headless) |
@@ -42,6 +44,7 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `registries.cpp` | The format's registries: node types (order, factories, inherited property sets, replacing a type), steps (groups, control steps, a step registered twice), sections (validation, capabilities); the catalog built from them; an application's type |
 | `scheduler.cpp` | The runtime's scheduler on a manual clock: `every`, `after`, `debounce`, `animate`, colour transitions, double clicks |
 | `window/images.cpp` | `affrescoui_window_tests`: pictures of main and of a proposal, with the person's view left as it was |
+| `window/glyphs.cpp` | `affrescoui_window_tests`: colour emoji add no draw call to the text around them; the GPU textures of a font that is gone are freed (it draws with OpenGL) |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main`, for both programs |
 | `CMakeLists.txt` | The two programs: every `*.cpp` here, and every `window/*.cpp` with `main.cpp` |
@@ -57,7 +60,8 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
   `modules/format/src` is on the include path for `Expression.hpp`. Don't make a header public for a test.
 - Tests don't need a display or a network, so they run anywhere, CI included. Use a headless window for anything
   that happens on a window; only the files in `window/` need OpenGL. A test that needs files makes them in a temporary folder of its own and removes it
-  (`history.cpp`, `sockets.cpp`, `screen.cpp`); `text.cpp` reads the fonts in `examples/assets/fonts`, and `checker.cpp` the
+  (`history.cpp`, `sockets.cpp`, `screen.cpp`); `text.cpp`, `shaping.cpp` and `fonts.cpp` read the fonts in `examples/assets/fonts` and
+  `tests/render/fonts`, and `checker.cpp` the
   templates in `examples/assets/screens`, which must have no findings (both from the checkout). The `ProcessChannel`
   tests start small programs through the system shell (`/bin/sh`, or `cmd.exe` on Windows).
 - Don't change library code to make a test pass. If a test finds a bug, keep it, mark it `* doctest::skip(true)`

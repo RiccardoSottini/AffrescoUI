@@ -1,283 +1,188 @@
-#include "affresco/render/Font.hpp"
+/// @file
+/// @brief Font: loading, Latin-1 at load, glyphs on demand, measuring and wrapping, the atlas. Shaping is in
+/// text/Shaping.cpp.
 
-#include <stb_truetype.h>
+#include "affresco/render/Font.hpp"
+#include "affresco/core/Log.hpp"
+
+#include "text/FontData.hpp"
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cmath>
-#include <fstream>
-#include <iterator>
-#include <new>
+#include <cstring>
 #include <optional>
 #include <stdexcept>
-#include <unordered_map>
+#include <string>
 
 namespace affresco {
 
 namespace {
 
-constexpr int whiteRows = 2;            ///< Rows reserved at the top of each page for the 2x2 white block.
-constexpr int padding = 1;              ///< Empty texels left and above each glyph, as stb_truetype's packer leaves.
-constexpr int smallestPage = 256;       ///< The first page starts at this size and doubles until Latin-1 fits.
-constexpr int largestPage = 4096;       ///< No page is larger.
-constexpr int smallestAddedPage = 1024; ///< Pages added later are at least this large, so they fill slowly.
-/// @brief The most texels the pages of one font may hold together: text naming many characters (e.g. from a peer)
-/// can't grow the atlas without bound. Characters that don't fit draw as '?'.
-constexpr std::size_t atlasLimit = std::size_t{64} << 20;
-constexpr char32_t lastUnicode = 0x10FFFF; ///< The last code point Unicode has; anything above draws as '?'.
+constexpr int smallestPage = 256; ///< The first page starts at this size and doubles until Latin-1 fits.
 
-/// @brief Reads a whole file.
-/// @param path The file.
-/// @return Its bytes.
-/// @throws std::runtime_error If it can't be opened.
-std::vector<unsigned char> readFile(const std::filesystem::path& path) {
-	std::ifstream file(path, std::ios::binary);
-	if(!file) throw std::runtime_error("AffrescoUI: could not open font file " + path.string());
-	return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-}
-
-/// @brief Where a glyph's texels go.
-struct Spot {
-	std::uint32_t page; ///< The page.
-	int x, y;           ///< Its top-left texel, padding included.
-};
-
-/// @brief One TrueType file and the scale that draws it at the font's pixel height.
-struct Face {
-	std::vector<unsigned char> data; ///< The file; `info` points into it, so it is never resized.
-	stbtt_fontinfo info{};           ///< stb_truetype's view of it.
-	float scale = 0.0f;              ///< Font units to pixels.
-};
-
-/// @brief One square page of the atlas, filled in shelves: rows of glyphs, each as tall as its tallest.
-struct Page {
-	/// @brief A row of glyphs.
-	struct Shelf {
-		int top;    ///< Its first row.
-		int height; ///< Its rows.
-		int right;  ///< The first free column.
-	};
-
-	int size = 0;                           ///< Width and height, in texels.
-	std::vector<std::uint8_t> pixels;       ///< Coverage, top row first.
-	std::vector<Font::AtlasRegion> changes; ///< One per glyph added after the page was made.
-	std::vector<Shelf> shelves;             ///< Rows that glyphs are added to.
-	int freeTop = whiteRows;                ///< The first row below every shelf.
-
-	/// @brief Makes an empty page, with its white block.
-	/// @param pageSize Width and height, in texels.
-	explicit Page(int pageSize)
-	    : size(pageSize), pixels(static_cast<std::size_t>(pageSize) * static_cast<std::size_t>(pageSize), 0) {
-		pixels[0] = pixels[1] = pixels[static_cast<std::size_t>(size)] = pixels[static_cast<std::size_t>(size) + 1] =
-		    255;
-	}
-
-	/// @brief Finds room for a box, on a shelf or on a new one.
-	/// @param width Its width, padding included.
-	/// @param height Its height, padding included.
-	/// @param shelfHeight The height a new shelf gets, if the box is not taller.
-	/// @return Its top-left texel, or nothing if the page is full.
-	std::optional<std::array<int, 2>> place(int width, int height, int shelfHeight) {
-		if(width > size) return std::nullopt;
-
-		// The shortest shelf the box fits on wastes the fewest rows
-		Shelf* best = nullptr;
-		for(Shelf& shelf : shelves)
-			if(shelf.height >= height && shelf.right + width <= size && (!best || shelf.height < best->height))
-				best = &shelf;
-
-		if(!best) {
-			const int rows = std::max(height, shelfHeight);
-			if(freeTop + rows > size) return std::nullopt;
-			best = &shelves.emplace_back(Shelf{freeTop, rows, 0});
-			freeTop += rows;
+/// @brief Copies a rendered glyph's rows into an atlas page; colour ones from BGRA to RGBA.
+/// @param bitmap The glyph.
+/// @param page The page.
+/// @param left Its first column there.
+/// @param top Its first row there.
+void copyInto(const FT_Bitmap& bitmap, detail::GlyphAtlas::Page& page, int left, int top) noexcept {
+	const auto stride = static_cast<std::size_t>(page.size) * static_cast<std::size_t>(page.bytesPerTexel);
+	for(unsigned row = 0; row < bitmap.rows; ++row) {
+		const unsigned char* from =
+		    bitmap.buffer + static_cast<std::size_t>(row) * static_cast<std::size_t>(bitmap.pitch);
+		std::uint8_t* to = page.pixels.data() + (static_cast<std::size_t>(top) + row) * stride +
+		                   static_cast<std::size_t>(left) * static_cast<std::size_t>(page.bytesPerTexel);
+		if(page.bytesPerTexel == 1) {
+			std::memcpy(to, from, bitmap.width);
+			continue;
 		}
-
-		const std::array<int, 2> at{best->right, best->top};
-		best->right += width;
-		return at;
+		for(unsigned column = 0; column < bitmap.width; ++column, from += 4, to += 4) {
+			to[0] = from[2];
+			to[1] = from[1];
+			to[2] = from[0];
+			to[3] = from[3];
+		}
 	}
-};
-
-/// @brief Reads a TrueType file.
-/// @param path The file.
-/// @param pixelHeight The size its glyphs are drawn at.
-/// @return The face.
-/// @throws std::runtime_error If it can't be read or isn't a usable font.
-Face loadFace(const std::filesystem::path& path, float pixelHeight) {
-	Face face;
-	face.data = readFile(path);
-	const int offset = face.data.empty() ? -1 : stbtt_GetFontOffsetForIndex(face.data.data(), 0);
-	if(offset < 0 || !stbtt_InitFont(&face.info, face.data.data(), offset))
-		throw std::runtime_error("AffrescoUI: not a usable TrueType font: " + path.string());
-	face.scale = stbtt_ScaleForPixelHeight(&face.info, pixelHeight);
-	return face;
 }
 
 } // namespace
 
-/// @brief Everything that grows as glyphs are looked up.
-struct Font::Glyphs {
-	std::vector<Face> faces;                   ///< The font first, then its fallbacks.
-	std::vector<Page> pages;                   ///< The first holds Latin-1.
-	std::unordered_map<char32_t, Glyph> added; ///< Rasterised on demand. Its nodes never move.
-	std::size_t atlasTexels = 0;               ///< Texels in all pages: see atlasLimit.
-	int shelfHeight = 0;                       ///< Rows a new shelf gets: one line of glyphs.
+/* Font::Data: faces and glyphs */
 
-	/// @brief Finds the first face that has a glyph for a character.
-	/// @param codepoint The character.
-	/// @return The face and its glyph index, or nothing.
-	[[nodiscard]] std::optional<std::pair<const Face*, int>> find(char32_t codepoint) const noexcept {
-		// Beyond Unicode, the cast to int would turn negative, and stb_truetype indexes some cmap tables with it
-		if(codepoint > lastUnicode) return std::nullopt;
-		for(const Face& face : faces)
-			if(const int index = stbtt_FindGlyphIndex(&face.info, static_cast<int>(codepoint)); index != 0)
-				return std::pair{&face, index};
-		return std::nullopt;
-	}
+std::optional<std::size_t> Font::Data::faceFor(char32_t codepoint) const noexcept {
+	for(std::size_t face = 0; face < faces.size(); ++face)
+		if(faces[face].glyphIndex(codepoint) != 0) return face;
+	return std::nullopt;
+}
 
-	/// @brief Finds room for a glyph in a page, adding a page if none has it.
-	/// @param width Its width, padding included.
-	/// @param height Its height, padding included.
-	/// @return Where it goes, or nothing if the atlas is full.
-	std::optional<Spot> place(int width, int height) {
-		for(std::size_t p = 0; p < pages.size(); ++p)
-			if(const auto at = pages[p].place(width, height, shelfHeight))
-				return Spot{static_cast<std::uint32_t>(p), (*at)[0], (*at)[1]};
+std::optional<std::size_t> Font::Data::colorFaceFor(char32_t codepoint) const noexcept {
+	for(std::size_t face = 0; face < faces.size(); ++face)
+		if(faces[face].hasColor() && faces[face].glyphIndex(codepoint) != 0) return face;
+	return std::nullopt;
+}
 
-		const int size = std::max(pages.front().size, smallestAddedPage);
-		if(width > size || height > size) return std::nullopt; // larger than a whole page
-		const std::size_t texels = static_cast<std::size_t>(size) * static_cast<std::size_t>(size);
-		if(atlasTexels + texels > atlasLimit) return std::nullopt;
+const Font::Glyph& Font::Data::glyph(std::size_t face, unsigned index) {
+	const std::uint64_t key = (static_cast<std::uint64_t>(face) << 32) | index;
+	if(const auto found = glyphs.find(key); found != glyphs.end()) return found->second;
+	const std::optional<Glyph> added = rasterise(face, index, true);
+	return glyphs.emplace(key, added ? *added : *question).first->second;
+}
 
-		Page& page = pages.emplace_back(size);
-		atlasTexels += texels;
-		const auto at = page.place(width, height, shelfHeight);
-		if(!at) return std::nullopt; // not reached: an empty page has room for what fits in one
-		return Spot{static_cast<std::uint32_t>(pages.size() - 1), (*at)[0], (*at)[1]};
-	}
+std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned index, bool mayAddPage) {
+	const detail::FontFace& from = faces[face];
+	Glyph glyph{Rect{}, Rect{}, from.advance(index), 0, false};
 
-	/// @brief Rasterises a character into the atlas and remembers it.
-	/// @param codepoint The character.
-	/// @param question The glyph remembered instead when the atlas is full, so it isn't searched again.
-	/// @return Its glyph, or nullptr if no face has it.
-	const Glyph* add(char32_t codepoint, const Glyph& question) {
-		const auto found = find(codepoint);
-		if(!found) return nullptr;
-		const auto [face, index] = *found;
+	// A glyph that can't be rendered (a broken outline) draws nothing, and still moves the pen
+	const auto bitmap = from.render(index);
+	if(!bitmap || bitmap->pixels->width == 0 || bitmap->pixels->rows == 0 || bitmap->pixels->pitch < 0)
+		return glyph; // spaces have no texels
+	const auto width = static_cast<int>(bitmap->pixels->width), height = static_cast<int>(bitmap->pixels->rows);
 
-		// As stb_truetype's packer places glyphs, so they look the same as the ones rasterised at load
-		int x0 = 0, y0 = 0, x1 = 0, y1 = 0, advance = 0, bearing = 0;
-		stbtt_GetGlyphBitmapBox(&face->info, index, face->scale, face->scale, &x0, &y0, &x1, &y1);
-		stbtt_GetGlyphHMetrics(&face->info, index, &advance, &bearing);
-		const int width = x1 - x0, height = y1 - y0;
+	const AtlasKind kind = bitmap->color ? AtlasKind::color : AtlasKind::coverage;
+	constexpr int padding = detail::GlyphAtlas::padding;
+	const auto spot = atlas.place(kind, width + padding, height + padding, mayAddPage);
+	if(!spot) return std::nullopt;
 
-		Glyph glyph{
-		    Rect{static_cast<float>(x0), static_cast<float>(y0), static_cast<float>(x1), static_cast<float>(y1)},
-		    Rect{}, static_cast<float>(advance) * face->scale, 0};
+	detail::GlyphAtlas::Page& page = atlas.pages(kind)[spot->page];
+	const int left = spot->x + padding, top = spot->y + padding;
+	copyInto(*bitmap->pixels, page, left, top);
+	page.changes.push_back({left, top, left + width, top + height});
 
-		if(width > 0 && height > 0) { // spaces have no texels
-			const auto spot = place(width + padding, height + padding);
-			if(!spot) return &added.emplace(codepoint, question).first->second;
+	const auto texel = 1.0f / static_cast<float>(page.size);
+	glyph.quad = Rect{static_cast<float>(bitmap->left), static_cast<float>(-bitmap->top),
+	                  static_cast<float>(bitmap->left + width), static_cast<float>(height - bitmap->top)};
+	glyph.uv = Rect{static_cast<float>(left) * texel, static_cast<float>(top) * texel,
+	                static_cast<float>(left + width) * texel, static_cast<float>(top + height) * texel};
+	glyph.page = spot->page;
+	glyph.color = bitmap->color;
+	return glyph;
+}
 
-			Page& page = pages[spot->page];
-			const int left = spot->x + padding, top = spot->y + padding;
-			stbtt_MakeGlyphBitmap(&face->info,
-			                      page.pixels.data() +
-			                          static_cast<std::size_t>(top) * static_cast<std::size_t>(page.size) +
-			                          static_cast<std::size_t>(left),
-			                      width, height, page.size, face->scale, face->scale, index);
-			page.changes.push_back({left, top, left + width, top + height});
+/* Loading */
 
-			const auto texel = 1.0f / static_cast<float>(page.size);
-			glyph.uv = Rect{static_cast<float>(left) * texel, static_cast<float>(top) * texel,
-			                static_cast<float>(left + width) * texel, static_cast<float>(top + height) * texel};
-			glyph.page = spot->page;
-		}
-
-		return &added.emplace(codepoint, glyph).first->second;
-	}
-};
-
-Font::Font() : glyphs_(std::make_unique<Glyphs>()) {}
+Font::Font() : data_(std::make_unique<Data>()) {}
 
 Font::~Font() = default;
 
 std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float pixelHeight,
                                        std::span<const std::filesystem::path> fallbacks) {
+	detail::FontFiles files; // the faces keep their files; nothing else shares them
+	return load(path, pixelHeight, fallbacks, {}, files);
+}
+
+std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float pixelHeight,
+                                       std::span<const std::filesystem::path> fallbacks,
+                                       std::span<const std::filesystem::path> optional, detail::FontFiles& files) {
 	static std::atomic<std::uint64_t> nextId = 1;
 
 	std::shared_ptr<Font> font(new Font());
-	Glyphs& glyphs = *font->glyphs_;
-	glyphs.faces.reserve(1 + fallbacks.size());
-	glyphs.faces.push_back(loadFace(path, pixelHeight));
-	for(const std::filesystem::path& fallback : fallbacks) glyphs.faces.push_back(loadFace(fallback, pixelHeight));
-	const Face& main = glyphs.faces.front();
+	Data& data = *font->data_;
+	data.library = detail::startFreeType();
+	data.faces.reserve(1 + fallbacks.size() + optional.size());
+	using SizeOf = detail::FontFace::SizeOf;
+	data.faces.emplace_back(data.library.get(), files.read(path), pixelHeight, SizeOf::height, path);
+	const float em = data.faces.front().emPixels(); // fallbacks get the font's em, so their text looks as large
+	for(const std::filesystem::path& fallback : fallbacks)
+		data.faces.emplace_back(data.library.get(), files.read(fallback), em, SizeOf::em, fallback);
+	for(const std::filesystem::path& extra : optional) {
+		try {
+			data.faces.emplace_back(data.library.get(), files.read(extra), em, SizeOf::em, extra);
+		} catch(const std::runtime_error& error) {
+			log(LogLevel::Warning, std::string("AffrescoUI: skipping a system font: ") + error.what());
+		}
+	}
+	data.buffer.reset(hb_buffer_create());
+	if(!hb_buffer_allocation_successful(data.buffer.get())) throw std::bad_alloc();
 
 	font->id_ = nextId++;
 	font->pixelHeight_ = pixelHeight;
-
-	int ascent = 0, descent = 0, lineGap = 0;
-	stbtt_GetFontVMetrics(&main.info, &ascent, &descent, &lineGap);
-	font->ascent_ = static_cast<float>(ascent) * main.scale;
-	font->lineHeight_ = static_cast<float>(ascent - descent + lineGap) * main.scale;
-	glyphs.shelfHeight = static_cast<int>(std::ceil(pixelHeight)) + padding;
+	font->ascent_ = data.faces.front().ascent();
+	font->lineHeight_ = data.faces.front().lineHeight();
 
 	// Smallest square page (power of two) that fits Latin-1
-	for(int size = smallestPage; size <= largestPage; size *= 2)
+	for(int size = smallestPage; size <= detail::GlyphAtlas::largestPage; size *= 2)
 		if(font->bakeLatin1(size)) return font;
 
 	throw std::runtime_error("AffrescoUI: font too large to fit an atlas: " + path.string());
 }
 
 bool Font::bakeLatin1(int size) {
-	Glyphs& glyphs = *glyphs_;
-	const Face& main = glyphs.faces.front();
-	Page page(size);
-	std::array<stbtt_packedchar, latin1Count> packed{};
+	Data& data = *data_;
+	data.atlas = detail::GlyphAtlas(size, static_cast<int>(std::ceil(pixelHeight_)) + detail::GlyphAtlas::padding);
+	data.glyphs.clear();
 
-	// Glyphs are packed below the reserved rows
-	stbtt_pack_context context;
-	if(!stbtt_PackBegin(&context, page.pixels.data() + static_cast<std::ptrdiff_t>(whiteRows) * size, size,
-	                    size - whiteRows, size, padding, nullptr))
-		return false;
-	const int packedOk =
-	    stbtt_PackFontRange(&context, main.data.data(), 0, pixelHeight_, static_cast<int>(firstCodepoint),
-		                    static_cast<int>(latin1Count), packed.data());
-	stbtt_PackEnd(&context);
-	if(!packedOk) return false;
-
-	const auto texel = 1.0f / static_cast<float>(size);
-	int bottom = whiteRows;
-	for(std::size_t i = 0; i < latin1Count; ++i) {
-		const stbtt_packedchar& p = packed[i];
-		latin1_[i] = Glyph{
-		    Rect{p.xoff, p.yoff, p.xoff2, p.yoff2},
-		    Rect{static_cast<float>(p.x0) * texel, static_cast<float>(p.y0 + whiteRows) * texel,
-			     static_cast<float>(p.x1) * texel, static_cast<float>(p.y1 + whiteRows) * texel},
-		    p.xadvance,
-		};
-		bottom = std::max(bottom, p.y1 + whiteRows + padding);
-	}
-
-	page.freeTop = bottom; // later glyphs go below Latin-1
-	glyphs.atlasTexels = page.pixels.size();
-	glyphs.pages.push_back(std::move(page));
-
-	// What the font lacks comes from a fallback now, or is '?', so the table is final and lookups never leave it.
-	// '?' itself stays: it is the last resort (the font's missing-glyph box, if it lacks even that).
-	const Glyph& question = latin1_[U'?' - firstCodepoint];
+	// '?' first: what the rest falls back to. If no face has it either, the font's missing-glyph box
+	constexpr std::size_t question = U'?' - firstCodepoint;
+	std::array<bool, latin1Count> found{};
 	for(std::size_t i = 0; i < latin1Count; ++i) {
 		const char32_t codepoint = firstCodepoint + static_cast<char32_t>(i);
-		if(codepoint == U'?' || stbtt_FindGlyphIndex(&main.info, static_cast<int>(codepoint)) != 0) continue;
-		const Glyph* fallback = glyphs.add(codepoint, question);
-		latin1_[i] = fallback ? *fallback : question;
+		const auto face = data.faceFor(codepoint);
+		if(!face && i != question) continue;
+		const std::size_t from = face.value_or(0);
+		const unsigned index = data.faces[from].glyphIndex(codepoint);
+		const std::uint64_t key = (static_cast<std::uint64_t>(from) << 32) | index;
+		if(const auto same = data.glyphs.find(key); same != data.glyphs.end()) {
+			latin1_[i] = same->second;
+		} else {
+			const std::optional<Glyph> glyph = data.rasterise(from, index, false);
+			if(!glyph) return false; // the page is too small
+			latin1_[i] = data.glyphs.emplace(key, *glyph).first->second;
+		}
+		found[i] = true;
 	}
+	for(std::size_t i = 0; i < latin1Count; ++i)
+		if(!found[i]) latin1_[i] = latin1_[question];
+
+	data.question = &latin1_[question];
+	data.spaceAdvance = latin1_[U' ' - firstCodepoint].advance;
+	data.atlas.forgetChanges(); // Latin-1 is the first page's content: nothing to upload twice
 	return true;
 }
 
-// Small enough to inline into measure() and wrap(): Latin-1 text never leaves this path
+/* Glyphs */
+
+// Small enough to inline: Latin-1 never leaves this path
 const Font::Glyph& Font::glyph(char32_t codepoint) const noexcept {
 	const char32_t index = codepoint - firstCodepoint; // control characters wrap around to large values
 	if(index < latin1Count) [[likely]]
@@ -286,81 +191,110 @@ const Font::Glyph& Font::glyph(char32_t codepoint) const noexcept {
 }
 
 const Font::Glyph& Font::glyphBeyondLatin1(char32_t codepoint) const noexcept {
-	Glyphs& glyphs = *glyphs_;
-	const Glyph& question = latin1_[U'?' - firstCodepoint];
-	if(codepoint < firstCodepoint) return question; // control characters
+	Data& data = *data_;
+	if(codepoint < firstCodepoint) return *data.question; // control characters
 
-	if(const auto it = glyphs.added.find(codepoint); it != glyphs.added.end()) return it->second;
+	if(const auto found = data.nominal.find(codepoint); found != data.nominal.end()) return *found->second;
 
 	try {
-		const Glyph* added = glyphs.add(codepoint, question);
-		return added ? *added : question;
+		const auto face = data.faceFor(codepoint);
+		const Glyph* glyph = face ? &data.glyph(*face, data.faces[*face].glyphIndex(codepoint)) : data.question;
+		data.nominal.emplace(codepoint, glyph);
+		return *glyph;
 	} catch(...) {
-		return question; // out of memory, or the cache failed: draw '?' rather than end the program
+		return *data.question; // out of memory: draw '?' rather than end the program
 	}
 }
 
 bool Font::hasGlyph(char32_t codepoint) const noexcept {
-	return codepoint >= firstCodepoint && glyphs_->find(codepoint).has_value();
+	return codepoint >= firstCodepoint && data_->faceFor(codepoint).has_value();
+}
+
+/* Shaped text */
+
+const Font::ShapedText& Font::shape(std::u32string_view text) const {
+	try {
+		return data_->shape(text);
+	} catch(const std::bad_alloc&) {
+		data_->uncached = {};
+		return data_->uncached;
+	}
 }
 
 float Font::measure(std::u32string_view text) const noexcept {
-	// Latin-1 first, without branches so the loop unrolls; text with anything else is measured again, glyph by glyph
-	float width = 0.0f;
-	bool beyondLatin1 = false;
-	for(const char32_t cp : text) {
-		const char32_t index = cp - firstCodepoint; // control characters wrap around to large values
-		beyondLatin1 |= index >= latin1Count;
-		width += latin1_[std::min<std::size_t>(index, latin1Count - 1)].advance;
+	try {
+		return data_->measure(text).width;
+	} catch(...) {
+		data_->measured = {};
+		return 0.0f;
 	}
-	if(!beyondLatin1) return width;
-
-	width = 0.0f;
-	for(const char32_t cp : text) width += glyph(cp).advance;
-	return width;
 }
 
 std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxWidth) const {
 	std::vector<std::u32string_view> lines;
 
-	while(!text.empty()) {
-		std::size_t end = 0;       // end of the line being built
-		std::size_t lastSpace = 0; // last space seen on it (0 = none)
-		float width = 0.0f;
+	// Each paragraph (up to a '\n') is measured once; its lines are views into it, broken by its advances
+	const std::vector<float>* paragraph = nullptr;
+	std::size_t paragraphStart = 0, paragraphEnd = 0;
+	std::size_t start = 0; // where the line being built starts
+	while(start < text.size()) {
+		if(!paragraph || start > paragraphEnd) {
+			paragraphStart = start;
+			paragraphEnd = std::min(text.find(U'\n', start), text.size());
+			paragraph = &data_->measure(text.substr(start, paragraphEnd - start)).advances;
+		}
 
-		while(end < text.size() && text[end] != U'\n') {
-			const float advance = glyph(text[end]).advance;
-			if(width + advance > maxWidth && end > 0) break;
+		std::size_t end = start;       // end of the line being built
+		std::size_t lastSpace = start; // last space seen on it (start = none)
+		float width = 0.0f;
+		while(end < paragraphEnd) {
+			const float advance = (*paragraph)[end - paragraphStart];
+			// A code point with no width of its own continues its cluster (a mark, the rest of a ligature): never cut
+			if(width + advance > maxWidth && end > start && advance > 0.0f) break;
 			if(text[end] == U' ') lastSpace = end;
 			width += advance;
 			++end;
 		}
 
 		std::size_t next = end; // where the following line starts
-		if(end < text.size() && text[end] == U'\n') {
-			next = end + 1;
-		} else if(end < text.size() && lastSpace > 0) {
+		if(end == paragraphEnd && end < text.size()) {
+			next = end + 1; // past the '\n'
+		} else if(end < paragraphEnd && lastSpace > start) {
 			end = lastSpace; // break at the last space; the space itself is dropped
 			next = lastSpace + 1;
 		}
 
-		lines.push_back(text.substr(0, end));
-		text.remove_prefix(next);
+		lines.push_back(text.substr(start, end - start));
+		start = next;
 	}
 
 	return lines;
 }
 
-std::size_t Font::atlasPages() const noexcept { return glyphs_->pages.size(); }
+std::size_t Font::memoryBytes() const noexcept {
+	const Data& data = *data_;
+	constexpr std::size_t node = 32; // a hash map node's pointers and hash, roughly
+	return sizeof(Font) + data.atlas.bytes() + data.glyphs.size() * (sizeof(Glyph) + node) +
+	       data.nominal.size() * (sizeof(const Glyph*) + node) + data.words.bytes() + data.lines.bytes() +
+	       data.uncached.glyphs.capacity() * sizeof(ShapedGlyph);
+}
 
-int Font::atlasSize(std::size_t page) const noexcept { return glyphs_->pages[page].size; }
+/* Atlas */
 
-std::span<const std::uint8_t> Font::atlasPixels(std::size_t page) const noexcept { return glyphs_->pages[page].pixels; }
+std::size_t Font::atlasPages(AtlasKind kind) const noexcept { return data_->atlas.pages(kind).size(); }
 
-std::uint64_t Font::atlasVersion(std::size_t page) const noexcept { return glyphs_->pages[page].changes.size(); }
+int Font::atlasSize(std::size_t page, AtlasKind kind) const noexcept { return data_->atlas.pages(kind)[page].size; }
 
-Font::AtlasRegion Font::atlasChangesSince(std::size_t page, std::uint64_t version) const noexcept {
-	const std::vector<AtlasRegion>& changes = glyphs_->pages[page].changes;
+std::span<const std::uint8_t> Font::atlasPixels(std::size_t page, AtlasKind kind) const noexcept {
+	return data_->atlas.pages(kind)[page].pixels;
+}
+
+std::uint64_t Font::atlasVersion(std::size_t page, AtlasKind kind) const noexcept {
+	return data_->atlas.pages(kind)[page].changes.size();
+}
+
+Font::AtlasRegion Font::atlasChangesSince(std::size_t page, std::uint64_t version, AtlasKind kind) const noexcept {
+	const std::vector<AtlasRegion>& changes = data_->atlas.pages(kind)[page].changes;
 	AtlasRegion all;
 	for(std::size_t i = static_cast<std::size_t>(version); i < changes.size(); ++i) {
 		const AtlasRegion& change = changes[i];
@@ -373,7 +307,7 @@ Font::AtlasRegion Font::atlasChangesSince(std::size_t page, std::uint64_t versio
 
 Vec2 Font::whiteTexel(std::size_t page) const noexcept {
 	// The shared corner of the 2x2 white block: bilinear filtering there reads pure white
-	const auto texel = 1.0f / static_cast<float>(glyphs_->pages[page].size);
+	const auto texel = 1.0f / static_cast<float>(data_->atlas.pages(AtlasKind::coverage)[page].size);
 	return {texel, texel};
 }
 

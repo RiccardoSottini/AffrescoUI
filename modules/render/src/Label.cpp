@@ -86,13 +86,15 @@ void Label::prepareLayout() {
 	if(!fitToText_ || !f) return;
 
 	const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
-	const std::vector<std::u32string_view> lines = f->wrap(text_, maxTextWidth);
+	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || fitted_.text != text_) {
+		const std::vector<std::u32string_view> lines = f->wrap(text_, maxTextWidth);
+		float textWidth = 0.0f;
+		for(const std::u32string_view line : lines) textWidth = std::max(textWidth, f->measure(line));
+		fitted_ = {text_, f->id(), maxTextWidth, textWidth, lines.size()};
+	}
 
-	float textWidth = 0.0f;
-	for(std::u32string_view line : lines) textWidth = std::max(textWidth, f->measure(line));
-
-	const auto lineCount = static_cast<float>(std::max<std::size_t>(lines.size(), 1));
-	setSize(px(std::ceil(textWidth) + 2.0f * padding_), px(lineCount * f->lineHeight() + 2.0f * padding_));
+	const auto lineCount = static_cast<float>(std::max<std::size_t>(fitted_.lines, 1));
+	setSize(px(std::ceil(fitted_.width) + 2.0f * padding_), px(lineCount * f->lineHeight() + 2.0f * padding_));
 }
 
 Rect Label::contentRect() const noexcept {
