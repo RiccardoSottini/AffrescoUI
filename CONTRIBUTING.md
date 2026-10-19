@@ -140,8 +140,8 @@ Labels such as `visual-change` tell CI that the maintainer accepted a change in 
 Screen documents, the live protocol and the MCP tools are a **public contract**: people and agents write screens
 against them, and a change can break screens that already exist. So these changes are agreed before they are built:
 
-1. **Open an issue** with the [format-change RFC][format RFC] template. It is labelled `rfc`. Describe the problem and a sketch of
-   the design, and discuss it there.
+1. **Open an issue** with the [format-change RFC][format RFC] template. It is labelled `rfc`. Describe the problem and
+   a sketch of the design, and discuss it there.
 2. **Write the RFC** when the idea is worth pursuing: copy [`rfcs/0000-template.md`](rfcs/0000-template.md) and open a
    pull request with it alone. [`rfcs/README.md`](rfcs/README.md) says when an RFC is needed and how it is numbered.
 3. **The maintainer approves the RFC by merging it.** Implementation waits for that merge, and comes in its own pull
