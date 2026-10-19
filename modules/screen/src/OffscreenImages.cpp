@@ -61,9 +61,9 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 	class PutBack {
 	public:
 		/// @brief Remembers what the person sees.
-		/// @param images Whose state to put back.
-		/// @param shown The proposal previewed now, if any.
-		PutBack(OffscreenImages& images, std::optional<int> shown) : images(images), shown(shown) {}
+		/// @param owner Whose state to put back.
+		/// @param previewed The proposal previewed now, if any.
+		PutBack(OffscreenImages& owner, std::optional<int> previewed) : images(owner), shown(previewed) {}
 		PutBack(const PutBack&) = delete;
 		PutBack& operator=(const PutBack&) = delete;
 		PutBack(PutBack&&) = delete;
