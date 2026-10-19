@@ -157,7 +157,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 
 | What | Limit |
 |---|---|
-| JSON nesting, for anything from a peer, a revision, a change set or a declared channel | 256 levels |
+| JSON nesting of one message from a peer, a revision, a change set or a declared channel | 256 levels |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
@@ -188,6 +188,9 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **There is no limit on the size of a message.** A message is one line of any length, buffered until its line break.
   A revision can be as large as the peer likes, and so can the lists it puts in the state, which the screen may
   render as one panel per item.
+- **The document and state have no depth limit.** The 256 levels hold for each message, not for what it builds:
+  a revision can add a value deep inside one an earlier revision added, and steps can wrap a value in itself, so
+  the document and state can nest deeper with every change. Some of the code that walks them is recursive.
 - **There is no total work budget per event, so nested loops multiply.** Each limit above holds on its own:
   a `while` of 10,000 iterations inside a `forEach` over a list of 10,000 items runs 100 million steps, and deeper
   nesting multiplies again. `after` and `debounce` steps schedule more work for later, and nothing caps how many are
