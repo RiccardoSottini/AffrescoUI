@@ -1,5 +1,7 @@
 #include "Expression.hpp"
 
+#include "affresco/core/Portable.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -608,8 +610,7 @@ int order(const json& a, const json& b) {
 /// @return The local time as text.
 std::string formatTime(double milliseconds, std::string_view pattern) {
 	const auto seconds = static_cast<std::time_t>(saturated(milliseconds / 1000.0));
-	std::tm local{};
-	localtime_r(&seconds, &local);
+	const std::tm local = localTime(seconds);
 
 	static constexpr std::pair<std::string_view, const char*> fields[] = {
 	    {"YYYY", "%Y"}, {"MMM", "%b"}, {"MM", "%m"}, {"ddd", "%a"}, {"DD", "%d"},

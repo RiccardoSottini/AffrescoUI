@@ -1,5 +1,6 @@
 #include "affresco/render/Application.hpp"
 #include "affresco/core/Log.hpp"
+#include "affresco/core/Portable.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -48,9 +49,9 @@ Window& Application::createWindow(std::string title, int width, int height) {
 int Application::run() {
 	// AFFRESCOUI_SCREENSHOT=<file.ppm>: save a frame of each window and return. AFFRESCOUI_SCREENSHOT_AFTER=<ms>: run
 	// normally for that long first (e.g. so peers can connect and change the screen)
-	const char* screenshot = std::getenv("AFFRESCOUI_SCREENSHOT");
-	const char* after = std::getenv("AFFRESCOUI_SCREENSHOT_AFTER");
-	const double deadline = glfwGetTime() + (after ? std::atof(after) / 1000.0 : 0.0);
+	const std::optional<std::string> screenshot = environmentVariable("AFFRESCOUI_SCREENSHOT");
+	const std::optional<std::string> after = environmentVariable("AFFRESCOUI_SCREENSHOT_AFTER");
+	const double deadline = glfwGetTime() + (after ? std::atof(after->c_str()) / 1000.0 : 0.0);
 
 	running_ = true;
 	while(running_ && !(screenshot && glfwGetTime() >= deadline)) {
@@ -79,7 +80,7 @@ int Application::run() {
 	if(!screenshot) return EXIT_SUCCESS;
 	bool saved = true;
 	for(std::size_t i = 0; i < windows_.size(); ++i) {
-		const std::string path = i == 0 ? screenshot : std::string(screenshot) + "." + std::to_string(i);
+		const std::string path = i == 0 ? *screenshot : *screenshot + "." + std::to_string(i);
 		const bool ok = windows_[i]->saveScreenshot(path);
 		log(LogLevel::Info, "AffrescoUI: screenshot " + std::string(ok ? "saved: " : "FAILED: ") + path);
 		saved = saved && ok;

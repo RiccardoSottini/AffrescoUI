@@ -3,6 +3,8 @@
 
 #include "HistoryStore.hpp"
 
+#include "affresco/core/Portable.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cerrno>
@@ -86,13 +88,7 @@ bool syncDirectory([[maybe_unused]] const std::filesystem::path& directory) {
 /// @brief The current time, for a file name.
 /// @return UTC, e.g. "20261019T120000Z" (no ':', which Windows doesn't allow in names).
 std::string fileNameTime() {
-	const std::time_t now = std::time(nullptr);
-	std::tm utc{};
-#ifdef _WIN32
-	gmtime_s(&utc, &now);
-#else
-	gmtime_r(&now, &utc);
-#endif
+	const std::tm utc = utcTime(std::time(nullptr));
 	std::array<char, 32> stamp{};
 	std::strftime(stamp.data(), stamp.size(), "%Y%m%dT%H%M%SZ", &utc);
 	return stamp.data();

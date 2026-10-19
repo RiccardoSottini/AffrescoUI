@@ -9,6 +9,8 @@
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 
+#include "affresco/core/Portable.hpp"
+
 #include <algorithm>
 #include <charconv>
 #include <ctime>
@@ -23,9 +25,9 @@ namespace {
 /// @brief The current time.
 /// @return UTC, ISO 8601.
 std::string utcNow() {
-	const std::time_t now = std::time(nullptr);
+	const std::tm now = utcTime(std::time(nullptr));
 	char buffer[32];
-	std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", std::gmtime(&now));
+	std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &now);
 	return buffer;
 }
 

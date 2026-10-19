@@ -3,10 +3,12 @@
 
 #include <affresco/core/Json.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/core/Portable.hpp>
 
 #include <doctest/doctest.h>
 
 #include <cstddef>
+#include <ctime>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -96,4 +98,21 @@ TEST_CASE("core: log escapes control characters, so a message stays one line") {
 	CHECK(logged == std::vector<std::string>{R"(no node 'a\nFAKE: approved\x1b[2J\r\x7f')"
 	                                         "\tend",
 	                                         "plain text, é and tabs\tstay"});
+}
+
+TEST_CASE("core: the portable C library calls read the environment and break down times") {
+	CHECK_FALSE(affresco::environmentVariable("AFFRESCOUI_TEST_VARIABLE_NOBODY_SETS"));
+	CHECK(affresco::environmentVariable("PATH").has_value()); // set in every shell and CI job
+
+	const std::tm epoch = affresco::utcTime(0);
+	CHECK(epoch.tm_year == 70);
+	CHECK(epoch.tm_mon == 0);
+	CHECK(epoch.tm_mday == 1);
+	CHECK(epoch.tm_hour == 0);
+	const std::tm later = affresco::utcTime(86'400 + 3'600 + 60 + 1); // 2 January 1970, 01:01:01
+	CHECK(later.tm_mday == 2);
+	CHECK(later.tm_hour == 1);
+	CHECK(later.tm_min == 1);
+	CHECK(later.tm_sec == 1);
+	CHECK(affresco::localTime(86'400).tm_year == 70); // whatever the time zone, still 1970
 }
