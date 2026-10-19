@@ -160,7 +160,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           cd affrescoui-*/
-          for program in affrescoui affrescoui_host affrescoui_studio; do lipo -verify_arch "$program" arm64 x86_64; done
+          for program in affrescoui affrescoui_host affrescoui_studio; do lipo "$program" -verify_arch arm64 x86_64; done
       - name: The host draws a frame from its own assets (Linux, under Xvfb)
         if: runner.os == 'Linux'
         env:
