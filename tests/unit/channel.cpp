@@ -80,3 +80,15 @@ TEST_CASE("channel: an accept from a peer that may not review is rejected") {
 	CHECK(peer.versions.proposals().size() == 1); // still waiting for a reviewer
 	CHECK(peer.versions.head().number == 0);
 }
+
+// Found by fuzzing (tests/fuzz, session): the parser's out_of_range got past Session::read and stopped the app
+TEST_CASE("channel: a message with a number too large for a double gets an error") {
+	Peer peer;
+	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
+
+	peer.channel.receive(R"({"type": "revision", "id": 1, "set": {"/state/count": 1e400}})");
+	REQUIRE(peer.channel.sent.size() == 2);
+	CHECK(peer.channel.sent[1]["type"] == "error");
+	CHECK(peer.channel.sent[1]["message"].get<std::string>().find("number overflow") != std::string::npos);
+	CHECK(peer.versions.state() == json{{"count", 0}});
+}
