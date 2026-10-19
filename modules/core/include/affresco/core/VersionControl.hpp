@@ -172,6 +172,16 @@ public:
 	/// @throws DocumentError If either commit is unknown.
 	[[nodiscard]] virtual json diff(const json& from, const json& to) const = 0;
 
+	/// @brief Finds the commit on main that last changed a node or a value, like `git blame`.
+	/// @param target A node ("#board", or "#board/text" inside it) or a path ("/colors/accent"); "/state/..." paths
+	/// find the last commit whose patch changed that part of the live state.
+	/// @return The commit (revision 0 if nothing changed it since the document was loaded).
+	/// @throws DocumentError If the target is malformed or isn't there; or always, from a VersionControl that keeps no
+	/// history (this default).
+	[[nodiscard]] virtual CommitInfo blame(std::string_view target) const {
+		expect::fail("blame", "this history can't say who changed '" + std::string(target) + "'");
+	}
+
 	/* Review */
 
 	/// @brief The open proposals, oldest first.

@@ -104,9 +104,14 @@ struct Group {
 /// @return The groups.
 [[nodiscard]] std::vector<Group> screenGroups();
 
-/// @brief The groups that need no window: expressions, commits and text (engine.cpp).
+/// @brief The groups that need no window: expressions, commits, text (engine.cpp) and history (history.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> engineGroups();
+
+/// @brief The "history" group's workloads (history.cpp): 10,000 small commits on the Kanban template.
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> historyWorkloads(Context& context);
 
 /// @brief Reads a whole file.
 /// @param path The file.

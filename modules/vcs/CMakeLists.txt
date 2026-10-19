@@ -2,6 +2,8 @@
 affrescoui_module(vcs
 	src/Repository.cpp
 	src/RepositoryHistory.cpp
+	src/RepositoryDocuments.cpp
+	src/Deltas.cpp
 	src/HistoryStore.cpp
 	src/Permissions.cpp
 	src/Sha256.cpp)

@@ -124,7 +124,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# Speed, allocations and memory of the workloads in tests/perf (its README); CI counts instructions with callgrind,
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
-		tests/perf/engine.cpp examples/CodeEditor.cpp)
+		tests/perf/engine.cpp tests/perf/history.cpp examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src) # Expression.hpp stays private
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui)

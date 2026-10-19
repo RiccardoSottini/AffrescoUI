@@ -19,3 +19,5 @@ affrescoui_fuzzer(expression affrescoui::format)
 target_include_directories(affrescoui_fuzz_expression PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src) # Expression.hpp
 affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel)
+affrescoui_fuzzer(delta affrescoui::vcs)
+target_include_directories(affrescoui_fuzz_delta PRIVATE ${PROJECT_SOURCE_DIR}/modules/vcs/src) # Deltas.hpp

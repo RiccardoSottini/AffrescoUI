@@ -28,12 +28,16 @@ struct Repository::Refs {
 	Mode mode = Mode::Default;         ///< How much reviewers are asked.
 	int nextProposal = 1;              ///< The next proposal's id.
 	std::vector<std::string> imported; ///< The change sets applied, by id.
+	std::vector<std::string> packs;    ///< The packs that hold objects, oldest first (version 2).
 };
 
 namespace {
 
 /// The refs file's "format".
 constexpr const char* historyFormat = "affrescoui-history";
+/// The version this writes: 2 keeps most commits as deltas (VERSION_CONTROL.md). Version 1, where every commit's
+/// document is an object of its own, still loads.
+constexpr int historyVersion = 2;
 
 /// @brief Runs a reader of one history file, so that every error it throws names the file.
 /// @tparam Read A function with no parameters.
@@ -87,6 +91,18 @@ std::vector<std::string> changeSetIds(const json& value) {
 		if(!detail::isObjectId(ids[i]))
 			expect::fail("imported[" + std::to_string(i) + "]", "expected a change set's id (64 hex digits)");
 	return ids;
+}
+
+/// @brief Reads the names of the packs a history has.
+/// @param value The list (absent from version 1).
+/// @return The names.
+/// @throws DocumentError If it is not a list of names (64 lowercase hex digits).
+std::vector<std::string> packNames(const json& value) {
+	std::vector<std::string> names = strings(value, "packs");
+	for(std::size_t i = 0; i < names.size(); ++i)
+		if(!detail::isObjectId(names[i]))
+			expect::fail("packs[" + std::to_string(i) + "]", "expected a pack's name (64 hex digits)");
+	return names;
 }
 
 /// @brief Checks a rule from "don't ask again": the only ones accept() grants are "<channel>(<one node or area>)", so a
@@ -168,7 +184,9 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	Refs refs = readRefs(store);
 	std::vector<std::string> heads{refs.main};
 	for(const Proposal& proposal : refs.proposals) heads.push_back(proposal.head);
+	store.readPacks(refs.packs);
 	std::unordered_map<std::string, Commit> objects = readCommits(store, std::move(heads));
+	store.forgetUnread();
 
 	// main is the first parents from its head: every commit landed on the one before it
 	std::vector<std::string> main;
@@ -177,17 +195,20 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		if(commit->parents.empty()) break;
 	}
 	std::ranges::reverse(main);
-	if(objects.at(main.front()).document != mainHead().document) return false;
+	if(*objects.at(main.front()).snapshot != mainDocument()) return false;
 
 	for(Proposal& proposal : refs.proposals) {
 		completeProposal(proposal, objects, main, store.refsFile());
-		recheckProposal(proposal, objects.at(proposal.base));
+		const Commit& base = objects.at(proposal.base);
+		recheckProposal(proposal, reading(store.objectFile(base.id), [&] { return rebuild(objects, base); }));
 	}
 	// Hashes catch damage, not a history written by hand: it may not do what no revision can (widen capabilities)
 	const Commit& head = objects.at(main.back());
-	reading(store.objectFile(head.id), [&] {
-		rules_.checkChange(objects.at(main.front()).document, head.document);
-		rules_.validate(head.document);
+	json document = reading(store.objectFile(head.id), [&] {
+		json rebuilt = rebuild(objects, head); // checked against the head's tree
+		rules_.checkChange(*objects.at(main.front()).snapshot, rebuilt);
+		rules_.validate(rebuilt);
+		return rebuilt;
 	});
 
 	// All read and checked: put it in place, and back if the observer can't show it
@@ -198,7 +219,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	std::swap(mode_, refs.mode);
 	std::swap(nextProposal_, refs.nextProposal);
 	std::swap(imported_, refs.imported);
-	document_ = mainHead().document;
+	std::swap(document_, document);
 	json state = document_.contains("state") ? document_["state"] : json::object();
 	std::swap(state_, state);
 	try {
@@ -212,7 +233,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		std::swap(nextProposal_, refs.nextProposal);
 		std::swap(imported_, refs.imported);
 		std::swap(state_, state);
-		document_ = mainHead().document;
+		std::swap(document_, document);
 		documentChanged();
 		throw;
 	}
@@ -231,13 +252,15 @@ Repository::Refs Repository::readRefs(detail::HistoryStore& store) {
 		refs.erase("checksum");
 		if(detail::sha256(refs.dump()) != checksum)
 			throw HistoryError(file, "its content doesn't match its checksum: the file is damaged");
-		if(refs.value("format", std::string()) != historyFormat || refs.value("version", 0) != 1)
-			throw HistoryError(file, "not an AffrescoUI history (format \"affrescoui-history\", version 1)");
+		if(const int version = refs.value("version", 0);
+		   refs.value("format", std::string()) != historyFormat || version < 1 || version > historyVersion)
+			throw HistoryError(file, "not an AffrescoUI history (format \"affrescoui-history\", version 1 or 2)");
 
 		Refs result;
 		result.main = commitId(refs.at("main"), "main");
 		result.nextProposal = expect::integer(refs.at("nextProposal"), "nextProposal");
 		result.imported = changeSetIds(refs.at("imported"));
+		if(refs.contains("packs")) result.packs = packNames(refs["packs"]);
 		const auto mode = modeFromString(expect::string(refs.at("mode"), "mode"));
 		if(!mode) expect::fail("mode", R"(expected "default", "acceptEdits" or "plan")");
 		result.mode = *mode;
@@ -284,9 +307,9 @@ Repository::Proposal Repository::readProposal(const json& entry, const std::stri
 	return proposal;
 }
 
-const json& Repository::readDocument(detail::HistoryStore& store, const std::string& id,
-                                     const std::filesystem::path& namedIn,
-                                     std::unordered_map<std::string, json>& documents) {
+std::shared_ptr<const json>
+Repository::readDocument(detail::HistoryStore& store, const std::string& id, const std::filesystem::path& namedIn,
+                         std::unordered_map<std::string, std::shared_ptr<const json>>& documents) {
 	if(const auto known = documents.find(id); known != documents.end()) return known->second;
 	if(!detail::isObjectId(id)) throw HistoryError(namedIn, "'" + id.substr(0, 80) + "' is not a document id");
 	const std::filesystem::path file = store.objectFile(id);
@@ -294,17 +317,18 @@ const json& Repository::readDocument(detail::HistoryStore& store, const std::str
 	// Its id is the SHA-256 of its JSON, the same hash a commit's id covers
 	if(detail::sha256(document.dump()) != id)
 		throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
-	return documents.emplace(id, std::move(document)).first->second;
+	return documents.emplace(id, std::make_shared<const json>(std::move(document))).first->second;
 }
 
 Repository::Commit Repository::readObject(detail::HistoryStore& store, const std::string& id,
                                           const std::filesystem::path& namedIn,
-                                          std::unordered_map<std::string, json>& documents) {
+                                          std::unordered_map<std::string, std::shared_ptr<const json>>& documents) {
 	if(!detail::isObjectId(id)) throw HistoryError(namedIn, "'" + id.substr(0, 80) + "' is not a commit id");
 	const std::filesystem::path file = store.objectFile(id);
 	Commit commit;
-	const std::string tree = reading(file, [&] {
-		const json object = parseUntrusted(store.readObject(id));
+	bool snapshot = true;
+	reading(file, [&] {
+		json object = parseUntrusted(store.readObject(id));
 		expect::object(object, "commit");
 		commit.parents = strings(object.at("parents"), "parents");
 		commit.author = expect::string(object.at("author"), "author");
@@ -312,21 +336,28 @@ Repository::Commit Repository::readObject(detail::HistoryStore& store, const std
 		commit.time = expect::string(object.at("time"), "time");
 		commit.proposal = expect::integer(object.at("proposal"), "proposal");
 		commit.message = expect::string(object.at("message"), "message");
-		commit.patch = object.at("patch");
-		return commitId(object.at("tree"), "tree");
+		commit.patch = std::move(object.at("patch"));
+		commit.tree = commitId(object.at("tree"), "tree");
+		// Version 2: a delta, and the document only for a snapshot. Version 1: always the document
+		if(const auto delta = object.find("delta"); delta != object.end() && !commit.parents.empty()) {
+			if(!delta->is_array()) expect::fail("delta", "expected a list of operations");
+			commit.delta = std::move(*delta);
+			snapshot = object.value("snapshot", false);
+		}
 	});
-	// The id covers all of it, the document's id included: a single changed byte gives another id
-	if(idOf(commit, tree) != id) throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
-	commit.document = readDocument(store, tree, file, documents);
+	// The id covers all of it but the delta, the document's id included: a single changed byte gives another id
+	if(idOf(commit) != id) throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
+	if(snapshot) commit.snapshot = readDocument(store, commit.tree, file, documents);
 	commit.id = id;
-	commit.number = -1; // from its parents, once they are all read
+	commit.number = -1;        // from its parents, once they are all read
+	commit.sinceSnapshot = -1; // likewise
 	return commit;
 }
 
 std::unordered_map<std::string, Repository::Commit> Repository::readCommits(detail::HistoryStore& store,
                                                                             std::vector<std::string> heads) {
 	std::unordered_map<std::string, Commit> objects;
-	std::unordered_map<std::string, json> documents;
+	std::unordered_map<std::string, std::shared_ptr<const json>> documents;
 	std::vector<std::pair<std::string, std::filesystem::path>> pending; // a commit, and the file that names it
 	pending.reserve(heads.size());
 	for(std::string& head : heads) pending.emplace_back(std::move(head), store.refsFile());
@@ -350,6 +381,16 @@ std::unordered_map<std::string, Repository::Commit> Repository::readCommits(deta
 		}
 		known->number = std::max(known->number, 0);
 		for(int number = known->number; Commit* c : unnumbered | std::views::reverse) c->number = ++number;
+	}
+	// And how far each is from a snapshot, which says where the next one goes (revision 0 is always one)
+	for(auto& [id, commit] : objects) {
+		std::vector<Commit*> counted;
+		Commit* known = &commit;
+		for(; known->sinceSnapshot < 0 && !known->snapshot; known = &objects.at(known->parents.front()))
+			counted.push_back(known);
+		if(known->snapshot) known->sinceSnapshot = 0;
+		for(int distance = known->sinceSnapshot; Commit* c : counted | std::views::reverse)
+			c->sinceSnapshot = ++distance;
 	}
 	return objects;
 }
@@ -375,10 +416,10 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 		proposal.patch.insert(proposal.patch.end(), commit->patch.begin(), commit->patch.end());
 }
 
-void Repository::recheckProposal(Proposal& proposal, const Commit& base) const {
-	const json state = base.document.contains("state") ? base.document["state"] : json::object();
+void Repository::recheckProposal(Proposal& proposal, const json& base) const {
+	const json state = base.contains("state") ? base["state"] : json::object();
 	try {
-		const Prepared next = prepare(proposal.patch, base.document, state);
+		const Prepared next = prepare(proposal.patch, base, state);
 		const Verdict verdict = evaluate(next.before, next.after, proposal.author, true);
 		proposal.remember = verdict.kind == Verdict::Kind::Deny
 		                        ? std::vector<std::string>()
@@ -391,22 +432,24 @@ void Repository::recheckProposal(Proposal& proposal, const Commit& base) const {
 
 /* Writing */
 
-json Repository::objectOf(const Commit& commit, const std::string& tree) {
-	return {{"parents", commit.parents},     {"author", commit.author},
-	        {"committer", commit.committer}, {"time", commit.time},
-	        {"proposal", commit.proposal},   {"message", commit.message},
-	        {"patch", commit.patch},         {"tree", tree}};
+json Repository::objectOf(const Commit& commit) {
+	json object = {{"parents", commit.parents}, {"author", commit.author},     {"committer", commit.committer},
+	               {"time", commit.time},       {"proposal", commit.proposal}, {"message", commit.message},
+	               {"patch", commit.patch},     {"tree", commit.tree}};
+	if(!commit.delta.is_null()) { // a commit loaded from version 1 has none, and its document is written
+		object["delta"] = commit.delta;
+		object["snapshot"] = commit.snapshot != nullptr;
+	}
+	return object;
 }
 
 void Repository::writeCommit(const Commit& commit) {
-	// Like Git's trees: commits that leave the document as it was (state changes, merges) share its object
-	const std::string document = commit.document.dump();
-	const std::string tree = detail::sha256(document);
-	const json object = objectOf(commit, tree);
-	if(!history_->hasObject(tree)) {
-		expectReadable(commit.document, history_->objectFile(tree));
-		history_->writeObject(tree, document);
+	// Like Git's trees, a document is written once; and only for snapshots: other commits are rebuilt from deltas
+	if(commit.snapshot && !history_->hasObject(commit.tree)) {
+		expectReadable(*commit.snapshot, history_->objectFile(commit.tree));
+		history_->writeObject(commit.tree, commit.snapshot->dump());
 	}
+	const json object = objectOf(commit);
 	expectReadable(object, history_->objectFile(commit.id));
 	history_->writeObject(commit.id, object.dump());
 }
@@ -426,13 +469,14 @@ json Repository::refsJson() const {
 	json grants = json::array();
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
 	return {{"format", historyFormat},
-	        {"version", 1},
+	        {"version", historyVersion},
 	        {"main", main_.back()},
 	        {"nextProposal", nextProposal_},
 	        {"mode", toString(keptMode_)},
 	        {"proposals", proposals},
 	        {"grants", grants},
-	        {"imported", imported_}};
+	        {"imported", imported_},
+	        {"packs", history_->packs()}};
 }
 
 void Repository::saveHistory() noexcept {
@@ -454,10 +498,15 @@ void Repository::saveHistory() noexcept {
 			for(const std::string& parent : objects_.at(id).parents) pending.emplace_back(parent, false);
 		}
 
-		// Last: the refs only ever name commits that are already on disk
+		// Enough loose objects: into a pack, which the refs name before the loose files go
+		const bool packed = history_->packDue();
+		if(packed) history_->pack();
+
+		// Last: the refs only ever name commits and packs that are already on disk
 		json refs = refsJson();
 		refs["checksum"] = detail::sha256(refs.dump());
 		history_->writeRefs(refs.dump(2) + "\n");
+		if(packed) history_->removeLoose();
 	} catch(const std::exception& error) {
 		try {
 			affresco::log(LogLevel::Error, std::string(error.what()) +

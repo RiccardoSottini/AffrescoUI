@@ -372,9 +372,9 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `changes`, `catalog`, `image`, `done` |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `done` |
 | peer → | `revision` (compact edits or `patch`, `proposal`?), `revert` / `restore` (`revision`), `undo` |
-| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`), relayed with `from` |
 

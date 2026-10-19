@@ -201,6 +201,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Undo steps kept by an `editor` | 500 |
 | A font's glyph atlas (a larger font size is refused) | 4,096 × 4,096 pixels |
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
+| A pack of a history's objects, written | 16 MiB (more objects go into another pack) |
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, so text
 from a peer or a document can't forge a log line or send escape sequences to a terminal.
@@ -240,7 +241,9 @@ These are not protected today. They are stated plainly so that you can decide wh
   history can contain changes the deny rules would have refused, as long as its head passes the revision check. This
   is the same trust as the state file's. A screen loaded from a string (`fromString`) keeps its history in memory
   only, and it is lost when the host quits.
-- **Every commit keeps a full copy of the document in memory,** so memory grows with the history. On disk, each
-  distinct document is stored once.
+- **A commit's delta isn't covered by its id** (it says how the commit is kept, not what it is). The document deltas
+  rebuild is checked against the commit's tree whenever it is rebuilt, and `main`'s head when a history loads, so a
+  damaged delta stops that rebuild with an error; but a delta written by hand that rebuilds the right document can't
+  be told from one the program wrote, which is the trust above.
 - **Windows is new.** The socket channels run on Windows through Winsock's `AF_UNIX`, with an owner-only access list
   on each socket file, but the Windows build doesn't pass CI yet, so it is far less tested than macOS and Linux.

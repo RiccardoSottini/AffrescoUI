@@ -3,6 +3,8 @@
 
 #include "HistoryStore.hpp"
 
+#include "Sha256.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cerrno>
@@ -200,20 +202,87 @@ std::filesystem::path HistoryStore::objectFile(std::string_view id) const {
 }
 
 std::string HistoryStore::readObject(const std::string& id) {
+	if(const auto inPack = packed_.find(id); inPack != packed_.end()) {
+		std::string text = std::move(inPack->second);
+		packed_.erase(inPack);
+		objects_.insert(id);
+		return text;
+	}
 	std::string text = read(objectFile(id));
-	objects_.insert(id);
+	if(objects_.insert(id).second) loose_.emplace_back(id, std::nullopt);
 	return text;
 }
 
 void HistoryStore::writeObject(const std::string& id, std::string_view text) {
 	const std::filesystem::path file = objectFile(id);
-	std::error_code error;
-	const bool created = std::filesystem::create_directories(file.parent_path(), error);
-	if(error) throw HistoryError(file.parent_path(), "can't be created (" + error.message() + ")");
-	if(created && !syncDirectory(file.parent_path().parent_path()))
-		throw HistoryError(file.parent_path().parent_path(), "can't be synced (" + lastError() + ")");
+	createFolder(file.parent_path());
 	write(file, text, Sync::ThisFile);
-	objects_.insert(id);
+	if(objects_.insert(id).second) loose_.emplace_back(id, std::string(text));
+}
+
+/* Packs */
+
+std::filesystem::path HistoryStore::packFile(std::string_view name) const {
+	if(!isObjectId(name))
+		throw HistoryError(directory_, "'" + std::string(name.substr(0, 80)) + "' is not a pack's name");
+	return directory_ / "packs" / std::string(name);
+}
+
+void HistoryStore::readPacks(const std::vector<std::string>& names) {
+	for(const std::string& name : names) {
+		const std::filesystem::path file = packFile(name);
+		const std::string text = read(file);
+		if(sha256(text) != name) throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
+		std::size_t line = 1;
+		for(std::size_t start = 0; start < text.size(); ++line) {
+			std::size_t end = text.find('\n', start);
+			if(end == std::string::npos) end = text.size();
+			const std::string_view entry = std::string_view(text).substr(start, end - start);
+			if(entry.size() < 66 || entry[64] != ' ' || !isObjectId(entry.substr(0, 64)))
+				throw HistoryError(file, "line " + std::to_string(line) + " is not \"<id> <object>\"");
+			packed_.try_emplace(std::string(entry.substr(0, 64)), entry.substr(65));
+			start = end + 1;
+		}
+	}
+	packs_ = names;
+}
+
+void HistoryStore::pack() {
+	std::vector<std::string> written;
+	std::string text;
+	auto flush = [&] {
+		if(text.empty()) return;
+		const std::string name = sha256(text);
+		createFolder(directory_ / "packs");
+		write(packFile(name), text, Sync::ThisFile);
+		written.push_back(name);
+		text.clear();
+	};
+	for(const auto& [id, loose] : loose_) {
+		const std::string object = loose ? *loose : read(objectFile(id)); // copied: a failure keeps them loose
+		if(!text.empty() && text.size() + object.size() + 66 > maxPackSize) flush();
+		text.append(id).append(" ").append(object).append("\n");
+	}
+	flush();
+	packs_.insert(packs_.end(), written.begin(), written.end());
+	for(auto& [id, loose] : loose_) packedLoose_.push_back(std::move(id));
+	loose_.clear();
+}
+
+void HistoryStore::removeLoose() noexcept {
+	for(const std::string& id : packedLoose_) {
+		std::error_code ignored;
+		std::filesystem::remove(directory_ / "objects" / id.substr(0, 2) / id.substr(2), ignored);
+	}
+	packedLoose_.clear();
+}
+
+void HistoryStore::createFolder(const std::filesystem::path& folder) {
+	std::error_code error;
+	const bool created = std::filesystem::create_directories(folder, error);
+	if(error) throw HistoryError(folder, "can't be created (" + error.message() + ")");
+	if(created && !syncDirectory(folder.parent_path()))
+		throw HistoryError(folder.parent_path(), "can't be synced (" + lastError() + ")");
 }
 
 std::filesystem::path HistoryStore::moveAside() {

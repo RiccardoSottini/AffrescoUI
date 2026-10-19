@@ -57,7 +57,8 @@ A revision is one change to the running screen:
 - **`proposal`** (optional): push onto your own open proposal instead of opening a new one.
 
 ## Commits and `main`
-Every applied change is a commit on `main`. A commit records the whole document, its parents, the author (who wrote
+Every applied change is a commit on `main`. A commit records the document (kept as a delta from its parent's: see
+"History in proportion to the changes"), its parents, the author (who wrote
 the change), the committer (who applied it: the author, or the reviewer who accepted it), the time, the message and
 the patch (compact edits written out as JSON Patch). Its id is the **SHA-256** of all of that, parents included, so an id stands for exactly one
 history.
@@ -177,6 +178,12 @@ inside those areas apply without asking.
   commit changed the same parts, it is refused as a conflict. **Undo** reverts the latest revision.
 - **Restore** a revision: a new commit that makes the whole screen equal to it again (`git restore --source`).
 - Reverts and restores made by agents follow the same permissions as any other change.
+- **Blame** a node or a value (`git blame`): the commit on `main` that last changed it, with its author, committer
+  (who applied or approved it), message and time. The target is a node (`#board`, or `#board/text` inside it) or a
+  path (`/colors/accent`). A commit changes a node if it changes the node, something inside it, or where it is (moved,
+  or replaced along with what holds it); an item added or removed before it in a list only moves it. A path under
+  `/state` gives the last commit whose patch reached that part of the live state (actions that change the state
+  aren't commits). What no commit changed gives revision 0.
 
 ## History on disk
 A screen opened from a file (`Screen::fromFile`, which `affrescoui_host` and the Studio use) keeps its history in
@@ -195,17 +202,22 @@ history in memory only. The host does that for a plain screenshot run (`AFFRESCO
 ```
 kanban.history/
   lock                  held by the program that writes this history
-  refs.json             main's head, the open proposals, the grants, the mode, the change sets applied, a checksum
-  objects/e1/6ecc8085…  commits and documents, each named by its SHA-256
+  refs.json             main's head, the open proposals, the grants, the mode, the change sets applied, the packs,
+                        a checksum
+  objects/e1/6ecc8085…  commits and documents not yet packed (loose), each named by its SHA-256
+  packs/9b2f04c1…       loose objects packed together, named by the SHA-256 of the file
 ```
 
-- **Objects, like Git's.** Each commit is one file named by its id, holding everything the id covers: the parents,
-  author, committer, time, message, patch, and the id of its document (its tree). Each document is a file of its own,
-  named by the SHA-256 of its JSON, so commits that leave the document as it was (a change to the live state, a merge
-  of a branch that main hadn't passed) share one. The commits written are those a ref reaches when
-  the history is saved: `main`'s and the open proposals'. Once no ref reaches them (a rejected proposal, or a branch
-  before it was rebuilt), their files stay but are never read again: nothing deletes them yet, as in Git before its
-  garbage collection runs.
+- **Objects, like Git's.** Each commit is one object named by its id, holding everything the id covers (the parents,
+  author, committer, time, message, patch, and the id of its document, its tree), then its delta (below). A document
+  is an object of its own, named by the SHA-256 of its JSON, written only for a snapshot; commits that leave the
+  document as it was (a change to the live state, a merge of a branch that main hadn't passed) share it. The commits
+  written are those a ref reaches when the history is saved: `main`'s and the open proposals'. Once no ref reaches
+  them (a rejected proposal, or a branch before it was rebuilt), they stay but are never read again: nothing deletes
+  them yet, as in Git before its garbage collection runs.
+- **Packs.** Objects are first written loose, a file each. Once 256 are loose, they are written together into a pack,
+  one line per object (`<id> <JSON>`), which the refs then name; only after the refs are on disk do the loose files
+  go. Opening a file costs far more than reading a small one, so a history reads a few files, not one per commit.
 - **Atomic writes.** Every file is written to a temporary file, synced to disk, then renamed over the old one, and
   the rename is synced too (its folder). Commits are written before the refs that name them, so a crash leaves the
   history as it was before the change or after it. On macOS a sync only reaches the drive, whose cache may write in
@@ -214,9 +226,11 @@ kanban.history/
   A write that fails is logged; the change stays in memory, and the next change tries again. Nothing is written that
   loading would refuse (a file over 64 MiB, or JSON nested more than 256 levels deep, which a screen file may be):
   the history on disk then stays where it was, and the error says why.
-- **Verified on load.** Every commit and document read is hashed again and must match its name. The refs file must match its
-  checksum, and each proposal's branch must lead from its head to its base on `main`. A damaged history is never
-  loaded: the app stops with an error that names the file, e.g.
+- **Verified on load.** Every commit and document read is hashed again and must match its name, and so must every
+  pack. A delta isn't covered by its commit's id (it says how the commit is kept, not what it is), so the document
+  that deltas rebuild is hashed and must match the commit's tree: `main`'s head when the history loads, any other
+  commit when it is rebuilt. The refs file must match its checksum, and each proposal's branch must lead from its head
+  to its base on `main`. A damaged history is never loaded: the app stops with an error that names the file, e.g.
   `AffrescoUI history: …/objects/e1/6ecc8085…: its content doesn't match its SHA-256: the file is damaged`. Moving
   the folder aside starts a new history, and keeps the old one for inspection.
 - **Checked again, as if written by hand.** Hashes prove a file isn't damaged, not that a review made it. So `main`'s
@@ -233,12 +247,40 @@ kanban.history/
   now. Customisations are never replayed onto a file they weren't made for.
 - **What it doesn't keep.** The live state is data, not history: after a restart it starts from the document's
   `state`, and then the `persist` paths are loaded from the state file. A preview ends when the app quits.
-- **Cost.** Measured on the Kanban template (macOS, Apple silicon, 100 changes, half of them to the document, half to
-  the live state only):
-  - a change takes about 1.1–1.4 ms with the history in a folder, against 0.23 ms in memory. Of that, about 0.4 ms is
-    the macOS barrier, and an edit of the document writes one more file (the document) than a change to the state;
-  - the folder takes 476 KiB (about 10 KB per new document; a commit alone is a few hundred bytes);
-  - loading its 101 commits takes about 12 ms.
+- **Versions.** This is version 2 of the history (`"version"` in `refs.json`): deltas, snapshots and packs. A
+  version 1 history, where every commit's document is an object of its own, still loads, and goes on as version 2;
+  what it wrote stays as it was. A program older than version 2 refuses a version 2 history (it isn't a version 1
+  history), and changes nothing in it.
+- **Cost.** Measured on the Kanban template (macOS, Apple silicon, Release), small commits (a label's text):
+  - a change takes about 1 ms with the history in a folder, against 0.26 ms in memory; most of it is waiting for the
+    disk (the macOS barrier is about 0.4 ms);
+  - 10,000 commits take 6.8 MB on disk, 675 bytes per commit (with version 1: 103 MB, 10,259 bytes per commit, in
+    20,004 files);
+  - loading them takes 114 ms (with version 1: 2.2 s).
+
+## History in proportion to the changes
+A commit doesn't keep a copy of its document. It keeps its **delta**: a JSON Patch from its first parent's document
+to its own, worked out exactly (keys in the same order, 1 and 1.0 apart), so that applied to the parent it gives the
+document its id names. Lists keep their common start and end, so adding or removing one item is one operation. Every
+64th commit along first parents (and revision 0) is also a **snapshot**: it keeps the whole document. Any other
+commit's document is rebuilt from the nearest snapshot before it, with at most 63 deltas, and checked against its
+tree. `main`'s head is the working copy, so commits, merges and previews never rebuild anything; diffs, restores,
+reverts and loading do.
+
+The interval was chosen by measurement on the Kanban template (10,000 small commits; memory kept per commit in
+memory, the worst rebuild as a diff of two commits, and loading from disk):
+
+| Snapshot every | Memory per commit | Worst diff | Load of 10,000 |
+|---|---|---|---|
+| 16 | 3,614 B | 175 µs | 225 ms |
+| 32 | 2,463 B | 202 µs | 161 ms |
+| **64** | **2,079 B** | **230 µs** | **123 ms** |
+| 128 | 1,696 B | 307 µs | 104 ms |
+| 256 | 1,312 B | 463 µs | 96 ms |
+
+Each commit kept 39 KB before (a copy of the document): 10,000 commits held 411 MB, and now 21 MB. A commit takes the
+same time at commit 100 and at commit 10,000 (266 and 270 µs), and blame reads every commit back to revision 0 in
+4.7 ms. The benchmarks are the `history` workloads in `tests/perf`.
 
 ## Change sets: customisations as plugins
 The commits on `main` after a point can be exported as a **change set**:
@@ -264,7 +306,7 @@ share the result as a plugin others can install.
 | Submit a change | `submitRevision` (permission-checked), `applyRevision` (the app's own) | `revision` | `submit_revision` |
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |
 | Modes and grants | `setMode`, `setModeForThisRun`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
-| History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff` | `getHistory` (`limit`), `diff`, `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `revert_revision`, `restore_revision` |
+| History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
 | In the screen file | `permissions` (`allow`, `ask`, `deny`, `reviewers`), `locked`, steps `accept`/`reject`/`preview`/`endPreview`/`restore`/`revert`/`undo`, variables `proposals`/`history`/`preview`/`mode` | | |

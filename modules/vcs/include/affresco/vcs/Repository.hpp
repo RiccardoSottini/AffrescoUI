@@ -38,6 +38,9 @@ class Repository final : public VersionControl {
 public:
 	/// Most proposals one channel may have open at once, so a peer can't flood the reviewer.
 	static constexpr std::size_t maxOpenProposals = 16;
+	/// How many commits apart, along first parents, commits keep their whole document: a commit is rebuilt from at
+	/// most this many deltas. Chosen by measurement (VERSION_CONTROL.md, "History in proportion to the changes").
+	static constexpr int snapshotInterval = 64;
 
 	/// @brief Puts a document under version control as revision 0.
 	/// @param rules The document's rules; must outlive the repository.
@@ -82,6 +85,7 @@ public:
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
 	[[nodiscard]] json revertRevision(const json& revision, std::string_view author) const override;
 	[[nodiscard]] json diff(const json& from, const json& to) const override;
+	[[nodiscard]] CommitInfo blame(std::string_view target) const override;
 
 	/* Review */
 	[[nodiscard]] std::vector<ProposalInfo> proposals() const override;
@@ -112,15 +116,21 @@ public:
 	[[nodiscard]] bool hasImported(const json& changes) const;
 
 private:
-	/// @brief A commit object.
+	/// @brief A commit object. It keeps how its document differs from its first parent's, not the document: every
+	/// snapshotInterval-th commit along first parents (and revision 0) also keeps the whole document, and any other is
+	/// rebuilt from the nearest one (documentOf()), so the history grows with the changes, not with the document.
 	struct Commit {
-		std::string id;                               ///< SHA-256 of everything below except the number.
+		std::string id;                               ///< SHA-256 of what it is (idOf()); not of the delta.
 		std::vector<std::string> parents;             ///< main's commit first.
 		std::string author, committer, message, time; ///< Who wrote it, who applied it, why, when.
 		int number = 0;                               ///< Position on main, or after the base on a proposal branch.
 		int proposal = 0;                             ///< The proposal a merge commit merged.
-		json document;                                ///< The whole document (the "tree").
+		std::string tree;                             ///< The SHA-256 of its document's JSON, which the id covers.
 		json patch = json::array(); ///< As submitted (with "#id" paths): what rebases and change sets replay.
+		json delta;                 ///< Its document from its first parent's (detail::delta()); null without a parent,
+		                            ///< or when loaded from a history written before deltas (then it has a snapshot).
+		std::shared_ptr<const json> snapshot; ///< Its whole document, if it keeps one (shared by equal documents).
+		int sinceSnapshot = 0;                ///< Commits back to the nearest snapshot along first parents.
 	};
 
 	/// @brief An open proposal: a branch from `base` to `head`.
@@ -151,8 +161,26 @@ private:
 
 	/// @brief main's newest commit.
 	[[nodiscard]] const Commit& mainHead() const { return objects_.at(main_.back()); }
+	/// @brief main's head's document (the preview has its own).
+	[[nodiscard]] const json& mainDocument() const { return previewing_ ? committedDocument_ : document_; }
 	/// @brief The live state as committed (the preview has its own).
 	[[nodiscard]] const json& committedState() const { return previewing_ ? committedState_ : state_; }
+	/// @brief A commit's document: main's head's as it is, any other rebuilt from the nearest snapshot.
+	/// @param commit The commit.
+	/// @return The document.
+	/// @throws HistoryError If a delta read from disk doesn't rebuild the document its id names.
+	[[nodiscard]] json documentOf(const Commit& commit) const;
+	/// @brief Rebuilds a commit's document from the nearest snapshot along first parents, and checks it against the
+	/// commit's tree.
+	/// @param objects The commits, by id.
+	/// @param commit The commit.
+	/// @return The document.
+	/// @throws HistoryError If the deltas don't rebuild the document the commit names (a damaged history).
+	[[nodiscard]] static json rebuild(const std::unordered_map<std::string, Commit>& objects, const Commit& commit);
+	/// @brief How a commit's document differs from its first parent's.
+	/// @param commit A commit with a parent.
+	/// @return Its delta (worked out from the documents for a commit loaded from a history without deltas).
+	[[nodiscard]] json deltaOf(const Commit& commit) const;
 	/// @brief Describes a commit.
 	/// @param commit The commit.
 	/// @return Its public description.
@@ -175,16 +203,20 @@ private:
 	/// @param id Its id.
 	/// @return It, or nullptr.
 	[[nodiscard]] const Proposal* findProposal(int id) const;
-	/// @brief Hashes a commit and stores it (storing the same content twice gives the same commit).
-	/// @param commit The commit, without its id.
+	/// @brief Hashes a commit and stores it with its delta, and a snapshot if one is due (storing the same content
+	/// twice gives the same commit).
+	/// @param commit The commit, without its id, tree, delta or snapshot.
+	/// @param document Its document.
+	/// @param parentDocument Its first parent's document, or nullptr for revision 0.
 	/// @return The stored commit.
-	const Commit& store(Commit commit);
+	const Commit& store(Commit commit, const json& document, const json* parentDocument);
 	/// @brief Puts a commit on main and makes it the working copy. Ends any preview.
 	/// @param commit The commit; main's head becomes its first parent.
+	/// @param document The document after it.
 	/// @param state The live state after it.
 	/// @return The stored commit.
 	/// @throws DocumentError If the observer refuses it; then nothing changed.
-	const Commit& land(Commit commit, json state);
+	const Commit& land(Commit commit, json document, json state);
 
 	/// @brief Resolves a "#id/rest" path to the node's JSON Pointer followed by "/rest".
 	/// @param view The document as it is when the operation runs.
@@ -242,31 +274,28 @@ private:
 
 	/// @brief What the refs file holds: main's head, the open proposals, the grants, the mode and the change sets applied.
 	struct Refs;
-	/// @brief A commit's id: the SHA-256 of what it is (store() and the history on disk use it).
+	/// @brief A commit's id: the SHA-256 of what it is (store() and the history on disk use it): its tree, parents,
+	/// author, committer, time, patch, proposal and message. Not its delta or snapshot, which say how it is kept.
 	/// @param commit The commit; its id is ignored.
 	/// @return 64 hex digits.
 	[[nodiscard]] static std::string idOf(const Commit& commit);
-	/// @brief A commit's id, when its document's SHA-256 (its tree) is known.
-	/// @param commit The commit; its id and document are ignored.
-	/// @param tree The SHA-256 of its document's JSON.
-	/// @return 64 hex digits.
-	[[nodiscard]] static std::string idOf(const Commit& commit, const std::string& tree);
 	/// @brief A commit as it is written to disk.
 	/// @param commit The commit.
-	/// @param tree The id of its document, which is written once, as an object of its own.
-	/// @return Everything its id covers, with the document named by its id.
-	[[nodiscard]] static json objectOf(const Commit& commit, const std::string& tree);
+	/// @return Everything its id covers, with the document named by its id (its tree), then its delta, and whether
+	/// its document is written as an object of its own (a snapshot).
+	[[nodiscard]] static json objectOf(const Commit& commit);
 	/// @brief Reads a document object and checks it against its id.
 	/// @param store The history.
 	/// @param id The document's id: the SHA-256 of its JSON.
 	/// @param namedIn The file that names it, for errors.
 	/// @param documents The documents read so far, by id: commits that share a document read it once.
-	/// @return The document.
+	/// @return The document, shared by the commits that name it.
 	/// @throws DocumentError If it is missing, malformed, or its content doesn't match its id.
-	[[nodiscard]] static const json& readDocument(detail::HistoryStore& store, const std::string& id,
-	                                              const std::filesystem::path& namedIn,
-	                                              std::unordered_map<std::string, json>& documents);
-	/// @brief Reads a commit object and its document, and checks them against their ids.
+	[[nodiscard]] static std::shared_ptr<const json>
+	readDocument(detail::HistoryStore& store, const std::string& id, const std::filesystem::path& namedIn,
+	             std::unordered_map<std::string, std::shared_ptr<const json>>& documents);
+	/// @brief Reads a commit object, and its document if it is a snapshot, and checks them against their ids. A
+	/// commit's delta isn't covered by its id: rebuild() checks the documents deltas give against their trees.
 	/// @param store The history.
 	/// @param id The commit's id.
 	/// @param namedIn The file that names it, for errors.
@@ -275,8 +304,8 @@ private:
 	/// @throws DocumentError If it is missing, malformed, or its content doesn't match its id.
 	[[nodiscard]] static Commit readObject(detail::HistoryStore& store, const std::string& id,
 	                                       const std::filesystem::path& namedIn,
-	                                       std::unordered_map<std::string, json>& documents);
-	/// @brief Reads every commit the heads lead to, and numbers them.
+	                                       std::unordered_map<std::string, std::shared_ptr<const json>>& documents);
+	/// @brief Reads every commit the heads lead to, numbers them, and counts each one's distance to a snapshot.
 	/// @param store The history.
 	/// @param heads main's head, then the proposals' heads.
 	/// @return The commits, by id.
@@ -307,8 +336,8 @@ private:
 	/// written by hand. The live state it was made on isn't kept, so the base's "state" stands in for it; if the patch
 	/// doesn't apply on that, nothing is remembered (it can still be accepted).
 	/// @param proposal The proposal, completed (completeProposal()).
-	/// @param base Its base commit.
-	void recheckProposal(Proposal& proposal, const Commit& base) const;
+	/// @param base Its base commit's document.
+	void recheckProposal(Proposal& proposal, const json& base) const;
 	/// @brief Replaces the history with the one in a folder, if it began with the same document.
 	/// @param store The folder.
 	/// @return false, changing nothing, if it began with another document.
@@ -317,7 +346,7 @@ private:
 	/// @brief The refs file's content: main's head, the open proposals, the grants, the mode and the change sets applied.
 	/// @return It, without its checksum.
 	[[nodiscard]] json refsJson() const;
-	/// @brief Writes a commit, and its document unless the folder already has it.
+	/// @brief Writes a commit, and its document if it is a snapshot the folder doesn't have yet.
 	/// @param commit The commit; its parents are on disk already.
 	/// @throws DocumentError If either can't be written, or is more than a history reads back.
 	void writeCommit(const Commit& commit);
@@ -338,6 +367,7 @@ private:
 	int nextProposal_ = 1;            ///< Next proposal id.
 	std::optional<int> previewing_;   ///< Proposal shown in place of main's head.
 	json committedState_;             ///< The live state, kept aside during a preview.
+	json committedDocument_;          ///< main's head's document, kept aside during a preview.
 	Mode mode_ = Mode::Default;       ///< The mode in force: see setMode() and setModeForThisRun().
 	Mode keptMode_ = Mode::Default;   ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;       ///< "Don't ask again" rules.
