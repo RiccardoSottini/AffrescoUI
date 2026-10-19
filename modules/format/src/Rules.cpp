@@ -1,5 +1,7 @@
 #include "affresco/format/Rules.hpp"
 
+#include "Checker.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <functional>
@@ -21,6 +23,9 @@ constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "end
 
 /// Sections that grant capabilities (talking to programs, writing to disk): revisions may never change them.
 constexpr std::string_view capabilities[] = {"permissions", "channels", "persist"};
+
+/// The most findings a rejected revision lists; it says how many more there are.
+constexpr std::size_t maxListed = 10;
 
 /// @brief Whether a key's string value names an action to run: an event handler ("onClick"), "do", "onLoad", "run".
 /// @param key The key.
@@ -139,6 +144,15 @@ std::vector<std::string> controlsIn(const json& doc) {
 	}
 	std::ranges::sort(found);
 	return found;
+}
+
+/// @brief The state a document is checked against.
+/// @param document The document, with the live state as its "state".
+/// @return Its state, or an empty object.
+const json& stateOf(const json& document) {
+	static const json none = json::object();
+	const auto it = document.find("state");
+	return it != document.end() ? *it : none;
 }
 
 } // namespace
@@ -280,6 +294,29 @@ void Rules::checkChange(const json& before, const json& after) const {
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
 		     "restore, revert, undo, patch, call, send or connect steps, nor run an action that has them, a "
 		     "native action or a computed one");
+
+	// What a revision refers to must exist, so a typo is rejected before a reviewer sees it. Findings that were there
+	// before don't block it: the revision didn't bring them. (Most screens have none: then one check is enough.)
+	const auto now = check(after, stateOf(after), nativeActions_);
+	if(!now || now->empty()) return; // nothing found, or too large to check
+	const auto old = check(before, stateOf(before), nativeActions_);
+	if(!old) return;
+	const std::vector<Finding> added = introduced(*old, *now);
+	if(added.empty()) return;
+	std::string message = "the checker found:";
+	for(std::size_t i = 0; i < added.size() && i < maxListed; ++i) message += (i ? "; " : " ") + added[i].text();
+	if(added.size() > maxListed) message += "; and " + std::to_string(added.size() - maxListed) + " more";
+	fail("revision", message);
 }
+
+std::vector<std::string> Rules::findings(const json& document, const json& state) const {
+	const auto found = check(document, state, nativeActions_);
+	if(!found) return {"not checked: the screen is larger than the checker's limit"};
+	std::vector<std::string> lines;
+	for(const Finding& finding : *found) lines.push_back(finding.text());
+	return lines;
+}
+
+void Rules::addNativeAction(std::string name) { nativeActions_.insert(std::move(name)); }
 
 } // namespace affresco::format

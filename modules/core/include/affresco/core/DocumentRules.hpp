@@ -68,8 +68,8 @@ public:
 	[[nodiscard]] virtual Permissions permissions(const json& document) const = 0;
 
 	/// @brief Checks changes the format forbids for everyone (e.g. editing the permissions).
-	/// @param before The document now.
-	/// @param after The document after the change.
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
 	/// @throws DocumentError If the change is forbidden.
 	virtual void checkChange(const json& before, const json& after) const = 0;
 };
