@@ -28,7 +28,9 @@ jobs:
           sudo apt-get install -y --no-install-recommends doxygen
           doxygen --version
       - name: Build the API reference
-        run: doxygen Doxyfile # WARN_AS_ERROR = FAIL_ON_WARNINGS: any warning fails the step
+        run: | # WARN_AS_ERROR = FAIL_ON_WARNINGS: any warning fails the step
+          mkdir -p build/api-reference # Doxygen 1.9 creates only the last folder of OUTPUT_DIRECTORY
+          doxygen Doxyfile
       - name: Upload the API reference
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
