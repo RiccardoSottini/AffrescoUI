@@ -89,3 +89,23 @@ TEST_CASE("format: a screen destroyed before its window's next frame leaves no d
 	screen.reset();
 	window.render();
 }
+
+// A declared channel that can't connect waits to try again on a window timer, which points at the screen
+// (AddressSanitizer: heap-use-after-free in the reconnect task)
+TEST_CASE("screen: a screen destroyed while its window lives on cancels its channels' reconnect timers") {
+	affresco::Application app;
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	auto screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen",
+		"version": 1,
+		"channels": { "nobody": { "socket": "/nonexistent-affrescoui-test/nobody.sock", "reconnect": { "after": 1 } } },
+		"root": { "type": "panel" }
+	})json"));
+	affresco::Window& window = screen->createWindow(app); // nothing listens there: a reconnect is waiting
+	REQUIRE(window.secondsToNextTimer());
+
+	screen.reset();
+	CHECK_FALSE(window.secondsToNextTimer());
+	waitForTimers();
+	window.render();
+}

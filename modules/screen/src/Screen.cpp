@@ -83,6 +83,9 @@ struct Screen::Impl {
 	~Impl() {
 		*alive = false;
 		servers.clear();
+		if(Window* window = runtime.window()) // the reconnect timers point at the screen
+			for(const auto& [name, channel] : channels)
+				if(channel.retry) window->cancelTimer(channel.retry);
 		channels.clear();
 	}
 
