@@ -1,0 +1,194 @@
+#pragma once
+
+/// @file
+/// @brief format::TypeRegistry: the node types a runtime can build, each with its factory and its own properties.
+
+#include "affresco/core/Json.hpp"
+#include "affresco/core/Signal.hpp"
+#include "affresco/render/Color.hpp"
+#include "affresco/render/Font.hpp"
+#include "affresco/render/Panel.hpp"
+
+#include <array>
+#include <functional>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace affresco::format {
+
+/// @brief The kind of value a property takes, for the catalog and the checker.
+enum class ValueKind {
+	Any,       ///< Anything; the type's apply function checks it.
+	Boolean,   ///< true or false.
+	Number,    ///< A number.
+	Text,      ///< Text (numbers and booleans are shown as text).
+	Color,     ///< "#rrggbb", "@name" or "transparent".
+	Font,      ///< A name from "fonts".
+	StatePath, ///< A path into the state, e.g. "state.volume".
+};
+
+/// @brief One property of a node type.
+struct PropertySpec {
+	std::string name;                ///< Its key in a node.
+	ValueKind kind = ValueKind::Any; ///< The kind of value it takes.
+	bool states = true;              ///< Whether a state block ("hover", "pressed", ...) may set it.
+	bool transition = false;         ///< Whether "transition" may animate it.
+};
+
+/// @brief What a type's apply function reads its values with: colours in the current theme, fonts by name.
+class PropertyReader {
+public:
+	virtual ~PropertyReader() = default;
+
+	/// @brief Reads a colour.
+	/// @param value "#rrggbb", "@name" or "transparent".
+	/// @param at Its place, for errors.
+	/// @return The colour.
+	/// @throws DocumentError If it is not a colour.
+	[[nodiscard]] virtual Color color(const json& value, const std::string& at) const = 0;
+
+	/// @brief Reads a font name.
+	/// @param value A name from "fonts".
+	/// @param at Its place, for errors.
+	/// @return The font.
+	/// @throws DocumentError If it isn't a font of the document.
+	[[nodiscard]] virtual std::shared_ptr<const Font> font(const json& value, const std::string& at) const = 0;
+
+protected:
+	PropertyReader() = default;
+	PropertyReader(const PropertyReader&) = default;
+	PropertyReader& operator=(const PropertyReader&) = default;
+};
+
+/// @brief Applies a type's own properties to one of its panels.
+///
+/// @p values holds the evaluated values the node has, of the names the type registered (a state block's on top);
+/// a name that is missing means its default. Throwing DocumentError reports it as is; another std::exception is
+/// reported at @p path.
+using ApplyFunction =
+    std::function<void(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path)>;
+
+/// @brief A widget's value: what its "bind" mirrors, and what it reports when the user changes it.
+struct ValueHooks {
+	/// The property that holds the value when the node isn't bound, e.g. "checked".
+	const char* property = nullptr;
+	/// Shows the value: the bound state value if @p bound is set, else @p properties' value property (or its default).
+	/// @p lastText is the unbound text shown last time, for widgets that set text only when it changes.
+	void (*show)(Panel& panel, const json* bound, const json& properties,
+	             std::optional<std::string>& lastText) = nullptr;
+	/// Connects the panel's signal for a value the user changed; @p changed gets the new value.
+	Connection (*listen)(Panel& panel, std::function<void(const json& value)> changed) = nullptr;
+	/// Disconnects what listen() connected.
+	void (*stopListening)(Panel& panel, Connection connection) = nullptr;
+};
+
+/// @brief The properties a kind of panel has besides those of every panel, and how they are applied.
+struct PropertySet {
+	/// Its properties, in the order the catalog lists them. Behaviour keys ("bind", "text", "checked", "autofocus")
+	/// are listed for the catalog; the runtime handles them itself, so apply() never sees them.
+	std::vector<PropertySpec> properties;
+	/// Applies them; empty for the built-in types whose properties the runtime applies itself, which then only
+	/// describe them for the catalog.
+	ApplyFunction apply;
+	/// Whether apply() runs on every update (the built-in widgets, whose colours follow the theme), or only when the
+	/// values changed (an application's types).
+	bool everyUpdate = false;
+	/// For a panel of another type that has these properties too: the built-in widgets give them to subclasses, e.g.
+	/// an application's TextEditor has those of "editor". Null: only panels of its own type.
+	bool (*appliesTo)(const Panel& panel) = nullptr;
+	/// The widget's value, if it has one (it can then "bind").
+	ValueHooks value;
+	/// Whether a click on the widget is its own, like a native control's: it changed the widget's value, so it doesn't
+	/// bubble to an ancestor's "onClick" (unless the node has one of its own).
+	bool keepsClicks = false;
+
+	/// @brief Finds one of its properties.
+	/// @param name The name.
+	/// @return The property, or nullptr.
+	[[nodiscard]] const PropertySpec* find(std::string_view name) const noexcept;
+};
+
+/// @brief The property sets that apply to one panel: its type's, then those of the built-in widgets it is a subclass
+/// of. Unused places are null.
+using PropertySets = std::array<std::shared_ptr<const PropertySet>, 3>;
+
+/// @brief A node type: how to create its panel, and its own properties.
+struct NodeType {
+	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a panel of the type.
+
+	std::string name;                       ///< Its "type" in a node.
+	std::string about;                      ///< One line for the catalog.
+	Factory create;                         ///< Creates its panel.
+	std::shared_ptr<const PropertySet> own; ///< Its own properties; never null.
+	bool application = false;               ///< Registered by the application (the catalog's "customTypes").
+};
+
+/// @brief The node types a runtime can build: the built-in ones, which register from their own files
+/// (registerBuiltInTypes()), and those the application registers (Runtime::registerType), through the same add().
+///
+/// Invariants: every type has a factory and a property set. A type added under the name of one already there replaces
+/// it, built-in or not. Owned by one runtime; main thread only. Callers: the reconciler (create(), setsFor()), the
+/// properties subsystem (setsFor(), transitionable()) and the catalog (types()).
+class TypeRegistry {
+public:
+	/// @brief Adds a type, or replaces the one of the same name.
+	/// @param type The type; its property set may be null for none.
+	void add(NodeType type);
+
+	/// @brief Finds a type.
+	/// @param name Its name.
+	/// @return The type, or nullptr.
+	[[nodiscard]] const NodeType* find(std::string_view name) const;
+
+	/// @brief Creates a panel of a type.
+	/// @param type The "type".
+	/// @param path Its place, for errors.
+	/// @param placeholders Whether an unknown type becomes a plain panel (with a warning) rather than an error.
+	/// @return The panel.
+	/// @throws DocumentError If the type is unknown, or its factory returns nothing.
+	[[nodiscard]] std::unique_ptr<Panel> create(const std::string& type, const std::string& path,
+	                                            bool placeholders) const;
+
+	/// @brief The property sets of a panel of a type that apply or show something: its own, then the built-in
+	/// widgets' it inherits.
+	/// @param type The type, or nullptr (the root, a placeholder).
+	/// @param panel The panel.
+	/// @return The sets.
+	[[nodiscard]] PropertySets setsFor(const NodeType* type, const Panel& panel) const;
+
+	/// @brief Tells whether a property of any type can transition.
+	/// @param name The property.
+	/// @return true if a type registered it with PropertySpec::transition.
+	[[nodiscard]] bool transitionable(std::string_view name) const;
+
+	/// @brief Every type, by name.
+	[[nodiscard]] const std::map<std::string, NodeType, std::less<>>& types() const noexcept { return types_; }
+	/// @brief Every type, in the order first added (a type replaced keeps its place).
+	/// @return The types.
+	[[nodiscard]] std::vector<const NodeType*> inOrder() const;
+
+private:
+	std::map<std::string, NodeType, std::less<>> types_;        ///< See types().
+	std::vector<std::string> order_;                            ///< Their names, in the order first added.
+	std::vector<std::shared_ptr<const PropertySet>> inherited_; ///< Sets with appliesTo, in the order added.
+};
+
+/// @brief Registers the built-in node types (Types.cpp, and the widgets' own files).
+/// @param registry The registry.
+void registerBuiltInTypes(TypeRegistry& registry);
+
+/// @brief Registers "toggle" and "checkbox" (ToggleType.cpp).
+/// @param registry The registry.
+void registerToggleTypes(TypeRegistry& registry);
+/// @brief Registers "slider" (SliderType.cpp).
+/// @param registry The registry.
+void registerSliderType(TypeRegistry& registry);
+/// @brief Registers "editor" (EditorType.cpp).
+/// @param registry The registry.
+void registerEditorType(TypeRegistry& registry);
+
+} // namespace affresco::format

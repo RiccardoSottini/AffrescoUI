@@ -52,8 +52,9 @@ public:
 
 	/* Before building */
 
-	/// @brief Registers a custom "type" usable in the document. It has the properties of the built-in type its panel
-	/// derives from (e.g. a TextEditor subclass has those of "editor"), plus its own.
+	/// @brief Registers a custom "type" usable in the document, through the same registry as the built-in types. It
+	/// has the properties of the built-in widget its panel derives from (e.g. a TextEditor subclass has those of
+	/// "editor"), plus its own. Under the name of a built-in type, it replaces that type.
 	/// @param name The type name.
 	/// @param factory Creates its panel.
 	/// @param properties Its own property names.

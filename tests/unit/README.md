@@ -38,7 +38,9 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `timers.cpp` | `Window` timers, and a screen's timers, deferred tasks and animations, and what is left when it is destroyed (headless) |
 | `review.cpp` | `accept` steps name the reviewed head; control steps while a proposal is previewed (headless) |
 | `shapes.cpp` | `radius`, `borderWidth`, `borderColor` and `shadow` on a screen: applied, reset, errors, the border colour's transition (headless) |
-| `runtime.cpp` | The runtime on a headless window: the shipped templates build, and the Kanban template answers a click |
+| `runtime.cpp` | The runtime on a headless window: the shipped templates build, and the Kanban template answers a click; a screen destroyed before its window takes back everything that calls into it |
+| `registries.cpp` | The format's registries: node types (order, factories, inherited property sets, replacing a type), steps (groups, control steps, a step registered twice), sections (validation, capabilities); the catalog built from them; an application's type |
+| `scheduler.cpp` | The runtime's scheduler on a manual clock: `every`, `after`, `debounce`, `animate`, colour transitions, double clicks |
 | `window/images.cpp` | `affrescoui_window_tests`: pictures of main and of a proposal, with the person's view left as it was |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main`, for both programs |

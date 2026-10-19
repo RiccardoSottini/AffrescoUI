@@ -1,0 +1,150 @@
+/// @file
+/// @brief The core node types (panel, label, textarea, stack, row, column, grid, outlet): their factories, and their
+/// properties for the catalog. The runtime applies these properties itself (Properties.cpp); the widgets (editor,
+/// toggle, checkbox, slider) register from their own files, with their apply functions. The catalog lists the types
+/// in the order they are registered here.
+
+#include "TypeRegistry.hpp"
+
+#include "affresco/render/Label.hpp"
+#include "affresco/render/Stack.hpp"
+#include "affresco/render/TextArea.hpp"
+
+#include <initializer_list>
+#include <utility>
+
+namespace affresco::format {
+
+namespace {
+
+/// @brief A property set that only describes its properties.
+/// @param properties The properties, in catalog order.
+/// @return The set.
+std::shared_ptr<const PropertySet> described(std::initializer_list<PropertySpec> properties) {
+	auto set = std::make_shared<PropertySet>();
+	set->properties = properties;
+	return set;
+}
+
+/// @brief The properties of every panel, which "panel" lists. Structural keys ("children", "repeat", handlers, ...)
+/// are listed too, as the catalog always has.
+/// @return The set.
+std::shared_ptr<const PropertySet> commonProperties() {
+	return described({{"id", ValueKind::Text},
+	                  {"style"},
+	                  {"children"},
+	                  {"x"},
+	                  {"y"},
+	                  {"width"},
+	                  {"height"},
+	                  {"minWidth"},
+	                  {"minHeight"},
+	                  {"anchors"},
+	                  {"fill"},
+	                  {"grow", ValueKind::Number},
+	                  {"color", ValueKind::Color, true, true},
+	                  {"radius"},
+	                  {"borderWidth", ValueKind::Number},
+	                  {"borderColor", ValueKind::Color, true, true},
+	                  {"shadow"},
+	                  {"visible", ValueKind::Boolean},
+	                  {"cursor", ValueKind::Text},
+	                  {"tooltip", ValueKind::Text},
+	                  {"disabled", ValueKind::Boolean},
+	                  {"scroll"},
+	                  {"overlay"},
+	                  {"transition"},
+	                  {"hover"},
+	                  {"pressed"},
+	                  {"focused"},
+	                  {"dragging"},
+	                  {"dragOver"},
+	                  {"repeat"},
+	                  {"when"},
+	                  {"let"},
+	                  {"use"},
+	                  {"with"},
+	                  {"keys"},
+	                  {"every"},
+	                  {"drag"},
+	                  {"locked", ValueKind::Boolean},
+	                  {"note", ValueKind::Text}});
+}
+
+/// @brief The properties of labels and text areas.
+/// @return The specs, in catalog order.
+std::vector<PropertySpec> textProperties() {
+	return {{"text", ValueKind::Text},
+	        {"textColor", ValueKind::Color, true, true},
+	        {"font", ValueKind::Font},
+	        {"padding", ValueKind::Number},
+	        {"align"},
+	        {"wrap", ValueKind::Boolean},
+	        {"fitText"}};
+}
+
+/// @brief Adds a core type.
+/// @param registry The registry.
+/// @param name Its name.
+/// @param about One line for the catalog.
+/// @param create Its factory.
+/// @param own Its properties.
+void addCore(TypeRegistry& registry, std::string name, std::string about, NodeType::Factory create,
+             std::shared_ptr<const PropertySet> own) {
+	registry.add({std::move(name), std::move(about), std::move(create), std::move(own), false});
+}
+
+} // namespace
+
+void registerBuiltInTypes(TypeRegistry& registry) {
+	addCore(
+	    registry, "panel", "A rectangle; children are placed by their anchors",
+	    [] { return std::make_unique<Panel>(); }, commonProperties());
+
+	auto label = std::make_shared<PropertySet>();
+	label->properties = textProperties();
+	addCore(registry, "label", "Text", [] { return std::make_unique<Label>(); }, label);
+
+	auto textarea = std::make_shared<PropertySet>();
+	textarea->properties = textProperties();
+	for(PropertySpec spec : std::initializer_list<PropertySpec>{{"placeholder", ValueKind::Text},
+	                                                            {"placeholderColor", ValueKind::Color},
+	                                                            {"bind", ValueKind::StatePath},
+	                                                            {"check"},
+	                                                            {"autofocus", ValueKind::Boolean}})
+		textarea->properties.push_back(std::move(spec));
+	addCore(registry, "textarea", "A single-line text input", [] { return std::make_unique<TextArea>(); }, textarea);
+	registerEditorType(registry);
+
+	const auto column = [] { return std::make_unique<Stack>(); };
+	addCore(registry, "stack", "Children in a column or a row", column,
+	        described({{"gap", ValueKind::Number},
+	                   {"direction", ValueKind::Text},
+	                   {"from", ValueKind::Text},
+	                   {"wrap", ValueKind::Boolean}}));
+	addCore(
+	    registry, "row", "A stack in a row",
+	    [] {
+		    auto row = std::make_unique<Stack>();
+		    row->setDirection(Direction::Row);
+		    return row;
+	    },
+	    described({{"gap", ValueKind::Number}, {"from", ValueKind::Text}, {"wrap", ValueKind::Boolean}}));
+	addCore(registry, "column", "A stack in a column", column,
+	        described({{"gap", ValueKind::Number}, {"from", ValueKind::Text}}));
+	addCore(
+	    registry, "grid", "Children in equal columns", [] { return std::make_unique<Grid>(); },
+	    described({{"columns", ValueKind::Number}, {"gap", ValueKind::Number}}));
+	registerToggleTypes(registry);
+	registerSliderType(registry);
+	addCore(
+	    registry, "outlet", "Shows the current screen from \"screens\"",
+	    [] {
+		    auto outlet = std::make_unique<Panel>();
+		    outlet->setColor(colors::transparent);
+		    return outlet;
+	    },
+	    described({}));
+}
+
+} // namespace affresco::format

@@ -1,198 +1,43 @@
-#include "RuntimeImpl.hpp"
+/// @file
+/// @brief format::Runtime: the public API, forwarding to the engine's subsystems (Engine.hpp).
+
+#include "Catalog.hpp"
+#include "Engine.hpp"
 
 namespace affresco::format {
 
-namespace {
-
-constexpr std::size_t fallbackLimit = 8; ///< Fallback fonts one font may name.
-
-/// @brief Reads a font's "fallback": the files of the fonts it names, in order. A fallback's own fallbacks are not
-/// followed, and its size is not used: its glyphs are drawn at the size of the font that names it.
-/// @param fonts The "fonts" section.
-/// @param font The font's entry.
-/// @param path The entry's place, for errors.
-/// @param base The directory the files are relative to.
-/// @return The files; none without "fallback".
-/// @throws DocumentError If it isn't a list of names of fonts in the section, or names more than eight.
-std::vector<std::filesystem::path> fallbackFiles(const json& fonts, const json& font, const std::string& path,
-                                                 const std::filesystem::path& base) {
-	std::vector<std::filesystem::path> files;
-	if(!font.contains("fallback")) return files;
-
-	const std::string at = path + ".fallback";
-	const json& names = font["fallback"];
-	if(!names.is_array()) fail(at, "expected a list of font names, like [\"symbols\"]");
-	if(names.size() > fallbackLimit) fail(at, "at most " + std::to_string(fallbackLimit) + " fallback fonts");
-
-	for(std::size_t i = 0; i < names.size(); ++i) {
-		const std::string place = at + "[" + std::to_string(i) + "]";
-		const std::string name = string(names[i], place);
-		if(!fonts.contains(name) || !fonts[name].is_object() || !fonts[name].contains("file"))
-			fail(place, "unknown font '" + name + "'");
-		files.push_back(base / string(fonts[name]["file"], "fonts." + name + ".file"));
-	}
-	return files;
-}
-
-} // namespace
-
-/* Document */
-
-// Throws, changing nothing, if a color or a font is invalid
-void Runtime::Impl::readDerived() {
-	const json& doc = versions.document();
-	decltype(colors) newColors;
-	decltype(fonts) newFonts;
-
-	if(doc.contains("colors")) {
-		for(const auto& [name, value] : object(doc["colors"], "colors").items()) {
-			const std::string path = "colors." + name;
-			NamedColor named;
-			auto parse = [&](const json& hex, const std::string& at) {
-				const auto parsed = Color::parseHex(string(hex, at));
-				if(!parsed) fail(at, "expected a hex color like \"#6366f1\"");
-				return *parsed;
-			};
-			if(value.is_object()) { // per theme: {"light": "#ffffff", "dark": "#111827"}
-				if(value.empty()) fail(path, "expected at least one theme");
-				for(const auto& [themeName, hex] : value.items())
-					named.themes.emplace(themeName, parse(hex, path + "." + themeName));
-				named.base = named.themes.at(value.begin().key());
-			} else {
-				named.base = parse(value, path);
-			}
-			newColors.emplace(name, std::move(named));
-		}
-	}
-
-	if(doc.contains("fonts")) {
-		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
-			const std::string path = "fonts." + name;
-			object(value, path);
-			if(!value.contains("file") || !value.contains("size")) fail(path, "a font needs \"file\" and \"size\"");
-
-			const std::string file = (baseDirectory / string(value["file"], path + ".file")).string();
-			const float size = number(value["size"], path + ".size");
-			const std::vector<std::filesystem::path> fallbacks =
-			    fallbackFiles(doc["fonts"], value, path, baseDirectory);
-			std::string key = file + "@" + std::to_string(size);
-			for(const std::filesystem::path& fallback : fallbacks) key += "|" + fallback.string();
-
-			auto cached = fontCache.find(key);
-			if(cached == fontCache.end()) {
-				try {
-					cached = fontCache.emplace(key, Font::load(file, size, fallbacks)).first;
-				} catch(const std::runtime_error& error) {
-					fail(path, error.what());
-				}
-			}
-			newFonts.emplace(name, cached->second);
-		}
-	}
-
-	colors = std::move(newColors);
-	fonts = std::move(newFonts);
-}
-
-/* Values */
-
-const Runtime::Impl::Globals& Runtime::Impl::globals() const {
-	if(!globalsCache) {
-		Globals& g = globalsCache.emplace();
-		g.window = window ? json{{"width", window->width()}, {"height", window->height()}} : json::object();
-		g.revision = toJson(versions.head());
-
-		json list = json::array();
-		for(const ProposalInfo& p : versions.proposals()) list.push_back(toJson(p));
-		json log = json::array();
-		for(const CommitInfo& c : versions.log()) log.push_back(toJson(c));
-
-		const auto previewing = versions.previewing();
-		g.other = {{"proposals", list},
-		           {"history", log},
-		           {"preview", previewing ? json(*previewing) : json()},
-		           {"mode", toString(versions.mode())},
-		           {"theme", theme},
-		           {"screen", screen}};
-	}
-
-	return *globalsCache;
-}
-
-json Runtime::Impl::evaluate(const json& value, const Scope& locals, const json& event, const std::string& where) const {
-	return format::evaluate(value, context(locals, event), where);
-}
-
-// "#rrggbb", "@name" (from "colors", in the current theme) or "transparent"
-Color Runtime::Impl::color(const json& value, const std::string& path) const {
-	const std::string name = string(value, path);
-	if(name == "transparent") return colors::transparent;
-
-	if(name.starts_with('@')) {
-		const auto it = colors.find(std::string_view(name).substr(1));
-		if(it == colors.end()) fail(path, "unknown color '" + name + "'");
-		const auto variant = it->second.themes.find(theme);
-		return variant != it->second.themes.end() ? variant->second : it->second.base;
-	}
-
-	const auto parsed = Color::parseHex(name);
-	if(!parsed) fail(path, "expected a color: \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"");
-	return *parsed;
-}
-
-// The node's properties on top of its styles' (in order: later styles override earlier ones)
-json Runtime::Impl::withStyles(const json& node, const std::string& path, int depth) const {
-	object(node, path);
-	if(!node.contains("style")) return node;
-	if(depth > 16) fail(path + ".style", "styles nested too deeply (a style uses itself?)");
-
-	const json& style = node["style"];
-	if(isDynamic(style)) return node; // chosen per instance, once its variables are known (scoped())
-	const json names = style.is_array() ? style : json::array({style});
-
-	json merged = json::object();
-	for(const json& name : names) {
-		const std::string key = string(name, path + ".style");
-		const json& document = versions.document();
-		if(!document.contains("styles") || !document["styles"].contains(key))
-			fail(path + ".style", "unknown style '" + key + "'");
-		merged.update(withStyles(object(document["styles"][key], "styles." + key), "styles." + key, depth + 1));
-	}
-
-	json own = node;
-	own.erase("style");
-	merged.update(own);
-	return merged;
-}
-
-/* Runtime */
+/// @brief The runtime's private parts: the engine, out of the public header.
+struct Runtime::Impl final : Engine {
+	using Engine::Engine;
+};
 
 Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
     : impl_(std::make_unique<Impl>(*this, versions, std::move(baseDirectory))) {
-	impl_->readDerived();
+	impl_->document.readDerived();
 	versions.setObserver(impl_.get());
 }
 
 Runtime::~Runtime() {
 	impl_->versions.setObserver(nullptr);
-	*impl_->alive = false; // the window may still run the tasks deferred for this runtime
-	Window* window = impl_->window;
-	if(!window) return;
-	impl_->disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
-	// The timers point at the runtime: stop them, or the window would run them on freed memory
-	for(auto& [panel, record] : impl_->records) {
-		if(record.everyTimer) window->cancelTimer(record.everyTimer);
-		for(const Tween* tween : record.tweens())
-			if(tween->timer) window->cancelTimer(tween->timer);
-	}
-	for(const auto& [place, timer] : impl_->debounces) window->cancelTimer(timer);
-	for(const auto& [pointer, timer] : impl_->animations) window->cancelTimer(timer);
-	for(const std::uint64_t timer : impl_->onceTimers) window->cancelTimer(timer);
+	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
+	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
 }
 
 void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
                            ApplyProperties apply) {
-	impl_->types.insert_or_assign(std::move(name), Impl::CustomType{std::move(factory), std::move(properties), std::move(apply)});
+	auto own = std::make_shared<PropertySet>();
+	for(std::string& property : properties) own->properties.push_back({std::move(property)});
+	// Called when the values change; whatever it throws is reported at the node
+	own->apply = [apply = std::move(apply)](Panel& panel, const json& values, const PropertyReader&,
+	                                        const std::string& path) {
+		if(!apply) return;
+		try {
+			apply(panel, values);
+		} catch(const std::exception& error) {
+			fail(path, error.what());
+		}
+	};
+	impl_->types.add({std::move(name), "Registered by the application", std::move(factory), std::move(own), true});
 }
 
 void Runtime::setPlaceholderTypes(bool enabled) { impl_->placeholderTypes = enabled; }
@@ -218,43 +63,16 @@ Window& Runtime::createWindow(Application& app) {
 }
 
 void Runtime::build(Window& window) {
-	Impl* impl = impl_.get();
-	impl->window = &window;
-	impl->reconcile();
-
-	// Bindings can use the window size
-	impl->windowHooks.resized = window.onResize.connect([impl](const ResizeEvent&) { impl->requestReconcile(); });
-
-	// Screen-wide shortcuts ("keys"); a focused text area keeps plain keys for typing
-	impl->windowHooks.key = window.onKey.connect([impl](const KeyEvent& event) {
-		if(event.action == affresco::Action::Release) return;
-		if(event.key == Key::Escape) impl->dismissOverlays(nullptr);
-		const json& document = impl->versions.document();
-		if(!document.contains("keys") || !document["keys"].is_object()) return;
-		const std::string name = shortcut(event);
-		const Panel* focused = impl->window->focusedPanel();
-		const bool typing = dynamic_cast<const TextArea*>(focused) || dynamic_cast<const TextEditor*>(focused);
-		if(name.empty() || (typing && !event.mods.super() && !event.mods.control() && !event.mods.alt() &&
-		                    name != "escape"))
-			return;
-		for(const auto& [written, handler] : document["keys"].items()) {
-			if(normalizeShortcut(written) != name) continue;
-			const json steps = handler;
-			impl->handle(steps, impl->window->root(), {{"type", "key"}, {"key", name}}, *noVariables(),
-			             "keys." + written);
-			return;
-		}
-	});
-
-	// A press outside an open overlay that closes on it
-	impl->windowHooks.button = window.onMouseButton.connect([impl](const MouseButtonEvent& event) {
-		if(event.action == affresco::Action::Press) impl->dismissOverlays(&event.position);
-	});
+	Engine& engine = *impl_;
+	engine.window = &window;
+	engine.reconciler.reconcile();
+	engine.events.connect(window);
 
 	// "onLoad": once, after the first update
-	const json& document = impl->versions.document();
+	const json& document = engine.versions.document();
 	if(document.contains("onLoad"))
-		impl->defer(impl->later(document["onLoad"], window.root(), {{"type", "load"}}, noVariables(), "onLoad"));
+		engine.scheduler.defer(
+		    engine.runner.later(document["onLoad"], window.root(), {{"type", "load"}}, noVariables(), "onLoad"));
 }
 
 Panel& Runtime::instantiate(std::string_view name, Panel& parent) {
@@ -262,7 +80,7 @@ Panel& Runtime::instantiate(std::string_view name, Panel& parent) {
 	const std::string key(name);
 	if(!document.contains("templates") || !document["templates"].contains(key))
 		throw DocumentError("AffrescoUI screen: unknown template '" + key + "'");
-	return impl_->buildDetached(document["templates"][key], parent, "templates." + key);
+	return impl_->reconciler.buildDetached(document["templates"][key], parent, "templates." + key);
 }
 
 void Runtime::onAction(std::string name, Action action) {
@@ -274,9 +92,9 @@ void Runtime::onCall(std::string name, Call call) { impl_->nativeCalls.insert_or
 void Runtime::onUnhandledAction(UnhandledAction fallback) { impl_->unhandled = std::move(fallback); }
 
 void Runtime::runAction(std::string_view name, Panel& sender, const json& event) {
-	const auto it = impl_->records.find(&sender);
-	const SharedScope locals = it != impl_->records.end() ? it->second.locals : noVariables();
-	impl_->handle(json(std::string(name)), sender, event, *locals, "runAction");
+	const Record* record = impl_->reconciler.recordOf(&sender);
+	const SharedScope locals = record ? record->locals : noVariables();
+	impl_->runner.handle(json(std::string(name)), sender, event, *locals, "runAction");
 }
 
 void Runtime::setHandlersSuspended(bool suspended) noexcept { impl_->handlersSuspended = suspended; }
@@ -288,87 +106,20 @@ bool Runtime::hasAction(std::string_view name) const {
 
 Window* Runtime::window() const noexcept { return impl_->window; }
 
-json Runtime::catalog() const {
-	auto names = [](const auto& map) {
-		json list = json::array();
-		for(const auto& [name, value] : map) list.push_back(name);
-		return list;
-	};
-	const json common = {"id",          "style",       "children",   "x",       "y",       "width",   "height",
-	                     "minWidth",    "minHeight",   "anchors",    "fill",    "grow",    "color",   "radius",
-	                     "borderWidth", "borderColor", "shadow",     "visible", "cursor",  "tooltip", "disabled",
-	                     "scroll",      "overlay",     "transition", "hover",   "pressed", "focused", "dragging",
-	                     "dragOver",    "repeat",      "when",       "let",     "use",     "with",    "keys",
-	                     "every",       "drag",        "locked",     "note"};
-	const json text = {"text", "textColor", "font", "padding", "align", "wrap", "fitText"};
-	json textarea = text;
-	for(const char* key : {"placeholder", "placeholderColor", "bind", "check", "autofocus"}) textarea.push_back(key);
-
-	json events = json::array();
-	for(std::string_view name : handlerNames) events.push_back(std::string(name));
-
-	json types = {
-	    {"panel", {{"properties", common}, {"about", "A rectangle; children are placed by their anchors"}}},
-	    {"label", {{"properties", text}, {"about", "Text"}}},
-	    {"textarea", {{"properties", textarea}, {"about", "A single-line text input"}}},
-	    {"editor",
-		 {{"properties",
-		   {"bind", "text", "caret", "font", "textColor", "lineNumbers", "lineNumberColor", "activeLineNumberColor",
-		    "lineColor", "selectionColor", "caretColor", "autofocus"}},
-		  {"about", "A multi-line text editor: selection, undo, clipboard, optional line numbers"}}},
-	    {"stack", {{"properties", {"gap", "direction", "from", "wrap"}}, {"about", "Children in a column or a row"}}},
-	    {"row", {{"properties", {"gap", "from", "wrap"}}, {"about", "A stack in a row"}}},
-	    {"column", {{"properties", {"gap", "from"}}, {"about", "A stack in a column"}}},
-	    {"grid", {{"properties", {"columns", "gap"}}, {"about", "Children in equal columns"}}},
-	    {"toggle",
-		 {{"properties", {"bind", "checked", "activeColor", "trackColor", "knobColor"}}, {"about", "A switch"}}},
-	    {"checkbox",
-		 {{"properties", {"bind", "checked", "activeColor", "trackColor", "knobColor"}}, {"about", "A checkbox"}}},
-	    {"slider",
-		 {{"properties", {"bind", "value", "min", "max", "step", "trackColor", "activeColor", "knobColor"}},
-		  {"about", "A value in a range"}}},
-	    {"outlet", {{"properties", json::array()}, {"about", "Shows the current screen from \"screens\""}}}};
-	for(const auto& [name, type] : impl_->types)
-		types[name] = {{"properties", type.properties}, {"about", "Registered by the application"}};
-
-	return {{"types", types},
-	        {"common", common},
-	        {"events", events},
-	        {"steps", {"set",      "push",  "remove",   "toggle",  "increment", "if",    "forEach", "while",
-	                   "run",      "call",  "emit",     "send",    "connect",   "patch", "focus",   "scrollTo",
-	                   "navigate", "after", "debounce", "animate", "copy",      "log",   "stop",    "note"}},
-	        {"controlSteps",
-	         {"accept", "reject", "preview", "endPreview", "restore", "revert", "undo", "patch", "call", "send",
-	          "connect"}},
-	        {"operators", operatorNames()},
-	        {"variables",
-	         {"state", "event", "window", "revision", "proposals", "history", "preview", "mode", "computed", "theme",
-	          "screen", "nodes"}},
-	        {"sections",
-	         {"window", "fonts", "colors", "theme", "styles", "components", "templates", "screens", "state", "computed",
-	          "watch", "actions", "keys", "onLoad", "channels", "persist", "include", "permissions", "root"}},
-	        {"customTypes", names(impl_->types)},
-	        {"nativeActions", names(impl_->nativeActions)},
-	        {"nativeCalls", names(impl_->nativeCalls)}};
-}
+json Runtime::catalog() const { return format::catalog(*impl_); }
 
 Panel* Runtime::find(std::string_view id) noexcept {
 	return impl_->window ? impl_->window->root().findById(id) : nullptr;
 }
 
-Color Runtime::resolveColor(const json& value) const { return impl_->color(value, "color"); }
+Color Runtime::resolveColor(const json& value) const { return impl_->document.color(value, "color"); }
 
-Color Runtime::color(std::string_view name) const {
-	const auto it = impl_->colors.find(name);
-	if(it == impl_->colors.end()) throw DocumentError("AffrescoUI screen: unknown color '" + std::string(name) + "'");
-	const auto variant = it->second.themes.find(impl_->theme);
-	return variant != it->second.themes.end() ? variant->second : it->second.base;
-}
+Color Runtime::color(std::string_view name) const { return impl_->document.namedColor(name); }
 
 std::shared_ptr<const Font> Runtime::font(std::string_view name) const {
-	const auto it = impl_->fonts.find(name);
-	if(it == impl_->fonts.end()) throw DocumentError("AffrescoUI screen: unknown font '" + std::string(name) + "'");
-	return it->second;
+	auto found = impl_->document.findFont(name);
+	if(!found) throw DocumentError("AffrescoUI screen: unknown font '" + std::string(name) + "'");
+	return found;
 }
 
 } // namespace affresco::format

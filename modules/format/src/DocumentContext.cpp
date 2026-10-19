@@ -1,0 +1,267 @@
+/// @file
+/// @brief format::DocumentContext: colours, fonts, the theme, the globals, computed values and navigation.
+
+#include "DocumentContext.hpp"
+#include "Engine.hpp"
+#include "PropertyValues.hpp"
+
+#include <algorithm>
+#include <format>
+#include <stdexcept>
+#include <utility>
+
+namespace affresco::format {
+
+namespace {
+
+constexpr std::size_t fallbackLimit = 8; ///< Fallback fonts one font may name.
+
+/// @brief Reads a font's "fallback": the files of the fonts it names, in order. A fallback's own fallbacks are not
+/// followed, and its size is not used: its glyphs are drawn at the size of the font that names it.
+/// @param fonts The "fonts" section.
+/// @param font The font's entry.
+/// @param path The entry's place, for errors.
+/// @param base The directory the files are relative to.
+/// @return The files; none without "fallback".
+/// @throws DocumentError If it isn't a list of names of fonts in the section, or names more than eight.
+std::vector<std::filesystem::path> fallbackFiles(const json& fonts, const json& font, const std::string& path,
+                                                 const std::filesystem::path& base) {
+	std::vector<std::filesystem::path> files;
+	if(!font.contains("fallback")) return files;
+
+	const std::string at = path + ".fallback";
+	const json& names = font["fallback"];
+	if(!names.is_array()) fail(at, "expected a list of font names, like [\"symbols\"]");
+	if(names.size() > fallbackLimit) fail(at, "at most " + std::to_string(fallbackLimit) + " fallback fonts");
+
+	for(std::size_t i = 0; i < names.size(); ++i) {
+		const std::string place = at + "[" + std::to_string(i) + "]";
+		const std::string name = string(names[i], place);
+		if(!fonts.contains(name) || !fonts[name].is_object() || !fonts[name].contains("file"))
+			fail(place, "unknown font '" + name + "'");
+		files.push_back(base / string(fonts[name]["file"], "fonts." + name + ".file"));
+	}
+	return files;
+}
+
+/// @brief Reads a hex colour.
+/// @param hex The value.
+/// @param at Its place, for errors.
+/// @return The colour.
+/// @throws DocumentError If it isn't one.
+Color hexColor(const json& hex, const std::string& at) {
+	const auto parsed = Color::parseHex(string(hex, at));
+	if(!parsed) fail(at, "expected a hex color like \"#6366f1\"");
+	return *parsed;
+}
+
+} // namespace
+
+DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
+    : engine_(engine), baseDirectory_(std::move(baseDirectory)),
+      computedLookup_([this](std::string_view name) { return computed(name); }),
+      nodeLookup_([this](std::string_view id) { return node(id); }) {}
+
+std::map<std::string, DocumentContext::NamedColor, std::less<>> DocumentContext::readColors(const json& doc) {
+	std::map<std::string, NamedColor, std::less<>> result;
+	if(!doc.contains("colors")) return result;
+	for(const auto& [name, value] : object(doc["colors"], "colors").items()) {
+		const std::string path = "colors." + name;
+		NamedColor named;
+		if(value.is_object()) { // per theme: {"light": "#ffffff", "dark": "#111827"}
+			if(value.empty()) fail(path, "expected at least one theme");
+			for(const auto& [themeName, hex] : value.items())
+				named.themes.emplace(themeName, hexColor(hex, path + "." + themeName));
+			named.base = named.themes.at(value.begin().key());
+		} else {
+			named.base = hexColor(value, path);
+		}
+		result.emplace(name, std::move(named));
+	}
+	return result;
+}
+
+// Throws, changing nothing, if a color or a font is invalid
+void DocumentContext::readDerived() {
+	const json& doc = engine_.versions.document();
+	auto newColors = readColors(doc);
+	decltype(fonts_) newFonts;
+
+	if(doc.contains("fonts")) {
+		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
+			const std::string path = "fonts." + name;
+			object(value, path);
+			if(!value.contains("file") || !value.contains("size")) fail(path, "a font needs \"file\" and \"size\"");
+
+			const std::string file = (baseDirectory_ / string(value["file"], path + ".file")).string();
+			const float size = number(value["size"], path + ".size");
+			const std::vector<std::filesystem::path> fallbacks =
+			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
+			std::string key = file + "@" + std::to_string(size);
+			for(const std::filesystem::path& fallback : fallbacks) key += "|" + fallback.string();
+
+			auto cached = fontCache_.find(key);
+			if(cached == fontCache_.end()) {
+				try {
+					cached = fontCache_.emplace(key, Font::load(file, size, fallbacks)).first;
+				} catch(const std::runtime_error& error) {
+					fail(path, error.what());
+				}
+			}
+			newFonts.emplace(name, cached->second);
+		}
+	}
+
+	colors_ = std::move(newColors);
+	fonts_ = std::move(newFonts);
+}
+
+/* Values */
+
+const DocumentContext::Globals& DocumentContext::globals() const {
+	if(!globalsCache_) {
+		Globals& g = globalsCache_.emplace();
+		const VersionControl& versions = engine_.versions;
+		const Window* window = engine_.window;
+		g.window = window ? json{{"width", window->width()}, {"height", window->height()}} : json::object();
+		g.revision = toJson(versions.head());
+
+		json list = json::array();
+		for(const ProposalInfo& p : versions.proposals()) list.push_back(toJson(p));
+		json log = json::array();
+		for(const CommitInfo& c : versions.log()) log.push_back(toJson(c));
+
+		const auto previewing = versions.previewing();
+		g.other = {{"proposals", list},
+		           {"history", log},
+		           {"preview", previewing ? json(*previewing) : json()},
+		           {"mode", toString(versions.mode())},
+		           {"theme", theme_},
+		           {"screen", screen_}};
+	}
+
+	return *globalsCache_;
+}
+
+Context DocumentContext::context(const Scope& locals, const json& event) const {
+	const Globals& g = globals();
+	return Context{engine_.versions.state(), g.window, g.revision, event, locals, g.other, &nodeLookup_,
+	               &computedLookup_};
+}
+
+json DocumentContext::evaluate(const json& value, const Scope& locals, const json& event,
+                               const std::string& where) const {
+	return format::evaluate(value, context(locals, event), where);
+}
+
+json DocumentContext::computed(std::string_view name) const {
+	const json& document = engine_.versions.document();
+	const std::string key(name);
+	if(!document.contains("computed") || !document["computed"].contains(key))
+		fail("computed", "no computed value '" + key + "'");
+	if(computedVersion_ != stateVersion_) {
+		computedValues_ = json::object();
+		computedVersion_ = stateVersion_;
+	}
+	if(computedValues_.contains(key)) return computedValues_[key];
+	if(std::ranges::find(computing_, key) != computing_.end())
+		fail("computed." + key, "computed values refer to each other in a circle");
+	computing_.push_back(key);
+	json value;
+	try {
+		const json none = json::object();
+		value = format::evaluate(document["computed"][key], context(*noVariables(), none), "computed." + key);
+	} catch(...) {
+		computing_.pop_back();
+		throw;
+	}
+	computing_.pop_back();
+	computedValues_[key] = value;
+	return value;
+}
+
+json DocumentContext::node(std::string_view id) const {
+	const Panel* panel = engine_.window ? engine_.window->root().findById(id) : nullptr;
+	if(!panel) return nullptr;
+	const Rect& f = panel->frame();
+	return {{"x", f.left}, {"y", f.top}, {"width", f.width()}, {"height", f.height()}, {"visible", panel->isShown()}};
+}
+
+/* Colours, fonts, theme */
+
+// "#rrggbb", "@name" (from "colors", in the current theme) or "transparent"
+Color DocumentContext::color(const json& value, const std::string& path) const {
+	const std::string name = string(value, path);
+	if(name == "transparent") return colors::transparent;
+
+	if(name.starts_with('@')) {
+		const auto it = colors_.find(std::string_view(name).substr(1));
+		if(it == colors_.end()) fail(path, "unknown color '" + name + "'");
+		const auto variant = it->second.themes.find(theme_);
+		return variant != it->second.themes.end() ? variant->second : it->second.base;
+	}
+
+	const auto parsed = Color::parseHex(name);
+	if(!parsed) fail(path, "expected a color: \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"");
+	return *parsed;
+}
+
+Color DocumentContext::namedColor(std::string_view name) const {
+	const auto it = colors_.find(name);
+	if(it == colors_.end()) throw DocumentError("AffrescoUI screen: unknown color '" + std::string(name) + "'");
+	const auto variant = it->second.themes.find(theme_);
+	return variant != it->second.themes.end() ? variant->second : it->second.base;
+}
+
+// Like CSS box-shadow: "x" and "y" move it and "blur" softens it
+Shadow DocumentContext::shadow(const json& value, const std::string& path) const {
+	Shadow result{.color = colors::black.withAlpha(0.25f)};
+	for(const auto& [key, item] : object(value, path).items()) {
+		const std::string at = std::format("{}.{}", path, key);
+		if(key == "x") result.offset.x = finiteNumber(item, at);
+		else if(key == "y") result.offset.y = finiteNumber(item, at);
+		else if(key == "blur") result.blur = pixels(item, at);
+		else if(key == "color") result.color = color(item, at);
+		else fail(at, "unknown property (expected x, y, blur or color)");
+	}
+	return result;
+}
+
+std::shared_ptr<const Font> DocumentContext::findFont(std::string_view name) const {
+	const auto it = fonts_.find(name);
+	return it == fonts_.end() ? nullptr : it->second;
+}
+
+void DocumentContext::updateTheme() {
+	const json& document = engine_.versions.document();
+	if(document.contains("theme")) {
+		theme_ = text(evaluate(document["theme"], *noVariables(), json::object(), "theme"));
+		globalsChanged();
+	} else {
+		theme_.clear();
+	}
+}
+
+/* Navigation */
+
+void DocumentContext::keepScreen(const json& document) {
+	if(document.contains("screens") && document["screens"].is_object() && !document["screens"].empty() &&
+	   !document["screens"].contains(screen_)) {
+		screen_ = document["screens"].begin().key();
+		screenHistory_.clear();
+	}
+}
+
+void DocumentContext::navigate(const std::string& name) {
+	if(name != screen_) screenHistory_.push_back(screen_);
+	screen_ = name;
+}
+
+bool DocumentContext::back() {
+	if(screenHistory_.empty()) return false;
+	screen_ = screenHistory_.back();
+	screenHistory_.pop_back();
+	return true;
+}
+
+} // namespace affresco::format

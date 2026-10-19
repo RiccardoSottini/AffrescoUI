@@ -1,0 +1,99 @@
+#pragma once
+
+/// @file
+/// @brief What the runtime keeps about each panel it built (Record), the children it is about to build (Item), and
+/// the limits its subsystems share.
+
+#include "NodeKeys.hpp"
+#include "TypeRegistry.hpp"
+
+#include "affresco/core/Signal.hpp"
+#include "affresco/render/Color.hpp"
+#include "affresco/render/Input.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+
+namespace affresco::format {
+
+/// @brief A colour animating towards a target (a "transition").
+struct Tween {
+	Color from, to;          ///< Where it started and where it goes.
+	double start = 0.0;      ///< The clock's seconds when it started.
+	double ms = 0.0;         ///< How long it takes.
+	std::uint64_t timer = 0; ///< The next frame's timer, if running.
+};
+
+/// @brief What the runtime knows about each panel it built. Kept by the Reconciler, from the panel's creation until
+/// it is destroyed (forgetSubtree()); the other subsystems read and update it through Reconciler::recordOf().
+struct Record {
+	std::string type;                     ///< The node's "type".
+	PropertySets sets;                    ///< The property sets of its type that apply or show something.
+	std::size_t firstManaged = 0;         ///< Children a factory created come first and are left alone.
+	std::size_t managed = 0;              ///< Children built from the document.
+	Color defaultColor;                   ///< Restored when "color" goes away.
+	Cursor defaultCursor = Cursor::Arrow; ///< Restored when "cursor" goes away.
+	SharedScope locals = noVariables();   ///< Variables visible to its bindings and handlers (repeat, let, with).
+	std::string path;                     ///< Place in the document, for errors.
+	json properties = json::object();     ///< The evaluated node, state blocks included (what refresh() re-applies).
+	json handlers = json::object();       ///< "onClick" and the others: an action name or steps each.
+	json keys;                            ///< Shortcuts: "cmd+k" -> handler (null: none).
+	json drag;                            ///< "drag", unevaluated (data is read when a drag starts).
+	json key;                             ///< A keyed repeat's key for this item (null: none).
+	std::optional<std::string> bind;      ///< State path the value mirrors.
+	std::optional<std::string> caret;     ///< State path a text editor writes its caret to.
+	/// The values last given to the apply function of its property set that runs only when they change (an
+	/// application's type); there is at most one such set, its type's own.
+	std::optional<json> ownProperties;
+	std::optional<std::string> lastText; ///< "text" applied last time.
+	bool hovered = false, down = false, focused = false, dragOver = false, dragging = false; ///< Visual states.
+	bool disabled = false;                                                                   ///< No events but hover.
+	bool shown = false;                       ///< Applied at least once (transitions start only after that).
+	json transition = json::object();         ///< "transition": property -> milliseconds.
+	Tween colorTween, textTween, borderTween; ///< Running transitions.
+
+	/// @brief The transitions, so their timers can be cancelled together.
+	/// @return Each one.
+	std::array<Tween*, 3> tweens() noexcept { return {&colorTween, &textTween, &borderTween}; }
+	double everyMs = 0.0;                   ///< "every" period, if any.
+	std::uint64_t everyTimer = 0;           ///< Its timer.
+	std::optional<std::string> overlayOpen; ///< An overlay's "open" state path.
+	bool dismissOutside = false;            ///< The overlay closes on a click outside it (and on Escape).
+	std::string overlayAnchor;              ///< The overlay's anchor id (empty: the parent).
+
+	/// @brief The connections the events subsystem made to the panel's signals, which ~Runtime takes back (0: none).
+	struct Hooks {
+		Connection hover = 0, focus = 0, button = 0, move = 0, scroll = 0, key = 0; ///< Every panel's.
+		Connection value = 0; ///< A widget's value (a text area's text, or ValueHooks::listen()).
+		Connection caret = 0; ///< A text editor's caret.
+	} hooks;                  ///< See Hooks.
+};
+
+/// @brief A node to build: shared, so a repeat's items don't each copy their template (and its children).
+using NodeRef = std::shared_ptr<const json>;
+
+/// @brief Refers to a node of the document without copying it (the document outlives an update).
+/// @param node The node.
+/// @return The reference.
+inline NodeRef borrow(const json& node) { return NodeRef(NodeRef(), &node); }
+
+/// @brief A child to build.
+struct Item {
+	NodeRef node;       ///< Styles merged; shared by a repeat's items (or pointing into the document: no copy).
+	SharedScope locals; ///< Its variables.
+	std::string path;   ///< Its place in the document.
+	json key;           ///< A keyed repeat's key (null: none).
+};
+
+inline constexpr int maxActionDepth = 32;               ///< Nested action calls before giving up (recursion guard).
+inline constexpr std::size_t maxLoopIterations = 10000; ///< "while" iterations before giving up.
+inline constexpr int maxComponentDepth = 32;            ///< Components inside components before giving up.
+inline constexpr double frameMs = 16.0;                 ///< Animation frame period.
+inline constexpr double doubleClickSeconds = 0.4;       ///< Two clicks closer than this are a double click.
+inline constexpr float dragThreshold = 4.0f;            ///< Pixels the pointer moves before a press becomes a drag.
+
+} // namespace affresco::format

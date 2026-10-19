@@ -1,233 +1,169 @@
-#include "RuntimeImpl.hpp"
+/// @file
+/// @brief format::Properties: a node's evaluated values on its panel.
 
-#include <array>
+#include "Properties.hpp"
+#include "Engine.hpp"
+#include "PropertyValues.hpp"
+#include "Shortcuts.hpp"
+
+#include "affresco/render/TextEditor.hpp"
+
+#include <algorithm>
 #include <format>
 
 namespace affresco::format {
 
-namespace {
+/* PropertyReader */
 
-/// @brief Reads a length: 120 or "120px" (pixels), "50%" (of the parent).
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The length.
-/// @throws DocumentError If it is not a length.
-Length length(const json& value, const std::string& path) {
-	if(value.is_number()) return px(value.get<float>());
+Color Properties::color(const json& value, const std::string& at) const { return engine_.document.color(value, at); }
 
-	if(value.is_string()) {
-		std::string t = value.get<std::string>();
-		Unit unit = Unit::Pixel;
-		if(t.ends_with('%')) {
-			unit = Unit::Percent;
-			t.pop_back();
-		} else if(t.ends_with("px")) {
-			t.resize(t.size() - 2);
-		}
+std::shared_ptr<const Font> Properties::font(const json& value, const std::string& at) const {
+	const std::string name = string(value, at);
+	auto found = engine_.document.findFont(name);
+	if(!found) fail(at, "unknown font '" + name + "'");
+	return found;
+}
 
-		try {
-			std::size_t used = 0;
-			const float amount = std::stof(t, &used);
-			if(used == t.size()) return {amount, unit};
-		} catch(const std::exception&) {
-		}
+/* Applying a node */
+
+void Properties::apply(Panel& panel, Record& record, const json& properties, const std::string& path, bool isRoot,
+                       bool created) {
+	record.properties = properties;
+	record.path = path;
+
+	const Behaviour behaviour = readBehaviour(panel, record, properties, path);
+	if(engine_.window) engine_.scheduler.every(panel, record, behaviour.everyMs); // a repeating timer while it exists
+	applyVisual(panel, record, visual(record), isRoot);
+	showValue(panel, record, properties, path);
+
+	if(created && behaviour.autofocus && engine_.window && !engine_.handlersSuspended) engine_.window->setFocus(&panel);
+	record.shown = true;
+}
+
+bool Properties::bindable(const Panel& panel, const Record& record) {
+	return dynamic_cast<const TextArea*>(&panel) ||
+	       std::ranges::any_of(record.sets, [](const auto& set) { return set && set->value.show; });
+}
+
+// Behaviour: handlers, bindings, shortcuts, drag, timers
+Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record, const json& properties,
+                                                const std::string& path) const {
+	record.handlers = json::object();
+	record.keys = nullptr;
+	record.drag = nullptr;
+	record.bind.reset();
+	record.caret.reset();
+	Behaviour behaviour;
+	for(const auto& [key, value] : properties.items()) {
+		const std::string at = path + "." + key;
+		if(handlerKey(key)) readHandler(panel, record, key, value, at);
+		else readBehaviourKey(panel, record, {key, value, at, properties.contains("id")}, behaviour);
 	}
-
-	fail(path, "expected a length: a number of pixels, \"12px\" or \"50%\"");
+	return behaviour;
 }
 
-/// @brief Reads "start", "center" or "end".
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The alignment.
-/// @throws DocumentError If it is something else.
-Align align(const json& value, const std::string& path) {
-	const std::string name = string(value, path);
-	if(name == "start") return Align::Start;
-	if(name == "center") return Align::Center;
-	if(name == "end") return Align::End;
-	fail(path, "expected \"start\", \"center\" or \"end\"");
+void Properties::readHandler(const Panel& panel, Record& record, const std::string& key, const json& value,
+                             const std::string& at) {
+	if(std::ranges::find(handlerNames, key) == std::end(handlerNames))
+		fail(at, "unknown event (expected onClick, onDoubleClick, onContextMenu, onPress, onRelease, onDrag, onDrop, "
+		         "onHover, onLeave, onFocus, onBlur, onScroll, onKey, onChange, onSubmit, onShow or onHide)");
+	if(!value.is_string() && !value.is_array() && !value.is_object()) fail(at, "expected an action name or steps");
+	if(key == "onSubmit" && !dynamic_cast<const TextArea*>(&panel)) fail(at, "only text areas have \"onSubmit\"");
+	record.handlers[key] = value;
 }
 
-/// @brief Reads a cursor name, e.g. "hand".
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The cursor.
-/// @throws DocumentError If the name is unknown.
-Cursor cursor(const json& value, const std::string& path) {
-	const std::string name = string(value, path);
-	if(name == "arrow") return Cursor::Arrow;
-	if(name == "ibeam") return Cursor::IBeam;
-	if(name == "hand") return Cursor::Hand;
-	if(name == "resize-horizontal") return Cursor::ResizeHorizontal;
-	if(name == "resize-vertical") return Cursor::ResizeVertical;
-	fail(path, "expected \"arrow\", \"ibeam\", \"hand\", \"resize-horizontal\" or \"resize-vertical\"");
-}
-
-/// @brief Reads an edge name: "top", "bottom", "left" or "right".
-/// @param name The name.
-/// @param path Its place, for errors.
-/// @return The edge.
-/// @throws DocumentError If the name is unknown.
-Edge edge(const std::string& name, const std::string& path) {
-	if(name == "top") return Edge::Top;
-	if(name == "bottom") return Edge::Bottom;
-	if(name == "left") return Edge::Left;
-	if(name == "right") return Edge::Right;
-	fail(path, "unknown edge '" + name + "' (expected top, bottom, left or right)");
-}
-
-/// @brief Reads an overlay placement, e.g. "below".
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The placement.
-/// @throws DocumentError If the name is unknown.
-Placement placement(const json& value, const std::string& path) {
-	const std::string name = string(value, path);
-	if(name == "below") return Placement::Below;
-	if(name == "below-end") return Placement::BelowEnd;
-	if(name == "above") return Placement::Above;
-	if(name == "above-end") return Placement::AboveEnd;
-	if(name == "right") return Placement::Right;
-	if(name == "left") return Placement::Left;
-	if(name == "center") return Placement::Center;
-	if(name == "window") return Placement::Window;
-	fail(path, "expected below, below-end, above, above-end, right, left, center or window");
-}
-
-/// @brief Anchors an edge of a panel: a length from the parent's edge, or another panel's edge ("#header.bottom + 8").
-/// @param panel The panel.
-/// @param name The edge, e.g. "top".
-/// @param offset Its value.
-/// @param where Its place, for errors.
-/// @throws DocumentError If the value is malformed.
-void anchor(Panel& panel, const std::string& name, const json& offset, const std::string& where) {
-	if(!offset.is_string() || !offset.get<std::string>().starts_with('#')) {
-		panel.setAnchor(edge(name, where), length(offset, where));
-		return;
+void Properties::readBehaviourKey(const Panel& panel, Record& record, const KeyValue& property,
+                                  Behaviour& behaviour) const {
+	const auto& [key, value, at, hasId] = property;
+	if(key == "bind") {
+		if(!bindable(panel, record))
+			fail(at, "only text areas, text editors, toggles, checkboxes and sliders can \"bind\"");
+		record.bind = statePath(record, value, at);
+	} else if(key == "caret") {
+		if(!dynamic_cast<const TextEditor*>(&panel)) fail(at, "only text editors have \"caret\"");
+		record.caret = statePath(record, value, at);
+	} else if(key == "keys") {
+		record.keys = json::object();
+		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeShortcut(name)] = handler;
+	} else if(key == "drag") {
+		record.drag = object(value, at);
+	} else if(key == "every") {
+		behaviour.everyMs = everyPeriod(record, value, at);
+	} else if(key == "autofocus") {
+		behaviour.autofocus = boolean(value, at);
+	} else if(key == "locked" && boolean(value, at) && !hasId) {
+		fail(at, "a locked node needs an \"id\"");
 	}
+}
 
-	const std::string spec = offset.get<std::string>();
-	const std::size_t dot = spec.find('.');
-	if(dot == std::string::npos) fail(where, "expected \"#id.edge\", e.g. \"#header.bottom + 8\"");
-	std::size_t end = dot + 1;
-	while(end < spec.size() && std::isalpha(static_cast<unsigned char>(spec[end]))) ++end;
+// A path, or "{{...}}" giving one (e.g. a component's parameter)
+std::string Properties::statePath(const Record& record, const json& value, const std::string& at) const {
+	return string(isDynamic(value) ? engine_.document.evaluate(value, *record.locals, json::object(), at) : value, at);
+}
 
-	std::string rest = spec.substr(end); // "+ 8", "-8" or nothing
-	std::erase(rest, ' ');
-	float delta = 0.0f;
-	if(!rest.empty()) {
-		try {
-			std::size_t used = 0;
-			delta = std::stof(rest, &used);
-			if(used != rest.size() || (rest[0] != '+' && rest[0] != '-')) throw std::invalid_argument(rest);
-		} catch(const std::exception&) {
-			fail(where, "expected \"#id.edge\", \"#id.edge + 8\" or \"#id.edge - 8\"");
+double Properties::everyPeriod(const Record& record, const json& value, const std::string& at) const {
+	const json& every = object(value, at);
+	if(!every.contains("ms") || !every.contains("do")) fail(at, "expected {\"ms\": milliseconds, \"do\": steps}");
+	return std::max(
+	    number(engine_.document.evaluate(every["ms"], *record.locals, json::object(), at + ".ms"), at + ".ms"), 16.0f);
+}
+
+// A bound widget mirrors its state value; otherwise "text" is applied when it changes, so a text area's typing isn't
+// overwritten by every update
+void Properties::showValue(Panel& panel, Record& record, const json& properties, const std::string& path) const {
+	const json bound =
+	    record.bind
+	        ? format::lookup(*record.bind, engine_.document.context(*record.locals, emptyObject()), path + ".bind")
+	        : json();
+	if(auto* label = dynamic_cast<Label*>(&panel); label && record.bind) {
+		const std::string value = text(bound);
+		if(label->text() != value) label->setText(value);
+	} else if(label) {
+		const std::optional<std::string> newText =
+		    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
+		if(newText != record.lastText) label->setText(newText.value_or(""));
+		record.lastText = newText;
+	}
+	for(const auto& set : record.sets)
+		if(set && set->value.show) set->value.show(panel, record.bind ? &bound : nullptr, properties, record.lastText);
+}
+
+// The node at rest, then each active state block on top (with its own styles)
+json Properties::visual(const Record& record) const {
+	json result = json::object();
+	for(const auto& [key, value] : record.properties.items())
+		if(!structural(key) && std::ranges::find(stateBlocks, key) == std::end(stateBlocks)) result[key] = value;
+
+	const bool active[] = {record.hovered, record.focused, record.dragging, record.dragOver, record.down};
+	for(std::size_t i = 0; i < std::size(stateBlocks); ++i) {
+		const std::string name(stateBlocks[i]);
+		if(!active[i] || !record.properties.contains(name)) continue;
+		const std::string at = record.path + "." + name;
+		json block = engine_.builder.withStyles(object(record.properties[name], at), at);
+		for(const auto& [key, value] : block.items()) {
+			if(structural(key) || key == "type") continue;
+			for(const auto& set : record.sets)
+				if(const PropertySpec* spec = set ? set->find(key) : nullptr; spec && !spec->states)
+					fail(at + "." + key, "can't be set in a state");
+			result[key] = value;
 		}
-	}
-	panel.setAnchorTo(edge(name, where), spec.substr(1, dot - 1), edge(spec.substr(dot + 1, end - dot - 1), where),
-	                  delta);
-}
-
-/// @brief Reads a finite number: JSON allows numbers too large for a float, which would become infinite.
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The number.
-/// @throws DocumentError If it isn't a number, or is too large.
-float finiteNumber(const json& value, const std::string& path) {
-	const float amount = number(value, path);
-	if(!std::isfinite(amount)) fail(path, "number too large");
-	return amount;
-}
-
-/// @brief Reads a number of pixels that can't be negative: a radius, a border width or a blur.
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The number.
-/// @throws DocumentError If it isn't a finite number of 0 or more.
-float pixels(const json& value, const std::string& path) {
-	const float amount = finiteNumber(value, path);
-	if(amount < 0.0f) fail(path, "expected a number of pixels, 0 or more");
-	return amount;
-}
-
-/// @brief Reads "radius": one number for every corner, or { "topLeft", "topRight", "bottomRight", "bottomLeft" }
-/// (corners left out are square).
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The radii.
-/// @throws DocumentError If it is malformed.
-CornerRadii radii(const json& value, const std::string& path) {
-	if(!value.is_object()) return CornerRadii::all(pixels(value, path));
-
-	CornerRadii result;
-	for(const auto& [corner, radius] : value.items()) {
-		const std::string at = std::format("{}.{}", path, corner);
-		if(corner == "topLeft") result.topLeft = pixels(radius, at);
-		else if(corner == "topRight") result.topRight = pixels(radius, at);
-		else if(corner == "bottomRight") result.bottomRight = pixels(radius, at);
-		else if(corner == "bottomLeft") result.bottomLeft = pixels(radius, at);
-		else fail(at, "unknown corner (expected topLeft, topRight, bottomRight or bottomLeft)");
 	}
 	return result;
 }
 
-/// @brief The colours a "transition" can animate.
-constexpr std::array<std::string_view, 3> transitionable = {"color", "textColor", "borderColor"};
-
-/// @brief Sets one of the colours a transition can animate.
-/// @param panel The panel; a label for "textColor".
-/// @param property "color", "textColor" or "borderColor".
-/// @param color The colour.
-void setColorOf(Panel& panel, std::string_view property, Color color) {
-	if(property == "textColor") {
-		if(auto* label = dynamic_cast<Label*>(&panel)) label->setTextColor(color);
-	} else if(property == "borderColor") panel.setBorder(panel.borderWidth(), color);
-	else panel.setColor(color);
-}
-
-/// @brief The transition of one of a node's colours.
-/// @param record The node's record.
-/// @param property "color", "textColor" or "borderColor".
-/// @return Its tween.
-Tween& tweenOf(Record& record, std::string_view property) {
-	if(property == "textColor") return record.textTween;
-	if(property == "borderColor") return record.borderTween;
-	return record.colorTween;
-}
-
-/// @brief Applies a layout property: x, y, width, height, minWidth, minHeight, grow, fill or anchors.
-/// @param panel The panel.
-/// @param key The property.
-/// @param value Its value.
-/// @param at Its place, for errors.
-/// @return false if it isn't one of these.
-/// @throws DocumentError If the value is malformed.
-bool layoutProperty(Panel& panel, const std::string& key, const json& value, const std::string& at) {
-	if(key == "x") panel.setX(length(value, at));
-	else if(key == "y") panel.setY(length(value, at));
-	else if(key == "width") panel.setWidth(length(value, at));
-	else if(key == "height") panel.setHeight(length(value, at));
-	else if(key == "minWidth") panel.setMinWidth(length(value, at));
-	else if(key == "minHeight") panel.setMinHeight(length(value, at));
-	else if(key == "grow") panel.setGrow(number(value, at));
-	else if(key == "fill") {
-		const Length offset = value.is_boolean() && value.get<bool>() ? px(0.0f) : length(value, at);
-		for(Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.setAnchor(e, offset);
-	} else if(key == "anchors") {
-		for(const auto& [name, offset] : object(value, at).items()) anchor(panel, name, offset, at + "." + name);
-	} else {
-		return false;
+void Properties::refresh(Panel& panel, Record& record) {
+	if(std::ranges::none_of(stateBlocks, [&](std::string_view name) { return record.properties.contains(name); }))
+		return;
+	try {
+		applyVisual(panel, record, visual(record), &panel == &engine_.window->root());
+	} catch(const DocumentError& error) {
+		engine_.report(error.what());
 	}
-	return true;
 }
 
-} // namespace
-
-/* Properties */
-
-// Back to the defaults, so properties removed from the document (or no longer bound) disappear
-void Runtime::Impl::reset(Panel& panel, Record& record) {
+// Back to the defaults, so properties removed from the document (or no longer bound) disappear. The properties node
+// types registered are reset by their own apply functions.
+void Properties::reset(Panel& panel, Record& record) {
 	panel.setId({});
 	panel.setPosition(px(0.0f), px(0.0f));
 	panel.setSize(px(0.0f), px(0.0f));
@@ -255,11 +191,6 @@ void Runtime::Impl::reset(Panel& panel, Record& record) {
 		textArea->setPlaceholder({});
 		textArea->setPlaceholderColor(colors::muted);
 	}
-	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
-		editor->setFont(nullptr);
-		editor->setLineNumbers(false);
-		editor->resetColors();
-	}
 	if(auto* stack = dynamic_cast<Stack*>(&panel)) {
 		stack->setGap(0.0f);
 		stack->setAlignment(Align::Start);
@@ -270,15 +201,6 @@ void Runtime::Impl::reset(Panel& panel, Record& record) {
 		grid->setColumns(2);
 		grid->setGap(0.0f);
 	}
-	if(auto* toggle = dynamic_cast<Toggle*>(&panel)) {
-		toggle->setOnColor(colors::accent);
-		toggle->setOffColor(colors::idle);
-		toggle->setKnobColor(colors::white);
-	}
-	if(auto* slider = dynamic_cast<Slider*>(&panel)) {
-		slider->setRange(0.0, 100.0, 0.0);
-		slider->setColors(colors::track, colors::accent, colors::white);
-	}
 
 	record.disabled = false;
 	record.transition = json::object();
@@ -287,252 +209,117 @@ void Runtime::Impl::reset(Panel& panel, Record& record) {
 	record.overlayAnchor.clear();
 }
 
-void Runtime::Impl::apply(Panel& panel, Record& record, const json& properties, const std::string& path, bool isRoot,
-                          bool created) {
-	record.properties = properties;
-	record.path = path;
-
-	// Behaviour: handlers, bindings, shortcuts, drag, timers
-	record.handlers = json::object();
-	record.keys = nullptr;
-	record.drag = nullptr;
-	record.bind.reset();
-	record.caret.reset();
-	bool autofocus = false;
-	double everyMs = 0.0;
-	for(const auto& [key, value] : properties.items()) {
-		const std::string at = path + "." + key;
-		if(handlerKey(key)) {
-			if(std::ranges::find(handlerNames, key) == std::end(handlerNames))
-				fail(at, "unknown event (expected onClick, onDoubleClick, onContextMenu, onPress, onRelease, onDrag, "
-				         "onDrop, onHover, onLeave, onFocus, onBlur, onScroll, onKey, onChange, onSubmit, onShow or "
-				         "onHide)");
-			if(!value.is_string() && !value.is_array() && !value.is_object())
-				fail(at, "expected an action name or steps");
-			if(key == "onSubmit" && !dynamic_cast<TextArea*>(&panel)) fail(at, "only text areas have \"onSubmit\"");
-			record.handlers[key] = value;
-		} else if(key == "bind") {
-			if(!dynamic_cast<TextArea*>(&panel) && !dynamic_cast<TextEditor*>(&panel) && !dynamic_cast<Toggle*>(&panel) &&
-			   !dynamic_cast<Slider*>(&panel))
-				fail(at, "only text areas, text editors, toggles, checkboxes and sliders can \"bind\"");
-			// A path, or "{{...}}" giving one (e.g. a component's parameter)
-			record.bind = string(isDynamic(value) ? evaluate(value, *record.locals, json::object(), at) : value, at);
-		} else if(key == "caret") {
-			if(!dynamic_cast<TextEditor*>(&panel)) fail(at, "only text editors have \"caret\"");
-			record.caret = string(isDynamic(value) ? evaluate(value, *record.locals, json::object(), at) : value, at);
-		} else if(key == "keys") {
-			record.keys = json::object();
-			for(const auto& [name, handler] : object(value, at).items())
-				record.keys[normalizeShortcut(name)] = handler;
-		} else if(key == "drag") {
-			record.drag = object(value, at);
-		} else if(key == "every") {
-			const json& every = object(value, at);
-			if(!every.contains("ms") || !every.contains("do")) fail(at, "expected {\"ms\": milliseconds, \"do\": steps}");
-			everyMs = std::max(number(evaluate(every["ms"], *record.locals, json::object(), at + ".ms"), at + ".ms"), 16.0f);
-		} else if(key == "autofocus") {
-			autofocus = boolean(value, at);
-		} else if(key == "locked") {
-			if(boolean(value, at) && !properties.contains("id")) fail(at, "a locked node needs an \"id\"");
-		}
-	}
-
-	// "every": a repeating timer while the node exists
-	if(window && everyMs != record.everyMs) {
-		if(record.everyTimer) window->cancelTimer(std::exchange(record.everyTimer, 0));
-		record.everyMs = everyMs;
-		if(everyMs > 0.0) {
-			// The timer owns the task, which holds itself weakly: a strong reference to itself would never be freed
-			auto tick = std::make_shared<std::function<void()>>();
-			*tick = [this, panel = &panel, weak = std::weak_ptr(tick)] {
-				Record* r = recordOf(panel);
-				if(!r || !r->properties.contains("every")) return;
-				r->everyTimer = window->setTimer(r->everyMs, [self = weak.lock()] { (*self)(); });
-				const SharedScope locals = r->locals;
-				handle(r->properties["every"]["do"], *panel, {{"type", "tick"}}, *locals, r->path + ".every.do");
-			};
-			record.everyTimer = window->setTimer(everyMs, [tick] { (*tick)(); });
-		}
-	}
-
-	applyVisual(panel, record, visual(record), isRoot);
-
-	// Values: a bound widget mirrors its state value; otherwise "text" is applied when it changes, so a text area's
-	// typing isn't overwritten by every update
-	auto* label = dynamic_cast<Label*>(&panel);
-	const json none = json::object();
-	const json bound = record.bind ? format::lookup(*record.bind, context(*record.locals, none), path + ".bind") : json();
-	if(label && record.bind) {
-		const std::string value = text(bound);
-		if(label->text() != value) label->setText(value);
-	} else if(label) {
-		const std::optional<std::string> newText =
-		    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
-		if(newText != record.lastText) label->setText(newText.value_or(""));
-		record.lastText = newText;
-	}
-	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
-		if(record.bind) editor->setText(text(bound));
-		else {
-			const std::optional<std::string> newText =
-			    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
-			if(newText != record.lastText) editor->setText(newText.value_or(""));
-			record.lastText = newText;
-		}
-	}
-	if(auto* toggle = dynamic_cast<Toggle*>(&panel))
-		toggle->setChecked(record.bind ? truthy(bound) : truthy(properties.value("checked", json(false))));
-	if(auto* slider = dynamic_cast<Slider*>(&panel)) {
-		const json value = record.bind ? bound : properties.value("value", json(0));
-		slider->setValue(value.is_number() ? value.get<double>() : 0.0);
-	}
-
-	if(created && autofocus && window && !handlersSuspended) window->setFocus(&panel);
-	record.shown = true;
-}
-
-// The node at rest, then each active state block on top (with its own styles)
-json Runtime::Impl::visual(const Record& record) const {
-	json result = json::object();
-	for(const auto& [key, value] : record.properties.items())
-		if(!structural(key) && std::ranges::find(stateBlocks, key) == std::end(stateBlocks)) result[key] = value;
-
-	const bool active[] = {record.hovered, record.focused, record.dragging, record.dragOver, record.down};
-	for(std::size_t i = 0; i < std::size(stateBlocks); ++i) {
-		const std::string name(stateBlocks[i]);
-		if(!active[i] || !record.properties.contains(name)) continue;
-		json block = withStyles(object(record.properties[name], record.path + "." + name), record.path + "." + name);
-		for(const auto& [key, value] : block.items())
-			if(!structural(key) && key != "type") result[key] = value;
-	}
-	return result;
-}
-
-void Runtime::Impl::refresh(Panel& panel, Record& record) {
-	if(std::ranges::none_of(stateBlocks, [&](std::string_view name) { return record.properties.contains(name); }))
-		return;
-	try {
-		applyVisual(panel, record, visual(record), &panel == &window->root());
-	} catch(const DocumentError& error) {
-		report(error.what());
-	}
-}
-
-void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& properties, bool isRoot) {
+void Properties::applyVisual(Panel& panel, Record& record, const json& properties, bool isRoot) {
 	Look look{.label = dynamic_cast<Label*>(&panel),
 	          .textArea = dynamic_cast<TextArea*>(&panel),
-	          .editor = dynamic_cast<TextEditor*>(&panel),
 	          .stack = dynamic_cast<Stack*>(&panel),
-	          .grid = dynamic_cast<Grid*>(&panel),
-	          .toggle = dynamic_cast<Toggle*>(&panel),
-	          .slider = dynamic_cast<Slider*>(&panel)};
-	const Color shownColor = panel.color();
-	const Color shownText = look.label ? look.label->textColor() : Color{};
-	const Color shownBorder = panel.borderColor();
+	          .grid = dynamic_cast<Grid*>(&panel)};
+	const std::array<Color, 3> shown = {panel.color(), look.label ? look.label->textColor() : Color{},
+	                                    panel.borderColor()};
 	reset(panel, record);
-	const auto customIt = types.find(record.type);
-	const CustomType* custom = customIt != types.end() ? &customIt->second : nullptr;
-	json own = json::object();
 
 	for(const auto& [key, value] : properties.items()) {
 		const std::string at = record.path + "." + key;
-		if(key == "type" || key == "autofocus" || key == "locked" || key == "checked" || key == "value" || key == "text")
-			continue; // handled in apply()
+		if(appliedWithValues(key)) continue;
 		if(commonProperty(panel, record, key, value, at, look) || shapeProperty(panel, key, value, at, look)) continue;
 		if(isRoot) fail(at, "not allowed on the root, which always fills the window");
-		if(layoutProperty(panel, key, value, at) || widgetProperty(look, key, value, at)) continue;
-		if(custom && std::ranges::find(custom->properties, key) != custom->properties.end()) {
-			own[key] = value;
+		if(layoutProperty(panel, key, value, at) || widgetProperty(look, key, value, at) ||
+		   registeredProperty(record, key, value, look))
 			continue;
-		}
 		fail(at, "unknown property '" + key + "' for this type");
 	}
 
-	// A custom type's own properties go to the application when they change
-	if(custom && custom->apply && own != record.ownProperties) {
-		try {
-			custom->apply(panel, own);
-		} catch(const std::exception& error) {
-			fail(record.path, error.what());
-		}
-		record.ownProperties = own;
-	}
+	applySets(panel, record, look);
+	transitionLook(panel, record, look, shown);
+	finish(panel, look);
+}
 
-	transitionLook(panel, record, look, shownColor, shownText, shownBorder);
+bool Properties::appliedWithValues(const std::string& key) {
+	static constexpr std::string_view keys[] = {"type", "autofocus", "locked", "checked", "value", "text"};
+	return std::ranges::find(keys, key) != std::end(keys);
+}
+
+void Properties::finish(Panel& panel, const Look& look) {
 	if(look.scroll && (panel.isScrollable() || look.scroll->first || look.scroll->second))
 		panel.setScrollable(look.scroll->first, look.scroll->second);
 	else if(!look.scroll && panel.isScrollable()) panel.setScrollable(false, false);
 	if(look.overlayOpen && !*look.overlayOpen) panel.setVisible(false);
-	if(look.toggle && look.knobColor) look.toggle->setKnobColor(*look.knobColor);
-	if(look.slider) {
-		if(look.sliderRange) look.slider->setRange(look.sliderMin, look.sliderMax, look.sliderStep);
-		look.slider->setColors(look.trackColor.value_or(colors::track), look.fillColor.value_or(colors::accent),
-		                       look.knobColor.value_or(colors::white));
+}
+
+bool Properties::registeredProperty(const Record& record, const std::string& key, const json& value, Look& look) {
+	for(std::size_t i = record.sets.size(); i-- > 0;) {
+		const auto& set = record.sets[i];
+		if(!set || !set->apply || !set->find(key)) continue;
+		look.values[i][key] = value;
+		return true;
+	}
+	return false;
+}
+
+void Properties::applySets(Panel& panel, Record& record, const Look& look) const {
+	for(std::size_t i = record.sets.size(); i-- > 0;) {
+		const auto& set = record.sets[i];
+		if(!set || !set->apply) continue;
+		const json& values = look.values[i].is_null() ? emptyObject() : look.values[i];
+		if(set->everyUpdate) {
+			set->apply(panel, values, *this, record.path);
+		} else if(values != record.ownProperties) { // an application's type: only when its values change
+			set->apply(panel, values, *this, record.path);
+			record.ownProperties = values;
+		}
 	}
 }
 
-bool Runtime::Impl::commonProperty(Panel& panel, Record& record, const std::string& key, const json& value,
-                                   const std::string& at, Look& look) const {
+bool Properties::commonProperty(Panel& panel, Record& record, const std::string& key, const json& value,
+                                const std::string& at, Look& look) const {
 	if(key == "id") panel.setId(string(value, at));
 	else if(key == "color") look.background = color(value, at);
 	else if(key == "visible") panel.setVisible(boolean(value, at));
 	else if(key == "cursor") panel.setCursor(cursor(value, at));
 	else if(key == "tooltip") panel.setTooltip(text(value));
 	else if(key == "disabled") record.disabled = boolean(value, at);
-	else if(key == "transition") {
-		for(const auto& [property, ms] : object(value, at).items()) {
-			if(std::ranges::find(transitionable, property) == transitionable.end())
-				fail(std::format("{}.{}", at, property),
-				     R"(only "color", "textColor" and "borderColor" can transition)");
-			number(ms, at + "." + property);
-		}
-		record.transition = value;
-	} else if(key == "scroll") {
-		const std::string mode = value.is_boolean() ? (value.get<bool>() ? "vertical" : "none") : string(value, at);
-		if(mode != "vertical" && mode != "horizontal" && mode != "both" && mode != "none")
-			fail(at, "expected \"vertical\", \"horizontal\", \"both\" or \"none\"");
-		look.scroll = {mode == "horizontal" || mode == "both", mode == "vertical" || mode == "both"};
-	} else if(key == "overlay") {
-		overlay(panel, record, value, at, look);
-	} else {
-		return false;
-	}
-	return true;
-}
-
-void Runtime::Impl::transitionLook(Panel& panel, Record& record, const Look& look, Color shownColor, Color shownText,
-                                   Color shownBorder) {
-	if(look.background) transitionColor(panel, record, "color", shownColor, *look.background);
-	if(look.label && look.foreground) transitionColor(panel, record, "textColor", shownText, *look.foreground);
-	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
-	transitionColor(panel, record, "borderColor", shownBorder, look.border.value_or(colors::black));
-}
-
-bool Runtime::Impl::shapeProperty(Panel& panel, const std::string& key, const json& value, const std::string& at,
-                                  Look& look) const {
-	if(key == "radius") panel.setCornerRadii(radii(value, at));
-	else if(key == "borderWidth") panel.setBorder(pixels(value, at), panel.borderColor());
-	else if(key == "borderColor") look.border = color(value, at); // set last, as it may transition
-	else if(key == "shadow") panel.setShadow(shadow(value, at));
+	else if(key == "transition") record.transition = transition(value, at);
+	else if(key == "scroll") look.scroll = scroll(value, at);
+	else if(key == "overlay") overlay(panel, record, value, at, look);
 	else return false;
 	return true;
 }
 
-// Like CSS box-shadow: "x" and "y" move it and "blur" softens it
-Shadow Runtime::Impl::shadow(const json& value, const std::string& path) const {
-	Shadow result{.color = colors::black.withAlpha(0.25f)};
-	for(const auto& [key, item] : object(value, path).items()) {
-		const std::string at = std::format("{}.{}", path, key);
-		if(key == "x") result.offset.x = finiteNumber(item, at);
-		else if(key == "y") result.offset.y = finiteNumber(item, at);
-		else if(key == "blur") result.blur = pixels(item, at);
-		else if(key == "color") result.color = color(item, at);
-		else fail(at, "unknown property (expected x, y, blur or color)");
+const json& Properties::transition(const json& value, const std::string& at) const {
+	for(const auto& [property, ms] : object(value, at).items()) {
+		if(!engine_.types.transitionable(property))
+			fail(std::format("{}.{}", at, property), R"(only "color", "textColor" and "borderColor" can transition)");
+		number(ms, at + "." + property);
 	}
-	return result;
+	return value;
 }
 
-void Runtime::Impl::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
+std::pair<bool, bool> Properties::scroll(const json& value, const std::string& at) {
+	const std::string mode = value.is_boolean() ? (value.get<bool>() ? "vertical" : "none") : string(value, at);
+	if(mode != "vertical" && mode != "horizontal" && mode != "both" && mode != "none")
+		fail(at, "expected \"vertical\", \"horizontal\", \"both\" or \"none\"");
+	return {mode == "horizontal" || mode == "both", mode == "vertical" || mode == "both"};
+}
+
+void Properties::transitionLook(Panel& panel, Record& record, const Look& look, const std::array<Color, 3>& shown) {
+	Scheduler& scheduler = engine_.scheduler;
+	if(look.background) scheduler.transitionColor(panel, record, "color", shown[0], *look.background);
+	if(look.label && look.foreground) scheduler.transitionColor(panel, record, "textColor", shown[1], *look.foreground);
+	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
+	scheduler.transitionColor(panel, record, "borderColor", shown[2], look.border.value_or(colors::black));
+}
+
+bool Properties::shapeProperty(Panel& panel, const std::string& key, const json& value, const std::string& at,
+                               Look& look) const {
+	if(key == "radius") panel.setCornerRadii(radii(value, at));
+	else if(key == "borderWidth") panel.setBorder(pixels(value, at), panel.borderColor());
+	else if(key == "borderColor") look.border = color(value, at); // set last, as it may transition
+	else if(key == "shadow") panel.setShadow(engine_.document.shadow(value, at));
+	else return false;
+	return true;
+}
+
+void Properties::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
 	const json& overlay = object(value, at);
 	for(const auto& [k, v] : overlay.items())
 		if(k != "anchor" && k != "placement" && k != "open" && k != "dismiss")
@@ -546,8 +333,8 @@ void Runtime::Impl::overlay(Panel& panel, Record& record, const json& value, con
 		const json& open = overlay["open"];
 		if(open.is_string()) { // a state path, so a click outside can close it
 			record.overlayOpen = open.get<std::string>();
-			look.overlayOpen =
-			    truthy(format::lookup(open.get<std::string>(), context(*record.locals, json::object()), at + ".open"));
+			look.overlayOpen = truthy(format::lookup(
+			    open.get<std::string>(), engine_.document.context(*record.locals, json::object()), at + ".open"));
 		} else {
 			look.overlayOpen = truthy(open);
 		}
@@ -559,101 +346,51 @@ void Runtime::Impl::overlay(Panel& panel, Record& record, const json& value, con
 	}
 }
 
-bool Runtime::Impl::widgetProperty(Look& look, const std::string& key, const json& value, const std::string& at) const {
-	auto* const label = look.label;
-	auto* const stack = look.stack;
-	auto* const grid = look.grid;
-	auto* const toggle = look.toggle;
-	auto* const slider = look.slider;
+bool Properties::widgetProperty(Look& look, const std::string& key, const json& value, const std::string& at) const {
+	return (look.label && textProperty(look, key, value, at)) ||
+	       (look.stack && stackProperty(*look.stack, key, value, at)) ||
+	       (look.grid && gridProperty(*look.grid, key, value, at));
+}
 
-	// Labels and text areas
-	if(label && key == "textColor") look.foreground = color(value, at);
-	else if(label && key == "padding") label->setPadding(number(value, at));
-	else if(label && key == "wrap") label->setWrap(boolean(value, at));
-	else if(label && key == "font") {
-		const auto it = fonts.find(string(value, at));
-		if(it == fonts.end()) fail(at, "unknown font '" + value.get<std::string>() + "'");
-		label->setFont(it->second);
-	} else if(label && key == "align") {
-		if(value.is_string()) {
-			label->setAlignment(align(value, at), align(value, at));
-		} else {
-			object(value, at);
-			label->setAlignment(align(value.value("horizontal", json("start")), at + ".horizontal"),
-			                    align(value.value("vertical", json("start")), at + ".vertical"));
-		}
-	} else if(label && key == "fitText") {
-		if(value.is_boolean()) label->setFitToText(value.get<bool>());
-		else label->setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));
-	} else if(look.textArea && key == "placeholder") look.textArea->setPlaceholder(text(value));
+// Labels and text areas
+bool Properties::textProperty(Look& look, const std::string& key, const json& value, const std::string& at) const {
+	Label& label = *look.label;
+	if(key == "textColor") look.foreground = color(value, at);
+	else if(key == "padding") label.setPadding(number(value, at));
+	else if(key == "wrap") label.setWrap(boolean(value, at));
+	else if(key == "font") label.setFont(font(value, at));
+	else if(key == "align" && value.is_string()) label.setAlignment(align(value, at), align(value, at));
+	else if(key == "align") {
+		object(value, at);
+		label.setAlignment(align(value.value("horizontal", json("start")), at + ".horizontal"),
+		                   align(value.value("vertical", json("start")), at + ".vertical"));
+	} else if(key == "fitText" && value.is_boolean()) label.setFitToText(value.get<bool>());
+	else if(key == "fitText")
+		label.setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));
+	else if(look.textArea && key == "placeholder") look.textArea->setPlaceholder(text(value));
 	else if(look.textArea && key == "placeholderColor") look.textArea->setPlaceholderColor(color(value, at));
-
-
-	// Text editors
-	else if(look.editor && key == "textColor") look.editor->setTextColor(color(value, at));
-	else if(look.editor && key == "font") {
-		const auto it = fonts.find(string(value, at));
-		if(it == fonts.end()) fail(at, "unknown font '" + value.get<std::string>() + "'");
-		look.editor->setFont(it->second);
-	} else if(look.editor && key == "lineNumbers") look.editor->setLineNumbers(boolean(value, at));
-	else if(look.editor && key == "lineColor") look.editor->setLineColor(color(value, at));
-	else if(look.editor && key == "selectionColor") look.editor->setSelectionColor(color(value, at));
-	else if(look.editor && key == "caretColor") look.editor->setCaretColor(color(value, at));
-	else if(look.editor && key == "lineNumberColor") look.editor->setLineNumberColor(color(value, at));
-	else if(look.editor && key == "activeLineNumberColor") look.editor->setActiveLineNumberColor(color(value, at));
-
-	// Rows, columns and grids
-	else if(stack && key == "gap") stack->setGap(number(value, at));
-	else if(stack && (key == "from" || key == "align")) stack->setAlignment(align(value, at)); // "align": v1 name
-	else if(stack && key == "direction") {
-		const std::string direction = string(value, at);
-		if(direction != "row" && direction != "column") fail(at, "expected \"row\" or \"column\"");
-		stack->setDirection(direction == "row" ? Direction::Row : Direction::Column);
-	} else if(stack && key == "wrap") stack->setWrap(boolean(value, at));
-	else if(grid && key == "columns") grid->setColumns(integer(value, at));
-	else if(grid && key == "gap") grid->setGap(number(value, at));
-
-	// Toggles and sliders
-	else if(toggle && key == "activeColor") toggle->setOnColor(color(value, at));
-	else if(toggle && key == "trackColor") toggle->setOffColor(color(value, at));
-	else if((toggle || slider) && key == "knobColor") look.knobColor = color(value, at);
-	else if(slider && (key == "min" || key == "max" || key == "step")) {
-		look.sliderRange = true;
-		(key == "min" ? look.sliderMin : key == "max" ? look.sliderMax : look.sliderStep) = number(value, at);
-	} else if(slider && key == "trackColor") look.trackColor = color(value, at);
-	else if(slider && key == "activeColor") look.fillColor = color(value, at);
 	else return false;
 	return true;
 }
 
-// With a transition, the colour moves from what was shown to the target over that many milliseconds
-void Runtime::Impl::transitionColor(Panel& panel, Record& record, const char* property, Color shown, Color target) {
-	Tween& tween = tweenOf(record, property);
-	const double ms = record.transition.contains(property) ? record.transition[property].get<double>() : 0.0;
+// Rows and columns
+bool Properties::stackProperty(Stack& stack, const std::string& key, const json& value, const std::string& at) {
+	if(key == "gap") stack.setGap(number(value, at));
+	else if(key == "from" || key == "align") stack.setAlignment(align(value, at)); // "align": v1 name
+	else if(key == "direction") {
+		const std::string direction = string(value, at);
+		if(direction != "row" && direction != "column") fail(at, "expected \"row\" or \"column\"");
+		stack.setDirection(direction == "row" ? Direction::Row : Direction::Column);
+	} else if(key == "wrap") stack.setWrap(boolean(value, at));
+	else return false;
+	return true;
+}
 
-	if(!window || ms <= 0.0 || shown == target || !record.shown || handlersSuspended) {
-		if(tween.timer && window) window->cancelTimer(std::exchange(tween.timer, 0));
-		setColorOf(panel, property, target);
-		return;
-	}
-	if(tween.timer && tween.to == target) { // already on its way there
-		setColorOf(panel, property, shown);
-		return;
-	}
-	if(tween.timer) window->cancelTimer(tween.timer);
-	tween = {shown, target, now(), ms, 0};
-	setColorOf(panel, property, shown);
-
-	auto step = std::make_shared<std::function<void()>>(); // owned by the timer, holds itself weakly (see "every")
-	*step = [this, panel = &panel, name = std::string_view(property), weak = std::weak_ptr(step)] {
-		Record* r = recordOf(panel);
-		if(!r) return;
-		Tween& t = tweenOf(*r, name);
-		const double progress = std::min((now() - t.start) * 1000.0 / t.ms, 1.0);
-		setColorOf(*panel, name, Color::mix(t.from, t.to, static_cast<float>(ease("out", progress))));
-		t.timer = progress < 1.0 ? window->setTimer(frameMs, [self = weak.lock()] { (*self)(); }) : 0;
-	};
-	tween.timer = window->setTimer(frameMs, [step] { (*step)(); });
+bool Properties::gridProperty(Grid& grid, const std::string& key, const json& value, const std::string& at) {
+	if(key == "columns") grid.setColumns(integer(value, at));
+	else if(key == "gap") grid.setGap(number(value, at));
+	else return false;
+	return true;
 }
 
 } // namespace affresco::format

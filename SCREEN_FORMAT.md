@@ -442,7 +442,8 @@ A check visits each part of the document once (a repeat is not expanded), so it 
 affresco::Application app;
 affresco::Screen screen = affresco::Screen::fromFile("kanban.screen.json");
 screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a custom type, before createWindow
-// A custom type has the properties of the built-in type it derives from, plus its own, given here with their handler
+// A custom type has the properties of the built-in type it derives from, plus its own, given here with their handler.
+// Registered under the name of a built-in type, it replaces that type.
 screen.registerType("gauge", [] { return std::make_unique<MyGauge>(); }, {"needle"},
                     [&](affresco::Panel& panel, const std::string& propertiesJson) { /* {"needle": "@accent"} */ });
 screen.onCall("pickFile", [](const std::string& argumentsJson) { return R"("/tmp/a.png")"; }); // {"call": "pickFile"}
