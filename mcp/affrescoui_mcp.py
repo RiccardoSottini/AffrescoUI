@@ -131,41 +131,51 @@ class Host:
         log(f"connected to {self.path}")
 
     def read(self, sock):
-        for line in sock.makefile("r", encoding="utf-8"):
-            try:
-                message = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            kind = message.get("type")
-            with self.lock:
-                pending = self.waiting.get(message.get("id"))
-                if pending and kind != "request":
-                    pending[1] = message
-                    pending[0].set()
+        """Reads the host's messages until it closes the connection. Whatever stops the reading closes it too, so the
+        next call connects again instead of waiting for answers nobody reads."""
+        try:
+            for line in sock.makefile("r", encoding="utf-8", errors="replace"):
+                try:
+                    message = json.loads(line)
+                except json.JSONDecodeError:
                     continue
-            if kind == "request":
-                self.on_request(message)
-            elif kind == "event":
-                self.note({"event": message.get("name"), "data": message.get("data")})
-            elif kind in ("applied", "rejected") and "proposal" in message:  # a reviewer decided
-                self.note({"proposal": message["proposal"],
-                           "outcome": "merged" if kind == "applied" else "rejected",
-                           "revision": message.get("revision"), "detail": message.get("error")})
-            elif kind == "committed":
-                self.note({"committed": message.get("revision"), "commit": message.get("short"),
-                           "author": message.get("author"), "committer": message.get("committer"),
-                           "message": message.get("message")})
-            elif kind == "review":  # only news when the reviewer changed the mode or the "don't ask again" grants
-                rules = (message.get("mode"), [g.get("rule") for g in message.get("grants", [])])
-                if rules != self.rules:
-                    self.rules = rules
-                    self.note({"mode": rules[0], "grants": rules[1]})
-            elif kind == "error":
-                self.note({"error": message.get("message")})
+                if isinstance(message, dict):
+                    self.dispatch(message)
+        finally:
+            with self.lock:
+                if self.sock is sock:
+                    self.sock = None
+            sock.close()
+            log("the host closed the connection")
+
+    def dispatch(self, message):
+        """One message from the host: the answer someone waits for, a person's request, or news for get_events."""
+        kind = message.get("type")
         with self.lock:
-            if self.sock is sock:
-                self.sock = None
-        log("the host closed the connection")
+            pending = self.waiting.get(message.get("id")) if isinstance(message.get("id"), str) else None
+            if pending and kind != "request":
+                pending[1] = message
+                pending[0].set()
+                return
+        if kind == "request":
+            self.on_request(message)
+        elif kind == "event":
+            self.note({"event": message.get("name"), "data": message.get("data")})
+        elif kind in ("applied", "rejected") and "proposal" in message:  # a reviewer decided
+            self.note({"proposal": message["proposal"],
+                       "outcome": "merged" if kind == "applied" else "rejected",
+                       "revision": message.get("revision"), "detail": message.get("error")})
+        elif kind == "committed":
+            self.note({"committed": message.get("revision"), "commit": message.get("short"),
+                       "author": message.get("author"), "committer": message.get("committer"),
+                       "message": message.get("message")})
+        elif kind == "review":  # only news when the reviewer changed the mode or the "don't ask again" grants
+            rules = (message.get("mode"), [g.get("rule") for g in message.get("grants") or [] if isinstance(g, dict)])
+            if rules != self.rules:
+                self.rules = rules
+                self.note({"mode": rules[0], "grants": rules[1]})
+        elif kind == "error":
+            self.note({"error": message.get("message")})
 
     def note(self, event):
         with self.lock:
@@ -625,6 +635,22 @@ def describe(reply):
     return f"rejected, nothing changed: {reply.get('error')}", True
 
 
+def malformed(request):
+    """The error for a message the server can't use, or None: a batch (a JSON array, which MCP dropped in 2025-06-18),
+    anything else that isn't an object, or params that aren't one. The server answers it and reads on."""
+    if isinstance(request, dict) and isinstance(request.get("params", {}), dict):
+        return None
+    return {"jsonrpc": "2.0", "id": request.get("id") if isinstance(request, dict) else None,
+            "error": {"code": -32600, "message": "invalid request: expected one JSON-RPC object"}}
+
+
+def client_name(params):
+    """The name the client gives itself in initialize (the revisions' author after "agent/"), or "agent"."""
+    client = params.get("clientInfo")
+    name = client.get("name") if isinstance(client, dict) else None
+    return name if isinstance(name, str) and name else "agent"
+
+
 class Server:
     def __init__(self, socket_dir, launch):
         self.client = "agent"
@@ -645,7 +671,7 @@ class Server:
     # wait_for_request until it is answered
     def on_request(self, message):
         request = {"request_id": str(message.get("id") or f"r{len(self.requests) + 1}"),
-                   "from": message.get("from", "unknown"), "text": str(message.get("text", ""))}
+                   "from": str(message.get("from") or "unknown"), "text": str(message.get("text", ""))}
         with self.arrived:
             self.requests[request["request_id"]] = request
             self.arrived.notify_all()
@@ -771,6 +797,10 @@ class Server:
         raise UnknownTool(name)
 
     def handle(self, request):
+        refusal = malformed(request)
+        if refusal:
+            self.send(refusal)
+            return
         method, params = request.get("method"), request.get("params") or {}
         if "id" not in request:  # a notification
             if method == "notifications/initialized":
@@ -789,7 +819,7 @@ class Server:
             self.send({"jsonrpc": "2.0", "id": rid, "error": {"code": code, "message": message}})
 
         if method == "initialize":
-            self.client = (params.get("clientInfo") or {}).get("name", "agent")
+            self.client = client_name(params)
             requested = params.get("protocolVersion")
             result({"protocolVersion": requested if requested in PROTOCOLS else PROTOCOLS[0],
                     "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False},
@@ -838,8 +868,9 @@ def main():
         else:
             sys.exit(f"usage: {sys.argv[0]} [--socket DIR] [--launch \"command\"]")
 
-    # MCP's stdio messages are UTF-8 lines ending in \n, whatever the console's code page and line ending
-    sys.stdin.reconfigure(encoding="utf-8")
+    # MCP's stdio messages are UTF-8 lines ending in \n, whatever the console's code page and line ending. A byte that
+    # isn't UTF-8 becomes U+FFFD, so it costs that message, not the server
+    sys.stdin.reconfigure(encoding="utf-8", errors="replace")
     sys.stdout.reconfigure(encoding="utf-8", newline="\n")
     server = Server(socket_dir, launch)
     log(f"ready; the host is expected at {server.host.path}")
