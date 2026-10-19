@@ -18,7 +18,7 @@ python3 tests/perf/run.py --only update,frame    # the workloads whose names sta
 python3 tests/perf/run.py --skip load --runs 3   # leave some out; fewer runs
 python3 tests/perf/run.py --callgrind --skip frame   # instruction counts (Linux, valgrind installed before the build)
 
-pip install -r tests/perf/requirements.txt       # tiktoken, for the token counts only
+pip install --require-hashes -r tests/perf/requirements.txt   # tiktoken, for the token counts only
 python3 tests/perf/tokens.py --table
 ```
 
