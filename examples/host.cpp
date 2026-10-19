@@ -14,6 +14,7 @@
 // the Kanban board template; the other templates are in assets/screens (smart-home, music-player, code-editor,
 // habit-tracker).
 
+#include "Assets.hpp"
 #include "CodeEditor.hpp"
 #include "SocketDir.hpp"
 
@@ -73,7 +74,7 @@ bool firstFrameOnly() {
 } // namespace
 
 int main(int argc, char** argv) {
-	std::string file = AFFRESCOUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
+	std::string file = (assetsDirectory() / "screens" / "kanban.screen.json").string();
 	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory();
 	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
 	// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps
