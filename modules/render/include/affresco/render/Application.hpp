@@ -4,6 +4,7 @@
 /// @brief Application: owns the windowing system and every window, and runs the event loop.
 
 #include "affresco/core/Executor.hpp"
+#include "affresco/render/Clock.hpp"
 #include "affresco/render/Window.hpp"
 
 #include <functional>
@@ -14,9 +15,14 @@
 
 namespace affresco {
 
+namespace platform {
+class Platform;
+}
+
 /// @brief Owns the windowing system (GLFW) and every Window, and runs the event loop.
 ///
-/// One instance at a time. It is the Executor other modules post main-thread work to.
+/// One instance at a time. It is the Executor other modules post main-thread work to. Its windows read the time from
+/// one SteadyClock.
 class Application final : public Executor {
 public:
 	/// @brief Starts GLFW.
@@ -53,6 +59,9 @@ public:
 	void post(std::function<void()> task) override;
 
 private:
+	// Declaration order matters: the windows go before the windowing system
+	std::unique_ptr<platform::Platform> platform_; ///< The windowing system.
+	SteadyClock clock_;                            ///< Every window's clock.
 	std::vector<std::unique_ptr<Window>> windows_; ///< In creation order.
 	bool running_ = false;                         ///< Cleared by quit().
 

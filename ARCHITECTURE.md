@@ -56,7 +56,9 @@ Outside the library: `examples/` (the host, the Studio, an application type), `m
 like any other), and `tests/` (`unit`, `render`, `fuzz`, `perf`, `package`).
 
 Rules that hold across the layers:
-- **No public header exposes OpenGL or GLFW,** and every OpenGL call is in `modules/render/src/gl/`.
+- **No public header exposes OpenGL or GLFW.** Every OpenGL call is in `modules/render/src/gl/`, and every GLFW call
+  in `modules/render/src/platform/GlfwPlatform.cpp`: `Window` and `Application` reach them through the platform
+  layer and the renderer interface, so a window's logic also runs headless, without either.
 - **One thread runs the UI.** Everything runs on the main thread, inside `Application::run`. Threads that read sockets
   or child processes only `post` what they read to the `Executor`. Each class documents the thread that owns it.
 - **Owners are explicit.** `std::unique_ptr` owns; references and raw pointers never do, and each says how long it
@@ -122,7 +124,7 @@ Input reaches the panels through the window, and the screen's handlers turn it i
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"nodeSpacing": 26, "rankSpacing": 34, "padding": 12}, "themeVariables": {"fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94A3B8", "primaryTextColor": "#0F172A"}}}%%
 flowchart LR
-    os(["OS input<br/>GLFW callback"]) --> window["<b>Window</b><br/>hit-test, focus,<br/>hover, capture"]
+    os(["OS input<br/>platform layer"]) --> window["<b>Window</b><br/>hit-test, focus,<br/>hover, capture"]
     window --> panel["<b>Panel</b><br/>event hook,<br/>signal"]
     panel --> events["<b>Runtime events</b><br/>handler, bubbling<br/>to parents"]
     events --> steps["<b>Steps</b><br/>set, run, emit,<br/>call, send, ..."]
@@ -133,7 +135,8 @@ flowchart LR
     steps -. "call" .-> native(["native<br/>functions"])
 ```
 
-1. `Window` receives the OS event, finds the panel (the deepest shown panel under the pointer, the focused panel for
+1. `Window` receives the OS event (from the platform layer, or from a test calling its `route...` methods on a
+   headless window), finds the panel (the deepest shown panel under the pointer, the focused panel for
    keys, or the panel holding the mouse during a drag) and calls its event hook, which fires its signal.
 2. The runtime connected to those signals when it built the panel. It looks for the handler (`onClick`, `onKey`,
    ...) on the panel, then on its parents for events that bubble, and runs its steps with the event as `event`.
@@ -166,18 +169,26 @@ untrusted input, and the known gaps.
 ## Registries and extension points
 
 Today an application extends the library at these points:
-- **Node types:** `Screen::registerType(name, factory, properties, apply)`. The type gets the properties of the
-  built-in type its panel derives from, plus its own (`examples/CodeEditor.*` adds a `code` type with syntax colours).
+- **Node types:** `Screen::registerType(name, factory, properties, apply)`, through the same type registry as the
+  built-in types (a name the format has replaces that type). The type gets the properties of the built-in widget its
+  panel derives from, plus its own (`examples/CodeEditor.*` adds a `code` type with syntax colours).
 - **Native behaviour:** `onAction` and `onCall`, and listeners on `onEvent`.
 - **Widgets:** `Panel` subclasses (`paint`, `prepareLayout`, `arrange`, the event hooks); `TextEditor`'s colouring hook.
 - **Transports and backends:** a `Channel`, a `VersionControl` or a `DocumentRules` of your own (`core`).
 - **The log:** `setLogSink`.
 
+Inside the library, the format grows by registration (7.12): node types (`TypeRegistry`), steps
+(`StepRegistry`) and document sections (`SectionRegistry`) register from their own files, so a new widget, step
+group or section is a new file (`modules/format/README.md` has the recipes). The runtime itself is a composition
+root, `format::Engine`, with eight subsystems: document context, builder, reconciler, properties, events, steps,
+scheduler and catalog. The catalog agents read is built from the registries.
+
+A window's logic runs without a display (7.3): the platform layer (`platform::Platform`, `NativeWindow`) and the
+renderer (`detail::Renderer`) are internal interfaces, and a window built without them is headless. Every window
+reads one `Clock`; the tests use a headless window and a manual clock (`modules/render/src/Headless.hpp`, internal
+for now).
+
 **Coming in wave 2 (not there yet):**
-- **Registries (7.12):** built-in node types, steps and document sections will register from their own files,
-  through the same mechanism applications use, so a new one is a new file. Today a built-in type, property or step is
-  an edit to the runtime's files (`modules/format/README.md` has the recipes until then).
-- **A headless window and one clock (7.3):** the window's logic without a display, for tests and servers.
 - **Expressions on a VM (7.5),** history in proportion to its patches (4.8a), and text shaping with HarfBuzz and
   FreeType (2.3b).
 

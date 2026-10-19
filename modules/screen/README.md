@@ -24,11 +24,14 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   before their peers go.
 - **A peer is authored by the name it was connected with,** whatever name it gives itself. Every peer hears about
   commits, proposals and `emit` events; `request` and `reply` go to the other peers.
-- **Pictures never show:** to draw a proposal for a peer, the screen previews it, draws offscreen and puts the old
-  preview back, within one call and without presenting a frame. Events the runtime emits meanwhile aren't sent.
+- **Pictures never show, and change nothing:** to draw a proposal for a peer, the screen first runs the tasks main
+  had deferred, then previews the proposal with the runtime's handlers suspended, draws offscreen and puts the old
+  preview back, within one call and without presenting a frame. Events the runtime emits meanwhile aren't sent, and
+  no onShow, onHide or watch step runs.
 - **Data stays with the user:** the history and `persist` state live under `defaultDataDirectory()`
   (`$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui`), and sockets under `defaultSocketDirectory()`.
-- **Keep the `Screen` alive while its window is used.** It owns the runtime that the window's panels call back into.
+- **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks and
+  signal connections, so the window can go on receiving input (its panels stay, inert).
 
 ## Threads
 
@@ -48,8 +51,8 @@ Main thread only. Channels deliver messages through the `Executor` given to `lis
 
 Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `onAction`, `onCall`,
 `onUnhandledAction`, `onEvent`. Plus the peers: `connect(channel, author)` for a channel you made, and
-`listen(executor, path, author)` for a socket that accepts any number of them. The registries (from 7.12) will be
-reached from here too.
+`listen(executor, path, author)` for a socket that accepts any number of them. `registerType` goes through the
+runtime's type registry (`modules/format/README.md`).
 
 ## Files
 

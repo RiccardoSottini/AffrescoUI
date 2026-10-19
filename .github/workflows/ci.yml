@@ -43,9 +43,9 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build
-      - name: Unit tests
+      - name: Unit tests # headless windows included
         run: ctest --test-dir build -R unit --output-on-failure
-      - name: Window tests # timers and review steps on a real window, under Xvfb
+      - name: Window tests # pictures drawn with OpenGL, under Xvfb (the rest of a window runs headless, in unit)
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
@@ -91,7 +91,7 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE $KEEP_GL"
           cmake --build build
-      - name: Unit tests
+      - name: Unit tests # headless windows included
         run: ctest --test-dir build -R unit --output-on-failure
       - name: Window tests
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
@@ -125,7 +125,7 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build
-      - name: Unit tests
+      - name: Unit tests # headless windows included
         run: ctest --test-dir build -R unit --output-on-failure
 
   windows:
@@ -140,3 +140,5 @@ jobs:
         run: |
           cmake -S . -B build -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build --config Release
+      - name: Unit tests # the headless window tests too: no display needed
+        run: ctest --test-dir build -C Release -R unit --output-on-failure

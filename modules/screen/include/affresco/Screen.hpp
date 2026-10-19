@@ -32,8 +32,9 @@ using ScreenError = DocumentError;
 ///
 /// The composition root of the library: format::Rules (DocumentRules), vcs::Repository (VersionControl),
 /// format::Runtime (panels, reconciliation, actions) and one channel::Session per peer, talking only through the
-/// interfaces in affresco/core. Use the modules directly to put them together differently. Keep the Screen alive while
-/// its window is used.
+/// interfaces in affresco/core. Use the modules directly to put them together differently. The window must outlive the
+/// Screen; a Screen destroyed first takes back its timers, deferred tasks and signal connections, so the window can
+/// go on receiving input (its panels stay, inert).
 class Screen {
 public:
 	using Action = std::function<void(Panel& sender)>;                                     ///< A native action.

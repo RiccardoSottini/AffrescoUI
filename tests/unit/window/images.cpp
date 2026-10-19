@@ -2,7 +2,8 @@
 /// @brief Tests that need a window: pictures of a screen for peers ("render"), of main and of a proposal, drawn
 /// without changing what the person sees.
 ///
-/// Built into affrescoui_window_tests (see timers.cpp). The windows are never shown.
+/// Built into affrescoui_window_tests: drawing needs an OpenGL context, so a display or Xvfb. The windows are never
+/// shown.
 
 #include "Helpers.hpp"
 
@@ -127,10 +128,9 @@ TEST_CASE("screen: a picture of a missing proposal leaves the person's preview a
 	CHECK(screen.stateJson() == previewed); // not previewed again from main's state
 }
 
-// Known bug, found in review: putting the preview back defers the proposal's onHide steps (and main's onShow and watch
-// steps) to the next frame, when the picture is done, so they run on main's live state without review. Discarding the
-// tasks deferred while drawing needs a Window API (the render module). Unskip when it exists.
-TEST_CASE("screen: a picture of a proposal runs none of its steps on main" * doctest::skip(true)) {
+// Before, putting the preview back deferred the proposal's onHide steps (and main's onShow and watch steps) to the next
+// frame, when the picture was done, so they ran on main's live state without review
+TEST_CASE("screen: a picture of a proposal runs none of its steps on main") {
 	affresco::Application app;
 	MemoryChannel agent; // before the screen: a peer's channel outlives it
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -148,10 +148,9 @@ TEST_CASE("screen: a picture of a proposal runs none of its steps on main" * doc
 	CHECK(json::parse(screen.stateJson())["count"] == 0);
 }
 
-// Known bug, found in review: steps main deferred just before a picture of a proposal (here a revision's onShow) run
-// inside the proposal's preview, so their changes to the state are put back with it and lost. Running the pending tasks
-// before switching needs a Window API (the render module). Unskip when it exists.
-TEST_CASE("screen: steps main deferred before a picture of a proposal still change main" * doctest::skip(true)) {
+// Before, steps main deferred just before a picture of a proposal (here a revision's onShow) ran inside the proposal's
+// preview, so their changes to the state were put back with it and lost
+TEST_CASE("screen: steps main deferred before a picture of a proposal still change main") {
 	affresco::Application app;
 	MemoryChannel agent, studio; // before the screen: a peer's channel outlives it
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -169,4 +168,29 @@ TEST_CASE("screen: steps main deferred before a picture of a proposal still chan
 	REQUIRE(ask(agent, {{"type", "render"}, {"id", 3}, {"proposal", proposed["proposal"]}})["type"] == "image");
 	window.render();
 	CHECK(json::parse(screen.stateJson())["count"] == 5);
+}
+
+// A picture of a proposal must not take the focus (its "autofocus"), nor leave a colour on its way back to main
+TEST_CASE("screen: a picture of a proposal leaves the focus and the colours as they were") {
+	affresco::Application app;
+	MemoryChannel agent; // before the screen: a peer's channel outlives it
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	affresco::Screen screen = affresco::Screen::fromString(boardScreen);
+	affresco::Window& window = screen.createWindow(app);
+	REQUIRE(screen.applyRevision(R"({"set": {"#board/transition": {"color": 200}}})"));
+	window.render();
+	screen.connect(agent, "agent");
+	window.setFocus(screen.find("main"));
+
+	const json field = {{"type", "textarea"}, {"id", "field"}, {"autofocus", true}};
+	const json proposed =
+	    ask(agent, {{"type", "revision"},
+		            {"id", 1},
+		            {"set", {{"#board/color", "#ff0000"}, {"#board/children", json::array({field})}}}});
+	REQUIRE(proposed["type"] == "proposed");
+	REQUIRE(ask(agent, {{"type", "render"}, {"id", 2}, {"proposal", proposed["proposal"]}})["type"] == "image");
+	window.render();
+	CHECK(window.focusedPanel() == screen.find("main"));
+	CHECK_FALSE(window.secondsToNextTimer()); // no colour on its way back from red
+	CHECK(screen.find("board")->color() == affresco::Color::parseHex("#ffffff").value_or(affresco::Color{}));
 }

@@ -231,9 +231,6 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
   it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
   should deny agents the `/state` paths those steps read.
-- **A screen destroyed while its window lives on.** Its timers and deferred tasks are cancelled, but its panels and
-  the window's signals still call into it, so input delivered to that window afterwards uses freed memory. Destroy
-  a screen only when its window gets no more events (after `Application::run` returns).
 - **A revision can point a font at any file.** `fonts.<name>.file` can be changed by a revision, and the app then
   reads that file and parses it as a font; the error a peer gets back says whether it could be read. The font parser
   (stb_truetype) is not hardened against malformed files, and every new file and size bakes and keeps another font

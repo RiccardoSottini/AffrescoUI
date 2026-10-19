@@ -13,15 +13,17 @@ namespace affresco::detail {
 /// encodes it as a PNG.
 ///
 /// To draw a proposal it previews it, draws, and puts back the preview that was shown before (or none), all within
-/// one call on the main thread: no frame is presented in between, so the window never shows it.
+/// one call on the main thread: no frame is presented in between, so the window never shows it. The tasks main had
+/// deferred run first, on main; then, until the screen is put back, the runtime's handlers are suspended
+/// (Runtime::setHandlersSuspended), so the proposal's onShow, onHide and watch steps, and main's when it comes back,
+/// never run: a picture changes nothing the person sees or what runs next.
 /// Main thread only.
 class OffscreenImages final : public ScreenImages {
 public:
 	/// @brief Draws a screen.
 	/// @param versions Its document; must outlive this object.
 	/// @param runtime Its panels and window; must outlive this object.
-	OffscreenImages(VersionControl& versions, const format::Runtime& runtime)
-	    : versions_(versions), runtime_(runtime) {}
+	OffscreenImages(VersionControl& versions, format::Runtime& runtime) : versions_(versions), runtime_(runtime) {}
 
 	[[nodiscard]] std::optional<std::string> render(const ImageRequest& request, Image& image) override;
 	[[nodiscard]] bool rendering() const noexcept override { return rendering_; }
@@ -38,7 +40,7 @@ private:
 	std::optional<std::string> draw(int scale, Image& image) const;
 
 	VersionControl& versions_;       ///< The document.
-	const format::Runtime& runtime_; ///< Has the window.
+	format::Runtime& runtime_;       ///< Has the window.
 	bool rendering_ = false;         ///< See rendering().
 };
 

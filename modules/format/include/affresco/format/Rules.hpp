@@ -6,11 +6,14 @@
 #include "affresco/core/DocumentRules.hpp"
 
 #include <functional>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
 namespace affresco::format {
+
+class SectionRegistry;
 
 /// @brief The AffrescoUI Screen Format (SCREEN_FORMAT.md) as rules for version control (VERSION_CONTROL.md).
 ///
@@ -23,7 +26,11 @@ namespace affresco::format {
 /// Used on the main thread: the checker compiles expressions through the main thread's cache.
 class Rules final : public DocumentRules {
 public:
-	/// @brief Checks the top-level sections, "format", "version" (1), "root", "actions" and "permissions".
+	/// @brief Rules with the built-in sections of the format (SectionRegistry).
+	Rules();
+
+	/// @brief Checks the top-level sections, each as its SectionRegistry entry says: none unknown, "version" (1) and
+	/// "root" there, "actions", "components", "channels", "persist", "permissions" and the others well formed.
 	/// @param document The document.
 	/// @throws DocumentError If something is wrong; what() names the place.
 	void validate(const json& document) const override;
@@ -59,6 +66,7 @@ public:
 
 private:
 	std::set<std::string, std::less<>> nativeActions_; ///< From addNativeAction().
+	std::shared_ptr<const SectionRegistry> sections_;  ///< The sections; shared by copies, never changed.
 };
 
 } // namespace affresco::format
