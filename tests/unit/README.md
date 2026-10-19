@@ -23,6 +23,7 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
 | `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review |
+| `screen.cpp` | `Screen`'s paths: the default socket directory, where `persist` state is read from |
 | `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers when it is destroyed |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main` |
@@ -34,6 +35,7 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 - A new expression is one more row in the table in `expressions.cpp`: the value, and its result or the error text.
 - Tests pin behaviour through the public headers. Private ones are fine when a module's logic lives there:
   `modules/format/src` is on the include path for `Expression.hpp`. Don't make a header public for a test.
-- Tests don't need a window, files or a network, so they run anywhere, CI included. Only `timers.cpp` needs a window.
+- Tests don't need a window or a network, so they run anywhere, CI included. Only `timers.cpp` needs a window. A test
+  that needs files makes them in a temporary folder of its own and removes it (`screen.cpp`).
 - Don't change library code to make a test pass. If a test finds a bug, keep it, mark it `* doctest::skip(true)`
   with a comment that describes the bug, and report it.
