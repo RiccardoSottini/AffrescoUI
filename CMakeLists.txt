@@ -59,7 +59,8 @@ FetchContent_MakeAvailable(json)
 
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
 if(MSVC)
-	set(AFFRESCOUI_WARNINGS /W4 /permissive-)
+	# /utf-8 isn't a warning, but goes wherever these do: the sources are UTF-8, and MSVC reads the ANSI code page
+	set(AFFRESCOUI_WARNINGS /W4 /permissive- /utf-8)
 else()
 	set(AFFRESCOUI_WARNINGS -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast
 		-Wnon-virtual-dtor -Woverloaded-virtual)
