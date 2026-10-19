@@ -282,7 +282,7 @@ struct Runtime::Impl final : VersionObserver {
 	};
 	std::map<std::string, NamedColor, std::less<>> colors;                 ///< From "colors".
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts; ///< From "fonts".
-	std::map<std::string, std::shared_ptr<const Font>> fontCache; ///< By "file@size": revisions don't reload fonts.
+	std::map<std::string, std::shared_ptr<const Font>> fontCache; ///< By file, size and fallbacks: kept across revisions.
 	std::string theme;                                            ///< "theme", evaluated at each update.
 
 	/// @brief A type the application registered.
