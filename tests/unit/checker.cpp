@@ -305,6 +305,15 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 	json wide = {{"version", 1}, {"root", {{"text", json::array()}}}};
 	wide["root"]["text"].get_ref<json::array_t&>().resize(1100000, json::array()); // numbers cost no visit: lists do
 	CHECK_FALSE(affresco::format::check(wide, json::object()));
+
+	// A long name with a typo: hints compare names of a sensible length only, not a square of a hundred thousand
+	const std::string longName(100000, 'a');
+	const json longTypo = {{"version", 1},
+	                       {"state", {{longName, 1}}},
+	                       {"root", {{"text", "{{state." + longName + "b}}"}}}};
+	const auto found = affresco::format::check(longTypo, longTypo["state"]);
+	REQUIRE(found);
+	CHECK(found->size() == 1);
 }
 
 TEST_CASE("checker: a finding a change moves is not new; one it adds is") {

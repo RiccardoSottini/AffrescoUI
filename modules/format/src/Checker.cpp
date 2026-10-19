@@ -122,11 +122,16 @@ std::size_t distance(std::string_view a, std::string_view b) {
 	return d[a.size() * width + b.size()];
 }
 
+/// The longest name a hint compares: distance() costs the product of the lengths, and a peer chooses them.
+constexpr std::size_t maxHintLength = 64;
+
 /// @brief Finds the name nearest to a mistyped one, if one is near enough to be what was meant.
 /// @param word The name as written.
 /// @param names The names that exist.
-/// @return The nearest name within one edit (two for names of five letters or more), or std::nullopt.
+/// @return The nearest name within one edit (two for names of five letters or more), or std::nullopt; none for
+/// names longer than maxHintLength.
 std::optional<std::string> closest(std::string_view word, const std::vector<std::string>& names) {
+	if(word.size() > maxHintLength) return std::nullopt;
 	std::size_t best = word.size() < 5 ? 2 : 3; // one more than allowed
 	std::optional<std::string> found;
 	for(const std::string& name : names) {
