@@ -303,9 +303,9 @@ std::optional<std::filesystem::path> environmentPath(std::string_view name) {
 	return std::filesystem::path(value);
 }
 
-/// @brief Where "persist" state files are kept: the folder for application data of this platform.
+/// @brief The folder for application data of this platform, where screens' data is kept by default.
 /// @return %APPDATA%\\affrescoui on Windows, ~/.affrescoui elsewhere (in the current folder without a home).
-std::filesystem::path stateDirectory() {
+std::filesystem::path platformDataDirectory() {
 #ifdef _WIN32
 	return environmentPath("APPDATA").value_or(".") / "affrescoui";
 #else
@@ -366,6 +366,19 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	}
 }
 
+/// @brief Where a screen file's data on disk is kept: its "persist" state and its history.
+/// @param dataDirectory The data folder (Screen::defaultDataDirectory()).
+/// @param screenFile The screen file.
+/// @param suffix What is kept: ".state.json" or ".history".
+/// @return <data folder>/<the file's name without ".screen.json"><suffix>: "habits.screen.json" -> "habits.history".
+std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, const std::filesystem::path& screenFile,
+                                    std::string_view suffix) {
+	std::string name = screenFile.filename().string();
+	for(const char* extension : {".json", ".screen"})
+		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
+	return dataDirectory / (name + std::string(suffix));
+}
+
 /// @brief Parses JSON text.
 /// @param text The text.
 /// @param what What it is, for the error.
@@ -398,7 +411,14 @@ Screen::Screen(Screen&&) noexcept = default;
 Screen& Screen::operator=(Screen&&) noexcept = default;
 Screen::~Screen() = default;
 
-Screen Screen::fromFile(const std::filesystem::path& path) {
+std::filesystem::path Screen::defaultDataDirectory() {
+	return environmentPath("AFFRESCOUI_DATA_DIR").value_or(platformDataDirectory());
+}
+
+Screen Screen::fromFile(const std::filesystem::path& path) { return fromFile(path, defaultDataDirectory()); }
+
+Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
+                        History history) {
 	std::ifstream file(path);
 	if(!file) {
 		throw ScreenError(
@@ -409,10 +429,9 @@ Screen Screen::fromFile(const std::filesystem::path& path) {
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
-	std::string name = path.filename().string(); // "habits.screen.json" -> "habits"
-	for(const char* extension : {".json", ".screen"})
-		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
-	screen.setStateFile(stateDirectory() / (name + ".state.json"));
+	// The history first: it sets the live state that the "persist" paths are then loaded into
+	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
+	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
 	return screen;
 }
 
@@ -478,6 +497,17 @@ void Screen::startChannels(Executor& executor) {
 		                                              : 0.0;
 		impl.open(channel);
 	}
+}
+
+void Screen::setHistoryDirectory(const std::filesystem::path& directory) {
+	const vcs::Repository::OpenedHistory opened = impl_->repository.openHistory(directory);
+	if(!opened.setAside.empty())
+		affresco::log(LogLevel::Warning, "AffrescoUI history: the screen file changed since " + directory.string() +
+		                                     " was written: a new history starts there, and the old one is kept in " +
+		                                     opened.setAside.string());
+	if(!opened.memoryOnly.empty())
+		affresco::log(LogLevel::Warning, "AffrescoUI history: " + directory.string() + ": " + opened.memoryOnly +
+		                                     "; changes to this screen are kept in memory only");
 }
 
 void Screen::setStateFile(std::filesystem::path file) {
@@ -600,6 +630,11 @@ bool Screen::importChanges(std::string_view changesJson, std::string* error) {
 	return changes && succeeded(impl_->repository.importChanges(*changes), error);
 }
 
+bool Screen::hasImported(std::string_view changesJson) const {
+	const auto changes = parseJson(changesJson, "changes", nullptr);
+	return changes && impl_->repository.hasImported(*changes);
+}
+
 std::string Screen::documentJson() const { return impl_->repository.document().dump(); }
 
 std::string Screen::stateJson() const { return impl_->repository.state().dump(); }
@@ -626,5 +661,7 @@ void Screen::listen(Executor& executor, const std::filesystem::path& path, std::
 }
 
 void Screen::setMode(Mode mode) { impl_->repository.setMode(mode); }
+
+void Screen::setModeForThisRun(Mode mode) { impl_->repository.setModeForThisRun(mode); }
 
 } // namespace affresco

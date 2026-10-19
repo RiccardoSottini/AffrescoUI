@@ -49,11 +49,33 @@ public:
 	using ProposalInfo = affresco::ProposalInfo;                                                ///< An open proposal.
 	using CommitInfo = affresco::CommitInfo;                                                    ///< A commit.
 
-	/// @brief Loads a screen file.
+	/// @brief How fromFile() keeps a screen's version-control history.
+	enum class History {
+		OnDisk,  ///< In the data folder, so that it survives a restart (VERSION_CONTROL.md, "History on disk").
+		InMemory ///< In memory only, e.g. for a one-frame screenshot, which shows the file as it is.
+	};
+
+	/// @brief The folder fromFile() keeps screens' data in: $AFFRESCOUI_DATA_DIR if it is set, else ~/.affrescoui
+	/// (%APPDATA%\\affrescoui on Windows).
+	/// Give each parallel session its own (like the socket folder), so that their histories never meet.
+	/// @return The folder.
+	[[nodiscard]] static std::filesystem::path defaultDataDirectory();
+
+	/// @brief Loads a screen file, with its history and "persist" state from defaultDataDirectory()
+	/// (setHistoryDirectory(), setStateFile()).
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @return The screen, not yet built.
-	/// @throws ScreenError If the file can't be read or is not a valid screen.
+	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
+
+	/// @brief Loads a screen file, with its data in a folder of the caller's choice.
+	/// @param path The file; relative font and "include" paths are resolved from its directory.
+	/// @param dataDirectory Where "<file name>.history/" and "<file name>.state.json" are kept.
+	/// @param history Whether the history is kept there or in memory only; the "persist" state is kept there either way.
+	/// @return The screen, not yet built.
+	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
+	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
+	                                     History history = History::OnDisk);
 
 	/// @brief Loads a screen from JSON text.
 	/// @param content The document.
@@ -140,9 +162,19 @@ public:
 	/// @param executor Delivers messages on the main thread (the Application).
 	void startChannels(Executor& executor);
 
+	/// @brief Keeps the screen's version-control history in a folder, and loads it from there if it has one, so that
+	/// main, the open proposals, the grants and the mode survive a restart (VERSION_CONTROL.md, "History on disk").
+	/// fromFile() does it with <data folder>/<screen file name>.history (defaultDataDirectory()); a screen from
+	/// fromString() stays in memory.
+	/// Call it before build() and before any change. If another program writes that history, this one only reads it
+	/// (a warning says so); if the screen file changed since it was written, it is moved aside and a new one starts.
+	/// @param directory The folder; created if needed.
+	/// @throws ScreenError If the history there is damaged (what() names the file) or its last revision can't be
+	/// shown: then nothing is loaded.
+	void setHistoryDirectory(const std::filesystem::path& directory);
+
 	/// @brief Sets the file the "persist" paths are kept in, and loads them from it if it exists (default:
-	/// ~/.affrescoui/<screen file name>.state.json, or %APPDATA%\\affrescoui\\<screen file name>.state.json on
-	/// Windows).
+	/// <data folder>/<screen file name>.state.json, see defaultDataDirectory()).
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
 
@@ -237,6 +269,11 @@ public:
 	/// @param error Receives the error, if any (may be nullptr).
 	/// @return true if it was applied.
 	bool importChanges(std::string_view changesJson, std::string* error = nullptr);
+	/// @brief Tells whether a change set was already applied to this screen's history (importChanges() keeps them,
+	/// on disk too for a screen from fromFile()), so that a host can apply a plugin once.
+	/// @param changesJson A change set from exportChanges().
+	/// @return true if it was; false for one that wasn't, or isn't valid JSON.
+	[[nodiscard]] bool hasImported(std::string_view changesJson) const;
 
 	/// @brief The current document, as JSON text.
 	[[nodiscard]] std::string documentJson() const;
@@ -267,6 +304,10 @@ public:
 	/// @brief Sets how much reviewers are asked (see VersionControl::setMode).
 	/// @param mode Default, AcceptEdits (apply what no rule allows, like auto-accept) or Plan (peers only propose).
 	void setMode(Mode mode);
+	/// @brief Sets how much reviewers are asked until the program quits, without keeping it in the screen's history:
+	/// for a host's command line (`--mode`, `--auto-accept`). The next start uses the mode a reviewer last chose.
+	/// @param mode Default, AcceptEdits or Plan (see setMode()).
+	void setModeForThisRun(Mode mode);
 
 	/// @brief The version control module, for code that needs more than this class offers.
 	[[nodiscard]] VersionControl& versions() noexcept;
