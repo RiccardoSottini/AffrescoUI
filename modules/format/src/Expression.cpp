@@ -409,6 +409,27 @@ private:
 		return std::string(text_.substr(start, position_ - start));
 	}
 
+	/// @brief A number literal: digits, maybe with a fraction (a '-' before it is an operator).
+	/// @return The number: an integer, or a double with a fraction.
+	json number() {
+		const std::size_t start = position_;
+		while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
+		bool fraction = false;
+		if(position_ + 1 < text_.size() && text_[position_] == '.' &&
+		   std::isdigit(static_cast<unsigned char>(text_[position_ + 1]))) {
+			fraction = true;
+			++position_;
+			while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
+		}
+		const std::string digits(text_.substr(start, position_ - start));
+		if(!fraction) {
+			if(const std::optional<std::int64_t> value = wholeNumber(digits)) return *value;
+		} else if(const double value = std::strtod(digits.c_str(), nullptr); std::isfinite(value)) {
+			return value; // std::stod would throw out_of_range, past evaluate()'s callers
+		}
+		error("number '" + digits + "' is too large");
+	}
+
 	/// @brief Literals, ( ), [ ], @colors, function calls and variables.
 	/// @return The node.
 	json primary() {
@@ -416,25 +437,7 @@ private:
 		if(position_ >= text_.size()) error("expected a value");
 		const char c = text_[position_];
 
-		if(std::isdigit(static_cast<unsigned char>(c))) {
-			const std::size_t start = position_;
-			while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
-			bool fraction = false;
-			if(position_ + 1 < text_.size() && text_[position_] == '.' &&
-			   std::isdigit(static_cast<unsigned char>(text_[position_ + 1]))) {
-				fraction = true;
-				++position_;
-				while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_])))
-					++position_;
-			}
-			const std::string digits(text_.substr(start, position_ - start));
-			if(!fraction) {
-				if(const std::optional<std::int64_t> value = wholeNumber(digits)) return *value;
-			} else if(const double value = std::strtod(digits.c_str(), nullptr); std::isfinite(value)) {
-				return value; // std::stod would throw out_of_range, past evaluate()'s callers
-			}
-			error("number '" + digits + "' is too large");
-		}
+		if(std::isdigit(static_cast<unsigned char>(c))) return number();
 		if(c == '\'' || c == '"') return node("$value", quoted(c));
 		if(c == '@') { // a colour name, e.g. @accent
 			const std::size_t start = position_++;
