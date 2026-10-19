@@ -148,6 +148,9 @@ def session_seeds():
                             ">" + compact({"type": "setMode", "mode": "acceptEdits"}), compact(asks),
                             ">" + compact({"type": "reject", "proposal": 1, "reason": "No"}), compact({"type": "undo"}),
                             compact({"type": "request", "id": "r1", "text": "hi"}), ">{\"type\":\"reply\",\"request\":\"r1\"}"]))
+    # Over the agent's limits (session.cpp): more changes than its burst, then a message larger than 4 KiB
+    renames = [compact({"type": "revision", "id": i, "set": {"#boardName/text": f"B{i}"}}) for i in range(8)]
+    seeds.append("\n".join(renames + [compact({"type": "getHistory", "id": 9, "padding": "x" * 5000})]))
     return seeds
 
 

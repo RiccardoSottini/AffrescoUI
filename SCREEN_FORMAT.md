@@ -373,6 +373,19 @@ line:
 
 Requests may carry an `"id"`; answers repeat it.
 
+**Limits per peer** (`channel::PeerLimits`; the host may set others). A message over a limit is refused, and the first
+refusal in a row is logged:
+
+| Limit | Default | Answer |
+|---|---|---|
+| One message | 8 MiB | `error` "message too large", without `id` (it isn't read) |
+| Messages of any kind | 100 a second, 200 at once | `error` "too many messages", without `id` |
+| Changes (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
+| Sent to the peer and not yet read by it (a socket peer) | 64 MiB | the peer is disconnected |
+
+On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a
+program of another user.
+
 ### Pictures
 `render` (MCP: `render_screen`) lets a peer see its work before a person reviews it. Any peer may ask: it is a read.
 

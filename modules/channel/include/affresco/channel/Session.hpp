@@ -3,6 +3,7 @@
 /// @file
 /// @brief channel::Session: the live-document protocol over a Channel.
 
+#include "affresco/channel/Limits.hpp"
 #include "affresco/core/Channel.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/ScreenImages.hpp"
@@ -22,7 +23,8 @@ namespace affresco::channel {
 /// to the proposals.
 /// Everything it sends is authored by `author` (followed by the name it gives itself): a channel can't claim to be
 /// someone it isn't. "request" and "reply" messages are not interpreted: they come out of onRelay, stamped with
-/// "from", for whoever connects peers to each other.
+/// "from", for whoever connects peers to each other. The peer is held to PeerLimits: the size of a message, and how
+/// many messages and changes it sends in a given time.
 class Session {
 public:
 	/// @brief Starts the protocol and sends "hello".
@@ -32,8 +34,9 @@ public:
 	/// @param catalog What the format offers, for "getCatalog" (may be empty: answered with an empty catalog).
 	/// @param images Draws pictures of the screen, for "render" (may be nullptr: such a host has no pictures); must
 	/// outlive the session.
+	/// @param limits What the peer may send (see PeerLimits for the defaults).
 	Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog = {},
-	        ScreenImages* images = nullptr);
+	        ScreenImages* images = nullptr, const PeerLimits& limits = {});
 	~Session();
 
 	Session(const Session&) = delete;
@@ -59,6 +62,14 @@ private:
 	/// @brief Handles one message from the peer; malformed or refused ones get an "error" or "rejected" answer.
 	/// @param line The message.
 	void handle(const std::string& line);
+	/// @brief Holds a message to the peer's limits before it is parsed: one over the message rate or the size gets an
+	/// "error" (without an "id": it isn't read), and costs the app no more.
+	/// @param line The message.
+	/// @return Whether to handle it.
+	bool admit(const std::string& line);
+	/// @brief Notes that the peer went over a limit: logged once, until a message is admitted again.
+	/// @param what The limit, e.g. "too many messages: at most 100 a second".
+	void overLimit(const std::string& what);
 	/// @brief Parses a line from the peer, answering "error" if it isn't a JSON object.
 	/// @param line The line.
 	/// @return The message, or std::nullopt.
@@ -98,6 +109,10 @@ private:
 	std::string author_;                                                  ///< See author().
 	std::function<json()> catalog_;                                       ///< For "getCatalog".
 	ScreenImages* images_ = nullptr;                                      ///< For "render" (may be nullptr).
+	PeerLimits limits_;                                                   ///< What the peer may send.
+	TokenBucket messageRate_;                                             ///< Messages of any kind.
+	TokenBucket revisionRate_;                                            ///< Changes.
+	bool limited_ = false;                                                ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
 };
 

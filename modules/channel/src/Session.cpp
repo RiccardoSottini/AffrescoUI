@@ -31,9 +31,11 @@ std::string toBase64(std::string_view bytes) {
 } // namespace
 
 Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog,
-                 ScreenImages* images)
+                 ScreenImages* images, const PeerLimits& limits)
     : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)),
-      images_(images) {
+      images_(images), limits_(limits),
+      messageRate_(limits.messagesPerSecond, limits.messageBurst, TokenBucket::Clock::now()),
+      revisionRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()) {
 	messages_ = channel_.onMessage.connect([this](const std::string& line) { handle(line); });
 
 	decisions_ = versions_.onDecision.connect([this](const Decision& decision) {
@@ -100,6 +102,7 @@ json Session::reviewState() const {
 
 // One JSON object per line
 void Session::handle(const std::string& line) {
+	if(!admit(line)) return;
 	const std::optional<json> message = read(line);
 	if(!message) return;
 
@@ -124,6 +127,30 @@ void Session::handle(const std::string& line) {
 		      {"revision", versions_.head().number},
 		      {"id", in.id}});
 	}
+}
+
+bool Session::admit(const std::string& line) {
+	// The rate first: every message costs a token, a refused one too, so a flood of large messages is cut off as fast
+	if(!messageRate_.take(TokenBucket::Clock::now())) {
+		const std::string what = "too many messages: at most " + toText(limits_.messagesPerSecond) + " a second";
+		overLimit(what);
+		send({{"type", "error"}, {"message", what}});
+		return false;
+	}
+	if(line.size() > limits_.maxMessageBytes) {
+		const std::string what = "message too large: " + std::to_string(line.size()) + " bytes, at most " +
+		                         std::to_string(limits_.maxMessageBytes);
+		overLimit(what);
+		send({{"type", "error"}, {"message", what}});
+		return false;
+	}
+	limited_ = false;
+	return true;
+}
+
+void Session::overLimit(const std::string& what) {
+	if(!limited_) log(LogLevel::Warning, "AffrescoUI: peer '" + author_ + "' is over its limits: " + what);
+	limited_ = true;
 }
 
 std::optional<json> Session::read(const std::string& line) {
@@ -161,8 +188,17 @@ void Session::reply(const Incoming& in, const RevisionResult& result) {
 	}
 }
 
-// revision, restore, revert, undo: changes, which follow the author's permissions like any other
+// revision, restore, revert, undo: changes, which follow the author's permissions like any other, and rebuild the
+// screen, so they have a rate of their own
 bool Session::handleChange(const Incoming& in) {
+	if(in.type != "revision" && in.type != "restore" && in.type != "revert" && in.type != "undo") return false;
+	if(!revisionRate_.take(TokenBucket::Clock::now())) {
+		const std::string what = "too many changes: at most " + toText(limits_.revisionsPerMinute) + " a minute";
+		overLimit(what);
+		send({{"type", "rejected"}, {"error", what}, {"revision", versions_.head().number}, {"id", in.id}});
+		return true;
+	}
+
 	const json& m = in.message;
 	auto revision = [&] {
 		if(!m.contains("revision")) expect::fail(in.type + ".revision", "expected a revision number or a commit");
@@ -179,10 +215,8 @@ bool Session::handleChange(const Incoming& in) {
 		reply(in, versions_.submit(versions_.restoreRevision(revision(), in.author)));
 	} else if(in.type == "revert") {
 		reply(in, versions_.submit(versions_.revertRevision(revision(), in.author)));
-	} else if(in.type == "undo") {
+	} else { // undo
 		reply(in, versions_.submit(versions_.revertRevision("HEAD", in.author)));
-	} else {
-		return false;
 	}
 	return true;
 }
