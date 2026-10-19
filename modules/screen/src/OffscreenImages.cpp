@@ -57,6 +57,9 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 	   }))
 		return "AffrescoUI screen: no proposal " + std::to_string(*request.proposal);
 
+	// What main deferred runs now, on main: once the proposal is shown, it would run there and be lost with it
+	runtime_.window()->runDeferredTasks();
+
 	// Show what was asked for, then put back what the person sees, whatever happens in between
 	class PutBack {
 	public:
@@ -68,13 +71,15 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 		PutBack& operator=(const PutBack&) = delete;
 		PutBack(PutBack&&) = delete;
 		PutBack& operator=(PutBack&&) = delete;
-		/// @brief Shows what was shown before. Never throws: an exception leaving a destructor ends the program.
+		/// @brief Shows what was shown before, then lets the runtime run handlers again. Never throws: an exception
+		/// leaving a destructor ends the program.
 		~PutBack() {
 			try {
 				showAgain();
 			} catch(...) { // no memory even for the message
 				log(LogLevel::Error, "AffrescoUI screen: render: could not put the screen back");
 			}
+			images.runtime_.setHandlersSuspended(false);
 			images.rendering_ = false;
 		}
 
@@ -97,6 +102,7 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 	} putBack{*this, versions_.previewing()};
 
 	rendering_ = true;
+	runtime_.setHandlersSuspended(true); // until PutBack has put the screen back
 	if(request.proposal != putBack.shown) {
 		putBack.switched = true;
 		if(const std::optional<std::string> error = show(request.proposal)) return error;

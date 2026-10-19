@@ -1,13 +1,17 @@
 #pragma once
 
 /// @file
-/// @brief What several unit tests share: a small screen with permissions, and a Channel kept in memory.
+/// @brief What several unit tests share: a small screen with permissions, a Channel kept in memory, and an Executor
+/// that runs posted tasks when a test asks.
 
 #include <affresco/core/Channel.hpp>
+#include <affresco/core/Executor.hpp>
 #include <affresco/core/Json.hpp>
 
+#include <functional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::test {
@@ -45,6 +49,26 @@ public:
 	void receive(const std::string& line) { onMessage(line); }
 
 	std::vector<json> sent; ///< Every message sent, parsed, oldest first.
+};
+
+/// @brief An Executor for tests without an Application: tasks wait until runPosted(). Main thread only.
+class QueueExecutor final : public Executor {
+public:
+	/// @brief Keeps a task.
+	/// @param task The task.
+	void post(std::function<void()> task) override { tasks_.push_back(std::move(task)); }
+
+	/// @brief Runs the tasks posted so far, and those they post.
+	void runPosted() {
+		while(!tasks_.empty()) {
+			std::vector<std::function<void()>> tasks;
+			tasks.swap(tasks_);
+			for(auto& task : tasks) task();
+		}
+	}
+
+private:
+	std::vector<std::function<void()>> tasks_; ///< Posted, not yet run.
 };
 
 } // namespace affresco::test

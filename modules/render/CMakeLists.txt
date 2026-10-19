@@ -10,6 +10,9 @@ affrescoui_module(render
 	src/Stack.cpp
 	src/TextArea.cpp
 	src/Window.cpp
+	src/Headless.cpp
+	src/platform/GlfwPlatform.cpp
+	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/QuadRenderer.cpp
 	src/gl/Shader.cpp

@@ -52,8 +52,9 @@ public:
 
 	/* Before building */
 
-	/// @brief Registers a custom "type" usable in the document. It has the properties of the built-in type its panel
-	/// derives from (e.g. a TextEditor subclass has those of "editor"), plus its own.
+	/// @brief Registers a custom "type" usable in the document, through the same registry as the built-in types. It
+	/// has the properties of the built-in widget its panel derives from (e.g. a TextEditor subclass has those of
+	/// "editor"), plus its own. Under the name of a built-in type, it replaces that type.
 	/// @param name The type name.
 	/// @param factory Creates its panel.
 	/// @param properties Its own property names.
@@ -106,6 +107,13 @@ public:
 	/// @param sender The panel it comes from.
 	/// @param event Available to the action as "event".
 	void runAction(std::string_view name, Panel& sender, const json& event);
+
+	/// @brief Keeps the panels in line with the document without running what the document runs because they
+	/// changed: while suspended, no "onShow", "onHide" or "watch" handler is scheduled, "autofocus" takes no focus,
+	/// and colours change without their transitions. For a document shown only for a moment, e.g. a proposal drawn
+	/// for a picture, which must change nothing the person sees or what runs next.
+	/// @param suspended true to suspend them, false to go back to normal.
+	void setHandlersSuspended(bool suspended) noexcept;
 
 	/// @brief Tells whether the document has an action of that name.
 	/// @param name The action.

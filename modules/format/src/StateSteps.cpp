@@ -1,0 +1,80 @@
+/// @file
+/// @brief The state steps: set, push, remove, toggle, increment.
+
+#include "Engine.hpp"
+
+namespace affresco::format {
+
+namespace {
+
+/// @brief "remove": a state path, or an item of a list at "at".
+/// @param s The step.
+/// @param state The state.
+void removeFrom(const Running& s, json& state) {
+	const json::json_pointer pointer = s.target("remove");
+	if(!s.step.contains("at")) {
+		if(state.contains(pointer)) state[pointer.parent_pointer()].erase(pointer.back());
+		return;
+	}
+	json& array = state[pointer];
+	const json at = s.value("at");
+	if(!array.is_array() || !at.is_number_integer() || at.get<std::int64_t>() < 0 ||
+	   static_cast<std::size_t>(at.get<std::int64_t>()) >= array.size())
+		fail(s.where, "nothing to remove at " + at.dump());
+	array.erase(static_cast<std::size_t>(at.get<std::int64_t>()));
+}
+
+/// @brief "increment": adds "by" (1 by default) to a number in the state.
+/// @param s The step.
+/// @param state The state.
+void increment(const Running& s, json& state) {
+	const json::json_pointer pointer = s.target("increment");
+	const json by = s.value(s.step.value("by", json(1)), s.where + ".by");
+	json current = state.value(pointer, json(0));
+	if(current.is_null()) current = 0;
+	if(!current.is_number() || !by.is_number()) fail(s.where, "\"increment\" needs numbers");
+	state[pointer] = current.is_number_integer() && by.is_number_integer()
+	                     ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
+	                     : json(current.get<double>() + by.get<double>());
+}
+
+/// @brief Runs a state step.
+/// @param s The step.
+/// @return std::nullopt if it isn't one, else true.
+std::optional<bool> runStateStep(const Running& s) {
+	const json& step = s.step;
+	const std::string& where = s.where;
+	Engine& engine = s.steps.engine();
+	json& state = engine.versions.state();
+
+	if(step.contains("set")) {
+		if(!step.contains("to")) fail(where, R"("set" needs "to")");
+		state[s.target("set")] = s.value("to");
+	} else if(step.contains("push")) {
+		json& array = state[s.target("push")];
+		if(array.is_null()) array = json::array();
+		if(!array.is_array()) fail(where + ".push", "is not a list");
+		array.push_back(s.value(step.value("value", json()), where + ".value"));
+	} else if(step.contains("remove")) {
+		removeFrom(s, state);
+	} else if(step.contains("toggle")) {
+		const json::json_pointer pointer = s.target("toggle");
+		state[pointer] = !format::truthy(state.value(pointer, json()));
+	} else if(step.contains("increment")) {
+		increment(s, state);
+	} else {
+		return std::nullopt;
+	}
+	engine.document.markStateChanged();
+	return true;
+}
+
+} // namespace
+
+void registerStateSteps(StepRegistry& registry) {
+	registry.add({"state",
+	              {{"set", {"to"}}, {"push", {"value"}}, {"remove", {"at"}}, {"toggle", {}}, {"increment", {"by"}}},
+	              runStateStep});
+}
+
+} // namespace affresco::format

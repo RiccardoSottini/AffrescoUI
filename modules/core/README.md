@@ -54,7 +54,8 @@ Everything here is used on the main thread, except two entry points:
 - **Another version-control backend or document format:** implement `VersionControl` or `DocumentRules`.
   `format::Runtime` and `channel::Session` only see the interfaces.
 - **The log:** `setLogSink` sends the library's messages to the application's log.
-- **Coming:** the registries for node types, steps and document sections (from 7.12) live in `format`, not here.
+- **Registries:** those for node types, steps and document sections live in `format` (`modules/format/README.md`),
+  not here.
 
 ## Files
 
