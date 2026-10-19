@@ -1,0 +1,25 @@
+{
+	"change-colour": { "message": "Darker top bar", "set": { "/colors/topBar": "#1e1b4b" } },
+	"rename-label": { "message": "Call the app Board", "set": { "#logo/text": "Board" } },
+	"add-column": {
+		"message": "Add a Blocked column",
+		"add": { "/state/columns/-": { "name": "Blocked", "color": "#dc2626", "cards": [] } }
+	},
+	"add-filter": { "message": "Add a docs filter", "add": { "/state/filters/-": "docs" } },
+	"restyle": { "message": "Wider filter chips", "set": { "/styles/chip/width": 96 } },
+	"add-button": {
+		"message": "Add a button that clears the Done column",
+		"add": {
+			"/actions/clearDone": [{ "set": "state.columns[3].cards", "to": [] }],
+			"#topBar/children/-": {
+				"id": "clearDone", "style": "chip", "text": "Clear done", "anchors": { "right": 180, "top": 16 },
+				"onClick": "clearDone"
+			}
+		}
+	},
+	"move-card": {
+		"message": "Start the first Backlog card",
+		"move": { "/state/columns/0/cards/0": "/state/columns/1/cards/0" }
+	},
+	"remove-node": { "message": "Hide the member badges", "remove": ["#members"] }
+}
