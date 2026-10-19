@@ -1,4 +1,5 @@
 #include "affresco/Screen.hpp"
+#include "OffscreenImages.hpp"
 
 #include "affresco/channel/Session.hpp"
 #include "affresco/channel/Sockets.hpp"
@@ -45,6 +46,7 @@ struct Screen::Impl {
 	format::Rules rules;                                         ///< The format's rules.
 	vcs::Repository repository;                                  ///< Document, state, history, review.
 	format::Runtime runtime;                                     ///< Panels and actions.
+	detail::OffscreenImages images{repository, runtime};         ///< Pictures for peers ("render").
 	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
@@ -63,6 +65,7 @@ struct Screen::Impl {
 	Impl(json document, std::filesystem::path baseDirectory)
 	    : repository(rules, std::move(document)), runtime(repository, std::move(baseDirectory)) {
 		runtime.onEvent.connect([this](const json& event) {
+			if(images.rendering()) return; // from a proposal drawn for a picture: it didn't happen
 			broadcast(event);
 			events(event.dump());
 		});
@@ -224,6 +227,7 @@ struct Screen::Impl {
 	/// @brief Writes the persisted part of the state if it changed since it was loaded or last written.
 	void save() {
 		if(stateFile.empty() || persisted().empty()) return; // no state file: a screen from fromString()
+		if(images.rendering()) return;                       // a proposal's state, shown only for a picture
 		json now = persistedState();
 		if(now == saved) return;
 		std::error_code error;
@@ -256,8 +260,8 @@ struct Screen::Impl {
 		auto peer = std::make_unique<Peer>();
 		peer->owned = std::move(owned);
 		peer->channel = &channel;
-		peer->session = std::make_unique<channel::Session>(channel, repository, std::move(author),
-		                                                   [this] { return runtime.catalog(); });
+		peer->session = std::make_unique<channel::Session>(
+		    channel, repository, std::move(author), [this] { return runtime.catalog(); }, &images);
 
 		// A request in plain words from one peer (e.g. the user's client) is for the others (e.g. an AI agent)
 		peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {

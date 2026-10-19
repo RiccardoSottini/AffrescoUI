@@ -13,8 +13,8 @@ cmake -S . -B build -G Ninja && cmake --build build   # AFFRESCOUI_BUILD_TESTS i
 ```
 
 A `Window` needs an OpenGL context, so tests of what happens on a window (timers, review steps, a screen's
-properties) are a separate program, `affrescoui_window_tests`. It runs where the rendering check runs: on a desktop,
-or under Xvfb on Linux, as in CI.
+properties, pictures) are a separate program, `affrescoui_window_tests`. It runs where the rendering check runs:
+on a desktop, or under Xvfb on Linux, as in CI.
 
 ## Where they are
 
@@ -24,9 +24,10 @@ or under Xvfb on Linux, as in CI.
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets, merges that no longer apply |
 | `history.cpp` | `vcs::Repository`'s history on disk: save and load, a changed screen file, damaged files, the lock |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
-| `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review, the log; `SocketChannel` over a socket pair: lines, the length limit (POSIX); `ProcessChannel` with small shell commands: output lines, stdin, closing ends the child's programs, no inherited pipes |
+| `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review, the log, `render`; `SocketChannel` over a socket pair: lines, the length limit (POSIX); `ProcessChannel` with small shell commands: output lines, stdin, closing ends the child's programs, no inherited pipes |
 | `checker.cpp` | `format` checker: tables of screens and their findings, the revision policy, the templates (none) |
 | `painter.cpp` | What a `Panel` asks its `Painter` to draw (shadow, rounded fill, border), and a `Painter`'s fallbacks |
+| `png.cpp` | The PNG encoder behind `render` (`modules/screen/src/Png.hpp`): each image decoded again and compared |
 | `rules.cpp` | `format::Rules::checkChange`: control steps, and the actions, handlers and `run`s that reach them |
 | `sockets.cpp` | `channel::SocketServer` and `SocketChannel` over a real local socket in a temporary folder: lines both ways, a peer going away, the file's owner-only access, a busy or stale socket file |
 | `screen.cpp` | `Screen`'s paths: the default socket directory, where `persist` state is read from; the nesting limit on screen files |
@@ -34,6 +35,7 @@ or under Xvfb on Linux, as in CI.
 | `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers and deferred tasks when it is destroyed |
 | `review.cpp` | `affrescoui_window_tests`: `accept` steps name the reviewed head; control steps while a proposal is previewed |
 | `shapes.cpp` | `affrescoui_window_tests`: `radius`, `borderWidth`, `borderColor` and `shadow` on a screen: applied, reset, errors, the border colour's transition |
+| `images.cpp` | `affrescoui_window_tests`: pictures of main and of a proposal, with the person's view left as it was |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main` |
 
