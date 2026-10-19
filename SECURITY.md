@@ -15,8 +15,8 @@ advisory. A fix is released, and the advisory published, once users can update.
 
 ## Supported versions
 
-AffrescoUI is at 0.x. Only the latest 0.x release gets security fixes. Older releases don't, and neither do
-unreleased commits on branches other than `master`.
+AffrescoUI is at 0.x. Only the latest 0.x release gets security fixes. Older releases don't. Fixes are made on
+`master` and ship in the next release.
 
 | Version | Supported |
 |---|---|
