@@ -10,7 +10,10 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
+#include <utility>
+#include <vector>
 
 using affresco::json;
 using affresco::test::MemoryChannel;
@@ -102,4 +105,24 @@ TEST_CASE("channel: a line that isn't UTF-8 gets an error, with the bytes replac
 	REQUIRE(peer.channel.sent.size() == 2);
 	CHECK(peer.channel.sent[1]["type"] == "error");
 	CHECK(peer.channel.sent[1]["message"].get<std::string>().find("\xef\xbf\xbd") != std::string::npos); // U+FFFD
+}
+
+// Found by fuzzing (tests/fuzz, session, under UBSan): a limit of 1e20 was converted to an int, which is undefined
+TEST_CASE("channel: getHistory takes any number as its limit") {
+	Peer peer;
+	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
+	REQUIRE(peer.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "A"}}}}).revision == 1);
+	REQUIRE(peer.versions.submit({{"author", "studio"}, {"set", {{"#title/text", "B"}}}}).revision == 2);
+
+	const std::vector<std::pair<std::string, std::size_t>> cases = {{"1", 1},  {"2.5", 2},  {"0", 3},
+	                                                                {"-1", 3}, {"1e20", 3}, {"-1e20", 3}};
+	for(const auto& [limit, entries] : cases) {
+		CAPTURE(limit);
+		peer.channel.sent.clear();
+		peer.channel.receive(R"({"type": "getHistory", "limit": )" + limit + "}");
+		REQUIRE(peer.channel.sent.size() == 1);
+		REQUIRE(peer.channel.sent[0]["type"] == "history");
+		CHECK(peer.channel.sent[0]["entries"].size() == entries);
+		CHECK(peer.channel.sent[0]["entries"].back()["number"] == 2); // the newest
+	}
 }

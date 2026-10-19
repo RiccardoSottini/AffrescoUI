@@ -238,9 +238,10 @@ bool Session::handleQuery(const Incoming& in) {
 	} else if(in.type == "getHistory") {
 		// The newest "limit" commits on main (like `git log -n`), oldest first; all without one
 		const std::vector<CommitInfo> log = versions_.log();
-		const int limit = m.value("limit", 0);
+		// Read as a double: a peer's 1e20 converted to an int would be undefined behaviour
+		const double limit = m.value("limit", 0.0);
 		const std::size_t skip =
-		    limit > 0 && log.size() > static_cast<std::size_t>(limit) ? log.size() - static_cast<std::size_t>(limit) : 0;
+		    limit >= 1 && limit < static_cast<double>(log.size()) ? log.size() - static_cast<std::size_t>(limit) : 0;
 		json entries = json::array();
 		for(std::size_t i = skip; i < log.size(); ++i) entries.push_back(toJson(log[i]));
 		send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", in.id}});
