@@ -26,10 +26,11 @@ namespace affresco::gl {
 ///
 /// Rounded rectangles, outlines and shadows are white-texel quads too, in the same batch: each vertex also carries a
 /// signed-distance description of its shape, from which the fragment shader computes an anti-aliased (or blurred)
-/// coverage. Other quads are marked as not shapes and skip that work, so they draw exactly as before.
+/// coverage. Other quads are marked as not shapes and skip that work. A frame without shapes is drawn with a shader
+/// that has no shape code at all, so it keeps exactly the pixels it had before shapes existed, on every driver.
 class QuadRenderer final : public Painter {
 public:
-	/// @brief Compiles the shader and sets up the vertex layout, in the current context.
+	/// @brief Compiles the shaders and sets up the vertex layout, in the current context.
 	/// @throws std::runtime_error If the shader fails.
 	QuadRenderer();
 
@@ -126,22 +127,30 @@ private:
 	/// @return The texture.
 	static Texture createTexture(int size, std::span<const std::uint8_t> pixels);
 
-	Program program_;                                         ///< The quad shader.
+	/// @brief A linked shader program, and the size its scale uniform was last set for.
+	struct Shader {
+		Program program;          ///< The program.
+		GLint scaleLocation = -1; ///< Its uScale uniform.
+		int width = -1;           ///< The width uScale was last set for.
+		int height = -1;          ///< The height uScale was last set for.
+	};
+
+	Shader plainShader_;                                      ///< For frames without shapes, which keep their pixels.
+	Shader shapeShader_;                                      ///< For frames with shapes.
 	VertexArray vertexArray_;                                 ///< Vertex layout and index buffer binding.
 	Buffer vertexBuffer_;                                     ///< Re-specified every frame (orphaning).
 	Buffer indexBuffer_;                                      ///< 0 1 2, 2 3 0 per quad.
 	Texture whiteTexture_;                                    ///< 1x1, for frames without text.
 	std::unordered_map<std::uint64_t, Texture> fontTextures_; ///< By Font::id(), uploaded on first use.
-	GLint scaleLocation_ = -1;                                ///< The uScale uniform.
 
 	// Per frame, reused so steady-state frames don't allocate
 	std::vector<Vertex> vertices_; ///< 4 per quad.
 	std::vector<Batch> batches_;   ///< In drawing order.
 	Rect clip_;                    ///< Bounds of the panel being painted.
 	Rect outerClip_;               ///< What clips the panel being painted: where its shadow may fall.
+	bool hasShapes_ = false;       ///< Whether a shape was appended: the frame then uses shapeShader_.
 
 	std::size_t quadCapacity_ = 0; ///< Quads the index buffer can address.
-	int width_ = -1, height_ = -1; ///< Size the scale uniform was last set for.
 };
 
 } // namespace affresco::gl

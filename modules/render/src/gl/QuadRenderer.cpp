@@ -38,9 +38,26 @@ constexpr std::string_view vertexSource = R"glsl(
 	}
 )glsl";
 
-/// @brief Fragment shader. The texture holds coverage: 1 for the white texel (solid rectangles and shapes), the glyph's
-/// shape for text. Shapes multiply it by the share of the pixel inside their edge.
-constexpr std::string_view fragmentSource = R"glsl(
+/// @brief Fragment shader for frames without shapes. The texture holds coverage: 1 for the white texel (solid
+/// rectangles), the glyph's shape for text. It reads none of the shape's inputs: some drivers (Mesa's llvmpipe) round
+/// text differently as soon as a fragment shader reads more of them, so frames without shapes keep their exact pixels.
+constexpr std::string_view plainFragmentSource = R"glsl(
+	#version 410 core
+
+	uniform sampler2D uAtlas;
+
+	in vec2 vTexCoord;
+	in vec4 vColor;
+	out vec4 fColor;
+
+	void main() {
+		fColor = vec4(vColor.rgb, vColor.a * texture(uAtlas, vTexCoord).r);
+	}
+)glsl";
+
+/// @brief Fragment shader for frames with shapes. As plainFragmentSource, and shapes multiply the coverage by the share
+/// of the pixel inside their edge.
+constexpr std::string_view shapeFragmentSource = R"glsl(
 	#version 410 core
 
 	uniform sampler2D uAtlas;
@@ -75,7 +92,7 @@ constexpr std::string_view fragmentSource = R"glsl(
 
 	void main() {
 		float alpha = vColor.a * texture(uAtlas, vTexCoord).r;
-		// The same for a whole quad, so rectangles and text skip the shape's work (and draw exactly as before)
+		// The same for a whole quad, so rectangles and text skip the shape's work
 		if(vShape.w > 0.0) alpha *= coverage();
 		fColor = vec4(vColor.rgb, alpha);
 	}
@@ -113,11 +130,14 @@ Rect intersect(const Rect& rect, const Rect& clip) noexcept {
 } // namespace
 
 QuadRenderer::QuadRenderer()
-    : program_(linkProgram(vertexSource, fragmentSource)), vertexArray_(VertexArray::create()),
+    : plainShader_{linkProgram(vertexSource, plainFragmentSource)},
+      shapeShader_{linkProgram(vertexSource, shapeFragmentSource)}, vertexArray_(VertexArray::create()),
       vertexBuffer_(Buffer::create()), indexBuffer_(Buffer::create()) {
-	scaleLocation_ = glGetUniformLocation(program_.id(), "uScale");
-	glUseProgram(program_.id());
-	glUniform1i(glGetUniformLocation(program_.id(), "uAtlas"), 0);
+	for(Shader* shader : {&plainShader_, &shapeShader_}) {
+		shader->scaleLocation = glGetUniformLocation(shader->program.id(), "uScale");
+		glUseProgram(shader->program.id());
+		glUniform1i(glGetUniformLocation(shader->program.id(), "uAtlas"), 0);
+	}
 
 	static constexpr std::array<std::uint8_t, 1> white{255};
 	whiteTexture_ = createTexture(1, white);
@@ -150,6 +170,7 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
                         int height) {
 	vertices_.clear();
 	batches_.clear();
+	hasShapes_ = false;
 	const Rect window{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)};
 	collect(root, window);
 	for(const Panel* overlay : overlays) collect(*overlay, window);
@@ -158,11 +179,13 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
 	const std::size_t quads = vertices_.size() / verticesPerQuad;
 	if(quads == 0) return;
 
-	glUseProgram(program_.id());
-	if(width != width_ || height != height_) {
-		glUniform2f(scaleLocation_, 2.0f / static_cast<float>(width), -2.0f / static_cast<float>(height));
-		width_ = width;
-		height_ = height;
+	// One program for the whole frame, so shapes still never break a batch
+	Shader& shader = hasShapes_ ? shapeShader_ : plainShader_;
+	glUseProgram(shader.program.id());
+	if(width != shader.width || height != shader.height) {
+		glUniform2f(shader.scaleLocation, 2.0f / static_cast<float>(width), -2.0f / static_cast<float>(height));
+		shader.width = width;
+		shader.height = height;
 	}
 
 	glBindVertexArray(vertexArray_.id());
@@ -314,6 +337,7 @@ void QuadRenderer::pushQuarter(const Rect& rect, const Quarter& quarter, const S
 	    {Vec2{q.left, q.top}, Vec2{q.right, q.top}, Vec2{q.right, q.bottom}, Vec2{q.left, q.bottom}})
 		vertices_.push_back({x, y, u, v, cr, cg, cb, ca, insideX(x), insideY(y), radius, outline, blur, 1});
 	++batches_.back().quadCount;
+	hasShapes_ = true;
 }
 
 GLuint QuadRenderer::fontTexture(const Font& font) {
