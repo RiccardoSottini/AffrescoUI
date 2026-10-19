@@ -87,7 +87,7 @@ struct Received {
 /// @param windows The command for cmd.exe.
 /// @return The one this platform runs.
 const char* shellCommand([[maybe_unused]] const char* posix, [[maybe_unused]] const char* windows) {
-#if defined(_WIN32)
+#ifdef _WIN32
 	return windows;
 #else
 	return posix;
@@ -197,7 +197,7 @@ TEST_CASE("channel: getHistory takes any number as its limit") {
 TEST_CASE("channel: a ProcessChannel delivers each line of the child's output, then closes") {
 	QueueExecutor executor;
 	affresco::channel::ProcessChannel channel(executor,
-	                                          shellCommand("printf 'one\\n\\ntwo\\n'", "echo one& echo.& echo two"));
+	                                          shellCommand(R"(printf 'one\n\ntwo\n')", "echo one& echo.& echo two"));
 	Received received(channel);
 
 	REQUIRE(executor.runUntil([&] { return received.closed; }));
@@ -234,7 +234,7 @@ TEST_CASE("channel: closing a ProcessChannel ends the child and the programs it 
 	CHECK(std::chrono::steady_clock::now() - start < 10s);
 }
 
-#if !defined(_WIN32)
+#ifndef _WIN32
 TEST_CASE("channel: a ProcessChannel's child doesn't inherit another channel's pipes") {
 	QueueExecutor executor;
 	// The descriptors open in a child of this process

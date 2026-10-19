@@ -260,6 +260,7 @@ void ProcessChannel::Process::end() noexcept {
 
 #include "Lines.hpp"
 
+#include <array>
 #include <cerrno>
 #include <csignal>
 #include <fcntl.h>
@@ -280,9 +281,9 @@ using detail::writeAll;
 /// own copies), so one child never holds another channel's pipes open.
 /// @param ends Receives the read end, then the write end.
 /// @return false if the pipe couldn't be created.
-bool makePipe(int (&ends)[2]) noexcept {
-	if(pipe(ends) != 0) return false;
-	for(int end : ends) fcntl(end, F_SETFD, FD_CLOEXEC);
+bool makePipe(std::array<int, 2>& ends) noexcept {
+	if(pipe(ends.data()) != 0) return false;
+	for(const int end : ends) fcntl(end, F_SETFD, FD_CLOEXEC);
 	return true;
 }
 
@@ -331,9 +332,10 @@ struct ProcessChannel::Process {
 ProcessChannel::Process::Process(const std::string& command) {
 	ignoreBrokenPipes();
 
-	int input[2] = {-1, -1}, output[2] = {-1, -1};
+	std::array<int, 2> input = {-1, -1}, output = {-1, -1};
 	if(!makePipe(input) || !makePipe(output)) {
-		for(int* fd : {&input[0], &input[1], &output[0], &output[1]}) closeDescriptor(*fd);
+		for(std::array<int, 2>* ends : {&input, &output})
+			for(int& fd : *ends) closeDescriptor(fd);
 		throw std::runtime_error("AffrescoUI: could not create pipes");
 	}
 
