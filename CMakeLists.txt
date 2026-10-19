@@ -63,7 +63,8 @@ include(cmake/AffrescoUIText.cmake)
 
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
 if(MSVC)
-	set(AFFRESCOUI_WARNINGS /W4 /permissive-)
+	# /utf-8 isn't a warning, but goes wherever these do: the sources are UTF-8, and MSVC reads the ANSI code page
+	set(AFFRESCOUI_WARNINGS /W4 /permissive- /utf-8)
 else()
 	set(AFFRESCOUI_WARNINGS -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast
 		-Wnon-virtual-dtor -Woverloaded-virtual)
@@ -129,7 +130,10 @@ if(AFFRESCOUI_BUILD_TOOLS)
 	add_subdirectory(tools/affrescoui) # the affrescoui command-line tool
 endif()
 
-if(AFFRESCOUI_BUILD_FUZZERS)
+# The fuzz targets' sources can also be compiled alone, without libFuzzer, so that clang-tidy finds them in
+# compile_commands.json (tools/quality/run.sh)
+option(AFFRESCOUI_COMPILE_FUZZ_SOURCES "Compile tests/fuzz without libFuzzer, for tools that read the build" OFF)
+if(AFFRESCOUI_BUILD_FUZZERS OR AFFRESCOUI_COMPILE_FUZZ_SOURCES)
 	add_subdirectory(tests/fuzz)
 endif()
 

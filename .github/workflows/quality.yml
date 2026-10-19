@@ -1,9 +1,11 @@
 # Quality gates and reports for the C++ code (tools/quality/README.md).
 # - "Quality gate" fails on a new clang-tidy finding in the lines a change touches, or on a function the change made
 #   longer than 80 lines or more complex than 15 (tools/quality/thresholds.json). Existing code isn't blocked.
+#   The rules it applies (.clang-tidy, thresholds.json) are the base's, so a change can't loosen what judges it.
 # - "Quality report" measures the whole repository (the longest and most complex functions, tidy findings per module)
-#   and the coverage of the unit tests. It never fails on what it finds: the numbers are in the job summary and in the
-#   quality-report and coverage artifacts.
+#   and the coverage of the unit tests. It fails only when coverage falls below the floor in
+#   tools/quality/coverage-baseline.json (the base's); the numbers are in the job summary and in the quality-report and
+#   coverage artifacts.
 name: Quality
 
 on:
@@ -50,9 +52,16 @@ jobs:
   report:
     name: Quality report
     runs-on: ubuntu-24.04
+    env:
+      # The coverage floor is the base's, like the gate's rules (empty for a push that creates the branch: then the
+      # working tree's)
+      QUALITY_BASE: >-
+        ${{ github.event_name == 'pull_request' && 'HEAD^1' ||
+        (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # the base can be several commits back (a push of several commits)
           persist-credentials: false
       - name: Install dependencies
         run: |
@@ -60,16 +69,19 @@ jobs:
           sudo apt-get install -y --no-install-recommends ninja-build clang-18 clang-tidy-18 llvm-18 python3-venv \
             libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
             libwayland-dev libxkbcommon-dev wayland-protocols
-      - name: Coverage of the unit tests
-        run: tools/quality/run.sh coverage
-      - name: Whole-repository report
+      - name: Coverage of the unit tests # fails below the floor in tools/quality/coverage-baseline.json
+        run: tools/quality/run.sh coverage "$QUALITY_BASE"
+      - name: Whole-repository report # also when the coverage is below the floor: its numbers still help
+        if: success() || failure()
         run: tools/quality/run.sh report
       - name: Upload the report
+        if: success() || failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: quality-report
           path: build-quality/quality-report.json
       - name: Upload the coverage
+        if: success() || failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage

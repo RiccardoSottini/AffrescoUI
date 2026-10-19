@@ -16,6 +16,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 
 import changes
 import coverage
@@ -27,10 +28,26 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 CPP = (".cpp", ".hpp")
 
 
+THRESHOLDS = "tools/quality/thresholds.json"
+TIDY_CONFIG = ".clang-tidy"
+COVERAGE_BASELINE = "tools/quality/coverage-baseline.json"
+
+
 def load_thresholds():
     """thresholds.json: the limits the gate enforces, the aims it reports, and the folders it looks at."""
-    with open(os.path.join(HERE, "thresholds.json")) as file:
+    with open(os.path.join(ROOT, THRESHOLDS)) as file:
         return json.load(file)
+
+
+def rule_file(root, base, path):
+    """A file of rules (thresholds.json, .clang-tidy, the coverage floor) as it is at the base commit, so a change
+    can't loosen the rules that judge it. Without a base, or when the base doesn't have the file yet (the change
+    adds it), the working tree's. None if neither has it."""
+    text = changes.file_at(root, base, path) if base else None
+    if text is None and os.path.isfile(os.path.join(root, path)):
+        with open(os.path.join(root, path), encoding="utf-8") as file:
+            text = file.read()
+    return text
 
 
 def publish(text):
@@ -63,22 +80,30 @@ def source_files(sources):
 
 
 def gate(arguments):
-    """The gate on what changed since --base: new tidy findings and new or worse over-long or complex functions."""
-    thresholds = load_thresholds()
+    """The gate on what changed since --base: new tidy findings and new or worse over-long or complex functions. The
+    rules (thresholds.json and .clang-tidy) are the base's: a change is judged by the rules it started from."""
+    thresholds = json.loads(rule_file(ROOT, arguments.base, THRESHOLDS))
     limits, sources = thresholds["function"], thresholds["sources"]
     changed = changes.changed_files(ROOT, arguments.base, sources, CPP)
     lines = {file.path: file.ranges for file in changed}
     base = subprocess.run(["git", "rev-parse", "--short", arguments.base], cwd=ROOT, check=True, capture_output=True,
                           text=True).stdout.strip()
 
-    findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, sorted(lines), sources, arguments.jobs,
-                                  lines)
+    with tempfile.TemporaryDirectory() as folder:
+        config, text = None, rule_file(ROOT, arguments.base, TIDY_CONFIG)
+        if text is not None:
+            config = os.path.join(folder, "clang-tidy.yaml")
+            with open(config, "w", encoding="utf-8") as file:
+                file.write(text)
+        findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, sorted(lines), sources,
+                                      arguments.jobs, lines, config)
     too_big, notes = functions.gate(changed, read_file, lambda path: changes.file_at(ROOT, arguments.base, path),
                                     limits)
 
     report = [f"### Quality gate: the changes since {base}", "",
               f"{len(changed)} C++ files changed. clang-tidy {tidy.version(arguments.clang_tidy)}, "
-              f"function limits: {limits['length']} lines, complexity {limits['complexity']}.", ""]
+              f"function limits: {limits['length']} lines, complexity {limits['complexity']}. The rules "
+              f"(`{TIDY_CONFIG}`, `{THRESHOLDS}`) are {base}'s.", ""]
     report += section("clang-tidy findings in the changed lines", [
         f"`{f['file']}:{f['line']}` {f['message']} [`{f['check']}`]" for f in findings])
     report += section("Files clang-tidy couldn't parse (so they weren't checked)", [
@@ -166,13 +191,20 @@ def report_markdown(result, top):
 
 
 def coverage_command(arguments):
-    """coverage.json and the coverage table, from llvm-cov's export."""
+    """coverage.json and the coverage table, from llvm-cov's export; fails when coverage is below the floor in
+    coverage-baseline.json (the base's, with --base)."""
     with open(arguments.export) as file:
         result = coverage.summarize(json.load(file), ROOT)
     with open(arguments.output, "w") as file:
         json.dump(result, file, indent=1)
-    publish(coverage.markdown(result))
-    return 0
+    baseline = rule_file(ROOT, arguments.base, COVERAGE_BASELINE)
+    failures = coverage.below_floor(result, json.loads(baseline)) if baseline else []
+    source = f"`{COVERAGE_BASELINE}`" + (f" at {arguments.base}" if arguments.base else "")
+    publish(coverage.markdown(result) + "\n" + coverage.floor_markdown(failures, source))
+    for place, kind, measured, floor in failures:
+        annotate(place if "/" in place else COVERAGE_BASELINE, 1, "Coverage floor",
+                 f"{place}: {kind} coverage {measured:.2f}%, below the floor of {floor}%")
+    return 1 if failures else 0
 
 
 def main():
@@ -190,6 +222,7 @@ def main():
     command = commands.add_parser("coverage")
     command.add_argument("--export", required=True, help="the output of llvm-cov export -summary-only")
     command.add_argument("--output", required=True, help="where to write coverage.json")
+    command.add_argument("--base", help="the commit whose coverage floor applies (default: the working tree's)")
 
     arguments = parser.parse_args()
     run = {"gate": gate, "report": report, "coverage": coverage_command}[arguments.command]

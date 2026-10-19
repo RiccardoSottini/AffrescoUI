@@ -49,12 +49,18 @@ std::optional<bool> runStateStep(const Running& s) {
 
 	if(step.contains("set")) {
 		if(!step.contains("to")) fail(where, R"("set" needs "to")");
-		state[s.target("set")] = s.value("to");
+		const json::json_pointer pointer = s.target("set");
+		json value = s.value("to");
+		expect::shallowEnough(value, pointerDepth(pointer), where + ".to");
+		state[pointer] = std::move(value);
 	} else if(step.contains("push")) {
-		json& array = state[s.target("push")];
+		const json::json_pointer pointer = s.target("push");
+		json& array = state[pointer];
 		if(array.is_null()) array = json::array();
 		if(!array.is_array()) fail(where + ".push", "is not a list");
-		array.push_back(s.value(step.value("value", json()), where + ".value"));
+		json value = s.value(step.value("value", json()), where + ".value");
+		expect::shallowEnough(value, pointerDepth(pointer) + 1, where + ".value");
+		array.push_back(std::move(value));
 	} else if(step.contains("remove")) {
 		removeFrom(s, state);
 	} else if(step.contains("toggle")) {

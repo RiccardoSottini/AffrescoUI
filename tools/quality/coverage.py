@@ -1,6 +1,7 @@
 """Coverage of the unit tests per module, from clang's source-based coverage (`llvm-cov export -summary-only`).
 
-coverage.json keeps the per-module and per-file numbers in a stable form, so a later baseline can compare with it.
+coverage.json keeps the per-module and per-file numbers in a stable form. coverage-baseline.json holds the floor:
+the least line coverage some modules and files may have, so CI fails when they drop.
 """
 
 import os
@@ -56,6 +57,31 @@ def summarize(export, root):
             figure["percent"] = round(100.0 * figure["covered"] / figure["count"], 2) if figure["count"] else 0.0
     return {"tool": "llvm-cov", "tests": "affrescoui_unit_tests", "total": numbers(export["data"][0]["totals"]),
             "modules": modules, "files": dict(sorted(files.items()))}
+
+
+def below_floor(coverage, baseline):
+    """What fell below the coverage floor: (place, kind, measured percent, floor), for each module of
+    baseline["modules"] and each file of baseline["files"]. A place the coverage doesn't have counts as 0%: a module
+    whose files the tests stopped linking hasn't kept its coverage."""
+    failures = []
+    for group, places in (("modules", coverage["modules"]), ("files", coverage["files"])):
+        for place, floors in baseline.get(group, {}).items():
+            figures = places.get(place, {})
+            figures = figures.get("figures", figures)  # a module keeps its figures under "figures"
+            for kind, floor in floors.items():
+                measured = figures.get(kind, {}).get("percent", 0.0)
+                if measured < floor:
+                    failures.append((place, kind, measured, floor))
+    return failures
+
+
+def floor_markdown(failures, baseline_source):
+    """The job summary's lines about the coverage floor."""
+    if not failures:
+        return f"Coverage floor ({baseline_source}): **passed**.\n"
+    lines = [f"Coverage floor ({baseline_source}): **failed**, below the floor:", ""]
+    lines += [f"- `{place}` {kind}: {measured:.2f}%, the floor is {floor}%" for place, kind, measured, floor in failures]
+    return "\n".join(lines) + "\n"
 
 
 def markdown(coverage):

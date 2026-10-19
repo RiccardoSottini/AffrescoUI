@@ -9,12 +9,18 @@ clean-ups can pick their files.
 | **Gate: clang-tidy** | No finding of [`.clang-tidy`](../../.clang-tidy) in a line the change adds or modifies | `Quality gate` fails |
 | **Gate: function size** | No function the change touches is over 80 lines or complexity 15, unless it was already over and didn't grow | `Quality gate` fails |
 | **Report: coverage** | Line, function and branch coverage of the unit tests, per module | Job summary, `coverage` artifact |
+| **Floor: coverage** | The line coverage of `core`, `vcs`, `channel` and `format/Rules.cpp` stays at or above [`coverage-baseline.json`](coverage-baseline.json) | `Quality report` fails |
 | **Report: whole repository** | The 20 longest and 20 most complex functions, tidy findings per module, check and file | Job summary, `quality-report` artifact |
 
 The workflow is [`.github/workflows/quality.yml`](../../.github/workflows/quality.yml). It runs on every pull request
 and on every push to `master`.
 
 ## The gates
+
+**The rules come from the base.** The gate reads `.clang-tidy` and `thresholds.json`, and the coverage step reads
+`coverage-baseline.json`, as they are at the base commit (the commit the change is compared with), so a pull request
+can't loosen the rules that judge it. A rule file the base doesn't have yet, because the change adds it, is read from
+the working tree. A change to the rules applies from the next pull request on.
 
 **clang-tidy.** The gate runs clang-tidy on every C++ file the change touches (headers too) and keeps only the
 findings on changed lines, like `clang-tidy-diff.py`. A finding on a line you touched counts, even if the line had it
@@ -50,6 +56,12 @@ of each module next to the percentages. Files written in the build directory und
 - `coverage.lcov`: the same data line by line, for any lcov tool;
 - `html/`: the annotated sources.
 
+**The coverage floor**, [`coverage-baseline.json`](coverage-baseline.json), lists the least line coverage some modules
+(`modules`) and files (`files`) may have, in percent. `run.sh coverage [BASE]` fails when one is below it, or not
+measured at all, and the job summary lists them. The floors sit a little under what CI measured when they were set, so
+only a real drop fails. When coverage rises, raise the floor in a pull request of its own; lowering it is the
+maintainer's call.
+
 **The whole-repository report**, `quality-report.json`, has the commit, the tool versions, the thresholds, the
 function counts over the limit and the aim, the 20 longest and the 20 most complex functions, and every tidy finding
 with its counts by module, check and file.
@@ -64,7 +76,8 @@ You need CMake, Ninja, Python 3.9 or newer, and an LLVM with clang-tidy.
 ```sh
 tools/quality/run.sh gate             # what changed since HEAD left origin/master, uncommitted changes included
 tools/quality/run.sh gate HEAD~3      # ... or since another commit
-tools/quality/run.sh coverage         # builds and runs the unit tests with coverage
+tools/quality/run.sh coverage         # builds and runs the unit tests with coverage, and checks the floor
+tools/quality/run.sh coverage HEAD~3  # ... with the floor of another commit
 tools/quality/run.sh report           # the whole repository (with the coverage, if measured)
 tools/quality/run.sh all              # all three
 tools/quality/run.sh test             # the unit tests of these tools
@@ -92,4 +105,5 @@ than CI does; CI's result is the one that counts.
 | `coverage.py` | Per-module coverage from `llvm-cov export` |
 | `test_quality.py` | Unit tests of the above (`run.sh test`, in the `Quality gate` job) |
 | `thresholds.json` | The limits, the aims, and the folders checked (`modules`, `examples`, `tests`) |
+| `coverage-baseline.json` | The coverage floor, per module and per file |
 | `requirements.txt` | lizard and its dependencies, pinned by hash |

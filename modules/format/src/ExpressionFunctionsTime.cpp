@@ -3,6 +3,8 @@
 
 #include "ExpressionFunctions.hpp"
 
+#include "affresco/core/Portable.hpp"
+
 #include <array>
 #include <chrono>
 #include <ctime>
@@ -17,8 +19,7 @@ namespace {
 /// @return The local time as text.
 std::string formatTime(double milliseconds, std::string_view pattern) {
 	const auto seconds = static_cast<std::time_t>(saturated(milliseconds / 1000.0));
-	std::tm local{};
-	localtime_r(&seconds, &local);
+	const std::tm local = localTime(seconds);
 
 	using Field = std::pair<std::string_view, const char*>; // a token, and strftime()'s code for it
 	static constexpr std::array<Field, 9> fields{{{"YYYY", "%Y"},
