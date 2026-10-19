@@ -9,6 +9,7 @@
 
 #include <array>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -53,14 +54,80 @@ public:
 	void resetTokenColors();
 
 protected:
+	/// @brief The editor's shortcuts (runShortcut()) and Backspace in an empty pair, then TextEditor's keys.
+	/// @param event The key event.
 	void keyEvent(const affresco::KeyEvent& event) override;
+	/// @brief Typing with pairs: steps over a closer, wraps the selection, closes a pair (pairTypingFor()); a closing
+	/// brace on a blank line goes back one level.
+	/// @param event The typed code point.
 	void charEvent(const affresco::CharEvent& event) override;
+	/// @brief Colours a line by its tokens (tokenize()); `state` is 1 while a block comment is open.
+	/// @param line The line.
+	/// @param state In: the state at its start; out: at its end.
+	/// @param colors One per code point, filled in.
 	void colorLine(std::u32string_view line, int& state, std::vector<affresco::Color>& colors) const override;
+	/// @brief Enter: after `{`, `[`, `(` or `:` the new line is indented one level more, and a closing bracket right
+	/// after the caret goes on a line of its own.
 	void newLine() override;
 
 private:
+	/// @brief What typing a code point does to a bracket or quote pair (see pairTypingFor()).
+	enum class PairTyping {
+		None,     ///< Nothing special: TextEditor types it.
+		StepOver, ///< A closer that is already next: the caret steps over it.
+		Wrap,     ///< An opener with a selection: the selection gets wrapped in the pair.
+		Close,    ///< An opener: the pair goes in, with the caret inside.
+	};
+
+	/// @brief The editor's own shortcuts: Alt+Up/Down, Cmd+/, Cmd+Shift+K, Cmd+[ and Cmd+], Cmd+C and Cmd+X without a
+	/// selection.
+	/// @param event A key press or repeat.
+	/// @return true if it ran one.
+	bool runShortcut(const affresco::KeyEvent& event);
+	/// @brief The shortcuts with Cmd (Ctrl elsewhere): /, Shift+K, [ and ], C and X without a selection.
+	/// @param key The key, pressed with Cmd.
+	/// @param shift Whether Shift was held too.
+	/// @return true if it ran one.
+	bool runCommandShortcut(affresco::Key key, bool shift);
+	/// @brief Cmd+C or Cmd+X without a selection: the caret's whole line, with its line break, goes to the clipboard.
+	/// @param cut true to delete the line too.
+	/// @return false, doing nothing, if there is a selection or no window.
+	bool copyLine(bool cut);
+	/// @brief Backspace inside an empty pair, e.g. "(|)": deletes both.
+	/// @return false, doing nothing, if there is a selection or the caret isn't inside an empty pair.
+	bool deleteEmptyPair();
+	/// @brief What typing a code point at the caret does to a pair.
+	/// @param typed The code point.
+	[[nodiscard]] PairTyping pairTypingFor(char32_t typed) const;
+	/// @brief Wraps the selection in a pair and keeps the wrapped text selected.
+	/// @param opener The opening bracket or quote.
+	void wrapSelection(char32_t opener);
+	/// @brief Types a pair in place of the selection, with the caret between the two.
+	/// @param opener The opening bracket or quote.
+	/// @param at The caret before it was typed.
+	void closePair(char32_t opener, Position at);
+	/// @brief After a closing brace typed on a blank line: takes the line back one level.
+	/// @param typed The code point just typed.
+	void outdentClosingBrace(char32_t typed);
 	/// @brief Cmd+/: comments the selected lines out, or back in if they all are.
 	void toggleComment();
+	/// @brief Where toggleComment() puts the markers: the smallest indentation of the non-blank lines.
+	/// @param first The first line.
+	/// @param last The last line.
+	/// @return The column, or std::nullopt if every line is blank.
+	[[nodiscard]] std::optional<std::size_t> commentColumn(std::size_t first, std::size_t last) const;
+	/// @brief Whether every non-blank line starts with a comment marker after its indentation.
+	/// @param first The first line.
+	/// @param last The last line.
+	/// @param bare The marker without its space, e.g. "//".
+	[[nodiscard]] bool linesCommented(std::size_t first, std::size_t last, std::u32string_view bare) const;
+	/// @brief Comments one line out, or back in.
+	/// @param line The line.
+	/// @param column Where the marker goes, or where it is.
+	/// @param uncomment true to take the marker out (with its space, if it has one).
+	/// @param marker The marker with its space, e.g. "// ".
+	/// @return How many columns the text after @p column moved (negative to the left).
+	long toggleLineComment(std::size_t line, std::size_t column, bool uncomment, std::u32string_view marker);
 	/// @brief Alt+Up or Alt+Down: moves the selected lines.
 	/// @param down true to move them down.
 	void moveLines(bool down);

@@ -19,19 +19,19 @@
 #include <iostream>
 #include <string_view>
 
-int main(int argc, char** argv) {
-	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory();
-	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
-	for(int i = 1; i < argc; ++i) {
-		if(std::string_view(argv[i]) == "--socket" && i + 1 < argc) socketDir = argv[++i];
-		else if(std::string_view(argv[i]) == "--data" && i + 1 < argc) dataDir = argv[++i];
-		else {
-			std::cerr << "usage: affrescoui_studio [--socket DIR] [--data DIR]\n";
-			return 2;
-		}
-	}
-
+int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
+		std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory();
+		std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
+		for(int i = 1; i < argc; ++i) {
+			if(std::string_view(argv[i]) == "--socket" && i + 1 < argc) socketDir = argv[++i];
+			else if(std::string_view(argv[i]) == "--data" && i + 1 < argc) dataDir = argv[++i];
+			else {
+				std::cerr << "usage: affrescoui_studio [--socket DIR] [--data DIR]\n";
+				return 2;
+			}
+		}
+
 		checkSocketDir(socketDir);
 		affresco::Application app;
 		affresco::Screen studio =

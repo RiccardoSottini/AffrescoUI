@@ -78,53 +78,90 @@ bool firstFrameOnly() {
 	return environmentHas("AFFRESCOUI_SCREENSHOT") && !environmentHas("AFFRESCOUI_SCREENSHOT_AFTER");
 }
 
-} // namespace
-
-int main(int argc, char** argv) {
-	std::string file; // default: the Kanban template
-	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory();
-	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
-	// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps
+/// @brief What the command line asks for.
+struct Options {
+	std::string file; ///< The screen file; "" for the Kanban template.
+	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory(); ///< Where peers connect.
+	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();     ///< Where the history is kept.
+	/// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps.
 	std::optional<affresco::Mode> mode;
-	std::vector<std::string> plugins;
+	std::vector<std::string> plugins; ///< The change sets to apply, in order.
+};
 
-	for(int i = 1; i < argc; ++i) {
-		const std::string_view arg = argv[i];
-		if(arg == "--socket" && i + 1 < argc) socketDir = argv[++i];
-		else if(arg == "--data" && i + 1 < argc) dataDir = argv[++i];
-		else if(arg == "--plugin" && i + 1 < argc) plugins.emplace_back(argv[++i]);
-		else if(arg == "--auto-accept") mode = affresco::Mode::AcceptEdits;
-		else if(arg == "--mode" && i + 1 < argc && affresco::modeFromString(argv[i + 1]))
-			mode = *affresco::modeFromString(argv[++i]);
-		else if(!arg.starts_with("--")) file = arg;
-		else {
+/// @brief Reads one argument of the command line.
+/// @param options Where it goes.
+/// @param arg The argument.
+/// @param value The one after it, or nullptr if it is the last.
+/// @return How many arguments it took: 1, or 2 for an option with a value; 0 if it isn't one.
+int readArgument(Options& options, std::string_view arg, const char* value) {
+	if(arg == "--auto-accept") {
+		options.mode = affresco::Mode::AcceptEdits;
+		return 1;
+	}
+	if(!arg.starts_with("--")) {
+		options.file = arg;
+		return 1;
+	}
+	if(!value) return 0; // every other option takes a value
+	if(arg == "--socket") options.socketDir = value;
+	else if(arg == "--data") options.dataDir = value;
+	else if(arg == "--plugin") options.plugins.emplace_back(value);
+	else if(arg == "--mode" && affresco::modeFromString(value)) options.mode = affresco::modeFromString(value);
+	else return 0;
+	return 2;
+}
+
+/// @brief Reads the command line.
+/// @param argc The number of arguments, the program's name included.
+/// @param argv The arguments.
+/// @return The options, or std::nullopt after printing the usage if an argument isn't known.
+std::optional<Options> parseArguments(int argc, const char* const* argv) {
+	Options options;
+	for(int i = 1; i < argc;) {
+		const int taken = readArgument(options, argv[i], i + 1 < argc ? argv[i + 1] : nullptr);
+		if(taken == 0) {
 			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
 			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json]\n";
-			return 2;
+			return std::nullopt;
 		}
+		i += taken;
 	}
+	return options;
+}
 
+/// @brief Shows the screen and lets peers change it, until the window closes.
+/// @param options The command line.
+/// @return The exit status.
+/// @throws std::exception If the screen, a plugin or a socket can't be opened.
+int run(const Options& options) {
+	affresco::Application app;
+	// A plain screenshot run shows the file as it is, so it neither loads nor writes the screen's history
+	const bool screenshotOnly = firstFrameOnly();
+	using History = affresco::Screen::History;
+	affresco::Screen screen = affresco::Screen::fromFile(screenFile(options.file), options.dataDir,
+	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
+	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
+	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
+	if(options.mode) screen.setModeForThisRun(*options.mode);
+	screen.createWindow(app);
+	applyPlugins(screen, options.plugins);
+
+	if(!screenshotOnly) {
+		createSocketDir(options.socketDir);
+		screen.listen(app, options.socketDir / "studio.sock", "studio");
+		screen.listen(app, options.socketDir / "agent.sock", "agent");
+		std::cerr << "affrescoui_host: listening in " << options.socketDir.string() << " (studio.sock, agent.sock)"
+		          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
+	}
+	return app.run();
+}
+
+} // namespace
+
+int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
-		affresco::Application app;
-		// A plain screenshot run shows the file as it is, so it neither loads nor writes the screen's history
-		const bool screenshotOnly = firstFrameOnly();
-		using History = affresco::Screen::History;
-		affresco::Screen screen =
-		    affresco::Screen::fromFile(screenFile(file), dataDir, screenshotOnly ? History::InMemory : History::OnDisk);
-		screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
-		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
-		if(mode) screen.setModeForThisRun(*mode);
-		screen.createWindow(app);
-		applyPlugins(screen, plugins);
-
-		if(!screenshotOnly) {
-			createSocketDir(socketDir);
-			screen.listen(app, socketDir / "studio.sock", "studio");
-			screen.listen(app, socketDir / "agent.sock", "agent");
-			std::cerr << "affrescoui_host: listening in " << socketDir.string() << " (studio.sock, agent.sock)"
-			          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
-		}
-		return app.run();
+		const std::optional<Options> options = parseArguments(argc, argv);
+		return options ? run(*options) : 2;
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_host: " << error.what() << '\n';
 		return 1;
