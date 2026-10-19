@@ -6,6 +6,7 @@ affrescoui_module(render
 	src/Color.cpp
 	src/Controls.cpp
 	src/Font.cpp
+	src/FontCache.cpp
 	src/text/FontFace.cpp
 	src/text/GlyphAtlas.cpp
 	src/text/Shaping.cpp
