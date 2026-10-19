@@ -27,6 +27,7 @@ struct Repository::Refs {
 	std::vector<Grant> grants;       ///< "Don't ask again" rules.
 	Mode mode = Mode::Default;       ///< How much reviewers are asked.
 	int nextProposal = 1;            ///< The next proposal's id.
+	std::vector<std::string> imported; ///< The change sets applied, by id.
 };
 
 namespace {
@@ -74,6 +75,18 @@ std::string commitId(const json& value, const std::string& where) {
 	std::string id = expect::string(value, where);
 	if(!detail::isObjectId(id)) expect::fail(where, "expected a commit id (64 hex digits)");
 	return id;
+}
+
+/// @brief Reads the ids of the change sets a history applied.
+/// @param value The list.
+/// @return The ids.
+/// @throws DocumentError If it is not a list of ids (64 lowercase hex digits).
+std::vector<std::string> changeSetIds(const json& value) {
+	std::vector<std::string> ids = strings(value, "imported");
+	for(std::size_t i = 0; i < ids.size(); ++i)
+		if(!detail::isObjectId(ids[i]))
+			expect::fail("imported[" + std::to_string(i) + "]", "expected a change set's id (64 hex digits)");
+	return ids;
 }
 
 /// @brief Checks a rule from "don't ask again": the only ones accept() grants are "<channel>(<one node or area>)", so a
@@ -184,6 +197,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	std::swap(grants_, refs.grants);
 	std::swap(mode_, refs.mode);
 	std::swap(nextProposal_, refs.nextProposal);
+	std::swap(imported_, refs.imported);
 	document_ = mainHead().document;
 	json state = document_.contains("state") ? document_["state"] : json::object();
 	std::swap(state_, state);
@@ -196,6 +210,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		std::swap(grants_, refs.grants);
 		std::swap(mode_, refs.mode);
 		std::swap(nextProposal_, refs.nextProposal);
+		std::swap(imported_, refs.imported);
 		std::swap(state_, state);
 		document_ = mainHead().document;
 		documentChanged();
@@ -222,6 +237,7 @@ Repository::Refs Repository::readRefs(detail::HistoryStore& store) {
 		Refs result;
 		result.main = commitId(refs.at("main"), "main");
 		result.nextProposal = expect::integer(refs.at("nextProposal"), "nextProposal");
+		result.imported = changeSetIds(refs.at("imported"));
 		const auto mode = modeFromString(expect::string(refs.at("mode"), "mode"));
 		if(!mode) expect::fail("mode", "expected \"default\", \"acceptEdits\" or \"plan\"");
 		result.mode = *mode;
@@ -409,7 +425,7 @@ json Repository::refsJson() const {
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
 	return {
 	    {"format", historyFormat}, {"version", 1},           {"main", main_.back()}, {"nextProposal", nextProposal_},
-	    {"mode", toString(keptMode_)}, {"proposals", proposals}, {"grants", grants}};
+	    {"mode", toString(keptMode_)}, {"proposals", proposals}, {"grants", grants}, {"imported", imported_}};
 }
 
 void Repository::saveHistory() noexcept {

@@ -105,6 +105,11 @@ public:
 	[[nodiscard]] std::vector<CommitInfo> log() const override;
 	[[nodiscard]] json exportChanges(const json& from, std::string_view name) const override;
 	std::optional<std::string> importChanges(const json& changes) override;
+	/// @brief Tells whether a change set was already applied to this history: importChanges() keeps the id of each
+	/// one it applies (the SHA-256 of its JSON), on disk too, so a host can apply a plugin once.
+	/// @param changes The change set.
+	/// @return true if it was.
+	[[nodiscard]] bool hasImported(const json& changes) const;
 
 private:
 	/// @brief A commit object.
@@ -235,7 +240,7 @@ private:
 
 	/* History on disk (RepositoryHistory.cpp) */
 
-	/// @brief What the refs file holds: main's head, the open proposals, the grants and the mode.
+	/// @brief What the refs file holds: main's head, the open proposals, the grants, the mode and the change sets applied.
 	struct Refs;
 	/// @brief A commit's id: the SHA-256 of what it is (store() and the history on disk use it).
 	/// @param commit The commit; its id is ignored.
@@ -309,7 +314,7 @@ private:
 	/// @return false, changing nothing, if it began with another document.
 	/// @throws DocumentError If it is damaged, or its head can't be shown; then nothing changed.
 	bool loadHistory(detail::HistoryStore& store);
-	/// @brief The refs file's content: main's head, the open proposals, the grants and the mode.
+	/// @brief The refs file's content: main's head, the open proposals, the grants, the mode and the change sets applied.
 	/// @return It, without its checksum.
 	[[nodiscard]] json refsJson() const;
 	/// @brief Writes a commit, and its document unless the folder already has it.
@@ -337,6 +342,7 @@ private:
 	Mode keptMode_ = Mode::Default;   ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;       ///< "Don't ask again" rules.
 	bool importing_ = false;          ///< Commits are announced once the whole change set is in.
+	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
 };
 

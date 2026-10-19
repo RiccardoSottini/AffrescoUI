@@ -239,6 +239,11 @@ public:
 	/// @param error Receives the error, if any (may be nullptr).
 	/// @return true if it was applied.
 	bool importChanges(std::string_view changesJson, std::string* error = nullptr);
+	/// @brief Tells whether a change set was already applied to this screen's history (importChanges() keeps them,
+	/// on disk too for a screen from fromFile()), so that a host can apply a plugin once.
+	/// @param changesJson A change set from exportChanges().
+	/// @return true if it was; false for one that wasn't, or isn't valid JSON.
+	[[nodiscard]] bool hasImported(std::string_view changesJson) const;
 
 	/// @brief The current document, as JSON text.
 	[[nodiscard]] std::string documentJson() const;

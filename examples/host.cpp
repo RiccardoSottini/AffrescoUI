@@ -61,6 +61,10 @@ int main(int argc, char** argv) {
 			std::stringstream text;
 			text << in.rdbuf();
 			std::string error;
+			if(in && screen.hasImported(text.str())) { // the screen's history keeps it from an earlier start
+				std::cerr << "plugin already applied: " << plugin << '\n';
+				continue;
+			}
 			if(!in || !screen.importChanges(text.str(), &error)) throw std::runtime_error(plugin + ": " + error);
 			std::cerr << "plugin applied: " << plugin << " (revision " << screen.revision() << ")\n";
 		}

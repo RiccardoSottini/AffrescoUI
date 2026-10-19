@@ -178,7 +178,7 @@ is called once, before the first change, so a screen from `fromFile` keeps the f
 ```
 kanban.history/
   lock                  held by the program that writes this history
-  refs.json             main's head, the open proposals, the grants, the mode, and a checksum
+  refs.json             main's head, the open proposals, the grants, the mode, the change sets applied, a checksum
   objects/e1/6ecc8085…  commits and documents, each named by its SHA-256
 ```
 
@@ -230,7 +230,9 @@ The commits on `main` after a point can be exported as a **change set**:
 ```
 
 Change sets are portable to other copies of the same screen (id-based paths make them robust to layout differences).
-Importing one is all or nothing, still checked against the deny rules, and recorded as `plugin:<name>`. This is the
+Importing one is all or nothing, still checked against the deny rules, and recorded as `plugin:<name>`. The history
+also keeps the id of each change set it applied (the SHA-256 of its JSON; `hasImported`), so
+`affrescoui_host --plugin x.json` applies a plugin once: on a later start it says so and skips it. This is the
 building block for the application-layer vision: start from a rich template, customise it by talking to it, and
 share the result as a plugin others can install.
 
@@ -242,6 +244,6 @@ share the result as a plugin others can install.
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |
 | Modes and grants | `setMode`, `setModeForThisRun`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
 | History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff` | `getHistory` (`limit`), `diff`, `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `revert_revision`, `restore_revision` |
-| Change sets | `exportChanges`, `importChanges` | `exportChanges` | `export_changes` |
+| Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
 | In the screen file | `permissions` (`allow`, `ask`, `deny`, `reviewers`), `locked`, steps `accept`/`reject`/`preview`/`endPreview`/`restore`/`revert`/`undo`, variables `proposals`/`history`/`preview`/`mode` | | |

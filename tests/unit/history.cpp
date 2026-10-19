@@ -273,6 +273,34 @@ TEST_CASE("vcs: a mode set for this run only isn't kept, and a reviewer's mode i
 	CHECK(affresco::toString(third.mode()) == "plan");
 }
 
+TEST_CASE("vcs: a history remembers the change sets it applied, so a plugin applies once") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+
+	json plugin, other;
+	{
+		Repository source(rules, permissionsScreen());
+		REQUIRE(source.submit({{"author", "studio"}, {"set", {{"#title/text", "Week"}}}}).status ==
+		        RevisionStatus::Applied);
+		plugin = source.exportChanges(0, "week view");
+		other = source.exportChanges(0, "another name");
+	}
+	{
+		Repository first(rules, permissionsScreen());
+		first.openHistory(history);
+		CHECK_FALSE(first.hasImported(plugin));
+		REQUIRE_FALSE(first.importChanges(plugin));
+		CHECK(first.hasImported(plugin));
+		CHECK_FALSE(first.hasImported(other));
+	}
+	Repository second(rules, permissionsScreen());
+	REQUIRE(second.openHistory(history).loaded);
+	CHECK(second.hasImported(plugin));
+	CHECK_FALSE(second.hasImported(other));
+	CHECK(second.head().number == 1);
+}
+
 TEST_CASE("vcs: commits that leave the document as it was share its object") {
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;

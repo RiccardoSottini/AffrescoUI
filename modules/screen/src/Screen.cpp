@@ -535,6 +535,11 @@ bool Screen::importChanges(std::string_view changesJson, std::string* error) {
 	return changes && succeeded(impl_->repository.importChanges(*changes), error);
 }
 
+bool Screen::hasImported(std::string_view changesJson) const {
+	const auto changes = parseJson(changesJson, "changes", nullptr);
+	return changes && impl_->repository.hasImported(*changes);
+}
+
 std::string Screen::documentJson() const { return impl_->repository.document().dump(); }
 
 std::string Screen::stateJson() const { return impl_->repository.state().dump(); }

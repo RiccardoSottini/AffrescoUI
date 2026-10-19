@@ -764,9 +764,14 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 		}
 	}
 	importing_ = false;
+	if(!hasImported(changes)) imported_.push_back(detail::sha256(changes.dump()));
 	saveHistory();
 	for(std::size_t i = oldMain; i < main_.size(); ++i) onCommit(info(objects_.at(main_[i])));
 	return std::nullopt;
+}
+
+bool Repository::hasImported(const json& changes) const {
+	return std::ranges::find(imported_, detail::sha256(changes.dump())) != imported_.end();
 }
 
 } // namespace affresco::vcs
