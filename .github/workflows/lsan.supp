@@ -1,5 +1,4 @@
-# LeakSanitizer suppressions for the sanitizers job: memory Mesa's OpenGL driver keeps until exit. GLFW unloads the
-# driver at glfwTerminate(), before the leak report, so its frames show as "<unknown module>" and can't be named here;
-# these are the places where GLFW and the renderer call into it.
-leak:extensionSupportedGLX
-leak:affresco::gl::QuadRenderer::draw
+# LeakSanitizer suppressions for the sanitizers job. None are needed: the job links libGLX (KEEP_GL in ci.yml), so
+# glfwTerminate() can't unload Mesa's driver before the leak report, and the memory the driver keeps until exit is
+# still reachable from its globals. If a Mesa update leaks for real, suppress it here by module (e.g.
+# leak:libgallium), never by one of our functions, which would hide our own leaks under it too.
