@@ -4,6 +4,7 @@
 #include "Helpers.hpp"
 
 #include <affresco/channel/Session.hpp>
+#include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -11,6 +12,8 @@
 
 #include <algorithm>
 #include <string>
+#include <string_view>
+#include <vector>
 
 using affresco::json;
 using affresco::test::MemoryChannel;
@@ -79,4 +82,18 @@ TEST_CASE("channel: an accept from a peer that may not review is rejected") {
 	                                   {"id", 2}});
 	CHECK(peer.versions.proposals().size() == 1); // still waiting for a reviewer
 	CHECK(peer.versions.head().number == 0);
+}
+
+TEST_CASE("channel: a peer's text in a rejected revision reaches the log as one line") {
+	Peer peer;
+	const affresco::channel::Session agent(peer.channel, peer.versions, "agent");
+	std::vector<std::string> logged;
+	affresco::setLogSink([&](affresco::LogLevel, std::string_view message) { logged.emplace_back(message); });
+	peer.channel.receive(R"({"type": "revision", "id": 1, "set": {"#a\nFAKE: approved\u001b[2J/text": "x"}})");
+	affresco::setLogSink(nullptr);
+
+	REQUIRE(logged.size() == 1);
+	CHECK(logged[0].find("#a\\nFAKE: approved\\x1b[2J") != std::string::npos);
+	CHECK(std::ranges::none_of(logged[0], [](char c) { return c == '\n' || c == '\x1b'; }));
+	CHECK(peer.channel.sent.back()["type"] == "rejected"); // the peer still gets its own text back, as JSON
 }
