@@ -5,6 +5,7 @@
 
 #include "affresco/core/Channel.hpp"
 #include "affresco/core/Json.hpp"
+#include "affresco/core/ScreenImages.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 
@@ -29,7 +30,10 @@ public:
 	/// @param versions The document; must outlive the session.
 	/// @param author The name the document's permissions know this peer by.
 	/// @param catalog What the format offers, for "getCatalog" (may be empty: answered with an empty catalog).
-	Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog = {});
+	/// @param images Draws pictures of the screen, for "render" (may be nullptr: such a host has no pictures); must
+	/// outlive the session.
+	Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog = {},
+	        ScreenImages* images = nullptr);
 	~Session();
 
 	Session(const Session&) = delete;
@@ -77,11 +81,15 @@ private:
 	/// @return false if it is none of these.
 	/// @throws DocumentError If it is malformed.
 	bool handleReview(const Incoming& in);
-	/// @brief Handles getDocument, getCatalog, getHistory, diff and exportChanges.
+	/// @brief Handles getDocument, getCatalog, getHistory, diff, exportChanges and render.
 	/// @param in The message.
 	/// @return false if it is none of these.
 	/// @throws DocumentError If it is malformed.
 	bool handleQuery(const Incoming& in);
+	/// @brief Answers "render" with a picture of the screen: `{"type": "image", "format": "png", "data": base64, ...}`.
+	/// @param in The message: `proposal` (optional) and `scale` (1 by default, at most ScreenImages::maxScale).
+	/// @throws DocumentError If it is malformed, or the picture can't be drawn.
+	void sendImage(const Incoming& in);
 	/// @brief The "review" message: proposals, preview, mode and grants.
 	[[nodiscard]] json reviewState() const;
 
@@ -89,6 +97,7 @@ private:
 	VersionControl& versions_;                                            ///< The document.
 	std::string author_;                                                  ///< See author().
 	std::function<json()> catalog_;                                       ///< For "getCatalog".
+	ScreenImages* images_ = nullptr;                                      ///< For "render" (may be nullptr).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
 };
 
