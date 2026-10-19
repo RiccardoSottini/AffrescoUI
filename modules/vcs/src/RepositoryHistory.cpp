@@ -382,7 +382,12 @@ std::unordered_map<std::string, Repository::Commit> Repository::readCommits(deta
 		known->number = std::max(known->number, 0);
 		for(int number = known->number; Commit* c : unnumbered | std::views::reverse) c->number = ++number;
 	}
-	// And how far each is from a snapshot, which says where the next one goes (revision 0 is always one)
+	countFromSnapshots(objects);
+	return objects;
+}
+
+// How far each is from a snapshot along first parents, which says where the next one goes (revision 0 is always one)
+void Repository::countFromSnapshots(std::unordered_map<std::string, Commit>& objects) {
 	for(auto& [id, commit] : objects) {
 		std::vector<Commit*> counted;
 		Commit* known = &commit;
@@ -392,7 +397,6 @@ std::unordered_map<std::string, Repository::Commit> Repository::readCommits(deta
 		for(int distance = known->sinceSnapshot; Commit* c : counted | std::views::reverse)
 			c->sinceSnapshot = ++distance;
 	}
-	return objects;
 }
 
 void Repository::completeProposal(Proposal& proposal, const std::unordered_map<std::string, Commit>& objects,

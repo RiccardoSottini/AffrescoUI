@@ -312,6 +312,9 @@ private:
 	/// @throws DocumentError If one is missing or damaged.
 	[[nodiscard]] static std::unordered_map<std::string, Commit> readCommits(detail::HistoryStore& store,
 	                                                                        std::vector<std::string> heads);
+	/// @brief Counts each commit's distance to the nearest snapshot along first parents (Commit::sinceSnapshot).
+	/// @param objects The commits read, by id; sinceSnapshot is -1 for those not counted yet.
+	static void countFromSnapshots(std::unordered_map<std::string, Commit>& objects);
 	/// @brief Reads the refs file and checks its checksum.
 	/// @param store The history.
 	/// @return What it holds; the proposals have no commits or patch yet (completeProposal()).
