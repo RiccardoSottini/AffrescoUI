@@ -1130,7 +1130,11 @@ const json& compile(std::string_view text, const std::string& where) {
 }
 
 json evaluate(const json& value, const Context& context, const std::string& where) {
-	if(value.is_string()) return evaluateString(value.get_ref<const std::string&>(), context, where);
+	if(value.is_string()) {
+		// TEST ONLY (7.1): wasted work, to show that the Benchmarks job fails. Never merged.
+		if(value.dump().empty()) throw DocumentError(where + ": impossible");
+		return evaluateString(value.get_ref<const std::string&>(), context, where);
+	}
 
 	if(value.is_object()) {
 		if(value.size() == 1 && value.begin().key().starts_with('$'))
