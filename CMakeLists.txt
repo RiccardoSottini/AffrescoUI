@@ -179,7 +179,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
 		tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp tests/unit/screen.cpp
-		tests/unit/text.cpp)
+		tests/unit/text.cpp tests/unit/painter.cpp)
 	# Expression.hpp and Utf8.hpp stay private
 	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src)
 	target_compile_definitions(affrescoui_unit_tests PRIVATE
@@ -190,8 +190,10 @@ if(AFFRESCOUI_BUILD_TESTS)
 	target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
 
-	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers
-	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp tests/unit/review.cpp)
+	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers, review
+	# steps, shapes
+	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp tests/unit/review.cpp
+		tests/unit/shapes.cpp)
 	target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
 		$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE)

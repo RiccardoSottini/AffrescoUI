@@ -141,6 +141,66 @@
 			]
 		},
 		{
+			"name": "shapes",
+			"screen": "sign-in.screen.json",
+			"note": "Rounded corners, borders and shadows, added by a revision: in styles, in hover and focused states, with a border colour transition, and clipped by a parent",
+			"steps": [
+				{ "revision": { "message": "Rounded corners, borders and shadows", "set": {
+					"/styles/card/radius": 16,
+					"/styles/card/shadow": { "y": 12, "blur": 32, "color": "#000000cc" },
+					"/styles/field/radius": 8,
+					"/styles/field/borderWidth": 1,
+					"/styles/field/borderColor": "#cbd5e1",
+					"/styles/field/focused": { "color": "@fieldFocused", "borderColor": "@accent", "borderWidth": 2 },
+					"/styles/primary/radius": 23,
+					"/styles/primary/hover": { "color": "@accentHover", "borderWidth": 3, "borderColor": "#c7d2fe" }
+				}, "add": { "/root/children/-": {
+					"id": "shapes", "x": 20, "y": 70, "width": 180, "height": 500, "color": "#f8fafc",
+					"radius": { "topLeft": 24, "bottomRight": 24 }, "borderWidth": 1, "borderColor": "#94a3b8",
+					"children": [
+						{ "id": "circle", "x": 20, "y": 20, "width": 60, "height": 60, "radius": 30, "color": "#f97316" },
+						{ "id": "ring", "x": 100, "y": 20, "width": 60, "height": 60, "radius": 30, "color": "transparent", "borderWidth": 4, "borderColor": "#0ea5e9" },
+						{ "id": "outlined", "type": "label", "text": "Outlined", "align": "center", "textColor": "#312e81", "x": 20, "y": 100, "width": 140, "height": 44, "radius": 10, "color": "#ffffff", "borderWidth": 2, "borderColor": "#6366f1" },
+						{ "id": "tab", "type": "label", "text": "Top corners", "align": "center", "textColor": "#ffffff", "x": 20, "y": 164, "width": 140, "height": 44, "radius": { "topLeft": 14, "topRight": 14 }, "color": "#6366f1" },
+						{ "id": "lifted", "x": 20, "y": 228, "width": 140, "height": 60, "radius": 12, "color": "#ffffff", "shadow": { "y": 8, "blur": 16, "color": "#0f172a80" } },
+						{ "id": "hard", "x": 20, "y": 308, "width": 140, "height": 44, "color": "#fde68a", "shadow": { "x": 6, "y": 6, "color": "#0f172a" } },
+						{ "id": "hoverCard", "type": "label", "text": "Hover me", "align": "center", "textColor": "#0f172a", "x": 20, "y": 372, "width": 140, "height": 50, "radius": 25, "color": "#ffffff", "borderWidth": 2, "borderColor": "#cbd5e1", "transition": { "borderColor": 120 }, "hover": { "borderColor": "#f97316", "shadow": { "y": 4, "blur": 12, "color": "#f9731699" } } },
+						{ "id": "clipped", "x": 130, "y": 440, "width": 80, "height": 80, "radius": 40, "color": "#22c55e", "borderWidth": 3, "borderColor": "#14532d", "shadow": { "blur": 8, "color": "#14532d" } }
+					]
+				} } } },
+				{ "capture": "styled" },
+				{ "click": "#email" },
+				{ "move": "#signIn" },
+				{ "capture": "focused-hover" },
+				{ "move": "#hoverCard" },
+				{ "wait": 400 },
+				{ "capture": "transition-done" }
+			]
+		},
+		{
+			"name": "shapes-retina",
+			"screen": "sign-in.screen.json",
+			"scale": 2,
+			"note": "The anti-aliased edges and blur at two pixels per window unit",
+			"steps": [
+				{ "revision": { "message": "Rounded corners, borders and shadows", "set": {
+					"/styles/card/radius": 16,
+					"/styles/card/shadow": { "y": 12, "blur": 32, "color": "#000000cc" },
+					"/styles/field/radius": 8,
+					"/styles/field/borderWidth": 1,
+					"/styles/field/borderColor": "#cbd5e1"
+				}, "add": { "/root/children/-": {
+					"id": "shapes", "x": 20, "y": 70, "width": 180, "height": 300, "color": "#f8fafc", "radius": 24,
+					"children": [
+						{ "id": "circle", "x": 20, "y": 20, "width": 60, "height": 60, "radius": 30, "color": "#f97316" },
+						{ "id": "ring", "x": 100, "y": 20, "width": 60, "height": 60, "radius": 30, "color": "transparent", "borderWidth": 1.5, "borderColor": "#0ea5e9" },
+						{ "id": "lifted", "x": 20, "y": 110, "width": 140, "height": 60, "radius": { "topLeft": 4, "topRight": 12, "bottomRight": 20, "bottomLeft": 28 }, "color": "#ffffff", "shadow": { "y": 8, "blur": 16, "color": "#0f172a80" } }
+					]
+				} } } },
+				{ "capture": "styled" }
+			]
+		},
+		{
 			"name": "kanban-retina",
 			"screen": "kanban.screen.json",
 			"scale": 2,

@@ -7,6 +7,7 @@
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Geometry.hpp"
 #include "affresco/render/Length.hpp"
+#include "affresco/render/Painter.hpp"
 #include "affresco/core/Signal.hpp"
 
 #include <array>
@@ -22,7 +23,6 @@
 
 namespace affresco {
 
-class Painter;
 class Window;
 
 namespace gl {
@@ -246,6 +246,29 @@ public:
 	/// @brief The background colour.
 	[[nodiscard]] Color color() const noexcept { return color_; }
 
+	/// @brief Rounds the corners of the background, the border and the shadow. Children are still clipped to the
+	/// square bounds, and hit-testing ignores the corners.
+	/// @param radii Each corner's radius, in pixels; all zero (the default) for square corners.
+	void setCornerRadii(CornerRadii radii);
+	/// @brief The corner radii.
+	[[nodiscard]] const CornerRadii& cornerRadii() const noexcept { return radii_; }
+
+	/// @brief Sets the border, drawn inside the frame over the background and under the children. It doesn't change
+	/// the layout.
+	/// @param width How thick it is, in pixels; 0 (the default) for none.
+	/// @param color Its colour.
+	void setBorder(float width, Color color);
+	/// @brief How thick the border is; 0 if there is none.
+	[[nodiscard]] float borderWidth() const noexcept { return borderWidth_; }
+	/// @brief The border's colour.
+	[[nodiscard]] Color borderColor() const noexcept { return borderColor_; }
+
+	/// @brief Sets the shadow the panel casts: drawn under it, and clipped to its parent rather than to the panel.
+	/// @param shadow The shadow; a transparent one (the default) draws nothing.
+	void setShadow(const Shadow& shadow);
+	/// @brief The shadow.
+	[[nodiscard]] const Shadow& shadow() const noexcept { return shadow_; }
+
 	/// @brief Shows or hides the panel and its subtree.
 	/// @param visible false to hide it from drawing, hit-testing and stacks.
 	void setVisible(bool visible);
@@ -334,7 +357,8 @@ protected:
 	/// them (with setAnchor() and arrangeSize()). Property changes made here don't trigger another layout.
 	virtual void arrange() {}
 
-	/// @brief Draws this panel; the children are drawn after it, on top. The default fills bounds() with color().
+	/// @brief Draws this panel; the children are drawn after it, on top. The default draws the shadow, fills bounds()
+	/// with color() (rounding the corners, if any), then draws the border.
 	/// @param painter Clips to bounds().
 	virtual void paint(Painter& painter) const;
 
@@ -398,6 +422,10 @@ private:
 	float grow_ = 0.0f;                                  ///< See grow().
 	std::optional<float> arrangedWidth_, arrangedHeight_; ///< Set by a container for this pass (arrangeSize()).
 	Color color_ = colors::panel;                        ///< Background.
+	CornerRadii radii_;                                  ///< See cornerRadii().
+	float borderWidth_ = 0.0f;                           ///< See borderWidth().
+	Color borderColor_ = colors::black;                  ///< See borderColor().
+	Shadow shadow_;                                      ///< See shadow().
 	bool visible_ = true;                                ///< See setVisible().
 	Cursor cursor_ = Cursor::Arrow;                      ///< See setCursor().
 	std::string tooltip_;                                ///< See tooltip().
