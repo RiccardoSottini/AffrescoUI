@@ -14,8 +14,10 @@ namespace {
 /// "$ref"s inside each other before a check stops: a schema that refers to itself without end.
 constexpr int maxReferences = 512;
 
-/// The longest string a pattern is matched against: std::regex recurses on each character.
-constexpr std::size_t maxPatternInput = 100000;
+/// The longest string or key a pattern is matched against. std::regex recurses on each character it matches:
+/// libstdc++'s overflows an 8 MiB stack from about 25,000 characters ("{{" and "}}" around them, for the
+/// expression pattern), and under AddressSanitizer from about 22,000, so this leaves twice the room.
+constexpr std::size_t maxPatternInput = 10000;
 
 /// @brief A member's place.
 /// @param place The object's place.
@@ -162,6 +164,10 @@ const std::regex& Schema::compiled(const std::string& pattern) {
 	return it->second;
 }
 
+bool Schema::searches(const std::string& text, const std::string& pattern) {
+	return text.size() <= maxPatternInput && std::regex_search(text, compiled(pattern));
+}
+
 bool Schema::matches(const json& schema, const json& value, const std::string& place,
                      std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated) {
 	if(schema.is_boolean()) return schema.get<bool>() || report(problems, place, "not allowed here");
@@ -203,7 +209,7 @@ bool Schema::matchesText(const json& schema, const json& value, const std::strin
 	const auto pattern = schema.find("pattern");
 	if(pattern == schema.end()) return ok;
 	if(text.size() > maxPatternInput) return report(problems, place, "too long to check against its pattern");
-	if(!std::regex_search(text, compiled(pattern->get<std::string>())))
+	if(!searches(text, pattern->get<std::string>()))
 		ok = report(problems, place, "expected text matching " + pattern->dump() + ", got " + shortly(value));
 	return ok;
 }
@@ -229,7 +235,7 @@ bool Schema::matchesMember(const json& schema, const std::string& key, const jso
 	}
 	if(const auto patterns = schema.find("patternProperties"); patterns != schema.end())
 		for(const auto& [pattern, subschema] : patterns->items())
-			if(std::regex_search(key, compiled(pattern))) {
+			if(searches(key, pattern)) { // a key too long to try matches none: additionalProperties judges it
 				known = true;
 				ok = matches(subschema, member, place, problems, inner) && ok;
 			}
