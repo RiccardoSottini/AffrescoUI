@@ -58,10 +58,11 @@ Other clients (JSON configuration):
 The host listens on a Unix domain socket (`AF_UNIX`), which Windows has supported since Windows 10 version 1803.
 **Python can't use it yet:** no released CPython (3.9 to 3.15) has `socket.AF_UNIX` on Windows. The work to add it is
 [python/cpython#77589](https://github.com/python/cpython/issues/77589), with an open pull request. So on Windows
-the server starts and lists its tools, but every tool answers that this Python has no Unix domain sockets. Nothing
-else is needed for the day a Python with `socket.AF_UNIX` comes: the server uses it as it is.
+the server starts and lists its tools, but every tool that needs the host (all but `get_format_guide`) answers that
+this Python has no Unix domain sockets. Nothing else is needed for the day a Python with `socket.AF_UNIX` comes: the
+server uses it as it is.
 
-The setup, once it can connect:
+The setup, once the host builds on Windows (work in progress) and Python can connect:
 1. Build and start the host and the Studio (Windows 10 version 1803 or later). By default they meet in
    `%LOCALAPPDATA%\affrescoui\sockets`, a folder in your profile that only you (and administrators) can open:
    ```powershell
