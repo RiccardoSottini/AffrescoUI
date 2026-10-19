@@ -113,8 +113,7 @@ Repository::OpenedHistory Repository::openHistory(const std::filesystem::path& d
 		}
 		// It began with another version of the document: keep it aside, whole, and start again
 		if(!opened.loaded && store->writable()) {
-			store.reset(); // its lock must be free to move the folder
-			opened.setAside = detail::HistoryStore::setAside(directory);
+			opened.setAside = store->moveAside();
 			store = std::make_unique<detail::HistoryStore>(directory);
 		}
 	}

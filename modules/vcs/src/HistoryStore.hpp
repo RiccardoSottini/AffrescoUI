@@ -109,11 +109,12 @@ public:
 	/// @throws HistoryError If it can't be written.
 	void writeObject(const std::string& id, std::string_view text);
 
-	/// @brief Moves a history folder aside, so that a new history can start in its place. Its lock must be free.
-	/// @param directory The folder, e.g. "kanban.history".
+	/// @brief Moves the folder aside, so that a new history can start in its place, then gives up its lock: this store
+	/// is done. On POSIX the lock is held while it moves, so no other program can start writing the old folder in
+	/// between. Windows can't move a folder with an open file in it, so there the lock goes first.
 	/// @return Where it is now: "kanban.history.replaced-20261019T120000Z" (with "-2", "-3"… if that exists).
-	/// @throws HistoryError If it can't be moved.
-	[[nodiscard]] static std::filesystem::path setAside(const std::filesystem::path& directory);
+	/// @throws HistoryError If it can't be moved; then it stays where it was (and, on POSIX, locked).
+	[[nodiscard]] std::filesystem::path moveAside();
 
 private:
 	/// @brief Reads a whole file, up to maxFileSize.

@@ -205,17 +205,21 @@ void HistoryStore::writeObject(const std::string& id, std::string_view text) {
 	objects_.insert(id);
 }
 
-std::filesystem::path HistoryStore::setAside(const std::filesystem::path& directory) {
+std::filesystem::path HistoryStore::moveAside() {
 	const std::string stamp = fileNameTime();
-	std::filesystem::path aside = directory;
+	std::filesystem::path aside = directory_;
 	aside += ".replaced-" + stamp;
 	std::error_code error;
 	for(int n = 2; std::filesystem::exists(aside, error); ++n) {
-		aside = directory;
+		aside = directory_;
 		aside += ".replaced-" + stamp + "-" + std::to_string(n);
 	}
-	std::filesystem::rename(directory, aside, error);
-	if(error) throw HistoryError(directory, "can't be moved aside to " + aside.string() + " (" + error.message() + ")");
+#ifdef _WIN32
+	lock_.reset();
+#endif
+	std::filesystem::rename(directory_, aside, error);
+	if(error) throw HistoryError(directory_, "can't be moved aside to " + aside.string() + " (" + error.message() + ")");
+	lock_.reset();
 	return aside;
 }
 
