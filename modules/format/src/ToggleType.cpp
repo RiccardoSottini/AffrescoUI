@@ -33,7 +33,9 @@ void applyToggle(Panel& panel, const json& values, const PropertyReader& reader,
 /// @param panel The panel, a Toggle.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-void showChecked(Panel& panel, const json* bound, const json& properties, std::optional<std::string>&) {
+/// @param lastText Not used: a toggle shows whether it is checked.
+void showChecked(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
+	static_cast<void>(lastText);
 	if(auto* toggle = dynamic_cast<Toggle*>(&panel))
 		toggle->setChecked(bound ? truthy(*bound) : truthy(properties.value("checked", json(false))));
 }

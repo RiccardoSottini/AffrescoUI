@@ -54,7 +54,7 @@ json stepsOf(const StepRegistry& registry) {
 
 json catalog(const Engine& engine) {
 	json events = json::array();
-	for(std::string_view name : handlerNames) events.push_back(std::string(name));
+	for(const std::string_view name : handlerNames) events.push_back(std::string(name));
 
 	json sections = json::array();
 	for(const SectionType& section : engine.sections->sections())

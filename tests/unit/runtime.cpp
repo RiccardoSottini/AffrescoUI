@@ -46,7 +46,7 @@ void clickOn(affresco::Window& window, const affresco::Panel& panel) {
 } // namespace
 
 TEST_CASE("format: the Kanban template builds on a headless window, and a click opens its members menu") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto window = createHeadlessWindow(1280, 800, clock);
 	affresco::Screen screen = loadTemplate("kanban");
 	screen.build(*window);

@@ -47,11 +47,11 @@ public:
 	[[nodiscard]] std::vector<Item> expand(const json& children, const SharedScope& locals,
 	                                       const std::string& path) const;
 	/// @brief The variables and the final node of one built instance: "with", "let", "check", dynamic style.
-	/// @param node The node.
+	/// @param shared The node.
 	/// @param scope Its variables so far; gets the new ones.
 	/// @param at Its place, for errors.
 	/// @return The node, with a dynamic style merged.
-	[[nodiscard]] NodeRef scoped(const NodeRef& node, SharedScope& scope, const std::string& at) const;
+	[[nodiscard]] NodeRef scoped(const NodeRef& shared, SharedScope& scope, const std::string& at) const;
 
 private:
 	/// @brief Turns a "use" of a component into its node: the component's node with the use's properties on top, its

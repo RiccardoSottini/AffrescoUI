@@ -43,10 +43,10 @@ namespace affresco::format {
 /// subsystems, which only keep a reference to the engine while it is built. Main thread only.
 struct Engine : VersionObserver {
 	/// @brief Sets the runtime up: registers the built-in types and steps.
-	/// @param owner The public object, for its signals.
-	/// @param versions The document and state; outlive the engine.
+	/// @param runtime The public object, for its signals.
+	/// @param vcs The document and state; outlive the engine.
 	/// @param baseDirectory Where font paths are resolved from.
-	Engine(Runtime& owner, VersionControl& versions, std::filesystem::path baseDirectory);
+	Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path baseDirectory);
 
 	Engine(const Engine&) = delete;
 	Engine& operator=(const Engine&) = delete;

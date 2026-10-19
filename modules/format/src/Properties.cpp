@@ -9,6 +9,7 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
+#include <array>
 #include <format>
 
 namespace affresco::format {
@@ -55,7 +56,7 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record, co
 	record.caret.reset();
 	Behaviour behaviour;
 	for(const auto& [key, value] : properties.items()) {
-		const std::string at = path + "." + key;
+		const std::string at = std::format("{}.{}", path, key);
 		if(handlerKey(key)) readHandler(panel, record, key, value, at);
 		else readBehaviourKey(panel, record, {key, value, at, properties.contains("id")}, behaviour);
 	}
@@ -103,7 +104,7 @@ std::string Properties::statePath(const Record& record, const json& value, const
 
 double Properties::everyPeriod(const Record& record, const json& value, const std::string& at) const {
 	const json& every = object(value, at);
-	if(!every.contains("ms") || !every.contains("do")) fail(at, "expected {\"ms\": milliseconds, \"do\": steps}");
+	if(!every.contains("ms") || !every.contains("do")) fail(at, R"(expected {"ms": milliseconds, "do": steps})");
 	return std::max(
 	    number(engine_.document.evaluate(every["ms"], *record.locals, json::object(), at + ".ms"), at + ".ms"), 16.0f);
 }
@@ -134,7 +135,7 @@ json Properties::visual(const Record& record) const {
 	for(const auto& [key, value] : record.properties.items())
 		if(!structural(key) && std::ranges::find(stateBlocks, key) == std::end(stateBlocks)) result[key] = value;
 
-	const bool active[] = {record.hovered, record.focused, record.dragging, record.dragOver, record.down};
+	const std::array<bool, 5> active = {record.hovered, record.focused, record.dragging, record.dragOver, record.down};
 	for(std::size_t i = 0; i < std::size(stateBlocks); ++i) {
 		const std::string name(stateBlocks[i]);
 		if(!active[i] || !record.properties.contains(name)) continue;
@@ -144,7 +145,7 @@ json Properties::visual(const Record& record) const {
 			if(structural(key) || key == "type") continue;
 			for(const auto& set : record.sets)
 				if(const PropertySpec* spec = set ? set->find(key) : nullptr; spec && !spec->states)
-					fail(at + "." + key, "can't be set in a state");
+					fail(std::format("{}.{}", at, key), "can't be set in a state");
 			result[key] = value;
 		}
 	}
@@ -235,7 +236,7 @@ void Properties::applyVisual(Panel& panel, Record& record, const json& propertie
 }
 
 bool Properties::appliedWithValues(const std::string& key) {
-	static constexpr std::string_view keys[] = {"type", "autofocus", "locked", "checked", "value", "text"};
+	static constexpr std::array<std::string_view, 6> keys = {"type", "autofocus", "locked", "checked", "value", "text"};
 	return std::ranges::find(keys, key) != std::end(keys);
 }
 
@@ -289,7 +290,7 @@ const json& Properties::transition(const json& value, const std::string& at) con
 	for(const auto& [property, ms] : object(value, at).items()) {
 		if(!engine_.types.transitionable(property))
 			fail(std::format("{}.{}", at, property), R"(only "color", "textColor" and "borderColor" can transition)");
-		number(ms, at + "." + property);
+		number(ms, std::format("{}.{}", at, property));
 	}
 	return value;
 }
@@ -297,7 +298,7 @@ const json& Properties::transition(const json& value, const std::string& at) con
 std::pair<bool, bool> Properties::scroll(const json& value, const std::string& at) {
 	const std::string mode = value.is_boolean() ? (value.get<bool>() ? "vertical" : "none") : string(value, at);
 	if(mode != "vertical" && mode != "horizontal" && mode != "both" && mode != "none")
-		fail(at, "expected \"vertical\", \"horizontal\", \"both\" or \"none\"");
+		fail(at, R"(expected "vertical", "horizontal", "both" or "none")");
 	return {mode == "horizontal" || mode == "both", mode == "vertical" || mode == "both"};
 }
 

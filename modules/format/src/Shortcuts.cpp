@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -73,6 +74,15 @@ std::vector<std::string> shortcutParts(std::string_view text) {
 	return parts;
 }
 
+/// @brief The modifier a document names.
+/// @param name The name, in lower case.
+/// @return The modifier, or std::nullopt if it isn't one.
+std::optional<Modifier> modifierNamed(std::string_view name) {
+	for(const auto& [named, modifier] : modifierNames)
+		if(name == named) return modifier;
+	return std::nullopt;
+}
+
 } // namespace
 
 std::string keyName(Key key) {
@@ -101,13 +111,13 @@ std::string normalizeShortcut(std::string_view text) {
 	std::array<bool, 4> held{};
 	std::string key;
 	for(const std::string& part : shortcutParts(text)) {
-		const auto modifier = std::ranges::find(modifierNames, part, &std::pair<std::string_view, Modifier>::first);
-		if(modifier != modifierNames.end()) {
-			held[modifier->second] = true;
+		if(const std::optional<Modifier> modifier = modifierNamed(part)) {
+			held[*modifier] = true;
 			continue;
 		}
-		const auto alias = std::ranges::find(keyAliases, part, &std::pair<std::string_view, std::string_view>::first);
-		key = alias != keyAliases.end() ? std::string(alias->second) : part;
+		key = part;
+		for(const auto& [alias, name] : keyAliases)
+			if(part == alias) key = name;
 	}
 	return std::string(held[Command] ? "cmd+" : "") + (held[Control] ? "ctrl+" : "") + (held[Alt] ? "alt+" : "") +
 	       (held[Shift] ? "shift+" : "") + key;

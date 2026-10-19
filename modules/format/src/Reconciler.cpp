@@ -4,6 +4,9 @@
 #include "Reconciler.hpp"
 #include "Engine.hpp"
 
+#include <algorithm>
+#include <array>
+
 namespace affresco::format {
 
 namespace {
@@ -12,9 +15,8 @@ namespace {
 /// @param node The node.
 /// @return true if it has layout properties.
 bool hasLayout(const json& node) {
-	for(const char* key : {"x", "y", "width", "height", "anchors", "fill"})
-		if(node.contains(key)) return true;
-	return false;
+	static constexpr std::array<const char*, 6> keys = {"x", "y", "width", "height", "anchors", "fill"};
+	return std::ranges::any_of(keys, [&node](const char* key) { return node.contains(key); });
 }
 
 } // namespace

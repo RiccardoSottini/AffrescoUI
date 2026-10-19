@@ -46,7 +46,7 @@ public:
 	/// @param panel The panel.
 	/// @param handler E.g. "onHover".
 	/// @param event The event.
-	void fire(Panel& panel, std::string_view handler, json event);
+	void fire(Panel& panel, std::string_view handler, const json& event);
 
 private:
 	/// @brief A press that may become a click, a double click or a drag.

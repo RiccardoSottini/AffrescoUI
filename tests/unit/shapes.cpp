@@ -46,7 +46,7 @@ std::string rejection(affresco::Screen& screen, std::string_view revision) {
 } // namespace
 
 TEST_CASE("format: shape properties apply, and go back to the defaults when removed") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(cardScreen);
 	affresco::Window& window = *headless;
@@ -74,7 +74,7 @@ TEST_CASE("format: shape properties apply, and go back to the defaults when remo
 }
 
 TEST_CASE("format: malformed shape properties are rejected, naming the place") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(cardScreen);
 	screen.build(*headless);
@@ -98,7 +98,7 @@ TEST_CASE("format: malformed shape properties are rejected, naming the place") {
 
 // The transition's timer points at the screen's runtime, like the colour's: it must stop with the screen
 TEST_CASE("format: a border colour transition animates, and stops when its screen is destroyed") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto headless = createHeadlessWindow(800, 600, clock);
 	auto screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(cardScreen));
 	affresco::Window& window = *headless;

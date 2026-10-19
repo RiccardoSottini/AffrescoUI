@@ -147,8 +147,8 @@ TEST_CASE("render: hover enters and leaves panels and their ancestors, and sets 
 	inner.setCursor(affresco::Cursor::Hand);
 
 	std::vector<std::string> heard;
-	outer.onHover.connect([&](bool on) { heard.push_back(on ? "outer in" : "outer out"); });
-	inner.onHover.connect([&](bool on) { heard.push_back(on ? "inner in" : "inner out"); });
+	outer.onHover.connect([&](bool on) { heard.emplace_back(on ? "outer in" : "outer out"); });
+	inner.onHover.connect([&](bool on) { heard.emplace_back(on ? "inner in" : "inner out"); });
 
 	window->routeMouseMove({15.0f, 15.0f});
 	CHECK(window->hoveredPanel() == &inner);
@@ -224,11 +224,11 @@ TEST_CASE("render: a tooltip shows when the pointer rests, on the window's clock
 
 	window->routeMouseMove({10.0f, 10.0f});
 	REQUIRE(window->secondsToNextTimer());
-	CHECK(*window->secondsToNextTimer() == doctest::Approx(0.6));
+	CHECK(window->secondsToNextTimer().value_or(-1.0) == doctest::Approx(0.6));
 	clock.advance(599.0);
-	CHECK(*window->secondsToNextTimer() > 0.0);
+	CHECK(window->secondsToNextTimer().value_or(-1.0) > 0.0);
 	clock.advance(1.0);
-	CHECK(*window->secondsToNextTimer() == 0.0);
+	CHECK(window->secondsToNextTimer().value_or(-1.0) == 0.0);
 	window->render(); // shows it
 	CHECK_FALSE(window->secondsToNextTimer());
 }
@@ -247,7 +247,7 @@ TEST_CASE("render: timers run when the clock says they are due, earliest first")
 	clock.advance(25.0);
 	window->render();
 	CHECK(ran == std::vector<int>{10, 20});
-	CHECK(*window->secondsToNextTimer() == doctest::Approx(0.005));
+	CHECK(window->secondsToNextTimer().value_or(-1.0) == doctest::Approx(0.005));
 
 	clock.advance(5.0);
 	window->render();

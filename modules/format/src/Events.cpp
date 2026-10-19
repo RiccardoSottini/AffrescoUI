@@ -59,8 +59,11 @@ void Events::hookUp(Panel& panel, Record& adopted) {
 	if(auto* textArea = dynamic_cast<TextArea*>(&panel)) {
 		hooks.value = textArea->onTextChanged.connect([changed](const std::string& value) { changed(value); });
 	} else {
-		const auto set = std::ranges::find_if(adopted.sets, [](const auto& s) { return s && s->value.listen; });
-		if(set != adopted.sets.end()) hooks.value = (*set)->value.listen(panel, changed);
+		for(const auto& set : adopted.sets) {
+			if(!set || !set->value.listen) continue;
+			hooks.value = set->value.listen(panel, changed);
+			break;
+		}
 	}
 	hooks.caret = hookCaret(panel);
 }
@@ -94,8 +97,11 @@ void Events::unhook(Panel& panel, const Record& record) {
 	if(auto* textArea = dynamic_cast<TextArea*>(&panel)) {
 		textArea->onTextChanged.disconnect(hooks.value);
 	} else {
-		const auto set = std::ranges::find_if(record.sets, [](const auto& s) { return s && s->value.stopListening; });
-		if(set != record.sets.end()) (*set)->value.stopListening(panel, hooks.value);
+		for(const auto& set : record.sets) {
+			if(!set || !set->value.stopListening) continue;
+			set->value.stopListening(panel, hooks.value);
+			break;
+		}
 	}
 	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) editor->onCaretMoved.disconnect(hooks.caret);
 }
@@ -172,7 +178,7 @@ Panel* Events::handlerOwner(Panel* from, std::string_view handler) {
 	return nullptr;
 }
 
-void Events::fire(Panel& panel, std::string_view handler, json event) {
+void Events::fire(Panel& panel, std::string_view handler, const json& event) {
 	Record* record = engine_.reconciler.recordOf(&panel);
 	if(!record || record->disabled || !record->handlers.contains(std::string(handler))) return;
 	const json steps = record->handlers[std::string(handler)];
@@ -194,7 +200,7 @@ bool Events::bubble(Panel& from, std::string_view handler, json event, const Vec
 		fields.update(event);
 		event = std::move(fields);
 	}
-	fire(*target, handler, std::move(event));
+	fire(*target, handler, event);
 	return true;
 }
 
@@ -247,7 +253,7 @@ void Events::dropped(const Press& ended, Vec2 at) {
 		setFlag(ended.over, &Record::dragOver, false);
 		json drop = pointerEvent("drop", *ended.over, at);
 		drop["data"] = ended.data;
-		fire(*ended.over, "onDrop", std::move(drop));
+		fire(*ended.over, "onDrop", drop);
 	}
 }
 

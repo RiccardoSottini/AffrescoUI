@@ -62,6 +62,8 @@ protected:
 	PropertyReader() = default;
 	PropertyReader(const PropertyReader&) = default;
 	PropertyReader& operator=(const PropertyReader&) = default;
+	PropertyReader(PropertyReader&&) = default;
+	PropertyReader& operator=(PropertyReader&&) = default;
 };
 
 /// @brief Applies a type's own properties to one of its panels.

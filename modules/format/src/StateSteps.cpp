@@ -48,7 +48,7 @@ std::optional<bool> runStateStep(const Running& s) {
 	json& state = engine.versions.state();
 
 	if(step.contains("set")) {
-		if(!step.contains("to")) fail(where, "\"set\" needs \"to\"");
+		if(!step.contains("to")) fail(where, R"("set" needs "to")");
 		state[s.target("set")] = s.value("to");
 	} else if(step.contains("push")) {
 		json& array = state[s.target("push")];

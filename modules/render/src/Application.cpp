@@ -53,7 +53,7 @@ int Application::run() {
 	const double deadline = clock_.seconds() + (after ? std::atof(after) / 1000.0 : 0.0);
 
 	running_ = true;
-	while(running_ && !(screenshot && clock_.seconds() >= deadline)) {
+	while(running_ && (!screenshot || clock_.seconds() < deadline)) {
 		bool anyOpen = false;
 		for(auto& window : windows_) {
 			if(window->shouldClose()) {

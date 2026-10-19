@@ -8,9 +8,11 @@
 
 #include "Expression.hpp"
 
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -37,16 +39,16 @@ inline bool handlerKey(const std::string& key) {
 }
 
 /// Event handlers a node may have.
-inline constexpr std::string_view handlerNames[] = {
+inline constexpr std::array<std::string_view, 17> handlerNames = {
     "onClick", "onDoubleClick", "onContextMenu", "onPress", "onRelease", "onDrag",   "onDrop", "onHover", "onLeave",
     "onFocus", "onBlur",        "onScroll",      "onKey",   "onChange",  "onSubmit", "onShow", "onHide"};
 
 /// Handlers that bubble: when a node has none, its nearest ancestor with one handles the event.
-inline constexpr std::string_view bubbling[] = {"onClick",   "onDoubleClick", "onContextMenu", "onPress",
-                                                "onRelease", "onDrag",        "onScroll",      "onKey"};
+inline constexpr std::array<std::string_view, 8> bubbling = {"onClick",   "onDoubleClick", "onContextMenu", "onPress",
+                                                             "onRelease", "onDrag",        "onScroll",      "onKey"};
 
 /// Visual states, in order: later ones win when several apply.
-inline constexpr std::string_view stateBlocks[] = {"hover", "focused", "dragging", "dragOver", "pressed"};
+inline constexpr std::array<std::string_view, 5> stateBlocks = {"hover", "focused", "dragging", "dragOver", "pressed"};
 
 /// @brief Tells whether a node key describes structure or behaviour, so it is never evaluated or applied as a property.
 /// @param key The key.
@@ -82,7 +84,7 @@ inline SharedScope snapshot(const Scope& scope) {
 	std::vector<const Scope*> chain;
 	for(const Scope* s = &scope; s; s = s->parent) chain.push_back(s);
 	json vars = json::object();
-	for(auto it = chain.rbegin(); it != chain.rend(); ++it) vars.update((*it)->vars); // inner scopes win
+	for(const Scope* s : std::views::reverse(chain)) vars.update(s->vars); // inner scopes win
 	return extend(nullptr, std::move(vars));
 }
 

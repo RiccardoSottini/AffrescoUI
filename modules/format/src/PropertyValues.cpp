@@ -44,7 +44,7 @@ Length length(const json& value, const std::string& path) {
 		}
 	}
 
-	fail(path, "expected a length: a number of pixels, \"12px\" or \"50%\"");
+	fail(path, R"(expected a length: a number of pixels, "12px" or "50%")");
 }
 
 /// @brief Reads an edge name: "top", "bottom", "left" or "right".
@@ -74,7 +74,7 @@ void anchor(Panel& panel, const std::string& name, const json& offset, const std
 
 	const std::string spec = offset.get<std::string>();
 	const std::size_t dot = spec.find('.');
-	if(dot == std::string::npos) fail(where, "expected \"#id.edge\", e.g. \"#header.bottom + 8\"");
+	if(dot == std::string::npos) fail(where, R"(expected "#id.edge", e.g. "#header.bottom + 8")");
 	std::size_t end = dot + 1;
 	while(end < spec.size() && std::isalpha(static_cast<unsigned char>(spec[end]))) ++end;
 
@@ -87,7 +87,7 @@ void anchor(Panel& panel, const std::string& name, const json& offset, const std
 			delta = std::stof(rest, &used);
 			if(used != rest.size() || (rest[0] != '+' && rest[0] != '-')) throw std::invalid_argument(rest);
 		} catch(const std::exception&) {
-			fail(where, "expected \"#id.edge\", \"#id.edge + 8\" or \"#id.edge - 8\"");
+			fail(where, R"(expected "#id.edge", "#id.edge + 8" or "#id.edge - 8")");
 		}
 	}
 	panel.setAnchorTo(edge(name, where), spec.substr(1, dot - 1), edge(spec.substr(dot + 1, end - dot - 1), where),
@@ -101,7 +101,7 @@ Align align(const json& value, const std::string& path) {
 	if(name == "start") return Align::Start;
 	if(name == "center") return Align::Center;
 	if(name == "end") return Align::End;
-	fail(path, "expected \"start\", \"center\" or \"end\"");
+	fail(path, R"(expected "start", "center" or "end")");
 }
 
 Cursor cursor(const json& value, const std::string& path) {
@@ -111,7 +111,7 @@ Cursor cursor(const json& value, const std::string& path) {
 	if(name == "hand") return Cursor::Hand;
 	if(name == "resize-horizontal") return Cursor::ResizeHorizontal;
 	if(name == "resize-vertical") return Cursor::ResizeVertical;
-	fail(path, "expected \"arrow\", \"ibeam\", \"hand\", \"resize-horizontal\" or \"resize-vertical\"");
+	fail(path, R"(expected "arrow", "ibeam", "hand", "resize-horizontal" or "resize-vertical")");
 }
 
 Placement placement(const json& value, const std::string& path) {
@@ -164,9 +164,10 @@ bool layoutProperty(Panel& panel, const std::string& key, const json& value, con
 	else if(key == "grow") panel.setGrow(number(value, at));
 	else if(key == "fill") {
 		const Length offset = value.is_boolean() && value.get<bool>() ? px(0.0f) : length(value, at);
-		for(Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.setAnchor(e, offset);
+		for(const Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.setAnchor(e, offset);
 	} else if(key == "anchors") {
-		for(const auto& [name, offset] : object(value, at).items()) anchor(panel, name, offset, at + "." + name);
+		for(const auto& [name, offset] : object(value, at).items())
+			anchor(panel, name, offset, std::format("{}.{}", at, name));
 	} else {
 		return false;
 	}

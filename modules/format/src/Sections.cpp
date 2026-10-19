@@ -4,6 +4,8 @@
 #include "SectionRegistry.hpp"
 
 #include <algorithm>
+#include <array>
+#include <format>
 #include <stdexcept>
 #include <utility>
 
@@ -13,7 +15,7 @@ namespace {
 
 /// Format versions this library reads. A future version gets its own entry, and its differences branch on the
 /// document's "version" where they apply.
-constexpr int supportedVersions[] = {1};
+constexpr std::array<int, 1> supportedVersions = {1};
 
 /// @brief "format": "affrescoui-screen".
 /// @param value The value.
@@ -27,7 +29,7 @@ void checkFormat(const json& value, const std::string& name) {
 /// @param name "version".
 void checkVersion(const json& value, const std::string& name) {
 	const int v = expect::integer(value, name);
-	if(std::ranges::find(supportedVersions, v) == std::end(supportedVersions))
+	if(std::ranges::find(supportedVersions, v) == supportedVersions.end())
 		expect::fail(name, "unsupported version " + std::to_string(v) + " (this library reads version 1)");
 }
 
@@ -41,12 +43,12 @@ void checkObject(const json& value, const std::string& name) { expect::object(va
 /// @param name "components".
 void checkComponents(const json& value, const std::string& name) {
 	for(const auto& [component, definition] : expect::object(value, name).items()) {
-		const std::string at = name + "." + component;
+		const std::string at = std::format("{}.{}", name, component);
 		expect::object(definition, at);
 		if(!definition.contains("node")) expect::fail(at, "a component needs a \"node\"");
 		for(const auto& [key, item] : definition.items())
 			if(key != "node" && key != "params" && key != "note")
-				expect::fail(at + "." + key, "unknown property (expected node, params or note)");
+				expect::fail(std::format("{}.{}", at, key), "unknown property (expected node, params or note)");
 	}
 }
 

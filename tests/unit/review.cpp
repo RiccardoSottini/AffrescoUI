@@ -54,7 +54,7 @@ void click(affresco::Window& window, float x, float y) {
 
 // Before, an "accept" step approved whatever the proposal had become: it named no head
 TEST_CASE("format: an accept step names the head the user reviewed") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(reviewScreen);
 	screen.onCall("save", [](const std::string&) { return std::string(); });

@@ -71,7 +71,7 @@ std::map<std::string, DocumentContext::NamedColor, std::less<>> DocumentContext:
 		if(value.is_object()) { // per theme: {"light": "#ffffff", "dark": "#111827"}
 			if(value.empty()) fail(path, "expected at least one theme");
 			for(const auto& [themeName, hex] : value.items())
-				named.themes.emplace(themeName, hexColor(hex, path + "." + themeName));
+				named.themes.emplace(themeName, hexColor(hex, std::format("{}.{}", path, themeName)));
 			named.base = named.themes.at(value.begin().key());
 		} else {
 			named.base = hexColor(value, path);
@@ -91,7 +91,7 @@ void DocumentContext::readDerived() {
 		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
 			const std::string path = "fonts." + name;
 			object(value, path);
-			if(!value.contains("file") || !value.contains("size")) fail(path, "a font needs \"file\" and \"size\"");
+			if(!value.contains("file") || !value.contains("size")) fail(path, R"(a font needs "file" and "size")");
 
 			const std::string file = (baseDirectory_ / string(value["file"], path + ".file")).string();
 			const float size = number(value["size"], path + ".size");
@@ -202,7 +202,7 @@ Color DocumentContext::color(const json& value, const std::string& path) const {
 	}
 
 	const auto parsed = Color::parseHex(name);
-	if(!parsed) fail(path, "expected a color: \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"");
+	if(!parsed) fail(path, R"(expected a color: "#rrggbb", "#rrggbbaa", "@name" or "transparent")");
 	return *parsed;
 }
 

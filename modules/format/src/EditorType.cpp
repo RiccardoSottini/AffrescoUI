@@ -7,6 +7,8 @@
 
 #include "affresco/render/TextEditor.hpp"
 
+#include <array>
+#include <format>
 #include <utility>
 
 namespace affresco::format {
@@ -26,15 +28,15 @@ void applyEditor(Panel& panel, const json& values, const PropertyReader& reader,
 	editor->resetColors();
 
 	using Setter = void (TextEditor::*)(Color);
-	static constexpr std::pair<const char*, Setter> colorSetters[] = {
-	    {"activeLineNumberColor", &TextEditor::setActiveLineNumberColor},
-	    {"caretColor", &TextEditor::setCaretColor},
-	    {"lineColor", &TextEditor::setLineColor},
-	    {"lineNumberColor", &TextEditor::setLineNumberColor},
-	    {"selectionColor", &TextEditor::setSelectionColor},
-	    {"textColor", &TextEditor::setTextColor}};
+	static constexpr std::array<std::pair<const char*, Setter>, 6> colorSetters = {
+	    {{"activeLineNumberColor", &TextEditor::setActiveLineNumberColor},
+		 {"caretColor", &TextEditor::setCaretColor},
+		 {"lineColor", &TextEditor::setLineColor},
+		 {"lineNumberColor", &TextEditor::setLineNumberColor},
+		 {"selectionColor", &TextEditor::setSelectionColor},
+		 {"textColor", &TextEditor::setTextColor}}};
 	for(const auto& [key, value] : values.items()) {
-		const std::string at = path + "." + key;
+		const std::string at = std::format("{}.{}", path, key);
 		if(key == "font") editor->setFont(reader.font(value, at));
 		else if(key == "lineNumbers") editor->setLineNumbers(boolean(value, at));
 		for(const auto& [name, setter] : colorSetters)

@@ -48,8 +48,12 @@ std::string sectionError(const json& document) {
 }
 
 /// @brief A step group that recognises nothing.
+/// @param step The step.
 /// @return Always std::nullopt.
-std::optional<bool> recognisesNothing(const Running&) { return std::nullopt; }
+std::optional<bool> recognisesNothing(const Running& step) {
+	static_cast<void>(step);
+	return std::nullopt;
+}
 
 } // namespace
 
@@ -207,7 +211,7 @@ TEST_CASE("format: the catalog is built from the registries, and lists an applic
 // The application's TextEditor subclass takes the editor's properties, and its own go to its apply function only
 // when they change
 TEST_CASE("format: an application's type gets the built-in widget's properties and its own") {
-	affresco::detail::ManualClock clock;
+	const affresco::detail::ManualClock clock;
 	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen", "version": 1,

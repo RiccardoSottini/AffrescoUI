@@ -4,6 +4,7 @@
 #include "Builder.hpp"
 #include "Engine.hpp"
 
+#include <format>
 #include <functional>
 #include <utility>
 
@@ -67,7 +68,7 @@ json Builder::evaluateNode(const json& merged, const Scope& locals, const std::s
 		if(key == "children") continue; // built from the node itself (reconcileChildren), never copied
 		result[key] = structural(key) || key == "type"
 		                  ? value
-		                  : engine_.document.evaluate(value, locals, json::object(), path + "." + key);
+		                  : engine_.document.evaluate(value, locals, json::object(), std::format("{}.{}", path, key));
 	}
 	return result;
 }
@@ -121,16 +122,17 @@ NodeRef Builder::scoped(const NodeRef& shared, SharedScope& scope, const std::st
 	Scope layer{scope.get(), nullptr, json::object()};
 	if(node.contains("with"))
 		for(const auto& [name, value] : object(node["with"], at + ".with").items())
-			layer.vars[name] = document.evaluate(value, layer, none, at + ".with." + name);
+			layer.vars[name] = document.evaluate(value, layer, none, std::format("{}.with.{}", at, name));
 	if(node.contains("let")) // in order: each sees the ones before it
 		for(const auto& [name, value] : object(node["let"], at + ".let").items())
-			layer.vars[name] = document.evaluate(value, layer, none, at + ".let." + name);
+			layer.vars[name] = document.evaluate(value, layer, none, std::format("{}.let.{}", at, name));
 	if(node.contains("check")) check(node, layer, at);
 	NodeRef result = shared;
 	if(node.contains("style") && isDynamic(node["style"])) { // this instance's own copy, with its style
 		json chosen = node;
 		chosen["style"] = document.evaluate(node["style"], layer, none, at + ".style");
-		if(chosen["style"].is_null() || chosen["style"] == "") chosen.erase("style");
+		const json& style = chosen["style"];
+		if(style.is_null() || (style.is_string() && style.get_ref<const std::string&>().empty())) chosen.erase("style");
 		result = std::make_shared<const json>(withStyles(chosen, at));
 	}
 	if(!layer.vars.empty()) scope = extend(std::move(scope), std::move(layer.vars));

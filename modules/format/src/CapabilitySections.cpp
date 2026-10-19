@@ -6,6 +6,8 @@
 
 #include "affresco/core/DocumentRules.hpp"
 
+#include <format>
+
 namespace affresco::format {
 
 namespace {
@@ -15,12 +17,12 @@ namespace {
 /// @param name "channels".
 void checkChannels(const json& value, const std::string& name) {
 	for(const auto& [channel, definition] : expect::object(value, name).items()) {
-		const std::string at = name + "." + channel;
+		const std::string at = std::format("{}.{}", name, channel);
 		expect::object(definition, at);
 		if(!definition.contains("socket")) expect::fail(at, "a channel needs a \"socket\"");
 		for(const auto& [key, item] : definition.items())
 			if(key != "socket" && key != "reconnect" && key != "note")
-				expect::fail(at + "." + key, "unknown property (expected socket or reconnect)");
+				expect::fail(std::format("{}.{}", at, key), "unknown property (expected socket or reconnect)");
 	}
 }
 
@@ -41,7 +43,7 @@ void checkPersist(const json& value, const std::string& name) {
 /// @param name "permissions".
 void checkPermissions(const json& value, const std::string& name) {
 	for(const auto& [key, list] : expect::object(value, name).items()) {
-		const std::string at = name + "." + key;
+		const std::string at = std::format("{}.{}", name, key);
 		if(key != "allow" && key != "ask" && key != "deny" && key != "reviewers")
 			expect::fail(at, "unknown property (expected allow, ask, deny or reviewers)");
 		if(!list.is_array())
