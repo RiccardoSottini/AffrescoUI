@@ -129,7 +129,7 @@ Value split(const Call& call) {
 }
 
 /// The table.
-const auto table = std::to_array<Function>({
+constexpr auto table = std::to_array<Function>({
     {.name = "upper",
 	 .arguments = "text",
 	 .about = "The text with its letters in capitals",
@@ -176,7 +176,7 @@ const auto table = std::to_array<Function>({
 	 .remark = "width up to 10000"},
     {.name = "plural",
 	 .arguments = "count, word, plural?",
-	 .about = "\"1 card\", \"2 cards\": the count and the word (plural defaults to the word and 's')",
+	 .about = R"("1 card", "2 cards": the count and the word (plural defaults to the word and 's'))",
 	 .fewest = 2,
 	 .most = 3,
 	 .apply = plural},

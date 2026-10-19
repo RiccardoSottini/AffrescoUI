@@ -49,6 +49,7 @@ inline void silenceLog() {
 	setLogSink([](LogLevel, std::string_view) {});
 }
 
+#ifdef AFFRESCOUI_FUZZ_TEMPLATE // set for every target (CMakeLists.txt); clang-tidy reads this file without it
 /// @brief The Kanban template (examples/assets/screens), read once: the document version control is fuzzed with.
 /// @return The document.
 inline const json& kanbanTemplate() {
@@ -61,5 +62,6 @@ inline const json& kanbanTemplate() {
 	}();
 	return document;
 }
+#endif
 
 } // namespace affresco::fuzz

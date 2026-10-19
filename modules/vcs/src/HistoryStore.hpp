@@ -149,7 +149,7 @@ public:
 	void pack();
 	/// @brief Deletes the loose files of the objects pack() packed, once the refs that name the packs are on disk. A
 	/// file that can't be deleted stays, and is never read again.
-	void removeLoose() noexcept;
+	void removeLoose();
 
 	/// @brief Moves the folder aside, so that a new history can start in its place, then gives up its lock: this store
 	/// is done. On POSIX the lock is held while it moves, so no other program can start writing the old folder in

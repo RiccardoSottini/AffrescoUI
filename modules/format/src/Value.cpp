@@ -50,7 +50,7 @@ Value Value::fromText(std::string_view text) {
 	Value result;
 	result.holding_ = Holding::ShortText;
 	result.shortSize_ = static_cast<std::uint8_t>(text.size());
-	if(!text.empty()) std::memcpy(result.inline_.characters, text.data(), text.size());
+	if(!text.empty()) std::memcpy(result.inline_.characters.data(), text.data(), text.size());
 	return result;
 }
 
@@ -87,16 +87,18 @@ Value Value::fromObject(std::vector<Field> fields) {
 Value Value::fromJson(const json& value) noexcept { return fromJson(value, nullptr); }
 
 Value Value::fromJson(const json& value, std::shared_ptr<const Storage> owner) noexcept {
+	// get_ptr() never throws: it gives nullptr for another type
 	switch(value.type()) {
 	case json::value_t::boolean:
-		return fromBoolean(value.get<bool>());
+		return fromBoolean(*value.get_ptr<const json::boolean_t*>());
 	case json::value_t::number_integer:
-		return fromInteger(value.get<std::int64_t>());
+		return fromInteger(*value.get_ptr<const json::number_integer_t*>());
 	case json::value_t::number_float:
-		return fromNumber(value.get<double>());
+		return fromNumber(*value.get_ptr<const json::number_float_t*>());
 	case json::value_t::number_unsigned:
-		if(value.get<std::uint64_t>() <= static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
-			return fromInteger(value.get<std::int64_t>());
+		if(const auto n = *value.get_ptr<const json::number_unsigned_t*>();
+		   n <= static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
+			return fromInteger(static_cast<std::int64_t>(n));
 		break; // larger than an integer: read in place, so it stays exact
 	case json::value_t::string:
 	case json::value_t::array:
@@ -176,27 +178,36 @@ bool Value::boolean() const noexcept { return holding_ == Holding::Boolean && in
 double Value::number() const noexcept {
 	if(holding_ == Holding::Integer) return static_cast<double>(inline_.integer);
 	if(holding_ == Holding::Double) return inline_.number;
-	if(holding_ == Holding::Json && inline_.data->is_number()) return inline_.data->get<double>();
-	return 0.0;
+	if(holding_ != Holding::Json) return 0.0;
+	const auto* large = inline_.data->get_ptr<const json::number_unsigned_t*>(); // fromJson() keeps only these
+	return large ? static_cast<double>(*large) : 0.0;
 }
 
 std::int64_t Value::integer() const noexcept {
 	if(holding_ == Holding::Integer) return inline_.integer;
-	if(holding_ == Holding::Json && inline_.data->is_number_integer()) return inline_.data->get<std::int64_t>();
-	return 0;
+	if(holding_ != Holding::Json) return 0;
+	const auto* large = inline_.data->get_ptr<const json::number_unsigned_t*>();
+	return large ? static_cast<std::int64_t>(*large) : 0; // past 2^63 it wraps, as JSON's get<std::int64_t>() does
 }
 
 std::string_view Value::text() const noexcept {
-	if(holding_ == Holding::ShortText) return {inline_.characters, shortSize_};
-	if(holding_ == Holding::Text) return std::get<std::string>(storage_->data);
-	if(holding_ == Holding::Json && inline_.data->is_string()) return inline_.data->get_ref<const std::string&>();
+	if(holding_ == Holding::ShortText) return {inline_.characters.data(), shortSize_};
+	if(holding_ == Holding::Text)
+		if(const auto* text = std::get_if<std::string>(&storage_->data)) return *text;
+	if(holding_ == Holding::Json)
+		if(const auto* text = inline_.data->get_ptr<const json::string_t*>()) return *text;
 	return {};
 }
 
 std::size_t Value::size() const noexcept {
-	if(holding_ == Holding::List) return std::get<std::vector<Value>>(storage_->data).size();
-	if(holding_ == Holding::Object) return std::get<std::vector<Field>>(storage_->data).size();
-	if(holding_ == Holding::Json && inline_.data->is_structured()) return inline_.data->size();
+	if(holding_ == Holding::List)
+		if(const auto* items = std::get_if<std::vector<Value>>(&storage_->data)) return items->size();
+	if(holding_ == Holding::Object)
+		if(const auto* fields = std::get_if<std::vector<Field>>(&storage_->data)) return fields->size();
+	if(holding_ == Holding::Json) {
+		if(const auto* list = inline_.data->get_ptr<const json::array_t*>()) return list->size();
+		if(const auto* object = inline_.data->get_ptr<const json::object_t*>()) return object->size();
+	}
 	return 0;
 }
 
@@ -281,9 +292,42 @@ std::string Value::toText() const {
 
 std::string Value::dump() const { return toJson().dump(-1, ' ', false, json::error_handler_t::replace); }
 
+namespace {
+
+/// @brief Compares two lists item by item.
+/// @param left A list.
+/// @param right Another.
+/// @return true if they are equal.
+bool sameItems(const Value& left, const Value& right) {
+	if(left.size() != right.size()) return false;
+	for(std::size_t i = 0; i < left.size(); ++i)
+		if(!(left.item(i) == right.item(i))) return false;
+	return true;
+}
+
+/// @brief Compares two objects field by field, in order, as ordered_json compares them.
+/// @param left An object.
+/// @param right Another.
+/// @return true if they have the same fields in the same order.
+bool sameFields(const Value& left, const Value& right) {
+	if(left.size() != right.size()) return false;
+	const std::vector<Value::Field> a = left.fields(), b = right.fields();
+	for(std::size_t i = 0; i < a.size(); ++i)
+		if(a[i].key != b[i].key || !(a[i].value == b[i].value)) return false;
+	return true;
+}
+
+} // namespace
+
+bool Value::sameNumber(const Value& left, const Value& right) {
+	if(left.holding_ == Holding::Json || right.holding_ == Holding::Json) return left.toJson() == right.toJson();
+	if(left.holding_ == Holding::Integer && right.holding_ == Holding::Integer)
+		return left.inline_.integer == right.inline_.integer;
+	return left.number() == right.number(); // as JSON compares an integer with a double
+}
+
 bool operator==(const Value& left, const Value& right) {
-	using Holding = Value::Holding;
-	if(left.holding_ == Holding::Json && right.holding_ == Holding::Json)
+	if(left.holding_ == Value::Holding::Json && right.holding_ == Value::Holding::Json)
 		return *left.inline_.data == *right.inline_.data;
 	const Value::Type type = left.type();
 	if(type != right.type()) return false;
@@ -293,27 +337,15 @@ bool operator==(const Value& left, const Value& right) {
 	case Value::Type::Boolean:
 		return left.boolean() == right.boolean();
 	case Value::Type::Number:
-		if(left.holding_ == Holding::Json || right.holding_ == Holding::Json) return left.toJson() == right.toJson();
-		if(left.holding_ == Holding::Integer && right.holding_ == Holding::Integer)
-			return left.inline_.integer == right.inline_.integer;
-		return left.number() == right.number();
+		return Value::sameNumber(left, right);
 	case Value::Type::Text:
 		return left.text() == right.text();
 	case Value::Type::List:
-		if(left.size() != right.size()) return false;
-		for(std::size_t i = 0; i < left.size(); ++i)
-			if(!(left.item(i) == right.item(i))) return false;
-		return true;
-	case Value::Type::Object: {
-		// As ordered_json compares objects: the same fields in the same order
-		if(left.size() != right.size()) return false;
-		const std::vector<Value::Field> a = left.fields(), b = right.fields();
-		for(std::size_t i = 0; i < a.size(); ++i)
-			if(a[i].key != b[i].key || !(a[i].value == b[i].value)) return false;
-		return true;
+		return sameItems(left, right);
+	case Value::Type::Object:
+		break;
 	}
-	}
-	return false;
+	return sameFields(left, right);
 }
 
 bool truthy(const Value& value) noexcept {

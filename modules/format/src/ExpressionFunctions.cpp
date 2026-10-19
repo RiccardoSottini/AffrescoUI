@@ -24,13 +24,13 @@ std::span<const Function> functions() {
 	return all;
 }
 
-const Function* findFunction(std::string_view name) noexcept {
+const Function* findFunction(std::string_view name) {
 	for(const Function& function : functions())
 		if(function.name == name || (!function.alias.empty() && function.alias == name)) return &function;
 	return nullptr;
 }
 
-const Function* findOperator(std::string_view name) noexcept {
+const Function* findOperator(std::string_view name) {
 	if(!name.starts_with('$')) return nullptr;
 	name.remove_prefix(1);
 	for(const Function& function : functions())

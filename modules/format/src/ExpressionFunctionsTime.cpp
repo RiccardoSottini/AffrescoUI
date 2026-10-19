@@ -20,9 +20,16 @@ std::string formatTime(double milliseconds, std::string_view pattern) {
 	std::tm local{};
 	localtime_r(&seconds, &local);
 
-	static constexpr std::pair<std::string_view, const char*> fields[] = {{"YYYY", "%Y"}, {"MMM", "%b"}, {"MM", "%m"},
-	                                                                      {"ddd", "%a"},  {"DD", "%d"},  {"D", "%e"},
-	                                                                      {"HH", "%H"},   {"mm", "%M"},  {"ss", "%S"}};
+	using Field = std::pair<std::string_view, const char*>; // a token, and strftime()'s code for it
+	static constexpr std::array<Field, 9> fields{{{"YYYY", "%Y"},
+	                                              {"MMM", "%b"},
+	                                              {"MM", "%m"},
+	                                              {"ddd", "%a"},
+	                                              {"DD", "%d"},
+	                                              {"D", "%e"},
+	                                              {"HH", "%H"},
+	                                              {"mm", "%M"},
+	                                              {"ss", "%S"}}};
 	std::string result;
 	for(std::size_t i = 0; i < pattern.size();) {
 		bool matched = false;
@@ -54,7 +61,7 @@ Value now(const Call& /*call*/) {
 Value time(const Call& call) { return Value::fromText(formatTime(call.number(0), call[1].toText())); }
 
 /// The table.
-const auto table = std::to_array<Function>({
+constexpr auto table = std::to_array<Function>({
     {.name = "now", .arguments = "", .about = "Milliseconds since 1970 (UTC)", .apply = now},
     {.name = "time",
 	 .arguments = "milliseconds, 'ddd D MMM HH:mm'",

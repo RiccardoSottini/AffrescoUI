@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <ranges>
 #include <utility>
 
 namespace affresco::format::detail {
@@ -96,11 +97,10 @@ std::string Place::text() const {
 	std::vector<const Place*> chain;
 	for(const Place* place = this; place; place = place->parent) chain.push_back(place);
 	std::string result;
-	for(auto it = chain.rbegin(); it != chain.rend(); ++it) {
-		const Place& place = **it;
-		if(place.root) result += *place.root;
-		if(!place.key.empty()) result.append(".").append(place.key);
-		if(place.index != noIndex) result += "[" + std::to_string(place.index) + "]";
+	for(const Place* place : chain | std::views::reverse) {
+		if(place->root) result += *place->root;
+		if(!place->key.empty()) result.append(".").append(place->key);
+		if(place->index != noIndex) result += "[" + std::to_string(place->index) + "]";
 	}
 	return result;
 }
@@ -133,7 +133,7 @@ void Call::fail(const std::string& message) const { Machine::fail(at_, message);
 json Machine::evaluateDocument(const json& value, const Place& place) {
 	if(value.is_string()) {
 		const std::string& text = value.get_ref<const std::string&>();
-		return text.find("{{") == std::string::npos ? value : runTemplate(text, place).toJson();
+		return text.contains("{{") ? runTemplate(text, place).toJson() : value;
 	}
 	if(value.is_object()) {
 		if(value.size() == 1 && value.begin().key().starts_with('$')) return run(lower(value), place).toJson();
@@ -183,12 +183,7 @@ Value Machine::run(const Node& node, const Place& place) {
 
 Value Machine::runFor(const Node& node, const Place& place, const Value& item, std::size_t position) {
 	const Item frame{item_, item, position};
-	/// @brief Puts the enclosing item back, also when the evaluation throws.
-	struct Restore {
-		Machine& machine;  ///< The machine.
-		const Item* outer; ///< Its item before.
-		~Restore() { machine.item_ = outer; }
-	} restore{*this, std::exchange(item_, &frame)};
+	const ItemScope scope(item_, frame);
 	return run(node, place);
 }
 
@@ -207,17 +202,18 @@ Value Machine::call(const Node& node, const Place& place) {
 	for(std::size_t i = 0; i < values.size(); ++i) values[i] = run(node.children[i], node.indexed ? Place(at, i) : at);
 	if(!function) fail(at, "unknown operator '" + node.label + "'");
 	if(function->takes == Takes::One) return function->apply(Call(*this, node, at, values));
-
-	if(function->spreads && values.size() == 1 && values[0].isList()) { // max(list): its items
-		const Value list = values[0];
-		std::vector<Value> items;
-		items.reserve(list.size());
-		for(std::size_t i = 0; i < list.size(); ++i) items.push_back(list.item(i));
-		if(items.size() < function->fewest) fail(at, arityProblem(*function));
-		return function->apply(Call(*this, node, at, items));
-	}
+	if(function->spreads && values.size() == 1 && values[0].isList()) return spread(*function, node, at, values[0]);
 	if(values.size() < function->fewest || values.size() > function->most) fail(at, arityProblem(*function));
 	return function->apply(Call(*this, node, at, values));
+}
+
+// max(list): the list's items are the arguments
+Value Machine::spread(const Function& function, const Node& node, const Place& at, const Value& list) {
+	std::vector<Value> items;
+	items.reserve(list.size());
+	for(std::size_t i = 0; i < list.size(); ++i) items.push_back(list.item(i));
+	if(items.size() < function.fewest) fail(at, arityProblem(function));
+	return function.apply(Call(*this, node, at, items));
 }
 
 Value Machine::get(const Node& node, const Place& place) {
@@ -264,6 +260,14 @@ std::optional<Value> Machine::variable(Root root, std::string_view name, const P
 	case Root::Named:
 		break;
 	}
+	if(std::optional<Value> named = namedVariable(name)) return named;
+	if(root == Root::Nodes && context_.nodes) return std::nullopt;
+	fail(place, "unknown variable '" + std::string(name) +
+	                "' (state, event, window, revision, proposals, history, preview, mode, computed, theme, screen, "
+	                "nodes, or a name given by repeat, forEach, let, with or a component's params)");
+}
+
+std::optional<Value> Machine::namedVariable(std::string_view name) const {
 	if(item_) { // a list function's `it` and `index` hide any other variable with their names
 		if(name == "it") return item_->value;
 		if(name == "index") return Value::fromInteger(static_cast<std::int64_t>(item_->index));
@@ -271,10 +275,7 @@ std::optional<Value> Machine::variable(Root root, std::string_view name, const P
 	if(const json* local = context_.locals.find(name)) return Value::fromJson(*local);
 	if(const auto global = context_.globals.find(name); global != context_.globals.end())
 		return Value::fromJson(*global);
-	if(root == Root::Nodes && context_.nodes) return std::nullopt;
-	fail(place, "unknown variable '" + std::string(name) +
-	                "' (state, event, window, revision, proposals, history, preview, mode, computed, theme, screen, "
-	                "nodes, or a name given by repeat, forEach, let, with or a component's params)");
+	return std::nullopt;
 }
 
 /* Templates and paths written as text */
@@ -306,7 +307,7 @@ std::shared_ptr<Template> splitTemplate(std::string_view text, const Place& plac
 }
 
 Value Machine::runTemplate(std::string_view text, const Place& place) {
-	if(text.find("{{") == std::string_view::npos) return Value::fromText(text);
+	if(!text.contains("{{")) return Value::fromText(text);
 	const std::shared_ptr<const Template> shape = templateOf(text, place);
 	if(shape->whole) return run(shape->pieces.front().expression->program, place);
 
@@ -322,46 +323,42 @@ Value Machine::runTemplate(std::string_view text, const Place& place) {
 std::vector<Value> Machine::segments(std::string_view path, const Place& place) {
 	std::vector<Value> result;
 	std::size_t i = 0;
-	auto identifier = [&] {
-		const std::size_t start = i;
-		while(i < path.size() &&
-		      (std::isalnum(static_cast<unsigned char>(path[i])) || path[i] == '_' || path[i] == '-'))
-			++i;
-		if(i == start) fail(place, "invalid path '" + std::string(path) + "'");
-		return Value::fromText(path.substr(start, i - start));
-	};
-
-	result.push_back(identifier());
+	result.push_back(identifierAt(path, i, place));
 	while(i < path.size()) {
-		if(path[i] == '.') {
-			++i;
-			result.push_back(identifier());
-		} else if(path[i] == '[') {
-			// [3] or [state.current] or [c + 1]: the inner part can be any expression, with brackets of its own
-			int depth = 1;
-			const std::size_t start = ++i;
-			while(i < path.size() && depth > 0) {
-				if(path[i] == '[') ++depth;
-				if(path[i] == ']') --depth;
-				++i;
-			}
-			if(depth != 0) fail(place, "unclosed '[' in path '" + std::string(path) + "'");
-
-			const std::string_view inner = path.substr(start, i - start - 1);
-			const bool number = !inner.empty() && std::ranges::all_of(inner, [](char c) {
-				return std::isdigit(static_cast<unsigned char>(c));
-			});
-			const std::optional<std::int64_t> index = number ? wholeNumber(inner) : std::nullopt;
-			if(number && !index) fail(place, "index '" + std::string(inner) + "' is too large");
-			Value key = index ? Value::fromInteger(*index) : run(compiled(inner, place)->program, place);
-			if(!key.isInteger() && !key.isText())
-				fail(place, "index '" + std::string(inner) + "' is neither a number nor a key");
-			result.push_back(std::move(key));
-		} else {
-			fail(place, "invalid path '" + std::string(path) + "'");
-		}
+		if(path[i] == '.') result.push_back(identifierAt(path, ++i, place));
+		else if(path[i] == '[') result.push_back(bracketAt(path, ++i, place));
+		else fail(place, "invalid path '" + std::string(path) + "'");
 	}
 	return result;
+}
+
+Value Machine::identifierAt(std::string_view path, std::size_t& i, const Place& place) {
+	const std::size_t start = i;
+	while(i < path.size() && (std::isalnum(static_cast<unsigned char>(path[i])) || path[i] == '_' || path[i] == '-'))
+		++i;
+	if(i == start) fail(place, "invalid path '" + std::string(path) + "'");
+	return Value::fromText(path.substr(start, i - start));
+}
+
+// [3] or [state.current] or [c + 1]: the inner part can be any expression, with brackets of its own
+Value Machine::bracketAt(std::string_view path, std::size_t& i, const Place& place) {
+	int depth = 1;
+	const std::size_t start = i;
+	for(; i < path.size() && depth > 0; ++i) {
+		if(path[i] == '[') ++depth;
+		if(path[i] == ']') --depth;
+	}
+	if(depth != 0) fail(place, "unclosed '[' in path '" + std::string(path) + "'");
+
+	const std::string_view inner = path.substr(start, i - start - 1);
+	const bool number = !inner.empty() &&
+	                    std::ranges::all_of(inner, [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
+	const std::optional<std::int64_t> index = number ? wholeNumber(inner) : std::nullopt;
+	if(number && !index) fail(place, "index '" + std::string(inner) + "' is too large");
+	Value key = index ? Value::fromInteger(*index) : run(compiled(inner, place)->program, place);
+	if(!key.isInteger() && !key.isText())
+		fail(place, "index '" + std::string(inner) + "' is neither a number nor a key");
+	return key;
 }
 
 Value Machine::lookup(std::string_view path, const Place& place) {

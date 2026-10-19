@@ -6,7 +6,7 @@
 /// json::exception or DocumentError, never crash or assert; and delta(a, b) applied to a must give b, written the
 /// same way.
 
-#include "Deltas.hpp"
+#include "../../modules/vcs/src/Deltas.hpp" // by its path: clang-tidy reads this file without its include folders
 #include "Fuzz.hpp"
 
 #include <cstddef>
@@ -14,6 +14,25 @@
 #include <string_view>
 
 using affresco::json;
+
+namespace {
+
+/// @brief Applies a delta as a history read from disk does with a commit's.
+/// @param document The document.
+/// @param delta The delta.
+/// @return Whether it applied (else it threw what a history reports as damage).
+bool applies(json document, const json& delta) {
+	try {
+		affresco::vcs::detail::applyDelta(document, delta, "fuzz");
+		return true;
+	} catch(const json::exception&) {
+		return false;
+	} catch(const affresco::DocumentError&) {
+		return false;
+	}
+}
+
+} // namespace
 
 /// @brief libFuzzer's entry point.
 /// @param data The input.
@@ -30,14 +49,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	}
 	if(!input.is_object()) return 0;
 	const json from = input.value("from", json()), to = input.value("to", json());
-
-	// What a history read from disk does with a commit's delta
-	try {
-		json document = from;
-		affresco::vcs::detail::applyDelta(document, input.value("delta", json::array()), "fuzz");
-	} catch(const json::exception&) {
-	} catch(const affresco::DocumentError&) {
-	}
+	static_cast<void>(applies(from, input.value("delta", json::array())));
 
 	// What a history writes: it must give back the document its commit's id names
 	json rebuilt = from;

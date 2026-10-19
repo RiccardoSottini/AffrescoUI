@@ -114,7 +114,7 @@ Value ceilNumber(const Call& call) { return numeric(std::ceil(call.number(0)), t
 Value absolute(const Call& call) { return numeric(std::abs(call.number(0)), call[0].isInteger()); }
 
 /// The table.
-const auto table = std::to_array<Function>({
+constexpr auto table = std::to_array<Function>({
     {.name = "add",
 	 .arguments = "a, b, ...",
 	 .about = "a + b; with a text, the texts joined",

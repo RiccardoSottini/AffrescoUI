@@ -117,11 +117,11 @@ struct Function {
 /// @brief Finds a function by the name expressions write.
 /// @param name "clamp" or "len".
 /// @return Its row, or nullptr.
-[[nodiscard]] const Function* findFunction(std::string_view name) noexcept;
+[[nodiscard]] const Function* findFunction(std::string_view name);
 /// @brief Finds a function by its operator.
 /// @param name "$clamp".
 /// @return Its row, or nullptr.
-[[nodiscard]] const Function* findOperator(std::string_view name) noexcept;
+[[nodiscard]] const Function* findOperator(std::string_view name);
 
 /// @brief The tables of the groups (one per file).
 /// @return Their rows.

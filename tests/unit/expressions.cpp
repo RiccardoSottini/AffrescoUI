@@ -273,8 +273,8 @@ const std::vector<Case> cases = {
     {"{{split('aé✓', '')}}", J(R"(["a","é","✓"])"), {}},
     {"{{split('', ',')}}", J(R"([""])"), {}},
     {"{{split('a')}}", {}, "test.$split: expected 2 arguments"},
-    {"{{json({b: 1, a: [true, null]})}}", "{\"b\":1,\"a\":[true,null]}", {}},
-    {"{{parseJson('{\"z\": 1, \"a\": 2}')}}", J(R"({"z":1,"a":2})"), {}},
+    {"{{json({b: 1, a: [true, null]})}}", R"({"b":1,"a":[true,null]})", {}},
+    {R"({{parseJson('{"z": 1, "a": 2}')}})", J(R"({"z":1,"a":2})"), {}},
     {"{{parseJson('nope')}}", nullptr, {}},
     {"{{parseJson(state.name)}}", nullptr, {}},
     // Lists and objects; objects keep the order of their keys, as the documents' JSON does
@@ -493,16 +493,17 @@ TEST_CASE("format: values are small, cheap to copy, and read JSON in place") {
 	CHECK(sizeof(Value) <= 48);
 	const Value shortText = Value::fromText("sixteen bytes ok"), longText = Value::fromText(std::string(40, 'x'));
 	CHECK(shortText.text() == "sixteen bytes ok");
-	const Value copy = longText; // shares the text
-	CHECK(copy.text().data() == longText.text().data());
+	const Value copy = longText; // NOLINT(performance-unnecessary-copy-initialization): the copy is what is tested
+	CHECK(copy.text().data() == longText.text().data()); // it shares the text
 
 	const json state = J(R"({"items": ["a", {"b": 2}], "big": 18446744073709551615})");
-	const Value items = *Value::fromJson(state).member("items");
+	const Value items = Value::fromJson(state).member("items").value_or(Value());
 	CHECK(items.item(0).text().data() == state["items"][0].get_ref<const std::string&>().data()); // not copied
-	CHECK(items.item(1).member("b")->integer() == 2);
+	CHECK(items.item(1).member("b").value_or(Value()).integer() == 2);
 	CHECK_FALSE(items.item(1).member("c"));
-	CHECK(Value::fromJson(state).member("big")->toJson().dump() == "18446744073709551615"); // exact past 64 bits
-	CHECK(Value::fromJson(state).member("big")->isInteger());
+	const Value big = Value::fromJson(state).member("big").value_or(Value());
+	CHECK(big.toJson().dump() == "18446744073709551615"); // exact past 64 bits
+	CHECK(big.isInteger());
 
 	CHECK(Value::fromObject({{"b", Value::fromInteger(1)}, {"a", Value::fromInteger(2)}, {"b", Value::fromInteger(3)}})
 	          .dump() == R"({"b":3,"a":2})");

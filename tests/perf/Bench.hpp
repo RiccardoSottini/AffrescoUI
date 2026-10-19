@@ -111,7 +111,7 @@ struct Group {
 /// @brief The "history" group's workloads (history.cpp): 10,000 small commits on the Kanban template.
 /// @param context The context.
 /// @return The workloads.
-[[nodiscard]] std::vector<Workload> historyWorkloads(Context& context);
+[[nodiscard]] std::vector<Workload> historyWorkloads(const Context& context);
 
 /// @brief Reads a whole file.
 /// @param path The file.

@@ -31,7 +31,6 @@ using affresco::test::permissionsScreen;
 using affresco::test::readText;
 using affresco::test::temporaryFiles;
 using affresco::test::TemporaryFolder;
-using affresco::test::writeObject;
 using affresco::test::writeText;
 using affresco::vcs::Repository;
 
@@ -304,14 +303,13 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;
 	const std::filesystem::path history = folder.path() / "board.history";
-	std::string head, original, last;
+	std::string head, original;
 	{
 		Repository first(rules, permissionsScreen());
 		first.openHistory(history);
 		fill(first);
 		head = first.log()[1].id; // "Rename"
 		original = first.log()[0].id;
-		last = first.log().back().id; // main's head, rebuilt from revision 0's document and the deltas after it
 	}
 
 	std::filesystem::path damaged;
@@ -347,16 +345,6 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 		writeText(damaged, document);
 		expected = "doesn't match its SHA-256";
 	}
-	SUBCASE("a delta whose content changed") {
-		// A commit's id doesn't cover its delta (how it is kept), so the document the deltas give is checked instead
-		damaged = objectFile(history, last);
-		json commit = json::parse(readText(damaged));
-		REQUIRE(commit.at("delta").size() == 1);
-		REQUIRE(commit["delta"][0].at("value") == "Week");
-		commit["delta"][0]["value"] = "Weak"; // still a delta that applies: only the head's tree can tell
-		writeText(damaged, commit.dump());
-		expected = "its deltas don't give the document its id names: the history is damaged";
-	}
 	SUBCASE("refs whose content changed") {
 		damaged = history / "refs.json";
 		std::string text = readText(damaged);
@@ -387,6 +375,36 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 	CHECK(affresco::toString(second.mode()) == "default");
 	CHECK(second.document() == permissionsScreen());
 	CHECK(std::filesystem::is_regular_file(history / "refs.json"));
+}
+
+TEST_CASE("vcs: a history whose delta was damaged is never loaded, and the error names the commit's file") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	std::string last;
+	{
+		Repository first(rules, permissionsScreen());
+		first.openHistory(history);
+		fill(first);
+		last = first.log().back().id; // main's head, rebuilt from revision 0's document and the deltas after it
+	}
+
+	// A commit's id doesn't cover its delta (how it is kept), so the document the deltas give is checked instead
+	const std::filesystem::path damaged = objectFile(history, last);
+	json commit = json::parse(readText(damaged));
+	REQUIRE(commit.at("delta").size() == 1);
+	REQUIRE(commit["delta"][0].at("value") == "Week");
+	commit["delta"][0]["value"] = "Weak"; // still a delta that applies: only the head's tree can tell
+	writeText(damaged, commit.dump());
+
+	Repository second(rules, permissionsScreen());
+	CHECK_THROWS_WITH_AS(second.openHistory(history),
+	                     doctest::Contains(("AffrescoUI history: " + damaged.string() +
+	                                        ": commit " + last + ": its deltas don't give the document its id names")
+	                                           .c_str()),
+	                     affresco::DocumentError);
+	CHECK(second.head().number == 0); // nothing was loaded
+	CHECK(second.document() == permissionsScreen());
 }
 
 TEST_CASE("vcs: a whole history whose last revision can't be shown isn't loaded, and isn't called damaged") {

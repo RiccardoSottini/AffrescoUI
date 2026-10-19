@@ -20,6 +20,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::format::detail {
@@ -210,6 +211,53 @@ private:
 		const Value& value; ///< `it`.
 		std::size_t index;  ///< `index`.
 	};
+
+	/// @brief Puts the enclosing list function's item back when it goes, also when an evaluation throws.
+	class ItemScope {
+	public:
+		/// @brief Puts an item in scope.
+		/// @param current The machine's innermost item, changed until this goes.
+		/// @param item The item; outlives this.
+		ItemScope(const Item*& current, const Item& item) noexcept
+		    : current_(current), outer_(std::exchange(current, &item)) {}
+		/// @brief Puts the enclosing one back.
+		~ItemScope() { current_ = outer_; }
+		ItemScope(const ItemScope&) = delete;
+		ItemScope& operator=(const ItemScope&) = delete;
+		ItemScope(ItemScope&&) = delete;
+		ItemScope& operator=(ItemScope&&) = delete;
+
+	private:
+		const Item*& current_; ///< The machine's innermost item.
+		const Item* outer_;    ///< The one before.
+	};
+
+	/// @brief Calls a function whose one argument is a list, with its items as the arguments (`max(list)`).
+	/// @param function The function.
+	/// @param node The call.
+	/// @param at Its place.
+	/// @param list The list.
+	/// @return Its value.
+	/// @throws DocumentError If the function refuses them.
+	[[nodiscard]] Value spread(const Function& function, const Node& node, const Place& at, const Value& list);
+	/// @brief Reads a name of a path written as text.
+	/// @param path The path.
+	/// @param i Where the name starts; moved past it.
+	/// @param place The path's place, for errors.
+	/// @return The name, as a text.
+	/// @throws DocumentError If there is none.
+	[[nodiscard]] static Value identifierAt(std::string_view path, std::size_t& i, const Place& place);
+	/// @brief Reads a `[...]` key of a path written as text, evaluating an expression inside it.
+	/// @param path The path.
+	/// @param i Just after the '['; moved past the ']'.
+	/// @param place The path's place, for errors.
+	/// @return The key: an integer or a text.
+	/// @throws DocumentError If it is unclosed, too large, or neither a number nor a key.
+	[[nodiscard]] Value bracketAt(std::string_view path, std::size_t& i, const Place& place);
+	/// @brief Finds a variable that isn't one of the screen's own: a list function's item, a local, a global.
+	/// @param name Its name.
+	/// @return Its value, or std::nullopt.
+	[[nodiscard]] std::optional<Value> namedVariable(std::string_view name) const;
 
 	/// @brief Evaluates a function call.
 	/// @param node The call.

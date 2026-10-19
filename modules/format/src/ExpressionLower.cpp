@@ -150,7 +150,7 @@ Node lowerOperator(const std::string& name, const json& raw) {
 Node lower(const json& tree) {
 	if(tree.is_string()) {
 		const std::string& text = tree.get_ref<const std::string&>();
-		if(text.find("{{") == std::string::npos) return literal(Value::fromText(text));
+		if(!text.contains("{{")) return literal(Value::fromText(text));
 		Node node;
 		node.kind = Node::Kind::Template;
 		node.text = text;

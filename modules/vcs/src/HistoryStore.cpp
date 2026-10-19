@@ -250,7 +250,7 @@ void HistoryStore::readPacks(const std::vector<std::string>& names) {
 void HistoryStore::pack() {
 	std::vector<std::string> written;
 	std::string text;
-	auto flush = [&] {
+	const auto flush = [&] {
 		if(text.empty()) return;
 		const std::string name = sha256(text);
 		createFolder(directory_ / "packs");
@@ -269,7 +269,7 @@ void HistoryStore::pack() {
 	loose_.clear();
 }
 
-void HistoryStore::removeLoose() noexcept {
+void HistoryStore::removeLoose() {
 	for(const std::string& id : packedLoose_) {
 		std::error_code ignored;
 		std::filesystem::remove(directory_ / "objects" / id.substr(0, 2) / id.substr(2), ignored);

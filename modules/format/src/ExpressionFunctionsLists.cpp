@@ -58,7 +58,7 @@ Value slice(const Call& call) {
 	const auto size = static_cast<std::int64_t>(whole.isText()   ? whole.text().size()
 	                                            : whole.isList() ? whole.size()
 	                                                             : 0);
-	auto position = [&](std::size_t argument) {
+	const auto position = [&](std::size_t argument) {
 		std::int64_t i = saturated(call.number(argument));
 		if(i < 0) i += size;
 		return std::clamp<std::int64_t>(i, 0, size);
@@ -178,7 +178,7 @@ Value range(const Call& call) {
 }
 
 /// The table.
-const auto table = std::to_array<Function>({
+constexpr auto table = std::to_array<Function>({
     {.name = "length",
 	 .arguments = "value",
 	 .about = "A text's bytes, a list's items, an object's fields; 0 for null",

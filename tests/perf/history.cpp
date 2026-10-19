@@ -8,6 +8,7 @@
 #include <affresco/vcs/Repository.hpp>
 
 #include <chrono>
+#include <cstdio>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -63,8 +64,11 @@ public:
 	TemporaryFolder& operator=(const TemporaryFolder&) = delete;
 	/// @brief Removes it.
 	~TemporaryFolder() {
-		std::error_code ignored;
-		std::filesystem::remove_all(path_, ignored);
+		try {
+			std::filesystem::remove_all(path_);
+		} catch(...) { // a destructor mustn't throw: say what stays behind
+			std::fputs("affrescoui_bench: the history folder in the temporary folder couldn't be removed\n", stderr);
+		}
 	}
 	/// @brief The folder.
 	[[nodiscard]] const std::filesystem::path& path() const noexcept { return path_; }
@@ -127,9 +131,9 @@ Workload loadWorkload(const json& document) {
 	} // releases the folder's lock
 	const auto screen = std::make_shared<const json>(document);
 	Workload workload{.name = "history/load/10000", .unit = "ms", .runs = 5};
-	workload.step = [folder, rules, screen, directory] {
+	workload.step = [folder, rules, screen] { // the folder, not its path: a copied path could throw when moved
 		vcs::Repository reader(*rules, *screen);
-		if(!reader.openHistory(directory).loaded || reader.head().number != largeHistory)
+		if(!reader.openHistory(folder->path() / "kanban.history").loaded || reader.head().number != largeHistory)
 			throw std::logic_error("history/load: not loaded whole");
 	};
 	return workload;
@@ -137,7 +141,7 @@ Workload loadWorkload(const json& document) {
 
 } // namespace
 
-std::vector<Workload> historyWorkloads(Context& context) {
+std::vector<Workload> historyWorkloads(const Context& context) {
 	const json document = json::parse(readFile(context.screens() / "kanban.screen.json"));
 	const auto large = std::make_shared<History>(document, largeHistory); // the commit runs add to it: blame reads all
 	std::vector<Workload> workloads;

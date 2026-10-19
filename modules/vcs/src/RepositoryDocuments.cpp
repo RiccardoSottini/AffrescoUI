@@ -10,7 +10,9 @@
 #include "Sha256.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <ranges>
 
 namespace affresco::vcs {
 
@@ -74,17 +76,22 @@ private:
 		if(kind != "remove" && startsWith(path_, at)) return true; // it, or something holding it, was added or replaced
 		if(kind == "replace") return false;
 		if(kind != "add" && kind != "remove") return true; // an operation deltas don't hold: assume the worst
-
-		// An item added or removed in a list that holds it moves it one place
-		const std::size_t list = at.size() - 1;
-		if(at.empty() || list >= path_.size() || !lists_[list] ||
-		   !std::equal(at.begin(), std::prev(at.end()), path_.begin()))
-			return false;
-		const long long changed = positionOf(at.back()), position = positionOf(path_[list]);
-		if(changed < 0 || position < 0) return false;
-		if(kind == "add" && position > changed) path_[list] = std::to_string(position - 1);
-		if(kind == "remove" && position >= changed) path_[list] = std::to_string(position + 1);
+		moveBack(kind == "add", at);
 		return false;
+	}
+
+	/// @brief Follows an item added or removed in a list that holds it: that moves it one place.
+	/// @param added Whether the item was added (else removed).
+	/// @param at The item's path.
+	void moveBack(bool added, const std::vector<std::string>& at) {
+		if(at.empty() || at.size() > path_.size() || !lists_[at.size() - 1] ||
+		   !std::equal(at.begin(), std::prev(at.end()), path_.begin()))
+			return;
+		std::string& segment = path_[at.size() - 1];
+		const long long changed = positionOf(at.back()), position = positionOf(segment);
+		if(changed < 0 || position < 0) return;
+		if(added && position > changed) segment = std::to_string(position - 1);
+		if(!added && position >= changed) segment = std::to_string(position + 1);
 	}
 
 	std::vector<std::string> path_; ///< Where it is, in the document of the commit reached.
@@ -96,13 +103,12 @@ private:
 /// @param target The path's segments ("state", ...).
 /// @return true if its path or its "from" is the path, inside it, or holds it.
 bool reaches(const json& op, const std::vector<std::string>& target) {
-	for(const char* key : {"path", "from"}) {
-		if(!op.contains(key) || !op[key].is_string() || !op[key].get_ref<const std::string&>().starts_with("/state"))
-			continue;
-		const std::vector<std::string> at = detail::segmentsOf(op[key].get_ref<const std::string&>());
-		if(startsWith(at, target) || startsWith(target, at)) return true;
-	}
-	return false;
+	return std::ranges::any_of(std::array{"path", "from"}, [&](const char* key) {
+		const auto at = op.find(key);
+		if(at == op.end() || !at->is_string() || !at->get_ref<const std::string&>().starts_with("/state")) return false;
+		const std::vector<std::string> segments = detail::segmentsOf(at->get_ref<const std::string&>());
+		return startsWith(segments, target) || startsWith(target, segments);
+	});
 }
 
 } // namespace
@@ -119,11 +125,11 @@ json Repository::rebuild(const std::unordered_map<std::string, Commit>& objects,
 	for(; !base->snapshot; base = &objects.at(base->parents.front())) chain.push_back(base);
 
 	json document = *base->snapshot;
-	for(auto it = chain.rbegin(); it != chain.rend(); ++it) {
+	for(const Commit* next : chain | std::views::reverse) {
 		try {
-			detail::applyDelta(document, (*it)->delta, "delta");
+			detail::applyDelta(document, next->delta, "delta");
 		} catch(const json::exception& error) {
-			fail("commit " + (*it)->id,
+			fail("commit " + next->id,
 			     "its delta doesn't apply (" + detail::reasonOf(error) + "): the history is damaged");
 		}
 	}
@@ -142,13 +148,13 @@ json Repository::deltaOf(const Commit& commit) const {
 CommitInfo Repository::blame(std::string_view target) const {
 	const std::string text(target);
 	if(text.empty() || (text.front() != '#' && text.front() != '/'))
-		fail("blame", "expected a node (\"#board\", \"#board/text\") or a path (\"/colors/accent\", \"/state/cards\")");
+		fail("blame", R"(expected a node ("#board", "#board/text") or a path ("/colors/accent", "/state/cards"))");
 
 	// The live state isn't in the documents: the commits whose patches reached the path changed it
 	if(text == "/state" || text.starts_with("/state/")) {
 		const std::vector<std::string> path = detail::segmentsOf(text);
-		for(auto id = main_.rbegin(); id != main_.rend(); ++id) {
-			const Commit& commit = objects_.at(*id);
+		for(const std::string& id : main_ | std::views::reverse) {
+			const Commit& commit = objects_.at(id);
 			if(std::ranges::any_of(commit.patch, [&](const json& op) { return op.is_object() && reaches(op, path); }))
 				return info(commit);
 		}

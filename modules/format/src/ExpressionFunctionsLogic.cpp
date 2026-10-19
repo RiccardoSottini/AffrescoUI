@@ -120,7 +120,7 @@ Value typeName(const Call& call) {
 }
 
 /// The table.
-const auto table = std::to_array<Function>({
+constexpr auto table = std::to_array<Function>({
     {.name = "if",
 	 .arguments = "condition, then, else",
 	 .about = "then if the condition is true, else else; evaluates only that one",
@@ -202,7 +202,7 @@ const auto table = std::to_array<Function>({
 	 .apply = empty},
     {.name = "type",
 	 .arguments = "value",
-	 .about = "\"null\", \"boolean\", \"number\", \"string\", \"list\" or \"object\"",
+	 .about = R"("null", "boolean", "number", "string", "list" or "object")",
 	 .takes = Takes::One,
 	 .apply = typeName},
 });

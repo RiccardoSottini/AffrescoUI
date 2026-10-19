@@ -141,7 +141,7 @@ Value sort(const Call& call) {
 constexpr std::string_view shape = "expected [list, expression]";
 
 /// The table.
-const auto table = std::to_array<Function>({
+constexpr auto table = std::to_array<Function>({
     {.name = "filter",
 	 .arguments = "list, condition",
 	 .about = "The items for which the condition is true",

@@ -264,43 +264,14 @@ private:
 
 		if(std::isdigit(static_cast<unsigned char>(c))) return number();
 		if(c == '\'' || c == '"') return node("$value", quoted(c));
-		if(c == '@') { // a colour name, e.g. @accent
-			const std::size_t start = position_++;
-			while(position_ < text_.size() && (std::isalnum(static_cast<unsigned char>(text_[position_])) ||
-			                                   text_[position_] == '_' || text_[position_] == '-'))
-				++position_;
-			return node("$value", std::string(text_.substr(start, position_ - start)));
-		}
+		if(c == '@') return colour();
 		if(accept("(")) {
 			json inner = ternary();
 			expect(")");
 			return inner;
 		}
-		if(accept("[")) {
-			json items = json::array();
-			if(!accept("]")) {
-				do items.push_back(ternary());
-				while(accept(","));
-				expect("]");
-			}
-			return items; // evaluated item by item
-		}
-		if(accept("{")) { // { name: value, 'any key': value }
-			json fields = json::object();
-			if(!accept("}")) {
-				do {
-					skip();
-					const std::string key =
-					    position_ < text_.size() && (text_[position_] == '\'' || text_[position_] == '"')
-					        ? quoted(text_[position_])
-					        : name(true);
-					expect(":");
-					fields[key] = ternary();
-				} while(accept(","));
-				expect("}");
-			}
-			return node("$object", std::move(fields));
-		}
+		if(accept("[")) return list();
+		if(accept("{")) return object();
 
 		const std::string identifier = name(false);
 		if(identifier == "true") return true;
@@ -308,6 +279,47 @@ private:
 		if(identifier == "null") return nullptr;
 		if(accept("(")) return call(identifier);
 		return node("$get", json::array({identifier}));
+	}
+
+	/// @brief A colour name, e.g. @accent, which stays text.
+	/// @return The node.
+	json colour() {
+		const std::size_t start = position_++;
+		while(position_ < text_.size() && (std::isalnum(static_cast<unsigned char>(text_[position_])) ||
+		                                   text_[position_] == '_' || text_[position_] == '-'))
+			++position_;
+		return node("$value", std::string(text_.substr(start, position_ - start)));
+	}
+
+	/// @brief A list literal, after its '[': its items are evaluated one by one.
+	/// @return The node.
+	json list() {
+		json items = json::array();
+		if(!accept("]")) {
+			do items.push_back(ternary());
+			while(accept(","));
+			expect("]");
+		}
+		return items;
+	}
+
+	/// @brief An object literal, after its '{': `{ name: value, 'any key': value }`.
+	/// @return The node.
+	json object() {
+		json fields = json::object();
+		if(!accept("}")) {
+			do {
+				skip();
+				const std::string key =
+				    position_ < text_.size() && (text_[position_] == '\'' || text_[position_] == '"')
+				        ? quoted(text_[position_])
+				        : name(true);
+				expect(":");
+				fields[key] = ternary();
+			} while(accept(","));
+			expect("}");
+		}
+		return node("$object", std::move(fields));
 	}
 
 	/// @brief Reads a quoted string, with \\ escapes.

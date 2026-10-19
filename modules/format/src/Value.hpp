@@ -6,6 +6,7 @@
 
 #include "affresco/core/Json.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -162,17 +163,22 @@ private:
 	/// @param owner What keeps it alive, or nullptr.
 	/// @return The value.
 	[[nodiscard]] static Value fromJson(const json& value, std::shared_ptr<const Storage> owner) noexcept;
+	/// @brief Compares two numbers as JSON does: 1 == 1.0, and large unsigned numbers exactly.
+	/// @param left A number.
+	/// @param right Another.
+	/// @return true if they are equal.
+	[[nodiscard]] static bool sameNumber(const Value& left, const Value& right);
 
 	std::shared_ptr<const Storage> storage_; ///< Long texts, lists, objects and owned JSON.
 	union Inline {
-		bool boolean;                 ///< Holding::Boolean.
-		std::int64_t integer;         ///< Holding::Integer.
-		double number;                ///< Holding::Double.
-		const json* data;             ///< Holding::Json.
-		char characters[16];          ///< Holding::ShortText.
-	} inline_{};                      ///< What isn't in storage_.
-	Holding holding_ = Holding::Null; ///< How the value is held.
-	std::uint8_t shortSize_ = 0;      ///< The length of a ShortText.
+		bool boolean;                    ///< Holding::Boolean.
+		std::int64_t integer;            ///< Holding::Integer.
+		double number;                   ///< Holding::Double.
+		const json* data;                ///< Holding::Json.
+		std::array<char, 16> characters; ///< Holding::ShortText.
+	} inline_{};                         ///< What isn't in storage_.
+	Holding holding_ = Holding::Null;    ///< How the value is held.
+	std::uint8_t shortSize_ = 0;         ///< The length of a ShortText.
 };
 
 /// @brief One field of an object.

@@ -197,7 +197,7 @@ std::vector<std::pair<std::string, std::string>> objectsIn(const std::filesystem
 } // namespace
 
 TEST_CASE("vcs: a delta rebuilds the document exactly, keys in order and numbers as written") {
-	std::mt19937 random(2017);
+	std::mt19937 random(2017); // NOLINT(bugprone-random-generator-seed): the same cases on every run
 	for(int i = 0; i < 3000; ++i) {
 		const json from = randomValue(random, 4), to = mutate(from, random);
 		const json delta = affresco::vcs::detail::delta(from, to);
@@ -262,7 +262,7 @@ TEST_CASE("vcs: every revision of random histories is rebuilt as it was, in memo
 	for(const unsigned seed : {1u, 2u, 3u}) {
 		CAPTURE(seed);
 		const TemporaryFolder folder;
-		std::mt19937 random(seed);
+		std::mt19937 random(seed); // NOLINT(bugprone-random-generator-seed): the same histories on every run
 		std::vector<json> documents;
 		std::vector<affresco::CommitInfo> log;
 		{
