@@ -31,7 +31,10 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   refused if a later commit or an action changed those parts since.
 - **Every change is atomic:** a revision applies whole, or nothing changes (`RevisionStatus::Rejected` says why).
 - **History is RFC 6902.** Compact edits (`set`, `add`, `remove`, `move`) are normalised to JSON Patch before they
-  are stored.
+  are stored, and so are the ids the document rules give to nodes an operation adds without one
+  (`DocumentRules::nameNodes`): the stored patch is what was applied, so replaying it gives the same ids.
+- **A refused operation says where:** the error names the operation, the path as written and resolved, and the
+  document rules' hint (`DocumentRules::pathHint`, "did you mean '#title'?").
 - **Rules are judged by a change's effect** (the document before and after), never by the paths its patch happens to
   use: deny beats ask beats allow, and what no rule allows asks.
 - **An author never approves its own change,** and an approval names the head the reviewer saw: if the branch moved

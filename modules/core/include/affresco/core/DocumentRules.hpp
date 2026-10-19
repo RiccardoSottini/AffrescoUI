@@ -74,6 +74,25 @@ public:
 	/// @param after The document after the change, with the live state after it.
 	/// @throws DocumentError If the change is forbidden.
 	virtual void checkChange(const json& before, const json& after) const = 0;
+
+	/// @brief Gives ids to the nodes a revision puts somewhere without one, before the change is applied, so that the
+	/// commit, the history and every diff show them. The default gives none (a format without nodes).
+	/// @param document The document as it is before the operation, with the live state as its "state".
+	/// @param pointer Where the value goes (a JSON Pointer, "#id" paths resolved).
+	/// @param replaces true if the value replaces what is there, false if it is added.
+	/// @param value The value, changed in place.
+	virtual void nameNodes([[maybe_unused]] const json& document, [[maybe_unused]] std::string_view pointer,
+	                       [[maybe_unused]] bool replaces, [[maybe_unused]] json& value) const {}
+
+	/// @brief A one-line hint for a path in a revision that finds nothing ("did you mean '#statusBar'?"), for the
+	/// error that rejects it. The default has none.
+	/// @param document The document the path was read in, with the live state as its "state".
+	/// @param path The path as written: a JSON Pointer or a "#id" path.
+	/// @return The hint, or "".
+	[[nodiscard]] virtual std::string pathHint([[maybe_unused]] const json& document,
+	                                           [[maybe_unused]] std::string_view path) const {
+		return {};
+	}
 };
 
 } // namespace affresco

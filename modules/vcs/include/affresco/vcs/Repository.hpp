@@ -248,6 +248,30 @@ private:
 	/// @return A JSON Pointer.
 	/// @throws DocumentError If no node has that id.
 	[[nodiscard]] std::string resolvePath(const json& view, const std::string& path, const std::string& where) const;
+	/// @brief The format's hint for a path that finds nothing, for an error.
+	/// @param view The document the path was read in.
+	/// @param path The path as written.
+	/// @return " (<hint>)", or "" if there is none.
+	[[nodiscard]] std::string hintFor(const json& view, const std::string& path) const;
+	/// @brief Makes an operation, its paths resolved, ready to apply and to store: "set" becomes "replace" or "add",
+	/// and the nodes it adds get ids (DocumentRules::nameNodes).
+	/// @param op The operation, changed in place.
+	/// @param written The operation as the revision wrote it.
+	/// @param view The document as it is when the operation runs.
+	/// @return The operation to store in the commit: as written, with its kind and its value as applied.
+	[[nodiscard]] json normalise(json& op, const json& written, const json& view) const;
+	/// @brief Applies one operation to a view.
+	/// @param view The document, changed in place.
+	/// @param op The operation, its paths resolved.
+	/// @param written The operation as the revision wrote it, for the error.
+	/// @param where Its place in the revision.
+	/// @throws DocumentError If it doesn't apply: names the operation, the path and a hint.
+	void apply(json& view, json op, const json& written, const std::string& where) const;
+	/// @brief Names the first of an operation's paths that finds nothing, with the format's hint, for an error.
+	/// @param view The document the operation failed on.
+	/// @param paths The operation's "from" and "path", each as [written, resolved] (nulls where it has none).
+	/// @return " at <path> (<hint>)", or "" if each path finds something.
+	[[nodiscard]] std::string pathsHint(const json& view, const json& paths) const;
 	/// @brief Checks a revision's "parent" against main's head.
 	/// @param revision The revision.
 	/// @throws DocumentError If the screen has moved on (a conflict).

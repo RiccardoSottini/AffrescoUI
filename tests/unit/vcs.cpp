@@ -202,7 +202,8 @@ TEST_CASE("vcs: a proposal that no longer applies is closed with the whole reaso
 	// The reason keeps its first words (it once lost "AffrescoUI screen: "'s last four letters, from the old name)
 	CHECK(error.value_or("").starts_with("AffrescoUI screen: proposal #1: no longer applies on revision 1 ("));
 	CHECK(error.value_or("").ends_with(
-	    ") (revision.patch[0] (replace #title/text).path: no node with id 'title'): ask its "
+	    ") (revision.patch[0] (replace #title/text).path: no node with id 'title' (the ids are: board, main, "
+	    "statusBar)): ask its "
 	    "author for a new one"));
 	CHECK(repository.proposals().empty());
 }

@@ -3,6 +3,6 @@
 	"rename-label": { "message": "Say Log in", "set": { "#signIn/text": "Log in" } },
 	"add-node": {
 		"message": "Add a forgotten password link",
-		"add": { "#card/children/0/children/-": { "id": "forgot", "style": "link", "text": "Forgot your password?" } }
+		"add": { "#stack-form/children/-": { "style": "link", "text": "Forgot your password?" } }
 	}
 }
