@@ -103,10 +103,11 @@ void Scheduler::every(Panel& panel, Record& record, double everyMs) {
 	if(everyMs <= 0.0) return;
 	record.everyTimer = repeating(everyMs, [this, panel = &panel](const Rearm& rearm) {
 		Record* r = engine_.reconciler.recordOf(panel);
-		if(!r || !r->properties.contains("every")) return;
+		if(!r || !r->node || !r->node->own.contains("every")) return;
 		r->everyTimer = rearm(r->everyMs);
 		const SharedScope locals = r->locals;
-		engine_.runner.handle(r->properties["every"]["do"], *panel, {{"type", "tick"}}, *locals, r->path + ".every.do");
+		const CompiledRef node = r->node; // the handler may rebuild the panel
+		engine_.runner.handle(node->own["every"]["do"], *panel, {{"type", "tick"}}, *locals, r->path + ".every.do");
 	});
 }
 

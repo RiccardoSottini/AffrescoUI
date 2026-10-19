@@ -1,9 +1,12 @@
 /// @file
-/// @brief format::Builder: components, styles, repeats, scoped variables and "when".
+/// @brief format::Builder: components, styles, repeats, scoped variables and "when", on nodes compiled once per
+/// version of the document.
 
 #include "Builder.hpp"
 #include "Engine.hpp"
 
+#include <algorithm>
+#include <array>
 #include <functional>
 #include <utility>
 
@@ -34,7 +37,37 @@ bool fillSlot(json& node, const json& children) {
 	return false;
 }
 
+/// @brief Tells whether a node sets its own position or size (otherwise a screen fills its outlet).
+/// @param node The node.
+/// @return true if it has layout properties.
+bool hasLayout(const json& node) {
+	static constexpr std::array<const char*, 6> keys = {"x", "y", "width", "height", "anchors", "fill"};
+	return std::ranges::any_of(keys, [&node](const char* key) { return node.contains(key); });
+}
+
+/// @brief Reports what is wrong with a "repeat" that didn't compile, as building it reads it.
+/// @param repeat The "repeat" value.
+/// @param at The node's place.
+/// @throws DocumentError Always.
+[[noreturn]] void reportRepeat(const json& repeat, const std::string& at) {
+	object(repeat, at + ".repeat");
+	if(repeat.contains("for")) static_cast<void>(string(repeat["for"], at + ".repeat.for"));
+	if(repeat.contains("index")) static_cast<void>(string(repeat["index"], at + ".repeat.index"));
+	fail(at + ".repeat", "needs \"in\": the list to repeat over");
+}
+
 } // namespace
+
+Builder::Cache& Builder::cache() const {
+	const json* document = &engine_.versions.document();
+	if(cache_.document != document) {
+		forgetVersion();
+		cache_.document = document;
+	}
+	return cache_;
+}
+
+void Builder::forgetVersion() const noexcept { cache_ = Cache{}; }
 
 // The node's properties on top of its styles' (in order: later styles override earlier ones)
 json Builder::withStyles(const json& node, const std::string& path, int depth) const {
@@ -61,14 +94,24 @@ json Builder::withStyles(const json& node, const std::string& path, int depth) c
 	return merged;
 }
 
-json Builder::evaluateNode(const json& merged, const Scope& locals, const std::string& path) const {
-	json result = json::object();
-	for(const auto& [key, value] : merged.items()) {
-		if(key == "children") continue; // built from the node itself (reconcileChildren), never copied
-		result[key] = structural(key) || key == "type"
-		                  ? value
-		                  : engine_.document.evaluate(value, locals, json::object(), concatenate(path, ".", key));
-	}
+CompiledRef Builder::compiled(const json& node, const std::string& path, bool fill) const {
+	Cache& cached = cache();
+	auto& map = fill ? cached.screens : cached.nodes;
+	if(const auto it = map.find(&node); it != map.end()) return it->second;
+	json merged = withStyles(node, path);
+	if(fill && !hasLayout(merged)) merged["fill"] = 0;
+	CompiledRef result = compileNode(std::make_shared<const json>(std::move(merged)));
+	map.emplace(&node, result);
+	return result;
+}
+
+std::vector<json> Builder::values(const CompiledNode& node, const Scope& locals, const std::string& path) const {
+	std::vector<json> result(node.evaluatedCount);
+	if(result.empty()) return result;
+	const Context context = engine_.document.context(locals, emptyObject());
+	for(const CompiledProperty& property : node.properties)
+		if(property.evaluated != CompiledProperty::noValue)
+			result[property.evaluated] = property.value.evaluate(context, path, property.key);
 	return result;
 }
 
@@ -114,95 +157,99 @@ void Builder::check(const json& node, Scope& layer, const std::string& at) const
 }
 
 // The new variables form one layer over the parent's scope; with and let see the ones before them
-NodeRef Builder::scoped(const NodeRef& shared, SharedScope& scope, const std::string& at) const {
-	const DocumentContext& document = engine_.document;
-	const json& node = *shared;
-	const json none = json::object();
+CompiledRef Builder::scoped(const CompiledRef& node, SharedScope& scope, const std::string& at) const {
+	const json& own = node->own;
 	Scope layer{scope.get(), nullptr, json::object()};
-	if(node.contains("with"))
-		for(const auto& [name, value] : object(node["with"], at + ".with").items())
-			layer.vars[name] = document.evaluate(value, layer, none, concatenate(at, ".with.", name));
-	if(node.contains("let")) // in order: each sees the ones before it
-		for(const auto& [name, value] : object(node["let"], at + ".let").items())
-			layer.vars[name] = document.evaluate(value, layer, none, concatenate(at, ".let.", name));
-	if(node.contains("check")) check(node, layer, at);
-	NodeRef result = shared;
-	if(node.contains("style") && isDynamic(node["style"])) { // this instance's own copy, with its style
-		json chosen = node;
-		chosen["style"] = document.evaluate(node["style"], layer, none, at + ".style");
-		const json& style = chosen["style"];
-		if(style.is_null() || (style.is_string() && style.get_ref<const std::string&>().empty())) chosen.erase("style");
-		result = std::make_shared<const json>(withStyles(chosen, at));
-	}
+	const Context context = engine_.document.context(layer, emptyObject()); // reads the layer as it grows
+	if(node->malformedWith) object(own["with"], at + ".with");
+	for(const CompiledVariable& variable : node->with)
+		layer.vars[variable.name] = variable.value.evaluate(context, at, "with", variable.name);
+	if(node->malformedLet) object(own["let"], at + ".let");
+	for(const CompiledVariable& variable : node->let) // in order: each sees the ones before it
+		layer.vars[variable.name] = variable.value.evaluate(context, at, "let", variable.name);
+	if(own.contains("check")) check(own, layer, at);
+	CompiledRef result = node;
+	if(node->style) result = styled(node, node->style->evaluate(context, at, "style"), at);
 	if(!layer.vars.empty()) scope = extend(std::move(scope), std::move(layer.vars));
 	return result;
 }
 
-NodeRef Builder::resolve(const json& child, const std::string& at) const {
+CompiledRef Builder::styled(const CompiledRef& node, const json& style, const std::string& at) const {
+	Styled& choices = cache().styled[node.get()];
+	const auto it = std::ranges::find(choices, style, &Styled::value_type::first);
+	if(it != choices.end()) return it->second;
+
+	json chosen = *node->source; // this instance's own copy, with its style
+	if(style.is_null() || (style.is_string() && style.get_ref<const std::string&>().empty())) chosen.erase("style");
+	else chosen["style"] = style;
+	CompiledRef result = compileNode(std::make_shared<const json>(withStyles(chosen, at)));
+	choices.emplace_back(style, result); // kept: the children cache knows its children by their place
+	return result;
+}
+
+CompiledRef Builder::resolve(const json& child, const std::string& at) const {
+	Cache& cached = cache();
+	if(const auto it = cached.children.find(&child); it != cached.children.end()) return it->second;
+	NodeRef node;
 	if(child.contains("use")) {
 		json raw = child;
 		for(int depth = 0; raw.contains("use"); ++depth) {
 			if(depth >= maxComponentDepth) fail(at, "components nested too deeply (a component uses itself?)");
 			raw = instantiateComponent(raw, at);
 		}
-		return std::make_shared<const json>(withStyles(raw, at));
+		node = std::make_shared<const json>(withStyles(raw, at));
+	} else if(child.contains("style") && !isDynamic(child["style"])) {
+		node = std::make_shared<const json>(withStyles(child, at));
+	} else {
+		node = borrow(child);
 	}
-	if(child.contains("style") && !isDynamic(child["style"]))
-		return std::make_shared<const json>(withStyles(child, at));
-	return borrow(child);
+	CompiledRef result = compileNode(std::move(node));
+	cached.children.emplace(&child, result);
+	return result;
 }
 
-json Builder::repeated(const json& repeat, const Scope& locals, const std::string& at) const {
-	if(!repeat.contains("in")) fail(at + ".repeat", "needs \"in\": the list to repeat over");
-	// "in" is a path ("state.messages") or any value/expression
-	const json& source = repeat["in"];
-	const DocumentContext& document = engine_.document;
-	const json list =
-	    source.is_string() && source.get<std::string>().find("{{") == std::string::npos
-	        ? document.evaluate("{{" + source.get<std::string>() + "}}", locals, json::object(), at + ".repeat.in")
-	        : document.evaluate(source, locals, json::object(), at + ".repeat.in");
+json Builder::repeated(const CompiledNode& node, const Scope& locals, const std::string& at) const {
+	const json list = node.repeat->list->evaluate(engine_.document.context(locals, emptyObject()), at, "repeat.in");
 	if(!list.is_null() && !list.is_array()) fail(at + ".repeat.in", "expected a list, got " + list.dump());
 	return list;
+}
+
+void Builder::instances(const CompiledRef& node, const SharedScope& locals, const std::string& at,
+                        std::vector<Item>& items) const {
+	const auto add = [&](SharedScope scope, std::string where, json itemKey) {
+		CompiledRef chosen = scoped(node, scope, where);
+		if(chosen->when &&
+		   !format::truthy(chosen->when->evaluate(engine_.document.context(*scope, emptyObject()), where, "when")))
+			return;
+		items.push_back({std::move(chosen), std::move(scope), std::move(where), std::move(itemKey)});
+	};
+
+	if(!node->own.contains("repeat")) {
+		add(locals, at, nullptr);
+		return;
+	}
+	if(!node->repeat) reportRepeat(node->own["repeat"], at);
+	const CompiledRepeat& repeat = *node->repeat;
+	const json list = repeated(*node, *locals, at);
+	for(std::size_t k = 0; k < list.size(); ++k) { // a null list has none
+		SharedScope scope = extend(locals, {{repeat.item, list[k]}, {repeat.index, k}});
+		std::string where = at + "[" + std::to_string(k) + "]";
+		json itemKey = repeat.key
+		                   ? repeat.key->evaluate(engine_.document.context(*scope, emptyObject()), where, "repeat.key")
+		                   : json();
+		add(std::move(scope), std::move(where), std::move(itemKey));
+	}
 }
 
 // The children to build, after "use", "repeat", "with", "let", "check" and "when"
 std::vector<Item> Builder::expand(const json& children, const SharedScope& locals, const std::string& path) const {
 	std::vector<Item> items;
 	if(!children.is_array()) fail(path + ".children", "expected an array");
-
+	items.reserve(children.size());
 	for(std::size_t i = 0; i < children.size(); ++i) {
 		const std::string at = path + ".children[" + std::to_string(i) + "]";
-		const NodeRef shared = resolve(object(children[i], at), at);
-		const json& merged = *shared;
-
-		auto add = [&](SharedScope scope, const std::string& where, json itemKey) {
-			NodeRef node = scoped(shared, scope, where);
-			if(node->contains("when") &&
-			   !format::truthy(engine_.document.evaluate((*node)["when"], *scope, json::object(), where + ".when")))
-				return;
-			items.push_back({std::move(node), std::move(scope), where, std::move(itemKey)});
-		};
-
-		if(!merged.contains("repeat")) {
-			add(locals, at, nullptr);
-			continue;
-		}
-
-		const json& repeat = object(merged["repeat"], at + ".repeat");
-		const std::string name = repeat.contains("for") ? string(repeat["for"], at + ".repeat.for") : "item";
-		const std::string indexName =
-		    repeat.contains("index") ? string(repeat["index"], at + ".repeat.index") : "index";
-		const json list = repeated(repeat, *locals, at);
-		for(std::size_t k = 0; k < list.size(); ++k) { // a null list has none
-			SharedScope scope = extend(locals, {{name, list[k]}, {indexName, k}});
-			const std::string where = at + "[" + std::to_string(k) + "]";
-			json itemKey = repeat.contains("key")
-			                   ? engine_.document.evaluate(repeat["key"], *scope, json::object(), where + ".repeat.key")
-			                   : json();
-			add(std::move(scope), where, std::move(itemKey));
-		}
+		instances(resolve(object(children[i], at), at), locals, at, items);
 	}
-
 	return items;
 }
 

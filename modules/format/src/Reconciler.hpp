@@ -67,19 +67,20 @@ private:
 	/// @return Its record.
 	Record& adopt(Panel& panel, const std::string& type);
 	/// @brief Updates a panel's children in place, creating, replacing, moving or removing only what changed.
-	/// @param node The node (its "children", unevaluated).
+	/// @param node The compiled node (its "children", unevaluated).
 	/// @param panel The panel.
 	/// @param record Its record.
 	/// @param path Its place, for errors.
 	/// @param depth The panel's depth below the window's root, or below the panel a template is built in.
 	/// @throws DocumentError If the panels would nest deeper than maxNodeDepth.
-	void reconcileChildren(const json& node, Panel& panel, Record& record, const std::string& path, int depth = 0);
+	void reconcileChildren(const CompiledNode& node, Panel& panel, Record& record, const std::string& path,
+	                       int depth = 0);
 	/// @brief The children to build: the current screen for an outlet, else the node's "children".
 	/// @param node The node.
 	/// @param record Its record.
 	/// @param path Its place, for errors.
 	/// @return The children, or std::nullopt to leave the panel's children alone.
-	[[nodiscard]] std::optional<std::vector<Item>> childrenOf(const json& node, const Record& record,
+	[[nodiscard]] std::optional<std::vector<Item>> childrenOf(const CompiledNode& node, const Record& record,
 	                                                          const std::string& path) const;
 	/// @brief The panel for one child, in its place: the one there if it has the same type and key, else a new one.
 	/// @param panel The parent.

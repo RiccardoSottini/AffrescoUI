@@ -185,6 +185,12 @@ public:
 	/// @return The value, or the text with the values inserted.
 	/// @throws DocumentError If a placeholder is unclosed or invalid.
 	[[nodiscard]] Value runTemplate(std::string_view text, const Place& place);
+	/// @brief Evaluates a text already split into its placeholders (a compiled binding's).
+	/// @param shape The split text.
+	/// @param place Its place.
+	/// @return The value, or the text with the values inserted.
+	/// @throws DocumentError If a placeholder is invalid.
+	[[nodiscard]] Value runTemplate(const Template& shape, const Place& place);
 	/// @brief Splits a path written as text into its variable and keys; `[expr]` keys are evaluated.
 	/// @param path E.g. "state.items[state.current]".
 	/// @param place Its place.

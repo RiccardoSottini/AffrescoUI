@@ -14,6 +14,22 @@
 
 namespace affresco::format {
 
+namespace {
+
+/// The properties a widget's value hook reads (ValueHooks::show).
+constexpr std::array<std::string_view, 3> valueKeys = {"text", "checked", "value"};
+
+/// @brief Tells whether a slot is a behaviour key that readBehaviour() reads.
+/// @param slot The slot.
+/// @param key Its key ("autofocus" and "locked" share Slot::Value with keys it doesn't read).
+/// @return true if it reads it.
+bool behaviourSlot(Slot slot, std::string_view key) noexcept {
+	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::Keys ||
+	       slot == Slot::Drag || slot == Slot::Every || key == "autofocus" || key == "locked";
+}
+
+} // namespace
+
 /* PropertyReader */
 
 Color Properties::color(const json& value, const std::string& at) const { return engine_.document.color(value, at); }
@@ -27,17 +43,27 @@ std::shared_ptr<const Font> Properties::font(const json& value, const std::strin
 
 /* Applying a node */
 
-void Properties::apply(Panel& panel, Record& record, const json& properties, const std::string& path, bool isRoot,
-                       bool created) {
-	record.properties = properties;
-	record.path = path;
+// Cost follows the change: a node whose compiled form, values and colours are those applied last is left as it is
+void Properties::apply(Panel& panel, Record& record, CompiledRef node, std::vector<json> values,
+                       const std::string& path, bool isRoot, bool created) {
+	const std::uint64_t appearance = engine_.document.appearance();
+	const bool unchanged = !created && record.appearance == appearance && record.node == node && !node->alwaysApply &&
+	                       record.values == values;
+	if(record.path != path) record.path = path;
+	std::optional<Behaviour> behaviour;
+	if(!unchanged) {
+		record.node = std::move(node);
+		record.values = std::move(values);
+		record.appearance = 0; // until it is applied without an error
+		behaviour = readBehaviour(panel, record);
+		if(engine_.window) engine_.scheduler.every(panel, record, behaviour->everyMs); // repeats while it exists
+		applyVisual(panel, record, visual(record), isRoot);
+	}
+	showValue(panel, record);
+	record.appearance = appearance;
 
-	const Behaviour behaviour = readBehaviour(panel, record, properties, path);
-	if(engine_.window) engine_.scheduler.every(panel, record, behaviour.everyMs); // a repeating timer while it exists
-	applyVisual(panel, record, visual(record), isRoot);
-	showValue(panel, record, properties, path);
-
-	if(created && behaviour.autofocus && engine_.window && !engine_.handlersSuspended) engine_.window->setFocus(&panel);
+	if(created && behaviour && behaviour->autofocus && engine_.window && !engine_.handlersSuspended)
+		engine_.window->setFocus(&panel);
 	record.shown = true;
 }
 
@@ -47,18 +73,21 @@ bool Properties::bindable(const Panel& panel, const Record& record) {
 }
 
 // Behaviour: handlers, bindings, shortcuts, drag, timers
-Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record, const json& properties,
-                                                const std::string& path) const {
+Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) const {
 	record.handlers = json::object();
 	record.keys = nullptr;
 	record.drag = nullptr;
 	record.bind.reset();
 	record.caret.reset();
 	Behaviour behaviour;
-	for(const auto& [key, value] : properties.items()) {
-		const std::string at = concatenate(path, ".", key);
-		if(handlerKey(key)) readHandler(panel, record, key, value, at);
-		else readBehaviourKey(panel, record, {key, value, at, properties.contains("id")}, behaviour);
+	const CompiledNode& node = *record.node;
+	std::string at;
+	for(const CompiledProperty& property : node.properties) {
+		if(!behaviourSlot(property.slot, property.key)) continue;
+		at.assign(record.path).append(".").append(property.key);
+		const json& value = CompiledNode::valueOf(property, record.values);
+		if(property.slot == Slot::Handler) readHandler(panel, record, property.key, value, at);
+		else readBehaviourKey(panel, record, property.key, {property.slot, value, at, node.hasId}, behaviour);
 	}
 	return behaviour;
 }
@@ -73,22 +102,22 @@ void Properties::readHandler(const Panel& panel, Record& record, const std::stri
 	record.handlers[key] = value;
 }
 
-void Properties::readBehaviourKey(const Panel& panel, Record& record, const KeyValue& property,
+void Properties::readBehaviourKey(const Panel& panel, Record& record, std::string_view key, const KeyValue& property,
                                   Behaviour& behaviour) const {
-	const auto& [key, value, at, hasId] = property;
-	if(key == "bind") {
+	const auto& [slot, value, at, hasId] = property;
+	if(slot == Slot::Bind) {
 		if(!bindable(panel, record))
 			fail(at, "only text areas, text editors, toggles, checkboxes and sliders can \"bind\"");
 		record.bind = statePath(record, value, at);
-	} else if(key == "caret") {
+	} else if(slot == Slot::Caret) {
 		if(!dynamic_cast<const TextEditor*>(&panel)) fail(at, "only text editors have \"caret\"");
 		record.caret = statePath(record, value, at);
-	} else if(key == "keys") {
+	} else if(slot == Slot::Keys) {
 		record.keys = json::object();
 		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeShortcut(name)] = handler;
-	} else if(key == "drag") {
+	} else if(slot == Slot::Drag) {
 		record.drag = object(value, at);
-	} else if(key == "every") {
+	} else if(slot == Slot::Every) {
 		behaviour.everyMs = everyPeriod(record, value, at);
 	} else if(key == "autofocus") {
 		behaviour.autofocus = boolean(value, at);
@@ -111,50 +140,67 @@ double Properties::everyPeriod(const Record& record, const json& value, const st
 
 // A bound widget mirrors its state value; otherwise "text" is applied when it changes, so a text area's typing isn't
 // overwritten by every update
-void Properties::showValue(Panel& panel, Record& record, const json& properties, const std::string& path) const {
-	const json bound =
-	    record.bind
-	        ? format::lookup(*record.bind, engine_.document.context(*record.locals, emptyObject()), path + ".bind")
-	        : json();
+void Properties::showValue(Panel& panel, Record& record) const {
+	const CompiledNode& node = *record.node;
+	const json bound = record.bind
+	                       ? format::lookup(*record.bind, engine_.document.context(*record.locals, emptyObject()),
+	                                        record.path + ".bind")
+	                       : json();
 	if(auto* label = dynamic_cast<Label*>(&panel); label && record.bind) {
 		const std::string value = text(bound);
 		if(label->text() != value) label->setText(value);
 	} else if(label) {
+		const CompiledProperty* written = node.find("text");
 		const std::optional<std::string> newText =
-		    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
+		    written ? std::optional<std::string>(text(CompiledNode::valueOf(*written, record.values))) : std::nullopt;
 		if(newText != record.lastText) label->setText(newText.value_or(""));
 		record.lastText = newText;
 	}
+	if(std::ranges::none_of(record.sets, [](const auto& set) { return set && set->value.show; })) return;
+	json shown = json::object(); // what the value hooks read
+	for(const std::string_view key : valueKeys)
+		if(const CompiledProperty* property = node.find(key))
+			shown[std::string(key)] = CompiledNode::valueOf(*property, record.values);
 	for(const auto& set : record.sets)
-		if(set && set->value.show) set->value.show(panel, record.bind ? &bound : nullptr, properties, record.lastText);
+		if(set && set->value.show) set->value.show(panel, record.bind ? &bound : nullptr, shown, record.lastText);
 }
 
 // The node at rest, then each active state block on top (with its own styles)
-json Properties::visual(const Record& record) const {
-	json result = json::object();
-	for(const auto& [key, value] : record.properties.items())
-		if(!structural(key) && std::ranges::find(stateBlocks, key) == std::end(stateBlocks)) result[key] = value;
+Properties::Visual Properties::visual(const Record& record) const {
+	Visual result;
+	const CompiledNode& node = *record.node;
+	result.entries.reserve(node.properties.size());
+	for(const CompiledProperty& property : node.properties) {
+		if(property.slot == Slot::StateBlock || behaviourSlot(property.slot, {})) continue;
+		result.entries.push_back({property.key, property.slot, &CompiledNode::valueOf(property, record.values)});
+	}
+	if(!node.hasStateBlocks) return result;
 
 	const std::array<bool, 5> active = {record.hovered, record.focused, record.dragging, record.dragOver, record.down};
-	for(std::size_t i = 0; i < std::size(stateBlocks); ++i) {
-		const std::string name(stateBlocks[i]);
-		if(!active[i] || !record.properties.contains(name)) continue;
-		const std::string at = record.path + "." + name;
-		json block = engine_.builder.withStyles(object(record.properties[name], at), at);
-		for(const auto& [key, value] : block.items()) {
-			if(structural(key) || key == "type") continue;
-			for(const auto& set : record.sets)
-				if(const PropertySpec* spec = set ? set->find(key) : nullptr; spec && !spec->states)
-					fail(std::format("{}.{}", at, key), "can't be set in a state");
-			result[key] = value;
-		}
-	}
+	for(std::size_t i = 0; i < std::size(stateBlocks); ++i)
+		if(active[i]) addStateBlock(record, stateBlocks[i], result.blocks[i], result);
 	return result;
 }
 
+void Properties::addStateBlock(const Record& record, std::string_view name, json& block, Visual& result) const {
+	const CompiledProperty* property = record.node->find(name);
+	if(!property) return;
+	const std::string at = concatenate(record.path, ".", name);
+	block = engine_.builder.withStyles(object(CompiledNode::valueOf(*property, record.values), at), at);
+	for(const auto& [key, value] : block.items()) {
+		if(structural(key) || key == "type") continue;
+		for(const auto& set : record.sets)
+			if(const PropertySpec* spec = set ? set->find(key) : nullptr; spec && !spec->states)
+				fail(std::format("{}.{}", at, key), "can't be set in a state");
+		// A key already shown keeps its place, as a later value of an object's key does
+		const auto shown = std::ranges::find(result.entries, std::string_view(key), &Visual::Entry::key);
+		if(shown != result.entries.end()) shown->value = &value;
+		else result.entries.push_back({key, slotOf(key), &value});
+	}
+}
+
 void Properties::refresh(Panel& panel, Record& record) {
-	if(std::ranges::none_of(stateBlocks, [&](std::string_view name) { return record.properties.contains(name); }))
-		return;
+	if(!record.node || !record.node->hasStateBlocks) return;
 	try {
 		applyVisual(panel, record, visual(record), &panel == &engine_.window->root());
 	} catch(const DocumentError& error) {
@@ -210,7 +256,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	record.overlayAnchor.clear();
 }
 
-void Properties::applyVisual(Panel& panel, Record& record, const json& properties, bool isRoot) {
+void Properties::applyVisual(Panel& panel, Record& record, const Visual& properties, bool isRoot) {
 	Look look{.label = dynamic_cast<Label*>(&panel),
 	          .textArea = dynamic_cast<TextArea*>(&panel),
 	          .stack = dynamic_cast<Stack*>(&panel),
@@ -219,25 +265,23 @@ void Properties::applyVisual(Panel& panel, Record& record, const json& propertie
 	                                    panel.borderColor()};
 	reset(panel, record);
 
-	for(const auto& [key, value] : properties.items()) {
-		const std::string at = record.path + "." + key;
-		if(appliedWithValues(key)) continue;
-		if(commonProperty(panel, record, key, value, at, look) || shapeProperty(panel, key, value, at, look)) continue;
+	std::string at; // reused: one allocation for the node's places
+	for(const auto& [key, slot, pointer] : properties.entries) {
+		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
+		const json& value = *pointer;
+		at.assign(record.path).append(".").append(key);
+		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look))
+			continue;
 		if(isRoot) fail(at, "not allowed on the root, which always fills the window");
-		if(layoutProperty(panel, key, value, at) || widgetProperty(look, key, value, at) ||
+		if((slot == Slot::Layout && layoutProperty(panel, key, value, at)) || widgetProperty(look, slot, value, at) ||
 		   registeredProperty(record, key, value, look))
 			continue;
-		fail(at, "unknown property '" + key + "' for this type");
+		fail(at, "unknown property '" + std::string(key) + "' for this type");
 	}
 
 	applySets(panel, record, look);
 	transitionLook(panel, record, look, shown);
 	finish(panel, look);
-}
-
-bool Properties::appliedWithValues(const std::string& key) {
-	static constexpr std::array<std::string_view, 6> keys = {"type", "autofocus", "locked", "checked", "value", "text"};
-	return std::ranges::find(keys, key) != std::end(keys);
 }
 
 void Properties::finish(Panel& panel, const Look& look) {
@@ -247,11 +291,11 @@ void Properties::finish(Panel& panel, const Look& look) {
 	if(look.overlayOpen && !*look.overlayOpen) panel.setVisible(false);
 }
 
-bool Properties::registeredProperty(const Record& record, const std::string& key, const json& value, Look& look) {
+bool Properties::registeredProperty(const Record& record, std::string_view key, const json& value, Look& look) {
 	for(std::size_t i = record.sets.size(); i-- > 0;) {
 		const auto& set = record.sets[i];
 		if(!set || !set->apply || !set->find(key)) continue;
-		look.values[i][key] = value;
+		look.values[i][std::string(key)] = value;
 		return true;
 	}
 	return false;
@@ -271,18 +315,39 @@ void Properties::applySets(Panel& panel, Record& record, const Look& look) const
 	}
 }
 
-bool Properties::commonProperty(Panel& panel, Record& record, const std::string& key, const json& value,
-                                const std::string& at, Look& look) const {
-	if(key == "id") panel.setId(string(value, at));
-	else if(key == "color") look.background = color(value, at);
-	else if(key == "visible") panel.setVisible(boolean(value, at));
-	else if(key == "cursor") panel.setCursor(cursor(value, at));
-	else if(key == "tooltip") panel.setTooltip(text(value));
-	else if(key == "disabled") record.disabled = boolean(value, at);
-	else if(key == "transition") record.transition = transition(value, at);
-	else if(key == "scroll") look.scroll = scroll(value, at);
-	else if(key == "overlay") overlay(panel, record, value, at, look);
-	else return false;
+bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const json& value, const std::string& at,
+                                Look& look) const {
+	switch(slot) {
+	case Slot::Id:
+		panel.setId(string(value, at));
+		break;
+	case Slot::Color:
+		look.background = color(value, at);
+		break;
+	case Slot::Visible:
+		panel.setVisible(boolean(value, at));
+		break;
+	case Slot::Cursor:
+		panel.setCursor(cursor(value, at));
+		break;
+	case Slot::Tooltip:
+		panel.setTooltip(text(value));
+		break;
+	case Slot::Disabled:
+		record.disabled = boolean(value, at);
+		break;
+	case Slot::Transition:
+		record.transition = transition(value, at);
+		break;
+	case Slot::Scroll:
+		look.scroll = scroll(value, at);
+		break;
+	case Slot::Overlay:
+		overlay(panel, record, value, at, look);
+		break;
+	default:
+		return false;
+	}
 	return true;
 }
 
@@ -310,13 +375,23 @@ void Properties::transitionLook(Panel& panel, Record& record, const Look& look, 
 	scheduler.transitionColor(panel, record, "borderColor", shown[2], look.border.value_or(colors::black));
 }
 
-bool Properties::shapeProperty(Panel& panel, const std::string& key, const json& value, const std::string& at,
-                               Look& look) const {
-	if(key == "radius") panel.setCornerRadii(radii(value, at));
-	else if(key == "borderWidth") panel.setBorder(pixels(value, at), panel.borderColor());
-	else if(key == "borderColor") look.border = color(value, at); // set last, as it may transition
-	else if(key == "shadow") panel.setShadow(engine_.document.shadow(value, at));
-	else return false;
+bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const std::string& at, Look& look) const {
+	switch(slot) {
+	case Slot::Radius:
+		panel.setCornerRadii(radii(value, at));
+		break;
+	case Slot::BorderWidth:
+		panel.setBorder(pixels(value, at), panel.borderColor());
+		break;
+	case Slot::BorderColor:
+		look.border = color(value, at);
+		break; // set last, as it may transition
+	case Slot::Shadow:
+		panel.setShadow(engine_.document.shadow(value, at));
+		break;
+	default:
+		return false;
+	}
 	return true;
 }
 
@@ -329,7 +404,7 @@ void Properties::overlay(Panel& panel, Record& record, const json& value, const 
 	if(anchor.starts_with('#')) anchor.erase(0, 1);
 	record.overlayAnchor = anchor;
 	panel.setOverlay(anchor, overlay.contains("placement") ? placement(overlay["placement"], at + ".placement")
-	                                                      : Placement::Below);
+	                                                       : Placement::Below);
 	if(overlay.contains("open")) {
 		const json& open = overlay["open"];
 		if(open.is_string()) { // a state path, so a click outside can close it
@@ -347,49 +422,49 @@ void Properties::overlay(Panel& panel, Record& record, const json& value, const 
 	}
 }
 
-bool Properties::widgetProperty(Look& look, const std::string& key, const json& value, const std::string& at) const {
-	return (look.label && textProperty(look, key, value, at)) ||
-	       (look.stack && stackProperty(*look.stack, key, value, at)) ||
-	       (look.grid && gridProperty(*look.grid, key, value, at));
+bool Properties::widgetProperty(Look& look, Slot slot, const json& value, const std::string& at) const {
+	return (look.label && textProperty(look, slot, value, at)) ||
+	       (look.stack && stackProperty(*look.stack, slot, value, at)) ||
+	       (look.grid && gridProperty(*look.grid, slot, value, at));
 }
 
 // Labels and text areas
-bool Properties::textProperty(Look& look, const std::string& key, const json& value, const std::string& at) const {
+bool Properties::textProperty(Look& look, Slot slot, const json& value, const std::string& at) const {
 	Label& label = *look.label;
-	if(key == "textColor") look.foreground = color(value, at);
-	else if(key == "padding") label.setPadding(number(value, at));
-	else if(key == "wrap") label.setWrap(boolean(value, at));
-	else if(key == "font") label.setFont(font(value, at));
-	else if(key == "align" && value.is_string()) label.setAlignment(align(value, at), align(value, at));
-	else if(key == "align") {
+	if(slot == Slot::TextColor) look.foreground = color(value, at);
+	else if(slot == Slot::Padding) label.setPadding(number(value, at));
+	else if(slot == Slot::Wrap) label.setWrap(boolean(value, at));
+	else if(slot == Slot::Font) label.setFont(font(value, at));
+	else if(slot == Slot::Align && value.is_string()) label.setAlignment(align(value, at), align(value, at));
+	else if(slot == Slot::Align) {
 		object(value, at);
 		label.setAlignment(align(value.value("horizontal", json("start")), at + ".horizontal"),
 		                   align(value.value("vertical", json("start")), at + ".vertical"));
-	} else if(key == "fitText" && value.is_boolean()) label.setFitToText(value.get<bool>());
-	else if(key == "fitText")
+	} else if(slot == Slot::FitText && value.is_boolean()) label.setFitToText(value.get<bool>());
+	else if(slot == Slot::FitText)
 		label.setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));
-	else if(look.textArea && key == "placeholder") look.textArea->setPlaceholder(text(value));
-	else if(look.textArea && key == "placeholderColor") look.textArea->setPlaceholderColor(color(value, at));
+	else if(look.textArea && slot == Slot::Placeholder) look.textArea->setPlaceholder(text(value));
+	else if(look.textArea && slot == Slot::PlaceholderColor) look.textArea->setPlaceholderColor(color(value, at));
 	else return false;
 	return true;
 }
 
 // Rows and columns
-bool Properties::stackProperty(Stack& stack, const std::string& key, const json& value, const std::string& at) {
-	if(key == "gap") stack.setGap(number(value, at));
-	else if(key == "from" || key == "align") stack.setAlignment(align(value, at)); // "align": v1 name
-	else if(key == "direction") {
+bool Properties::stackProperty(Stack& stack, Slot slot, const json& value, const std::string& at) {
+	if(slot == Slot::Gap) stack.setGap(number(value, at));
+	else if(slot == Slot::From || slot == Slot::Align) stack.setAlignment(align(value, at)); // "align": v1 name
+	else if(slot == Slot::Direction) {
 		const std::string direction = string(value, at);
 		if(direction != "row" && direction != "column") fail(at, "expected \"row\" or \"column\"");
 		stack.setDirection(direction == "row" ? Direction::Row : Direction::Column);
-	} else if(key == "wrap") stack.setWrap(boolean(value, at));
+	} else if(slot == Slot::Wrap) stack.setWrap(boolean(value, at));
 	else return false;
 	return true;
 }
 
-bool Properties::gridProperty(Grid& grid, const std::string& key, const json& value, const std::string& at) {
-	if(key == "columns") grid.setColumns(integer(value, at));
-	else if(key == "gap") grid.setGap(number(value, at));
+bool Properties::gridProperty(Grid& grid, Slot slot, const json& value, const std::string& at) {
+	if(slot == Slot::Columns) grid.setColumns(integer(value, at));
+	else if(slot == Slot::Gap) grid.setGap(number(value, at));
 	else return false;
 	return true;
 }

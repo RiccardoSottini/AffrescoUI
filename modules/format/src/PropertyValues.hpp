@@ -12,6 +12,7 @@
 #include "affresco/render/Stack.hpp"
 
 #include <string>
+#include <string_view>
 
 namespace affresco::format {
 
@@ -65,6 +66,6 @@ namespace affresco::format {
 /// @param at Its place, for errors.
 /// @return false if it isn't one of these.
 /// @throws DocumentError If the value is malformed.
-bool layoutProperty(Panel& panel, const std::string& key, const json& value, const std::string& at);
+bool layoutProperty(Panel& panel, std::string_view key, const json& value, const std::string& at);
 
 } // namespace affresco::format

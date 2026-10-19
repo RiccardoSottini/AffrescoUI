@@ -4,19 +4,18 @@
 #include "Reconciler.hpp"
 #include "Engine.hpp"
 
-#include <algorithm>
-#include <array>
-
 namespace affresco::format {
 
 namespace {
 
-/// @brief Tells whether a node sets its own position or size (otherwise a screen fills its outlet).
-/// @param node The node.
-/// @return true if it has layout properties.
-bool hasLayout(const json& node) {
-	static constexpr std::array<const char*, 6> keys = {"x", "y", "width", "height", "anchors", "fill"};
-	return std::ranges::any_of(keys, [&node](const char* key) { return node.contains(key); });
+/// @brief A node's type, which must be text.
+/// @param node The compiled node.
+/// @param path Its place, for errors.
+/// @return The type.
+/// @throws DocumentError If it isn't text.
+const std::string& typeOf(const CompiledNode& node, const std::string& path) {
+	if(!node.typeIsText) static_cast<void>(string(node.own["type"], path + ".type"));
+	return node.type;
 }
 
 } // namespace
@@ -37,7 +36,7 @@ Record& Reconciler::adopt(Panel& panel, const std::string& type) {
 	return record;
 }
 
-std::optional<std::vector<Item>> Reconciler::childrenOf(const json& node, const Record& record,
+std::optional<std::vector<Item>> Reconciler::childrenOf(const CompiledNode& node, const Record& record,
                                                         const std::string& path) const {
 	if(record.type == "outlet") {
 		// The current screen, filling the outlet unless it places itself
@@ -45,16 +44,15 @@ std::optional<std::vector<Item>> Reconciler::childrenOf(const json& node, const 
 		const json& document = engine_.versions.document();
 		const std::string& screen = engine_.document.screen();
 		if(document.contains("screens") && document["screens"].contains(screen)) {
-			json screenNode = engine_.builder.withStyles(document["screens"][screen], "screens." + screen);
-			if(!hasLayout(screenNode)) screenNode["fill"] = 0;
+			std::string at = "screens." + screen;
 			SharedScope scope = record.locals;
-			NodeRef scopedNode =
-			    engine_.builder.scoped(std::make_shared<const json>(std::move(screenNode)), scope, "screens." + screen);
-			items.push_back({std::move(scopedNode), std::move(scope), "screens." + screen, nullptr});
+			CompiledRef scopedNode =
+			    engine_.builder.scoped(engine_.builder.compiled(document["screens"][screen], at, true), scope, at);
+			items.push_back({std::move(scopedNode), std::move(scope), std::move(at), nullptr});
 		}
 		return items;
 	}
-	if(node.contains("children")) return engine_.builder.expand(node["children"], record.locals, path);
+	if(const json* children = node.children()) return engine_.builder.expand(*children, record.locals, path);
 	if(record.managed == 0) return std::nullopt; // nothing built here before: leave the panel's own children alone
 	return std::vector<Item>{};
 }
@@ -82,7 +80,8 @@ std::pair<Panel*, bool> Reconciler::place(Panel& panel, std::size_t index, const
 	return {&panel.addChild(create(type, item.path)), true};
 }
 
-void Reconciler::reconcileChildren(const json& node, Panel& panel, Record& record, const std::string& path, int depth) {
+void Reconciler::reconcileChildren(const CompiledNode& node, Panel& panel, Record& record, const std::string& path,
+                                   int depth) {
 	if(depth >= maxNodeDepth)
 		fail(path, "nodes nested too deeply (more than " + std::to_string(maxNodeDepth) +
 		               " levels: a component or a screen inside itself?)");
@@ -91,14 +90,14 @@ void Reconciler::reconcileChildren(const json& node, Panel& panel, Record& recor
 
 	std::size_t index = record.firstManaged;
 	for(Item& item : *items) {
-		const json props = engine_.builder.evaluateNode(*item.node, *item.locals, item.path);
-		const std::string type = props.contains("type") ? string(props["type"], item.path + ".type") : "panel";
+		std::vector<json> values = engine_.builder.values(*item.node, *item.locals, item.path);
+		const std::string& type = typeOf(*item.node, item.path);
 		const auto [child, created] = place(panel, index, item, type);
 
 		Record& childRecord = created ? adopt(*child, type) : records_.at(child);
 		childRecord.locals = std::move(item.locals);
 		childRecord.key = std::move(item.key);
-		engine_.properties.apply(*child, childRecord, props, item.path, false, created);
+		engine_.properties.apply(*child, childRecord, item.node, std::move(values), item.path, false, created);
 		reconcileChildren(*item.node, *child, childRecord, item.path, depth + 1);
 		if(created && !engine_.handlersSuspended && childRecord.handlers.contains("onShow"))
 			engine_.scheduler.defer(engine_.runner.later(childRecord.handlers["onShow"], *child, {{"type", "show"}},
@@ -149,11 +148,10 @@ void Reconciler::reconcile() {
 	Record& record = records_.at(&root);
 
 	SharedScope scope = noVariables();
-	const NodeRef node = engine_.builder.scoped(
-	    std::make_shared<const json>(engine_.builder.withStyles(document["root"], "root")), scope, "root");
+	const CompiledRef node = engine_.builder.scoped(engine_.builder.compiled(document["root"], "root"), scope, "root");
 	record.locals = std::move(scope);
-	const json properties = engine_.builder.evaluateNode(*node, *record.locals, "root");
-	engine_.properties.apply(root, record, properties, "root", true, false);
+	engine_.properties.apply(root, record, node, engine_.builder.values(*node, *record.locals, "root"), "root", true,
+	                         false);
 	reconcileChildren(*node, root, record, "root");
 
 	if(!engine_.handlersSuspended) watch(root);
@@ -194,15 +192,14 @@ void Reconciler::requestReconcile() {
 // A template built outside reconciliation (Runtime::instantiate)
 Panel& Reconciler::buildDetached(const json& node, Panel& parent, const std::string& path) {
 	SharedScope scope = noVariables();
-	const NodeRef scopedNode =
-	    engine_.builder.scoped(std::make_shared<const json>(engine_.builder.withStyles(node, path)), scope, path);
-	const json props = engine_.builder.evaluateNode(*scopedNode, *scope, path);
-	const std::string type = props.contains("type") ? string(props["type"], path + ".type") : "panel";
+	const CompiledRef scopedNode = engine_.builder.scoped(engine_.builder.compiled(node, path), scope, path);
+	std::vector<json> values = engine_.builder.values(*scopedNode, *scope, path);
+	const std::string& type = typeOf(*scopedNode, path);
 
 	Panel& panel = parent.addChild(create(type, path));
 	Record& record = adopt(panel, type);
 	record.locals = std::move(scope);
-	engine_.properties.apply(panel, record, props, path, false, true);
+	engine_.properties.apply(panel, record, scopedNode, std::move(values), path, false, true);
 	reconcileChildren(*scopedNode, panel, record, path);
 	return panel;
 }

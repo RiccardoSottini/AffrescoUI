@@ -105,6 +105,12 @@ public:
 	[[nodiscard]] std::shared_ptr<const Font> findFont(std::string_view name) const;
 	/// @brief Evaluates "theme" for this update.
 	void updateTheme();
+	/// @brief Counts what changes how the same values look: the theme, the colours, the fonts, the node types. A panel
+	/// applied under another count is applied again even if its values are the same.
+	/// @return The count; never 0.
+	[[nodiscard]] std::uint64_t appearance() const noexcept { return appearance_; }
+	/// @brief Records that the same values may now look different (a node type was registered or replaced).
+	void changeAppearance() noexcept { ++appearance_; }
 
 	/* The screen an outlet shows */
 
@@ -156,6 +162,7 @@ private:
 	std::string screen_;                     ///< The screen an "outlet" shows.
 	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.
 
+	std::uint64_t appearance_ = 1;                  ///< See appearance().
 	bool stateChanged_ = false;                     ///< See stateChanged().
 	std::uint64_t stateVersion_ = 0;                ///< Counts state changes (computed values are cached per version).
 	mutable std::optional<Globals> globalsCache_;   ///< See globals().

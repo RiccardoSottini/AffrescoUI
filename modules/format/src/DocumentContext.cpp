@@ -107,6 +107,7 @@ void DocumentContext::readDerived() {
 
 	colors_ = std::move(newColors);
 	fonts_ = std::move(newFonts);
+	changeAppearance();
 }
 
 /* Values */
@@ -229,12 +230,12 @@ std::shared_ptr<const Font> DocumentContext::findFont(std::string_view name) con
 
 void DocumentContext::updateTheme() {
 	const json& document = engine_.versions.document();
-	if(document.contains("theme")) {
-		theme_ = text(evaluate(document["theme"], *noVariables(), json::object(), "theme"));
-		globalsChanged();
-	} else {
-		theme_.clear();
-	}
+	std::string theme =
+	    document.contains("theme") ? text(evaluate(document["theme"], *noVariables(), json::object(), "theme")) : "";
+	if(document.contains("theme")) globalsChanged();
+	if(theme == theme_) return;
+	theme_ = std::move(theme);
+	changeAppearance();
 }
 
 /* Navigation */

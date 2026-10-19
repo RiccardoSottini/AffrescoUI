@@ -308,15 +308,18 @@ std::shared_ptr<Template> splitTemplate(std::string_view text, const Place& plac
 
 Value Machine::runTemplate(std::string_view text, const Place& place) {
 	if(!text.contains("{{")) return Value::fromText(text);
-	const std::shared_ptr<const Template> shape = templateOf(text, place);
-	if(shape->whole) return run(shape->pieces.front().expression->program, place);
+	return runTemplate(*templateOf(text, place), place);
+}
+
+Value Machine::runTemplate(const Template& shape, const Place& place) {
+	if(shape.whole) return run(shape.pieces.front().expression->program, place);
 
 	std::string result;
-	for(const Template::Piece& piece : shape->pieces) {
+	for(const Template::Piece& piece : shape.pieces) {
 		result += piece.text;
 		if(piece.expression) result += run(piece.expression->program, place).toText();
 	}
-	if(shape->failure) std::rethrow_exception(shape->failure); // after the placeholders before it, as they come
+	if(shape.failure) std::rethrow_exception(shape.failure); // after the placeholders before it, as they come
 	return Value::fromText(std::move(result));
 }
 

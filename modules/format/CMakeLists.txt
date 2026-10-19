@@ -20,6 +20,8 @@ affrescoui_module(format
 	src/Engine.cpp
 	src/Catalog.cpp
 	src/DocumentContext.cpp
+	src/Binding.cpp
+	src/CompiledNode.cpp
 	src/Builder.cpp
 	src/Reconciler.cpp
 	src/Properties.cpp
