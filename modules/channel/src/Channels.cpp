@@ -378,7 +378,12 @@ namespace affresco::channel {
 ProcessChannel::ProcessChannel(Executor& executor, const std::string& command)
     : executor_(executor), process_(std::make_unique<Process>(command)) {
 	running_ = true;
-	reader_ = std::thread([this] { readLines(process_->fromChild, executor_, *this, alive_, &running_); });
+	try {
+		reader_ = std::thread([this] { readLines(process_->fromChild, executor_, *this, alive_, &running_); });
+	} catch(...) {
+		process_->end(); // the destructor doesn't run when a constructor throws, and ~Process alone leaves it running
+		throw;
+	}
 }
 
 ProcessChannel::~ProcessChannel() {
