@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <functional>
+#include <limits>
 #include <map>
 #include <optional>
 #include <unordered_map>
@@ -540,12 +541,26 @@ double numberOf(const json& value, const std::string& where) {
 	return value.get<double>();
 }
 
+/// 2^63: doubles from -2^63 up to, not including, this convert to a 64-bit integer. Casting any other is undefined.
+constexpr double integerLimit = 9223372036854775808.0;
+
+/// @brief Converts a number to a whole number for a count, an index or a width, saturating at the 64-bit range.
+/// @param value The number.
+/// @return It without its fraction, clamped to the 64-bit range; 0 for NaN.
+std::int64_t saturated(double value) noexcept {
+	if(std::isnan(value)) return 0;
+	if(value >= integerLimit) return std::numeric_limits<std::int64_t>::max();
+	if(value < -integerLimit) return std::numeric_limits<std::int64_t>::min();
+	return static_cast<std::int64_t>(value);
+}
+
 /// @brief Makes an operator's numeric result; integer in, integer out, so indices and counters stay integers.
 /// @param value The result.
 /// @param integral Whether every argument was an integer.
-/// @return An integer when possible, else a double.
+/// @return An integer when possible (whole, and within 64 bits), else a double.
 json numeric(double value, bool integral) {
-	if(integral && std::trunc(value) == value) return static_cast<std::int64_t>(value);
+	if(integral && std::trunc(value) == value && std::abs(value) < integerLimit)
+		return static_cast<std::int64_t>(value);
 	return value;
 }
 
@@ -589,7 +604,7 @@ int order(const json& a, const json& b) {
 /// @param pattern The format.
 /// @return The local time as text.
 std::string formatTime(double milliseconds, std::string_view pattern) {
-	const auto seconds = static_cast<std::time_t>(milliseconds / 1000.0);
+	const auto seconds = static_cast<std::time_t>(saturated(milliseconds / 1000.0));
 	std::tm local{};
 	localtime_r(&seconds, &local);
 
@@ -695,9 +710,9 @@ json applyToItems(const std::string& name, const json& raw, const Context& conte
 json applyToValue(const std::string& name, const json& value, const std::string& at) {
 	if(name == "$not") return !truthy(value);
 	if(name == "$empty") return !truthy(value) && !value.is_boolean() && !value.is_number();
-	if(name == "$round") return static_cast<std::int64_t>(std::llround(numberOf(value, at)));
-	if(name == "$floor") return static_cast<std::int64_t>(std::floor(numberOf(value, at)));
-	if(name == "$ceil") return static_cast<std::int64_t>(std::ceil(numberOf(value, at)));
+	if(name == "$round") return numeric(std::round(numberOf(value, at)), true);
+	if(name == "$floor") return numeric(std::floor(numberOf(value, at)), true);
+	if(name == "$ceil") return numeric(std::ceil(numberOf(value, at)), true);
 	if(name == "$abs") return numeric(std::abs(numberOf(value, at)), value.is_number_integer());
 	if(name == "$text") return toText(value);
 	if(name == "$type")
@@ -757,7 +772,7 @@ json applyToValue(const std::string& name, const json& value, const std::string&
 		return result;
 	}
 	if(name == "$range") {
-		const auto n = static_cast<std::int64_t>(numberOf(value, at));
+		const std::int64_t n = saturated(numberOf(value, at));
 		if(n > 10000) fail(at, "range too long");
 		json result = json::array();
 		for(std::int64_t i = 0; i < n; ++i) result.push_back(i);
@@ -914,7 +929,7 @@ std::optional<json> listOrText(const std::string& name, const Arguments& args) {
 		                                            : args[0].is_array() ? args[0].size()
 		                                                                 : 0);
 		auto clampIndex = [&](std::size_t arg) {
-			auto i = static_cast<std::int64_t>(args.number(arg));
+			std::int64_t i = saturated(args.number(arg));
 			if(i < 0) i += size;
 			return std::clamp<std::int64_t>(i, 0, size);
 		};
@@ -961,7 +976,7 @@ std::optional<json> listOrText(const std::string& name, const Arguments& args) {
 std::optional<json> formatting(const std::string& name, const Arguments& args) {
 	if(name == "$fixed") {
 		args.count(2);
-		const int digits = std::clamp(static_cast<int>(args.number(1)), 0, 12);
+		const int digits = static_cast<int>(std::clamp<std::int64_t>(saturated(args.number(1)), 0, 12));
 		char buffer[64];
 		std::snprintf(buffer, sizeof(buffer), "%.*f", digits, args.number(0));
 		return std::string(buffer);
@@ -969,7 +984,7 @@ std::optional<json> formatting(const std::string& name, const Arguments& args) {
 	if(name == "$pad") {
 		args.between(2, 3);
 		std::string text = toText(args[0]);
-		const auto width = static_cast<std::size_t>(std::max(args.number(1), 0.0));
+		const auto width = static_cast<std::size_t>(std::max<std::int64_t>(saturated(args.number(1)), 0));
 		if(width > 10000) fail(args.at, "width too large");
 		const std::string fill = args.size() > 2 ? toText(args[2]) : "0";
 		while(text.size() < width && !fill.empty()) text = fill + text;
