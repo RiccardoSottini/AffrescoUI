@@ -1,0 +1,94 @@
+/// @file
+/// @brief affrescoui: one command-line tool for screen files, for people, agents and CI.
+//
+//   affrescoui <command> [arguments]     affrescoui help     affrescoui <command> --help
+//
+// The commands are listed in commands() below, and documented with their exit codes in tools/affrescoui/README.md.
+
+#include "Cli.hpp"
+
+#include <affresco/affresco.hpp>
+
+#include <array>
+#include <iostream>
+#include <vector>
+
+#ifndef AFFRESCOUI_VERSION
+#define AFFRESCOUI_VERSION "unknown"
+#endif
+
+namespace affresco::cli {
+
+std::span<const Command> commands() {
+	static constexpr std::array<Command, 7> list = {{
+	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
+	     "Show a screen and let peers change it, like affrescoui_host", runScreen},
+	    {"check", "<file> [--json]", "Check a screen: the schema, the format's rules and the checker", checkScreen},
+	    {"render", "<file> -o out.png [--scale 1|2] [--size WIDTHxHEIGHT]",
+	     "Draw a screen's first frame offscreen, to a PNG", renderScreen},
+	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
+	     formatScreen},
+	    {"ids", "<file> [--check]", "Give readable ids to the nodes that have none; --check only says if some have none",
+	     nameScreenNodes},
+	    {"export", "<file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]",
+	     "Write the revisions after one, from the screen's history on disk, as a change set", exportChanges},
+	    {"import", "<file> <changes.json> [--data DIR]", "Apply a change set to the screen's history on disk",
+	     importChanges},
+	}};
+	return list;
+}
+
+} // namespace affresco::cli
+
+namespace {
+
+/// @brief Prints what the tool does and its commands.
+/// @param out Where.
+void printHelp(std::ostream& out) {
+	out << "affrescoui " AFFRESCOUI_VERSION ": a tool for AffrescoUI screen files\n\n"
+	       "usage: affrescoui <command> [arguments]\n\ncommands:\n";
+	for(const affresco::cli::Command& command : affresco::cli::commands())
+		out << "  " << command.name << ' ' << command.usage << "\n      " << command.summary << '\n';
+	out << "\nexit codes: 0 done, 1 the file has problems, 2 a wrong command line, 3 it couldn't be done\n"
+	       "more: tools/affrescoui/README.md\n";
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+	using affresco::cli::Exit;
+	const std::vector<std::string_view> args(argv + 1, argv + argc);
+	if(args.empty() || args[0] == "help" || args[0] == "--help" || args[0] == "-h") {
+		printHelp(args.empty() ? std::cerr : std::cout);
+		return static_cast<int>(args.empty() ? Exit::Usage : Exit::Success);
+	}
+	if(args[0] == "--version") {
+		std::cout << "affrescoui " AFFRESCOUI_VERSION "\n";
+		return static_cast<int>(Exit::Success);
+	}
+
+	for(const affresco::cli::Command& command : affresco::cli::commands()) {
+		if(command.name != args[0]) continue;
+		const std::span<const std::string_view> rest = std::span(args).subspan(1);
+		if(!rest.empty() && (rest[0] == "--help" || rest[0] == "-h")) {
+			std::cout << "usage: affrescoui " << command.name << ' ' << command.usage << '\n' << command.summary << '\n';
+			return static_cast<int>(Exit::Success);
+		}
+		try {
+			return static_cast<int>(command.run(rest));
+		} catch(const affresco::cli::UsageError& error) {
+			std::cerr << "affrescoui " << command.name << ": " << error.what() << "\nusage: affrescoui "
+			          << command.name << ' ' << command.usage << '\n';
+			return static_cast<int>(Exit::Usage);
+		} catch(const affresco::cli::FileProblem& error) {
+			std::cerr << "affrescoui " << command.name << ": " << error.what() << '\n';
+			return static_cast<int>(Exit::Problems);
+		} catch(const std::exception& error) {
+			std::cerr << "affrescoui " << command.name << ": " << error.what() << '\n';
+			return static_cast<int>(Exit::Failure);
+		}
+	}
+	std::cerr << "affrescoui: unknown command '" << args[0] << "'\n\n";
+	printHelp(std::cerr);
+	return static_cast<int>(Exit::Usage);
+}
