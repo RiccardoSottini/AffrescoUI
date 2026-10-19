@@ -581,7 +581,11 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 	// Refused approvals leave the proposal open
 	if(detail::channelOf(approval.reviewer) == detail::channelOf(proposal->author))
 		return "AffrescoUI screen: permission denied: '" + approval.reviewer + "' may not accept its own proposal";
-	if(!approval.head.empty() && (approval.head.size() < 7 || !proposal->head.starts_with(approval.head)))
+	// Every approval names what was reviewed: without it, a branch pushed to after the review would merge unseen
+	if(approval.head.size() < 7)
+		return "AffrescoUI screen: accepting proposal #" + std::to_string(id) +
+		       " needs its head commit, the version you reviewed (at least 7 characters)";
+	if(!proposal->head.starts_with(approval.head))
 		return "AffrescoUI screen: proposal #" + std::to_string(id) + " changed since you reviewed it (it is now at " +
 		       proposal->head.substr(0, 7) + "): review it again";
 	if(approval.dontAskAgain && proposal->remember.empty())

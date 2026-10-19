@@ -175,6 +175,7 @@ Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
 
 Runtime::~Runtime() {
 	impl_->versions.setObserver(nullptr);
+	*impl_->alive = false; // the window may still run the tasks deferred for this runtime
 	Window* window = impl_->window;
 	if(!window) return;
 	// The timers point at the runtime: stop them, or the window would run them on freed memory
@@ -252,7 +253,7 @@ void Runtime::build(Window& window) {
 	// "onLoad": once, after the first update
 	const json& document = impl->versions.document();
 	if(document.contains("onLoad"))
-		window.defer(impl->later(document["onLoad"], window.root(), {{"type", "load"}}, noVariables(), "onLoad"));
+		impl->defer(impl->later(document["onLoad"], window.root(), {{"type", "load"}}, noVariables(), "onLoad"));
 }
 
 Panel& Runtime::instantiate(std::string_view name, Panel& parent) {

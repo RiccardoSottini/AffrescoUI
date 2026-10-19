@@ -41,10 +41,14 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # installed static libraries link it
+# The release archive, pinned by its hash like the other dependencies (a git tag can be moved)
 FetchContent_Declare(glfw
 	URL https://github.com/glfw/glfw/releases/download/${AFFRESCOUI_GLFW_VERSION}/glfw-${AFFRESCOUI_GLFW_VERSION}.zip
 	URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9 SYSTEM)
 FetchContent_MakeAvailable(glfw)
+# Warnings as errors are for our code: GLFW's own warnings (e.g. sprintf, deprecated in recent macOS SDKs) must not
+# fail the build
+set_target_properties(glfw PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
 # nlohmann/json: the documents (format, vcs and channel modules; the rendering engine does without)
 set(AFFRESCOUI_JSON_VERSION 3.11.3)
@@ -174,7 +178,8 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/channel.cpp tests/unit/sockets.cpp tests/unit/screen.cpp tests/unit/text.cpp)
+		tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp tests/unit/screen.cpp
+		tests/unit/text.cpp)
 	# Expression.hpp and Utf8.hpp stay private
 	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src)
 	target_compile_definitions(affrescoui_unit_tests PRIVATE
@@ -186,7 +191,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
 
 	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers
-	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp)
+	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp tests/unit/review.cpp)
 	target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
 		$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE)

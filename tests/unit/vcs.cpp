@@ -82,6 +82,25 @@ TEST_CASE("vcs: an accept that names an outdated head is refused") {
 	CHECK(repository.head().author == "agent");
 }
 
+// Before, an approval without a head (an "accept" step in a screen, Screen::acceptProposal) merged whatever the
+// proposal had become, including commits pushed after the review
+TEST_CASE("vcs: an accept that names no head is refused") {
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, permissionsScreen());
+	const affresco::RevisionResult proposed =
+	    repository.submit({{"author", "agent"}, {"message", "Retitle"}, {"set", {{"#title/text", "Today"}}}});
+	REQUIRE(proposed.status == RevisionStatus::Proposed);
+
+	for(const char* head : {"", "abc"}) {
+		CAPTURE(head);
+		const auto refused = repository.accept(proposed.proposal, {"user", head, false});
+		REQUIRE(refused);
+		CHECK(refused.value_or("").find("needs its head commit") != std::string::npos);
+	}
+	CHECK(repository.proposals().size() == 1);
+	CHECK(repository.head().number == 0);
+}
+
 TEST_CASE("vcs: an author can't review its own proposal") {
 	const affresco::format::Rules rules;
 	json screen = permissionsScreen();

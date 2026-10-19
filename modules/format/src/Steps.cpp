@@ -1,5 +1,8 @@
 #include "RuntimeImpl.hpp"
 
+#include <algorithm>
+#include <array>
+
 namespace affresco::format {
 
 /* Behaviour */
@@ -37,6 +40,12 @@ void Runtime::Impl::setOnceTimer(double delayMs, std::function<void()> task) {
 		task();
 	});
 	onceTimers.insert(*id);
+}
+
+void Runtime::Impl::defer(std::function<void()> task) const {
+	window->defer([alive = alive, task = std::move(task)] {
+		if(*alive) task();
+	});
 }
 
 void Runtime::Impl::runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
@@ -194,32 +203,22 @@ std::optional<bool> Runtime::Impl::flowStep(const Running& s) {
 	return std::nullopt;
 }
 
+// While a proposal is previewed its document runs, timers and all: a control step then runs only from the user's own
+// input, never from a timer or a handler that fires by itself (onLoad, onShow, watch), which the proposal may arrange
+void Runtime::Impl::checkControl(const std::string& where) const {
+	if(versions.previewing() && !(window && window->routingInput()))
+		fail(where, "while a proposal is previewed, control steps run only from the user's input");
+}
+
 std::optional<bool> Runtime::Impl::outsideStep(const Running& s) {
 	const json& step = s.step;
 	const std::string& where = s.where;
+	if(std::ranges::any_of(std::array{"call", "send", "connect", "patch"},
+	                       [&step](const char* key) { return step.contains(key); }))
+		checkControl(where);
 
 	if(step.contains("call")) {
-		const std::string name = string(step["call"], where + ".call");
-		if(const auto call = nativeCalls.find(name); call != nativeCalls.end()) {
-			const json arguments = step.contains("with") ? s.value("with") : json::object();
-			try {
-				json result = call->second(arguments);
-				if(step.contains("into")) {
-					versions.state()[s.target("into")] = std::move(result);
-					changed();
-				}
-			} catch(const DocumentError&) {
-				throw;
-			} catch(const std::exception& error) {
-				if(!step.contains("onError")) fail(where + ".call", name + ": " + error.what());
-				const Scope scope{&s.locals, nullptr, {{"error", error.what()}}};
-				return s.run(step["onError"], scope, where + ".onError");
-			}
-		} else if(const auto it = nativeActions.find(name); it != nativeActions.end()) {
-			it->second(s.sender);
-		} else {
-			fail(where + ".call", "no native action '" + name + "' registered");
-		}
+		return callStep(s);
 	} else if(step.contains("emit")) {
 		const json message = {{"type", "event"},
 		                      {"name", string(step["emit"], where + ".emit")},
@@ -236,7 +235,7 @@ std::optional<bool> Runtime::Impl::outsideStep(const Running& s) {
 		                 {"message", step.contains("message") ? s.value("message") : json("")},
 		                 {"patch", s.value("patch")}};
 		if(window) {
-			window->defer([this, revision = std::move(revision)] {
+			defer([this, revision = std::move(revision)] {
 				if(const auto error = versions.commit(revision)) report(*error);
 			});
 		}
@@ -246,28 +245,65 @@ std::optional<bool> Runtime::Impl::outsideStep(const Running& s) {
 	return true;
 }
 
-// Review and history controls change the document: done after the event, like revisions
-std::optional<bool> Runtime::Impl::reviewStep(const Running& s) {
+bool Runtime::Impl::callStep(const Running& s) {
 	const json& step = s.step;
 	const std::string& where = s.where;
-	if(!step.contains("accept") && !step.contains("reject") && !step.contains("preview") && !step.contains("restore") &&
-	   !step.contains("revert") && !step.contains("undo") && !step.contains("endPreview"))
-		return std::nullopt;
+	const std::string name = string(step["call"], where + ".call");
+	if(const auto call = nativeCalls.find(name); call != nativeCalls.end()) {
+		const json arguments = step.contains("with") ? s.value("with") : json::object();
+		try {
+			json result = call->second(arguments);
+			if(step.contains("into")) {
+				versions.state()[s.target("into")] = std::move(result);
+				changed();
+			}
+		} catch(const DocumentError&) {
+			throw;
+		} catch(const std::exception& error) {
+			if(!step.contains("onError")) fail(where + ".call", name + ": " + error.what());
+			const Scope scope{&s.locals, nullptr, {{"error", error.what()}}};
+			return s.run(step["onError"], scope, where + ".onError");
+		}
+	} else if(const auto it = nativeActions.find(name); it != nativeActions.end()) {
+		it->second(s.sender);
+	} else {
+		fail(where + ".call", "no native action '" + name + "' registered");
+	}
+	return true;
+}
 
-	json control = step;
-	for(const char* key : {"accept", "reject", "preview", "restore", "revert", "reason"})
+json Runtime::Impl::evaluateControl(const Running& s) {
+	const std::string& where = s.where;
+	json control = s.step;
+	for(const char* key : {"accept", "head", "reject", "preview", "restore", "revert", "reason"})
 		if(control.contains(key)) control[key] = s.value(control[key], where + "." + key);
 	for(const char* key : {"accept", "reject", "preview"})
 		if(control.contains(key) && !control[key].is_number_integer()) fail(where + "." + key, "expected a number");
 	for(const char* key : {"restore", "revert"})
 		if(control.contains(key) && !control[key].is_number_integer() && !control[key].is_string())
 			fail(where + "." + key, "expected a revision number or a commit");
+	if(control.contains("accept") && !control.value("head", json()).is_string())
+		fail(where + ".head", "\"accept\" needs the proposal's head commit, the version the user reviewed, e.g. "
+		                      "\"{{proposals[0].head}}\"");
+	return control;
+}
+
+// Review and history controls change the document: done after the event, like revisions
+std::optional<bool> Runtime::Impl::reviewStep(const Running& s) {
+	if(std::ranges::none_of(std::array{"accept", "reject", "preview", "restore", "revert", "undo", "endPreview"},
+	                        [&s](const char* key) { return s.step.contains(key); }))
+		return std::nullopt;
+	checkControl(s.where);
+
+	json control = evaluateControl(s);
 	if(!window) return true;
 
-	window->defer([this, control = std::move(control)] {
+	defer([this, control = std::move(control)] {
 		std::optional<std::string> error;
 		try {
-			if(control.contains("accept")) error = versions.accept(control["accept"].get<int>(), {"user", {}, false});
+			if(control.contains("accept"))
+				error =
+				    versions.accept(control["accept"].get<int>(), {"user", control["head"].get<std::string>(), false});
 			else if(control.contains("reject"))
 				versions.reject(control["reject"].get<int>(), text(control.value("reason", json(""))));
 			else if(control.contains("preview")) error = versions.preview(control["preview"].get<int>());

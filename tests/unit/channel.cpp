@@ -1,17 +1,22 @@
 /// @file
-/// @brief Unit tests for the channel module: the live protocol (Session) over a Channel kept in memory, and
-/// ProcessChannel with small programs run by the system shell.
+/// @brief Unit tests for the channel module: the live protocol (Session) over a Channel kept in memory, the
+/// line framing of SocketChannel over a socket pair, and ProcessChannel with small programs run by the system
+/// shell.
 
 #include "Helpers.hpp"
 
 #include <affresco/channel/Channels.hpp>
 #include <affresco/channel/Session.hpp>
+#include <affresco/channel/Sockets.hpp>
+#include <affresco/core/Executor.hpp>
+#include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
@@ -19,14 +24,34 @@
 #include <functional>
 #include <mutex>
 #include <string>
+#include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
+
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 
 using affresco::json;
 using affresco::test::MemoryChannel;
 using namespace std::chrono_literals;
 
 namespace {
+
+#ifndef _WIN32
+/// @brief Writes all of a text to a descriptor, as the other end of a channel.
+/// @param fd The descriptor.
+/// @param text The bytes.
+void writeAll(int fd, std::string_view text) {
+	for(std::size_t written = 0; written < text.size();) {
+		const ssize_t n = write(fd, text.data() + written, text.size() - written);
+		if(n <= 0) return;
+		written += static_cast<std::size_t>(n);
+	}
+}
+#endif
 
 /// @brief A screen under version control, and a peer connected to it.
 struct Peer {
@@ -150,6 +175,50 @@ TEST_CASE("channel: an accept from a peer that may not review is rejected") {
 	CHECK(peer.versions.proposals().size() == 1); // still waiting for a reviewer
 	CHECK(peer.versions.head().number == 0);
 }
+
+TEST_CASE("channel: a peer's text in a rejected revision reaches the log as one line") {
+	Peer peer;
+	const affresco::channel::Session agent(peer.channel, peer.versions, "agent");
+	std::vector<std::string> logged;
+	affresco::setLogSink([&](affresco::LogLevel, std::string_view message) { logged.emplace_back(message); });
+	peer.channel.receive(R"({"type": "revision", "id": 1, "set": {"#a\nFAKE: approved\u001b[2J/text": "x"}})");
+	affresco::setLogSink(nullptr);
+
+	REQUIRE(logged.size() == 1);
+	CHECK(logged[0].find("#a\\nFAKE: approved\\x1b[2J") != std::string::npos);
+	CHECK(std::ranges::none_of(logged[0], [](char c) { return c == '\n' || c == '\x1b'; }));
+	CHECK(peer.channel.sent.back()["type"] == "rejected"); // the peer still gets its own text back, as JSON
+}
+
+#ifndef _WIN32
+// Before, a peer that never sent a line break made the app keep everything it sent, without limit, and searched
+// it all again after every 4 KiB read
+TEST_CASE("channel: a SocketChannel splits lines across reads, and closes on a line longer than maxMessageBytes") {
+	std::array<int, 2> ends = {-1, -1};
+	REQUIRE(socketpair(AF_UNIX, SOCK_STREAM, 0, ends.data()) == 0);
+	QueueExecutor executor;
+	affresco::channel::SocketChannel channel(executor, ends[0]);
+	std::vector<std::string> received;
+	bool closed = false;
+	channel.onMessage.connect([&](const std::string& line) { received.push_back(line); });
+	channel.onClosed.connect([&] { closed = true; });
+
+	std::thread peer([other = ends[1]] {
+		writeAll(other, "first\n\nsec");
+		std::this_thread::sleep_for(std::chrono::milliseconds(20)); // "second" arrives in two reads
+		writeAll(other, "ond\n");
+		// One byte too many, so the channel reads it all before it closes (or the writer would wait for it)
+		const std::string block(std::size_t{1} << 20, 'x');
+		for(std::size_t sent = 0; sent < affresco::maxMessageBytes; sent += block.size()) writeAll(other, block);
+		writeAll(other, "x");
+	});
+	CHECK(executor.runUntil([&] { return closed; }));
+	peer.join();
+	close(ends[1]);
+
+	CHECK(received == std::vector<std::string>{"first", "second"});
+}
+#endif
 
 // Found by fuzzing (tests/fuzz, session): the parser's out_of_range got past Session::read and stopped the app
 TEST_CASE("channel: a message with a number too large for a double gets an error") {
