@@ -39,10 +39,11 @@ def summarize(export, root):
     files were measured and which weren't, and a module with none is listed too, never silently dropped."""
     files, modules = {}, {}
     for name in sorted(os.listdir(os.path.join(root, "modules"))):
-        modules[name] = {"sources": sources(root, name), "measured": [], "figures": {}}
+        if os.path.isdir(os.path.join(root, "modules", name)):  # not a stray file such as macOS's .DS_Store
+            modules[name] = {"sources": sources(root, name), "measured": [], "figures": {}}
     for entry in export["data"][0]["files"]:
         path = relative(entry["filename"], root)
-        if not path or not path.startswith("modules/"):
+        if not path or module_of(path) not in modules:
             continue
         files[path] = numbers(entry["summary"])
         module = modules[module_of(path)]

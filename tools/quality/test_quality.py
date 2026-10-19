@@ -176,6 +176,7 @@ class CoverageTest(unittest.TestCase):
             for path in ("modules/vcs/src/A.cpp", "modules/vcs/src/B.cpp", "modules/render/src/C.cpp"):
                 os.makedirs(os.path.dirname(os.path.join(root, path)), exist_ok=True)
                 open(os.path.join(root, path), "w").close()
+            open(os.path.join(root, "modules/.DS_Store"), "w").close()  # a file, not a module
 
             def summary(covered, count):
                 return {kind: {"covered": covered, "count": count, "percent": 100.0 * covered / count}
@@ -185,6 +186,7 @@ class CoverageTest(unittest.TestCase):
                 {"filename": f"{root}/modules/vcs/src/A.cpp", "summary": summary(1, 4)},
                 {"filename": f"{root}/modules/vcs/include/A.hpp", "summary": summary(2, 4)}]}]}
             result = coverage.summarize(export, root)
+        self.assertEqual(list(result["modules"]), ["render", "vcs"])
         vcs = result["modules"]["vcs"]
         self.assertEqual(vcs["figures"]["lines"], {"covered": 3, "count": 8, "percent": 37.5})
         self.assertEqual((vcs["measured"], vcs["unmeasured"]), (["modules/vcs/src/A.cpp"], ["modules/vcs/src/B.cpp"]))
