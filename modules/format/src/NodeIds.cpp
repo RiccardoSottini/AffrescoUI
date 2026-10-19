@@ -46,17 +46,19 @@ void walk(const json& node, const std::string& pointer,
 
 /// @brief Finds the first node with an id in a node and its children, parents first, stopping there.
 /// @param node The node.
-/// @param pointer Its JSON Pointer.
 /// @param id The id.
-/// @return The node's JSON Pointer, or std::nullopt.
-std::optional<std::string> search(const json& node, const std::string& pointer, std::string_view id) {
-	if(!node.is_object() || node.value("slot", json(false)) == true) return std::nullopt;
+/// @return The path from @p node to the one found ("" for @p node itself, "/children/2/children/0"), or
+/// std::nullopt. It is written only on the way back from the node found.
+std::optional<std::string> pathTo(const json& node, std::string_view id) {
+	if(!node.is_object()) return std::nullopt;
+	if(const auto slot = node.find("slot"); slot != node.end() && *slot == true) return std::nullopt;
 	if(const auto own = node.find("id"); own != node.end() && own->is_string() && own->get_ref<const std::string&>() == id)
-		return pointer;
+		return std::string();
 	const auto children = node.find("children");
 	if(children == node.end() || !children->is_array()) return std::nullopt;
 	for(std::size_t i = 0; i < children->size(); ++i)
-		if(auto found = search((*children)[i], pointer + "/children/" + std::to_string(i), id)) return found;
+		if(std::optional<std::string> rest = pathTo((*children)[i], id))
+			return "/children/" + std::to_string(i) + *rest;
 	return std::nullopt;
 }
 
@@ -203,9 +205,23 @@ void forEachNode(const json& document, const std::function<void(const json& node
 	for(const auto& [pointer, tree] : nodeTrees(document)) walk(*tree, pointer, visit);
 }
 
+// Called for every "#id" path and on every step of a blame: no pointer is built until the node is found
 std::optional<std::string> findNodeWithId(const json& document, std::string_view id) {
-	for(const auto& [pointer, tree] : nodeTrees(document))
-		if(std::optional<std::string> found = search(*tree, pointer, id)) return found;
+	if(!document.is_object()) return std::nullopt;
+	if(const auto root = document.find("root"); root != document.end())
+		if(std::optional<std::string> path = pathTo(*root, id)) return "/root" + *path;
+	for(const char* section : {"screens", "templates"}) {
+		const auto nodes = document.find(section);
+		if(nodes == document.end() || !nodes->is_object()) continue;
+		for(const auto& [name, node] : nodes->items())
+			if(std::optional<std::string> path = pathTo(node, id))
+				return "/" + std::string(section) + "/" + escaped(name) + *path;
+	}
+	const auto components = document.find("components");
+	if(components == document.end() || !components->is_object()) return std::nullopt;
+	for(const auto& [name, component] : components->items())
+		if(const auto node = component.is_object() ? component.find("node") : component.end(); node != component.end())
+			if(std::optional<std::string> path = pathTo(*node, id)) return "/components/" + escaped(name) + "/node" + *path;
 	return std::nullopt;
 }
 
