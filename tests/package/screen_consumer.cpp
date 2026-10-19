@@ -29,7 +29,7 @@ constexpr std::string_view screenText = R"json({
 /// @param argc The number of arguments.
 /// @param argv The arguments: "--window" to show the screen.
 /// @return 0 if every check holds, 1 otherwise.
-int main(int argc, char** argv) {
+int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
 		affresco::Screen screen = affresco::Screen::fromString(screenText);
 		std::string error;
