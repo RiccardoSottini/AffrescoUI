@@ -184,7 +184,7 @@ void HistoryStore::writeRefs(const std::string& text) {
 }
 
 std::filesystem::path HistoryStore::objectFile(std::string_view id) const {
-	if(!isCommitId(id)) throw HistoryError(directory_, "'" + std::string(id.substr(0, 80)) + "' is not a commit id");
+	if(!isObjectId(id)) throw HistoryError(directory_, "'" + std::string(id.substr(0, 80)) + "' is not an object id");
 	return directory_ / "objects" / std::string(id.substr(0, 2)) / std::string(id.substr(2));
 }
 
@@ -258,7 +258,7 @@ void HistoryStore::write(const std::filesystem::path& file, std::string_view tex
 		throw HistoryError(file.parent_path(), "can't be synced (" + lastError() + ")");
 }
 
-bool isCommitId(std::string_view text) noexcept {
+bool isObjectId(std::string_view text) noexcept {
 	return text.size() == 64 &&
 	       std::ranges::all_of(text, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
 }

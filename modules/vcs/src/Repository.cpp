@@ -133,8 +133,10 @@ std::string Repository::describe(const Commit& c) {
 }
 
 // The id covers everything that makes the commit what it is, the parents included, so it stands for its history
-std::string Repository::idOf(const Commit& commit) {
-	std::string object = "tree " + detail::sha256(commit.document.dump()) + "\n";
+std::string Repository::idOf(const Commit& commit) { return idOf(commit, detail::sha256(commit.document.dump())); }
+
+std::string Repository::idOf(const Commit& commit, const std::string& tree) {
+	std::string object = "tree " + tree + "\n";
 	for(const std::string& parent : commit.parents) object += "parent " + parent + "\n";
 	object += "author " + commit.author + "\ncommitter " + commit.committer + "\ntime " + commit.time + "\npatch " +
 	          detail::sha256(commit.patch.dump()) + "\n";

@@ -72,7 +72,7 @@ std::vector<std::string> strings(const json& value, const std::string& where) {
 /// @throws DocumentError If it is not 64 lowercase hex digits.
 std::string commitId(const json& value, const std::string& where) {
 	std::string id = expect::string(value, where);
-	if(!detail::isCommitId(id)) expect::fail(where, "expected a commit id (64 hex digits)");
+	if(!detail::isObjectId(id)) expect::fail(where, "expected a commit id (64 hex digits)");
 	return id;
 }
 
@@ -236,14 +236,28 @@ Repository::Proposal Repository::readProposal(const json& entry, const std::stri
 	return proposal;
 }
 
-Repository::Commit Repository::readObject(detail::HistoryStore& store, const std::string& id,
-                                          const std::filesystem::path& namedIn) {
-	if(!detail::isCommitId(id)) throw HistoryError(namedIn, "'" + id.substr(0, 80) + "' is not a commit id");
+const json& Repository::readDocument(detail::HistoryStore& store, const std::string& id,
+                                     const std::filesystem::path& namedIn,
+                                     std::unordered_map<std::string, json>& documents) {
+	if(const auto known = documents.find(id); known != documents.end()) return known->second;
+	if(!detail::isObjectId(id)) throw HistoryError(namedIn, "'" + id.substr(0, 80) + "' is not a document id");
 	const std::filesystem::path file = store.objectFile(id);
-	return reading(file, [&] {
+	json document = reading(file, [&] { return parseUntrusted(store.readObject(id)); });
+	// Its id is the SHA-256 of its JSON, the same hash a commit's id covers
+	if(detail::sha256(document.dump()) != id)
+		throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
+	return documents.emplace(id, std::move(document)).first->second;
+}
+
+Repository::Commit Repository::readObject(detail::HistoryStore& store, const std::string& id,
+                                          const std::filesystem::path& namedIn,
+                                          std::unordered_map<std::string, json>& documents) {
+	if(!detail::isObjectId(id)) throw HistoryError(namedIn, "'" + id.substr(0, 80) + "' is not a commit id");
+	const std::filesystem::path file = store.objectFile(id);
+	Commit commit;
+	const std::string tree = reading(file, [&] {
 		const json object = parseUntrusted(store.readObject(id));
 		expect::object(object, "commit");
-		Commit commit;
 		commit.parents = strings(object.at("parents"), "parents");
 		commit.author = expect::string(object.at("author"), "author");
 		commit.committer = expect::string(object.at("committer"), "committer");
@@ -251,25 +265,27 @@ Repository::Commit Repository::readObject(detail::HistoryStore& store, const std
 		commit.proposal = expect::integer(object.at("proposal"), "proposal");
 		commit.message = expect::string(object.at("message"), "message");
 		commit.patch = object.at("patch");
-		commit.document = object.at("document");
-		commit.number = -1; // from its parents, once they are all read
-		// The id covers all of it: a single changed byte gives another id
-		if(idOf(commit) != id) throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
-		commit.id = id;
-		return commit;
+		return commitId(object.at("tree"), "tree");
 	});
+	// The id covers all of it, the document's id included: a single changed byte gives another id
+	if(idOf(commit, tree) != id) throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
+	commit.document = readDocument(store, tree, file, documents);
+	commit.id = id;
+	commit.number = -1; // from its parents, once they are all read
+	return commit;
 }
 
 std::unordered_map<std::string, Repository::Commit> Repository::readCommits(detail::HistoryStore& store,
                                                                             std::vector<std::string> heads) {
 	std::unordered_map<std::string, Commit> objects;
+	std::unordered_map<std::string, json> documents;
 	std::vector<std::pair<std::string, std::filesystem::path>> pending; // a commit, and the file that names it
 	for(std::string& head : heads) pending.emplace_back(std::move(head), store.refsFile());
 	while(!pending.empty()) {
 		auto [id, namedIn] = std::move(pending.back());
 		pending.pop_back();
 		if(objects.contains(id)) continue;
-		Commit commit = readObject(store, id, namedIn);
+		Commit commit = readObject(store, id, namedIn, documents);
 		for(const std::string& parent : commit.parents)
 			if(!objects.contains(parent)) pending.emplace_back(parent, store.objectFile(id));
 		objects.emplace(id, std::move(commit));
@@ -312,10 +328,18 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 
 /* Writing */
 
-json Repository::objectOf(const Commit& commit) {
+json Repository::objectOf(const Commit& commit, const std::string& tree) {
 	return {{"parents", commit.parents}, {"author", commit.author},     {"committer", commit.committer},
 	        {"time", commit.time},       {"proposal", commit.proposal}, {"message", commit.message},
-	        {"patch", commit.patch},     {"document", commit.document}};
+	        {"patch", commit.patch},     {"tree", tree}};
+}
+
+void Repository::writeCommit(const Commit& commit) {
+	// Like Git's trees: commits that leave the document as it was (state changes, merges) share its object
+	const std::string document = commit.document.dump();
+	const std::string tree = detail::sha256(document);
+	if(!history_->hasObject(tree)) history_->writeObject(tree, document);
+	history_->writeObject(commit.id, objectOf(commit, tree).dump());
 }
 
 json Repository::refsJson() const {
@@ -348,7 +372,7 @@ void Repository::saveHistory() noexcept {
 			auto [id, parentsWritten] = std::move(pending.back());
 			pending.pop_back();
 			if(parentsWritten) {
-				history_->writeObject(id, objectOf(objects_.at(id)).dump());
+				writeCommit(objects_.at(id));
 				continue;
 			}
 			if(history_->hasObject(id) || !seen.insert(id).second) continue;

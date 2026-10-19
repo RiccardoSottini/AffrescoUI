@@ -90,20 +90,33 @@ int temporaryFiles(const std::filesystem::path& folder) {
 	return count;
 }
 
-/// @brief Writes a commit object the way a program that ignores the rules could: well formed, with a valid id.
+/// @brief Writes an object into a history folder.
 /// @param history The history folder.
-/// @param commit The object: parents, author, committer, time, proposal, message, patch, document.
+/// @param id Its id.
+/// @param text Its text.
+void writeObject(const std::filesystem::path& history, const std::string& id, const std::string& text) {
+	std::filesystem::create_directories(objectFile(history, id).parent_path());
+	writeText(objectFile(history, id), text);
+}
+
+/// @brief Writes a commit and its document the way a program that ignores the rules could: well formed, with valid
+/// ids.
+/// @param history The history folder.
+/// @param commit The commit: parents, author, committer, time, proposal, message, patch, document.
 /// @return Its id.
-std::string forgeCommit(const std::filesystem::path& history, const json& commit) {
+std::string forgeCommit(const std::filesystem::path& history, json commit) {
 	using affresco::vcs::detail::sha256;
-	std::string object = "tree " + sha256(commit.at("document").dump()) + "\n";
+	const std::string document = commit.at("document").dump(), tree = sha256(document);
+	std::string object = "tree " + tree + "\n";
 	for(const json& parent : commit.at("parents")) object += "parent " + parent.get<std::string>() + "\n";
 	object += "author " + commit.at("author").get<std::string>() + "\ncommitter " +
 	          commit.at("committer").get<std::string>() + "\ntime " + commit.at("time").get<std::string>() +
 	          "\npatch " + sha256(commit.at("patch").dump()) + "\n\n" + commit.at("message").get<std::string>();
 	const std::string id = sha256(object);
-	std::filesystem::create_directories(objectFile(history, id).parent_path());
-	writeText(objectFile(history, id), commit.dump());
+	commit.erase("document");
+	commit["tree"] = tree;
+	writeObject(history, tree, document);
+	writeObject(history, id, commit.dump());
 	return id;
 }
 
@@ -232,6 +245,32 @@ TEST_CASE("vcs: a history kept in a folder comes back whole after a restart") {
 	CHECK(next.proposal == open + 1);
 }
 
+TEST_CASE("vcs: commits that leave the document as it was share its object") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	Repository repository(rules, permissionsScreen());
+	repository.openHistory(history);
+	REQUIRE(repository.submit({{"author", "studio"}, {"set", {{"/state/count", 1}}}}).status ==
+	        RevisionStatus::Applied);
+	REQUIRE(repository.submit({{"author", "studio"}, {"set", {{"/state/count", 2}}}}).status ==
+	        RevisionStatus::Applied);
+
+	// Three commits on one document: a state change doesn't change the document
+	int objects = 0;
+	for(const auto& entry : std::filesystem::recursive_directory_iterator(history / "objects"))
+		if(entry.is_regular_file()) ++objects;
+	CHECK(objects == 3 + 1);
+	const json head = json::parse(readText(objectFile(history, repository.head().id)));
+	CHECK_FALSE(head.contains("document"));
+	CHECK(readText(objectFile(history, head.at("tree").get<std::string>())) == repository.document().dump());
+
+	Repository again(rules, permissionsScreen());
+	REQUIRE(again.openHistory(history).loaded);
+	CHECK(again.head().id == repository.head().id);
+	CHECK(again.document() == repository.document());
+}
+
 TEST_CASE("vcs: a history that began with another version of the screen is set aside") {
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;
@@ -299,6 +338,17 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 		damaged = objectFile(history, head);
 		const std::string text = readText(damaged);
 		writeText(damaged, text.substr(0, text.size() / 2));
+	}
+	SUBCASE("a document whose content changed") {
+		const std::string text = readText(objectFile(history, head));
+		const std::string tree = json::parse(text).at("tree").get<std::string>();
+		damaged = objectFile(history, tree);
+		std::string document = readText(damaged);
+		const std::size_t at = document.find("\"Done\"");
+		REQUIRE(at != std::string::npos);
+		document.replace(at, 6, "\"Dome\"");
+		writeText(damaged, document);
+		expected = "doesn't match its SHA-256";
 	}
 	SUBCASE("refs whose content changed") {
 		damaged = history / "refs.json";

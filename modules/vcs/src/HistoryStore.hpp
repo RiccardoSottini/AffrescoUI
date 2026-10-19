@@ -56,9 +56,9 @@ private:
 ///     <name>.history/
 ///       lock            held by the program that writes the history
 ///       refs.json       main, the open proposals, the grants and the mode
-///       objects/ab/cd…  one commit each, named by its SHA-256
+///       objects/ab/cd…  commits and documents, each named by its SHA-256
 ///
-/// Knows nothing about what a commit holds: it reads and writes text. Every write is atomic (a temporary file, synced,
+/// Knows nothing about what an object holds: it reads and writes text. Every write is atomic (a temporary file, synced,
 /// then renamed over the old one), so a crash leaves either the old file or the new one. Only the program that holds
 /// the lock writes; any other one only reads. Used on the main thread, like the Repository that owns it.
 class HistoryStore {
@@ -90,21 +90,21 @@ public:
 	/// @throws HistoryError If it can't be written.
 	void writeRefs(const std::string& text);
 
-	/// @brief The file of a commit object.
-	/// @param id The commit's id: 64 lowercase hex digits (see isCommitId()).
+	/// @brief The file of an object: a commit, or a document that commits name.
+	/// @param id The object's id: 64 lowercase hex digits (see isObjectId()).
 	/// @return objects/<first two digits>/<the other 62>.
 	[[nodiscard]] std::filesystem::path objectFile(std::string_view id) const;
-	/// @brief Tells whether a commit object is known to be on disk (written or read by this store).
-	/// @param id The commit's id.
+	/// @brief Tells whether an object is known to be on disk (written or read by this store).
+	/// @param id The object's id.
 	/// @return true if it is.
 	[[nodiscard]] bool hasObject(const std::string& id) const { return objects_.contains(id); }
-	/// @brief Reads a commit object, and remembers that it is on disk.
-	/// @param id The commit's id.
+	/// @brief Reads an object, and remembers that it is on disk.
+	/// @param id The object's id.
 	/// @return Its text.
 	/// @throws HistoryError If it can't be read.
 	[[nodiscard]] std::string readObject(const std::string& id);
-	/// @brief Writes a commit object.
-	/// @param id The commit's id.
+	/// @brief Writes an object.
+	/// @param id The object's id.
 	/// @param text Its text.
 	/// @throws HistoryError If it can't be written.
 	void writeObject(const std::string& id, std::string_view text);
@@ -132,13 +132,13 @@ private:
 	std::filesystem::path directory_;         ///< The folder.
 	std::optional<FileLock> lock_;            ///< Held while this program writes the history.
 	std::string problem_;                     ///< Why there is no lock.
-	std::unordered_set<std::string> objects_; ///< Commits known to be on disk.
+	std::unordered_set<std::string> objects_; ///< Objects known to be on disk.
 	std::string refs_;                        ///< What the refs file was last written or read with.
 };
 
-/// @brief Tells whether a text is a whole commit id.
+/// @brief Tells whether a text is a whole object id (a commit's, or a document's).
 /// @param text The text.
 /// @return true for 64 lowercase hex digits.
-[[nodiscard]] bool isCommitId(std::string_view text) noexcept;
+[[nodiscard]] bool isObjectId(std::string_view text) noexcept;
 
 } // namespace affresco::vcs::detail

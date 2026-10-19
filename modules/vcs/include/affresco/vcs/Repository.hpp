@@ -228,18 +228,36 @@ private:
 	/// @param commit The commit; its id is ignored.
 	/// @return 64 hex digits.
 	[[nodiscard]] static std::string idOf(const Commit& commit);
+	/// @brief A commit's id, when its document's SHA-256 (its tree) is known.
+	/// @param commit The commit; its id and document are ignored.
+	/// @param tree The SHA-256 of its document's JSON.
+	/// @return 64 hex digits.
+	[[nodiscard]] static std::string idOf(const Commit& commit, const std::string& tree);
 	/// @brief A commit as it is written to disk.
 	/// @param commit The commit.
-	/// @return Everything its id covers.
-	[[nodiscard]] static json objectOf(const Commit& commit);
-	/// @brief Reads a commit object and checks it against its id.
+	/// @param tree The id of its document, which is written once, as an object of its own.
+	/// @return Everything its id covers, with the document named by its id.
+	[[nodiscard]] static json objectOf(const Commit& commit, const std::string& tree);
+	/// @brief Reads a document object and checks it against its id.
+	/// @param store The history.
+	/// @param id The document's id: the SHA-256 of its JSON.
+	/// @param namedIn The file that names it, for errors.
+	/// @param documents The documents read so far, by id: commits that share a document read it once.
+	/// @return The document.
+	/// @throws DocumentError If it is missing, malformed, or its content doesn't match its id.
+	[[nodiscard]] static const json& readDocument(detail::HistoryStore& store, const std::string& id,
+	                                              const std::filesystem::path& namedIn,
+	                                              std::unordered_map<std::string, json>& documents);
+	/// @brief Reads a commit object and its document, and checks them against their ids.
 	/// @param store The history.
 	/// @param id The commit's id.
 	/// @param namedIn The file that names it, for errors.
+	/// @param documents The documents read so far, by id (see readDocument()).
 	/// @return The commit, not yet numbered.
 	/// @throws DocumentError If it is missing, malformed, or its content doesn't match its id.
 	[[nodiscard]] static Commit readObject(detail::HistoryStore& store, const std::string& id,
-	                                       const std::filesystem::path& namedIn);
+	                                       const std::filesystem::path& namedIn,
+	                                       std::unordered_map<std::string, json>& documents);
 	/// @brief Reads every commit the heads lead to, and numbers them.
 	/// @param store The history.
 	/// @param heads main's head, then the proposals' heads.
@@ -274,6 +292,10 @@ private:
 	/// @brief The refs file's content: main's head, the open proposals, the grants and the mode.
 	/// @return It, without its checksum.
 	[[nodiscard]] json refsJson() const;
+	/// @brief Writes a commit, and its document unless the folder already has it.
+	/// @param commit The commit; its parents are on disk already.
+	/// @throws DocumentError If either can't be written, or is more than a history reads back.
+	void writeCommit(const Commit& commit);
 	/// @brief Writes the commits the folder doesn't have yet, then the refs. A failure is logged, and the next change
 	/// tries again: the change itself stays.
 	void saveHistory() noexcept;

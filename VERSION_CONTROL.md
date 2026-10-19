@@ -178,11 +178,13 @@ is called once, before the first change, so a screen from `fromFile` keeps the f
 kanban.history/
   lock                  held by the program that writes this history
   refs.json             main's head, the open proposals, the grants, the mode, and a checksum
-  objects/e1/6ecc8085…  one commit each, named by its SHA-256
+  objects/e1/6ecc8085…  commits and documents, each named by its SHA-256
 ```
 
 - **Objects, like Git's.** Each commit is one file named by its id, holding everything the id covers: the parents,
-  author, committer, time, message, patch and the whole document. The commits written are those a ref reaches when
+  author, committer, time, message, patch, and the id of its document (its tree). Each document is a file of its own,
+  named by the SHA-256 of its JSON, so commits that leave the document as it was (a change to the live state, a merge
+  of a branch that main hadn't passed) share one. The commits written are those a ref reaches when
   the history is saved: `main`'s and the open proposals'. Once no ref reaches them (a rejected proposal, or a branch
   before it was rebuilt), their files stay but are never read again: nothing deletes them yet, as in Git before its
   garbage collection runs.
@@ -190,7 +192,7 @@ kanban.history/
   the rename is synced too (its folder). Commits are written before the refs that name them, so a crash leaves the
   history as it was before the change or after it.
   A write that fails is logged; the change stays in memory, and the next change tries again.
-- **Verified on load.** Every commit read is hashed again and must match its name. The refs file must match its
+- **Verified on load.** Every commit and document read is hashed again and must match its name. The refs file must match its
   checksum, and each proposal's branch must lead from its head to its base on `main`. A damaged history is never
   loaded: the app stops with an error that names the file, e.g.
   `AffrescoUI history: …/objects/e1/6ecc8085…: its content doesn't match its SHA-256: the file is damaged`. Moving
