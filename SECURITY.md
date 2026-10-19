@@ -44,7 +44,9 @@ The program that embeds AffrescoUI (the host) is trusted, and so is everything i
 - the native code it registers (`registerType`, `onAction`, `onCall`).
 
 The screen file, its includes and the state file are read without the limits applied to peers. Don't load a screen
-file or change set you wouldn't run as a program.
+file or change set you wouldn't run as a program. The state file is the exception to "trusted": it holds the
+persisted parts of the live state, which peers can change, and it is read back at the next start without those
+limits. Keep the paths a screen persists out of reach of agents you don't trust.
 
 ### Who a peer is
 A **peer** is a program connected to the running screen over a local socket. The host decides who each peer is:
