@@ -476,6 +476,75 @@
 					"color": {
 						"$ref": "#/$defs/v1/color"
 					},
+					"radius": {
+						"description": "Rounds the corners: one radius for all four, or one per corner (left out: square)",
+						"anyOf": [
+							{
+								"$ref": "#/$defs/v1/pixels"
+							},
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"topLeft": {
+										"$ref": "#/$defs/v1/pixels"
+									},
+									"topRight": {
+										"$ref": "#/$defs/v1/pixels"
+									},
+									"bottomRight": {
+										"$ref": "#/$defs/v1/pixels"
+									},
+									"bottomLeft": {
+										"$ref": "#/$defs/v1/pixels"
+									}
+								}
+							}
+						]
+					},
+					"borderWidth": {
+						"description": "A border inside the node's edges; it doesn't change the layout",
+						"$ref": "#/$defs/v1/pixels"
+					},
+					"borderColor": {
+						"description": "Default: black",
+						"$ref": "#/$defs/v1/color"
+					},
+					"shadow": {
+						"type": "object",
+						"additionalProperties": false,
+						"description": "Like CSS box-shadow: the node's shape, moved and blurred, under it (clipped by the parent)",
+						"properties": {
+							"x": {
+								"anyOf": [
+									{
+										"type": "number"
+									},
+									{
+										"$ref": "#/$defs/v1/dynamic"
+									}
+								]
+							},
+							"y": {
+								"anyOf": [
+									{
+										"type": "number"
+									},
+									{
+										"$ref": "#/$defs/v1/dynamic"
+									}
+								]
+							},
+							"blur": {
+								"description": "A Gaussian blur with a standard deviation of blur / 2",
+								"$ref": "#/$defs/v1/pixels"
+							},
+							"color": {
+								"description": "Default: #00000040",
+								"$ref": "#/$defs/v1/color"
+							}
+						}
+					},
 					"visible": {
 						"$ref": "#/$defs/v1/flag"
 					},
@@ -555,6 +624,9 @@
 								"type": "number"
 							},
 							"textColor": {
+								"type": "number"
+							},
+							"borderColor": {
 								"type": "number"
 							}
 						}
@@ -1006,6 +1078,18 @@
 						"$entries"
 					]
 				}
+			},
+			"pixels": {
+				"description": "A number of pixels, 0 or more",
+				"anyOf": [
+					{
+						"type": "number",
+						"minimum": 0
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
 			},
 			"flag": {
 				"anyOf": [

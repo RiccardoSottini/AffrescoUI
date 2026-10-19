@@ -257,6 +257,22 @@ void Panel::setColor(Color color) {
 	invalidate();
 }
 
+void Panel::setCornerRadii(CornerRadii radii) {
+	radii_ = radii;
+	invalidate();
+}
+
+void Panel::setBorder(float width, Color color) {
+	borderWidth_ = width;
+	borderColor_ = color;
+	invalidate();
+}
+
+void Panel::setShadow(const Shadow& shadow) {
+	shadow_ = shadow;
+	invalidate();
+}
+
 void Panel::setCursor(Cursor cursor) {
 	cursor_ = cursor;
 	if(window_) window_->updateCursor();
@@ -373,7 +389,13 @@ Panel* Panel::hitTest(Vec2 point) noexcept {
 	return this;
 }
 
-void Panel::paint(Painter& painter) const { painter.fillRect(bounds_, color_); }
+// Square corners keep the plain fill, so panels without the new properties look exactly as they always have
+void Panel::paint(Painter& painter) const {
+	if(shadow_.isVisible()) painter.drawShadow(frame_, radii_, shadow_);
+	if(radii_.isSquare()) painter.fillRect(bounds_, color_);
+	else painter.fillRoundedRect(frame_, radii_, color_);
+	if(borderWidth_ > 0.0f) painter.strokeRoundedRect(frame_, radii_, borderWidth_, borderColor_);
+}
 
 void Panel::paintOver(Painter& painter) const {
 	if(!isScrollable()) return;
