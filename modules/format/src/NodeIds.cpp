@@ -218,7 +218,9 @@ std::string NodeNamer::newId(const json& node, std::string_view parentId) {
 void NodeNamer::name(json& node, const std::string& pointer, std::string_view parentId, const Visit& visit) {
 	if(!node.is_object() || node.value("slot", json(false)) == true) return;
 	if(!node.contains("id")) {
-		node["id"] = newId(node, parentId);
+		json named = {{"id", newId(node, parentId)}}; // first, as files write it
+		for(auto& [key, value] : node.items()) named[key] = std::move(value);
+		node = std::move(named);
 		if(visit) visit(pointer, node["id"].get<std::string>());
 	}
 	const auto children = node.find("children");

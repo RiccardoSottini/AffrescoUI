@@ -132,7 +132,7 @@ TEST_CASE("ids: a node that replaces another keeps its id; an id already taken i
 
 	REQUIRE(repository.submit({{"author", "studio"}, {"set", {{"#title", {{"type", "label"}, {"text", "Today"}}}}}})
 	            .status == RevisionStatus::Applied);
-	CHECK(repository.document()["root"]["children"][1] == json{{"type", "label"}, {"text", "Today"}, {"id", "title"}});
+	CHECK(repository.document()["root"]["children"][1] == json{{"id", "title"}, {"type", "label"}, {"text", "Today"}});
 
 	const affresco::RevisionResult taken =
 	    repository.submit({{"author", "studio"}, {"add", {{"/root/children/-", {{"id", "board"}}}}}});

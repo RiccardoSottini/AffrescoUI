@@ -96,7 +96,11 @@ void Rules::nameNodes(const json& document, std::string_view pointer, bool repla
 	if(isNodePlace(place)) {
 		if(!value.is_object()) return;
 		const json* old = replaces ? valueAt(document, place) : nullptr;
-		if(old && old->is_object() && old->contains("id") && !value.contains("id")) value["id"] = (*old)["id"];
+		if(old && old->is_object() && old->contains("id") && !value.contains("id")) {
+			json kept = {{"id", (*old)["id"]}}; // first, as NodeNamer writes ids
+			for(auto& [key, member] : value.items()) kept[key] = std::move(member);
+			value = std::move(kept);
+		}
 		NodeNamer(document).name(value, place, parentIdOf(document, place));
 	} else if(place.ends_with(children) && isNodePlace(place.substr(0, place.size() - children.size())) &&
 	          value.is_array()) {

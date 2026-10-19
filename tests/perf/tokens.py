@@ -14,8 +14,10 @@ what the server sends shows here. The edits are always this checkout's, so two r
 """
 
 import argparse
+import copy
 import glob
 import importlib.util
+import inspect
 import json
 import os
 import sys
@@ -33,6 +35,58 @@ def load_mcp(root):
     return module
 
 
+def apply_edit(mcp, document, edit):
+    """A compact edit applied to a copy of a document, as the host applies one ("#id" paths found with the MCP server's
+    find_node): set, add, remove, then move. Enough for the canonical edits; the host's own rules are not checked."""
+    document = copy.deepcopy(document)
+
+    def resolve(path):
+        if path.startswith("#"):
+            node_id, _, rest = path[1:].partition("/")
+            path = mcp.find_node(document, node_id)[0] + ("/" + rest if rest else "")
+        keys = [key.replace("~1", "/").replace("~0", "~") for key in path.split("/")[1:]]
+        parent = document
+        for key in keys[:-1]:
+            parent = parent[int(key)] if isinstance(parent, list) else parent[key]
+        return parent, keys[-1]
+
+    def put(path, value, insert):
+        parent, key = resolve(path)
+        if isinstance(parent, list):
+            parent.insert(len(parent) if key == "-" else int(key), value) if insert or key == "-" else None
+            if not insert and key != "-":
+                parent[int(key)] = value
+        else:
+            parent[key] = value
+
+    def take(path):
+        parent, key = resolve(path)
+        return parent.pop(int(key) if isinstance(parent, list) else key)
+
+    for path, value in edit.get("set", {}).items():
+        put(path, value, False)
+    for path, value in edit.get("add", {}).items():
+        put(path, value, True)
+    for path in edit.get("remove", []):
+        take(path)
+    for source, target in edit.get("move", {}).items():
+        put(target, take(source), True)
+    return document
+
+
+def reread(mcp, document, edit):
+    """What get_screen returns after an edit: the server's changes_since, or for a server without it, the same diff
+    written from node ids."""
+    after = apply_edit(mcp, document, edit)
+    if hasattr(mcp, "changes_since"):
+        return mcp.changes_since(document, after)
+    changes = mcp.diff(document, after)
+    for op in changes:
+        if op["path"].startswith(("/root", "/screens", "/templates", "/components")):
+            op["path"] = mcp.by_id(after if op["op"] != "remove" else document, op["path"])
+    return changes
+
+
 def counts(root, edits, encoding):
     """Every count, as (name, tokens), in a fixed order."""
     mcp = load_mcp(root)
@@ -41,18 +95,27 @@ def counts(root, edits, encoding):
         return len(encoding.encode(text, disallowed_special=()))
 
     with open(os.path.join(root, "SCREEN_FORMAT.md"), encoding="utf-8") as guide:
-        yield "tokens/format-guide", tokens(guide.read())
+        text = guide.read()
+    yield "tokens/format-guide", tokens(text)
+    if hasattr(mcp, "format_guide"):  # what get_format_guide gives without a topic (servers that have topics)
+        yield "tokens/format-guide/contents", tokens(mcp.format_guide(text))
     for path in sorted(glob.glob(os.path.join(root, "examples", "assets", "screens", "*" + SUFFIX))):
         name = os.path.basename(path)[:-len(SUFFIX)]
         with open(path, encoding="utf-8") as screen:
             document = json.load(screen)
         yield f"tokens/{name}/document", tokens(mcp.compact(document))
         yield f"tokens/{name}/outline", tokens(mcp.outline(document))
+        if "depth" in inspect.signature(mcp.outline).parameters:
+            yield f"tokens/{name}/outline-depth-2", tokens(mcp.outline(document, depth=2))
         edit_file = os.path.join(edits, name + ".json")
         if os.path.exists(edit_file):
             with open(edit_file, encoding="utf-8") as file:
-                for edit_name, edit in json.load(file).items():
-                    yield f"tokens/{name}/edit/{edit_name}", tokens(mcp.compact(edit))
+                canonical = json.load(file)
+            for edit_name, edit in canonical.items():
+                yield f"tokens/{name}/edit/{edit_name}", tokens(mcp.compact(edit))
+            # The re-read after one commit: get_screen's changes once a node's text changed
+            edit = canonical.get("rename-label") or next(iter(canonical.values()))
+            yield f"tokens/{name}/reread", tokens(mcp.compact({"changes": reread(mcp, document, edit)}))
 
 
 def table(results):
@@ -60,19 +123,24 @@ def table(results):
     templates = {}
     for name, value in results:
         parts = name.split("/")
-        if len(parts) >= 3:
+        if len(parts) >= 3 and parts[0] == "tokens" and parts[1] != "format-guide":
             templates.setdefault(parts[1], {"edits": []})
             if parts[2] == "edit":
                 templates[parts[1]]["edits"].append(value)
             else:
                 templates[parts[1]][parts[2]] = value
-    rows = ["| Template | Document | Outline | Edits (min / median / max) |", "|---|---:|---:|---|"]
+    rows = ["| Template | Document | Outline | Outline, depth 2 | Re-read after a commit | "
+            "Edits (min / median / max) |", "|---|---:|---:|---:|---:|---|"]
     for template, row in templates.items():
         edits = sorted(row["edits"])
         spread = f"{edits[0]} / {edits[len(edits) // 2]} / {edits[-1]} ({len(edits)} edits)" if edits else "n/a"
-        rows.append(f"| {template} | {row['document']:,} | {row['outline']:,} | {spread} |")
-    guide = dict(results)["tokens/format-guide"]
-    return "\n".join(rows) + f"\n\nSCREEN_FORMAT.md: {guide:,} tokens (o200k_base)\n"
+        cells = [f"{row[key]:,}" if key in row else "n/a" for key in ("document", "outline", "outline-depth-2", "reread")]
+        rows.append(f"| {template} | {' | '.join(cells)} | {spread} |")
+    found = dict(results)
+    guide = f"\n\nSCREEN_FORMAT.md: {found['tokens/format-guide']:,} tokens (o200k_base)"
+    if "tokens/format-guide/contents" in found:
+        guide += f"; get_format_guide without a topic: {found['tokens/format-guide/contents']:,}"
+    return "\n".join(rows) + guide + "\n"
 
 
 def main():

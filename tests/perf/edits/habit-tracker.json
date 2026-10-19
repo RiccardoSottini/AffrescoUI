@@ -7,6 +7,6 @@
 	},
 	"add-node": {
 		"message": "Add a tip under today's habits",
-		"add": { "#today/children/-": { "id": "tip", "style": "caption", "text": "Tip: small habits stick." } }
+		"add": { "#today/children/-": { "style": "caption", "text": "Tip: small habits stick." } }
 	}
 }

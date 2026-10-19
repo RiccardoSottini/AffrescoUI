@@ -15,7 +15,7 @@
 		"message": "Say who made the playlist",
 		"add": {
 			"#header/children/-": {
-				"id": "curator", "type": "label", "text": "Made for you", "textColor": "@muted",
+				"type": "label", "text": "Made for you", "textColor": "@muted",
 				"anchors": { "left": 256, "bottom": 24 }, "fitText": true
 			}
 		}

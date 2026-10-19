@@ -47,8 +47,8 @@ jobs:
         run: ctest --test-dir build -R unit --output-on-failure
       - name: Window tests # pictures drawn with OpenGL, under Xvfb (the rest of a window runs headless, in unit)
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
-      - name: Command-line tool # every affrescoui command on every template (tools/affrescoui/check.py)
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R cli --output-on-failure
+      - name: Command-line tool and MCP queries # tools/affrescoui/check.py, mcp/test_affrescoui_mcp.py
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
       - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)

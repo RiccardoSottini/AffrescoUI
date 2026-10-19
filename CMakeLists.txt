@@ -115,6 +115,11 @@ if(AFFRESCOUI_BUILD_TESTS)
 	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
+	# The MCP server's queries (outline, find_nodes, the guide by topic), which need no host
+	find_package(Python3 COMPONENTS Interpreter)
+	if(Python3_FOUND)
+		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
+	endif()
 endif()
 
 if(AFFRESCOUI_BUILD_TOOLS)
