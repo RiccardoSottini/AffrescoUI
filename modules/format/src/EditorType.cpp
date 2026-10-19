@@ -8,7 +8,6 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <array>
-#include <format>
 #include <utility>
 
 namespace affresco::format {
@@ -36,7 +35,7 @@ void applyEditor(Panel& panel, const json& values, const PropertyReader& reader,
 		 {"selectionColor", &TextEditor::setSelectionColor},
 		 {"textColor", &TextEditor::setTextColor}}};
 	for(const auto& [key, value] : values.items()) {
-		const std::string at = std::format("{}.{}", path, key);
+		const std::string at = concatenate(path, ".", key);
 		if(key == "font") editor->setFont(reader.font(value, at));
 		else if(key == "lineNumbers") editor->setLineNumbers(boolean(value, at));
 		for(const auto& [name, setter] : colorSetters)

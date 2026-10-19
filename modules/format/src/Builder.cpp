@@ -4,7 +4,6 @@
 #include "Builder.hpp"
 #include "Engine.hpp"
 
-#include <format>
 #include <functional>
 #include <utility>
 
@@ -68,7 +67,7 @@ json Builder::evaluateNode(const json& merged, const Scope& locals, const std::s
 		if(key == "children") continue; // built from the node itself (reconcileChildren), never copied
 		result[key] = structural(key) || key == "type"
 		                  ? value
-		                  : engine_.document.evaluate(value, locals, json::object(), std::format("{}.{}", path, key));
+		                  : engine_.document.evaluate(value, locals, json::object(), concatenate(path, ".", key));
 	}
 	return result;
 }
@@ -122,10 +121,10 @@ NodeRef Builder::scoped(const NodeRef& shared, SharedScope& scope, const std::st
 	Scope layer{scope.get(), nullptr, json::object()};
 	if(node.contains("with"))
 		for(const auto& [name, value] : object(node["with"], at + ".with").items())
-			layer.vars[name] = document.evaluate(value, layer, none, std::format("{}.with.{}", at, name));
+			layer.vars[name] = document.evaluate(value, layer, none, concatenate(at, ".with.", name));
 	if(node.contains("let")) // in order: each sees the ones before it
 		for(const auto& [name, value] : object(node["let"], at + ".let").items())
-			layer.vars[name] = document.evaluate(value, layer, none, std::format("{}.let.{}", at, name));
+			layer.vars[name] = document.evaluate(value, layer, none, concatenate(at, ".let.", name));
 	if(node.contains("check")) check(node, layer, at);
 	NodeRef result = shared;
 	if(node.contains("style") && isDynamic(node["style"])) { // this instance's own copy, with its style

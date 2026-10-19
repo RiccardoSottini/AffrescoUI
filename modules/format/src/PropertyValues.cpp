@@ -2,6 +2,7 @@
 /// @brief Readers for property values, and the layout properties.
 
 #include "PropertyValues.hpp"
+#include "NodeKeys.hpp"
 
 #include <cctype>
 #include <cmath>
@@ -167,7 +168,7 @@ bool layoutProperty(Panel& panel, const std::string& key, const json& value, con
 		for(const Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.setAnchor(e, offset);
 	} else if(key == "anchors") {
 		for(const auto& [name, offset] : object(value, at).items())
-			anchor(panel, name, offset, std::format("{}.{}", at, name));
+			anchor(panel, name, offset, concatenate(at, ".", name));
 	} else {
 		return false;
 	}

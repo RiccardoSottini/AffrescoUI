@@ -59,6 +59,21 @@ inline bool structural(const std::string& key) {
 	       key == "note" || key == "slot" || handlerKey(key);
 }
 
+/// @brief Joins three pieces of text, allocating once: places for errors ("root", ".", "color") are built on every
+/// update, so this is cheaper than chained + or std::format.
+/// @param first The first piece.
+/// @param second The second piece.
+/// @param third The third piece.
+/// @return The text.
+inline std::string concatenate(std::string_view first, std::string_view second, std::string_view third) {
+	std::string result;
+	result.reserve(first.size() + second.size() + third.size());
+	result += first;
+	result += second;
+	result += third;
+	return result;
+}
+
 /// @brief Eases an animation's progress.
 /// @param easing "linear", "in", "out" or "inOut".
 /// @param t Progress, 0 to 1.

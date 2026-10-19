@@ -56,7 +56,7 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record, co
 	record.caret.reset();
 	Behaviour behaviour;
 	for(const auto& [key, value] : properties.items()) {
-		const std::string at = std::format("{}.{}", path, key);
+		const std::string at = concatenate(path, ".", key);
 		if(handlerKey(key)) readHandler(panel, record, key, value, at);
 		else readBehaviourKey(panel, record, {key, value, at, properties.contains("id")}, behaviour);
 	}
@@ -290,7 +290,7 @@ const json& Properties::transition(const json& value, const std::string& at) con
 	for(const auto& [property, ms] : object(value, at).items()) {
 		if(!engine_.types.transitionable(property))
 			fail(std::format("{}.{}", at, property), R"(only "color", "textColor" and "borderColor" can transition)");
-		number(ms, std::format("{}.{}", at, property));
+		number(ms, concatenate(at, ".", property));
 	}
 	return value;
 }
