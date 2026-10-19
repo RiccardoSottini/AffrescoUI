@@ -36,7 +36,8 @@ std::string lastError() { return std::error_code(errno, std::generic_category())
 /// @return It, or nullptr (errno says why).
 std::FILE* openForWriting(const std::filesystem::path& file) {
 #ifdef _WIN32
-	return _wfopen(file.c_str(), L"wb");
+	std::FILE* opened = nullptr;
+	return _wfopen_s(&opened, file.c_str(), L"wb") == 0 ? opened : nullptr;
 #else
 	return std::fopen(file.c_str(), "wb");
 #endif
@@ -51,6 +52,21 @@ bool syncToDisk(std::FILE* file) {
 #else
 	return ::fsync(::fileno(file)) == 0;
 #endif
+}
+
+/// @brief The current time, for a file name.
+/// @return UTC, e.g. "20261019T120000Z" (no ':', which Windows doesn't allow in names).
+std::string fileNameTime() {
+	const std::time_t now = std::time(nullptr);
+	std::tm utc{};
+#ifdef _WIN32
+	gmtime_s(&utc, &now);
+#else
+	gmtime_r(&now, &utc);
+#endif
+	char stamp[32];
+	std::strftime(stamp, sizeof(stamp), "%Y%m%dT%H%M%SZ", &utc);
+	return stamp;
 }
 
 } // namespace
@@ -169,16 +185,13 @@ void HistoryStore::writeObject(const std::string& id, std::string_view text) {
 }
 
 std::filesystem::path HistoryStore::setAside(const std::filesystem::path& directory) {
-	const std::time_t now = std::time(nullptr);
-	char stamp[32];
-	std::strftime(stamp, sizeof(stamp), "%Y%m%dT%H%M%SZ", std::gmtime(&now));
-
+	const std::string stamp = fileNameTime();
 	std::filesystem::path aside = directory;
-	aside += std::string(".replaced-") + stamp;
+	aside += ".replaced-" + stamp;
 	std::error_code error;
 	for(int n = 2; std::filesystem::exists(aside, error); ++n) {
 		aside = directory;
-		aside += std::string(".replaced-") + stamp + "-" + std::to_string(n);
+		aside += ".replaced-" + stamp + "-" + std::to_string(n);
 	}
 	std::filesystem::rename(directory, aside, error);
 	if(error) throw HistoryError(directory, "can't be moved aside to " + aside.string() + " (" + error.message() + ")");
