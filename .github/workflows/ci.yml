@@ -45,8 +45,6 @@ jobs:
           cmake --build build
       - name: Unit tests
         run: ctest --test-dir build -R unit --output-on-failure
-      - name: Package check # cmake --install, then find_package from a consumer project (tests/package)
-        run: python3 tests/package/check.py
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
       - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)
@@ -57,6 +55,8 @@ jobs:
           path: |
             build/render-check/*.png
             tests/render/golden/
+      - name: Package check # cmake --install, then find_package from tests/package; after the frames, never hiding them
+        run: python3 tests/package/check.py
 
   sanitizers:
     name: Linux (address + undefined sanitizers)
