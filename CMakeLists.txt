@@ -11,6 +11,7 @@ endif()
 option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_TESTS "Build the rendering check and the unit tests (tests/)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_FUZZERS "Build the libFuzzer targets (tests/fuzz); needs clang, instruments the whole build" OFF)
+option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
 
 if(AFFRESCOUI_BUILD_FUZZERS)
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
@@ -177,4 +178,19 @@ endif()
 
 if(AFFRESCOUI_BUILD_FUZZERS)
 	add_subdirectory(tests/fuzz)
+endif()
+
+if(AFFRESCOUI_BUILD_BENCHMARKS)
+	# Speed, allocations and memory of the workloads in tests/perf (its README); CI counts instructions with callgrind,
+	# using valgrind's header when it is installed
+	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
+		tests/perf/engine.cpp examples/CodeEditor.cpp)
+	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src) # Expression.hpp stays private
+	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
+	target_compile_definitions(affrescoui_bench PRIVATE
+		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets"
+		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf")
+	set_target_properties(affrescoui_bench PROPERTIES CXX_EXTENSIONS OFF)
+	target_compile_options(affrescoui_bench PRIVATE ${AFFRESCOUI_WARNINGS})
 endif()

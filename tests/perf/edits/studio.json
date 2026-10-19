@@ -1,0 +1,8 @@
+{
+	"change-colour": { "message": "Indigo accent", "set": { "/colors/accent": "#4f46e5" } },
+	"rename-label": { "message": "Shorter title", "set": { "#title/text": "Studio" } },
+	"add-node": {
+		"message": "Add a hint to the ask card",
+		"add": { "#askCard/children/-": { "id": "askHint", "style": "caption", "text": "Changes wait for your review." } }
+	}
+}

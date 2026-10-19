@@ -1,0 +1,2 @@
+# Only for tests/perf/tokens.py and its CI job
+tiktoken==0.12.0
