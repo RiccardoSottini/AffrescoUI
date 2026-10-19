@@ -5,6 +5,7 @@
 
 #include "Helpers.hpp"
 
+#include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -269,6 +270,40 @@ TEST_CASE("vcs: commits that leave the document as it was share its object") {
 	REQUIRE(again.openHistory(history).loaded);
 	CHECK(again.head().id == repository.head().id);
 	CHECK(again.document() == repository.document());
+}
+
+TEST_CASE("vcs: a history never writes what it couldn't read back") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+
+	// A screen file isn't read with parseUntrusted()'s limit, so its document can nest deeper than a history reads
+	json deep = 0;
+	for(int level = 0; level < affresco::maxNesting + 1; ++level) deep = json::array({deep});
+	json document = permissionsScreen();
+	document["state"]["deep"] = deep;
+
+	std::vector<std::string> errors;
+	affresco::setLogSink([&](affresco::LogLevel level, std::string_view message) {
+		if(level == affresco::LogLevel::Error) errors.emplace_back(message);
+	});
+	{
+		Repository repository(rules, document);
+		CHECK(repository.openHistory(history).memoryOnly.empty());
+		CHECK(repository.submit({{"author", "studio"}, {"set", {{"#title/text", "Done"}}}}).status ==
+		      RevisionStatus::Applied); // the change itself stays, in memory
+	}
+	affresco::setLogSink(nullptr);
+
+	REQUIRE(errors.size() == 2); // revision 0, then the change: each save tries again
+	CHECK(errors.front().find("would nest more than 256 levels deep, more than a history reads back") !=
+	      std::string::npos);
+	CHECK_FALSE(std::filesystem::exists(history / "refs.json"));
+	CHECK(temporaryFiles(history) == 0);
+
+	// So the folder holds no history, rather than one that can't be loaded
+	Repository again(rules, document);
+	CHECK_FALSE(again.openHistory(history).loaded);
 }
 
 TEST_CASE("vcs: a history that began with another version of the screen is set aside") {

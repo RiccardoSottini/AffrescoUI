@@ -236,6 +236,10 @@ std::string HistoryStore::read(const std::filesystem::path& file) {
 }
 
 void HistoryStore::write(const std::filesystem::path& file, std::string_view text) {
+	// Never write what read() would refuse: the history on disk would be damaged for good
+	if(text.size() > maxFileSize)
+		throw HistoryError(file, "would be larger than 64 MiB, more than a history reads back, so it isn't written");
+
 	std::filesystem::path temporary = file;
 	temporary += ".tmp"; // only the lock holder writes, so one name is enough
 

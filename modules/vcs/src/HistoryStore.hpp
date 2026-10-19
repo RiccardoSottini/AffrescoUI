@@ -126,7 +126,7 @@ private:
 	/// the folder so that the rename is on the disk too.
 	/// @param file The file.
 	/// @param text Its new content.
-	/// @throws HistoryError If it can't be written.
+	/// @throws HistoryError If it can't be written, or is larger than maxFileSize (read() would refuse it).
 	static void write(const std::filesystem::path& file, std::string_view text);
 
 	std::filesystem::path directory_;         ///< The folder.

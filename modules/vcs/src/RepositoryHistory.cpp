@@ -88,6 +88,34 @@ void expectGrantRule(const std::string& rule, const std::string& where) {
 		             "'" + rule + "' is not a rule that \"don't ask again\" grants (<channel>(<one node or area>))");
 }
 
+/// @brief How deeply a value nests, counted the way parseUntrusted() counts: 0 for text or a number, 1 for a list of
+/// them, and so on. Walks without recursion, since the value may be deeper than the stack allows.
+/// @param value The value.
+/// @return Its depth.
+int nesting(const json& value) {
+	int deepest = 0;
+	std::vector<std::pair<const json*, int>> pending{{&value, 0}};
+	while(!pending.empty()) {
+		const auto [item, depth] = pending.back();
+		pending.pop_back();
+		if(!item->is_structured()) continue;
+		deepest = std::max(deepest, depth + 1);
+		for(const json& child : *item) pending.emplace_back(&child, depth + 1);
+	}
+	return deepest;
+}
+
+/// @brief Refuses to write an object that loading would refuse (parseUntrusted()'s limit): the history on disk would
+/// be damaged for good. A screen file can nest deeper, since it isn't read with that limit.
+/// @param value The object.
+/// @param file Its file, for errors.
+/// @throws HistoryError If it nests deeper than maxNesting.
+void expectReadable(const json& value, const std::filesystem::path& file) {
+	if(nesting(value) > maxNesting)
+		throw HistoryError(file, "would nest more than " + std::to_string(maxNesting) +
+		                             " levels deep, more than a history reads back, so it isn't written");
+}
+
 } // namespace
 
 Repository::~Repository() = default;
@@ -338,8 +366,13 @@ void Repository::writeCommit(const Commit& commit) {
 	// Like Git's trees: commits that leave the document as it was (state changes, merges) share its object
 	const std::string document = commit.document.dump();
 	const std::string tree = detail::sha256(document);
-	if(!history_->hasObject(tree)) history_->writeObject(tree, document);
-	history_->writeObject(commit.id, objectOf(commit, tree).dump());
+	const json object = objectOf(commit, tree);
+	if(!history_->hasObject(tree)) {
+		expectReadable(commit.document, history_->objectFile(tree));
+		history_->writeObject(tree, document);
+	}
+	expectReadable(object, history_->objectFile(commit.id));
+	history_->writeObject(commit.id, object.dump());
 }
 
 json Repository::refsJson() const {
