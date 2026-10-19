@@ -725,10 +725,19 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
 	std::optional<bool> outsideStep(const Running& s);
+	/// @brief call: a native function or action.
+	/// @param s The step.
+	/// @return Whether to keep going.
+	bool callStep(const Running& s);
 	/// @brief accept, reject, preview, endPreview, restore, revert, undo: review and history.
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
 	std::optional<bool> reviewStep(const Running& s);
+	/// @brief Evaluates a review or history step's values, and checks their types.
+	/// @param s The step.
+	/// @return The step with its values evaluated.
+	/// @throws DocumentError If a value has the wrong type, or an accept names no head.
+	[[nodiscard]] static json evaluateControl(const Running& s);
 	/// @brief focus, scrollTo, navigate: where the user is.
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
@@ -756,7 +765,7 @@ struct Runtime::Impl final : VersionObserver {
 	/// @brief Runs a task after the current event (Window::defer), unless the runtime is destroyed before then: the
 	/// window can't cancel what it has deferred.
 	/// @param task The work.
-	void defer(std::function<void()> task);
+	void defer(std::function<void()> task) const;
 	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);

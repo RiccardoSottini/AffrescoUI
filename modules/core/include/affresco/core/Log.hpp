@@ -47,7 +47,7 @@ constexpr bool isControl(char c) noexcept {
 /// @param message The text.
 /// @return It, with each control character escaped.
 inline std::string escapeControls(std::string_view message) {
-	static constexpr char digits[] = "0123456789abcdef";
+	static constexpr std::string_view digits = "0123456789abcdef";
 	std::string escaped;
 	escaped.reserve(message.size() + 8);
 	for(const char c : message) {

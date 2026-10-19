@@ -56,8 +56,7 @@ public:
 	[[nodiscard]] bool mayControl(const json& target) const {
 		if(!target.is_string()) return true;
 		const auto& name = target.get_ref<const std::string&>();
-		return name.find("{{") != std::string::npos || !actions_.is_object() || !actions_.contains(name) ||
-		       control_.contains(name);
+		return name.contains("{{") || !actions_.is_object() || !actions_.contains(name) || control_.contains(name);
 	}
 
 	/// @brief Scans a value.

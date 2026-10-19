@@ -95,7 +95,7 @@ TEST_CASE("vcs: an accept that names no head is refused") {
 		CAPTURE(head);
 		const auto refused = repository.accept(proposed.proposal, {"user", head, false});
 		REQUIRE(refused);
-		CHECK(refused->find("needs its head commit") != std::string::npos);
+		CHECK(refused.value_or("").find("needs its head commit") != std::string::npos);
 	}
 	CHECK(repository.proposals().size() == 1);
 	CHECK(repository.head().number == 0);

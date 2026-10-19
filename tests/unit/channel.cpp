@@ -16,6 +16,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
@@ -193,8 +194,8 @@ TEST_CASE("channel: a peer's text in a rejected revision reaches the log as one 
 // Before, a peer that never sent a line break made the app keep everything it sent, without limit, and searched
 // it all again after every 4 KiB read
 TEST_CASE("channel: a SocketChannel splits lines across reads, and closes on a line longer than maxMessageBytes") {
-	int ends[2] = {-1, -1};
-	REQUIRE(socketpair(AF_UNIX, SOCK_STREAM, 0, ends) == 0);
+	std::array<int, 2> ends = {-1, -1};
+	REQUIRE(socketpair(AF_UNIX, SOCK_STREAM, 0, ends.data()) == 0);
 	QueueExecutor executor;
 	affresco::channel::SocketChannel channel(executor, ends[0]);
 	std::vector<std::string> received;

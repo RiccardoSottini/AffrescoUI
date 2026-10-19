@@ -204,6 +204,7 @@ struct Screen::Impl {
 		json file;
 		try {
 			file = parseUntrusted(text.str());
+			// NOLINTNEXTLINE(bugprone-empty-catch): the screen keeps its own state, as the comment below says
 		} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
 			// Not a state file this screen wrote: the screen keeps its own state, as before
 		}
@@ -305,6 +306,26 @@ std::filesystem::path stateDirectory() {
 #endif
 }
 
+/// @brief Reads an included file.
+/// @param path The file.
+/// @return Its JSON object.
+/// @throws ScreenError If it can't be read, isn't a JSON object, or nests too deeply.
+json readInclude(const std::filesystem::path& path) {
+	const std::ifstream file(path);
+	if(!file) throw ScreenError("AffrescoUI screen: include: could not open " + path.string());
+	std::stringstream text;
+	text << file.rdbuf();
+	json part;
+	try {
+		part = parseUntrusted(text.str());
+	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): reported below, as not a JSON object
+	} catch(const DocumentError& deep) {
+		throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
+	}
+	if(!part.is_object()) throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a JSON object");
+	return part;
+}
+
 /// @brief Merges a screen's "include" files into it (recursively, at most 8 deep): each section of an included file
 /// comes first and the including file's entries win; root and window come from the including file.
 /// @param document The screen.
@@ -321,18 +342,7 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	for(const json& name : includes) {
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
-		std::ifstream file(path);
-		if(!file) throw ScreenError("AffrescoUI screen: include: could not open " + path.string());
-		std::stringstream text;
-		text << file.rdbuf();
-		json part;
-		try {
-			part = parseUntrusted(text.str());
-		} catch(const json::parse_error&) { // reported below: not a JSON object
-		} catch(const DocumentError& deep) {
-			throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
-		}
-		if(!part.is_object()) throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a JSON object");
+		json part = readInclude(path);
 		resolveIncludes(part, path.parent_path(), depth + 1);
 
 		for(const auto& [key, value] : part.items()) {

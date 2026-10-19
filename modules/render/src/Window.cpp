@@ -255,7 +255,7 @@ std::optional<double> Window::secondsToNextTimer() const {
 // cancelTimer() reaches them through dueTimers_.
 void Window::runTimers() {
 	const double now = glfwGetTime();
-	const auto firstDue = std::partition(timers_.begin(), timers_.end(), [now](const Timer& t) { return t.due > now; });
+	const auto firstDue = std::ranges::partition(timers_, [now](const Timer& t) { return t.due > now; }).begin();
 	if(firstDue == timers_.end()) return;
 	std::vector<Timer> due(std::make_move_iterator(firstDue), std::make_move_iterator(timers_.end()));
 	timers_.erase(firstDue, timers_.end());
@@ -263,12 +263,25 @@ void Window::runTimers() {
 	std::ranges::sort(due, [](const Timer& a, const Timer& b) { return a.due != b.due ? a.due < b.due : a.id < b.id; });
 
 	// Points at this call's list while it runs, even if a task throws (a task may also render() again)
-	struct Running {
-		std::vector<Timer>*& current; ///< dueTimers_.
-		std::vector<Timer>* outer;    ///< What it was before.
+	class Running {
+	public:
+		/// @brief Points @p current at @p list.
+		/// @param current dueTimers_.
+		/// @param list This call's due timers.
+		Running(std::vector<Timer>*& current, std::vector<Timer>* list)
+		    : current_(current), outer_(std::exchange(current, list)) {}
 		/// @brief Restores dueTimers_.
-		~Running() { current = outer; }
-	} running{dueTimers_, std::exchange(dueTimers_, &due)};
+		~Running() { current_ = outer_; }
+		Running(const Running&) = delete;
+		Running& operator=(const Running&) = delete;
+		Running(Running&&) = delete;
+		Running& operator=(Running&&) = delete;
+
+	private:
+		std::vector<Timer>*& current_; ///< dueTimers_.
+		std::vector<Timer>* outer_;    ///< What it was before.
+	};
+	const Running running(dueTimers_, &due);
 	for(Timer& timer : due)
 		if(const auto task = std::exchange(timer.task, nullptr)) task(); // empty: cancelled by an earlier task
 }
