@@ -303,7 +303,8 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 		components["c" + std::to_string(i)] = {
 		    {"node", {{"children", json::array({{{"use", "c" + std::to_string(i + 1)}}})}}}};
 	components["c1000"] = {{"node", json::object()}};
-	json chain = {{"version", 1}, {"components", components}, {"root", {{"children", json::array({{{"use", "c0"}}})}}}};
+	const json chain = {
+	    {"version", 1}, {"components", components}, {"root", {{"children", json::array({{{"use", "c0"}}})}}}};
 	CHECK(affresco::format::check(chain, json::object()));
 
 	// Over a million values: too large to check, so nothing is claimed
