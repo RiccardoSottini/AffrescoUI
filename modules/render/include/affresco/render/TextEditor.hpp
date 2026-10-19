@@ -211,6 +211,45 @@ private:
 	/// @param at The position.
 	void selectWord(Position at);
 
+	/// @brief Where paint() draws, worked out once per frame.
+	struct Layout {
+		float lineHeight;  ///< See lineHeight().
+		float gutter;      ///< See gutterWidth().
+		float textLeft;    ///< Where the text's columns start, scrolled.
+		float firstTop;    ///< Where the first line's top is, scrolled.
+		float baseline;    ///< From a line's top to its baseline.
+		std::size_t first; ///< The first line drawn.
+		std::size_t last;  ///< One past the last.
+	};
+	/// @brief The top of a line, in whole pixels.
+	/// @param layout The frame's layout.
+	/// @param line The line.
+	[[nodiscard]] static float lineTop(const Layout& layout, std::size_t line) noexcept;
+	/// @brief Draws one line: the caret's line highlight or the selection, then its text in runs of one colour.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	/// @param line The line.
+	/// @param colors Its colours, one per code point.
+	/// @param runs Room for its runs, reused from line to line: where each run ends, and its width.
+	void paintLine(Painter& painter, const Font& font, const Layout& layout, std::size_t line,
+	               const std::vector<Color>& colors, std::vector<std::pair<std::size_t, float>>& runs) const;
+	/// @brief Draws the selected part of a line, if any of it is.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	/// @param line The line.
+	void paintSelection(Painter& painter, const Font& font, const Layout& layout, std::size_t line) const;
+	/// @brief Draws the gutter over the text scrolled under it, and the line numbers.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	void paintGutter(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief Draws the caret, when focused, and the scroll bar's thumb.
+	/// @param painter The painter.
+	/// @param layout The frame's layout.
+	void paintCaretAndScrollBar(Painter& painter, const Layout& layout) const;
+
 	std::vector<std::u32string> lines_{std::u32string()}; ///< See lines().
 	std::string utf8_;                                    ///< See text().
 	Position caret_;                                      ///< Where typing happens.

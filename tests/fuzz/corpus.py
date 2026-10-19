@@ -6,7 +6,8 @@
 - revision:   the revisions in the docs, and edits of every kind to the Kanban template's nodes and state;
 - delta:      the Kanban template and changed copies of it (keys reordered, a node added), with deltas to apply;
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
-              and in short conversations between the agent and the reviewer (lines starting with '>').
+              and in short conversations between the agent and the reviewer (lines starting with '>');
+- text:       every text of the templates and of the rendering check's screens.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -171,6 +172,14 @@ def delta_seeds():
     return seeds
 
 
+def text_seeds():
+    """Every text of the templates and of the rendering check's screens: scripts, emoji, marks, ligatures."""
+    seeds = []
+    for path in sorted(SCREENS.glob("*.screen.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json")):
+        seeds += [value for value in walk(json.loads(path.read_text(encoding="utf-8"))) if isinstance(value, str)]
+    return list(dict.fromkeys(seed for seed in seeds if seed.strip() and "{{" not in seed))
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -189,8 +198,11 @@ def dictionaries():
               "//"]
     delta = tokens + ["from", "to", "delta", "op", "add", "remove", "replace", "move", "copy", "test", "path", "value",
                       "/0", "/-", "~0", "~1", "1.0", "-0.0"]
+    # Characters shaping treats apart: joiners, variation selectors, marks, spaces, line breaks, right-to-left letters
+    text = ["\u200d", "\ufe0f", "\u0301", "\u0323", " ", "\n", "\t", "\u0627\u0644", "\u094d", "\U0001F1EE",
+            "\U0001F3FD", "fi", "ffl", "->", "!=="]
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
-            "delta": delta}
+            "delta": delta, "text": text}
 
 
 def dictionary_entry(word):
@@ -227,6 +239,7 @@ def main():
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
+    write(out, "text", text_seeds(), words["text"])
 
 
 if __name__ == "__main__":

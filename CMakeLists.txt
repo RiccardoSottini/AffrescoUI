@@ -58,6 +58,9 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 	URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d SYSTEM)
 FetchContent_MakeAvailable(json)
 
+# FreeType and HarfBuzz: the text of the rendering engine
+include(cmake/AffrescoUIText.cmake)
+
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
 if(MSVC)
 	set(AFFRESCOUI_WARNINGS /W4 /permissive-)

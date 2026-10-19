@@ -6,6 +6,8 @@
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <string>
@@ -84,6 +86,16 @@ private:
 	bool wrap_ = false;                                          ///< See setWrap().
 	bool fitToText_ = false;                                     ///< See setFitToText().
 	float fitMaxWidth_ = std::numeric_limits<float>::infinity(); ///< See setFitToText().
+
+	/// @brief What prepareLayout() last fitted the label to, so a layout that changes none of it (a resize, a
+	/// sibling's change) doesn't shape the text again.
+	struct Fitted {
+		std::u32string text;    ///< The text.
+		std::uint64_t font = 0; ///< Its font's Font::id() (0: none yet).
+		float maxWidth = 0.0f;  ///< The widest a line could be.
+		float width = 0.0f;     ///< The widest line.
+		std::size_t lines = 0;  ///< How many lines.
+	} fitted_;
 };
 
 } // namespace affresco

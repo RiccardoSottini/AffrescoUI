@@ -40,7 +40,10 @@ an optional `scale` and `note`, and the steps:
 
 Targets are `[x, y]` in window units, or `"#id"`, the centre of the first shown panel with that id (`"nth": 2` picks
 the third). Screens made only for the check, for what no template shows, are in `screens/` here (e.g. `unicode`:
-scripts, fallback fonts, editing by code point); their scenarios are in a file whose `screens` is `"../screens"`.
+scripts, fallback fonts, editing by code point; `scripts`: shaping, with Arabic, Devanagari, Chinese, Japanese,
+Korean, colour emoji, ligatures and a caret inside a code ligature); their scenarios are in a file whose `screens`
+is `"../screens"`. The fonts only these screens use are small subsets of open fonts, in `fonts/` (its README
+says where each comes from).
 
 **Where a new scenario goes:** in the file of the area it shows (a template's file for a template, `shapes.json` for
 shapes), or in a new `<area>.json` for a new area. Open the frames its first run records and check that they show
