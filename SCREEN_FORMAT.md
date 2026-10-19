@@ -377,8 +377,10 @@ Requests may carry an `"id"`; answers repeat it.
   Retina display); the picture is the window's size times `scale`. `data` is the PNG file in base64.
 - It is drawn offscreen, the way the rendering check draws (`tests/render`). The person's window never shows it: to draw
   a proposal the host previews it, draws, and puts back what was shown, within one step on the main thread. Peers hear
-  no `review` messages for it, `emit` events from it are dropped, and `persist` doesn't save its state. Steps that run
-  when panels appear or values change (`onShow`, `onHide`, `watch`) do run, as for a reviewer's `preview`.
+  no `review` messages for it, and while it is drawn `emit` events are dropped and `persist` doesn't save the state.
+  Steps that run when panels appear or values change (`onShow`, `onHide`, `watch`) do run, as for a reviewer's
+  `preview`. Those that putting the view back starts (the proposal's `onHide`, main's `onShow` and `watch`) run after
+  the picture, on main's live state, and steps main had pending run inside the proposal's preview: known limits.
 - `rejected` (`error`) answers a proposal that doesn't exist, a scale out of range, or a host without a window.
 
 ### Catalog
