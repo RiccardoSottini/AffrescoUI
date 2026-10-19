@@ -1,6 +1,7 @@
 # Unit tests
 
-Fast tests for the modules that need no window: `core`, `vcs`, `format` (rules and expressions) and `channel`. They
+Fast tests for what needs no window: `core`, `vcs`, `format` (rules and expressions), `channel`, and loading a
+`Screen`. They
 use [doctest](https://github.com/doctest/doctest) 2.4.12, fetched by CMake, and run in well under a second. The
 rendering check (`tests/render`) covers what is drawn; these tests cover the logic underneath.
 
@@ -23,6 +24,7 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
 | `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review |
+| `screen.cpp` | `Screen::fromString`: the nesting limit on screen files |
 | `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers and deferred tasks when it is destroyed |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main` |

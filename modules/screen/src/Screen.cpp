@@ -197,7 +197,14 @@ struct Screen::Impl {
 	void load() {
 		if(persisted().empty()) return;
 		std::ifstream in(stateFile);
-		const json file = in ? json::parse(in, nullptr, false) : json();
+		std::stringstream text;
+		text << in.rdbuf();
+		json file;
+		try {
+			file = parseUntrusted(text.str());
+		} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
+			// Not a state file this screen wrote: the screen keeps its own state, as before
+		}
 		if(file.is_object())
 			for(const auto& pointer : persisted())
 				if(file.contains(pointer.to_string())) repository.state()[pointer] = file[pointer.to_string()];
@@ -284,7 +291,15 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
 		std::ifstream file(path);
 		if(!file) throw ScreenError("AffrescoUI screen: include: could not open " + path.string());
-		json part = json::parse(file, nullptr, false);
+		std::stringstream text;
+		text << file.rdbuf();
+		json part;
+		try {
+			part = parseUntrusted(text.str());
+		} catch(const json::parse_error&) { // reported below: not a JSON object
+		} catch(const DocumentError& deep) {
+			throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
+		}
 		if(!part.is_object()) throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a JSON object");
 		resolveIncludes(part, path.parent_path(), depth + 1);
 
@@ -356,7 +371,7 @@ Screen Screen::fromFile(const std::filesystem::path& path) {
 Screen Screen::fromString(std::string_view content, std::filesystem::path baseDirectory) {
 	json document;
 	try {
-		document = json::parse(content);
+		document = parseUntrusted(content); // a ScreenError if it nests too deeply
 	} catch(const json::parse_error& error) {
 		throw ScreenError(std::string("AffrescoUI screen: invalid JSON: ") + error.what());
 	}
