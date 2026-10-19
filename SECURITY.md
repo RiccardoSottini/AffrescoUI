@@ -96,8 +96,9 @@ A node with `"locked": true` and an `id`, in `root`, `screens` or `templates`, i
 lets anyone review (the `sign-in` example is one): give a screen permissions before you let an agent connect to it.
 
 ### Reviewers, and why an author can't approve its own change
-A change that needs review becomes a **proposal**. Only the authors listed in `permissions.reviewers` may accept or
-reject proposals, preview them, change the mode or revoke grants. Several rules keep an author from approving itself:
+A change that needs review becomes a **proposal**. Of the peers, only the authors listed in `permissions.reviewers`
+may accept or reject proposals, preview them, change the mode or revoke grants. Review steps in the screen file
+itself are not checked against that list: they act as `user`, for whoever uses the app. Several rules keep an author from approving itself:
 - a reviewer can't accept a proposal whose author is on the reviewer's own channel;
 - a revision can't add or change review controls (see above), so a proposal can't approve itself from inside the
   screen;
