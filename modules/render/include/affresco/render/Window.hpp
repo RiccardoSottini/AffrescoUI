@@ -172,7 +172,7 @@ public:
 	/// @param task The work to run; it may set more timers.
 	/// @return An id for cancelTimer().
 	std::uint64_t setTimer(double delayMs, std::function<void()> task);
-	/// @brief Cancels a timer that hasn't run yet.
+	/// @brief Cancels a timer that hasn't run yet, even one due in the frame whose timers are running.
 	/// @param id From setTimer(); unknown ids are ignored.
 	void cancelTimer(std::uint64_t id);
 	/// @brief How long until the next timer is due.

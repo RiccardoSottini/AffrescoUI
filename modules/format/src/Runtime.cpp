@@ -138,12 +138,17 @@ Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
 
 Runtime::~Runtime() {
 	impl_->versions.setObserver(nullptr);
-	if(impl_->window) // timers and deferred tasks point at the runtime: stop them
-		for(auto& [panel, record] : impl_->records) {
-			if(record.everyTimer) impl_->window->cancelTimer(record.everyTimer);
-			if(record.colorTween.timer) impl_->window->cancelTimer(record.colorTween.timer);
-			if(record.textTween.timer) impl_->window->cancelTimer(record.textTween.timer);
-		}
+	Window* window = impl_->window;
+	if(!window) return;
+	// The timers point at the runtime: stop them, or the window would run them on freed memory
+	for(auto& [panel, record] : impl_->records) {
+		if(record.everyTimer) window->cancelTimer(record.everyTimer);
+		if(record.colorTween.timer) window->cancelTimer(record.colorTween.timer);
+		if(record.textTween.timer) window->cancelTimer(record.textTween.timer);
+	}
+	for(const auto& [place, timer] : impl_->debounces) window->cancelTimer(timer);
+	for(const auto& [pointer, timer] : impl_->animations) window->cancelTimer(timer);
+	for(const std::uint64_t timer : impl_->onceTimers) window->cancelTimer(timer);
 }
 
 void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
