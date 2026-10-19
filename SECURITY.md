@@ -146,7 +146,8 @@ run those actions with any data. Revisions can't change `channels` or add `send`
 ### Requests relayed between peers
 `request` and `reply` messages aren't interpreted. The host passes them to every other peer, with `from` set to the
 sender's author. A request is how a person asks an agent for a change, so an agent should treat it as instructions
-from whoever `from` names, and nothing more. Any peer can send one.
+from the channel `from` starts with (`studio` in `studio/riccardo`), and nothing more: the part after the slash is
+the sender's own claim. Any peer can send one.
 
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
