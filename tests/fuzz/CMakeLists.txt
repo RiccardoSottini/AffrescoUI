@@ -9,7 +9,7 @@ function(affrescoui_fuzzer name)
 	target_compile_features(affrescoui_fuzz_${name} PRIVATE cxx_std_23)
 	set_target_properties(affrescoui_fuzz_${name} PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_fuzz_${name} PRIVATE ${AFFRESCOUI_WARNINGS})
-	# The template the version-control targets load (Template.hpp)
+	# The template the targets load (kanbanTemplate() in Fuzz.hpp)
 	target_compile_definitions(affrescoui_fuzz_${name} PRIVATE
 		AFFRESCOUI_FUZZ_TEMPLATE="${PROJECT_SOURCE_DIR}/examples/assets/screens/kanban.screen.json")
 endfunction()

@@ -16,7 +16,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 
 libFuzzer comes with clang (not GCC). The build option instruments the whole build, so use a build folder of its own.
 
-**Linux** (clang 14 or newer; on Ubuntu, `clang-18` and `libclang-rt-18-dev`, plus the packages CI installs for GLFW):
+**Linux** (clang 18, as CI uses; on Ubuntu, `clang-18` and `libclang-rt-18-dev`, plus the packages CI installs for GLFW):
 
 ```sh
 CC=clang-18 CXX=clang++-18 cmake -S . -B build-fuzz -G Ninja -DCMAKE_BUILD_TYPE=Debug \
@@ -32,8 +32,8 @@ Use `json`, `expression`, `revision` or `session` in place of `session`. `-fork=
 after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type, the code is
 compiled `-O1 -g`, as libFuzzer recommends.
 
-**macOS.** Apple's clang has no libFuzzer. Homebrew's LLVM has one (`brew install llvm`). Build with it, linked
-against its own libc++, as `brew info llvm` says:
+**macOS.** Apple's clang has no libFuzzer. Homebrew's LLVM has one (`brew install llvm`; checked with LLVM 23).
+Build with it, linked against its own libc++, as `brew info llvm` says:
 
 ```sh
 LLVM=$(brew --prefix llvm)
