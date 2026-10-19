@@ -10,6 +10,7 @@
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
+#include <array>
 #include <cstdint>
 #include <iterator>
 #include <memory>
@@ -25,55 +26,55 @@ namespace {
 /// 10,000-item limits (pad and range), which would outweigh all the others.
 /// @return The values, each a `{{...}}` string, a template or a `$` operator.
 std::vector<json> expressionTable() {
-	const char* const texts[] = {"{{1 + 2 * 3}}",
-	                             "{{(1 + 2) * 3}}",
-	                             "{{7 / 2}}",
-	                             "{{8 / 2}}",
-	                             "{{7 % 3}}",
-	                             "{{-state.count}}",
-	                             "{{1.5 + 1}}",
-	                             "{{state.count > 2 ? 'big' : 'small'}}",
-	                             "{{'abc' < 'abd'}}",
-	                             "{{state.count == 3 && !false}}",
-	                             "{{null || 0 || 'x'}}",
-	                             "{{state.missing ?? 'none'}}",
-	                             "{{coalesce(null, 2)}}",
-	                             "{{state.items[1]}}",
-	                             "{{state.items[state.count - 2]}}",
-	                             "{{state.items.length}}",
-	                             "{{state.items[5]}}",
-	                             "{{state['my-list']}}",
-	                             "{{state[\"my-list\"][1]}}",
-	                             "{{len(state['my-list'])}}",
-	                             "{{window.width / 2}}",
-	                             "{{mode}}",
-	                             "Clicked {{state.count}} times",
-	                             "{{state.count + ' cards'}}",
-	                             "{{@accent}}",
-	                             "{{upper('abc') + lower('DEF')}}",
-	                             "{{fixed(3.14159, 2)}}",
-	                             "{{plural(2, 'card')}}",
-	                             "{{plural(1, 'card')}}",
-	                             "{{number('42')}}",
-	                             "{{number('4x')}}",
-	                             "{{slice('hello', -3)}}",
-	                             "{{split('a-b', '-')}}",
-	                             "{{join(state.items, ', ')}}",
-	                             "{{pad(7, 3)}}",
-	                             "{{pad('x', 4, '-')}}",
-	                             "{{range(3)}}",
-	                             "{{max(3, 9, 4)}}",
-	                             "{{min(state.scores)}}",
-	                             "{{clamp(15, 0, 10)}}",
-	                             "{{round(2.5)}}",
-	                             "{{filter(state.items, it != 'b')}}",
-	                             "{{map([1, 2, 3], it * 2)}}",
-	                             "{{sum([1, 2, 3.5])}}",
-	                             "{{count(state.scores, it > 3)}}",
-	                             "{{sort(state.scores, it, 'desc')}}",
-	                             "{{contains(state.items, 'c')}}",
-	                             "{{type([])}}",
-	                             "{{{a: 1, 'b c': [2]}}}"};
+	const std::array texts{"{{1 + 2 * 3}}",
+	                       "{{(1 + 2) * 3}}",
+	                       "{{7 / 2}}",
+	                       "{{8 / 2}}",
+	                       "{{7 % 3}}",
+	                       "{{-state.count}}",
+	                       "{{1.5 + 1}}",
+	                       "{{state.count > 2 ? 'big' : 'small'}}",
+	                       "{{'abc' < 'abd'}}",
+	                       "{{state.count == 3 && !false}}",
+	                       "{{null || 0 || 'x'}}",
+	                       "{{state.missing ?? 'none'}}",
+	                       "{{coalesce(null, 2)}}",
+	                       "{{state.items[1]}}",
+	                       "{{state.items[state.count - 2]}}",
+	                       "{{state.items.length}}",
+	                       "{{state.items[5]}}",
+	                       "{{state['my-list']}}",
+	                       "{{state[\"my-list\"][1]}}",
+	                       "{{len(state['my-list'])}}",
+	                       "{{window.width / 2}}",
+	                       "{{mode}}",
+	                       "Clicked {{state.count}} times",
+	                       "{{state.count + ' cards'}}",
+	                       "{{@accent}}",
+	                       "{{upper('abc') + lower('DEF')}}",
+	                       "{{fixed(3.14159, 2)}}",
+	                       "{{plural(2, 'card')}}",
+	                       "{{plural(1, 'card')}}",
+	                       "{{number('42')}}",
+	                       "{{number('4x')}}",
+	                       "{{slice('hello', -3)}}",
+	                       "{{split('a-b', '-')}}",
+	                       "{{join(state.items, ', ')}}",
+	                       "{{pad(7, 3)}}",
+	                       "{{pad('x', 4, '-')}}",
+	                       "{{range(3)}}",
+	                       "{{max(3, 9, 4)}}",
+	                       "{{min(state.scores)}}",
+	                       "{{clamp(15, 0, 10)}}",
+	                       "{{round(2.5)}}",
+	                       "{{filter(state.items, it != 'b')}}",
+	                       "{{map([1, 2, 3], it * 2)}}",
+	                       "{{sum([1, 2, 3.5])}}",
+	                       "{{count(state.scores, it > 3)}}",
+	                       "{{sort(state.scores, it, 'desc')}}",
+	                       "{{contains(state.items, 'c')}}",
+	                       "{{type([])}}",
+	                       "{{{a: 1, 'b c': [2]}}}"};
 	std::vector<json> table(std::begin(texts), std::end(texts));
 	table.emplace_back("{{" + std::string(30, '(') + "1" + std::string(30, ')') + "}}");
 	table.push_back(json::parse(R"({"$clamp": ["{{state.count}}", 0, 2]})"));
@@ -110,9 +111,9 @@ void evaluateTable(const std::vector<json>& table, const ExpressionInputs& input
 /// @brief "expressions": every expression of the table, evaluated many times, as a screen does on each update (they
 /// are compiled once, then cached).
 /// @return The workload.
-std::vector<Workload> expressionWorkloads(Context&) {
-	auto table = std::make_shared<const std::vector<json>>(expressionTable());
-	auto inputs = std::make_shared<const ExpressionInputs>();
+std::vector<Workload> expressionWorkloads(Context& /*context*/) {
+	const auto table = std::make_shared<const std::vector<json>>(expressionTable());
+	const auto inputs = std::make_shared<const ExpressionInputs>();
 	Workload workload{.name = "expressions",
 	                  .unit = "ns",
 	                  .runs = 9,
@@ -140,13 +141,13 @@ void commitRenames(vcs::Repository& repository) {
 /// memory are per commit (every commit keeps a copy of the document today).
 /// @param context The context.
 /// @return The workload.
-std::vector<Workload> commitWorkloads(Context& context) {
-	auto rules = std::make_shared<const format::Rules>();
-	auto document = std::make_shared<const json>(json::parse(readFile(context.screens() / "kanban.screen.json")));
-	auto repository = std::make_shared<std::unique_ptr<vcs::Repository>>();
+std::vector<Workload> commitWorkloads(const Context& context) {
+	const auto rules = std::make_shared<const format::Rules>();
+	const auto document = std::make_shared<const json>(json::parse(readFile(context.screens() / "kanban.screen.json")));
+	const auto repository = std::make_shared<std::unique_ptr<vcs::Repository>>();
 	Workload workload{.name = "commits", .runs = 3, .operations = commitCount};
 	workload.prepare = [rules, document, repository] {
-		repository->reset(); // the previous run's history goes first, unmeasured
+		*repository = nullptr; // the previous run's history goes first, unmeasured
 		*repository = std::make_unique<vcs::Repository>(*rules, *document);
 	};
 	workload.step = [repository] { commitRenames(**repository); };
@@ -159,14 +160,14 @@ constexpr int lineCount = 10'000;
 /// @brief Lines of text, the same every time: words of the Kanban template's cards in a fixed pseudo-random order.
 /// @return lineCount lines of 4 to 28 words.
 std::vector<std::u32string> sampleLines() {
-	const char* const words[] = {"Onboarding", "checklist", "for",    "new",       "teams",   "Empty",  "states",
-	                             "every",      "page",      "Crash",  "when",      "a",       "board",  "has",
-	                             "no",         "columns",   "Invite", "teammates", "by",      "email",  "Keyboard",
-	                             "shortcuts",  "moving",    "cards",  "colour",    "palette", "labels", "Fix"};
+	const std::array words{"Onboarding", "checklist", "for",    "new",       "teams",   "Empty",  "states",
+	                       "every",      "page",      "Crash",  "when",      "a",       "board",  "has",
+	                       "no",         "columns",   "Invite", "teammates", "by",      "email",  "Keyboard",
+	                       "shortcuts",  "moving",    "cards",  "colour",    "palette", "labels", "Fix"};
 	std::vector<std::u32string> lines;
 	lines.reserve(lineCount);
 	std::uint32_t random = 2017; // a linear congruential generator: the same lines on every machine
-	auto next = [&random](std::uint32_t range) {
+	const auto next = [&random](std::uint32_t range) {
 		random = random * 1664525u + 1013904223u;
 		return (random >> 8) % range;
 	};
@@ -198,9 +199,9 @@ void measureAndWrap(const Font& font, const std::vector<std::u32string>& lines) 
 /// @brief "text": measuring and wrapping 10,000 lines in the templates' default font (Roboto, 15 px) to 240 px.
 /// @param context The context.
 /// @return The workload.
-std::vector<Workload> textWorkloads(Context& context) {
-	auto font = Font::load(context.screens().parent_path() / "fonts" / "Roboto-Regular.ttf", 15.0f);
-	auto lines = std::make_shared<const std::vector<std::u32string>>(sampleLines());
+std::vector<Workload> textWorkloads(const Context& context) {
+	const auto font = Font::load(context.screens().parent_path() / "fonts" / "Roboto-Regular.ttf", 15.0f);
+	const auto lines = std::make_shared<const std::vector<std::u32string>>(sampleLines());
 	Workload workload{.name = "text", .unit = "ms", .runs = 9};
 	workload.step = [font, lines] { measureAndWrap(*font, *lines); };
 	return single(std::move(workload));

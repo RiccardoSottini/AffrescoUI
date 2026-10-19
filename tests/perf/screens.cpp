@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <format>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -31,7 +32,7 @@ Application& Context::application() {
 	return *application_;
 }
 
-void Context::configure(Screen& screen) const {
+void Context::configure(Screen& screen) {
 	screen.setPlaceholderTypes(true);     // as affrescoui_host does
 	examples::registerCodeEditor(screen); // and its application-layer "code" type
 	// Channels find nobody, so no workload waits on a host
@@ -69,7 +70,7 @@ Screen& Context::build(const std::string& text, const std::filesystem::path& bas
 /* Inputs */
 
 std::string readFile(const std::filesystem::path& path) {
-	std::ifstream file(path, std::ios::binary);
+	const std::ifstream file(path, std::ios::binary);
 	if(!file) throw std::runtime_error("could not open " + path.string());
 	std::stringstream text;
 	text << file.rdbuf();
@@ -122,9 +123,9 @@ constexpr std::array<int, 3> cardCounts = {14, 100, 400};
 std::vector<Workload> loadWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const std::string& name : templateNames(context.screens())) {
-		auto text = std::make_shared<const std::string>(readFile(context.screens() / (name + ".screen.json")));
-		auto document = std::make_shared<const json>(json::parse(*text));
-		auto window = std::make_shared<Window*>(nullptr);
+		const auto text = std::make_shared<const std::string>(readFile(context.screens() / (name + ".screen.json")));
+		const auto document = std::make_shared<const json>(json::parse(*text));
+		const auto window = std::make_shared<Window*>(nullptr);
 		Workload workload{.name = "load/" + name, .unit = "ms", .runs = 5};
 		workload.prepare = [&context, document, window] { *window = &context.openWindow(*document); };
 		workload.step = [&context, text, window] {
@@ -156,7 +157,7 @@ std::vector<Workload> updateWorkloads(Context& context) {
 		json document = kanbanWithCards(context.screens(), cards);
 		document["actions"]["renameBoard"] = json::parse(R"([{"set": "state.board", "to": "{{event.name}}"}])");
 		const LoadedScreen loaded = context.load(document, context.screens());
-		auto renamed = std::make_shared<bool>(false);
+		const auto renamed = std::make_shared<bool>(false);
 		Workload workload{.name = "update/" + std::to_string(cards), .runs = 15};
 		workload.step = [loaded, renamed] { renameBoard(loaded, *renamed); };
 		workloads.push_back(std::move(workload));
@@ -168,7 +169,7 @@ std::vector<Workload> updateWorkloads(Context& context) {
 /// @param edit Compact edits or a JSON Patch.
 /// @return true if one of its paths is outside "/state".
 bool changesDocument(const json& edit) {
-	auto outsideState = [](const std::string& path) { return path != "/state" && !path.starts_with("/state/"); };
+	const auto outsideState = [](const std::string& path) { return path != "/state" && !path.starts_with("/state/"); };
 	for(const char* operation : {"set", "add", "move"})
 		if(edit.contains(operation))
 			for(const auto& [path, value] : edit[operation].items()) {
@@ -232,9 +233,9 @@ std::vector<Workload> revisionWorkloads(Context& context) {
 			const json reset = {{"author", "bench"},
 			                    {"message", "Put the state back"},
 			                    {"set", {{"/state", json::parse(loaded.screen.stateJson())}}}};
-			auto screen = std::make_shared<EditedScreen>(
+			const auto screen = std::make_shared<EditedScreen>(
 			    EditedScreen{loaded, revision.dump(), reset.dump(), changesDocument(edit)});
-			Workload workload{.name = "revision/" + name + "/" + editName, .runs = 15};
+			Workload workload{.name = std::format("revision/{}/{}", name, editName), .runs = 15};
 			workload.prepare = [screen] { takeBack(*screen); };
 			workload.step = [screen] { applyEdit(*screen); };
 			workloads.push_back(std::move(workload));
@@ -257,7 +258,7 @@ void resize(Window& window, bool& smaller) {
 /// @return The workload.
 std::vector<Workload> layoutWorkloads(Context& context) {
 	const LoadedScreen loaded = context.load(kanbanWithCards(context.screens(), cardCounts.back()), context.screens());
-	auto smaller = std::make_shared<bool>(false);
+	const auto smaller = std::make_shared<bool>(false);
 	Workload workload{.name = "layout/" + std::to_string(cardCounts.back()), .runs = 15};
 	workload.step = [&window = loaded.window, smaller] { resize(window, *smaller); };
 	return single(std::move(workload));

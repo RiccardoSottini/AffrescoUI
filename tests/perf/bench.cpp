@@ -38,7 +38,7 @@ namespace {
 
 using affresco::bench::Workload;
 
-#if defined(AFFRESCOUI_BENCH_CALLGRIND)
+#ifdef AFFRESCOUI_BENCH_CALLGRIND
 /// @brief Whether this build can tell callgrind where a measured run starts and ends.
 constexpr bool callgrindAvailable = true;
 
@@ -62,7 +62,7 @@ constexpr bool callgrindAvailable = false; ///< Built without valgrind's header:
 /// @brief Does nothing: built without valgrind's header.
 void startCounting() {}
 /// @brief Does nothing: built without valgrind's header.
-void stopCounting(const std::string&) {}
+void stopCounting(const std::string& /*name*/) {}
 #endif
 
 /// @brief What the command line asked for.
@@ -141,7 +141,7 @@ bool groupSelected(const Options& options, const std::string& prefix) {
 /// @param cpuTime The main thread's CPU time instead of the wall clock.
 /// @return The time, from an arbitrary start.
 std::int64_t now(bool cpuTime) {
-#if !defined(_WIN32)
+#ifndef _WIN32
 	if(cpuTime) {
 		timespec time{};
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &time);
@@ -227,7 +227,7 @@ int runAll(const Options& options, affresco::bench::Context& context) {
 	std::ranges::move(affresco::bench::screenGroups(), std::back_inserter(groups));
 
 	int status = EXIT_SUCCESS;
-	auto fail = [&status](const std::string& where, const std::exception& error) {
+	const auto fail = [&status](const std::string& where, const std::exception& error) {
 		std::cerr << "affrescoui_bench: " << where << ": " << error.what() << '\n';
 		status = EXIT_FAILURE;
 	};
@@ -242,7 +242,7 @@ int runAll(const Options& options, affresco::bench::Context& context) {
 		for(const Workload& workload : workloads) {
 			if(!selected(options, workload.name)) continue;
 			try {
-				std::cout << measure(workload, options).dump() << std::endl; // flushed: a later crash keeps it
+				std::cout << measure(workload, options).dump() << '\n' << std::flush; // a later crash keeps it
 			} catch(const std::exception& error) {
 				fail(workload.name, error);
 			}

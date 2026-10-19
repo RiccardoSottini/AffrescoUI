@@ -75,7 +75,7 @@ public:
 private:
 	/// @brief Sets a screen up as affrescoui_host does: placeholder types, the "code" type, no host to talk to.
 	/// @param screen The screen, not yet built.
-	void configure(Screen& screen) const;
+	static void configure(Screen& screen);
 
 	std::filesystem::path screens_, edits_;       ///< See screens() and edits().
 	std::optional<Application> application_;      ///< Started by application().

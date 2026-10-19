@@ -16,8 +16,10 @@
 
 namespace {
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables): the hook's counters (see the file comment)
 std::atomic<std::uint64_t> allocations{0}; ///< Calls to operator new.
 std::atomic<std::int64_t> bytesInUse{0};   ///< Bytes allocated and not deleted.
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
 /// @brief Room for the size in front of each block, keeping the block aligned as malloc's are.
 constexpr std::size_t header = alignof(std::max_align_t);
@@ -27,6 +29,7 @@ constexpr std::size_t header = alignof(std::max_align_t);
 /// @return The block, or nullptr if there is no memory.
 void* allocate(std::size_t size) noexcept {
 	if(size > std::numeric_limits<std::size_t>::max() - header) return nullptr; // the header would wrap the size
+	// NOLINTNEXTLINE(cppcoreguidelines-no-malloc): operator new itself can't allocate with new
 	auto* block = static_cast<unsigned char*>(std::malloc(size + header));
 	if(!block) return nullptr;
 	*reinterpret_cast<std::size_t*>(block) = size;
@@ -41,7 +44,7 @@ void release(void* pointer) noexcept {
 	if(!pointer) return;
 	unsigned char* block = static_cast<unsigned char*>(pointer) - header;
 	bytesInUse.fetch_sub(static_cast<std::int64_t>(*reinterpret_cast<std::size_t*>(block)), std::memory_order_relaxed);
-	std::free(block);
+	std::free(block); // NOLINT(cppcoreguidelines-no-malloc): pairs with the malloc in allocate
 }
 
 /// @brief Allocates a counted block, or throws as operator new must.
@@ -70,11 +73,11 @@ void* operator new[](std::size_t size) { return allocateOrThrow(size); }
 /// @brief Counted operator new that returns nullptr instead of throwing.
 /// @param size The bytes asked for.
 /// @return The block, or nullptr.
-void* operator new(std::size_t size, const std::nothrow_t&) noexcept { return allocate(size); }
+void* operator new(std::size_t size, const std::nothrow_t& /*tag*/) noexcept { return allocate(size); }
 /// @brief Counted operator new[] that returns nullptr instead of throwing.
 /// @param size The bytes asked for.
 /// @return The block, or nullptr.
-void* operator new[](std::size_t size, const std::nothrow_t&) noexcept { return allocate(size); }
+void* operator new[](std::size_t size, const std::nothrow_t& /*tag*/) noexcept { return allocate(size); }
 
 /// @brief Counted operator delete.
 /// @param pointer The block.
@@ -84,13 +87,13 @@ void operator delete(void* pointer) noexcept { release(pointer); }
 void operator delete[](void* pointer) noexcept { release(pointer); }
 /// @brief Counted sized operator delete.
 /// @param pointer The block.
-void operator delete(void* pointer, std::size_t) noexcept { release(pointer); }
+void operator delete(void* pointer, std::size_t /*size*/) noexcept { release(pointer); }
 /// @brief Counted sized operator delete[].
 /// @param pointer The block.
-void operator delete[](void* pointer, std::size_t) noexcept { release(pointer); }
+void operator delete[](void* pointer, std::size_t /*size*/) noexcept { release(pointer); }
 /// @brief Counted operator delete, for a failed nothrow new.
 /// @param pointer The block.
-void operator delete(void* pointer, const std::nothrow_t&) noexcept { release(pointer); }
+void operator delete(void* pointer, const std::nothrow_t& /*tag*/) noexcept { release(pointer); }
 /// @brief Counted operator delete[], for a failed nothrow new[].
 /// @param pointer The block.
-void operator delete[](void* pointer, const std::nothrow_t&) noexcept { release(pointer); }
+void operator delete[](void* pointer, const std::nothrow_t& /*tag*/) noexcept { release(pointer); }
