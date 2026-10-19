@@ -92,3 +92,14 @@ TEST_CASE("channel: a message with a number too large for a double gets an error
 	CHECK(peer.channel.sent[1]["message"].get<std::string>().find("number overflow") != std::string::npos);
 	CHECK(peer.versions.state() == json{{"count", 0}});
 }
+
+// Found by fuzzing (tests/fuzz, session): the parse error quoted the bytes it read, and writing the answer threw
+TEST_CASE("channel: a line that isn't UTF-8 gets an error, with the bytes replaced") {
+	Peer peer;
+	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
+
+	peer.channel.receive("{\"type\": \xff}");
+	REQUIRE(peer.channel.sent.size() == 2);
+	CHECK(peer.channel.sent[1]["type"] == "error");
+	CHECK(peer.channel.sent[1]["message"].get<std::string>().find("\xef\xbf\xbd") != std::string::npos); // U+FFFD
+}

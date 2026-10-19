@@ -48,7 +48,11 @@ Session::~Session() {
 	versions_.onReviewChanged.disconnect(reviews_);
 }
 
-void Session::send(const json& message) { channel_.send(message.dump()); }
+// Error texts can quote what the peer sent, bytes that aren't UTF-8 included (a parse error shows the bytes it read),
+// and dump() throws on those by default: they are replaced with U+FFFD instead, so answering never fails
+void Session::send(const json& message) {
+	channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace));
+}
 
 // Open proposals, the one being previewed, the mode and the "don't ask again" grants
 json Session::reviewState() const {
