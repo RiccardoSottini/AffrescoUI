@@ -48,7 +48,11 @@ Session::~Session() {
 	versions_.onReviewChanged.disconnect(reviews_);
 }
 
-void Session::send(const json& message) { channel_.send(message.dump()); }
+// Error texts can quote what the peer sent, bytes that aren't UTF-8 included (a parse error shows the bytes it read),
+// and dump() throws on those by default: they are replaced with U+FFFD instead, so answering never fails
+void Session::send(const json& message) {
+	channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace));
+}
 
 // Open proposals, the one being previewed, the mode and the "don't ask again" grants
 json Session::reviewState() const {
@@ -234,9 +238,10 @@ bool Session::handleQuery(const Incoming& in) {
 	} else if(in.type == "getHistory") {
 		// The newest "limit" commits on main (like `git log -n`), oldest first; all without one
 		const std::vector<CommitInfo> log = versions_.log();
-		const int limit = m.value("limit", 0);
+		// Read as a double: a peer's 1e20 converted to an int would be undefined behaviour
+		const double limit = m.value("limit", 0.0);
 		const std::size_t skip =
-		    limit > 0 && log.size() > static_cast<std::size_t>(limit) ? log.size() - static_cast<std::size_t>(limit) : 0;
+		    limit >= 1 && limit < static_cast<double>(log.size()) ? log.size() - static_cast<std::size_t>(limit) : 0;
 		json entries = json::array();
 		for(std::size_t i = skip; i < log.size(); ++i) entries.push_back(toJson(log[i]));
 		send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", in.id}});
