@@ -125,8 +125,9 @@ A host can register native code that documents use:
 - `onCall(name, function)` makes `name` callable from `{"call": name, "with": ..., "into": "state.x"}` steps. The
   function gets the `with` value, which the screen computes, often from the live state or the event. Treat it as
   untrusted input: check it and limit it. Revisions can't add or alter `call` steps, so only calls the screen file
-  already contains can reach it, but a revision can make an existing call run at other times (see "Known gaps") and
-  can change the state its `with` reads.
+  already contains can reach it. But a revision can make an existing call run at other times (see "Known gaps"),
+  change the state its `with` reads, and add new uses of a component or template that holds it, each with its own
+  parameters: the function can get any argument an author chooses.
 - `onAction(name, action)` registers an action by name. A document reaches it wherever it names an action that the
   file doesn't define: `"onClick": "name"`, `{"run": "name"}`, or a `call` step. Those references are not control
   steps, so **a revision can attach any registered native action to a new button or event**. Register as native
