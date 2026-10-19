@@ -76,9 +76,6 @@ def check_socket_dir(path):
 
 def connect_unix(path):
     """A stream socket connected to the host at path, or a RuntimeError saying why there is none."""
-    if not hasattr(socket, "AF_UNIX"):  # CPython on Windows, so far (python/cpython#77589)
-        raise RuntimeError("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: on "
-                           "Windows no released CPython has them yet, see mcp/README.md")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
         sock.connect(path)
@@ -106,6 +103,10 @@ class Host:
         with self.lock:
             if self.sock:
                 return
+        # Before --launch: a host this Python can't reach would be started again on every call
+        if not hasattr(socket, "AF_UNIX"):  # CPython on Windows, so far (python/cpython#77589)
+            raise RuntimeError("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: "
+                               "on Windows no released CPython has them yet, see mcp/README.md")
         if not os.path.exists(self.path) and self.launch:
             log(f"no host running: starting {self.launch}")
             # Windows parses a command line itself, and shlex would drop the backslashes of its paths
