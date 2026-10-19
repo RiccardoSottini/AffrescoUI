@@ -1,7 +1,8 @@
 # render: the rendering engine
 
-`render` draws a tree of panels in a window and routes input to them. It owns the windowing system (GLFW), the OpenGL
-4.1 core context and the renderer, and knows nothing about documents: you build the tree in C++, or `format` builds
+`render` draws a tree of panels in a window and routes input to them. It owns the windowing system (GLFW, behind an
+internal platform layer), the OpenGL 4.1 core context and the renderer (behind an internal interface), and knows
+nothing about documents: you build the tree in C++, or `format` builds
 it from a screen document. It keeps the ideas of 2017: nested panels, pixel and percentage sizes, anchors to edges,
 minimum sizes, hex colours and signal-to-slot events. It adds rows, columns and grids, scrolling, overlays, rounded
 shapes with borders and shadows, text with fallback fonts, and a multi-line editor. No public header exposes OpenGL
@@ -11,8 +12,9 @@ or GLFW. Target: `affrescoui::render` (uses `core`; vendors glad and stb_truetyp
 
 | Header | Offers |
 |---|---|
-| `Application.hpp` | `Application`: GLFW, every `Window`, the event loop (`run`, `quit`); the `Executor` (`post`) |
-| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; `defer`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
+| `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their `SteadyClock`; the `Executor` (`post`) |
+| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
+| `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks |
 | `Stack.hpp` | `Stack` (a row or a column, with a gap and growing children) and `Grid` (equal columns) |
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text |
@@ -34,8 +36,15 @@ or GLFW. Target: `affrescoui::render` (uses `core`; vendors glad and stb_truetyp
 - **Layout per axis:** anchored edges first, then the position, then `max(size, minimum)`; percentages refer to the
   parent; a panel is clipped to its parent, and a panel clipped to nothing is not shown. Overlays are laid out, drawn
   and hit-tested after the whole tree, unclipped.
-- **Every OpenGL call is in `src/gl/`.** `gl::QuadRenderer` draws the tree as batched quads: one draw call per
-  texture switch, clipping on the CPU.
+- **Every OpenGL call is in `src/gl/`, and every GLFW call in `src/platform/GlfwPlatform.cpp`.** `Window.cpp` and
+  `Application.cpp` call neither: the OS window is a `platform::NativeWindow` (`src/platform/Platform.hpp`), and
+  drawing a `detail::Renderer` (`src/Renderer.hpp`), whose OpenGL implementation (`gl/OpenGlRenderer.cpp`) uses
+  `gl::QuadRenderer`: batched quads, one draw call per texture switch, clipping on the CPU.
+- **A window without a platform window or renderer is headless.** It routes input, keeps the focus, hover and
+  capture, runs timers and deferred tasks and lays out, but never draws; its clipboard is its own.
+  `detail::createHeadlessWindow` (`src/Headless.hpp`, internal for now) creates one for tests.
+- **One clock per window.** Timers, the tooltip delay and double clicks read `Window::clock()`; an `Application`'s
+  windows share a `SteadyClock`, and tests use `detail::ManualClock` to move time by hand.
 - **One `Application` at a time.** A second one throws.
 - **Limits:** a glyph atlas page is at most 4,096 × 4,096; a font's pages are bounded too, so text naming many
   characters can't exhaust memory.
@@ -62,17 +71,20 @@ captures `this` in one must cancel its timers in its destructor.
   or through the signals (`onKey`, `onMouseButton`, ...).
 - **Text editors:** `TextEditor`'s protected editing API and its `colorLine` hook let an application add a language
   without changing the library (`examples/CodeEditor.*` adds syntax colours that way).
-- **Coming in wave 2:** a platform layer behind an internal interface, a headless window and one clock (from 7.3);
-  text shaping with HarfBuzz and FreeType (from 2.3b). They aren't there yet: `Window.cpp` still calls GLFW and
-  `Font` uses stb_truetype.
+- **Another platform or renderer:** implement `platform::Platform` and `NativeWindow`, or `detail::Renderer`
+  (internal interfaces, kept small: 7.8 builds damage tracking on the renderer).
+- **Coming in wave 2:** text shaping with HarfBuzz and FreeType (from 2.3b); `Font` still uses stb_truetype.
 
 ## Files
 
 ```
 include/affresco/render/   the public headers above
 src/
-  Application.cpp          GLFW start-up, the event loop, posted tasks
+  Application.cpp          the platform, the windows, the event loop, posted tasks
   Window.cpp               input routing, focus, hover, capture, tooltips, timers, deferred tasks, frames
+  Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
+  Renderer.hpp             detail::Renderer, what a window draws with
+  platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call)
   Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
   Stack.cpp                rows, columns and grids
   Label.cpp, TextArea.cpp  text and a single-line input
@@ -83,7 +95,7 @@ src/
   detail/Utf8.hpp          UTF-8 decoding, shared by the text code
   detail/Ppm.hpp           PPM screenshots
   gl/                      everything OpenGL: Context (state, read-back), GlObjects (RAII names), Shader,
-                           QuadRenderer (the batched renderer and its Painter)
+                           QuadRenderer (the batched renderer and its Painter), OpenGlRenderer (the Renderer)
 CMakeLists.txt             the affrescoui_render target and its sources
 ```
 
@@ -105,6 +117,16 @@ Give it its own signals for what it means (`Toggle::onToggled`), and call `inval
 
 **Add a property to `Panel`.** A getter and a setter that stores the value and calls `invalidate()`; the layout or
 `paint` reads it. Document its default. If screen documents should set it, the `format` README says how.
+
+**Test a window without a display.**
+
+```cpp
+affresco::detail::ManualClock clock;                                   // src/Headless.hpp
+auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
+window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, {10.0f, 10.0f}});
+clock.advance(600.0);                                                   // the tooltip delay has passed
+window->render();                                                       // runs what is due, lays out
+```
 
 **Run work later.** `window.defer(task)` runs after the current event has been fully delivered (a handler may then
 rebuild even its own panel). `window.setTimer(ms, task)` runs it later and returns an id for `cancelTimer`. From
