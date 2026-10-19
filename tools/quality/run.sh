@@ -69,11 +69,12 @@ setup_python() {
 }
 
 # Configures the build with clang, coverage instrumentation and compile_commands.json (what clang-tidy reads). The
-# benchmarks are on so tests/perf is in it too: a file missing from it can't be parsed, so it can't be checked.
+# benchmarks and the fuzz sources (compiled without libFuzzer) are on so tests/perf and tests/fuzz are in it too: a
+# file missing from it can't be parsed, so it can't be checked.
 configure() {
 	local flags="-fprofile-instr-generate -fcoverage-mapping"
 	cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-		-DAFFRESCOUI_BUILD_BENCHMARKS=ON \
+		-DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_COMPILE_FUZZ_SOURCES=ON \
 		-DCMAKE_C_COMPILER="$llvm/clang" -DCMAKE_CXX_COMPILER="$llvm/clang++" \
 		"-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" >/dev/null
 }

@@ -73,7 +73,7 @@ TEST_CASE("core: nestingDepth counts levels as parseUntrusted does, and pointerD
 // Before, the 256 levels held for each message only: revisions could each add a value inside the last one's, and
 // the screen grew deeper with every change, beyond what a history file or a peer can read back
 TEST_CASE("vcs: a revision that would make the screen deeper than maxDocumentNesting is refused") {
-	affresco::format::Rules rules;
+	const affresco::format::Rules rules;
 	affresco::vcs::Repository versions(rules, affresco::test::permissionsScreen());
 	const auto add = [&](const std::string& path, const json& value) {
 		return versions.submit({{"author", "studio"}, {"patch", {{{"op", "add"}, {"path", path}, {"value", value}}}}});

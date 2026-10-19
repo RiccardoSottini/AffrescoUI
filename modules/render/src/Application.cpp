@@ -51,7 +51,7 @@ int Application::run() {
 	// normally for that long first (e.g. so peers can connect and change the screen)
 	const std::optional<std::string> screenshot = environmentVariable("AFFRESCOUI_SCREENSHOT");
 	const std::optional<std::string> after = environmentVariable("AFFRESCOUI_SCREENSHOT_AFTER");
-	const double deadline = glfwGetTime() + (after ? std::atof(after->c_str()) / 1000.0 : 0.0);
+	const double deadline = glfwGetTime() + (after ? std::strtod(after->c_str(), nullptr) / 1000.0 : 0.0);
 
 	running_ = true;
 	while(running_ && !(screenshot && glfwGetTime() >= deadline)) {

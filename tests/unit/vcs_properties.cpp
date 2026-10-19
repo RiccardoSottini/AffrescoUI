@@ -224,7 +224,7 @@ TEST_CASE("vcs properties: one effect spelled as different revisions gets the sa
 	    {"title", "/root/children/1", "label", "text", {}},   {"statusBar", "/root/children/2", "panel", "color", {}},
 	    {"", "/state", "", "count", {}},                       {"", "/state", "", "fresh", {}},
 	};
-	std::mt19937 random(7);
+	std::mt19937 random(7); // NOLINT(bugprone-random-generator-seed): the same cases on every run
 	std::set<RevisionStatus> seen; // all three decisions, or the property says little
 	for(int trial = 0; trial < 60; ++trial) {
 		Effect effect = places[random() % places.size()];

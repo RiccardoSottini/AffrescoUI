@@ -20,7 +20,7 @@ namespace affresco {
 /// @param name The variable's name (a C string: no null bytes).
 /// @return Its value, in the bytes the C library gives (the ANSI code page on Windows); nothing if it is not set.
 [[nodiscard]] inline std::optional<std::string> environmentVariable(const std::string& name) {
-#if defined(_WIN32)
+#ifdef _WIN32
 	char* value = nullptr;
 	std::size_t length = 0;
 	if(_dupenv_s(&value, &length, name.c_str()) != 0 || !value) return std::nullopt;
@@ -38,7 +38,7 @@ namespace affresco {
 /// @return The fields; all zero if the time can't be represented.
 [[nodiscard]] inline std::tm utcTime(std::time_t time) noexcept {
 	std::tm fields{};
-#if defined(_WIN32)
+#ifdef _WIN32
 	if(gmtime_s(&fields, &time) != 0) fields = {};
 #else
 	if(!gmtime_r(&time, &fields)) fields = {};
@@ -51,7 +51,7 @@ namespace affresco {
 /// @return The fields; all zero if the time can't be represented.
 [[nodiscard]] inline std::tm localTime(std::time_t time) noexcept {
 	std::tm fields{};
-#if defined(_WIN32)
+#ifdef _WIN32
 	if(localtime_s(&fields, &time) != 0) fields = {};
 #else
 	if(!localtime_r(&time, &fields)) fields = {};

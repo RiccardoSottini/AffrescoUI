@@ -284,7 +284,7 @@ TEST_CASE("channel: a SocketChannel whose peer stops reading is closed once its 
 	channel.onClosed.connect([&] { closed = true; });
 
 	// The other end never reads: the socket's buffer fills, then the queue
-	const std::string block(64 * 1024, 'x');
+	const std::string block(std::size_t{64} * 1024, 'x');
 	const auto start = std::chrono::steady_clock::now();
 	std::size_t sent = 0;
 	for(; channel.isOpen() && sent < (std::size_t{64} << 20); sent += block.size()) channel.send(block);

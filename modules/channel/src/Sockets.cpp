@@ -291,7 +291,7 @@ std::ptrdiff_t transmit(SocketHandle socket, const char* data, std::size_t size)
 /// @param socket The connection.
 /// @return false also when the operating system can't say.
 bool sameUser(SocketHandle socket) {
-#if defined(__linux__)
+#ifdef __linux__
 	ucred peer{};
 	socklen_t size = sizeof(peer);
 	return getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0 && size == sizeof(peer) &&

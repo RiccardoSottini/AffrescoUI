@@ -215,7 +215,10 @@ if(AFFRESCOUI_BUILD_TESTS)
 	add_test(NAME window COMMAND affrescoui_window_tests)
 endif()
 
-if(AFFRESCOUI_BUILD_FUZZERS)
+# The fuzz targets' sources can also be compiled alone, without libFuzzer, so that clang-tidy finds them in
+# compile_commands.json (tools/quality/run.sh)
+option(AFFRESCOUI_COMPILE_FUZZ_SOURCES "Compile tests/fuzz without libFuzzer, for tools that read the build" OFF)
+if(AFFRESCOUI_BUILD_FUZZERS OR AFFRESCOUI_COMPILE_FUZZ_SOURCES)
 	add_subdirectory(tests/fuzz)
 endif()
 
