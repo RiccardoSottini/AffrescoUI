@@ -1,0 +1,78 @@
+# Fuzzes what comes from outside the app (tests/fuzz): each target for 60 seconds on pull requests, and for 15 minutes
+# every night, starting from the corpus earlier nights grew (kept in the Actions cache; pull requests start from it
+# too). An input that crashes, leaks, hangs or runs out of memory fails the job and is uploaded as the "fuzz-<target>"
+# artifact; tests/fuzz/README.md says how to replay it.
+name: Fuzz
+
+on:
+  pull_request:
+  schedule:
+    - cron: "23 2 * * *" # nightly, 02:23 UTC
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds to run each target
+        default: "900"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fuzz:
+    name: Fuzz (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false # one target's crash doesn't stop the others
+      matrix:
+        target: [json, expression, revision, session]
+    env:
+      TARGET: ${{ matrix.target }}
+      RUN_SECONDS: ${{ github.event_name == 'pull_request' && '60' || inputs.seconds || '900' }}
+      ASAN_SYMBOLIZER_PATH: /usr/lib/llvm-18/bin/llvm-symbolizer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install dependencies # clang with libFuzzer; GLFW's headers, which configuring the project needs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-18 libclang-rt-18-dev llvm-18 ninja-build \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+            libwayland-dev libxkbcommon-dev wayland-protocols
+      - name: Build
+        run: |
+          CC=clang-18 CXX=clang++-18 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DAFFRESCOUI_BUILD_FUZZERS=ON -DAFFRESCOUI_BUILD_EXAMPLES=OFF -DAFFRESCOUI_BUILD_TESTS=OFF \
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build --target "affrescoui_fuzz_$TARGET"
+      - name: Write the seeds
+        run: python3 tests/fuzz/corpus.py --out build/fuzz-corpus
+      - name: Restore the corpus of earlier runs
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz-corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.target }}-
+      - name: Fuzz
+        run: |
+          mkdir -p "fuzz-corpus/$TARGET" build/fuzz-found
+          "build/tests/fuzz/affrescoui_fuzz_$TARGET" -max_total_time="$RUN_SECONDS" -timeout=10 -rss_limit_mb=2048 \
+            -print_final_stats=1 -dict="build/fuzz-corpus/$TARGET.dict" -artifact_prefix=build/fuzz-found/ \
+            "fuzz-corpus/$TARGET" "build/fuzz-corpus/$TARGET"
+      - name: Upload the input that failed
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: build/fuzz-found/
+          if-no-files-found: ignore
+      - name: Keep the corpus for the next run # not from pull requests: they read it, never write it
+        if: success() && github.event_name != 'pull_request'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz-corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
