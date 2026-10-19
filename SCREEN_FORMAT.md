@@ -211,16 +211,23 @@ Wherever a value is expected it can be computed:
 - paths: `state.items[state.current].title`, `card.tags.length`; a missing value is `null`; a name with `-` goes in
   brackets, `state['my-list']`, because `state.my-list` is `state.my - list`;
 - `!`, `-`, `* / %`, `+ -` (`+` joins text when either side is text), `< <= > >=`, `== !=`, `&&`, `||`,
-  `a ?? b` (b when a is null), `c ? a : b`;
-- functions: `len`, `empty`, `round`, `floor`, `ceil`, `abs`, `min`, `max` (numbers or a list), `clamp(v, lo, hi)`,
-  `concat`, `join(list, sep)`, `split(text, sep)`, `slice(list or text, from, to?)`, `contains`, `indexOf`, `keys`,
-  `values`, `entries`, `merge(a, b)`, `reverse`, `range(n)` (n up to 10000), `upper`, `lower`, `trim`, `number`, `text`,
-  `type`, `fixed(n, digits)`, `pad(n, width, fill?)` (width up to 10000), `plural(n, 'card', 'cards'?)`, `now()`,
-  `time(ms, 'ddd D MMM HH:mm')`, `parseJson`, `json`;
-- per item, with the item as `it` and its position as `index`: `filter(list, it.done)`, `map(list, it.name)`,
-  `count(list, cond?)`, `sum(list, expr?)`, `find(list, cond)`, `some`, `every`, `sort(list, key?, 'desc'?)`.
+  `a ?? b` (b when a is null), `c ? a : b`; `&&` and `||` give an operand, as in JavaScript: `user && user.name` is the
+  name (or `user` when it is false or null), `title || 'Untitled'` is the title unless it is empty;
+- functions: `empty(value)`, `type(value)`, `round(number)`, `floor(number)`, `ceil(number)`, `abs(number)`,
+  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
+  `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
+  `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
+  `len(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
+  `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
+  `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
+  `time(milliseconds, 'ddd D MMM HH:mm')`;
+- per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
+  `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
+  `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 
-Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`.
+Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
+are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole. The list
+above comes from the function registry; the catalog's `functions` says what each one gives.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`); `theme`;
 `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
@@ -394,8 +401,9 @@ Requests may carry an `"id"`; answers repeat it.
 
 ### Catalog
 `getCatalog` (MCP: `get_catalog`) answers what this screen's host offers: node types and their properties, common
-properties, events, steps, control steps, operators, variables and sections, plus the custom types, native actions and
-native functions the application registered. Agents read it instead of guessing.
+properties, events, steps, control steps, operators, functions (each one's arguments and what it gives), variables and
+sections, plus the custom types, native actions and native functions the application registered. Agents read it
+instead of guessing.
 
 ## Errors
 

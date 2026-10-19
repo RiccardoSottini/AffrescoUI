@@ -153,7 +153,11 @@ def session_seeds():
 
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
-    operators = sorted(set(re.findall(r'"\$(\w+)"', (ROOT / "modules/format/src/Expression.cpp").read_text())))
+    # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
+    registry = "".join(path.read_text() for path in sorted((ROOT / "modules/format/src").glob("ExpressionFunctions*.cpp")))
+    operators = set(re.findall(r'\.(?:name|alias) = "(\w+)"', registry))
+    operators |= set(re.findall(r'"\$(\w+)"', (ROOT / "modules/format/src/ExpressionLower.cpp").read_text()))
+    operators = sorted(operators)
     expression = [f"{name}(" for name in operators] + [f"${name}" for name in operators]
     expression += ["{{", "}}", "state.", "event.", "window.", "computed.", "nodes.", "&&", "||", "??", "==", "!=",
                    "<=", ">=", "=>", "?", ":", "[", "]", "'", ".length"]
