@@ -1144,13 +1144,31 @@ json evaluateString(const std::string& text, const Context& context, const std::
 	return result + text.substr(position);
 }
 
+/// @brief Tells whether text that isn't an expression may be a path written before expressions: "state.items[0]".
+/// @param text The text.
+/// @return true for names, dots and brackets, starting with a variable's name (never a digit: "99999999999999999999"
+/// is a number too large).
+bool looksLikePath(std::string_view text) {
+	if(text.empty() || std::isdigit(static_cast<unsigned char>(text.front()))) return false;
+	return std::ranges::all_of(text, [](char c) {
+		return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.' || c == '[' || c == ']';
+	});
+}
+
+/// @brief The compiled expressions, by text: the main thread's, because expressions repeat on every update.
+/// @return The cache.
+std::unordered_map<std::string, json>& compileCache() {
+	static std::unordered_map<std::string, json> cache;
+	return cache;
+}
+
 } // namespace
 
 const json& compile(std::string_view text, const std::string& where) {
-	static std::unordered_map<std::string, json> cache; // the main thread's; expressions repeat on every update
+	auto& cache = compileCache();
 	const std::string key(trim(text));
 	if(const auto it = cache.find(key); it != cache.end()) return it->second;
-	if(cache.size() > 20000) cache.clear();
+	if(cache.size() >= compileCacheLimit) cache.clear();
 
 	json compiled;
 	try {
@@ -1159,15 +1177,13 @@ const json& compile(std::string_view text, const std::string& where) {
 		// Text that isn't an expression but looks like a path is read as one (paths written before expressions). Few
 		// names with '-' get here: "state.my-list" parses, as state.my - list, so such names go in brackets:
 		// state['my-list'] (SCREEN_FORMAT.md, "Expressions")
-		const bool path = !key.empty() && std::ranges::all_of(key, [](char c) {
-			return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.' || c == '[' ||
-			       c == ']';
-		});
-		if(!path) throw;
+		if(!looksLikePath(key)) throw;
 		compiled = node("$path", key);
 	}
 	return cache.emplace(key, std::move(compiled)).first->second;
 }
+
+void clearCompileCache() noexcept { compileCache().clear(); }
 
 json evaluate(const json& value, const Context& context, const std::string& where) {
 	if(value.is_string()) return evaluateString(value.get_ref<const std::string&>(), context, where);
@@ -1189,6 +1205,26 @@ json evaluate(const json& value, const Context& context, const std::string& wher
 	}
 
 	return value;
+}
+
+Placeholders placeholders(std::string_view text) {
+	Placeholders result;
+	const std::string_view whole = trim(text);
+	if(whole.starts_with("{{") && closing(whole, 2) == whole.size() - 2) {
+		result.expressions.push_back(whole.substr(2, whole.size() - 4));
+		result.whole = true;
+		return result;
+	}
+	for(std::size_t start; (start = text.find("{{")) != std::string_view::npos;) {
+		const std::size_t end = closing(text, start + 2);
+		if(end == std::string_view::npos) {
+			result.unclosed = true;
+			break;
+		}
+		result.expressions.push_back(text.substr(start + 2, end - start - 2));
+		text.remove_prefix(end + 2);
+	}
+	return result;
 }
 
 json lookup(std::string_view path, const Context& context, const std::string& where) {

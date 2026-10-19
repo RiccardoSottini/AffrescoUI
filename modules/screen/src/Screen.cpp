@@ -94,6 +94,13 @@ struct Screen::Impl {
 		channels.clear();
 	}
 
+	/// @brief Logs what the screen refers to but doesn't define, as warnings: the screen still opens. Called when it
+	/// is first built, once the application has registered its actions.
+	void warnOfFindings() const {
+		for(const std::string& finding : rules.findings(repository.document(), repository.state()))
+			affresco::log(LogLevel::Warning, "AffrescoUI screen: " + finding);
+	}
+
 	/* Channels */
 
 	/// @brief Runs a channel's action if the file has it ("host:committed" for a "committed" message on "host").
@@ -436,6 +443,7 @@ void Screen::registerType(std::string name, Factory factory, std::vector<std::st
 void Screen::setPlaceholderTypes(bool enabled) { impl_->runtime.setPlaceholderTypes(enabled); }
 
 Window& Screen::createWindow(Application& app) {
+	impl_->warnOfFindings();
 	Window& window = impl_->runtime.createWindow(app);
 	startChannels(app);
 	return window;
@@ -490,11 +498,17 @@ void Screen::onCall(std::string name, Call call) {
 	});
 }
 
-void Screen::build(Window& window) { impl_->runtime.build(window); }
+void Screen::build(Window& window) {
+	impl_->warnOfFindings();
+	impl_->runtime.build(window);
+}
 
 Panel& Screen::instantiate(std::string_view name, Panel& parent) { return impl_->runtime.instantiate(name, parent); }
 
-void Screen::onAction(std::string name, Action action) { impl_->runtime.onAction(std::move(name), std::move(action)); }
+void Screen::onAction(std::string name, Action action) {
+	impl_->rules.addNativeAction(name);
+	impl_->runtime.onAction(std::move(name), std::move(action));
+}
 
 void Screen::onUnhandledAction(UnhandledAction fallback) { impl_->runtime.onUnhandledAction(std::move(fallback)); }
 
