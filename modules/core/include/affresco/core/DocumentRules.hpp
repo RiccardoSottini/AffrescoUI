@@ -38,9 +38,11 @@ inline std::optional<PermissionRule> parsePermissionRule(std::string_view text) 
 
 /// @brief What a document lets each author do: its permission rules, checked deny first, then ask, then allow.
 struct Permissions {
-	bool configured = false;                      ///< false: no rules, so every change applies and anyone reviews.
-	std::vector<PermissionRule> allow, ask, deny; ///< The rules, in the order they were written.
-	std::vector<std::string> reviewers;           ///< Who may decide on proposals (author or channel names).
+	bool configured = false;            ///< false: no rules, so every change applies and anyone reviews.
+	std::vector<PermissionRule> allow;  ///< The allow rules, in the order they were written.
+	std::vector<PermissionRule> ask;    ///< The ask rules, in the order they were written.
+	std::vector<PermissionRule> deny;   ///< The deny rules, in the order they were written.
+	std::vector<std::string> reviewers; ///< Who may decide on proposals (author or channel names).
 };
 
 /// @brief What version control needs to know about the documents it stores.

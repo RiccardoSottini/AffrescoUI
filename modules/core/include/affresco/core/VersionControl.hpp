@@ -44,7 +44,8 @@ struct CommitInfo {
 	std::vector<std::string> parents; ///< None for the first commit, two for a merged proposal (main, then branch).
 	std::string author;               ///< Who wrote the change.
 	std::string committer;            ///< Who applied it: the author, or the reviewer who accepted it.
-	std::string message, time;        ///< Why, and when (UTC, ISO 8601).
+	std::string message;              ///< Why.
+	std::string time;                 ///< When (UTC, ISO 8601).
 	int proposal = 0;                 ///< The proposal it merged, if any.
 };
 
@@ -52,8 +53,10 @@ struct CommitInfo {
 struct ProposalInfo {
 	int id = 0;                        ///< For accept(), reject() and preview().
 	std::string branch;                ///< "proposal/<id>".
-	std::string author, message;       ///< Who proposed it, and its title (the first commit's message).
-	std::string base, head;            ///< The main commit it is based on, and its newest commit.
+	std::string author;                ///< Who proposed it.
+	std::string message;               ///< Its title (the first commit's message).
+	std::string base;                  ///< The main commit it is based on.
+	std::string head;                  ///< Its newest commit.
 	std::size_t commits = 0;           ///< Commits on the branch.
 	std::size_t operations = 0;        ///< JSON Patch operations in all of them.
 	std::vector<std::string> touches;  ///< What it changes: nodes ("#board") or areas ("/state/cards").

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rendering check: plays every scenario in scenarios.json and compares each frame with its golden image, pixel by pixel.
+"""Rendering check: plays every scenario in scenarios/ and compares each frame with its golden image, pixel by pixel.
 
 Usage:
     python3 tests/render/check.py [--build DIR] [--only NAME] [--update]
@@ -8,6 +8,9 @@ The runner (affrescoui_render_runner, built with the library) plays the scenario
 compares its frames with golden/<scenario>-<capture>.png. A frame that differs is saved with a diff image (changed
 pixels in red) in DIR/render-check/. --update rewrites the golden images: run it only when a change in the pictures is
 intended. The window is never shown, so frames are at 1x on any display. Only the Python standard library is needed.
+
+The scenarios are in one file per area (scenarios/kanban.json, ...), read in the order of their file names, so changes
+that add scenarios to different areas don't edit the same file.
 """
 
 import json
@@ -19,6 +22,27 @@ import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GOLDEN = os.path.join(HERE, "golden")
+SCENARIOS = os.path.join(HERE, "scenarios")
+
+
+def read_scenarios():
+    """Every scenario, as (the file that has it, the scenario), from scenarios/*.json in the order of the file names.
+
+    A name must be unique across the files: it is the prefix of the scenario's frames and golden images.
+    """
+    found, files = [], {}
+    for file_name in sorted(os.listdir(SCENARIOS)):
+        if not file_name.endswith(".json"):
+            continue
+        path = os.path.join(SCENARIOS, file_name)
+        with open(path, encoding="utf-8") as file:
+            for scenario in json.load(file)["scenarios"]:
+                name = scenario["name"]
+                if name in files:
+                    sys.exit(f"scenario '{name}' is in both scenarios/{files[name]} and scenarios/{file_name}")
+                files[name] = file_name
+                found.append((path, scenario))
+    return found
 
 
 def read_ppm(path):
@@ -125,12 +149,10 @@ def main():
     os.makedirs(out, exist_ok=True)
     os.makedirs(GOLDEN, exist_ok=True)
 
-    scenarios_file = os.path.join(HERE, "scenarios.json")
-    with open(scenarios_file, encoding="utf-8") as file:
-        scenarios = [s for s in json.load(file)["scenarios"] if not only or s["name"] == only]
+    scenarios = [(path, s) for path, s in read_scenarios() if not only or s["name"] == only]
 
     failures, frames = [], 0
-    for scenario in scenarios:
+    for scenarios_file, scenario in scenarios:
         name = scenario["name"]
         for old in os.listdir(out):  # frames of an earlier run must not pass for this one's
             if old.startswith(name + "-"):

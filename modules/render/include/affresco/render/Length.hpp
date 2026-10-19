@@ -23,6 +23,7 @@ struct Length {
 		return unit == Unit::Pixel ? value : (reference / 100.0f) * value;
 	}
 
+	/// @brief Equal when every member is equal.
 	constexpr bool operator==(const Length&) const noexcept = default;
 };
 

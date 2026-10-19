@@ -1,0 +1,18 @@
+{
+	"screens": "../../../examples/assets/screens",
+	"scenarios": [
+		{
+			"name": "habit-tracker",
+			"screen": "habit-tracker.screen.json",
+			"steps": [
+				{ "capture": "first-frame" },
+				{ "click": "#habit", "nth": 2 },
+				{ "capture": "habit-done" },
+				{ "click": "#newHabit" },
+				{ "type": "Drink water" },
+				{ "key": "enter" },
+				{ "capture": "habit-added" }
+			]
+		}
+	]
+}
