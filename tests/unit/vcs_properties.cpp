@@ -143,9 +143,9 @@ struct Effect {
 
 } // namespace
 
-// The live state is data, not history (VERSION_CONTROL.md): a revert gives back the document, and a revision that
-// changed only the state has nothing to revert
-TEST_CASE("vcs properties: applying a random revision, then reverting it, restores the document") {
+// A revert gives back the document and, in the run that changed it, the live state (VERSION_CONTROL.md); a revision
+// that changed neither has nothing to revert
+TEST_CASE("vcs properties: applying a random revision, then reverting it, restores the document and the state") {
 	const affresco::format::Rules rules;
 	for(std::uint32_t seed = 1; seed <= seeds; ++seed) {
 		CAPTURE(seed);
@@ -154,15 +154,17 @@ TEST_CASE("vcs properties: applying a random revision, then reverting it, restor
 		for(int step = 0; step < revisionsPerSeed; ++step) {
 			CAPTURE(step);
 			const std::string document = repository.document().dump();
+			const std::string state = repository.state().dump();
 			const json revision = generate.next();
 			applyRevision(repository, revision);
-			if(repository.document().dump() == document) {
+			if(repository.document().dump() == document && repository.state().dump() == state) {
 				CHECK_THROWS_WITH_AS((void)repository.revertRevision("HEAD", "studio"),
-				                     doctest::Contains("only changed the live state"), affresco::DocumentError);
+				                     doctest::Contains("nothing to revert"), affresco::DocumentError);
 				continue;
 			}
 			applyRevision(repository, repository.revertRevision("HEAD", "studio"));
 			CHECK(repository.document().dump() == document);
+			CHECK(repository.state().dump() == state);
 			applyRevision(repository, revision); // and on: the next revision builds on this one
 		}
 	}

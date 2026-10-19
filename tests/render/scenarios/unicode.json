@@ -1,0 +1,23 @@
+{
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "unicode",
+			"screen": "unicode.screen.json",
+			"steps": [
+				{ "capture": "first-frame" },
+				{ "click": "#editor" },
+				{ "key": "end" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "capture": "selected" },
+				{ "key": "backspace" },
+				{ "type": "World" },
+				{ "capture": "edited" }
+			]
+		}
+	]
+}

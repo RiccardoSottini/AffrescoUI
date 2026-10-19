@@ -1,8 +1,14 @@
+/// @file
+/// @brief Application: the windowing system, the windows and the event loop. The windowing system is a
+/// platform::Platform (GLFW) and drawing a detail::Renderer (OpenGL): nothing here calls either directly.
+
 #include "affresco/render/Application.hpp"
 #include "affresco/core/Log.hpp"
 #include "affresco/core/Portable.hpp"
 
-#include <GLFW/glfw3.h>
+#include "Renderer.hpp"
+#include "gl/OpenGlRenderer.hpp"
+#include "platform/Platform.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -19,30 +25,24 @@ bool instanceAlive = false; ///< Only one Application may exist.
 
 Application::Application() {
 	if(instanceAlive) throw std::logic_error("AffrescoUI: only one affresco::Application can exist at a time");
-
-	glfwSetErrorCallback([](int code, const char* description) {
-		log(LogLevel::Error, "AffrescoUI: GLFW error " + std::to_string(code) + ": " + description);
-	});
-	if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
-
+	platform_ = platform::createGlfwPlatform();
 	instanceAlive = true;
 }
 
 Application::~Application() {
 	windows_.clear(); // windows (and their GL contexts) go before the windowing system
-	glfwTerminate();
+	platform_.reset();
 	instanceAlive = false;
 }
 
 Window& Application::createWindow(std::string title, int width, int height) {
-	// OpenGL 4.1 core: the highest version available on macOS
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+	std::unique_ptr<platform::NativeWindow> native = platform_->createWindow(title, width, height);
+	std::unique_ptr<detail::Renderer> renderer =
+	    gl::createRenderer(native->procAddressLoader()); // its context is current
 
 	// Window's constructor is private: only the Application creates windows
-	windows_.push_back(std::unique_ptr<Window>(new Window(std::move(title), width, height)));
+	windows_.push_back(std::unique_ptr<Window>(
+	    new Window(std::move(native), std::move(renderer), clock_, std::move(title), width, height)));
 	return *windows_.back();
 }
 
@@ -51,10 +51,10 @@ int Application::run() {
 	// normally for that long first (e.g. so peers can connect and change the screen)
 	const std::optional<std::string> screenshot = environmentVariable("AFFRESCOUI_SCREENSHOT");
 	const std::optional<std::string> after = environmentVariable("AFFRESCOUI_SCREENSHOT_AFTER");
-	const double deadline = glfwGetTime() + (after ? std::strtod(after->c_str(), nullptr) / 1000.0 : 0.0);
+	const double deadline = clock_.seconds() + (after ? std::strtod(after->c_str(), nullptr) / 1000.0 : 0.0);
 
 	running_ = true;
-	while(running_ && !(screenshot && glfwGetTime() >= deadline)) {
+	while(running_ && (!screenshot || clock_.seconds() < deadline)) {
 		bool anyOpen = false;
 		for(auto& window : windows_) {
 			if(window->shouldClose()) {
@@ -70,9 +70,8 @@ int Application::run() {
 		std::optional<double> wait;
 		for(auto& window : windows_)
 			if(const auto next = window->secondsToNextTimer()) wait = wait ? std::min(*wait, *next) : *next;
-		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - glfwGetTime()));
-		if(wait) glfwWaitEventsTimeout(*wait);
-		else glfwWaitEvents();
+		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - clock_.seconds()));
+		platform_->waitEvents(wait);
 		runPostedTasks();
 	}
 	running_ = false;
@@ -93,7 +92,7 @@ void Application::post(std::function<void()> task) {
 		const std::lock_guard lock(tasksMutex_);
 		tasks_.push_back(std::move(task));
 	}
-	glfwPostEmptyEvent(); // wake up glfwWaitEvents
+	platform_->wake(); // wake up the event loop's wait
 }
 
 void Application::runPostedTasks() {
@@ -107,7 +106,7 @@ void Application::runPostedTasks() {
 
 void Application::quit() {
 	running_ = false;
-	glfwPostEmptyEvent(); // wake up glfwWaitEvents
+	platform_->wake(); // wake up the event loop's wait
 }
 
 } // namespace affresco

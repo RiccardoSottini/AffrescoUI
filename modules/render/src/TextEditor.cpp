@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <string>
+#include <utility>
 
 namespace affresco {
 
@@ -165,20 +166,20 @@ float TextEditor::columnX(std::size_t line, std::size_t column) const noexcept {
 	const Font* f = font();
 	if(!f) return 0.0f;
 	const std::u32string& text = lines_[line];
-	return f->measure(std::u32string_view(text).substr(0, std::min(column, text.size())));
+	// The shaped line's carets: inside a ligature they are spread over it, so the caret moves by code point
+	const std::vector<float>& carets = f->shape(text).carets;
+	return carets.empty() ? 0.0f : carets[std::min(column, carets.size() - 1)];
 }
 
 std::size_t TextEditor::columnAt(std::size_t line, float x) const noexcept {
 	const Font* f = font();
 	if(!f) return 0;
-	const std::u32string& text = lines_[line];
-	float pen = 0.0f;
-	for(std::size_t i = 0; i < text.size(); ++i) {
-		const float advance = f->glyph(text[i]).advance;
-		if(x < pen + advance / 2.0f) return i;
-		pen += advance;
-	}
-	return text.size();
+	// The nearest caret: in a right-to-left run they go from right to left
+	const std::vector<float>& carets = f->shape(lines_[line]).carets;
+	std::size_t nearest = 0;
+	for(std::size_t i = 1; i < carets.size(); ++i)
+		if(std::abs(carets[i] - x) < std::abs(carets[nearest] - x)) nearest = i;
+	return nearest;
 }
 
 TextEditor::Position TextEditor::positionAt(Vec2 point) const noexcept {
@@ -610,70 +611,100 @@ void TextEditor::paint(Painter& painter) const {
 
 	const Rect& box = frame();
 	const float lh = lineHeight();
-	const float gutter = gutterWidth();
-	const float textLeft = std::round(box.left + gutter - scroll_.x);
-	const float firstTop = box.top + textPadding - scroll_.y;
-	const float baselineOffset = std::round((lh - f->lineHeight()) / 2.0f + f->ascent());
-	const auto [selFrom, selTo] = selection();
-
 	const auto first = static_cast<std::size_t>(std::max(std::floor(scroll_.y / lh) - 1.0f, 0.0f));
-	const std::size_t last = std::min(lines_.size(), first + visibleLines() + 3);
+	const Layout layout{.lineHeight = lh,
+	                    .gutter = gutterWidth(),
+	                    .textLeft = std::round(box.left + gutterWidth() - scroll_.x),
+	                    .firstTop = box.top + textPadding - scroll_.y,
+	                    .baseline = std::round((lh - f->lineHeight()) / 2.0f + f->ascent()),
+	                    .first = first,
+	                    .last = std::min(lines_.size(), first + visibleLines() + 3)};
 
 	// The colouring state (e.g. an open block comment) may come from above the visible lines
 	int state = 0;
 	std::vector<Color> colors;
-	for(std::size_t line = 0; line < first; ++line) {
+	std::vector<std::pair<std::size_t, float>> runs;
+	for(std::size_t line = 0; line < layout.last; ++line) {
 		colors.resize(lines_[line].size());
 		colorLine(lines_[line], state, colors);
+		if(line >= layout.first) paintLine(painter, *f, layout, line, colors, runs);
 	}
 
-	for(std::size_t line = first; line < last; ++line) {
-		const float top = std::round(firstTop + static_cast<float>(line) * lh);
-		const std::u32string& text = lines_[line];
+	paintGutter(painter, *f, layout);
+	paintCaretAndScrollBar(painter, layout);
+}
 
-		if(line == caret_.line && !hasSelection()) painter.fillRect({box.left, top, box.right, top + lh}, lineColor_);
+float TextEditor::lineTop(const Layout& layout, std::size_t line) noexcept {
+	return std::round(layout.firstTop + static_cast<float>(line) * layout.lineHeight);
+}
 
-		if(hasSelection() && line >= selFrom.line && line <= selTo.line) {
-			const float from = line == selFrom.line ? columnX(line, selFrom.column) : 0.0f;
-			// A selected line break shows as a space's width
-			const float to =
-			    line == selTo.line ? columnX(line, selTo.column) : f->measure(text) + f->glyph(U' ').advance;
-			painter.fillRect({textLeft + from, top, textLeft + to, top + lh}, selectionColor_);
-		}
+void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& layout, std::size_t line,
+                           const std::vector<Color>& colors, std::vector<std::pair<std::size_t, float>>& runs) const {
+	const Rect& box = frame();
+	const float top = lineTop(layout, line), lh = layout.lineHeight;
+	const std::u32string& text = lines_[line];
 
-		// Runs of one colour
-		colors.resize(text.size());
-		colorLine(text, state, colors);
-		float pen = textLeft;
-		std::size_t start = 0;
-		while(start < text.size()) {
-			std::size_t end = start + 1;
-			while(end < text.size() && colors[end] == colors[start]) ++end;
-			const std::u32string_view run = std::u32string_view(text).substr(start, end - start);
-			const float width = f->measure(run);
-			if(pen + width >= box.left + gutter && pen <= box.right)
-				painter.drawText(*f, run, {pen, top + baselineOffset}, colors[start]);
-			pen += width;
-			start = end;
-		}
+	if(line == caret_.line && !hasSelection()) painter.fillRect({box.left, top, box.right, top + lh}, lineColor_);
+	paintSelection(painter, font, layout, line);
+
+	// Runs of one colour, each shaped on its own, where the whole line's shaping puts them (so the caret matches).
+	// Their widths are read first: drawing a run shapes it, which may drop the line's shaping from the cache
+	const std::vector<float>& advances = font.shape(text).advances;
+	runs.clear();
+	for(std::size_t start = 0; start < text.size();) {
+		std::size_t end = start + 1;
+		while(end < text.size() && colors[end] == colors[start]) ++end;
+		float width = 0.0f;
+		for(std::size_t i = start; i < end; ++i) width += advances[i];
+		runs.emplace_back(end, width);
+		start = end;
 	}
+	float pen = layout.textLeft;
+	std::size_t start = 0;
+	for(const auto& [end, width] : runs) {
+		if(pen + width >= box.left + layout.gutter && pen <= box.right)
+			painter.drawText(font, std::u32string_view(text).substr(start, end - start), {pen, top + layout.baseline},
+			                 colors[start]);
+		pen += width;
+		start = end;
+	}
+}
 
+void TextEditor::paintSelection(Painter& painter, const Font& font, const Layout& layout, std::size_t line) const {
+	const auto [from, to] = selection();
+	if(!hasSelection() || line < from.line || line > to.line) return;
+
+	const float top = lineTop(layout, line);
+	const float left = line == from.line ? columnX(line, from.column) : 0.0f;
+	// A selected line break shows as a space's width
+	const float right =
+	    line == to.line ? columnX(line, to.column) : font.measure(lines_[line]) + font.glyph(U' ').advance;
+	painter.fillRect({layout.textLeft + std::min(left, right), top, layout.textLeft + std::max(left, right),
+	                  top + layout.lineHeight},
+	                 selectionColor_);
+}
+
+void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& layout) const {
 	// The gutter covers text scrolled under it
-	if(color().a > 0.0f) painter.fillRect({box.left, box.top, box.left + gutter - 8.0f, box.bottom}, color());
-	if(lineNumbers_) {
-		for(std::size_t line = first; line < last; ++line) {
-			const float top = std::round(firstTop + static_cast<float>(line) * lh);
-			const std::u32string number = detail::fromUtf8(std::to_string(line + 1));
-			const float x = std::round(box.left + gutter - 20.0f - f->measure(number));
-			painter.drawText(*f, number, {x, top + baselineOffset},
-			                 line == caret_.line ? activeLineNumberColor_ : lineNumberColor_);
-		}
+	const Rect& box = frame();
+	if(color().a > 0.0f) painter.fillRect({box.left, box.top, box.left + layout.gutter - 8.0f, box.bottom}, color());
+	if(!lineNumbers_) return;
+	for(std::size_t line = layout.first; line < layout.last; ++line) {
+		const std::u32string number = detail::fromUtf8(std::to_string(line + 1));
+		const float x = std::round(box.left + layout.gutter - 20.0f - font.measure(number));
+		painter.drawText(font, number, {x, lineTop(layout, line) + layout.baseline},
+		                 line == caret_.line ? activeLineNumberColor_ : lineNumberColor_);
 	}
+}
 
+void TextEditor::paintCaretAndScrollBar(Painter& painter, const Layout& layout) const {
+	const Rect& box = frame();
+	const float lh = layout.lineHeight;
 	if(hasFocus()) {
-		const float x = std::round(textLeft + columnX(caret_.line, caret_.column));
-		const float top = std::round(firstTop + static_cast<float>(caret_.line) * lh);
-		if(x >= box.left + gutter - 8.0f) painter.fillRect({x, top + 1.0f, x + 2.0f, top + lh - 1.0f}, caretColor_);
+		const float x = std::round(layout.textLeft + columnX(caret_.line, caret_.column));
+		const float top = lineTop(layout, caret_.line);
+		if(x >= box.left + layout.gutter - 8.0f)
+			painter.fillRect({x, top + 1.0f, x + 2.0f, top + lh - 1.0f}, caretColor_);
 	}
 
 	// A scroll bar thumb as long as the visible share of the text

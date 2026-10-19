@@ -12,7 +12,7 @@
 		"add": {
 			"/actions/clearDone": [{ "set": "state.columns[3].cards", "to": [] }],
 			"#topBar/children/-": {
-				"id": "clearDone", "style": "chip", "text": "Clear done", "anchors": { "right": 180, "top": 16 },
+				"style": "chip", "text": "Clear done", "anchors": { "right": 180, "top": 16 },
 				"onClick": "clearDone"
 			}
 		}

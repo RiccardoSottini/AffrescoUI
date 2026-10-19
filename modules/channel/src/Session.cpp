@@ -116,7 +116,7 @@ void Session::handle(const std::string& line) {
 			json relayed = m;
 			relayed["from"] = in.author;
 			onRelay(relayed);
-		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in)) {
+		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in)) {
 			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
 	} catch(const DocumentError& error) {
@@ -325,6 +325,18 @@ bool Session::handleQuery(const Incoming& in) {
 	} else {
 		return false;
 	}
+	return true;
+}
+
+// A read, like the queries: who last changed a node or a value, and when
+bool Session::handleBlame(const Incoming& in) {
+	if(in.type != "blame") return false;
+	const std::string target = expect::string(in.message.value("target", json()), "blame.target");
+	send({{"type", "blame"},
+	      {"target", target},
+	      {"commit", toJson(versions_.blame(target))},
+	      {"revision", versions_.head().number},
+	      {"id", in.id}});
 	return true;
 }
 

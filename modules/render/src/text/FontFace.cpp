@@ -1,0 +1,135 @@
+/// @file
+/// @brief detail::FontFiles and FontFace: reading font files once, and opening them with FreeType and HarfBuzz.
+
+#include "text/FontFace.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <iterator>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+
+namespace affresco::detail {
+
+namespace {
+
+/// @brief Frees a HarfBuzz blob or face, for std::unique_ptr: only needed while a face is opened.
+struct HarfBuzzDeleter {
+	/// @brief Frees a blob.
+	void operator()(hb_blob_t* blob) const noexcept { hb_blob_destroy(blob); }
+	/// @brief Frees a face.
+	void operator()(hb_face_t* face) const noexcept { hb_face_destroy(face); }
+};
+
+/// @brief The error for a file that isn't a usable font.
+/// @param path The file.
+/// @param why What is wrong, e.g. "not a font".
+/// @return The error.
+std::runtime_error unusable(const std::filesystem::path& path, const std::string& why) {
+	return std::runtime_error("AffrescoUI: not a usable font (" + why + "): " + path.string());
+}
+
+} // namespace
+
+FreeTypeLibrary startFreeType() {
+	FT_Library library = nullptr;
+	if(FT_Init_FreeType(&library) != 0) throw std::runtime_error("AffrescoUI: FreeType could not start");
+	return FreeTypeLibrary(library);
+}
+
+std::shared_ptr<const FontFile> FontFiles::read(const std::filesystem::path& path) {
+	const std::filesystem::path key = path.lexically_normal();
+	if(const auto found = files_.find(key); found != files_.end())
+		if(auto file = found->second.lock()) return file;
+	std::erase_if(files_, [](const auto& entry) { return entry.second.expired(); });
+
+	// Only regular files, and not too large: a revision can name any path, such as a device that never ends
+	std::error_code error;
+	const bool regular = std::filesystem::is_regular_file(path, error);
+	const std::uintmax_t size = regular ? std::filesystem::file_size(path, error) : 0;
+	if(!regular || error) throw std::runtime_error("AffrescoUI: could not open font file " + path.string());
+	if(size > largestFile)
+		throw std::runtime_error("AffrescoUI: font file larger than " + std::to_string(largestFile >> 20) +
+		                         " MiB: " + path.string());
+
+	std::ifstream stream(path, std::ios::binary);
+	if(!stream) throw std::runtime_error("AffrescoUI: could not open font file " + path.string());
+	auto file = std::make_shared<FontFile>();
+	file->bytes.resize(static_cast<std::size_t>(size));
+	stream.read(reinterpret_cast<char*>(file->bytes.data()), static_cast<std::streamsize>(size));
+	if(stream.gcount() != static_cast<std::streamsize>(size))
+		throw std::runtime_error("AffrescoUI: could not read font file " + path.string());
+
+	files_[key] = file;
+	return file;
+}
+
+std::size_t FontFiles::bytes() const noexcept {
+	std::size_t total = 0;
+	for(const auto& [path, file] : files_)
+		if(const auto alive = file.lock()) total += alive->bytes.size();
+	return total;
+}
+
+FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, float size, SizeOf sizeOf,
+                   const std::filesystem::path& path)
+    : file_(std::move(file)) {
+	const std::vector<unsigned char>& bytes = file_->bytes;
+	FT_Face face = nullptr;
+	if(bytes.empty() || FT_New_Memory_Face(library, bytes.data(), static_cast<FT_Long>(bytes.size()), 0, &face) != 0)
+		throw unusable(path, "not a font FreeType reads");
+	face_.reset(face);
+	if(!FT_IS_SCALABLE(face))
+		throw unusable(path, "no outlines; bitmap colour fonts such as CBDT emoji aren't supported yet");
+
+	// A font's height spans its ascender to its descender, as stb_truetype's did, so sizes stay what they were
+	const auto units = static_cast<float>(sizeOf == SizeOf::em ? face->units_per_EM : face->ascender - face->descender);
+	if(!(units > 0.0f) || !(size > 0.0f) || !std::isfinite(size)) throw unusable(path, "no height");
+	scale_ = size / units;
+	FT_Size_RequestRec request{sizeOf == SizeOf::em ? FT_SIZE_REQUEST_TYPE_NOMINAL : FT_SIZE_REQUEST_TYPE_REAL_DIM, 0,
+	                           std::lround(size * 64.0f), 0, 0};
+	if(FT_Request_Size(face, &request) != 0) throw unusable(path, "it has no size " + std::to_string(size));
+	color_ = FT_HAS_COLOR(face);
+
+	// HarfBuzz reads the same bytes; positions are in font units, its default scale
+	const std::unique_ptr<hb_blob_t, HarfBuzzDeleter> blob(hb_blob_create(reinterpret_cast<const char*>(bytes.data()),
+	                                                                      static_cast<unsigned>(bytes.size()),
+	                                                                      HB_MEMORY_MODE_READONLY, nullptr, nullptr));
+	const std::unique_ptr<hb_face_t, HarfBuzzDeleter> shapingFace(hb_face_create(blob.get(), 0));
+	if(hb_face_get_glyph_count(shapingFace.get()) == 0) throw unusable(path, "HarfBuzz finds no glyphs");
+	shaper_.reset(hb_font_create(shapingFace.get()));
+}
+
+unsigned FontFace::glyphIndex(char32_t codepoint) const noexcept {
+	// Beyond Unicode, the conversion to FT_ULong would still look it up: some cmap tables would then match
+	if(codepoint > 0x10FFFF) return 0;
+	return FT_Get_Char_Index(face_.get(), codepoint);
+}
+
+float FontFace::emPixels() const noexcept { return static_cast<float>(face_->units_per_EM) * scale_; }
+
+float FontFace::ascent() const noexcept { return static_cast<float>(face_->ascender) * scale_; }
+
+float FontFace::lineHeight() const noexcept { return static_cast<float>(face_->height) * scale_; }
+
+float FontFace::advance(unsigned glyph) const noexcept {
+	return static_cast<float>(hb_font_get_glyph_h_advance(shaper_.get(), glyph)) * scale_;
+}
+
+std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph) const noexcept {
+	// Unhinted, so outlines keep their exact shapes and widths; embedded bitmaps would be another size
+	const FT_Int32 flags = FT_LOAD_NO_HINTING | (color_ ? FT_LOAD_COLOR : FT_LOAD_NO_BITMAP);
+	FT_Face face = face_.get();
+	if(FT_Load_Glyph(face, glyph, flags) != 0) return std::nullopt;
+	if(face->glyph->format != FT_GLYPH_FORMAT_BITMAP && FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0)
+		return std::nullopt;
+
+	const FT_Bitmap& bitmap = face->glyph->bitmap;
+	const bool isColor = bitmap.pixel_mode == FT_PIXEL_MODE_BGRA;
+	if(!isColor && bitmap.pixel_mode != FT_PIXEL_MODE_GRAY) return std::nullopt; // e.g. a one-bit bitmap
+	return Bitmap{&bitmap, face->glyph->bitmap_left, face->glyph->bitmap_top, isColor};
+}
+
+} // namespace affresco::detail

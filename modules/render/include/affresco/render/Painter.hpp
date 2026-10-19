@@ -29,6 +29,7 @@ struct CornerRadii {
 		return topLeft <= 0.0f && topRight <= 0.0f && bottomRight <= 0.0f && bottomLeft <= 0.0f;
 	}
 
+	/// @brief Equal when every member is equal.
 	constexpr bool operator==(const CornerRadii&) const noexcept = default;
 };
 
@@ -41,6 +42,7 @@ struct Shadow {
 	/// @brief Tells whether it draws anything.
 	[[nodiscard]] constexpr bool isVisible() const noexcept { return color.a > 0.0f; }
 
+	/// @brief Equal when every member is equal.
 	constexpr bool operator==(const Shadow&) const noexcept = default;
 };
 

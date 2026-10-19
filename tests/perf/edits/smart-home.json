@@ -14,7 +14,7 @@
 		"message": "Say when away mode is off",
 		"add": {
 			"#main/children/-": {
-				"id": "awayNote", "type": "label", "text": "Away mode is off", "textColor": "@muted",
+				"type": "label", "text": "Away mode is off", "textColor": "@muted",
 				"anchors": { "left": 32, "bottom": 24 }, "fitText": true
 			}
 		}

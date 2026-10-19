@@ -10,6 +10,7 @@ include(CMakeFindDependencyMacro)
 # nlohmann/json must be the exact version: its types carry it in their names, which the libraries use.
 find_dependency(nlohmann_json @AFFRESCOUI_JSON_VERSION@ EXACT CONFIG HINTS "${PACKAGE_PREFIX_DIR}")
 find_dependency(glfw3 @AFFRESCOUI_GLFW_VERSION@ CONFIG HINTS "${PACKAGE_PREFIX_DIR}")
+find_dependency(freetype @AFFRESCOUI_FREETYPE_VERSION@ CONFIG HINTS "${PACKAGE_PREFIX_DIR}")
 
 include("${CMAKE_CURRENT_LIST_DIR}/AffrescoUITargets.cmake")
 check_required_components(AffrescoUI)

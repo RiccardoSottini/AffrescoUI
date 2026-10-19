@@ -44,7 +44,8 @@ struct CommitInfo {
 	std::vector<std::string> parents; ///< None for the first commit, two for a merged proposal (main, then branch).
 	std::string author;               ///< Who wrote the change.
 	std::string committer;            ///< Who applied it: the author, or the reviewer who accepted it.
-	std::string message, time;        ///< Why, and when (UTC, ISO 8601).
+	std::string message;              ///< Why.
+	std::string time;                 ///< When (UTC, ISO 8601).
 	int proposal = 0;                 ///< The proposal it merged, if any.
 };
 
@@ -52,8 +53,10 @@ struct CommitInfo {
 struct ProposalInfo {
 	int id = 0;                        ///< For accept(), reject() and preview().
 	std::string branch;                ///< "proposal/<id>".
-	std::string author, message;       ///< Who proposed it, and its title (the first commit's message).
-	std::string base, head;            ///< The main commit it is based on, and its newest commit.
+	std::string author;                ///< Who proposed it.
+	std::string message;               ///< Its title (the first commit's message).
+	std::string base;                  ///< The main commit it is based on.
+	std::string head;                  ///< Its newest commit.
 	std::size_t commits = 0;           ///< Commits on the branch.
 	std::size_t operations = 0;        ///< JSON Patch operations in all of them.
 	std::vector<std::string> touches;  ///< What it changes: nodes ("#board") or areas ("/state/cards").
@@ -168,6 +171,16 @@ public:
 	/// @return A JSON Patch from one to the other.
 	/// @throws DocumentError If either commit is unknown.
 	[[nodiscard]] virtual json diff(const json& from, const json& to) const = 0;
+
+	/// @brief Finds the commit on main that last changed a node or a value, like `git blame`.
+	/// @param target A node ("#board", or "#board/text" inside it) or a path ("/colors/accent"); "/state/..." paths
+	/// find the last commit whose patch changed that part of the live state.
+	/// @return The commit (revision 0 if nothing changed it since the document was loaded).
+	/// @throws DocumentError If the target is malformed or isn't there; or always, from a VersionControl that keeps no
+	/// history (this default).
+	[[nodiscard]] virtual CommitInfo blame(std::string_view target) const {
+		expect::fail("blame", "this history can't say who changed '" + std::string(target) + "'");
+	}
 
 	/* Review */
 

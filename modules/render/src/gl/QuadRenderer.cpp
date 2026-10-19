@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <initializer_list>
+#include <string>
 
 namespace affresco::gl {
 
@@ -22,7 +24,7 @@ constexpr std::string_view vertexSource = R"glsl(
 	layout(location = 1) in vec2 aTexCoord;
 	layout(location = 2) in vec4 aColor;
 	layout(location = 3) in vec2 aInside;
-	layout(location = 4) in vec4 aShape; // radius, outline, blur (in sixteenths), and 1 for shapes
+	layout(location = 4) in vec4 aShape; // radius, outline, blur (in sixteenths), and the kind of quad
 
 	out vec2 vTexCoord;
 	out vec4 vColor;
@@ -55,9 +57,9 @@ constexpr std::string_view plainFragmentSource = R"glsl(
 	}
 )glsl";
 
-/// @brief Fragment shader for frames with shapes. As plainFragmentSource, and shapes multiply the coverage by the share
-/// of the pixel inside their edge.
-constexpr std::string_view shapeFragmentSource = R"glsl(
+/// @brief The inputs of the fragment shaders with shapes or colour glyphs. Those with shapes are as
+/// plainFragmentSource, and shapes multiply the coverage by the share of the pixel inside their edge.
+constexpr std::string_view shapeInputs = R"glsl(
 	#version 410 core
 
 	uniform sampler2D uAtlas;
@@ -65,8 +67,12 @@ constexpr std::string_view shapeFragmentSource = R"glsl(
 	in vec2 vTexCoord;
 	in vec4 vColor;
 	in vec2 vInside;      // distance inside the nearest vertical and horizontal edges
-	flat in vec4 vShape;  // the corner's radius, the outline's width (0: filled), the blur (in window units), 1 for shapes
+	flat in vec4 vShape;  // the corner's radius, the outline's width (0: filled), the blur (in window units), the kind
 	out vec4 fColor;
+)glsl";
+
+/// @brief The shape functions of the fragment shaders with shapes.
+constexpr std::string_view shapeFunctions = R"glsl(
 
 	// erf, approximated (Abramowitz and Stegun 7.1.27, error under 5e-4): the share of a Gaussian blur inside an edge
 	float approximateErf(float x) {
@@ -89,7 +95,10 @@ constexpr std::string_view shapeFragmentSource = R"glsl(
 		if(blur > 0.0) return 0.5 - 0.5 * approximateErf(distance * 1.41421356 / blur); // sigma = blur / 2, like CSS
 		return clamp(0.5 - distance / pixel, 0.0, 1.0);
 	}
+)glsl";
 
+/// @brief The main of the fragment shader with shapes.
+constexpr std::string_view shapeMain = R"glsl(
 	void main() {
 		float alpha = vColor.a * texture(uAtlas, vTexCoord).r;
 		// The same for a whole quad, so rectangles and text skip the shape's work
@@ -97,6 +106,46 @@ constexpr std::string_view shapeFragmentSource = R"glsl(
 		fColor = vec4(vColor.rgb, alpha);
 	}
 )glsl";
+
+/// @brief The colour page of the fragment shaders with colour glyphs, and what they do first: a colour glyph's pixel is
+/// the page's colour, with the text's opacity.
+constexpr std::string_view colorFunctions = R"glsl(
+	uniform sampler2D uColorAtlas; // the batch's colour page: premultiplied RGBA
+
+	bool colorGlyph() {
+		if(vShape.w < 1.5) return false;
+		vec4 texel = texture(uColorAtlas, vTexCoord);
+		fColor = vec4(texel.rgb / max(texel.a, 1.0 / 255.0), texel.a * vColor.a);
+		return true;
+	}
+)glsl";
+
+/// @brief The main of the fragment shader with colour glyphs and no shapes.
+constexpr std::string_view colorMain = R"glsl(
+	void main() {
+		if(colorGlyph()) return;
+		fColor = vec4(vColor.rgb, vColor.a * texture(uAtlas, vTexCoord).r);
+	}
+)glsl";
+
+/// @brief The main of the fragment shader with colour glyphs and shapes.
+constexpr std::string_view shapeColorMain = R"glsl(
+	void main() {
+		if(colorGlyph()) return;
+		float alpha = vColor.a * texture(uAtlas, vTexCoord).r;
+		if(vShape.w > 0.0) alpha *= coverage();
+		fColor = vec4(vColor.rgb, alpha);
+	}
+)glsl";
+
+/// @brief Joins the parts of a shader.
+/// @param parts Its parts, in order.
+/// @return Its source.
+std::string join(std::initializer_list<std::string_view> parts) {
+	std::string source;
+	for(const std::string_view part : parts) source += part;
+	return source;
+}
 
 constexpr std::size_t verticesPerQuad = 4; ///< Corners.
 constexpr std::size_t indicesPerQuad = 6;  ///< Two triangles.
@@ -130,13 +179,17 @@ Rect intersect(const Rect& rect, const Rect& clip) noexcept {
 } // namespace
 
 QuadRenderer::QuadRenderer()
-    : plainShader_{linkProgram(vertexSource, plainFragmentSource)},
-      shapeShader_{linkProgram(vertexSource, shapeFragmentSource)}, vertexArray_(VertexArray::create()),
-      vertexBuffer_(Buffer::create()), indexBuffer_(Buffer::create()) {
-	for(Shader* shader : {&plainShader_, &shapeShader_}) {
-		shader->scaleLocation = glGetUniformLocation(shader->program.id(), "uScale");
-		glUseProgram(shader->program.id());
-		glUniform1i(glGetUniformLocation(shader->program.id(), "uAtlas"), 0);
+    : shaders_{Shader{linkProgram(vertexSource, plainFragmentSource)},
+	           Shader{linkProgram(vertexSource, join({shapeInputs, shapeFunctions, shapeMain}))},
+	           Shader{linkProgram(vertexSource, join({shapeInputs, colorFunctions, colorMain}))},
+	           Shader{linkProgram(vertexSource, join({shapeInputs, shapeFunctions, colorFunctions, shapeColorMain}))}},
+      vertexArray_(VertexArray::create()), vertexBuffer_(Buffer::create()), indexBuffer_(Buffer::create()) {
+	for(Shader& shader : shaders_) {
+		shader.scaleLocation = glGetUniformLocation(shader.program.id(), "uScale");
+		glUseProgram(shader.program.id());
+		glUniform1i(glGetUniformLocation(shader.program.id(), "uAtlas"), 0);
+		if(const GLint colorAtlas = glGetUniformLocation(shader.program.id(), "uColorAtlas"); colorAtlas >= 0)
+			glUniform1i(colorAtlas, 1);
 	}
 
 	static constexpr std::array<std::uint8_t, 1> white{255};
@@ -171,6 +224,9 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
 	vertices_.clear();
 	batches_.clear();
 	hasShapes_ = false;
+	hasColor_ = false;
+	drawCalls_ = 0;
+	std::erase_if(fontTextures_, [](const auto& entry) { return entry.second.font.expired(); });
 	const Rect window{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)};
 	collect(root, window);
 	for(const Panel* overlay : overlays) collect(*overlay, window);
@@ -179,8 +235,8 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
 	const std::size_t quads = vertices_.size() / verticesPerQuad;
 	if(quads == 0) return;
 
-	// One program for the whole frame, so shapes still never break a batch
-	Shader& shader = hasShapes_ ? shapeShader_ : plainShader_;
+	// One program for the whole frame, so shapes and colour glyphs still never break a batch
+	Shader& shader = shaders_[(hasShapes_ ? 1u : 0u) + (hasColor_ ? 2u : 0u)];
 	glUseProgram(shader.program.id());
 	if(width != shader.width || height != shader.height) {
 		glUniform2f(shader.scaleLocation, 2.0f / static_cast<float>(width), -2.0f / static_cast<float>(height));
@@ -188,8 +244,10 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
 		shader.height = height;
 	}
 
-	for(const Batch& batch : batches_)
-		if(batch.font) updateFontTexture(*batch.font, batch.page);
+	for(const Batch& batch : batches_) {
+		if(batch.font) updateFontTexture(*batch.font, batch.page, AtlasKind::coverage);
+		if(batch.colorTexture != 0) updateFontTexture(*batch.font, batch.colorPage, AtlasKind::color);
+	}
 
 	glBindVertexArray(vertexArray_.id());
 	reserveQuads(quads);
@@ -199,15 +257,24 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
 	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices_.size() * sizeof(Vertex)), vertices_.data(),
 	             GL_STREAM_DRAW);
 
+	drawBatches();
+	glBindVertexArray(0);
+}
+
+void QuadRenderer::drawBatches() {
 	glActiveTexture(GL_TEXTURE0);
 	for(const Batch& batch : batches_) {
 		if(batch.quadCount == 0) continue;
+		if(hasColor_) {
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, batch.colorTexture != 0 ? batch.colorTexture : whiteTexture_.id());
+			glActiveTexture(GL_TEXTURE0);
+		}
 		glBindTexture(GL_TEXTURE_2D, batch.texture);
 		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(batch.quadCount * indicesPerQuad), GL_UNSIGNED_INT,
 		               reinterpret_cast<const void*>(batch.firstQuad * indicesPerQuad * sizeof(GLuint)));
+		++drawCalls_;
 	}
-
-	glBindVertexArray(0);
 }
 
 // Pre-order traversal: parents first, so children (and later siblings) are drawn on top
@@ -240,25 +307,41 @@ void QuadRenderer::drawText(const Font& font, std::u32string_view text, Vec2 ori
 	std::uint32_t page = sameFont ? batches_.back().page : 0;
 	useFontPage(font, page);
 
-	float penX = origin.x;
-	for(char32_t cp : text) {
+	// Shaped glyphs come left to right, and spaces aren't among them
+	for(const Font::ShapedGlyph& placed : font.shape(text).glyphs) {
+		const float penX = origin.x + placed.x, baseline = origin.y + placed.y;
 		if(penX > clip_.right) break; // the rest of the line is clipped anyway
 
-		const Font::Glyph& glyph = font.glyph(cp);
-		const Rect quad{penX + glyph.quad.left, origin.y + glyph.quad.top, penX + glyph.quad.right,
-		                origin.y + glyph.quad.bottom};
-		if(quad.right > quad.left) { // spaces have no quad
-			if(glyph.page != page) useFontPage(font, page = glyph.page);
-			pushQuad(quad, glyph.uv, color);
+		const Font::Glyph& glyph = *placed.glyph;
+		const Rect quad{penX + glyph.quad.left, baseline + glyph.quad.top, penX + glyph.quad.right,
+		                baseline + glyph.quad.bottom};
+		if(glyph.color) {
+			useColorPage(font, glyph.page);
+			pushQuad(quad, glyph.uv, Color{1.0f, 1.0f, 1.0f, color.a}, QuadKind::colorGlyph); // its own colours
+			continue;
 		}
-		penX += glyph.advance;
+		if(glyph.page != page) useFontPage(font, page = glyph.page);
+		pushQuad(quad, glyph.uv, color);
 	}
 }
 
 void QuadRenderer::useFontPage(const Font& font, std::uint32_t page) {
-	useTexture(fontTexture(font, page), font.whiteTexel(page));
+	useTexture(fontTexture(font, page, AtlasKind::coverage), font.whiteTexel(page));
 	batches_.back().font = &font;
 	batches_.back().page = page;
+}
+
+void QuadRenderer::useColorPage(const Font& font, std::uint32_t page) {
+	const GLuint texture = fontTexture(font, page, AtlasKind::color);
+	if(batches_.back().colorTexture == texture) return;
+	if(batches_.back().colorTexture != 0) { // another colour page: the same coverage page, in a new batch
+		const Batch current = batches_.back();
+		batches_.push_back(
+		    {current.texture, current.white, vertices_.size() / verticesPerQuad, 0, current.font, current.page});
+	}
+	batches_.back().colorTexture = texture;
+	batches_.back().colorPage = page;
+	hasColor_ = true;
 }
 
 void QuadRenderer::useTexture(GLuint texture, Vec2 white) {
@@ -267,7 +350,7 @@ void QuadRenderer::useTexture(GLuint texture, Vec2 white) {
 }
 
 // Clips the quad to the panel being painted (adjusting the texture coordinates to match) and appends it
-void QuadRenderer::pushQuad(const Rect& rect, const Rect& uv, Color color) {
+void QuadRenderer::pushQuad(const Rect& rect, const Rect& uv, Color color, QuadKind kind) {
 	const auto [cr, cg, cb, ca] = color.toBytes();
 	if(ca == 0) return; // invisible: e.g. pure layout containers
 
@@ -285,10 +368,11 @@ void QuadRenderer::pushQuad(const Rect& rect, const Rect& uv, Color color) {
 
 	const std::uint16_t u0 = toUnorm16(t.left), v0 = toUnorm16(t.top);
 	const std::uint16_t u1 = toUnorm16(t.right), v1 = toUnorm16(t.bottom);
-	vertices_.push_back({q.left, q.top, u0, v0, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, 0});
-	vertices_.push_back({q.right, q.top, u1, v0, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, 0});
-	vertices_.push_back({q.right, q.bottom, u1, v1, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, 0});
-	vertices_.push_back({q.left, q.bottom, u0, v1, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, 0});
+	const auto marker = static_cast<std::uint16_t>(kind);
+	vertices_.push_back({q.left, q.top, u0, v0, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
+	vertices_.push_back({q.right, q.top, u1, v0, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
+	vertices_.push_back({q.right, q.bottom, u1, v1, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
+	vertices_.push_back({q.left, q.bottom, u0, v1, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
 	++batches_.back().quadCount;
 }
 
@@ -350,47 +434,54 @@ void QuadRenderer::pushQuarter(const Rect& rect, const Quarter& quarter, const S
 	                    blur = toSixteenths(style.blur);
 	for(const auto [x, y] :
 	    {Vec2{q.left, q.top}, Vec2{q.right, q.top}, Vec2{q.right, q.bottom}, Vec2{q.left, q.bottom}})
-		vertices_.push_back({x, y, u, v, cr, cg, cb, ca, insideX(x), insideY(y), radius, outline, blur, 1});
+		vertices_.push_back({x, y, u, v, cr, cg, cb, ca, insideX(x), insideY(y), radius, outline, blur,
+		                     static_cast<std::uint16_t>(QuadKind::shape)});
 	++batches_.back().quadCount;
 	hasShapes_ = true;
 }
 
-GLuint QuadRenderer::fontTexture(const Font& font, std::uint32_t page) {
-	std::vector<PageTexture>& pages = fontTextures_[font.id()];
+GLuint QuadRenderer::fontTexture(const Font& font, std::uint32_t page, AtlasKind kind) {
+	FontTextures& textures = fontTextures_[font.id()];
+	if(textures.font.expired()) textures.font = font.weak_from_this();
+	std::vector<PageTexture>& pages = textures.pages[static_cast<std::size_t>(kind)];
 	while(pages.size() <= page) {
 		const std::size_t next = pages.size();
-		pages.push_back({createTexture(font.atlasSize(next), font.atlasPixels(next)), font.atlasVersion(next)});
+		pages.push_back({createTexture(font.atlasSize(next, kind), font.atlasPixels(next, kind), kind),
+		                 font.atlasVersion(next, kind)});
 	}
 	return pages[page].texture.id();
 }
 
-void QuadRenderer::updateFontTexture(const Font& font, std::uint32_t page) {
-	PageTexture& texture = fontTextures_.at(font.id())[page];
-	const std::uint64_t version = font.atlasVersion(page);
+void QuadRenderer::updateFontTexture(const Font& font, std::uint32_t page, AtlasKind kind) {
+	PageTexture& texture = fontTextures_.at(font.id()).pages[static_cast<std::size_t>(kind)][page];
+	const std::uint64_t version = font.atlasVersion(page, kind);
 	if(texture.version == version) return;
 
-	const Font::AtlasRegion changed = font.atlasChangesSince(page, texture.version);
+	const Font::AtlasRegion changed = font.atlasChangesSince(page, texture.version, kind);
 	texture.version = version;
 	if(changed.empty()) return;
 
 	// Only the rectangle holding the new glyphs, read out of the whole page's rows
-	const int size = font.atlasSize(page);
-	const std::uint8_t* first = font.atlasPixels(page).data() +
-	                            static_cast<std::size_t>(changed.top) * static_cast<std::size_t>(size) +
-	                            static_cast<std::size_t>(changed.left);
+	const int size = font.atlasSize(page, kind);
+	const std::size_t texelBytes = kind == AtlasKind::color ? 4 : 1;
+	const std::size_t firstTexel =
+	    static_cast<std::size_t>(changed.top) * static_cast<std::size_t>(size) + static_cast<std::size_t>(changed.left);
 	glBindTexture(GL_TEXTURE_2D, texture.texture.id());
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, size);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, changed.left, changed.top, changed.right - changed.left,
-	                changed.bottom - changed.top, GL_RED, GL_UNSIGNED_BYTE, first);
+	                changed.bottom - changed.top, kind == AtlasKind::color ? GL_RGBA : GL_RED, GL_UNSIGNED_BYTE,
+	                font.atlasPixels(page, kind).data() + firstTexel * texelBytes);
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
 
-Texture QuadRenderer::createTexture(int size, std::span<const std::uint8_t> pixels) {
+Texture QuadRenderer::createTexture(int size, std::span<const std::uint8_t> pixels, AtlasKind kind) {
 	Texture texture = Texture::create();
 	glBindTexture(GL_TEXTURE_2D, texture.id());
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, size, size, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.data());
+	if(kind == AtlasKind::color)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+	else glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, size, size, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.data());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

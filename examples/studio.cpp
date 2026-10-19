@@ -11,6 +11,7 @@
 // to the host. Its "channels" section connects to studio.sock (and reconnects); every message from the host runs the
 // screen's "host:<type>" action, and its "send" steps go to the host. This program only opens it.
 
+#include "Assets.hpp"
 #include "SocketDir.hpp"
 
 #include <affresco/affresco.hpp>
@@ -34,7 +35,7 @@ int main(int argc, char** argv) {
 		checkSocketDir(socketDir);
 		affresco::Application app;
 		affresco::Screen studio =
-		    affresco::Screen::fromFile(AFFRESCOUI_EXAMPLES_ASSETS "/screens/studio.screen.json", dataDir);
+		    affresco::Screen::fromFile(assetsDirectory() / "screens" / "studio.screen.json", dataDir);
 		studio.setSocketDirectory(socketDir);
 		studio.createWindow(app); // connects the file's channels
 		return app.run();

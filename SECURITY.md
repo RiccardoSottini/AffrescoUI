@@ -61,6 +61,10 @@ loaded. Hashes don't prove that a review made it, so a history is also checked a
 
 The folder is private to its owner, and a lock keeps a second host from writing it.
 
+System fonts are read only when the host asks: with `AFFRESCOUI_SYSTEM_FONTS=1` in its environment (or a `FontCache`
+given `FontCache::systemFonts()`), every font also falls back on a fixed list of the system's fonts for scripts and
+emoji (`FontCache::systemFonts()` names them). A screen or a revision can't turn this on, nor name a folder to search.
+
 ### Who a peer is
 A **peer** is a program connected to the running screen over a local socket. The host decides who each peer is:
 - The host listens on one socket per role. The example host listens on `studio.sock` and `agent.sock` in its socket
@@ -221,8 +225,12 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A proposal named by `proposal/<n>` | n up to 1,000,000 |
 | An approval's head commit | at least 7 characters |
 | Undo steps kept by an `editor` | 500 |
-| A font's glyph atlas (a larger font size is refused) | 4,096 × 4,096 pixels |
+| A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel) |
+| A font file (regular files only: no devices or pipes) | 256 MiB |
+| Fonts kept that no screen, panel or window uses (`FontCache`, least recently used dropped first) | 32 fonts and 128 MiB |
+| Shaped text kept per font (least recently used dropped first) | 4,096 lines of 128 Ki code points in all, 8,192 words of 64 Ki |
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
+| A pack of a history's objects, written | 16 MiB (more objects go into another pack) |
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
 controls (U+0080 to U+009F) `\u0080` to `\u009f`, and a backslash `\\`. So text from a peer or a document can't forge
@@ -257,20 +265,22 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
   it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
   should deny agents the `/state` paths those steps read.
-- **A screen destroyed while its window lives on.** Its timers and deferred tasks are cancelled, but its panels and
-  the window's signals still call into it, so input delivered to that window afterwards uses freed memory. Destroy
-  a screen only when its window gets no more events (after `Application::run` returns).
 - **A revision can point a font at any file.** `fonts.<name>.file` can be changed by a revision, and the app then
-  reads that file and parses it as a font; the error a peer gets back says whether it could be read. The font parser
-  (stb_truetype) is not hardened against malformed files, and every new file and size bakes and keeps another font
-  in memory.
+  reads that file, if it is a regular file of at most 256 MiB, and parses it as a font; the error a peer gets back
+  says whether it could be read. The parsers are FreeType and HarfBuzz, which OSS-Fuzz fuzzes all the time, and far
+  more hardened than stb_truetype was; still, a malformed font is untrusted input to C and C++ libraries, and the
+  `text` fuzz target here fuzzes the text, not the font files. Fonts no screen uses are bounded (the limits above),
+  but the fonts the current document declares are all kept, however many it declares: only the document's size
+  bounds them, and each costs at least its first atlas page (up to 16 MiB for very large sizes).
 - **A history on disk is only as safe as its folder.** Anyone who can write the data folder can write a history
   whose hashes are valid. The checks above hold, but deny rules aren't replayed for each commit on `main`, so such a
   history can contain changes the deny rules would have refused, as long as its head passes the revision check. This
   is the same trust as the state file's. A screen loaded from a string (`fromString`) keeps its history in memory
   only, and it is lost when the host quits.
-- **Every commit keeps a full copy of the document in memory,** so memory grows with the history. On disk, each
-  distinct document is stored once.
+- **A commit's delta isn't covered by its id** (it says how the commit is kept, not what it is). The document deltas
+  rebuild is checked against the commit's tree whenever it is rebuilt, and `main`'s head when a history loads, so a
+  damaged delta stops that rebuild with an error; but a delta written by hand that rebuilds the right document can't
+  be told from one the program wrote, which is the trust above.
 - **Windows is new.** The socket channels run on Windows through Winsock's `AF_UNIX`, with an owner-only access list
   on each socket file and the peer's user checked through its process. CI builds it, but doesn't run its tests, so
   it is far less tested than macOS and Linux.

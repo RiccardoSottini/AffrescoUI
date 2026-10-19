@@ -135,6 +135,8 @@ std::vector<Row> protocolTable() {
 	    {"getHistory", false, plain({{"type", "getHistory"}, {"limit", 3}}), "history", ""},
 	    {"diff", false, plain({{"type", "diff"}, {"from", 0}, {"to", "HEAD"}}), "diff", ""},
 	    {"diff", false, plain({{"type", "diff"}, {"proposal", 9}}), "rejected", "no proposal 9"},
+	    {"blame", false, plain({{"type", "blame"}, {"target", "#title"}}), "blame", ""},
+	    {"blame", false, plain({{"type", "blame"}}), "rejected", "blame.target"},
 	    {"exportChanges", false, plain({{"type", "exportChanges"}, {"from", 0}, {"name", "mine"}}), "changes", ""},
 	    {"getCatalog", false, plain({{"type", "getCatalog"}}), "catalog", ""},
 	    {"render", false, plain({{"type", "render"}, {"scale", 2}}), "image", ""},

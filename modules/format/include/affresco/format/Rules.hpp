@@ -6,11 +6,14 @@
 #include "affresco/core/DocumentRules.hpp"
 
 #include <functional>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
 namespace affresco::format {
+
+class SectionRegistry;
 
 /// @brief The AffrescoUI Screen Format (SCREEN_FORMAT.md) as rules for version control (VERSION_CONTROL.md).
 ///
@@ -23,12 +26,16 @@ namespace affresco::format {
 /// Used on the main thread: the checker compiles expressions through the main thread's cache.
 class Rules final : public DocumentRules {
 public:
-	/// @brief Checks the top-level sections, "format", "version" (1), "root", "actions" and "permissions".
+	/// @brief Rules with the built-in sections of the format (SectionRegistry).
+	Rules();
+
+	/// @brief Checks the top-level sections, each as its SectionRegistry entry says: none unknown, "version" (1) and
+	/// "root" there, "actions", "components", "channels", "persist", "permissions" and the others well formed.
 	/// @param document The document.
 	/// @throws DocumentError If something is wrong; what() names the place.
 	void validate(const json& document) const override;
 
-	/// @brief Finds a node by "id" in "root", then in "templates".
+	/// @brief Finds a node by "id" in "root", then in "screens", "templates" and the components (findNodeWithId()).
 	/// @param document The document.
 	/// @param id The id.
 	/// @return The node's JSON Pointer, or std::nullopt.
@@ -47,6 +54,22 @@ public:
 	/// @throws DocumentError If the change is forbidden; what() lists the new findings, each with its place.
 	void checkChange(const json& before, const json& after) const override;
 
+	/// @brief Gives readable ids (NodeNamer) to the nodes a revision adds or puts in place without one: a node, a
+	/// list of "children", or a section of screens, templates or components. A node that replaces one keeps that
+	/// one's id.
+	/// @param document The document before the operation.
+	/// @param pointer Where the value goes.
+	/// @param replaces true if the value replaces what is there.
+	/// @param value The value, changed in place.
+	void nameNodes(const json& document, std::string_view pointer, bool replaces, json& value) const override;
+
+	/// @brief Says what a path that finds nothing may have meant: the nearest id for "#id", else, at the first part of
+	/// a JSON Pointer that isn't there, the nearest key, the size of a list or the kind of a value.
+	/// @param document The document the path was read in.
+	/// @param path The path as written.
+	/// @return The hint, or "" if the whole path is there.
+	[[nodiscard]] std::string pathHint(const json& document, std::string_view path) const override;
+
 	/// @brief Checks a screen without running it: what it refers to but doesn't define (SCREEN_FORMAT.md, "Errors").
 	/// @param document The document.
 	/// @param state The state to check against (the live state of a running screen).
@@ -59,6 +82,7 @@ public:
 
 private:
 	std::set<std::string, std::less<>> nativeActions_; ///< From addNativeAction().
+	std::shared_ptr<const SectionRegistry> sections_;  ///< The sections; shared by copies, never changed.
 };
 
 } // namespace affresco::format

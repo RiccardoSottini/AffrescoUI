@@ -12,6 +12,7 @@ option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_TESTS "Build the rendering check and the unit tests (tests/)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_FUZZERS "Build the libFuzzer targets (tests/fuzz); needs clang, instruments the whole build" OFF)
 option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
+option(AFFRESCOUI_BUILD_TOOLS "Build the affrescoui command-line tool (tools/affrescoui)" ${PROJECT_IS_TOP_LEVEL})
 
 if(AFFRESCOUI_BUILD_FUZZERS)
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
@@ -57,6 +58,9 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 	URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d SYSTEM)
 FetchContent_MakeAvailable(json)
 
+# FreeType and HarfBuzz: the text of the rendering engine
+include(cmake/AffrescoUIText.cmake)
+
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
 if(MSVC)
 	# /utf-8 isn't a warning, but goes wherever these do: the sources are UTF-8, and MSVC reads the ANSI code page
@@ -67,7 +71,8 @@ else()
 endif()
 
 # The library is a set of modules, each its own target. They depend on each other only as shown here; anything
-# crossing a module boundary goes through the interfaces in core (README.md, "Architecture").
+# crossing a module boundary goes through the interfaces in core (ARCHITECTURE.md). Each module lists its sources in
+# modules/<name>/CMakeLists.txt, so a new file touches only its own module's list.
 #
 #   core     interfaces + Signal: Executor, Channel, VersionControl, DocumentRules   (header-only)
 #   render   rendering engine: windows, panels, text, OpenGL                         core
@@ -75,73 +80,22 @@ endif()
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
+#
+# affrescoui_module(<name> <sources...>) makes the target affrescoui_<name> with the alias affrescoui::<name>, its
+# public headers in modules/<name>/include, its private ones in modules/<name>/src, and the strict warnings.
 function(affrescoui_module name)
 	add_library(affrescoui_${name} ${ARGN})
 	add_library(affrescoui::${name} ALIAS affrescoui_${name})
 	target_include_directories(affrescoui_${name} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/${name}/include>
-		PRIVATE modules/${name}/src)
+		PRIVATE ${PROJECT_SOURCE_DIR}/modules/${name}/src)
 	target_compile_features(affrescoui_${name} PUBLIC cxx_std_23)
 	set_target_properties(affrescoui_${name} PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
-# core: the contracts between modules. JSON is opt-in: the rendering engine doesn't see it.
-add_library(affrescoui_core INTERFACE)
-add_library(affrescoui::core ALIAS affrescoui_core)
-target_include_directories(affrescoui_core INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/core/include>)
-target_compile_features(affrescoui_core INTERFACE cxx_std_23)
-
-# render. Vendored in external/: glad (OpenGL 4.1 core loader) and stb_truetype (font rasteriser).
-affrescoui_module(render
-	modules/render/src/Application.cpp
-	modules/render/src/TextEditor.cpp
-	modules/render/src/Color.cpp
-	modules/render/src/Controls.cpp
-	modules/render/src/Font.cpp
-	modules/render/src/Label.cpp
-	modules/render/src/Panel.cpp
-	modules/render/src/Stack.cpp
-	modules/render/src/TextArea.cpp
-	modules/render/src/Window.cpp
-	modules/render/src/gl/Context.cpp
-	modules/render/src/gl/QuadRenderer.cpp
-	modules/render/src/gl/Shader.cpp
-	external/glad/src/glad.c
-	external/stb/stb_truetype.c)
-target_include_directories(affrescoui_render SYSTEM PRIVATE external/glad/include external/stb)
-target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw)
-target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
-
-affrescoui_module(format
-	modules/format/src/Expression.cpp
-	modules/format/src/Rules.cpp
-	modules/format/src/Runtime.cpp
-	modules/format/src/Build.cpp
-	modules/format/src/Properties.cpp
-	modules/format/src/Events.cpp
-	modules/format/src/Steps.cpp
-	modules/format/src/Checker.cpp
-	modules/format/src/CheckerNodes.cpp
-	modules/format/src/CheckerValues.cpp)
-target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
-
-affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/RepositoryHistory.cpp
-	modules/vcs/src/HistoryStore.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
-target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
-
-affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
-target_link_libraries(affrescoui_channel PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
-if(WIN32)
-	target_link_libraries(affrescoui_channel PRIVATE ws2_32 advapi32) # Winsock; the socket files' access lists
-endif()
-
-# affrescoui: the whole library
-add_library(affrescoui modules/screen/src/Screen.cpp modules/screen/src/OffscreenImages.cpp modules/screen/src/Png.cpp)
-add_library(affrescoui::affrescoui ALIAS affrescoui)
-target_include_directories(affrescoui PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/screen/include>)
-set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options(affrescoui PRIVATE ${AFFRESCOUI_WARNINGS})
-target_link_libraries(affrescoui PUBLIC affrescoui::core affrescoui::render affrescoui::format affrescoui::vcs affrescoui::channel)
+foreach(module core render format vcs channel screen)
+	add_subdirectory(modules/${module})
+endforeach()
 
 # cmake --install: the libraries, their headers and the AffrescoUI package for find_package
 if(AFFRESCOUI_INSTALL)
@@ -162,57 +116,18 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 endif()
 
 if(AFFRESCOUI_BUILD_TESTS)
-	# Plays the scenarios in tests/render/scenarios.json; check.py compares the frames with the golden images
-	add_executable(affrescoui_render_runner tests/render/runner.cpp examples/CodeEditor.cpp)
-	target_include_directories(affrescoui_render_runner PRIVATE examples)
-	target_link_libraries(affrescoui_render_runner PRIVATE affrescoui nlohmann_json::nlohmann_json)
-	target_include_directories(affrescoui_render_runner PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
-	target_compile_options(affrescoui_render_runner PRIVATE ${AFFRESCOUI_WARNINGS})
-
-	enable_testing()
+	enable_testing() # here, so ctest finds the tests the subdirectories add
+	add_subdirectory(tests/render) # the rendering check
+	add_subdirectory(tests/unit)   # the unit tests and the window tests
+	# The MCP server's queries (outline, find_nodes, the guide by topic), which need no host
 	find_package(Python3 COMPONENTS Interpreter)
 	if(Python3_FOUND)
-		add_test(NAME rendering COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/render/check.py
-		         --build ${CMAKE_CURRENT_BINARY_DIR})
+		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
 	endif()
+endif()
 
-	# Unit tests for the modules that need no window (tests/unit). doctest is one header, used without its CMake
-	# project (SOURCE_SUBDIR has none); its main is in main.cpp.
-	FetchContent_Declare(doctest URL https://github.com/doctest/doctest/archive/refs/tags/v2.4.12.tar.gz
-		URL_HASH SHA256=73381c7aa4dee704bd935609668cf41880ea7f19fa0504a200e13b74999c2d70 SOURCE_SUBDIR doctest)
-	FetchContent_MakeAvailable(doctest)
-
-	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/history.cpp tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp
-		tests/unit/screen.cpp tests/unit/text.cpp tests/unit/painter.cpp tests/unit/checker.cpp tests/unit/png.cpp
-		modules/screen/src/Png.cpp)
-	target_sources(affrescoui_unit_tests PRIVATE tests/unit/nesting.cpp tests/unit/peers.cpp
-		tests/unit/vcs_properties.cpp tests/unit/protocol.cpp tests/unit/rules_sections.cpp)
-	# Expression.hpp, Utf8.hpp, Sha256.hpp and Png.hpp stay private
-	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src modules/vcs/src
-		modules/screen/src)
-	target_compile_definitions(affrescoui_unit_tests PRIVATE
-		AFFRESCOUI_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts")
-	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
-	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui) # all modules; screen.cpp loads screens, no window
-	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)
-	target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
-	# The checker's tests read the shipped templates, which must have no findings
-	target_compile_definitions(affrescoui_unit_tests PRIVATE
-		AFFRESCOUI_SCREENS_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/screens")
-	add_test(NAME unit COMMAND affrescoui_unit_tests)
-
-	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers, review
-	# steps, shapes, pictures
-	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp tests/unit/review.cpp
-		tests/unit/shapes.cpp tests/unit/images.cpp)
-	target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
-		$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
-	target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE)
-	target_link_libraries(affrescoui_window_tests PRIVATE affrescoui)
-	set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF)
-	target_compile_options(affrescoui_window_tests PRIVATE ${AFFRESCOUI_WARNINGS})
-	add_test(NAME window COMMAND affrescoui_window_tests)
+if(AFFRESCOUI_BUILD_TOOLS)
+	add_subdirectory(tools/affrescoui) # the affrescoui command-line tool
 endif()
 
 # The fuzz targets' sources can also be compiled alone, without libFuzzer, so that clang-tidy finds them in
@@ -226,7 +141,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# Speed, allocations and memory of the workloads in tests/perf (its README); CI counts instructions with callgrind,
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
-		tests/perf/engine.cpp examples/CodeEditor.cpp)
+		tests/perf/engine.cpp tests/perf/history.cpp examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src) # Expression.hpp stays private
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui)

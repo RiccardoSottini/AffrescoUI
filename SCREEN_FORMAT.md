@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
-| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file. `default` is used by text without a `font`. Text is UTF-8 and shows any character the font has. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's size. A character none of them has shows as `?`. |
+| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `theme` | Which variant of the colors is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
@@ -91,7 +91,7 @@ parent, later siblings on top of earlier ones.
 | Key | Meaning |
 |---|---|
 | `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `outlet`, or a type the application registers. |
-| `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). |
+| `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
 | `x`, `y` | Position inside the parent (used when the matching edge isn't anchored). |
@@ -211,16 +211,22 @@ Wherever a value is expected it can be computed:
 - paths: `state.items[state.current].title`, `card.tags.length`; a missing value is `null`; a name with `-` goes in
   brackets, `state['my-list']`, because `state.my-list` is `state.my - list`;
 - `!`, `-`, `* / %`, `+ -` (`+` joins text when either side is text), `< <= > >=`, `== !=`, `&&`, `||`,
-  `a ?? b` (b when a is null), `c ? a : b`;
-- functions: `len`, `empty`, `round`, `floor`, `ceil`, `abs`, `min`, `max` (numbers or a list), `clamp(v, lo, hi)`,
-  `concat`, `join(list, sep)`, `split(text, sep)`, `slice(list or text, from, to?)`, `contains`, `indexOf`, `keys`,
-  `values`, `entries`, `merge(a, b)`, `reverse`, `range(n)` (n up to 10000), `upper`, `lower`, `trim`, `number`, `text`,
-  `type`, `fixed(n, digits)`, `pad(n, width, fill?)` (width up to 10000), `plural(n, 'card', 'cards'?)`, `now()`,
-  `time(ms, 'ddd D MMM HH:mm')`, `parseJson`, `json`;
-- per item, with the item as `it` and its position as `index`: `filter(list, it.done)`, `map(list, it.name)`,
-  `count(list, cond?)`, `sum(list, expr?)`, `find(list, cond)`, `some`, `every`, `sort(list, key?, 'desc'?)`.
+  `a ?? b` (b when a is null), `c ? a : b`; `&&` and `||` give an operand, as in JavaScript: `user && user.name` is the
+  name (or `user` when it is false or null), `title || 'Untitled'` is the title unless it is empty;
+- functions: `empty(value)`, `type(value)`, `round(number)`, `floor(number)`, `ceil(number)`, `abs(number)`,
+  `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
+  `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
+  `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
+  `len(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
+  `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
+  `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
+  `time(milliseconds, 'ddd D MMM HH:mm')`;
+- per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
+  `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
+  `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 
-Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`.
+Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
+are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`); `theme`;
 `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
@@ -341,8 +347,12 @@ A revision is a version-controlled change to a running screen. Write it as **com
 - Paths can start with `#id` to address a node by its id: `#header/children/-`, `#title/text`, or just `#badge`.
   An id inside a `repeat` addresses the template (all instances); instances change through the state.
 - Operations on `/state/...` change the live state; all others change the document.
-- Revisions are **atomic**. If anything fails, nothing changes and the error names the operation:
-  `revision.patch[0] (set #nope/color).path: no node with id 'nope'`.
+- Revisions are **atomic**. If anything fails, nothing changes and the error names the operation, the path and a
+  hint: `revision.patch[0] (set #titel/color).path: no node with id 'titel' (did you mean '#title'?)`,
+  `... (remove #title/colr): key 'colr' not found at /root/children/1/colr ('#title' has no 'colr' (it has: type, id,
+  text))`.
+- A node added without an `id` gets one (see `id` above), written into the commit, so history and diffs show it; a
+  node that replaces another keeps that one's id.
 - `parent` (optional): a revision number or commit id; if main has moved on, the revision is rejected as a conflict.
   `proposal` (optional) pushes onto the author's own open proposal.
 - Every applied revision is a **commit** on `main` (SHA-256, numbered from `0`, the file). Compact edits are stored as
@@ -365,9 +375,9 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `changes`, `catalog`, `image`, `done` |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `done` |
 | peer → | `revision` (compact edits or `patch`, `proposal`?), `revert` / `restore` (`revision`), `undo` |
-| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`), relayed with `from` |
 
@@ -434,7 +444,8 @@ AffrescoUI screen: root.children[3].with.bye: unknown parameter 'bye' of compone
 - **What it finds:** state paths, computed values and variables that expressions read but that don't exist (from
   `state`, `computed`, and the variables of `repeat`, `let`, `with`, `forEach`, `check`, components and events);
   actions (handlers, `run`, `keys`), styles, components, fonts, colours (`@name`) and screens (`navigate`) that
-  aren't defined; component parameters the component doesn't declare; unknown steps; expressions that don't parse.
+  aren't defined; component parameters the component doesn't declare; unknown steps; expressions that don't parse;
+  an `id` that two nodes have.
 - **What it learns:** a state key exists if the state has it or a step writes it (`set`, `push`, `toggle`,
   `increment`, `animate`, `call ... into`, `bind`, `caret`, an overlay that `dismiss`es). What a list holds comes
   from its items and what is pushed onto it.
@@ -455,7 +466,8 @@ A check visits each part of the document once (a repeat is not expanded), so it 
 affresco::Application app;
 affresco::Screen screen = affresco::Screen::fromFile("kanban.screen.json");
 screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a custom type, before createWindow
-// A custom type has the properties of the built-in type it derives from, plus its own, given here with their handler
+// A custom type has the properties of the built-in type it derives from, plus its own, given here with their handler.
+// Registered under the name of a built-in type, it replaces that type.
 screen.registerType("gauge", [] { return std::make_unique<MyGauge>(); }, {"needle"},
                     [&](affresco::Panel& panel, const std::string& propertiesJson) { /* {"needle": "@accent"} */ });
 screen.onCall("pickFile", [](const std::string& argumentsJson) { return R"("/tmp/a.png")"; }); // {"call": "pickFile"}

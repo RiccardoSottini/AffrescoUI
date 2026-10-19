@@ -4,10 +4,13 @@
 - json:       the templates in examples/assets/screens, the JSON examples in the docs, nesting at the limit;
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
 - revision:   the revisions in the docs, and edits of every kind to the Kanban template's nodes and state;
+- delta:      the Kanban template and changed copies of it (keys reordered, a node added), with deltas to apply;
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
-              and in short conversations between the agent and the reviewer (lines starting with '>').
+              and in short conversations between the agent and the reviewer (lines starting with '>');
+- text:       every text of the templates and of the rendering check's screens.
 
-Generated rather than checked in, so the seeds follow the templates and the docs as they change.
+Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
+a bug are checked in, in regressions/<target>/, and added as they are.
 Usage: tests/fuzz/corpus.py [--out build/fuzz-corpus]  ->  <out>/<target>/ and <out>/<target>.dict
 """
 
@@ -154,9 +157,39 @@ def session_seeds():
     return seeds
 
 
+def delta_seeds():
+    """The delta target's seeds: the Kanban template and changed copies of it, and deltas that may or may not apply."""
+    kanban = json.loads(KANBAN.read_text(encoding="utf-8"))
+    renamed = json.loads(json.dumps(kanban))
+    renamed["state"]["board"] = "Renamed"
+    reordered = dict(reversed(list(kanban.items())))  # the same fields in another order
+    added = json.loads(json.dumps(kanban))
+    added["root"]["children"].insert(0, {"type": "label", "id": "first", "text": "First"})
+    deltas = [[{"op": "replace", "path": "/state/board", "value": "x"}], [{"op": "remove", "path": "/root/children/0"}],
+              [{"op": "add", "path": "/root/children/0/x", "value": 1}], [{"op": "move", "from": "/a", "path": "/a/b"}],
+              [{"op": "add", "path": "/window/width/x", "value": 1}], [{"op": "copy", "from": "", "path": "/c"}], {}]
+    seeds = [compact({"from": kanban, "to": to, "delta": delta})
+             for to, delta in zip([renamed, reordered, added, {}, [kanban], 1, kanban], deltas)]
+    seeds += [compact({"from": [1, 2, 3], "to": [3, 1.0, -0.0], "delta": [{"op": "add", "path": "/0/x", "value": 1}]}),
+              compact({"from": {"a/b": {"~": 1}, "c": [1]}, "to": {"c": [], "a/b": None}, "delta": []})]
+    return seeds
+
+
+def text_seeds():
+    """Every text of the templates and of the rendering check's screens: scripts, emoji, marks, ligatures."""
+    seeds = []
+    for path in sorted(SCREENS.glob("*.screen.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json")):
+        seeds += [value for value in walk(json.loads(path.read_text(encoding="utf-8"))) if isinstance(value, str)]
+    return list(dict.fromkeys(seed for seed in seeds if seed.strip() and "{{" not in seed))
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
-    operators = sorted(set(re.findall(r'"\$(\w+)"', (ROOT / "modules/format/src/Expression.cpp").read_text())))
+    # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
+    registry = "".join(path.read_text() for path in sorted((ROOT / "modules/format/src").glob("ExpressionFunctions*.cpp")))
+    operators = set(re.findall(r'\.(?:name|alias) = "(\w+)"', registry))
+    operators |= set(re.findall(r'"\$(\w+)"', (ROOT / "modules/format/src/ExpressionLower.cpp").read_text()))
+    operators = sorted(operators)
     expression = [f"{name}(" for name in operators] + [f"${name}" for name in operators]
     expression += ["{{", "}}", "state.", "event.", "window.", "computed.", "nodes.", "&&", "||", "??", "==", "!=",
                    "<=", ">=", "=>", "?", ":", "[", "]", "'", ".length"]
@@ -166,7 +199,13 @@ def dictionaries():
     session = sorted({message["type"] for _, message in protocol_messages()}) + list(FIELD_VALUES) + ["type", "id"]
     tokens = ["{", "}", "[", "]", ",", ":", "true", "false", "null", "\\u0000", "\\ud83d", "1e400", "-0", "/*", "*/",
               "//"]
-    return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session}
+    delta = tokens + ["from", "to", "delta", "op", "add", "remove", "replace", "move", "copy", "test", "path", "value",
+                      "/0", "/-", "~0", "~1", "1.0", "-0.0"]
+    # Characters shaping treats apart: joiners, variation selectors, marks, spaces, line breaks, right-to-left letters
+    text = ["\u200d", "\ufe0f", "\u0301", "\u0323", " ", "\n", "\t", "\u0627\u0644", "\u094d", "\U0001F1EE",
+            "\U0001F3FD", "fi", "ffl", "->", "!=="]
+    return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
+            "delta": delta, "text": text}
 
 
 def dictionary_entry(word):
@@ -183,6 +222,11 @@ def write(out, target, seeds, words):
     directory.mkdir(parents=True)
     for index, seed in enumerate(seeds):
         (directory / f"seed-{index:04}").write_text(seed, encoding="utf-8")
+    # Inputs that found a bug, kept as they were (regressions/<target>/), so the fuzzer starts from them too
+    regressions = sorted((ROOT / "tests" / "fuzz" / "regressions" / target).glob("*"))
+    for found in regressions:
+        shutil.copyfile(found, directory / f"regression-{found.name}")
+    seeds = [*seeds, *regressions]
     entries = [dictionary_entry(word) for word in dict.fromkeys(words)]
     (out / f"{target}.dict").write_text("\n".join(entries) + "\n", encoding="utf-8")
     print(f"{target}: {len(seeds)} seeds, {len(entries)} dictionary words")
@@ -197,6 +241,8 @@ def main():
     write(out, "expression", expression_seeds(), words["expression"])
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
+    write(out, "delta", delta_seeds(), words["delta"])
+    write(out, "text", text_seeds(), words["text"])
 
 
 if __name__ == "__main__":

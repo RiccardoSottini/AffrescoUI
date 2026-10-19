@@ -21,10 +21,33 @@ Screens load without a state file, and channels find no host.
 
 ## Scenarios
 
-`scenarios.json` lists screens (from `examples/assets/screens/`) and their steps. Targets are `[x, y]` in window
-units, or `"#id"`, the centre of the first shown panel with that id (`"nth": 2` picks the third). Screens made only
-for the check, for what no template shows, are in `screens/` here (e.g. `unicode`: scripts, fallback fonts, editing
-by code point), named by a path relative to the templates' folder.
+The scenarios are in `scenarios/`, one file per area: `kanban.json`, `code-editor.json`, `studio.json`, and so on.
+`check.py` reads every `.json` there in the order of the file names, so a new file needs no other edit, and parallel
+changes that add scenarios to different areas don't touch the same file. A scenario's name must be unique across the
+files, because it is the prefix of its frames' names.
+
+Each file names a `screens` folder, relative to the file, and lists its scenarios: a name, a `screen` in that folder,
+an optional `scale` and `note`, and the steps:
+
+```json
+{
+	"screens": "../../../examples/assets/screens",
+	"scenarios": [
+		{ "name": "studio", "screen": "studio.screen.json", "steps": [{ "capture": "first-frame" }] }
+	]
+}
+```
+
+Targets are `[x, y]` in window units, or `"#id"`, the centre of the first shown panel with that id (`"nth": 2` picks
+the third). Screens made only for the check, for what no template shows, are in `screens/` here (e.g. `unicode`:
+scripts, fallback fonts, editing by code point; `scripts`: shaping, with Arabic, Devanagari, Chinese, Japanese,
+Korean, colour emoji, ligatures and a caret inside a code ligature); their scenarios are in a file whose `screens`
+is `"../screens"`. The fonts only these screens use are small subsets of open fonts, in `fonts/` (its README
+says where each comes from).
+
+**Where a new scenario goes:** in the file of the area it shows (a template's file for a template, `shapes.json` for
+shapes), or in a new `<area>.json` for a new area. Open the frames its first run records and check that they show
+what you expect.
 
 | Step | Does |
 |---|---|

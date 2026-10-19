@@ -1,0 +1,10 @@
+{
+	"screens": "../../../examples/assets/screens",
+	"scenarios": [
+		{
+			"name": "studio",
+			"screen": "studio.screen.json",
+			"steps": [{ "capture": "first-frame" }]
+		}
+	]
+}

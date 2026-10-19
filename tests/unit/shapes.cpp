@@ -1,18 +1,20 @@
 /// @file
-/// @brief Tests that need a window: the shape properties of a screen (radius, borderWidth, borderColor, shadow), how
+/// @brief The shape properties of a screen (radius, borderWidth, borderColor, shadow), how
 /// they are read and reset, and the border colour's transition.
 ///
-/// Built into affrescoui_window_tests, with timers.cpp: a screen applies its properties once it has a window.
+/// A screen applies its properties once it has a window: a headless one here.
+
+#include "Headless.hpp"
 
 #include <affresco/affresco.hpp>
 
-#include <GLFW/glfw3.h>
 #include <doctest/doctest.h>
 
-#include <chrono>
 #include <memory>
 #include <string>
-#include <thread>
+
+using affresco::detail::createHeadlessWindow;
+using affresco::detail::ManualClock;
 
 namespace {
 
@@ -44,10 +46,11 @@ std::string rejection(affresco::Screen& screen, std::string_view revision) {
 } // namespace
 
 TEST_CASE("format: shape properties apply, and go back to the defaults when removed") {
-	affresco::Application app;
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(cardScreen);
-	affresco::Window& window = screen.createWindow(app);
+	affresco::Window& window = *headless;
+	screen.build(window);
 	window.render();
 
 	affresco::Panel* card = screen.find("card");
@@ -71,10 +74,11 @@ TEST_CASE("format: shape properties apply, and go back to the defaults when remo
 }
 
 TEST_CASE("format: malformed shape properties are rejected, naming the place") {
-	affresco::Application app;
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(cardScreen);
-	screen.createWindow(app).render();
+	screen.build(*headless);
+	headless->render();
 
 	CHECK(rejection(screen, R"({"set": {"#card/radius": -1}})").find("radius: expected a number of pixels") !=
 	      std::string::npos);
@@ -94,10 +98,11 @@ TEST_CASE("format: malformed shape properties are rejected, naming the place") {
 
 // The transition's timer points at the screen's runtime, like the colour's: it must stop with the screen
 TEST_CASE("format: a border colour transition animates, and stops when its screen is destroyed") {
-	affresco::Application app;
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
 	auto screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(cardScreen));
-	affresco::Window& window = screen->createWindow(app);
+	affresco::Window& window = *headless;
+	screen->build(window);
 	window.render();
 	CHECK_FALSE(window.secondsToNextTimer());
 
@@ -113,10 +118,11 @@ TEST_CASE("format: a border colour transition animates, and stops when its scree
 
 // A state ending or a revision removing the colour mid-way must not leave the old target behind
 TEST_CASE("format: a border colour removed during its transition goes back to the default") {
-	affresco::Application app;
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(cardScreen);
-	affresco::Window& window = screen.createWindow(app);
+	affresco::Window& window = *headless;
+	screen.build(window);
 	window.render();
 
 	REQUIRE(screen.applyRevision(R"({"set": {"/state/on": true}})"));
@@ -126,7 +132,7 @@ TEST_CASE("format: a border colour removed during its transition goes back to th
 	REQUIRE(screen.applyRevision(R"({"remove": ["#card/borderColor"]})"));
 	window.render();
 	for(int frame = 0; frame < 20 && window.secondsToNextTimer(); ++frame) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(40));
+		clock.advance(40.0);
 		window.render();
 	}
 	CHECK_FALSE(window.secondsToNextTimer());

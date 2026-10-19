@@ -1,0 +1,50 @@
+{
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "scripts",
+			"screen": "scripts.screen.json",
+			"steps": [
+				{ "capture": "first-frame" },
+				{ "click": "#editor" },
+				{ "key": "home" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "right" },
+				{ "key": "shift+right" },
+				{ "key": "shift+right" },
+				{ "capture": "inside-ligature" },
+				{ "key": "end" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "key": "shift+left" },
+				{ "capture": "selected" },
+				{ "type": "x" },
+				{ "capture": "edited" }
+			]
+		}
+	]
+}

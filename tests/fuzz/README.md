@@ -10,7 +10,9 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `json` | Any text, to `parseUntrusted` (`core/Json.hpp`) | Throws only `json::parse_error` or `DocumentError`; what parses nests at most `maxNesting` levels |
 | `expression` | A JSON value (templates, `$` operators) or, if it isn't JSON, the inside of a `{{ }}` | Evaluating gives a value or a `DocumentError`, the only error the runtime catches |
 | `revision` | A revision's JSON, submitted to a `vcs::Repository` holding the Kanban template | A revision that isn't applied changes nothing; reverting one that is (directly or after review) restores the document and the state |
+| `delta` | A JSON object `{"from", "to", "delta"}`, to the history's deltas (`vcs/src/Deltas.hpp`), which a history on disk keeps for each commit and its id doesn't cover | Applying a delta gives a document or throws `json::exception` or `DocumentError`; the delta from `from` to `to` rebuilds `to` exactly |
 | `session` | Lines from two peers, through in-memory channels to `channel::Session`: the agent, or the reviewer (`studio`) when a line starts with `>`. The agent's limits are low (4 KiB a message, 24 messages, 6 changes, none refilled), so inputs reach them | Every answer is one JSON object with a `"type"` |
+| `text` | UTF-8 text, shaped, measured and wrapped by a `Font` with fallbacks for Arabic, Devanagari, Chinese and colour emoji (HarfBuzz and FreeType); the first byte picks the width | One advance per code point and one caret more, all finite; the advances sum to the width `measure` gives; wrapped lines are the text in order, cut only at a space or a line break |
 
 ## Running them
 
@@ -28,9 +30,9 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision` or `session` in place of `session`. `-fork=4 -ignore_crashes=1` keeps going
-after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type, the code is
-compiled `-O1 -g`, as libFuzzer recommends.
+Use `json`, `expression`, `revision`, `delta`, `session` or `text` in place of `session`. `-fork=4 -ignore_crashes=1`
+keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
+the code is compiled `-O1 -g`, as libFuzzer recommends.
 
 **macOS.** Apple's clang has no libFuzzer. Homebrew's LLVM has one (`brew install llvm`; checked with LLVM 23).
 Build with it, linked against its own libc++, as `brew info llvm` says:
@@ -64,7 +66,9 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -minimize_crash=1 -runs=10000 cras
 ```
 
 A failing input is a bug in the library, not in the target. Fix it, and add the input (or a readable version of it)
-as a regression test in `tests/unit/`, as the tests marked "Found by fuzzing" there do. A broken rule prints
+as a regression test in `tests/unit/`, as the tests marked "Found by fuzzing" there do. Keep the input itself in
+`regressions/<target>/`, under a name that says what it found: `corpus.py` adds those files to the target's seeds, so
+every run tries them again. A broken rule prints
 `affrescoui fuzz: broken rule: ...` before stopping.
 
 ## CI
@@ -77,7 +81,7 @@ search goes on where it stopped. It also runs on demand (Actions, "Fuzz", "Run w
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp` | The targets |
+| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp` | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates in `examples/assets/screens/`, the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |

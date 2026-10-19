@@ -1,6 +1,6 @@
 {
 	"change-colour": { "message": "Purple accent", "set": { "/colors/accent": "#7c3aed" } },
-	"rename-label": { "message": "Call the explorer Files", "set": { "#explorer/children/0/text": "FILES" } },
+	"rename-label": { "message": "Call the explorer Files", "set": { "#label-explorer/text": "FILES" } },
 	"add-terminal-line": {
 		"message": "Show a test run in the terminal",
 		"add": { "/state/terminal/-": { "t": "$ ctest --test-dir build", "c": "prompt" } }
@@ -9,7 +9,7 @@
 		"message": "Add an outline heading to the explorer",
 		"add": {
 			"#explorer/children/-": {
-				"id": "outlineHeading", "style": "caption", "text": "OUTLINE", "anchors": { "left": 20, "bottom": 14 }
+				"style": "caption", "text": "OUTLINE", "anchors": { "left": 20, "bottom": 14 }
 			}
 		}
 	}

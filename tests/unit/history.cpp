@@ -4,12 +4,11 @@
 /// Each test works in its own temporary folder, removed at the end.
 
 #include "Helpers.hpp"
+#include "HistoryFiles.hpp"
 
 #include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
-
-#include "Sha256.hpp" // modules/vcs/src: to forge a history with valid hashes
 
 #include <doctest/doctest.h>
 
@@ -25,114 +24,17 @@
 
 using affresco::json;
 using affresco::RevisionStatus;
+using affresco::test::forgeCommit;
+using affresco::test::forgeRefs;
+using affresco::test::objectFile;
 using affresco::test::permissionsScreen;
+using affresco::test::readText;
+using affresco::test::temporaryFiles;
+using affresco::test::TemporaryFolder;
+using affresco::test::writeText;
 using affresco::vcs::Repository;
 
 namespace {
-
-/// @brief A new, empty folder for one test, removed with everything in it when the test ends.
-class TemporaryFolder {
-public:
-	/// @brief Creates the folder.
-	TemporaryFolder() {
-		static std::atomic<int> count = 0;
-		path_ =
-		    std::filesystem::temp_directory_path() /
-		    ("affrescoui-history-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) +
-			 "-" + std::to_string(count++));
-		std::filesystem::create_directories(path_);
-	}
-	TemporaryFolder(const TemporaryFolder&) = delete;
-	TemporaryFolder& operator=(const TemporaryFolder&) = delete;
-	/// @brief Removes the folder.
-	~TemporaryFolder() {
-		std::error_code ignored;
-		std::filesystem::remove_all(path_, ignored);
-	}
-
-	/// @brief The folder.
-	[[nodiscard]] const std::filesystem::path& path() const noexcept { return path_; }
-
-private:
-	std::filesystem::path path_; ///< The folder.
-};
-
-/// @brief Reads a whole file.
-/// @param file The file.
-/// @return Its text.
-std::string readText(const std::filesystem::path& file) {
-	const std::ifstream in(file, std::ios::binary);
-	std::stringstream text;
-	text << in.rdbuf();
-	return text.str();
-}
-
-/// @brief Replaces a file's text.
-/// @param file The file.
-/// @param text The new text.
-void writeText(const std::filesystem::path& file, const std::string& text) {
-	std::ofstream(file, std::ios::binary | std::ios::trunc) << text;
-}
-
-/// @brief The file a commit is stored in.
-/// @param history The history folder.
-/// @param id The commit's id.
-/// @return objects/<2>/<62>.
-std::filesystem::path objectFile(const std::filesystem::path& history, const std::string& id) {
-	return history / "objects" / id.substr(0, 2) / id.substr(2);
-}
-
-/// @brief Counts the files with a name ending in ".tmp" in a folder and below.
-/// @param folder The folder.
-/// @return How many there are.
-int temporaryFiles(const std::filesystem::path& folder) {
-	int count = 0;
-	for(const auto& entry : std::filesystem::recursive_directory_iterator(folder))
-		if(entry.path().extension() == ".tmp") ++count;
-	return count;
-}
-
-/// @brief Writes an object into a history folder.
-/// @param history The history folder.
-/// @param id Its id.
-/// @param text Its text.
-void writeObject(const std::filesystem::path& history, const std::string& id, const std::string& text) {
-	std::filesystem::create_directories(objectFile(history, id).parent_path());
-	writeText(objectFile(history, id), text);
-}
-
-/// @brief Writes a commit and its document the way a program that ignores the rules could: well formed, with valid
-/// ids.
-/// @param history The history folder.
-/// @param commit The commit: parents, author, committer, time, proposal, message, patch, document.
-/// @return Its id.
-std::string forgeCommit(const std::filesystem::path& history, json commit) {
-	using affresco::vcs::detail::sha256;
-	const std::string document = commit.at("document").dump(), tree = sha256(document);
-	std::string object = "tree " + tree + "\n";
-	for(const json& parent : commit.at("parents")) object += "parent " + parent.get<std::string>() + "\n";
-	object += "author " + commit.at("author").get<std::string>() + "\ncommitter " +
-	          commit.at("committer").get<std::string>() + "\ntime " + commit.at("time").get<std::string>() +
-	          "\npatch " + sha256(commit.at("patch").dump()) + "\n\n" + commit.at("message").get<std::string>();
-	const std::string id = sha256(object);
-	commit.erase("document");
-	commit["tree"] = tree;
-	writeObject(history, tree, document);
-	writeObject(history, id, commit.dump());
-	return id;
-}
-
-/// @brief Rewrites the refs file the way a program that ignores the rules could, with a valid checksum.
-/// @tparam Change A function that takes the refs as `json&`.
-/// @param history The history folder.
-/// @param change Changes the refs (without their checksum).
-template <typename Change> void forgeRefs(const std::filesystem::path& history, Change change) {
-	json refs = json::parse(readText(history / "refs.json"));
-	refs.erase("checksum");
-	change(refs);
-	refs["checksum"] = affresco::vcs::detail::sha256(refs.dump());
-	writeText(history / "refs.json", refs.dump(2));
-}
 
 /// @brief A renderer that can't show a screen titled "Unshowable", as one can't when a font file the screen names is
 /// gone.
@@ -401,12 +303,13 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;
 	const std::filesystem::path history = folder.path() / "board.history";
-	std::string head;
+	std::string head, original;
 	{
 		Repository first(rules, permissionsScreen());
 		first.openHistory(history);
 		fill(first);
 		head = first.log()[1].id; // "Rename"
+		original = first.log()[0].id;
 	}
 
 	std::filesystem::path damaged;
@@ -431,13 +334,14 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 		writeText(damaged, text.substr(0, text.size() / 2));
 	}
 	SUBCASE("a document whose content changed") {
-		const std::string text = readText(objectFile(history, head));
+		// Only snapshots keep their document in a file of its own: revision 0 always does
+		const std::string text = readText(objectFile(history, original));
 		const std::string tree = json::parse(text).at("tree").get<std::string>();
 		damaged = objectFile(history, tree);
 		std::string document = readText(damaged);
-		const std::size_t at = document.find("\"Done\"");
+		const std::size_t at = document.find("\"Tasks\"");
 		REQUIRE(at != std::string::npos);
-		document.replace(at, 6, "\"Dome\"");
+		document.replace(at, 7, "\"Taxes\"");
 		writeText(damaged, document);
 		expected = "doesn't match its SHA-256";
 	}
@@ -471,6 +375,36 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 	CHECK(affresco::toString(second.mode()) == "default");
 	CHECK(second.document() == permissionsScreen());
 	CHECK(std::filesystem::is_regular_file(history / "refs.json"));
+}
+
+TEST_CASE("vcs: a history whose delta was damaged is never loaded, and the error names the commit's file") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	std::string last;
+	{
+		Repository first(rules, permissionsScreen());
+		first.openHistory(history);
+		fill(first);
+		last = first.log().back().id; // main's head, rebuilt from revision 0's document and the deltas after it
+	}
+
+	// A commit's id doesn't cover its delta (how it is kept), so the document the deltas give is checked instead
+	const std::filesystem::path damaged = objectFile(history, last);
+	json commit = json::parse(readText(damaged));
+	REQUIRE(commit.at("delta").size() == 1);
+	REQUIRE(commit["delta"][0].at("value") == "Week");
+	commit["delta"][0]["value"] = "Weak"; // still a delta that applies: only the head's tree can tell
+	writeText(damaged, commit.dump());
+
+	Repository second(rules, permissionsScreen());
+	CHECK_THROWS_WITH_AS(second.openHistory(history),
+	                     doctest::Contains(("AffrescoUI history: " + damaged.string() +
+	                                        ": commit " + last + ": its deltas don't give the document its id names")
+	                                           .c_str()),
+	                     affresco::DocumentError);
+	CHECK(second.head().number == 0); // nothing was loaded
+	CHECK(second.document() == permissionsScreen());
 }
 
 TEST_CASE("vcs: a whole history whose last revision can't be shown isn't loaded, and isn't called damaged") {

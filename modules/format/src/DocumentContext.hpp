@@ -1,0 +1,169 @@
+#pragma once
+
+/// @file
+/// @brief format::DocumentContext: what the document's values are read against: colours, fonts, the theme, the
+/// globals, the cached "computed" values and the screen an outlet shows.
+
+#include "NodeKeys.hpp"
+
+#include "affresco/render/Color.hpp"
+#include "affresco/render/Font.hpp"
+#include "affresco/render/FontCache.hpp"
+#include "affresco/render/Painter.hpp"
+
+#include <cstdint>
+#include <filesystem>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace affresco::format {
+
+struct Engine;
+
+/// @brief What the document's values are read against: colours, fonts, the theme, the globals of expressions, the
+/// cached "computed" values, and the screen an outlet shows (navigation).
+///
+/// Invariants: colours and fonts change all at once or not at all (readDerived()). The globals are built once and
+/// reused until globalsChanged(); computed values are cached per stateVersion(), which markStateChanged() bumps.
+/// Callers: every subsystem that evaluates a value (builder, properties, events, steps), the reconciler (theme and
+/// screen per update) and Runtime's lookups. Main thread only.
+class DocumentContext {
+public:
+	/// @brief A context for an engine's document.
+	/// @param engine The runtime; outlives this object.
+	/// @param baseDirectory Where font paths are resolved from.
+	DocumentContext(Engine& engine, std::filesystem::path baseDirectory);
+
+	DocumentContext(const DocumentContext&) = delete;
+	DocumentContext& operator=(const DocumentContext&) = delete;
+	DocumentContext(DocumentContext&&) = delete;
+	DocumentContext& operator=(DocumentContext&&) = delete;
+	~DocumentContext() = default;
+
+	/// @brief Reads "colors" and "fonts", changing nothing on error.
+	/// @throws DocumentError If a colour or font is invalid.
+	void readDerived();
+
+	/* Values */
+
+	/// @brief A context for expressions.
+	/// @param locals Variables.
+	/// @param event The event being handled.
+	/// @return The context (it refers to the arguments).
+	[[nodiscard]] Context context(const Scope& locals, const json& event) const;
+	/// @brief Evaluates a value with the state, the globals and the given variables.
+	/// @param value The value.
+	/// @param locals Variables.
+	/// @param event The event being handled.
+	/// @param where Its place, for errors.
+	/// @return The evaluated value.
+	/// @throws DocumentError If it is invalid.
+	[[nodiscard]] json evaluate(const json& value, const Scope& locals, const json& event,
+	                            const std::string& where) const;
+	/// @brief Drops the cached globals (history, proposals, preview, window size or screen changed).
+	void globalsChanged() const { globalsCache_.reset(); }
+	/// @brief Records that the state changed: computed values are stale and an update is due.
+	void markStateChanged() noexcept {
+		stateChanged_ = true;
+		++stateVersion_;
+	}
+	/// @brief Whether the state changed since the last update began (clearStateChanged()).
+	[[nodiscard]] bool stateChanged() const noexcept { return stateChanged_; }
+	/// @brief Marks the state as up to date with the panels, as an update begins.
+	void clearStateChanged() noexcept { stateChanged_ = false; }
+	/// @brief Marks an update as due, without staling computed values.
+	void requestUpdate() noexcept { stateChanged_ = true; }
+	/// @brief Makes computed values stale (a revision may change the state too).
+	void bumpStateVersion() noexcept { ++stateVersion_; }
+
+	/* Colours, fonts, theme */
+
+	/// @brief Reads a colour: "#rrggbb", "@name" (from "colors", in the current theme) or "transparent".
+	/// @param value The value.
+	/// @param path Its place, for errors.
+	/// @return The colour.
+	/// @throws DocumentError If it is not a colour.
+	[[nodiscard]] Color color(const json& value, const std::string& path) const;
+	/// @brief Looks a colour up in "colors", in the current theme.
+	/// @param name The name.
+	/// @return The colour.
+	/// @throws DocumentError If there is no such colour.
+	[[nodiscard]] Color namedColor(std::string_view name) const;
+	/// @brief Reads a "shadow": { "x", "y", "blur", "color" }, each optional.
+	/// @param value The value.
+	/// @param path Its place, for errors.
+	/// @return The shadow.
+	/// @throws DocumentError If it is malformed.
+	[[nodiscard]] Shadow shadow(const json& value, const std::string& path) const;
+	/// @brief Finds a font of "fonts".
+	/// @param name The name.
+	/// @return The font, or nullptr.
+	[[nodiscard]] std::shared_ptr<const Font> findFont(std::string_view name) const;
+	/// @brief Evaluates "theme" for this update.
+	void updateTheme();
+
+	/* The screen an outlet shows */
+
+	/// @brief The screen shown now.
+	[[nodiscard]] const std::string& screen() const noexcept { return screen_; }
+	/// @brief Shows the first screen of "screens" if the one shown is gone (or none was), forgetting the way back.
+	/// @param document The document.
+	void keepScreen(const json& document);
+	/// @brief Shows a screen, remembering the one shown for "back".
+	/// @param name The screen.
+	void navigate(const std::string& name);
+	/// @brief Shows the screen shown before the last navigate().
+	/// @return false if there is none.
+	bool back();
+
+private:
+	/// @brief Screen-wide variables for expressions.
+	struct Globals {
+		json window, revision, other; ///< Window size, current revision, and the rest (proposals, computed, ...).
+	};
+	/// @brief A named colour, with variants per theme.
+	struct NamedColor {
+		Color base;                                       ///< The first value: used without a matching theme.
+		std::map<std::string, Color, std::less<>> themes; ///< "light" -> colour, "dark" -> colour.
+	};
+
+	/// @brief The globals, built once and reused until globalsChanged().
+	[[nodiscard]] const Globals& globals() const;
+	/// @brief `computed.<name>`: evaluated when first read after a state change, then cached.
+	/// @param name The computed value.
+	/// @return Its value.
+	json computed(std::string_view name) const;
+	/// @brief The `nodes` variable: a built panel's geometry by id.
+	/// @param id The id.
+	/// @return {x, y, width, height, visible}, or null.
+	json node(std::string_view id) const;
+	/// @brief The colours of "colors".
+	/// @param document The document.
+	/// @return The colours.
+	/// @throws DocumentError If one is invalid.
+	static std::map<std::string, NamedColor, std::less<>> readColors(const json& document);
+
+	Engine& engine_;                                                        ///< The runtime.
+	std::filesystem::path baseDirectory_;                                   ///< Where font paths are resolved from.
+	std::map<std::string, NamedColor, std::less<>> colors_;                 ///< From "colors".
+	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts_; ///< From "fonts".
+	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
+	std::string theme_;                      ///< "theme", evaluated at each update.
+	std::string screen_;                     ///< The screen an "outlet" shows.
+	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.
+
+	bool stateChanged_ = false;                     ///< See stateChanged().
+	std::uint64_t stateVersion_ = 0;                ///< Counts state changes (computed values are cached per version).
+	mutable std::optional<Globals> globalsCache_;   ///< See globals().
+	mutable json computedValues_ = json::object();  ///< "computed" values read since the state last changed.
+	mutable std::uint64_t computedVersion_ = ~0ull; ///< The state version computedValues_ belong to.
+	mutable std::vector<std::string> computing_;    ///< Computed values being evaluated (finds circles).
+	NodeLookup computedLookup_;                     ///< computed(), for expressions.
+	NodeLookup nodeLookup_;                         ///< node(), for expressions.
+};
+
+} // namespace affresco::format
