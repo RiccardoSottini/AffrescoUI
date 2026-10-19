@@ -1139,13 +1139,20 @@ bool looksLikePath(std::string_view text) {
 	});
 }
 
+/// @brief The compiled expressions, by text: the main thread's, because expressions repeat on every update.
+/// @return The cache.
+std::unordered_map<std::string, json>& compileCache() {
+	static std::unordered_map<std::string, json> cache;
+	return cache;
+}
+
 } // namespace
 
 const json& compile(std::string_view text, const std::string& where) {
-	static std::unordered_map<std::string, json> cache; // the main thread's; expressions repeat on every update
+	auto& cache = compileCache();
 	const std::string key(trim(text));
 	if(const auto it = cache.find(key); it != cache.end()) return it->second;
-	if(cache.size() > 20000) cache.clear();
+	if(cache.size() >= compileCacheLimit) cache.clear();
 
 	json compiled;
 	try {
@@ -1159,6 +1166,8 @@ const json& compile(std::string_view text, const std::string& where) {
 	}
 	return cache.emplace(key, std::move(compiled)).first->second;
 }
+
+void clearCompileCache() noexcept { compileCache().clear(); }
 
 json evaluate(const json& value, const Context& context, const std::string& where) {
 	if(value.is_string()) return evaluateString(value.get_ref<const std::string&>(), context, where);

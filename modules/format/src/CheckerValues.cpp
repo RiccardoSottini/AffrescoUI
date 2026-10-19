@@ -214,7 +214,7 @@ Shape Checker::shapeOfExpression(std::string_view text, const Scope& scope, cons
 		report(place, problemOf(error, place));
 		return anything;
 	}
-	// The tree lives in the compile cache, which a later compile may clear (past 20,000 expressions). A "$path"
+	// The tree lives in the compile cache, which a later compile may clear (past compileCacheLimit expressions). A "$path"
 	// compiles its index expressions, but it is always a whole tree and its text is copied first. Reading a computed
 	// value compiles that value's expression while this tree is still read, so such a tree is copied
 	if(text.find("computed") != std::string_view::npos) {

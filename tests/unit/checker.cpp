@@ -3,15 +3,17 @@
 /// through, the revision policy in format::Rules, and the shipped templates, which must have no findings.
 
 #include "Checker.hpp"
+#include "Expression.hpp"
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
 #include <doctest/doctest.h>
 
-#include <algorithm>
-#include <chrono>
+#include <cstddef>
 #include <fstream>
+#include <functional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -323,17 +325,19 @@ TEST_CASE("checker: computed values that read each other are read safely") {
 	            "root": {"text": "{{computed.a}}"})",
 	           {}}});
 
-	// Reading a computed value compiles its expression while the reader's is still being walked. Past 20,000
-	// expressions the cache is cleared: over 40,000 new ones clear it twice, and at least once inside a chain (the
-	// address sanitizer finds a reader's expression read after it was freed)
+	// Reading a computed value compiles its expression while the reader's is still being walked. A full compile cache
+	// is cleared: filled to nine short of its limit, it is cleared at the tenth compile, inside a chain of twenty (the
+	// address sanitizer finds a reader's expression read after it was freed). Filling the cache directly keeps the
+	// document small: a computed value is found by name in a list, so 40,000 of them took minutes under sanitizers
+	affresco::format::clearCompileCache();
+	for(std::size_t i = 0; i + 9 < affresco::format::compileCacheLimit; ++i)
+		(void)affresco::format::compile("fill + " + std::to_string(i), "test");
 	json computed = json::object();
-	for(int chain = 0; chain < 4001; ++chain)
-		for(int link = 0; link < 10; ++link) {
-			const std::string name = "c" + std::to_string(10000 + chain) + "_" + std::to_string(link);
-			const std::string next = "c" + std::to_string(10000 + chain) + "_" + std::to_string(link + 1);
-			computed[name] = link < 9 ? "{{computed." + next + " + 1}}" : "{{" + std::to_string(chain) + "}}";
-		}
-	CHECK(lines({{"version", 1}, {"computed", computed}, {"root", {{"text", "x"}}}}).empty());
+	for(int link = 0; link < 20; ++link) {
+		const std::string next = "c" + std::to_string(link + 1);
+		computed["c" + std::to_string(link)] = link < 19 ? "{{computed." + next + " + 1}}" : "{{0}}";
+	}
+	CHECK(lines({{"version", 1}, {"computed", computed}, {"root", {{"text", "{{computed.c0}}"}}}}).empty());
 }
 
 TEST_CASE("checker: a finding a change moves is not new; one it adds is") {
@@ -393,21 +397,16 @@ TEST_CASE("rules: findings lists one line per finding, with its place") {
 	CHECK(withNative.findings(document, json::object()).size() == 1);
 }
 
-TEST_CASE("checker: checking a template takes well under a frame") {
-	// About 0.05 to 0.25 ms in a release build (SCREEN_FORMAT.md, "The checker"); the bound leaves room for sanitizers
-	// and busy machines. A failure shows the times.
+TEST_CASE("checker: checking a template again gives the same findings") {
+	// Speed is measured by the benchmarks (7.1), not here: a unit test can't hold a time on every build and machine.
+	// A second check reads the compile cache the first one filled, and must find the same
 	for(const char* name : templates) {
+		CAPTURE(std::string(name));
 		const json document = screenTemplate(name);
-		std::vector<double> times;
-		for(int i = 0; i < 21; ++i) {
-			const auto start = std::chrono::steady_clock::now();
-			(void)affresco::format::check(document, document["state"]);
-			times.push_back(
-			    std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count());
-		}
-		std::ranges::sort(times);
-		const double median = times[times.size() / 2];
-		INFO(name << ": median " << median << " us");
-		CHECK(median < 16667.0); // a frame at 60 Hz
+		const auto first = affresco::format::check(document, document["state"]);
+		const auto again = affresco::format::check(document, document["state"]);
+		REQUIRE(first);
+		REQUIRE(again);
+		CHECK(*first == *again);
 	}
 }

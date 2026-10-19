@@ -13,6 +13,7 @@
 
 #include "affresco/core/Json.hpp"
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
@@ -76,12 +77,19 @@ struct Context {
 /// @throws DocumentError If a path, expression or operator is invalid.
 [[nodiscard]] json evaluate(const json& value, const Context& context, const std::string& where);
 
+/// How many compiled expressions the cache holds: one more compile clears it, so a tree compile() returned is valid
+/// only until the next compile.
+inline constexpr std::size_t compileCacheLimit = 20000;
+
 /// @brief Compiles the inside of a `{{ }}` into an operator tree (cached: each text is parsed once).
 /// @param text E.g. "a > 3 ? 'big' : 'small'".
 /// @param where Its place in the document, for errors.
-/// @return The tree; evaluate() runs it.
+/// @return The tree; evaluate() runs it. It lives in the cache until the cache is cleared (compileCacheLimit).
 /// @throws DocumentError If it isn't a valid expression.
 [[nodiscard]] const json& compile(std::string_view text, const std::string& where);
+
+/// @brief Empties the compile cache, so that tests know how full it is (the cache clears itself when full).
+void clearCompileCache() noexcept;
 
 /// @brief The `{{ }}` placeholders of a string, found as evaluate() finds them.
 struct Placeholders {

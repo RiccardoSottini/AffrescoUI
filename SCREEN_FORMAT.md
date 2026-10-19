@@ -405,8 +405,8 @@ AffrescoUI screen: root.children[3].with.bye: unknown parameter 'bye' of compone
 - **For a revision,** findings it brings in reject it, with the messages; findings already there don't block it.
   Places move when nodes are added, so a finding counts as new only if its problem occurs more often than before.
 
-A check visits each part of the document once (a repeat is not expanded), so it takes well under a frame: 0.1 to
-0.4 ms for the templates. Past a million values visited, a screen is not checked.
+A check visits each part of the document once (a repeat is not expanded), so it takes well under a frame: 0.05 to
+0.2 ms for the templates (median, Release build, Apple M4 Pro). Past a million values visited, a screen is not checked.
 
 ## From code
 
