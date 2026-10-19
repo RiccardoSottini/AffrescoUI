@@ -111,7 +111,68 @@ bool reaches(const json& op, const std::vector<std::string>& target) {
 	});
 }
 
+/// @brief Tells whether a revision's patch can change the live state: a path or a "from" at "/state" or inside it, or
+/// the whole document ("").
+/// @param patch The patch, as stored.
+/// @return true if it can.
+bool touchesState(const json& patch) {
+	return std::ranges::any_of(patch, [](const json& op) {
+		return std::ranges::any_of(std::array{"path", "from"}, [&](const char* key) {
+			const auto at = op.find(key);
+			if(at == op.end() || !at->is_string()) return false;
+			const std::string& path = at->get_ref<const std::string&>();
+			return path.empty() || path == "/state" || path.starts_with("/state/");
+		});
+	});
+}
+
+/// @brief The part of the live state an operation of a delta changes: its path, or the list that holds it, since
+/// adding or removing an item moves the ones after it.
+/// @param state The live state after the delta.
+/// @param path The operation's path, in the live state.
+/// @return The part's path.
+std::string partOf(const json& state, const std::string& path) {
+	const std::string holder = path.substr(0, path.rfind('/'));
+	const json* list = path.empty() ? nullptr : detail::locate(state, holder);
+	return list && list->is_array() ? holder : path;
+}
+
 } // namespace
+
+// Only revisions that reach the live state can change it: what actions change between commits isn't a commit's
+void Repository::recordStateChange(Commit& commit, const json& before, const json& after) {
+	if(!touchesState(commit.patch)) return;
+	const json change = detail::delta(before, after);
+	if(change.empty()) return;
+	commit.stateUndo = json::array();
+	for(json op : detail::delta(after, before)) {
+		op["path"] = "/state" + op["path"].get<std::string>();
+		commit.stateUndo.push_back(std::move(op));
+	}
+	commit.stateAfter = json::array();
+	for(const json& op : change) {
+		const std::string part = partOf(after, op["path"].get<std::string>());
+		if(std::ranges::any_of(commit.stateAfter, [&](const json& kept) { return kept["path"] == "/state" + part; }))
+			continue;
+		json kept = {{"path", "/state" + part}};
+		if(const json* value = detail::locate(after, part)) kept["value"] = *value;
+		commit.stateAfter.push_back(std::move(kept));
+	}
+}
+
+json Repository::stateRevert(const Commit& target) const {
+	if(target.stateUndo.is_null()) return json::array();
+	for(const json& part : target.stateAfter) {
+		const std::string& path = part["path"].get_ref<const std::string&>();
+		const json* now = detail::locate(committedState(), path.substr(std::string_view("/state").size()));
+		const bool unchanged = part.contains("value") ? now && *now == part["value"] : now == nullptr;
+		if(!unchanged)
+			fail("revert", "conflict: " + path + " changed after " + describe(target) +
+			                   "; restore an earlier revision "
+			                   "instead");
+	}
+	return target.stateUndo;
+}
 
 json Repository::documentOf(const Commit& commit) const {
 	if(commit.id == main_.back()) return mainDocument();

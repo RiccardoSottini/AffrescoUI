@@ -174,8 +174,10 @@ inside those areas apply without asking.
 - **Log:** every commit on `main` with its author, committer, message, time and parents (two for a merged
   proposal). It is available to the screen (`history`) and to agents.
 - **Diff** any two revisions, or a proposal against `main`.
-- **Revert** a revision: a new commit with its inverse, keeping everything after it (`git revert`). If a later
-  commit changed the same parts, it is refused as a conflict. **Undo** reverts the latest revision.
+- **Revert** a revision: a new commit with its inverse, keeping everything after it (`git revert`). It undoes what the
+  commit changed in the document and, in the run that made it, in the live state (the live state starts again with
+  every run, so after a restart only the document is reverted). If a later commit, or an action, changed the same
+  parts, it is refused as a conflict. **Undo** reverts the latest revision.
 - **Restore** a revision: a new commit that makes the whole screen equal to it again (`git restore --source`).
 - Reverts and restores made by agents follow the same permissions as any other change.
 - **Blame** a node or a value (`git blame`): the commit on `main` that last changed it, with its author, committer

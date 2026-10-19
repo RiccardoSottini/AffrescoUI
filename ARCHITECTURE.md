@@ -188,9 +188,11 @@ renderer (`detail::Renderer`) are internal interfaces, and a window built withou
 reads one `Clock`; the tests use a headless window and a manual clock (`modules/render/src/Headless.hpp`, internal
 for now).
 
-**Coming in wave 2 (not there yet):**
-- **Expressions on a VM (7.5),** history in proportion to its patches (4.8a), and text shaping with HarfBuzz and
-  FreeType (2.3b).
+Expressions are lowered once into typed nodes and run on small values that read the state in place (7.5,
+`modules/format/README.md`). A history keeps each commit as a delta from its parent, with a snapshot every 64
+commits, and packs its files on disk (4.8a, `modules/vcs/README.md`).
+
+**Coming in wave 2 (not there yet):** text shaping with HarfBuzz and FreeType (2.3b).
 
 ## The build
 

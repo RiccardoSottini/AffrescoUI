@@ -8,7 +8,8 @@
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
               and in short conversations between the agent and the reviewer (lines starting with '>').
 
-Generated rather than checked in, so the seeds follow the templates and the docs as they change.
+Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
+a bug are checked in, in regressions/<target>/, and added as they are.
 Usage: tests/fuzz/corpus.py [--out build/fuzz-corpus]  ->  <out>/<target>/ and <out>/<target>.dict
 """
 
@@ -206,6 +207,11 @@ def write(out, target, seeds, words):
     directory.mkdir(parents=True)
     for index, seed in enumerate(seeds):
         (directory / f"seed-{index:04}").write_text(seed, encoding="utf-8")
+    # Inputs that found a bug, kept as they were (regressions/<target>/), so the fuzzer starts from them too
+    regressions = sorted((ROOT / "tests" / "fuzz" / "regressions" / target).glob("*"))
+    for found in regressions:
+        shutil.copyfile(found, directory / f"regression-{found.name}")
+    seeds = [*seeds, *regressions]
     entries = [dictionary_entry(word) for word in dict.fromkeys(words)]
     (out / f"{target}.dict").write_text("\n".join(entries) + "\n", encoding="utf-8")
     print(f"{target}: {len(seeds)} seeds, {len(entries)} dictionary words")

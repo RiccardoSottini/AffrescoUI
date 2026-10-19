@@ -338,6 +338,7 @@ const Repository::Commit& Repository::land(Commit commit, json document, json st
 	endPreview();
 	commit.parents.insert(commit.parents.begin(), main_.back());
 	commit.number = mainHead().number + 1;
+	recordStateChange(commit, state_, state);
 	const Commit& stored = store(std::move(commit), document, &document_);
 
 	main_.push_back(stored.id);
@@ -514,11 +515,20 @@ json Repository::revertRevision(const json& revision, std::string_view author) c
 	if(std::ranges::find(main_, target.id) == main_.end()) fail("revert", describe(target) + " is not on main");
 	if(target.parents.empty()) fail("revert", "revision 0 is the screen as loaded: there is nothing to revert");
 
-	const json& head = mainDocument();
 	const json then = documentOf(target);
 	json patch = json::diff(then, documentOf(objects_.at(target.parents.front())));
-	if(patch.empty()) fail("revert", "nothing to revert: " + describe(target) + " only changed the live state");
+	checkDocumentRevert(target, then, patch);
+	const json undo = stateRevert(target); // the live state too, when the commit changed it in this run
+	if(patch.empty() && undo.empty())
+		fail("revert", "nothing to revert: " + describe(target) + " changed neither the document nor, in this run, the "
+		                                                      "live state");
+	patch.insert(patch.end(), undo.begin(), undo.end());
+	return {
+	    {"author", std::string(author)}, {"message", "Revert \"" + target.message + "\""}, {"patch", std::move(patch)}};
+}
 
+void Repository::checkDocumentRevert(const Commit& target, const json& then, const json& patch) const {
+	const json& head = mainDocument();
 	auto same = [&](const std::string& pointer) {
 		const json *now = detail::locate(head, pointer), *before = detail::locate(then, pointer);
 		return now && before ? *now == *before : now == before;
@@ -540,8 +550,6 @@ json Repository::revertRevision(const json& revision, std::string_view author) c
 			fail("revert", "conflict: " + (checked.empty() ? std::string("the screen") : checked) + " changed after " +
 			                   describe(target) + "; restore an earlier revision instead");
 	}
-	return {
-	    {"author", std::string(author)}, {"message", "Revert \"" + target.message + "\""}, {"patch", std::move(patch)}};
 }
 
 json Repository::diff(const json& from, const json& to) const {

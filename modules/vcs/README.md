@@ -3,7 +3,8 @@
 `vcs` keeps a JSON document and its live state under version control, like Git, with approvals like Claude Code's
 (`VERSION_CONTROL.md`). `Repository` implements `core`'s `VersionControl`: content-addressed commits (SHA-256), an
 append-only `main`, proposals as branches merged with merge commits, revert, restore, diff and log, change sets, and
-the permission rules (`allow`, `ask`, `deny`), modes and "don't ask again" grants. It knows nothing about what the
+the permission rules (`allow`, `ask`, `deny`), modes and "don't ask again" grants, and blame. A commit keeps a delta
+from its parent's document, with a whole document every 64th commit, so the history grows with the changes. It knows nothing about what the
 document describes: the `DocumentRules` it is given say what is valid, where `#id` nodes are, and who may change
 what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (uses `core` and nlohmann/json).
 
@@ -11,7 +12,7 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 
 | Header | Offers |
 |---|---|
-| `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `maxOpenProposals` (16 per channel) |
+| `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
 `core/DocumentRules.hpp`.
@@ -21,7 +22,13 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **`main` only grows.** Restore, revert and undo are new commits, so the history is an audit log that can't be
   rewritten.
 - **A commit id stands for exactly one history:** the SHA-256 covers the document, the parents, the author and
-  committer, the time and the patch.
+  committer, the time and the patch. Not the delta, which says how the commit is kept: a document rebuilt from
+  deltas is checked against the commit's tree.
+- **A delta rebuilds its document exactly** (`detail::delta`, `Deltas.hpp`): keys in order, 1 and 1.0 apart, which
+  nlohmann's `json::diff` doesn't. main's head is the working copy, so commits never rebuild; diffs, restores, reverts
+  and loading do, from at most 63 deltas.
+- **A revert undoes what the commit changed,** in the document and, in the run that made it, in the live state; it is
+  refused if a later commit or an action changed those parts since.
 - **Every change is atomic:** a revision applies whole, or nothing changes (`RevisionStatus::Rejected` says why).
 - **History is RFC 6902.** Compact edits (`set`, `add`, `remove`, `move`) are normalised to JSON Patch before they
   are stored.
@@ -31,9 +38,11 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   since, the approval is refused.
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
-- **On disk,** objects are verified against their hashes when they are loaded, each distinct document is stored once,
-  a file larger than 64 MiB is refused, and one program at a time writes a history folder (a lock the system releases
-  if the program dies). In memory, every commit still holds a copy of the document.
+- **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every
+  256 loose objects go into a pack named by its SHA-256, which the refs name before the loose files are deleted.
+  Objects and packs are verified against their hashes when they are loaded, a file larger than 64 MiB is refused,
+  and one program at a time writes a history folder (a lock the system releases if the program dies). Version 1
+  histories still load.
 
 ## Threads
 
@@ -56,7 +65,6 @@ the main thread. File writes happen inside the change that causes them.
 - **Any document format:** implement `DocumentRules` (`core`) and give it to the `Repository`.
 - **Observers:** `setObserver` (one `VersionObserver`: the renderer), and the signals `onCommit`, `onDecision` and
   `onReviewChanged` for everyone else.
-- **Coming:** history in proportion to the patches (no document copy per commit) and blame (from 4.8a).
 
 ## Files
 
@@ -65,7 +73,9 @@ include/affresco/vcs/Repository.hpp   the Repository class
 src/
   Repository.cpp            commits, main, proposals, review, permissions in use, change sets
   RepositoryHistory.cpp     the history on disk: writing and loading objects and refs
-  HistoryStore.hpp / .cpp   the history folder: the lock, atomic writes, bounded reads
+  RepositoryDocuments.cpp   rebuilding a commit's document from a snapshot and deltas; blame; the live state's undo
+  Deltas.hpp / .cpp         exact deltas between documents, applying them safely, JSON Pointer segments
+  HistoryStore.hpp / .cpp   the history folder: the lock, atomic writes, bounded reads, packs
   Permissions.hpp / .cpp    how a rule sees a change: by its effect on the paths it covers
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
   Sha256.hpp / .cpp         SHA-256

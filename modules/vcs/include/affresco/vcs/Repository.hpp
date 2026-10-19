@@ -131,6 +131,12 @@ private:
 		                            ///< or when loaded from a history written before deltas (then it has a snapshot).
 		std::shared_ptr<const json> snapshot; ///< Its whole document, if it keeps one (shared by equal documents).
 		int sinceSnapshot = 0;                ///< Commits back to the nearest snapshot along first parents.
+		/// What undoes its change to the live state: JSON Patch on "/state". Null if it changed none, or if it was
+		/// read from disk (the live state starts again with every run, so only the document is reverted then).
+		json stateUndo;
+		/// The parts of the live state it changed, as it left them: `[{"path", "value"?}]`, no value for a part it
+		/// removed. A revert needs them as they are, as it needs the parts of the document.
+		json stateAfter;
 	};
 
 	/// @brief An open proposal: a branch from `base` to `head`.
@@ -181,6 +187,23 @@ private:
 	/// @param commit A commit with a parent.
 	/// @return Its delta (worked out from the documents for a commit loaded from a history without deltas).
 	[[nodiscard]] json deltaOf(const Commit& commit) const;
+	/// @brief Records how a commit changed the live state, so that a revert can undo it (Commit::stateUndo), when its
+	/// patch reaches the live state.
+	/// @param commit The commit, about to be stored.
+	/// @param before The live state before it.
+	/// @param after The live state after it.
+	static void recordStateChange(Commit& commit, const json& before, const json& after);
+	/// @brief What undoes a commit's change to the live state, if the parts it changed are still as it left them.
+	/// @param target The commit.
+	/// @return JSON Patch on "/state" (empty if it changed none, or none this run).
+	/// @throws DocumentError If a part changed since (a conflict).
+	[[nodiscard]] json stateRevert(const Commit& target) const;
+	/// @brief Checks that what a revert undoes in the document is still as the commit left it.
+	/// @param target The commit.
+	/// @param then Its document.
+	/// @param patch The revert's document operations.
+	/// @throws DocumentError If a part changed since (a conflict).
+	void checkDocumentRevert(const Commit& target, const json& then, const json& patch) const;
 	/// @brief Describes a commit.
 	/// @param commit The commit.
 	/// @return Its public description.

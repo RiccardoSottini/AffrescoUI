@@ -65,7 +65,9 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -minimize_crash=1 -runs=10000 cras
 ```
 
 A failing input is a bug in the library, not in the target. Fix it, and add the input (or a readable version of it)
-as a regression test in `tests/unit/`, as the tests marked "Found by fuzzing" there do. A broken rule prints
+as a regression test in `tests/unit/`, as the tests marked "Found by fuzzing" there do. Keep the input itself in
+`regressions/<target>/`, under a name that says what it found: `corpus.py` adds those files to the target's seeds, so
+every run tries them again. A broken rule prints
 `affrescoui fuzz: broken rule: ...` before stopping.
 
 ## CI

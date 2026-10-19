@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <random>
 #include <string>
 #include <vector>
@@ -510,4 +511,54 @@ TEST_CASE("vcs: a peer asks who changed something with a blame message") {
 	CHECK(channel.sent.back()["error"].get<std::string>().contains("blame.target"));
 	channel.receive(R"({"type": "blame", "target": "#nope", "id": 9})");
 	CHECK(channel.sent.back()["error"].get<std::string>().contains("no node with id 'nope'"));
+}
+
+// Found by the revision fuzzer (tests/fuzz/regressions): a revert undid a commit's change to the document but not
+// its change to the live state, so `{"set": {"#title/text": "Done", "/state/count": 5}}` reverted kept count at 5
+TEST_CASE("vcs: reverting a commit undoes what it changed in the live state too") {
+	const affresco::format::Rules rules;
+	Repository repository(rules, permissionsScreen());
+	const json document = repository.document(), state = repository.state();
+
+	SUBCASE("a commit that changes the document and the live state") {
+		commit(repository, {{"author", "studio"}, {"set", {{"#title/text", "Done"}, {"/state/count", 5}}}});
+		commit(repository, repository.revertRevision("HEAD", "studio"));
+		CHECK(repository.document() == document);
+		CHECK(repository.state() == state);
+	}
+	SUBCASE("a commit that changes only the live state, which couldn't be reverted before") {
+		commit(repository, {{"author", "studio"}, {"set", {{"/state/count", 5}}}, {"add", {{"/state/list", {1, 2}}}}});
+		commit(repository, repository.revertRevision("HEAD", "studio"));
+		CHECK(repository.state() == state);
+		commit(repository, repository.revertRevision("HEAD", "studio")); // and a revert reverts too
+		CHECK(repository.state()["count"] == 5);
+	}
+	SUBCASE("the live state changed since, by an action: a conflict, as for the document") {
+		commit(repository, {{"author", "studio"}, {"set", {{"/state/count", 5}}}});
+		repository.state()["count"] = 6;
+		CHECK_THROWS_WITH_AS((void)repository.revertRevision("HEAD", "studio"),
+		                     doctest::Contains("conflict: /state/count changed after revision 1"),
+		                     affresco::DocumentError);
+	}
+	SUBCASE("a commit that changes nothing has nothing to revert") {
+		commit(repository, {{"author", "studio"}, {"set", {{"/state/count", 0}}}});
+		CHECK_THROWS_WITH_AS((void)repository.revertRevision("HEAD", "studio"), doctest::Contains("nothing to revert"),
+		                     affresco::DocumentError);
+	}
+}
+
+TEST_CASE("vcs: the revision fuzzer's input that found it: a value copied in the state and moved into the document") {
+	std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/kanban.screen.json");
+	REQUIRE(file);
+	const json kanban = json::parse(file);
+	const affresco::format::Rules rules;
+	Repository repository(rules, kanban);
+	const json document = repository.document(), state = repository.state();
+	// The input as the fuzzer wrote it: a "path" given twice, of which JSON keeps the second
+	commit(repository, json::parse(R"({"author":"studio","patch":[{"op":"add","path":"/state/extra","value":[1,2]},)"
+	                               R"({"op":"copy","from":"/state/extra","path":"/state/copy"},{"op":"move",)"
+	                               R"("from":"/state/copy","path":"/statowe","path":"#topBar/chia"}]})"));
+	commit(repository, repository.revertRevision("HEAD", "studio"));
+	CHECK(repository.document() == document);
+	CHECK(repository.state() == state);
 }
