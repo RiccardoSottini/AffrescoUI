@@ -194,13 +194,15 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **There is no total work budget per event, so nested loops multiply.** Each limit above holds on its own:
   a `while` of 10,000 iterations inside a `forEach` over a list of 10,000 items runs 100 million steps, and deeper
   nesting multiplies again. `after` and `debounce` steps schedule more work for later, and nothing caps how many are
-  waiting. A revision that changes actions can cause this, unless an `ask` rule sends changes to `/actions` to
-  review (as the templates do).
+  waiting. A revision that adds steps can cause this. Steps live in `/actions` and also inline: in event handlers on
+  nodes, components and templates, and in `onLoad`, `watch` and `keys`. An `ask` rule on `/actions` alone doesn't
+  cover them; only allow agents the parts of a screen that hold no steps (the templates allow agents nothing, so
+  every change of theirs is reviewed).
 - **A revision can change when existing control steps run.** It can't add or alter a control step, but it can move
   one unchanged, or run the action that holds it from a new trigger (a timer, a load event, a new button), and it can
   change the state its expressions read. A screen that has its own `accept`, `restore`, `call` or `send` steps should
-  send changes to `/actions` and to the nodes that trigger them to review, and deny agents `/state` paths those steps
-  read.
+  send to review every change to the places that hold or trigger steps (see the bullet above), and deny agents the
+  `/state` paths those steps read.
 - **A revision can point a font at any file.** `fonts.<name>.file` can be changed by a revision, and the app then
   reads that file and parses it as a font; the error a peer gets back says whether it could be read. The font parser
   (stb_truetype) is not hardened against malformed files, and every new file and size bakes and keeps another font
