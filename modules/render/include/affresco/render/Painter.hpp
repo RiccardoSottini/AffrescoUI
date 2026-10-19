@@ -34,7 +34,7 @@ struct CornerRadii {
 
 /// @brief A soft shadow under a panel, like CSS box-shadow: the panel's shape, moved and blurred.
 struct Shadow {
-	Vec2 offset;                       ///< How far it is moved from the panel (positive: right and down).
+	Vec2 offset{};                     ///< How far it is moved from the panel (positive: right and down).
 	float blur = 0.0f;                 ///< How soft its edge is, like CSS: the Gaussian's standard deviation is half.
 	Color color = colors::transparent; ///< Its colour; transparent (the default) means no shadow.
 
