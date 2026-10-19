@@ -3,7 +3,8 @@
 /// expression or operator into a screen, and the screen evaluates it on every update.
 ///
 /// The input is a JSON value to evaluate (a `{{...}}` template, a `$` operator, or anything holding them) or, when it
-/// isn't JSON, the inside of a `{{ }}`. Evaluating either gives a value or throws DocumentError, as the runtime expects.
+/// isn't JSON, the inside of a `{{ }}`. Evaluating either gives a value or throws DocumentError, as the runtime
+/// expects.
 
 #include "Expression.hpp"
 #include "Fuzz.hpp"
@@ -24,8 +25,9 @@ void evaluate(const json& value) {
 	static const json state = affresco::fuzz::kanbanTemplate().at("state");
 	static const json window = {{"width", 1280}, {"height", 800}};
 	static const json revision = 3, event = {{"x", 10}, {"y", 20}, {"key", "Enter"}, {"text", "a"}};
-	static const json globals = {{"mode", "default"}, {"proposals", json::array()}, {"history", json::array()},
-	                             {"theme", {{"name", "light"}}}, {"screen", "main"}, {"preview", nullptr}};
+	static const json globals = {{"mode", "default"},        {"proposals", json::array()},
+	                             {"history", json::array()}, {"theme", {{"name", "light"}}},
+	                             {"screen", "main"},         {"preview", nullptr}};
 	static const affresco::format::Scope locals{nullptr, nullptr, {{"card", {{"title", "x"}, {"points", 3}}}}};
 	static const affresco::format::NodeLookup nodes = [](std::string_view id) {
 		return id == "board" ? json{{"x", 0}, {"y", 0}, {"width", 800}, {"height", 600}, {"visible", true}} : json();

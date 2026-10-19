@@ -46,11 +46,11 @@ public:
 /// @brief The Kanban template under version control, and its two peers. Members are destroyed in reverse order, so
 /// the sessions go before the channels and the repository they use.
 struct Peers {
-	affresco::format::Rules rules;                                                ///< The screen format.
+	affresco::format::Rules rules;                                               ///< The screen format.
 	affresco::vcs::Repository versions{rules, affresco::fuzz::kanbanTemplate()}; ///< The screen.
-	CheckedChannel agentChannel, studioChannel;                                    ///< What each peer is sent.
-	affresco::channel::Session agent{agentChannel, versions, "agent"};             ///< May propose; asks for /actions.
-	affresco::channel::Session studio{studioChannel, versions, "studio"};          ///< Changes anything and reviews.
+	CheckedChannel agentChannel, studioChannel;                                  ///< What each peer is sent.
+	affresco::channel::Session agent{agentChannel, versions, "agent"};           ///< May propose; asks for /actions.
+	affresco::channel::Session studio{studioChannel, versions, "studio"};        ///< Changes anything and reviews.
 };
 
 } // namespace
@@ -73,10 +73,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		const std::size_t end = rest.find('\n');
 		std::string_view line = rest.substr(0, end);
 		rest = end == std::string_view::npos ? std::string_view() : rest.substr(end + 1);
-		if(line.starts_with('>'))
-			peers.studioChannel.receive(std::string(line.substr(1)));
-		else
-			peers.agentChannel.receive(std::string(line));
+		if(line.starts_with('>')) peers.studioChannel.receive(std::string(line.substr(1)));
+		else peers.agentChannel.receive(std::string(line));
 	}
 	return 0;
 }
