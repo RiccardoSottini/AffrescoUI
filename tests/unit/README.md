@@ -21,7 +21,8 @@ on a desktop, or under Xvfb on Linux, as in CI.
 | File | Tests |
 |---|---|
 | `core.cpp` | `parseUntrusted`: the nesting limit, comments |
-| `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets |
+| `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets, merges that no longer apply |
+| `history.cpp` | `vcs::Repository`'s history on disk: save and load, a changed screen file, damaged files, the lock |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
 | `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review, the log, `render`; `SocketChannel` over a socket pair: lines, the length limit (POSIX); `ProcessChannel` with small shell commands: output lines, stdin, closing ends the child's programs, no inherited pipes |
 | `checker.cpp` | `format` checker: tables of screens and their findings, the revision policy, the templates (none) |
@@ -47,7 +48,7 @@ on a desktop, or under Xvfb on Linux, as in CI.
   `modules/format/src` is on the include path for `Expression.hpp`. Don't make a header public for a test.
 - Tests don't need a window or a network, so they run anywhere, CI included. Only `timers.cpp`, `review.cpp` and
   `shapes.cpp` need a window. A test that needs files makes them in a temporary folder of its own and removes it
-  (`sockets.cpp`, `screen.cpp`); `text.cpp` reads the fonts in `examples/assets/fonts`, and `checker.cpp` the
+  (`history.cpp`, `sockets.cpp`, `screen.cpp`); `text.cpp` reads the fonts in `examples/assets/fonts`, and `checker.cpp` the
   templates in `examples/assets/screens`, which must have no findings (both from the checkout). The `ProcessChannel`
   tests start small programs through the system shell (`/bin/sh`, or `cmd.exe` on Windows).
 - Don't change library code to make a test pass. If a test finds a bug, keep it, mark it `* doctest::skip(true)`

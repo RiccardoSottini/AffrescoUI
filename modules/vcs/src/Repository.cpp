@@ -1,6 +1,12 @@
+/// @file
+/// @brief vcs::Repository: commits, main, proposals, review and change sets. Keeping them on disk is in
+/// RepositoryHistory.cpp.
+
 #include "affresco/vcs/Repository.hpp"
 
+#include "HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
 #include "Permissions.hpp"
+#include "Reasons.hpp"
 #include "Sha256.hpp"
 
 #include <algorithm>
@@ -156,15 +162,20 @@ std::string Repository::describe(const Commit& c) {
 }
 
 // The id covers everything that makes the commit what it is, the parents included, so it stands for its history
-const Repository::Commit& Repository::store(Commit commit) {
-	std::string object = "tree " + detail::sha256(commit.document.dump()) + "\n";
+std::string Repository::idOf(const Commit& commit) { return idOf(commit, detail::sha256(commit.document.dump())); }
+
+std::string Repository::idOf(const Commit& commit, const std::string& tree) {
+	std::string object = "tree " + tree + "\n";
 	for(const std::string& parent : commit.parents) object += "parent " + parent + "\n";
 	object += "author " + commit.author + "\ncommitter " + commit.committer + "\ntime " + commit.time + "\npatch " +
 	          detail::sha256(commit.patch.dump()) + "\n";
 	if(commit.proposal) object += "proposal " + std::to_string(commit.proposal) + "\n";
 	object += "\n" + commit.message;
+	return detail::sha256(object);
+}
 
-	commit.id = detail::sha256(object);
+const Repository::Commit& Repository::store(Commit commit) {
+	commit.id = idOf(commit);
 	const std::string id = commit.id;
 	return objects_.try_emplace(id, std::move(commit)).first->second;
 }
@@ -290,10 +301,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		try {
 			applyOperation(after, std::move(op), where);
 		} catch(const json::exception& error) {
-			std::string why = error.what();
-			if(const std::size_t bracket = why.find("] "); why.starts_with("[json.exception") && bracket != std::string::npos)
-				why.erase(0, bracket + 2);
-			fail(where, why);
+			fail(where, detail::reasonOf(error));
 		}
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
@@ -364,7 +372,10 @@ const Repository::Commit& Repository::land(Commit commit, json state) {
 		documentChanged();
 		throw;
 	}
-	if(!importing_) onCommit(info(stored));
+	if(!importing_) {
+		saveHistory(); // before anyone hears of it
+		onCommit(info(stored));
+	}
 	return stored;
 }
 
@@ -425,6 +436,7 @@ RevisionResult Repository::submit(const json& revision) {
 			extend(proposal, revision);
 			++nextProposal_;
 			proposals_.push_back(std::move(proposal));
+			saveHistory();
 			proposalsChanged();
 			return {RevisionStatus::Proposed, number, proposals_.back().head, proposals_.back().id, {}};
 		}
@@ -482,11 +494,16 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 	proposal.commits = commits.size();
 	proposal.patch = std::move(patch);
 	proposal.reason = verdict.kind == Verdict::Kind::Ask ? verdict.reason : "proposals are always reviewed";
+	proposal.remember = rememberedRules(proposal.author, touches, verdict.askedByRule);
 	proposal.touches = std::move(touches);
-	proposal.remember.clear();
-	if(!verdict.askedByRule && !proposal.touches.empty() && std::ranges::all_of(proposal.touches, detail::narrow))
-		for(const std::string& area : proposal.touches)
-			proposal.remember.push_back(detail::channelOf(proposal.author) + "(" + area + ")");
+}
+
+std::vector<std::string> Repository::rememberedRules(const std::string& author, const std::vector<std::string>& touches,
+                                                     bool askedByRule) {
+	std::vector<std::string> rules;
+	if(!askedByRule && !touches.empty() && std::ranges::all_of(touches, detail::narrow))
+		for(const std::string& area : touches) rules.push_back(detail::channelOf(author) + "(" + area + ")");
+	return rules;
 }
 
 RevisionResult Repository::push(const json& revision, const std::string& author) {
@@ -501,6 +518,7 @@ RevisionResult Repository::push(const json& revision, const std::string& author)
 	Proposal updated = *proposal;
 	extend(updated, revision);
 	*proposal = std::move(updated);
+	saveHistory();
 	if(previewing_ == id) endPreview(); // what was shown is out of date
 	proposalsChanged();
 	return {RevisionStatus::Proposed, mainHead().number, proposal->head, id, {}};
@@ -605,8 +623,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 			try {
 				return prepare(taken.patch, mainHead().document, committedState());
 			} catch(const DocumentError& failure) {
-				std::string why = failure.what();
-				if(why.starts_with("AffrescoUI screen: ")) why.erase(0, 15);
+				const std::string why = detail::reasonOf(failure);
 				fail("proposal #" + std::to_string(id),
 				     "no longer applies on " + describe(mainHead()) + " (" + why + "): ask its author for a new one");
 			}
@@ -635,6 +652,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 	} catch(const DocumentError& failure) {
 		error = failure.what();
 	}
+	saveHistory(); // the proposal is closed, merged or not, and grants may have been added
 	onDecision({id, error, mainHead().number, merged});
 	return error;
 }
@@ -644,6 +662,7 @@ bool Repository::reject(int id, std::string_view reason) {
 
 	if(previewing_ == id) endPreview();
 	std::erase_if(proposals_, [id](const Proposal& p) { return p.id == id; });
+	saveHistory();
 	proposalsChanged();
 	onDecision({id,
 	            "rejected by the reviewer" + (reason.empty() ? std::string() : ": " + std::string(reason)),
@@ -690,6 +709,14 @@ bool Repository::mayReview(std::string_view author) const {
 }
 
 void Repository::setMode(Mode mode) {
+	if(keptMode_ != mode) {
+		keptMode_ = mode;
+		saveHistory();
+	}
+	setModeForThisRun(mode);
+}
+
+void Repository::setModeForThisRun(Mode mode) {
 	if(mode_ == mode) return;
 	mode_ = mode;
 	onReviewChanged();
@@ -697,6 +724,7 @@ void Repository::setMode(Mode mode) {
 
 bool Repository::revokeGrant(std::string_view rule) {
 	if(std::erase_if(grants_, [&](const Grant& g) { return g.rule == rule; }) == 0) return false;
+	saveHistory();
 	onReviewChanged();
 	return true;
 }
@@ -769,8 +797,14 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 		}
 	}
 	importing_ = false;
+	if(!hasImported(changes)) imported_.push_back(detail::sha256(changes.dump()));
+	saveHistory();
 	for(std::size_t i = oldMain; i < main_.size(); ++i) onCommit(info(objects_.at(main_[i])));
 	return std::nullopt;
+}
+
+bool Repository::hasImported(const json& changes) const {
+	return std::ranges::find(imported_, detail::sha256(changes.dump())) != imported_.end();
 }
 
 } // namespace affresco::vcs

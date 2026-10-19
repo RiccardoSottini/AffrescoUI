@@ -124,7 +124,8 @@ affrescoui_module(format
 	modules/format/src/CheckerValues.cpp)
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
 
-affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
+affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/RepositoryHistory.cpp
+	modules/vcs/src/HistoryStore.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
 
 affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
@@ -181,10 +182,12 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp tests/unit/screen.cpp
-		tests/unit/text.cpp tests/unit/painter.cpp tests/unit/checker.cpp tests/unit/png.cpp modules/screen/src/Png.cpp)
-	# Expression.hpp, Utf8.hpp and Png.hpp stay private
-	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src modules/screen/src)
+		tests/unit/history.cpp tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp
+		tests/unit/screen.cpp tests/unit/text.cpp tests/unit/painter.cpp tests/unit/checker.cpp tests/unit/png.cpp
+		modules/screen/src/Png.cpp)
+	# Expression.hpp, Utf8.hpp, Sha256.hpp and Png.hpp stay private
+	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src modules/vcs/src
+		modules/screen/src)
 	target_compile_definitions(affrescoui_unit_tests PRIVATE
 		AFFRESCOUI_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts")
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})

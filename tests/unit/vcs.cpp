@@ -187,3 +187,22 @@ TEST_CASE("vcs: a revision that adds inside a number, a string or a boolean is r
 	REQUIRE(moved.status == RevisionStatus::Applied);
 	CHECK(repository.state() == json{{"list", {{{"count", 0}}, {{"x", 1}}}}});
 }
+
+TEST_CASE("vcs: a proposal that no longer applies is closed with the whole reason") {
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, permissionsScreen());
+
+	const affresco::RevisionResult proposed =
+	    repository.submit({{"author", "agent"}, {"message", "Retitle"}, {"set", {{"#title/text", "Today"}}}});
+	REQUIRE(proposed.status == RevisionStatus::Proposed);
+	REQUIRE(repository.submit({{"author", "studio"}, {"remove", {"#title"}}}).status == RevisionStatus::Applied);
+
+	const auto error = repository.accept(proposed.proposal, {"studio", proposed.commit, false});
+	REQUIRE(error);
+	// The reason keeps its first words (it once lost "AffrescoUI screen: "'s last four letters, from the old name)
+	CHECK(error.value_or("").starts_with("AffrescoUI screen: proposal #1: no longer applies on revision 1 ("));
+	CHECK(error.value_or("").ends_with(
+	    ") (revision.patch[0] (replace #title/text).path: no node with id 'title'): ask its "
+	    "author for a new one"));
+	CHECK(repository.proposals().empty());
+}
