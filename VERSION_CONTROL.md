@@ -223,8 +223,12 @@ kanban.history/
   now. Customisations are never replayed onto a file they weren't made for.
 - **What it doesn't keep.** The live state is data, not history: after a restart it starts from the document's
   `state`, and then the `persist` paths are loaded from the state file. A preview ends when the app quits.
-- **Cost.** On the Kanban template, saving adds about 0.6–1 ms to each change (two synced files), each commit takes
-  about 10 KB on disk (the whole document, as in memory), and loading 200 commits takes about 45 ms.
+- **Cost.** Measured on the Kanban template (macOS, Apple silicon, 100 changes, half of them to the document, half to
+  the live state only):
+  - a change takes about 1.1–1.4 ms with the history in a folder, against 0.23 ms in memory. Of that, about 0.4 ms is
+    the macOS barrier, and an edit of the document writes one more file (the document) than a change to the state;
+  - the folder takes 476 KiB (about 10 KB per new document; a commit alone is a few hundred bytes);
+  - loading its 101 commits takes about 12 ms.
 
 ## Change sets: customisations as plugins
 The commits on `main` after a point can be exported as a **change set**:

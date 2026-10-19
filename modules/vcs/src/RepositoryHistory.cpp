@@ -22,11 +22,11 @@ using detail::HistoryError;
 
 /// @brief What the refs file holds, read and checked.
 struct Repository::Refs {
-	std::string main;                ///< main's head.
-	std::vector<Proposal> proposals; ///< The open proposals, oldest first, without their commits and patch.
-	std::vector<Grant> grants;       ///< "Don't ask again" rules.
-	Mode mode = Mode::Default;       ///< How much reviewers are asked.
-	int nextProposal = 1;            ///< The next proposal's id.
+	std::string main;                  ///< main's head.
+	std::vector<Proposal> proposals;   ///< The open proposals, oldest first, without their commits and patch.
+	std::vector<Grant> grants;         ///< "Don't ask again" rules.
+	Mode mode = Mode::Default;         ///< How much reviewers are asked.
+	int nextProposal = 1;              ///< The next proposal's id.
 	std::vector<std::string> imported; ///< The change sets applied, by id.
 };
 
@@ -391,9 +391,10 @@ void Repository::recheckProposal(Proposal& proposal, const Commit& base) const {
 /* Writing */
 
 json Repository::objectOf(const Commit& commit, const std::string& tree) {
-	return {{"parents", commit.parents}, {"author", commit.author},     {"committer", commit.committer},
-	        {"time", commit.time},       {"proposal", commit.proposal}, {"message", commit.message},
-	        {"patch", commit.patch},     {"tree", tree}};
+	return {{"parents", commit.parents},     {"author", commit.author},
+	        {"committer", commit.committer}, {"time", commit.time},
+	        {"proposal", commit.proposal},   {"message", commit.message},
+	        {"patch", commit.patch},         {"tree", tree}};
 }
 
 void Repository::writeCommit(const Commit& commit) {
@@ -423,9 +424,14 @@ json Repository::refsJson() const {
 		                     {"reason", p.reason}});
 	json grants = json::array();
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
-	return {
-	    {"format", historyFormat}, {"version", 1},           {"main", main_.back()}, {"nextProposal", nextProposal_},
-	    {"mode", toString(keptMode_)}, {"proposals", proposals}, {"grants", grants}, {"imported", imported_}};
+	return {{"format", historyFormat},
+	        {"version", 1},
+	        {"main", main_.back()},
+	        {"nextProposal", nextProposal_},
+	        {"mode", toString(keptMode_)},
+	        {"proposals", proposals},
+	        {"grants", grants},
+	        {"imported", imported_}};
 }
 
 void Repository::saveHistory() noexcept {

@@ -228,7 +228,8 @@ std::filesystem::path HistoryStore::moveAside() {
 	lock_.reset();
 #endif
 	std::filesystem::rename(directory_, aside, error);
-	if(error) throw HistoryError(directory_, "can't be moved aside to " + aside.string() + " (" + error.message() + ")");
+	if(error)
+		throw HistoryError(directory_, "can't be moved aside to " + aside.string() + " (" + error.message() + ")");
 	lock_.reset();
 	return aside;
 }

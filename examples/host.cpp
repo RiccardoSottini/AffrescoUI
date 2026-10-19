@@ -1,14 +1,16 @@
 /// @file
 /// @brief affrescoui_host: shows a screen file and lets other programs change it while it runs.
 //
-//   affrescoui_host [file.screen.json] [--socket DIR] [--mode default|acceptEdits|plan] [--auto-accept]
+//   affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
 //               [--plugin changes.json ...]
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
 // (default /tmp/affrescoui-<uid>):
 //   studio.sock   the user's client (affrescoui_studio): author "studio", which the template lets review changes
 //   agent.sock    an AI agent's MCP server (mcp/affrescoui_mcp.py): author "agent", whose changes wait for review
-// What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits. Default screen:
+// What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
+// The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
+// and a plugin is applied once: the history remembers it. Default screen:
 // the Kanban board template; the other templates are in assets/screens (smart-home, music-player, code-editor,
 // habit-tracker).
 
@@ -25,6 +27,29 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+namespace {
+
+/// @brief Applies the --plugin change sets, skipping those the screen's history already has from an earlier start.
+/// @param screen The screen.
+/// @param plugins The change set files, in order.
+/// @throws std::runtime_error If one can't be read or applied.
+void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plugins) {
+	for(const std::string& plugin : plugins) {
+		std::ifstream in(plugin);
+		std::stringstream text;
+		text << in.rdbuf();
+		std::string error;
+		if(in && screen.hasImported(text.str())) {
+			std::cerr << "plugin already applied: " << plugin << '\n';
+			continue;
+		}
+		if(!in || !screen.importChanges(text.str(), &error)) throw std::runtime_error(plugin + ": " + error);
+		std::cerr << "plugin applied: " << plugin << " (revision " << screen.revision() << ")\n";
+	}
+}
+
+} // namespace
 
 int main(int argc, char** argv) {
 	std::string file = AFFRESCOUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
@@ -58,23 +83,11 @@ int main(int argc, char** argv) {
 		using History = affresco::Screen::History;
 		affresco::Screen screen =
 		    affresco::Screen::fromFile(file, dataDir, firstFrameOnly ? History::InMemory : History::OnDisk);
-		screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
+		screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
 		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 		if(mode) screen.setModeForThisRun(*mode);
 		screen.createWindow(app);
-
-		for(const std::string& plugin : plugins) {
-			std::ifstream in(plugin);
-			std::stringstream text;
-			text << in.rdbuf();
-			std::string error;
-			if(in && screen.hasImported(text.str())) { // the screen's history keeps it from an earlier start
-				std::cerr << "plugin already applied: " << plugin << '\n';
-				continue;
-			}
-			if(!in || !screen.importChanges(text.str(), &error)) throw std::runtime_error(plugin + ": " + error);
-			std::cerr << "plugin applied: " << plugin << " (revision " << screen.revision() << ")\n";
-		}
+		applyPlugins(screen, plugins);
 
 		if(!firstFrameOnly) {
 			createSocketDir(socketDir);
