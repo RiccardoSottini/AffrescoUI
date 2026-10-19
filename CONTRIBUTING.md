@@ -64,10 +64,13 @@ don't meet anything else running on your machine:
 
 ```sh
 export AFFRESCOUI_SOCKET_DIR=out/s                 # also covers the relative channel paths inside screens
-./build/affrescoui_host --socket out/s
-./build/affrescoui_studio --socket out/s
-python3 mcp/affrescoui_mcp.py --socket out/s
+./build/affrescoui_host --socket out/s &
+./build/affrescoui_studio --socket out/s &
+claude mcp add affrescoui -- python3 mcp/affrescoui_mcp.py --socket out/s
 ```
+
+The MCP server talks over stdio, so Claude Code starts it: register it as above and start Claude Code from the
+repository root, so that `out/s` is the same folder. [`mcp/README.md`](mcp/README.md) has the rest of the setup.
 
 ## Check your change
 
