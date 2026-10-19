@@ -77,7 +77,7 @@ with a golden image, pixel for pixel. The golden images aren't in git: the first
 have. So record them on a clean checkout **before** you change anything, then run the check again after your change:
 
 ```sh
-python3 tests/render/check.py                # or: ctest --test-dir build
+python3 tests/render/check.py                # or: ctest --test-dir build -R rendering
 python3 tests/render/check.py --only kanban  # one scenario
 ```
 
