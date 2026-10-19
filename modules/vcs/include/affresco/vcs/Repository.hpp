@@ -208,6 +208,15 @@ private:
 	/// @param revision The new commit's revision.
 	/// @throws DocumentError If its commits no longer apply, or a deny rule refuses them.
 	void extend(Proposal& proposal, const json& revision);
+	/// @brief The "don't ask again" rules a proposal offers: one per part it touches, for its author's channel, unless
+	/// an "ask" rule matched or a part is broader than one node or area.
+	/// @param author The proposal's author.
+	/// @param touches What it touches (detail::area).
+	/// @param askedByRule Whether an "ask" rule matched it.
+	/// @return The rules, e.g. "agent(#board)"; empty if it can't be remembered.
+	[[nodiscard]] static std::vector<std::string> rememberedRules(const std::string& author,
+	                                                              const std::vector<std::string>& touches,
+	                                                              bool askedByRule);
 	/// @brief Pushes a revision onto its author's open proposal ("proposal" in the revision).
 	/// @param revision The revision.
 	/// @param author Its author.
@@ -284,6 +293,13 @@ private:
 	/// @throws DocumentError If its branch doesn't lead from its head to its base on main.
 	static void completeProposal(Proposal& proposal, const std::unordered_map<std::string, Commit>& objects,
 	                             const std::vector<std::string>& main, const std::filesystem::path& file);
+	/// @brief Works out again what a proposal read from the refs file touches, and what "don't ask again" would grant
+	/// for it, from the patch its branch replays: accept() grants what it remembers, and the refs file may have been
+	/// written by hand. The live state it was made on isn't kept, so the base's "state" stands in for it; if the patch
+	/// doesn't apply on that, nothing is remembered (it can still be accepted).
+	/// @param proposal The proposal, completed (completeProposal()).
+	/// @param base Its base commit.
+	void recheckProposal(Proposal& proposal, const Commit& base) const;
 	/// @brief Replaces the history with the one in a folder, if it began with the same document.
 	/// @param store The folder.
 	/// @return false, changing nothing, if it began with another document.

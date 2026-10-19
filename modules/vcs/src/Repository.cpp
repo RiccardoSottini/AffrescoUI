@@ -465,11 +465,16 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 	proposal.commits = commits.size();
 	proposal.patch = std::move(patch);
 	proposal.reason = verdict.kind == Verdict::Kind::Ask ? verdict.reason : "proposals are always reviewed";
+	proposal.remember = rememberedRules(proposal.author, touches, verdict.askedByRule);
 	proposal.touches = std::move(touches);
-	proposal.remember.clear();
-	if(!verdict.askedByRule && !proposal.touches.empty() && std::ranges::all_of(proposal.touches, detail::narrow))
-		for(const std::string& area : proposal.touches)
-			proposal.remember.push_back(detail::channelOf(proposal.author) + "(" + area + ")");
+}
+
+std::vector<std::string> Repository::rememberedRules(const std::string& author, const std::vector<std::string>& touches,
+                                                     bool askedByRule) {
+	std::vector<std::string> rules;
+	if(!askedByRule && !touches.empty() && std::ranges::all_of(touches, detail::narrow))
+		for(const std::string& area : touches) rules.push_back(detail::channelOf(author) + "(" + area + ")");
+	return rules;
 }
 
 RevisionResult Repository::push(const json& revision, const std::string& author) {

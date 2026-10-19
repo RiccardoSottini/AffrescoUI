@@ -201,6 +201,11 @@ kanban.history/
   loaded: the app stops with an error that names the file, e.g.
   `AffrescoUI history: …/objects/e1/6ecc8085…: its content doesn't match its SHA-256: the file is damaged`. Moving
   the folder aside starts a new history, and keeps the old one for inspection.
+- **Checked again, as if written by hand.** Hashes prove a file isn't damaged, not that a review made it. So `main`'s
+  head must pass the same check as a revision against revision 0 (no new channels, `persist`, permissions or control
+  steps); grants must be the narrow `<channel>(<one node or area>)` rules that **Always allow** gives; and what each
+  open proposal touches, and what **Always allow** would grant for it, are worked out again from its branch instead
+  of read from `refs.json`.
 - **One writer.** The program that writes a history holds its `lock`, which the system releases if the program ends.
   Another program that opens the same screen file meanwhile loads the same history but never writes it. A warning
   says so (`in use by another program (process 3495)`), and its own changes stay in memory.

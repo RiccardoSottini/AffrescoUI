@@ -554,6 +554,41 @@ TEST_CASE("vcs: a history written by hand can't give the screen what no revision
 	CHECK(second.document() == permissionsScreen());
 }
 
+TEST_CASE("vcs: a proposal's areas and \"don't ask again\" rules come from its branch, not from the refs file") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	affresco::ProposalInfo original;
+	{
+		Repository first(rules, permissionsScreen());
+		first.openHistory(history);
+		fill(first);
+		first.setMode(affresco::Mode::Default); // so that #title asks again
+		REQUIRE(first.revokeGrant("agent(#title)"));
+		const affresco::RevisionResult narrow =
+		    first.submit({{"author", "agent"}, {"message", "Retitle"}, {"set", {{"#title/text", "Later"}}}});
+		REQUIRE(narrow.status == RevisionStatus::Proposed);
+		original = first.proposals().back();
+		REQUIRE(original.remember == std::vector<std::string>{"agent(#title)"});
+	}
+
+	// Well-formed narrow rules, but not what the proposal changes: accepting with "Always allow" would grant them
+	forgeRefs(history, [](json& refs) {
+		refs["proposals"][1]["touches"] = {"#board"};
+		refs["proposals"][1]["remember"] = {"agent(#board)"};
+	});
+
+	Repository second(rules, permissionsScreen());
+	REQUIRE(second.openHistory(history).loaded);
+	REQUIRE(second.proposals().size() == 2);
+	const affresco::ProposalInfo restored = second.proposals().back();
+	CHECK(restored.touches == original.touches);
+	CHECK(restored.remember == original.remember);
+	REQUIRE_FALSE(second.accept(restored.id, {"studio", restored.head, true}));
+	REQUIRE(second.grants().size() == 1);
+	CHECK(second.grants().front().rule == "agent(#title)");
+}
+
 TEST_CASE("vcs: a history written by hand can't grant more than \"don't ask again\" does") {
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;

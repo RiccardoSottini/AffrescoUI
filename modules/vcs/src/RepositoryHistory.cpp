@@ -166,7 +166,10 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	std::ranges::reverse(main);
 	if(objects.at(main.front()).document != mainHead().document) return false;
 
-	for(Proposal& proposal : refs.proposals) completeProposal(proposal, objects, main, store.refsFile());
+	for(Proposal& proposal : refs.proposals) {
+		completeProposal(proposal, objects, main, store.refsFile());
+		recheckProposal(proposal, objects.at(proposal.base));
+	}
 	// Hashes catch damage, not a history written by hand: it may not do what no revision can (widen capabilities)
 	const Commit& head = objects.at(main.back());
 	reading(store.objectFile(head.id), [&] {
@@ -352,6 +355,20 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 	proposal.patch = json::array();
 	for(const Commit* commit : branch | std::views::reverse)
 		proposal.patch.insert(proposal.patch.end(), commit->patch.begin(), commit->patch.end());
+}
+
+void Repository::recheckProposal(Proposal& proposal, const Commit& base) const {
+	const json state = base.document.contains("state") ? base.document["state"] : json::object();
+	try {
+		const Prepared next = prepare(proposal.patch, base.document, state);
+		const Verdict verdict = evaluate(next.before, next.after, proposal.author, true);
+		proposal.remember = verdict.kind == Verdict::Kind::Deny
+		                        ? std::vector<std::string>()
+		                        : rememberedRules(proposal.author, next.touches, verdict.askedByRule);
+		proposal.touches = next.touches;
+	} catch(const DocumentError&) {
+		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies
+	}
 }
 
 /* Writing */
