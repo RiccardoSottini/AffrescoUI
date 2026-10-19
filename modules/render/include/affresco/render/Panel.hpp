@@ -6,6 +6,7 @@
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Layout.hpp"
 #include "affresco/render/Length.hpp"
 #include "affresco/render/Painter.hpp"
 #include "affresco/core/Signal.hpp"
@@ -169,6 +170,21 @@ public:
 	/// @brief Sets the minimum height.
 	/// @param minHeight The minimum.
 	void setMinHeight(Length minHeight);
+	/// @brief Sets the maximum size; the minimum wins when they disagree, as in CSS.
+	/// @param maxWidth The maximum width, or std::nullopt (the default) for none.
+	/// @param maxHeight The maximum height, or std::nullopt for none.
+	void setMaxSize(std::optional<Length> maxWidth, std::optional<Length> maxHeight);
+	/// @brief Sets the maximum width.
+	/// @param maxWidth The maximum, or std::nullopt for none.
+	void setMaxWidth(std::optional<Length> maxWidth);
+	/// @brief Sets the maximum height.
+	/// @param maxHeight The maximum, or std::nullopt for none.
+	void setMaxHeight(std::optional<Length> maxHeight);
+	/// @brief Keeps the width and the height in a ratio: the height follows the width, unless only the height is set
+	/// (a non-zero height, or stretched by anchors or a container), then the width follows the height. When both are
+	/// set, the ratio is ignored, as in CSS.
+	/// @param ratio Width divided by height; 0 (the default) for none.
+	void setAspectRatio(float ratio);
 	/// @brief The width.
 	[[nodiscard]] Length width() const noexcept { return width_; }
 	/// @brief The height.
@@ -177,6 +193,12 @@ public:
 	[[nodiscard]] Length minWidth() const noexcept { return minWidth_; }
 	/// @brief The minimum height.
 	[[nodiscard]] Length minHeight() const noexcept { return minHeight_; }
+	/// @brief The maximum width, if any.
+	[[nodiscard]] std::optional<Length> maxWidth() const noexcept { return maxWidth_; }
+	/// @brief The maximum height, if any.
+	[[nodiscard]] std::optional<Length> maxHeight() const noexcept { return maxHeight_; }
+	/// @brief Width divided by height, or 0 for none.
+	[[nodiscard]] float aspectRatio() const noexcept { return aspectRatio_; }
 
 	/* Anchors: keep an edge at a fixed distance from the same edge of the parent */
 
@@ -203,6 +225,27 @@ public:
 	void setGrow(float grow);
 	/// @brief The share of spare room it takes in a Stack.
 	[[nodiscard]] float grow() const noexcept { return grow_; }
+	/// @brief Sets how much this panel gives up when the children of a row or a column don't fit, like CSS
+	/// flex-shrink: the overflow is taken in proportion to shrink times size, down to the minimum size.
+	/// @param shrink 0 (the default) keeps its size, so children overflow as they always have.
+	void setShrink(float shrink);
+	/// @brief How much it gives up when its row or column overflows.
+	[[nodiscard]] float shrink() const noexcept { return shrink_; }
+	/// @brief Sets its size along a row or a column before growing or shrinking, like CSS flex-basis.
+	/// @param basis The size (percentages of the container), or std::nullopt (the default) for its own width or height.
+	void setBasis(std::optional<Length> basis);
+	/// @brief Its size along a row or a column before flexing, if set.
+	[[nodiscard]] std::optional<Length> basis() const noexcept { return basis_; }
+	/// @brief Sets where this panel sits across its row or column, over the container's choice (CSS align-self).
+	/// @param align The place, or std::nullopt (the default) for the container's.
+	void setAlignSelf(std::optional<CrossAlign> align);
+	/// @brief Where it sits across its row or column, if it chose.
+	[[nodiscard]] std::optional<CrossAlign> alignSelf() const noexcept { return alignSelf_; }
+	/// @brief Sets the cell it takes in a Grid.
+	/// @param cell Its column, row and spans; the default lets the grid place it in the next free cell.
+	void setGridCell(GridCell cell);
+	/// @brief The cell it asks for in a Grid.
+	[[nodiscard]] const GridCell& gridCell() const noexcept { return gridCell_; }
 
 	/* Scrolling */
 
@@ -281,9 +324,7 @@ public:
 	/// @brief The flag set by setVisible().
 	[[nodiscard]] bool isVisible() const noexcept { return visible_; }
 	/// @brief Whether it is on screen: visible, with visible ancestors and a non-empty area.
-	[[nodiscard]] bool isShown() const noexcept {
-		return shown_;
-	}
+	[[nodiscard]] bool isShown() const noexcept { return shown_; }
 
 	/* Layout results, valid after the last layout pass */
 
@@ -296,13 +337,20 @@ public:
 	/// @brief The top-left corner, relative to the parent's.
 	[[nodiscard]] Vec2 relativePosition() const noexcept;
 
-	/// @brief Measures the height this panel takes in a layout pass, for containers such as Stack.
+	/// @brief Measures the size this panel takes in a layout pass, for containers such as Stack: its own size within
+	/// its minimum and maximum, with its aspect ratio, after prepareLayout().
+	/// @param reference The parent's size, for percentages.
+	/// @return The size.
+	[[nodiscard]] Vec2 measuredSize(Vec2 reference);
+	/// @brief Measures the height this panel takes in a layout pass (measuredSize(), the parent's width as the other
+	/// reference).
 	/// @param reference The parent's height, for percentages.
-	/// @return max(height, minHeight), after prepareLayout().
+	/// @return The height.
 	[[nodiscard]] float measuredHeight(float reference);
-	/// @brief Measures the width this panel takes in a layout pass, for containers such as Stack.
+	/// @brief Measures the width this panel takes in a layout pass (measuredSize(), the parent's height as the other
+	/// reference).
 	/// @param reference The parent's width, for percentages.
-	/// @return max(width, minWidth), after prepareLayout().
+	/// @return The width.
 	[[nodiscard]] float measuredWidth(float reference);
 
 	/// @brief Finds the deepest shown panel at a point; later siblings are on top.
@@ -385,6 +433,13 @@ private:
 	/// @param parentSize The parent's unclipped size, for percentages and bottom/right anchors.
 	/// @param parentShown Whether the parent is shown.
 	void layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief Applies the aspect ratio to a size: the axis that is set leads, within the other's bounds.
+	/// @param size The size, within its bounds.
+	/// @param widthSet Whether the width is set (non-zero, stretched or given by a container).
+	/// @param heightSet Whether the height is set.
+	/// @param reference The parent's size, for percentages.
+	/// @return The size; unchanged without a ratio, or with both or neither axis set.
+	[[nodiscard]] Vec2 withAspectRatio(Vec2 size, bool widthSet, bool heightSet, Vec2 reference) const noexcept;
 	/// @brief Lays out the children (not overlays) inside this panel's frame, moved by the scroll offset.
 	void layoutChildren();
 	/// @brief The absolute position of an anchored edge.
@@ -414,21 +469,27 @@ private:
 	Window* window_ = nullptr;                     ///< Not owning.
 	std::vector<std::unique_ptr<Panel>> children_; ///< Back to front.
 
-	Length x_, y_;                                 ///< Position on unanchored axes.
-	Length width_, height_;                        ///< Size.
-	Length minWidth_, minHeight_;                  ///< Minimum size.
-	std::array<std::optional<Length>, 4> anchors_;       ///< Indexed by Edge.
-	std::array<std::optional<AnchorTarget>, 4> targets_; ///< Anchors to other panels, indexed by Edge.
-	float grow_ = 0.0f;                                  ///< See grow().
+	Length x_, y_;                                        ///< Position on unanchored axes.
+	Length width_, height_;                               ///< Size.
+	Length minWidth_, minHeight_;                         ///< Minimum size.
+	std::optional<Length> maxWidth_, maxHeight_;          ///< Maximum size, if any.
+	float aspectRatio_ = 0.0f;                            ///< See aspectRatio().
+	float shrink_ = 0.0f;                                 ///< See shrink().
+	std::optional<Length> basis_;                         ///< See basis().
+	std::optional<CrossAlign> alignSelf_;                 ///< See alignSelf().
+	GridCell gridCell_;                                   ///< See gridCell().
+	std::array<std::optional<Length>, 4> anchors_;        ///< Indexed by Edge.
+	std::array<std::optional<AnchorTarget>, 4> targets_;  ///< Anchors to other panels, indexed by Edge.
+	float grow_ = 0.0f;                                   ///< See grow().
 	std::optional<float> arrangedWidth_, arrangedHeight_; ///< Set by a container for this pass (arrangeSize()).
-	Color color_ = colors::panel;                        ///< Background.
-	CornerRadii radii_;                                  ///< See cornerRadii().
-	float borderWidth_ = 0.0f;                           ///< See borderWidth().
-	Color borderColor_ = colors::black;                  ///< See borderColor().
-	Shadow shadow_;                                      ///< See shadow().
-	bool visible_ = true;                                ///< See setVisible().
-	Cursor cursor_ = Cursor::Arrow;                      ///< See setCursor().
-	std::string tooltip_;                                ///< See tooltip().
+	Color color_ = colors::panel;                         ///< Background.
+	CornerRadii radii_;                                   ///< See cornerRadii().
+	float borderWidth_ = 0.0f;                            ///< See borderWidth().
+	Color borderColor_ = colors::black;                   ///< See borderColor().
+	Shadow shadow_;                                       ///< See shadow().
+	bool visible_ = true;                                 ///< See setVisible().
+	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
+	std::string tooltip_;                                 ///< See tooltip().
 
 	bool scrollX_ = false, scrollY_ = false; ///< See setScrollable().
 	Vec2 scroll_;                            ///< See scrollOffset().
@@ -439,10 +500,10 @@ private:
 	Placement placement_ = Placement::Below; ///< See setOverlay().
 
 	std::uint64_t layoutPass_ = 0; ///< The window's layout pass this panel was last laid out in.
-	Rect frame_;         ///< See frame().
-	Rect bounds_;        ///< See bounds().
-	Vec2 size_;          ///< See resolvedSize().
-	bool shown_ = false; ///< See isShown().
+	Rect frame_;                   ///< See frame().
+	Rect bounds_;                  ///< See bounds().
+	Vec2 size_;                    ///< See resolvedSize().
+	bool shown_ = false;           ///< See isShown().
 };
 
 } // namespace affresco

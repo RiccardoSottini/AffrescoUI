@@ -3,6 +3,7 @@
 #include "affresco/render/Window.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace affresco {
@@ -33,6 +34,17 @@ constexpr float edgeOf(const Rect& rect, Edge edge) noexcept {
 }
 
 constexpr float scrollBarWidth = 4.0f; ///< Thickness of the scroll bar, in pixels.
+
+/// @brief A size within its bounds; the minimum wins over the maximum, as in CSS.
+/// @param size The size.
+/// @param minimum The minimum.
+/// @param maximum The maximum, if any.
+/// @param reference What percentages refer to.
+/// @return In pixels.
+float bounded(Length size, Length minimum, const std::optional<Length>& maximum, float reference) noexcept {
+	const float own = size.resolve(reference);
+	return std::max(maximum ? std::min(own, maximum->resolve(reference)) : own, minimum.resolve(reference));
+}
 
 } // namespace
 
@@ -76,14 +88,23 @@ Panel* Panel::findById(std::string_view id) noexcept {
 	return nullptr;
 }
 
-float Panel::measuredHeight(float reference) {
+Vec2 Panel::measuredSize(Vec2 reference) {
 	prepareLayout();
-	return std::max(height_.resolve(reference), minHeight_.resolve(reference));
+	const Vec2 size{bounded(width_, minWidth_, maxWidth_, reference.x),
+	                bounded(height_, minHeight_, maxHeight_, reference.y)};
+	return withAspectRatio(size, width_.value != 0.0f, height_.value != 0.0f, reference);
 }
 
-float Panel::measuredWidth(float reference) {
-	prepareLayout();
-	return std::max(width_.resolve(reference), minWidth_.resolve(reference));
+float Panel::measuredHeight(float reference) { return measuredSize({parent_ ? parent_->size_.x : 0.0f, reference}).y; }
+
+float Panel::measuredWidth(float reference) { return measuredSize({reference, parent_ ? parent_->size_.y : 0.0f}).x; }
+
+// The axis that is set leads; with both or neither set there is nothing to follow
+Vec2 Panel::withAspectRatio(Vec2 size, bool widthSet, bool heightSet, Vec2 reference) const noexcept {
+	if(!(aspectRatio_ > 0.0f) || widthSet == heightSet) return size;
+	if(widthSet) size.y = bounded(px(size.x / aspectRatio_), minHeight_, maxHeight_, reference.y);
+	else size.x = bounded(px(size.y * aspectRatio_), minWidth_, maxWidth_, reference.x);
+	return size;
 }
 
 void Panel::arrangeSize(Panel& child, std::optional<float> width, std::optional<float> height) noexcept {
@@ -164,6 +185,27 @@ void Panel::setMinHeight(Length minHeight) {
 	invalidate();
 }
 
+void Panel::setMaxSize(std::optional<Length> maxWidth, std::optional<Length> maxHeight) {
+	maxWidth_ = maxWidth;
+	maxHeight_ = maxHeight;
+	invalidate();
+}
+
+void Panel::setMaxWidth(std::optional<Length> maxWidth) {
+	maxWidth_ = maxWidth;
+	invalidate();
+}
+
+void Panel::setMaxHeight(std::optional<Length> maxHeight) {
+	maxHeight_ = maxHeight;
+	invalidate();
+}
+
+void Panel::setAspectRatio(float ratio) {
+	aspectRatio_ = std::isfinite(ratio) ? std::max(ratio, 0.0f) : 0.0f;
+	invalidate();
+}
+
 /* Anchors */
 
 void Panel::setAnchor(Edge edge, Length offset) {
@@ -188,6 +230,26 @@ std::optional<Length> Panel::anchor(Edge edge) const noexcept { return anchors_[
 
 void Panel::setGrow(float grow) {
 	grow_ = std::max(grow, 0.0f);
+	invalidate();
+}
+
+void Panel::setShrink(float shrink) {
+	shrink_ = std::max(shrink, 0.0f);
+	invalidate();
+}
+
+void Panel::setBasis(std::optional<Length> basis) {
+	basis_ = basis;
+	invalidate();
+}
+
+void Panel::setAlignSelf(std::optional<CrossAlign> align) {
+	alignSelf_ = align;
+	invalidate();
+}
+
+void Panel::setGridCell(GridCell cell) {
+	gridCell_ = cell;
 	invalidate();
 }
 
@@ -314,14 +376,21 @@ void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool p
 	prepareLayout();
 	if(window_) layoutPass_ = window_->layoutPass_;
 
-	size_ = {arrangedWidth_ ? *arrangedWidth_ : std::max(width_.resolve(parentSize.x), minWidth_.resolve(parentSize.x)),
-	         arrangedHeight_ ? *arrangedHeight_
-	                         : std::max(height_.resolve(parentSize.y), minHeight_.resolve(parentSize.y))};
+	size_ = {arrangedWidth_ ? *arrangedWidth_ : bounded(width_, minWidth_, maxWidth_, parentSize.x),
+	         arrangedHeight_ ? *arrangedHeight_ : bounded(height_, minHeight_, maxHeight_, parentSize.y)};
 
 	const auto top = anchoredEdge(Edge::Top, origin, parentSize);
 	const auto bottom = anchoredEdge(Edge::Bottom, origin, parentSize);
 	const auto left = anchoredEdge(Edge::Left, origin, parentSize);
 	const auto right = anchoredEdge(Edge::Right, origin, parentSize);
+	if(aspectRatio_ > 0.0f) {
+		// An axis stretched by its anchors is set too: the other one follows its stretched size
+		const bool stretchedX = left && right && !arrangedWidth_, stretchedY = top && bottom && !arrangedHeight_;
+		if(stretchedX) size_.x = std::max(*right - *left, 0.0f);
+		if(stretchedY) size_.y = std::max(*bottom - *top, 0.0f);
+		size_ = withAspectRatio(size_, arrangedWidth_ || stretchedX || width_.value != 0.0f,
+		                        arrangedHeight_ || stretchedY || height_.value != 0.0f, parentSize);
+	}
 
 	Rect rect;
 
@@ -405,15 +474,15 @@ void Panel::paintOver(Painter& painter) const {
 	const float contentHeight = contentMax_.y - std::min(contentMin_.y, 0.0f);
 	if(scrollY_ && contentHeight > size_.y + 0.5f) {
 		const float length = std::max(size_.y * size_.y / contentHeight, 16.0f);
-		const float top = frame_.top + (scroll_.y - std::min(contentMin_.y, 0.0f)) / (contentHeight - size_.y) *
-		                                   (size_.y - length);
+		const float top =
+		    frame_.top + (scroll_.y - std::min(contentMin_.y, 0.0f)) / (contentHeight - size_.y) * (size_.y - length);
 		painter.fillRect({frame_.right - scrollBarWidth - 2.0f, top, frame_.right - 2.0f, top + length}, thumb);
 	}
 	const float contentWidth = contentMax_.x - std::min(contentMin_.x, 0.0f);
 	if(scrollX_ && contentWidth > size_.x + 0.5f) {
 		const float length = std::max(size_.x * size_.x / contentWidth, 16.0f);
-		const float left = frame_.left + (scroll_.x - std::min(contentMin_.x, 0.0f)) / (contentWidth - size_.x) *
-		                                     (size_.x - length);
+		const float left =
+		    frame_.left + (scroll_.x - std::min(contentMin_.x, 0.0f)) / (contentWidth - size_.x) * (size_.x - length);
 		painter.fillRect({left, frame_.bottom - scrollBarWidth - 2.0f, left + length, frame_.bottom - 2.0f}, thumb);
 	}
 }
