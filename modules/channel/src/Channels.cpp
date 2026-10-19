@@ -48,9 +48,12 @@ std::wstring widen(const std::string& text) {
 /// @param childReads Whether the child reads the pipe (its stdin) or writes it (its stdout).
 /// @return false if the pipe couldn't be created.
 bool makePipe(HANDLE& childEnd, HANDLE& parentEnd, bool childReads) noexcept {
+	// 64 KiB, as a pipe has on macOS and Linux: the default is a few KiB, and send() would then block the main
+	// thread on any larger message until the child reads it
+	constexpr DWORD bufferSize = 1u << 16;
 	SECURITY_ATTRIBUTES inheritable{sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE};
 	HANDLE readEnd = nullptr, writeEnd = nullptr;
-	if(!CreatePipe(&readEnd, &writeEnd, &inheritable, 0)) return false;
+	if(!CreatePipe(&readEnd, &writeEnd, &inheritable, bufferSize)) return false;
 	childEnd = childReads ? readEnd : writeEnd;
 	parentEnd = childReads ? writeEnd : readEnd;
 	return SetHandleInformation(parentEnd, HANDLE_FLAG_INHERIT, 0) != 0;
