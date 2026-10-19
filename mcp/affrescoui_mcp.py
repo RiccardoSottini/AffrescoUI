@@ -635,6 +635,17 @@ def describe(reply):
     return f"rejected, nothing changed: {reply.get('error')}", True
 
 
+def screen_info(reply):
+    """What get_screen says of the screen besides its document: revision, head, your author name, whether you can
+    review, the mode, the grants and the open proposals."""
+    head = reply.get("head") or {}
+    return {"revision": reply.get("revision"), "head": head.get("short"), "you": reply.get("you"),
+            "canReview": reply.get("canReview"), "mode": reply.get("mode"),
+            "grants": [g.get("rule") for g in reply.get("grants") or []],
+            "proposals": [{k: p.get(k) for k in ("id", "author", "message", "touches", "changes")}
+                          for p in reply.get("proposals") or []]}
+
+
 def malformed(request):
     """The error for a message the server can't use, or None: a batch (a JSON array, which MCP dropped in 2025-06-18),
     anything else that isn't an object, or params that aren't one. The server answers it and reads on."""
@@ -714,6 +725,32 @@ class Server:
         return compact({k: commit.get(k) for k in ("number", "short", "author", "committer", "message", "time")
                         if k in commit}), False
 
+    def get_screen(self, args):
+        """The get_screen tool: screen_info(), then the document (everything, or what changed since the last read),
+        one node (at) or the outline."""
+        reply = self.host.request({"type": "getDocument"})
+        document = dict(reply.get("document") or {})
+        document["state"] = reply.get("state")  # the live state, once (the file's initial state isn't needed)
+        info = screen_info(reply)
+        depth = args.get("depth")
+        depth = max(0, int(depth)) if isinstance(depth, (int, float)) and not isinstance(depth, bool) else None
+        try:
+            if args.get("outline"):
+                return compact(info) + "\n" + outline(document, args.get("at"), depth), False
+            if args.get("at"):
+                pointer, node = locate(document, args["at"])
+                address = str(args["at"]) if str(args["at"]).startswith("#") else pointer
+                node = pruned(node, address, depth) if depth is not None else node
+                return compact({**info, "at": pointer, "node": node}), False
+        except ValueError as failure:
+            return f"error: {failure}", True
+        if self.seen is not None and not args.get("full"):
+            changes = changes_since(self.seen, document)
+            self.seen = document
+            return compact({**info, "changes": changes} if changes else {**info, "unchanged": True}), False
+        self.seen = document
+        return compact({**info, "document": document}), False
+
     def call_tool(self, name, args):
         host = self.host
         if name == "get_blame":
@@ -730,33 +767,7 @@ class Server:
                 self.delivered.discard(request_id)
             return "sent to the Studio", False
         if name == "get_screen":
-            reply = host.request({"type": "getDocument"})
-            document = dict(reply.get("document") or {})
-            document["state"] = reply.get("state")  # the live state, once (the file's initial state isn't needed)
-            head = reply.get("head") or {}
-            info = {"revision": reply.get("revision"), "head": head.get("short"), "you": reply.get("you"),
-                    "canReview": reply.get("canReview"), "mode": reply.get("mode"),
-                    "grants": [g.get("rule") for g in reply.get("grants") or []],
-                    "proposals": [{k: p.get(k) for k in ("id", "author", "message", "touches", "changes")}
-                                  for p in reply.get("proposals") or []]}
-            depth = args.get("depth")
-            depth = max(0, int(depth)) if isinstance(depth, (int, float)) and not isinstance(depth, bool) else None
-            try:
-                if args.get("outline"):
-                    return compact(info) + "\n" + outline(document, args.get("at"), depth), False
-                if args.get("at"):
-                    pointer, node = locate(document, args["at"])
-                    address = str(args["at"]) if str(args["at"]).startswith("#") else pointer
-                    node = pruned(node, address, depth) if depth is not None else node
-                    return compact({**info, "at": pointer, "node": node}), False
-            except ValueError as failure:
-                return f"error: {failure}", True
-            if self.seen is not None and not args.get("full"):
-                changes = changes_since(self.seen, document)
-                self.seen = document
-                return compact({**info, "changes": changes} if changes else {**info, "unchanged": True}), False
-            self.seen = document
-            return compact({**info, "document": document}), False
+            return self.get_screen(args)
         if name == "get_catalog":
             return compact(host.request({"type": "getCatalog"}).get("catalog")), False
         if name == "find_nodes":
