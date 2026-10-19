@@ -562,7 +562,7 @@ std::int64_t saturated(double value) noexcept {
 /// @param integral Whether every argument was an integer.
 /// @return An integer when possible (whole, and within 64 bits), else a double.
 json numeric(double value, bool integral) {
-	if(integral && std::trunc(value) == value && std::abs(value) < integerLimit)
+	if(integral && std::trunc(value) == value && value >= -integerLimit && value < integerLimit)
 		return static_cast<std::int64_t>(value);
 	return value;
 }

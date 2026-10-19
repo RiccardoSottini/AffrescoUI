@@ -55,6 +55,7 @@ const std::vector<Case> cases = {
     {"{{1 / 0}}", {}, "division by zero"},
     // Numbers too large to hold: found by fuzzing (tests/fuzz, expression), they threw std::out_of_range
     {"{{9223372036854775807}}", INT64_MAX, {}},
+    {"{{0 - 9223372036854775807 - 1}}", INT64_MIN, {}}, // the smallest 64-bit integer stays an integer
     {"{{9223372036854775808 + 1}}", {}, "number '9223372036854775808' is too large"},
     {"{{1 + " + std::string(400, '9') + ".5}}", {}, "is too large (at column 407)"},
     {"{{state.items[99999999999999999999]}}", {}, "index '99999999999999999999' is too large"},
