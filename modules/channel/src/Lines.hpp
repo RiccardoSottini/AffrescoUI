@@ -25,11 +25,11 @@
 namespace affresco::channel::detail {
 
 /// @brief Reads up to `size` bytes into `data`: returns how many, 0 at the end of the stream, or less on an error.
-template<typename Read>
+template <typename Read>
 concept ChunkReader = std::invocable<Read&, char*, std::size_t>;
 
 /// @brief Writes up to `size` bytes from `data`: returns how many, or 0 or less on an error.
-template<typename Write>
+template <typename Write>
 concept ChunkWriter = std::invocable<Write&, const char*, std::size_t>;
 
 /// @brief Reads a stream until it ends, posting each line to the channel's onMessage, then onClosed.
@@ -38,7 +38,7 @@ concept ChunkWriter = std::invocable<Write&, const char*, std::size_t>;
 /// @param channel The channel whose signals fire.
 /// @param alive Cleared when the channel is destroyed; queued deliveries then do nothing.
 /// @param running Set to false when the stream ends (may be nullptr).
-template<ChunkReader Read>
+template <ChunkReader Read>
 void readLines(Read read, Executor& executor, Channel& channel, std::shared_ptr<bool> alive,
                std::atomic<bool>* running) {
 	std::string buffer;
@@ -69,8 +69,7 @@ void readLines(Read read, Executor& executor, Channel& channel, std::shared_ptr<
 /// @param write Writes part of the line (see ChunkWriter); called until all of it is written.
 /// @param message The message.
 /// @return false if a write failed (the other end went away).
-template<ChunkWriter Write>
-[[nodiscard]] bool writeAll(Write write, std::string_view message) {
+template <ChunkWriter Write> [[nodiscard]] bool writeAll(Write write, std::string_view message) {
 	std::string line(message);
 	line += '\n';
 	for(std::size_t written = 0; written < line.size();) {
