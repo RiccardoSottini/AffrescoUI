@@ -15,18 +15,24 @@ using expect::fail;
 
 namespace {
 
-/// @brief Escapes an object's key for a JSON Pointer: '~' as "~0", '/' as "~1".
+/// @brief Appends an object's key to a JSON Pointer, escaping '~' as "~0" and '/' as "~1".
+/// @param path The pointer.
 /// @param key The key.
-/// @return The segment.
-std::string escaped(std::string_view key) {
-	std::string result;
-	result.reserve(key.size());
+void appendKey(std::string& path, std::string_view key) {
+	path += '/';
 	for(const char c : key) {
-		if(c == '~') result += "~0";
-		else if(c == '/') result += "~1";
-		else result += c;
+		if(c == '~') path += "~0";
+		else if(c == '/') path += "~1";
+		else path += c;
 	}
-	return result;
+}
+
+/// @brief Appends a list position to a JSON Pointer.
+/// @param path The pointer.
+/// @param position The position.
+void appendPosition(std::string& path, std::size_t position) {
+	path += '/';
+	path += std::to_string(position);
 }
 
 /// @brief Tells whether two values are the same JSON, written the same way: unlike operator==, 1 and 1.0 differ, and
@@ -52,7 +58,17 @@ bool identical(const json& a, const json& b) {
 	}
 }
 
-void collect(const json& from, const json& to, const std::string& path, json& out);
+/// @brief Tells whether two objects have the same keys in the same order: the usual case, compared key by key
+/// without looking any key up.
+/// @param from The object before.
+/// @param to The object after.
+/// @return true if they do.
+bool sameKeys(const json& from, const json& to) {
+	if(from.size() != to.size()) return false;
+	for(auto a = from.begin(), b = to.begin(); a != from.end(); ++a, ++b)
+		if(a.key() != b.key()) return false;
+	return true;
+}
 
 /// @brief Tells whether patching an object key by key gives the target's order of keys: the keys both have, in the
 /// source's order, then the keys only the target has, appended in its order.
@@ -72,45 +88,70 @@ bool keepsOrder(const json& from, const json& to) {
 	return true;
 }
 
+void collect(const json& from, const json& to, std::string& path, json& out);
+
 /// @brief The operations between two objects: key by key, or one replace if that would change the order of keys.
 /// @param from The object before.
 /// @param to The object after.
-/// @param path Its pointer.
+/// @param path Its pointer: keys are appended while their values are compared, and taken off after.
 /// @param out Receives the operations.
-void collectObject(const json& from, const json& to, const std::string& path, json& out) {
+void collectObject(const json& from, const json& to, std::string& path, json& out) {
+	const std::size_t length = path.size();
+	if(sameKeys(from, to)) {
+		for(auto a = from.begin(), b = to.begin(); a != from.end(); ++a, ++b) {
+			appendKey(path, a.key());
+			collect(*a, *b, path, out);
+			path.resize(length);
+		}
+		return;
+	}
 	if(!keepsOrder(from, to)) {
 		out.push_back({{"op", "replace"}, {"path", path}, {"value", to}});
 		return;
 	}
 	for(const auto& [key, value] : from.items()) {
-		const std::string inner = path + "/" + escaped(key);
-		if(const auto there = to.find(key); there != to.end()) collect(value, *there, inner, out);
-		else out.push_back({{"op", "remove"}, {"path", inner}});
+		appendKey(path, key);
+		if(const auto there = to.find(key); there != to.end()) collect(value, *there, path, out);
+		else out.push_back({{"op", "remove"}, {"path", path}});
+		path.resize(length);
 	}
-	for(const auto& [key, value] : to.items())
-		if(!from.contains(key)) out.push_back({{"op", "add"}, {"path", path + "/" + escaped(key)}, {"value", value}});
+	for(const auto& [key, value] : to.items()) {
+		if(from.contains(key)) continue;
+		appendKey(path, key);
+		out.push_back({{"op", "add"}, {"path", path}, {"value", value}});
+		path.resize(length);
+	}
 }
 
 /// @brief The operations between two lists: their common start and end stay, the items between are compared in pairs,
 /// and the rest are removed or added.
 /// @param from The list before.
 /// @param to The list after.
-/// @param path Its pointer.
+/// @param path Its pointer: positions are appended while they are compared, and taken off after.
 /// @param out Receives the operations.
-void collectList(const json& from, const json& to, const std::string& path, json& out) {
-	const std::size_t n = from.size(), m = to.size();
+void collectList(const json& from, const json& to, std::string& path, json& out) {
+	const std::size_t n = from.size(), m = to.size(), length = path.size();
 	std::size_t start = 0;
 	while(start < n && start < m && identical(from[start], to[start])) ++start;
 	std::size_t end = 0;
 	while(end < n - start && end < m - start && identical(from[n - 1 - end], to[m - 1 - end])) ++end;
 
 	const std::size_t removed = n - start - end, added = m - start - end, paired = std::min(removed, added);
-	for(std::size_t i = 0; i < paired; ++i)
-		collect(from[start + i], to[start + i], path + "/" + std::to_string(start + i), out);
-	for(std::size_t i = paired; i < removed; ++i) // each removal moves the next one into the same place
-		out.push_back({{"op", "remove"}, {"path", path + "/" + std::to_string(start + paired)}});
-	for(std::size_t i = paired; i < added; ++i)
-		out.push_back({{"op", "add"}, {"path", path + "/" + std::to_string(start + i)}, {"value", to[start + i]}});
+	for(std::size_t i = 0; i < paired; ++i) {
+		appendPosition(path, start + i);
+		collect(from[start + i], to[start + i], path, out);
+		path.resize(length);
+	}
+	for(std::size_t i = paired; i < removed; ++i) { // each removal moves the next one into the same place
+		appendPosition(path, start + paired);
+		out.push_back({{"op", "remove"}, {"path", path}});
+		path.resize(length);
+	}
+	for(std::size_t i = paired; i < added; ++i) {
+		appendPosition(path, start + i);
+		out.push_back({{"op", "add"}, {"path", path}, {"value", to[start + i]}});
+		path.resize(length);
+	}
 }
 
 /// @brief The operations between two values.
@@ -118,7 +159,7 @@ void collectList(const json& from, const json& to, const std::string& path, json
 /// @param to The value after.
 /// @param path Its pointer.
 /// @param out Receives the operations.
-void collect(const json& from, const json& to, const std::string& path, json& out) {
+void collect(const json& from, const json& to, std::string& path, json& out) {
 	if(from.is_object() && to.is_object()) return collectObject(from, to, path, out);
 	if(from.is_array() && to.is_array()) return collectList(from, to, path, out);
 	if(!identical(from, to)) out.push_back({{"op", "replace"}, {"path", path}, {"value", to}});
@@ -128,7 +169,8 @@ void collect(const json& from, const json& to, const std::string& path, json& ou
 
 json delta(const json& from, const json& to) {
 	json out = json::array();
-	collect(from, to, "", out);
+	std::string path;
+	collect(from, to, path, out);
 	return out;
 }
 
@@ -176,7 +218,7 @@ std::vector<std::string> segmentsOf(std::string_view pointer) {
 
 std::string pointerOf(const std::vector<std::string>& segments) {
 	std::string pointer;
-	for(const std::string& segment : segments) pointer += "/" + escaped(segment);
+	for(const std::string& segment : segments) appendKey(pointer, segment);
 	return pointer;
 }
 
