@@ -154,6 +154,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | JSON nesting, for anything from a peer, a revision, a change set or a declared channel | 256 levels |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
 | `while` loop iterations | 10,000 |
+| Items in a `forEach` list | 10,000 |
 | `range(n)` | n up to 10,000 |
 | `pad(text, width)` | width up to 10,000 |
 | Step lists inside step lists and actions (`if`, `forEach`, `while`, `run`, named handlers) | 32 levels |
@@ -165,6 +166,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A proposal named by `proposal/<n>` | n up to 1,000,000 |
 | An approval's head commit | at least 7 characters |
 | Undo steps kept by an `editor` | 500 |
+| A font's glyph atlas (a larger font size is refused) | 4,096 × 4,096 pixels |
 
 ## Known gaps
 
