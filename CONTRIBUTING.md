@@ -31,7 +31,8 @@ format and [`VERSION_CONTROL.md`](VERSION_CONTROL.md) for permissions, proposals
 
 ## Build
 
-You need CMake 3.25 or newer, a C++23 compiler and Ninja. GLFW, nlohmann/json and doctest are downloaded by CMake.
+You need CMake 3.25 or newer, a C++23 compiler, Ninja, and Python 3 for the rendering check and the MCP server. GLFW,
+nlohmann/json and doctest are downloaded by CMake.
 On Linux, install the X11 and Wayland headers first, as CI does:
 
 ```sh
