@@ -20,10 +20,12 @@
 
 int main(int argc, char** argv) {
 	std::filesystem::path socketDir = defaultSocketDir();
+	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
 	for(int i = 1; i < argc; ++i) {
 		if(std::string_view(argv[i]) == "--socket" && i + 1 < argc) socketDir = argv[++i];
+		else if(std::string_view(argv[i]) == "--data" && i + 1 < argc) dataDir = argv[++i];
 		else {
-			std::cerr << "usage: affrescoui_studio [--socket DIR]\n";
+			std::cerr << "usage: affrescoui_studio [--socket DIR] [--data DIR]\n";
 			return 2;
 		}
 	}
@@ -31,7 +33,8 @@ int main(int argc, char** argv) {
 	try {
 		checkSocketDir(socketDir);
 		affresco::Application app;
-		affresco::Screen studio = affresco::Screen::fromFile(AFFRESCOUI_EXAMPLES_ASSETS "/screens/studio.screen.json");
+		affresco::Screen studio =
+		    affresco::Screen::fromFile(AFFRESCOUI_EXAMPLES_ASSETS "/screens/studio.screen.json", dataDir);
 		studio.setSocketDirectory(socketDir);
 		studio.createWindow(app); // connects the file's channels
 		return app.run();

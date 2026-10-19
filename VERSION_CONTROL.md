@@ -175,6 +175,13 @@ open proposals, the grants and the mode. A screen loaded from a string (`fromStr
 only, as before, unless `Screen::setHistoryDirectory` (or `vcs::Repository::openHistory`) gives it a folder. Either
 is called once, before the first change, so a screen from `fromFile` keeps the folder it was given.
 
+The data folder is `~/.affrescoui` unless `AFFRESCOUI_DATA_DIR` names another (`Screen::defaultDataDirectory`), and
+`affrescoui_host` and `affrescoui_studio` take `--data DIR`. Parallel sessions should each use a folder of their
+own, as they do for sockets: one history per file name lives there, so two copies of a template that differ would
+keep moving each other's history aside. `fromFile(path, dataDirectory, Screen::History::InMemory)` keeps the
+history in memory only. The host does that for a plain screenshot run (`AFFRESCOUI_SCREENSHOT` without
+`AFFRESCOUI_SCREENSHOT_AFTER`), which draws the file as it is and leaves no history behind.
+
 ```
 kanban.history/
   lock                  held by the program that writes this history

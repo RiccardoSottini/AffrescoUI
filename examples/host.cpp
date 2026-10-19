@@ -29,6 +29,7 @@
 int main(int argc, char** argv) {
 	std::string file = AFFRESCOUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
 	std::filesystem::path socketDir = defaultSocketDir();
+	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
 	// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps
 	std::optional<affresco::Mode> mode;
 	std::vector<std::string> plugins;
@@ -36,21 +37,27 @@ int main(int argc, char** argv) {
 	for(int i = 1; i < argc; ++i) {
 		const std::string_view arg = argv[i];
 		if(arg == "--socket" && i + 1 < argc) socketDir = argv[++i];
+		else if(arg == "--data" && i + 1 < argc) dataDir = argv[++i];
 		else if(arg == "--plugin" && i + 1 < argc) plugins.emplace_back(argv[++i]);
 		else if(arg == "--auto-accept") mode = affresco::Mode::AcceptEdits;
 		else if(arg == "--mode" && i + 1 < argc && affresco::modeFromString(argv[i + 1]))
 			mode = *affresco::modeFromString(argv[++i]);
 		else if(!arg.starts_with("--")) file = arg;
 		else {
-			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--mode default|acceptEdits|plan] "
-			             "[--auto-accept] [--plugin changes.json]\n";
+			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
+			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json]\n";
 			return 2;
 		}
 	}
 
 	try {
 		affresco::Application app;
-		affresco::Screen screen = affresco::Screen::fromFile(file);
+		// A plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER) draws one frame and exits.
+		// It shows the file as it is, so it neither loads nor writes the screen's history.
+		const bool firstFrameOnly = std::getenv("AFFRESCOUI_SCREENSHOT") && !std::getenv("AFFRESCOUI_SCREENSHOT_AFTER");
+		using History = affresco::Screen::History;
+		affresco::Screen screen =
+		    affresco::Screen::fromFile(file, dataDir, firstFrameOnly ? History::InMemory : History::OnDisk);
 		screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
 		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 		if(mode) screen.setModeForThisRun(*mode);
@@ -69,8 +76,7 @@ int main(int argc, char** argv) {
 			std::cerr << "plugin applied: " << plugin << " (revision " << screen.revision() << ")\n";
 		}
 
-		// A plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER) draws one frame and exits
-		if(!std::getenv("AFFRESCOUI_SCREENSHOT") || std::getenv("AFFRESCOUI_SCREENSHOT_AFTER")) {
+		if(!firstFrameOnly) {
 			createSocketDir(socketDir);
 			screen.listen(app, socketDir / "studio.sock", "studio");
 			screen.listen(app, socketDir / "agent.sock", "agent");

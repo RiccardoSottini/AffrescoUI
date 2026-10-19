@@ -49,12 +49,32 @@ public:
 	using ProposalInfo = affresco::ProposalInfo;                                                ///< An open proposal.
 	using CommitInfo = affresco::CommitInfo;                                                    ///< A commit.
 
-	/// @brief Loads a screen file, with its history and "persist" state from ~/.affrescoui (setHistoryDirectory(),
-	/// setStateFile()).
+	/// @brief How fromFile() keeps a screen's version-control history.
+	enum class History {
+		OnDisk,  ///< In the data folder, so that it survives a restart (VERSION_CONTROL.md, "History on disk").
+		InMemory ///< In memory only, e.g. for a one-frame screenshot, which shows the file as it is.
+	};
+
+	/// @brief The folder fromFile() keeps screens' data in: $AFFRESCOUI_DATA_DIR if it is set, else ~/.affrescoui.
+	/// Give each parallel session its own (like the socket folder), so that their histories never meet.
+	/// @return The folder.
+	[[nodiscard]] static std::filesystem::path defaultDataDirectory();
+
+	/// @brief Loads a screen file, with its history and "persist" state from defaultDataDirectory()
+	/// (setHistoryDirectory(), setStateFile()).
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @return The screen, not yet built.
 	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
+
+	/// @brief Loads a screen file, with its data in a folder of the caller's choice.
+	/// @param path The file; relative font and "include" paths are resolved from its directory.
+	/// @param dataDirectory Where "<file name>.history/" and "<file name>.state.json" are kept.
+	/// @param history Whether the history is kept there or in memory only; the "persist" state is kept there either way.
+	/// @return The screen, not yet built.
+	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
+	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
+	                                     History history = History::OnDisk);
 
 	/// @brief Loads a screen from JSON text.
 	/// @param content The document.
@@ -137,7 +157,8 @@ public:
 
 	/// @brief Keeps the screen's version-control history in a folder, and loads it from there if it has one, so that
 	/// main, the open proposals, the grants and the mode survive a restart (VERSION_CONTROL.md, "History on disk").
-	/// fromFile() does it with ~/.affrescoui/<screen file name>.history; a screen from fromString() stays in memory.
+	/// fromFile() does it with <data folder>/<screen file name>.history (defaultDataDirectory()); a screen from
+	/// fromString() stays in memory.
 	/// Call it before build() and before any change. If another program writes that history, this one only reads it
 	/// (a warning says so); if the screen file changed since it was written, it is moved aside and a new one starts.
 	/// @param directory The folder; created if needed.
@@ -146,7 +167,7 @@ public:
 	void setHistoryDirectory(const std::filesystem::path& directory);
 
 	/// @brief Sets the file the "persist" paths are kept in, and loads them from it if it exists (default:
-	/// ~/.affrescoui/<screen file name>.state.json).
+	/// <data folder>/<screen file name>.state.json, see defaultDataDirectory()).
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
 

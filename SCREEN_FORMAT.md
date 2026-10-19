@@ -311,7 +311,8 @@ disconnect. The AffrescoUI Studio is built this way: its file is the whole clien
 
 `"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json`, loaded at start and
 written when they change. A screen opened from a file keeps its version-control history next to it, in
-`~/.affrescoui/<file name>.history/` (VERSION_CONTROL.md, "History on disk").
+`~/.affrescoui/<file name>.history/` (VERSION_CONTROL.md, "History on disk"). `AFFRESCOUI_DATA_DIR` (or the host's
+and the Studio's `--data`) puts both in another folder.
 
 ## Live screens: revisions and the channel
 

@@ -300,15 +300,16 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 }
 
 /// @brief Where a screen file's data on disk is kept: its "persist" state and its history.
+/// @param dataDirectory The data folder (Screen::defaultDataDirectory()).
 /// @param screenFile The screen file.
 /// @param suffix What is kept: ".state.json" or ".history".
-/// @return ~/.affrescoui/<the file's name without ".screen.json"><suffix>: "habits.screen.json" -> "habits.history".
-std::filesystem::path stateLocation(const std::filesystem::path& screenFile, std::string_view suffix) {
-	const char* home = std::getenv("HOME");
+/// @return <data folder>/<the file's name without ".screen.json"><suffix>: "habits.screen.json" -> "habits.history".
+std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, const std::filesystem::path& screenFile,
+                                    std::string_view suffix) {
 	std::string name = screenFile.filename().string();
 	for(const char* extension : {".json", ".screen"})
 		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
-	return std::filesystem::path(home ? home : ".") / ".affrescoui" / (name + std::string(suffix));
+	return dataDirectory / (name + std::string(suffix));
 }
 
 /// @brief Parses JSON text.
@@ -343,7 +344,16 @@ Screen::Screen(Screen&&) noexcept = default;
 Screen& Screen::operator=(Screen&&) noexcept = default;
 Screen::~Screen() = default;
 
-Screen Screen::fromFile(const std::filesystem::path& path) {
+std::filesystem::path Screen::defaultDataDirectory() {
+	if(const char* folder = std::getenv("AFFRESCOUI_DATA_DIR"); folder && *folder) return folder;
+	const char* home = std::getenv("HOME");
+	return std::filesystem::path(home ? home : ".") / ".affrescoui";
+}
+
+Screen Screen::fromFile(const std::filesystem::path& path) { return fromFile(path, defaultDataDirectory()); }
+
+Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
+                        History history) {
 	std::ifstream file(path);
 	if(!file) {
 		throw ScreenError(
@@ -355,8 +365,8 @@ Screen Screen::fromFile(const std::filesystem::path& path) {
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
 	// The history first: it sets the live state that the "persist" paths are then loaded into
-	screen.setHistoryDirectory(stateLocation(path, ".history"));
-	screen.setStateFile(stateLocation(path, ".state.json"));
+	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
+	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
 	return screen;
 }
 
