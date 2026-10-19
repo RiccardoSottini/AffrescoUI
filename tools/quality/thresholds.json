@@ -1,0 +1,13 @@
+{
+  "note": "The quality gate fails a change that adds or worsens a function over 'function'. 'aim' is the target in docs/fleet/AIMS.md, reported but not enforced. The maintainer tightens these over time (README.md).",
+  "function": {
+    "length": 80,
+    "complexity": 15
+  },
+  "aim": {
+    "length": 60,
+    "complexity": 12
+  },
+  "sources": ["modules", "examples", "tests"],
+  "top": 20
+}
