@@ -210,7 +210,10 @@ std::vector<Workload> textWorkloads(const Context& context) {
 } // namespace
 
 std::vector<Group> engineGroups() {
-	return {{"expressions", expressionWorkloads}, {"commits", commitWorkloads}, {"text", textWorkloads}};
+	return {{"expressions", expressionWorkloads},
+	        {"commits", commitWorkloads},
+	        {"text", textWorkloads},
+	        {"history", historyWorkloads}};
 }
 
 } // namespace affresco::bench

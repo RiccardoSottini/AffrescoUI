@@ -2,6 +2,17 @@
 # registries; README.md)
 affrescoui_module(format
 	src/Expression.cpp
+	src/ExpressionParser.cpp
+	src/ExpressionLower.cpp
+	src/ExpressionMachine.cpp
+	src/ExpressionFunctions.cpp
+	src/ExpressionFunctionsLogic.cpp
+	src/ExpressionFunctionsNumbers.cpp
+	src/ExpressionFunctionsText.cpp
+	src/ExpressionFunctionsLists.cpp
+	src/ExpressionFunctionsItems.cpp
+	src/ExpressionFunctionsTime.cpp
+	src/Value.cpp
 	src/Rules.cpp
 	src/Sections.cpp
 	src/CapabilitySections.cpp

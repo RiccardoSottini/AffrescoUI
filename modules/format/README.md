@@ -4,7 +4,8 @@
 document is, where a node is, who may change what, and which changes are forbidden for everyone; `Checker` finds what
 a document refers to but doesn't define, without running it; `Runtime` builds the document into `render` panels,
 keeps them in line with every new version and state, and runs events, actions and steps. Expressions (`{{...}}`) are
-compiled to JSON operator trees and evaluated on `json`. The format is general: it describes any application's UI,
+parsed into JSON operator trees (what the checker reads), lowered once into typed nodes, and run by a small machine
+on `Value`s, which read the state in place: JSON appears only at the edges. The format is general: it describes any application's UI,
 and what one application needs that the format can't express comes in through an extension point, not a feature.
 Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 
@@ -15,7 +16,8 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`; `findings` (the checker's findings as text); `addNativeAction` |
 | `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
 
-Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate),
+Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
+(the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
 `src/Checker.hpp` (`check`, `introduced`, `Finding`), and the registries (`src/TypeRegistry.hpp`,
 `src/StepRegistry.hpp`, `src/SectionRegistry.hpp`).
 
@@ -87,7 +89,10 @@ window's and its panels'), so a window can outlive its screen.
 - **Events out:** `onEvent` (`emit` steps), `onSend` (`send` steps to a channel), `onConnect`, `onUpdated`.
 - **Showing a document for a moment:** `setHandlersSuspended(true)` keeps the panels in line without running
   `onShow`, `onHide` or `watch`, taking focus or animating colours (pictures of proposals use it).
-- **Coming:** a bytecode VM for expressions (from 7.5).
+- **Expression functions:** a new function is a new row of the table in its group's file
+  (`src/ExpressionFunctions<Group>.cpp`): its name, arguments, one line of documentation, arity and implementation.
+  The parser, the catalog's `operators` and SCREEN_FORMAT.md's function list (a unit test checks it against
+  `functionGuide()`) come from the registry. A new group is a new file whose table `functions()` lists.
 
 ## Files
 
@@ -99,7 +104,12 @@ src/
   CheckerImpl.hpp          the checker's private parts
   CheckerNodes.cpp         the checker's walk of nodes: components, styles, repeat, variables, references
   CheckerValues.cpp        the checker's reading of values: expressions, operators, paths
-  Expression.hpp / .cpp    expressions: the parser, the compile cache, the operators, evaluation
+  Expression.hpp / .cpp    expressions: the API, and the caches of compiled expressions and split templates
+  ExpressionParser.*       the parser: an expression's text into its JSON operator tree
+  ExpressionLower.cpp      lowering an operator tree once into typed nodes
+  ExpressionMachine.*      the typed nodes and the machine that runs them: calls, paths, variables, templates
+  ExpressionFunctions.*    the function registry; ExpressionFunctions<Group>.cpp hold its tables
+  Value.hpp / .cpp         the values expressions compute with: inline short texts, shared lists and objects
   Runtime.cpp              the public API, forwarding to the engine
   Engine.hpp / .cpp        the composition root: registries and subsystems
   DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
