@@ -456,7 +456,8 @@ void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& proper
 
 	if(look.background) transitionColor(panel, record, "color", shownColor, *look.background);
 	if(look.label && look.foreground) transitionColor(panel, record, "textColor", shownText, *look.foreground);
-	if(look.border) transitionColor(panel, record, "borderColor", shownBorder, *look.border);
+	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
+	transitionColor(panel, record, "borderColor", shownBorder, look.border.value_or(colors::black));
 	if(look.scroll && (panel.isScrollable() || look.scroll->first || look.scroll->second))
 		panel.setScrollable(look.scroll->first, look.scroll->second);
 	else if(!look.scroll && panel.isScrollable()) panel.setScrollable(false, false);

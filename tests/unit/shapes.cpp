@@ -9,8 +9,10 @@
 #include <GLFW/glfw3.h>
 #include <doctest/doctest.h>
 
+#include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
 namespace {
 
@@ -106,4 +108,26 @@ TEST_CASE("format: a border colour transition animates, and stops when its scree
 	screen.reset();
 	CHECK_FALSE(window.secondsToNextTimer());
 	window.render();
+}
+
+// A state ending or a revision removing the colour mid-way must not leave the old target behind
+TEST_CASE("format: a border colour removed during its transition goes back to the default") {
+	affresco::Application app;
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	affresco::Screen screen = affresco::Screen::fromString(cardScreen);
+	affresco::Window& window = screen.createWindow(app);
+	window.render();
+
+	REQUIRE(screen.applyRevision(R"({"set": {"/state/on": true}})"));
+	window.render();
+	REQUIRE(window.secondsToNextTimer()); // on its way from green to red
+
+	REQUIRE(screen.applyRevision(R"({"remove": ["#card/borderColor"]})"));
+	window.render();
+	for(int frame = 0; frame < 20 && window.secondsToNextTimer(); ++frame) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(40));
+		window.render();
+	}
+	CHECK_FALSE(window.secondsToNextTimer());
+	CHECK(screen.find("card")->borderColor() == affresco::colors::black);
 }
