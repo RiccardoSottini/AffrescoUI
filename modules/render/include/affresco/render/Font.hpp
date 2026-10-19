@@ -80,6 +80,9 @@ public:
 	[[nodiscard]] const Glyph& glyph(char32_t codepoint) const noexcept;
 
 	/// @brief Whether the font or one of its fallbacks has a glyph for a character.
+	///
+	/// It says what the files hold, not what glyph() draws: once the atlas is full, a character it has may still draw
+	/// as '?'.
 	/// @param codepoint A Unicode code point.
 	[[nodiscard]] bool hasGlyph(char32_t codepoint) const noexcept;
 
@@ -119,8 +122,9 @@ public:
 	[[nodiscard]] Vec2 whiteTexel(std::size_t page = 0) const noexcept;
 
 private:
-	struct Glyphs;
+	struct Glyphs; ///< What grows as glyphs are looked up; defined in Font.cpp.
 
+	/// @brief An empty font, with no face or page yet: load() fills it.
 	Font();
 
 	/// @brief Rasterises Latin-1 into the first page, if it fits, taking what the font lacks from its fallbacks.
