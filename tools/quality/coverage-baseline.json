@@ -1,0 +1,11 @@
+{
+  "note": "The coverage floor: the least line coverage (percent) of the unit tests for these modules and files. 'run.sh coverage BASE' fails below it, reading this file from the base commit, so a change can't lower it for itself. Set a little under what was measured, so that only a real drop fails; raise it when coverage rises (README.md). Measured on 2026-10-19 (CI, llvm-cov 18): see the pull request that set each number.",
+  "modules": {
+    "core": { "lines": 92 },
+    "vcs": { "lines": 89 },
+    "channel": { "lines": 90 }
+  },
+  "files": {
+    "modules/format/src/Rules.cpp": { "lines": 90 }
+  }
+}

@@ -4,7 +4,8 @@
 ///
 /// The input is lines. Each goes to the agent, or to the reviewer when it starts with '>' (taken off). A peer's
 /// message, however malformed, must get an answer and never take the app down, and everything a session sends must
-/// be one JSON object with a "type".
+/// be one JSON object with a "type". The agent's limits (PeerLimits) are low, so inputs reach them: 4 KiB a message,
+/// 24 messages and 6 changes.
 
 #include "Fuzz.hpp"
 
@@ -43,14 +44,31 @@ public:
 	void receive(const std::string& line) { onMessage(line); }
 };
 
+/// @brief Limits small enough for an input to reach them, and that never refill while it runs, so each input has
+/// one outcome however long it takes.
+/// @param burst Messages at once.
+/// @param changes Changes at once.
+/// @return The limits.
+affresco::channel::PeerLimits fuzzLimits(double burst, double changes) {
+	affresco::channel::PeerLimits limits;
+	limits.maxMessageBytes = 4096;
+	limits.messagesPerSecond = 1e-9;
+	limits.messageBurst = burst;
+	limits.revisionsPerMinute = 1e-9;
+	limits.revisionBurst = changes;
+	return limits;
+}
+
 /// @brief The Kanban template under version control, and its two peers. Members are destroyed in reverse order, so
 /// the sessions go before the channels and the repository they use.
 struct Peers {
 	affresco::format::Rules rules;                                               ///< The screen format.
 	affresco::vcs::Repository versions{rules, affresco::fuzz::kanbanTemplate()}; ///< The screen.
 	CheckedChannel agentChannel, studioChannel;                                  ///< What each peer is sent.
-	affresco::channel::Session agent{agentChannel, versions, "agent"};           ///< May propose; asks for /actions.
-	affresco::channel::Session studio{studioChannel, versions, "studio"};        ///< Changes anything and reviews.
+	/// May propose; asks for /actions. Its limits are low enough for inputs to cross them.
+	affresco::channel::Session agent{agentChannel, versions, "agent", {}, nullptr, fuzzLimits(24, 6)};
+	/// Changes anything and reviews.
+	affresco::channel::Session studio{studioChannel, versions, "studio", {}, nullptr, fuzzLimits(1000, 1000)};
 };
 
 } // namespace

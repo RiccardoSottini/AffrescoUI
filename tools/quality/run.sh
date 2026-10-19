@@ -3,11 +3,14 @@
 #
 # Usage, from anywhere in the repository:
 #   tools/quality/run.sh gate [BASE]  clang-tidy and function size on what changed since BASE, uncommitted changes
-#                                     included (default BASE: where HEAD left origin/master); fails on a new problem
-#   tools/quality/run.sh coverage     builds and runs the unit tests with clang's source-based coverage
+#                                     included (default BASE: where HEAD left origin/master), with BASE's rules
+#                                     (.clang-tidy, thresholds.json); fails on a new problem
+#   tools/quality/run.sh coverage [BASE]
+#                                     builds and runs the unit tests with clang's source-based coverage; fails below
+#                                     the floor in coverage-baseline.json (BASE's, if given)
 #   tools/quality/run.sh report       the whole repository: the longest and most complex functions, tidy findings per
 #                                     module, and the coverage if `coverage` ran before
-#   tools/quality/run.sh all          gate, coverage and report
+#   tools/quality/run.sh all [BASE]   gate, coverage and report
 #   tools/quality/run.sh test         the unit tests of these tools (test_quality.py)
 #
 # Environment:
@@ -66,11 +69,12 @@ setup_python() {
 }
 
 # Configures the build with clang, coverage instrumentation and compile_commands.json (what clang-tidy reads). The
-# benchmarks are on so tests/perf is in it too: a file missing from it can't be parsed, so it can't be checked.
+# benchmarks and the fuzz sources (compiled without libFuzzer) are on so tests/perf and tests/fuzz are in it too: a
+# file missing from it can't be parsed, so it can't be checked.
 configure() {
 	local flags="-fprofile-instr-generate -fcoverage-mapping"
 	cmake -S "$root" -B "$build" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-		-DAFFRESCOUI_BUILD_BENCHMARKS=ON \
+		-DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_COMPILE_FUZZ_SOURCES=ON \
 		-DCMAKE_C_COMPILER="$llvm/clang" -DCMAKE_CXX_COMPILER="$llvm/clang++" \
 		"-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" >/dev/null
 }
@@ -82,8 +86,13 @@ gate() {
 		--jobs "$jobs"
 }
 
-# Builds and runs the unit tests with coverage, then writes coverage.json, coverage.lcov and an HTML report.
+# Builds and runs the unit tests with coverage, then writes coverage.json, coverage.lcov and an HTML report, and
+# fails below the coverage floor ($1's, if given).
 coverage() {
+	local base_option=()
+	if [ -n "${1:-}" ]; then
+		base_option=(--base "$1")
+	fi
 	local out="$build/coverage"
 	local tests="$build/affrescoui_unit_tests"
 	local ignore='(_deps|external|tests)/'
@@ -98,7 +107,8 @@ coverage() {
 		-ignore-filename-regex="$ignore" >"$out/coverage.lcov"
 	"$llvm/llvm-cov" show -format=html -output-dir "$out/html" -instr-profile "$out/unit.profdata" "$tests" \
 		-ignore-filename-regex="$ignore" -show-line-counts-or-regions
-	"$build/venv/bin/python" "$here/quality.py" coverage --export "$out/export.json" --output "$out/coverage.json"
+	"$build/venv/bin/python" "$here/quality.py" coverage --export "$out/export.json" --output "$out/coverage.json" \
+		"${base_option[@]+"${base_option[@]}"}"
 }
 
 # The whole-repository report, with the coverage if it was measured.
@@ -131,12 +141,12 @@ configure
 
 case "$command" in
 gate) gate "${2:-}" ;;
-coverage) coverage ;;
+coverage) coverage "${2:-}" ;;
 report) report ;;
 all)
 	status=0
 	gate "${2:-}" || status=$?
-	coverage
+	coverage "${2:-}" || status=$?
 	report
 	exit "$status"
 	;;

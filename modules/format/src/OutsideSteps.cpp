@@ -23,7 +23,9 @@ bool call(const Running& s) {
 		try {
 			json result = native->second(arguments);
 			if(step.contains("into")) {
-				engine.versions.state()[s.target("into")] = std::move(result);
+				const json::json_pointer pointer = s.target("into");
+				expect::shallowEnough(result, pointerDepth(pointer), where + ".into");
+				engine.versions.state()[pointer] = std::move(result);
 				engine.document.markStateChanged();
 			}
 		} catch(const DocumentError&) {

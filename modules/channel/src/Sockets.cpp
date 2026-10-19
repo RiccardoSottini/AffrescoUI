@@ -6,7 +6,9 @@
 
 #include "Lines.hpp"
 
+#include <chrono>
 #include <cstring>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -97,17 +99,48 @@ std::ptrdiff_t transmit(SocketHandle socket, const char* data, std::size_t size)
 	return send(socket, data, static_cast<int>(size < most ? size : most), 0);
 }
 
-/// @brief Reads this process's user.
+/// @brief Reads the user a process runs as.
+/// @param process The process (GetCurrentProcess() for this one).
 /// @return A TOKEN_USER, in a buffer; empty if it can't be read.
-std::vector<std::byte> currentUser() {
+std::vector<std::byte> userOf(HANDLE process) {
 	HANDLE token = nullptr;
-	if(!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) return {};
+	if(!OpenProcessToken(process, TOKEN_QUERY, &token)) return {};
 	DWORD size = 0;
 	GetTokenInformation(token, TokenUser, nullptr, 0, &size); // asks for the size
 	std::vector<std::byte> user(size);
 	if(!GetTokenInformation(token, TokenUser, user.data(), size, &size)) user.clear();
 	CloseHandle(token);
 	return user;
+}
+
+/// @brief Reads this process's user.
+/// @return A TOKEN_USER, in a buffer; empty if it can't be read.
+std::vector<std::byte> currentUser() { return userOf(GetCurrentProcess()); }
+
+/// @brief The SID in a TOKEN_USER buffer.
+/// @param user A buffer from userOf(), not empty.
+/// @return Its SID.
+PSID sidOf(std::vector<std::byte>& user) { return reinterpret_cast<TOKEN_USER*>(user.data())->User.Sid; }
+
+#ifndef SIO_AF_UNIX_GETPEERPID
+#define SIO_AF_UNIX_GETPEERPID _WSAIOR(IOC_VENDOR, 256) ///< In afunix.h of the Windows 10 SDKs from build 17063.
+#endif
+
+/// @brief Whether the process at the other end of a connection runs as this process's user: Winsock gives its
+/// process id, and its token gives its user.
+/// @param socket The connection.
+/// @return false also when the process can't be opened or its token read (e.g. another user's, or an elevated one).
+bool sameUser(SocketHandle socket) {
+	ULONG peer = 0;
+	DWORD size = 0;
+	if(WSAIoctl(socket, SIO_AF_UNIX_GETPEERPID, nullptr, 0, &peer, sizeof(peer), &size, nullptr, nullptr) != 0)
+		return false;
+	const HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, peer);
+	if(!process) return false;
+	std::vector<std::byte> theirs = userOf(process);
+	CloseHandle(process);
+	std::vector<std::byte> ours = currentUser();
+	return !theirs.empty() && !ours.empty() && EqualSid(sidOf(theirs), sidOf(ours)) != FALSE;
 }
 
 /// @brief Lets only this user open the socket file, as `chmod 0600` does on POSIX: the file's access list becomes
@@ -125,7 +158,7 @@ bool restrictToOwner(const std::filesystem::path& path) {
 	entry.grfInheritance = NO_INHERITANCE;
 	entry.Trustee.TrusteeForm = TRUSTEE_IS_SID;
 	entry.Trustee.TrusteeType = TRUSTEE_IS_USER;
-	entry.Trustee.ptstrName = static_cast<LPWSTR>(reinterpret_cast<TOKEN_USER*>(user.data())->User.Sid);
+	entry.Trustee.ptstrName = static_cast<LPWSTR>(sidOf(user));
 	PACL access = nullptr;
 	DWORD error = SetEntriesInAclW(1, &entry, nullptr, &access);
 	if(error == ERROR_SUCCESS) {
@@ -254,6 +287,22 @@ std::ptrdiff_t transmit(SocketHandle socket, const char* data, std::size_t size)
 	return detail::writeDescriptor(socket, data, size);
 }
 
+/// @brief Whether the process at the other end of a connection runs as this process's user (its effective user).
+/// @param socket The connection.
+/// @return false also when the operating system can't say.
+bool sameUser(SocketHandle socket) {
+#ifdef __linux__
+	ucred peer{};
+	socklen_t size = sizeof(peer);
+	return getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0 && size == sizeof(peer) &&
+	       peer.uid == geteuid();
+#else
+	uid_t user = 0;
+	gid_t group = 0;
+	return getpeereid(socket, &user, &group) == 0 && user == geteuid();
+#endif
+}
+
 /// @brief Lets only this user open the socket file (`0600`).
 /// @param path The socket file.
 /// @return false on an error (see lastError()).
@@ -369,6 +418,8 @@ SocketHandle listenAt(const std::filesystem::path& path) {
 
 } // namespace
 
+bool peerIsThisUser(SocketHandle socket) { return sameUser(socket); }
+
 /* SocketServer::Listener */
 
 /// @brief A listening socket, and the wake-up that lets the destructor stop a thread blocked accepting on it.
@@ -416,30 +467,77 @@ std::unique_ptr<SocketChannel> SocketChannel::connect(Executor& executor, const 
 	return std::make_unique<SocketChannel>(executor, connection);
 }
 
-SocketChannel::SocketChannel(Executor& executor, SocketHandle socket) : socket_(socket) {
+SocketChannel::SocketChannel(Executor& executor, SocketHandle socket, std::size_t maxQueuedBytes)
+    : socket_(socket), maxQueuedBytes_(maxQueuedBytes) {
 	ignoreBrokenPipes(socket_);
 	reader_ = std::thread([this, &executor] {
 		const auto read = [this](char* data, std::size_t size) { return receive(socket_, data, size); };
 		detail::readLines(read, executor, *this, alive_, &open_);
 	});
+	writer_ = std::thread([this] { writeQueued(); });
 }
 
 SocketChannel::~SocketChannel() {
 	*alive_ = false;
-	shutdownSocket(socket_); // ends the reader's read
+	{
+		// What was sent before the channel went away still goes out, unless the peer doesn't read it
+		std::unique_lock lock(queueMutex_);
+		stopping_ = true;
+		queueChanged_.notify_all();
+		queueChanged_.wait_for(lock, std::chrono::seconds(1), [this] { return writerDone_; });
+	}
+	shutdownSocket(socket_); // ends the reader's read, and a write the peer never took
 	if(reader_.joinable()) reader_.join();
+	if(writer_.joinable()) writer_.join();
 	closeSocket(socket_);
 }
 
 void SocketChannel::send(std::string_view message) {
+	if(!open_) return;
+	{
+		const std::scoped_lock lock(queueMutex_);
+		if(queuedBytes_ == 0 || queuedBytes_ + message.size() <= maxQueuedBytes_) {
+			queuedBytes_ += message.size();
+			queue_.emplace_back(message);
+			queueChanged_.notify_all();
+			return;
+		}
+	}
+	// The peer reads slower than the app writes to it: it is cut off, not buffered without end
+	log(LogLevel::Warning, "AffrescoUI: a peer fell more than " + std::to_string(maxQueuedBytes_ >> 20) +
+	                           " MiB behind in reading: closing its channel");
+	open_ = false;
+	shutdownSocket(socket_); // the reader sees the end and reports onClosed
+}
+
+void SocketChannel::writeQueued() {
 	const auto write = [this](const char* data, std::size_t size) { return transmit(socket_, data, size); };
-	if(open_ && !detail::writeAll(write, message)) open_ = false;
+	std::unique_lock lock(queueMutex_);
+	while(true) {
+		queueChanged_.wait(lock, [this] { return stopping_ || !queue_.empty(); });
+		if(queue_.empty()) break; // stopping, with everything written
+		const std::string message = std::move(queue_.front());
+		queue_.pop_front();
+		lock.unlock();
+		const bool written = open_ && detail::writeAll(write, message);
+		lock.lock();
+		queuedBytes_ -= message.size();
+		if(!written) { // the peer went away, or was cut off: nothing more will reach it
+			open_ = false;
+			queue_.clear();
+			queuedBytes_ = 0;
+			break;
+		}
+	}
+	writerDone_ = true;
+	queueChanged_.notify_all();
 }
 
 /* SocketServer */
 
-SocketServer::SocketServer(Executor& executor, std::filesystem::path path, Connected onConnection)
-    : executor_(executor), path_(std::move(path)), onConnection_(std::move(onConnection)) {
+SocketServer::SocketServer(Executor& executor, std::filesystem::path path, Connected onConnection, PeerCheck checkPeer)
+    : executor_(executor), path_(std::move(path)), onConnection_(std::move(onConnection)),
+      checkPeer_(std::move(checkPeer)) {
 	// A socket file left by a server that crashed is replaced; one that still answers is in use
 	if(const SocketHandle existing = connectTo(path_); existing != noSocket) {
 		closeSocket(existing);
@@ -450,12 +548,26 @@ SocketServer::SocketServer(Executor& executor, std::filesystem::path path, Conne
 
 	acceptor_ = std::thread([this] {
 		while(const std::optional<SocketHandle> connection = listener_->accept()) {
+			if(!admits(*connection)) {
+				log(LogLevel::Warning, "AffrescoUI: refused a connection to " + path_.string() +
+				                           ": the program on the other end runs as another user");
+				closeSocket(*connection);
+				continue;
+			}
 			executor_.post([this, socket = *connection, alive = alive_] {
 				if(*alive) onConnection_(std::make_unique<SocketChannel>(executor_, socket));
 				else closeSocket(socket);
 			});
 		}
 	});
+}
+
+bool SocketServer::admits(SocketHandle connection) const noexcept {
+	try {
+		return checkPeer_ && checkPeer_(connection);
+	} catch(...) { // the server's thread must not end: a check that fails refuses
+		return false;
+	}
 }
 
 SocketServer::~SocketServer() {

@@ -3,10 +3,12 @@
 
 #include <affresco/core/Json.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/core/Portable.hpp>
 
 #include <doctest/doctest.h>
 
 #include <cstddef>
+#include <ctime>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -96,4 +98,42 @@ TEST_CASE("core: log escapes control characters, so a message stays one line") {
 	CHECK(logged == std::vector<std::string>{R"(no node 'a\nFAKE: approved\x1b[2J\r\x7f')"
 	                                         "\tend",
 	                                         "plain text, é and tabs\tstay"});
+}
+
+// Before, a backslash went through as it was, so a peer's text "\n" (two characters) looked like an escaped line
+// break, and the C1 controls (U+0080 to U+009F) reached the terminal: U+009B starts a control sequence as ESC [ does
+TEST_CASE("core: log doubles backslashes and escapes the C1 controls, so an escape always means a control") {
+	std::vector<std::string> logged;
+	affresco::setLogSink([&](affresco::LogLevel, std::string_view message) { logged.emplace_back(message); });
+	affresco::log(affresco::LogLevel::Warning, "real\nforged\\n");
+	affresco::log(affresco::LogLevel::Warning, "C:\\Users\\me");
+	affresco::log(affresco::LogLevel::Warning, "csi \xc2\x9b" "2J, nel \xc2\x85, first \xc2\x80, last \xc2\x9f");
+	affresco::log(affresco::LogLevel::Warning, "not C1: \xc2\xa0 \xc3\xa9 \xe2\x82\xac, a lone \xc2");
+	affresco::setLogSink(nullptr);
+
+	CHECK(logged == std::vector<std::string>{
+	                    R"(real\nforged\\n)",
+	                    R"(C:\\Users\\me)",
+	                    R"(csi \u009b2J, nel \u0085, first \u0080, last \u009f)",
+	                    "not C1: \xc2\xa0 \xc3\xa9 \xe2\x82\xac, a lone \xc2", // no-break space, é, € and a cut byte
+	                });
+	CHECK(affresco::detail::escapeControls("a\\b") == R"(a\\b)");
+	CHECK_FALSE(affresco::detail::needsEscaping("plain text, é, € and tabs\tstay"));
+}
+
+TEST_CASE("core: the portable C library calls read the environment and break down times") {
+	CHECK_FALSE(affresco::environmentVariable("AFFRESCOUI_TEST_VARIABLE_NOBODY_SETS"));
+	CHECK(affresco::environmentVariable("PATH").has_value()); // set in every shell and CI job
+
+	const std::tm epoch = affresco::utcTime(0);
+	CHECK(epoch.tm_year == 70);
+	CHECK(epoch.tm_mon == 0);
+	CHECK(epoch.tm_mday == 1);
+	CHECK(epoch.tm_hour == 0);
+	const std::tm later = affresco::utcTime(86'400 + 3'600 + 60 + 1); // 2 January 1970, 01:01:01
+	CHECK(later.tm_mday == 2);
+	CHECK(later.tm_hour == 1);
+	CHECK(later.tm_min == 1);
+	CHECK(later.tm_sec == 1);
+	CHECK(affresco::localTime(86'400).tm_year == 70); // whatever the time zone, still 1970
 }

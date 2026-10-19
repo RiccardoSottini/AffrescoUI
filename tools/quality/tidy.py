@@ -47,12 +47,15 @@ def relative(path, root):
     return None if path.startswith("..") else path.replace(os.sep, "/")
 
 
-def run(clang_tidy, build, root, files, sources, jobs, changed_lines=None):
+def run(clang_tidy, build, root, files, sources, jobs, changed_lines=None, config_file=None):
     """Runs clang-tidy on each file and returns (findings, failures). Findings are dicts (file, line, column, check,
     message, module), once each even when a header is reached from several files, and only in `sources`.
-    `changed_lines` ({path: [(first, last)]}) keeps only findings on those lines. Failures are (file, output) for files
+    `changed_lines` ({path: [(first, last)]}) keeps only findings on those lines. `config_file` replaces the
+    .clang-tidy files of the working tree (the gate passes the base's). Failures are (file, output) for files
     clang-tidy couldn't parse or crashed on."""
     command = [clang_tidy, "-p", build, "--quiet"]
+    if config_file is not None:
+        command.append("--config-file=" + config_file)
     if changed_lines is not None:
         command.append("--line-filter=" + json.dumps(
             [{"name": path, "lines": [list(lines) for lines in ranges]} for path, ranges in changed_lines.items()]))

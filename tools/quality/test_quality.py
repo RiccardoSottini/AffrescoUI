@@ -2,6 +2,7 @@
 python3 -m unittest discover -s tools/quality
 """
 
+import json
 import os
 import subprocess
 import tempfile
@@ -10,6 +11,7 @@ import unittest
 import changes
 import coverage
 import functions
+import quality
 import tidy
 
 LIMITS = {"length": 10, "complexity": 3}
@@ -106,8 +108,8 @@ class TidyTest(unittest.TestCase):
         self.assertEqual(list(tidy.counts(findings, "module").items()), [("format", 2), ("vcs", 1)])
 
 
-class ChangesTest(unittest.TestCase):
-    """changes.changed_files on a scratch repository."""
+class ScratchRepository(unittest.TestCase):
+    """A git repository in a temporary folder, with one commit: modules/a.cpp and modules/b.cpp."""
 
     def git(self, *arguments):
         """Runs git in the scratch repository."""
@@ -128,9 +130,14 @@ class ChangesTest(unittest.TestCase):
         self.directory.cleanup()
 
     def write(self, path, text):
-        """Writes a file of the scratch repository."""
+        """Writes a file of the scratch repository, and the folders it is in."""
+        os.makedirs(os.path.dirname(os.path.join(self.root, path)), exist_ok=True)
         with open(os.path.join(self.root, path), "w") as file:
             file.write(text)
+
+
+class ChangesTest(ScratchRepository):
+    """changes.changed_files on a scratch repository."""
 
     def test_added_and_modified_lines_are_ranges_of_the_new_file(self):
         self.write("modules/a.cpp", "one\nTWO\nthree\nfour\nfive\nsix\n")
@@ -192,6 +199,54 @@ class CoverageTest(unittest.TestCase):
         self.assertEqual((vcs["measured"], vcs["unmeasured"]), (["modules/vcs/src/A.cpp"], ["modules/vcs/src/B.cpp"]))
         self.assertEqual(result["modules"]["render"]["figures"], {})
         self.assertIn("| render | – | – | – | 0 of 1 |", coverage.markdown(result))
+
+    def test_the_floor_fails_a_module_or_file_below_it(self):
+        result = {"modules": {"vcs": {"figures": {"lines": {"percent": 90.0}}},
+                              "core": {"figures": {"lines": {"percent": 84.99}}}},
+                  "files": {"modules/format/src/Rules.cpp": {"lines": {"percent": 80.0}}}}
+        baseline = {"modules": {"vcs": {"lines": 85}, "core": {"lines": 85}, "channel": {"lines": 85}},
+                    "files": {"modules/format/src/Rules.cpp": {"lines": 80}}}
+        # core is below; channel isn't measured at all, so it has lost its coverage; the rest are at or above
+        self.assertEqual(coverage.below_floor(result, baseline),
+                         [("core", "lines", 84.99, 85), ("channel", "lines", 0.0, 85)])
+        self.assertIn("**passed**", coverage.floor_markdown([], "the floor"))
+        self.assertIn("`core` lines: 84.99%, the floor is 85%",
+                      coverage.floor_markdown(coverage.below_floor(result, baseline), "the floor"))
+
+
+class RulesFromTheBaseTest(ScratchRepository):
+    """quality.rule_file: a change is judged by the rules of the commit it started from."""
+
+    THRESHOLDS = "tools/quality/thresholds.json"
+
+    def setUp(self):
+        super().setUp()
+        self.write(self.THRESHOLDS, json.dumps({"function": LIMITS}))
+        self.write(".clang-tidy", "Checks: 'bugprone-*'\n")
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "rules")
+
+    def test_a_change_that_loosens_a_threshold_is_still_judged_by_the_old_one(self):
+        # The change makes a function far over the limits, and raises the limits to let it through
+        self.write(self.THRESHOLDS, json.dumps({"function": {"length": 1000, "complexity": 1000}}))
+        self.write(".clang-tidy", "Checks: '-*'\n")
+        head = function_text("grown", 20)
+        self.write("modules/a.cpp", head)
+
+        limits = json.loads(quality.rule_file(self.root, "HEAD", self.THRESHOLDS))["function"]
+        self.assertEqual(limits, LIMITS)
+        self.assertEqual(quality.rule_file(self.root, "HEAD", ".clang-tidy"), "Checks: 'bugprone-*'\n")
+        file = changed("modules/a.cpp", [(1, head.count("\n"))], None)
+        too_big, _ = functions.gate([file], lambda path: head, lambda path: None, limits)
+        self.assertEqual(len(too_big), 1)
+        # What the change's own rules would have said
+        loose = json.loads(quality.rule_file(self.root, None, self.THRESHOLDS))["function"]
+        self.assertEqual(functions.gate([file], lambda path: head, lambda path: None, loose), ([], []))
+
+    def test_a_rule_file_the_base_lacks_is_read_from_the_working_tree(self):
+        self.write("tools/quality/coverage-baseline.json", "{}")
+        self.assertEqual(quality.rule_file(self.root, "HEAD", "tools/quality/coverage-baseline.json"), "{}")
+        self.assertIsNone(quality.rule_file(self.root, "HEAD", "tools/quality/missing.json"))
 
 
 if __name__ == "__main__":
