@@ -4,6 +4,7 @@
 
 #include "affresco/vcs/Repository.hpp"
 
+#include "Budget.hpp"
 #include "Deltas.hpp"
 #include "HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
 #include "Permissions.hpp"
@@ -311,6 +312,7 @@ void Repository::apply(json& view, json op, const json& written, const std::stri
 Repository::Prepared Repository::prepare(const json& patch, const json& document, const json& state) const {
 	if(!patch.is_array()) fail("revision.patch", "expected a JSON Patch array");
 
+	detail::RevisionBudget budget(patch); // before any work: a peer's revision may be made to be slow
 	Prepared result;
 	result.before = detail::view(document, state);
 	json after = result.before;
@@ -329,6 +331,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		}
 
 		result.patch.push_back(normalise(op, patch[i], after));
+		budget.spend(after, op, where);
 		apply(after, std::move(op), patch[i], where);
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
@@ -340,6 +343,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	if(document.contains("state")) result.document["state"] = document["state"];
 	else result.document.erase("state");
 	expectShallowEnough(result.before, after);
+	detail::expectNarrowEnough(result.before, after);
 
 	rules_.checkChange(result.before, after); // with the live state: the checker reads state paths
 	rules_.validate(result.document);
@@ -493,6 +497,10 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 	added.time = utcNow();
 	added.patch = patchOf(revision);
 	commits.push_back(std::move(added));
+	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
+	std::size_t operations = 0;
+	for(const Commit& c : commits) operations += c.patch.size();
+	detail::expectFewEnoughOperations(operations);
 
 	json document = mainDocument(), state = committedState(), patch = json::array();
 	std::string parent = main_.back();
