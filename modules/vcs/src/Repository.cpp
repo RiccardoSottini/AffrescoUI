@@ -6,6 +6,7 @@
 
 #include "HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
 #include "Permissions.hpp"
+#include "Reasons.hpp"
 #include "Sha256.hpp"
 
 #include <algorithm>
@@ -269,10 +270,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		try {
 			after.patch_inplace(json::array({std::move(op)}));
 		} catch(const json::exception& error) {
-			std::string why = error.what();
-			if(const std::size_t bracket = why.find("] "); why.starts_with("[json.exception") && bracket != std::string::npos)
-				why.erase(0, bracket + 2);
-			fail(where, why);
+			fail(where, detail::reasonOf(error));
 		}
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
@@ -585,9 +583,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 			try {
 				return prepare(taken.patch, mainHead().document, committedState());
 			} catch(const DocumentError& failure) {
-				std::string why = failure.what();
-				if(const std::string_view prefix = "AffrescoUI screen: "; why.starts_with(prefix))
-					why.erase(0, prefix.size());
+				const std::string why = detail::reasonOf(failure);
 				fail("proposal #" + std::to_string(id),
 				     "no longer applies on " + describe(mainHead()) + " (" + why + "): ask its author for a new one");
 			}

@@ -6,6 +6,7 @@
 
 #include "HistoryStore.hpp"
 #include "Permissions.hpp"
+#include "Reasons.hpp"
 #include "Sha256.hpp"
 
 #include "affresco/core/Log.hpp"
@@ -45,15 +46,9 @@ template <typename Read> decltype(auto) reading(const std::filesystem::path& fil
 	} catch(const HistoryError&) {
 		throw;
 	} catch(const DocumentError& error) {
-		std::string why = error.what();
-		if(const std::string_view prefix = "AffrescoUI screen: "; why.starts_with(prefix)) why.erase(0, prefix.size());
-		throw HistoryError(file, why);
+		throw HistoryError(file, detail::reasonOf(error));
 	} catch(const json::exception& error) {
-		std::string why = error.what(); // "[json.exception.out_of_range.403] key 'author' not found"
-		if(const std::size_t bracket = why.find("] ");
-		   why.starts_with("[json.exception") && bracket != std::string::npos)
-			why.erase(0, bracket + 2);
-		throw HistoryError(file, why);
+		throw HistoryError(file, detail::reasonOf(error));
 	}
 }
 
@@ -213,8 +208,7 @@ Repository::Refs Repository::readRefs(detail::HistoryStore& store) {
 			const json& grant = expect::object(grants[i], where);
 			std::string rule = expect::string(grant.at("rule"), where + ".rule");
 			expectGrantRule(rule, where + ".rule");
-			result.grants.push_back({std::move(rule),
-			                         expect::string(grant.at("grantedBy"), where + ".grantedBy"),
+			result.grants.push_back({std::move(rule), expect::string(grant.at("grantedBy"), where + ".grantedBy"),
 			                         expect::integer(grant.at("proposal"), where + ".proposal"),
 			                         expect::string(grant.at("time"), where + ".time")});
 		}
