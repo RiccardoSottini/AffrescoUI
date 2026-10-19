@@ -63,6 +63,10 @@ as the OpenGL driver's, aren't counted.
 | `expressions` | One evaluation of an expression from `tests/unit/expressions.cpp`. Every expression that succeeds is used, except the two that test the 10,000-item limits. Each run evaluates the table 100 times. Evaluation reuses the compiled expression, as a screen does |
 | `commits` | One small commit (a label's text) on the Kanban template's history, 1,000 per run. `retainedBytes` is the memory each commit keeps |
 | `text` | Measuring and wrapping 10,000 lines, in Roboto at 15 px, to 240 px |
+| `history/commit/<n>` | One small commit (a label's text) on a Kanban history of 100 or 10,000 commits, 100 per run: the same cost at both sizes, and `retainedBytes` is what each commit keeps. Each run adds to the history |
+| `history/blame` | Blame of a node no commit changed, on the 10,000-commit history: it reads every commit back to revision 0 |
+| `history/diff` | A diff of two commits on the 10,000-commit history, the farthest from their snapshot: the worst rebuild |
+| `history/load/10000` | Opening a folder holding a history of 10,000 commits (written once, unmeasured, as one change set) |
 | `load/<template>` | Parsing, validating and building a template into a window. The window is opened before the run. Each run keeps its screen, so `retainedBytes` is the memory of a loaded screen |
 | `update/<cards>` | One state change on the Kanban template, filled to 14, 100 or 400 cards, followed by its reconciliation and layout. The change renames the board (`set state.board`). The board is filled by copying the template's own 12 cards into its four columns in turn, so even `update/14` has two copies |
 | `revision/<template>/<edit>` | One canonical edit from `edits/<template>.json`, applied as a revision: the commit, the reconciliation and the layout. Each edit has its own screen. Between runs the edit is taken back, unmeasured. The history still grows (see below) |
@@ -105,9 +109,9 @@ workloads apply every one of them, so an edit that no longer applies fails the b
 ## Adding a workload
 
 1. Choose a group. `screens.cpp` holds the groups that need a window: `load`, `update`, `revision`, `layout` and
-   `frame`. `engine.cpp` holds the ones that don't: `expressions`, `commits` and `text`. A new family is a new
-   function that returns its `Workload`s, listed in `screenGroups()` or `engineGroups()`. In a new file, it also needs
-   its own line in `CMakeLists.txt`.
+   `frame`. `engine.cpp` holds the ones that don't: `expressions`, `commits` and `text`, and `history.cpp` holds
+   `history`. A new family is a new function that returns its `Workload`s, listed in `screenGroups()` or
+   `engineGroups()`. In a new file, it also needs its own line in `CMakeLists.txt`.
 2. Do the setup in that function: load the screen, build the inputs. It isn't measured.
 3. Fill in the `Workload`:
    - its `name`;

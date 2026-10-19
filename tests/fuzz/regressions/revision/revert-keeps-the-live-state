@@ -1,0 +1,1 @@
+{"author":"studio","patch":[{"op":"add","path":"/state/extra","value":[1,2]},{"op":"copy","from":"/state/extra","path":"/state/copy"},{"op":"move","from":"/state/copy","path":"/statowe","path":"#topBar/chia"}]}

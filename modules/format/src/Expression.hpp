@@ -10,6 +10,11 @@
 ///
 /// Paths start with a variable: state, event, window, revision, proposals, history, preview, mode, computed, theme,
 /// screen, nodes, or a name given by "repeat", "forEach", "let", "with" or a component's params.
+///
+/// How it works: the parser (ExpressionParser.hpp) turns an expression into an operator tree, which is lowered once
+/// into a typed form and run by a machine on small Values (ExpressionMachine.hpp, Value.hpp). The functions are rows
+/// of a registry (ExpressionFunctions.hpp). JSON appears only at the edges: the state is read in place, and results
+/// become JSON when evaluate() returns.
 
 #include "affresco/core/Json.hpp"
 
@@ -32,7 +37,7 @@ struct Scope {
 	/// @brief Finds a variable here or in an enclosing scope (the innermost wins).
 	/// @param name The variable.
 	/// @return Its value, or nullptr.
-	[[nodiscard]] const json* find(const std::string& name) const {
+	[[nodiscard]] const json* find(std::string_view name) const {
 		for(const Scope* scope = this; scope; scope = scope->parent)
 			if(const auto it = scope->vars.find(name); it != scope->vars.end()) return &*it;
 		return nullptr;
@@ -59,13 +64,13 @@ using NodeLookup = std::function<json(std::string_view id)>;
 
 /// @brief What a path can see while a value is evaluated.
 struct Context {
-	const json& state;               ///< The live state.
-	const json& window;              ///< Window size.
-	const json& revision;            ///< The current revision.
-	const json& event;               ///< The event being handled.
-	const Scope& locals;             ///< "repeat" / "forEach" / "let" variables.
-	const json& globals;             ///< Other screen-wide variables (proposals, history, computed, theme, ...).
-	const NodeLookup* nodes = nullptr; ///< For the `nodes` variable (none: it is unknown).
+	const json& state;                    ///< The live state.
+	const json& window;                   ///< Window size.
+	const json& revision;                 ///< The current revision.
+	const json& event;                    ///< The event being handled.
+	const Scope& locals;                  ///< "repeat" / "forEach" / "let" variables.
+	const json& globals;                  ///< Other screen-wide variables (proposals, history, computed, theme, ...).
+	const NodeLookup* nodes = nullptr;    ///< For the `nodes` variable (none: it is unknown).
 	const NodeLookup* computed = nullptr; ///< For `computed.<name>`, evaluated when read (none: from globals).
 };
 
@@ -129,8 +134,17 @@ struct Placeholders {
 /// @return true if evaluating it may give something else.
 [[nodiscard]] bool isDynamic(const json& value) noexcept;
 
-/// @brief The names of the operators and functions, for the catalog.
+/// @brief The names of the operators and functions, for the catalog (from the function registry).
 /// @return E.g. ["$add", "$filter", ...].
 [[nodiscard]] json operatorNames();
+
+/// @brief What each function takes and gives (from the function registry), for tools that explain them. The catalog
+/// leaves it out: it would double getCatalog's tokens, and the format guide lists every function's arguments.
+/// @return E.g. {"clamp": "value, low, high: The value, kept between low and high", ...}.
+[[nodiscard]] json functionCatalog();
+
+/// @brief The format guide's list of functions, as SCREEN_FORMAT.md has it (from the function registry).
+/// @return Markdown lines: "- functions: `len(value)`, ...", then the list functions.
+[[nodiscard]] std::string functionGuide();
 
 } // namespace affresco::format

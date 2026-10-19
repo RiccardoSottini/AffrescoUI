@@ -386,6 +386,12 @@ TOOLS = [
                     "would change now (`proposal`).",
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "to": {"type": ["integer", "string"]},
                                    "proposal": {"type": "integer"}})},
+    {"name": "get_blame",
+     "description": "Who last changed a node or a value, and when (like git blame): the commit on main that last "
+                    "changed `target`, a node (\"#board\", or \"#board/text\" inside it) or a path "
+                    "(\"/colors/accent\", \"/state/cards\"). Gives its revision, id, author, committer (who applied "
+                    "or approved it), message and time; revision 0 if it is as the screen file has it.",
+     "inputSchema": object_schema({"target": {"type": "string"}}, ["target"])},
     {"name": "restore_revision",
      "description": "Bring the whole screen back to how it was at an earlier revision (like git restore). This "
                     "creates a new revision (the history only grows) and follows the same permissions as any change.",
@@ -495,8 +501,19 @@ class Server:
         return [{"type": "image", "data": reply.get("data", ""), "mimeType": "image/png"},
                 {"type": "text", "text": caption}], False
 
+    def get_blame(self, args):
+        """The commit on main that last changed a node or a value."""
+        reply = self.host.request({"type": "blame", "target": args.get("target", "")})
+        if reply.get("type") != "blame":
+            return f"error: {reply.get('error') or reply.get('message')}", True
+        commit = reply.get("commit") or {}
+        return compact({k: commit.get(k) for k in ("number", "short", "author", "committer", "message", "time")
+                        if k in commit}), False
+
     def call_tool(self, name, args):
         host = self.host
+        if name == "get_blame":
+            return self.get_blame(args)
         if name == "wait_for_request":
             host.ensure()  # so requests can arrive at all
             request = self.wait_for_request(args.get("timeout_seconds", 120))

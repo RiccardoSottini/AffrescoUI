@@ -4,6 +4,7 @@
 
 #include "affresco/vcs/Repository.hpp"
 
+#include "Deltas.hpp"
 #include "HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
 #include "Permissions.hpp"
 #include "Reasons.hpp"
@@ -41,35 +42,6 @@ std::string authorOf(const json& revision) {
 /// @param revision The revision.
 /// @return "message" as text.
 std::string messageOf(const json& revision) { return toText(revision.value("message", json(""))); }
-
-/// @brief Applies one JSON Patch operation, its paths resolved, refusing one that adds a value inside a number, a
-/// string or a boolean.
-///
-/// RFC 6902 makes that an error, but nlohmann::json asserts on it (and without assertions silently changes nothing),
-/// so the parent is checked first. A move is applied as nlohmann::json does it, a remove and then an add of the value
-/// removed, so that the check sees the document after the remove.
-/// @param document The document, changed in place (left half changed if this throws).
-/// @param operation The operation.
-/// @param where Its place, for the error.
-/// @throws json::exception If it can't apply.
-/// @throws DocumentError If it adds inside a value that holds nothing.
-void applyOperation(json& document, json operation, const std::string& where) {
-	const auto text = [&](const char* key) { return operation.contains(key) && operation[key].is_string(); };
-	const std::string kind = text("op") ? operation["op"].get<std::string>() : "";
-	if(kind == "move" && text("path") && text("from")) {
-		json value = document.at(json::json_pointer(operation["from"].get<std::string>()));
-		document.patch_inplace(json::array({{{"op", "remove"}, {"path", operation["from"]}}}));
-		operation = {{"op", "add"}, {"path", operation["path"]}, {"value", std::move(value)}};
-	}
-	if(text("path") && (kind == "add" || kind == "copy" || kind == "move")) {
-		const json::json_pointer path(operation["path"].get<std::string>());
-		const json* parent = path.empty() ? nullptr : detail::locate(document, path.parent_pointer().to_string());
-		if(parent && !parent->is_structured() && !parent->is_null()) // null becomes an object, as in nlohmann::json
-			fail(where, "'" + path.parent_pointer().to_string() + "' is a " + parent->type_name() +
-			                ": nothing can be added inside it");
-	}
-	document.patch_inplace(json::array({std::move(operation)}));
-}
 
 /// @brief A revision's changes as JSON Patch: its "patch", then its compact edits in a fixed order: "set" (replace,
 /// or add where nothing is there yet), "add", "remove", "move". `{"set": {"#statusBar/color": "@topBar"}}`.
@@ -141,14 +113,13 @@ std::optional<std::size_t> digits(std::string_view text) {
 Repository::Repository(const DocumentRules& rules, json document) : rules_(rules) {
 	rules_.validate(document);
 	if(document.contains("state")) state_ = expect::object(document["state"], "state");
-	document_ = document;
 
 	Commit first;
 	first.author = first.committer = "file";
 	first.message = "original";
 	first.time = utcNow();
-	first.document = std::move(document);
-	main_.push_back(store(std::move(first)).id);
+	main_.push_back(store(std::move(first), document, nullptr).id);
+	document_ = std::move(document);
 }
 
 /* Objects */
@@ -162,10 +133,8 @@ std::string Repository::describe(const Commit& c) {
 }
 
 // The id covers everything that makes the commit what it is, the parents included, so it stands for its history
-std::string Repository::idOf(const Commit& commit) { return idOf(commit, detail::sha256(commit.document.dump())); }
-
-std::string Repository::idOf(const Commit& commit, const std::string& tree) {
-	std::string object = "tree " + tree + "\n";
+std::string Repository::idOf(const Commit& commit) {
+	std::string object = "tree " + commit.tree + "\n";
 	for(const std::string& parent : commit.parents) object += "parent " + parent + "\n";
 	object += "author " + commit.author + "\ncommitter " + commit.committer + "\ntime " + commit.time + "\npatch " +
 	          detail::sha256(commit.patch.dump()) + "\n";
@@ -174,10 +143,21 @@ std::string Repository::idOf(const Commit& commit, const std::string& tree) {
 	return detail::sha256(object);
 }
 
-const Repository::Commit& Repository::store(Commit commit) {
+// A commit keeps the delta from its first parent; every snapshotInterval-th along first parents keeps its document too
+const Repository::Commit& Repository::store(Commit commit, const json& document, const json* parentDocument) {
+	commit.tree = detail::sha256(document.dump());
 	commit.id = idOf(commit);
+	if(const auto known = objects_.find(commit.id); known != objects_.end()) return known->second;
+
+	commit.delta = parentDocument ? detail::delta(*parentDocument, document) : json();
+	commit.sinceSnapshot = parentDocument ? objects_.at(commit.parents.front()).sinceSnapshot + 1 : 0;
+	commit.snapshot.reset();
+	if(!parentDocument || commit.sinceSnapshot >= snapshotInterval) {
+		commit.snapshot = std::make_shared<const json>(document);
+		commit.sinceSnapshot = 0;
+	}
 	const std::string id = commit.id;
-	return objects_.try_emplace(id, std::move(commit)).first->second;
+	return objects_.emplace(id, std::move(commit)).first->second;
 }
 
 const Repository::Commit& Repository::find(const json& revision) const {
@@ -299,7 +279,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		result.patch.push_back(std::move(stored));
 
 		try {
-			applyOperation(after, std::move(op), where);
+			detail::applyOperation(after, std::move(op), where);
 		} catch(const json::exception& error) {
 			fail(where, detail::reasonOf(error));
 		}
@@ -323,7 +303,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 Repository::Verdict Repository::evaluate(const json& before, const json& after, const std::string& author,
                                          bool reviewed) const {
 	using Kind = Verdict::Kind;
-	const Permissions permissions = rules_.permissions(mainHead().document);
+	const Permissions permissions = rules_.permissions(mainDocument());
 
 	for(const PermissionRule& rule : permissions.deny)
 		if(detail::authorMatches(rule.author, author) && detail::changes(rules_, before, after, rule.pattern))
@@ -354,21 +334,22 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 /* Changes */
 
 // The observer refusing the new version rolls everything back
-const Repository::Commit& Repository::land(Commit commit, json state) {
+const Repository::Commit& Repository::land(Commit commit, json document, json state) {
 	endPreview();
 	commit.parents.insert(commit.parents.begin(), main_.back());
 	commit.number = mainHead().number + 1;
-	const Commit& stored = store(std::move(commit));
+	recordStateChange(commit, state_, state);
+	const Commit& stored = store(std::move(commit), document, &document_);
 
 	main_.push_back(stored.id);
 	json oldState = std::exchange(state_, std::move(state));
-	document_ = stored.document;
+	json oldDocument = std::exchange(document_, std::move(document)); // moved, never copied: the commit keeps a delta
 	try {
 		documentChanged();
 	} catch(const DocumentError&) {
 		main_.pop_back();
 		state_ = std::move(oldState);
-		document_ = mainHead().document;
+		document_ = std::move(oldDocument);
 		documentChanged();
 		throw;
 	}
@@ -384,7 +365,7 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		expect::object(revision, "revision");
 		const std::string author = authorOf(revision);
 		checkParent(revision);
-		Prepared next = prepare(patchOf(revision), mainHead().document, committedState());
+		Prepared next = prepare(patchOf(revision), mainDocument(), committedState());
 		if(const Verdict verdict = evaluate(next.before, next.after, author, false);
 		   verdict.kind == Verdict::Kind::Deny)
 			fail("revision", verdict.reason);
@@ -393,9 +374,8 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		c.author = c.committer = author;
 		c.message = messageOf(revision);
 		c.time = utcNow();
-		c.document = std::move(next.document);
 		c.patch = std::move(next.patch);
-		land(std::move(c), std::move(next.state));
+		land(std::move(c), std::move(next.document), std::move(next.state));
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
@@ -410,7 +390,7 @@ RevisionResult Repository::submit(const json& revision) {
 		if(revision.contains("proposal")) return push(revision, author);
 
 		checkParent(revision);
-		Prepared next = prepare(patchOf(revision), mainHead().document, committedState());
+		Prepared next = prepare(patchOf(revision), mainDocument(), committedState());
 		const Verdict verdict = evaluate(next.before, next.after, author, true);
 
 		if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
@@ -445,9 +425,8 @@ RevisionResult Repository::submit(const json& revision) {
 		c.author = c.committer = author;
 		c.message = messageOf(revision);
 		c.time = utcNow();
-		c.document = std::move(next.document);
 		c.patch = std::move(next.patch);
-		const Commit& landed = land(std::move(c), std::move(next.state));
+		const Commit& landed = land(std::move(c), std::move(next.document), std::move(next.state));
 		return {RevisionStatus::Applied, landed.number, landed.id, 0, {}};
 	} catch(const DocumentError& error) {
 		return {RevisionStatus::Rejected, number, {}, 0, error.what()};
@@ -467,7 +446,7 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 	added.patch = patchOf(revision);
 	commits.push_back(std::move(added));
 
-	json document = mainHead().document, state = committedState(), patch = json::array();
+	json document = mainDocument(), state = committedState(), patch = json::array();
 	std::string parent = main_.back();
 	int number = mainHead().number;
 	std::vector<std::string> touches;
@@ -475,17 +454,16 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 		Prepared next = prepare(c.patch, document, state);
 		for(std::string& area : next.touches)
 			if(std::ranges::find(touches, area) == touches.end()) touches.push_back(std::move(area));
-		document = next.document;
 		state = std::move(next.state);
 		c.patch = std::move(next.patch);
 		patch.insert(patch.end(), c.patch.begin(), c.patch.end());
 		c.parents = {parent};
 		c.number = ++number;
-		c.document = std::move(next.document);
-		parent = store(std::move(c)).id;
+		parent = store(std::move(c), next.document, &document).id;
+		document = std::move(next.document);
 	}
 
-	const json before = detail::view(mainHead().document, committedState()), after = detail::view(document, state);
+	const json before = detail::view(mainDocument(), committedState()), after = detail::view(document, state);
 	const Verdict verdict = evaluate(before, after, proposal.author, true);
 	if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
@@ -526,7 +504,7 @@ RevisionResult Repository::push(const json& revision, const std::string& author)
 
 json Repository::restoreRevision(const json& revision, std::string_view author) const {
 	const Commit& target = find(revision);
-	json patch = json::diff(mainHead().document, target.document);
+	json patch = json::diff(mainDocument(), documentOf(target));
 	if(patch.empty()) fail("restore", "nothing to restore: the screen already looks like " + describe(target));
 	return {{"author", std::string(author)}, {"message", "Restore " + describe(target)}, {"patch", std::move(patch)}};
 }
@@ -537,37 +515,45 @@ json Repository::revertRevision(const json& revision, std::string_view author) c
 	if(std::ranges::find(main_, target.id) == main_.end()) fail("revert", describe(target) + " is not on main");
 	if(target.parents.empty()) fail("revert", "revision 0 is the screen as loaded: there is nothing to revert");
 
-	const json& head = mainHead().document;
-	json patch = json::diff(target.document, objects_.at(target.parents.front()).document);
-	if(patch.empty()) fail("revert", "nothing to revert: " + describe(target) + " only changed the live state");
+	const json then = documentOf(target);
+	json patch = json::diff(then, documentOf(objects_.at(target.parents.front())));
+	checkDocumentRevert(target, then, patch);
+	const json undo = stateRevert(target); // the live state too, when the commit changed it in this run
+	if(patch.empty() && undo.empty())
+		fail("revert", "nothing to revert: " + describe(target) + " changed neither the document nor, in this run, the "
+		                                                      "live state");
+	patch.insert(patch.end(), undo.begin(), undo.end());
+	return {
+	    {"author", std::string(author)}, {"message", "Revert \"" + target.message + "\""}, {"patch", std::move(patch)}};
+}
 
+void Repository::checkDocumentRevert(const Commit& target, const json& then, const json& patch) const {
+	const json& head = mainDocument();
 	auto same = [&](const std::string& pointer) {
-		const json *now = detail::locate(head, pointer), *then = detail::locate(target.document, pointer);
-		return now && then ? *now == *then : now == then;
+		const json *now = detail::locate(head, pointer), *before = detail::locate(then, pointer);
+		return now && before ? *now == *before : now == before;
 	};
 	for(const json& op : patch) {
 		const json::json_pointer path(op["path"].get<std::string>());
 		std::string checked = path.to_string();
-		const json* container = detail::locate(target.document, path.parent_pointer().to_string());
+		const json* container = detail::locate(then, path.parent_pointer().to_string());
 		if(!path.empty() && (path.back() == "-" || (container && container->is_array())))
 			checked = path.parent_pointer().to_string();
 
 		// The part must be as the commit left it, inside the same nodes
 		bool unchanged = same(checked);
 		for(json::json_pointer prefix(checked); unchanged && !prefix.empty(); prefix = prefix.parent_pointer()) {
-			const json* then = detail::locate(target.document, prefix.to_string());
-			if(then && then->is_object() && then->contains("id")) unchanged = same(prefix.to_string() + "/id");
+			const json* node = detail::locate(then, prefix.to_string());
+			if(node && node->is_object() && node->contains("id")) unchanged = same(prefix.to_string() + "/id");
 		}
 		if(!unchanged)
 			fail("revert", "conflict: " + (checked.empty() ? std::string("the screen") : checked) + " changed after " +
 			                   describe(target) + "; restore an earlier revision instead");
 	}
-	return {
-	    {"author", std::string(author)}, {"message", "Revert \"" + target.message + "\""}, {"patch", std::move(patch)}};
 }
 
 json Repository::diff(const json& from, const json& to) const {
-	return json::diff(find(from).document, find(to).document);
+	return json::diff(documentOf(find(from)), documentOf(find(to)));
 }
 
 /* Review */
@@ -587,7 +573,7 @@ std::vector<ProposalInfo> Repository::proposals() const {
 json Repository::proposalDiff(int id) const {
 	const Proposal* proposal = findProposal(id);
 	if(!proposal) fail("diff", "no proposal " + std::to_string(id));
-	const Prepared next = prepare(proposal->patch, mainHead().document, committedState());
+	const Prepared next = prepare(proposal->patch, mainDocument(), committedState());
 	return json::diff(next.before, next.after);
 }
 
@@ -621,7 +607,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 		// main may have moved since the proposal was built
 		Prepared next = [&] {
 			try {
-				return prepare(taken.patch, mainHead().document, committedState());
+				return prepare(taken.patch, mainDocument(), committedState());
 			} catch(const DocumentError& failure) {
 				const std::string why = detail::reasonOf(failure);
 				fail("proposal #" + std::to_string(id),
@@ -639,9 +625,8 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 		merge.message = taken.message;
 		merge.time = utcNow();
 		merge.proposal = id;
-		merge.document = std::move(next.document);
 		merge.patch = taken.patch;
-		merged = land(std::move(merge), std::move(next.state)).id;
+		merged = land(std::move(merge), std::move(next.document), std::move(next.state)).id;
 
 		if(approval.dontAskAgain) {
 			for(const std::string& rule : taken.remember)
@@ -677,9 +662,9 @@ std::optional<std::string> Repository::preview(int id) {
 
 	endPreview();
 	try {
-		Prepared next = prepare(proposal->patch, mainHead().document, state_);
+		Prepared next = prepare(proposal->patch, document_, state_);
 		committedState_ = std::exchange(state_, std::move(next.state));
-		document_ = std::move(next.document);
+		committedDocument_ = std::exchange(document_, std::move(next.document));
 		previewing_ = id;
 		documentChanged();
 	} catch(const DocumentError& error) {
@@ -693,7 +678,7 @@ std::optional<std::string> Repository::preview(int id) {
 void Repository::endPreview() {
 	if(!previewing_) return;
 	previewing_.reset();
-	document_ = mainHead().document;
+	document_ = std::move(committedDocument_);
 	state_ = std::move(committedState_);
 	documentChanged();
 	onReviewChanged();
@@ -701,7 +686,7 @@ void Repository::endPreview() {
 
 // Without rules anyone may; otherwise the reviewers, by exact name or channel ("studio" covers "studio/riccardo")
 bool Repository::mayReview(std::string_view author) const {
-	const Permissions permissions = rules_.permissions(mainHead().document);
+	const Permissions permissions = rules_.permissions(mainDocument());
 	if(!permissions.configured) return true;
 	return std::ranges::any_of(permissions.reviewers, [&](const std::string& reviewer) {
 		return reviewer == author || reviewer == detail::channelOf(author);
@@ -776,7 +761,7 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 	}
 
 	endPreview();
-	const json oldState = state_;
+	const json oldState = state_, oldDocument = document_;
 	const std::size_t oldMain = main_.size();
 	const std::string name = changes.value("name", "changes");
 
@@ -790,7 +775,7 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 		if(const auto error = commit(revision)) {
 			importing_ = false;
 			main_.resize(oldMain);
-			document_ = mainHead().document;
+			document_ = oldDocument;
 			state_ = oldState;
 			documentChanged();
 			return "changes.revisions[" + std::to_string(i) + "]: " + *error;

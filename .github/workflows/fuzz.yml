@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false # one target's crash doesn't stop the others
       matrix:
-        target: [json, expression, revision, session]
+        target: [json, expression, revision, session, delta]
     env:
       TARGET: ${{ matrix.target }}
       RUN_SECONDS: ${{ github.event_name == 'pull_request' && '60' || inputs.seconds || '900' }}
