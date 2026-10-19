@@ -3,7 +3,8 @@
 
     python3 tests/perf/compare.py --base out/base --head out/head [--threshold 3] [--allow] [--summary file.md]
 
-Each directory holds *.jsonl files from run.py and tokens.py, one result per line. Results are matched by name. Only
+Each directory holds *.jsonl files from run.py and tokens.py, one result per line. Results are matched by name, and
+the ones only the base has are listed. Only
 instruction counts (unit "instructions") are gated: a workload whose count grows by more than --threshold percent
 fails, unless --allow is given (the pull request has the perf-change label). Wall clock, allocations, memory and
 tokens are reported, not gated.
@@ -88,6 +89,10 @@ def report(base, head, threshold, allow):
     lines += section("Time (wall clock, or the main thread's CPU time for frames; not gated: shared runners are noisy)",
                      base, head, timed)[0]
     lines += section("Tokens (o200k_base, a stand-in for Claude's tokenizer)", base, head, tokens)[0]
+    removed = [name for name in base if name not in head]
+    if removed:  # a workload removed or renamed is no longer gated: say so instead of dropping it silently
+        lines += ["**Measured on the base but not on the head** (removed or renamed, so not compared):", ""]
+        lines += [f"- `{name}`" for name in removed] + [""]
 
     if regressions:
         verdict = "accepted: the pull request has the `perf-change` label" if allow else "the job fails"
