@@ -42,6 +42,8 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 TIMEOUT = 10  # seconds to wait for the host to answer
+NO_UNIX_SOCKETS = ("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: on Windows "
+                   "no released CPython has them yet, see mcp/README.md")
 
 
 def log(text):
@@ -105,8 +107,7 @@ class Host:
                 return
         # Before --launch: a host this Python can't reach would be started again on every call
         if not hasattr(socket, "AF_UNIX"):  # CPython on Windows, so far (python/cpython#77589)
-            raise RuntimeError("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: "
-                               "on Windows no released CPython has them yet, see mcp/README.md")
+            raise RuntimeError(NO_UNIX_SOCKETS)
         if not os.path.exists(self.path) and self.launch:
             log(f"no host running: starting {self.launch}")
             # Windows parses a command line itself, and shlex would drop the backslashes of its paths
@@ -622,8 +623,7 @@ def main():
     server = Server(socket_dir, launch)
     log(f"ready; the host is expected at {server.host.path}")
     if not hasattr(socket, "AF_UNIX"):
-        log("this Python has no Unix domain sockets (socket.AF_UNIX), so the tools can't reach the host: "
-            "see mcp/README.md")
+        log(NO_UNIX_SOCKETS)
     for line in sys.stdin:
         if line.strip():
             try:
