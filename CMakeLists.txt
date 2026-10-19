@@ -141,7 +141,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/channel.cpp tests/unit/screen.cpp)
+		tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/screen.cpp)
 	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src) # Expression.hpp stays private
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::affrescoui) # screen.cpp opens no window

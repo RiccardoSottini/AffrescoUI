@@ -92,7 +92,9 @@ The screen file decides, in a `permissions` section that no revision can change:
   including the app's own changes and the reviewer.
 - **Protected controls:** no revision may change `permissions`, or add or alter steps that control changes (`accept`,
   `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`, `patch`). Otherwise an agent could hide an "accept"
-  inside a button and approve itself.
+  inside a button and approve itself. Nor may it move one to another trigger (from a button into a timer), or add a
+  way to run one: a `run` or a handler that names an action with control steps, an action outside the document (the
+  application's native actions), or a computed `run` (`{ "run": "{{state.name}}" }`).
 - **Protected capabilities:** no revision may change `channels` (the programs the screen talks to) or `persist` (what
   it writes to disk), or add or alter `call`, `send` and `connect` steps. An agent can rearrange how the app uses the
   outside world, never give it new access to it.

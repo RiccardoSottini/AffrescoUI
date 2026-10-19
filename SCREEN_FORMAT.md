@@ -288,7 +288,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 
 **Control steps** (`call`, `send`, `connect`, `patch` and the review and history steps) can be written in the screen
 file, but no revision may add or change them: an agent can rearrange how the app uses the outside world and its own
-history, never widen it.
+history, never widen it. Nor may a revision move one to another trigger (a button's `onClick`, an `every` timer,
+`keys`, `watch`, `onLoad`), or add a `run` or a handler that names an action with control steps, a native action, or
+a computed action name.
 
 Only paths under `state` can be changed. After an event's steps finish, the UI is updated once. Panels are reused where
 the structure didn't change, so focus, typing, scrolling and drags in progress are kept. Errors in actions are
