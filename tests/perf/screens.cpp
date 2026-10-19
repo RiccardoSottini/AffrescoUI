@@ -213,7 +213,8 @@ void applyEdit(EditedScreen& screen) {
 }
 
 /// @brief "revision/<template>/<edit>": each canonical agent edit of tests/perf/edits applied as a revision (a commit,
-/// then reconciliation and layout). Between runs it is taken back, unmeasured.
+/// then reconciliation and layout). Between runs it is taken back, unmeasured. Taking it back commits too, so the
+/// history, and with it the cost, grows from run to run (tests/perf/README.md).
 /// @param context The context.
 /// @return One workload per edit.
 std::vector<Workload> revisionWorkloads(Context& context) {

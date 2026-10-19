@@ -65,11 +65,24 @@ as the OpenGL driver's, aren't counted.
 | `text` | Measuring and wrapping 10,000 lines, in Roboto at 15 px, to 240 px |
 | `load/<template>` | Parsing, validating and building a template into a window. The window is opened before the run. Each run keeps its screen, so `retainedBytes` is the memory of a loaded screen |
 | `update/<cards>` | One state change on the Kanban template, filled to 14, 100 or 400 cards, followed by its reconciliation and layout. The change renames the board (`set state.board`). The board is filled by copying the template's own cards into its four columns in turn |
-| `revision/<template>/<edit>` | One canonical edit from `edits/<template>.json`, applied as a revision: the commit, the reconciliation and the layout. Each edit has its own screen. Between runs the edit is taken back, unmeasured |
+| `revision/<template>/<edit>` | One canonical edit from `edits/<template>.json`, applied as a revision: the commit, the reconciliation and the layout. Each edit has its own screen. Between runs the edit is taken back, unmeasured. The history still grows (see below) |
 | `layout/400` | Laying out the largest screen, the Kanban template with 400 cards, after a resize |
 | `frame/<cards>` | Laying out and drawing a full frame of the Kanban template with 14 or 400 cards. This is the main thread's CPU time; the GPU's work isn't counted |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
+
+The `revision` runs are not all alike, though. Taking an edit back is itself a commit: an `undo()`, then a revision
+that resets the state. So each run adds two or three commits to the screen's history, and every update rebuilds the
+`history` global from the whole log. A later run costs more than an earlier one. For example,
+`revision/sign-in/rename-label` makes 5,536 allocations as the first measured run, and the median of 15 runs makes
+8,056. A screen can't be discarded and loaded again without leaving its window behind, so there is no fresh history
+for each run yet. Until then:
+
+- the callgrind count (one run after the warm-up) and the wall-clock median (15 runs) are taken at different history
+  lengths, so don't compare them with each other;
+- `--runs` changes these workloads' values. Compare runs made with the same options.
+
+CI compares base and head the same way, so the gate isn't affected.
 
 ## Tokens
 
@@ -105,6 +118,7 @@ workloads apply every one of them, so an edit that no longer applies fails the b
    - optionally a `prepare`, which gets each run ready (for example, it takes the last run's change back) and isn't
      measured.
    Steps must leave the screen as they found it, or prepare must put it back, so every run measures the same thing.
+   If that can only be partly done, as with `revision`'s history, write down what changes from run to run.
 4. Use only the public API (`affresco/affresco.hpp`), so the program builds against the base commit too.
    `expressions` is the one exception: it uses `Expression.hpp`, as the unit tests do.
 5. Run it locally, then with `--callgrind` on Linux. Check that two callgrind runs give the same count.
