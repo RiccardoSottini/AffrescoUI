@@ -10,6 +10,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <fstream>
 #include <functional>
@@ -44,6 +45,7 @@ std::vector<std::string> lines(const json& document, const std::set<std::string,
 	const auto found = affresco::format::check(document, document.value("state", json::object()), nativeActions);
 	REQUIRE(found);
 	std::vector<std::string> result;
+	if(!found) return result; // never: REQUIRE has stopped the test, which clang-tidy can't tell
 	for(const Finding& finding : *found) result.push_back(finding.text());
 	return result;
 }
@@ -65,7 +67,7 @@ void checkAll(const std::vector<Case>& cases) {
 /// @param name E.g. "kanban".
 /// @return The document.
 json screenTemplate(const std::string& name) {
-	std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/" + name + ".screen.json");
+	const std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/" + name + ".screen.json");
 	REQUIRE(file);
 	std::stringstream content;
 	content << file.rdbuf();
@@ -73,8 +75,8 @@ json screenTemplate(const std::string& name) {
 }
 
 /// The templates in examples/assets/screens.
-constexpr const char* templates[] = {"kanban",        "smart-home", "music-player", "code-editor",
-                                     "habit-tracker", "sign-in",    "studio"};
+constexpr auto templates = std::to_array<const char*>(
+    {"kanban", "smart-home", "music-player", "code-editor", "habit-tracker", "sign-in", "studio"});
 
 } // namespace
 
@@ -89,28 +91,29 @@ TEST_CASE("checker: the templates have no findings") {
 
 TEST_CASE("checker: typos planted in the Kanban template are each found, with their place") {
 	std::string text = screenTemplate("kanban").dump();
-	const std::pair<std::string, std::string> typos[] = {{"{{card.title}}", "{{card.titel}}"},
-	                                                     {"\"@accentSoft\"", "\"@accentSofty\""},
-	                                                     {"\"onSubmit\":\"addCard\"", "\"onSubmit\":\"addCrad\""},
-	                                                     {"{\"by\":-1}", "{\"bye\":-1}"},
-	                                                     {"to < 0 ||", "too < 0 ||"},
-	                                                     {"computed.lastColumn}}", "computed.lastColum}}"},
-	                                                     {"{{member.name}}", "{{member.nmae}}"},
-	                                                     {"\"style\":\"caption\"", "\"style\":\"captoin\""}};
+	const std::vector<std::pair<std::string, std::string>> typos = {
+	    {"{{card.title}}", "{{card.titel}}"},
+	    {R"("@accentSoft")", R"("@accentSofty")"},
+	    {R"("onSubmit":"addCard")", R"("onSubmit":"addCrad")"},
+	    {R"({"by":-1})", R"({"bye":-1})"},
+	    {"to < 0 ||", "too < 0 ||"},
+	    {"computed.lastColumn}}", "computed.lastColum}}"},
+	    {"{{member.name}}", "{{member.nmae}}"},
+	    {R"("style":"caption")", R"("style":"captoin")"}};
 	for(const auto& [from, to] : typos) {
 		const auto at = text.find(from);
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
 	const std::string card = "root.children[2].children[0].children[0].children[3].children[0]";
+	const std::string header = "root.children[0].children[3].children[0]";
 	CHECK(lines(json::parse(text)) ==
 	      std::vector<std::string>{
 	          "actions.moveCard[1].if: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
 	          "actions.moveCard[1].if: unknown variable 'too' (did you mean 'to'?)",
-	          "root.children[0].children[3].children[0].children[0].style: unknown style 'captoin' (did you mean "
-	          "'caption'?)",
-	          "root.children[0].children[3].children[0].children[1].children[0].children[1].text: 'member.nmae' "
-	          "doesn't exist (did you mean 'member.name'?)",
+	          header + ".children[0].style: unknown style 'captoin' (did you mean 'caption'?)",
+	          header + ".children[1].children[0].children[1].text: 'member.nmae' doesn't exist (did you mean "
+	                   "'member.name'?)",
 	          "root.children[1].children[1].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
 	          card + ".children[2].text: 'card.titel' doesn't exist (did you mean 'card.title'?)",
 	          card + ".children[4].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
@@ -315,7 +318,7 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 	                       {"root", {{"text", "{{state." + longName + "b}}"}}}};
 	const auto found = affresco::format::check(longTypo, longTypo["state"]);
 	REQUIRE(found);
-	CHECK(found->size() == 1);
+	CHECK((found && found->size() == 1));
 }
 
 TEST_CASE("checker: computed values that read each other are read safely") {
@@ -407,6 +410,6 @@ TEST_CASE("checker: checking a template again gives the same findings") {
 		const auto again = affresco::format::check(document, document["state"]);
 		REQUIRE(first);
 		REQUIRE(again);
-		CHECK(*first == *again);
+		CHECK(first == again); // both have a value: equal optionals hold equal findings
 	}
 }

@@ -10,9 +10,13 @@
 #include "Expression.hpp"
 #include "RuntimeImpl.hpp"
 
+#include <algorithm>
+#include <array>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -28,8 +32,9 @@ using Shape = json;
 
 inline const Shape anything;      ///< Nothing known.
 inline const Shape single = true; ///< Text, a number or a boolean.
-/// What an editor's "caret" writes.
-inline const Shape caret = {{"line", true}, {"column", true}, {"selected", true}};
+/// @brief What an editor's "caret" writes (a function: a static object built from a list could throw before main).
+/// @return Its line, its column and the selected length.
+[[nodiscard]] inline Shape caretShape() { return {{"line", true}, {"column", true}, {"selected", true}}; }
 
 inline constexpr std::size_t maxVisits = 1000000;  ///< Nodes, steps and values a check visits before giving up.
 inline constexpr int maxPasses = 5;                ///< Passes that learn what steps write, at most.
@@ -37,14 +42,14 @@ inline constexpr int maxDepth = maxNesting;        ///< Nodes and actions inside
 inline constexpr std::string_view openScope = "*"; ///< A variable that lets any name through (callers unknown).
 
 /// `$if`, `$and`, `$or` and `$coalesce`: operators that give one of their arguments.
-inline constexpr std::string_view choiceOperators[] = {"$if", "$and", "$or", "$coalesce"};
+inline constexpr auto choiceOperators = std::to_array<std::string_view>({"$if", "$and", "$or", "$coalesce"});
 
 /// @brief Tells whether a list of names has one.
 /// @param names The list.
 /// @param name The name.
 /// @return true if it is there.
-template <std::size_t size> [[nodiscard]] bool among(const std::string_view (&names)[size], std::string_view name) {
-	return std::ranges::find(names, name) != std::end(names);
+[[nodiscard]] inline bool among(std::span<const std::string_view> names, std::string_view name) {
+	return std::ranges::find(names, name) != names.end();
 }
 
 /// @brief Merges what two values may hold, in place: the keys of both objects, the items of both lists.
@@ -142,9 +147,9 @@ struct Prepared {
 	/// @param key The property.
 	/// @return Its value and its layer, or two nullptrs.
 	[[nodiscard]] std::pair<const json*, const Layer*> find(const std::string& key) const {
-		for(auto layer = layers.rbegin(); layer != layers.rend(); ++layer)
-			if(const auto it = layer->properties->find(key); it != layer->properties->end() && layer->holds(key))
-				return {&*it, &*layer};
+		for(const Layer& layer : std::views::reverse(layers))
+			if(const auto it = layer.properties->find(key); it != layer.properties->end() && layer.holds(key))
+				return {&*it, &layer};
 		return {nullptr, nullptr};
 	}
 	/// @brief A property's value.
@@ -160,14 +165,14 @@ struct Prepared {
 	}
 	/// @brief Visits each property once, from the layer that wins.
 	/// @param visit Called with the key, the value and the layer.
-	template <class Visit> void forEach(Visit&& visit) const {
+	template <class Visit> void forEach(const Visit& visit) const {
 		std::vector<const std::string*> seen; // keys stay where they are in their objects
-		for(auto layer = layers.rbegin(); layer != layers.rend(); ++layer)
-			for(const auto& [key, value] : layer->properties->items()) {
-				if(!layer->holds(key) || std::ranges::any_of(seen, [&](const std::string* s) { return *s == key; }))
+		for(const Layer& layer : std::views::reverse(layers))
+			for(const auto& [key, value] : layer.properties->items()) {
+				if(!layer.holds(key) || std::ranges::any_of(seen, [&](const std::string* s) { return *s == key; }))
 					continue;
 				seen.push_back(&key);
-				visit(key, value, *layer);
+				visit(key, value, layer);
 			}
 	}
 };

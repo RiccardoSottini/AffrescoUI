@@ -4,29 +4,32 @@
 
 #include "CheckerImpl.hpp"
 
+#include <format>
+
 namespace affresco::format::checker {
 
 namespace {
 
 /// Visual states whose properties are shown on top of the node's own (SCREEN_FORMAT.md, "Every type").
-constexpr std::string_view visualStates[] = {"hover", "focused", "dragging", "dragOver", "pressed"};
+constexpr auto visualStates = std::to_array<std::string_view>({"hover", "focused", "dragging", "dragOver", "pressed"});
 
 /// Node keys walkNode() reads before the properties, or that are no values.
-constexpr std::string_view nodeKeys[] = {"type", "id",  "note",  "slot", "repeat",
-                                         "with", "let", "check", "use",  "children"};
+constexpr auto nodeKeys = std::to_array<std::string_view>(
+    {"type", "id", "note", "slot", "repeat", "with", "let", "check", "use", "children"});
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
-constexpr std::string_view stepNames[] = {
-    "set",     "push",     "remove",  "toggle", "increment",  "if",    "forEach",  "while",
-    "run",     "call",     "emit",    "send",   "connect",    "patch", "accept",   "reject",
-    "preview", "restore",  "revert",  "undo",   "endPreview", "focus", "scrollTo", "navigate",
-    "after",   "debounce", "animate", "copy",   "log",        "stop",  "note"};
+constexpr auto stepNames = std::to_array<std::string_view>(
+    {"set",     "push",     "remove",  "toggle", "increment",  "if",    "forEach",  "while",
+	 "run",     "call",     "emit",    "send",   "connect",    "patch", "accept",   "reject",
+	 "preview", "restore",  "revert",  "undo",   "endPreview", "focus", "scrollTo", "navigate",
+	 "after",   "debounce", "animate", "copy",   "log",        "stop",  "note"});
 
 /// Steps that change the state at the path their key names.
-constexpr std::string_view stateSteps[] = {"set", "push", "remove", "toggle", "increment", "animate"};
+constexpr auto stateSteps =
+    std::to_array<std::string_view>({"set", "push", "remove", "toggle", "increment", "animate"});
 
 /// Step keys that hold steps, checked after the step's values.
-constexpr std::string_view nestedSteps[] = {"then", "else", "do", "onError"};
+constexpr auto nestedSteps = std::to_array<std::string_view>({"then", "else", "do", "onError"});
 
 /// @brief Reads a name given as text, with a default.
 /// @param object An object.
@@ -70,8 +73,7 @@ std::vector<std::string> candidateNames(const json& value) {
 		const Placeholders found = placeholders(value.get_ref<const std::string&>());
 		try {
 			if(found.whole) resultLiterals(compile(found.expressions.front(), ""), names);
-		} catch(const DocumentError&) {
-			// shapeOf() reports it
+		} catch(const DocumentError&) { // NOLINT(bugprone-empty-catch): shapeOf() reports it, with its place
 		}
 	}
 	return names;
@@ -121,12 +123,20 @@ bool writtenKey(std::string_view kind, std::string_view key) {
 bool hasSlot(const json& node, int depth = 0) {
 	const auto children = node.find("children");
 	if(depth > maxDepth || children == node.end() || !children->is_array()) return false;
-	for(const json& child : *children) {
-		if(!child.is_object()) continue;
+	return std::ranges::any_of(*children, [&](const json& child) {
+		if(!child.is_object()) return false;
 		if(const auto slot = child.find("slot"); slot != child.end() && *slot == true) return true;
-		if(!child.contains("use") && hasSlot(child, depth + 1)) return true;
-	}
-	return false;
+		return !child.contains("use") && hasSlot(child, depth + 1);
+	});
+}
+
+/// @brief Finds which step a step object is.
+/// @param step The step.
+/// @return The key that names it, the first the runtime looks for; std::nullopt if it has none.
+std::optional<std::string_view> stepKind(const json& step) {
+	for(const std::string_view name : stepNames)
+		if(step.contains(name)) return name;
+	return std::nullopt;
 }
 
 } // namespace
@@ -212,14 +222,15 @@ json Checker::takeParameters(const Prepared& use, const json& component, const s
                              std::map<std::string, std::string>& places, bool written) {
 	const auto declared = component.find("params");
 	json with = declared != component.end() && declared->is_object() ? *declared : json::object();
-	for(const auto& [key, value] : with.items()) places[key] = "components." + name + ".params." + key;
+	for(const auto& [key, value] : with.items()) places[key] = std::format("components.{}.params.{}", name, key);
 
 	if(const json* given = use.value("with"); given && given->is_object())
 		for(const auto& [key, value] : given->items()) {
 			const auto place = use.parameterPlaces.find(key);
-			const std::string at = place != use.parameterPlaces.end() ? place->second : use.where("with") + "." + key;
+			const std::string at =
+			    place != use.parameterPlaces.end() ? place->second : std::format("{}.{}", use.where("with"), key);
 			if(written && !with.contains(key))
-				report(at, "unknown parameter '" + key + "' of component '" + name + "'",
+				report(at, std::format("unknown parameter '{}' of component '{}'", key, name),
 				       hintFor(key, keysOf(with), "", "it takes"));
 			with[key] = value;
 			places[key] = at;
@@ -318,7 +329,8 @@ bool Checker::walkBehaviour(const std::string& key, const json& value, const Sco
 	if(handlerKey(key)) {
 		walkHandler(value, scope, place);
 	} else if(key == "keys" && value.is_object()) {
-		for(const auto& [shortcut, handler] : value.items()) walkHandler(handler, scope, place + "." + shortcut);
+		for(const auto& [shortcut, handler] : value.items())
+			walkHandler(handler, scope, std::format("{}.{}", place, shortcut));
 	} else if(key == "every" && value.is_object()) {
 		if(value.contains("ms")) read(value["ms"], scope, place + ".ms");
 		if(value.contains("do")) walkHandler(value["do"], scope, place + ".do");
@@ -344,7 +356,8 @@ void Checker::walkDynamicStyle(const Prepared& node, const json& style, const st
 
 void Checker::references(const std::string& key, const json& value, const std::string& place) {
 	if(among(visualStates, key) && value.is_object()) {
-		for(const auto& [property, shown] : value.items()) references(property, shown, place + "." + property);
+		for(const auto& [property, shown] : value.items())
+			references(property, shown, std::format("{}.{}", place, property));
 		return;
 	}
 	const std::optional<Reference> reference = referenceOf(key);
@@ -360,7 +373,7 @@ void Checker::walkBinding(const std::string& key, const json& value, const Scope
 		return;
 	}
 	if(key == "bind") (void)shapeOfPath(value.get_ref<const std::string&>(), scope, place);
-	write(value, key == "caret" ? caret : single, Change::set, scope, place);
+	write(value, key == "caret" ? caretShape() : single, Change::set, scope, place);
 }
 
 void Checker::walkOverlay(const json& value, const Scope& scope, const std::string& place) {
@@ -411,8 +424,8 @@ void Checker::walkSteps(const json& steps, const Scope& scope, const std::string
 
 void Checker::walkStep(const json& step, const Scope& scope, const std::string& place) {
 	if(!step.is_object() || !visit()) return;
-	const auto kind = std::ranges::find_if(stepNames, [&](std::string_view name) { return step.contains(name); });
-	if(kind == std::end(stepNames)) {
+	const std::optional<std::string_view> kind = stepKind(step);
+	if(!kind) {
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
 		       "patch, focus, scrollTo, navigate, after, debounce, animate, copy, log, stop, note, accept, reject, "
@@ -429,14 +442,15 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 
 void Checker::walkStepValues(std::string_view kind, const json& step, const Scope& scope, const std::string& place) {
 	for(const auto& [key, value] : step.items()) // walkWrite() reads the target, and what is written there
-		if(!writtenKey(kind, key) && !among(nestedSteps, key) && key != "note") read(value, scope, place + "." + key);
+		if(!writtenKey(kind, key) && !among(nestedSteps, key) && key != "note")
+			read(value, scope, std::format("{}.{}", place, key));
 	if(kind == "navigate")
 		for(const std::string& name : candidateNames(step["navigate"]))
 			if(name != "back") refer("screen", "screens", name, "", place + ".navigate");
 }
 
 void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::string& place) {
-	for(std::string_view key : nestedSteps) {
+	for(const std::string_view key : nestedSteps) {
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json()};
@@ -462,7 +476,7 @@ void Checker::walkRun(const json& step, const Scope& scope, const std::string& p
 	Scope layer{&scope, nullptr, json()};
 	if(const auto with = step.find("with"); with != step.end() && with->is_object())
 		for(const auto& [name, value] : with->items())
-			layer.vars[name] = shapeOf(value, scope, place + ".with." + name);
+			layer.vars[name] = shapeOf(value, scope, std::format("{}.with.{}", place, name));
 	const json& name = step["run"];
 	if(name.is_string() && !isDynamic(name)) callAction(name.get<std::string>(), layer, place + ".run");
 	else read(name, scope, place + ".run"); // a name an expression computes: not checked

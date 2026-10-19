@@ -6,6 +6,7 @@
 
 #include <cctype>
 #include <charconv>
+#include <format>
 
 namespace affresco::format::checker {
 
@@ -13,17 +14,19 @@ namespace {
 
 /// Variables every expression may read (Expression.cpp, variable()), whose contents the checker doesn't follow.
 /// "window", "revision" and "event" can't be hidden by a local; the others can.
-constexpr std::string_view fixedVariables[] = {"window", "revision", "event"};
-constexpr std::string_view screenVariables[] = {"nodes", "proposals", "history", "preview", "mode", "theme", "screen"};
+constexpr auto fixedVariables = std::to_array<std::string_view>({"window", "revision", "event"});
+constexpr auto screenVariables =
+    std::to_array<std::string_view>({"nodes", "proposals", "history", "preview", "mode", "theme", "screen"});
 
 /// List functions whose second argument sees each item as `it` (Expression.cpp, applyToItems()).
-constexpr std::string_view itemOperators[] = {"$filter", "$map", "$count", "$sum", "$find", "$some", "$every", "$sort"};
+constexpr auto itemOperators =
+    std::to_array<std::string_view>({"$filter", "$map", "$count", "$sum", "$find", "$some", "$every", "$sort"});
 
 /// Operators that give their arguments merged: lists joined, objects merged.
-constexpr std::string_view mergingOperators[] = {"$concat", "$merge"};
+constexpr auto mergingOperators = std::to_array<std::string_view>({"$concat", "$merge"});
 
 /// Operators that give a list of single values.
-constexpr std::string_view listOperators[] = {"$keys", "$split", "$range"};
+constexpr auto listOperators = std::to_array<std::string_view>({"$keys", "$split", "$range"});
 
 /// @brief Reads a name in a text path, as the runtime does (letters, digits, '_' and '-').
 /// @param text The path.
@@ -165,7 +168,8 @@ Shape Checker::shapeOf(const json& value, const Scope& scope, const std::string&
 		if(isOperator(value)) return shapeOfOperator(value.begin().key(), value.begin().value(), scope, place);
 		if(value.empty()) return anything;
 		Shape fields = Shape::object();
-		for(const auto& [key, item] : value.items()) fields[key] = shapeOf(item, scope, place + "." + key);
+		for(const auto& [key, item] : value.items())
+			fields[key] = shapeOf(item, scope, std::format("{}.{}", place, key));
 		return fields;
 	}
 	if(value.is_array()) {
@@ -187,7 +191,7 @@ void Checker::read(const json& value, const Scope& scope, const std::string& pla
 		(void)shapeOfOperator(value.begin().key(), value.begin().value(), scope, place);
 	} else if(value.is_object()) {
 		for(const auto& [key, item] : value.items())
-			if(mayHoldExpression(item)) read(item, scope, place + "." + key);
+			if(mayHoldExpression(item)) read(item, scope, std::format("{}.{}", place, key));
 	} else {
 		for(std::size_t i = 0; i < value.size(); ++i)
 			if(mayHoldExpression(value[i])) read(value[i], scope, place + "[" + std::to_string(i) + "]");
@@ -195,11 +199,11 @@ void Checker::read(const json& value, const Scope& scope, const std::string& pla
 }
 
 Shape Checker::shapeOfText(std::string_view text, const Scope& scope, const std::string& place) {
-	if(text.find("{{") == std::string_view::npos) return single;
+	if(!text.contains("{{")) return single;
 	const Placeholders found = placeholders(text);
 	if(found.unclosed) report(place, "unclosed '{{'");
 	Shape result = single;
-	for(std::string_view expression : found.expressions) {
+	for(const std::string_view expression : found.expressions) {
 		Shape shape = shapeOfExpression(expression, scope, place);
 		if(found.whole) result = std::move(shape);
 	}
@@ -217,7 +221,7 @@ Shape Checker::shapeOfExpression(std::string_view text, const Scope& scope, cons
 	// The tree lives in the compile cache, which a later compile may clear (past compileCacheLimit expressions). A "$path"
 	// compiles its index expressions, but it is always a whole tree and its text is copied first. Reading a computed
 	// value compiles that value's expression while this tree is still read, so such a tree is copied
-	if(text.find("computed") != std::string_view::npos) {
+	if(text.contains("computed")) {
 		const json copy = *tree;
 		return shapeOf(copy, scope, place);
 	}
@@ -272,9 +276,9 @@ Shape Checker::shapeOfItems(const std::string& name, const json& raw, const Scop
 		read(raw, scope, place);
 		return anything;
 	}
-	const Shape list = shapeOf(raw[0], scope, place);
+	Shape list = shapeOf(raw[0], scope, place); // not const: returned, so moved
 	const Shape item = itemOf(list);
-	Scope each{&scope, nullptr, {{"it", item}, {"index", single}}};
+	const Scope each{&scope, nullptr, {{"it", item}, {"index", single}}};
 	const Shape result = raw.size() > 1 ? shapeOf(raw[1], each, place) : item;
 	for(std::size_t i = 2; i < raw.size(); ++i) read(raw[i], scope, place); // "desc"
 	if(name == "$filter" || name == "$sort") return list;
@@ -359,17 +363,16 @@ const Shape& Checker::member(const Shape& shape, const std::string& described, c
 
 const Shape* Checker::variable(const std::string& name, const Scope& scope) const {
 	if(name == "state") return &state_;
-	if(std::ranges::find(fixedVariables, name) != std::end(fixedVariables)) return &anything;
+	if(among(fixedVariables, name)) return &anything;
 	if(const json* local = scope.find(name)) return local;
-	if(std::ranges::find(screenVariables, name) != std::end(screenVariables) || scope.find(std::string(openScope)))
-		return &anything;
+	if(among(screenVariables, name) || scope.find(std::string(openScope))) return &anything;
 	return nullptr;
 }
 
 std::vector<std::string> Checker::visibleNames(const Scope& scope) {
 	std::vector<std::string> names = {"state", "computed"};
-	names.insert(names.end(), std::begin(fixedVariables), std::end(fixedVariables));
-	names.insert(names.end(), std::begin(screenVariables), std::end(screenVariables));
+	names.insert(names.end(), fixedVariables.begin(), fixedVariables.end());
+	names.insert(names.end(), screenVariables.begin(), screenVariables.end());
 	for(const Scope* layer = &scope; layer; layer = layer->parent)
 		for(const auto& [name, shape] : layer->vars.items()) names.push_back(name);
 	return names;
