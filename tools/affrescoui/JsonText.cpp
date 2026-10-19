@@ -52,7 +52,8 @@ private:
 	/// @return How many line breaks it skipped.
 	int skipSpace() {
 		int lines = 0;
-		while(at_ < text_.size() && (text_[at_] == ' ' || text_[at_] == '\t' || text_[at_] == '\n' || text_[at_] == '\r')) {
+		while(at_ < text_.size() &&
+		      (text_[at_] == ' ' || text_[at_] == '\t' || text_[at_] == '\n' || text_[at_] == '\r')) {
 			lines += text_[at_] == '\n' ? 1 : 0;
 			++at_;
 		}
@@ -82,8 +83,7 @@ private:
 		if(c == '"') return scalar(string());
 		const std::size_t start = at_;
 		// A number, true, false or null: the JSON library already checked which
-		while(at_ < text_.size() && std::string_view("+-.0123456789eEtruefalsn").find(text_[at_]) != std::string_view::npos)
-			++at_;
+		while(at_ < text_.size() && std::string_view("+-.0123456789eEtruefalsn").contains(text_[at_])) ++at_;
 		if(at_ == start) fail(c == '\0' ? "unexpected end of the file" : std::string("unexpected '") + c + "'");
 		return scalar(std::string(text_.substr(start, at_ - start)));
 	}
@@ -151,9 +151,8 @@ public:
 	/// @param column The column it starts at.
 	/// @param after What follows it on its last line (a ',' or nothing), so that it fits too.
 	void write(const TextValue& value, std::size_t indent, std::size_t column, std::size_t after) {
-		if(const std::string flat = inlineText(value);
-		   value.kind == TextValue::Kind::Scalar || value.members.empty() ||
-		   (!flat.empty() && column + flat.size() + after <= lineWidth)) {
+		if(const std::string flat = inlineText(value); value.kind == TextValue::Kind::Scalar || value.members.empty() ||
+		                                               (!flat.empty() && column + flat.size() + after <= lineWidth)) {
 			out_ += flat;
 			return;
 		}
@@ -244,7 +243,8 @@ TextValue* memberOf(TextValue& object, std::string_view key) {
 
 TextValue* valueAt(TextValue& root, std::string_view pointer) {
 	std::vector<std::string> keys; // the pointer's keys, unescaped by the JSON library
-	for(json::json_pointer path{std::string(pointer)}; !path.empty(); path.pop_back()) keys.insert(keys.begin(), path.back());
+	for(json::json_pointer path{std::string(pointer)}; !path.empty(); path.pop_back())
+		keys.insert(keys.begin(), path.back());
 
 	TextValue* value = &root;
 	for(const std::string& key : keys) {

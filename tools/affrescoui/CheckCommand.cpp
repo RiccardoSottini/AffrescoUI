@@ -67,7 +67,8 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	const auto loaded = load(text, path.parent_path(), problems);
 	const format::Rules rules;
 	const json& checked = loaded ? loaded->first : document;
-	for(std::string& finding : rules.findings(checked, loaded ? loaded->second : document.value("state", json::object())))
+	for(std::string& finding :
+	    rules.findings(checked, loaded ? loaded->second : document.value("state", json::object())))
 		problems.push_back({"checker", "", std::move(finding)});
 	return problems;
 }

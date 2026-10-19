@@ -54,11 +54,11 @@ TEST_CASE("ids: nodes without one get readable ids from their type and what they
 	CHECK(root["id"] == "panel-root");
 	CHECK(root["children"][0]["id"] == "topBar"); // ids that are there stay
 	CHECK(root["children"][0]["children"][0]["id"] == "label-blocked");
-	CHECK(root["children"][0]["children"][1]["id"] == "label-board"); // "state" says nothing
+	CHECK(root["children"][0]["children"][1]["id"] == "label-board");   // "state" says nothing
 	CHECK(root["children"][0]["children"][2]["id"] == "panel-top-bar"); // shows nothing: named after its parent
 	CHECK(root["children"][0]["children"][3]["id"] == "panel-top-bar-2");
-	CHECK(root["children"][1]["id"] == "textarea-add-a-card"); // the placeholder, before the bound path
-	CHECK(root["children"][2]["id"] == "column-card");          // the repeat's variable
+	CHECK(root["children"][1]["id"] == "textarea-add-a-card");             // the placeholder, before the bound path
+	CHECK(root["children"][2]["id"] == "column-card");                     // the repeat's variable
 	CHECK(root["children"][2]["children"][0]["id"] == "move-button-card"); // a use: after its component
 	CHECK(root["children"][2]["children"][1]["id"] == "move-button-card-2");
 	CHECK(root["children"][3]["id"] == "label-blocked-2");
@@ -113,7 +113,7 @@ TEST_CASE("ids: a node a revision adds without an id gets one, in the commit too
 
 	const affresco::RevisionResult added = repository.submit(
 	    {{"author", "studio"},
-	     {"add", {{"#main/children/-", {{"type", "label"}, {"text", "Blocked"}, {"children", {{{"width", 4}}}}}}}}});
+		 {"add", {{"#main/children/-", {{"type", "label"}, {"text", "Blocked"}, {"children", {{{"width", 4}}}}}}}}});
 	REQUIRE(added.status == RevisionStatus::Applied);
 	const json& node = repository.document()["root"]["children"][3];
 	CHECK(node["id"] == "label-blocked");
@@ -157,8 +157,8 @@ TEST_CASE("ids: a rejected revision names the operation and the path, with a hin
 	CHECK(error({{"remove", {"#title/colr"}}}) ==
 	      "AffrescoUI screen: revision.patch[0] (remove #title/colr): key 'colr' not found at /root/children/1/colr "
 	      "('#title' has no 'colr' (it has: type, id, text))");
-	CHECK(error({{"set", {{"/root/children/7/text", "Done"}}}}).ends_with(
-	    "at /root/children/7/text ('/root/children' is a list of 3: use 0 to 2, or '-' to append)"));
+	CHECK(error({{"set", {{"/root/children/7/text", "Done"}}}})
+	          .ends_with("at /root/children/7/text ('/root/children' is a list of 3: use 0 to 2, or '-' to append)"));
 	CHECK(error({{"add", {{"#title/text/x", 1}}}}) == "AffrescoUI screen: revision.patch[0] (add #title/text/x): "
 	                                                  "'/root/children/1/text' is a string: nothing can be added "
 	                                                  "inside it");

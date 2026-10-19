@@ -73,7 +73,8 @@ Exit nameScreenNodes(std::span<const std::string_view> args) {
 	std::vector<std::pair<std::size_t, std::string>> insertions; // where, what
 	for(const auto& [pointer, id] : named) {
 		const TextValue* node = valueAt(tree, pointer);
-		if(!node || node->kind != TextValue::Kind::Object) throw std::runtime_error(file.string() + ": no node at " + pointer);
+		if(!node || node->kind != TextValue::Kind::Object)
+			throw std::runtime_error(file.string() + ": no node at " + pointer);
 		const std::string member = "\"id\": " + json(id).dump();
 		insertions.emplace_back(node->start + 1, node->members.empty() ? " " + member + " "
 		                                         : node->lead.empty()  ? member + ", "

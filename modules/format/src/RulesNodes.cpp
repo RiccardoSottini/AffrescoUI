@@ -22,7 +22,8 @@ std::vector<std::string> keysOfPointer(std::string_view pointer) {
 	std::size_t start = pointer.find('/');
 	while(start != std::string_view::npos) {
 		const std::size_t end = pointer.find('/', start + 1);
-		std::string key(pointer.substr(start + 1, end == std::string_view::npos ? std::string_view::npos : end - start - 1));
+		std::string key(
+		    pointer.substr(start + 1, end == std::string_view::npos ? std::string_view::npos : end - start - 1));
 		for(std::size_t at = 0; (at = key.find('~', at)) != std::string::npos; ++at)
 			key.replace(at, 2, at + 1 < key.size() && key[at + 1] == '1' ? "/" : "~");
 		keys.push_back(std::move(key));

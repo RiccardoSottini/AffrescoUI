@@ -22,18 +22,18 @@ namespace affresco::cli {
 std::span<const Command> commands() {
 	static constexpr std::array<Command, 7> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
-	     "Show a screen and let peers change it, like affrescoui_host", runScreen},
+		 "Show a screen and let peers change it, like affrescoui_host", runScreen},
 	    {"check", "<file> [--json]", "Check a screen: the schema, the format's rules and the checker", checkScreen},
 	    {"render", "<file> -o out.png [--scale 1|2] [--size WIDTHxHEIGHT]",
-	     "Draw a screen's first frame offscreen, to a PNG", renderScreen},
+		 "Draw a screen's first frame offscreen, to a PNG", renderScreen},
 	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
-	     formatScreen},
-	    {"ids", "<file> [--check]", "Give readable ids to the nodes that have none; --check only says if some have none",
-	     nameScreenNodes},
+		 formatScreen},
+	    {"ids", "<file> [--check]",
+		 "Give readable ids to the nodes that have none; --check only says if some have none", nameScreenNodes},
 	    {"export", "<file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]",
-	     "Write the revisions after one, from the screen's history on disk, as a change set", exportChanges},
+		 "Write the revisions after one, from the screen's history on disk, as a change set", exportChanges},
 	    {"import", "<file> <changes.json> [--data DIR]", "Apply a change set to the screen's history on disk",
-	     importChanges},
+		 importChanges},
 	}};
 	return list;
 }
@@ -78,23 +78,32 @@ affresco::cli::Exit run(const affresco::cli::Command& command, std::span<const s
 	}
 }
 
-} // namespace
-
-int main(int argc, char** argv) {
+/// @brief Runs the tool.
+/// @param args The command line, without the program's name.
+/// @return How it ended.
+affresco::cli::Exit runTool(const std::vector<std::string_view>& args) {
 	using affresco::cli::Exit;
-	const std::vector<std::string_view> args(argv + 1, argv + argc);
 	if(args.empty() || args[0] == "help" || args[0] == "--help" || args[0] == "-h") {
 		printHelp(args.empty() ? std::cerr : std::cout);
-		return static_cast<int>(args.empty() ? Exit::Usage : Exit::Success);
+		return args.empty() ? Exit::Usage : Exit::Success;
 	}
 	if(args[0] == "--version") {
 		std::cout << "affrescoui " AFFRESCOUI_VERSION "\n";
-		return static_cast<int>(Exit::Success);
+		return Exit::Success;
 	}
-
 	for(const affresco::cli::Command& command : affresco::cli::commands())
-		if(command.name == args[0]) return static_cast<int>(run(command, std::span(args).subspan(1)));
+		if(command.name == args[0]) return run(command, std::span(args).subspan(1));
 	std::cerr << "affrescoui: unknown command '" << args[0] << "'\n\n";
 	printHelp(std::cerr);
-	return static_cast<int>(Exit::Usage);
+	return Exit::Usage;
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+	try {
+		return static_cast<int>(runTool(std::vector<std::string_view>(argv + 1, argv + argc)));
+	} catch(...) { // run() reports what commands throw; only running out of memory gets here
+		return static_cast<int>(affresco::cli::Exit::Failure);
+	}
 }

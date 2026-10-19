@@ -21,18 +21,27 @@ constexpr std::array<std::string_view, 1> dataOption = {"--data"};
 /// @brief A screen with its history on disk, opened for one command; what the library logs while it opens is kept,
 /// so that a history another program writes (the screen then keeps changes in memory only) can be refused.
 struct OpenedScreen {
-	std::vector<std::string> warnings; ///< What the library logged.
-	std::optional<Screen> screen;      ///< The screen.
+	std::vector<std::string> warnings; ///< What the library logged (before screen: it is filled while that opens).
+	Screen screen;                     ///< The screen.
 
 	/// @brief Opens a screen file with its history.
 	/// @param file The file.
 	/// @param data The data folder (Screen::defaultDataDirectory() if not given).
-	OpenedScreen(const std::filesystem::path& file, const std::optional<std::string>& data) {
-		setLogSink([this](LogLevel level, std::string_view message) {
+	OpenedScreen(const std::filesystem::path& file, const std::optional<std::string>& data)
+	    : screen(quietlyOpened(file, data.value_or(Screen::defaultDataDirectory().string()), warnings)) {}
+
+	/// @brief Opens a screen file, keeping what the library logs meanwhile instead of printing it.
+	/// @param file The file.
+	/// @param data The data folder.
+	/// @param warnings Receives what is logged; the log keeps writing there until it is given back.
+	/// @return The screen.
+	static Screen quietlyOpened(const std::filesystem::path& file, const std::filesystem::path& data,
+	                            std::vector<std::string>& warnings) {
+		setLogSink([&warnings](LogLevel level, std::string_view message) {
 			if(level != LogLevel::Debug && level != LogLevel::Info) warnings.emplace_back(message);
 		});
 		try {
-			screen.emplace(Screen::fromFile(file, data ? std::filesystem::path(*data) : Screen::defaultDataDirectory()));
+			return Screen::fromFile(file, data);
 		} catch(...) {
 			setLogSink({});
 			throw;
@@ -69,12 +78,13 @@ Exit exportChanges(std::span<const std::string_view> args) {
 	}
 
 	const OpenedScreen opened(file, arguments.value("--data"));
-	const json changes = json::parse(opened.screen->exportChanges(from, arguments.value("--name").value_or(file.stem().stem().string())));
+	const json changes =
+	    json::parse(opened.screen.exportChanges(from, arguments.value("--name").value_or(file.stem().stem().string())));
 	const std::string text = changes.dump(1, '\t') + "\n";
 	if(const std::optional<std::string> out = arguments.value("-o")) writeFile(*out, text);
 	else std::cout << text;
 	std::cerr << "exported " << changes.value("revisions", json::array()).size() << " revisions after " << from
-	          << " (main is at " << opened.screen->revision() << ")\n";
+	          << " (main is at " << opened.screen.revision() << ")\n";
 	return Exit::Success;
 }
 
@@ -86,8 +96,9 @@ Exit importChanges(std::span<const std::string_view> args) {
 
 	OpenedScreen opened(file, arguments.value("--data"));
 	if(!opened.writesToDisk())
-		throw std::runtime_error("another program writes this screen's history (is a host showing it?): close it first");
-	Screen& screen = *opened.screen;
+		throw std::runtime_error(
+		    "another program writes this screen's history (is a host showing it?): close it first");
+	Screen& screen = opened.screen;
 	if(screen.hasImported(changes)) {
 		std::cout << "already applied: the history has this change set (revision " << screen.revision() << ")\n";
 		return Exit::Success;

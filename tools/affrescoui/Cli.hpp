@@ -70,7 +70,7 @@ public:
 	[[nodiscard]] std::filesystem::path file() const;
 
 private:
-	std::vector<std::string> positional_;                  ///< Arguments that aren't options.
+	std::vector<std::string> positional_;                    ///< Arguments that aren't options.
 	std::map<std::string, std::string, std::less<>> values_; ///< Options and their values; flags have "".
 };
 
@@ -93,9 +93,9 @@ void registerApplicationTypes(Screen& screen);
 
 /// @brief A command of the tool.
 struct Command {
-	std::string_view name;                         ///< What is typed: "check".
-	std::string_view usage;                        ///< Its arguments: "<file> [--json]".
-	std::string_view summary;                      ///< One line on what it does.
+	std::string_view name;                          ///< What is typed: "check".
+	std::string_view usage;                         ///< Its arguments: "<file> [--json]".
+	std::string_view summary;                       ///< One line on what it does.
 	Exit (*run)(std::span<const std::string_view>); ///< Runs it with what follows its name.
 };
 

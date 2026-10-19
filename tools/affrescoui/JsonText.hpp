@@ -21,12 +21,12 @@ struct TextValue {
 
 	struct Member;
 
-	Kind kind = Kind::Scalar;     ///< What it is.
-	std::string text;             ///< A scalar's text as written ("1.50", "\"caf\\u00e9\"").
-	std::vector<Member> members;  ///< An object's members or an array's items, in order.
-	bool expanded = false;        ///< An object written with a line break after its '{': it stays on several lines.
-	std::size_t start = 0;        ///< Where an object or array starts in the text it was read from: its '{' or '['.
-	std::string lead;             ///< The spaces and line breaks between an object's '{' and its first key.
+	Kind kind = Kind::Scalar;    ///< What it is.
+	std::string text;            ///< A scalar's text as written ("1.50", "\"caf\\u00e9\"").
+	std::vector<Member> members; ///< An object's members or an array's items, in order.
+	bool expanded = false;       ///< An object written with a line break after its '{': it stays on several lines.
+	std::size_t start = 0;       ///< Where an object or array starts in the text it was read from: its '{' or '['.
+	std::string lead;            ///< The spaces and line breaks between an object's '{' and its first key.
 };
 
 /// @brief A member of an object or an item of an array.

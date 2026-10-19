@@ -14,6 +14,7 @@
 
 #include <array>
 #include <charconv>
+#include <format>
 #include <iostream>
 
 namespace affresco::cli {
@@ -51,18 +52,19 @@ void applyPlugins(Screen& screen, const std::vector<std::string>& plugins) {
 	for(const std::string& plugin : plugins) {
 		const std::string text = readFile(plugin);
 		if(screen.hasImported(text)) continue;
-		if(std::string error; !screen.importChanges(text, &error)) throw std::runtime_error(plugin + ": " + error);
+		if(std::string error; !screen.importChanges(text, &error))
+			throw std::runtime_error(std::format("{}: {}", plugin, error));
 		std::cerr << "plugin applied: " << plugin << " (revision " << screen.revision() << ")\n";
 	}
 }
 
 /// @brief What `run` is told.
 struct RunOptions {
-	std::filesystem::path file;                                         ///< The screen.
+	std::filesystem::path file;                                               ///< The screen.
 	std::filesystem::path socketDirectory = Screen::defaultSocketDirectory(); ///< Where peers connect.
-	std::filesystem::path data = Screen::defaultDataDirectory();        ///< The history and "persist" state.
-	std::optional<Mode> mode;                                           ///< For this run only, if given.
-	std::vector<std::string> plugins;                                   ///< Change sets to apply once.
+	std::filesystem::path data = Screen::defaultDataDirectory();              ///< The history and "persist" state.
+	std::optional<Mode> mode;                                                 ///< For this run only, if given.
+	std::vector<std::string> plugins;                                         ///< Change sets to apply once.
 };
 
 /// @brief Reads `run`'s command line. Options repeat (--plugin), so Arguments doesn't read it.

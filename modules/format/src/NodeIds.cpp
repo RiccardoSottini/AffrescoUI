@@ -19,15 +19,15 @@ constexpr std::size_t maxWords = 3;
 constexpr std::size_t maxWordLength = 16;
 
 /// Words that say nothing about a node: the roots of expressions and the commonest functions.
-constexpr std::array<std::string_view, 9> noiseWords = {"state", "computed", "item", "index", "len",
+constexpr std::array<std::string_view, 9> noiseWords = {"state", "computed", "item",  "index", "len",
                                                         "trim",  "upper",    "lower", "event"};
 
 /// Styles naming styles that the namer follows to find a node's type, as the runtime allows.
 constexpr std::size_t maxStyleDepth = 16;
 
 /// The node types the format builds in (SCREEN_FORMAT.md, "Every type"): the first word of the ids given here.
-constexpr std::array<std::string_view, 13> builtInTypes = {"panel", "label",    "textarea", "editor", "stack",
-                                                           "row",   "column",   "grid",     "toggle", "checkbox",
+constexpr std::array<std::string_view, 13> builtInTypes = {"panel",  "label",  "textarea", "editor", "stack",
+                                                           "row",    "column", "grid",     "toggle", "checkbox",
                                                            "slider", "outlet", "use"};
 
 /// @brief Walks a node and its children.
@@ -151,8 +151,8 @@ std::string joined(const std::vector<std::string>& words) {
 /// @param node The node.
 /// @return The words; empty if none of them says anything.
 std::vector<std::string> describingWords(const json& node) {
-	static constexpr std::array<std::string_view, 7> sources = {"text",  "placeholder", "bind",   "repeat",
-	                                                            "tooltip", "style",     "onClick"};
+	static constexpr std::array<std::string_view, 7> sources = {"text",    "placeholder", "bind",   "repeat",
+	                                                            "tooltip", "style",       "onClick"};
 	for(const std::string_view key : sources) {
 		const auto it = node.find(key);
 		if(it == node.end()) continue;
@@ -171,7 +171,8 @@ void forEachNode(const json& document, const std::function<void(const json& node
 	for(const char* section : {"screens", "templates"}) {
 		const auto nodes = document.find(section);
 		if(nodes == document.end() || !nodes->is_object()) continue;
-		for(const auto& [name, node] : nodes->items()) walk(node, "/" + std::string(section) + "/" + escaped(name), visit);
+		for(const auto& [name, node] : nodes->items())
+			walk(node, "/" + std::string(section) + "/" + escaped(name), visit);
 	}
 	const auto components = document.find("components");
 	if(components == document.end() || !components->is_object()) return;
@@ -266,7 +267,8 @@ std::string NodeNamer::newId(const json& node, std::string_view parentId) {
 	std::vector<std::string> words = describingWords(node);
 	if(words.empty()) { // the parent's words, without the type and number an id given here has ("row-card-2": "card")
 		words = wordsOf(parentId);
-		std::erase_if(words, [](const std::string& word) { return word.find_first_not_of("0123456789") == std::string::npos; });
+		std::erase_if(
+		    words, [](const std::string& word) { return word.find_first_not_of("0123456789") == std::string::npos; });
 		if(words.size() > 1 && std::ranges::find(builtInTypes, words.front()) != builtInTypes.end())
 			words.erase(words.begin());
 	}

@@ -21,14 +21,18 @@ constexpr std::size_t maxPatternInput = 100000;
 /// @param place The object's place.
 /// @param key The member's key.
 /// @return "place.key", or "key" at the top.
-std::string memberPlace(const std::string& place, const std::string& key) { return place.empty() ? key : place + "." + key; }
+std::string memberPlace(const std::string& place, const std::string& key) {
+	return place.empty() ? key : place + "." + key;
+}
 
 /// @brief Tells whether a value is of a JSON Schema type.
 /// @param value The value.
 /// @param type "object", "array", "string", "number", "integer", "boolean" or "null".
 /// @return true if it is.
 bool isType(const json& value, const std::string& type) {
-	if(type == "integer") return value.is_number_integer() || (value.is_number_float() && std::trunc(value.get<double>()) == value.get<double>());
+	if(type == "integer")
+		return value.is_number_integer() ||
+		       (value.is_number_float() && std::trunc(value.get<double>()) == value.get<double>());
 	if(type == "number") return value.is_number();
 	if(type == "object") return value.is_object();
 	if(type == "array") return value.is_array();
@@ -41,7 +45,7 @@ bool isType(const json& value, const std::string& type) {
 /// @param value The value.
 /// @return Its JSON, cut at 40 characters.
 std::string shortly(const json& value) {
-	std::string text = value.dump();
+	const std::string text = value.dump();
 	return text.size() > 40 ? text.substr(0, 37) + "..." : text;
 }
 
@@ -63,8 +67,9 @@ bool report(std::vector<SchemaProblem>* problems, const std::string& place, std:
 /// @return true if it is in range.
 bool inRange(const json& schema, double number, const std::string& place, std::vector<SchemaProblem>* problems) {
 	bool ok = true;
-	auto bound = [&](const char* key, auto outside, const char* words) {
-		if(const auto it = schema.find(key); it != schema.end() && it->is_number() && outside(number, it->get<double>()))
+	const auto bound = [&](const char* key, auto outside, const char* words) {
+		if(const auto it = schema.find(key);
+		   it != schema.end() && it->is_number() && outside(number, it->get<double>()))
 			ok = report(problems, place, std::string("expected a number ") + words + " " + it->dump());
 	};
 	bound("minimum", [](double n, double b) { return n < b; }, "of at least");
@@ -118,7 +123,8 @@ bool matchesType(const json& schema, const json& value, const std::string& place
 bool matchesValue(const json& schema, const json& value, const std::string& place,
                   std::vector<SchemaProblem>* problems) {
 	bool ok = true;
-	if(const auto allowed = schema.find("enum"); allowed != schema.end() && std::ranges::find(*allowed, value) == allowed->end())
+	if(const auto allowed = schema.find("enum");
+	   allowed != schema.end() && std::ranges::find(*allowed, value) == allowed->end())
 		ok = report(problems, place, "expected one of " + shortly(*allowed) + ", got " + shortly(value));
 	if(const auto constant = schema.find("const"); constant != schema.end() && *constant != value)
 		ok = report(problems, place, "expected " + shortly(*constant) + ", got " + shortly(value));
@@ -135,14 +141,16 @@ std::vector<SchemaProblem> Schema::check(const json& document) {
 	depth_ = 0;
 	matches(schema_, document, "", &problems, evaluated);
 	std::ranges::sort(problems, {}, [](const SchemaProblem& p) { return std::tie(p.place, p.problem); });
-	const auto [first, last] = std::ranges::unique(
-	    problems, [](const SchemaProblem& a, const SchemaProblem& b) { return a.place == b.place && a.problem == b.problem; });
+	const auto [first, last] = std::ranges::unique(problems, [](const SchemaProblem& a, const SchemaProblem& b) {
+		return a.place == b.place && a.problem == b.problem;
+	});
 	problems.erase(first, last);
 	return problems;
 }
 
 const json& Schema::resolve(const std::string& reference) const {
-	if(!reference.starts_with('#')) throw std::runtime_error("schema: only references inside it are read: " + reference);
+	if(!reference.starts_with('#'))
+		throw std::runtime_error("schema: only references inside it are read: " + reference);
 	const json::json_pointer pointer(reference.substr(1));
 	if(!schema_.contains(pointer)) throw std::runtime_error("schema: nothing at " + reference);
 	return schema_.at(pointer);
@@ -238,7 +246,8 @@ bool Schema::matchesMember(const json& schema, const std::string& key, const jso
 bool Schema::matchesCombined(const json& schema, const json& value, const std::string& place,
                              std::vector<SchemaProblem>* problems, std::set<std::string>& evaluated) {
 	bool ok = true;
-	for(const json& part : schema.value("allOf", json::array())) ok = matches(part, value, place, problems, evaluated) && ok;
+	for(const json& part : schema.value("allOf", json::array()))
+		ok = matches(part, value, place, problems, evaluated) && ok;
 	if(const auto options = schema.find("anyOf"); options != schema.end())
 		ok = matchesOptions(*options, false, value, place, problems, evaluated) && ok;
 	if(const auto options = schema.find("oneOf"); options != schema.end())
@@ -273,7 +282,8 @@ bool Schema::matchesConditions(const json& schema, const json& value, const std:
 	bool ok = true;
 	if(const auto negated = schema.find("not"); negated != schema.end()) {
 		std::set<std::string> inner;
-		if(matches(*negated, value, place, nullptr, inner)) ok = report(problems, place, "not allowed here: " + shortly(value));
+		if(matches(*negated, value, place, nullptr, inner))
+			ok = report(problems, place, "not allowed here: " + shortly(value));
 	}
 	const auto condition = schema.find("if");
 	if(condition == schema.end()) return ok;

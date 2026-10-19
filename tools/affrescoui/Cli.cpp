@@ -45,7 +45,7 @@ std::filesystem::path Arguments::file() const {
 }
 
 std::string readFile(const std::filesystem::path& path) {
-	std::ifstream file(path, std::ios::binary);
+	const std::ifstream file(path, std::ios::binary);
 	if(!file) throw std::runtime_error("can't read " + path.string());
 	std::stringstream text;
 	text << file.rdbuf();
