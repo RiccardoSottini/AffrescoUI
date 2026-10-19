@@ -151,7 +151,9 @@ void QuadRenderer::fillRect(const Rect& rect, Color color) {
 }
 
 void QuadRenderer::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
-	std::uint32_t page = 0;
+	// Carry on with the font's page in use, so runs of text from a later page stay in one batch
+	const bool sameFont = !batches_.empty() && batches_.back().font == &font;
+	std::uint32_t page = sameFont ? batches_.back().page : 0;
 	useFontPage(font, page);
 
 	float penX = origin.x;
