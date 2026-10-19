@@ -75,6 +75,30 @@ json walk(const std::string& root, std::vector<json> keys, const Context& contex
 
 /* Text paths (targets of steps, "repeat.in"): "state.items[state.current]" */
 
+/// @brief Reads what is inside a path's brackets: a number, or an expression giving a number or a key.
+/// @param inner The text inside the brackets.
+/// @param context What paths can see.
+/// @param where Its place in the document, for errors.
+/// @return The index or the key.
+/// @throws DocumentError If it gives neither, or the number is too large.
+json indexKey(std::string_view inner, const Context& context, const std::string& where) {
+	const bool number = !inner.empty() &&
+	                    std::ranges::all_of(inner, [](char c) { return std::isdigit(static_cast<unsigned char>(c)); });
+	json key;
+	if(!number) {
+		key = evaluate(compile(inner, where), context, where);
+	} else {
+		try {
+			key = std::stoll(std::string(inner));
+		} catch(const std::out_of_range&) { // an error, not an exception that ends the app
+			fail(where, "index '" + std::string(inner) + "' too large");
+		}
+	}
+	if(!key.is_number_integer() && !key.is_string())
+		fail(where, "index '" + std::string(inner) + "' is neither a number nor a key");
+	return key;
+}
+
 /// @brief Splits a path into object keys (strings) and array indices (numbers); `[expr]` indices are evaluated.
 /// @param path The path.
 /// @param context What paths can see.
@@ -110,14 +134,7 @@ std::vector<json> segments(std::string_view path, const Context& context, const 
 			}
 			if(depth != 0) fail(where, "unclosed '[' in path '" + std::string(path) + "'");
 
-			const std::string_view inner = path.substr(start, i - start - 1);
-			const bool number = !inner.empty() && std::ranges::all_of(inner, [](char c) {
-				return std::isdigit(static_cast<unsigned char>(c));
-			});
-			json key = number ? json(std::stoll(std::string(inner))) : evaluate(compile(inner, where), context, where);
-			if(!key.is_number_integer() && !key.is_string())
-				fail(where, "index '" + std::string(inner) + "' is neither a number nor a key");
-			result.push_back(std::move(key));
+			result.push_back(indexKey(path.substr(start, i - start - 1), context, where));
 		} else {
 			fail(where, "invalid path '" + std::string(path) + "'");
 		}
@@ -391,6 +408,26 @@ private:
 		return std::string(text_.substr(start, position_ - start));
 	}
 
+	/// @brief A number: digits, with a fraction or without.
+	/// @return It.
+	json number() {
+		const std::size_t start = position_;
+		while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
+		bool fraction = false;
+		if(position_ + 1 < text_.size() && text_[position_] == '.' &&
+		   std::isdigit(static_cast<unsigned char>(text_[position_ + 1]))) {
+			fraction = true;
+			++position_;
+			while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
+		}
+		const std::string digits(text_.substr(start, position_ - start));
+		try {
+			return fraction ? json(std::stod(digits)) : json(std::stoll(digits));
+		} catch(const std::out_of_range&) { // an error, not an exception that ends the app
+			error("number too large");
+		}
+	}
+
 	/// @brief Literals, ( ), [ ], @colors, function calls and variables.
 	/// @return The node.
 	json primary() {
@@ -398,20 +435,7 @@ private:
 		if(position_ >= text_.size()) error("expected a value");
 		const char c = text_[position_];
 
-		if(std::isdigit(static_cast<unsigned char>(c))) {
-			const std::size_t start = position_;
-			while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_]))) ++position_;
-			bool fraction = false;
-			if(position_ + 1 < text_.size() && text_[position_] == '.' &&
-			   std::isdigit(static_cast<unsigned char>(text_[position_ + 1]))) {
-				fraction = true;
-				++position_;
-				while(position_ < text_.size() && std::isdigit(static_cast<unsigned char>(text_[position_])))
-					++position_;
-			}
-			const std::string digits(text_.substr(start, position_ - start));
-			return fraction ? json(std::stod(digits)) : json(std::stoll(digits));
-		}
+		if(std::isdigit(static_cast<unsigned char>(c))) return number();
 		if(c == '\'' || c == '"') return node("$value", quoted(c));
 		if(c == '@') { // a colour name, e.g. @accent
 			const std::size_t start = position_++;
@@ -1104,6 +1128,17 @@ json evaluateString(const std::string& text, const Context& context, const std::
 	return result + text.substr(position);
 }
 
+/// @brief Tells whether text that isn't an expression may be a path written before expressions: "state.items[0]".
+/// @param text The text.
+/// @return true for names, dots and brackets, starting with a variable's name (never a digit: "99999999999999999999"
+/// is a number too large).
+bool looksLikePath(std::string_view text) {
+	if(text.empty() || std::isdigit(static_cast<unsigned char>(text.front()))) return false;
+	return std::ranges::all_of(text, [](char c) {
+		return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.' || c == '[' || c == ']';
+	});
+}
+
 } // namespace
 
 const json& compile(std::string_view text, const std::string& where) {
@@ -1119,11 +1154,7 @@ const json& compile(std::string_view text, const std::string& where) {
 		// Text that isn't an expression but looks like a path is read as one (paths written before expressions). Few
 		// names with '-' get here: "state.my-list" parses, as state.my - list, so such names go in brackets:
 		// state['my-list'] (SCREEN_FORMAT.md, "Expressions")
-		const bool path = !key.empty() && std::ranges::all_of(key, [](char c) {
-			return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.' || c == '[' ||
-			       c == ']';
-		});
-		if(!path) throw;
+		if(!looksLikePath(key)) throw;
 		compiled = node("$path", key);
 	}
 	return cache.emplace(key, std::move(compiled)).first->second;

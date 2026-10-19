@@ -201,7 +201,7 @@ void Rules::checkChange(const json& before, const json& after) const {
 	if(!old) return;
 	const std::vector<Finding> added = introduced(*old, *now);
 	if(added.empty()) return;
-	std::string message = "it refers to what the screen doesn't define:";
+	std::string message = "the checker found:";
 	for(std::size_t i = 0; i < added.size() && i < maxListed; ++i) message += (i ? "; " : " ") + added[i].text();
 	if(added.size() > maxListed) message += "; and " + std::to_string(added.size() - maxListed) + " more";
 	fail("revision", message);

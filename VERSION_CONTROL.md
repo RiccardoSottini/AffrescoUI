@@ -48,8 +48,8 @@ A revision is one change to the running screen:
 - **Atomic:** if anything is wrong, nothing changes, and the error names the operation and the place:
   `revision.patch[0] (set #nope/color).path: no node with id 'nope'`.
 - **Checked:** a revision that refers to something the screen doesn't define (a state path, a variable, an action, a
-  style, a component or its parameter, a font, a colour, a screen) is rejected before any reviewer sees it, with
-  each place and a hint: `revision: it refers to what the screen doesn't define: root.children[2].text:
+  style, a component or its parameter, a font, a colour, a screen), or whose expressions don't parse, is rejected
+  before any reviewer sees it, with each place and a hint: `revision: the checker found: root.children[2].text:
   'state.cardz' doesn't exist (did you mean 'state.cards'?)`. Only what the revision brings in counts
   ([SCREEN_FORMAT.md](SCREEN_FORMAT.md), "Errors").
 - **`parent`** (optional): the revision it was based on, as a number or a commit id. If `main` has moved on, it is

@@ -330,7 +330,7 @@ TEST_CASE("rules: a revision that brings in a finding is rejected; one that leav
 	const affresco::RevisionResult typo =
 	    repository.submit({{"author", "agent"}, {"set", {{"#title/text", "{{state.cards[0].titel}}"}}}});
 	CHECK(typo.status == RevisionStatus::Rejected);
-	CHECK(typo.error == "AffrescoUI screen: revision: it refers to what the screen doesn't define: "
+	CHECK(typo.error == "AffrescoUI screen: revision: the checker found: "
 	                    "root.children[0].text: 'state.cards[0].titel' doesn't exist (did you mean "
 	                    "'state.cards[0].title'?)");
 	CHECK(repository.head().number == 0);
@@ -339,6 +339,13 @@ TEST_CASE("rules: a revision that brings in a finding is rejected; one that leav
 	const affresco::RevisionResult elsewhere = repository.submit(
 	    {{"author", "agent"}, {"add", {{"/root/children/0", {{"type", "label"}, {"text", "Cards"}}}}}});
 	CHECK(elsewhere.status == RevisionStatus::Applied);
+
+	// A number too large for its type is rejected with its place (it used to escape as std::out_of_range, and the host
+	// ended)
+	const affresco::RevisionResult huge =
+	    repository.submit({{"author", "agent"}, {"set", {{"#title/text", "{{99999999999999999999}}"}}}});
+	CHECK(huge.status == RevisionStatus::Rejected);
+	CHECK(huge.error.find("number too large") != std::string::npos);
 
 	// A key a revision adds to the live state may be read in the same revision
 	const affresco::RevisionResult added = repository.submit(
