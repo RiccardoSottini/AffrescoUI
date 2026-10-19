@@ -87,6 +87,13 @@ private:
 	/// @return The id.
 	std::string newId(const json& node, std::string_view parentId);
 
+	/// @brief The type a node is built as, in words: its "type", else its style's (and so on), else "panel"; a "use"
+	/// is its component's name.
+	/// @param node The node.
+	/// @return The words, joined by '-'.
+	[[nodiscard]] std::string typeOf(const json& node) const;
+
+	json styles_;                 ///< The document's "styles", which may give a node its type.
 	std::set<std::string> taken_; ///< Every id in the document, and those given out.
 };
 

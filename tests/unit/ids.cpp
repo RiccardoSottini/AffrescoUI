@@ -51,7 +51,7 @@ TEST_CASE("ids: nodes without one get readable ids from their type and what they
 	const auto named = NodeNamer::nameAll(document);
 
 	const json& root = document["root"];
-	CHECK(root["id"] == "panel");
+	CHECK(root["id"] == "panel-root");
 	CHECK(root["children"][0]["id"] == "topBar"); // ids that are there stay
 	CHECK(root["children"][0]["children"][0]["id"] == "label-blocked");
 	CHECK(root["children"][0]["children"][1]["id"] == "label-board"); // "state" says nothing
@@ -59,8 +59,8 @@ TEST_CASE("ids: nodes without one get readable ids from their type and what they
 	CHECK(root["children"][0]["children"][3]["id"] == "panel-top-bar-2");
 	CHECK(root["children"][1]["id"] == "textarea-add-a-card"); // the placeholder, before the bound path
 	CHECK(root["children"][2]["id"] == "column-card");          // the repeat's variable
-	CHECK(root["children"][2]["children"][0]["id"] == "move-button-column-card"); // a use: after its component
-	CHECK(root["children"][2]["children"][1]["id"] == "move-button-column-card-2");
+	CHECK(root["children"][2]["children"][0]["id"] == "move-button-card"); // a use: after its component
+	CHECK(root["children"][2]["children"][1]["id"] == "move-button-card-2");
 	CHECK(root["children"][3]["id"] == "label-blocked-2");
 	CHECK(document["components"]["moveButton"]["node"]["id"] == "label-by");
 
@@ -117,7 +117,7 @@ TEST_CASE("ids: a node a revision adds without an id gets one, in the commit too
 	REQUIRE(added.status == RevisionStatus::Applied);
 	const json& node = repository.document()["root"]["children"][3];
 	CHECK(node["id"] == "label-blocked");
-	CHECK(node["children"][0]["id"] == "panel-label-blocked");
+	CHECK(node["children"][0]["id"] == "panel-blocked");
 
 	// The commit holds the ids, so a change set replays them and a diff shows them
 	const json changes = repository.exportChanges(0, "ids");

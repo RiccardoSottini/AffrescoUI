@@ -21,6 +21,14 @@ constexpr std::size_t maxWordLength = 16;
 constexpr std::array<std::string_view, 9> noiseWords = {"state", "computed", "item", "index", "len",
                                                         "trim",  "upper",    "lower", "event"};
 
+/// Styles naming styles that the namer follows to find a node's type, as the runtime allows.
+constexpr std::size_t maxStyleDepth = 16;
+
+/// The node types the format builds in (SCREEN_FORMAT.md, "Every type"): the first word of the ids given here.
+constexpr std::array<std::string_view, 13> builtInTypes = {"panel", "label",    "textarea", "editor", "stack",
+                                                           "row",   "column",   "grid",     "toggle", "checkbox",
+                                                           "slider", "outlet", "use"};
+
 /// @brief Walks a node and its children.
 /// @param node The node.
 /// @param pointer Its JSON Pointer.
@@ -171,18 +179,36 @@ bool isNodePlace(std::string_view pointer) {
 	return slashes == 3 && pointer.starts_with("/components/") && pointer.ends_with("/node");
 }
 
-NodeNamer::NodeNamer(const json& document) {
+NodeNamer::NodeNamer(const json& document) : styles_(document.value("styles", json::object())) {
 	for(std::string& id : nodeIds(document)) taken_.insert(std::move(id));
 }
 
+std::string NodeNamer::typeOf(const json& node) const {
+	if(const auto use = node.find("use"); use != node.end() && use->is_string())
+		return joined(wordsOf(use->get<std::string>()));
+	const json* styled = &node;
+	for(std::size_t depth = 0; depth < maxStyleDepth; ++depth) { // a style may give the type, or its style may
+		if(const auto type = styled->find("type"); type != styled->end() && type->is_string())
+			return joined(wordsOf(type->get<std::string>()));
+		const auto style = styled->find("style");
+		if(style == styled->end() || !style->is_string() || !styles_.is_object() || !styles_.contains(*style)) break;
+		styled = &styles_[style->get<std::string>()];
+		if(!styled->is_object()) break;
+	}
+	return "panel";
+}
+
 std::string NodeNamer::newId(const json& node, std::string_view parentId) {
-	const auto use = node.find("use");
-	std::string type = use != node.end() && use->is_string() ? joined(wordsOf(use->get<std::string>()))
-	                                                          : joined(wordsOf(node.value("type", std::string())));
+	std::string type = typeOf(node);
 	if(type.empty()) type = "panel";
 
 	std::vector<std::string> words = describingWords(node);
-	if(words.empty()) words = wordsOf(parentId);
+	if(words.empty()) { // the parent's words, without the type and number an id given here has ("row-card-2": "card")
+		words = wordsOf(parentId);
+		std::erase_if(words, [](const std::string& word) { return word.find_first_not_of("0123456789") == std::string::npos; });
+		if(words.size() > 1 && std::ranges::find(builtInTypes, words.front()) != builtInTypes.end())
+			words.erase(words.begin());
+	}
 	std::string id = words.empty() ? type : type + "-" + joined(words);
 	if(taken_.insert(id).second) return id;
 	for(int n = 2;; ++n)
@@ -208,7 +234,7 @@ std::vector<std::pair<std::string, std::string>> NodeNamer::nameAll(json& docume
 	NodeNamer namer(document);
 	const Visit note = [&](const std::string& pointer, const std::string& id) { named.emplace_back(pointer, id); };
 
-	if(document.contains("root")) namer.name(document["root"], "/root", "", note);
+	if(document.contains("root")) namer.name(document["root"], "/root", "root", note); // "panel-root"
 	for(const char* section : {"screens", "templates"}) {
 		if(!document.contains(section) || !document[section].is_object()) continue;
 		for(auto& [key, node] : document[section].items())
