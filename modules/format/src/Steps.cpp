@@ -39,6 +39,12 @@ void Runtime::Impl::setOnceTimer(double delayMs, std::function<void()> task) {
 	onceTimers.insert(*id);
 }
 
+void Runtime::Impl::defer(std::function<void()> task) {
+	window->defer([alive = alive, task = std::move(task)] {
+		if(*alive) task();
+	});
+}
+
 void Runtime::Impl::runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
                              const std::string& where) {
 	const json& document = versions.document();
@@ -236,7 +242,7 @@ std::optional<bool> Runtime::Impl::outsideStep(const Running& s) {
 		                 {"message", step.contains("message") ? s.value("message") : json("")},
 		                 {"patch", s.value("patch")}};
 		if(window) {
-			window->defer([this, revision = std::move(revision)] {
+			defer([this, revision = std::move(revision)] {
 				if(const auto error = versions.commit(revision)) report(*error);
 			});
 		}
@@ -264,7 +270,7 @@ std::optional<bool> Runtime::Impl::reviewStep(const Running& s) {
 			fail(where + "." + key, "expected a revision number or a commit");
 	if(!window) return true;
 
-	window->defer([this, control = std::move(control)] {
+	defer([this, control = std::move(control)] {
 		std::optional<std::string> error;
 		try {
 			if(control.contains("accept")) error = versions.accept(control["accept"].get<int>(), {"user", {}, false});

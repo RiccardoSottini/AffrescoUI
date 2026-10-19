@@ -23,7 +23,7 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
 | `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review |
-| `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers when it is destroyed |
+| `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers and deferred tasks when it is destroyed |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main` |
 

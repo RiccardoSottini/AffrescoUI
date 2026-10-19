@@ -314,6 +314,8 @@ struct Runtime::Impl final : VersionObserver {
 	std::map<std::string, std::uint64_t> debounces;  ///< "debounce" steps waiting, by place.
 	std::map<std::string, std::uint64_t> animations; ///< "animate" steps running, by state pointer.
 	std::set<std::uint64_t> onceTimers;              ///< "after", "focus" and "scrollTo" timers waiting.
+	/// Cleared by ~Runtime: the tasks deferred on the window then do nothing.
+	std::shared_ptr<bool> alive = std::make_shared<bool>(true);
 
 	/// @brief A press that may become a click, a double click or a drag.
 	struct Press {
@@ -746,6 +748,10 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param delayMs Milliseconds from now.
 	/// @param task The work.
 	void setOnceTimer(double delayMs, std::function<void()> task);
+	/// @brief Runs a task after the current event (Window::defer), unless the runtime is destroyed before then: the
+	/// window can't cancel what it has deferred.
+	/// @param task The work.
+	void defer(std::function<void()> task);
 	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);

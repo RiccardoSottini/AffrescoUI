@@ -71,3 +71,21 @@ TEST_CASE("format: a screen destroyed while its window lives on cancels the time
 	waitForTimers();
 	window.render();
 }
+
+// The window can't cancel a deferred task, so a task of a screen destroyed before the next frame must do nothing
+// (AddressSanitizer: heap-use-after-free in the "onLoad" task)
+TEST_CASE("format: a screen destroyed before its window's next frame leaves no deferred task running") {
+	affresco::Application app;
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	auto screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen",
+		"version": 1,
+		"state": { "y": 0 },
+		"onLoad": [{ "set": "state.y", "to": 1 }],
+		"root": { "type": "panel" }
+	})json"));
+	affresco::Window& window = screen->createWindow(app); // "onLoad" is deferred to the first frame
+
+	screen.reset();
+	window.render();
+}
