@@ -23,6 +23,7 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
 | `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review |
+| `text.cpp` | UTF-8 decoding, `Font` glyphs rasterised on demand into atlas pages, fallback fonts, the atlas limit, `fonts` with `fallback` (reads the examples' font files) |
 | `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers when it is destroyed |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main` |
@@ -35,5 +36,6 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 - Tests pin behaviour through the public headers. Private ones are fine when a module's logic lives there:
   `modules/format/src` is on the include path for `Expression.hpp`. Don't make a header public for a test.
 - Tests don't need a window, files or a network, so they run anywhere, CI included. Only `timers.cpp` needs a window.
+  The one exception for files is `text.cpp`, which reads the fonts in `examples/assets/fonts` (from the checkout).
 - Don't change library code to make a test pass. If a test finds a bug, keep it, mark it `* doctest::skip(true)`
   with a comment that describes the bug, and report it.

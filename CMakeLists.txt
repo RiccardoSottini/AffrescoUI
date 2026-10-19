@@ -139,8 +139,11 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/channel.cpp)
-	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src) # Expression.hpp stays private
+		tests/unit/expressions.cpp tests/unit/channel.cpp tests/unit/text.cpp)
+	# Expression.hpp and Utf8.hpp stay private
+	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src)
+	target_compile_definitions(affrescoui_unit_tests PRIVATE
+		AFFRESCOUI_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts")
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel)
 	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)

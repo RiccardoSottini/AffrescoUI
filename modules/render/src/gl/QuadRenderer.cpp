@@ -106,6 +106,9 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
 		height_ = height;
 	}
 
+	for(const Batch& batch : batches_)
+		if(batch.font) updateFontTexture(*batch.font, batch.page);
+
 	glBindVertexArray(vertexArray_.id());
 	reserveQuads(quads);
 
@@ -148,7 +151,8 @@ void QuadRenderer::fillRect(const Rect& rect, Color color) {
 }
 
 void QuadRenderer::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
-	useTexture(fontTexture(font), font.whiteTexel());
+	std::uint32_t page = 0;
+	useFontPage(font, page);
 
 	float penX = origin.x;
 	for(char32_t cp : text) {
@@ -157,9 +161,18 @@ void QuadRenderer::drawText(const Font& font, std::u32string_view text, Vec2 ori
 		const Font::Glyph& glyph = font.glyph(cp);
 		const Rect quad{penX + glyph.quad.left, origin.y + glyph.quad.top, penX + glyph.quad.right,
 		                origin.y + glyph.quad.bottom};
-		if(quad.right > quad.left) pushQuad(quad, glyph.uv, color); // spaces have no quad
+		if(quad.right > quad.left) { // spaces have no quad
+			if(glyph.page != page) useFontPage(font, page = glyph.page);
+			pushQuad(quad, glyph.uv, color);
+		}
 		penX += glyph.advance;
 	}
+}
+
+void QuadRenderer::useFontPage(const Font& font, std::uint32_t page) {
+	useTexture(fontTexture(font, page), font.whiteTexel(page));
+	batches_.back().font = &font;
+	batches_.back().page = page;
 }
 
 void QuadRenderer::useTexture(GLuint texture, Vec2 white) {
@@ -194,11 +207,35 @@ void QuadRenderer::pushQuad(const Rect& rect, const Rect& uv, Color color) {
 	++batches_.back().quadCount;
 }
 
-GLuint QuadRenderer::fontTexture(const Font& font) {
-	auto it = fontTextures_.find(font.id());
-	if(it == fontTextures_.end())
-		it = fontTextures_.emplace(font.id(), createTexture(font.atlasSize(), font.atlasPixels())).first;
-	return it->second.id();
+GLuint QuadRenderer::fontTexture(const Font& font, std::uint32_t page) {
+	std::vector<PageTexture>& pages = fontTextures_[font.id()];
+	while(pages.size() <= page) {
+		const std::size_t next = pages.size();
+		pages.push_back({createTexture(font.atlasSize(next), font.atlasPixels(next)), font.atlasVersion(next)});
+	}
+	return pages[page].texture.id();
+}
+
+void QuadRenderer::updateFontTexture(const Font& font, std::uint32_t page) {
+	PageTexture& texture = fontTextures_.at(font.id())[page];
+	const std::uint64_t version = font.atlasVersion(page);
+	if(texture.version == version) return;
+
+	const Font::AtlasRegion changed = font.atlasChangesSince(page, texture.version);
+	texture.version = version;
+	if(changed.empty()) return;
+
+	// Only the rectangle holding the new glyphs, read out of the whole page's rows
+	const int size = font.atlasSize(page);
+	const std::uint8_t* first = font.atlasPixels(page).data() +
+	                            static_cast<std::size_t>(changed.top) * static_cast<std::size_t>(size) +
+	                            static_cast<std::size_t>(changed.left);
+	glBindTexture(GL_TEXTURE_2D, texture.texture.id());
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, size);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, changed.left, changed.top, changed.right - changed.left,
+	                changed.bottom - changed.top, GL_RED, GL_UNSIGNED_BYTE, first);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
 
 Texture QuadRenderer::createTexture(int size, std::span<const std::uint8_t> pixels) {

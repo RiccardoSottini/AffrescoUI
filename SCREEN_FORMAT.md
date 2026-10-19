@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
-| `fonts` | `name → { "file", "size" }`, paths relative to the screen file. `default` is used by text without a `font`. |
+| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file. `default` is used by text without a `font`. Text is UTF-8 and shows any character the font has. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's size. A character none of them has shows as `?`. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `theme` | Which variant of the colors is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
