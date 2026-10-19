@@ -68,6 +68,13 @@ class FunctionGateTest(unittest.TestCase):
         failures, notes = run_gate(head, function_text("big", 12), [(1, 1)])
         self.assertEqual((len(failures), len(notes)), (0, 1))
 
+    def test_a_new_overload_of_an_old_function_is_new(self):
+        base = function_text("big", 12)
+        head = base + function_text("big", 12, "long value")
+        failures, notes = run_gate(head, base, [(17, 32)])
+        self.assertEqual(len(notes), 0)
+        self.assertIn("big is 16 lines (limit 10) and complexity 13 (limit 3): new", failures[0][1])
+
 
 class TidyTest(unittest.TestCase):
     """tidy.parse and tidy.counts."""

@@ -30,11 +30,17 @@ def describe(function, metrics, limits):
     return f"{function['name']} is " + " and ".join(parts)
 
 
+def unique_names(functions):
+    """The names that only one function of a file has: an overload shares its name with another."""
+    names = [function["name"] for function in functions]
+    return {name for name in names if names.count(name) == 1}
+
+
 def previous_versions(functions):
     """The functions of a file at the base, by signature, and by name where the name is unique in the file, so a
     function whose parameters changed is still compared with what it was. An overload has its own signature."""
-    names = [function["name"] for function in functions]
-    versions = {function["name"]: function for function in functions if names.count(function["name"]) == 1}
+    unique = unique_names(functions)
+    versions = {function["name"]: function for function in functions if function["name"] in unique}
     versions.update((function["signature"], function) for function in functions)
     return versions
 
@@ -47,11 +53,15 @@ def gate(changed, read_head, read_base, limits):
     for file in changed:
         base_text = read_base(file.base_path) if file.base_path else None
         before = previous_versions(measure(file.path, base_text) if base_text is not None else [])
-        for function in measure(file.path, read_head(file.path)):
+        after = measure(file.path, read_head(file.path))
+        # Matched by name only where the name is unique now too: a new overload is new, not the old function changed
+        unique = unique_names(after)
+        for function in after:
             metrics = over(function, limits)
             if not metrics or not file.touches(function["start"], function["end"]):
                 continue
-            previous = before.get(function["signature"], before.get(function["name"]))
+            previous = before.get(function["signature"],
+                                  before.get(function["name"]) if function["name"] in unique else None)
             worse = [metric for metric in metrics if previous is None or function[metric] > previous[metric]]
             if worse:
                 status = "new" if previous is None else "was " + " and ".join(
