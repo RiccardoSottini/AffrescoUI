@@ -34,6 +34,7 @@ Checks:
   - -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access # operator[] on checked indices; the sanitizer build catches the rest
   - -cppcoreguidelines-pro-bounds-constant-array-index # every index into a fixed table would need gsl::at
   - -cppcoreguidelines-pro-bounds-pointer-arithmetic   # byte buffers for OpenGL, sockets and SHA-256
+  - -cppcoreguidelines-pro-type-cstyle-cast            # -Wold-style-cast
   - -cppcoreguidelines-pro-type-reinterpret-cast       # needed at the C API boundary (sockets, OpenGL, bytes)
   - -cppcoreguidelines-pro-type-union-access           # no unions of our own; flags C library structs
   - -cppcoreguidelines-pro-type-vararg                 # C APIs with varargs (fcntl, ioctl, printf-style logging)
