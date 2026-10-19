@@ -25,6 +25,7 @@ constexpr int smallestAddedPage = 1024; ///< Pages added later are at least this
 /// @brief The most texels the pages of one font may hold together: text naming many characters (e.g. from a peer)
 /// can't grow the atlas without bound. Characters that don't fit draw as '?'.
 constexpr std::size_t atlasLimit = std::size_t{64} << 20;
+constexpr char32_t lastUnicode = 0x10FFFF; ///< The last code point Unicode has; anything above draws as '?'.
 
 /// @brief Reads a whole file.
 /// @param path The file.
@@ -128,6 +129,8 @@ struct Font::Glyphs {
 	/// @param codepoint The character.
 	/// @return The face and its glyph index, or nothing.
 	[[nodiscard]] std::optional<std::pair<const Face*, int>> find(char32_t codepoint) const noexcept {
+		// Beyond Unicode, the cast to int would turn negative, and stb_truetype indexes some cmap tables with it
+		if(codepoint > lastUnicode) return std::nullopt;
 		for(const Face& face : faces)
 			if(const int index = stbtt_FindGlyphIndex(&face.info, static_cast<int>(codepoint)); index != 0)
 				return std::pair{&face, index};

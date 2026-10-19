@@ -153,6 +153,12 @@ TEST_CASE("text: a character the font lacks comes from its first fallback that h
 	CHECK_FALSE(withFallback->hasGlyph(U'★')); // in neither font
 	CHECK(&withFallback->glyph(U'★') == &withFallback->glyph(U'?'));
 	CHECK(&withFallback->glyph(U'\t') == &withFallback->glyph(U'?')); // control characters
+
+	// Beyond U+10FFFF: '?', never handed to the font's tables
+	for(const char32_t beyond : {char32_t{0x110000}, char32_t{0x80000000}, char32_t{0xFFFFFFFF}}) {
+		CHECK_FALSE(withFallback->hasGlyph(beyond));
+		CHECK(&withFallback->glyph(beyond) == &withFallback->glyph(U'?'));
+	}
 }
 
 TEST_CASE("text: glyphs that don't fit the first page go to a new one") {
