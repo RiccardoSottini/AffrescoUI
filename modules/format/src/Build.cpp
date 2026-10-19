@@ -145,8 +145,7 @@ json Runtime::Impl::instantiateComponent(const json& use, const std::string& pat
 	const json& document = versions.document();
 	if(!document.contains("components") || !document["components"].contains(name))
 		fail(path + ".use", "unknown component '" + name + "'");
-	const json& component = document["components"][name];
-	object(component, "components." + name);
+	const json& component = object(document["components"][name], "components." + name);
 	if(!component.contains("node")) fail("components." + name, "a component needs a \"node\"");
 
 	json result = object(component["node"], "components." + name + ".node");
@@ -195,8 +194,7 @@ NodeRef Runtime::Impl::scoped(const NodeRef& shared, SharedScope& scope, const s
 		for(const auto& [name, value] : object(node["let"], at + ".let").items())
 			layer.vars[name] = evaluate(value, layer, none, at + ".let." + name);
 	if(node.contains("check")) {
-		const json& check = node["check"];
-		object(check, at + ".check");
+		const json& check = object(node["check"], at + ".check");
 		// The value checked: "value", else the node's bound value
 		const json value = check.contains("value") ? evaluate(check["value"], layer, none, at + ".check.value")
 		                   : node.contains("bind") && node["bind"].is_string()
@@ -256,8 +254,7 @@ std::vector<Item> Runtime::Impl::expand(const json& children, const SharedScope&
 			continue;
 		}
 
-		const json& repeat = merged["repeat"];
-		object(repeat, at + ".repeat");
+		const json& repeat = object(merged["repeat"], at + ".repeat");
 		const std::string name = repeat.contains("for") ? string(repeat["for"], at + ".repeat.for") : "item";
 		const std::string indexName =
 		    repeat.contains("index") ? string(repeat["index"], at + ".repeat.index") : "index";

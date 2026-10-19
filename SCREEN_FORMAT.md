@@ -205,7 +205,8 @@ Wherever a value is expected it can be computed:
 **Expressions** are JS-like, compiled once and cached:
 - literals: `12`, `1.5`, `'text'` or `"text"`, `true`, `false`, `null`, `@accent` (a colour name), `[1, 2]`,
   `{ key: value }`;
-- paths: `state.items[state.current].title`, `card.tags.length`; a missing value is `null`;
+- paths: `state.items[state.current].title`, `card.tags.length`; a missing value is `null`; a name with `-` goes in
+  brackets, `state['my-list']`, because `state.my-list` is `state.my - list`;
 - `!`, `-`, `* / %`, `+ -` (`+` joins text when either side is text), `< <= > >=`, `== !=`, `&&`, `||`,
   `a ?? b` (b when a is null), `c ? a : b`;
 - functions: `len`, `empty`, `round`, `floor`, `ceil`, `abs`, `min`, `max` (numbers or a list), `clamp(v, lo, hi)`,

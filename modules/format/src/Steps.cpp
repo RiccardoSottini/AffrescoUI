@@ -30,6 +30,15 @@ std::function<void()> Runtime::Impl::later(json steps, Panel& sender, json event
 	};
 }
 
+void Runtime::Impl::setOnceTimer(double delayMs, std::function<void()> task) {
+	const auto id = std::make_shared<std::uint64_t>(); // known once set, before it can run
+	*id = window->setTimer(delayMs, [this, id, task = std::move(task)] {
+		onceTimers.erase(*id);
+		task();
+	});
+	onceTimers.insert(*id);
+}
+
 void Runtime::Impl::runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
                              const std::string& where) {
 	const json& document = versions.document();
@@ -286,7 +295,7 @@ std::optional<bool> Runtime::Impl::navigationStep(const Running& s) {
 		if(id.starts_with('#')) id.erase(0, 1);
 		if(window) {
 			// After the update and its layout, so the panel exists and has its place
-			window->setTimer(0.0, [this, id, focus] {
+			setOnceTimer(0.0, [this, id, focus] {
 				if(Panel* panel = window->root().findById(id)) {
 					if(focus) window->setFocus(panel);
 					else panel->scrollIntoView();
@@ -334,7 +343,7 @@ std::optional<bool> Runtime::Impl::timeStep(const Running& s) {
 				task();
 			});
 		} else {
-			window->setTimer(ms, task);
+			setOnceTimer(ms, std::move(task));
 		}
 		return true;
 	}

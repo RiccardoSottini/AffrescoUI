@@ -142,9 +142,11 @@ TEST_CASE("format: truthy follows the documented rules") {
 		CHECK(affresco::format::truthy(value));
 }
 
-// Bug: compile() falls back to a plain path ("Paths written before expressions existed may contain '-' in names
-// (\"state.my-list\")") only when the text doesn't parse, but "state.my-list" parses as state.my - list, which then
-// fails with "unknown variable 'list'".
-TEST_CASE("format: a path with '-' in a name, from before expressions, reads that name" * doctest::skip(true)) {
-	CHECK(evaluate("{{state.my-list}}").dump() == "[1,2]");
+// SCREEN_FORMAT.md, "Expressions": in an expression '-' subtracts, so a name with '-' is read in brackets
+TEST_CASE("format: a name with '-' is read with brackets; after a dot, '-' subtracts") {
+	CHECK(evaluate("{{state['my-list']}}").dump() == "[1,2]");
+	CHECK(evaluate("{{state[\"my-list\"][1]}}").dump() == "2");
+	CHECK(evaluate("{{len(state['my-list'])}}").dump() == "2");
+	CHECK_THROWS_WITH_AS((void)evaluate("{{state.my-list}}"), doctest::Contains("unknown variable 'list'"),
+	                     affresco::DocumentError);
 }

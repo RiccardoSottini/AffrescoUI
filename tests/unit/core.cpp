@@ -46,14 +46,23 @@ TEST_CASE("core: parseUntrusted refuses JSON nested deeper than maxNesting") {
 	CHECK_THROWS_AS((void)affresco::parseUntrusted(nested(100000, "[", ']')), affresco::DocumentError);
 }
 
-// Bug: nlohmann::json reports array_start and object_start at the depth outside the new level, so 257 levels whose
-// innermost array or object is empty never report a depth over 256 and are accepted. With a value inside, 257 levels
-// are refused (the test above).
-TEST_CASE("core: parseUntrusted refuses an empty array or object nested maxNesting + 1 deep" * doctest::skip(true)) {
+// nlohmann::json reports array_start and object_start at the depth outside the new level: an empty innermost level
+// is still counted
+TEST_CASE("core: parseUntrusted refuses an empty array or object nested maxNesting + 1 deep") {
 	CHECK_THROWS_AS((void)affresco::parseUntrusted(nested(affresco::maxNesting + 1, "[", ']')),
 	                affresco::DocumentError);
 	CHECK_THROWS_AS((void)affresco::parseUntrusted(nested(affresco::maxNesting, R"({"a":)", '}', "{}")),
 	                affresco::DocumentError);
+}
+
+// Built with warnings as errors, this also checks that GCC's -Wdangling-reference accepts a temporary path
+TEST_CASE("core: expect::object returns the object itself, or names the place that isn't one") {
+	const affresco::json value = affresco::json::parse(R"({"a": {"b": 1}})");
+	const std::string at = "root";
+	const affresco::json& inner = affresco::expect::object(value["a"], at + ".a");
+	CHECK(&inner == &value["a"]);
+	CHECK_THROWS_WITH_AS((void)affresco::expect::object(inner["b"], at + ".a.b"),
+	                     "AffrescoUI screen: root.a.b: expected an object", affresco::DocumentError);
 }
 
 TEST_CASE("core: parseUntrusted refuses text that is not JSON, and skips comments only when asked") {

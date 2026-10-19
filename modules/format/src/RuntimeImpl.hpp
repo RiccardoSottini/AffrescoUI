@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <map>
 #include <optional>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -312,6 +313,7 @@ struct Runtime::Impl final : VersionObserver {
 	json watched = json::object();           ///< "watch": the values seen last.
 	std::map<std::string, std::uint64_t> debounces;  ///< "debounce" steps waiting, by place.
 	std::map<std::string, std::uint64_t> animations; ///< "animate" steps running, by state pointer.
+	std::set<std::uint64_t> onceTimers;              ///< "after", "focus" and "scrollTo" timers waiting.
 
 	/// @brief A press that may become a click, a double click or a drag.
 	struct Press {
@@ -740,6 +742,10 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param where Its place, for errors.
 	/// @return The task.
 	std::function<void()> later(json steps, Panel& sender, json event, SharedScope locals, std::string where);
+	/// @brief Sets a window timer that runs once, kept in onceTimers until it runs (~Runtime cancels it).
+	/// @param delayMs Milliseconds from now.
+	/// @param task The work.
+	void setOnceTimer(double delayMs, std::function<void()> task);
 	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);

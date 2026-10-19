@@ -246,20 +246,20 @@ std::optional<double> Window::secondsToNextTimer() const {
 	return std::max(due - glfwGetTime(), 0.0);
 }
 
-// Each due timer runs once; tasks may set new timers, which wait for their own time
+// Each due timer runs once, earliest first; tasks may set new timers, which wait for the next call. A due timer stays
+// in timers_ until it runs, so a task can still cancel the ones after it.
 void Window::runTimers() {
 	const double now = glfwGetTime();
-	std::vector<Timer> due;
-	for(auto it = timers_.begin(); it != timers_.end();) {
-		if(it->due <= now) {
-			due.push_back(std::move(*it));
-			it = timers_.erase(it);
-		} else {
-			++it;
-		}
+	const std::uint64_t setBefore = nextTimerId_; // the timers already set
+	for(;;) {
+		auto next = timers_.end();
+		for(auto it = timers_.begin(); it != timers_.end(); ++it)
+			if(it->due <= now && it->id < setBefore && (next == timers_.end() || it->due < next->due)) next = it;
+		if(next == timers_.end()) return;
+		Timer timer = std::move(*next); // the task stays alive while it runs, even if it cancels itself
+		timers_.erase(next);
+		timer.task();
 	}
-	std::ranges::sort(due, {}, &Timer::due);
-	for(Timer& timer : due) timer.task();
 }
 
 void Window::render() {
