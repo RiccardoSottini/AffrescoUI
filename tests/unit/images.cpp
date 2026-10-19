@@ -126,3 +126,47 @@ TEST_CASE("screen: a picture of a missing proposal leaves the person's preview a
 	CHECK(screen.previewedProposal() == proposal);
 	CHECK(screen.stateJson() == previewed); // not previewed again from main's state
 }
+
+// Known bug, found in review: putting the preview back defers the proposal's onHide steps (and main's onShow and watch
+// steps) to the next frame, when the picture is done, so they run on main's live state without review. Discarding the
+// tasks deferred while drawing needs a Window API (the render module). Unskip when it exists.
+TEST_CASE("screen: a picture of a proposal runs none of its steps on main" * doctest::skip(true)) {
+	affresco::Application app;
+	MemoryChannel agent; // before the screen: a peer's channel outlives it
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	affresco::Screen screen = affresco::Screen::fromString(boardScreen);
+	affresco::Window& window = screen.createWindow(app);
+	window.render();
+	screen.connect(agent, "agent");
+
+	const json spy = {{"type", "panel"}, {"id", "spy"}, {"onHide", {{{"set", "state.count"}, {"to", 99}}}}};
+	const json proposed =
+	    ask(agent, {{"type", "revision"}, {"id", 1}, {"set", {{"#board/children", json::array({spy})}}}});
+	REQUIRE(proposed["type"] == "proposed");
+	REQUIRE(ask(agent, {{"type", "render"}, {"id", 2}, {"proposal", proposed["proposal"]}})["type"] == "image");
+	window.render(); // runs what was deferred
+	CHECK(json::parse(screen.stateJson())["count"] == 0);
+}
+
+// Known bug, found in review: steps main deferred just before a picture of a proposal (here a revision's onShow) run
+// inside the proposal's preview, so their changes to the state are put back with it and lost. Running the pending tasks
+// before switching needs a Window API (the render module). Unskip when it exists.
+TEST_CASE("screen: steps main deferred before a picture of a proposal still change main" * doctest::skip(true)) {
+	affresco::Application app;
+	MemoryChannel agent, studio; // before the screen: a peer's channel outlives it
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	affresco::Screen screen = affresco::Screen::fromString(boardScreen);
+	affresco::Window& window = screen.createWindow(app);
+	window.render();
+	screen.connect(agent, "agent");
+	screen.connect(studio, "studio");
+
+	const json proposed = ask(agent, {{"type", "revision"}, {"id", 1}, {"set", {{"#board/color", "#00ff00"}}}});
+	REQUIRE(proposed["type"] == "proposed");
+	const json shown = {{"type", "panel"}, {"id", "shown"}, {"onShow", {{{"set", "state.count"}, {"to", 5}}}}};
+	REQUIRE(ask(studio, {{"type", "revision"}, {"id", 2}, {"set", {{"#main/children/-", shown}}}})["type"] ==
+	        "applied");
+	REQUIRE(ask(agent, {{"type", "render"}, {"id", 3}, {"proposal", proposed["proposal"]}})["type"] == "image");
+	window.render();
+	CHECK(json::parse(screen.stateJson())["count"] == 5);
+}
