@@ -1,10 +1,12 @@
 /// @file
-/// @brief Unit tests for the screen module's paths: the default socket directory and where "persist" state is kept.
+/// @brief Unit tests for the screen module that need no window: its paths (the default socket directory, where
+/// "persist" state is kept) and loading a screen from its text.
 
 #include <affresco/Screen.hpp>
 
 #include <doctest/doctest.h>
 
+#include <cstddef>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -100,6 +102,14 @@ void write(const std::filesystem::path& file, const std::string& content) {
 	std::ofstream(file) << content;
 }
 
+/// @brief A screen whose state holds a value nested in @p depth lists.
+/// @param depth How many lists.
+/// @return The screen's text.
+std::string screenNestedIn(std::size_t depth) {
+	return R"({"format": "affrescoui-screen", "version": 1, "root": {"type": "panel"}, "state": {"x": )" +
+	       std::string(depth, '[') + std::string(depth, ']') + "}}";
+}
+
 } // namespace
 
 TEST_CASE("screen: AFFRESCOUI_SOCKET_DIR is the default socket directory when it is set") {
@@ -138,4 +148,11 @@ TEST_CASE("screen: persisted state is read from the platform's folder for applic
 
 	const affresco::Screen screen = affresco::Screen::fromFile(folder.path / "screens" / "counter.screen.json");
 	CHECK(json::parse(screen.stateJson()) == json{{"count", 7}, {"other", 0}}); // only what "persist" names
+}
+
+// A screen file is untrusted input: before, one nested 200,000 deep overflowed the stack (AddressSanitizer: SEGV)
+TEST_CASE("screen: a screen nested deeper than the limit is refused, not parsed") {
+	CHECK_NOTHROW((void)affresco::Screen::fromString(screenNestedIn(100)));
+	CHECK_THROWS_WITH_AS((void)affresco::Screen::fromString(screenNestedIn(200000)),
+	                     doctest::Contains("nested more than 256 levels deep"), affresco::ScreenError);
 }

@@ -2,12 +2,14 @@
 /// @brief Unit tests for the core module: parsing JSON from outside the app.
 
 #include <affresco/core/Json.hpp>
+#include <affresco/core/Log.hpp>
 
 #include <doctest/doctest.h>
 
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -80,4 +82,18 @@ TEST_CASE("core: parseUntrusted refuses a number too large for a double with a D
 	}
 	CHECK(affresco::parseUntrusted("1e308") == 1e308);
 	CHECK(affresco::parseUntrusted("123456789012345678901234567890").is_number_float()); // too big for an integer
+}
+
+// Messages carry text from peers and documents: a line break would forge a log line, an escape would reach the
+// terminal
+TEST_CASE("core: log escapes control characters, so a message stays one line") {
+	std::vector<std::string> logged;
+	affresco::setLogSink([&](affresco::LogLevel, std::string_view message) { logged.emplace_back(message); });
+	affresco::log(affresco::LogLevel::Warning, "no node 'a\nFAKE: approved\x1b[2J\r\x7f'\tend");
+	affresco::log(affresco::LogLevel::Info, "plain text, é and tabs\tstay");
+	affresco::setLogSink(nullptr);
+
+	CHECK(logged == std::vector<std::string>{R"(no node 'a\nFAKE: approved\x1b[2J\r\x7f')"
+	                                         "\tend",
+	                                         "plain text, é and tabs\tstay"});
 }

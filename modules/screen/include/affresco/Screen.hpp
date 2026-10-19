@@ -172,9 +172,11 @@ public:
 
 	/// @brief Merges a proposal, approved by "user" (VersionControl::accept takes more).
 	/// @param id The proposal.
+	/// @param head Its head commit as the user reviewed it (ProposalInfo::head, or 7+ characters of it); refused if
+	/// the proposal moved since.
 	/// @param error Receives the error, if any (may be nullptr).
 	/// @return true if it was merged.
-	bool acceptProposal(int id, std::string* error = nullptr);
+	bool acceptProposal(int id, std::string_view head, std::string* error = nullptr);
 
 	/// @brief Rejects a proposal.
 	/// @param id The proposal.

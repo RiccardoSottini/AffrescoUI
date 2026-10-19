@@ -8,7 +8,9 @@
 
 #include "affresco/core/Channel.hpp"
 #include "affresco/core/Executor.hpp"
+#include "affresco/core/Log.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <concepts>
 #include <cstddef>
@@ -33,6 +35,9 @@ template <typename Write>
 concept ChunkWriter = std::invocable<Write&, const char*, std::size_t>;
 
 /// @brief Reads a stream until it ends, posting each line to the channel's onMessage, then onClosed.
+///
+/// A line that grows past maxMessageBytes ends the stream too. Each byte is searched for a line break once, so a
+/// long line costs time in proportion to its length.
 /// @param read Reads the next chunk of the stream (see ChunkReader).
 /// @param executor Delivers on the main thread.
 /// @param channel The channel whose signals fire.
@@ -47,15 +52,22 @@ void readLines(Read read, Executor& executor, Channel& channel, std::shared_ptr<
 	while(true) {
 		const auto n = read(chunk, sizeof(chunk));
 		if(n <= 0) break;
+		const std::size_t searched = buffer.size(); // the bytes before have no line break
 		buffer.append(chunk, static_cast<std::size_t>(n));
 
-		for(std::size_t end; (end = buffer.find('\n')) != std::string::npos;) {
-			std::string line = buffer.substr(0, end);
-			buffer.erase(0, end + 1);
-			if(line.empty()) continue;
-			executor.post([&channel, alive, line = std::move(line)] {
+		std::size_t start = 0;
+		for(std::size_t end; (end = buffer.find('\n', std::max(start, searched))) != std::string::npos;
+		    start = end + 1) {
+			if(end == start) continue;
+			executor.post([&channel, alive, line = buffer.substr(start, end - start)] {
 				if(*alive) channel.onMessage(line);
 			});
+		}
+		buffer.erase(0, start);
+		if(buffer.size() > maxMessageBytes) {
+			log(LogLevel::Warning, "AffrescoUI: a message longer than " + std::to_string(maxMessageBytes >> 20) +
+			                           " MiB: closing the channel");
+			break;
 		}
 	}
 
