@@ -150,7 +150,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
 
 	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers
-	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp)
+	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp tests/unit/review.cpp)
 	target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
 		$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE)

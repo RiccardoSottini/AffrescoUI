@@ -478,8 +478,8 @@ RevisionResult Screen::submitRevision(std::string_view revisionJson) {
 
 std::vector<ProposalInfo> Screen::proposals() const { return impl_->repository.proposals(); }
 
-bool Screen::acceptProposal(int id, std::string* error) {
-	return succeeded(impl_->repository.accept(id, {"user", {}, false}), error);
+bool Screen::acceptProposal(int id, std::string_view head, std::string* error) {
+	return succeeded(impl_->repository.accept(id, {"user", std::string(head), false}), error);
 }
 
 bool Screen::rejectProposal(int id, std::string_view reason) { return impl_->repository.reject(id, reason); }

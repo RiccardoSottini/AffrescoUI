@@ -74,7 +74,7 @@ struct Grant {
 /// @brief A reviewer accepting a proposal.
 struct Approval {
 	std::string reviewer;      ///< Who accepts: the merge commit's committer. Never the proposal's own author.
-	std::string head;          ///< If set: the head commit the reviewer saw; refused if the branch moved since.
+	std::string head;          ///< The head commit the reviewer saw (7+ characters); refused if the branch moved since.
 	bool dontAskAgain = false; ///< Also grant ProposalInfo::remember, so changes like it apply without asking.
 };
 

@@ -149,8 +149,9 @@ inside those areas apply without asking.
 ## What keeps it safe
 - **Nobody approves their own change.** Agents aren't reviewers, the MCP server has no accept tool, revisions can't
   create review controls, and a reviewer can't accept a proposal from its own channel.
-- **You accept what you saw.** Over the live protocol, `accept` must name the proposal's head commit. If the author
-  pushed since, the approval is refused and the proposal stays open for another look.
+- **You accept what you saw.** Every accept names the proposal's head commit: over the live protocol (`head`), in an
+  `accept` step (`"head"`) and through `Screen::acceptProposal(id, head)`. If the author pushed since, the approval
+  is refused and the proposal stays open for another look.
 - **Deny is final.** Deny rules are checked when a revision arrives *and* again when it is merged, against the
   current `main`.
 - **The history can't be rewritten.** `main` only grows, and commit ids chain every commit to its parents.

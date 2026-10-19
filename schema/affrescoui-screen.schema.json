@@ -1083,6 +1083,7 @@
 					"stop": {},
 					"note": {},
 					"accept": {},
+					"head": {},
 					"reject": {},
 					"reason": {},
 					"preview": {},

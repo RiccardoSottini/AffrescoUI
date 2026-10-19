@@ -261,19 +261,24 @@ std::optional<bool> Runtime::Impl::reviewStep(const Running& s) {
 		return std::nullopt;
 
 	json control = step;
-	for(const char* key : {"accept", "reject", "preview", "restore", "revert", "reason"})
+	for(const char* key : {"accept", "head", "reject", "preview", "restore", "revert", "reason"})
 		if(control.contains(key)) control[key] = s.value(control[key], where + "." + key);
 	for(const char* key : {"accept", "reject", "preview"})
 		if(control.contains(key) && !control[key].is_number_integer()) fail(where + "." + key, "expected a number");
 	for(const char* key : {"restore", "revert"})
 		if(control.contains(key) && !control[key].is_number_integer() && !control[key].is_string())
 			fail(where + "." + key, "expected a revision number or a commit");
+	if(control.contains("accept") && !control.value("head", json()).is_string())
+		fail(where + ".head", "\"accept\" needs the proposal's head commit, the version the user reviewed, e.g. "
+		                      "\"{{proposals[0].head}}\"");
 	if(!window) return true;
 
 	defer([this, control = std::move(control)] {
 		std::optional<std::string> error;
 		try {
-			if(control.contains("accept")) error = versions.accept(control["accept"].get<int>(), {"user", {}, false});
+			if(control.contains("accept"))
+				error =
+				    versions.accept(control["accept"].get<int>(), {"user", control["head"].get<std::string>(), false});
 			else if(control.contains("reject"))
 				versions.reject(control["reject"].get<int>(), text(control.value("reason", json(""))));
 			else if(control.contains("preview")) error = versions.preview(control["preview"].get<int>());
