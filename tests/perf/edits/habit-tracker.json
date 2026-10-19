@@ -1,0 +1,12 @@
+{
+	"change-colour": { "message": "Orange accent", "set": { "/colors/accent": "#ea580c" } },
+	"rename-label": { "message": "Call the app Habits", "set": { "#logo/text": "Habits" } },
+	"add-habit": {
+		"message": "Add a stretching habit",
+		"add": { "/state/habits/-": { "name": "Stretch", "done": false, "streak": 0, "week": 0, "color": "#0891b2" } }
+	},
+	"add-node": {
+		"message": "Add a tip under today's habits",
+		"add": { "#today/children/-": { "id": "tip", "style": "caption", "text": "Tip: small habits stick." } }
+	}
+}
