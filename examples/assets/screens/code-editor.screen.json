@@ -202,6 +202,7 @@
 	},
 
 	"root": {
+		"id": "panel-root",
 		"color": "@background",
 		"children": [
 			{
@@ -218,6 +219,7 @@
 						"width": 32,
 						"children": [
 							{
+								"id": "label-short",
 								"repeat": { "for": "item", "in": "state.activity" },
 								"let": { "selected": "{{index == 0}}" },
 								"type": "label",
@@ -242,8 +244,9 @@
 				"width": 232,
 				"color": "@sidebar",
 				"children": [
-					{ "style": "caption", "text": "EXPLORER", "anchors": { "left": 20, "top": 14 } },
+					{ "id": "label-explorer", "style": "caption", "text": "EXPLORER", "anchors": { "left": 20, "top": 14 } },
 					{
+						"id": "label-project",
 						"type": "label",
 						"text": "{{state.project}}",
 						"font": "small",
@@ -317,12 +320,14 @@
 										"onClick": { "set": "state.active", "to": "{{tab}}" },
 										"children": [
 											{
+												"id": "panel-tab",
 												"when": "{{active}}",
 												"anchors": { "left": 0, "right": 0, "top": 0 },
 												"height": 2,
 												"color": "@accent"
 											},
 											{
+												"id": "label-files-tab-dirty",
 												"type": "label",
 												"text": "{{state.files[tab].dirty ? '' : '×'}}",
 												"anchors": { "right": 8, "top": 8 },
@@ -337,6 +342,7 @@
 												"onClick": { "run": "close", "with": { "at": "{{i}}" } },
 												"children": [
 													{
+														"id": "panel-files-tab",
 														"when": "{{state.files[tab].dirty}}",
 														"x": 6,
 														"y": 6,
@@ -404,8 +410,9 @@
 						"height": 204,
 						"color": "@panel",
 						"children": [
-							{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+							{ "id": "panel-terminal", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
 							{
+								"id": "label-terminal",
 								"type": "label",
 								"text": "TERMINAL",
 								"font": "small",
@@ -413,13 +420,14 @@
 								"anchors": { "left": 20, "top": 10 },
 								"fitText": true
 							},
-							{ "anchors": { "left": 20, "top": 28 }, "width": 58, "height": 1, "color": "@accent" },
+							{ "id": "panel-terminal-2", "anchors": { "left": 20, "top": 28 }, "width": 58, "height": 1, "color": "@accent" },
 							{
 								"type": "stack",
 								"anchors": { "left": 20, "right": 20, "top": 40, "bottom": 44 },
 								"gap": 0,
 								"children": [
 									{
+										"id": "label-out-t",
 										"repeat": { "for": "out", "in": "state.terminal" },
 										"style": "terminalLine",
 										"text": "{{out.t}}",
@@ -492,7 +500,7 @@
 				"height": 320,
 				"color": "@sidebar",
 				"children": [
-					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 2, "color": "@accent" },
+					{ "id": "panel-palette", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 2, "color": "@accent" },
 					{
 						"id": "paletteInput",
 						"type": "textarea",
@@ -508,12 +516,14 @@
 						"onSubmit": "openMatch"
 					},
 					{
+						"id": "column-palette",
 						"type": "column",
 						"anchors": { "left": 12, "right": 12, "top": 60, "bottom": 12 },
 						"gap": 2,
 						"scroll": "vertical",
 						"children": [
 							{
+								"id": "panel-f",
 								"repeat": { "for": "f", "in": "computed.matches", "index": "n" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 40,
@@ -526,6 +536,7 @@
 								],
 								"children": [
 									{
+										"id": "label-files-f-name",
 										"type": "label",
 										"text": "{{state.files[f].name}}",
 										"textColor": "@text",
@@ -533,6 +544,7 @@
 										"fitText": true
 									},
 									{
+										"id": "label-files-f-path",
 										"style": "caption",
 										"text": "{{state.files[f].path}}",
 										"anchors": { "left": 12, "top": 22 }
@@ -542,6 +554,7 @@
 						]
 					},
 					{
+						"id": "label-no-file-matches",
 						"when": "{{len(computed.matches) == 0}}",
 						"style": "caption",
 						"text": "No file matches '{{state.query}}'",

@@ -65,13 +65,14 @@
 			"note": "A field with its error under it once the form was submitted; params: bind, placeholder, valid, message",
 			"params": { "bind": "", "placeholder": "", "valid": true, "message": "" },
 			"node": {
+				"id": "panel-checked-field",
 				"check": { "value": "{{!state.submitted || valid}}", "rule": "{{value}}", "message": "{{message}}" },
 				"anchors": { "left": 0, "right": 0 },
 				"height": "{{error ? 68 : 44}}",
 				"color": "transparent",
 				"children": [
-					{ "style": "field", "anchors": { "left": 0, "right": 0, "top": 0 }, "placeholder": "{{placeholder}}", "bind": "{{bind}}" },
-					{ "when": "{{error}}", "type": "label", "font": "small", "text": "{{error}}", "textColor": "@error", "anchors": { "left": 0, "right": 0, "top": 48 }, "height": 18 }
+					{ "id": "textarea-placeholder", "style": "field", "anchors": { "left": 0, "right": 0, "top": 0 }, "placeholder": "{{placeholder}}", "bind": "{{bind}}" },
+					{ "id": "label-error", "when": "{{error}}", "type": "label", "font": "small", "text": "{{error}}", "textColor": "@error", "anchors": { "left": 0, "right": 0, "top": 48 }, "height": 18 }
 				]
 			}
 		}
@@ -100,6 +101,7 @@
 
 	"screens": {
 		"signIn": {
+			"id": "panel-sign-in",
 			"color": "transparent",
 			"children": [
 				{
@@ -107,24 +109,25 @@
 					"style": "card",
 					"children": [
 						{
+							"id": "stack-form",
 							"style": "form",
 							"children": [
-								{ "style": "title", "text": "Welcome back" },
-								{ "style": "caption", "text": "Sign in to continue to AffrescoUI" },
-								{ "height": 10, "color": "transparent" },
-								{ "style": "caption", "text": "Email" },
+								{ "id": "label-welcome-back", "style": "title", "text": "Welcome back" },
+								{ "id": "label-sign-in-to", "style": "caption", "text": "Sign in to continue to AffrescoUI" },
+								{ "id": "panel-form", "height": 10, "color": "transparent" },
+								{ "id": "label-email", "style": "caption", "text": "Email" },
 								{
 									"id": "email",
 									"use": "checkedField",
 									"with": { "bind": "state.email", "placeholder": "you@example.com", "valid": "{{computed.emailValid}}", "message": "Enter an email address" }
 								},
-								{ "style": "caption", "text": "Password" },
+								{ "id": "label-password", "style": "caption", "text": "Password" },
 								{
 									"id": "password",
 									"use": "checkedField",
 									"with": { "bind": "state.password", "placeholder": "At least 8 characters", "valid": "{{computed.passwordValid}}", "message": "At least 8 characters" }
 								},
-								{ "height": 10, "color": "transparent" },
+								{ "id": "panel-form-2", "height": 10, "color": "transparent" },
 								{ "id": "signIn", "style": "primary", "text": "Sign in", "onClick": "signIn" },
 								{ "id": "toCreate", "style": "link", "text": "No account yet? Create one", "onClick": [{ "set": "state.submitted", "to": false }, { "navigate": "createAccount" }] }
 							]
@@ -134,23 +137,26 @@
 			]
 		},
 		"createAccount": {
+			"id": "panel-create-account",
 			"color": "transparent",
 			"children": [
 				{
+					"id": "panel-card",
 					"style": "card",
 					"children": [
 						{
+							"id": "stack-form-2",
 							"style": "form",
 							"children": [
-								{ "style": "title", "text": "Create an account" },
-								{ "style": "caption", "text": "Name" },
-								{ "use": "checkedField", "with": { "bind": "state.name", "placeholder": "Your name", "valid": "{{len(trim(state.name)) > 0}}", "message": "Enter your name" } },
-								{ "style": "caption", "text": "Email" },
-								{ "use": "checkedField", "with": { "bind": "state.email", "placeholder": "you@example.com", "valid": "{{computed.emailValid}}", "message": "Enter an email address" } },
-								{ "style": "caption", "text": "Password" },
-								{ "use": "checkedField", "with": { "bind": "state.password", "placeholder": "At least 8 characters", "valid": "{{computed.passwordValid}}", "message": "At least 8 characters" } },
-								{ "style": "primary", "text": "Create account", "onClick": "createAccount" },
-								{ "style": "link", "text": "Back to sign in (Esc)", "onClick": { "navigate": "back" } }
+								{ "id": "label-create-an-account", "style": "title", "text": "Create an account" },
+								{ "id": "label-name", "style": "caption", "text": "Name" },
+								{ "id": "checked-field-form", "use": "checkedField", "with": { "bind": "state.name", "placeholder": "Your name", "valid": "{{len(trim(state.name)) > 0}}", "message": "Enter your name" } },
+								{ "id": "label-email-2", "style": "caption", "text": "Email" },
+								{ "id": "checked-field-form-2", "use": "checkedField", "with": { "bind": "state.email", "placeholder": "you@example.com", "valid": "{{computed.emailValid}}", "message": "Enter an email address" } },
+								{ "id": "label-password-2", "style": "caption", "text": "Password" },
+								{ "id": "checked-field-form-3", "use": "checkedField", "with": { "bind": "state.password", "placeholder": "At least 8 characters", "valid": "{{computed.passwordValid}}", "message": "At least 8 characters" } },
+								{ "id": "label-create-account", "style": "primary", "text": "Create account", "onClick": "createAccount" },
+								{ "id": "label-back-to-sign", "style": "link", "text": "Back to sign in (Esc)", "onClick": { "navigate": "back" } }
 							]
 						}
 					]
@@ -158,18 +164,21 @@
 			]
 		},
 		"signedIn": {
+			"id": "panel-signed-in",
 			"color": "transparent",
 			"children": [
 				{
+					"id": "panel-card-2",
 					"style": "card",
 					"children": [
 						{
+							"id": "stack-form-3",
 							"style": "form",
 							"children": [
-								{ "style": "title", "text": "You're in" },
-								{ "style": "caption", "text": "Signed in as {{state.email}}" },
-								{ "height": 10, "color": "transparent" },
-								{ "style": "primary", "text": "Sign out", "onClick": "signOut" }
+								{ "id": "label-you-re-in", "style": "title", "text": "You're in" },
+								{ "id": "label-signed-in-as", "style": "caption", "text": "Signed in as {{state.email}}" },
+								{ "id": "panel-form-3", "height": 10, "color": "transparent" },
+								{ "id": "label-sign-out", "style": "primary", "text": "Sign out", "onClick": "signOut" }
 							]
 						}
 					]
@@ -179,6 +188,7 @@
 	},
 
 	"root": {
+		"id": "panel-root",
 		"color": "@background",
 		"children": [{ "id": "screens", "type": "outlet", "fill": 0 }]
 	}

@@ -159,6 +159,7 @@
 	},
 
 	"root": {
+		"id": "panel-root",
 		"color": "@background",
 		"every": { "ms": 1000, "do": "tick" },
 		"children": [
@@ -169,7 +170,7 @@
 				"color": "@sidebar",
 				"children": [
 					{ "id": "logo", "type": "label", "text": "Tempo", "font": "brand", "textColor": "@text", "anchors": { "left": 28, "top": 28 }, "fitText": true },
-					{ "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 28, "top": 62 } },
+					{ "id": "label-an-affresco-ui", "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 28, "top": 62 } },
 					{
 						"id": "menu",
 						"type": "stack",
@@ -178,6 +179,7 @@
 						"gap": 2,
 						"children": [
 							{
+								"id": "label-menu",
 								"repeat": { "for": "item", "in": "state.menu" },
 								"type": "label",
 								"text": "{{item}}",
@@ -192,7 +194,7 @@
 							}
 						]
 					},
-					{ "style": "caption", "text": "PLAYLISTS", "anchors": { "left": 28, "top": 252 } },
+					{ "id": "label-playlists", "style": "caption", "text": "PLAYLISTS", "anchors": { "left": 28, "top": 252 } },
 					{
 						"id": "playlists",
 						"type": "stack",
@@ -213,10 +215,11 @@
 								"onDoubleClick": { "run": "play", "with": { "list": "{{index}}", "track": 0 } },
 								"tooltip": "Double-click to play",
 								"children": [
-									{ "style": "cover", "text": "{{list.initials}}", "font": "small", "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40, "color": "{{list.color}}" },
-									{ "type": "label", "text": "{{list.name}}", "textColor": "@text", "anchors": { "left": 62, "top": 10 }, "fitText": true },
-									{ "style": "caption", "text": "{{plural(len(list.tracks), 'song')}}", "anchors": { "left": 62, "top": 31 } },
+									{ "id": "label-list-initials", "style": "cover", "text": "{{list.initials}}", "font": "small", "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40, "color": "{{list.color}}" },
+									{ "id": "label-list-name", "type": "label", "text": "{{list.name}}", "textColor": "@text", "anchors": { "left": 62, "top": 10 }, "fitText": true },
+									{ "id": "label-plural-list-tracks", "style": "caption", "text": "{{plural(len(list.tracks), 'song')}}", "anchors": { "left": 62, "top": 31 } },
 									{
+										"id": "panel-playlist",
 										"when": "{{index == state.playingList && state.isPlaying}}",
 										"anchors": { "right": 14, "top": 25 },
 										"width": 6,
@@ -241,10 +244,11 @@
 						"color": "@surface",
 						"children": [
 							{ "id": "cover", "style": "cover", "text": "{{computed.list.initials}}", "font": "cover", "anchors": { "left": 40, "top": 40 }, "width": 184, "height": 184, "color": "{{computed.list.color}}" },
-							{ "style": "caption", "text": "PLAYLIST", "anchors": { "left": 256, "top": 74 } },
+							{ "id": "label-playlist", "style": "caption", "text": "PLAYLIST", "anchors": { "left": 256, "top": 74 } },
 							{ "id": "listName", "type": "label", "text": "{{computed.list.name}}", "font": "title", "textColor": "@text", "anchors": { "left": 252, "top": 92 }, "fitText": true },
 							{ "id": "listDescription", "type": "label", "text": "{{computed.list.description}}", "textColor": "@muted", "anchors": { "left": 256, "top": 152 }, "fitText": true },
 							{
+								"id": "label-plural-list-tracks-2",
 								"style": "caption",
 								"text": "{{plural(len(computed.list.tracks), 'song')}}  ·  {{computed.list.length}}",
 								"textColor": "@text",
@@ -273,11 +277,11 @@
 						"height": 28,
 						"color": "transparent",
 						"children": [
-							{ "style": "caption", "text": "#", "anchors": { "left": 12, "top": 6 } },
-							{ "style": "caption", "text": "TITLE", "anchors": { "left": 52, "top": 6 } },
-							{ "style": "caption", "text": "ALBUM", "x": "55%", "y": 6 },
-							{ "style": "caption", "text": "TIME", "anchors": { "right": 16, "top": 6 } },
-							{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@border" }
+							{ "id": "label-caption", "style": "caption", "text": "#", "anchors": { "left": 12, "top": 6 } },
+							{ "id": "label-title", "style": "caption", "text": "TITLE", "anchors": { "left": 52, "top": 6 } },
+							{ "id": "label-album", "style": "caption", "text": "ALBUM", "x": "55%", "y": 6 },
+							{ "id": "label-time", "style": "caption", "text": "TIME", "anchors": { "right": 16, "top": 6 } },
+							{ "id": "panel-columns", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@border" }
 						]
 					},
 					{
@@ -298,11 +302,11 @@
 								"cursor": "hand",
 								"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": "{{t}}" } },
 								"children": [
-									{ "type": "label", "text": "{{t + 1}}", "textColor": "@muted", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 30, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "type": "label", "text": "{{track.title}}", "textColor": "{{playing ? '@accent' : '@text'}}", "anchors": { "left": 52, "top": 3 }, "fitText": true },
-									{ "style": "caption", "text": "{{track.artist}}", "anchors": { "left": 52, "top": 22 } },
-									{ "type": "label", "text": "{{track.album}}", "textColor": "@muted", "x": "55%", "y": 11, "fitText": true },
-									{ "type": "label", "text": "{{track.time}}", "textColor": "@muted", "anchors": { "right": 16, "top": 11 }, "fitText": true }
+									{ "id": "label-t-1", "type": "label", "text": "{{t + 1}}", "textColor": "@muted", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 30, "align": { "horizontal": "start", "vertical": "center" } },
+									{ "id": "label-track-title", "type": "label", "text": "{{track.title}}", "textColor": "{{playing ? '@accent' : '@text'}}", "anchors": { "left": 52, "top": 3 }, "fitText": true },
+									{ "id": "label-track-artist", "style": "caption", "text": "{{track.artist}}", "anchors": { "left": 52, "top": 22 } },
+									{ "id": "label-track-album", "type": "label", "text": "{{track.album}}", "textColor": "@muted", "x": "55%", "y": 11, "fitText": true },
+									{ "id": "label-track-time", "type": "label", "text": "{{track.time}}", "textColor": "@muted", "anchors": { "right": 16, "top": 11 }, "fitText": true }
 								]
 							}
 						]
@@ -315,17 +319,17 @@
 				"height": 64,
 				"color": "@bar",
 				"children": [
-					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
-					{ "style": "cover", "text": "{{computed.playing.initials}}", "font": "small", "anchors": { "left": 16, "top": 12 }, "width": 40, "height": 40, "color": "{{computed.playing.color}}" },
+					{ "id": "panel-player", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{ "id": "label-playing-initials", "style": "cover", "text": "{{computed.playing.initials}}", "font": "small", "anchors": { "left": 16, "top": 12 }, "width": 40, "height": 40, "color": "{{computed.playing.color}}" },
 					{ "id": "nowPlaying", "type": "label", "text": "{{computed.track.title}}", "textColor": "@text", "anchors": { "left": 68, "top": 13 }, "fitText": true },
-					{ "style": "caption", "text": "{{computed.track.artist}}", "anchors": { "left": 68, "top": 35 } },
+					{ "id": "label-track-artist-2", "style": "caption", "text": "{{computed.track.artist}}", "anchors": { "left": 68, "top": 35 } },
 					{
 						"id": "controls",
 						"anchors": { "left": "35%", "right": "35%", "top": 0 },
 						"height": 40,
 						"color": "transparent",
 						"children": [
-							{ "style": "control", "text": "«", "anchors": { "left": "20%", "right": "64%", "top": 8 }, "height": 28, "tooltip": "Previous (←)", "onClick": "previous" },
+							{ "id": "label-previous", "style": "control", "text": "«", "anchors": { "left": "20%", "right": "64%", "top": 8 }, "height": 28, "tooltip": "Previous (←)", "onClick": "previous" },
 							{
 								"id": "playPause",
 								"style": "control",
@@ -338,7 +342,7 @@
 								"tooltip": "Play or pause (Space)",
 								"onClick": { "toggle": "state.isPlaying" }
 							},
-							{ "style": "control", "text": "»", "anchors": { "left": "64%", "right": "20%", "top": 8 }, "height": 28, "tooltip": "Next (→)", "onClick": "next" }
+							{ "id": "label-next", "style": "control", "text": "»", "anchors": { "left": "64%", "right": "20%", "top": 8 }, "height": 28, "tooltip": "Next (→)", "onClick": "next" }
 						]
 					},
 					{
@@ -356,8 +360,8 @@
 						"knobColor": "@text"
 					},
 					{ "id": "elapsed", "style": "caption", "text": "{{computed.elapsedText}}", "x": "25.5%", "y": 41 },
-					{ "style": "caption", "text": "{{computed.track.time}}", "x": "71%", "y": 41 },
-					{ "style": "caption", "text": "Volume", "anchors": { "right": 136, "top": 25 } },
+					{ "id": "label-track-time-2", "style": "caption", "text": "{{computed.track.time}}", "x": "71%", "y": 41 },
+					{ "id": "label-volume", "style": "caption", "text": "Volume", "anchors": { "right": 136, "top": 25 } },
 					{
 						"id": "volume",
 						"type": "slider",
@@ -379,7 +383,7 @@
 				"height": 32,
 				"color": "@sidebar",
 				"children": [
-					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{ "id": "panel-status-bar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
 					{
 						"id": "statusText",
 						"type": "label",
