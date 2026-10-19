@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <array>
+#include <iterator>
 #include <stdexcept>
 #include <utility>
 
@@ -237,6 +238,9 @@ std::uint64_t Window::setTimer(double delayMs, std::function<void()> task) {
 
 void Window::cancelTimer(std::uint64_t id) {
 	std::erase_if(timers_, [id](const Timer& timer) { return timer.id == id; });
+	if(dueTimers_)
+		for(Timer& timer : *dueTimers_)
+			if(timer.id == id) timer.task = nullptr;
 }
 
 std::optional<double> Window::secondsToNextTimer() const {
@@ -246,20 +250,27 @@ std::optional<double> Window::secondsToNextTimer() const {
 	return std::max(due - glfwGetTime(), 0.0);
 }
 
-// Each due timer runs once, earliest first; tasks may set new timers, which wait for the next call. A due timer stays
-// in timers_ until it runs, so a task can still cancel the ones after it.
+// Each due timer runs once, earliest first; tasks may set new timers, which wait for the next call. The due timers are
+// taken out and sorted once (a document can set thousands), and a task can still cancel the ones after it:
+// cancelTimer() reaches them through dueTimers_.
 void Window::runTimers() {
 	const double now = glfwGetTime();
-	const std::uint64_t setBefore = nextTimerId_; // the timers already set
-	for(;;) {
-		auto next = timers_.end();
-		for(auto it = timers_.begin(); it != timers_.end(); ++it)
-			if(it->due <= now && it->id < setBefore && (next == timers_.end() || it->due < next->due)) next = it;
-		if(next == timers_.end()) return;
-		Timer timer = std::move(*next); // the task stays alive while it runs, even if it cancels itself
-		timers_.erase(next);
-		timer.task();
-	}
+	const auto firstDue = std::partition(timers_.begin(), timers_.end(), [now](const Timer& t) { return t.due > now; });
+	if(firstDue == timers_.end()) return;
+	std::vector<Timer> due(std::make_move_iterator(firstDue), std::make_move_iterator(timers_.end()));
+	timers_.erase(firstDue, timers_.end());
+	// Timers due at the same time run in the order they were set
+	std::ranges::sort(due, [](const Timer& a, const Timer& b) { return a.due != b.due ? a.due < b.due : a.id < b.id; });
+
+	// Points at this call's list while it runs, even if a task throws (a task may also render() again)
+	struct Running {
+		std::vector<Timer>*& current; ///< dueTimers_.
+		std::vector<Timer>* outer;    ///< What it was before.
+		/// @brief Restores dueTimers_.
+		~Running() { current = outer; }
+	} running{dueTimers_, std::exchange(dueTimers_, &due)};
+	for(Timer& timer : due)
+		if(const auto task = std::exchange(timer.task, nullptr)) task(); // empty: cancelled by an earlier task
 }
 
 void Window::render() {

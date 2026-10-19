@@ -275,6 +275,7 @@ private:
 		std::function<void()> task; ///< The work.
 	};
 	std::vector<Timer> timers_;    ///< See setTimer().
+	std::vector<Timer>* dueTimers_ = nullptr; ///< The due timers runTimers() is running, for cancelTimer().
 	std::uint64_t nextTimerId_ = 1; ///< The next timer's id.
 
 	std::vector<Panel*> overlays_;    ///< Overlays shown in the last layout, in drawing order.
