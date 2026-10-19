@@ -30,9 +30,14 @@ a directory, and create it with mode 0700; each socket is made 0600. There is no
 no network listener. The author of a change is set by the socket it came through ("studio", "agent"); a name the
 peer gives itself is only appended after a `/`, so it can't become another author.
 
-**What a revision may not do.** It may not change `permissions`, `channels` or `persist`, and it may not add or
-change control steps (`accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`, `patch`, `call`,
-`send`, `connect`). An author never approves its own proposal, and a peer's approval names the head it reviewed.
+**What a revision may not do.** It may not change `permissions`, `channels` or `persist`. It may not add, change or
+move to another trigger a control step (`accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`,
+`patch`, `call`, `send`, `connect`), and it may not add a way to run one: a `run` or a handler that names an action
+with control steps, a native action, or a computed `run`. An author never approves its own proposal, and every
+approval names the head commit the reviewer saw.
+
+**Previews.** A previewed proposal's document runs, but while it is shown, control steps run only from the user's own
+input, never from timers or handlers that fire by themselves.
 
 ## Limits
 
