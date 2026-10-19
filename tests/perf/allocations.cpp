@@ -11,6 +11,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdlib>
+#include <limits>
 #include <new>
 
 namespace {
@@ -25,6 +26,7 @@ constexpr std::size_t header = alignof(std::max_align_t);
 /// @param size The bytes asked for.
 /// @return The block, or nullptr if there is no memory.
 void* allocate(std::size_t size) noexcept {
+	if(size > std::numeric_limits<std::size_t>::max() - header) return nullptr; // the header would wrap the size
 	auto* block = static_cast<unsigned char*>(std::malloc(size + header));
 	if(!block) return nullptr;
 	*reinterpret_cast<std::size_t*>(block) = size;
