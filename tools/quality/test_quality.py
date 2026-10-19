@@ -91,6 +91,16 @@ class TidyTest(unittest.TestCase):
         self.assertIsNone(tidy.parse(f"{root}/build/_deps/j.hpp:1:1: warning: x [misc-y]", root, ["modules"]))
         self.assertIsNone(tidy.parse("12 warnings generated.", root, ["modules"]))
 
+    def test_a_clang_tidy_that_crashes_is_a_failure(self):
+        with tempfile.TemporaryDirectory() as root:
+            crashing = os.path.join(root, "clang-tidy")
+            with open(crashing, "w") as file:
+                file.write("#!/bin/sh\nkill -SEGV $$\n")  # dies by a signal, printing nothing
+            os.chmod(crashing, 0o755)
+            findings, failures = tidy.run(crashing, root, root, ["modules/A.cpp"], ["modules"], 1, {})
+        self.assertEqual(findings, [])
+        self.assertEqual(failures, [("modules/A.cpp", "clang-tidy exited with status -11")])
+
     def test_counts_are_sorted_most_first(self):
         findings = [{"module": "vcs"}, {"module": "format"}, {"module": "format"}]
         self.assertEqual(list(tidy.counts(findings, "module").items()), [("format", 2), ("vcs", 1)])

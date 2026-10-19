@@ -18,8 +18,8 @@ and on every push to `master`.
 
 **clang-tidy.** The gate runs clang-tidy on every C++ file the change touches (headers too) and keeps only the
 findings on changed lines, like `clang-tidy-diff.py`. A finding on a line you touched counts, even if the line had it
-before: fix it while you are there. A changed file that clang-tidy can't parse fails the gate, because otherwise it
-would pass unchecked.
+before: fix it while you are there. A changed file that clang-tidy can't parse, or crashes on, fails the gate,
+because otherwise it would pass unchecked.
 
 The checks are the families `bugprone-*`, `performance-*`, `cppcoreguidelines-*`, `modernize-*`, `readability-*` and
 `misc-*`, with the checks that don't fit this codebase turned off, each with its reason in `.clang-tidy`. Formatting

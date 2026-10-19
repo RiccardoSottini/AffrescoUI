@@ -51,7 +51,7 @@ def run(clang_tidy, build, root, files, sources, jobs, changed_lines=None):
     """Runs clang-tidy on each file and returns (findings, failures). Findings are dicts (file, line, column, check,
     message, module), once each even when a header is reached from several files, and only in `sources`.
     `changed_lines` ({path: [(first, last)]}) keeps only findings on those lines. Failures are (file, output) for files
-    clang-tidy couldn't parse."""
+    clang-tidy couldn't parse or crashed on."""
     command = [clang_tidy, "-p", build, "--quiet"]
     if changed_lines is not None:
         command.append("--line-filter=" + json.dumps(
@@ -67,8 +67,11 @@ def run(clang_tidy, build, root, files, sources, jobs, changed_lines=None):
                 finding = parse(line, root, sources)
                 if finding:
                     findings[(finding["file"], finding["line"], finding["column"], finding["check"])] = finding
-            if result.returncode != 0 and "error:" in result.stdout + result.stderr:
-                failures.append((path, (result.stdout + result.stderr).strip()))
+            # clang-tidy exits with 0 after warnings, so any other status means the file wasn't fully checked: a
+            # compile error, or a crash that printed no "error:" at all
+            if result.returncode != 0:
+                output = (result.stdout + result.stderr).strip()
+                failures.append((path, output or f"clang-tidy exited with status {result.returncode}"))
     return sorted(findings.values(), key=lambda f: (f["file"], f["line"], f["column"])), failures
 
 
