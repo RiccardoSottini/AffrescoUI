@@ -49,10 +49,11 @@ public:
 	using ProposalInfo = affresco::ProposalInfo;                                                ///< An open proposal.
 	using CommitInfo = affresco::CommitInfo;                                                    ///< A commit.
 
-	/// @brief Loads a screen file.
+	/// @brief Loads a screen file, with its history and "persist" state from ~/.affrescoui (setHistoryDirectory(),
+	/// setStateFile()).
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @return The screen, not yet built.
-	/// @throws ScreenError If the file can't be read or is not a valid screen.
+	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path);
 
 	/// @brief Loads a screen from JSON text.

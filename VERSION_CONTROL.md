@@ -171,7 +171,8 @@ inside those areas apply without asking.
 A screen opened from a file (`Screen::fromFile`, which `affrescoui_host` and the Studio use) keeps its history in
 `~/.affrescoui/<file name>.history/`, next to its `persist` state file. Restarting the app brings back `main`, the
 open proposals, the grants and the mode. A screen loaded from a string (`fromString`) keeps its history in memory
-only, as before. `Screen::setHistoryDirectory` (or `vcs::Repository::openHistory`) chooses another folder.
+only, as before, unless `Screen::setHistoryDirectory` (or `vcs::Repository::openHistory`) gives it a folder. Either
+is called once, before the first change, so a screen from `fromFile` keeps the folder it was given.
 
 ```
 kanban.history/
@@ -181,8 +182,10 @@ kanban.history/
 ```
 
 - **Objects, like Git's.** Each commit is one file named by its id, holding everything the id covers: the parents,
-  author, committer, time, message, patch and the whole document. Commits that no ref reaches (a rejected proposal, or
-  a branch before it was rebuilt) aren't written, as Git's garbage collection would drop them.
+  author, committer, time, message, patch and the whole document. The commits written are those a ref reaches when
+  the history is saved: `main`'s and the open proposals'. Once no ref reaches them (a rejected proposal, or a branch
+  before it was rebuilt), their files stay but are never read again: nothing deletes them yet, as in Git before its
+  garbage collection runs.
 - **Atomic writes.** Every file is written to a temporary file, synced to disk, then renamed over the old one. Commits
   are written before the refs that name them, so a crash leaves the history as it was before the change or after it.
   A write that fails is logged; the change stays in memory, and the next change tries again.
