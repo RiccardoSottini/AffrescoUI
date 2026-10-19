@@ -279,8 +279,8 @@ memory, the worst rebuild as a diff of two commits, and loading from disk):
 | 256 | 1,312 B | 463 µs | 96 ms |
 
 Each commit kept 39 KB before (a copy of the document): 10,000 commits held 411 MB, and now 21 MB. A commit takes the
-same time at commit 100 and at commit 10,000 (266 and 270 µs), and blame reads every commit back to revision 0 in
-4.7 ms. The benchmarks are the `history` workloads in `tests/perf`.
+same time at commit 100 and at commit 10,000 (248 and 247 µs), and blame reads every commit back to revision 0 in
+2.7 ms. The benchmarks are the `history` workloads in `tests/perf`.
 
 ## Change sets: customisations as plugins
 The commits on `main` after a point can be exported as a **change set**:
