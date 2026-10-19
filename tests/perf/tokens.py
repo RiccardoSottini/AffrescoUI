@@ -113,9 +113,16 @@ def counts(root, edits, encoding):
                 canonical = json.load(file)
             for edit_name, edit in canonical.items():
                 yield f"tokens/{name}/edit/{edit_name}", tokens(mcp.compact(edit))
-            # The re-read after one commit: get_screen's changes once a node's text changed
-            edit = canonical.get("rename-label") or next(iter(canonical.values()))
-            yield f"tokens/{name}/reread", tokens(mcp.compact({"changes": reread(mcp, document, edit)}))
+            # The re-read after one commit: get_screen's changes once a node's text changed. The edits are this
+            # checkout's, so on another root (CI's base) an edit can name an id its templates don't have yet: then
+            # the colour change, which every root has, is counted
+            for edit in (canonical.get("rename-label"), canonical.get("change-colour")):
+                try:
+                    changes = reread(mcp, document, edit)
+                except (TypeError, KeyError, IndexError, ValueError, AttributeError):
+                    continue
+                yield f"tokens/{name}/reread", tokens(mcp.compact({"changes": changes}))
+                break
 
 
 def table(results):

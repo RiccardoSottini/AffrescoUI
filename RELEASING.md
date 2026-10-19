@@ -8,7 +8,7 @@ Agents and contributors never push tags, create releases or publish.
 
 | File | What |
 |---|---|
-| `affrescoui-<version>-macos-universal.tar.gz` | `affrescoui_host`, `affrescoui_studio` and `affrescoui` for macOS 13 or later, arm64 and x86_64 in one binary |
+| `affrescoui-<version>-macos-universal.tar.gz` | `affrescoui_host`, `affrescoui_studio` and `affrescoui` for macOS 13.3 or later, arm64 and x86_64 in one binary |
 | `affrescoui-<version>-linux-x86_64.tar.gz` | The same for Linux x86_64 (built on Ubuntu 24.04: glibc 2.39 or later) |
 | `affrescoui-<version>-windows-x86_64.zip` | The same for Windows, once Windows builds (roadmap 1.1); until then the release has no Windows file |
 | `affrescoui_mcp-<version>-py3-none-any.whl`, `affrescoui_mcp-<version>.tar.gz` | The MCP server, also published to PyPI as `affrescoui-mcp` |

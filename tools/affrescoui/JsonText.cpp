@@ -41,8 +41,9 @@ private:
 	[[noreturn]] void fail(const std::string& problem) const {
 		std::size_t line = 1, column = 1;
 		for(std::size_t i = 0; i < at_ && i < text_.size(); ++i) {
-			column = text_[i] == '\n' ? 1 : column + 1;
-			line += text_[i] == '\n' ? 1 : 0;
+			const bool lineBreak = text_[i] == '\n';
+			column = lineBreak ? 1 : column + 1;
+			if(lineBreak) ++line;
 		}
 		throw std::runtime_error("line " + std::to_string(line) + ", column " + std::to_string(column) + ": " +
 		                         problem);

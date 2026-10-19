@@ -40,7 +40,7 @@ inline std::filesystem::path programFile() {
 #endif
 #if !defined(_WIN32) && !defined(__APPLE__)
 	std::error_code error;
-	std::filesystem::path path = std::filesystem::read_symlink("/proc/self/exe", error);
+	const std::filesystem::path path = std::filesystem::read_symlink("/proc/self/exe", error);
 	return error ? std::filesystem::path() : path;
 #endif
 }
