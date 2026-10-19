@@ -97,8 +97,8 @@ TEST_CASE("vcs: a revision that would make the screen deeper than maxDocumentNes
 }
 
 TEST_CASE("format: a step that would make the state deeper than maxDocumentNesting is stopped") {
+	affresco::test::MemoryChannel peer, deepPeer; // before the screens: their sessions use them until they go
 	affresco::Screen screen = affresco::Screen::fromString(wrappingScreen);
-	affresco::test::MemoryChannel peer;
 	screen.connect(peer, "watcher");
 	affresco::Panel sender;
 
@@ -121,7 +121,6 @@ TEST_CASE("format: a step that would make the state deeper than maxDocumentNesti
 	json deepScreen = json::parse(wrappingScreen);
 	deepScreen["actions"]["setDeep"] = json::array({{{"set", place}, {"to", 1}}});
 	affresco::Screen deep = affresco::Screen::fromString(deepScreen.dump());
-	affresco::test::MemoryChannel deepPeer;
 	deep.connect(deepPeer, "watcher");
 	deep.runAction("setDeep", sender);
 	CHECK_FALSE(json::parse(deep.stateJson()).contains("a"));

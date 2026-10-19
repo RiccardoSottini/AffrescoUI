@@ -68,12 +68,28 @@ A **peer** is a program connected to the running screen over a local socket. The
 - The name a peer gives itself (`"author"` in a message) is only kept after a slash, for display: `agent/claude-code`.
   Any program on the same socket can give itself the same name, so rules and reviewers should name channels
   (`agent`), not full names.
+- **The peer must run as the same user.** When a connection is accepted, the host asks the operating system which
+  user the program on the other end runs as (`SO_PEERCRED` on Linux, `getpeereid` on macOS and the BSDs; on Windows,
+  the peer's process id from `SIO_AF_UNIX_GETPEERPID`, whose token's user is compared). A program of another user,
+  or one the system can't tell about, is refused, its connection closed, and the refusal logged. An embedding
+  application can pass its own check to `SocketServer` (`PeerCheck`).
 - The socket file is made readable and writable only by its owner, just after it is created; until then it has the
   process's default permissions. The example host, the Studio and the MCP server keep the sockets in a directory
   (`/tmp/affrescoui-<uid>` by default, or `--socket DIR`) that must be a real directory owned by the current user,
   not a symbolic link (only the last part of the path is checked); the host makes it accessible only to that user,
-  and the Studio and the MCP server don't check its permissions. The directory is what keeps other users out (see
-  "Known gaps"), so pass a `--socket` directory whose parents only you control.
+  and the Studio and the MCP server don't check its permissions. The directory and the file keep other users from
+  connecting at all; the user check above refuses them if they get through.
+
+### What a peer may send
+Each peer is held to limits (`channel::PeerLimits`; the defaults are in "Limits" below), so one peer can't take the
+app's time or memory from the others:
+- a message larger than its limit is refused before it is parsed;
+- messages of any kind, and changes (`revision`, `restore`, `revert`, `undo`, which rebuild the screen), each have a
+  rate, kept by a token bucket: a burst after a quiet time, then a steady rate. A message over the rate gets an error
+  and costs no more than that; the first refusal in a row is logged;
+- what the host sends a socket peer is written by a thread of its own, never on the main thread. A peer that falls
+  further behind in reading than the send queue's limit is disconnected, not buffered without end, and can't block
+  the app.
 
 ### What every peer can read
 Permissions govern changes, not reads. Every peer gets the whole document and the live state when it connects
@@ -184,7 +200,13 @@ Input from peers, revisions and change sets is limited so that one message can't
 | What | Limit |
 |---|---|
 | JSON nesting of one message from a peer, a revision, a change set or a declared channel, and of a screen file, an include or the state file | 256 levels |
+| The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
+| The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
 | One message on a channel (one line) | 64 MiB; a longer line closes the channel |
+| One message from a peer (`PeerLimits::maxMessageBytes`) | 8 MiB; a larger one gets an error, unread |
+| Messages from one peer, of any kind | 100 a second, 200 at once |
+| Changes from one peer (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once |
+| Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
@@ -202,25 +224,29 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A font's glyph atlas (a larger font size is refused) | 4,096 × 4,096 pixels |
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
 
-Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, so text
-from a peer or a document can't forge a log line or send escape sequences to a terminal.
+Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
+controls (U+0080 to U+009F) `\u0080` to `\u009f`, and a backslash `\\`. So text from a peer or a document can't forge
+a log line or send escape sequences to a terminal, and an escape in the log always stands for a control character,
+never for text that looks like one.
 
 ## Known gaps
 
 These are not protected today. They are stated plainly so that you can decide what to expose.
 
-- **The peer's user id isn't checked.** The host doesn't ask the operating system who is on the other end of a socket
-  (`SO_PEERCRED`, `getpeereid`). The example programs check that the socket directory belongs to the current user and
-  make it private, and that is the only barrier. The library doesn't check the directory of a screen's declared
-  `channels`, nor the directory of a socket an embedding application passes to `listen`.
-- **There is no rate limit per peer.** A peer can send messages as fast as it likes, and every revision is checked
-  and, if it applies, rebuilds the screen. The queue of messages waiting for the main thread has no limit, and
-  nothing limits how many peers connect. The open-proposal limit caps waiting proposals, not work.
-- **Large revisions.** A message can be up to 64 MiB, so a revision can be very large, and so can the lists it puts
-  in the state, which the screen may render as one panel per item.
-- **The document and state have no depth limit.** The 256 levels hold for each message, not for what it builds:
-  a revision can add a value deep inside one an earlier revision added, and steps can wrap a value in itself, so
-  the document and state can nest deeper with every change. Some of the code that walks them is recursive.
+- **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
+  accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
+  who listens there, nor the directory of that socket or of one an embedding application passes to `listen`.
+- **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
+  connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
+  a non-elevated host, and is then refused.
+- **The rate limits are per peer, and the queue to the main thread isn't bounded.** Nothing limits how many peers
+  connect, and each new connection gets fresh limits. A socket's reader thread hands every line to the main thread
+  as it arrives, so a peer that sends faster than the main thread refuses its messages still makes that queue grow;
+  refusing is cheap (no parsing), so the main thread keeps up in practice. The open-proposal limit caps waiting
+  proposals, and the change rate caps how often they are pushed.
+- **Large revisions.** A message can be up to 8 MiB, so a revision can still be large, and so can the lists it puts
+  in the state, which the screen may render as one panel per item. A process or stdio channel the host opens isn't a
+  peer: it isn't held to these limits, and the host writes to it on the main thread.
 - **There is no total work budget per event, so nested loops multiply.** Each limit above holds on its own:
   a `while` of 10,000 iterations inside a `forEach` over a list of 10,000 items runs 100 million steps, and deeper
   nesting multiplies again. `after` and `debounce` steps schedule more work for later, and nothing caps how many are
