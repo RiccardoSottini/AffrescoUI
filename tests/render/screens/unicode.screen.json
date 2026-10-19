@@ -1,0 +1,71 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Text beyond Latin-1, for the rendering check: accents, Greek and Cyrillic from Roboto, symbols Roboto lacks from its fallback (JetBrains Mono), '?' for a character neither has, wrapping, and an editor whose caret and selection move by code point.",
+
+	"window": { "title": "Unicode text", "width": 720, "height": 480 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["mono"] },
+		"large": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["mono"] },
+		"mono": { "file": "../../../examples/assets/fonts/JetBrainsMono-Regular.ttf", "size": 15 }
+	},
+
+	"colors": { "background": "#f8fafc", "text": "#0f172a", "muted": "#64748b", "field": "#e2e8f0", "selection": "#bfdbfe" },
+
+	"state": { "text": "Καλημέρα κόσμε", "caret": { "line": 0, "column": 0, "selected": 0 } },
+
+	"styles": {
+		"line": { "type": "label", "height": 26, "textColor": "@text", "anchors": { "left": 0, "right": 0 } }
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"type": "column",
+				"id": "lines",
+				"anchors": { "left": 24, "right": 24, "top": 20 },
+				"height": 320,
+				"gap": 4,
+				"children": [
+					{ "style": "line", "font": "large", "height": 38, "text": "Ünïcödé — Ελληνικά, Кириллица" },
+					{ "style": "line", "id": "accents", "text": "Accents: crème brûlée, Ærøskøbing, Łódź, Dvořák, İstanbul, Ångström" },
+					{ "style": "line", "id": "greek", "text": "Greek: Καλημέρα κόσμε · ΑΒΓΔΕΖΗΘ αβγδεζηθ · π ≈ 3.14159" },
+					{ "style": "line", "id": "cyrillic", "text": "Cyrillic: Съешь же ещё этих мягких французских булок" },
+					{ "style": "line", "id": "fallback", "text": "Fallback: ✓ done  ✗ failed  ▶ play  ⚠ warning  ⌘K  ← →  ● ◆" },
+					{ "style": "line", "id": "missing", "text": "Missing from both fonts: ★ (drawn as a question mark)" },
+					{
+						"style": "line",
+						"id": "wrapped",
+						"height": 78,
+						"wrap": true,
+						"text": "Wrapped: Ζαφείρι δέξου πάγκαλο, βαθῶν ψυχῆς τὸ σῆμα. Широкая электрификация южных губерний даст мощный толчок подъёму сельского хозяйства ✓"
+					}
+				]
+			},
+			{
+				"type": "editor",
+				"id": "editor",
+				"bind": "state.text",
+				"caret": "state.caret",
+				"anchors": { "left": 24, "right": 24, "top": 352 },
+				"height": 40,
+				"color": "@field",
+				"textColor": "@text",
+				"selectionColor": "@selection",
+				"lineColor": "@field",
+				"caretColor": "@text"
+			},
+			{
+				"type": "label",
+				"id": "position",
+				"anchors": { "left": 24, "right": 24, "top": 404 },
+				"height": 24,
+				"textColor": "@muted",
+				"text": "Column {{state.caret.column}}, {{state.caret.selected}} selected: {{state.text}}"
+			}
+		]
+	}
+}
