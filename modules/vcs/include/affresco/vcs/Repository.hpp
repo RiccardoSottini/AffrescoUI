@@ -63,8 +63,8 @@ public:
 	/// program holds the folder's lock, the history is read but never written (OpenedHistory::memoryOnly says so).
 	/// @param directory The folder, e.g. "~/.affrescoui/kanban.history". Created if needed.
 	/// @return What it found.
-	/// @throws DocumentError If the history there is damaged (what() names the file; nothing is loaded), or if this
-	/// repository already changed or already has a folder.
+	/// @throws DocumentError If the history there is damaged (what() names the file; nothing is loaded), or its last
+	/// revision can't be shown, or if this repository already changed or already has a folder.
 	OpenedHistory openHistory(const std::filesystem::path& directory);
 
 	void setObserver(VersionObserver* observer) override { observer_ = observer; }

@@ -102,9 +102,14 @@ Repository::OpenedHistory Repository::openHistory(const std::filesystem::path& d
 	if(store->exists()) {
 		try {
 			opened.loaded = loadHistory(*store);
-		} catch(const DocumentError& error) {
+		} catch(const HistoryError& error) {
 			throw DocumentError(std::string(error.what()) + ". A damaged history is never loaded: move " +
 			                    directory.string() + " aside to start a new one");
+		} catch(const DocumentError& error) {
+			// Its files are whole, but the observer can't show its last revision (e.g. a font file it names is gone)
+			throw HistoryError(directory,
+			                   "its last revision can't be shown (" + detail::reasonOf(error) +
+			                       "), so the history isn't loaded: move the folder aside to start a new one");
 		}
 		// It began with another version of the document: keep it aside, whole, and start again
 		if(!opened.loaded && store->writable()) {

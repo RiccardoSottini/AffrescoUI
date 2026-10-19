@@ -119,6 +119,27 @@ template <typename Change> void forgeRefs(const std::filesystem::path& history, 
 	writeText(history / "refs.json", refs.dump(2));
 }
 
+/// @brief A renderer that can't show a screen titled "Unshowable", as one can't when a font file the screen names is
+/// gone.
+class FussyObserver final : public affresco::VersionObserver {
+public:
+	/// @brief Watches a repository.
+	/// @param repository The repository; it outlives this observer.
+	explicit FussyObserver(const Repository& repository) : repository_(repository) {}
+
+	/// @brief Refuses the document if it is titled "Unshowable".
+	/// @throws affresco::DocumentError Then.
+	void documentChanged() override {
+		if(repository_.document().dump().find("\"Unshowable\"") != std::string::npos)
+			throw affresco::DocumentError("AffrescoUI screen: fonts.body: can't read 'gone.ttf'");
+	}
+	/// @brief Does nothing.
+	void proposalsChanged() override {}
+
+private:
+	const Repository& repository_; ///< The repository watched.
+};
+
 /// @brief Fills a history with one of everything it keeps: commits on main, a merged proposal, a grant, an open
 /// proposal with two commits, and a mode.
 /// @param repository A repository with permissionsScreen().
@@ -307,6 +328,36 @@ TEST_CASE("vcs: a damaged history is never loaded, and the error names the file"
 	CHECK(second.proposals().empty());
 	CHECK(second.grants().empty());
 	CHECK(affresco::toString(second.mode()) == "default");
+	CHECK(second.document() == permissionsScreen());
+	CHECK(std::filesystem::is_regular_file(history / "refs.json"));
+}
+
+TEST_CASE("vcs: a whole history whose last revision can't be shown isn't loaded, and isn't called damaged") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	{
+		Repository first(rules, permissionsScreen());
+		first.openHistory(history);
+		REQUIRE(first.submit({{"author", "studio"}, {"set", {{"#title/text", "Unshowable"}}}}).status ==
+		        RevisionStatus::Applied);
+	}
+
+	Repository second(rules, permissionsScreen());
+	FussyObserver observer(second);
+	second.setObserver(&observer);
+	std::string error;
+	try {
+		second.openHistory(history);
+	} catch(const affresco::DocumentError& failure) {
+		error = failure.what();
+	}
+	INFO("error: " << error);
+	CHECK(error.starts_with("AffrescoUI history: " + history.string() +
+	                        ": its last revision can't be shown ("
+	                        "fonts.body: can't read 'gone.ttf')"));
+	CHECK(error.find("damaged") == std::string::npos);
+	CHECK(second.head().number == 0);
 	CHECK(second.document() == permissionsScreen());
 	CHECK(std::filesystem::is_regular_file(history / "refs.json"));
 }
