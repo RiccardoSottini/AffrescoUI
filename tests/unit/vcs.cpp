@@ -200,8 +200,9 @@ TEST_CASE("vcs: a proposal that no longer applies is closed with the whole reaso
 	const auto error = repository.accept(proposed.proposal, {"studio", proposed.commit, false});
 	REQUIRE(error);
 	// The reason keeps its first words (it once lost "AffrescoUI screen: "'s last four letters, from the old name)
-	CHECK(error->starts_with("AffrescoUI screen: proposal #1: no longer applies on revision 1 ("));
-	CHECK(error->ends_with(") (revision.patch[0] (replace #title/text).path: no node with id 'title'): ask its "
-	                       "author for a new one"));
+	CHECK(error.value_or("").starts_with("AffrescoUI screen: proposal #1: no longer applies on revision 1 ("));
+	CHECK(error.value_or("").ends_with(
+	    ") (revision.patch[0] (replace #title/text).path: no node with id 'title'): ask its "
+	    "author for a new one"));
 	CHECK(repository.proposals().empty());
 }

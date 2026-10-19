@@ -4,6 +4,7 @@
 #include "HistoryStore.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cstdio>
 #include <ctime>
@@ -56,7 +57,7 @@ std::FILE* openForWriting(const std::filesystem::path& file) {
 bool syncToDisk(std::FILE* file, [[maybe_unused]] HistoryStore::Sync sync) {
 #ifdef _WIN32
 	return _commit(_fileno(file)) == 0;
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 	if(sync == HistoryStore::Sync::AfterEarlierWrites && ::fcntl(::fileno(file), F_BARRIERFSYNC) == 0) return true;
 	return ::fsync(::fileno(file)) == 0; // also where the file system has no barriers
 #else
@@ -92,9 +93,9 @@ std::string fileNameTime() {
 #else
 	gmtime_r(&now, &utc);
 #endif
-	char stamp[32];
-	std::strftime(stamp, sizeof(stamp), "%Y%m%dT%H%M%SZ", &utc);
-	return stamp;
+	std::array<char, 32> stamp{};
+	std::strftime(stamp.data(), stamp.size(), "%Y%m%dT%H%M%SZ", &utc);
+	return stamp.data();
 }
 
 } // namespace
@@ -122,9 +123,9 @@ std::optional<FileLock> FileLock::tryLock(const std::filesystem::path& file, std
 	}
 	if(::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
 		if(errno == EWOULDBLOCK) {
-			char holder[24] = {};
-			const ssize_t length = ::pread(descriptor, holder, sizeof(holder) - 1, 0);
-			const std::string process(holder, length > 0 ? static_cast<std::size_t>(length) : 0);
+			std::array<char, 24> holder{};
+			const ssize_t length = ::pread(descriptor, holder.data(), holder.size() - 1, 0);
+			const std::string process(holder.data(), length > 0 ? static_cast<std::size_t>(length) : 0);
 			const bool known = !process.empty() &&
 			                   std::ranges::all_of(process, [](char c) { return (c >= '0' && c <= '9') || c == '\n'; });
 			problem = "in use by another program" +

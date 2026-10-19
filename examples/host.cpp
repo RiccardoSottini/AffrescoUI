@@ -20,6 +20,7 @@
 #include <affresco/affresco.hpp>
 
 #include <cstdlib>
+#include <format>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -48,7 +49,7 @@ bool environmentHas(const char* name) {
 /// @throws std::runtime_error If one can't be read or applied.
 void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plugins) {
 	for(const std::string& plugin : plugins) {
-		std::ifstream in(plugin);
+		const std::ifstream in(plugin);
 		std::stringstream text;
 		text << in.rdbuf();
 		std::string error;
@@ -56,9 +57,17 @@ void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plug
 			std::cerr << "plugin already applied: " << plugin << '\n';
 			continue;
 		}
-		if(!in || !screen.importChanges(text.str(), &error)) throw std::runtime_error(plugin + ": " + error);
+		if(!in || !screen.importChanges(text.str(), &error))
+			throw std::runtime_error(std::format("{}: {}", plugin, error));
 		std::cerr << "plugin applied: " << plugin << " (revision " << screen.revision() << ")\n";
 	}
+}
+
+/// @brief Whether this is a plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER), which
+/// draws one frame and exits.
+/// @return true if it is.
+bool firstFrameOnly() {
+	return environmentHas("AFFRESCOUI_SCREENSHOT") && !environmentHas("AFFRESCOUI_SCREENSHOT_AFTER");
 }
 
 } // namespace
@@ -89,20 +98,18 @@ int main(int argc, char** argv) {
 
 	try {
 		affresco::Application app;
-		// A plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER) draws one frame and exits.
-		// It shows the file as it is, so it neither loads nor writes the screen's history.
-		const bool firstFrameOnly =
-		    environmentHas("AFFRESCOUI_SCREENSHOT") && !environmentHas("AFFRESCOUI_SCREENSHOT_AFTER");
+		// A plain screenshot run shows the file as it is, so it neither loads nor writes the screen's history
+		const bool screenshotOnly = firstFrameOnly();
 		using History = affresco::Screen::History;
 		affresco::Screen screen =
-		    affresco::Screen::fromFile(file, dataDir, firstFrameOnly ? History::InMemory : History::OnDisk);
+		    affresco::Screen::fromFile(file, dataDir, screenshotOnly ? History::InMemory : History::OnDisk);
 		screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
 		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 		if(mode) screen.setModeForThisRun(*mode);
 		screen.createWindow(app);
 		applyPlugins(screen, plugins);
 
-		if(!firstFrameOnly) {
+		if(!screenshotOnly) {
 			createSocketDir(socketDir);
 			screen.listen(app, socketDir / "studio.sock", "studio");
 			screen.listen(app, socketDir / "agent.sock", "agent");

@@ -16,6 +16,7 @@
 #include <atomic>
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -60,7 +61,7 @@ private:
 /// @param file The file.
 /// @return Its text.
 std::string readText(const std::filesystem::path& file) {
-	std::ifstream in(file, std::ios::binary);
+	const std::ifstream in(file, std::ios::binary);
 	std::stringstream text;
 	text << in.rdbuf();
 	return text.str();
@@ -144,7 +145,7 @@ public:
 	/// @brief Refuses the document if it is titled "Unshowable".
 	/// @throws affresco::DocumentError Then.
 	void documentChanged() override {
-		if(repository_.document().dump().find("\"Unshowable\"") != std::string::npos)
+		if(repository_.document().dump().contains("\"Unshowable\""))
 			throw affresco::DocumentError("AffrescoUI screen: fonts.body: can't read 'gone.ttf'");
 	}
 	/// @brief Does nothing.
@@ -578,7 +579,7 @@ TEST_CASE("vcs: a history written by hand can't give the screen what no revision
 	}
 	SUBCASE("a control step") {
 		document["actions"] = {{"approve", json::array({{{"accept", 1}}})}};
-		expected = "revisions can't add or change accept";
+		expected = "revisions can't add, change or move accept";
 	}
 	const std::string forged = forgeCommit(history, {{"parents", {root}},
 	                                                 {"author", "agent"},
@@ -675,7 +676,7 @@ TEST_CASE("vcs: a history written by hand can't grant more than \"don't ask agai
 		error = failure.what();
 	}
 	INFO("error: " << error);
-	CHECK(error.find(place + ": '" + rule + "' is not a rule that \"don't ask again\" grants") != std::string::npos);
+	CHECK(error.contains(std::format("{}: '{}' is not a rule that \"don't ask again\" grants", place, rule)));
 	CHECK(second.grants().empty());
 	CHECK(second.proposals().empty());
 }

@@ -43,7 +43,7 @@ constexpr const char* historyFormat = "affrescoui-history";
 /// @throws HistoryError For any malformed content.
 template <typename Read> decltype(auto) reading(const std::filesystem::path& file, Read&& read) {
 	try {
-		return read();
+		return std::forward<Read>(read)();
 	} catch(const HistoryError&) {
 		throw;
 	} catch(const DocumentError& error) {
@@ -239,7 +239,7 @@ Repository::Refs Repository::readRefs(detail::HistoryStore& store) {
 		result.nextProposal = expect::integer(refs.at("nextProposal"), "nextProposal");
 		result.imported = changeSetIds(refs.at("imported"));
 		const auto mode = modeFromString(expect::string(refs.at("mode"), "mode"));
-		if(!mode) expect::fail("mode", "expected \"default\", \"acceptEdits\" or \"plan\"");
+		if(!mode) expect::fail("mode", R"(expected "default", "acceptEdits" or "plan")");
 		result.mode = *mode;
 
 		const json& proposals = refs.at("proposals");
@@ -328,6 +328,7 @@ std::unordered_map<std::string, Repository::Commit> Repository::readCommits(deta
 	std::unordered_map<std::string, Commit> objects;
 	std::unordered_map<std::string, json> documents;
 	std::vector<std::pair<std::string, std::filesystem::path>> pending; // a commit, and the file that names it
+	pending.reserve(heads.size());
 	for(std::string& head : heads) pending.emplace_back(std::move(head), store.refsFile());
 	while(!pending.empty()) {
 		auto [id, namedIn] = std::move(pending.back());
@@ -347,7 +348,7 @@ std::unordered_map<std::string, Repository::Commit> Repository::readCommits(deta
 			unnumbered.push_back(known);
 			known = &objects.at(known->parents.front());
 		}
-		if(known->number < 0) known->number = 0;
+		known->number = std::max(known->number, 0);
 		for(int number = known->number; Commit* c : unnumbered | std::views::reverse) c->number = ++number;
 	}
 	return objects;
@@ -458,8 +459,12 @@ void Repository::saveHistory() noexcept {
 		refs["checksum"] = detail::sha256(refs.dump());
 		history_->writeRefs(refs.dump(2) + "\n");
 	} catch(const std::exception& error) {
-		affresco::log(LogLevel::Error, std::string(error.what()) +
-		                                   " (the change stays in memory; the next change tries to save it again)");
+		try {
+			affresco::log(LogLevel::Error, std::string(error.what()) +
+			                                   " (the change stays in memory; the next change tries to save it again)");
+		} catch(...) { // no memory for the message: say it without the details
+			affresco::log(LogLevel::Error, "AffrescoUI history: a change could not be saved; it stays in memory");
+		}
 	}
 }
 

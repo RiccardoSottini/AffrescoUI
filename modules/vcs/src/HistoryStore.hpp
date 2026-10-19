@@ -64,7 +64,7 @@ private:
 class HistoryStore {
 public:
 	/// Largest file it reads: far beyond a real screen's commit, small enough to read whole.
-	static constexpr std::uintmax_t maxFileSize = 64u * 1024u * 1024u;
+	static constexpr std::uintmax_t maxFileSize = std::uintmax_t{64} * 1024 * 1024;
 
 	/// @brief How a write waits for the disk.
 	enum class Sync {
