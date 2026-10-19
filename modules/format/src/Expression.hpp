@@ -138,7 +138,8 @@ struct Placeholders {
 /// @return E.g. ["$add", "$filter", ...].
 [[nodiscard]] json operatorNames();
 
-/// @brief What each function takes and gives, for the catalog (from the function registry).
+/// @brief What each function takes and gives (from the function registry), for tools that explain them. The catalog
+/// leaves it out: it would double getCatalog's tokens, and the format guide lists every function's arguments.
 /// @return E.g. {"clamp": "value, low, high: The value, kept between low and high", ...}.
 [[nodiscard]] json functionCatalog();
 

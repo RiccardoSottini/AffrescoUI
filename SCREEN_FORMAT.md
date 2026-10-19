@@ -226,8 +226,7 @@ Wherever a value is expected it can be computed:
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 
 Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
-are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole. The list
-above comes from the function registry; the catalog's `functions` says what each one gives.
+are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`); `theme`;
 `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
@@ -401,9 +400,8 @@ Requests may carry an `"id"`; answers repeat it.
 
 ### Catalog
 `getCatalog` (MCP: `get_catalog`) answers what this screen's host offers: node types and their properties, common
-properties, events, steps, control steps, operators, functions (each one's arguments and what it gives), variables and
-sections, plus the custom types, native actions and native functions the application registered. Agents read it
-instead of guessing.
+properties, events, steps, control steps, operators, variables and sections, plus the custom types, native actions and
+native functions the application registered. Agents read it instead of guessing.
 
 ## Errors
 
