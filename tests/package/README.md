@@ -11,7 +11,8 @@ python3 tests/package/check.py                        # --build DIR, --config CO
 
 It checks:
 - **The install:** the headers, the five libraries, the package files and the NOTICE are in the prefix.
-- **Where the packages come from:** `AffrescoUI`, `nlohmann_json` and `glfw3` are all found in the prefix.
+- **Where the packages come from:** `AffrescoUI`, `nlohmann_json` and `glfw3` are all found in the prefix, also when
+  the package is located by `AffrescoUI_DIR` alone and a decoy system prefix holds other copies of the dependencies.
 - **The two consumers:**
   - `screen_consumer` links `affrescoui::affrescoui` (GLFW too), loads a screen and applies a revision;
   - `vcs_consumer` links `affrescoui::vcs` alone and commits and reverts a document of its own format.

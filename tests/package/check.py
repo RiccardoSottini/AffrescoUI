@@ -73,13 +73,38 @@ def cached(build, name):
     return None
 
 
-def configure(prefix, build, config, version):
-    """Configures the consumer against the prefix, asking find_package for a version."""
-    command = ["cmake", "-S", HERE, "-B", build, f"-DCMAKE_PREFIX_PATH={prefix}", f"-DCMAKE_BUILD_TYPE={config}",
+def configure(build, config, version, locate):
+    """Configures the consumer, asking find_package for a version; locate is how CMake finds the package."""
+    command = ["cmake", "-S", HERE, "-B", build, *locate, f"-DCMAKE_BUILD_TYPE={config}",
                f"-DAFFRESCOUI_VERSION={version}", "-DCMAKE_COMPILE_WARNING_AS_ERROR=ON"]
     if shutil.which("ninja"):
         command += ["-G", "Ninja"]
     return command
+
+
+def check_found_in_prefix(build, prefix):
+    """Exits unless AffrescoUI and both of its dependencies were found in the prefix, not elsewhere."""
+    for package in ["AffrescoUI", "nlohmann_json", "glfw3"]:
+        found = cached(build, f"{package}_DIR") or ""
+        if not os.path.realpath(found).startswith(os.path.realpath(prefix) + os.sep):
+            sys.exit(f"package check: {package} was found outside the prefix: {found}")
+
+
+def check_dependencies_follow_package(prefix, work, config):
+    """Exits unless the dependencies come from AffrescoUI's prefix even when the system has copies of them too.
+
+    The package is located by AffrescoUI_DIR alone, and a decoy system prefix holds copies of the dependencies'
+    package files: find_package searches system prefixes before PATHS, so only HINTS keep the tested copies first.
+    """
+    decoy = os.path.join(work, "decoy")
+    for package in ["nlohmann_json", "glfw3"]:
+        source = glob.glob(os.path.join(prefix, "*", "cmake", package))[0]
+        shutil.copytree(source, os.path.join(decoy, "lib", "cmake", package))
+    build = os.path.join(work, "consumer-decoy")
+    package_dir = glob.glob(os.path.join(prefix, "lib*", "cmake", "AffrescoUI"))[0]
+    run(configure(build, config, "0.1", [f"-DAffrescoUI_DIR={package_dir}", f"-DCMAKE_SYSTEM_PREFIX_PATH={decoy}"]))
+    check_found_in_prefix(build, prefix)
+    print("the dependencies came from the prefix, not from the system's copies")
 
 
 def program(build, config, name):
@@ -107,17 +132,16 @@ def main():
         run(["cmake", "--install", options.build, "--prefix", prefix, "--config", options.config])
         check_installed(prefix)
 
-        run(configure(prefix, build, options.config, "0.1"))
-        for package in ["AffrescoUI", "nlohmann_json", "glfw3"]:  # each from the prefix, not from the system
-            found = cached(build, f"{package}_DIR") or ""
-            if not os.path.realpath(found).startswith(os.path.realpath(prefix)):
-                sys.exit(f"package check: {package} was found outside the prefix: {found}")
+        locate = [f"-DCMAKE_PREFIX_PATH={prefix}"]
+        run(configure(build, options.config, "0.1", locate))
+        check_found_in_prefix(build, prefix)
+        check_dependencies_follow_package(prefix, work, options.config)
         run(["cmake", "--build", build, "--config", options.config])
         for name in ["screen_consumer", "vcs_consumer"]:
             print(run([program(build, options.config, name)]).stdout, end="")
 
         # SameMinorVersion while the version is 0.x: a request for 0.2 must not accept 0.1
-        refused = run(configure(prefix, os.path.join(work, "consumer-0.2"), options.config, "0.2"), False)
+        refused = run(configure(os.path.join(work, "consumer-0.2"), options.config, "0.2", locate), False)
         if refused.returncode == 0:
             sys.exit("package check: find_package(AffrescoUI 0.2) accepted the 0.1 package")
         print("find_package(AffrescoUI 0.2) refused the 0.1 package, as it should")

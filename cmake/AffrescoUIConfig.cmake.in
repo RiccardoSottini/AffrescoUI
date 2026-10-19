@@ -6,9 +6,10 @@
 include(CMakeFindDependencyMacro)
 
 # The dependencies installed with AffrescoUI, in this prefix unless the application's CMAKE_PREFIX_PATH names another
-# copy first. nlohmann/json must be the exact version: its types carry it in their names, which the libraries use.
-find_dependency(nlohmann_json @AFFRESCOUI_JSON_VERSION@ EXACT CONFIG PATHS "${PACKAGE_PREFIX_DIR}")
-find_dependency(glfw3 @AFFRESCOUI_GLFW_VERSION@ CONFIG PATHS "${PACKAGE_PREFIX_DIR}")
+# copy first. HINTS, not PATHS: PATHS come after the system prefixes, where a different copy may be installed.
+# nlohmann/json must be the exact version: its types carry it in their names, which the libraries use.
+find_dependency(nlohmann_json @AFFRESCOUI_JSON_VERSION@ EXACT CONFIG HINTS "${PACKAGE_PREFIX_DIR}")
+find_dependency(glfw3 @AFFRESCOUI_GLFW_VERSION@ CONFIG HINTS "${PACKAGE_PREFIX_DIR}")
 
 include("${CMAKE_CURRENT_LIST_DIR}/AffrescoUITargets.cmake")
 check_required_components(AffrescoUI)
