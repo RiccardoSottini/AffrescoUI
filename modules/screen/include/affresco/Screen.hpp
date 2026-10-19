@@ -126,7 +126,8 @@ public:
 
 	/// @brief Where programs on this machine meet by default, and where relative "channels" socket paths are found:
 	/// $AFFRESCOUI_SOCKET_DIR if it is set, else a folder of this user's: %LOCALAPPDATA%\\affrescoui\\sockets on
-	/// Windows, /tmp/affrescoui-<uid> elsewhere. mcp/affrescoui_mcp.py follows the same rule.
+	/// Windows, /tmp/affrescoui-<uid> elsewhere. mcp/affrescoui_mcp.py is to follow the same rule (roadmap 1.1d); until
+	/// then it ignores the variable and defaults to /tmp/affrescoui-<uid>, so pass it --socket.
 	/// @return The directory; it may not exist yet.
 	[[nodiscard]] static std::filesystem::path defaultSocketDirectory();
 
