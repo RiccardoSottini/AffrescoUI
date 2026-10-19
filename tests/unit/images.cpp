@@ -100,3 +100,29 @@ TEST_CASE("screen: a peer gets pictures of main and of a proposal, and the perso
 	CHECK(missing["type"] == "rejected");
 	CHECK(screen.previewedProposal() == proposal);
 }
+
+TEST_CASE("screen: a picture of a missing proposal leaves the person's preview as it was") {
+	affresco::Application app;
+	MemoryChannel agent; // before the screen: a peer's channel outlives it
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	affresco::Screen screen = affresco::Screen::fromString(boardScreen);
+	affresco::Window& window = screen.createWindow(app);
+	window.render();
+	screen.connect(agent, "agent");
+
+	// Showing the proposal counts once, in the preview's own state
+	const json counter = {
+	    {"type", "panel"}, {"id", "counter"}, {"onShow", {{{"set", "state.count"}, {"to", "{{state.count + 1}}"}}}}};
+	const json proposed =
+	    ask(agent, {{"type", "revision"}, {"id", 1}, {"set", {{"#board/children", json::array({counter})}}}});
+	REQUIRE(proposed["type"] == "proposed");
+	const int proposal = proposed["proposal"];
+	REQUIRE(screen.previewProposal(proposal));
+	window.render();
+	const std::string previewed = screen.stateJson();
+	REQUIRE(json::parse(previewed)["count"] == 1);
+
+	CHECK(ask(agent, {{"type", "render"}, {"id", 2}, {"proposal", proposal + 1}})["type"] == "rejected");
+	CHECK(screen.previewedProposal() == proposal);
+	CHECK(screen.stateJson() == previewed); // not previewed again from main's state
+}

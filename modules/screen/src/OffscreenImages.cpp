@@ -7,6 +7,7 @@
 #include "affresco/core/Log.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <random>
 #include <utility>
@@ -50,6 +51,11 @@ private:
 std::optional<std::string> OffscreenImages::render(const ImageRequest& request, Image& image) {
 	if(!runtime_.window()) return "AffrescoUI screen: render: the screen has no window yet";
 	if(rendering_) return "AffrescoUI screen: render: already drawing a picture";
+	// Checked before switching: putting the person's preview back would reset what they changed in it
+	if(request.proposal && std::ranges::none_of(versions_.proposals(), [&](const ProposalInfo& proposal) {
+		   return proposal.id == *request.proposal;
+	   }))
+		return "AffrescoUI screen: no proposal " + std::to_string(*request.proposal);
 
 	// Show what was asked for, then put back what the person sees, whatever happens in between
 	struct PutBack {
