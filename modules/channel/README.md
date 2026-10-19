@@ -44,7 +44,12 @@ A channel being destroyed stops its thread; deliveries still queued for it do no
   reason.
 - After that, transport problems don't throw: the channel closes (`onClosed`) and the owner decides what to do.
 - Protocol problems are answers to the peer: `{"type": "error", "message": ...}` for a malformed message,
-  `{"type": "rejected", ...}` for a refused change, with the `id` the peer gave.
+  `{"type": "rejected", ...}` for a refused change, with the `id` the peer gave. A refused revision's `error` names
+  the operation, the path and a hint from the format (`... no node with id 'logoo' (did you mean '#logo'?)`), so a
+  peer can fix it without reading the screen again.
+- The session knows nothing of nodes: narrow reads (an outline, one node by `#id`, a search) are made by the peer on
+  the document `getDocument` returns, as the MCP server does (`find_nodes`, `get_screen` with `outline`, `at`,
+  `depth`). Only what crosses the local socket grows with the document, not what an agent reads.
 - The peer's user id isn't checked yet, and there is no rate limit (`SECURITY.md`, known gaps; 1.8b).
 
 ## Extension points

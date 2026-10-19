@@ -137,6 +137,7 @@
 			"note": "« or » on a card: moves it one column left (by -1) or right (by 1)",
 			"params": { "by": 1 },
 			"node": {
+				"id": "label-by-0",
 				"style": "move",
 				"text": "{{by < 0 ? '«' : '»'}}",
 				"anchors": { "right": "{{by < 0 ? 46 : 14}}", "bottom": 10 },
@@ -173,6 +174,7 @@
 	},
 
 	"root": {
+		"id": "panel-root",
 		"color": "@background",
 		"children": [
 			{
@@ -191,7 +193,7 @@
 						"width": 80,
 						"align": { "horizontal": "start", "vertical": "center" }
 					},
-					{ "anchors": { "left": 104, "top": 20, "bottom": 20 }, "width": 1, "color": "#374151" },
+					{ "id": "panel-top-bar", "anchors": { "left": 104, "top": 20, "bottom": 20 }, "width": 1, "color": "#374151" },
 					{
 						"id": "boardName",
 						"type": "label",
@@ -220,13 +222,15 @@
 								"height": "{{len(state.members) * 40 + 56}}",
 								"color": "@surface",
 								"children": [
-									{ "style": "caption", "text": "Show the cards of", "anchors": { "left": 16, "top": 12 } },
+									{ "id": "label-show-the-cards", "style": "caption", "text": "Show the cards of", "anchors": { "left": 16, "top": 12 } },
 									{
+										"id": "column-member-menu",
 										"type": "column",
 										"anchors": { "left": 8, "right": 8, "top": 36 },
 										"height": "{{len(state.members) * 40 + 12}}",
 										"children": [
 											{
+												"id": "panel-member",
 												"repeat": { "for": "member", "in": "state.members" },
 												"anchors": { "left": 0, "right": 0 },
 												"height": 40,
@@ -237,8 +241,8 @@
 													{ "set": "state.membersOpen", "to": false }
 												],
 												"children": [
-													{ "style": "badge", "text": "{{member.who}}", "anchors": { "left": 8, "top": 6 }, "width": 28, "height": 28, "color": "{{member.color}}", "textColor": "#ffffff" },
-													{ "type": "label", "text": "{{member.name}}", "textColor": "@text", "anchors": { "left": 46, "top": 0, "bottom": 0 }, "width": 150, "align": { "horizontal": "start", "vertical": "center" } }
+													{ "id": "label-member-who", "style": "badge", "text": "{{member.who}}", "anchors": { "left": 8, "top": 6 }, "width": 28, "height": 28, "color": "{{member.color}}", "textColor": "#ffffff" },
+													{ "id": "label-member-name", "type": "label", "text": "{{member.name}}", "textColor": "@text", "anchors": { "left": 46, "top": 0, "bottom": 0 }, "width": 150, "align": { "horizontal": "start", "vertical": "center" } }
 												]
 											}
 										]
@@ -318,7 +322,7 @@
 								"fill": 8,
 								"color": "@column",
 								"children": [
-									{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 3, "color": "{{column.color}}" },
+									{ "id": "panel-body", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 3, "color": "{{column.color}}" },
 									{
 										"id": "columnName",
 										"type": "label",
@@ -391,8 +395,8 @@
 														"color": "@accentSoft",
 														"textColor": "@accent"
 													},
-													{ "use": "moveButton", "with": { "by": -1 }, "when": "{{c > 0}}" },
-													{ "use": "moveButton", "with": { "by": 1 }, "when": "{{c < computed.lastColumn}}" }
+													{ "id": "move-button-card", "use": "moveButton", "with": { "by": -1 }, "when": "{{c > 0}}" },
+													{ "id": "move-button-card-2", "use": "moveButton", "with": { "by": 1 }, "when": "{{c < computed.lastColumn}}" }
 												]
 											}
 										]
@@ -409,7 +413,7 @@
 				"height": 32,
 				"color": "@surface",
 				"children": [
-					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{ "id": "panel-status-bar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
 					{
 						"id": "statusText",
 						"type": "label",

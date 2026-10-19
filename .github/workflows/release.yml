@@ -1,0 +1,222 @@
+# Builds the downloads: the host, the Studio and the affrescoui tool for macOS (one universal binary for arm64 and
+# x86_64), Linux (x86_64) and Windows (x86_64, while it builds), plus the MCP server's Python package; then checks each
+# archive on a clean machine of its system, with no source tree there.
+#
+# - A pushed tag v* (only the maintainer pushes tags) also makes a draft GitHub Release with the archives, SHA256SUMS
+#   and build-provenance attestations, and publishes the MCP package to PyPI through trusted publishing, from the
+#   protected "release" environment (RELEASING.md has the setup and the steps).
+# - workflow_dispatch, and a pull request that changes the release files, are dry runs: everything is built, packed
+#   and checked, and the files are kept as this run's artifacts; nothing is released or published.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - tools/release/**
+      - mcp/pyproject.toml
+
+permissions: {} # each job asks for what it needs
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The same version everywhere, and the tag's
+        id: check
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          version=$(python3 tools/release/check_version.py ${TAG:+--tag "$TAG"})
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  binaries:
+    name: Binaries (${{ matrix.platform }})
+    needs: version
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: ${{ matrix.optional }} # Windows: kept while it doesn't build yet (roadmap 1.1)
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-universal
+            runner: macos-latest
+            optional: false
+            configure: -G Ninja "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
+          - platform: linux-x86_64
+            runner: ubuntu-24.04
+            optional: false
+            configure: -G Ninja
+          - platform: windows-x86_64
+            runner: windows-latest
+            optional: true
+            configure: -A x64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxi-dev libxext-dev libwayland-dev libxkbcommon-dev wayland-protocols
+      - name: Build # Release, without the tests: the CI workflow tests every commit
+        shell: bash
+        run: |
+          cmake -S . -B build ${{ matrix.configure }} -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_TESTS=OFF
+          cmake --build build --config Release --target affrescoui_host affrescoui_studio affrescoui_cli
+      - name: Pack
+        shell: bash
+        env:
+          PYTHON: ${{ runner.os == 'Windows' && 'python' || 'python3' }}
+        run: $PYTHON tools/release/package.py --build build --platform ${{ matrix.platform }} --out dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: binaries-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+
+  python:
+    name: MCP server package
+    needs: version
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build # with the pinned build tools only (tools/release/requirements.txt)
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --require-hashes -r tools/release/requirements.txt
+          .venv/bin/python tools/release/build_mcp.py --out dist
+      - name: Install and start it
+        run: |
+          python3 -m venv /tmp/installed
+          /tmp/installed/bin/pip install dist/*.whl
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+            | /tmp/installed/bin/affrescoui-mcp | grep -q '"serverInfo"'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: python-package
+          path: dist/*
+          if-no-files-found: error
+
+  # Each archive on a machine of its system without the source tree, so the programs must find their assets next to
+  # themselves, as on a user's machine
+  verify:
+    name: Check the download (${{ matrix.platform }})
+    needs: binaries
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: ${{ matrix.optional }}
+    permissions: {}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: macos-universal, runner: macos-latest, optional: false }
+          - { platform: linux-x86_64, runner: ubuntu-24.04, optional: false }
+          - { platform: windows-x86_64, runner: windows-latest, optional: true }
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: binaries-${{ matrix.platform }}
+      - name: Unpack
+        shell: bash
+        run: |
+          for archive in affrescoui-*; do
+            case "$archive" in *.zip) unzip -q "$archive" ;; *) tar -xzf "$archive" ;; esac
+          done
+          ls -d affrescoui-*/
+      - name: The tool runs and checks the templates
+        shell: bash
+        run: |
+          cd affrescoui-*/
+          ./affrescoui --version
+          for screen in assets/screens/*.screen.json; do ./affrescoui check "$screen"; done
+      - name: Universal (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd affrescoui-*/
+          for program in affrescoui affrescoui_host affrescoui_studio; do lipo "$program" -verify_arch arm64 x86_64; done
+      - name: The host draws a frame from its own assets (Linux, under Xvfb)
+        if: runner.os == 'Linux'
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_GL_VERSION_OVERRIDE: "4.1"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
+          cd affrescoui-*/
+          AFFRESCOUI_SCREENSHOT=kanban.ppm xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui_host
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/screens/kanban.screen.json -o kanban.png
+          test -s kanban.ppm && test -s kanban.png
+
+  release:
+    name: Draft release
+    if: github.ref_type == 'tag'
+    needs: [version, binaries, python, verify]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write     # the draft release
+      id-token: write     # signing the attestations
+      attestations: write # storing them
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum affrescoui* > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Draft the release # the maintainer reads it and publishes it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "AffrescoUI $VERSION" \
+            --notes "Downloads for macOS (universal), Linux (x86_64) and Windows (x86_64, when it built). Check them with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`. The MCP server: \`pipx install affrescoui-mcp\`." \
+            dist/*
+
+  pypi:
+    name: Publish the MCP server to PyPI
+    if: github.ref_type == 'tag'
+    needs: release
+    runs-on: ubuntu-24.04
+    environment:
+      name: release # protected: the maintainer approves the run (RELEASING.md)
+      url: https://pypi.org/project/affrescoui-mcp/
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: python-package
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0 # v1.9.0

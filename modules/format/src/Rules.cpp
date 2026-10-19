@@ -1,5 +1,7 @@
 #include "affresco/format/Rules.hpp"
 
+#include "affresco/format/NodeIds.hpp"
+
 #include "Checker.hpp"
 #include "SectionRegistry.hpp"
 
@@ -155,33 +157,9 @@ Rules::Rules() : sections_(builtInSections()) {}
 
 void Rules::validate(const json& doc) const { sections_->validate(doc); }
 
-// In root or templates
+// In root, then screens, templates and components (NodeIds.hpp)
 std::optional<std::string> Rules::findNode(const json& doc, std::string_view nodeId) const {
-	const std::string id(nodeId);
-	std::function<std::optional<std::string>(const json&, const std::string&)> search =
-	    [&](const json& node, const std::string& pointer) -> std::optional<std::string> {
-		if(!node.is_object()) return std::nullopt;
-		if(node.contains("id") && node["id"] == id) return pointer;
-		if(node.contains("children") && node["children"].is_array()) {
-			for(std::size_t i = 0; i < node["children"].size(); ++i)
-				if(auto found = search(node["children"][i], pointer + "/children/" + std::to_string(i))) return found;
-		}
-		return std::nullopt;
-	};
-
-	if(doc.contains("root"))
-		if(auto found = search(doc["root"], "/root")) return found;
-	for(const char* section : {"screens", "templates"}) {
-		if(!doc.contains(section) || !doc[section].is_object()) continue;
-		for(const auto& [name, node] : doc[section].items())
-			if(auto found = search(node, "/" + std::string(section) + "/" + name)) return found;
-	}
-	if(doc.contains("components") && doc["components"].is_object()) {
-		for(const auto& [name, component] : doc["components"].items())
-			if(component.is_object() && component.contains("node"))
-				if(auto found = search(component["node"], "/components/" + name + "/node")) return found;
-	}
-	return std::nullopt;
+	return findNodeWithId(doc, nodeId);
 }
 
 // "permissions" as rules, plus every node with "locked": true denied to everyone

@@ -12,6 +12,7 @@ option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_TESTS "Build the rendering check and the unit tests (tests/)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_FUZZERS "Build the libFuzzer targets (tests/fuzz); needs clang, instruments the whole build" OFF)
 option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
+option(AFFRESCOUI_BUILD_TOOLS "Build the affrescoui command-line tool (tools/affrescoui)" ${PROJECT_IS_TOP_LEVEL})
 
 if(AFFRESCOUI_BUILD_FUZZERS)
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
@@ -114,6 +115,15 @@ if(AFFRESCOUI_BUILD_TESTS)
 	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
+	# The MCP server's queries (outline, find_nodes, the guide by topic), which need no host
+	find_package(Python3 COMPONENTS Interpreter)
+	if(Python3_FOUND)
+		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
+	endif()
+endif()
+
+if(AFFRESCOUI_BUILD_TOOLS)
+	add_subdirectory(tools/affrescoui) # the affrescoui command-line tool
 endif()
 
 if(AFFRESCOUI_BUILD_FUZZERS)

@@ -1,0 +1,52 @@
+# The MCP server as a Python package, `affrescoui-mcp`, so that it installs with one command:
+#
+#     pipx install affrescoui-mcp          (or: uvx affrescoui-mcp)
+#     claude mcp add affrescoui -- affrescoui-mcp
+#
+# The server stays one file, affrescoui_mcp.py, run as it is from a checkout. The package puts it in a package
+# folder with the format guide it serves: build it with tools/release/build_mcp.py, which stages this file, the server,
+# SCREEN_FORMAT.md, LICENSE and NOTICE together (RELEASING.md). The version is the library's: check_version.py checks.
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "affrescoui-mcp"
+version = "0.1.0"
+description = "MCP server that connects AI agents to a running AffrescoUI app, to read and change it live under review"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.9"
+authors = [{ name = "Riccardo Sottini" }]
+keywords = ["mcp", "model-context-protocol", "ai-agents", "gui", "opengl", "affrescoui"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"Environment :: Console",
+	"Intended Audience :: Developers",
+	"Operating System :: MacOS",
+	"Operating System :: POSIX :: Linux",
+	"Programming Language :: Python :: 3",
+	"Topic :: Software Development :: User Interfaces",
+]
+dependencies = [] # the standard library only
+
+[project.scripts]
+affrescoui-mcp = "affrescoui_mcp:main"
+
+[project.urls]
+Homepage = "https://github.com/RiccardoSottini/AffrescoUI"
+Documentation = "https://github.com/RiccardoSottini/AffrescoUI/blob/master/mcp/README.md"
+Issues = "https://github.com/RiccardoSottini/AffrescoUI/issues"
+
+# The wheel holds a package folder made of the server and the guide it serves (guide_path() finds it there)
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.hatch.build.targets.wheel.force-include]
+"affrescoui_mcp.py" = "affrescoui_mcp/__init__.py"
+"SCREEN_FORMAT.md" = "affrescoui_mcp/SCREEN_FORMAT.md"
+
+[tool.hatch.build.targets.sdist]
+include = ["affrescoui_mcp.py", "SCREEN_FORMAT.md", "README.md", "LICENSE", "NOTICE", "pyproject.toml"]

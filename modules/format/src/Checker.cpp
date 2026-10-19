@@ -5,6 +5,8 @@
 
 #include "CheckerImpl.hpp"
 
+#include "affresco/format/NodeIds.hpp"
+
 namespace affresco::format {
 
 std::string Finding::text() const {
@@ -297,7 +299,16 @@ void Checker::refer(std::string_view kind, const char* sectionName, const std::s
 std::optional<std::vector<Finding>> check(const json& document, const json& state,
                                           const std::set<std::string, std::less<>>& nativeActions) {
 	checker::Checker checker(document, state, nativeActions);
-	return checker.run();
+	std::optional<std::vector<Finding>> found = checker.run();
+	if(!found) return found;
+	// An id names one node: "#id" paths, rules and anchors would find only the first
+	for(const DuplicateId& duplicate : duplicateIds(document))
+		for(std::size_t i = 1; i < duplicate.pointers.size(); ++i)
+			found->push_back({placeOf(duplicate.pointers[i]),
+			                  "id '" + duplicate.id + "' is taken by " + placeOf(duplicate.pointers[0]),
+			                  "an id names one node: give this one another"});
+	std::ranges::sort(*found);
+	return found;
 }
 
 std::vector<Finding> introduced(const std::vector<Finding>& before, const std::vector<Finding>& after) {

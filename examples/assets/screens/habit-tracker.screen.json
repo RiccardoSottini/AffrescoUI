@@ -130,6 +130,7 @@
 	"keys": { "mod+n": { "focus": "#newHabit" } },
 
 	"root": {
+		"id": "panel-root",
 		"color": "@background",
 		"children": [
 			{
@@ -141,7 +142,7 @@
 				"fitText": true,
 				"id": "logo"
 			},
-			{ "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 34, "top": 64 } },
+			{ "id": "label-an-affresco-ui", "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 34, "top": 64 } },
 			{
 				"type": "label",
 				"text": "{{state.today}}",
@@ -157,7 +158,7 @@
 				"width": 400,
 				"style": "card",
 				"children": [
-					{ "style": "cardTitle", "text": "Today" },
+					{ "id": "label-today", "style": "cardTitle", "text": "Today" },
 					{
 						"style": "caption",
 						"text": "{{computed.doneToday}} of {{len(state.habits)}} done",
@@ -170,6 +171,7 @@
 						"color": "@track",
 						"children": [
 							{
+								"id": "panel-progress",
 								"anchors": { "left": 0, "top": 0, "bottom": 0 },
 								"width": "{{round(computed.doneToday * 100 / max(len(state.habits), 1))}}%",
 								"color": "@accent"
@@ -194,11 +196,13 @@
 								"onClick": { "run": "check", "with": { "h": "{{h}}" } },
 								"children": [
 									{
+										"id": "panel-habit",
 										"anchors": { "left": 0, "top": 12, "bottom": 12 },
 										"width": 3,
 										"color": "{{habit.color}}"
 									},
 									{
+										"id": "checkbox-habit",
 										"type": "checkbox",
 										"anchors": { "left": 16, "top": 21 },
 										"width": 22,
@@ -210,6 +214,7 @@
 										"onChange": { "run": "check", "with": { "h": "{{h}}" } }
 									},
 									{
+										"id": "label-habit-name",
 										"type": "label",
 										"text": "{{habit.name}}",
 										"textColor": "{{habit.done ? '@muted' : '@text'}}",
@@ -217,11 +222,13 @@
 										"fitText": true
 									},
 									{
+										"id": "label-habit-streak-0",
 										"style": "caption",
 										"text": "{{habit.streak > 0 ? habit.streak + ' day streak' : 'Start today'}}",
 										"anchors": { "left": 54, "top": 36 }
 									},
 									{
+										"id": "label-habit-week",
 										"type": "label",
 										"text": "{{habit.week}}%",
 										"font": "small",
@@ -257,6 +264,7 @@
 				"height": 112,
 				"children": [
 					{
+						"id": "panel-stat",
 						"repeat": {
 							"for": "stat",
 							"in": [
@@ -273,15 +281,18 @@
 						"color": "transparent",
 						"children": [
 							{
+								"id": "panel-card",
 								"anchors": { "left": 0, "right": 16, "top": 0, "bottom": 0 },
 								"style": "card",
 								"children": [
 									{
+										"id": "label-stat-label",
 										"style": "caption",
 										"text": "{{stat.label}}",
 										"anchors": { "left": 20, "top": 20 }
 									},
 									{
+										"id": "label-stat-value",
 										"type": "label",
 										"text": "{{stat.value}}",
 										"font": "figure",
@@ -303,8 +314,8 @@
 				"height": 252,
 				"style": "card",
 				"children": [
-					{ "style": "cardTitle", "text": "Last 20 weeks" },
-					{ "style": "caption", "text": "Click a day to change it", "anchors": { "right": 24, "top": 24 } },
+					{ "id": "label-last-20-weeks", "style": "cardTitle", "text": "Last 20 weeks" },
+					{ "id": "label-click-a-day", "style": "caption", "text": "Click a day to change it", "anchors": { "right": 24, "top": 24 } },
 					{
 						"anchors": { "left": 24, "top": 62 },
 						"width": 40,
@@ -312,6 +323,7 @@
 						"color": "transparent",
 						"children": [
 							{
+								"id": "label-day",
 								"repeat": { "for": "day", "in": "state.days" },
 								"style": "caption",
 								"text": "{{day}}",
@@ -327,11 +339,13 @@
 						"height": 154,
 						"children": [
 							{
+								"id": "column-week",
 								"repeat": { "for": "week", "in": "state.weeks", "index": "w" },
 								"anchors": { "top": 0, "bottom": 0 },
 								"width": 18,
 								"children": [
 									{
+										"id": "panel-level",
 										"repeat": { "for": "level", "in": "week", "index": "d" },
 										"anchors": { "left": 0, "right": 0 },
 										"height": 18,
@@ -355,8 +369,9 @@
 						"height": 16,
 						"color": "transparent",
 						"children": [
-							{ "style": "caption", "text": "Less", "anchors": { "left": 0, "top": 0 } },
+							{ "id": "label-less", "style": "caption", "text": "Less", "anchors": { "left": 0, "top": 0 } },
 							{
+								"id": "row-legend",
 								"type": "row",
 								"gap": 6,
 								"anchors": { "left": 40, "top": 0 },
@@ -364,13 +379,14 @@
 								"height": 16,
 								"children": [
 									{
+										"id": "panel-shade",
 										"repeat": { "for": "shade", "in": "state.palette" },
 										"style": "legend",
 										"color": "{{shade}}"
 									}
 								]
 							},
-							{ "style": "caption", "text": "More", "anchors": { "left": 146, "top": 0 } }
+							{ "id": "label-more", "style": "caption", "text": "More", "anchors": { "left": 146, "top": 0 } }
 						],
 						"id": "legend"
 					}
@@ -381,19 +397,21 @@
 				"anchors": { "left": 440, "right": 40, "top": 496, "bottom": 56 },
 				"style": "card",
 				"children": [
-					{ "style": "cardTitle", "text": "This week" },
+					{ "id": "label-this-week", "style": "cardTitle", "text": "This week" },
 					{
 						"type": "stack",
 						"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 16 },
 						"gap": 14,
 						"children": [
 							{
+								"id": "panel-habit-2",
 								"repeat": { "for": "habit", "in": "state.habits" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 18,
 								"color": "transparent",
 								"children": [
 									{
+										"id": "label-habit-name-2",
 										"type": "label",
 										"text": "{{habit.name}}",
 										"font": "small",
@@ -403,11 +421,13 @@
 										"align": { "horizontal": "start", "vertical": "center" }
 									},
 									{
+										"id": "panel-habit-3",
 										"anchors": { "left": 210, "right": 56, "top": 6 },
 										"height": 6,
 										"color": "@track",
 										"children": [
 											{
+												"id": "panel-habit-4",
 												"anchors": { "left": 0, "top": 0, "bottom": 0 },
 												"width": "{{habit.week}}%",
 												"color": "{{habit.color}}"
@@ -415,6 +435,7 @@
 										]
 									},
 									{
+										"id": "label-habit-week-2",
 										"type": "label",
 										"text": "{{habit.week}}%",
 										"font": "small",
@@ -436,7 +457,7 @@
 				"height": 32,
 				"color": "@surface",
 				"children": [
-					{ "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{ "id": "panel-status-bar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
 					{
 						"type": "label",
 						"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",

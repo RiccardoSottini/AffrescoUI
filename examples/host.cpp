@@ -14,6 +14,7 @@
 // the Kanban board template; the other templates are in assets/screens (smart-home, music-player, code-editor,
 // habit-tracker).
 
+#include "Assets.hpp"
 #include "CodeEditor.hpp"
 #include "SocketDir.hpp"
 
@@ -63,6 +64,13 @@ void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plug
 	}
 }
 
+/// @brief The screen file to show.
+/// @param given The file on the command line, or "".
+/// @return It, or the Kanban template.
+std::filesystem::path screenFile(const std::string& given) {
+	return given.empty() ? assetsDirectory() / "screens" / "kanban.screen.json" : std::filesystem::path(given);
+}
+
 /// @brief Whether this is a plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER), which
 /// draws one frame and exits.
 /// @return true if it is.
@@ -73,7 +81,7 @@ bool firstFrameOnly() {
 } // namespace
 
 int main(int argc, char** argv) {
-	std::string file = AFFRESCOUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
+	std::string file; // default: the Kanban template
 	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory();
 	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();
 	// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps
@@ -102,7 +110,7 @@ int main(int argc, char** argv) {
 		const bool screenshotOnly = firstFrameOnly();
 		using History = affresco::Screen::History;
 		affresco::Screen screen =
-		    affresco::Screen::fromFile(file, dataDir, screenshotOnly ? History::InMemory : History::OnDisk);
+		    affresco::Screen::fromFile(screenFile(file), dataDir, screenshotOnly ? History::InMemory : History::OnDisk);
 		screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
 		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 		if(mode) screen.setModeForThisRun(*mode);

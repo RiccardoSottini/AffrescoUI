@@ -46,6 +46,12 @@ NO_UNIX_SOCKETS = ("this Python has no Unix domain sockets (socket.AF_UNIX), whi
                    "no released CPython has them yet, see mcp/README.md")
 
 
+def guide_path():
+    """SCREEN_FORMAT.md: next to this file in the installed package, else at the top of the repository."""
+    packaged = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SCREEN_FORMAT.md")
+    return packaged if os.path.exists(packaged) else os.path.join(ROOT, "SCREEN_FORMAT.md")
+
+
 def log(text):
     print(f"[affrescoui-mcp] {text}", file=sys.stderr, flush=True)
 
@@ -231,6 +237,16 @@ def diff(before, after, path=""):
     return [{"op": "replace", "path": path, "value": after}]
 
 
+def changes_since(seen, document):
+    """What get_screen returns after a first read: a JSON Patch from what the agent saw to the document now, its
+    paths written from node ids, as edits are."""
+    changes = diff(seen, document)
+    for op in changes:
+        if op["path"].startswith(("/root", "/screens", "/templates", "/components")):
+            op["path"] = by_id(document if op["op"] != "remove" else seen, op["path"])
+    return changes
+
+
 def by_id(document, pointer):
     """A JSON Pointer written from the nearest node with an id: "/root/children/2/children/1/text" is "#title/text"."""
     parts = pointer.split("/")[1:]
@@ -270,41 +286,178 @@ def find_node(document, node_id):
     return found
 
 
-def outline(document):
-    """The node tree, one line per node: its address (#id, or a path from the nearest id), type and what it shows.
-    Enough to choose where to patch, without the styling."""
-    lines = []
-
-    def label(node):
-        kind = node.get("type") or ("use " + node["use"] if "use" in node else "panel")
-        bits = [kind]
-        for key in ("text", "placeholder", "bind", "style"):
-            if key in node and isinstance(node[key], (str, int, float)):
-                text = str(node[key])
-                bits.append(f"{key}={text[:40] + '...' if len(text) > 40 else text}")
-        if "repeat" in node:
-            bits.append(f"repeat {node['repeat'].get('for', 'item')} in {node['repeat'].get('in')}")
-        if "when" in node:
-            bits.append("when")
-        return " ".join(bits)
-
-    def walk(node, address, depth):
-        if not isinstance(node, dict):
-            return
-        if node.get("id"):
-            address = "#" + node["id"]
-        lines.append("  " * depth + f"{address}  {label(node)}")
-        for i, child in enumerate(node.get("children") or []):
-            child_address = "#" + child["id"] if isinstance(child, dict) and child.get("id") else f"{address}/children/{i}"
-            walk(child, child_address, depth + 1)
-
-    walk(document.get("root"), "/root", 0)
+def trees(document):
+    """Where a document's nodes start, as (JSON Pointer, node): root, screens, templates, then components' nodes."""
+    yield "/root", document.get("root")
     for section in ("screens", "templates"):
         for name, node in (document.get(section) or {}).items():
-            walk(node, f"/{section}/{name}", 0)
+            yield f"/{section}/{name}", node
     for name, component in (document.get("components") or {}).items():
-        walk((component or {}).get("node"), f"/components/{name}/node", 0)
-    return "\n".join(lines)
+        yield f"/components/{name}/node", (component or {}).get("node")
+
+
+def walk_nodes(node, address, depth=0, parent=None):
+    """Every node of a tree, parents first, as (node, address, depth, parent's address). The address is "#id", or a
+    path from the nearest node with one."""
+    if not isinstance(node, dict) or node.get("slot") is True:
+        return
+    if isinstance(node.get("id"), str) and node["id"]:
+        address = "#" + node["id"]
+    yield node, address, depth, parent
+    for i, child in enumerate(node.get("children") or []):
+        yield from walk_nodes(child, f"{address}/children/{i}", depth + 1, address)
+
+
+def node_type(node, styles=None):
+    """A node's type as the outline writes it: its "type", else its style's (styles may name styles), else "panel";
+    "use <component>" for a use."""
+    if "use" in node:
+        return "use " + str(node["use"])
+    for _ in range(16):  # styles naming styles, as deep as the runtime follows them
+        if isinstance(node.get("type"), str):
+            return node["type"]
+        style = node.get("style")
+        if not isinstance(style, str) or not isinstance((styles or {}).get(style), dict):
+            break
+        node = styles[style]
+    return "panel"
+
+
+def short(value, length=24):
+    """A value in a few characters: text quoted, cut with "..."."""
+    text = value if isinstance(value, str) else compact(value)
+    return compact(text[:length] + "..." if len(text) > length else text)
+
+
+def summary(node, address, styles=None):
+    """What an agent needs to know of a node to find and change it, without its styling: its type (unless its id
+    starts with it, as given ids do: "#label-blocked"), its text, and what it binds, repeats, shows when, looks like
+    (style) and runs on a click."""
+    kind = node_type(node, styles)
+    bits = [] if address.startswith(f"#{kind}-") else [kind]
+    for key in ("text", "placeholder", "tooltip"):
+        if isinstance(node.get(key), str):
+            bits.append(short(node[key]) if key == "text" else f"{key}={short(node[key])}")
+    for key in ("bind", "onClick"):
+        if isinstance(node.get(key), str):
+            bits.append(f"{key}={node[key]}")
+    if isinstance(node.get("repeat"), dict):
+        bits.append(f"repeat {node['repeat'].get('for', 'item')} in {node['repeat'].get('in')}")
+    if "when" in node:
+        bits.append("when")
+    return " ".join(bits)
+
+
+def outline(document, at=None, depth=None):
+    """The node tree, one line per node: its address, then summary(). `at` (a node's address or pointer, found with
+    locate) starts it there; `depth` stops it that many levels down, and a node with more inside says how many
+    ("+12"). Enough to choose where to edit, without the styling."""
+    starts = [locate(document, at)] if at else trees(document)
+    styles = document.get("styles")
+    lines = []  # [text, nodes inside it not shown]
+    for pointer, start in starts:
+        cut = None  # the last line at the deepest level shown: what is below it isn't
+        for node, address, level, _ in walk_nodes(start, pointer):
+            if depth is not None and level > depth:
+                cut[1] += 1
+                continue
+            lines.append([" " * level + f"{address} {summary(node, address, styles)}".rstrip(), 0])
+            if depth is not None and level == depth:
+                cut = lines[-1]
+    return "\n".join(text + (f" +{inside}" if inside else "") for text, inside in lines)
+
+
+def locate(document, at):
+    """The JSON Pointer and value at "#id" (a node), "#id/rest", or a JSON Pointer; a ValueError says why there is
+    none."""
+    pointer = str(at)
+    if pointer.startswith("#"):
+        node_id, _, rest = pointer[1:].partition("/")
+        found = find_node(document, node_id)
+        if not found:
+            raise ValueError(f"no node with id '{node_id}'")
+        pointer = found[0] + ("/" + rest if rest else "")
+    value = document
+    try:
+        for part in [p for p in pointer.split("/") if p]:
+            value = value[int(part)] if isinstance(value, list) else value[part.replace("~1", "/").replace("~0", "~")]
+    except (KeyError, IndexError, ValueError, TypeError):
+        raise ValueError(f"nothing at {at}")
+    return pointer, value
+
+
+def pruned(node, address, depth):
+    """A node with what is deeper than `depth` levels below it replaced by its children's addresses:
+    "children": ["#label-a", "#row-b"]. Read one of them with at= to go further."""
+    if not isinstance(node, dict) or not isinstance(node.get("children"), list):
+        return node
+    children = []
+    for i, child in enumerate(node["children"]):
+        named = isinstance(child, dict) and isinstance(child.get("id"), str) and child["id"]
+        child_address = "#" + child["id"] if named else f"{address}/children/{i}"
+        children.append(child_address if depth <= 0 else pruned(child, child_address, depth - 1))
+    return {**node, "children": children}
+
+
+def find_nodes(document, kind=None, text=None, prop=None, value=None, limit=20):
+    """The nodes that match every criterion given: their type (`kind`, or the component of a use), text (in their
+    text, placeholder or tooltip, any case), and a property they have (`prop`), with a value (`value`, compared as
+    written). One line each, as in the outline, with the parent's address."""
+    needle = text.lower() if isinstance(text, str) else None
+    styles = document.get("styles")
+    found = []
+    for pointer, start in trees(document):
+        for node, address, _, parent in walk_nodes(start, pointer):
+            if kind and kind not in (node_type(node, styles), node.get("use")):
+                continue
+            if needle is not None and not any(isinstance(node.get(k), str) and needle in node[k].lower()
+                                              for k in ("text", "placeholder", "tooltip")):
+                continue
+            if prop and (prop not in node or (value is not None and node[prop] != value
+                                              and compact(node[prop]) != str(value))):
+                continue
+            found.append(f"{address} {summary(node, address, styles)}".rstrip() + (f" in {parent}" if parent else ""))
+    shown = found[:max(1, int(limit))]
+    more = f"\n... and {len(found) - len(shown)} more: narrow the search or raise limit" if len(found) > len(shown) \
+        else ""
+    return f"{len(found)} found" + ("\n" + "\n".join(shown) if shown else "") + more
+
+
+def guide_sections(text):
+    """SCREEN_FORMAT.md as its sections: (title, text) for the introduction ("introduction") and each "##" and "###"
+    heading; a "##" section includes its "###" ones."""
+    lines = text.split("\n")
+    sections, starts = [], [(0, 1, "introduction")]
+    fence = False
+    for i, line in enumerate(lines):
+        fence = fence != line.startswith("```")
+        if not fence and line.startswith("## "):
+            starts.append((i, 2, line[3:].strip()))
+        elif not fence and line.startswith("### "):
+            starts.append((i, 3, line[4:].strip()))
+    for n, (start, level, title) in enumerate(starts):
+        end = next((s for s, other, _ in starts[n + 1:] if other <= level), len(lines))
+        if level == 1:  # the introduction ends where the first section starts
+            end = starts[1][0] if len(starts) > 1 else len(lines)
+        sections.append((title.replace("`", ""), "\n".join(lines[start:end]).strip()))
+    return sections
+
+
+def format_guide(text, topic=None):
+    """The part of the format guide an agent asks for: by default the introduction and the list of topics; a topic
+    (a heading, any case, or a word in it) gives that section; "all" gives everything."""
+    sections = guide_sections(text)
+    if topic and str(topic).strip().lower() == "all":
+        return text
+    if topic:
+        wanted = str(topic).strip().lower().replace("`", "")
+        matches = [s for s in sections if s[0].lower() == wanted] or [s for s in sections if wanted in s[0].lower()]
+        if not matches:
+            return None
+        also = [title for title, _ in matches[1:]]
+        return matches[0][1] + (f"\n\n(Also matching: {', '.join(also)}.)" if also else "")
+    titles = ", ".join(title for title, _ in sections[1:])
+    return (sections[0][1] + "\n\nTopics (pass one as `topic`, or \"all\" for the whole guide): " + titles + ".")
 
 
 def object_schema(properties=None, required=None):
@@ -331,18 +484,41 @@ TOOLS = [
                     "reviewer's \"don't ask again\" grants, and your author name. The first call returns everything; "
                     "later calls return only what changed since your last read, as a JSON Patch (\"changes\"), or "
                     "\"unchanged\". Pass full=true to get everything again (e.g. after your context was cleared), "
-                    "at=\"#id\" for one node only, or outline=true for the node tree with addresses and no styling.",
+                    "at=\"#id\" for one node only, or outline=true for the node tree: one line per node, its "
+                    "address (every node has an id: \"#label-blocked\"), type, text, bind, style, onClick, repeat and "
+                    "when, without the styling. depth limits both to that many levels below (outline lines then say "
+                    "\"+12\" for the nodes inside; a node's deeper children become their addresses). Read the outline "
+                    "first, then the nodes you change with at.",
      "inputSchema": object_schema({"full": {"type": "boolean", "description": "Everything, not what changed"},
                                    "at": {"type": "string", "description": "Only this node: \"#id\" or a JSON Pointer"},
                                    "outline": {"type": "boolean",
-                                               "description": "The node tree: one line per node (address, type, text)"}})},
+                                               "description": "The node tree: one line per node (address, type, text, "
+                                                              "bind, style, onClick, repeat, when)"},
+                                   "depth": {"type": "integer",
+                                             "description": "With at or outline: levels below to include (0: the "
+                                                            "node itself)"}})},
+    {"name": "find_nodes",
+     "description": "Search the screen's nodes (root, screens, templates, components) and get one line per match, as "
+                    "in the outline, with its parent: by type (\"label\", or a component's name), by text (in the "
+                    "text, placeholder or tooltip, any case), by a property it has (property, optionally with value). "
+                    "Criteria combine. Cheaper than reading the whole screen to find where to change something.",
+     "inputSchema": object_schema({"type": {"type": "string", "description": "A node type or component name"},
+                                   "text": {"type": "string", "description": "Text the node shows (part of it)"},
+                                   "property": {"type": "string", "description": "A property the node has"},
+                                   "value": {"description": "The property's value (optional)"},
+                                   "limit": {"type": "integer", "description": "Most lines (default 20)"}}),
+     "annotations": {"readOnlyHint": True}},
     {"name": "get_catalog",
      "description": "What this screen's format offers: node types and their properties, events, steps, expression "
                     "functions, variables, sections, and the app's registered custom types and native functions.",
      "inputSchema": object_schema()},
     {"name": "get_format_guide",
-     "description": "The AffrescoUI Screen Format specification: nodes, layout, bindings, actions, revisions, permissions.",
-     "inputSchema": object_schema()},
+     "description": "The AffrescoUI Screen Format specification, a part at a time: without topic, its introduction "
+                    "and the list of topics (nodes, layout, values and expressions, events, actions, revisions, ...); "
+                    "with topic, that section (a heading or a word of one, e.g. \"Revisions\", \"label\", "
+                    "\"Events\"); topic \"all\" gives the whole guide.",
+     "inputSchema": object_schema({"topic": {"type": "string",
+                                             "description": "A section's heading, a word of it, or \"all\""}})},
     {"name": "submit_revision",
      "description": "Change the running screen (layout, styles, colors, behaviour/actions, or state), like a git "
                     "commit, with compact edits: set (path -> value: replaces, or adds where nothing is), add (path -> "
@@ -419,8 +595,9 @@ PROMPTS = [
 
 SERVE_PROMPT = (
     "You are the builder behind a live AffrescoUI app. People ask for changes in the AffrescoUI Studio. Repeat: call "
-    "wait_for_request; for each request, read the screen with get_screen (after the first read it returns only what "
-    "changed; get_format_guide the first time), make "
+    "wait_for_request; for each request, find what to change (get_screen with outline=true, or find_nodes; every "
+    "node has an id), read just those parts (get_screen at=\"#id\"; after a first full read get_screen returns only "
+    "what changed), and look up the format's parts you need (get_format_guide lists its topics), make "
     "the change with submit_revision (fix and retry if it is rejected), then tell the person what you did with "
     "reply. Keep changes focused on what was asked, and keep the existing style (colors, fonts, spacing). If a "
     "follow-up request refines a change that is still waiting for review, push to that proposal instead of opening "
@@ -430,8 +607,9 @@ INSTRUCTIONS = (
     "This server connects you to a running AffrescoUI app (a native C++/OpenGL UI described by a JSON screen document). "
     "People ask for changes from a separate client, the AffrescoUI Studio. Their requests arrive as "
     "<channel source=\"affrescoui\" request_id=\"...\" sender=\"...\"> events (if this session loaded the channel), or "
-    "from the wait_for_request tool. For each request: read the screen with get_screen (get_format_guide explains "
-    "the format), change it with submit_revision, then answer with reply, passing the request_id. Your changes may "
+    "from the wait_for_request tool. For each request: find what to change with get_screen (outline=true, then "
+    "at=\"#id\": every node has an id) or find_nodes (get_format_guide explains the format, one topic at a time), "
+    "change it with submit_revision, then answer with reply, passing the request_id. Your changes may "
     "wait for a reviewer's approval in the Studio; get_events tells you the decision.")
 
 
@@ -535,34 +713,36 @@ class Server:
                     "grants": [g.get("rule") for g in reply.get("grants") or []],
                     "proposals": [{k: p.get(k) for k in ("id", "author", "message", "touches", "changes")}
                                   for p in reply.get("proposals") or []]}
-            if args.get("outline"):
-                return compact(info) + "\n" + outline(document), False
-            if args.get("at"):
-                at = str(args["at"])
-                found = find_node(document, at[1:]) if at.startswith("#") else None
-                if found:
-                    return compact({**info, "at": found[0], "node": found[1]}), False
-                node = document
-                try:
-                    for part in [p for p in at.split("/") if p]:
-                        node = node[int(part)] if isinstance(node, list) else node[part.replace("~1", "/").replace("~0", "~")]
-                except (KeyError, IndexError, ValueError, TypeError):
-                    return f"error: nothing at {at}", True
-                return compact({**info, "at": at, "node": node}), False
+            depth = args.get("depth")
+            depth = max(0, int(depth)) if isinstance(depth, (int, float)) and not isinstance(depth, bool) else None
+            try:
+                if args.get("outline"):
+                    return compact(info) + "\n" + outline(document, args.get("at"), depth), False
+                if args.get("at"):
+                    pointer, node = locate(document, args["at"])
+                    address = str(args["at"]) if str(args["at"]).startswith("#") else pointer
+                    node = pruned(node, address, depth) if depth is not None else node
+                    return compact({**info, "at": pointer, "node": node}), False
+            except ValueError as failure:
+                return f"error: {failure}", True
             if self.seen is not None and not args.get("full"):
-                changes = diff(self.seen, document)
-                for op in changes:  # addressed by node ids where there are some, as edits are written
-                    if op["path"].startswith(("/root", "/screens", "/templates", "/components")):
-                        op["path"] = by_id(document if op["op"] != "remove" else self.seen, op["path"])
+                changes = changes_since(self.seen, document)
                 self.seen = document
                 return compact({**info, "changes": changes} if changes else {**info, "unchanged": True}), False
             self.seen = document
             return compact({**info, "document": document}), False
         if name == "get_catalog":
             return compact(host.request({"type": "getCatalog"}).get("catalog")), False
+        if name == "find_nodes":
+            reply = host.request({"type": "getDocument"})
+            return find_nodes(reply.get("document") or {}, args.get("type"), args.get("text"), args.get("property"),
+                              args.get("value"), args.get("limit", 20)), False
         if name == "get_format_guide":
-            with open(os.path.join(ROOT, "SCREEN_FORMAT.md"), encoding="utf-8") as guide:
-                return guide.read(), False
+            with open(guide_path(), encoding="utf-8") as guide:
+                part = format_guide(guide.read(), args.get("topic"))
+            if part is None:
+                return f"error: no topic '{args.get('topic')}': call get_format_guide without one to list them", True
+            return part, False
         if name == "submit_revision":
             revision = {"type": "revision", "author": self.client, "message": args.get("message", "")}
             for key in ("patch", "set", "add", "remove", "move", "parent", "proposal"):
