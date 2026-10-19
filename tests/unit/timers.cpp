@@ -74,8 +74,6 @@ TEST_CASE("format: a screen destroyed while its window lives on cancels the time
 	window.render();
 }
 
-// A document can set thousands of timers ("after" in a "forEach"). Before, a frame searched all of them for the next
-// due one, each time: 10,000 timers took 125 ms, and 50,000 more than a second
 // The list of timers a frame runs is reachable for cancelTimer() only while the frame runs them, even when a task
 // throws (AddressSanitizer with detect_stack_use_after_return=1: stack-use-after-return in cancelTimer)
 TEST_CASE("render: a timer task that throws leaves the window's timers usable") {
@@ -95,6 +93,8 @@ TEST_CASE("render: a timer task that throws leaves the window's timers usable") 
 	CHECK_FALSE(ran);
 }
 
+// A document can set thousands of timers ("after" in a "forEach"). Before, a frame searched all of them for the next
+// due one, each time: 10,000 timers took 125 ms, and 50,000 more than a second
 TEST_CASE("render: a frame runs many due timers in order, in time that grows with their number") {
 	affresco::Application app;
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);

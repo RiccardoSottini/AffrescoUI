@@ -153,6 +153,10 @@ public:
 	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
 	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
+	/// @brief Whether an input event is being delivered: what runs now runs because of the user's input, not a timer
+	/// or a deferred task.
+	/// @return true while one of the route methods runs.
+	[[nodiscard]] bool routingInput() const noexcept { return routing_ > 0; }
 
 	/* Rendering */
 

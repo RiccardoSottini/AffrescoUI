@@ -716,6 +716,11 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.
 	std::optional<bool> flowStep(const Running& s);
+	/// @brief Refuses a control step (call, send, connect, patch, review and history) while a proposal is previewed,
+	/// unless the user's input runs it.
+	/// @param where The step's place, for the error.
+	/// @throws DocumentError If it may not run now.
+	void checkControl(const std::string& where) const;
 	/// @brief call, emit, send, connect, patch: the app, peers and the document.
 	/// @param s The step.
 	/// @return std::nullopt if it isn't one of these, else whether to keep going.

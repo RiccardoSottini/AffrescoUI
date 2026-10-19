@@ -127,7 +127,9 @@ A revision that needs review becomes a **proposal**, the equivalent of a pull re
 2. The author can **push** more commits to it (`"proposal": 3` in a revision), e.g. when the person asks for more
    while it is still open. The branch is rebuilt on the current `main` each time.
 3. A reviewer can **preview** it (the running app shows exactly what accepting would produce, then goes back) and
-   **diff** it (the JSON Patch accepting would apply).
+   **diff** it (the JSON Patch accepting would apply). While a proposal is previewed, control steps (`call`, `send`,
+   `connect`, `patch`, review and history) run only from the user's own input, never from a timer or a handler that
+   fires by itself (`onLoad`, `onShow`, `watch`): the proposal's document runs, but it can't act for the user.
 4. The reviewer **accepts** it: a merge commit lands on `main`, still checked against the deny rules, with the agent
    as author and the reviewer as committer. Or **Always allow**: accept it and add a **grant** (below). Or **reject**
    it with a reason.

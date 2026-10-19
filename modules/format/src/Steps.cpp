@@ -200,9 +200,18 @@ std::optional<bool> Runtime::Impl::flowStep(const Running& s) {
 	return std::nullopt;
 }
 
+// While a proposal is previewed its document runs, timers and all: a control step then runs only from the user's own
+// input, never from a timer or a handler that fires by itself (onLoad, onShow, watch), which the proposal may arrange
+void Runtime::Impl::checkControl(const std::string& where) const {
+	if(versions.previewing() && !(window && window->routingInput()))
+		fail(where, "while a proposal is previewed, control steps run only from the user's input");
+}
+
 std::optional<bool> Runtime::Impl::outsideStep(const Running& s) {
 	const json& step = s.step;
 	const std::string& where = s.where;
+	if(step.contains("call") || step.contains("send") || step.contains("connect") || step.contains("patch"))
+		checkControl(where);
 
 	if(step.contains("call")) {
 		const std::string name = string(step["call"], where + ".call");
@@ -259,6 +268,7 @@ std::optional<bool> Runtime::Impl::reviewStep(const Running& s) {
 	if(!step.contains("accept") && !step.contains("reject") && !step.contains("preview") && !step.contains("restore") &&
 	   !step.contains("revert") && !step.contains("undo") && !step.contains("endPreview"))
 		return std::nullopt;
+	checkControl(where);
 
 	json control = step;
 	for(const char* key : {"accept", "head", "reject", "preview", "restore", "revert", "reason"})
