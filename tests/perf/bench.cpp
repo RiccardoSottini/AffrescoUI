@@ -194,6 +194,8 @@ affresco::json measure(const Workload& workload, const Options& options) {
 	workload.step(); // warm up: caches, compiled expressions, lazily created objects
 
 	std::vector<double> times, allocations, retained;
+	for(std::vector<double>* values : {&times, &allocations, &retained})
+		values->reserve(static_cast<std::size_t>(runs)); // their growth would count as the workload's allocations
 	for(int run = 0; run < runs; ++run) {
 		if(workload.prepare) workload.prepare();
 		const std::uint64_t allocationsBefore = affresco::bench::allocationCount();
