@@ -90,7 +90,8 @@ affrescoui_module(format
 	modules/format/src/Steps.cpp)
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
 
-affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
+affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/RepositoryHistory.cpp
+	modules/vcs/src/HistoryStore.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
 
 affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
@@ -139,8 +140,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/channel.cpp)
-	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src) # Expression.hpp stays private
+		tests/unit/history.cpp tests/unit/expressions.cpp tests/unit/channel.cpp)
+	# Expression.hpp and Sha256.hpp stay private
+	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/vcs/src)
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel)
 	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)

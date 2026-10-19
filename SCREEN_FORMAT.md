@@ -310,7 +310,8 @@ Each message of type `T` runs the action `name:T` with the message as `event`; `
 disconnect. The AffrescoUI Studio is built this way: its file is the whole client.
 
 `"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json`, loaded at start and
-written when they change.
+written when they change. A screen opened from a file keeps its version-control history next to it, in
+`~/.affrescoui/<file name>.history/` (VERSION_CONTROL.md, "History on disk").
 
 ## Live screens: revisions and the channel
 

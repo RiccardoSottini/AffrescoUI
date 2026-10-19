@@ -134,6 +134,15 @@ public:
 	/// @param executor Delivers messages on the main thread (the Application).
 	void startChannels(Executor& executor);
 
+	/// @brief Keeps the screen's version-control history in a folder, and loads it from there if it has one, so that
+	/// main, the open proposals, the grants and the mode survive a restart (VERSION_CONTROL.md, "History on disk").
+	/// fromFile() does it with ~/.affrescoui/<screen file name>.history; a screen from fromString() stays in memory.
+	/// Call it before build() and before any change. If another program writes that history, this one only reads it
+	/// (a warning says so); if the screen file changed since it was written, it is moved aside and a new one starts.
+	/// @param directory The folder; created if needed.
+	/// @throws ScreenError If the history there is damaged: what() names the file, and nothing is loaded.
+	void setHistoryDirectory(const std::filesystem::path& directory);
+
 	/// @brief Sets the file the "persist" paths are kept in, and loads them from it if it exists (default:
 	/// ~/.affrescoui/<screen file name>.state.json).
 	/// @param file The file.

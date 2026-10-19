@@ -7,6 +7,8 @@
 #include "affresco/core/VersionControl.hpp"
 
 #include <cstddef>
+#include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -14,6 +16,10 @@
 #include <vector>
 
 namespace affresco::vcs {
+
+namespace detail {
+class HistoryStore;
+}
 
 /// @brief Keeps a JSON document and its live state under version control (see VERSION_CONTROL.md).
 ///
@@ -25,6 +31,9 @@ namespace affresco::vcs {
 /// Knows nothing about what the document describes: the DocumentRules say what is valid, where "#id" nodes are, and
 /// the permission rules. A rule is judged by the change's effect (the document before and after), never by the
 /// paths its patch happens to use.
+///
+/// The history lives in memory unless openHistory() gives it a folder: then every change is written there, and the
+/// next openHistory() of that folder brings it back (VERSION_CONTROL.md, "History on disk").
 class Repository final : public VersionControl {
 public:
 	/// Most proposals one channel may have open at once, so a peer can't flood the reviewer.
@@ -35,6 +44,28 @@ public:
 	/// @param document The document; its "state" becomes the live state.
 	/// @throws DocumentError If the document is not valid.
 	Repository(const DocumentRules& rules, json document);
+	/// @brief Closes the history folder, if one is open, and releases its lock.
+	~Repository() override;
+
+	/// @brief What openHistory() found.
+	struct OpenedHistory {
+		bool loaded = false;            ///< The history was read from the folder; otherwise a new one started there.
+		std::string memoryOnly;         ///< Why changes aren't written, e.g. another program holds the lock; empty if
+		                                ///< they are.
+		std::filesystem::path setAside; ///< Where the old history went, if it began with another version of the
+		                                ///< document (the screen file changed): a new one starts.
+	};
+
+	/// @brief Keeps the history in a folder from now on: loads the history written there, or starts one. Call it
+	/// before the first change.
+	///
+	/// A history that began with another version of the document is moved aside and a new one starts. If another
+	/// program holds the folder's lock, the history is read but never written (OpenedHistory::memoryOnly says so).
+	/// @param directory The folder, e.g. "~/.affrescoui/kanban.history". Created if needed.
+	/// @return What it found.
+	/// @throws DocumentError If the history there is damaged (what() names the file; nothing is loaded), or if this
+	/// repository already changed or already has a folder.
+	OpenedHistory openHistory(const std::filesystem::path& directory);
 
 	void setObserver(VersionObserver* observer) override { observer_ = observer; }
 
@@ -189,6 +220,64 @@ private:
 	/// @brief Tells the observer and onReviewChanged that the proposals changed.
 	void proposalsChanged();
 
+	/* History on disk (RepositoryHistory.cpp) */
+
+	/// @brief What the refs file holds: main's head, the open proposals, the grants and the mode.
+	struct Refs;
+	/// @brief A commit's id: the SHA-256 of what it is (store() and the history on disk use it).
+	/// @param commit The commit; its id is ignored.
+	/// @return 64 hex digits.
+	[[nodiscard]] static std::string idOf(const Commit& commit);
+	/// @brief A commit as it is written to disk.
+	/// @param commit The commit.
+	/// @return Everything its id covers.
+	[[nodiscard]] static json objectOf(const Commit& commit);
+	/// @brief Reads a commit object and checks it against its id.
+	/// @param store The history.
+	/// @param id The commit's id.
+	/// @param namedIn The file that names it, for errors.
+	/// @return The commit, not yet numbered.
+	/// @throws DocumentError If it is missing, malformed, or its content doesn't match its id.
+	[[nodiscard]] static Commit readObject(detail::HistoryStore& store, const std::string& id,
+	                                       const std::filesystem::path& namedIn);
+	/// @brief Reads every commit the heads lead to, and numbers them.
+	/// @param store The history.
+	/// @param heads main's head, then the proposals' heads.
+	/// @return The commits, by id.
+	/// @throws DocumentError If one is missing or damaged.
+	[[nodiscard]] static std::unordered_map<std::string, Commit> readCommits(detail::HistoryStore& store,
+	                                                                        std::vector<std::string> heads);
+	/// @brief Reads the refs file and checks its checksum.
+	/// @param store The history.
+	/// @return What it holds; the proposals have no commits or patch yet (completeProposal()).
+	/// @throws DocumentError If it is damaged.
+	[[nodiscard]] static Refs readRefs(detail::HistoryStore& store);
+	/// @brief Reads one proposal from the refs file.
+	/// @param entry Its entry.
+	/// @param where Its place in the file, for errors.
+	/// @return The proposal, without its commits and patch.
+	/// @throws DocumentError If it is malformed.
+	[[nodiscard]] static Proposal readProposal(const json& entry, const std::string& where);
+	/// @brief Finds a proposal's commits on its branch, and replays their patches into it.
+	/// @param proposal The proposal.
+	/// @param objects The commits.
+	/// @param main main's commits, oldest first.
+	/// @param file The refs file, for errors.
+	/// @throws DocumentError If its branch doesn't lead from its head to its base on main.
+	static void completeProposal(Proposal& proposal, const std::unordered_map<std::string, Commit>& objects,
+	                             const std::vector<std::string>& main, const std::filesystem::path& file);
+	/// @brief Replaces the history with the one in a folder, if it began with the same document.
+	/// @param store The folder.
+	/// @return false, changing nothing, if it began with another document.
+	/// @throws DocumentError If it is damaged, or its head can't be shown; then nothing changed.
+	bool loadHistory(detail::HistoryStore& store);
+	/// @brief The refs file's content: main's head, the open proposals, the grants and the mode.
+	/// @return It, without its checksum.
+	[[nodiscard]] json refsJson() const;
+	/// @brief Writes the commits the folder doesn't have yet, then the refs. A failure is logged, and the next change
+	/// tries again: the change itself stays.
+	void saveHistory() noexcept;
+
 	const DocumentRules& rules_;          ///< What is valid and who may change what.
 	VersionObserver* observer_ = nullptr; ///< The renderer.
 
@@ -205,6 +294,7 @@ private:
 	Mode mode_ = Mode::Default;       ///< See setMode().
 	std::vector<Grant> grants_;       ///< "Don't ask again" rules.
 	bool importing_ = false;          ///< Commits are announced once the whole change set is in.
+	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
 };
 
 } // namespace affresco::vcs

@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -28,7 +29,7 @@
 int main(int argc, char** argv) {
 	std::string file = AFFRESCOUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
 	std::filesystem::path socketDir = defaultSocketDir();
-	affresco::Mode mode = affresco::Mode::Default;
+	std::optional<affresco::Mode> mode; // without --mode, the one the screen's history saved (default at first)
 	std::vector<std::string> plugins;
 
 	for(int i = 1; i < argc; ++i) {
@@ -51,7 +52,7 @@ int main(int argc, char** argv) {
 		affresco::Screen screen = affresco::Screen::fromFile(file);
 		screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
 		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
-		screen.setMode(mode);
+		if(mode) screen.setMode(*mode);
 		screen.createWindow(app);
 
 		for(const std::string& plugin : plugins) {
@@ -69,7 +70,7 @@ int main(int argc, char** argv) {
 			screen.listen(app, socketDir / "studio.sock", "studio");
 			screen.listen(app, socketDir / "agent.sock", "agent");
 			std::cerr << "affrescoui_host: listening in " << socketDir.string() << " (studio.sock, agent.sock)"
-			          << ", mode " << affresco::toString(mode) << '\n';
+			          << ", mode " << affresco::toString(screen.versions().mode()) << '\n';
 		}
 		return app.run();
 	} catch(const std::exception& error) {

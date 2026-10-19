@@ -299,6 +299,18 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	}
 }
 
+/// @brief Where a screen file's data on disk is kept: its "persist" state and its history.
+/// @param screenFile The screen file.
+/// @param suffix What is kept: ".state.json" or ".history".
+/// @return ~/.affrescoui/<the file's name without ".screen.json"><suffix>: "habits.screen.json" -> "habits.history".
+std::filesystem::path stateLocation(const std::filesystem::path& screenFile, std::string_view suffix) {
+	const char* home = std::getenv("HOME");
+	std::string name = screenFile.filename().string();
+	for(const char* extension : {".json", ".screen"})
+		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
+	return std::filesystem::path(home ? home : ".") / ".affrescoui" / (name + std::string(suffix));
+}
+
 /// @brief Parses JSON text.
 /// @param text The text.
 /// @param what What it is, for the error.
@@ -342,11 +354,9 @@ Screen Screen::fromFile(const std::filesystem::path& path) {
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
-	const char* home = std::getenv("HOME");
-	std::string name = path.filename().string(); // "habits.screen.json" -> "habits"
-	for(const char* extension : {".json", ".screen"})
-		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
-	screen.setStateFile(std::filesystem::path(home ? home : ".") / ".affrescoui" / (name + ".state.json"));
+	// The history first: it sets the live state that the "persist" paths are then loaded into
+	screen.setHistoryDirectory(stateLocation(path, ".history"));
+	screen.setStateFile(stateLocation(path, ".state.json"));
 	return screen;
 }
 
@@ -398,6 +408,17 @@ void Screen::startChannels(Executor& executor) {
 		                                              : 0.0;
 		impl.open(channel);
 	}
+}
+
+void Screen::setHistoryDirectory(const std::filesystem::path& directory) {
+	const vcs::Repository::OpenedHistory opened = impl_->repository.openHistory(directory);
+	if(!opened.setAside.empty())
+		affresco::log(LogLevel::Warning, "AffrescoUI history: the screen file changed since " + directory.string() +
+		                                     " was written: a new history starts there, and the old one is kept in " +
+		                                     opened.setAside.string());
+	if(!opened.memoryOnly.empty())
+		affresco::log(LogLevel::Warning, "AffrescoUI history: " + directory.string() + ": " + opened.memoryOnly +
+		                                     "; changes to this screen are kept in memory only");
 }
 
 void Screen::setStateFile(std::filesystem::path file) {
