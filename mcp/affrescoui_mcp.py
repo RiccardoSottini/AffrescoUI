@@ -341,6 +341,15 @@ TOOLS = [
                                    "on, it is rejected as a conflict)"},
          "proposal": {"type": "integer", "description": "Push onto this open proposal of yours (optional)"},
      }, ["message"])},
+    {"name": "render_screen",
+     "description": "A picture of the running screen (PNG), to check your work before a person reviews it: main as "
+                    "it is now, or with an open proposal applied (`proposal`, e.g. the one submit_revision just "
+                    "opened). Drawn offscreen: the person's window doesn't change. `scale` 2 draws at twice the "
+                    "size, like a Retina display.",
+     "inputSchema": object_schema({"proposal": {"type": "integer",
+                                                "description": "An open proposal to show applied (optional)"},
+                                   "scale": {"type": "integer", "description": "1 (default) or 2"}}),
+     "annotations": {"readOnlyHint": True}},
     {"name": "get_history",
      "description": "main's commits, oldest first (like git log): number, short id, author, committer (who approved "
                     "it), message, time, and parents (two for a merged proposal). Revision 0 is the file as loaded.",
@@ -449,6 +458,17 @@ class Server:
                     return None
                 self.arrived.wait(remaining)
 
+    def render_screen(self, args):
+        """A picture of main, or of an open proposal applied, as an MCP image block and a caption."""
+        reply = self.host.request({"type": "render", **{k: args[k] for k in ("proposal", "scale") if k in args}})
+        if reply.get("type") != "image":
+            return f"error: {reply.get('error') or reply.get('message')}", True
+        shown = "main" if reply.get("proposal") is None else f"proposal {reply['proposal']} applied to main"
+        caption = (f"{shown} at revision {reply.get('revision')}: {reply.get('width')}x{reply.get('height')} pixels, "
+                   f"scale {reply.get('scale')}")
+        return [{"type": "image", "data": reply.get("data", ""), "mimeType": "image/png"},
+                {"type": "text", "text": caption}], False
+
     def call_tool(self, name, args):
         host = self.host
         if name == "wait_for_request":
@@ -506,6 +526,8 @@ class Server:
                 if key in args:
                     revision[key] = args[key]
             return describe(host.request(revision))
+        if name == "render_screen":
+            return self.render_screen(args)
         if name == "get_history":
             reply = host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
             return compact(reply.get("entries")), False
@@ -567,8 +589,10 @@ class Server:
             # On its own thread: wait_for_request can block for minutes while pings and other calls go on
             def call():
                 try:
-                    text, is_error = self.call_tool(params.get("name"), params.get("arguments") or {})
-                    result({"content": [{"type": "text", "text": text}], "isError": is_error})
+                    content, is_error = self.call_tool(params.get("name"), params.get("arguments") or {})
+                    if isinstance(content, str):  # most tools answer in text; render_screen with an image
+                        content = [{"type": "text", "text": content}]
+                    result({"content": content, "isError": is_error})
                 except UnknownTool:
                     error(-32602, f"unknown tool {params.get('name')!r}")
                 except Exception as failure:  # no host, it went away, did not answer, ...

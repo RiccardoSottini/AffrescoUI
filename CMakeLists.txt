@@ -97,7 +97,7 @@ affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/S
 target_link_libraries(affrescoui_channel PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
 
 # affrescoui: the whole library
-add_library(affrescoui modules/screen/src/Screen.cpp)
+add_library(affrescoui modules/screen/src/Screen.cpp modules/screen/src/OffscreenImages.cpp modules/screen/src/Png.cpp)
 add_library(affrescoui::affrescoui ALIAS affrescoui)
 target_include_directories(affrescoui PUBLIC modules/screen/include)
 set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)
@@ -139,16 +139,17 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/channel.cpp)
-	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src) # Expression.hpp stays private
+		tests/unit/expressions.cpp tests/unit/channel.cpp tests/unit/png.cpp modules/screen/src/Png.cpp)
+	# Expression.hpp and Png.hpp stay private
+	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/screen/src)
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel)
 	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
 
-	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers
-	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp)
+	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers, pictures
+	add_executable(affrescoui_window_tests tests/unit/main.cpp tests/unit/timers.cpp tests/unit/images.cpp)
 	target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
 		$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE)

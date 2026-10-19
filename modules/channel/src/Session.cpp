@@ -1,12 +1,39 @@
 #include "affresco/channel/Session.hpp"
 #include "affresco/core/Log.hpp"
 
+#include <cstdint>
 #include <utility>
 
 namespace affresco::channel {
 
-Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog)
-    : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)) {
+namespace {
+
+/// @brief Encodes bytes in base64 (RFC 4648, with padding), so binary data fits in a JSON string.
+/// @param bytes The bytes.
+/// @return The text.
+std::string toBase64(std::string_view bytes) {
+	static constexpr std::string_view alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	std::string text;
+	text.reserve((bytes.size() + 2) / 3 * 4);
+	for(std::size_t i = 0; i < bytes.size(); i += 3) {
+		const std::size_t left = bytes.size() - i;
+		std::uint32_t group = std::uint32_t{static_cast<std::uint8_t>(bytes[i])} << 16;
+		if(left > 1) group |= std::uint32_t{static_cast<std::uint8_t>(bytes[i + 1])} << 8;
+		if(left > 2) group |= static_cast<std::uint8_t>(bytes[i + 2]);
+		text += alphabet[(group >> 18) & 63];
+		text += alphabet[(group >> 12) & 63];
+		text += left > 1 ? alphabet[(group >> 6) & 63] : '=';
+		text += left > 2 ? alphabet[group & 63] : '=';
+	}
+	return text;
+}
+
+} // namespace
+
+Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog,
+                 ScreenImages* images)
+    : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)),
+      images_(images) {
 	messages_ = channel_.onMessage.connect([this](const std::string& line) { handle(line); });
 
 	decisions_ = versions_.onDecision.connect([this](const Decision& decision) {
@@ -27,7 +54,10 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
 		message["revision"] = commit.number;
 		send(message);
 	});
-	reviews_ = versions_.onReviewChanged.connect([this] { send(reviewState()); });
+	reviews_ = versions_.onReviewChanged.connect([this] {
+		// A picture of a proposal shows it for a moment, then puts back what was shown: nothing a peer needs to hear
+		if(!images_ || !images_->rendering()) send(reviewState());
+	});
 
 	// Introduce ourselves: whoever is on the other end gets the full picture to work from
 	send({{"type", "hello"},
@@ -211,7 +241,7 @@ bool Session::handleReview(const Incoming& in) {
 	return true;
 }
 
-// getDocument, getCatalog, getHistory, diff, exportChanges: reads, which change nothing
+// getDocument, getCatalog, getHistory, diff, exportChanges, render: reads, which change nothing
 bool Session::handleQuery(const Incoming& in) {
 	const json& m = in.message;
 
@@ -251,10 +281,37 @@ bool Session::handleQuery(const Incoming& in) {
 		send({{"type", "changes"},
 		      {"changes", versions_.exportChanges(m.value("from", json(0)), m.value("name", "changes"))},
 		      {"id", in.id}});
+	} else if(in.type == "render") {
+		sendImage(in);
 	} else {
 		return false;
 	}
 	return true;
+}
+
+void Session::sendImage(const Incoming& in) {
+	const json& m = in.message;
+	ImageRequest request;
+	if(m.contains("proposal") && !m["proposal"].is_null())
+		request.proposal = expect::integer(m["proposal"], "render.proposal");
+	if(m.contains("scale")) {
+		request.scale = expect::integer(m["scale"], "render.scale");
+		if(request.scale < 1 || request.scale > ScreenImages::maxScale)
+			expect::fail("render.scale", "expected 1 to " + std::to_string(ScreenImages::maxScale));
+	}
+	if(!images_) expect::fail("render", "this host draws no pictures");
+
+	Image image;
+	if(const std::optional<std::string> error = images_->render(request, image)) throw DocumentError(*error);
+	send({{"type", "image"},
+	      {"format", "png"},
+	      {"data", toBase64(image.png)},
+	      {"width", image.width},
+	      {"height", image.height},
+	      {"scale", request.scale},
+	      {"proposal", request.proposal ? json(*request.proposal) : json()},
+	      {"revision", versions_.head().number},
+	      {"id", in.id}});
 }
 
 } // namespace affresco::channel

@@ -12,7 +12,7 @@ cmake -S . -B build -G Ninja && cmake --build build   # AFFRESCOUI_BUILD_TESTS i
 ./build/affrescoui_window_tests                       # the few that need a window (or: ctest --test-dir build -R window)
 ```
 
-A `Window` needs an OpenGL context, so tests of what happens on a window (timers) are a separate program,
+A `Window` needs an OpenGL context, so tests of what happens on a window (timers, pictures) are a separate program,
 `affrescoui_window_tests`. It runs where the rendering check runs: on a desktop, or under Xvfb on Linux.
 
 ## Where they are
@@ -22,8 +22,10 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 | `core.cpp` | `parseUntrusted`: the nesting limit, comments |
 | `vcs.cpp` | `vcs::Repository`: revert, deny rules, outdated approvals, self-review, change sets |
 | `expressions.cpp` | `format` expressions: a table of values and their results or errors, `truthy` |
-| `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review |
+| `channel.cpp` | `channel::Session` over an in-memory channel: hello, unknown messages, who may review, `render` |
+| `png.cpp` | The PNG encoder behind `render` (`modules/screen/src/Png.hpp`): each image decoded again and compared |
 | `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers when it is destroyed |
+| `images.cpp` | `affrescoui_window_tests`: pictures of main and of a proposal, with the person's view left as it was |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main` |
 

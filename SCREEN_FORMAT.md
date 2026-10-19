@@ -356,13 +356,30 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `changes`, `catalog`, `done` |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `changes`, `catalog`, `image`, `done` |
 | peer → | `revision` (compact edits or `patch`, `proposal`?), `revert` / `restore` (`revision`), `undo` |
-| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `exportChanges` (`from`, `name`), `getCatalog` |
+| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`), relayed with `from` |
 
 Requests may carry an `"id"`; answers repeat it.
+
+### Pictures
+`render` (MCP: `render_screen`) lets a peer see its work before a person reviews it. Any peer may ask: it is a read.
+
+```json
+{ "type": "render", "proposal": 3, "scale": 1, "id": 7 }
+{ "type": "image", "format": "png", "data": "iVBORw0KGgo…", "width": 1280, "height": 800, "scale": 1,
+  "proposal": 3, "revision": 12, "id": 7 }
+```
+
+- Without `proposal` it shows main; with one, that open proposal applied to main. `scale` is 1 (the default) or 2 (like a
+  Retina display); the picture is the window's size times `scale`. `data` is the PNG file in base64.
+- It is drawn offscreen, the way the rendering check draws (`tests/render`). The person's window never shows it: to draw
+  a proposal the host previews it, draws, and puts back what was shown, within one step on the main thread. Peers hear
+  no `review` messages for it, `emit` events from it are dropped, and `persist` doesn't save its state. Steps that run
+  when panels appear or values change (`onShow`, `onHide`, `watch`) do run, as for a reviewer's `preview`.
+- `rejected` (`error`) answers a proposal that doesn't exist, a scale out of range, or a host without a window.
 
 ### Catalog
 `getCatalog` (MCP: `get_catalog`) answers what this screen's host offers: node types and their properties, common

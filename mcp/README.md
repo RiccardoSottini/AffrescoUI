@@ -59,6 +59,7 @@ Other clients (JSON configuration):
 | `get_screen` | The document (with its permission rules), live state, revision and head commit, open proposals, mode, grants and the agent's author name |
 | `get_format_guide` | The screen format specification (`SCREEN_FORMAT.md`) |
 | `submit_revision` | A JSON Patch change: applied (a commit), proposed (a branch for review), or rejected with the reason. `proposal` pushes onto the agent's open proposal |
+| `render_screen` | A picture (PNG image block) of main, or of an open proposal applied (`proposal`), at `scale` 1 or 2: the agent checks its work before the reviewer does. Drawn offscreen, so the person's window doesn't change. Read-only |
 | `get_history` | main's commits, like `git log`: number, short id, author, committer (who approved it), message, parents |
 | `get_diff` | A JSON Patch between two revisions (`HEAD~1`, ids, numbers), or what an open proposal would change |
 | `revert_revision` | Undo one revision and keep the later ones, like `git revert` (follows the permissions) |
