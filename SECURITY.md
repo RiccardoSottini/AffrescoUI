@@ -55,10 +55,12 @@ A **peer** is a program connected to the running screen over a local socket. The
 - The name a peer gives itself (`"author"` in a message) is only kept after a slash, for display: `agent/claude-code`.
   Any program on the same socket can give itself the same name, so rules and reviewers should name channels
   (`agent`), not full names.
-- The socket file is made readable and writable only by its owner. The example host, the Studio and the MCP server
-  keep the sockets in a directory (`/tmp/affrescoui-<uid>` by default, or `--socket DIR`) that must be a real
-  directory owned by the current user, not a symbolic link; the host makes it accessible only to that user. The
-  directory is what keeps other users out (see "Known gaps").
+- The socket file is made readable and writable only by its owner, just after it is created; until then it has the
+  process's default permissions. The example host, the Studio and the MCP server keep the sockets in a directory
+  (`/tmp/affrescoui-<uid>` by default, or `--socket DIR`) that must be a real directory owned by the current user,
+  not a symbolic link (only the last part of the path is checked); the host makes it accessible only to that user,
+  and the Studio and the MCP server don't check its permissions. The directory is what keeps other users out (see
+  "Known gaps"), so pass a `--socket` directory whose parents only you control.
 
 ### What every peer can read
 Permissions govern changes, not reads. Every peer gets the whole document and the live state when it connects
