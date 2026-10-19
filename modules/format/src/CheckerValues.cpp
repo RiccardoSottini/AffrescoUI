@@ -214,8 +214,13 @@ Shape Checker::shapeOfExpression(std::string_view text, const Scope& scope, cons
 		report(place, problemOf(error, place));
 		return anything;
 	}
-	// The tree lives in the compile cache, which a later compile may clear. Only a "$path" compiles again (its
-	// index expressions), and it is always a whole tree: its text is copied before that happens
+	// The tree lives in the compile cache, which a later compile may clear (past 20,000 expressions). A "$path"
+	// compiles its index expressions, but it is always a whole tree and its text is copied first. Reading a computed
+	// value compiles that value's expression while this tree is still read, so such a tree is copied
+	if(text.find("computed") != std::string_view::npos) {
+		const json copy = *tree;
+		return shapeOf(copy, scope, place);
+	}
 	return shapeOf(*tree, scope, place);
 }
 
@@ -380,7 +385,7 @@ std::string Checker::variableNames(const Scope& scope) {
 }
 
 const Shape& Checker::computedShape(const std::string& name) {
-	if(const auto it = computedShapes_.find(name); it != computedShapes_.end()) return *it;
+	if(const auto it = computedShapes_.find(name); it != computedShapes_.end()) return it->second;
 	if(std::ranges::find(computing_, name) != computing_.end()) return anything; // a circle: the runtime reports it
 	computing_.push_back(name);
 	const Scope none;

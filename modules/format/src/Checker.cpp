@@ -204,7 +204,7 @@ void Checker::pass() {
 	walked_.clear();
 	actionsReached_.clear();
 	componentsReached_.clear();
-	computedShapes_ = Shape::object();
+	computedShapes_.clear();
 	computing_.clear();
 
 	walkNodes();

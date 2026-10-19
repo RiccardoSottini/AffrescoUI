@@ -531,7 +531,9 @@ private:
 	std::set<std::string> walked_; ///< Actions and components checked, with their variables' names.
 	std::set<std::string, std::less<>> actionsReached_;    ///< Actions a node or handler runs.
 	std::set<std::string, std::less<>> componentsReached_; ///< Components a node uses.
-	Shape computedShapes_ = Shape::object();               ///< Computed values checked in this pass.
+	/// Computed values checked in this pass. A map, not a JSON object (a vector): a shape read through a reference
+	/// stays where it is while other computed values are added.
+	std::map<std::string, Shape, std::less<>> computedShapes_;
 	std::vector<std::string> computing_;                   ///< Computed values being checked (finds circles).
 	std::size_t visits_ = 0;                               ///< Visits so far (maxVisits).
 	bool exhausted_ = false;                               ///< maxVisits was passed.

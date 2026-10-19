@@ -316,6 +316,26 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 	CHECK(found->size() == 1);
 }
 
+TEST_CASE("checker: computed values that read each other are read safely") {
+	// One computed value's shape is still being read while an index reads another, which adds it to the shapes known
+	checkAll({{"an index that reads another computed value",
+	           R"("computed": {"a": "{{computed.b[computed.c].x}}", "b": "{{[{x: 1}]}}", "c": "{{0}}"},
+	            "root": {"text": "{{computed.a}}"})",
+	           {}}});
+
+	// Reading a computed value compiles its expression while the reader's is still being walked. Past 20,000
+	// expressions the cache is cleared: over 40,000 new ones clear it twice, and at least once inside a chain (the
+	// address sanitizer finds a reader's expression read after it was freed)
+	json computed = json::object();
+	for(int chain = 0; chain < 4001; ++chain)
+		for(int link = 0; link < 10; ++link) {
+			const std::string name = "c" + std::to_string(10000 + chain) + "_" + std::to_string(link);
+			const std::string next = "c" + std::to_string(10000 + chain) + "_" + std::to_string(link + 1);
+			computed[name] = link < 9 ? "{{computed." + next + " + 1}}" : "{{" + std::to_string(chain) + "}}";
+		}
+	CHECK(lines({{"version", 1}, {"computed", computed}, {"root", {{"text", "x"}}}}).empty());
+}
+
 TEST_CASE("checker: a finding a change moves is not new; one it adds is") {
 	const Finding typo{"root.children[0].text", "'state.cardz' doesn't exist", "did you mean 'state.cards'?"};
 	Finding moved = typo;
