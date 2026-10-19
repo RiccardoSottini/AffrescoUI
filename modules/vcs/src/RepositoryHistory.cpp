@@ -101,30 +101,13 @@ void expectGrantRule(const std::string& rule, const std::string& where) {
 		             "'" + rule + "' is not a rule that \"don't ask again\" grants (<channel>(<one node or area>))");
 }
 
-/// @brief How deeply a value nests, counted the way parseUntrusted() counts: 0 for text or a number, 1 for a list of
-/// them, and so on. Walks without recursion, since the value may be deeper than the stack allows.
-/// @param value The value.
-/// @return Its depth.
-int nesting(const json& value) {
-	int deepest = 0;
-	std::vector<std::pair<const json*, int>> pending{{&value, 0}};
-	while(!pending.empty()) {
-		const auto [item, depth] = pending.back();
-		pending.pop_back();
-		if(!item->is_structured()) continue;
-		deepest = std::max(deepest, depth + 1);
-		for(const json& child : *item) pending.emplace_back(&child, depth + 1);
-	}
-	return deepest;
-}
-
 /// @brief Refuses to write an object that loading would refuse (parseUntrusted()'s limit): the history on disk would
 /// be damaged for good. A screen file can nest deeper, since it isn't read with that limit.
 /// @param value The object.
 /// @param file Its file, for errors.
 /// @throws HistoryError If it nests deeper than maxNesting.
 void expectReadable(const json& value, const std::filesystem::path& file) {
-	if(nesting(value) > maxNesting)
+	if(nestingDepth(value) > maxNesting)
 		throw HistoryError(file, "would nest more than " + std::to_string(maxNesting) +
 		                             " levels deep, more than a history reads back, so it isn't written");
 }

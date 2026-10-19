@@ -31,6 +31,18 @@ std::string utcNow() {
 	return buffer;
 }
 
+/// @brief Refuses a revision that would make the screen nest deeper than maxDocumentNesting. A screen file is trusted
+/// and may nest deeper already: then only a revision that makes it deeper still is refused.
+/// @param before The document with the live state in "state", before the revision.
+/// @param after The same, after it.
+/// @throws DocumentError If it would.
+void expectShallowEnough(const json& before, const json& after) {
+	const int depth = nestingDepth(after);
+	if(depth > maxDocumentNesting && depth > nestingDepth(before))
+		fail("revision", "the screen would nest " + std::to_string(depth) + " levels deep (the live state one level " +
+		                     "inside it), more than " + std::to_string(maxDocumentNesting));
+}
+
 /// @brief A revision's author.
 /// @param revision The revision.
 /// @return "author", or "unknown".
@@ -314,6 +326,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	result.document = after;
 	if(document.contains("state")) result.document["state"] = document["state"];
 	else result.document.erase("state");
+	expectShallowEnough(result.before, after);
 
 	rules_.checkChange(result.before, after); // with the live state: the checker reads state paths
 	rules_.validate(result.document);

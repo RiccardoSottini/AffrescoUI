@@ -5,11 +5,15 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace affresco {
 
@@ -49,6 +53,38 @@ inline json parseUntrusted(std::string_view text, bool allowComments = false) {
 		// parse_error or a DocumentError would let through (and a peer could stop the app with it)
 		throw DocumentError(std::string("AffrescoUI screen: ") + error.what());
 	}
+}
+
+/// Deepest a screen's document, or its live state, may become through revisions and steps. maxNesting holds for each
+/// message, not for what messages build: a revision can add a value inside one an earlier revision added, and a step
+/// can wrap a value in itself. This limit stays below maxNesting so that the few levels a message, a history file or
+/// the state file wrap a document in still leave it readable with parseUntrusted().
+inline constexpr int maxDocumentNesting = 200;
+
+/// @brief How deeply a value nests, counted the way parseUntrusted() counts: 0 for text or a number, 1 for a list of
+/// them, and so on. Walks without recursion, since the value may be deeper than the stack allows.
+/// @param value The value.
+/// @return Its depth.
+[[nodiscard]] inline int nestingDepth(const json& value) {
+	if(!value.is_structured()) return 0; // most values written by steps: no walk, no allocation
+	int deepest = 0;
+	std::vector<std::pair<const json*, int>> pending{{&value, 0}};
+	while(!pending.empty()) {
+		const auto [item, depth] = pending.back();
+		pending.pop_back();
+		if(!item->is_structured()) continue;
+		deepest = std::max(deepest, depth + 1);
+		for(const json& child : *item) pending.emplace_back(&child, depth + 1);
+	}
+	return deepest;
+}
+
+/// @brief How many levels hold the value a JSON Pointer names: one per segment ("/a/0" is held by two).
+/// @param pointer The pointer.
+/// @return Its number of segments.
+[[nodiscard]] inline std::size_t pointerDepth(const json::json_pointer& pointer) {
+	const std::string text = pointer.to_string(); // a '/' inside a key is written "~1"
+	return static_cast<std::size_t>(std::ranges::count(text, '/'));
 }
 
 /// @brief Formats a value as it appears inside text.
@@ -126,6 +162,17 @@ inline bool boolean(const json& value, const std::string& path) {
 inline std::string string(const json& value, const std::string& path) {
 	if(!value.is_string()) fail(path, "expected a string");
 	return value.get<std::string>();
+}
+
+/// @brief Refuses a value whose place would make a document or the live state nest deeper than maxDocumentNesting.
+/// @param value The value written.
+/// @param levelsAbove How many levels hold it: the segments of its JSON Pointer (see pointerDepth()), one more for
+/// an item added to the list there.
+/// @param path Its place, for the error.
+/// @throws DocumentError If it would.
+inline void shallowEnough(const json& value, std::size_t levelsAbove, const std::string& path) {
+	if(levelsAbove + static_cast<std::size_t>(nestingDepth(value)) > static_cast<std::size_t>(maxDocumentNesting))
+		fail(path, "would nest the state more than " + std::to_string(maxDocumentNesting) + " levels deep");
 }
 
 } // namespace expect

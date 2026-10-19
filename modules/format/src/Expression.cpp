@@ -1238,6 +1238,8 @@ json lookup(std::string_view path, const Context& context, const std::string& wh
 json::json_pointer statePointer(std::string_view path, const Context& context, const std::string& where) {
 	const std::vector<json> keys = segments(path, context, where);
 	if(keys.front() != "state") fail(where, "can only change values under 'state', not '" + std::string(path) + "'");
+	if(keys.size() - 1 > static_cast<std::size_t>(maxDocumentNesting)) // writing there would build the levels
+		fail(where, "a place in the state more than " + std::to_string(maxDocumentNesting) + " levels deep");
 
 	json::json_pointer pointer;
 	for(std::size_t i = 1; i < keys.size(); ++i) {

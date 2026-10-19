@@ -185,6 +185,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 		tests/unit/history.cpp tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp
 		tests/unit/screen.cpp tests/unit/text.cpp tests/unit/painter.cpp tests/unit/checker.cpp tests/unit/png.cpp
 		modules/screen/src/Png.cpp)
+	target_sources(affrescoui_unit_tests PRIVATE tests/unit/nesting.cpp)
 	# Expression.hpp, Utf8.hpp, Sha256.hpp and Png.hpp stay private
 	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src modules/vcs/src
 		modules/screen/src)
