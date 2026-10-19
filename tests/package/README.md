@@ -6,7 +6,7 @@ against it, with `CMAKE_PREFIX_PATH` pointing at the prefix, and runs its two pr
 
 ```sh
 cmake -S . -B build -G Ninja && cmake --build build   # AFFRESCOUI_INSTALL is on in a top-level static build
-python3 tests/package/check.py                        # --build DIR, --config CONFIG, --keep (leave the files)
+python3 tests/package/check.py                        # --build DIR, --config CONFIG (default: the build's), --keep
 ```
 
 It checks:

@@ -94,9 +94,12 @@ def main():
     """Installs, builds the consumer, runs it, and checks the version rule."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--build", default=os.path.join(ROOT, "build"), help="the built AffrescoUI (default: build)")
-    parser.add_argument("--config", default="Release", help="the configuration to install and build (default: Release)")
+    parser.add_argument("--config", help="the configuration to install and build (default: the build's "
+                        "CMAKE_BUILD_TYPE, or Release with a multi-configuration generator)")
     parser.add_argument("--keep", action="store_true", help="keep the prefix and the consumer's build")
     options = parser.parse_args()
+    # A single-configuration build installs only its own configuration's imported targets, so match it
+    options.config = options.config or cached(options.build, "CMAKE_BUILD_TYPE") or "Release"
 
     work = tempfile.mkdtemp(prefix="affrescoui-package-")
     prefix, build = os.path.join(work, "prefix"), os.path.join(work, "consumer")
