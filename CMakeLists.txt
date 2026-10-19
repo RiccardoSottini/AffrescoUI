@@ -20,18 +20,21 @@ option(AFFRESCOUI_INSTALL "Generate the install rules and the AffrescoUI CMake p
 
 include(FetchContent)
 
-# GLFW: windows, OpenGL context, input
+# GLFW: windows, OpenGL context, input. The versions pinned here are also the ones the installed package asks for.
+set(AFFRESCOUI_GLFW_VERSION 3.4)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # installed static libraries link it
-FetchContent_Declare(glfw URL https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip
+FetchContent_Declare(glfw
+	URL https://github.com/glfw/glfw/releases/download/${AFFRESCOUI_GLFW_VERSION}/glfw-${AFFRESCOUI_GLFW_VERSION}.zip
 	URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9 SYSTEM)
 FetchContent_MakeAvailable(glfw)
 
 # nlohmann/json: the documents (format, vcs and channel modules; the rendering engine does without)
+set(AFFRESCOUI_JSON_VERSION 3.11.3)
 set(JSON_Install ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # core/Json.hpp includes it
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v${AFFRESCOUI_JSON_VERSION}/json.tar.xz
 	URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d SYSTEM)
 FetchContent_MakeAvailable(json)
 

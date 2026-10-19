@@ -26,9 +26,7 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-# The versions AffrescoUIConfig.cmake asks for: the ones FetchContent pins in CMakeLists.txt (keep them in step)
-set(AFFRESCOUI_JSON_VERSION 3.11.3)
-set(AFFRESCOUI_GLFW_VERSION 3.4)
+# AffrescoUIConfig.cmake asks for AFFRESCOUI_JSON_VERSION and AFFRESCOUI_GLFW_VERSION, which CMakeLists.txt pins
 set(AFFRESCOUI_PACKAGE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/AffrescoUI)
 
 # Exported as affrescoui::<module>, the same names as the aliases add_subdirectory users link to
