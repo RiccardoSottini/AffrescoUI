@@ -13,8 +13,9 @@ cmake -S . -B build -G Ninja && cmake --build build   # AFFRESCOUI_BUILD_TESTS i
 ./build/affrescoui_window_tests                       # the few that need a window (or: ctest --test-dir build -R window)
 ```
 
-A `Window` needs an OpenGL context, so tests of what happens on a window (timers) are a separate program,
-`affrescoui_window_tests`. It runs where the rendering check runs: on a desktop, or under Xvfb on Linux.
+A `Window` needs an OpenGL context, so tests of what happens on a window (timers, review steps) are a separate
+program, `affrescoui_window_tests`. It runs where the rendering check runs: on a desktop, or under Xvfb on Linux, as
+in CI.
 
 ## Where they are
 
@@ -27,6 +28,7 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 | `rules.cpp` | `format::Rules::checkChange`: control steps, and the actions, handlers and `run`s that reach them |
 | `screen.cpp` | `Screen::fromString`: the nesting limit on screen files |
 | `timers.cpp` | `affrescoui_window_tests`: `Window` timers, and a screen's timers and deferred tasks when it is destroyed |
+| `review.cpp` | `affrescoui_window_tests`: `accept` steps name the reviewed head; control steps while a proposal is previewed |
 | `Helpers.hpp` | What tests share: a screen with permissions, `MemoryChannel` |
 | `main.cpp` | doctest's `main` |
 
@@ -37,6 +39,6 @@ A `Window` needs an OpenGL context, so tests of what happens on a window (timers
 - A new expression is one more row in the table in `expressions.cpp`: the value, and its result or the error text.
 - Tests pin behaviour through the public headers. Private ones are fine when a module's logic lives there:
   `modules/format/src` is on the include path for `Expression.hpp`. Don't make a header public for a test.
-- Tests don't need a window, files or a network, so they run anywhere, CI included. Only `timers.cpp` needs a window.
+- Tests don't need a window, files or a network, so they run anywhere, CI included. Only `timers.cpp` and `review.cpp` need a window.
 - Don't change library code to make a test pass. If a test finds a bug, keep it, mark it `* doctest::skip(true)`
   with a comment that describes the bug, and report it.
