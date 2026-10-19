@@ -109,9 +109,10 @@ def check_dependencies_follow_package(prefix, work, config):
 
 def program(build, config, name):
     """The path of a built consumer program, single- or multi-configuration generator."""
-    for path in [os.path.join(build, name), os.path.join(build, config, name + ".exe"), os.path.join(build, name + ".exe")]:
-        if os.path.exists(path):
-            return path
+    for folder in [build, os.path.join(build, config)]:  # multi-configuration generators add a folder per configuration
+        for path in [os.path.join(folder, name), os.path.join(folder, name + ".exe")]:
+            if os.path.exists(path):
+                return path
     sys.exit(f"package check: {name} wasn't built")
 
 
