@@ -1,0 +1,54 @@
+name: Format-change RFC
+description: Propose a change to the screen format, the live protocol, the MCP tools, the security model or the modules.
+title: "[RFC] "
+labels: ["rfc"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Screen documents and the live protocol are a **public contract**, so a change to them is agreed before it is
+        built. Discuss the idea here. When it is worth pursuing, write it up from `rfcs/0000-template.md` and open a
+        pull request with that file alone. The maintainer approves an RFC by merging it, and implementation waits for
+        that merge. See [`rfcs/README.md`][rfcs] and [the design rules][rules].
+
+        [rfcs]: https://github.com/RiccardoSottini/AffrescoUI/blob/master/rfcs/README.md
+        [rules]: https://github.com/RiccardoSottini/AffrescoUI/blob/master/SCREEN_FORMAT.md#design-rules
+  - type: dropdown
+    id: contract
+    attributes:
+      label: What it changes
+      multiple: true
+      options:
+        - The screen format (keys, node types, steps, sections, expressions)
+        - The live protocol or the MCP tools
+        - The security model (capabilities, permissions, peers, secrets, limits)
+        - The module layout or the public C++ API
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can't be expressed or done today, with a real example.
+    validations:
+      required: true
+  - type: textarea
+    id: sketch
+    attributes:
+      label: A sketch of the design
+      description: A short screen document or message, before and after.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility
+      description: Is it additive within format version 1? What happens to existing screens, revisions and history?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other designs, and what can be done today without a change.

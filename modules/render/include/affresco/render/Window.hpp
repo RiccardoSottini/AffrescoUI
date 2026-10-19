@@ -153,6 +153,10 @@ public:
 	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
 	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
+	/// @brief Whether an input event is being delivered: what runs now runs because of the user's input, not a timer
+	/// or a deferred task.
+	/// @return true while one of the route methods runs.
+	[[nodiscard]] bool routingInput() const noexcept { return routing_ > 0; }
 
 	/* Rendering */
 
@@ -275,6 +279,7 @@ private:
 		std::function<void()> task; ///< The work.
 	};
 	std::vector<Timer> timers_;    ///< See setTimer().
+	std::vector<Timer>* dueTimers_ = nullptr; ///< The due timers runTimers() is running, for cancelTimer().
 	std::uint64_t nextTimerId_ = 1; ///< The next timer's id.
 
 	std::vector<Panel*> overlays_;    ///< Overlays shown in the last layout, in drawing order.

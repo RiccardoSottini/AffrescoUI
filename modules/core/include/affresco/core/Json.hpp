@@ -32,7 +32,8 @@ inline constexpr int maxNesting = 256;
 /// @param allowComments Whether to skip comments.
 /// @return The value.
 /// @throws json::parse_error If the text is not JSON.
-/// @throws DocumentError If it nests deeper than maxNesting (it is never built).
+/// @throws DocumentError If it nests deeper than maxNesting (it is never built), or holds a number too large for a
+/// double, such as 1e400.
 inline json parseUntrusted(std::string_view text, bool allowComments = false) {
 	const auto limit = [](int depth, json::parse_event_t event, json&) {
 		// An array or object is reported at the depth outside it: its own level is one deeper
@@ -41,7 +42,13 @@ inline json parseUntrusted(std::string_view text, bool allowComments = false) {
 			throw DocumentError("AffrescoUI screen: JSON nested more than " + std::to_string(maxNesting) + " levels deep");
 		return true;
 	};
-	return json::parse(text, limit, true, allowComments);
+	try {
+		return json::parse(text, limit, true, allowComments);
+	} catch(const json::out_of_range& error) {
+		// Valid JSON that no number can hold: nlohmann::json throws out_of_range, which callers expecting a
+		// parse_error or a DocumentError would let through (and a peer could stop the app with it)
+		throw DocumentError(std::string("AffrescoUI screen: ") + error.what());
+	}
 }
 
 /// @brief Formats a value as it appears inside text.
