@@ -89,7 +89,8 @@ screen before and after, not by how the patch is written:
 - otherwise it applies only if `allow` rules and grants cover everything it changes;
 - anything else goes to review.
 
-A node with `"locked": true` is denied to everyone. A screen without a `permissions` section applies every change and
+A node with `"locked": true` and an `id`, in `root`, `screens` or `templates`, is denied to everyone. Without an
+`id`, or inside a component, `locked` protects nothing. A screen without a `permissions` section applies every change and
 lets anyone review (the `sign-in` example is one): give a screen permissions before you let an agent connect to it.
 
 ### Reviewers, and why an author can't approve its own change
