@@ -22,6 +22,9 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(glfw URL https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip
 	URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9 SYSTEM)
 FetchContent_MakeAvailable(glfw)
+# Warnings as errors are for our code: GLFW's own warnings (e.g. sprintf, deprecated in recent macOS SDKs) must not
+# fail the build
+set_target_properties(glfw PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
 # nlohmann/json: the documents (format, vcs and channel modules; the rendering engine does without)
 set(JSON_Install OFF CACHE BOOL "" FORCE)
