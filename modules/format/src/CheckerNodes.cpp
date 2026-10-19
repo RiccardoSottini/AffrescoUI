@@ -43,8 +43,9 @@ std::string nameOr(const json& object, const char* key, const char* fallback) {
 /// @param names Receives them.
 void resultLiterals(const json& tree, std::vector<std::string>& names) {
 	if(!tree.is_object() || tree.size() != 1) return;
-	const std::string& name = tree.begin().key();
-	const json& raw = tree.begin().value();
+	const auto only = tree.begin(); // kept: GCC sees a reference through a temporary iterator as dangling
+	const std::string& name = only.key();
+	const json& raw = only.value();
 	if(name == "$value" && raw.is_string()) {
 		names.push_back(raw.get<std::string>());
 	} else if(name == "$if" && raw.is_array() && raw.size() == 3) {
