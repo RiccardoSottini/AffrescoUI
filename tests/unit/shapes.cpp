@@ -54,8 +54,9 @@ TEST_CASE("format: shape properties apply, and go back to the defaults when remo
 	REQUIRE(card);
 	CHECK(card->cornerRadii() == affresco::CornerRadii{.topLeft = 4.0f, .bottomRight = 12.0f});
 	CHECK(card->borderWidth() == 2.0f);
-	CHECK(card->borderColor() == *affresco::Color::parseHex("#00ff00"));
-	CHECK(card->shadow() == affresco::Shadow{{1.0f, 2.0f}, 3.0f, *affresco::Color::parseHex("#00000080")});
+	CHECK(card->borderColor() == affresco::Color::parseHex("#00ff00").value_or(affresco::Color{}));
+	CHECK(card->shadow() ==
+	      affresco::Shadow{{1.0f, 2.0f}, 3.0f, affresco::Color::parseHex("#00000080").value_or(affresco::Color{})});
 
 	REQUIRE(screen.applyRevision(R"({"set": {"#card/radius": 8, "#card/shadow": {"y": 4}}})"));
 	window.render();
@@ -103,7 +104,7 @@ TEST_CASE("format: a border colour transition animates, and stops when its scree
 	REQUIRE(screen->applyRevision(R"({"set": {"/state/on": true}})"));
 	window.render();
 	REQUIRE(window.secondsToNextTimer()); // on its way from green to red
-	CHECK(screen->find("card")->borderColor() == *affresco::Color::parseHex("#00ff00"));
+	CHECK(screen->find("card")->borderColor() == affresco::Color::parseHex("#00ff00").value_or(affresco::Color{}));
 
 	screen.reset();
 	CHECK_FALSE(window.secondsToNextTimer());

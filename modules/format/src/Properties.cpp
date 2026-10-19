@@ -1,5 +1,8 @@
 #include "RuntimeImpl.hpp"
 
+#include <array>
+#include <format>
+
 namespace affresco::format {
 
 namespace {
@@ -159,7 +162,7 @@ CornerRadii radii(const json& value, const std::string& path) {
 
 	CornerRadii result;
 	for(const auto& [corner, radius] : value.items()) {
-		const std::string at = path + "." + corner;
+		const std::string at = std::format("{}.{}", path, corner);
 		if(corner == "topLeft") result.topLeft = pixels(radius, at);
 		else if(corner == "topRight") result.topRight = pixels(radius, at);
 		else if(corner == "bottomRight") result.bottomRight = pixels(radius, at);
@@ -170,15 +173,16 @@ CornerRadii radii(const json& value, const std::string& path) {
 }
 
 /// @brief The colours a "transition" can animate.
-constexpr std::string_view transitionable[] = {"color", "textColor", "borderColor"};
+constexpr std::array<std::string_view, 3> transitionable = {"color", "textColor", "borderColor"};
 
 /// @brief Sets one of the colours a transition can animate.
 /// @param panel The panel; a label for "textColor".
 /// @param property "color", "textColor" or "borderColor".
 /// @param color The colour.
 void setColorOf(Panel& panel, std::string_view property, Color color) {
-	if(property == "textColor") static_cast<Label&>(panel).setTextColor(color);
-	else if(property == "borderColor") panel.setBorder(panel.borderWidth(), color);
+	if(property == "textColor") {
+		if(auto* label = dynamic_cast<Label*>(&panel)) label->setTextColor(color);
+	} else if(property == "borderColor") panel.setBorder(panel.borderWidth(), color);
 	else panel.setColor(color);
 }
 
@@ -454,10 +458,7 @@ void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& proper
 		record.ownProperties = own;
 	}
 
-	if(look.background) transitionColor(panel, record, "color", shownColor, *look.background);
-	if(look.label && look.foreground) transitionColor(panel, record, "textColor", shownText, *look.foreground);
-	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
-	transitionColor(panel, record, "borderColor", shownBorder, look.border.value_or(colors::black));
+	transitionLook(panel, record, look, shownColor, shownText, shownBorder);
 	if(look.scroll && (panel.isScrollable() || look.scroll->first || look.scroll->second))
 		panel.setScrollable(look.scroll->first, look.scroll->second);
 	else if(!look.scroll && panel.isScrollable()) panel.setScrollable(false, false);
@@ -480,8 +481,9 @@ bool Runtime::Impl::commonProperty(Panel& panel, Record& record, const std::stri
 	else if(key == "disabled") record.disabled = boolean(value, at);
 	else if(key == "transition") {
 		for(const auto& [property, ms] : object(value, at).items()) {
-			if(std::ranges::find(transitionable, property) == std::end(transitionable))
-				fail(at + "." + property, "only \"color\", \"textColor\" and \"borderColor\" can transition");
+			if(std::ranges::find(transitionable, property) == transitionable.end())
+				fail(std::format("{}.{}", at, property),
+				     R"(only "color", "textColor" and "borderColor" can transition)");
 			number(ms, at + "." + property);
 		}
 		record.transition = value;
@@ -498,6 +500,14 @@ bool Runtime::Impl::commonProperty(Panel& panel, Record& record, const std::stri
 	return true;
 }
 
+void Runtime::Impl::transitionLook(Panel& panel, Record& record, const Look& look, Color shownColor, Color shownText,
+                                   Color shownBorder) {
+	if(look.background) transitionColor(panel, record, "color", shownColor, *look.background);
+	if(look.label && look.foreground) transitionColor(panel, record, "textColor", shownText, *look.foreground);
+	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
+	transitionColor(panel, record, "borderColor", shownBorder, look.border.value_or(colors::black));
+}
+
 bool Runtime::Impl::shapeProperty(Panel& panel, const std::string& key, const json& value, const std::string& at,
                                   Look& look) const {
 	if(key == "radius") panel.setCornerRadii(radii(value, at));
@@ -512,7 +522,7 @@ bool Runtime::Impl::shapeProperty(Panel& panel, const std::string& key, const js
 Shadow Runtime::Impl::shadow(const json& value, const std::string& path) const {
 	Shadow result{.color = colors::black.withAlpha(0.25f)};
 	for(const auto& [key, item] : object(value, path).items()) {
-		const std::string at = path + "." + key;
+		const std::string at = std::format("{}.{}", path, key);
 		if(key == "x") result.offset.x = finiteNumber(item, at);
 		else if(key == "y") result.offset.y = finiteNumber(item, at);
 		else if(key == "blur") result.blur = pixels(item, at);

@@ -76,8 +76,8 @@ private:
 	/// @brief A quarter of a shape: the part nearest one of its corners.
 	struct Quarter {
 		Rect piece;     ///< The area it covers, from the shape's centre to past its corner.
-		float radius;   ///< The corner's radius.
-		bool left, top; ///< Which edges are nearest: left or right, top or bottom.
+		float radius = 0.0f;            ///< The corner's radius.
+		bool left = false, top = false; ///< Which edges are nearest: left or right, top or bottom.
 	};
 
 	/// @brief A run of quads drawn with the same texture.

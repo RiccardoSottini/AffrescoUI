@@ -312,7 +312,7 @@ void QuadRenderer::drawShadow(const Rect& rect, const CornerRadii& radii, const 
 // nearest edges and their corner, so each vertex needs just those. Shapes never break a batch: they sample the current
 // texture's white texel, like fillRect()
 void QuadRenderer::pushShape(const Rect& rect, const CornerRadii& radii, const ShapeStyle& style, const Rect& clip) {
-	if(!(rect.width() > 0.0f && rect.height() > 0.0f) || style.color.toBytes()[3] == 0) return; // also drops NaN
+	if(!(rect.width() > 0.0f) || !(rect.height() > 0.0f) || style.color.toBytes()[3] == 0) return; // also drops NaN
 	if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
 
 	// A radius past the centre would reach into the next quarter; an outline that wide is the whole shape
@@ -340,8 +340,8 @@ void QuadRenderer::pushQuarter(const Rect& rect, const Quarter& quarter, const S
 	if(q.right <= q.left || q.bottom <= q.top) return;
 
 	// Linear in the position, so the GPU interpolates them exactly
-	auto insideX = [&](float x) { return quarter.left ? x - rect.left : rect.right - x; };
-	auto insideY = [&](float y) { return quarter.top ? y - rect.top : rect.bottom - y; };
+	const auto insideX = [&](float x) { return quarter.left ? x - rect.left : rect.right - x; };
+	const auto insideY = [&](float y) { return quarter.top ? y - rect.top : rect.bottom - y; };
 
 	const auto [cr, cg, cb, ca] = style.color.toBytes();
 	const Vec2 white = batches_.back().white;

@@ -575,6 +575,15 @@ struct Runtime::Impl final : VersionObserver {
 	/// @param shown The colour shown before this update.
 	/// @param target The new colour.
 	void transitionColor(Panel& panel, Record& record, const char* property, Color shown, Color target);
+	/// @brief Sets the colours an update gave a panel, animating those the record has a transition for.
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param look The colours the update set.
+	/// @param shownColor The background shown before the update.
+	/// @param shownText The text colour shown before the update.
+	/// @param shownBorder The border colour shown before the update.
+	void transitionLook(Panel& panel, Record& record, const Look& look, Color shownColor, Color shownText,
+	                    Color shownBorder);
 	/// @brief Updates a panel's children in place, creating, replacing, moving or removing only what changed.
 	/// @param node The node (its "children", unevaluated).
 	/// @param panel The panel.
