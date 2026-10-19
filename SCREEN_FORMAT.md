@@ -91,7 +91,7 @@ parent, later siblings on top of earlier ones.
 | Key | Meaning |
 |---|---|
 | `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `outlet`, or a type the application registers. |
-| `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). |
+| `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
 | `x`, `y` | Position inside the parent (used when the matching edge isn't anchored). |
@@ -347,8 +347,12 @@ A revision is a version-controlled change to a running screen. Write it as **com
 - Paths can start with `#id` to address a node by its id: `#header/children/-`, `#title/text`, or just `#badge`.
   An id inside a `repeat` addresses the template (all instances); instances change through the state.
 - Operations on `/state/...` change the live state; all others change the document.
-- Revisions are **atomic**. If anything fails, nothing changes and the error names the operation:
-  `revision.patch[0] (set #nope/color).path: no node with id 'nope'`.
+- Revisions are **atomic**. If anything fails, nothing changes and the error names the operation, the path and a
+  hint: `revision.patch[0] (set #titel/color).path: no node with id 'titel' (did you mean '#title'?)`,
+  `... (remove #title/colr): key 'colr' not found at /root/children/1/colr ('#title' has no 'colr' (it has: type, id,
+  text))`.
+- A node added without an `id` gets one (see `id` above), written into the commit, so history and diffs show it; a
+  node that replaces another keeps that one's id.
 - `parent` (optional): a revision number or commit id; if main has moved on, the revision is rejected as a conflict.
   `proposal` (optional) pushes onto the author's own open proposal.
 - Every applied revision is a **commit** on `main` (SHA-256, numbered from `0`, the file). Compact edits are stored as
@@ -427,7 +431,8 @@ AffrescoUI screen: root.children[3].with.bye: unknown parameter 'bye' of compone
 - **What it finds:** state paths, computed values and variables that expressions read but that don't exist (from
   `state`, `computed`, and the variables of `repeat`, `let`, `with`, `forEach`, `check`, components and events);
   actions (handlers, `run`, `keys`), styles, components, fonts, colours (`@name`) and screens (`navigate`) that
-  aren't defined; component parameters the component doesn't declare; unknown steps; expressions that don't parse.
+  aren't defined; component parameters the component doesn't declare; unknown steps; expressions that don't parse;
+  an `id` that two nodes have.
 - **What it learns:** a state key exists if the state has it or a step writes it (`set`, `push`, `toggle`,
   `increment`, `animate`, `call ... into`, `bind`, `caret`, an overlay that `dismiss`es). What a list holds comes
   from its items and what is pushed onto it.

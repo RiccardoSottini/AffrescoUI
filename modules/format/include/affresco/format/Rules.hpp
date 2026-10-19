@@ -54,6 +54,22 @@ public:
 	/// @throws DocumentError If the change is forbidden; what() lists the new findings, each with its place.
 	void checkChange(const json& before, const json& after) const override;
 
+	/// @brief Gives readable ids (NodeNamer) to the nodes a revision adds or puts in place without one: a node, a
+	/// list of "children", or a section of screens, templates or components. A node that replaces one keeps that
+	/// one's id.
+	/// @param document The document before the operation.
+	/// @param pointer Where the value goes.
+	/// @param replaces true if the value replaces what is there.
+	/// @param value The value, changed in place.
+	void nameNodes(const json& document, std::string_view pointer, bool replaces, json& value) const override;
+
+	/// @brief Says what a path that finds nothing may have meant: the nearest id for "#id", else, at the first part of
+	/// a JSON Pointer that isn't there, the nearest key, the size of a list or the kind of a value.
+	/// @param document The document the path was read in.
+	/// @param path The path as written.
+	/// @return The hint, or "" if the whole path is there.
+	[[nodiscard]] std::string pathHint(const json& document, std::string_view path) const override;
+
 	/// @brief Checks a screen without running it: what it refers to but doesn't define (SCREEN_FORMAT.md, "Errors").
 	/// @param document The document.
 	/// @param state The state to check against (the live state of a running screen).

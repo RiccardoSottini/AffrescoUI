@@ -248,6 +248,16 @@ private:
 	/// @return A JSON Pointer.
 	/// @throws DocumentError If no node has that id.
 	[[nodiscard]] std::string resolvePath(const json& view, const std::string& path, const std::string& where) const;
+	/// @brief The format's hint for a path that finds nothing, for an error.
+	/// @param view The document the path was read in.
+	/// @param path The path as written.
+	/// @return " (<hint>)", or "" if there is none.
+	[[nodiscard]] std::string hintFor(const json& view, const std::string& path) const;
+	/// @brief Names the first of an operation's paths that finds nothing, with the format's hint, for an error.
+	/// @param view The document the operation failed on.
+	/// @param paths The operation's "from" and "path", each as [written, resolved] (nulls where it has none).
+	/// @return " at <path> (<hint>)", or "" if each path finds something.
+	[[nodiscard]] std::string pathsHint(const json& view, const json& paths) const;
 	/// @brief Checks a revision's "parent" against main's head.
 	/// @param revision The revision.
 	/// @throws DocumentError If the screen has moved on (a conflict).

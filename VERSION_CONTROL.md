@@ -45,8 +45,12 @@ A revision is one change to the running screen:
   itself), so they survive layout changes, even nodes an earlier operation in the same revision added. `/state/...`
   changes live data; everything else changes the document (layout, styles, actions, components, screens, fonts,
   colors).
-- **Atomic:** if anything is wrong, nothing changes, and the error names the operation and the place:
-  `revision.patch[0] (set #nope/color).path: no node with id 'nope'`.
+- **Atomic:** if anything is wrong, nothing changes, and the error names the operation, the place and a hint:
+  `revision.patch[0] (set #nope/color).path: no node with id 'nope' (did you mean '#note'?)`.
+- **Ids in the commit:** a node the revision adds without an `id` gets a readable one (`label-blocked`), and a node
+  that replaces another keeps that one's id. The stored patch has them, so history, diffs, reverts and change sets
+  always show them. A revision that gives a node an id another node has is rejected (the checker's finding).
+  `DocumentRules::nameNodes` and `pathHint` are the format's hooks for both.
 - **Checked:** a revision that refers to something the screen doesn't define (a state path, a variable, an action, a
   style, a component or its parameter, a font, a colour, a screen), or whose expressions don't parse, is rejected
   before any reviewer sees it, with each place and a hint: `revision: the checker found: root.children[2].text:

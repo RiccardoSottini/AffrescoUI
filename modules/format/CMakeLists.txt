@@ -43,5 +43,7 @@ affrescoui_module(format
 	src/OtherSteps.cpp
 	src/Checker.cpp
 	src/CheckerNodes.cpp
-	src/CheckerValues.cpp)
+	src/CheckerValues.cpp
+	src/NodeIds.cpp
+	src/RulesNodes.cpp)
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)

@@ -228,6 +228,23 @@ void Repository::proposalsChanged() {
 
 /* Checks */
 
+std::string Repository::hintFor(const json& view, const std::string& path) const {
+	const std::string hint = rules_.pathHint(view, path);
+	return hint.empty() ? "" : " (" + hint + ")";
+}
+
+// The first path of a failed operation that finds nothing: "from" for a move or a copy, else "path"
+std::string Repository::pathsHint(const json& view, const json& paths) const {
+	for(const json& path : paths) {
+		const json& written = path[0];
+		const json& resolved = path[1];
+		if(!written.is_string() || !resolved.is_string()) continue;
+		if(std::string hint = hintFor(view, written.get<std::string>()); !hint.empty())
+			return " at " + resolved.get<std::string>() + hint;
+	}
+	return "";
+}
+
 // "#id/rest" -> the JSON Pointer of the node with that id + "/rest"
 std::string Repository::resolvePath(const json& view, const std::string& path, const std::string& where) const {
 	if(!path.starts_with('#')) return path;
@@ -235,7 +252,7 @@ std::string Repository::resolvePath(const json& view, const std::string& path, c
 	const std::size_t slash = path.find('/');
 	const std::string id = path.substr(1, slash == std::string::npos ? std::string::npos : slash - 1);
 	const auto pointer = rules_.findNode(view, id);
-	if(!pointer) fail(where, "no node with id '" + id + "'");
+	if(!pointer) fail(where, "no node with id '" + id + "'" + hintFor(view, path));
 	return *pointer + (slash == std::string::npos ? "" : path.substr(slash));
 }
 
@@ -274,14 +291,21 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 			kind = detail::locate(after, op["path"].get<std::string>()) ? "replace" : "add";
 			op["op"] = kind;
 		}
+		// Nodes added without an id get one, in the commit too: history and diffs always show it
+		if((kind == "add" || kind == "replace") && op.contains("value") && op["path"].is_string())
+			rules_.nameNodes(after, op["path"].get<std::string>(), kind == "replace", op["value"]);
 		json stored = patch[i];
 		if(stored.value("op", "") == "set") stored["op"] = kind;
+		if(op.contains("value")) stored["value"] = op["value"];
 		result.patch.push_back(std::move(stored));
 
+		// The paths as written ("#title/colr") for the hint, and resolved, to say where it failed
+		const json paths = {{patch[i].value("from", json()), op.value("from", json())},
+		                    {patch[i].value("path", json()), op.value("path", json())}};
 		try {
 			detail::applyOperation(after, std::move(op), where);
 		} catch(const json::exception& error) {
-			fail(where, detail::reasonOf(error));
+			fail(where, detail::reasonOf(error) + pathsHint(after, paths));
 		}
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
