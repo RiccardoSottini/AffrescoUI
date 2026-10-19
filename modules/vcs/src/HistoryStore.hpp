@@ -66,6 +66,12 @@ public:
 	/// Largest file it reads: far beyond a real screen's commit, small enough to read whole.
 	static constexpr std::uintmax_t maxFileSize = 64u * 1024u * 1024u;
 
+	/// @brief How a write waits for the disk.
+	enum class Sync {
+		ThisFile,          ///< Until the file is on the disk (an object).
+		AfterEarlierWrites ///< And never before any earlier write (the refs, after the objects they name).
+	};
+
 	/// @brief Opens a history folder, creating it if needed, and takes its lock if it can.
 	/// @param directory The folder.
 	explicit HistoryStore(std::filesystem::path directory);
@@ -126,8 +132,9 @@ private:
 	/// the folder so that the rename is on the disk too.
 	/// @param file The file.
 	/// @param text Its new content.
+	/// @param sync How it must reach the disk.
 	/// @throws HistoryError If it can't be written, or is larger than maxFileSize (read() would refuse it).
-	static void write(const std::filesystem::path& file, std::string_view text);
+	static void write(const std::filesystem::path& file, std::string_view text, Sync sync);
 
 	std::filesystem::path directory_;         ///< The folder.
 	std::optional<FileLock> lock_;            ///< Held while this program writes the history.
