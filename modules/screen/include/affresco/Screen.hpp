@@ -269,6 +269,10 @@ public:
 	/// @brief Sets how much reviewers are asked (see VersionControl::setMode).
 	/// @param mode Default, AcceptEdits (apply what no rule allows, like auto-accept) or Plan (peers only propose).
 	void setMode(Mode mode);
+	/// @brief Sets how much reviewers are asked until the program quits, without keeping it in the screen's history:
+	/// for a host's command line (`--mode`, `--auto-accept`). The next start uses the mode a reviewer last chose.
+	/// @param mode Default, AcceptEdits or Plan (see setMode()).
+	void setModeForThisRun(Mode mode);
 
 	/// @brief The version control module, for code that needs more than this class offers.
 	[[nodiscard]] VersionControl& versions() noexcept;

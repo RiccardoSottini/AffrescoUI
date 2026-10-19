@@ -93,6 +93,10 @@ public:
 	[[nodiscard]] std::optional<int> previewing() const override { return previewing_; }
 	[[nodiscard]] bool mayReview(std::string_view author) const override;
 	void setMode(Mode mode) override;
+	/// @brief Sets the mode until the program quits, without keeping it in the history: what a host's command line
+	/// asks for. The history keeps the mode a reviewer last chose (setMode()), which the next start uses.
+	/// @param mode The mode.
+	void setModeForThisRun(Mode mode);
 	[[nodiscard]] Mode mode() const override { return mode_; }
 	[[nodiscard]] std::vector<Grant> grants() const override { return grants_; }
 	bool revokeGrant(std::string_view rule) override;
@@ -329,7 +333,8 @@ private:
 	int nextProposal_ = 1;            ///< Next proposal id.
 	std::optional<int> previewing_;   ///< Proposal shown in place of main's head.
 	json committedState_;             ///< The live state, kept aside during a preview.
-	Mode mode_ = Mode::Default;       ///< See setMode().
+	Mode mode_ = Mode::Default;       ///< The mode in force: see setMode() and setModeForThisRun().
+	Mode keptMode_ = Mode::Default;   ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;       ///< "Don't ask again" rules.
 	bool importing_ = false;          ///< Commits are announced once the whole change set is in.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).

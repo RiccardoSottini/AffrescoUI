@@ -246,6 +246,33 @@ TEST_CASE("vcs: a history kept in a folder comes back whole after a restart") {
 	CHECK(next.proposal == open + 1);
 }
 
+TEST_CASE("vcs: a mode set for this run only isn't kept, and a reviewer's mode is") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	{
+		Repository first(rules, permissionsScreen()); // e.g. affrescoui_host --auto-accept
+		first.openHistory(history);
+		first.setModeForThisRun(affresco::Mode::AcceptEdits);
+		CHECK(affresco::toString(first.mode()) == "acceptEdits");
+		// The mode applies: a change no rule allows the agent lands without review
+		CHECK(first.submit({{"author", "agent"}, {"set", {{"#title/text", "Done"}}}}).status ==
+		      RevisionStatus::Applied);
+	}
+	{
+		Repository second(rules, permissionsScreen()); // a later start without --mode
+		REQUIRE(second.openHistory(history).loaded);
+		CHECK(affresco::toString(second.mode()) == "default");
+		CHECK(second.submit({{"author", "agent"}, {"set", {{"#title/text", "Later"}}}}).status ==
+		      RevisionStatus::Proposed);
+		second.setMode(affresco::Mode::Plan); // a reviewer's choice
+		second.setModeForThisRun(affresco::Mode::AcceptEdits);
+	}
+	Repository third(rules, permissionsScreen());
+	REQUIRE(third.openHistory(history).loaded);
+	CHECK(affresco::toString(third.mode()) == "plan");
+}
+
 TEST_CASE("vcs: commits that leave the document as it was share its object") {
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;

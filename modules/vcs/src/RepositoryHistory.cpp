@@ -201,6 +201,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		documentChanged();
 		throw;
 	}
+	keptMode_ = mode_;
 	return true;
 }
 
@@ -408,7 +409,7 @@ json Repository::refsJson() const {
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
 	return {
 	    {"format", historyFormat}, {"version", 1},           {"main", main_.back()}, {"nextProposal", nextProposal_},
-	    {"mode", toString(mode_)}, {"proposals", proposals}, {"grants", grants}};
+	    {"mode", toString(keptMode_)}, {"proposals", proposals}, {"grants", grants}};
 }
 
 void Repository::saveHistory() noexcept {

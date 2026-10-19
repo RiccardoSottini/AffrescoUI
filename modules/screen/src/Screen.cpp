@@ -562,4 +562,6 @@ void Screen::listen(Executor& executor, const std::filesystem::path& path, std::
 
 void Screen::setMode(Mode mode) { impl_->repository.setMode(mode); }
 
+void Screen::setModeForThisRun(Mode mode) { impl_->repository.setModeForThisRun(mode); }
+
 } // namespace affresco

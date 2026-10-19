@@ -113,8 +113,9 @@ switch, or `setMode` over the live protocol):
 | `acceptEdits` | A change that would wait only because no rule allows it is applied. `ask` and `deny` rules still hold. (`--auto-accept`) |
 | `plan` | Authors who aren't reviewers can only propose: their `allow` rules and grants are suspended. |
 
-Proposals already waiting stay until someone decides on them. The mode is kept with the history: `affrescoui_host`
-starts in the mode it had when it quit, unless `--mode` (or `--auto-accept`) says otherwise.
+Proposals already waiting stay until someone decides on them. The mode a reviewer sets is kept with the history, and
+the next start uses it. `affrescoui_host`'s `--mode` and `--auto-accept` apply to that run only
+(`Screen::setModeForThisRun`), so a one-off `--auto-accept` never sticks.
 
 ## Review: proposals are branches
 A revision that needs review becomes a **proposal**, the equivalent of a pull request:
@@ -239,7 +240,7 @@ share the result as a plugin others can install.
 |---|---|---|---|
 | Submit a change | `submitRevision` (permission-checked), `applyRevision` (the app's own) | `revision` | `submit_revision` |
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |
-| Modes and grants | `setMode`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
+| Modes and grants | `setMode`, `setModeForThisRun`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
 | History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff` | `getHistory` (`limit`), `diff`, `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges` | `exportChanges` | `export_changes` |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |

@@ -676,9 +676,16 @@ bool Repository::mayReview(std::string_view author) const {
 }
 
 void Repository::setMode(Mode mode) {
+	if(keptMode_ != mode) {
+		keptMode_ = mode;
+		saveHistory();
+	}
+	setModeForThisRun(mode);
+}
+
+void Repository::setModeForThisRun(Mode mode) {
 	if(mode_ == mode) return;
 	mode_ = mode;
-	saveHistory();
 	onReviewChanged();
 }
 

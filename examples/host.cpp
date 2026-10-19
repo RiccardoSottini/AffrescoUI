@@ -29,7 +29,8 @@
 int main(int argc, char** argv) {
 	std::string file = AFFRESCOUI_EXAMPLES_ASSETS "/screens/kanban.screen.json";
 	std::filesystem::path socketDir = defaultSocketDir();
-	std::optional<affresco::Mode> mode; // without --mode, the one the screen's history saved (default at first)
+	// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps
+	std::optional<affresco::Mode> mode;
 	std::vector<std::string> plugins;
 
 	for(int i = 1; i < argc; ++i) {
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
 		affresco::Screen screen = affresco::Screen::fromFile(file);
 		screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
 		examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
-		if(mode) screen.setMode(*mode);
+		if(mode) screen.setModeForThisRun(*mode);
 		screen.createWindow(app);
 
 		for(const std::string& plugin : plugins) {
