@@ -10,6 +10,19 @@ endif()
 
 option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_TESTS "Build the rendering check and the unit tests (tests/)" ${PROJECT_IS_TOP_LEVEL})
+option(AFFRESCOUI_BUILD_FUZZERS "Build the libFuzzer targets (tests/fuzz); needs clang, instruments the whole build" OFF)
+
+if(AFFRESCOUI_BUILD_FUZZERS)
+	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
+		message(FATAL_ERROR "AFFRESCOUI_BUILD_FUZZERS needs clang with libFuzzer, which Apple clang doesn't have: "
+			"see tests/fuzz/README.md")
+	endif()
+	# Everything is built with coverage for libFuzzer and the sanitizers, so the libraries the targets call are
+	# explored and checked too. -O1 -g as libFuzzer recommends; a Debug build also keeps the assertions.
+	add_compile_options(-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
+		-O1 -g)
+	add_link_options(-fsanitize=address,undefined)
+endif()
 
 include(FetchContent)
 
@@ -156,4 +169,8 @@ if(AFFRESCOUI_BUILD_TESTS)
 	set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_window_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME window COMMAND affrescoui_window_tests)
+endif()
+
+if(AFFRESCOUI_BUILD_FUZZERS)
+	add_subdirectory(tests/fuzz)
 endif()
