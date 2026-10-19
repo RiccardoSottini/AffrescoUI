@@ -128,6 +128,10 @@ const std::vector<Case> cases = {
     {"{{1 +}}", {}, "expected a value"},
     {"{{foo(1)}}", {}, "unknown function 'foo'"},
     {"{{len(1, 2)}}", {}, "'len' takes one argument"},
+    // Numbers too large for their type are errors, not exceptions that escape (they used to: std::out_of_range)
+    {"{{99999999999999999999}}", {}, "number '99999999999999999999' is too large"},
+    {"{{1" + std::string(400, '0') + ".5}}", {}, "is too large (at column 404)"},
+    {{{"$path", "items[99999999999999999999]"}}, {}, "index '99999999999999999999' is too large"},
     {"{{" + parentheses(30) + "}}", 1, {}},
     {"{{" + parentheses(200) + "}}", {}, "nested too deeply"},
     {"{{" + std::string(200, '!') + "true}}", {}, "nested too deeply"},

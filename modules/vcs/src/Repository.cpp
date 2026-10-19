@@ -305,7 +305,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	if(document.contains("state")) result.document["state"] = document["state"];
 	else result.document.erase("state");
 
-	rules_.checkChange(document, result.document);
+	rules_.checkChange(result.before, after); // with the live state: the checker reads state paths
 	rules_.validate(result.document);
 	result.after = std::move(after);
 	return result;

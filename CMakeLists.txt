@@ -118,7 +118,10 @@ affrescoui_module(format
 	modules/format/src/Build.cpp
 	modules/format/src/Properties.cpp
 	modules/format/src/Events.cpp
-	modules/format/src/Steps.cpp)
+	modules/format/src/Steps.cpp
+	modules/format/src/Checker.cpp
+	modules/format/src/CheckerNodes.cpp
+	modules/format/src/CheckerValues.cpp)
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
 
 affrescoui_module(vcs modules/vcs/src/Repository.cpp modules/vcs/src/Permissions.cpp modules/vcs/src/Sha256.cpp)
@@ -179,7 +182,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
 		tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp tests/unit/screen.cpp
-		tests/unit/text.cpp tests/unit/painter.cpp)
+		tests/unit/text.cpp tests/unit/painter.cpp tests/unit/checker.cpp)
 	# Expression.hpp and Utf8.hpp stay private
 	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src)
 	target_compile_definitions(affrescoui_unit_tests PRIVATE
@@ -188,6 +191,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui) # all modules; screen.cpp loads screens, no window
 	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
+	# The checker's tests read the shipped templates, which must have no findings
+	target_compile_definitions(affrescoui_unit_tests PRIVATE
+		AFFRESCOUI_SCREENS_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/screens")
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
 
 	# Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers, review
