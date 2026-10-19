@@ -109,7 +109,8 @@ Grants are allow rules, so `ask` and `deny` still win.
 ### You accept what you saw
 An author can keep pushing commits to its open proposal. Over the live protocol, an `accept` must name the proposal's
 head commit (at least its first 7 characters): the version the reviewer looked at. If the author pushed since, the
-approval is refused and the proposal stays open for another look.
+approval is refused and the proposal stays open for another look. The pin protects reviewers that send it: an
+`accept` whose `head` is an empty string is not checked, so a reviewer program must always send the head it showed.
 
 This holds for reviewers that connect as peers, like the Studio. The two other ways to accept, the C++ call
 `Screen::acceptProposal` and an `accept` step in the screen itself, accept the proposal as it is at that moment,
