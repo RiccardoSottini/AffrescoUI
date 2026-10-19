@@ -115,8 +115,8 @@ ctest --test-dir build -R unit --output-on-failure
   `new` or `delete`, RAII for every resource, `const` by default.
 - **Untrusted input** (documents, peers) gets limits and a capped recursion depth. Secrets never go into documents,
   state, history or logs.
-- When you change a behaviour or an extension point, update its docs in the same pull request: the module's
-  `README.md`, `SCREEN_FORMAT.md` or `VERSION_CONTROL.md`.
+- When you change a behaviour or an extension point, update its docs in the same pull request:
+  `SCREEN_FORMAT.md`, `VERSION_CONTROL.md` or the README next to the code (such as `mcp/README.md`).
 
 ## One change per pull request
 

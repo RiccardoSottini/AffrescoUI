@@ -32,7 +32,7 @@ When you aren't sure, ask in an issue.
    the design has to change while it is built, the RFC is updated in that pull request so it stays true.
 
 An accepted RFC is a record of a decision, not documentation: once it is built, `SCREEN_FORMAT.md`,
-`VERSION_CONTROL.md` and the modules' `README.md` files describe how things work.
+`VERSION_CONTROL.md` and the READMEs next to the code describe how things work.
 
 ## Accepted RFCs
 

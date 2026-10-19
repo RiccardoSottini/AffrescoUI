@@ -18,7 +18,7 @@
 - [ ] New logic has unit tests, a new behaviour has a rendering scenario, and a bug fix has a test that would have
       caught it
 - [ ] Doxygen on every new function, formatted with `.clang-format`
-- [ ] Docs updated where behaviour changed (`SCREEN_FORMAT.md`, `VERSION_CONTROL.md`, a module's `README.md`)
+- [ ] Docs updated where behaviour changed (`SCREEN_FORMAT.md`, `VERSION_CONTROL.md`, the README next to the code)
 - [ ] A format, protocol or security-model change implements a merged RFC (`rfcs/`), and changes the schema,
       `SCREEN_FORMAT.md` and the catalog together; or this pull request has none
 - [ ] The `NOTICE` file is unchanged
