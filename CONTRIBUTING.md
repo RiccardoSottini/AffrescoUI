@@ -87,8 +87,8 @@ python3 tests/render/check.py --only kanban  # one scenario
 
 - Run `--update` only for a visual change you intend, and say so in the pull request. The maintainer decides whether
   existing pixels may change.
-- A new behaviour gets a scenario in `tests/render/scenarios.json`. Open the frames it records and check that they
-  show what you expect.
+- A new behaviour gets a scenario in `tests/render/scenarios/<area>.json`. Open the frames it records and check that
+  they show what you expect.
 - Details: [`tests/render/README.md`](tests/render/README.md).
 
 **The unit tests** cover the logic that needs no window (`core`, `vcs`, `format` and `channel`) and run in well under

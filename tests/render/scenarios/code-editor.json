@@ -1,0 +1,46 @@
+{
+	"screens": "../../../examples/assets/screens",
+	"scenarios": [
+		{
+			"name": "code-editor",
+			"screen": "code-editor.screen.json",
+			"steps": [
+				{ "capture": "first-frame" },
+				{ "move": [24, 28] },
+				{ "wait": 1200 },
+				{ "capture": "tooltip" },
+				{ "click": "#entry", "nth": 3 },
+				{ "capture": "file-opened" },
+				{ "key": "cmd+p" },
+				{ "type": "read" },
+				{ "capture": "palette" },
+				{ "key": "escape" },
+				{ "click": "#command" },
+				{ "type": "help" },
+				{ "key": "enter" },
+				{ "capture": "terminal-help" }
+			]
+		},
+		{
+			"name": "code-editing",
+			"screen": "code-editor.screen.json",
+			"steps": [
+				{ "click": [900, 166] },
+				{ "key": "enter" },
+				{ "type": "int x = (1" },
+				{ "type": ");" },
+				{ "capture": "typed" },
+				{ "key": "shift+up" },
+				{ "key": "shift+up" },
+				{ "key": "cmd+slash" },
+				{ "capture": "commented" },
+				{ "key": "alt+down" },
+				{ "capture": "moved" },
+				{ "key": "cmd+z" },
+				{ "key": "cmd+z" },
+				{ "key": "cmd+s" },
+				{ "capture": "undone-saved" }
+			]
+		}
+	]
+}

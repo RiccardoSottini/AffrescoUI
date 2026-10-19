@@ -1,7 +1,9 @@
 /// @file
-/// @brief Plays one rendering scenario from scenarios.json and saves a frame at each "capture" step.
+/// @brief Plays one rendering scenario from a file in scenarios/ and saves a frame at each "capture" step.
 ///
-/// Usage: affrescoui_render_runner <scenarios.json> <scenario name> <output dir>
+/// Usage: affrescoui_render_runner <scenarios file> <scenario name> <output dir>
+///
+/// The file is one area's (e.g. scenarios/kanban.json), and its "screens" folder is relative to it.
 ///
 /// The frames don't depend on the machine or on what ran before: the window is hidden and only receives the events the
 /// steps send, captures are drawn offscreen at the scenario's "scale" (default 1) whatever the display, and screens
@@ -167,7 +169,7 @@ void play(Player& player, const json& step) {
 
 int main(int argc, char** argv) {
 	if(argc != 4) {
-		std::cerr << "usage: affrescoui_render_runner <scenarios.json> <scenario> <output dir>\n";
+		std::cerr << "usage: affrescoui_render_runner <scenarios file> <scenario> <output dir>\n";
 		return 2;
 	}
 	const std::filesystem::path scenarios = argv[1], out = argv[3];
