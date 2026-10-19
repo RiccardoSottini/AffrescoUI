@@ -16,6 +16,7 @@
 #include "Expression.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -238,7 +239,11 @@ struct Record {
 	bool disabled = false;                ///< No events but hover.
 	bool shown = false;                   ///< Applied at least once (transitions start only after that).
 	json transition = json::object();     ///< "transition": property -> milliseconds.
-	Tween colorTween, textTween;          ///< Running transitions.
+	Tween colorTween, textTween, borderTween; ///< Running transitions.
+
+	/// @brief The transitions, so their timers can be cancelled together.
+	/// @return Each one.
+	std::array<Tween*, 3> tweens() noexcept { return {&colorTween, &textTween, &borderTween}; }
 	double everyMs = 0.0;                 ///< "every" period, if any.
 	std::uint64_t everyTimer = 0;         ///< Its timer.
 	std::optional<std::string> overlayOpen; ///< An overlay's "open" state path.
@@ -420,6 +425,12 @@ struct Runtime::Impl final : VersionObserver {
 	/// @return The colour.
 	/// @throws DocumentError If it is not a colour.
 	Color color(const json& value, const std::string& path) const;
+	/// @brief Reads a "shadow": { "x", "y", "blur", "color" }, each optional.
+	/// @param value The value.
+	/// @param path Its place, for errors.
+	/// @return The shadow.
+	/// @throws DocumentError If it is malformed.
+	Shadow shadow(const json& value, const std::string& path) const;
 	/// @brief Merges a node's properties on top of its styles' (later styles override earlier ones; a style may
 	/// itself have a "style").
 	/// @param node The node.
@@ -509,6 +520,7 @@ struct Runtime::Impl final : VersionObserver {
 		Slider* slider = nullptr;                         ///< The panel, if it is a slider.
 		std::optional<Color> background = {};             ///< "color".
 		std::optional<Color> foreground = {};             ///< "textColor".
+		std::optional<Color> border = {};                 ///< "borderColor".
 		std::optional<std::pair<bool, bool>> scroll = {}; ///< "scroll": horizontal, vertical.
 		std::optional<bool> overlayOpen = {};             ///< An overlay's "open", evaluated.
 		std::optional<Color> trackColor = {}, fillColor = {}, knobColor = {}; ///< A slider's or toggle's colours.
@@ -526,6 +538,16 @@ struct Runtime::Impl final : VersionObserver {
 	/// @return false if it isn't one of these.
 	bool commonProperty(Panel& panel, Record& record, const std::string& key, const json& value, const std::string& at,
 	                    Look& look) const;
+	/// @brief Applies a property of every panel's shape: radius, borderWidth, borderColor or shadow.
+	/// @param panel The panel.
+	/// @param key The property.
+	/// @param value Its value.
+	/// @param at Its place, for errors.
+	/// @param look Collects values set at the end (the border colour, which may transition).
+	/// @return false if it isn't one of these.
+	/// @throws DocumentError If the value is malformed.
+	bool shapeProperty(Panel& panel, const std::string& key, const json& value, const std::string& at,
+	                   Look& look) const;
 	/// @brief Reads "overlay": where the panel floats, and whether it is open.
 	/// @param panel The panel.
 	/// @param record Its record.
@@ -547,7 +569,7 @@ struct Runtime::Impl final : VersionObserver {
 	/// @brief Sets a colour, animating it if the record has a transition for it.
 	/// @param panel The panel.
 	/// @param record Its record.
-	/// @param property "color" or "textColor".
+	/// @param property "color", "textColor" or "borderColor": a string literal, since running transitions keep it.
 	/// @param shown The colour shown before this update.
 	/// @param target The new colour.
 	void transitionColor(Panel& panel, Record& record, const char* property, Color shown, Color target);

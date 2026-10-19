@@ -23,6 +23,10 @@ namespace affresco::gl {
 ///
 /// Solid rectangles sample a white texel of the current texture, so rectangles and text share a batch: a frame using
 /// a single font is a single draw call. Quads are clipped on the CPU to the panel being painted.
+///
+/// Rounded rectangles, outlines and shadows are white-texel quads too, in the same batch: each vertex also carries a
+/// signed-distance description of its shape, from which the fragment shader computes an anti-aliased (or blurred)
+/// coverage. Other quads are marked as not shapes and skip that work, so they draw exactly as before.
 class QuadRenderer final : public Painter {
 public:
 	/// @brief Compiles the shader and sets up the vertex layout, in the current context.
@@ -41,15 +45,38 @@ public:
 	/* Painter */
 	void fillRect(const Rect& rect, Color color) override;
 	void drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) override;
+	void fillRoundedRect(const Rect& rect, const CornerRadii& radii, Color color) override;
+	void strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) override;
+	void drawShadow(const Rect& rect, const CornerRadii& radii, const Shadow& shadow) override;
 
 private:
-	/// @brief One vertex, 16 bytes.
+	/// @brief One vertex, 32 bytes.
 	struct Vertex {
 		float x, y;              ///< Position, in window units.
 		std::uint16_t u, v;      ///< Texture coordinates, normalized by the GPU to [0, 1].
 		std::uint8_t r, g, b, a; ///< Colour, normalized by the GPU to [0, 1].
+		/// Shapes: how far inside the shape's nearest vertical and horizontal edges it is (negative outside).
+		float insideX, insideY;
+		/// Shapes: the corner's radius, the outline's width (0 for a filled shape) and the blur, in sixteenths of a
+		/// window unit.
+		std::uint16_t radius, outline, blur;
+		std::uint16_t isShape; ///< 1 for shapes; 0 for other quads, which skip the shape's work and ignore the rest.
 	};
-	static_assert(sizeof(Vertex) == 16);
+	static_assert(sizeof(Vertex) == 32);
+
+	/// @brief How a shape is drawn.
+	struct ShapeStyle {
+		Color color;          ///< Its colour.
+		float outline = 0.0f; ///< The width of its outline, inside its edges; 0 fills it.
+		float blur = 0.0f;    ///< How soft its edges are (see Shadow::blur); 0 anti-aliases them.
+	};
+
+	/// @brief A quarter of a shape: the part nearest one of its corners.
+	struct Quarter {
+		Rect piece;     ///< The area it covers, from the shape's centre to past its corner.
+		float radius;   ///< The corner's radius.
+		bool left, top; ///< Which edges are nearest: left or right, top or bottom.
+	};
 
 	/// @brief A run of quads drawn with the same texture.
 	struct Batch {
@@ -61,7 +88,8 @@ private:
 
 	/// @brief Paints a panel, then its children (pre-order: later ones land on top). Hidden subtrees are skipped.
 	/// @param panel The subtree's root.
-	void collect(const Panel& panel);
+	/// @param outerClip What clips the panel: its parent's bounds, or the window for roots and overlays.
+	void collect(const Panel& panel, const Rect& outerClip);
 	/// @brief Starts a new batch unless the current one uses the same texture.
 	/// @param texture The texture.
 	/// @param white Its white texel.
@@ -71,6 +99,18 @@ private:
 	/// @param uv Its texture coordinates.
 	/// @param color Its colour; transparent quads are dropped.
 	void pushQuad(const Rect& rect, const Rect& uv, Color color);
+	/// @brief Appends a rounded rectangle, an outline or a shadow, as four quarters.
+	/// @param rect The shape.
+	/// @param radii Its corners; each is clamped to half the shorter side.
+	/// @param style How it is drawn; transparent shapes are dropped.
+	/// @param clip What it is clipped to.
+	void pushShape(const Rect& rect, const CornerRadii& radii, const ShapeStyle& style, const Rect& clip);
+	/// @brief Clips one quarter of a shape and appends it.
+	/// @param rect The whole shape.
+	/// @param quarter The quarter.
+	/// @param style How it is drawn, with the outline already clamped.
+	/// @param clip What it is clipped to.
+	void pushQuarter(const Rect& rect, const Quarter& quarter, const ShapeStyle& style, const Rect& clip);
 	/// @brief The texture of a font's atlas, uploaded on first use.
 	/// @param font The font.
 	/// @return The texture name.
@@ -98,6 +138,7 @@ private:
 	std::vector<Vertex> vertices_; ///< 4 per quad.
 	std::vector<Batch> batches_;   ///< In drawing order.
 	Rect clip_;                    ///< Bounds of the panel being painted.
+	Rect outerClip_;               ///< What clips the panel being painted: where its shadow may fall.
 
 	std::size_t quadCapacity_ = 0; ///< Quads the index buffer can address.
 	int width_ = -1, height_ = -1; ///< Size the scale uniform was last set for.

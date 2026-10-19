@@ -352,8 +352,8 @@ void Runtime::Impl::forgetSubtree(const Panel& panel) {
 	if(Record* record = recordOf(&panel)) {
 		if(window) {
 			if(record->everyTimer) window->cancelTimer(record->everyTimer);
-			if(record->colorTween.timer) window->cancelTimer(record->colorTween.timer);
-			if(record->textTween.timer) window->cancelTimer(record->textTween.timer);
+			for(const Tween* tween : record->tweens())
+				if(tween->timer) window->cancelTimer(tween->timer);
 			if(record->handlers.contains("onHide"))
 				window->defer(later(record->handlers["onHide"], window->root(), {{"type", "hide"}}, record->locals,
 				                    record->path + ".onHide"));

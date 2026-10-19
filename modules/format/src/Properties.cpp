@@ -126,6 +126,72 @@ void anchor(Panel& panel, const std::string& name, const json& offset, const std
 	                  delta);
 }
 
+/// @brief Reads a finite number: JSON allows numbers too large for a float, which would become infinite.
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The number.
+/// @throws DocumentError If it isn't a number, or is too large.
+float finiteNumber(const json& value, const std::string& path) {
+	const float amount = number(value, path);
+	if(!std::isfinite(amount)) fail(path, "number too large");
+	return amount;
+}
+
+/// @brief Reads a number of pixels that can't be negative: a radius, a border width or a blur.
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The number.
+/// @throws DocumentError If it isn't a finite number of 0 or more.
+float pixels(const json& value, const std::string& path) {
+	const float amount = finiteNumber(value, path);
+	if(amount < 0.0f) fail(path, "expected a number of pixels, 0 or more");
+	return amount;
+}
+
+/// @brief Reads "radius": one number for every corner, or { "topLeft", "topRight", "bottomRight", "bottomLeft" }
+/// (corners left out are square).
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The radii.
+/// @throws DocumentError If it is malformed.
+CornerRadii radii(const json& value, const std::string& path) {
+	if(!value.is_object()) return CornerRadii::all(pixels(value, path));
+
+	CornerRadii result;
+	for(const auto& [corner, radius] : value.items()) {
+		const std::string at = path + "." + corner;
+		if(corner == "topLeft") result.topLeft = pixels(radius, at);
+		else if(corner == "topRight") result.topRight = pixels(radius, at);
+		else if(corner == "bottomRight") result.bottomRight = pixels(radius, at);
+		else if(corner == "bottomLeft") result.bottomLeft = pixels(radius, at);
+		else fail(at, "unknown corner (expected topLeft, topRight, bottomRight or bottomLeft)");
+	}
+	return result;
+}
+
+/// @brief The colours a "transition" can animate.
+constexpr std::string_view transitionable[] = {"color", "textColor", "borderColor"};
+
+/// @brief Sets one of the colours a transition can animate.
+/// @param panel The panel; a label for "textColor".
+/// @param property "color", "textColor" or "borderColor".
+/// @param color The colour.
+void setColorOf(Panel& panel, std::string_view property, Color color) {
+	if(property == "textColor") static_cast<Label&>(panel).setTextColor(color);
+	else if(property == "borderColor") panel.setBorder(panel.borderWidth(), color);
+	else panel.setColor(color);
+}
+
+/// @brief The transition of one of a node's colours.
+/// @param record The node's record.
+/// @param property "color", "textColor" or "borderColor".
+/// @return Its tween.
+Tween& tweenOf(Record& record, std::string_view property) {
+	if(property == "textColor") return record.textTween;
+	if(property == "borderColor") return record.borderTween;
+	return record.colorTween;
+}
+
 /// @brief Applies a layout property: x, y, width, height, minWidth, minHeight, grow, fill or anchors.
 /// @param panel The panel.
 /// @param key The property.
@@ -165,6 +231,9 @@ void Runtime::Impl::reset(Panel& panel, Record& record) {
 	for(Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.clearAnchor(e);
 	panel.setVisible(true);
 	panel.setColor(record.defaultColor);
+	panel.setCornerRadii({});
+	panel.setBorder(0.0f, colors::black);
+	panel.setShadow({});
 	panel.setCursor(record.defaultCursor);
 	panel.setGrow(0.0f);
 	panel.setTooltip({});
@@ -355,6 +424,7 @@ void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& proper
 	          .slider = dynamic_cast<Slider*>(&panel)};
 	const Color shownColor = panel.color();
 	const Color shownText = look.label ? look.label->textColor() : Color{};
+	const Color shownBorder = panel.borderColor();
 	reset(panel, record);
 	const auto customIt = types.find(record.type);
 	const CustomType* custom = customIt != types.end() ? &customIt->second : nullptr;
@@ -364,7 +434,7 @@ void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& proper
 		const std::string at = record.path + "." + key;
 		if(key == "type" || key == "autofocus" || key == "locked" || key == "checked" || key == "value" || key == "text")
 			continue; // handled in apply()
-		if(commonProperty(panel, record, key, value, at, look)) continue;
+		if(commonProperty(panel, record, key, value, at, look) || shapeProperty(panel, key, value, at, look)) continue;
 		if(isRoot) fail(at, "not allowed on the root, which always fills the window");
 		if(layoutProperty(panel, key, value, at) || widgetProperty(look, key, value, at)) continue;
 		if(custom && std::ranges::find(custom->properties, key) != custom->properties.end()) {
@@ -386,6 +456,7 @@ void Runtime::Impl::applyVisual(Panel& panel, Record& record, const json& proper
 
 	if(look.background) transitionColor(panel, record, "color", shownColor, *look.background);
 	if(look.label && look.foreground) transitionColor(panel, record, "textColor", shownText, *look.foreground);
+	if(look.border) transitionColor(panel, record, "borderColor", shownBorder, *look.border);
 	if(look.scroll && (panel.isScrollable() || look.scroll->first || look.scroll->second))
 		panel.setScrollable(look.scroll->first, look.scroll->second);
 	else if(!look.scroll && panel.isScrollable()) panel.setScrollable(false, false);
@@ -408,8 +479,8 @@ bool Runtime::Impl::commonProperty(Panel& panel, Record& record, const std::stri
 	else if(key == "disabled") record.disabled = boolean(value, at);
 	else if(key == "transition") {
 		for(const auto& [property, ms] : object(value, at).items()) {
-			if(property != "color" && property != "textColor")
-				fail(at + "." + property, "only \"color\" and \"textColor\" can transition");
+			if(std::ranges::find(transitionable, property) == std::end(transitionable))
+				fail(at + "." + property, "only \"color\", \"textColor\" and \"borderColor\" can transition");
 			number(ms, at + "." + property);
 		}
 		record.transition = value;
@@ -424,6 +495,30 @@ bool Runtime::Impl::commonProperty(Panel& panel, Record& record, const std::stri
 		return false;
 	}
 	return true;
+}
+
+bool Runtime::Impl::shapeProperty(Panel& panel, const std::string& key, const json& value, const std::string& at,
+                                  Look& look) const {
+	if(key == "radius") panel.setCornerRadii(radii(value, at));
+	else if(key == "borderWidth") panel.setBorder(pixels(value, at), panel.borderColor());
+	else if(key == "borderColor") look.border = color(value, at); // set last, as it may transition
+	else if(key == "shadow") panel.setShadow(shadow(value, at));
+	else return false;
+	return true;
+}
+
+// Like CSS box-shadow: "x" and "y" move it and "blur" softens it
+Shadow Runtime::Impl::shadow(const json& value, const std::string& path) const {
+	Shadow result{.color = colors::black.withAlpha(0.25f)};
+	for(const auto& [key, item] : object(value, path).items()) {
+		const std::string at = path + "." + key;
+		if(key == "x") result.offset.x = finiteNumber(item, at);
+		else if(key == "y") result.offset.y = finiteNumber(item, at);
+		else if(key == "blur") result.blur = pixels(item, at);
+		else if(key == "color") result.color = color(item, at);
+		else fail(at, "unknown property (expected x, y, blur or color)");
+	}
+	return result;
 }
 
 void Runtime::Impl::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
@@ -522,37 +617,29 @@ bool Runtime::Impl::widgetProperty(Look& look, const std::string& key, const jso
 
 // With a transition, the colour moves from what was shown to the target over that many milliseconds
 void Runtime::Impl::transitionColor(Panel& panel, Record& record, const char* property, Color shown, Color target) {
-	const bool text = std::string_view(property) == "textColor";
-	auto set = [&panel, text](Color c) {
-		if(text) static_cast<Label&>(panel).setTextColor(c);
-		else panel.setColor(c);
-	};
-	Tween& tween = text ? record.textTween : record.colorTween;
+	Tween& tween = tweenOf(record, property);
 	const double ms = record.transition.contains(property) ? record.transition[property].get<double>() : 0.0;
 
-	const Color current = shown;
-	if(!window || ms <= 0.0 || current == target || !record.shown) {
+	if(!window || ms <= 0.0 || shown == target || !record.shown) {
 		if(tween.timer && window) window->cancelTimer(std::exchange(tween.timer, 0));
-		set(target);
+		setColorOf(panel, property, target);
 		return;
 	}
 	if(tween.timer && tween.to == target) { // already on its way there
-		set(current);
+		setColorOf(panel, property, shown);
 		return;
 	}
 	if(tween.timer) window->cancelTimer(tween.timer);
-	tween = {current, target, now(), ms, 0};
-	set(current);
+	tween = {shown, target, now(), ms, 0};
+	setColorOf(panel, property, shown);
 
 	auto step = std::make_shared<std::function<void()>>(); // owned by the timer, holds itself weakly (see "every")
-	*step = [this, panel = &panel, text, weak = std::weak_ptr(step)] {
+	*step = [this, panel = &panel, name = std::string_view(property), weak = std::weak_ptr(step)] {
 		Record* r = recordOf(panel);
 		if(!r) return;
-		Tween& t = text ? r->textTween : r->colorTween;
+		Tween& t = tweenOf(*r, name);
 		const double progress = std::min((now() - t.start) * 1000.0 / t.ms, 1.0);
-		const Color c = Color::mix(t.from, t.to, static_cast<float>(ease("out", progress)));
-		if(text) static_cast<Label*>(panel)->setTextColor(c);
-		else panel->setColor(c);
+		setColorOf(*panel, name, Color::mix(t.from, t.to, static_cast<float>(ease("out", progress))));
 		t.timer = progress < 1.0 ? window->setTimer(frameMs, [self = weak.lock()] { (*self)(); }) : 0;
 	};
 	tween.timer = window->setTimer(frameMs, [step] { (*step)(); });
