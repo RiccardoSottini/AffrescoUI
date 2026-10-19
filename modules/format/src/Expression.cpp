@@ -2,8 +2,11 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <ctime>
 #include <functional>
 #include <map>
@@ -16,6 +19,18 @@ namespace affresco::format {
 using expect::fail;
 
 namespace {
+
+/// @brief Reads a whole number written in digits: a literal, or an index in a path (a '-' is an operator).
+///
+/// Unlike std::stoll, it doesn't throw std::out_of_range, which the callers of evaluate() would let through.
+/// @param digits The digits.
+/// @return The number, or std::nullopt if it doesn't fit 64 bits.
+std::optional<std::int64_t> wholeNumber(std::string_view digits) {
+	std::int64_t value = 0;
+	const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), value);
+	if(error != std::errc() || end != digits.data() + digits.size()) return std::nullopt;
+	return value;
+}
 
 /* Variables */
 
@@ -114,7 +129,9 @@ std::vector<json> segments(std::string_view path, const Context& context, const 
 			const bool number = !inner.empty() && std::ranges::all_of(inner, [](char c) {
 				return std::isdigit(static_cast<unsigned char>(c));
 			});
-			json key = number ? json(std::stoll(std::string(inner))) : evaluate(compile(inner, where), context, where);
+			const std::optional<std::int64_t> index = number ? wholeNumber(inner) : std::nullopt;
+			if(number && !index) fail(where, "index '" + std::string(inner) + "' is too large");
+			json key = index ? json(*index) : evaluate(compile(inner, where), context, where);
 			if(!key.is_number_integer() && !key.is_string())
 				fail(where, "index '" + std::string(inner) + "' is neither a number nor a key");
 			result.push_back(std::move(key));
@@ -410,7 +427,12 @@ private:
 					++position_;
 			}
 			const std::string digits(text_.substr(start, position_ - start));
-			return fraction ? json(std::stod(digits)) : json(std::stoll(digits));
+			if(!fraction) {
+				if(const std::optional<std::int64_t> value = wholeNumber(digits)) return *value;
+			} else if(const double value = std::strtod(digits.c_str(), nullptr); std::isfinite(value)) {
+				return value; // std::stod would throw out_of_range, past evaluate()'s callers
+			}
+			error("number '" + digits + "' is too large");
 		}
 		if(c == '\'' || c == '"') return node("$value", quoted(c));
 		if(c == '@') { // a colour name, e.g. @accent
