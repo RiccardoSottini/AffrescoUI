@@ -44,6 +44,35 @@ void walk(const json& node, const std::string& pointer,
 		walk((*children)[i], pointer + "/children/" + std::to_string(i), visit);
 }
 
+/// @brief Collects the ids of a node and of the nodes inside it, as views into it.
+/// @param node The node.
+/// @param ids Receives them; valid while the node is.
+void collectIds(const json& node, std::vector<std::string_view>& ids) {
+	if(!node.is_object() || node.value("slot", json(false)) == true) return;
+	if(const auto id = node.find("id"); id != node.end() && id->is_string())
+		ids.emplace_back(id->get_ref<const std::string&>());
+	if(const auto children = node.find("children"); children != node.end() && children->is_array())
+		for(const json& child : *children) collectIds(child, ids);
+}
+
+/// @brief Collects the ids of every node of a document (forEachNode's order), as views into it.
+/// @param document The document.
+/// @param ids Receives them; valid while the document is.
+void idsOf(const json& document, std::vector<std::string_view>& ids) {
+	if(!document.is_object()) return;
+	if(const auto root = document.find("root"); root != document.end()) collectIds(*root, ids);
+	for(const char* name : {"screens", "templates"}) {
+		const auto section = document.find(name);
+		if(section == document.end() || !section->is_object()) continue;
+		for(const json& node : *section) collectIds(node, ids);
+	}
+	const auto components = document.find("components");
+	if(components == document.end() || !components->is_object()) return;
+	for(const json& component : *components)
+		if(const auto node = component.is_object() ? component.find("node") : component.end(); node != component.end())
+			collectIds(*node, ids);
+}
+
 /// @brief Escapes a key for a JSON Pointer (RFC 6901): '~' as "~0", '/' as "~1".
 /// @param key The key.
 /// @return The escaped key.
@@ -152,6 +181,13 @@ void forEachNode(const json& document, const std::function<void(const json& node
 }
 
 std::vector<DuplicateId> duplicateIds(const json& document) {
+	// Every revision is checked: first only the ids, as views into the document (no copies, no pointers), and the
+	// pointers only when an id comes twice
+	std::vector<std::string_view> ids;
+	idsOf(document, ids);
+	std::ranges::sort(ids);
+	if(std::ranges::adjacent_find(ids) == ids.end()) return {};
+
 	std::map<std::string, std::vector<std::string>, std::less<>> seen;
 	std::vector<std::string> order; // ids in the order their second node comes
 	forEachNode(document, [&](const json& node, const std::string& pointer) {
@@ -170,10 +206,11 @@ std::vector<DuplicateId> duplicateIds(const json& document) {
 }
 
 std::vector<std::string> nodeIds(const json& document) {
-	std::set<std::string> ids;
-	forEachNode(document, [&](const json& node, const std::string&) {
-		if(const auto id = node.find("id"); id != node.end() && id->is_string()) ids.insert(id->get<std::string>());
-	});
+	std::vector<std::string_view> ids;
+	idsOf(document, ids);
+	std::ranges::sort(ids);
+	const auto [first, last] = std::ranges::unique(ids);
+	ids.erase(first, last);
 	return {ids.begin(), ids.end()};
 }
 
