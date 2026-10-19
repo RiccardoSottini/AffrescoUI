@@ -1,0 +1,69 @@
+name: Bug report
+description: Something renders wrongly, crashes, or doesn't do what the docs say.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting it. A security problem doesn't belong here: report it privately through the
+        repository's **Security** tab (*Report a vulnerability*).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead. Paste any error message as text.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran and what you did in the app, one step per line.
+      placeholder: |
+        1. ./build/affrescoui_host examples/assets/screens/kanban.screen.json
+        2. Drag the first card to Done
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: screen-file
+    attributes:
+      label: The screen file
+      description: |
+        The smallest `.screen.json` that shows the bug, or the name of the template it happens in. Remove anything
+        private first. A revision or change set that triggers it helps too.
+      render: json
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: AffrescoUI version or commit
+      placeholder: "0.1.0, or the output of git rev-parse --short HEAD"
+    validations:
+      required: true
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating system
+      placeholder: "macOS 15.5, Ubuntu 24.04 (X11 or Wayland), ..."
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver
+      description: On Linux, `glxinfo -B` shows the renderer and the OpenGL version.
+      placeholder: "Apple M4 Pro, NVIDIA RTX 4070 (driver 560), Mesa llvmpipe, ..."
+    validations:
+      required: true
+  - type: input
+    id: compiler
+    attributes:
+      label: Compiler and CMake version
+      placeholder: "Apple clang 17, GCC 13.3; CMake 3.30"
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Screenshots, logs, or whether it worked before a given commit.

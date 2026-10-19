@@ -35,8 +35,8 @@ public:
 	Session(const Session&) = delete;
 	Session& operator=(const Session&) = delete;
 
-	/// @brief Sends a message to the peer.
-	/// @param message One protocol message.
+	/// @brief Sends a message to the peer, as one line of JSON.
+	/// @param message One protocol message. Bytes in its strings that aren't UTF-8 are sent as U+FFFD.
 	void send(const json& message);
 	/// @brief The name this peer is authored as.
 	[[nodiscard]] const std::string& author() const noexcept { return author_; }

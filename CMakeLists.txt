@@ -10,6 +10,21 @@ endif()
 
 option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_TESTS "Build the rendering check and the unit tests (tests/)" ${PROJECT_IS_TOP_LEVEL})
+option(AFFRESCOUI_BUILD_FUZZERS "Build the libFuzzer targets (tests/fuzz); needs clang, instruments the whole build" OFF)
+option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
+
+if(AFFRESCOUI_BUILD_FUZZERS)
+	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
+		message(FATAL_ERROR "AFFRESCOUI_BUILD_FUZZERS needs clang with libFuzzer, which Apple clang doesn't have: "
+			"see tests/fuzz/README.md")
+	endif()
+	# Everything is built with coverage for libFuzzer and the sanitizers, so the libraries the targets call are
+	# explored and checked too. -O1 -g as libFuzzer recommends; a Debug build also keeps the assertions.
+	add_compile_options(-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
+		-O1 -g)
+	add_link_options(-fsanitize=address,undefined)
+endif()
+
 # Only static libraries can be installed (cmake/AffrescoUIInstall.cmake says why), so a shared build leaves it off
 if(BUILD_SHARED_LIBS)
 	set(AFFRESCOUI_INSTALL_DEFAULT OFF)
@@ -107,6 +122,9 @@ target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nloh
 
 affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
 target_link_libraries(affrescoui_channel PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
+if(WIN32)
+	target_link_libraries(affrescoui_channel PRIVATE ws2_32 advapi32) # Winsock; the socket files' access lists
+endif()
 
 # affrescoui: the whole library
 add_library(affrescoui modules/screen/src/Screen.cpp)
@@ -156,10 +174,11 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/channel.cpp)
+		tests/unit/expressions.cpp tests/unit/channel.cpp tests/unit/sockets.cpp tests/unit/screen.cpp)
+
 	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src) # Expression.hpp stays private
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
-	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel)
+	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui) # all modules; screen.cpp loads screens, no window
 	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
@@ -173,4 +192,23 @@ if(AFFRESCOUI_BUILD_TESTS)
 	set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_window_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME window COMMAND affrescoui_window_tests)
+endif()
+
+if(AFFRESCOUI_BUILD_FUZZERS)
+	add_subdirectory(tests/fuzz)
+endif()
+
+if(AFFRESCOUI_BUILD_BENCHMARKS)
+	# Speed, allocations and memory of the workloads in tests/perf (its README); CI counts instructions with callgrind,
+	# using valgrind's header when it is installed
+	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
+		tests/perf/engine.cpp examples/CodeEditor.cpp)
+	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src) # Expression.hpp stays private
+	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
+	target_compile_definitions(affrescoui_bench PRIVATE
+		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets"
+		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf")
+	set_target_properties(affrescoui_bench PROPERTIES CXX_EXTENSIONS OFF)
+	target_compile_options(affrescoui_bench PRIVATE ${AFFRESCOUI_WARNINGS})
 endif()
