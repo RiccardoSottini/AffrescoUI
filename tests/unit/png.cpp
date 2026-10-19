@@ -7,6 +7,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <random>
 #include <span>
@@ -112,8 +113,8 @@ std::vector<std::uint8_t> inflate(const std::string& stream) {
 			const auto l = static_cast<std::size_t>(symbol - 257);
 			const int length = lengthBase.at(l) + static_cast<int>(in.bits(lengthExtra.at(l)));
 			const auto d = static_cast<std::size_t>(in.code(5));
-			const auto distance =
-			    static_cast<std::size_t>(distanceBase.at(d) + static_cast<int>(in.bits(distanceExtra.at(d))));
+			const int back = distanceBase.at(d) + static_cast<int>(in.bits(distanceExtra.at(d)));
+			const auto distance = static_cast<std::size_t>(back);
 			if(distance > out.size()) throw std::runtime_error("a match refers back before the start");
 			for(int i = 0; i < length; ++i) out.push_back(out[out.size() - distance]);
 		}
@@ -157,7 +158,8 @@ std::vector<std::uint8_t> decode(const std::string& png, int& width, int& height
 	const std::size_t stride = static_cast<std::size_t>(width) * 3;
 	REQUIRE(filtered.size() == (stride + 1) * static_cast<std::size_t>(height));
 	std::vector<std::uint8_t> rgb(stride * static_cast<std::size_t>(height));
-	for(std::size_t y = 0; y < static_cast<std::size_t>(height); ++y) {
+	const auto rows = static_cast<std::size_t>(height);
+	for(std::size_t y = 0; y < rows; ++y) {
 		const std::uint8_t filter = filtered[y * (stride + 1)];
 		if(filter > 2) throw std::runtime_error("a row filter other than None, Sub or Up");
 		for(std::size_t x = 0; x < stride; ++x) {
@@ -178,7 +180,7 @@ std::vector<std::uint8_t> screenLike(int width, int height) {
 	static constexpr std::array<std::uint8_t, 3> background = {0xF4, 0xF5, 0xF7}, panel = {0x2A, 0x5B, 0xC8};
 	std::vector<std::uint8_t> rgb;
 	rgb.reserve(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 3);
-	std::mt19937 random(7);
+	std::mt19937 random(7); // NOLINT(bugprone-random-generator-seed): the same images on every run
 	for(int y = 0; y < height; ++y) {
 		const bool panelRow = y > height / 5 && y < height / 2;
 		const bool textRow = y % 20 < 8;
@@ -199,8 +201,8 @@ TEST_CASE("png: an image decodes to the same pixels") {
 		int width, height;             ///< Its size.
 		std::vector<std::uint8_t> rgb; ///< Its pixels.
 	};
-	std::vector<std::uint8_t> noise(97 * 41 * 3);
-	std::mt19937 random(42);
+	std::vector<std::uint8_t> noise(std::size_t{97} * 41 * 3);
+	std::mt19937 random(42); // NOLINT(bugprone-random-generator-seed): the same images on every run
 	for(std::uint8_t& byte : noise) byte = static_cast<std::uint8_t>(random());
 
 	for(const Case& image :

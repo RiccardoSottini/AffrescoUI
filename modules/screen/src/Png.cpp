@@ -253,7 +253,8 @@ std::vector<std::uint8_t> filterRows(int width, int height, std::span<const std:
 	std::vector<std::uint8_t> filtered((stride + 1) * static_cast<std::size_t>(height));
 	std::vector<std::uint8_t> trial(stride);
 
-	for(std::size_t y = 0; y < static_cast<std::size_t>(height); ++y) {
+	const auto rows = static_cast<std::size_t>(height);
+	for(std::size_t y = 0; y < rows; ++y) {
 		const auto row = rgb.subspan(y * stride, stride);
 		const auto above = y > 0 ? rgb.subspan((y - 1) * stride, stride) : std::span<const std::uint8_t>(zeros);
 		const std::span<std::uint8_t> out(filtered.data() + y * (stride + 1) + 1, stride);

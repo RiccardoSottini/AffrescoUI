@@ -58,22 +58,41 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 		return "AffrescoUI screen: no proposal " + std::to_string(*request.proposal);
 
 	// Show what was asked for, then put back what the person sees, whatever happens in between
-	struct PutBack {
-		OffscreenImages& images;  ///< Whose state to put back.
-		std::optional<int> shown; ///< The proposal previewed before, if any.
-		bool switched = false;    ///< Whether something else was shown.
+	class PutBack {
+	public:
+		/// @brief Remembers what the person sees.
+		/// @param images Whose state to put back.
+		/// @param shown The proposal previewed now, if any.
+		PutBack(OffscreenImages& images, std::optional<int> shown) : images(images), shown(shown) {}
+		PutBack(const PutBack&) = delete;
+		PutBack& operator=(const PutBack&) = delete;
+		PutBack(PutBack&&) = delete;
+		PutBack& operator=(PutBack&&) = delete;
 		/// @brief Shows what was shown before. Never throws: an exception leaving a destructor ends the program.
 		~PutBack() {
 			try {
-				if(switched)
-					if(const std::optional<std::string> error = images.show(shown))
-						log(LogLevel::Warning,
-						    "AffrescoUI screen: render: could not show the preview again: " + *error);
+				showAgain();
+			} catch(...) { // no memory even for the message
+				log(LogLevel::Error, "AffrescoUI screen: render: could not put the screen back");
+			}
+			images.rendering_ = false;
+		}
+
+		OffscreenImages& images;  ///< Whose state to put back.
+		std::optional<int> shown; ///< The proposal previewed before, if any.
+		bool switched = false;    ///< Whether something else was shown.
+
+	private:
+		/// @brief Shows the proposal that was shown before, or main, and logs what fails.
+		void showAgain() const {
+			if(!switched) return;
+			try {
+				if(const std::optional<std::string> error = images.show(shown))
+					log(LogLevel::Warning, "AffrescoUI screen: render: could not show the preview again: " + *error);
 			} catch(const std::exception& failure) { // e.g. main's screen failing to rebuild
 				log(LogLevel::Error,
 				    std::string("AffrescoUI screen: render: could not put the screen back: ") + failure.what());
 			}
-			images.rendering_ = false;
 		}
 	} putBack{*this, versions_.previewing()};
 
