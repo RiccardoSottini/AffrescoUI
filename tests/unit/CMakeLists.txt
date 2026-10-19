@@ -13,7 +13,8 @@ target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/m
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/screen/src)
 target_compile_definitions(affrescoui_unit_tests PRIVATE
-	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts")
+	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
+	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui) # all modules; screen.cpp loads screens, no window
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
@@ -28,10 +29,14 @@ add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BIN
 # steps, shapes, pictures. Helpers.hpp is shared with the unit tests.
 file(GLOB affrescoui_window_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/window/*.cpp)
 add_executable(affrescoui_window_tests ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${affrescoui_window_test_files})
-target_include_directories(affrescoui_window_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+# glyphs.cpp draws with render's private gl::QuadRenderer, so it sees render's src and glad
+target_include_directories(affrescoui_window_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+	${PROJECT_SOURCE_DIR}/modules/render/src)
 target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
-	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
-target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE)
+	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES> ${PROJECT_SOURCE_DIR}/external/glad/include)
+target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE
+	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
+	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_link_libraries(affrescoui_window_tests PRIVATE affrescoui)
 set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it

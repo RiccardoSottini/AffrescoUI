@@ -29,7 +29,7 @@ Each subsystem's header says its role, its invariants and its callers:
 
 | Subsystem | Does |
 |---|---|
-| `DocumentContext` | colours, fonts, the theme, the globals of expressions, the `computed` cache, the screen an outlet shows |
+| `DocumentContext` | colours, fonts (from a bounded `FontCache`), the theme, the globals of expressions, the `computed` cache, the screen an outlet shows |
 | `Builder` | a node's children after `use`, `repeat`, `with`, `let`, `check`, styles and `when` |
 | `Reconciler` | the record of every panel built; keeps the panels in line with the document; batched updates |
 | `Properties` | a node's evaluated values on its panel; the property sets node types registered |

@@ -97,18 +97,11 @@ void DocumentContext::readDerived() {
 			const float size = number(value["size"], path + ".size");
 			const std::vector<std::filesystem::path> fallbacks =
 			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
-			std::string key = file + "@" + std::to_string(size);
-			for(const std::filesystem::path& fallback : fallbacks) key += "|" + fallback.string();
-
-			auto cached = fontCache_.find(key);
-			if(cached == fontCache_.end()) {
-				try {
-					cached = fontCache_.emplace(key, Font::load(file, size, fallbacks)).first;
-				} catch(const std::runtime_error& error) {
-					fail(path, error.what());
-				}
+			try {
+				newFonts.emplace(name, fontCache_.load(file, size, fallbacks));
+			} catch(const std::runtime_error& error) {
+				fail(path, error.what());
 			}
-			newFonts.emplace(name, cached->second);
 		}
 	}
 

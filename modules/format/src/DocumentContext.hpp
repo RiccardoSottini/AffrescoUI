@@ -8,6 +8,7 @@
 
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/FontCache.hpp"
 #include "affresco/render/Painter.hpp"
 
 #include <cstdint>
@@ -150,8 +151,7 @@ private:
 	std::filesystem::path baseDirectory_;                                   ///< Where font paths are resolved from.
 	std::map<std::string, NamedColor, std::less<>> colors_;                 ///< From "colors".
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts_; ///< From "fonts".
-	std::map<std::string, std::shared_ptr<const Font>>
-	    fontCache_;                          ///< By file, size and fallbacks: kept across revisions.
+	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
 	std::string theme_;                      ///< "theme", evaluated at each update.
 	std::string screen_;                     ///< The screen an "outlet" shows.
 	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.

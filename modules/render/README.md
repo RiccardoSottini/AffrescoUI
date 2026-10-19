@@ -5,8 +5,9 @@ internal platform layer), the OpenGL 4.1 core context and the renderer (behind a
 nothing about documents: you build the tree in C++, or `format` builds
 it from a screen document. It keeps the ideas of 2017: nested panels, pixel and percentage sizes, anchors to edges,
 minimum sizes, hex colours and signal-to-slot events. It adds rows, columns and grids, scrolling, overlays, rounded
-shapes with borders and shadows, text with fallback fonts, and a multi-line editor. No public header exposes OpenGL
-or GLFW. Target: `affrescoui::render` (uses `core`; vendors glad and stb_truetype from `external/`).
+shapes with borders and shadows, shaped text with fallback fonts and colour emoji, and a multi-line editor. No public
+header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` (uses `core`; vendors glad from
+`external/`; links FreeType and HarfBuzz, pinned in `cmake/AffrescoUIText.cmake`).
 
 ## Public headers (`include/affresco/render/`)
 
@@ -21,7 +22,8 @@ or GLFW. Target: `affrescoui::render` (uses `core`; vendors glad and stb_truetyp
 | `TextArea.hpp` | `TextArea`: a single-line input |
 | `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
-| `Font.hpp` | `Font`: a TrueType font, glyphs baked on demand into atlas pages, fallback fonts, measuring and wrapping |
+| `Font.hpp` | `Font`: a font and its fallbacks at one size; `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
+| `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
 | `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text); `CornerRadii`, `Shadow` |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
@@ -46,8 +48,17 @@ or GLFW. Target: `affrescoui::render` (uses `core`; vendors glad and stb_truetyp
 - **One clock per window.** Timers, the tooltip delay and double clicks read `Window::clock()`; an `Application`'s
   windows share a `SteadyClock`, and tests use `detail::ManualClock` to move time by hand.
 - **One `Application` at a time.** A second one throws.
-- **Limits:** a glyph atlas page is at most 4,096 × 4,096; a font's pages are bounded too, so text naming many
-  characters can't exhaust memory.
+- **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
+  from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run
+  with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
+  runs left to right (no bidirectional reordering yet). Shaped text is cached per font by line and by word, so a
+  frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
+- **Colour glyphs share the text's batch.** Colour emoji (COLR fonts) go to RGBA atlas pages, which the renderer binds
+  on a second texture unit next to the coverage page. A frame without colour glyphs (or without shapes) uses a shader
+  without that code, so its pixels don't depend on it. A font's GPU pages are freed the first frame after it is gone.
+- **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages hold at most 64 MiB in all (colour pages
+  count four bytes a texel), so text naming many characters can't exhaust memory; past that, characters draw as `?`.
+  A font file is a regular file of at most 256 MiB. `FontCache` keeps at most 32 fonts and 128 MiB that nothing uses.
 
 ## Threads
 
@@ -73,7 +84,8 @@ captures `this` in one must cancel its timers in its destructor.
   without changing the library (`examples/CodeEditor.*` adds syntax colours that way).
 - **Another platform or renderer:** implement `platform::Platform` and `NativeWindow`, or `detail::Renderer`
   (internal interfaces, kept small: 7.8 builds damage tracking on the renderer).
-- **Coming in wave 2:** text shaping with HarfBuzz and FreeType (from 2.3b); `Font` still uses stb_truetype.
+- **Fonts:** a screen's fonts come from a `FontCache` (`format` owns one); an application can make its own, with its
+  own limits and system fallbacks (`FontCache::systemFonts()`, or `AFFRESCOUI_SYSTEM_FONTS=1` for the default one).
 
 ## Files
 
@@ -90,7 +102,11 @@ src/
   Label.cpp, TextArea.cpp  text and a single-line input
   TextEditor.cpp           the multi-line editor
   Controls.cpp             Toggle and Slider
-  Font.cpp                 the font, its atlas pages, fallbacks, measuring and wrapping
+  Font.cpp                 the font: loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas
+  FontCache.cpp            the bounded font cache, and the system's fallback fonts
+  text/                    FontFace (one file at one size, in FreeType and HarfBuzz), GlyphAtlas (coverage and
+                           colour pages), ShapedTextCache (LRU by text), FontData.hpp (what a Font holds),
+                           Shaping.cpp (runs, HarfBuzz, clusters into advances and carets)
   Color.cpp                hex colours
   detail/Utf8.hpp          UTF-8 decoding, shared by the text code
   detail/Ppm.hpp           PPM screenshots

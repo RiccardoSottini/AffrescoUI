@@ -1,0 +1,82 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Shaped text, for the rendering check: Arabic joining (each run in its own direction, runs left to right), Devanagari conjuncts, Chinese, Japanese and Korean from fallback fonts chosen by coverage, colour emoji (sequences and flags too), Latin ligatures and kerning, combining marks, code ligatures in a monospace editor. The fonts in ../fonts are subsets holding only these characters.",
+
+	"window": { "title": "Scripts", "width": 760, "height": 560 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["arabic", "devanagari", "chinese", "korean", "emoji"] },
+		"large": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 30, "fallback": ["arabic", "emoji"] },
+		"japanese": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["kana"] },
+		"mono": { "file": "../../../examples/assets/fonts/JetBrainsMono-Regular.ttf", "size": 16, "fallback": ["emoji"] },
+		"arabic": { "file": "../fonts/NotoSansArabic-Subset.ttf", "size": 17 },
+		"devanagari": { "file": "../fonts/NotoSansDevanagari-Subset.ttf", "size": 17 },
+		"chinese": { "file": "../fonts/NotoSansSC-Subset.ttf", "size": 17 },
+		"kana": { "file": "../fonts/NotoSansJP-Subset.ttf", "size": 17 },
+		"korean": { "file": "../fonts/NotoSansKR-Subset.ttf", "size": 17 },
+		"emoji": { "file": "../fonts/TwemojiMozilla-Subset.ttf", "size": 17 }
+	},
+
+	"colors": { "background": "#f8fafc", "text": "#0f172a", "muted": "#64748b", "field": "#e2e8f0", "selection": "#bfdbfe" },
+
+	"state": { "code": "const ok = (a, b) => a !== b && a >= 0; // ✅", "caret": { "line": 0, "column": 0, "selected": 0 } },
+
+	"styles": {
+		"line": { "type": "label", "height": 30, "textColor": "@text", "anchors": { "left": 0, "right": 0 } }
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"type": "column",
+				"id": "lines",
+				"anchors": { "left": 24, "right": 24, "top": 16 },
+				"height": 420,
+				"gap": 2,
+				"children": [
+					{ "style": "line", "id": "headline", "font": "large", "height": 46, "text": "مرحبا بالعالم 🎨 office" },
+					{ "style": "line", "id": "arabic", "text": "Arabic: السلام عليكم، كيف حالك؟" },
+					{ "style": "line", "id": "devanagari", "text": "Devanagari: नमस्ते दुनिया, क्षत्रिय और हिन्दी" },
+					{ "style": "line", "id": "chinese", "text": "Chinese: 你好，世界。汉字排版很美。" },
+					{ "style": "line", "id": "japanese", "font": "japanese", "text": "Japanese: こんにちは世界、カタカナとひらがな。" },
+					{ "style": "line", "id": "korean", "text": "Korean: 안녕하세요, 세계! 한글 조판" },
+					{ "style": "line", "id": "emoji", "text": "Emoji: 🎨 🚀 ✅ 👍🏽 👨‍👩‍👧 🇮🇹 ❤️ in one line" },
+					{ "style": "line", "id": "ligatures", "text": "Ligatures: office, fluffy, waffle · Kerning: AVATAR, Today" },
+					{ "style": "line", "id": "marks", "text": "Combining marks: é ä ñ ộ (one glyph cluster each)" },
+					{
+						"style": "line",
+						"id": "wrapped",
+						"height": 64,
+						"wrap": true,
+						"text": "Wrapped: shaped text still breaks at the last space that fits, like before 🚀 你好，世界。 नमस्ते दुनिया, and it keeps each cluster whole: an office of fluffy waffles, é ä ñ, 👨‍👩‍👧 and 🇮🇹 stay in one piece"
+					}
+				]
+			},
+			{
+				"type": "editor",
+				"id": "editor",
+				"bind": "state.code",
+				"caret": "state.caret",
+				"font": "mono",
+				"anchors": { "left": 24, "right": 24, "top": 452 },
+				"height": 40,
+				"color": "@field",
+				"textColor": "@text",
+				"selectionColor": "@selection",
+				"lineColor": "@field",
+				"caretColor": "@text"
+			},
+			{
+				"type": "label",
+				"id": "position",
+				"anchors": { "left": 24, "right": 24, "top": 504 },
+				"height": 24,
+				"textColor": "@muted",
+				"text": "Column {{state.caret.column}}, {{state.caret.selected}} selected"
+			}
+		]
+	}
+}

@@ -192,11 +192,15 @@ Expressions are lowered once into typed nodes and run on small values that read 
 `modules/format/README.md`). A history keeps each commit as a delta from its parent, with a snapshot every 64
 commits, and packs its files on disk (4.8a, `modules/vcs/README.md`).
 
-**Coming in wave 2 (not there yet):** text shaping with HarfBuzz and FreeType (2.3b).
+Text is shaped with HarfBuzz and rasterised with FreeType (2.3b, `modules/render/README.md`): runs of one face and
+one script, each character from the first font of a `fonts` fallback list that has it, colour emoji on colour atlas
+pages in the same batch as the text, and shaped text cached by line and by word. A screen's fonts live in a bounded
+`FontCache`, which drops the least recently used fonts nothing holds.
 
 ## The build
 
-The root `CMakeLists.txt` holds the options, the pinned dependencies (GLFW, nlohmann/json; doctest for the tests),
+The root `CMakeLists.txt` holds the options, the pinned dependencies (GLFW, nlohmann/json, and FreeType and HarfBuzz
+in `cmake/AffrescoUIText.cmake`; doctest for the tests),
 the warnings and `affrescoui_module()`, and adds the modules in dependency order. Each module lists its own sources
 in `modules/<name>/CMakeLists.txt`. The unit tests and the window tests are found by a glob (`tests/unit/*.cpp`,
 `tests/unit/window/*.cpp`), and the rendering check reads every `tests/render/scenarios/*.json`, so a new test file

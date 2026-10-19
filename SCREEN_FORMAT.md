@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
-| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file. `default` is used by text without a `font`. Text is UTF-8 and shows any character the font has. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's size. A character none of them has shows as `?`. |
+| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `theme` | Which variant of the colors is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
