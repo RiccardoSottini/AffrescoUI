@@ -1151,6 +1151,26 @@ json evaluate(const json& value, const Context& context, const std::string& wher
 	return value;
 }
 
+Placeholders placeholders(std::string_view text) {
+	Placeholders result;
+	const std::string_view whole = trim(text);
+	if(whole.starts_with("{{") && closing(whole, 2) == whole.size() - 2) {
+		result.expressions.push_back(whole.substr(2, whole.size() - 4));
+		result.whole = true;
+		return result;
+	}
+	for(std::size_t start; (start = text.find("{{")) != std::string_view::npos;) {
+		const std::size_t end = closing(text, start + 2);
+		if(end == std::string_view::npos) {
+			result.unclosed = true;
+			break;
+		}
+		result.expressions.push_back(text.substr(start + 2, end - start - 2));
+		text.remove_prefix(end + 2);
+	}
+	return result;
+}
+
 json lookup(std::string_view path, const Context& context, const std::string& where) {
 	std::vector<json> keys = segments(path, context, where);
 	const std::string root = keys.front().get<std::string>();

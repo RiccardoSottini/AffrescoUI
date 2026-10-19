@@ -1,5 +1,7 @@
 #include "affresco/format/Rules.hpp"
 
+#include "Checker.hpp"
+
 #include <algorithm>
 #include <functional>
 
@@ -20,10 +22,14 @@ constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "end
 /// Sections that grant capabilities (talking to programs, writing to disk): revisions may never change them.
 constexpr std::string_view capabilities[] = {"permissions", "channels", "persist"};
 
-/// @brief Collects every control step in a document, to compare before and after a revision.
-/// @param value The document, or part of it.
+/// The most findings a rejected revision lists; it says how many more there are.
+constexpr std::size_t maxListed = 10;
+
+/// @brief Collects every control step in a document, to compare before and after a revision. The state is data,
+/// never steps, so it is left out.
+/// @param document The document.
 /// @return The steps as JSON text, sorted.
-std::vector<std::string> controlsIn(const json& value) {
+std::vector<std::string> controlsIn(const json& document) {
 	std::vector<std::string> found;
 	std::function<void(const json&)> walk = [&](const json& v) {
 		if(v.is_object()) {
@@ -34,9 +40,19 @@ std::vector<std::string> controlsIn(const json& value) {
 			for(const json& item : v) walk(item);
 		}
 	};
-	walk(value);
+	for(const auto& [key, section] : document.items())
+		if(key != "state") walk(section);
 	std::ranges::sort(found);
 	return found;
+}
+
+/// @brief The state a document is checked against.
+/// @param document The document, with the live state as its "state".
+/// @return Its state, or an empty object.
+const json& stateOf(const json& document) {
+	static const json none = json::object();
+	const auto it = document.find("state");
+	return it != document.end() ? *it : none;
 }
 
 } // namespace
@@ -176,6 +192,29 @@ void Rules::checkChange(const json& before, const json& after) const {
 	if(controlsIn(before) != controlsIn(after))
 		fail("revision", "permission denied: revisions can't add or change accept, reject, preview, endPreview, "
 		                 "restore, revert, undo, patch, call, send or connect steps");
+
+	// What a revision refers to must exist, so a typo is rejected before a reviewer sees it. Findings that were there
+	// before don't block it: the revision didn't bring them. (Most screens have none: then one check is enough.)
+	const auto now = check(after, stateOf(after), nativeActions_);
+	if(!now || now->empty()) return; // nothing found, or too large to check
+	const auto old = check(before, stateOf(before), nativeActions_);
+	if(!old) return;
+	const std::vector<Finding> added = introduced(*old, *now);
+	if(added.empty()) return;
+	std::string message = "it refers to what the screen doesn't define:";
+	for(std::size_t i = 0; i < added.size() && i < maxListed; ++i) message += (i ? "; " : " ") + added[i].text();
+	if(added.size() > maxListed) message += "; and " + std::to_string(added.size() - maxListed) + " more";
+	fail("revision", message);
 }
+
+std::vector<std::string> Rules::findings(const json& document, const json& state) const {
+	const auto found = check(document, state, nativeActions_);
+	if(!found) return {"not checked: the screen is larger than the checker's limit"};
+	std::vector<std::string> lines;
+	for(const Finding& finding : *found) lines.push_back(finding.text());
+	return lines;
+}
+
+void Rules::addNativeAction(std::string name) { nativeActions_.insert(std::move(name)); }
 
 } // namespace affresco::format

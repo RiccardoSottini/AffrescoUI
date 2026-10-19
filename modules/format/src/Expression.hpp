@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco::format {
 
@@ -81,6 +82,18 @@ struct Context {
 /// @return The tree; evaluate() runs it.
 /// @throws DocumentError If it isn't a valid expression.
 [[nodiscard]] const json& compile(std::string_view text, const std::string& where);
+
+/// @brief The `{{ }}` placeholders of a string, found as evaluate() finds them.
+struct Placeholders {
+	std::vector<std::string_view> expressions; ///< The text inside each, in order (views into the string).
+	bool whole = false;                        ///< One placeholder and nothing else: the value keeps its JSON type.
+	bool unclosed = false;                     ///< A `{{` has no `}}` (the expressions before it are listed).
+};
+
+/// @brief Finds the placeholders of a string, for tools that read expressions without evaluating them (Checker).
+/// @param text The string.
+/// @return Its placeholders.
+[[nodiscard]] Placeholders placeholders(std::string_view text);
 
 /// @brief Reads the value at a path.
 /// @param path E.g. "state.threads[0].title".

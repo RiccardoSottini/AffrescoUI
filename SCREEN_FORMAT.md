@@ -379,6 +379,35 @@ AffrescoUI screen: root.children[0].width: expected a length: a number of pixels
 AffrescoUI screen: root.children[2].text: in {{a ? b}}: expected ':' (at column 6)
 ```
 
+### The checker
+Typos in names would otherwise show up only when that part runs. The checker reads the whole screen without running
+it, the way the runtime builds it (components, styles, `repeat`, `let`, `with`, actions run with their callers'
+variables), and finds what is referred to but not defined, each with its place and a hint:
+
+```
+AffrescoUI screen: root.children[2].text: 'card.titel' doesn't exist (did you mean 'card.title'?)
+AffrescoUI screen: root.children[1].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)
+AffrescoUI screen: root.children[3].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)
+```
+
+- **What it finds:** state paths, computed values and variables that expressions read but that don't exist (from
+  `state`, `computed`, and the variables of `repeat`, `let`, `with`, `forEach`, `check`, components and events);
+  actions (handlers, `run`, `keys`), styles, components, fonts, colours (`@name`) and screens (`navigate`) that
+  aren't defined; component parameters the component doesn't declare; unknown steps; expressions that don't parse.
+- **What it learns:** a state key exists if the state has it or a step writes it (`set`, `push`, `toggle`,
+  `increment`, `animate`, `call ... into`, `bind`, `caret`, an overlay that `dismiss`es). What a list holds comes
+  from its items and what is pushed onto it.
+- **What it leaves alone:** values it can't know, so it never reports a typo that isn't one: `event`, `nodes`, a
+  native call's result, an empty object (a map, filled later), a value set to `null` or to values of another type,
+  names an expression computes (`{"run": "{{name}}"}`, `"@{{card.tag}}Soft"`), and actions and components nothing
+  uses (any caller's variables may reach them). Actions the application registers (`Screen::onAction`) are known.
+- **On load,** findings are warnings (logged), and the screen opens.
+- **For a revision,** findings it brings in reject it, with the messages; findings already there don't block it.
+  Places move when nodes are added, so a finding counts as new only if its problem occurs more often than before.
+
+A check visits each part of the document once (a repeat is not expanded), so it takes well under a frame: 0.1 to
+0.4 ms for the templates. Past a million values visited, a screen is not checked.
+
 ## From code
 
 ```cpp
