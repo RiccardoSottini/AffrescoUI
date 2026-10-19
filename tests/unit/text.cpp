@@ -26,15 +26,17 @@ using affresco::json;
 
 namespace {
 
-const std::filesystem::path fonts = AFFRESCOUI_FONTS_DIR; ///< The examples' fonts.
+/// @brief The examples' fonts.
+/// @return Their folder.
+std::filesystem::path fonts() { return AFFRESCOUI_FONTS_DIR; }
 
 /// @brief Loads Roboto, with or without JetBrains Mono as its fallback.
 /// @param pixelHeight The size.
 /// @param withFallback Whether to add the fallback.
 /// @return The font.
 std::shared_ptr<const Font> roboto(float pixelHeight, bool withFallback) {
-	const std::array<std::filesystem::path, 1> fallback{fonts / "JetBrainsMono-Regular.ttf"};
-	return Font::load(fonts / "Roboto-Regular.ttf", pixelHeight,
+	const std::array<std::filesystem::path, 1> fallback{fonts() / "JetBrainsMono-Regular.ttf"};
+	return Font::load(fonts() / "Roboto-Regular.ttf", pixelHeight,
 	                  withFallback ? std::span<const std::filesystem::path>(fallback)
 	                               : std::span<const std::filesystem::path>());
 }
@@ -46,9 +48,9 @@ std::shared_ptr<const Font> roboto(float pixelHeight, bool withFallback) {
 bool covered(const Font& font, std::size_t page, const Font::AtlasRegion& region) {
 	const std::span<const std::uint8_t> pixels = font.atlasPixels(page);
 	const auto size = static_cast<std::size_t>(font.atlasSize(page));
-	for(auto y = static_cast<std::size_t>(region.top); y < static_cast<std::size_t>(region.bottom); ++y)
-		for(auto x = static_cast<std::size_t>(region.left); x < static_cast<std::size_t>(region.right); ++x)
-			if(pixels[y * size + x] != 0) return true;
+	for(int y = region.top; y < region.bottom; ++y)
+		for(int x = region.left; x < region.right; ++x)
+			if(pixels[static_cast<std::size_t>(y) * size + static_cast<std::size_t>(x)] != 0) return true;
 	return false;
 }
 
@@ -210,21 +212,21 @@ TEST_CASE("text: a screen's font names its fallbacks, and wrong names are errors
 	const affresco::format::Rules rules;
 
 	affresco::vcs::Repository good(rules, screenWithFallback(json::array({"mono"})));
-	const affresco::format::Runtime runtime(good, fonts);
+	const affresco::format::Runtime runtime(good, fonts());
 	CHECK(runtime.font("default")->hasGlyph(U'✓'));
 	CHECK_FALSE(runtime.font("mono")->hasGlyph(U'★'));
 
 	affresco::vcs::Repository unknown(rules, screenWithFallback(json::array({"symbols"})));
-	CHECK_THROWS_WITH_AS(affresco::format::Runtime(unknown, fonts),
+	CHECK_THROWS_WITH_AS(affresco::format::Runtime(unknown, fonts()),
 	                     doctest::Contains("fonts.default.fallback[0]: unknown font 'symbols'"),
 	                     affresco::DocumentError);
 
 	affresco::vcs::Repository notList(rules, screenWithFallback("mono"));
-	CHECK_THROWS_WITH_AS(affresco::format::Runtime(notList, fonts), doctest::Contains("fonts.default.fallback"),
+	CHECK_THROWS_WITH_AS(affresco::format::Runtime(notList, fonts()), doctest::Contains("fonts.default.fallback"),
 	                     affresco::DocumentError);
 
 	affresco::vcs::Repository tooMany(rules, screenWithFallback(json::array({"mono", "mono", "mono", "mono", "mono",
 	                                                                         "mono", "mono", "mono", "mono"})));
-	CHECK_THROWS_WITH_AS(affresco::format::Runtime(tooMany, fonts), doctest::Contains("at most 8 fallback fonts"),
+	CHECK_THROWS_WITH_AS(affresco::format::Runtime(tooMany, fonts()), doctest::Contains("at most 8 fallback fonts"),
 	                     affresco::DocumentError);
 }

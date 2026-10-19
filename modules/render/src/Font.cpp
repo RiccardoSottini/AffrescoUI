@@ -154,7 +154,8 @@ struct Font::Glyphs {
 		Page& page = pages.emplace_back(size);
 		atlasTexels += texels;
 		const auto at = page.place(width, height, shelfHeight);
-		return Spot{static_cast<std::uint32_t>(pages.size() - 1), (*at)[0], (*at)[1]}; // an empty page has room
+		if(!at) return std::nullopt; // not reached: an empty page has room for what fits in one
+		return Spot{static_cast<std::uint32_t>(pages.size() - 1), (*at)[0], (*at)[1]};
 	}
 
 	/// @brief Rasterises a character into the atlas and remembers it.
@@ -238,8 +239,8 @@ bool Font::bakeLatin1(int size) {
 
 	// Glyphs are packed below the reserved rows
 	stbtt_pack_context context;
-	if(!stbtt_PackBegin(&context, page.pixels.data() + whiteRows * size, size, size - whiteRows, size, padding,
-	                    nullptr))
+	if(!stbtt_PackBegin(&context, page.pixels.data() + static_cast<std::ptrdiff_t>(whiteRows) * size, size,
+	                    size - whiteRows, size, padding, nullptr))
 		return false;
 	const int packedOk =
 	    stbtt_PackFontRange(&context, main.data.data(), 0, pixelHeight_, static_cast<int>(firstCodepoint),
@@ -294,8 +295,8 @@ const Font::Glyph& Font::glyphBeyondLatin1(char32_t codepoint) const noexcept {
 	try {
 		const Glyph* added = glyphs.add(codepoint, question);
 		return added ? *added : question;
-	} catch(const std::bad_alloc&) {
-		return question; // out of memory: draw '?' rather than end the program
+	} catch(...) {
+		return question; // out of memory, or the cache failed: draw '?' rather than end the program
 	}
 }
 

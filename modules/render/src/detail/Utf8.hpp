@@ -50,6 +50,34 @@ struct Decoded {
 	std::size_t length; ///< Bytes read: at least one.
 };
 
+/// @brief What a multi-byte sequence's lead byte says about it.
+struct Lead {
+	std::size_t length = 0;    ///< Bytes in the sequence; 0 if no valid sequence starts with this byte.
+	char32_t bits = 0;         ///< The code point bits the lead byte carries.
+	unsigned char low = 0x80;  ///< The lowest valid second byte.
+	unsigned char high = 0xBF; ///< The highest valid second byte (later bytes are always 0x80..0xBF).
+};
+
+/// @brief Reads a lead byte of 0x80 or more, following the Unicode standard's well-formed sequences (table 3-7).
+/// @param lead The byte.
+/// @return Its sequence; length 0 for a continuation byte or a byte no valid sequence starts with.
+constexpr Lead readLead(unsigned char lead) noexcept {
+	if(lead >= 0xC2 && lead <= 0xDF) return {.length = 2, .bits = lead & 0x1Fu};
+	if(lead >= 0xE0 && lead <= 0xEF) {
+		Lead three{.length = 3, .bits = lead & 0x0Fu};
+		if(lead == 0xE0) three.low = 0xA0;  // overlong below U+0800
+		if(lead == 0xED) three.high = 0x9F; // surrogates U+D800..U+DFFF
+		return three;
+	}
+	if(lead >= 0xF0 && lead <= 0xF4) {
+		Lead four{.length = 4, .bits = lead & 0x07u};
+		if(lead == 0xF0) four.low = 0x90;  // overlong below U+10000
+		if(lead == 0xF4) four.high = 0x8F; // above U+10FFFF
+		return four;
+	}
+	return {};
+}
+
 /// @brief Decodes the character at the start of UTF-8 text, following the Unicode standard's well-formed sequences
 /// (table 3-7): no overlong forms, no surrogates, nothing above U+10FFFF.
 /// @param text UTF-8 text, not empty.
@@ -57,29 +85,14 @@ struct Decoded {
 /// Unicode recommends, so the bytes after it are decoded as they are.
 inline Decoded decodeUtf8(std::string_view text) noexcept {
 	const auto byte = [&](std::size_t i) { return static_cast<unsigned char>(text[i]); };
-	const unsigned char lead = byte(0);
-	if(lead < 0x80) return {lead, 1};
+	const unsigned char first = byte(0);
+	if(first < 0x80) return {first, 1};
 
-	// The length and the range the second byte must be in, from the lead byte; later bytes are 0x80..0xBF
-	std::size_t length = 0;
-	unsigned char low = 0x80, high = 0xBF;
-	char32_t cp = 0;
-	if(lead >= 0xC2 && lead <= 0xDF) {
-		length = 2;
-		cp = lead & 0x1Fu;
-	} else if(lead >= 0xE0 && lead <= 0xEF) {
-		length = 3;
-		cp = lead & 0x0Fu;
-		if(lead == 0xE0) low = 0xA0;  // overlong below U+0800
-		if(lead == 0xED) high = 0x9F; // surrogates U+D800..U+DFFF
-	} else if(lead >= 0xF0 && lead <= 0xF4) {
-		length = 4;
-		cp = lead & 0x07u;
-		if(lead == 0xF0) low = 0x90;  // overlong below U+10000
-		if(lead == 0xF4) high = 0x8F; // above U+10FFFF
-	} else {
-		return {0xFFFD, 1}; // a continuation byte, or a lead byte no valid sequence has
-	}
+	const Lead lead = readLead(first);
+	if(lead.length == 0) return {0xFFFD, 1}; // a continuation byte, or a lead byte no valid sequence has
+	const std::size_t length = lead.length;
+	const unsigned char low = lead.low, high = lead.high;
+	char32_t cp = lead.bits;
 
 	for(std::size_t k = 1; k < length; ++k) {
 		const unsigned char next = k < text.size() ? byte(k) : 0;
