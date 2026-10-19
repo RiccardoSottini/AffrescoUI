@@ -289,7 +289,7 @@ public:
 	}
 
 	/// @brief Blocks until a peer connects, or until stop().
-	/// @return true when a connection may be waiting; false once stopped or on an error.
+	/// @return true when a connection may be waiting; false once stopped, or on an error of poll() or the listener.
 	[[nodiscard]] bool waitForConnection() {
 		pollfd watched[2] = {{listener_, POLLIN, 0}, {wake_[0], POLLIN, 0}};
 		while(true) {
@@ -297,7 +297,9 @@ public:
 				if(errno == EINTR) continue; // a signal, not a reason to stop accepting
 				return false;
 			}
-			if(watched[1].revents & POLLIN) return false;
+			if(watched[1].revents != 0) return false; // stop(), or the pipe broke
+			// An error or a hang-up on the listener lasts, and poll() would report it again at once: stop, not spin
+			if(watched[0].revents & (POLLERR | POLLHUP | POLLNVAL)) return false;
 			if(watched[0].revents & POLLIN) return true;
 		}
 	}
