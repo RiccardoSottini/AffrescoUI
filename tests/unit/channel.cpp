@@ -137,6 +137,13 @@ TEST_CASE("channel: render answers with the picture as base64 PNG") {
 	REQUIRE(images.requests.size() == 1);
 	CHECK_FALSE(images.requests[0].proposal);
 	CHECK(images.requests[0].scale == 1);
+
+	// Options left out as null, as some clients write them, take their defaults
+	peer.channel.sent.clear();
+	peer.channel.receive(R"({"type": "render", "id": 6, "proposal": null, "scale": null})");
+	REQUIRE(peer.channel.sent.size() == 1);
+	CHECK(peer.channel.sent[0]["type"] == "image");
+	CHECK(peer.channel.sent[0]["scale"] == 1);
 }
 
 TEST_CASE("channel: render of a proposal sends no review changes to anyone") {

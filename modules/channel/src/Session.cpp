@@ -294,7 +294,7 @@ void Session::sendImage(const Incoming& in) {
 	ImageRequest request;
 	if(m.contains("proposal") && !m["proposal"].is_null())
 		request.proposal = expect::integer(m["proposal"], "render.proposal");
-	if(m.contains("scale")) {
+	if(m.contains("scale") && !m["scale"].is_null()) {
 		request.scale = expect::integer(m["scale"], "render.scale");
 		if(request.scale < 1 || request.scale > ScreenImages::maxScale)
 			expect::fail("render.scale", "expected 1 to " + std::to_string(ScreenImages::maxScale));
