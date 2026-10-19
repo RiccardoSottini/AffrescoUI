@@ -62,10 +62,17 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 		OffscreenImages& images;  ///< Whose state to put back.
 		std::optional<int> shown; ///< The proposal previewed before, if any.
 		bool switched = false;    ///< Whether something else was shown.
+		/// @brief Shows what was shown before. Never throws: an exception leaving a destructor ends the program.
 		~PutBack() {
-			if(switched)
-				if(const std::optional<std::string> error = images.show(shown))
-					log(LogLevel::Warning, "AffrescoUI screen: render: could not show the preview again: " + *error);
+			try {
+				if(switched)
+					if(const std::optional<std::string> error = images.show(shown))
+						log(LogLevel::Warning,
+						    "AffrescoUI screen: render: could not show the preview again: " + *error);
+			} catch(const std::exception& failure) { // e.g. main's screen failing to rebuild
+				log(LogLevel::Error,
+				    std::string("AffrescoUI screen: render: could not put the screen back: ") + failure.what());
+			}
 			images.rendering_ = false;
 		}
 	} putBack{*this, versions_.previewing()};
