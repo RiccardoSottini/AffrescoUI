@@ -165,8 +165,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | `pad(text, width)` | width up to 10,000 |
 | Step lists inside step lists and actions (`if`, `forEach`, `while`, `run`, named handlers) | 32 levels |
 | Components using components | 32 levels |
-| Styles using styles | 16 levels |
-| Files including files (`include`, at load time) | 8 levels |
+| Styles using styles | 17 levels |
+| Files including files (`include`, at load time) | 9 levels below the screen file |
 | Open proposals per channel | 16 |
 | A commit named by its id or a prefix of it | 4 to 64 hexadecimal characters |
 | A proposal named by `proposal/<n>` | n up to 1,000,000 |
