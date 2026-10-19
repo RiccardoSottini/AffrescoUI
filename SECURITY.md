@@ -94,13 +94,15 @@ screen before and after, not by how the patch is written:
 - anything else goes to review.
 
 A node with `"locked": true` and an `id`, in `root`, `screens` or `templates`, is denied to everyone. Without an
-`id`, or inside a component, `locked` protects nothing. A screen without a `permissions` section applies every change and
-lets anyone review (the `sign-in` example is one): give a screen permissions before you let an agent connect to it.
+`id`, or inside a component, `locked` protects nothing. A screen without a `permissions` section applies every
+change and lets anyone review (the `sign-in` example is one): give a screen permissions before you let an agent
+connect to it.
 
 ### Reviewers, and why an author can't approve its own change
 A change that needs review becomes a **proposal**. Of the peers, only the authors listed in `permissions.reviewers`
 may accept or reject proposals, preview them, change the mode or revoke grants. Review steps in the screen file
-itself are not checked against that list: they act as `user`, for whoever uses the app. Several rules keep an author from approving itself:
+itself are not checked against that list: they act as `user`, for whoever uses the app. Several rules keep an author
+from approving itself:
 - a reviewer can't accept a proposal whose author is on the reviewer's own channel;
 - a revision can't add or change review controls (see above), so a proposal can't approve itself from inside the
   screen;
@@ -140,8 +142,8 @@ Whatever a native function or action does, it does with the host's full rights. 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets. Every message that arrives
-there runs the screen's `<name>:<type>` action, if it has one, with the message as its event, so the program at the other end can
-run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
+there runs the screen's `<name>:<type>` action, if it has one, with the message as its event, so the program at the
+other end can run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
 
 ### Requests relayed between peers
 `request` and `reply` messages aren't interpreted. The host passes them to every other peer, with `from` set to the
