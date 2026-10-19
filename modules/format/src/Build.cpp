@@ -60,38 +60,42 @@ Record& Runtime::Impl::adopt(Panel& panel, const std::string& type) {
 	record.firstManaged = panel.children().size();
 	record.defaultColor = panel.color();
 	record.defaultCursor = panel.cursor();
-	hookUp(panel);
+	hookUp(panel, record);
 	return record;
 }
 
 // Signals are connected once; handlers read the panel's current record, so later updates need no reconnecting
-void Runtime::Impl::hookUp(Panel& panel) {
-	panel.onHover.connect([this, &panel](bool hovered) {
+void Runtime::Impl::hookUp(Panel& panel, Record& adopted) {
+	Record::Hooks& hooks = adopted.hooks;
+	hooks.hover = panel.onHover.connect([this, &panel](bool hovered) {
 		Record* record = recordOf(&panel);
 		if(!record) return;
 		record->hovered = hovered;
 		refresh(panel, *record);
 		fire(panel, hovered ? "onHover" : "onLeave", {{"type", hovered ? "hover" : "leave"}});
 	});
-	panel.onFocusChanged.connect([this, &panel](bool focused) {
+	hooks.focus = panel.onFocusChanged.connect([this, &panel](bool focused) {
 		Record* record = recordOf(&panel);
 		if(!record) return;
 		record->focused = focused;
 		refresh(panel, *record);
 		fire(panel, focused ? "onFocus" : "onBlur", {{"type", focused ? "focus" : "blur"}});
 	});
-	panel.onMouseButton.connect([this, &panel](const MouseButtonEvent& event) { mouseButton(panel, event); });
-	panel.onMouseMove.connect([this, &panel](const MouseMoveEvent& event) { mouseMove(panel, event); });
-	panel.onScroll.connect([this, &panel](const ScrollEvent& event) {
+	hooks.button =
+	    panel.onMouseButton.connect([this, &panel](const MouseButtonEvent& event) { mouseButton(panel, event); });
+	hooks.move = panel.onMouseMove.connect([this, &panel](const MouseMoveEvent& event) { mouseMove(panel, event); });
+	hooks.scroll = panel.onScroll.connect([this, &panel](const ScrollEvent& event) {
 		bubble(panel, "onScroll", {{"type", "scroll"}, {"dx", event.offset.x}, {"dy", event.offset.y}});
 	});
-	panel.onKey.connect([this, &panel](const KeyEvent& event) { key(panel, event); });
+	hooks.key = panel.onKey.connect([this, &panel](const KeyEvent& event) { key(panel, event); });
 
 	if(auto* textArea = dynamic_cast<TextArea*>(&panel))
-		textArea->onTextChanged.connect([this, &panel](const std::string& value) { valueChanged(panel, value); });
+		hooks.value =
+		    textArea->onTextChanged.connect([this, &panel](const std::string& value) { valueChanged(panel, value); });
 	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
-		editor->onTextChanged.connect([this, &panel](const std::string& value) { valueChanged(panel, value); });
-		editor->onCaretMoved.connect([this, &panel, editor](TextEditor::Position caret) {
+		hooks.value =
+		    editor->onTextChanged.connect([this, &panel](const std::string& value) { valueChanged(panel, value); });
+		hooks.caret = editor->onCaretMoved.connect([this, &panel, editor](TextEditor::Position caret) {
 			Record* record = recordOf(&panel);
 			if(!record || !record->caret) return;
 			try {
@@ -106,11 +110,44 @@ void Runtime::Impl::hookUp(Panel& panel) {
 		});
 	}
 	if(auto* toggle = dynamic_cast<Toggle*>(&panel))
-		toggle->onToggled.connect([this, &panel](bool checked) { valueChanged(panel, checked); });
+		hooks.value = toggle->onToggled.connect([this, &panel](bool checked) { valueChanged(panel, checked); });
 	if(auto* slider = dynamic_cast<Slider*>(&panel))
-		slider->onValueChanged.connect([this, &panel](double value) {
+		hooks.value = slider->onValueChanged.connect([this, &panel](double value) {
 			valueChanged(panel, std::trunc(value) == value ? json(static_cast<std::int64_t>(value)) : json(value));
 		});
+}
+
+void Runtime::Impl::unhook(Panel& panel, const Record& record) {
+	const Record::Hooks& hooks = record.hooks;
+	panel.onHover.disconnect(hooks.hover);
+	panel.onFocusChanged.disconnect(hooks.focus);
+	panel.onMouseButton.disconnect(hooks.button);
+	panel.onMouseMove.disconnect(hooks.move);
+	panel.onScroll.disconnect(hooks.scroll);
+	panel.onKey.disconnect(hooks.key);
+	if(auto* textArea = dynamic_cast<TextArea*>(&panel)) textArea->onTextChanged.disconnect(hooks.value);
+	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
+		editor->onTextChanged.disconnect(hooks.value);
+		editor->onCaretMoved.disconnect(hooks.caret);
+	}
+	if(auto* toggle = dynamic_cast<Toggle*>(&panel)) toggle->onToggled.disconnect(hooks.value);
+	if(auto* slider = dynamic_cast<Slider*>(&panel)) slider->onValueChanged.disconnect(hooks.value);
+}
+
+// Only the panels still in the window are reached: a panel the application removed itself is gone, and its record
+// is never read again
+void Runtime::Impl::disconnectAll() {
+	if(!window) return;
+	window->onResize.disconnect(windowHooks.resized);
+	window->onKey.disconnect(windowHooks.key);
+	window->onMouseButton.disconnect(windowHooks.button);
+	std::vector<Panel*> pending{&window->root()};
+	while(!pending.empty()) {
+		Panel* panel = pending.back();
+		pending.pop_back();
+		if(const Record* record = recordOf(panel)) unhook(*panel, *record);
+		for(const auto& child : panel->children()) pending.push_back(child.get());
+	}
 }
 
 void Runtime::Impl::valueChanged(Panel& panel, const json& value) {
@@ -337,7 +374,7 @@ void Runtime::Impl::reconcileChildren(const json& node, Panel& panel, Record& re
 		childRecord.key = std::move(item.key);
 		apply(*child, childRecord, props, item.path, false, created);
 		reconcileChildren(*item.node, *child, childRecord, item.path);
-		if(created && childRecord.handlers.contains("onShow"))
+		if(created && !handlersSuspended && childRecord.handlers.contains("onShow"))
 			defer(later(childRecord.handlers["onShow"], *child, {{"type", "show"}}, childRecord.locals,
 			            childRecord.path + ".onShow"));
 		++index;
@@ -354,7 +391,7 @@ void Runtime::Impl::forgetSubtree(const Panel& panel) {
 			if(record->everyTimer) window->cancelTimer(record->everyTimer);
 			for(const Tween* tween : record->tweens())
 				if(tween->timer) window->cancelTimer(tween->timer);
-			if(record->handlers.contains("onHide"))
+			if(!handlersSuspended && record->handlers.contains("onHide"))
 				defer(later(record->handlers["onHide"], window->root(), {{"type", "hide"}}, record->locals,
 				            record->path + ".onHide"));
 		}
@@ -403,8 +440,9 @@ void Runtime::Impl::reconcile() {
 	apply(root, record, properties, "root", true, false);
 	reconcileChildren(*node, root, record, "root");
 
-	// "watch": a handler runs after the update in which its value changed
-	if(document.contains("watch")) {
+	// "watch": a handler runs after the update in which its value changed (not while handlers are suspended: the
+	// values seen then are never compared, so a document shown for a moment changes nothing)
+	if(document.contains("watch") && !handlersSuspended) {
 		for(const auto& [path, handler] : object(document["watch"], "watch").items()) {
 			const json value = format::lookup(path, context(*noVariables(), json::object()), "watch." + path);
 			if(watched.contains(path) && watched[path] != value)

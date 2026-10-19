@@ -180,6 +180,9 @@ public:
 	/// Lets event handlers rebuild parts of the UI, even the panel whose handler is running.
 	/// @param task The work to run; it may defer more.
 	void defer(std::function<void()> task);
+	/// @brief Runs the deferred tasks now, and those they defer, as the end of an event does: e.g. before something
+	/// replaces what the window shows, so that the tasks run on what deferred them.
+	void runDeferredTasks() { runDeferred(); }
 
 	/// @brief Runs a task later, on the main thread (inside Application::run).
 	/// @param delayMs Milliseconds from now.

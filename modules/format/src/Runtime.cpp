@@ -178,6 +178,7 @@ Runtime::~Runtime() {
 	*impl_->alive = false; // the window may still run the tasks deferred for this runtime
 	Window* window = impl_->window;
 	if(!window) return;
+	impl_->disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	// The timers point at the runtime: stop them, or the window would run them on freed memory
 	for(auto& [panel, record] : impl_->records) {
 		if(record.everyTimer) window->cancelTimer(record.everyTimer);
@@ -222,10 +223,10 @@ void Runtime::build(Window& window) {
 	impl->reconcile();
 
 	// Bindings can use the window size
-	window.onResize.connect([impl](const ResizeEvent&) { impl->requestReconcile(); });
+	impl->windowHooks.resized = window.onResize.connect([impl](const ResizeEvent&) { impl->requestReconcile(); });
 
 	// Screen-wide shortcuts ("keys"); a focused text area keeps plain keys for typing
-	window.onKey.connect([impl](const KeyEvent& event) {
+	impl->windowHooks.key = window.onKey.connect([impl](const KeyEvent& event) {
 		if(event.action == affresco::Action::Release) return;
 		if(event.key == Key::Escape) impl->dismissOverlays(nullptr);
 		const json& document = impl->versions.document();
@@ -246,7 +247,7 @@ void Runtime::build(Window& window) {
 	});
 
 	// A press outside an open overlay that closes on it
-	window.onMouseButton.connect([impl](const MouseButtonEvent& event) {
+	impl->windowHooks.button = window.onMouseButton.connect([impl](const MouseButtonEvent& event) {
 		if(event.action == affresco::Action::Press) impl->dismissOverlays(&event.position);
 	});
 
@@ -277,6 +278,8 @@ void Runtime::runAction(std::string_view name, Panel& sender, const json& event)
 	const SharedScope locals = it != impl_->records.end() ? it->second.locals : noVariables();
 	impl_->handle(json(std::string(name)), sender, event, *locals, "runAction");
 }
+
+void Runtime::setHandlersSuspended(bool suspended) noexcept { impl_->handlersSuspended = suspended; }
 
 bool Runtime::hasAction(std::string_view name) const {
 	const json& document = impl_->versions.document();

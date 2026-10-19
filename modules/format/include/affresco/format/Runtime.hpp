@@ -107,6 +107,13 @@ public:
 	/// @param event Available to the action as "event".
 	void runAction(std::string_view name, Panel& sender, const json& event);
 
+	/// @brief Keeps the panels in line with the document without running what the document runs because they
+	/// changed: while suspended, no "onShow", "onHide" or "watch" handler is scheduled, "autofocus" takes no focus,
+	/// and colours change without their transitions. For a document shown only for a moment, e.g. a proposal drawn
+	/// for a picture, which must change nothing the person sees or what runs next.
+	/// @param suspended true to suspend them, false to go back to normal.
+	void setHandlersSuspended(bool suspended) noexcept;
+
 	/// @brief Tells whether the document has an action of that name.
 	/// @param name The action.
 	/// @return true if "actions" has it.

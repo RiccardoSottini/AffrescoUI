@@ -243,6 +243,13 @@ struct Record {
 	std::optional<std::string> overlayOpen; ///< An overlay's "open" state path.
 	bool dismissOutside = false;          ///< The overlay closes on a click outside it (and on Escape).
 	std::string overlayAnchor;            ///< The overlay's anchor id (empty: the parent).
+
+	/// @brief The connections hookUp() made to the panel's signals, which ~Runtime takes back (0: none).
+	struct Hooks {
+		Connection hover = 0, focus = 0, button = 0, move = 0, scroll = 0, key = 0; ///< Every panel's.
+		Connection value = 0; ///< A text area's, text editor's, toggle's or slider's value.
+		Connection caret = 0; ///< A text editor's caret.
+	} hooks;                  ///< See Hooks.
 };
 
 /// @brief A node to build: shared, so a repeat's items don't each copy their template (and its children).
@@ -306,6 +313,7 @@ struct Runtime::Impl final : VersionObserver {
 	std::uint64_t stateVersion = 0; ///< Counts state changes (computed values are cached per version).
 	bool reconcileQueued = false;   ///< A reconcile is deferred to the end of the event.
 	int actionDepth = 0;            ///< Nested action calls in progress.
+	bool handlersSuspended = false; ///< See Runtime::setHandlersSuspended().
 
 	std::string screen;                      ///< The screen an "outlet" shows (from "screens").
 	std::vector<std::string> screenHistory;  ///< For {"navigate": "back"}.
@@ -459,7 +467,19 @@ struct Runtime::Impl final : VersionObserver {
 	Record& adopt(Panel& panel, const std::string& type);
 	/// @brief Connects a panel's signals once; handlers read its current record.
 	/// @param panel The panel.
-	void hookUp(Panel& panel);
+	/// @param record Its record, which keeps the connections.
+	void hookUp(Panel& panel, Record& record);
+	/// @brief Disconnects what hookUp() connected, so the panel no longer calls into the runtime.
+	/// @param panel The panel.
+	/// @param record Its record.
+	static void unhook(Panel& panel, const Record& record);
+	/// @brief Disconnects everything that can call into the runtime: the window's signals and those of every panel
+	/// built from the document that is still in the window (~Runtime).
+	void disconnectAll();
+	/// @brief The connections build() made to the window's signals (0: none).
+	struct {
+		Connection resized = 0, key = 0, button = 0; ///< onResize, onKey, onMouseButton.
+	} windowHooks;
 	/// @brief Evaluates a node's properties (structural keys are left as they are).
 	/// @param merged The node, styles merged.
 	/// @param locals Its variables.

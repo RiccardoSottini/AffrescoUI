@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -70,6 +71,33 @@ TEST_CASE("format: the Kanban template builds on a headless window, and a click 
 	window->render();
 	CHECK(json::parse(screen.stateJson())["membersOpen"] == false);
 	CHECK_FALSE(menu->isShown());
+}
+
+// Before, the panels and the window's signals still called into a destroyed screen, so the next input used freed
+// memory (AddressSanitizer: heap-use-after-free in the runtime's handlers)
+TEST_CASE("format: a screen destroyed while its window lives on takes back everything that calls into it") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(1280, 800, clock);
+	auto screen = std::make_unique<affresco::Screen>(loadTemplate("kanban"));
+	screen->build(*window);
+	window->render();
+	const affresco::Panel* members = screen->find("members");
+	REQUIRE(members);
+	const affresco::Vec2 at{members->frame().left + 4.0f, members->frame().top + 4.0f};
+	window->setFocus(screen->find("members"));
+
+	screen.reset();
+	window->routeMouseMove(at);
+	for(const affresco::Action action : {affresco::Action::Press, affresco::Action::Release})
+		window->routeMouseButton({affresco::MouseButton::Left, action, {}, at});
+	window->routeKey({affresco::Key::Escape, 0, affresco::Action::Press, {}});
+	window->routeChar({U'x'});
+	window->routeScroll({{0.0f, -1.0f}, at});
+	window->routeMouseMove({1.0f, 1.0f});
+	window->setSize(1000, 700);
+	clock.advance(1000.0);
+	window->render();
+	CHECK_FALSE(window->secondsToNextTimer());
 }
 
 // The code editor is left out: its "code" type is the host's (examples/CodeEditor.cpp)

@@ -387,7 +387,7 @@ void Runtime::Impl::apply(Panel& panel, Record& record, const json& properties, 
 		slider->setValue(value.is_number() ? value.get<double>() : 0.0);
 	}
 
-	if(created && autofocus && window) window->setFocus(&panel);
+	if(created && autofocus && window && !handlersSuspended) window->setFocus(&panel);
 	record.shown = true;
 }
 
@@ -631,7 +631,7 @@ void Runtime::Impl::transitionColor(Panel& panel, Record& record, const char* pr
 	Tween& tween = tweenOf(record, property);
 	const double ms = record.transition.contains(property) ? record.transition[property].get<double>() : 0.0;
 
-	if(!window || ms <= 0.0 || shown == target || !record.shown) {
+	if(!window || ms <= 0.0 || shown == target || !record.shown || handlersSuspended) {
 		if(tween.timer && window) window->cancelTimer(std::exchange(tween.timer, 0));
 		setColorOf(panel, property, target);
 		return;
