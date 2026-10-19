@@ -95,6 +95,9 @@ target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nloh
 
 affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
 target_link_libraries(affrescoui_channel PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
+if(WIN32)
+	target_link_libraries(affrescoui_channel PRIVATE ws2_32 advapi32) # Winsock; the socket files' access lists
+endif()
 
 # affrescoui: the whole library
 add_library(affrescoui modules/screen/src/Screen.cpp)
@@ -139,7 +142,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/channel.cpp)
+		tests/unit/expressions.cpp tests/unit/channel.cpp tests/unit/sockets.cpp)
 	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src) # Expression.hpp stays private
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel)

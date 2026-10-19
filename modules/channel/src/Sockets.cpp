@@ -1,41 +1,321 @@
+/// @file
+/// @brief SocketChannel and SocketServer. What differs between POSIX and Winsock is in one block of small
+/// functions ("The platform"); the channel and the server above it are written once.
+
 #include "affresco/channel/Sockets.hpp"
-
-#include <stdexcept>
-
-#if defined(_WIN32)
-
-namespace affresco::channel {
-
-std::unique_ptr<SocketChannel> SocketChannel::connect(Executor&, const std::filesystem::path&) {
-	throw std::runtime_error("AffrescoUI: SocketChannel is not available on Windows yet");
-}
-SocketChannel::SocketChannel(Executor&, int) {}
-SocketChannel::~SocketChannel() = default;
-void SocketChannel::send(std::string_view) {}
-
-SocketServer::SocketServer(Executor& executor, std::filesystem::path, Connected) : executor_(executor) {
-	throw std::runtime_error("AffrescoUI: SocketServer is not available on Windows yet");
-}
-SocketServer::~SocketServer() = default;
-
-} // namespace affresco::channel
-
-#else
 
 #include "Lines.hpp"
 
+#include <cstring>
+#include <optional>
+#include <stdexcept>
+#include <string>
+
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <winsock2.h>
+#include <afunix.h>
+#include <windows.h>
+#include <aclapi.h>
+
+#include <climits>
+#include <system_error>
+#include <vector>
+#else
 #include <cerrno>
 #include <csignal>
-#include <cstring>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
 #include <unistd.h>
+#endif
 
 namespace affresco::channel {
 
 namespace {
+
+/* The platform */
+
+#if defined(_WIN32)
+
+static_assert(sizeof(SocketHandle) == sizeof(SOCKET), "SocketHandle must hold a SOCKET");
+
+constexpr SocketHandle noSocket = INVALID_SOCKET; ///< What socket() and accept() return on failure.
+using AddressLength = int;                        ///< The type of an address's length.
+
+/// @brief Starts Winsock once for the process. It is never cleaned up: sockets may live until the process exits.
+/// @throws std::runtime_error If Winsock can't start.
+void startSockets() {
+	static const bool started = [] {
+		WSADATA data{};
+		return WSAStartup(MAKEWORD(2, 2), &data) == 0;
+	}();
+	if(!started) throw std::runtime_error("AffrescoUI: could not start Winsock");
+}
+
+/// @brief Describes the last error of this thread (Winsock's and Windows' share one slot).
+/// @return The description.
+std::string lastError() { return std::system_category().message(static_cast<int>(GetLastError())); }
+
+/// @brief Closes a socket.
+/// @param socket The socket.
+void closeSocket(SocketHandle socket) noexcept { closesocket(socket); }
+
+/// @brief Ends both directions of a connection, and a recv() blocked on it in another thread.
+/// @param socket The socket.
+void shutdownSocket(SocketHandle socket) noexcept {
+	shutdown(socket, SD_BOTH);
+	// Unlike POSIX, shutdown() doesn't end a recv() that is already waiting; cancelling the socket's I/O does
+	CancelIoEx(reinterpret_cast<HANDLE>(socket), nullptr);
+}
+
+/// @brief Nothing to do: Winsock reports a peer that went away as an error from send(), with no signal.
+void ignoreBrokenPipes(SocketHandle) {}
+
+/// @brief Receives from a connection.
+/// @param socket The socket.
+/// @param data Receives the bytes.
+/// @param size The most to read (one chunk).
+/// @return How many bytes, 0 when the peer closed, less on an error.
+std::ptrdiff_t receive(SocketHandle socket, char* data, std::size_t size) {
+	return recv(socket, data, static_cast<int>(size), 0);
+}
+
+/// @brief Sends on a connection.
+/// @param socket The socket.
+/// @param data The bytes.
+/// @param size How many; more than INT_MAX are sent by the next call.
+/// @return How many bytes were sent, less than 1 on an error.
+std::ptrdiff_t transmit(SocketHandle socket, const char* data, std::size_t size) {
+	constexpr std::size_t most = INT_MAX; // send() takes an int
+	return send(socket, data, static_cast<int>(size < most ? size : most), 0);
+}
+
+/// @brief Reads this process's user.
+/// @return A TOKEN_USER, in a buffer; empty if it can't be read.
+std::vector<std::byte> currentUser() {
+	HANDLE token = nullptr;
+	if(!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) return {};
+	DWORD size = 0;
+	GetTokenInformation(token, TokenUser, nullptr, 0, &size); // asks for the size
+	std::vector<std::byte> user(size);
+	if(!GetTokenInformation(token, TokenUser, user.data(), size, &size)) user.clear();
+	CloseHandle(token);
+	return user;
+}
+
+/// @brief Lets only this user open the socket file, as `chmod 0600` does on POSIX: the file's access list becomes
+/// one entry that gives this user full access, and it no longer inherits the folder's. Connecting needs write access
+/// to the file, so other users can't connect.
+/// @param path The socket file.
+/// @return false on an error (see lastError()).
+bool restrictToOwner(const std::filesystem::path& path) {
+	std::vector<std::byte> user = currentUser();
+	if(user.empty()) return false;
+
+	EXPLICIT_ACCESSW entry{};
+	entry.grfAccessPermissions = GENERIC_ALL;
+	entry.grfAccessMode = SET_ACCESS;
+	entry.grfInheritance = NO_INHERITANCE;
+	entry.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+	entry.Trustee.TrusteeType = TRUSTEE_IS_USER;
+	entry.Trustee.ptstrName = static_cast<LPWSTR>(reinterpret_cast<TOKEN_USER*>(user.data())->User.Sid);
+	PACL access = nullptr;
+	DWORD error = SetEntriesInAclW(1, &entry, nullptr, &access);
+	if(error == ERROR_SUCCESS) {
+		// The socket file is a reparse point: open the file itself, not what it would point to
+		const HANDLE file = CreateFileW(path.c_str(), READ_CONTROL | WRITE_DAC,
+		                                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+		                                FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+		if(file == INVALID_HANDLE_VALUE) error = GetLastError();
+		else {
+			error = SetSecurityInfo(file, SE_FILE_OBJECT,
+			                        DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, nullptr, nullptr,
+			                        access, nullptr);
+			CloseHandle(file);
+		}
+		LocalFree(access);
+	}
+	SetLastError(error);
+	return error == ERROR_SUCCESS;
+}
+
+/// @brief Removes a socket file, if there is one.
+/// @param path The file.
+void removeSocketFile(const std::filesystem::path& path) { DeleteFileW(path.c_str()); }
+
+/// @brief Accepts a connection that is waiting.
+/// @param listener The listening socket.
+/// @return The connection, or noSocket.
+SocketHandle acceptConnection(SocketHandle listener) {
+	const SOCKET connection = accept(listener, nullptr, nullptr);
+	if(connection == INVALID_SOCKET) return noSocket;
+	// It inherits the listener's event selection, which also made it non-blocking; the channel's reader blocks
+	u_long blocking = 0;
+	if(WSAEventSelect(connection, nullptr, 0) != 0 || ioctlsocket(connection, FIONBIO, &blocking) != 0) {
+		closesocket(connection);
+		return noSocket;
+	}
+	return connection;
+}
+
+/// @brief Waits on a listening socket for a connection, or for stop() from another thread: two Winsock events.
+class AcceptWait {
+public:
+	AcceptWait() = default;
+	/// @brief Closes the events.
+	~AcceptWait() {
+		for(WSAEVENT event : {connection_, stop_})
+			if(event != WSA_INVALID_EVENT) WSACloseEvent(event);
+	}
+	AcceptWait(const AcceptWait&) = delete;
+	AcceptWait& operator=(const AcceptWait&) = delete;
+
+	/// @brief Starts watching a listening socket. It becomes non-blocking.
+	/// @param listener The socket.
+	/// @return false on an error (see lastError()).
+	[[nodiscard]] bool watch(SocketHandle listener) {
+		listener_ = listener;
+		connection_ = WSACreateEvent();
+		stop_ = WSACreateEvent();
+		return connection_ != WSA_INVALID_EVENT && stop_ != WSA_INVALID_EVENT &&
+		       WSAEventSelect(listener_, connection_, FD_ACCEPT) == 0;
+	}
+
+	/// @brief Blocks until a peer connects, or until stop().
+	/// @return true when a connection may be waiting; false once stopped or on an error.
+	[[nodiscard]] bool waitForConnection() {
+		const WSAEVENT events[2] = {stop_, connection_}; // the lowest signalled index is reported: stopping wins
+		if(WSAWaitForMultipleEvents(2, events, FALSE, WSA_INFINITE, FALSE) != WSA_WAIT_EVENT_0 + 1) return false;
+		WSANETWORKEVENTS happened{};
+		return WSAEnumNetworkEvents(listener_, connection_, &happened) == 0; // also resets the event
+	}
+
+	/// @brief Ends waitForConnection(), now or at its next call. Safe from any thread.
+	void stop() noexcept { WSASetEvent(stop_); }
+
+private:
+	SocketHandle listener_ = noSocket;       ///< The socket watched.
+	WSAEVENT connection_ = WSA_INVALID_EVENT; ///< Set by Winsock when a peer connects.
+	WSAEVENT stop_ = WSA_INVALID_EVENT;       ///< Set by stop().
+};
+
+#else
+
+constexpr SocketHandle noSocket = -1; ///< What socket() and accept() return on failure.
+using AddressLength = socklen_t;      ///< The type of an address's length.
+
+/// @brief Nothing to start on POSIX.
+void startSockets() {}
+
+/// @brief Describes the last error of this thread.
+/// @return The description.
+std::string lastError() { return std::strerror(errno); }
+
+/// @brief Closes a socket.
+/// @param socket The socket.
+void closeSocket(SocketHandle socket) noexcept { close(socket); }
+
+/// @brief Ends both directions of a connection, which ends a read() blocked on it in another thread.
+/// @param socket The socket.
+void shutdownSocket(SocketHandle socket) noexcept { shutdown(socket, SHUT_RDWR); }
+
+/// @brief Keeps writes to a peer that went away from killing the app (SIGPIPE).
+/// @param socket The socket.
+void ignoreBrokenPipes([[maybe_unused]] SocketHandle socket) {
+	std::signal(SIGPIPE, SIG_IGN); // writing to a peer that went away must not kill the app
+#if defined(SO_NOSIGPIPE)
+	const int on = 1;
+	setsockopt(socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+#endif
+}
+
+/// @brief Receives from a connection.
+/// @param socket The socket.
+/// @param data Receives the bytes.
+/// @param size The most to read.
+/// @return How many bytes, 0 when the peer closed, less on an error.
+std::ptrdiff_t receive(SocketHandle socket, char* data, std::size_t size) {
+	return detail::readDescriptor(socket, data, size);
+}
+
+/// @brief Sends on a connection.
+/// @param socket The socket.
+/// @param data The bytes.
+/// @param size How many.
+/// @return How many bytes were sent, less than 1 on an error.
+std::ptrdiff_t transmit(SocketHandle socket, const char* data, std::size_t size) {
+	return detail::writeDescriptor(socket, data, size);
+}
+
+/// @brief Lets only this user open the socket file (`0600`).
+/// @param path The socket file.
+/// @return false on an error (see lastError()).
+bool restrictToOwner(const std::filesystem::path& path) { return chmod(path.c_str(), S_IRUSR | S_IWUSR) == 0; }
+
+/// @brief Removes a socket file, if there is one.
+/// @param path The file.
+void removeSocketFile(const std::filesystem::path& path) { unlink(path.c_str()); }
+
+/// @brief Accepts a connection that is waiting.
+/// @param listener The listening socket.
+/// @return The connection, or noSocket.
+SocketHandle acceptConnection(SocketHandle listener) { return accept(listener, nullptr, nullptr); }
+
+/// @brief Waits on a listening socket for a connection, or for stop() from another thread: poll() and a pipe.
+class AcceptWait {
+public:
+	AcceptWait() = default;
+	/// @brief Closes the pipe.
+	~AcceptWait() {
+		for(int fd : wake_)
+			if(fd >= 0) close(fd);
+	}
+	AcceptWait(const AcceptWait&) = delete;
+	AcceptWait& operator=(const AcceptWait&) = delete;
+
+	/// @brief Starts watching a listening socket.
+	/// @param listener The socket.
+	/// @return false on an error (see lastError()).
+	[[nodiscard]] bool watch(SocketHandle listener) {
+		listener_ = listener;
+		return pipe(wake_) == 0;
+	}
+
+	/// @brief Blocks until a peer connects, or until stop().
+	/// @return true when a connection may be waiting; false once stopped or on an error.
+	[[nodiscard]] bool waitForConnection() {
+		pollfd watched[2] = {{listener_, POLLIN, 0}, {wake_[0], POLLIN, 0}};
+		while(true) {
+			if(poll(watched, 2, -1) < 0) {
+				if(errno == EINTR) continue; // a signal, not a reason to stop accepting
+				return false;
+			}
+			if(watched[1].revents & POLLIN) return false;
+			if(watched[0].revents & POLLIN) return true;
+		}
+	}
+
+	/// @brief Ends waitForConnection(), now or at its next call. Safe from any thread.
+	void stop() noexcept {
+		const char byte = 0;
+		if(write(wake_[1], &byte, 1) != 1) shutdown(listener_, SHUT_RDWR); // no pipe: end poll() the hard way
+	}
+
+private:
+	SocketHandle listener_ = noSocket; ///< The socket watched.
+	int wake_[2] = {-1, -1};           ///< Written by stop().
+};
+
+#endif
+
+/* Shared by both */
 
 /// @brief Makes the address of a socket file.
 /// @param path The file.
@@ -50,54 +330,108 @@ sockaddr_un address(const std::filesystem::path& path) {
 	return result;
 }
 
+/// @brief The length of a socket file's address, as the socket functions take it.
+constexpr auto addressLength = static_cast<AddressLength>(sizeof(sockaddr_un));
+
 /// @brief Connects to a socket file.
 /// @param path The file.
-/// @return A connected socket, or -1.
-int connectTo(const std::filesystem::path& path) {
+/// @return A connected socket, or noSocket.
+SocketHandle connectTo(const std::filesystem::path& path) {
+	startSockets();
 	const sockaddr_un target = address(path);
-	const int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if(fd < 0) return -1;
-	if(::connect(fd, reinterpret_cast<const sockaddr*>(&target), sizeof(target)) != 0) {
-		close(fd);
-		return -1;
+	const SocketHandle connection = socket(AF_UNIX, SOCK_STREAM, 0);
+	if(connection == noSocket) return noSocket;
+	if(::connect(connection, reinterpret_cast<const sockaddr*>(&target), addressLength) != 0) {
+		closeSocket(connection);
+		return noSocket;
 	}
-	return fd;
+	return connection;
 }
 
-/// @brief Keeps writes to a peer that went away from killing the app (SIGPIPE).
-/// @param fd The socket.
-void ignoreBrokenPipes([[maybe_unused]] int fd) {
-	std::signal(SIGPIPE, SIG_IGN); // writing to a peer that went away must not kill the app
-#if defined(SO_NOSIGPIPE)
-	const int on = 1;
-	setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
-#endif
+/// @brief Creates a socket file and listens on it.
+/// @param path The file (one left by a server that crashed must be removed first).
+/// @return The listening socket.
+/// @throws std::runtime_error If it can't be created.
+SocketHandle listenAt(const std::filesystem::path& path) {
+	startSockets();
+	const sockaddr_un local = address(path);
+	const SocketHandle listener = socket(AF_UNIX, SOCK_STREAM, 0);
+	if(listener == noSocket || bind(listener, reinterpret_cast<const sockaddr*>(&local), addressLength) != 0 ||
+	   !restrictToOwner(path) || listen(listener, 8) != 0) {
+		const std::string reason = lastError();
+		if(listener != noSocket) closeSocket(listener);
+		throw std::runtime_error("AffrescoUI: could not listen at " + path.string() + ": " + reason);
+	}
+	return listener;
 }
 
 } // namespace
 
+/* SocketServer::Listener */
+
+/// @brief A listening socket, and the wake-up that lets the destructor stop a thread blocked accepting on it.
+///
+/// accept() runs on the server's acceptor thread; stop() on the main thread.
+class SocketServer::Listener {
+public:
+	/// @brief Creates the socket file and listens on it.
+	/// @param path The socket file.
+	/// @throws std::runtime_error If it can't be created.
+	explicit Listener(const std::filesystem::path& path) : socket_(listenAt(path)) {
+		if(!wait_.watch(socket_)) {
+			const std::string reason = lastError();
+			closeSocket(socket_);
+			throw std::runtime_error("AffrescoUI: could not listen at " + path.string() + ": " + reason);
+		}
+	}
+	/// @brief Closes the socket (the file stays: the server removes it).
+	~Listener() { closeSocket(socket_); }
+
+	Listener(const Listener&) = delete;
+	Listener& operator=(const Listener&) = delete;
+
+	/// @brief Waits for the next connection.
+	/// @return The connection, or nothing once stop() was called.
+	[[nodiscard]] std::optional<SocketHandle> accept() {
+		while(wait_.waitForConnection())
+			if(const SocketHandle connection = acceptConnection(socket_); connection != noSocket) return connection;
+		return std::nullopt;
+	}
+
+	/// @brief Ends accept(), now or at its next call.
+	void stop() noexcept { wait_.stop(); }
+
+private:
+	SocketHandle socket_; ///< The listening socket.
+	AcceptWait wait_;     ///< Wakes accept() for a connection or for stop().
+};
+
 /* SocketChannel */
 
 std::unique_ptr<SocketChannel> SocketChannel::connect(Executor& executor, const std::filesystem::path& path) {
-	const int fd = connectTo(path);
-	if(fd < 0) throw std::runtime_error("AffrescoUI: nothing is listening at " + path.string());
-	return std::make_unique<SocketChannel>(executor, fd);
+	const SocketHandle connection = connectTo(path);
+	if(connection == noSocket) throw std::runtime_error("AffrescoUI: nothing is listening at " + path.string());
+	return std::make_unique<SocketChannel>(executor, connection);
 }
 
-SocketChannel::SocketChannel(Executor& executor, int socket) : socket_(socket) {
+SocketChannel::SocketChannel(Executor& executor, SocketHandle socket) : socket_(socket) {
 	ignoreBrokenPipes(socket_);
-	reader_ = std::thread([this, &executor] { detail::readLines(socket_, executor, *this, alive_, &open_); });
+	reader_ = std::thread([this, &executor] {
+		const auto read = [this](char* data, std::size_t size) { return receive(socket_, data, size); };
+		detail::readLines(read, executor, *this, alive_, &open_);
+	});
 }
 
 SocketChannel::~SocketChannel() {
 	*alive_ = false;
-	shutdown(socket_, SHUT_RDWR); // ends the reader's read()
+	shutdownSocket(socket_); // ends the reader's read
 	if(reader_.joinable()) reader_.join();
-	close(socket_);
+	closeSocket(socket_);
 }
 
 void SocketChannel::send(std::string_view message) {
-	if(open_ && !detail::writeAll(socket_, message)) open_ = false;
+	const auto write = [this](const char* data, std::size_t size) { return transmit(socket_, data, size); };
+	if(open_ && !detail::writeAll(write, message)) open_ = false;
 }
 
 /* SocketServer */
@@ -105,30 +439,18 @@ void SocketChannel::send(std::string_view message) {
 SocketServer::SocketServer(Executor& executor, std::filesystem::path path, Connected onConnection)
     : executor_(executor), path_(std::move(path)), onConnection_(std::move(onConnection)) {
 	// A socket file left by a server that crashed is replaced; one that still answers is in use
-	if(const int existing = connectTo(path_); existing >= 0) {
-		close(existing);
+	if(const SocketHandle existing = connectTo(path_); existing != noSocket) {
+		closeSocket(existing);
 		throw std::runtime_error("AffrescoUI: another app is already listening at " + path_.string());
 	}
-	unlink(path_.c_str());
-
-	const sockaddr_un local = address(path_);
-	listener_ = socket(AF_UNIX, SOCK_STREAM, 0);
-	if(listener_ < 0 || bind(listener_, reinterpret_cast<const sockaddr*>(&local), sizeof(local)) != 0 ||
-	   chmod(path_.c_str(), S_IRUSR | S_IWUSR) != 0 || listen(listener_, 8) != 0 || pipe(wake_) != 0) {
-		const std::string reason = std::strerror(errno);
-		if(listener_ >= 0) close(listener_);
-		throw std::runtime_error("AffrescoUI: could not listen at " + path_.string() + ": " + reason);
-	}
+	removeSocketFile(path_);
+	listener_ = std::make_unique<Listener>(path_);
 
 	acceptor_ = std::thread([this] {
-		pollfd watched[2] = {{listener_, POLLIN, 0}, {wake_[0], POLLIN, 0}};
-		while(poll(watched, 2, -1) >= 0 && !(watched[1].revents & POLLIN)) {
-			if(!(watched[0].revents & POLLIN)) continue;
-			const int fd = accept(listener_, nullptr, nullptr);
-			if(fd < 0) continue;
-			executor_.post([this, fd, alive = alive_] {
-				if(*alive) onConnection_(std::make_unique<SocketChannel>(executor_, fd));
-				else close(fd);
+		while(const std::optional<SocketHandle> connection = listener_->accept()) {
+			executor_.post([this, socket = *connection, alive = alive_] {
+				if(*alive) onConnection_(std::make_unique<SocketChannel>(executor_, socket));
+				else closeSocket(socket);
 			});
 		}
 	});
@@ -136,14 +458,10 @@ SocketServer::SocketServer(Executor& executor, std::filesystem::path path, Conne
 
 SocketServer::~SocketServer() {
 	*alive_ = false;
-	const char stop = 0;
-	if(write(wake_[1], &stop, 1) != 1) shutdown(listener_, SHUT_RDWR);
+	listener_->stop();
 	if(acceptor_.joinable()) acceptor_.join();
-	for(int fd : {listener_, wake_[0], wake_[1]})
-		if(fd >= 0) close(fd);
-	unlink(path_.c_str());
+	listener_.reset();
+	removeSocketFile(path_);
 }
 
 } // namespace affresco::channel
-
-#endif
