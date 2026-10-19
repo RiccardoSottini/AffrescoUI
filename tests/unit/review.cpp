@@ -1,21 +1,18 @@
 /// @file
-/// @brief Tests that need a window: review steps in a screen, and control steps while a proposal is previewed.
-///
-/// Built into affrescoui_window_tests (see timers.cpp): the steps run on a window, the windows are never shown.
+/// @brief Review steps in a screen, and control steps while a proposal is previewed, on a headless window.
+
+#include "Headless.hpp"
 
 #include <affresco/affresco.hpp>
 
-#include <GLFW/glfw3.h>
 #include <doctest/doctest.h>
 
-#include <chrono>
 #include <string>
-#include <thread>
+
+using affresco::detail::createHeadlessWindow;
+using affresco::detail::ManualClock;
 
 namespace {
-
-/// @brief Waits long enough for the "every" timers in these tests (16 ms) to be due.
-void waitForTimers() { std::this_thread::sleep_for(std::chrono::milliseconds(40)); }
 
 /// @brief A screen where the agent's changes wait for review, with a native "save", review actions, a button that
 /// saves, and a timer that saves.
@@ -57,11 +54,12 @@ void click(affresco::Window& window, float x, float y) {
 
 // Before, an "accept" step approved whatever the proposal had become: it named no head
 TEST_CASE("format: an accept step names the head the user reviewed") {
-	affresco::Application app;
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(reviewScreen);
 	screen.onCall("save", [](const std::string&) { return std::string(); });
-	affresco::Window& window = screen.createWindow(app);
+	affresco::Window& window = *headless;
+	screen.build(window);
 	window.render();
 	proposeAsAgent(screen);
 
@@ -79,24 +77,25 @@ TEST_CASE("format: an accept step names the head the user reviewed") {
 // Before, a previewed proposal's document ran its control steps from timers: with a timer it added, a proposal
 // accepted itself when the reviewer only previewed it
 TEST_CASE("format: while a proposal is previewed, control steps run only from the user's input") {
-	affresco::Application app;
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	ManualClock clock;
+	const auto headless = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(reviewScreen);
 	int saves = 0;
 	screen.onCall("save", [&](const std::string&) {
 		++saves;
 		return std::string();
 	});
-	affresco::Window& window = screen.createWindow(app);
+	affresco::Window& window = *headless;
+	screen.build(window);
 	window.render();
-	waitForTimers();
+	clock.advance(40.0);
 	window.render();
 	CHECK(saves > 0); // the screen's own timer saves
 
 	REQUIRE(screen.previewProposal(proposeAsAgent(screen)));
 	saves = 0;
 	for(int frame = 0; frame < 3; ++frame) {
-		waitForTimers();
+		clock.advance(40.0);
 		window.render();
 	}
 	CHECK(saves == 0); // the timer's "call" is refused while the proposal is shown
@@ -106,7 +105,7 @@ TEST_CASE("format: while a proposal is previewed, control steps run only from th
 	CHECK(saves == 1); // the user's own click still saves
 
 	screen.endPreview();
-	waitForTimers();
+	clock.advance(40.0);
 	window.render();
 	CHECK(saves > 1);
 }

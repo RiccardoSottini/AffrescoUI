@@ -172,12 +172,6 @@ inline std::string normalizeShortcut(std::string_view text) {
 	return std::string(cmd ? "cmd+" : "") + (ctrl ? "ctrl+" : "") + (alt ? "alt+" : "") + (shift ? "shift+" : "") + key;
 }
 
-/// @brief Seconds on a steady clock.
-/// @return Now.
-inline double now() {
-	return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-}
-
 /// @brief Eases an animation's progress.
 /// @param easing "linear", "in", "out" or "inOut".
 /// @param t Progress, 0 to 1.
@@ -373,6 +367,10 @@ struct Runtime::Impl final : VersionObserver {
 
 	Impl(Runtime& runtime, VersionControl& vcs, std::filesystem::path base)
 	    : owner(runtime), versions(vcs), baseDirectory(std::move(base)) {}
+
+	/// @brief Seconds on the window's clock, which its timers read too (a steady clock before build()).
+	/// @return Now.
+	[[nodiscard]] double now() const noexcept { return window ? window->clock().seconds() : SteadyClock().seconds(); }
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

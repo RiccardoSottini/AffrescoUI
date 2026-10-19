@@ -1,18 +1,21 @@
+/// @file
+/// @brief Window: input routing, focus, hover, capture, timers, deferred tasks, layout and tooltips. Nothing here
+/// calls the windowing system or OpenGL: the OS window is a platform::NativeWindow and drawing a detail::Renderer,
+/// and a headless window has neither.
+
 #include "affresco/render/Window.hpp"
 #include "affresco/render/Label.hpp"
 
+#include "Renderer.hpp"
 #include "detail/Ppm.hpp"
-#include "gl/Context.hpp"
-#include "gl/QuadRenderer.hpp"
-
-#include <GLFW/glfw3.h>
+#include "platform/Platform.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <array>
+#include <cstdint>
 #include <iterator>
-#include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace affresco {
 
@@ -23,61 +26,71 @@ constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
 
 } // namespace
 
-void Window::HandleDeleter::operator()(GLFWwindow* handle) const noexcept { glfwDestroyWindow(handle); }
+void platform::NativeWindow::resized(Window& window, int width, int height) { window.resized(width, height); }
 
-Window::Window(std::string title, int width, int height) : title_(std::move(title)), width_(width), height_(height) {
-	handle_.reset(glfwCreateWindow(width, height, title_.c_str(), nullptr, nullptr));
-	if(!handle_) throw std::runtime_error("AffrescoUI: could not create a window with an OpenGL 4.1 core context");
+void platform::NativeWindow::refresh(Window& window) { window.refresh(); }
 
-	glfwMakeContextCurrent(handle_.get());
-	if(!gl::loadFunctions(reinterpret_cast<gl::ProcAddressLoader>(glfwGetProcAddress)))
-		throw std::runtime_error("AffrescoUI: could not load the OpenGL functions");
-	glfwSwapInterval(1); // vsync: never render faster than the display
-
-	renderer_ = std::make_unique<gl::QuadRenderer>();
-
+Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<detail::Renderer> renderer,
+               const Clock& clock, std::string title, int width, int height)
+    : native_(std::move(native)), renderer_(std::move(renderer)), clock_(&clock), title_(std::move(title)),
+      width_(width), height_(height) {
 	root_.attachTo(this);
-	installCallbacks();
+	if(native_) native_->connect(*this);
 }
 
 Window::~Window() {
-	for(GLFWcursor* cursor : cursors_)
-		if(cursor) glfwDestroyCursor(cursor);
-
 	// GL objects owned by the renderer are deleted in this window's context
-	if(handle_) glfwMakeContextCurrent(handle_.get());
+	if(native_) native_->makeCurrent();
+	renderer_.reset();
+}
+
+GLFWwindow* Window::nativeHandle() const noexcept {
+	return native_ ? static_cast<GLFWwindow*>(native_->handle()) : nullptr;
 }
 
 /* Properties */
 
 void Window::setTitle(std::string title) {
 	title_ = std::move(title);
-	glfwSetWindowTitle(handle_.get(), title_.c_str());
+	if(native_) native_->setTitle(title_);
 }
 
 void Window::setSize(int width, int height) {
 	width_ = std::max(width, minWidth_);
 	height_ = std::max(height, minHeight_);
-	glfwSetWindowSize(handle_.get(), width_, height_);
+	if(native_) native_->setSize(width_, height_); // the OS then reports the size: resized()
+	else resized(width_, height_);                 // headless: as the OS would
 	invalidate();
 }
 
 void Window::setMinSize(int minWidth, int minHeight) {
 	minWidth_ = minWidth;
 	minHeight_ = minHeight;
-	glfwSetWindowSizeLimits(handle_.get(), minWidth_, minHeight_, GLFW_DONT_CARE, GLFW_DONT_CARE);
+	if(native_) native_->setMinSize(minWidth_, minHeight_);
 
 	if(width_ < minWidth_ || height_ < minHeight_) setSize(width_, height_);
 }
 
-bool Window::isVisible() const { return glfwGetWindowAttrib(handle_.get(), GLFW_VISIBLE) == GLFW_TRUE; }
+bool Window::isVisible() const { return native_ ? native_->isVisible() : visible_; }
 
 void Window::setVisible(bool visible) {
-	if(visible) glfwShowWindow(handle_.get());
-	else glfwHideWindow(handle_.get());
+	if(native_) native_->setVisible(visible);
+	else visible_ = visible;
 }
 
-bool Window::shouldClose() const { return glfwWindowShouldClose(handle_.get()) == GLFW_TRUE; }
+bool Window::shouldClose() const { return native_ && native_->shouldClose(); }
+
+void Window::resized(int width, int height) {
+	width_ = width;
+	height_ = height;
+	invalidate();
+	onResize(ResizeEvent{width, height});
+}
+
+void Window::refresh() {
+	redrawDirty_ = true;
+	render();
+}
 
 /* Content */
 
@@ -89,12 +102,12 @@ void Window::setFocus(Panel* panel) {
 	if(focused_) focused_->focusEvent(true);
 }
 
-std::string Window::clipboardText() const {
-	const char* text = glfwGetClipboardString(handle_.get());
-	return text ? text : "";
-}
+std::string Window::clipboardText() const { return native_ ? native_->clipboardText() : clipboard_; }
 
-void Window::setClipboardText(const std::string& utf8) { glfwSetClipboardString(handle_.get(), utf8.c_str()); }
+void Window::setClipboardText(const std::string& utf8) {
+	if(native_) native_->setClipboardText(utf8);
+	else clipboard_ = utf8;
+}
 
 void Window::setDefaultFont(std::shared_ptr<const Font> font) {
 	defaultFont_ = std::move(font);
@@ -201,18 +214,11 @@ void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
 }
 
 void Window::draw() {
-	// On HiDPI screens the framebuffer has more pixels than the window has units
-	int framebufferWidth = 0, framebufferHeight = 0;
-	glfwGetFramebufferSize(handle_.get(), &framebufferWidth, &framebufferHeight);
-	draw(framebufferWidth, framebufferHeight);
-}
-
-void Window::draw(int framebufferWidth, int framebufferHeight) {
-	if(glfwGetCurrentContext() != handle_.get()) glfwMakeContextCurrent(handle_.get());
-	gl::beginFrame(framebufferWidth, framebufferHeight);
-
+	native_->makeCurrent();
 	updateLayout();
-	renderer_->draw(root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_);
+	// On HiDPI screens the framebuffer has more pixels than the window has units
+	renderer_->draw({root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_},
+	                native_->framebufferSize());
 }
 
 void Window::defer(std::function<void()> task) {
@@ -231,8 +237,8 @@ void Window::runDeferred() {
 
 std::uint64_t Window::setTimer(double delayMs, std::function<void()> task) {
 	const std::uint64_t id = nextTimerId_++;
-	timers_.push_back({id, glfwGetTime() + std::max(delayMs, 0.0) / 1000.0, std::move(task)});
-	glfwPostEmptyEvent(); // the event loop recomputes how long it may sleep
+	timers_.push_back({id, clock_->seconds() + std::max(delayMs, 0.0) / 1000.0, std::move(task)});
+	if(native_) native_->wake(); // the event loop recomputes how long it may sleep
 	return id;
 }
 
@@ -247,14 +253,14 @@ std::optional<double> Window::secondsToNextTimer() const {
 	if(timers_.empty()) return std::nullopt;
 	double due = timers_.front().due;
 	for(const Timer& timer : timers_) due = std::min(due, timer.due);
-	return std::max(due - glfwGetTime(), 0.0);
+	return std::max(due - clock_->seconds(), 0.0);
 }
 
 // Each due timer runs once, earliest first; tasks may set new timers, which wait for the next call. The due timers are
 // taken out and sorted once (a document can set thousands), and a task can still cancel the ones after it:
 // cancelTimer() reaches them through dueTimers_.
 void Window::runTimers() {
-	const double now = glfwGetTime();
+	const double now = clock_->seconds();
 	const auto firstDue = std::ranges::partition(timers_, [now](const Timer& t) { return t.due > now; }).begin();
 	if(firstDue == timers_.end()) return;
 	std::vector<Timer> due(std::make_move_iterator(firstDue), std::make_move_iterator(timers_.end()));
@@ -291,89 +297,38 @@ void Window::render() {
 	runDeferred();
 	if(!redrawDirty_) return;
 
-	draw();
-	glfwSwapBuffers(handle_.get());
+	if(renderer_) {
+		draw();
+		native_->present();
+	} else {
+		updateLayout(); // headless: the frame is laid out, never drawn
+	}
 	redrawDirty_ = false;
 }
 
 bool Window::saveScreenshot(const std::filesystem::path& path) {
+	if(!renderer_) return false;
 	runDeferred(); // pending UI updates belong in the picture
 	draw();        // into the back buffer, without presenting it
 
-	int width = 0, height = 0;
-	glfwGetFramebufferSize(handle_.get(), &width, &height);
-
-	return detail::writePpm(path, width, height, gl::readBackBuffer(width, height));
+	const platform::PixelSize size = native_->framebufferSize();
+	return detail::writePpm(path, size.width, size.height, renderer_->readBack(size));
 }
 
 bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
+	if(!renderer_) return false;
 	runDeferred();
-	if(glfwGetCurrentContext() != handle_.get()) glfwMakeContextCurrent(handle_.get()); // the image is created in it
+	native_->makeCurrent(); // the image is created in it
+	updateLayout();
 
-	const int width = width_ * scale, height = height_ * scale;
-	const gl::OffscreenTarget target(width, height);
-	draw(width, height);
-	return detail::writePpm(path, width, height, target.pixels());
+	const platform::PixelSize size{width_ * scale, height_ * scale};
+	const std::vector<std::uint8_t> pixels =
+	    renderer_->drawOffscreen({root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_}, size);
+	return detail::writePpm(path, size.width, size.height, pixels);
 }
 
-/* Input: GLFW callbacks are converted to typed events and routed immediately */
-
-void Window::installCallbacks() {
-	GLFWwindow* handle = handle_.get();
-	glfwSetWindowUserPointer(handle, this);
-
-	static constexpr auto self = [](GLFWwindow* window) -> Window& {
-		return *static_cast<Window*>(glfwGetWindowUserPointer(window));
-	};
-
-	// Size changes only mark the window dirty; the main loop or the refresh callback draws once.
-	// (During a live resize on macOS the loop is blocked and the refresh callback fires after every step.)
-	glfwSetWindowSizeCallback(handle, [](GLFWwindow* window, int width, int height) {
-		Window& w = self(window);
-		w.width_ = width;
-		w.height_ = height;
-		w.invalidate();
-		w.onResize(ResizeEvent{width, height});
-	});
-
-	glfwSetFramebufferSizeCallback(handle, [](GLFWwindow* window, int, int) { self(window).invalidate(); });
-
-	glfwSetWindowRefreshCallback(handle, [](GLFWwindow* window) {
-		Window& w = self(window);
-		w.redrawDirty_ = true;
-		w.render();
-	});
-
-	glfwSetKeyCallback(handle, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-		self(window).routeKey({static_cast<Key>(key), scancode, static_cast<Action>(action), Mods{mods}});
-	});
-
-	glfwSetCharCallback(handle, [](GLFWwindow* window, unsigned int codepoint) {
-		self(window).routeChar({static_cast<char32_t>(codepoint)});
-	});
-
-	glfwSetCursorPosCallback(handle, [](GLFWwindow* window, double x, double y) {
-		self(window).routeMouseMove({static_cast<float>(x), static_cast<float>(y)});
-	});
-
-	glfwSetMouseButtonCallback(handle, [](GLFWwindow* window, int button, int action, int mods) {
-		// Asked rather than taken from the last move: a click can come before any move event
-		double x = 0.0, y = 0.0;
-		glfwGetCursorPos(window, &x, &y);
-		self(window).routeMouseButton({static_cast<MouseButton>(button),
-		                               static_cast<Action>(action),
-		                               Mods{mods},
-		                               {static_cast<float>(x), static_cast<float>(y)}});
-	});
-
-	glfwSetScrollCallback(handle, [](GLFWwindow* window, double dx, double dy) {
-		Window& w = self(window);
-		w.routeScroll({{static_cast<float>(dx), static_cast<float>(dy)}, w.cursor_});
-	});
-
-	glfwSetCursorEnterCallback(
-	    handle, [](GLFWwindow* window, int entered) { self(window).routeCursorEnter(entered == GLFW_TRUE); });
-}
+/* Input: the platform converts the OS's events to typed events and routes them immediately; tests and automation
+   call the same functions */
 
 void Window::routeKey(const KeyEvent& event) {
 	++routing_;
@@ -508,17 +463,7 @@ void Window::updateCursor() {
 	const Cursor shape = owner ? owner->cursor() : Cursor::Arrow;
 	if(shape == currentCursor_) return;
 	currentCursor_ = shape;
-
-	if(shape == Cursor::Arrow) {
-		glfwSetCursor(handle_.get(), nullptr); // the system default
-		return;
-	}
-
-	static constexpr std::array<int, 5> standardShapes = {
-	    GLFW_ARROW_CURSOR, GLFW_IBEAM_CURSOR, GLFW_POINTING_HAND_CURSOR, GLFW_RESIZE_EW_CURSOR, GLFW_RESIZE_NS_CURSOR};
-	const auto index = static_cast<std::size_t>(shape);
-	if(!cursors_[index]) cursors_[index] = glfwCreateStandardCursor(standardShapes[index]);
-	glfwSetCursor(handle_.get(), cursors_[index]);
+	if(native_) native_->setCursor(shape);
 }
 
 } // namespace affresco

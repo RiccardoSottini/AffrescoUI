@@ -1,14 +1,15 @@
 #pragma once
 
 /// @file
-/// @brief Window: an OS window with its own OpenGL context and a root panel.
+/// @brief Window: a root panel with its input routing, focus, timers and layout, shown in an OS window with its own
+/// OpenGL context, or headless (no display, no OpenGL).
 
+#include "affresco/render/Clock.hpp"
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/core/Signal.hpp"
 
-#include <array>
 #include <cstdint>
 #include <optional>
 #include <concepts>
@@ -20,20 +21,26 @@
 #include <vector>
 
 struct GLFWwindow;
-struct GLFWcursor;
 
 namespace affresco {
 
 class Label;
 
-namespace gl {
-class QuadRenderer;
+namespace platform {
+class NativeWindow;
 }
+namespace detail {
+class Renderer;
+struct WindowFactory;
+} // namespace detail
 
-/// @brief An OS window with its own OpenGL context and a root Panel filling it. Created by Application.
+/// @brief A root Panel filling a window: routes input to its panels, keeps the focus, hover and mouse capture, runs
+/// timers and deferred tasks, lays the tree out, and draws only when something changed. Created by Application.
 ///
-/// Routes input to its panels and draws only when something changed. Sizes are in window units; on HiDPI screens
-/// the framebuffer has more pixels.
+/// Its logic needs no display. An Application's window is an OS window with an OpenGL context, behind the render
+/// module's platform layer and renderer; a headless window (for tests and automation) has neither, and does
+/// everything but draw. Sizes are in window units; on HiDPI screens the framebuffer has more pixels. Its timers,
+/// tooltip delay and double clicks read its clock(). Main thread only.
 class Window {
 public:
 	~Window();
@@ -68,6 +75,9 @@ public:
 	/// @param minWidth The minimum width.
 	/// @param minHeight The minimum height.
 	void setMinSize(int minWidth, int minHeight);
+
+	/// @brief The clock its timers, tooltip delay and double clicks read, and the animations of what is built into it.
+	[[nodiscard]] const Clock& clock() const noexcept { return *clock_; }
 
 	/// @brief Whether the window is shown.
 	[[nodiscard]] bool isVisible() const;
@@ -108,9 +118,9 @@ public:
 	/// @brief The font of labels that don't have their own, or nullptr.
 	[[nodiscard]] const Font* defaultFont() const noexcept { return defaultFont_.get(); }
 
-	/// @brief The system clipboard's text, as UTF-8.
+	/// @brief The system clipboard's text, as UTF-8 (a headless window keeps a clipboard of its own).
 	[[nodiscard]] std::string clipboardText() const;
-	/// @brief Sets the system clipboard's text.
+	/// @brief Sets the system clipboard's text (a headless window keeps a clipboard of its own).
 	/// @param utf8 UTF-8 text.
 	void setClipboardText(const std::string& utf8);
 
@@ -183,43 +193,50 @@ public:
 	/// @return Seconds (0 if one is due now), or std::nullopt if none is set.
 	[[nodiscard]] std::optional<double> secondsToNextTimer() const;
 
-	/// @brief Runs due timers and deferred tasks, then lays out, draws and presents a frame if something changed.
+	/// @brief Runs due timers and deferred tasks, then lays out, draws and presents a frame if something changed. A
+	/// headless window lays out instead of drawing.
 	void render();
 
 	/// @brief Draws the current frame and saves it without presenting it.
 	/// @param path Binary PPM file to write, at framebuffer resolution.
-	/// @return false if it couldn't be written.
+	/// @return false if it couldn't be written, or the window is headless.
 	bool saveScreenshot(const std::filesystem::path& path);
 	/// @brief Draws the current frame offscreen, at a fixed scale whatever the display, and saves it (for tests).
 	/// @param path Binary PPM file to write.
 	/// @param scale Pixels per window unit (2 looks like a Retina display).
-	/// @return false if it couldn't be written.
+	/// @return false if it couldn't be written, or the window is headless.
 	bool saveScreenshot(const std::filesystem::path& path, int scale);
 
-	/// @brief The GLFW window.
-	[[nodiscard]] GLFWwindow* nativeHandle() const noexcept { return handle_.get(); }
+	/// @brief The GLFW window, or nullptr for a headless window.
+	[[nodiscard]] GLFWwindow* nativeHandle() const noexcept;
 
 private:
 	friend class Application;
 	friend class Panel;
+	friend class platform::NativeWindow;
+	friend struct detail::WindowFactory;
 
-	/// @brief Opens the OS window, loads OpenGL and turns vsync on.
+	/// @brief Sets a window up around its parts.
+	/// @param native The OS window, or nullptr for a headless one; owned from now on, and connected to this window.
+	/// @param renderer Draws the frames in @p native's context, or nullptr for a headless window.
+	/// @param clock The clock; must outlive the window.
 	/// @param title The title.
 	/// @param width Width in window units.
 	/// @param height Height in window units.
-	/// @throws std::runtime_error If the window, its context or OpenGL can't be set up.
-	Window(std::string title, int width, int height);
+	Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<detail::Renderer> renderer,
+	       const Clock& clock, std::string title, int width, int height);
 
 	/// @brief Lays the tree out if anything changed; the root fills the window.
 	void updateLayout();
-	/// @brief Draws the tree into the back buffer, in this window's context.
+	/// @brief Lays out and draws the tree into the back buffer, in this window's context.
+	/// @pre The window has a renderer.
 	void draw();
-	/// @brief Draws the tree into the current framebuffer (the back buffer, or an offscreen image).
-	/// @param framebufferWidth In pixels.
-	/// @param framebufferHeight In pixels.
-	void draw(int framebufferWidth, int framebufferHeight);
-	/// @brief Connects the GLFW callbacks.
-	void installCallbacks();
+	/// @brief Takes a new size from the OS: lays out again and fires onResize.
+	/// @param width In window units.
+	/// @param height In window units.
+	void resized(int width, int height);
+	/// @brief Draws a frame now, whether or not something changed (the OS asks during a live resize).
+	void refresh();
 
 	/// @brief Changes the hovered panel, sending hover events to it and to its ancestors that the pointer entered or
 	/// left, and updating the cursor and the tooltip.
@@ -244,16 +261,12 @@ private:
 	/// @brief Shows the cursor of the grabbing or hovered panel.
 	void updateCursor();
 
-	/// @brief Destroys a GLFW window, for std::unique_ptr.
-	struct HandleDeleter {
-		/// @brief Destroys the window.
-		/// @param handle The window.
-		void operator()(GLFWwindow* handle) const noexcept;
-	};
-
-	// Declaration order matters: the renderer must be destroyed before the window (and its GL context)
-	std::unique_ptr<GLFWwindow, HandleDeleter> handle_; ///< OS window and OpenGL context.
-	std::unique_ptr<gl::QuadRenderer> renderer_;        ///< Draws the tree.
+	// Declaration order matters: the renderer must be destroyed before the OS window (and its GL context)
+	std::unique_ptr<platform::NativeWindow> native_; ///< OS window and OpenGL context; nullptr when headless.
+	std::unique_ptr<detail::Renderer> renderer_;     ///< Draws the tree; nullptr when headless.
+	const Clock* clock_;                             ///< See clock(); never null.
+	std::string clipboard_;                          ///< A headless window's clipboard.
+	bool visible_ = true;                            ///< Whether a headless window counts as shown.
 
 	std::string title_;                           ///< See title().
 	int width_ = 0, height_ = 0;                  ///< Size, in window units.
@@ -275,7 +288,7 @@ private:
 	/// @brief A task waiting for its time.
 	struct Timer {
 		std::uint64_t id;           ///< See setTimer().
-		double due;                 ///< glfwGetTime() when it runs.
+		double due;                 ///< clock().seconds() when it runs.
 		std::function<void()> task; ///< The work.
 	};
 	std::vector<Timer> timers_;    ///< See setTimer().
@@ -287,7 +300,6 @@ private:
 	bool tooltipShown_ = false;       ///< The tooltip is on screen.
 	std::uint64_t tooltipTimer_ = 0;  ///< The delay before showing it, if running.
 
-	std::array<GLFWcursor*, 5> cursors_{}; ///< Standard cursors, created on first use (indexed by Cursor).
 	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.
 	Panel root_;                           ///< Fills the window.
 };

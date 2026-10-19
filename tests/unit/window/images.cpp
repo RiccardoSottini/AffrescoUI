@@ -2,7 +2,8 @@
 /// @brief Tests that need a window: pictures of a screen for peers ("render"), of main and of a proposal, drawn
 /// without changing what the person sees.
 ///
-/// Built into affrescoui_window_tests (see timers.cpp). The windows are never shown.
+/// Built into affrescoui_window_tests: drawing needs an OpenGL context, so a display or Xvfb. The windows are never
+/// shown.
 
 #include "Helpers.hpp"
 
