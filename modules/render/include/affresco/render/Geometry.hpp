@@ -10,6 +10,7 @@ struct Vec2 {
 	float x = 0.0f; ///< Horizontal.
 	float y = 0.0f; ///< Vertical.
 
+	/// @brief Equal when every member is equal.
 	constexpr bool operator==(const Vec2&) const noexcept = default;
 };
 
@@ -39,6 +40,7 @@ struct Rect {
 		return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
 	}
 
+	/// @brief Equal when every member is equal.
 	constexpr bool operator==(const Rect&) const noexcept = default;
 };
 

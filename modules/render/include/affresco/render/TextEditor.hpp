@@ -33,6 +33,7 @@ public:
 		std::size_t line = 0;   ///< The line.
 		std::size_t column = 0; ///< Code points before it on the line.
 
+		/// @brief Ordered as in the text: by line, then by column.
 		constexpr auto operator<=>(const Position&) const noexcept = default;
 	};
 

@@ -1,0 +1,58 @@
+# The API reference of AffrescoUI's public headers: `doxygen Doxyfile` from the repository root writes
+# build/api-reference/html/index.html (older Doxygen, such as Ubuntu 24.04's 1.9, needs the folder first: mkdir -p build/api-reference).
+# Only the settings that differ from Doxygen's defaults are here.
+# CI (.github/workflows/docs.yml) builds it on every change and fails on any warning: every public class, function
+# and member has its Doxygen comment, and every @param names a real parameter.
+
+PROJECT_NAME           = AffrescoUI
+PROJECT_NUMBER         = 0.1.0
+PROJECT_BRIEF          = "Native UIs that people and AI agents change live, under version control"
+OUTPUT_DIRECTORY       = build/api-reference
+
+# The public headers of every module (each module's README.md says what is in them)
+INPUT                  = modules/core/include \
+                         modules/render/include \
+                         modules/format/include \
+                         modules/vcs/include \
+                         modules/channel/include \
+                         modules/screen/include
+FILE_PATTERNS          = *.hpp
+RECURSIVE              = YES
+STRIP_FROM_PATH        = modules
+STRIP_FROM_INC_PATH    = modules/core/include \
+                         modules/render/include \
+                         modules/format/include \
+                         modules/vcs/include \
+                         modules/channel/include \
+                         modules/screen/include
+# Implementation details stay out of the reference
+EXCLUDE_SYMBOLS        = detail detail::*
+
+# Only what is documented, and everything public must be
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+HIDE_UNDOC_MEMBERS     = NO
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = NO
+WARN_NO_PARAMDOC       = NO
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+QUIET                  = YES
+
+# The headers use C++23; the preprocessor sees them as the compiler does
+ENABLE_PREPROCESSING   = YES
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = modules/core/include \
+                         modules/render/include \
+                         modules/format/include \
+                         modules/vcs/include \
+                         modules/channel/include \
+                         modules/screen/include
+
+# HTML only, with no external tools
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+SOURCE_BROWSER         = YES
+HAVE_DOT               = NO

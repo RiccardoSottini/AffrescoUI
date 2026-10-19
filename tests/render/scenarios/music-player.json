@@ -1,0 +1,22 @@
+{
+	"screens": "../../../examples/assets/screens",
+	"scenarios": [
+		{
+			"name": "music-player",
+			"screen": "music-player.screen.json",
+			"steps": [
+				{ "capture": "first-frame" },
+				{ "click": "#track", "nth": 4 },
+				{ "capture": "track-chosen" },
+				{ "click": "#playlist", "nth": 2 },
+				{ "capture": "playlist-chosen" },
+				{ "press": "#volume" },
+				{ "move": [912, 768] },
+				{ "release": [912, 768] },
+				{ "capture": "volume-dragged" },
+				{ "scroll": "#tracks", "dy": -4 },
+				{ "capture": "tracks-scrolled" }
+			]
+		}
+	]
+}
