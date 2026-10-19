@@ -147,7 +147,8 @@ from whoever `from` names, and nothing more. Any peer can send one.
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
-or write files, apart from the state file its `persist` section names.
+or write files, apart from the parts of the state its `persist` section lists, which go to the state file the host
+chose.
 
 ## Limits
 
