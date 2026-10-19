@@ -25,7 +25,7 @@ It borrows from two places:
 | `allow`, `ask`, `deny` rules like `Bash(npm test)` | rules like `agent(#board)` in the screen file |
 | deny beats ask beats allow; anything else asks | the same |
 | modes `default`, `acceptEdits`, `plan` | the same names, set by the reviewer |
-| "Yes, and don't ask again for …" | **Always allow**: accept, and allow that kind of change until the app quits |
+| "Yes, and don't ask again for …" | **Always allow**: accept, and allow that kind of change until a reviewer revokes it |
 | "No, and tell Claude what to do differently" | **Reject** with a reason; the agent hears it and can propose again |
 
 ## Revisions
@@ -120,7 +120,9 @@ switch, or `setMode` over the live protocol):
 | `acceptEdits` | A change that would wait only because no rule allows it is applied. `ask` and `deny` rules still hold. (`--auto-accept`) |
 | `plan` | Authors who aren't reviewers can only propose: their `allow` rules and grants are suspended. |
 
-Proposals already waiting stay until someone decides on them.
+Proposals already waiting stay until someone decides on them. The mode a reviewer sets is kept with the history, and
+the next start uses it. `affrescoui_host`'s `--mode` and `--auto-accept` apply to that run only
+(`Screen::setModeForThisRun`), so a one-off `--auto-accept` never sticks.
 
 ## Review: proposals are branches
 A revision that needs review becomes a **proposal**, the equivalent of a pull request:
@@ -148,7 +150,8 @@ Accepting with **Always allow** (`"dontAskAgain": true`) adds a rule for exactly
 author's channel: e.g. `agent(/state/columns)` and `agent(#board)`. From then on, changes from that channel that stay
 inside those areas apply without asking.
 
-- Grants last until the host quits (they are never written into the screen), and reviewers see and **revoke** them.
+- Grants are never written into the screen. They are kept with the history, so for a screen opened from a file they
+  survive a restart ("History on disk", below). Reviewers see and **revoke** them.
 - They are allow rules, so `deny` and `ask` rules still win, and `plan` mode suspends them.
 - Not every proposal can be remembered. A proposal can't be remembered if it touches parts an `ask` rule covers, or
   if it changes something as broad as the whole layout (`/root`) or a whole section (`/actions`).
@@ -175,6 +178,68 @@ inside those areas apply without asking.
 - **Restore** a revision: a new commit that makes the whole screen equal to it again (`git restore --source`).
 - Reverts and restores made by agents follow the same permissions as any other change.
 
+## History on disk
+A screen opened from a file (`Screen::fromFile`, which `affrescoui_host` and the Studio use) keeps its history in
+`~/.affrescoui/<file name>.history/`, next to its `persist` state file. Restarting the app brings back `main`, the
+open proposals, the grants and the mode. A screen loaded from a string (`fromString`) keeps its history in memory
+only, as before, unless `Screen::setHistoryDirectory` (or `vcs::Repository::openHistory`) gives it a folder. Either
+is called once, before the first change, so a screen from `fromFile` keeps the folder it was given.
+
+The data folder is `~/.affrescoui` unless `AFFRESCOUI_DATA_DIR` names another (`Screen::defaultDataDirectory`), and
+`affrescoui_host` and `affrescoui_studio` take `--data DIR`. Parallel sessions should each use a folder of their
+own, as they do for sockets: one history per file name lives there, so two copies of a template that differ would
+keep moving each other's history aside. `fromFile(path, dataDirectory, Screen::History::InMemory)` keeps the
+history in memory only. The host does that for a plain screenshot run (`AFFRESCOUI_SCREENSHOT` without
+`AFFRESCOUI_SCREENSHOT_AFTER`), which draws the file as it is and leaves no history behind.
+
+```
+kanban.history/
+  lock                  held by the program that writes this history
+  refs.json             main's head, the open proposals, the grants, the mode, the change sets applied, a checksum
+  objects/e1/6ecc8085…  commits and documents, each named by its SHA-256
+```
+
+- **Objects, like Git's.** Each commit is one file named by its id, holding everything the id covers: the parents,
+  author, committer, time, message, patch, and the id of its document (its tree). Each document is a file of its own,
+  named by the SHA-256 of its JSON, so commits that leave the document as it was (a change to the live state, a merge
+  of a branch that main hadn't passed) share one. The commits written are those a ref reaches when
+  the history is saved: `main`'s and the open proposals'. Once no ref reaches them (a rejected proposal, or a branch
+  before it was rebuilt), their files stay but are never read again: nothing deletes them yet, as in Git before its
+  garbage collection runs.
+- **Atomic writes.** Every file is written to a temporary file, synced to disk, then renamed over the old one, and
+  the rename is synced too (its folder). Commits are written before the refs that name them, so a crash leaves the
+  history as it was before the change or after it. On macOS a sync only reaches the drive, whose cache may write in
+  any order, so the refs are written after a barrier (`F_BARRIERFSYNC`). A power cut there may lose the latest
+  changes, but never leaves refs that name a lost commit. (`F_FULLFSYNC` would keep them too, at about 4 ms per file.)
+  A write that fails is logged; the change stays in memory, and the next change tries again. Nothing is written that
+  loading would refuse (a file over 64 MiB, or JSON nested more than 256 levels deep, which a screen file may be):
+  the history on disk then stays where it was, and the error says why.
+- **Verified on load.** Every commit and document read is hashed again and must match its name. The refs file must match its
+  checksum, and each proposal's branch must lead from its head to its base on `main`. A damaged history is never
+  loaded: the app stops with an error that names the file, e.g.
+  `AffrescoUI history: …/objects/e1/6ecc8085…: its content doesn't match its SHA-256: the file is damaged`. Moving
+  the folder aside starts a new history, and keeps the old one for inspection.
+- **Checked again, as if written by hand.** Hashes prove a file isn't damaged, not that a review made it. So `main`'s
+  head must pass the same check as a revision against revision 0 (no new channels, `persist`, permissions or control
+  steps); grants must be the narrow `<channel>(<one node or area>)` rules that **Always allow** gives; and what each
+  open proposal touches, and what **Always allow** would grant for it, are worked out again from its branch instead
+  of read from `refs.json`.
+- **One writer.** The program that writes a history holds its `lock`, which the system releases if the program ends.
+  Another program that opens the same screen file meanwhile loads the same history but never writes it. A warning
+  says so (`in use by another program (process 3495)`), and its own changes stay in memory.
+- **When the screen file changes.** A history belongs to the version of the file it began with: its revision 0. If the
+  file differs (a template update, a hand edit, a changed `include`), the old history is moved aside, whole, to
+  `<file name>.history.replaced-<UTC time>/`, a warning says where, and a new history starts from the file as it is
+  now. Customisations are never replayed onto a file they weren't made for.
+- **What it doesn't keep.** The live state is data, not history: after a restart it starts from the document's
+  `state`, and then the `persist` paths are loaded from the state file. A preview ends when the app quits.
+- **Cost.** Measured on the Kanban template (macOS, Apple silicon, 100 changes, half of them to the document, half to
+  the live state only):
+  - a change takes about 1.1–1.4 ms with the history in a folder, against 0.23 ms in memory. Of that, about 0.4 ms is
+    the macOS barrier, and an edit of the document writes one more file (the document) than a change to the state;
+  - the folder takes 476 KiB (about 10 KB per new document; a commit alone is a few hundred bytes);
+  - loading its 101 commits takes about 12 ms.
+
 ## Change sets: customisations as plugins
 The commits on `main` after a point can be exported as a **change set**:
 
@@ -186,7 +251,9 @@ The commits on `main` after a point can be exported as a **change set**:
 ```
 
 Change sets are portable to other copies of the same screen (id-based paths make them robust to layout differences).
-Importing one is all or nothing, still checked against the deny rules, and recorded as `plugin:<name>`. This is the
+Importing one is all or nothing, still checked against the deny rules, and recorded as `plugin:<name>`. The history
+also keeps the id of each change set it applied (the SHA-256 of its JSON; `hasImported`), so
+`affrescoui_host --plugin x.json` applies a plugin once: on a later start it says so and skips it. This is the
 building block for the application-layer vision: start from a rich template, customise it by talking to it, and
 share the result as a plugin others can install.
 
@@ -196,7 +263,8 @@ share the result as a plugin others can install.
 |---|---|---|---|
 | Submit a change | `submitRevision` (permission-checked), `applyRevision` (the app's own) | `revision` | `submit_revision` |
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |
-| Modes and grants | `setMode`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
+| Modes and grants | `setMode`, `setModeForThisRun`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
 | History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff` | `getHistory` (`limit`), `diff`, `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `revert_revision`, `restore_revision` |
-| Change sets | `exportChanges`, `importChanges` | `exportChanges` | `export_changes` |
+| Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
+| History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
 | In the screen file | `permissions` (`allow`, `ask`, `deny`, `reviewers`), `locked`, steps `accept`/`reject`/`preview`/`endPreview`/`restore`/`revert`/`undo`, variables `proposals`/`history`/`preview`/`mode` | | |

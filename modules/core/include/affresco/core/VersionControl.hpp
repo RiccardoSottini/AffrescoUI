@@ -63,7 +63,8 @@ struct ProposalInfo {
 	std::string time;                  ///< When it was opened (UTC, ISO 8601).
 };
 
-/// @brief A reviewer's "don't ask again": an allow rule that lasts until the application quits.
+/// @brief A reviewer's "don't ask again": an allow rule that lasts until a reviewer revokes it. It is kept with the
+/// history: in memory, or on disk for a screen opened from a file.
 struct Grant {
 	std::string rule;      ///< e.g. "agent(#board)".
 	std::string grantedBy; ///< The reviewer.
