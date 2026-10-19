@@ -21,8 +21,10 @@ Usage:
     python3 mcp/affrescoui_mcp.py [--socket DIR] [--launch "command"]
     claude mcp add affrescoui -- python3 /path/to/AffrescoUI/mcp/affrescoui_mcp.py
 
-DIR is where the host listens (default /tmp/affrescoui-<uid>, as for the host). With --launch, the command is started
-if no host is running. Only the Python standard library is needed (3.9+).
+DIR is where the host listens: --socket, else $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid> on macOS and Linux
+and %LOCALAPPDATA%\\affrescoui\\sockets on Windows. With --launch, the command is started if no host is running. Only
+the Python standard library is needed (3.9+). The host is reached through a Unix domain socket (AF_UNIX), which no
+released CPython offers on Windows yet: there the server starts, but its tools say why they can't reach the host.
 """
 
 import collections
@@ -40,6 +42,8 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 TIMEOUT = 10  # seconds to wait for the host to answer
+NO_UNIX_SOCKETS = ("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: on Windows "
+                   "no released CPython has them yet, see mcp/README.md")
 
 
 def log(text):
@@ -50,14 +54,37 @@ class UnknownTool(Exception):
     pass
 
 
+def default_socket_dir():
+    """Where the host listens unless --socket says otherwise: one rule for the host, the Studio and this server."""
+    if os.environ.get("AFFRESCOUI_SOCKET_DIR"):
+        return os.environ["AFFRESCOUI_SOCKET_DIR"]
+    if os.name == "nt":  # a folder in the user's profile, which its ACL keeps private to the user
+        local = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), "AppData", "Local")
+        return os.path.join(local, "affrescoui", "sockets")
+    return os.path.join("/tmp", f"affrescoui-{os.getuid()}")
+
+
 def check_socket_dir(path):
     """Refuses a socket directory another user could control (its path in /tmp is easy to guess and take first)."""
     try:
         info = os.lstat(path)
     except FileNotFoundError:
         return
-    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+    # Windows has no uid (st_uid is 0): its default folder is private by its ACL, so only the kind is checked there
+    owned = os.name == "nt" or info.st_uid == os.getuid()
+    if not stat.S_ISDIR(info.st_mode) or not owned:
         raise RuntimeError(f"{path} is not a directory owned by this user: remove it or pass --socket DIR")
+
+
+def connect_unix(path):
+    """A stream socket connected to the host at path, or a RuntimeError saying why there is none."""
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.connect(path)
+    except OSError:
+        sock.close()
+        raise RuntimeError(f"no AffrescoUI host is listening at {path}. Start one: ./build/affrescoui_host")
+    return sock
 
 
 class Host:
@@ -78,21 +105,20 @@ class Host:
         with self.lock:
             if self.sock:
                 return
+        # Before --launch: a host this Python can't reach would be started again on every call
+        if not hasattr(socket, "AF_UNIX"):  # CPython on Windows, so far (python/cpython#77589)
+            raise RuntimeError(NO_UNIX_SOCKETS)
         if not os.path.exists(self.path) and self.launch:
             log(f"no host running: starting {self.launch}")
-            subprocess.Popen(shlex.split(self.launch), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             start_new_session=True)
+            # Windows parses a command line itself, and shlex would drop the backslashes of its paths
+            command = self.launch if os.name == "nt" else shlex.split(self.launch)
+            subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
             for _ in range(50):
                 if os.path.exists(self.path):
                     break
                 time.sleep(0.1)
         check_socket_dir(os.path.dirname(self.path))
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        try:
-            sock.connect(self.path)
-        except OSError:
-            sock.close()
-            raise RuntimeError(f"no AffrescoUI host is listening at {self.path}. Start one: ./build/affrescoui_host")
+        sock = connect_unix(self.path)
         with self.lock:
             self.sock = sock
         threading.Thread(target=self.read, args=(sock,), daemon=True).start()
@@ -580,7 +606,7 @@ class Server:
 
 def main():
     args = sys.argv[1:]
-    socket_dir = os.path.join("/tmp", f"affrescoui-{os.getuid()}")
+    socket_dir = default_socket_dir()
     launch = None
     while args:
         arg = args.pop(0)
@@ -591,8 +617,13 @@ def main():
         else:
             sys.exit(f"usage: {sys.argv[0]} [--socket DIR] [--launch \"command\"]")
 
+    # MCP's stdio messages are UTF-8 lines ending in \n, whatever the console's code page and line ending
+    sys.stdin.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8", newline="\n")
     server = Server(socket_dir, launch)
     log(f"ready; the host is expected at {server.host.path}")
+    if not hasattr(socket, "AF_UNIX"):
+        log(NO_UNIX_SOCKETS)
     for line in sys.stdin:
         if line.strip():
             try:
