@@ -57,6 +57,8 @@ jobs:
           path: |
             build/render-check/*.png
             tests/render/golden/
+      - name: Package check # cmake --install, then find_package from tests/package; after the frames, never hiding them
+        run: python3 tests/package/check.py
 
   sanitizers:
     name: Linux (address + undefined sanitizers)

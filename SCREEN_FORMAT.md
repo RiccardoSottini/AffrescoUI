@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
-| `fonts` | `name → { "file", "size" }`, paths relative to the screen file. `default` is used by text without a `font`. |
+| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file. `default` is used by text without a `font`. Text is UTF-8 and shows any character the font has. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's size. A character none of them has shows as `?`. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `theme` | Which variant of the colors is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
@@ -306,13 +306,14 @@ reported (on stderr and to the peers) and never crash the app.
 	"refresh": [{ "send": "host", "data": { "type": "getHistory" } }]
 }
 ```
-A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_DIR`, else `/tmp/affrescoui-<uid>`).
+A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_DIR`, else `/tmp/affrescoui-<uid>`, or
+`%LOCALAPPDATA%\affrescoui\sockets` on Windows).
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
 disconnect. The AffrescoUI Studio is built this way: its file is the whole client.
 
-`"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json`, loaded at start and
-written when they change.
+`"persist": ["state.habits"]` keeps those state values in `~/.affrescoui/<file name>.state.json` (on Windows,
+`%APPDATA%\affrescoui\<file name>.state.json`), loaded at start and written when they change.
 
 ## Live screens: revisions and the channel
 

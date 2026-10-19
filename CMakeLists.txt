@@ -10,16 +10,40 @@ endif()
 
 option(AFFRESCOUI_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_TESTS "Build the rendering check and the unit tests (tests/)" ${PROJECT_IS_TOP_LEVEL})
+option(AFFRESCOUI_BUILD_FUZZERS "Build the libFuzzer targets (tests/fuzz); needs clang, instruments the whole build" OFF)
+option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
+
+if(AFFRESCOUI_BUILD_FUZZERS)
+	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
+		message(FATAL_ERROR "AFFRESCOUI_BUILD_FUZZERS needs clang with libFuzzer, which Apple clang doesn't have: "
+			"see tests/fuzz/README.md")
+	endif()
+	# Everything is built with coverage for libFuzzer and the sanitizers, so the libraries the targets call are
+	# explored and checked too. -O1 -g as libFuzzer recommends; a Debug build also keeps the assertions.
+	add_compile_options(-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
+		-O1 -g)
+	add_link_options(-fsanitize=address,undefined)
+endif()
+
+# Only static libraries can be installed (cmake/AffrescoUIInstall.cmake says why), so a shared build leaves it off
+if(BUILD_SHARED_LIBS)
+	set(AFFRESCOUI_INSTALL_DEFAULT OFF)
+else()
+	set(AFFRESCOUI_INSTALL_DEFAULT ${PROJECT_IS_TOP_LEVEL})
+endif()
+option(AFFRESCOUI_INSTALL "Generate the install rules and the AffrescoUI CMake package" ${AFFRESCOUI_INSTALL_DEFAULT})
 
 include(FetchContent)
 
-# GLFW: windows, OpenGL context, input
+# GLFW: windows, OpenGL context, input. The versions pinned here are also the ones the installed package asks for.
+set(AFFRESCOUI_GLFW_VERSION 3.4)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+set(GLFW_INSTALL ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # installed static libraries link it
 # The release archive, pinned by its hash like the other dependencies (a git tag can be moved)
-FetchContent_Declare(glfw URL https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip
+FetchContent_Declare(glfw
+	URL https://github.com/glfw/glfw/releases/download/${AFFRESCOUI_GLFW_VERSION}/glfw-${AFFRESCOUI_GLFW_VERSION}.zip
 	URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9 SYSTEM)
 FetchContent_MakeAvailable(glfw)
 # Warnings as errors are for our code: GLFW's own warnings (e.g. sprintf, deprecated in recent macOS SDKs) must not
@@ -27,8 +51,9 @@ FetchContent_MakeAvailable(glfw)
 set_target_properties(glfw PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
 # nlohmann/json: the documents (format, vcs and channel modules; the rendering engine does without)
-set(JSON_Install OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+set(AFFRESCOUI_JSON_VERSION 3.11.3)
+set(JSON_Install ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # core/Json.hpp includes it
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v${AFFRESCOUI_JSON_VERSION}/json.tar.xz
 	URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d SYSTEM)
 FetchContent_MakeAvailable(json)
 
@@ -52,7 +77,8 @@ endif()
 function(affrescoui_module name)
 	add_library(affrescoui_${name} ${ARGN})
 	add_library(affrescoui::${name} ALIAS affrescoui_${name})
-	target_include_directories(affrescoui_${name} PUBLIC modules/${name}/include PRIVATE modules/${name}/src)
+	target_include_directories(affrescoui_${name} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/${name}/include>
+		PRIVATE modules/${name}/src)
 	target_compile_features(affrescoui_${name} PUBLIC cxx_std_23)
 	set_target_properties(affrescoui_${name} PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
@@ -61,7 +87,7 @@ endfunction()
 # core: the contracts between modules. JSON is opt-in: the rendering engine doesn't see it.
 add_library(affrescoui_core INTERFACE)
 add_library(affrescoui::core ALIAS affrescoui_core)
-target_include_directories(affrescoui_core INTERFACE modules/core/include)
+target_include_directories(affrescoui_core INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/core/include>)
 target_compile_features(affrescoui_core INTERFACE cxx_std_23)
 
 # render. Vendored in external/: glad (OpenGL 4.1 core loader) and stb_truetype (font rasteriser).
@@ -100,14 +126,22 @@ target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nloh
 
 affrescoui_module(channel modules/channel/src/Channels.cpp modules/channel/src/Session.cpp modules/channel/src/Sockets.cpp)
 target_link_libraries(affrescoui_channel PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
+if(WIN32)
+	target_link_libraries(affrescoui_channel PRIVATE ws2_32 advapi32) # Winsock; the socket files' access lists
+endif()
 
 # affrescoui: the whole library
 add_library(affrescoui modules/screen/src/Screen.cpp)
 add_library(affrescoui::affrescoui ALIAS affrescoui)
-target_include_directories(affrescoui PUBLIC modules/screen/include)
+target_include_directories(affrescoui PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/screen/include>)
 set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(affrescoui PRIVATE ${AFFRESCOUI_WARNINGS})
 target_link_libraries(affrescoui PUBLIC affrescoui::core affrescoui::render affrescoui::format affrescoui::vcs affrescoui::channel)
+
+# cmake --install: the libraries, their headers and the AffrescoUI package for find_package
+if(AFFRESCOUI_INSTALL)
+	include(cmake/AffrescoUIInstall.cmake)
+endif()
 
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
@@ -144,10 +178,14 @@ if(AFFRESCOUI_BUILD_TESTS)
 	FetchContent_MakeAvailable(doctest)
 
 	add_executable(affrescoui_unit_tests tests/unit/main.cpp tests/unit/core.cpp tests/unit/vcs.cpp
-		tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/screen.cpp)
-	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src) # Expression.hpp stays private
+		tests/unit/expressions.cpp tests/unit/rules.cpp tests/unit/channel.cpp tests/unit/sockets.cpp tests/unit/screen.cpp
+		tests/unit/text.cpp)
+	# Expression.hpp and Utf8.hpp stay private
+	target_include_directories(affrescoui_unit_tests PRIVATE modules/format/src modules/render/src)
+	target_compile_definitions(affrescoui_unit_tests PRIVATE
+		AFFRESCOUI_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts")
 	target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
-	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::affrescoui) # screen.cpp opens no window
+	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui) # all modules; screen.cpp loads screens, no window
 	set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME unit COMMAND affrescoui_unit_tests)
@@ -161,4 +199,23 @@ if(AFFRESCOUI_BUILD_TESTS)
 	set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_window_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 	add_test(NAME window COMMAND affrescoui_window_tests)
+endif()
+
+if(AFFRESCOUI_BUILD_FUZZERS)
+	add_subdirectory(tests/fuzz)
+endif()
+
+if(AFFRESCOUI_BUILD_BENCHMARKS)
+	# Speed, allocations and memory of the workloads in tests/perf (its README); CI counts instructions with callgrind,
+	# using valgrind's header when it is installed
+	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
+		tests/perf/engine.cpp examples/CodeEditor.cpp)
+	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src) # Expression.hpp stays private
+	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
+	target_compile_definitions(affrescoui_bench PRIVATE
+		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets"
+		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf")
+	set_target_properties(affrescoui_bench PROPERTIES CXX_EXTENSIONS OFF)
+	target_compile_options(affrescoui_bench PRIVATE ${AFFRESCOUI_WARNINGS})
 endif()
