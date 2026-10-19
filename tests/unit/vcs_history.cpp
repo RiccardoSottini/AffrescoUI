@@ -56,12 +56,12 @@ json randomValue(std::mt19937& random, int depth) {
 	case 6:
 	case 7: {
 		json list = json::array();
-		for(unsigned i = random() % 6; i > 0; --i) list.push_back(randomValue(random, depth - 1));
+		for(auto i = static_cast<unsigned>(random() % 6); i > 0; --i) list.push_back(randomValue(random, depth - 1));
 		return list;
 	}
 	default: {
 		json object = json::object();
-		for(unsigned i = random() % 5; i > 0; --i)
+		for(auto i = static_cast<unsigned>(random() % 5); i > 0; --i)
 			object[keys[random() % keys.size()]] = randomValue(random, depth - 1);
 		return object;
 	}
@@ -74,7 +74,7 @@ json randomValue(std::mt19937& random, int depth) {
 /// @param random The generator.
 /// @return The changed value.
 json mutate(json value, std::mt19937& random) {
-	const unsigned choice = random() % 6;
+	const auto choice = static_cast<unsigned>(random() % 6);
 	if(choice == 0 || !value.is_structured() || value.empty()) return randomValue(random, 3);
 	if(value.is_array()) {
 		const auto at = static_cast<std::ptrdiff_t>(random() % value.size());
