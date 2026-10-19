@@ -272,4 +272,5 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **Every commit keeps a full copy of the document in memory,** so memory grows with the history. On disk, each
   distinct document is stored once.
 - **Windows is new.** The socket channels run on Windows through Winsock's `AF_UNIX`, with an owner-only access list
-  on each socket file, but the Windows build doesn't pass CI yet, so it is far less tested than macOS and Linux.
+  on each socket file and the peer's user checked through its process. CI builds it, but doesn't run its tests, so
+  it is far less tested than macOS and Linux.
