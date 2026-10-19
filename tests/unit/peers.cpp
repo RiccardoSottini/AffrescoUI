@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -229,7 +230,7 @@ TEST_CASE("channel: a SocketServer refuses and logs a connection its peer check 
 	const TemporaryFolder folder;
 	const SharedLog log;
 	std::vector<std::unique_ptr<affresco::Channel>> accepted;
-	bool refuse = true;
+	std::atomic<bool> refuse = true; // read by the server's thread
 	const affresco::channel::SocketServer server(
 	    executor, folder.path / "s", [&](std::unique_ptr<affresco::Channel> c) { accepted.push_back(std::move(c)); },
 	    [&](affresco::channel::SocketHandle) {
