@@ -157,6 +157,15 @@ class ChangesTest(unittest.TestCase):
         self.assertEqual(changes.file_at(self.root, "HEAD", "modules/a.cpp"), "one\ntwo\nthree\nfour\n")
         self.assertIsNone(changes.file_at(self.root, "HEAD", "modules/c.cpp"))
 
+    def test_bytes_that_are_not_utf8_are_replaced(self):
+        with open(os.path.join(self.root, "modules/a.cpp"), "wb") as file:
+            file.write(b"one\n\xe9\n")  # a Latin-1 byte
+        self.git("commit", "-q", "-am", "latin-1")
+        self.write("modules/a.cpp", "one\nchanged\n")
+        files = changes.changed_files(self.root, "HEAD", ["modules"], (".cpp",))
+        self.assertEqual([(file.path, file.ranges) for file in files], [("modules/a.cpp", [(2, 2)])])
+        self.assertEqual(changes.file_at(self.root, "HEAD", "modules/a.cpp"), "one\n�\n")
+
 
 class CoverageTest(unittest.TestCase):
     """coverage.summarize: per module figures, and which files were measured."""

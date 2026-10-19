@@ -26,7 +26,7 @@ def changed_files(root, base, paths, suffixes):
     output = subprocess.run(
         ["git", "diff", "-U0", "--no-color", "--no-ext-diff", "--find-renames", "--diff-filter=AMR",
          "--src-prefix=a/", "--dst-prefix=b/", base, "--", *paths],
-        cwd=root, check=True, capture_output=True, text=True).stdout
+        cwd=root, check=True, capture_output=True, encoding="utf-8", errors="replace").stdout
     files, base_path, current = [], None, None
     for line in output.splitlines():
         if line.startswith("--- "):
@@ -43,6 +43,8 @@ def changed_files(root, base, paths, suffixes):
 
 
 def file_at(root, commit, path):
-    """The text of a file at a commit, or None if it isn't there."""
-    result = subprocess.run(["git", "show", f"{commit}:{path}"], cwd=root, capture_output=True, text=True)
+    """The text of a file at a commit, or None if it isn't there. Bytes that aren't UTF-8 are replaced, as when the
+    working tree is read, so one odd byte can't stop the gate."""
+    result = subprocess.run(["git", "show", f"{commit}:{path}"], cwd=root, capture_output=True, encoding="utf-8",
+                            errors="replace")
     return result.stdout if result.returncode == 0 else None
