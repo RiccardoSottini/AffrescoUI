@@ -100,6 +100,11 @@ Permissions govern changes, not reads. Every peer gets the whole document and th
 (`hello`), hears about every commit and every change to the proposals, and can ask for the history, the open
 proposals, the grants and diffs at any time. Don't put secrets in a screen's document or state.
 
+A peer can also ask for a picture of the screen (`render`), as it is or with any open proposal applied. A picture
+shows what the window would show, which can be more than the document and the state hold: the text in an `editor` or
+a `textarea` that isn't bound to the state, and whatever the host's own node types draw. A host whose screens show
+anything peers shouldn't see gives `Session` no `ScreenImages` (a `nullptr`), and the peers' `render` is refused.
+
 ### What a revision can and can't change
 A revision is checked twice: once by what it does (the permission rules), and once against parts no revision may touch.
 
@@ -234,6 +239,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | One message from a peer (`PeerLimits::maxMessageBytes`) | 8 MiB; a larger one gets an error, unread |
 | Messages from one peer, of any kind | 100 a second, 200 at once |
 | Changes from one peer (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once |
+| Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
 | `while` loop iterations | 10,000 |
@@ -248,7 +254,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A commit named by its id or a prefix of it | 4 to 64 hexadecimal characters |
 | A proposal named by `proposal/<n>` | n up to 1,000,000 |
 | An approval's head commit | at least 7 characters |
-| Undo steps kept by an `editor` | 500 |
+| Undo steps kept by an `editor` (each copies the whole text) | 500, and 256 MiB in all: the oldest go first |
+| A font's size (a document can ask for any: a larger one is refused) | 4,096 pixels |
 | A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel) |
 | A font file (regular files only: no devices or pipes) | 256 MiB |
 | Fonts kept that no screen, panel or window uses (`FontCache`, least recently used dropped first) | 32 fonts and 128 MiB |
@@ -298,8 +305,10 @@ These are not protected today. They are stated plainly so that you can decide wh
   refusing is cheap (no parsing), so the main thread keeps up in practice. The open-proposal limit caps waiting
   proposals, and the change rate caps how often they are pushed.
 - **Large revisions.** A message can be up to 8 MiB, so a revision can still be large, and so can the lists it puts
-  in the state, which the screen may render as one panel per item. A process or stdio channel the host opens isn't a
-  peer: it isn't held to these limits, and the host writes to it on the main thread.
+  in the state, which the screen may render as one panel per item. A long text costs in proportion to its length,
+  but a line longer than a font keeps shaped (128 Ki code points) is shaped again every time it is drawn or measured:
+  a label of a million characters on one line takes a fraction of a second each time. A process or stdio channel the
+  host opens isn't a peer: it isn't held to these limits, and the host writes to it on the main thread.
 - **There is no total work budget per event, so nested loops multiply.** Each limit above holds on its own:
   a `while` of 10,000 iterations inside a `forEach` over a list of 10,000 items runs 100 million steps, and deeper
   nesting multiplies again. `after` and `debounce` steps schedule more work for later, and nothing caps how many are
@@ -314,7 +323,9 @@ These are not protected today. They are stated plainly so that you can decide wh
   reads that file, if it is a regular file of at most 256 MiB, and parses it as a font; the error a peer gets back
   says whether it could be read. The parsers are FreeType and HarfBuzz, which OSS-Fuzz fuzzes all the time, and far
   more hardened than stb_truetype was; still, a malformed font is untrusted input to C and C++ libraries, and the
-  `text` fuzz target here fuzzes the text, not the font files. Fonts no screen uses are bounded (the limits above),
+  `text` fuzz target here fuzzes the text, not the font files. A picture of a proposal (`render`) loads the
+  proposal's fonts, and any peer may ask for one, so the font a proposal names is read and parsed before a reviewer
+  looks at it. Fonts no screen uses are bounded (the limits above),
   but the fonts the current document declares are all kept, however many it declares: only the document's size
   bounds them, and each costs at least its first atlas page (up to 16 MiB for very large sizes).
 - **A history on disk is only as safe as its folder.** Anyone who can write the data folder can write a history

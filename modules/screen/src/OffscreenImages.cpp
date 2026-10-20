@@ -30,7 +30,13 @@ public:
 			    temporary / ("affrescoui-image-" + std::to_string(random()) + "-" + std::to_string(random()));
 			if(std::filesystem::create_directory(candidate, error)) path_ = candidate; // false if it exists
 		}
-		if(!path_.empty()) std::filesystem::permissions(path_, std::filesystem::perms::owner_all, error);
+		if(path_.empty()) return;
+		// Private before the picture goes in; a folder that can't be made private isn't used
+		std::filesystem::permissions(path_, std::filesystem::perms::owner_all, error);
+		if(error) {
+			std::filesystem::remove(path_, error);
+			path_.clear();
+		}
 	}
 	~ScratchFolder() {
 		std::error_code error; // nothing to do about a folder that can't be removed
