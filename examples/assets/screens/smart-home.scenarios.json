@@ -89,7 +89,7 @@
 				{ "click": "#toggle-theme-switch" },
 				{ "expect": { "state": "theme", "is": "light" } },
 				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": true } },
-				{ "key": "cmd+t" },
+				{ "key": "mod+t" },
 				{ "expect": { "state": "theme", "is": "dark" } },
 				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": false } }
 			]

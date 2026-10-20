@@ -89,7 +89,7 @@ using Reader = json (*)(const Panel&);
 
 /// @brief The properties every panel has. Positions and sizes are the panel's whole area in window units, before
 /// clipping, from the last layout.
-const std::array<std::pair<std::string_view, Reader>, 14> everyPanel = {{
+constexpr std::array<std::pair<std::string_view, Reader>, 14> everyPanel = {{
     {"color", [](const Panel& panel) { return json(panel.color().toHex()); }},
     {"borderColor", [](const Panel& panel) { return json(panel.borderColor().toHex()); }},
     {"borderWidth", [](const Panel& panel) { return json(panel.borderWidth()); }},
@@ -141,7 +141,9 @@ bool matches(const json& actual, const json& expected) {
 
 std::string checkState(const Screen& screen, const json& expect) {
 	const std::string path = expect["state"].get<std::string>();
-	const std::optional<json> value = follow(json::parse(screen.stateJson()), *parseStatePath(path));
+	const std::optional<std::vector<std::string>> segments = parseStatePath(path); // checked when the file was read
+	if(!segments) return "state " + path + " isn't a path";
+	const std::optional<json> value = follow(json::parse(screen.stateJson()), *segments);
 	if(!value) return "state " + path + " doesn't exist, expected " + shown(expect["is"]);
 	if(*value == expect["is"]) return {};
 	return "state " + path + " is " + shown(*value) + ", expected " + shown(expect["is"]);

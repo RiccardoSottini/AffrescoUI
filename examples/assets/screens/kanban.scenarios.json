@@ -95,7 +95,7 @@
 			"name": "shortcut-focuses-new-card",
 			"note": "Cmd+N puts the keyboard in the new-card field, so typing and Enter add a card",
 			"steps": [
-				{ "key": "cmd+n" },
+				{ "key": "mod+n" },
 				{ "wait": 0, "note": "the focus lands on the next frame" },
 				{ "expect": { "node": "#newCard", "property": "focused", "is": true } },
 				{ "type": "From the keyboard" },

@@ -27,7 +27,7 @@ namespace {
 /// @return Its text.
 /// @throws std::runtime_error If it can't be read.
 std::string readText(const std::filesystem::path& path) {
-	std::ifstream file(path, std::ios::binary);
+	const std::ifstream file(path, std::ios::binary);
 	if(!file) throw std::runtime_error("could not read " + path.string());
 	std::stringstream text;
 	text << file.rdbuf();

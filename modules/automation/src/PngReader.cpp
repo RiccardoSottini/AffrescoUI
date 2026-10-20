@@ -110,7 +110,8 @@ public:
 		for(std::size_t length = 1; length <= maxCodeLength; ++length) {
 			code |= bits.bit();
 			const int count = counts_[length];
-			if(code - count < first) return symbols_[static_cast<std::size_t>(index + (code - first))];
+			if(code - count < first)
+				return symbols_[static_cast<std::size_t>(index) + static_cast<std::size_t>(code - first)];
 			index += count;
 			first = (first + count) << 1;
 			code <<= 1;
@@ -190,7 +191,7 @@ private:
 		const Huffman lengthCode(lengthOfLength);
 
 		std::vector<int> lengths;
-		const auto total = static_cast<std::size_t>(literals + distances);
+		const std::size_t total = static_cast<std::size_t>(literals) + static_cast<std::size_t>(distances);
 		while(lengths.size() < total) {
 			const int symbol = lengthCode.decode(bits_);
 			if(symbol < 16) {
@@ -223,7 +224,8 @@ private:
 			const int length = lengthBase[lengthIndex] + bits_.read(lengthExtra[lengthIndex]);
 			const auto distanceIndex = static_cast<std::size_t>(distance.decode(bits_));
 			if(distanceIndex >= distanceBase.size()) throw Malformed("a distance code out of range");
-			const auto back = static_cast<std::size_t>(distanceBase[distanceIndex] + bits_.read(distanceExtra[distanceIndex]));
+			const std::size_t back = static_cast<std::size_t>(distanceBase[distanceIndex]) +
+			                         static_cast<std::size_t>(bits_.read(distanceExtra[distanceIndex]));
 			if(back > out_.size()) throw Malformed("a reference before the start of the data");
 			for(int i = 0; i < length; ++i) put(out_[out_.size() - back]);
 		}
@@ -295,6 +297,20 @@ struct Chunks {
 	std::vector<std::uint8_t> data;      ///< The IDAT chunks, joined.
 };
 
+/// @brief Reads a PNG's header chunk (IHDR) into its numbers.
+/// @param body The chunk's data.
+/// @param chunks Receives the size and the channels.
+/// @throws Malformed If it isn't an 8-bit RGB or RGBA image without interlacing.
+void readHeader(std::span<const std::uint8_t> body, Chunks& chunks) {
+	if(body.size() != 13) throw Malformed("a header of the wrong size");
+	chunks.width = bigEndian(body);
+	chunks.height = bigEndian(body.subspan(4));
+	const bool kind = body[8] == 8 && (body[9] == 2 || body[9] == 6); // 8 bits a sample, RGB or RGBA
+	if(!kind || body[10] != 0 || body[11] != 0 || body[12] != 0)
+		throw Malformed("not an 8-bit RGB or RGBA image without interlacing");
+	chunks.channels = body[9] == 2 ? 3 : 4;
+}
+
 /// @brief Reads a PNG's chunks.
 /// @param file The file.
 /// @return Its header and image data.
@@ -309,12 +325,7 @@ Chunks readChunks(std::span<const std::uint8_t> file) {
 		const std::string_view kind(reinterpret_cast<const char*>(file.data() + at + 4), 4);
 		const std::span<const std::uint8_t> body = file.subspan(at + 8, length);
 		if(kind == "IHDR") {
-			if(length != 13) throw Malformed("a header of the wrong size");
-			chunks.width = bigEndian(body);
-			chunks.height = bigEndian(body.subspan(4));
-			if(body[8] != 8 || (body[9] != 2 && body[9] != 6) || body[10] != 0 || body[11] != 0 || body[12] != 0)
-				throw Malformed("not an 8-bit RGB or RGBA image without interlacing");
-			chunks.channels = body[9] == 2 ? 3 : 4;
+			readHeader(body, chunks);
 		} else if(kind == "IDAT") {
 			chunks.data.insert(chunks.data.end(), body.begin(), body.end());
 		} else if(kind == "IEND") {

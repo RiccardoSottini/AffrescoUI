@@ -55,7 +55,7 @@
 				{ "type": "object", "required": ["type"], "additionalProperties": false, "properties": {
 					"type": { "type": "string", "maxLength": 100000 }, "note": { "type": "string" } } },
 				{ "type": "object", "required": ["key"], "additionalProperties": false, "properties": {
-					"key": { "type": "string", "pattern": "^((shift|ctrl|alt|cmd)\\+)*([a-z0-9]|f([1-9]|1[0-2])|enter|escape|tab|backspace|delete|insert|space|left|right|up|down|home|end|pageup|pagedown|slash|backslash|minus|equal|comma|period|semicolon|apostrophe|leftbracket|rightbracket)$" },
+					"key": { "type": "string", "pattern": "^((shift|ctrl|alt|cmd|mod)\\+)*([a-z0-9]|f([1-9]|1[0-2])|enter|escape|tab|backspace|delete|insert|space|left|right|up|down|home|end|pageup|pagedown|slash|backslash|minus|equal|comma|period|semicolon|apostrophe|leftbracket|rightbracket)$" },
 					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["wait"], "additionalProperties": false, "properties": {
 					"wait": { "type": "number", "minimum": 0, "maximum": 600000, "description": "Milliseconds of the scenario's clock." },

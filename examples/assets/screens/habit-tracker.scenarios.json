@@ -63,7 +63,7 @@
 			"name": "ignore-a-blank-habit",
 			"note": "Enter with an empty or blank name adds nothing; Cmd+N puts the keyboard in the field",
 			"steps": [
-				{ "key": "cmd+n" },
+				{ "key": "mod+n" },
 				{ "wait": 0, "note": "the focus lands on the next frame" },
 				{ "expect": { "node": "#newHabit", "property": "focused", "is": true } },
 				{ "key": "enter" },

@@ -25,9 +25,15 @@ constexpr std::array<std::pair<std::string_view, Key>, 25> namedKeys = {{
     {"rightbracket", Key::RightBracket},
 }};
 
-/// @brief The modifiers and their bits (Mods, GLFW's values).
-constexpr std::array<std::pair<std::string_view, int>, 4> modifiers = {{
-    {"shift", 0x1}, {"ctrl", 0x2}, {"alt", 0x4}, {"cmd", 0x8},
+#ifdef __APPLE__
+constexpr int platformModifier = 0x8; ///< "mod": Cmd on macOS, as the format's shortcuts read it.
+#else
+constexpr int platformModifier = 0x2; ///< "mod": Ctrl elsewhere, as the format's shortcuts read it.
+#endif
+
+/// @brief The modifiers and their bits (Mods, GLFW's values). "mod" plays a screen's "mod+k" on every platform.
+constexpr std::array<std::pair<std::string_view, int>, 5> modifiers = {{
+    {"shift", 0x1}, {"ctrl", 0x2}, {"alt", 0x4}, {"cmd", 0x8}, {"mod", platformModifier},
 }};
 
 /// @brief The properties `expect` reads from a node.
@@ -108,7 +114,7 @@ std::optional<KeyPress> parseKey(std::string_view text) {
 std::string keyNames() {
 	std::string names;
 	for(const auto& [name, key] : namedKeys) names += std::string(name) + ", ";
-	return names + "a-z, 0-9, f1-f12, after any of shift+, ctrl+, alt+, cmd+";
+	return names + "a-z, 0-9, f1-f12, after any of shift+, ctrl+, alt+, cmd+, mod+ (cmd on macOS, ctrl elsewhere)";
 }
 
 std::optional<std::vector<std::string>> parseStatePath(std::string_view text) {

@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <format>
 #include <fstream>
 #include <initializer_list>
 #include <set>
@@ -27,7 +28,7 @@ using detail::fail;
 void onlyKeys(const json& value, std::initializer_list<std::string_view> allowed, const std::string& place) {
 	for(const auto& [key, member] : value.items())
 		if(std::ranges::find(allowed, key) == allowed.end())
-			fail(place.empty() ? key : place + "." + key, "unknown key here");
+			fail(place.empty() ? key : std::format("{}.{}", place, key), "unknown key here");
 }
 
 /// @brief Checks a target: [x, y] in window units, or "#id".
@@ -37,7 +38,7 @@ void onlyKeys(const json& value, std::initializer_list<std::string_view> allowed
 void checkTarget(const json& target, const std::string& place) {
 	if(target.is_array() && target.size() == 2 && target[0].is_number() && target[1].is_number()) return;
 	if(target.is_string() && target.get<std::string>().size() > 1 && target.get<std::string>().front() == '#') return;
-	fail(place, "expected [x, y] in window units, or \"#id\"");
+	fail(place, R"(expected [x, y] in window units, or "#id")");
 }
 
 /// @brief Checks "nth", the match a "#id" picks among several (0, the first, by default).
@@ -67,20 +68,20 @@ void checkNodeExpectation(const json& expect, const std::string& place) {
 	onlyKeys(expect, {"node", "nth", "exists", "text", "property", "is", "note"}, place);
 	if(!expect["node"].is_string() || expect["node"].get<std::string>().size() < 2 ||
 	   expect["node"].get<std::string>().front() != '#')
-		fail(place + ".node", "expected \"#id\"");
+		fail(place + ".node", R"(expected "#id")");
 	checkNth(expect, place);
 	const int what = static_cast<int>(expect.contains("exists")) + static_cast<int>(expect.contains("text")) +
 	                 static_cast<int>(expect.contains("property"));
-	if(what != 1) fail(place, "expected one of \"exists\", \"text\", or \"property\" with \"is\"");
+	if(what != 1) fail(place, R"(expected one of "exists", "text", or "property" with "is")");
 	if(expect.contains("exists") && !expect["exists"].is_boolean()) fail(place + ".exists", "expected true or false");
 	if(expect.contains("text") && !expect["text"].is_string()) fail(place + ".text", "expected a string");
 	if(!expect.contains("property")) {
-		if(expect.contains("is")) fail(place + ".is", "only \"state\" and \"property\" take \"is\"");
+		if(expect.contains("is")) fail(place + ".is", R"(only "state" and "property" take "is")");
 		return;
 	}
 	if(!expect["property"].is_string() || !detail::isReadableProperty(expect["property"].get<std::string>()))
 		fail(place + ".property", "expected one of " + detail::readableProperties());
-	if(!expect.contains("is")) fail(place, "\"property\" needs \"is\": the value expected");
+	if(!expect.contains("is")) fail(place, R"("property" needs "is": the value expected)");
 }
 
 /// @brief Checks an expectation: of a state value, of a node, or of a picture.
@@ -88,10 +89,10 @@ void checkNodeExpectation(const json& expect, const std::string& place) {
 /// @param place Its place.
 /// @throws DocumentError If it is malformed.
 void checkExpectation(const json& expect, const std::string& place) {
-	if(!expect.is_object()) fail(place, "expected an object: {\"state\": ...}, {\"node\": ...} or {\"image\": ...}");
+	if(!expect.is_object()) fail(place, R"(expected an object: {"state": ...}, {"node": ...} or {"image": ...})");
 	const int subjects = static_cast<int>(expect.contains("state")) + static_cast<int>(expect.contains("node")) +
 	                     static_cast<int>(expect.contains("image"));
-	if(subjects != 1) fail(place, "expected exactly one of \"state\", \"node\" or \"image\"");
+	if(subjects != 1) fail(place, R"(expected exactly one of "state", "node" or "image")");
 	if(expect.contains("node")) {
 		checkNodeExpectation(expect, place);
 	} else if(expect.contains("image")) {
@@ -101,12 +102,12 @@ void checkExpectation(const json& expect, const std::string& place) {
 		onlyKeys(expect, {"state", "is", "note"}, place);
 		const std::string path = expect["state"].is_string() ? expect["state"].get<std::string>() : "";
 		if(path.starts_with("state.") || path.starts_with("computed."))
-			fail(place + ".state", "a path into the live state, without 'state.' (\"cards.length\"); computed values "
+			fail(place + ".state", R"(a path into the live state, without 'state.' ("cards.length"); computed values )"
 			                       "aren't read: expect the text of a node that shows one");
 		if(!detail::parseStatePath(path))
 			fail(place + ".state", "expected a path into the state, as expressions write it without 'state.': "
-			                       "\"cards[0].title\", \"cards.length\"");
-		if(!expect.contains("is")) fail(place, "\"state\" needs \"is\": the value expected");
+			                       R"("cards[0].title", "cards.length")");
+		if(!expect.contains("is")) fail(place, R"("state" needs "is": the value expected)");
 	}
 }
 
@@ -127,7 +128,7 @@ void checkPointer(const json& step, std::string_view kind, const std::string& pl
 void checkDrag(const json& step, const std::string& place) {
 	onlyKeys(step, {"drag", "to", "nth", "toNth", "moves", "note"}, place);
 	checkTarget(step["drag"], place + ".drag");
-	if(!step.contains("to")) fail(place, "\"drag\" needs \"to\": where to drop");
+	if(!step.contains("to")) fail(place, R"("drag" needs "to": where to drop)");
 	checkTarget(step["to"], place + ".to");
 	if(step.contains("toNth") && (!step["toNth"].is_number_integer() || step["toNth"].get<long long>() < 0 ||
 	                              step["toNth"].get<long long>() > 1000000))
@@ -188,7 +189,7 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 		if(!value.is_string() || !detail::parseKey(value.get<std::string>()))
 			fail(at, "expected a key: " + detail::keyNames());
 	} else if(kind == "revision") {
-		if(!value.is_object()) fail(at, "expected a revision: {\"message\": ..., \"set\": {...}}");
+		if(!value.is_object()) fail(at, R"(expected a revision: {"message": ..., "set": {...}})");
 	} else if(kind == "resize") {
 		checkSize(value, at);
 	} else if(kind == "wait") {
@@ -206,25 +207,36 @@ constexpr std::array<std::string_view, 14> stepKinds = {"capture", "move",   "cl
                                                         "drag",    "scroll", "type",  "key",   "revision",
                                                         "action",  "resize", "wait",  "expect"};
 
-/// @brief Checks one step, and tells whether it draws.
+/// @brief Finds what a step does: the one key of stepKinds it has.
 /// @param step The step.
 /// @param place Its place.
-/// @return Whether it needs a picture (capture, expect image).
-/// @throws DocumentError If it is malformed.
-bool checkStep(const json& step, const std::string& place) {
-	if(!step.is_object()) fail(place, "expected a step: {\"click\": \"#id\"}, {\"type\": \"text\"}, ...");
+/// @return The kind, or std::nullopt for a step that is only a "note".
+/// @throws DocumentError If it isn't an object, or has no kind or two.
+std::optional<std::string_view> kindOf(const json& step, const std::string& place) {
+	if(!step.is_object()) fail(place, R"(expected a step: {"click": "#id"}, {"type": "text"}, ...)");
 	std::vector<std::string_view> kinds;
 	for(const std::string_view kind : stepKinds)
 		if(step.contains(std::string(kind))) kinds.push_back(kind);
 	if(kinds.empty()) {
-		if(step.size() == 1 && step.contains("note")) return false; // a comment
+		if(step.size() == 1 && step.contains("note")) return std::nullopt;
 		fail(place, "unknown step " + toText(step).substr(0, 80) +
 		                ": expected one of capture, move, click, press, release, drag, scroll, type, key, revision, "
 		                "action, resize, wait, expect");
 	}
 	if(kinds.size() > 1)
 		fail(place, "one step does one thing: '" + std::string(kinds[0]) + "' and '" + std::string(kinds[1]) + "'");
-	const std::string_view kind = kinds[0];
+	return kinds[0];
+}
+
+/// @brief Checks one step, and tells whether it draws.
+/// @param step The step.
+/// @param place Its place.
+/// @return Whether it needs a picture (capture, expect image).
+/// @throws DocumentError If it is malformed.
+bool checkStep(const json& step, const std::string& place) {
+	const std::optional<std::string_view> found = kindOf(step, place);
+	if(!found) return false; // a comment
+	const std::string_view kind = *found;
 	checkNth(step, place);
 	if(kind == "move" || kind == "click" || kind == "press" || kind == "release") checkPointer(step, kind, place);
 	else if(kind == "drag") checkDrag(step, place);
@@ -243,7 +255,7 @@ bool checkStep(const json& step, const std::string& place) {
 /// @throws DocumentError If it is malformed.
 Scenario readScenario(const json& item, const std::string& place, const std::filesystem::path& screens,
                       const std::optional<std::string>& defaultScreen) {
-	if(!item.is_object()) fail(place, "expected a scenario: {\"name\": ..., \"steps\": [...]}");
+	if(!item.is_object()) fail(place, R"(expected a scenario: {"name": ..., "steps": [...]})");
 	onlyKeys(item, {"name", "screen", "scale", "note", "steps"}, place);
 	Scenario scenario;
 	scenario.name = item.contains("name") ? expect::string(item["name"], place + ".name") : "";
@@ -251,7 +263,7 @@ Scenario readScenario(const json& item, const std::string& place, const std::fil
 		fail(place + ".name", "expected a name of letters, digits, '-', '_' and '.'");
 	const std::optional<std::string> screen =
 	    item.contains("screen") ? std::optional(expect::string(item["screen"], place + ".screen")) : defaultScreen;
-	if(!screen) fail(place, "no \"screen\": give one here or for the whole file");
+	if(!screen) fail(place, R"(no "screen": give one here or for the whole file)");
 	scenario.screen = screens / *screen;
 	if(item.contains("scale")) {
 		scenario.scale = expect::integer(item["scale"], place + ".scale");
@@ -309,10 +321,10 @@ std::string inFile(const std::filesystem::path& path, std::string message) {
 ScenarioFile ScenarioFile::parse(std::string_view text, const std::filesystem::path& path) {
 	try {
 		const json document = parseUntrusted(text);
-		if(!document.is_object()) fail("", "expected an object with \"scenarios\"");
+		if(!document.is_object()) fail("", R"(expected an object with "scenarios")");
 		onlyKeys(document, {"$schema", "format", "version", "note", "screen", "screens", "scenarios"}, "");
 		if(document.contains("format") && document["format"] != "affrescoui-scenarios")
-			fail("format", "expected \"affrescoui-scenarios\"");
+			fail("format", R"(expected "affrescoui-scenarios")");
 		if(!document.contains("version") || document["version"] != 1) fail("version", "expected 1");
 		return {path, readScenarios(document, path.parent_path())};
 	} catch(const json::exception& error) { // not JSON, or what parseUntrusted didn't turn into a DocumentError
@@ -323,7 +335,7 @@ ScenarioFile ScenarioFile::parse(std::string_view text, const std::filesystem::p
 }
 
 ScenarioFile ScenarioFile::load(const std::filesystem::path& path) {
-	std::ifstream file(path, std::ios::binary);
+	const std::ifstream file(path, std::ios::binary);
 	if(!file) throw DocumentError("AffrescoUI scenarios: could not read " + path.string());
 	std::stringstream text;
 	text << file.rdbuf();

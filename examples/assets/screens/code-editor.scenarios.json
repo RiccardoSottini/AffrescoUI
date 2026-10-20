@@ -26,13 +26,13 @@
 			"note": "Typing in the editor marks the file unsaved with a dot on its tab, and Cmd+S saves it",
 			"steps": [
 				{ "click": "#editor" },
-				{ "key": "cmd+a" },
+				{ "key": "mod+a" },
 				{ "type": "int main() {}" },
 				{ "expect": { "state": "files[0].text", "is": "int main() {}" } },
 				{ "expect": { "state": "files[0].dirty", "is": true } },
 				{ "expect": { "node": "#panel-files-tab", "exists": true } },
 				{ "expect": { "node": "#statusSize", "text": "Ln 1, Col 14  ·  Spaces: 4  ·  UTF-8  ·  C++" } },
-				{ "key": "cmd+s" },
+				{ "key": "mod+s" },
 				{ "expect": { "state": "files[0].dirty", "is": false } },
 				{ "expect": { "node": "#panel-files-tab", "exists": false } }
 			]
@@ -42,11 +42,11 @@
 			"note": "Cmd+Z in the editor brings back the text that typing replaced",
 			"steps": [
 				{ "click": "#editor" },
-				{ "key": "cmd+a" },
+				{ "key": "mod+a" },
 				{ "type": "x" },
 				{ "expect": { "node": "#editor", "text": "x" } },
 				{ "expect": { "state": "files[0].text.length", "is": 1 } },
-				{ "key": "cmd+z" },
+				{ "key": "mod+z" },
 				{ "expect": { "state": "files[0].text.length", "is": 547, "note": "main.cpp as it was" } }
 			]
 		},
@@ -54,7 +54,7 @@
 			"name": "close-tabs",
 			"note": "Cmd+W closes the active tab and the next one takes its place; with no tab left the welcome text shows",
 			"steps": [
-				{ "key": "cmd+w" },
+				{ "key": "mod+w" },
 				{ "expect": { "state": "tabs", "is": [1] } },
 				{ "expect": { "state": "active", "is": 1 } },
 				{ "expect": { "node": "#breadcrumbs", "text": "src / Board.hpp" } },
@@ -69,7 +69,7 @@
 			"name": "open-a-file-from-the-palette",
 			"note": "Cmd+P opens the palette, typing filters the files by name, and Enter opens the first match",
 			"steps": [
-				{ "key": "cmd+p" },
+				{ "key": "mod+p" },
 				{ "wait": 0, "note": "the focus lands on the next frame" },
 				{ "expect": { "state": "palette", "is": true } },
 				{ "expect": { "node": "#paletteInput", "property": "focused", "is": true } },
@@ -86,7 +86,7 @@
 			"name": "palette-with-no-match",
 			"note": "A query that matches no file says so, and Enter opens nothing",
 			"steps": [
-				{ "key": "cmd+p" },
+				{ "key": "mod+p" },
 				{ "wait": 0 },
 				{ "type": "zzz" },
 				{ "expect": { "node": "#label-no-file-matches", "text": "No file matches 'zzz'" } },
@@ -99,7 +99,7 @@
 			"name": "run-terminal-commands",
 			"note": "Cmd+J focuses the terminal; help prints the commands, an unknown one says so, and clear empties it",
 			"steps": [
-				{ "key": "cmd+j" },
+				{ "key": "mod+j" },
 				{ "wait": 0 },
 				{ "type": "help" },
 				{ "key": "enter" },
