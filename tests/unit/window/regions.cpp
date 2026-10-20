@@ -14,6 +14,7 @@
 #include <GLFW/glfw3.h>
 #include <doctest/doctest.h>
 
+#include <array>
 #include <filesystem>
 #include <memory>
 
@@ -25,7 +26,7 @@ TEST_CASE("render: a frame drawn where it changed makes no more draw calls, and 
 	affresco::gl::QuadRenderer renderer;
 
 	const auto font = affresco::Font::load(std::filesystem::path(AFFRESCOUI_FONTS_DIR) / "Roboto-Regular.ttf", 16.0f);
-	affresco::Label* labels[6] = {};
+	std::array<affresco::Label*, 6> labels{};
 	for(int i = 0; i < 6; ++i) {
 		affresco::Label& label = window.root().add<affresco::Label>("Label " + std::to_string(i));
 		label.setFont(font);
@@ -33,7 +34,7 @@ TEST_CASE("render: a frame drawn where it changed makes no more draw calls, and 
 		label.setSize(affresco::px(90.0f), affresco::px(40.0f));
 		label.setColor(affresco::Color::hex(0xe2e8f0));
 		label.setCornerRadii(affresco::CornerRadii::all(6.0f));
-		labels[i] = &label;
+		labels.at(static_cast<std::size_t>(i)) = &label;
 	}
 
 	// Taking the frame lays it out without the window drawing it: only this renderer refreshes the geometry
@@ -47,8 +48,9 @@ TEST_CASE("render: a frame drawn where it changed makes no more draw calls, and 
 	const affresco::detail::Frame next = affresco::detail::takeFrame(window);
 	const affresco::detail::Refreshed changed = renderer.refresh(next);
 	REQUIRE(changed.damage);
-	CHECK(changed.damage->left >= 300.0f);
-	CHECK(changed.damage->right <= 390.0f);
+	const affresco::Rect area = changed.damage.value_or(affresco::Rect{});
+	CHECK(area.left >= 300.0f);
+	CHECK(area.right <= 390.0f);
 	CHECK(changed.shapes == all.shapes); // the shaders of the whole frame, so its pixels match a full frame's
 	renderer.draw(next, changed.damage, changed.shapes, changed.color);
 	CHECK(renderer.drawCalls() <= fullCalls);

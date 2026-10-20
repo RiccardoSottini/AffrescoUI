@@ -56,20 +56,23 @@ void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip) {
 		refreshPanel(panel, outerClip, geometry);
 
 	// A hidden panel draws no child: it was damage where it reached, which holds its children
+	geometry.subtreeShapes = geometry.subtreeColor = false;
+	if(panel.shown_) refreshChildren(panel, geometry);
+	panel.paintStale_ = panel.paintBelow_ = false;
+}
+
+void GeometryCache::refreshChildren(Panel& panel, PanelGeometry& geometry) {
 	bool shapes = geometry.recorded && geometry.record.shapes, color = geometry.recorded && geometry.record.color;
-	if(panel.shown_) {
-		for(const auto& child : panel.children_) {
-			if(child->overlay_) continue; // refreshed from the frame's overlays, unclipped
-			if(needsVisit(*child)) refreshTree(*child, panel.bounds_);
-			if(const PanelGeometry* below = child->geometry_.get()) {
-				shapes = shapes || below->subtreeShapes;
-				color = color || below->subtreeColor;
-			}
+	for(const auto& child : panel.children_) {
+		if(child->overlay_) continue; // refreshed from the frame's overlays, unclipped
+		if(needsVisit(*child)) refreshTree(*child, panel.bounds_);
+		if(const PanelGeometry* below = child->geometry_.get()) {
+			shapes = shapes || below->subtreeShapes;
+			color = color || below->subtreeColor;
 		}
 	}
-	geometry.subtreeShapes = panel.shown_ && shapes;
-	geometry.subtreeColor = panel.shown_ && color;
-	panel.paintStale_ = panel.paintBelow_ = false;
+	geometry.subtreeShapes = shapes;
+	geometry.subtreeColor = color;
 }
 
 void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeometry& geometry) {

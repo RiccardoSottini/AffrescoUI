@@ -93,7 +93,7 @@ void PaintRecorder::pushQuad(const Rect& rect, const Rect& uv, Color color, Quad
 
 	Rect t = uv;
 	if(q != rect) {
-		auto lerp = [](float a, float b, float f) { return a + (b - a) * f; };
+		const auto lerp = [](float a, float b, float f) { return a + (b - a) * f; };
 		t.left = lerp(uv.left, uv.right, (q.left - rect.left) / rect.width());
 		t.right = lerp(uv.left, uv.right, (q.right - rect.left) / rect.width());
 		t.top = lerp(uv.top, uv.bottom, (q.top - rect.top) / rect.height());

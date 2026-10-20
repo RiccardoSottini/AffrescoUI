@@ -47,6 +47,10 @@ private:
 	/// @param panel The panel.
 	/// @param outerClip What clips it: its parent's bounds, or the window for roots and overlays.
 	void refreshTree(Panel& panel, const Rect& outerClip);
+	/// @brief Refreshes a shown panel's children that need it, and gathers its subtree's shaders.
+	/// @param panel The panel.
+	/// @param geometry Its geometry, refreshed.
+	void refreshChildren(Panel& panel, PanelGeometry& geometry);
 	/// @brief Records a panel again if it changed, or what its drawing depends on did.
 	/// @param panel The panel.
 	/// @param outerClip What clips it.
