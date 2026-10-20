@@ -108,6 +108,17 @@
 		]
 	},
 
+	"stateTypes": {
+		"theme": {"enum": ["dark", "light"]},
+		"room": {"type": "number"},
+		"mode": {"type": "string"},
+		"modes": {"type": "array", "items": {"type": "string"}},
+		"scene": {"type": "string"},
+		"rooms": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "temp": {"type": "number"}, "target": {"type": "number"}, "humidity": {"type": "number"}, "blinds": {"type": "number"}, "lights": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "on": {"type": "boolean"}, "level": {"type": "number"}}}}}}},
+		"scenes": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "action": {"type": "string"}}}},
+		"energy": {"type": "array", "items": {"type": "object", "properties": {"day": {"type": "string"}, "kwh": {"type": "number"}}}}
+	},
+
 	"computed": {
 		"room": "{{state.rooms[state.room]}}",
 		"lightsOn": "{{count(computed.room.lights, it.on)}}",

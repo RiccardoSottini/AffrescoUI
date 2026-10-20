@@ -27,6 +27,13 @@
 
 	"state": { "email": "", "password": "", "name": "", "submitted": false },
 
+	"stateTypes": {
+		"email": {"type": "string"},
+		"password": {"type": "string"},
+		"name": {"type": "string"},
+		"submitted": {"type": "boolean"}
+	},
+
 	"computed": {
 		"emailValid": "{{contains(state.email, '@') && contains(state.email, '.')}}",
 		"passwordValid": "{{len(state.password) >= 8}}"

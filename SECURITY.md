@@ -273,8 +273,12 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
 | A pack of a history's objects, written | 16 MiB (more objects go into another pack) |
 | A text or key `affrescoui check` matches against a schema pattern (`std::regex` recurses on each character: a longer text is reported as too long to check, a longer key matches no pattern) | 10,000 characters |
+| The work of one event (a handler, an action run by code, a timer, `onLoad`, `watch`) or one update, nested handlers sharing the outermost one's (`WorkBudget`, `Expression.hpp`) | 100,000 steps; 10,000,000 expression operations (each item a list function visits counts); 64 MiB written into the state by `set` and `push`. Past one, what is running stops with an error naming its place; an update that stops refuses the version that caused it |
+| One revision (`Rules::checkRevision`, before any of it is applied) | 100,000 operations, and 16 MiB as JSON |
+| A document, without its state (`Rules::validate`, at load and after every revision) | 32 MiB as JSON |
+| The state: the document's own, and the live state after a revision (unless it was already larger) | 32 MiB as JSON |
 
-A revision's operations are applied before any permission rule judges them, so the three limits on revisions above
+A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
 proportion to its text, however many keys an object has.
 
@@ -340,10 +344,12 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **The name a peer gives itself isn't limited.** The part after the slash in `agent/<name>` is any text up to the
   message size, line breaks included. It is shown to the other peers (`from` on a relayed request, `author` in the
   history) and to the agents that read them; only the channel before the slash says who sent it.
-- **There is no total work budget per event, so nested loops multiply.** Each limit above holds on its own:
-  a `while` of 10,000 iterations inside a `forEach` over a list of 10,000 items runs 100 million steps, and deeper
-  nesting multiplies again. `after` and `debounce` steps schedule more work for later, and nothing caps how many are
-  waiting. A revision that adds steps can cause this. Steps live in `/actions` and also inline: in event handlers on
+- **The work budget bounds one event, not a stream of them.** An event stops after its steps, operations or bytes
+  (above), which takes well under a second of work in a Release build. But `after`, `debounce` and `every` schedule
+  more events, each with a budget of its own, and nothing caps how many are waiting; and across events the state can
+  keep growing by up to 64 MiB each: only a revision is held to the state's 32 MiB. Values an expression computes
+  are bounded by its operations, not by their size (a `let` that doubles a text at each of many nested nodes still
+  builds a large text). A revision that adds steps can cause this. Steps live in `/actions` and also inline: in event handlers on
   nodes, components and templates, and in `onLoad`, `watch` and `keys`. An `ask` rule on `/actions` alone doesn't
   cover them; only allow agents the parts of a screen that hold no steps (the templates allow agents nothing, so
   every change of theirs is reviewed).

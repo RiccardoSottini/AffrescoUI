@@ -38,6 +38,7 @@ void Runtime::registerType(std::string name, Factory factory, std::vector<std::s
 		}
 	};
 	impl_->types.add({std::move(name), "Registered by the application", std::move(factory), std::move(own), true});
+	impl_->document.changeAppearance(); // panels of the type apply its new function at the next update
 }
 
 void Runtime::setPlaceholderTypes(bool enabled) { impl_->placeholderTypes = enabled; }

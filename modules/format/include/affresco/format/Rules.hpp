@@ -54,6 +54,12 @@ public:
 	/// @throws DocumentError If the change is forbidden; what() lists the new findings, each with its place.
 	void checkChange(const json& before, const json& after) const override;
 
+	/// @brief Refuses a revision of more than 100,000 operations, or of more than 16 MiB written as JSON
+	/// (SECURITY.md, "Limits").
+	/// @param patch The revision's operations, as JSON Patch.
+	/// @throws DocumentError If it is larger.
+	void checkRevision(const json& patch) const override;
+
 	/// @brief Gives readable ids (NodeNamer) to the nodes a revision adds or puts in place without one: a node, a
 	/// list of "children", or a section of screens, templates or components. A node that replaces one keeps that
 	/// one's id.

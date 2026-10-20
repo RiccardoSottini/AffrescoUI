@@ -4,6 +4,7 @@
 /// @brief What the runtime keeps about each panel it built (Record), the children it is about to build (Item), and
 /// the limits its subsystems share.
 
+#include "CompiledNode.hpp"
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
@@ -17,6 +18,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace affresco::format {
 
@@ -39,7 +41,9 @@ struct Record {
 	Cursor defaultCursor = Cursor::Arrow; ///< Restored when "cursor" goes away.
 	SharedScope locals = noVariables();   ///< Variables visible to its bindings and handlers (repeat, let, with).
 	std::string path;                     ///< Place in the document, for errors.
-	json properties = json::object();     ///< The evaluated node, state blocks included (what refresh() re-applies).
+	CompiledRef node;                     ///< The compiled node last applied (what refresh() re-applies).
+	std::vector<json> values;             ///< Its values last applied: CompiledProperty::evaluated places them.
+	std::uint64_t appearance = 0;         ///< DocumentContext::appearance() when it was last applied.
 	json handlers = json::object();       ///< "onClick" and the others: an action name or steps each.
 	json keys;                            ///< Shortcuts: "cmd+k" -> handler (null: none).
 	json drag;                            ///< "drag", unevaluated (data is read when a drag starts).
@@ -73,17 +77,9 @@ struct Record {
 	} hooks;                  ///< See Hooks.
 };
 
-/// @brief A node to build: shared, so a repeat's items don't each copy their template (and its children).
-using NodeRef = std::shared_ptr<const json>;
-
-/// @brief Refers to a node of the document without copying it (the document outlives an update).
-/// @param node The node.
-/// @return The reference.
-inline NodeRef borrow(const json& node) { return NodeRef(NodeRef(), &node); }
-
 /// @brief A child to build.
 struct Item {
-	NodeRef node;       ///< Styles merged; shared by a repeat's items (or pointing into the document: no copy).
+	CompiledRef node;   ///< Compiled once per version of the document, shared by a repeat's items.
 	SharedScope locals; ///< Its variables.
 	std::string path;   ///< Its place in the document.
 	json key;           ///< A keyed repeat's key (null: none).

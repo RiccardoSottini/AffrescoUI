@@ -155,7 +155,7 @@ CornerRadii radii(const json& value, const std::string& path) {
 	return result;
 }
 
-bool layoutProperty(Panel& panel, const std::string& key, const json& value, const std::string& at) {
+bool layoutProperty(Panel& panel, std::string_view key, const json& value, const std::string& at) {
 	if(key == "x") panel.setX(length(value, at));
 	else if(key == "y") panel.setY(length(value, at));
 	else if(key == "width") panel.setWidth(length(value, at));

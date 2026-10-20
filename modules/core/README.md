@@ -15,7 +15,7 @@ headers come with nlohmann/json, which only the modules that use documents link.
 | `Executor.hpp` | `Executor::post`: run a task on the main thread, from any thread |
 | `Channel.hpp` | `Channel`: a two-way stream of one-line messages; `onMessage`, `onClosed`; `maxMessageBytes` (64 MiB) |
 | `Json.hpp` | `json`, `DocumentError`, `parseUntrusted` (nesting limit `maxNesting` = 256), `toText`, the `expect::` readers |
-| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, and `pathHint`, a hint for a path that finds nothing), `PermissionRule`, `Permissions` |
+| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied), `PermissionRule`, `Permissions` |
 | `VersionControl.hpp` | `VersionControl` and `VersionObserver`; `RevisionResult`, `CommitInfo`, `ProposalInfo`, `Grant`, `Approval`, `Decision`, `Mode`; their protocol JSON |
 | `ScreenImages.hpp` | `ScreenImages::render`: a picture of the screen or of a proposal (`ImageRequest`, `Image`) |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
@@ -25,7 +25,8 @@ headers come with nlohmann/json, which only the modules that use documents link.
 - **Interfaces only.** A module may depend on `core`, and on another module only as `CMakeLists.txt` at the root
   shows (`format` uses `render`; `screen` uses all). Anything else that crosses a module boundary is an interface here.
 - **`Signal` never allocates while it emits,** and a slot may connect or disconnect (itself too) during an emission:
-  slots connected during an emission run from the next one.
+  slots connected during an emission run from the next one, and a slot that disconnects itself is destroyed once the
+  emission ends, never while it runs. Its slots are a vector: a signal with one slot keeps one small allocation.
 - **`Channel` signals fire on the main thread,** whatever thread reads the transport.
 - **Untrusted JSON goes through `parseUntrusted`:** nothing deeper than 256 levels is built, and numbers too large
   for a double are refused, so the recursive work done on a value can't overflow the stack. It takes time in

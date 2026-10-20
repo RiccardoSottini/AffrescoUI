@@ -41,6 +41,7 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   (`DocumentRules::nameNodes`): the stored patch is what was applied, so replaying it gives the same ids.
 - **A refused operation says where:** the error names the operation, the path as written and resolved, and the
   document rules' hint (`DocumentRules::pathHint`, "did you mean '#title'?").
+- **A revision's size is checked first** (`DocumentRules::checkRevision`), before any operation is applied.
 - **Rules are judged by a change's effect** (the document before and after), never by the paths its patch happens to
   use: deny beats ask beats allow, and what no rule allows asks.
 - **An author never approves its own change,** and an approval names the head the reviewer saw: if the branch moved

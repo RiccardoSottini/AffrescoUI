@@ -38,6 +38,7 @@ bool Running::run(const json& nested, const Scope& scope, const std::string& at)
 // Runs an event handler: an action name or inline steps. Errors are reported, never thrown into the event loop.
 void Steps::handle(const json& handler, Panel& sender, const json& event, const Scope& locals,
                    const std::string& where) {
+	const DocumentContext::BudgetScope budget(engine_.document); // the outermost handler's, shared by nested ones
 	try {
 		if(handler.is_string()) runNamed(handler.get<std::string>(), sender, event, locals, where);
 		else runSteps(handler, sender, event, locals, where);
@@ -101,6 +102,7 @@ bool Steps::runSteps(const json& steps, Panel& sender, const json& event, const 
 
 bool Steps::runStep(const json& step, Panel& sender, const json& event, const Scope& locals, const std::string& where) {
 	object(step, where);
+	engine_.document.spendStep(where);
 	if(const std::optional<bool> keepGoing = engine_.steps->run(Running{*this, step, sender, event, locals, where}))
 		return *keepGoing;
 

@@ -80,6 +80,37 @@ public:
 	/// @brief Makes computed values stale (a revision may change the state too).
 	void bumpStateVersion() noexcept { ++stateVersion_; }
 
+	/* The work budget */
+
+	/// @brief Gives the event or update it lives for a work budget (Expression.hpp, WorkBudget): every value evaluated
+	/// and every step run in it spends from it. Nested scopes share the outermost one's.
+	class BudgetScope {
+	public:
+		/// @brief Starts a budget, unless one is running.
+		/// @param context The context; outlives the scope.
+		explicit BudgetScope(DocumentContext& context) noexcept;
+		/// @brief Ends the budget it started.
+		~BudgetScope();
+		BudgetScope(const BudgetScope&) = delete;
+		BudgetScope& operator=(const BudgetScope&) = delete;
+		BudgetScope(BudgetScope&&) = delete;
+		BudgetScope& operator=(BudgetScope&&) = delete;
+
+	private:
+		DocumentContext& context_; ///< The context.
+		WorkBudget budget_;        ///< The budget, if this scope started it.
+		bool outermost_ = false;   ///< Whether it did.
+	};
+	/// @brief Spends one step from the running budget.
+	/// @param where The step's place, for the error.
+	/// @throws DocumentError If the budget has no step left.
+	void spendStep(const std::string& where) const;
+	/// @brief Spends the bytes of a value a step writes into the state from the running budget.
+	/// @param value The value.
+	/// @param where The step's place, for the error.
+	/// @throws DocumentError If the budget has fewer bytes left.
+	void spendBytes(const json& value, const std::string& where) const;
+
 	/* Colours, fonts, theme */
 
 	/// @brief Reads a colour: "#rrggbb", "@name" (from "colors", in the current theme) or "transparent".
@@ -105,6 +136,12 @@ public:
 	[[nodiscard]] std::shared_ptr<const Font> findFont(std::string_view name) const;
 	/// @brief Evaluates "theme" for this update.
 	void updateTheme();
+	/// @brief Counts what changes how the same values look: the theme, the colours, the fonts, the node types. A panel
+	/// applied under another count is applied again even if its values are the same.
+	/// @return The count; never 0.
+	[[nodiscard]] std::uint64_t appearance() const noexcept { return appearance_; }
+	/// @brief Records that the same values may now look different (a node type was registered or replaced).
+	void changeAppearance() noexcept { ++appearance_; }
 
 	/* The screen an outlet shows */
 
@@ -156,6 +193,8 @@ private:
 	std::string screen_;                     ///< The screen an "outlet" shows.
 	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.
 
+	std::uint64_t appearance_ = 1;                  ///< See appearance().
+	WorkBudget* budget_ = nullptr;                  ///< The running event's or update's budget (BudgetScope), if any.
 	bool stateChanged_ = false;                     ///< See stateChanged().
 	std::uint64_t stateVersion_ = 0;                ///< Counts state changes (computed values are cached per version).
 	mutable std::optional<Globals> globalsCache_;   ///< See globals().

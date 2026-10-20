@@ -316,6 +316,7 @@ void Checker::walkProperty(const Prepared& node, const std::string& key, const j
 	if(walkBehaviour(key, value, scope, at)) return;
 	if(key == "bind" || key == "caret") {
 		walkBinding(key, value, scope, at);
+		if(key == "bind") checkBind(node, value, at);
 	} else if(key == "overlay") {
 		walkOverlay(value, scope, at);
 	} else if(key == "style") { // static styles are layers already: this one is chosen by an expression
@@ -462,6 +463,7 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 
 void Checker::walkWrite(std::string_view kind, const json& step, const Scope& scope, const std::string& place) {
 	const std::string key(kind);
+	if(among(stateSteps, kind)) checkWrite(kind, step, place);
 	const auto valueOf = [&](const char* name) {
 		return step.contains(name) ? shapeOf(step[name], scope, place + "." + name) : anything;
 	};
