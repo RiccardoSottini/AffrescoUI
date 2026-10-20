@@ -217,14 +217,17 @@ The command-line tool (`tools/affrescoui`) reads screen files people, agents and
 - `render` draws the first frame offscreen without the history or saved state, and connects to nobody: every channel
   the screen declares, by an absolute path too, is pointed at a folder that is never created. A frame over 16,384
   pixels a side is refused before anything is drawn.
+- `test` plays a scenarios file the same way: every channel the screen declares, by an absolute path or from an
+  `include` too, is pointed at a folder that is never created, so a played screen never reaches a running host.
 - `run`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set given to
   `import` or `run --plugin` is trusted like one given to `affrescoui_host --plugin`. `import` refuses a history
   another program is writing.
 
 The MCP server (`mcp/affrescoui_mcp.py`) is started by the agent's client and talks to the host over `agent.sock`, so
 the host makes it the author `agent` whatever name the client gives. It only passes on what the agent asks for:
-it has no tool to approve, to read or write files other than the format guide, or to run a program (`--launch`, a
-command on its own command line, is the only one). A message from either side that it can't use gets an error and
+it has no tool to approve, or to write files, and reads only the format guide and scenarios files: `run_scenarios`
+reads only files named `*.scenarios.json`, and runs the `affrescoui` tool (`test --json`) as a list of arguments,
+with a timeout of 300 s. It runs no other program but `--launch`, a command on its own command line. A message from either side that it can't use gets an error and
 costs only that message, and its log escapes what isn't printable, as the host's does. What it hands the agent (a person's request, the document, events) was written by peers
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
@@ -261,7 +264,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
 | Values the `copy` operations of one revision copy, in all (a copy of a list into itself doubles it) | 100,000 |
 | Members a revision may give one object (a screen file may hold a wider one: a revision may change it, not widen it) | 10,000 |
-| A grid's column or row tracks (`columns`, `rows`), and the column, row or span a child's `cell` names | 1,000 (a document asking for more is refused; columns and rows a layout pass makes stop there) |
+| A grid's column or row tracks (`columns`, `rows`), and the column, row or span a child's `cell` names | 1,000 (a document asking for more is refused; columns and rows a layout pass makes stop there). Placing a child looks at each of the grid's cells about once |
 | A commit named by its id or a prefix of it | 4 to 64 hexadecimal characters |
 | A proposal named by `proposal/<n>` | n up to 1,000,000 |
 | An approval's head commit | at least 7 characters |
@@ -271,6 +274,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A font file (regular files only: no devices or pipes) | 256 MiB |
 | An image file (`image` nodes; regular files only, inside the screen's folder or one the host allows) | 64 MiB |
 | A decoded image (from its header, before any pixel is decoded) | 8,192 pixels a side, 4,096 × 4,096 pixels in all |
+| What a PNG inflates to while it is decoded (from its header) | Twice its compressed bytes, plus twice its rows at 16 bits and 4 channels, plus 1 MiB; stb_image's buffers can't grow past it, so a small file can't inflate to gigabytes |
+| A font's GSUB and GPOS lookups, read by the plain-text fast path | A million rules, subtables, lookup records and glyphs; past it, a lookup is treated as unbounded and its text is shaped by HarfBuzz |
 | Image files waiting to be decoded | 256; more show nothing |
 | Decoded image files kept that nothing shows (least recently used dropped first) | 256 MiB |
 | A glyph name an `icon` looks up | 128 bytes; 1,024 names remembered per font |
@@ -279,7 +284,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
 | A pack of a history's objects, written | 16 MiB (more objects go into another pack) |
 | A text or key `affrescoui check` matches against a schema pattern (`std::regex` recurses on each character: a longer text is reported as too long to check, a longer key matches no pattern) | 10,000 characters |
-| The work of one event (a handler, an action run by code, a timer, `onLoad`, `watch`) or one update, nested handlers sharing the outermost one's (`WorkBudget`, `Expression.hpp`) | 100,000 steps; 10,000,000 expression operations (each item a list function visits counts); 64 MiB written into the state by `set` and `push`. Past one, what is running stops with an error naming its place; an update that stops refuses the version that caused it |
+| The work of one event (a handler, an action run by code, a timer, `onLoad`, `watch`, a drag's `data`, the state path a `caret`, a `bind` or an overlay writes) or one update, nested handlers sharing the outermost one's (`WorkBudget`, `Expression.hpp`) | 100,000 steps (each `forEach` item and `while` turn is one, even with nothing to `do`); 10,000,000 expression operations (each item a list function visits counts); 64 MiB written into the state by `set` and `push`. Past one, what is running stops with an error naming its place; an update that stops refuses the version that caused it |
 | One revision (`Rules::checkRevision`, before any of it is applied) | 100,000 operations, and 16 MiB as JSON |
 | A document, without its state (`Rules::validate`, at load and after every revision) | 32 MiB as JSON |
 | The state: the document's own, and the live state after a revision (unless it was already larger) | 32 MiB as JSON |
@@ -288,7 +293,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
-proportion to its text, however many keys an object has.
+proportion to its text, however many keys an object has, unless its keys are chosen to collide (Known gaps).
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
 controls (U+0080 to U+009F) `\u0080` to `\u009f`, and a backslash `\\`. So text from a peer or a document can't forge
@@ -386,6 +391,21 @@ These are not protected today. They are stated plainly so that you can decide wh
   stb_image is small and widely used but not hardened like libpng: its input is bounded (the limits above,
   read from the header first) and fuzzed (`image`), and only PNG and JPEG are compiled in. Font files are not held
   to folders yet (the gap above).
+- **Errors can name files by their full path.** An image or font that can't be read is reported to peers with its
+  resolved path, and the MCP server can pass on a system error that names one, so a peer can learn where the screen's
+  files are on the disk.
+- **Image files are checked by path, then opened.** A file inside an allowed folder is resolved and checked, then
+  read by a worker thread, so whoever can write that folder can swap it for a link in between, or put a hard link
+  there to a file elsewhere; this needs write access to the folder. An image that fails to decode isn't remembered,
+  so it is read and decoded again each time it is asked for.
+- **Scratch folders are made private just after they are created.** The folders `render`, `test` and pictures of
+  proposals draw into are created under a random name in the system's temporary folder, then limited to their
+  owner: under a umask of 000 another user could put a file there in between.
+- **A grid's children aren't limited.** Placing one looks at each of the grid's cells about once, up to a million
+  for a grid of 1,000 tracks a side, so a revision that adds tens of thousands of children to a full grid makes each
+  layout slow.
+- **Keys chosen to collide.** `parseUntrusted` indexes an object's keys by a hash with no random seed, so a message
+  whose keys were made to collide could take time in proportion to the square of its keys (not demonstrated).
 - **A history on disk is only as safe as its folder.** Anyone who can write the data folder can write a history
   whose hashes are valid. The checks above hold, but deny rules aren't replayed for each commit on `main`, so such a
   history can contain changes the deny rules would have refused, as long as its head passes the revision check. This

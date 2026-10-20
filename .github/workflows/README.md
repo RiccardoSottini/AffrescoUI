@@ -16,7 +16,7 @@ default setup, a setting, not a workflow here.
 
 | Job | Runs | Checks | Required |
 |---|---|---|---|
-| `Changes` | Always, about 10 s | Whether the change needs a build ([`changes.sh`](changes.sh)): a change to `docs/`, `rfcs/` or Markdown no test reads builds nothing, and the jobs below are skipped (a skipped job counts as passing) | |
+| `Changes` | Always, about 10 s | Whether the change needs a build ([`changes.sh`](changes.sh)): a change to `docs/`, `rfcs/` or Markdown no test reads builds nothing (a file moved there from elsewhere is a change to where it was), and the jobs below are skipped (a skipped job counts as passing) | |
 | `Linux` | Code changes | GCC 13, warnings as errors. Unit tests (headless windows too); window tests (Xvfb, llvmpipe); the CLI's and the MCP server's tests; the templates' scenarios (`affrescoui test`); the rendering check against golden images recorded from the base commit on this runner ([`render-check.sh`](render-check.sh)); the package check; the API reference (Doxygen, warnings as errors); the quality gate (clang-tidy 18 on the changed lines, function length and complexity, with the base's rules) | Yes |
 | `Linux (address + undefined sanitizers)` | Code changes | GCC with ASan and UBSan: unit tests and scenarios, window tests, the rendering check (leaks too) | Yes |
 | `Fuzz` | Pull requests with code changes | Every fuzz target for 60 s, one after the other, from the nightly corpus ([`fuzz.sh`](fuzz.sh)), built as `nightly.yml` builds them | No |

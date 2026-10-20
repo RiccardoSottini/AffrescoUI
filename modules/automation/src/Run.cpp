@@ -56,9 +56,9 @@ public:
 
 /// @brief Plays one scenario on a screen loaded from the text of its document.
 ///
-/// The screen plays alone: its channels look for their hosts in a folder where there are none (relative socket
-/// paths, as screens write them), so they show their "disconnected" state every time; a step sends what a channel
-/// would with an action named `<channel>:<type>`.
+/// The screen plays alone: its channels look for their hosts in a folder where there are none (unconnectedScreen()),
+/// so they show their "disconnected" state every time; a step sends what a channel would with an action named
+/// `<channel>:<type>`.
 /// @param scenario The scenario.
 /// @param document The screen's document, as JSON text.
 /// @param options How to play it.
@@ -87,10 +87,9 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 	}
 	window->setMinSize(sizeIn(settings, "minWidth", 0), sizeIn(settings, "minHeight", 0));
 
-	Screen screen = Screen::fromString(document, scenario.screen.parent_path());
+	Screen screen = unconnectedScreen(document, scenario.screen.parent_path(), scratch / "no-host");
 	screen.setPlaceholderTypes(true); // as affrescoui_host does
 	if(options.prepare) options.prepare(screen);
-	screen.setSocketDirectory(scratch / "no-host");
 	screen.build(*window);
 	screen.startChannels(noPeers);
 	detail::Player({screen, *window, clock, scenario, options, scratch}, result).play();
@@ -149,6 +148,27 @@ json Report::toJson() const {
 		for(const Failure& failure : scenario.failures)
 			failures.push_back({{"scenario", scenario.name}, {"step", failure.step}, {"problem", failure.problem}});
 	return {{"file", file.filename().string()}, {"passed", passed()}, {"failed", failed()}, {"failures", failures}};
+}
+
+/// @brief Loads a screen connected to nobody: its channels, its includes' too, are pointed at one socket in a folder
+/// that is never created. A channel's own path can be absolute, and would then reach a running host's socket (its
+/// studio.sock, a reviewer's) and send it whatever the screen's `open` handler says: a scenario can play on an
+/// agent's proposal (`run_scenarios`), which must not get a reviewer's socket that way.
+/// @param document The screen's document, as JSON text.
+/// @param directory Where its relative paths ("include", fonts) are found.
+/// @param nowhere The folder that is never created.
+/// @return The screen.
+Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
+                         const std::filesystem::path& nowhere) {
+	Screen screen = Screen::fromString(document, directory);
+	json loaded = parseUntrusted(screen.documentJson()); // the includes in place
+	if(loaded.contains("channels") && loaded["channels"].is_object()) {
+		for(auto& [name, channel] : loaded["channels"].items())
+			if(channel.is_object()) channel["socket"] = "none.sock";
+		screen = Screen::fromString(loaded.dump(), directory);
+	}
+	screen.setSocketDirectory(nowhere);
+	return screen;
 }
 
 } // namespace affresco::automation

@@ -29,8 +29,9 @@ namespace affresco::detail {
 /// glyphs, which is the safe side.
 ///
 /// The table comes from a font file, so it is untrusted: every read is checked against the table's end, nested
-/// lookups are followed at most four deep, and at most a million rules are read; past either limit a lookup is
-/// unbounded. A class definition whose ranges aren't sorted can't be read. Not thread-safe.
+/// lookups are followed at most four deep, and at most a million rules, subtables, records and glyphs are read (many
+/// rules can share one of 65,535 records); past either limit a lookup is unbounded. A class definition whose ranges
+/// aren't sorted can't be read. Not thread-safe.
 class LookupSpans {
 public:
 	static constexpr std::size_t unbounded = 255; ///< See the class.
@@ -81,6 +82,11 @@ private:
 	/// @param lookup Its index.
 	/// @param depth As lookupSpan().
 	[[nodiscard]] std::optional<std::size_t> readLookup(unsigned lookup, int depth);
+	/// @brief A subtable's span, through an extension subtable to the one it points to.
+	/// @param type Its lookup's type.
+	/// @param subtable Where it is.
+	/// @param depth As lookupSpan().
+	[[nodiscard]] std::optional<std::size_t> extendedSpan(std::size_t type, std::size_t subtable, int depth);
 	/// @brief A subtable's span.
 	/// @param type Its lookup type, extensions resolved.
 	/// @param subtable Where it is.
@@ -163,10 +169,10 @@ private:
 	[[nodiscard]] std::optional<std::size_t> withNested(std::size_t glyphs, std::size_t records, std::size_t count,
 	                                                    int depth);
 
-	std::span<const std::uint8_t> table_;                            ///< The table.
-	std::span<const unsigned> candidates_;                           ///< See the constructor.
-	bool positioning_;                                               ///< Whether it is GPOS.
-	std::size_t rulesRead_ = 0;                                      ///< Rules and ligatures read so far.
+	std::span<const std::uint8_t> table_;  ///< The table.
+	std::span<const unsigned> candidates_; ///< See the constructor.
+	bool positioning_;                     ///< Whether it is GPOS.
+	std::size_t rulesRead_ = 0;            ///< Rules, ligatures and what they list, read so far.
 	std::unordered_map<unsigned, std::optional<std::size_t>> spans_; ///< By lookup, read so far.
 };
 

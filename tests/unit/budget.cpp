@@ -89,6 +89,21 @@ TEST_CASE("budget: an event that runs too many steps stops, says where, and the 
 	CHECK(errors.lines.size() == 1);
 }
 
+// Found by fuzzing (tests/fuzz, actions): a forEach with no "do" inside a while ran turns that spent nothing
+TEST_CASE("budget: a loop's turns spend from it, even with nothing to do") {
+	const Errors errors;
+	// 10000 turns of a 10000-item list: 10^8 turns that ran no step, before each turn spent one.
+	const Built built(R"({
+		"fill": [{"set": "state.items", "to": "{{range(10000)}}"}],
+		"spin": [{"while": "{{true}}", "do": [{"forEach": "state.items"}]}]
+	})");
+	built.run("fill");
+	built.run("spin");
+	REQUIRE(errors.lines.size() == 1);
+	CHECK(errors.lines[0].find("actions.spin[0].do[0].forEach") != std::string::npos);
+	CHECK(errors.lines[0].find("100000 steps, its work budget") != std::string::npos);
+}
+
 TEST_CASE("budget: an expression that does too much stops at its place") {
 	const Errors errors;
 	const Built built(R"({"heavy": [{"set": "state.count", "to": "{{sum(range(10000), sum(range(10000), it))}}"}]})");
@@ -114,6 +129,32 @@ TEST_CASE("budget: an update has a budget too, so a binding can't freeze the scr
 	CHECK_THROWS_WITH_AS(
 	    Built("{}", R"([{"id": "slow", "type": "label", "text": "{{sum(range(10000), sum(range(10000), it))}}"}])"),
 	    doctest::Contains("root.children[0].text"), affresco::DocumentError);
+}
+
+TEST_CASE("budget: a drag's data has a budget too, so dragging can't freeze the screen") {
+	const Errors errors;
+	const Built built("{}", R"([{"id": "source", "width": 100, "height": 100,
+		"drag": {"data": "{{sum(range(10000), sum(range(10000), it))}}"}}])");
+	built.window->render();
+	built.window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, {10.0f, 10.0f}});
+	built.window->routeMouseMove({60.0f, 60.0f});
+	REQUIRE(errors.lines.size() == 1);
+	CHECK(errors.lines[0].find("root.children[0].drag") != std::string::npos);
+	CHECK(errors.lines[0].find("10000000 operations, its work budget") != std::string::npos);
+}
+
+TEST_CASE("budget: the place a caret is written to has a budget too") {
+	const Errors errors;
+	const Built built("{}", R"([{"id": "field", "type": "editor", "width": 200, "height": 30,
+		"caret": "state[sum(range(10000), sum(range(10000), it)) > 0 ? 'text' : 'count']"}])");
+	built.window->render();
+	built.window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, {10.0f, 10.0f}});
+	built.window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Release, {}, {10.0f, 10.0f}});
+	built.window->routeChar({U'x'});
+	REQUIRE(!errors.lines.empty());
+	CHECK(errors.lines[0].find("root.children[0].caret") != std::string::npos);
+	CHECK(errors.lines[0].find("10000000 operations, its work budget") != std::string::npos);
+	CHECK(built.state("text") == "ab");
 }
 
 TEST_CASE("limits: a revision, a document and a state have sizes they can't pass") {

@@ -19,8 +19,9 @@ rendering check (`tests/render`) is a set of scenarios whose expectations are pi
   targets, state paths, properties, names) before anything plays; an error names the file and the place:
   `AffrescoUI scenarios: kanban.scenarios.json: scenarios[1].steps[3]: unknown step {"clik":"#card"}`.
 - **Fresh and alone.** Each scenario loads its screen again: no saved history or `persist` state, channels looking for
-  their hosts in a folder with none (they show their disconnected state), what they post dropped. So a scenario plays
-  the same way on any machine, whatever ran before, and never meets a running app.
+  their hosts in a folder with none, even a channel at an absolute path (they show their disconnected state), what
+  they post dropped. So a scenario plays the same way on any machine, whatever ran before, and never meets a running
+  app.
 - **Headless unless it draws.** A scenario plays on a headless window (`render/src/Headless.hpp`) unless a step draws
   (`capture`, `expect image`); then on a hidden window with OpenGL, from an `Application` it owns for its time.
 - **Time moves only on `wait`.** The window's clock is a `ManualClock`. A wait runs each timer at its own time, in

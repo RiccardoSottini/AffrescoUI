@@ -17,14 +17,12 @@ public:
 	/// @param columns At least 1.
 	explicit Occupancy(std::size_t columns) : columns_(columns) {}
 
-	/// @brief Whether an area is free (rows past the end are).
-	/// @param area The area.
-	/// @return true if no cell of it is taken.
-	[[nodiscard]] bool isFree(const GridArea& area) const {
-		for(std::size_t row = area.row; row < area.row + area.rowSpan && row < rows(); ++row)
-			for(std::size_t column = area.column; column < area.column + area.columnSpan; ++column)
-				if(taken_[row * columns_ + column]) return false;
-		return true;
+	/// @brief Whether a cell is taken (rows past the end aren't).
+	/// @param row Its row.
+	/// @param column Its column.
+	/// @return true if a child has it.
+	[[nodiscard]] bool isTaken(std::size_t row, std::size_t column) const {
+		return row < rows() && taken_[row * columns_ + column] != 0;
 	}
 
 	/// @brief Takes an area's cells.
@@ -60,6 +58,35 @@ GridArea requested(const GridCell& cell, std::size_t columns) {
 	return area;
 }
 
+/// @brief The first taken cell of each column at or below a row that only moves down, found by scanning each column
+/// once: so a search costs at most the grid's cells, however big the area it looks for.
+class TakenBelow {
+public:
+	/// @brief Nothing looked at yet.
+	/// @param occupancy The taken cells; they don't change while this lives.
+	/// @param columns The grid's columns.
+	TakenBelow(const Occupancy& occupancy, std::size_t columns)
+	    : occupancy_(occupancy), next_(columns, std::numeric_limits<std::size_t>::max()) {}
+
+	/// @brief Whether a column is free for some rows.
+	/// @param column The column.
+	/// @param row The first row, never less than in an earlier call.
+	/// @param span How many rows.
+	/// @return true if none of those cells is taken.
+	[[nodiscard]] bool isFree(std::size_t column, std::size_t row, std::size_t span) {
+		std::size_t& next = next_[column];
+		if(next == std::numeric_limits<std::size_t>::max() || next < row) {
+			next = row;
+			while(next < occupancy_.rows() && !occupancy_.isTaken(next, column)) ++next;
+		}
+		return next >= row + span || next >= occupancy_.rows();
+	}
+
+private:
+	const Occupancy& occupancy_;    ///< See TakenBelow().
+	std::vector<std::size_t> next_; ///< Per column, its first taken row from where last looked (max: not yet).
+};
+
 /// @brief Finds the first free position for an area, scanning rows from @p row and columns from @p column.
 /// @param occupancy The taken cells.
 /// @param area The area; its column and row are set.
@@ -69,19 +96,24 @@ GridArea requested(const GridCell& cell, std::size_t columns) {
 /// @param from Where to start scanning, row then column.
 void findFree(const Occupancy& occupancy, GridArea& area, std::size_t columns, bool fixedColumn, bool fixedRow,
               GridArea from) {
+	TakenBelow taken(occupancy, columns);
+	const std::size_t lastRow = maxGridTracks - area.rowSpan; // rows past it place the area there too
 	for(std::size_t row = fixedRow ? area.row : from.row; row < maxGridTracks; ++row) {
+		const std::size_t at = std::min(row, lastRow);
 		const std::size_t firstColumn = fixedColumn ? area.column : row == from.row ? from.column : 0;
 		const std::size_t lastColumn = fixedColumn ? area.column : columns - area.columnSpan;
-		for(std::size_t column = firstColumn; column <= lastColumn; ++column) {
-			GridArea candidate = area;
-			candidate.row = std::min(row, maxGridTracks - area.rowSpan);
-			candidate.column = column;
-			if(occupancy.isFree(candidate)) {
-				area = candidate;
+		// A taken cell rules out every position that covers its column: the next one to try starts after it
+		for(std::size_t column = firstColumn, end = firstColumn; column <= lastColumn;) {
+			if(!taken.isFree(end, at, area.rowSpan)) {
+				column = ++end;
+			} else if(++end == column + area.columnSpan) {
+				area.row = at;
+				area.column = column;
 				return;
 			}
 		}
 		if(fixedRow) break; // no room in its row: it overlaps where it asked to be
+		if(at == lastRow && (fixedColumn || firstColumn == 0)) break; // every position of the last row was tried
 	}
 }
 

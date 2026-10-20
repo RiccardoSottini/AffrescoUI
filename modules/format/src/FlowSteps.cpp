@@ -19,6 +19,7 @@ bool forEach(const Running& s) {
 	const std::string name = step.contains("as") ? string(step["as"], where + ".as") : "item";
 	const std::string indexName = step.contains("index") ? string(step["index"], where + ".index") : "index";
 	for(std::size_t i = 0; i < items.size(); ++i) {
+		s.steps.engine().document.spendStep(where + ".forEach"); // an item is a step, even with nothing to "do"
 		const Scope scope{&s.locals, nullptr, {{name, items[i]}, {indexName, i}}};
 		if(!s.run(step.value("do", json::array()), scope, where + ".do")) return false;
 	}
@@ -52,6 +53,7 @@ std::optional<bool> runFlowStep(const Running& s) {
 		std::size_t iterations = 0;
 		while(format::truthy(s.value("while"))) {
 			if(++iterations > maxLoopIterations) fail(where, "\"while\" ran more than 10000 times");
+			s.steps.engine().document.spendStep(where);
 			if(!s.run(step.value("do", json::array()), s.locals, where + ".do")) return false;
 		}
 		return true;
