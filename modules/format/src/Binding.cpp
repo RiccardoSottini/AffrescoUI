@@ -61,7 +61,11 @@ CompiledValue compileValue(const json& written) {
 		if(written.is_object()) value.keys.push_back(key);
 		value.parts.push_back(std::move(part));
 	}
-	if(!dynamic) return CompiledValue{.written = &written};
+	if(!dynamic) {
+		CompiledValue constant;
+		constant.written = &written;
+		return constant;
+	}
 	value.kind = written.is_object() ? CompiledValue::Kind::Object : CompiledValue::Kind::List;
 	return value;
 }
