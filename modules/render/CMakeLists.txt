@@ -18,6 +18,8 @@ affrescoui_module(render
 	src/TextArea.cpp
 	src/Window.cpp
 	src/Headless.cpp
+	src/GeometryCache.cpp
+	src/PaintRecorder.cpp
 	src/platform/GlfwPlatform.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp

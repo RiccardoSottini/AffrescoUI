@@ -13,30 +13,18 @@ Toggle::Toggle(Look look) : look_(look) {
 	setCursor(Cursor::Hand);
 }
 
-void Toggle::setChecked(bool checked) {
-	checked_ = checked;
-	invalidate();
-}
+void Toggle::setChecked(bool checked) { setLook(checked_, checked); }
 
-void Toggle::setOnColor(Color color) {
-	onColor_ = color;
-	invalidate();
-}
+void Toggle::setOnColor(Color color) { setLook(onColor_, color); }
 
-void Toggle::setOffColor(Color color) {
-	offColor_ = color;
-	invalidate();
-}
+void Toggle::setOffColor(Color color) { setLook(offColor_, color); }
 
-void Toggle::setKnobColor(Color color) {
-	knobColor_ = color;
-	invalidate();
-}
+void Toggle::setKnobColor(Color color) { setLook(knobColor_, color); }
 
 void Toggle::mouseButtonEvent(const MouseButtonEvent& event) {
 	if(event.button == MouseButton::Left && event.action == Action::Release && bounds().contains(event.position)) {
 		checked_ = !checked_;
-		invalidate();
+		invalidatePaint();
 		onToggled(checked_);
 	}
 	Panel::mouseButtonEvent(event);
@@ -74,22 +62,20 @@ Slider::Slider() {
 }
 
 void Slider::setValue(double value) {
-	value_ = std::clamp(value, std::min(minimum_, maximum_), std::max(minimum_, maximum_));
-	invalidate();
+	setLook(value_, std::clamp(value, std::min(minimum_, maximum_), std::max(minimum_, maximum_)));
 }
 
 void Slider::setRange(double minimum, double maximum, double step) {
-	minimum_ = minimum;
-	maximum_ = maximum;
-	step_ = std::max(step, 0.0);
+	setLook(minimum_, minimum); // the knob moves within the new range
+	setLook(maximum_, maximum);
+	setLook(step_, std::max(step, 0.0));
 	setValue(value_);
 }
 
 void Slider::setColors(Color track, Color fill, Color knob) {
-	track_ = track;
-	fill_ = fill;
-	knob_ = knob;
-	invalidate();
+	setLook(track_, track);
+	setLook(fill_, fill);
+	setLook(knob_, knob);
 }
 
 void Slider::pick(float x) {
@@ -100,7 +86,7 @@ void Slider::pick(float x) {
 	value = std::clamp(value, std::min(minimum_, maximum_), std::max(minimum_, maximum_));
 	if(value == value_) return;
 	value_ = value;
-	invalidate();
+	invalidatePaint();
 	onValueChanged(value_);
 }
 

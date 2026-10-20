@@ -31,6 +31,7 @@ class NativeWindow;
 }
 namespace detail {
 class Renderer;
+struct Frame;
 struct WindowFactory;
 } // namespace detail
 
@@ -171,12 +172,14 @@ public:
 	/* Rendering */
 
 	/// @brief Marks the whole layout and frame as out of date: the next pass lays out every panel again and measures
-	/// every size again, as for something all panels read (the default font). A change to one panel needs only that
-	/// panel's own invalidate(). Changes made by the layout pass itself don't count.
+	/// every size again, and the next frame records and draws every panel again, as for something all panels read (the
+	/// default font). A change to one panel needs only that panel's own invalidate(). Changes made by the layout pass
+	/// itself don't count.
 	void invalidate() noexcept {
 		if(layingOut_) return;
-		layoutDirty_ = redrawDirty_ = layoutAll_ = true;
+		layoutDirty_ = redrawDirty_ = layoutAll_ = damageAll_ = true;
 		++measureGeneration_;
+		++paintGeneration_;
 	}
 
 	/// @brief Runs a task once the current event has been fully delivered (or before the next frame).
@@ -242,6 +245,14 @@ private:
 	}
 	/// @brief Schedules a frame without a layout pass.
 	void requestFrame() noexcept { redrawDirty_ = true; }
+	/// @brief What the renderer draws: the tree, the overlays and the tooltip, and the damage the window gathered.
+	/// @return The frame.
+	[[nodiscard]] detail::Frame frame() noexcept;
+	/// @brief Forgets the damage gathered, once a frame has taken it.
+	void clearDamage() noexcept {
+		damage_.reset();
+		damageAll_ = false;
+	}
 	/// @brief Lays out and draws the tree into the back buffer, in this window's context.
 	/// @pre The window has a renderer.
 	void draw();
@@ -282,18 +293,22 @@ private:
 	std::string clipboard_;                          ///< A headless window's clipboard.
 	bool visible_ = true;                            ///< Whether a headless window counts as shown.
 
-	std::string title_;                   ///< See title().
-	int width_ = 0, height_ = 0;          ///< Size, in window units.
-	int minWidth_ = 0, minHeight_ = 0;    ///< Minimum size.
-	Vec2 cursor_;                         ///< Last pointer position.
-	bool layoutDirty_ = true;             ///< Layout needed before the next frame.
-	bool redrawDirty_ = true;             ///< render() must draw.
-	bool layingOut_ = false;              ///< A layout pass is running.
-	bool layoutAll_ = true;               ///< The next pass lays out every panel (see invalidate()).
-	std::uint64_t measureGeneration_ = 0; ///< Panels' measured sizes from an older generation are measured again.
-	std::uint64_t layoutPass_ = 0;        ///< Counts layout passes (Panel::layoutPass_ says which one it was in).
-	bool forwardAnchor_ = false;          ///< A panel anchored to one not laid out yet in this pass.
-	int routing_ = 0;                     ///< Depth of event delivery in progress.
+	std::string title_;                ///< See title().
+	int width_ = 0, height_ = 0;       ///< Size, in window units.
+	int minWidth_ = 0, minHeight_ = 0; ///< Minimum size.
+	Vec2 cursor_;                      ///< Last pointer position.
+	bool layoutDirty_ = true;          ///< Layout needed before the next frame.
+	bool redrawDirty_ = true;          ///< render() must draw.
+	bool layingOut_ = false;           ///< A layout pass is running.
+	bool layoutAll_ = true;            ///< The next pass lays out every panel (see invalidate()).
+	std::uint64_t measureGeneration_ = 0;
+	std::uint64_t paintGeneration_ = 0; ///< See detail::Frame::paintGeneration.
+	std::optional<Rect> damage_;        ///< Where panels were that are gone, since the last frame.
+	bool damageAll_ = true; ///< The next frame draws everything (see detail::Frame::damageAll). ///< Panels' measured
+	                        ///< sizes from an older generation are measured again.
+	std::uint64_t layoutPass_ = 0; ///< Counts layout passes (Panel::layoutPass_ says which one it was in).
+	bool forwardAnchor_ = false;   ///< A panel anchored to one not laid out yet in this pass.
+	int routing_ = 0;              ///< Depth of event delivery in progress.
 	std::vector<std::function<void()>> deferred_; ///< See defer().
 
 	std::shared_ptr<const Font> defaultFont_; ///< See defaultFont().

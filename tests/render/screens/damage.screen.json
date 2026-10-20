@@ -1,0 +1,112 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Changes that redraw only part of the window, for the rendering check: a panel that moves over others and back, with its shadow; one that hides with its children; a column whose first child grows and pushes the others; a list that scrolls under rounded cards with shadows; a text colour. Every capture is also drawn from scratch and must match.",
+
+	"window": { "title": "Damage", "width": 640, "height": 420 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 }
+	},
+
+	"colors": {
+		"background": "#f1f5f9",
+		"text": "#0f172a",
+		"a": "#6366f1",
+		"b": "#0ea5e9",
+		"c": "#f97316",
+		"d": "#22c55e",
+		"white": "#ffffff",
+		"shadow": "#0f172a66"
+	},
+
+	"state": { "rows": ["one", "two", "three", "four", "five", "six", "seven", "eight"] },
+
+	"styles": {
+		"tile": { "type": "label", "textColor": "@white", "align": "center", "radius": 8 }
+	},
+
+	"root": {
+		"id": "panel-root",
+		"color": "@background",
+		"children": [
+			{ "id": "label-behind", "style": "tile", "text": "behind", "x": 150, "y": 30, "width": 120, "height": 90, "color": "@b" },
+			{
+				"id": "label-mover",
+				"style": "tile",
+				"text": "mover",
+				"x": 30,
+				"y": 20,
+				"width": 120,
+				"height": 70,
+				"color": "@a",
+				"shadow": { "y": 6, "blur": 12, "color": "@shadow" },
+				"hover": { "x": 200, "width": 150, "shadow": { "x": 10, "y": 14, "blur": 20, "color": "@shadow" } }
+			},
+			{ "id": "label-front", "style": "tile", "text": "front", "x": 300, "y": 60, "width": 100, "height": 60, "color": "@c" },
+			{
+				"id": "panel-hider",
+				"x": 440,
+				"y": 20,
+				"width": 170,
+				"height": 110,
+				"color": "@d",
+				"radius": 12,
+				"pressed": { "visible": false },
+				"children": [
+					{ "id": "label-inside", "style": "tile", "text": "inside", "x": 20, "y": 20, "width": 130, "height": 40, "color": "@a" },
+					{ "id": "label-spill", "style": "tile", "text": "shadowed", "x": 30, "y": 70, "width": 110, "height": 30, "color": "@c", "shadow": { "y": 8, "blur": 10, "color": "@shadow" } }
+				]
+			},
+			{
+				"id": "column-grower",
+				"type": "column",
+				"x": 30,
+				"y": 150,
+				"width": 180,
+				"height": 250,
+				"gap": 8,
+				"children": [
+					{ "id": "label-first", "style": "tile", "text": "grows on hover", "height": 40, "color": "@a", "anchors": { "left": 0, "right": 0 }, "hover": { "height": 90, "color": "@c" } },
+					{ "id": "label-second", "style": "tile", "text": "pushed", "height": 40, "color": "@b", "anchors": { "left": 0, "right": 0 } },
+					{ "id": "label-third", "style": "tile", "text": "pushed too", "height": 40, "color": "@d", "anchors": { "left": 0, "right": 0 } }
+				]
+			},
+			{
+				"id": "column-list",
+				"type": "column",
+				"x": 240,
+				"y": 150,
+				"width": 200,
+				"height": 250,
+				"gap": 10,
+				"color": "#e2e8f0",
+				"scroll": "vertical",
+				"children": [
+					{
+						"id": "label-row",
+						"repeat": { "for": "row", "in": "state.rows", "index": "i" },
+						"style": "tile",
+						"text": "{{row}}",
+						"height": 44,
+						"anchors": { "left": 12, "right": 12 },
+						"color": "{{i % 2 == 0 ? '@a' : '@b'}}",
+						"shadow": { "y": 4, "blur": 8, "color": "@shadow" }
+					}
+				]
+			},
+			{
+				"id": "label-colour",
+				"type": "label",
+				"text": "Text that changes colour",
+				"x": 470,
+				"y": 200,
+				"width": 150,
+				"height": 30,
+				"textColor": "@text",
+				"hover": { "textColor": "@c" }
+			}
+		]
+	}
+}

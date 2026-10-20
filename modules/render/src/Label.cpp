@@ -54,10 +54,7 @@ const Font* Label::font() const noexcept {
 	return window() ? window()->defaultFont() : nullptr;
 }
 
-void Label::setTextColor(Color color) {
-	textColor_ = color;
-	invalidate();
-}
+void Label::setTextColor(Color color) { setLook(textColor_, color); }
 
 void Label::setPadding(float padding) {
 	padding_ = padding;

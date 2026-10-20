@@ -20,10 +20,38 @@ struct WindowFactory {
 	static std::unique_ptr<Window> headless(int width, int height, const Clock& clock, std::string title) {
 		return std::unique_ptr<Window>(new Window(nullptr, nullptr, clock, std::move(title), width, height));
 	}
+
+	/// @brief A window's next frame, its damage handed over.
+	/// @param window The window.
+	/// @return The frame.
+	static Frame take(Window& window) {
+		window.updateLayout();
+		Frame frame = window.frame();
+		window.clearDamage();
+		return frame;
+	}
+
+	/// @brief Draws a window's frame from nothing.
+	/// @param window The window.
+	/// @param scale Pixels per window unit.
+	/// @return The pixels; empty for a headless window.
+	static std::vector<std::uint8_t> fromScratch(Window& window, int scale) {
+		if(!window.renderer_) return {};
+		window.runDeferred();
+		window.native_->makeCurrent();
+		window.updateLayout();
+		return window.renderer_->drawFromScratch(window.frame(), {window.width_ * scale, window.height_ * scale});
+	}
 };
 
 std::unique_ptr<Window> createHeadlessWindow(int width, int height, const Clock& clock, std::string title) {
 	return WindowFactory::headless(width, height, clock, std::move(title));
 }
+
+std::vector<std::uint8_t> drawFromScratch(Window& window, int scale) {
+	return WindowFactory::fromScratch(window, scale);
+}
+
+Frame takeFrame(Window& window) { return WindowFactory::take(window); }
 
 } // namespace affresco::detail

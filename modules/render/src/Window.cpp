@@ -6,7 +6,9 @@
 #include "affresco/render/Window.hpp"
 #include "affresco/render/Label.hpp"
 
+#include "GeometryCache.hpp"
 #include "Renderer.hpp"
+#include "RetainedGeometry.hpp"
 #include "detail/Ppm.hpp"
 #include "platform/Platform.hpp"
 
@@ -86,6 +88,7 @@ void Window::resized(int width, int height) {
 	width_ = width;
 	height_ = height;
 	requestLayout(); // the root's size changes, and with it what depends on it
+	damageAll_ = true;
 	onResize(ResizeEvent{width, height});
 }
 
@@ -217,12 +220,18 @@ void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
 	overlay.layout(origin, area, Vec2{width, height}, parent.shown_);
 }
 
+detail::Frame Window::frame() noexcept {
+	return {
+	    root_,   overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_, layoutPass_, paintGeneration_,
+	    damage_, damageAll_};
+}
+
 void Window::draw() {
 	native_->makeCurrent();
 	updateLayout();
 	// On HiDPI screens the framebuffer has more pixels than the window has units
-	renderer_->draw({root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_},
-	                native_->framebufferSize());
+	renderer_->draw(frame(), native_->framebufferSize());
+	clearDamage();
 }
 
 void Window::defer(std::function<void()> task) {
@@ -326,8 +335,8 @@ bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
 	updateLayout();
 
 	const platform::PixelSize size{width_ * scale, height_ * scale};
-	const std::vector<std::uint8_t> pixels =
-	    renderer_->drawOffscreen({root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_}, size);
+	const std::vector<std::uint8_t> pixels = renderer_->drawOffscreen(frame(), size);
+	clearDamage();
 	return detail::writePpm(path, size.width, size.height, pixels);
 }
 
@@ -410,6 +419,10 @@ void Window::routeCursorEnter(bool entered) {
 }
 
 void Window::forget(const Panel& panel) noexcept {
+	if(panel.geometry_ && panel.geometry_->recorded) { // where it drew is damage
+		detail::addTo(damage_, detail::reachOf(panel.geometry_->key.bounds, panel.geometry_->record));
+		requestFrame();
+	}
 	if(focused_ == &panel) focused_ = nullptr;
 	if(hovered_ == &panel) hovered_ = nullptr;
 	if(grabbed_ == &panel) grabbed_ = nullptr;

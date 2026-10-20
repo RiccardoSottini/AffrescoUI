@@ -2,6 +2,8 @@
 #include "affresco/render/Painter.hpp"
 #include "affresco/render/Window.hpp"
 
+#include "RetainedGeometry.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -60,6 +62,9 @@ Panel& Panel::addChild(std::unique_ptr<Panel> child) {
 	adopt(std::move(child));
 	return ref;
 }
+
+// Out of line, like the destructor: the geometry it owns is a type only the renderer and this file see
+Panel::Panel() = default;
 
 Panel::~Panel() {
 	if(window_) window_->forget(*this); // no dangling focus/hover/capture pointers
@@ -139,7 +144,19 @@ void Panel::attachTo(Window* window) noexcept {
 void Panel::invalidate() noexcept {
 	measured_.reset();
 	markLayoutDirty();
+	markPaintDirty();
 	if(window_) window_->requestLayout();
+}
+
+void Panel::invalidatePaint() noexcept {
+	markPaintDirty();
+	if(window_) window_->requestFrame();
+}
+
+void Panel::markPaintDirty() noexcept {
+	paintStale_ = true;
+	for(Panel* ancestor = parent_; ancestor && !ancestor->paintBelow_; ancestor = ancestor->parent_)
+		ancestor->paintBelow_ = true;
 }
 
 // Ancestors already marked have theirs marked too, so the walk stops at the first one
@@ -295,16 +312,16 @@ void Panel::setTooltip(std::string text) { tooltip_ = std::move(text); }
 
 /* Appearance */
 
-void Panel::setColor(Color color) { setProperty(color_, color); }
+void Panel::setColor(Color color) { setLook(color_, color); }
 
-void Panel::setCornerRadii(CornerRadii radii) { setProperty(radii_, radii); }
+void Panel::setCornerRadii(CornerRadii radii) { setLook(radii_, radii); }
 
 void Panel::setBorder(float width, Color color) {
-	setProperty(borderWidth_, width);
-	setProperty(borderColor_, color);
+	setLook(borderWidth_, width);
+	setLook(borderColor_, color);
 }
 
-void Panel::setShadow(const Shadow& shadow) { setProperty(shadow_, shadow); }
+void Panel::setShadow(const Shadow& shadow) { setLook(shadow_, shadow); }
 
 void Panel::setCursor(Cursor cursor) {
 	cursor_ = cursor;

@@ -114,32 +114,32 @@ void TextEditor::setLineNumbers(bool shown) {
 
 void TextEditor::setTextColor(Color color) {
 	textColor_ = color;
-	invalidate();
+	invalidatePaint();
 }
 
 void TextEditor::setLineNumberColor(Color color) {
 	lineNumberColor_ = color;
-	invalidate();
+	invalidatePaint();
 }
 
 void TextEditor::setActiveLineNumberColor(Color color) {
 	activeLineNumberColor_ = color;
-	invalidate();
+	invalidatePaint();
 }
 
 void TextEditor::setLineColor(Color color) {
 	lineColor_ = color;
-	invalidate();
+	invalidatePaint();
 }
 
 void TextEditor::setSelectionColor(Color color) {
 	selectionColor_ = color;
-	invalidate();
+	invalidatePaint();
 }
 
 void TextEditor::setCaretColor(Color color) {
 	caretColor_ = color;
-	invalidate();
+	invalidatePaint();
 }
 
 void TextEditor::resetColors() {
@@ -149,7 +149,7 @@ void TextEditor::resetColors() {
 	lineColor_ = Color::hex(0x23262e);
 	selectionColor_ = Color::hex(0x264f78);
 	caretColor_ = Color::hex(0xaeafad);
-	invalidate();
+	invalidatePaint();
 }
 
 std::size_t TextEditor::selectedLength() const {
@@ -297,7 +297,7 @@ void TextEditor::replaceSelection(std::u32string_view text) {
 void TextEditor::setSelection(Position anchor, Position caret) noexcept {
 	anchor_ = anchor;
 	caret_ = caret;
-	invalidate();
+	invalidatePaint();
 }
 
 TextEditor::Position TextEditor::step(Position from, bool forward, bool word) const noexcept {
@@ -544,7 +544,7 @@ void TextEditor::keyEvent(const KeyEvent& event) {
 	case Key::A:
 		anchor_ = {0, 0};
 		caret_ = {lines_.size() - 1, lines_.back().size()};
-		invalidate();
+		invalidatePaint();
 		onCaretMoved(caret_);
 		return;
 	case Key::C:
@@ -590,7 +590,7 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 	if(clicks_ == 3) {
 		anchor_ = {at.line, 0};
 		caret_ = at.line + 1 < lines_.size() ? Position{at.line + 1, 0} : Position{at.line, lines_[at.line].size()};
-		invalidate();
+		invalidatePaint();
 		onCaretMoved(caret_);
 		return;
 	}
@@ -610,12 +610,12 @@ void TextEditor::scrollEvent(const ScrollEvent& event) {
 	scroll_.x -= event.offset.x * scrollSpeed;
 	scroll_.y -= event.offset.y * scrollSpeed;
 	clampScroll();
-	if(scroll_.x != before.x || scroll_.y != before.y) invalidate();
+	if(scroll_.x != before.x || scroll_.y != before.y) invalidatePaint();
 }
 
 void TextEditor::focusEvent(bool focused) {
 	if(!focused) dragging_ = false;
-	invalidate(); // the caret appears or disappears
+	invalidatePaint(); // the caret appears or disappears
 	Panel::focusEvent(focused);
 }
 

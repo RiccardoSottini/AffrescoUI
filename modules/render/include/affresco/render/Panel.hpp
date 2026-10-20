@@ -31,6 +31,11 @@ namespace gl {
 class QuadRenderer;
 }
 
+namespace detail {
+struct PanelGeometry;
+class GeometryCache;
+} // namespace detail
+
 /// @brief An edge of a panel, for anchors.
 enum class Edge {
 	Top,    ///< Top edge.
@@ -68,7 +73,8 @@ enum class Placement {
 /// the event hooks, size themselves in prepareLayout() and place their children in arrange().
 class Panel {
 public:
-	Panel() = default;
+	/// @brief An empty panel: no size, anchored nowhere, the default colour.
+	Panel();
 	/// @brief Destroys the subtree and clears the window's focus, hover and capture if they point here.
 	virtual ~Panel();
 
@@ -422,6 +428,10 @@ protected:
 	/// doesn't own (its measured size is cached until then).
 	void invalidate() noexcept;
 
+	/// @brief Tells the window that only this panel's drawing changed (a colour, a caret): the next frame draws it
+	/// again, and no layout pass runs for it. When its size or arrangement may change too, call invalidate() instead.
+	void invalidatePaint() noexcept;
+
 	/// @brief Whether invalidate() was called since this panel was last laid out: what prepareLayout() keeps from
 	/// earlier passes may be out of date only then (or after Window::invalidate()).
 	[[nodiscard]] bool isLayoutDirty() const noexcept { return layoutDirty_; }
@@ -436,6 +446,17 @@ protected:
 		invalidate();
 	}
 
+	/// @brief Stores the new value of a property that only changes the drawing and calls invalidatePaint(), unless the
+	/// value is the one already there.
+	/// @tparam T The property's type; it must have ==.
+	/// @param member The property.
+	/// @param value Its new value.
+	template <typename T> void setLook(T& member, std::type_identity_t<T> value) {
+		if(member == value) return;
+		member = std::move(value);
+		invalidatePaint();
+	}
+
 	/// @brief Gives a child the size a container decided, for this layout pass, instead of its own.
 	/// @param child The child.
 	/// @param width Its width, or std::nullopt to keep its own.
@@ -445,6 +466,7 @@ protected:
 private:
 	friend class Window;
 	friend class gl::QuadRenderer;
+	friend class detail::GeometryCache;
 
 	/// @brief Computes frame, bounds and visibility for this panel and its subtree.
 	/// @param origin The parent's frame, moved by its scroll offset: what positions and anchors are measured from.
@@ -478,6 +500,8 @@ private:
 	void followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, Vec2 parentSize) noexcept;
 	/// @brief Marks this panel as needing layout, and its ancestors as having a descendant that does.
 	void markLayoutDirty() noexcept;
+	/// @brief Marks this panel's drawing as out of date, and its ancestors as having a descendant whose is.
+	void markPaintDirty() noexcept;
 	/// @brief Applies the aspect ratio to a size: the axis that is set leads, within the other's bounds.
 	/// @param size The size, within its bounds.
 	/// @param widthSet Whether the width is set (non-zero, stretched or given by a container).
@@ -588,7 +612,7 @@ private:
 
 	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
 	std::uint64_t skippedPass_ = 0;        ///< The window's layout pass that last skipped this panel and its subtree.
-	LayoutInputs laidOut_;                 ///< What the last pass gave it; nullopt before the first.
+	LayoutInputs laidOut_;                 ///< What the last pass gave it, once laid out (see canSkipLayout()).
 	std::optional<MeasuredSize> measured_; ///< See measuredSize(); nullopt once something changed.
 	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
 	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.
@@ -598,6 +622,10 @@ private:
 	Rect bounds_;                          ///< See bounds().
 	Vec2 size_;                            ///< See resolvedSize().
 	bool shown_ = false;                   ///< See isShown().
+
+	bool paintStale_ = true;                          ///< Its drawing changed since the renderer last recorded it.
+	bool paintBelow_ = false;                         ///< A descendant's paintStale_ is set.
+	std::unique_ptr<detail::PanelGeometry> geometry_; ///< What it drew last, kept by the renderer; null until drawn.
 };
 
 } // namespace affresco
