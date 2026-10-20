@@ -4,6 +4,7 @@
 
 #include "Checker.hpp"
 #include "SectionRegistry.hpp"
+#include "Limits.hpp"
 #include "StateTypes.hpp"
 
 #include <algorithm>
@@ -160,6 +161,30 @@ std::string typeNote(const Mismatch& mismatch) {
 	return " (stateTypes." + std::string(place.substr(0, place.find_first_of(".["))) + ")";
 }
 
+/// @brief Refuses a document larger than maxDocumentBytes without its "state", or whose "state" is larger than
+/// maxStateBytes.
+/// @param document The document.
+/// @throws DocumentError If it is.
+void checkDocumentSize(const json& document) {
+	std::size_t bytes = 0;
+	for(const auto& [key, value] : document.items())
+		if(key != "state") bytes += key.size() + approximateBytes(value, maxDocumentBytes);
+	if(bytes > maxDocumentBytes)
+		fail("", "the screen is larger than " + std::to_string(maxDocumentBytes >> 20) + " MiB of JSON");
+	if(approximateBytes(stateOf(document), maxStateBytes) > maxStateBytes)
+		fail("state", "larger than " + std::to_string(maxStateBytes >> 20) + " MiB of JSON");
+}
+
+/// @brief Refuses a revision after which the live state is larger than maxStateBytes, and larger than before.
+/// @param before The document with the live state in "state", before the revision.
+/// @param after The same, after it.
+/// @throws DocumentError If it would be.
+void checkStateSize(const json& before, const json& after) {
+	const std::size_t now = approximateBytes(stateOf(after), maxStateBytes);
+	if(now > maxStateBytes && now > approximateBytes(stateOf(before)))
+		fail("revision", "the state would be larger than " + std::to_string(maxStateBytes >> 20) + " MiB of JSON");
+}
+
 /// @brief Refuses a revision after which the live state matches its types less than before: a value that no longer
 /// matches, or a type the state doesn't match. Mismatches that were there before don't block it.
 /// @param before The document with the live state in "state", before the revision.
@@ -179,9 +204,19 @@ void checkTypedState(const json& before, const json& after) {
 
 Rules::Rules() : sections_(builtInSections()) {}
 
+void Rules::checkRevision(const json& patch) const {
+	if(patch.is_array() && patch.size() > maxRevisionOperations)
+		fail("revision.patch", std::to_string(patch.size()) + " operations, more than the " +
+		                           std::to_string(maxRevisionOperations) + " a revision may have");
+	if(approximateBytes(patch, maxRevisionBytes) > maxRevisionBytes)
+		fail("revision.patch", "more than " + std::to_string(maxRevisionBytes >> 20) +
+		                           " MiB of JSON, more than a revision may have");
+}
+
 // The document's own "state" must match its types; the live state is checked by checkChange() and findings()
 void Rules::validate(const json& doc) const {
 	sections_->validate(doc);
+	checkDocumentSize(doc);
 	const std::vector<Mismatch> mismatches = stateMismatches(doc, stateOf(doc));
 	if(!mismatches.empty()) fail(mismatches.front().place, mismatches.front().problem + typeNote(mismatches.front()));
 }
@@ -231,6 +266,7 @@ void Rules::checkChange(const json& before, const json& after) const {
 	}
 
 	checkTypedState(before, after);
+	checkStateSize(before, after);
 
 	if(controlsIn(before) != controlsIn(after))
 		fail("revision",

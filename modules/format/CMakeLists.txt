@@ -16,6 +16,7 @@ affrescoui_module(format
 	src/Rules.cpp
 	src/Sections.cpp
 	src/StateTypes.cpp
+	src/Limits.cpp
 	src/CapabilitySections.cpp
 	src/Runtime.cpp
 	src/Engine.cpp

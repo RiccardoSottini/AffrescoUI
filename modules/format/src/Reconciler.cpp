@@ -131,6 +131,7 @@ void Reconciler::reconcile() {
 	if(!window) return;
 	reconcileQueued_ = false;
 	DocumentContext& context = engine_.document;
+	const DocumentContext::BudgetScope budget(context); // an update has its own, unless an event runs it
 	context.clearStateChanged();
 	const json& document = engine_.versions.document();
 

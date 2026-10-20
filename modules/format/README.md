@@ -100,6 +100,12 @@ general: a settings page can describe its settings with it.
   compared with at most 1,000 names.
 - **State writes go through `statePlace()`** (`Expression.hpp`), never `state[pointer]`: it throws `DocumentError`
   where nlohmann would throw a `json::exception`, which no event handler catches, and bounds how far a list grows.
+- **Every event and every update has a work budget** (1.8c, `WorkBudget` in `Expression.hpp`, started by
+  `DocumentContext::BudgetScope` in `Steps::handle` and `Reconciler::reconcile`): 100,000 steps
+  (`Steps::runStep`), 10,000,000 expression operations (`Machine::run`) and 64 MiB written into the state (`set`,
+  `push`). Nested handlers share the outermost one's. Past one, what runs stops with an error that names its place.
+- **Sizes** (`Limits.hpp`, in `Rules`): a revision of at most 100,000 operations and 16 MiB (`checkRevision`, called
+  by version control before applying it), a document of 32 MiB without its state, a state of 32 MiB.
 
 ## Threads
 

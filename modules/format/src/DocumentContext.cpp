@@ -3,6 +3,7 @@
 
 #include "DocumentContext.hpp"
 #include "Engine.hpp"
+#include "Limits.hpp"
 #include "PropertyValues.hpp"
 
 #include <algorithm>
@@ -140,7 +141,37 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 Context DocumentContext::context(const Scope& locals, const json& event) const {
 	const Globals& g = globals();
 	return Context{engine_.versions.state(), g.window, g.revision, event, locals, g.other, &nodeLookup_,
-	               &computedLookup_};
+	               &computedLookup_, budget_};
+}
+
+/* The work budget */
+
+DocumentContext::BudgetScope::BudgetScope(DocumentContext& context) noexcept : context_(context) {
+	if(context_.budget_) return; // inside another event or update: its budget goes on
+	budget_ = {stepsPerEvent, operationsPerEvent, bytesPerEvent};
+	context_.budget_ = &budget_;
+	outermost_ = true;
+}
+
+DocumentContext::BudgetScope::~BudgetScope() {
+	if(outermost_) context_.budget_ = nullptr;
+}
+
+void DocumentContext::spendStep(const std::string& where) const {
+	if(!budget_) return;
+	if(budget_->steps == 0)
+		fail(where, "the event ran more than " + std::to_string(stepsPerEvent) +
+		                " steps, its work budget: the action stopped");
+	--budget_->steps;
+}
+
+void DocumentContext::spendBytes(const json& value, const std::string& where) const {
+	if(!budget_) return;
+	const std::size_t bytes = approximateBytes(value, budget_->bytes);
+	if(bytes > budget_->bytes)
+		fail(where, "the event wrote more than " + std::to_string(bytesPerEvent >> 20) +
+		                " MiB into the state, its work budget: the action stopped");
+	budget_->bytes -= bytes;
 }
 
 json DocumentContext::evaluate(const json& value, const Scope& locals, const json& event,

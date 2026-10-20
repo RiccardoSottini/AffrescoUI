@@ -141,8 +141,9 @@ Kinds Checker::kindsOf(const json& value) const {
 
 Kinds Checker::kindsOfTree(const json& tree) const {
 	if(!tree.is_object() || tree.size() != 1 || !tree.begin().key().starts_with('$')) return kindOf(tree);
-	const std::string& name = tree.begin().key();
-	const json& raw = tree.begin().value();
+	const auto only = tree.begin(); // named: references into a temporary iterator would dangle
+	const std::string& name = only.key();
+	const json& raw = only.value();
 	if(name == "$value") return kindOf(raw);
 	if(among(booleanOperators, name)) return bit(Kind::Boolean);
 	if(among(numberOperators, name)) return numberKinds;

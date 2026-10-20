@@ -150,6 +150,12 @@ json Machine::evaluateDocument(const json& value, const Place& place) {
 }
 
 Value Machine::run(const Node& node, const Place& place) {
+	if(WorkBudget* budget = context_.budget) {
+		if(budget->operations == 0)
+			fail(place, "the event did more than " + std::to_string(operationsPerEvent) +
+			                " operations, its work budget: what was running stopped");
+		--budget->operations;
+	}
 	switch(node.kind) {
 	case Node::Kind::Literal:
 		return node.value;

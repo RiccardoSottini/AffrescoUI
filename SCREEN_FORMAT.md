@@ -242,6 +242,13 @@ are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reve
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
 
+**Work budget:** an event (a handler, a timer, `onLoad`, `watch`) or an update may run 100,000 steps, evaluate
+10,000,000 expression operations (each item a list function visits counts) and write 64 MiB into the state. Past
+one, what is running stops with an error that names its place (`actions.spin[0]: the event ran more than 100000
+steps, its work budget: the action stopped`), and the screen goes on. An update that stops refuses the version that
+caused it. A revision may have 100,000 operations and 16 MiB; a document may have 32 MiB, and so may its state
+(SECURITY.md, "Limits").
+
 ### Typed state
 `stateTypes` declares what a state key holds, one JSON Schema per key:
 

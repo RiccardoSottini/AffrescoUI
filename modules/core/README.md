@@ -15,7 +15,7 @@ headers come with nlohmann/json, which only the modules that use documents link.
 | `Executor.hpp` | `Executor::post`: run a task on the main thread, from any thread |
 | `Channel.hpp` | `Channel`: a two-way stream of one-line messages; `onMessage`, `onClosed`; `maxMessageBytes` (64 MiB) |
 | `Json.hpp` | `json`, `DocumentError`, `parseUntrusted` (nesting limit `maxNesting` = 256), `toText`, the `expect::` readers |
-| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, and `pathHint`, a hint for a path that finds nothing), `PermissionRule`, `Permissions` |
+| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied), `PermissionRule`, `Permissions` |
 | `VersionControl.hpp` | `VersionControl` and `VersionObserver`; `RevisionResult`, `CommitInfo`, `ProposalInfo`, `Grant`, `Approval`, `Decision`, `Mode`; their protocol JSON |
 | `ScreenImages.hpp` | `ScreenImages::render`: a picture of the screen or of a proposal (`ImageRequest`, `Image`) |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
