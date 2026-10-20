@@ -114,6 +114,20 @@ bool syncDirectory([[maybe_unused]] const std::filesystem::path& directory) {
 #endif
 }
 
+#ifndef _WIN32
+/// @brief Which program holds a lock, from the process id it wrote into the lock file.
+/// @param descriptor The lock file, open.
+/// @return " (process 1234)", or "" if the file holds no process id.
+std::string heldBy(int descriptor) {
+	std::array<char, 24> holder{};
+	const ssize_t length = ::pread(descriptor, holder.data(), holder.size() - 1, 0);
+	const std::string process(holder.data(), length > 0 ? static_cast<std::size_t>(length) : 0);
+	const bool known =
+	    !process.empty() && std::ranges::all_of(process, [](char c) { return (c >= '0' && c <= '9') || c == '\n'; });
+	return known ? " (process " + process.substr(0, process.find('\n')) + ")" : "";
+}
+#endif
+
 /// @brief The current time, for a file name.
 /// @return UTC, e.g. "20261019T120000Z" (no ':', which Windows doesn't allow in names).
 std::string fileNameTime() {
@@ -147,17 +161,8 @@ std::optional<FileLock> FileLock::tryLock(const std::filesystem::path& file, std
 		return std::nullopt;
 	}
 	if(::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
-		if(errno == EWOULDBLOCK) {
-			std::array<char, 24> holder{};
-			const ssize_t length = ::pread(descriptor, holder.data(), holder.size() - 1, 0);
-			const std::string process(holder.data(), length > 0 ? static_cast<std::size_t>(length) : 0);
-			const bool known = !process.empty() &&
-			                   std::ranges::all_of(process, [](char c) { return (c >= '0' && c <= '9') || c == '\n'; });
-			problem = "in use by another program" +
-			          (known ? " (process " + process.substr(0, process.find('\n')) + ")" : std::string());
-		} else {
-			problem = "can't be locked (" + lastError() + ")";
-		}
+		problem = errno == EWOULDBLOCK ? "in use by another program" + heldBy(descriptor)
+		                               : "can't be locked (" + lastError() + ")";
 		::close(descriptor);
 		return std::nullopt;
 	}

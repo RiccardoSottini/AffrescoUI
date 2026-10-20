@@ -74,13 +74,16 @@ json patchOf(const json& revision) {
 		return revision[key];
 	};
 	if(revision.contains("set"))
-		for(const auto& [path, value] : edits("set").items()) patch.push_back({{"op", "set"}, {"path", path}, {"value", value}});
+		for(const auto& [path, value] : edits("set").items())
+			patch.push_back({{"op", "set"}, {"path", path}, {"value", value}});
 	if(revision.contains("add"))
-		for(const auto& [path, value] : edits("add").items()) patch.push_back({{"op", "add"}, {"path", path}, {"value", value}});
+		for(const auto& [path, value] : edits("add").items())
+			patch.push_back({{"op", "add"}, {"path", path}, {"value", value}});
 	if(revision.contains("remove")) {
 		const json& paths = revision["remove"].is_string() ? json::array({revision["remove"]}) : revision["remove"];
 		if(!paths.is_array()) fail("revision.remove", "expected a list of paths");
-		for(const json& path : paths) patch.push_back({{"op", "remove"}, {"path", expect::string(path, "revision.remove")}});
+		for(const json& path : paths)
+			patch.push_back({{"op", "remove"}, {"path", expect::string(path, "revision.remove")}});
 	}
 	if(revision.contains("move"))
 		for(const auto& [from, to] : edits("move").items())
@@ -121,6 +124,27 @@ std::optional<std::size_t> digits(std::string_view text) {
 	const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
 	if(text.empty() || error != std::errc() || end != text.data() + text.size()) return std::nullopt;
 	return value;
+}
+
+/// @brief Takes "~n" off the end of a commit's name: how many first parents to go back from it.
+/// @param name The name, e.g. "HEAD~2"; keeps what comes before the '~' ("HEAD").
+/// @return n: 1 for a '~' alone, 0 without one.
+/// @throws DocumentError If what follows the '~' isn't a number.
+std::size_t stepsBack(std::string& name) {
+	const std::size_t tilde = name.find('~');
+	if(tilde == std::string::npos) return 0;
+	const auto n = tilde + 1 == name.size() ? std::optional<std::size_t>(1) : digits(name.substr(tilde + 1));
+	if(!n) fail("revision", "'" + name + "': expected a number after '~'");
+	name.resize(tilde);
+	return *n;
+}
+
+/// @brief Tells whether a name can be a commit's id or the start of one: 4 to 64 lowercase hex digits.
+/// @param name The name.
+/// @return true if it can.
+bool idPrefix(std::string_view name) {
+	return name.size() >= 4 && name.size() <= 64 &&
+	       std::ranges::all_of(name, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
 }
 
 } // namespace
@@ -187,38 +211,32 @@ const Repository::Commit& Repository::find(const json& revision) const {
 		fail("revision", "expected a revision number or a commit (an id, \"HEAD~1\", \"main\", \"proposal/2\")");
 
 	std::string name = revision.get<std::string>();
-	std::size_t back = 0;
-	if(const std::size_t tilde = name.find('~'); tilde != std::string::npos) {
-		const auto n = tilde + 1 == name.size() ? std::optional<std::size_t>(1) : digits(name.substr(tilde + 1));
-		if(!n) fail("revision", "'" + name + "': expected a number after '~'");
-		back = *n;
-		name.resize(tilde);
-	}
-
-	const Commit* commit = nullptr;
-	if(name == "HEAD" || name == "main") {
-		commit = &mainHead();
-	} else if(name.starts_with("proposal/")) {
-		const auto id = digits(name.substr(9));
-		const Proposal* proposal = id && *id <= 1'000'000 ? findProposal(static_cast<int>(*id)) : nullptr;
-		if(!proposal) fail("revision", "no open proposal '" + name + "'");
-		commit = &objects_.at(proposal->head);
-	} else {
-		if(name.size() < 4 || name.size() > 64 ||
-		   !std::ranges::all_of(name, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }))
-			fail("revision", "unknown revision '" + name + "'");
-		for(const auto& [id, object] : objects_) {
-			if(!id.starts_with(name)) continue;
-			if(commit) fail("revision", "'" + name + "' is ambiguous: give more of the commit id");
-			commit = &object;
-		}
-		if(!commit) fail("revision", "no commit '" + name + "'");
-	}
-
+	const std::size_t back = stepsBack(name);
+	const Commit* commit = &named(name);
 	for(std::size_t i = 0; i < back; ++i) {
 		if(commit->parents.empty()) fail("revision", "'" + revision.get<std::string>() + "' goes back past revision 0");
 		commit = &objects_.at(commit->parents.front());
 	}
+	return *commit;
+}
+
+// "HEAD" or "main", "proposal/<n>", or a commit's id or the start of one
+const Repository::Commit& Repository::named(const std::string& name) const {
+	if(name == "HEAD" || name == "main") return mainHead();
+	if(name.starts_with("proposal/")) {
+		const auto id = digits(name.substr(9));
+		const Proposal* proposal = id && *id <= 1'000'000 ? findProposal(static_cast<int>(*id)) : nullptr;
+		if(!proposal) fail("revision", "no open proposal '" + name + "'");
+		return objects_.at(proposal->head);
+	}
+	if(!idPrefix(name)) fail("revision", "unknown revision '" + name + "'");
+	const Commit* commit = nullptr;
+	for(const auto& [id, object] : objects_) {
+		if(!id.starts_with(name)) continue;
+		if(commit) fail("revision", "'" + name + "' is ambiguous: give more of the commit id");
+		commit = &object;
+	}
+	if(!commit) fail("revision", "no commit '" + name + "'");
 	return *commit;
 }
 
@@ -307,6 +325,19 @@ void Repository::apply(json& view, json op, const json& written, const std::stri
 	}
 }
 
+// What a "test" reads isn't touched; what a "move" takes from is
+void Repository::resolvePaths(json& op, const std::string& kind, const json& view, const std::string& where,
+                              std::vector<std::string>& touches) const {
+	for(const char* key : {"path", "from"}) {
+		if(!op.contains(key)) continue;
+		op[key] = resolvePath(view, expect::string(op[key], where + "." + key), where + "." + key);
+		if(kind != "test" && (key == std::string_view("path") || kind == "move"))
+			if(std::string touched = detail::area(rules_, view, op[key]);
+			   std::ranges::find(touches, touched) == touches.end())
+				touches.push_back(std::move(touched));
+	}
+}
+
 // One operation at a time, on the document as rules see it ("/state" is the live state), so "#id" paths find nodes
 // that earlier operations added or moved
 Repository::Prepared Repository::prepare(const json& patch, const json& document, const json& state) const {
@@ -321,15 +352,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		const std::string written = op.contains("path") && op["path"].is_string() ? op["path"].get<std::string>() : "";
 		const std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
 		const std::string where = "revision.patch[" + std::to_string(i) + "] (" + kind + " " + written + ")";
-		for(const char* key : {"path", "from"}) {
-			if(!op.contains(key)) continue;
-			op[key] = resolvePath(after, expect::string(op[key], where + "." + key), where + "." + key);
-			if(kind != "test" && (key == std::string_view("path") || kind == "move"))
-				if(std::string touched = detail::area(rules_, after, op[key]);
-				   std::ranges::find(result.touches, touched) == result.touches.end())
-					result.touches.push_back(std::move(touched));
-		}
-
+		resolvePaths(op, kind, after, where, result.touches);
 		result.patch.push_back(normalise(op, patch[i], after));
 		budget.spend(after, op, where);
 		apply(after, std::move(op), patch[i], where);
@@ -576,8 +599,8 @@ json Repository::revertRevision(const json& revision, std::string_view author) c
 	checkDocumentRevert(target, then, patch);
 	const json undo = stateRevert(target); // the live state too, when the commit changed it in this run
 	if(patch.empty() && undo.empty())
-		fail("revert", "nothing to revert: " + describe(target) + " changed neither the document nor, in this run, the "
-		                                                      "live state");
+		fail("revert", "nothing to revert: " + describe(target) +
+		                   " changed neither the document nor, in this run, the live state");
 	patch.insert(patch.end(), undo.begin(), undo.end());
 	return {
 	    {"author", std::string(author)}, {"message", "Revert \"" + target.message + "\""}, {"patch", std::move(patch)}};
@@ -616,8 +639,7 @@ json Repository::diff(const json& from, const json& to) const {
 
 std::vector<ProposalInfo> Repository::proposals() const {
 	std::vector<ProposalInfo> result;
-	for(const Proposal& p : proposals_)
-	{
+	for(const Proposal& p : proposals_) {
 		std::vector<std::string> changes;
 		for(const json& op : p.patch) changes.push_back(summary(op));
 		result.push_back({p.id, "proposal/" + std::to_string(p.id), p.author, p.message, p.base, p.head, p.commits,

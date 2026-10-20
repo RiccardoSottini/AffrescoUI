@@ -117,6 +117,25 @@ void expectGrantRule(const std::string& rule, const std::string& where) {
 		             "'" + rule + "' is not a rule that \"don't ask again\" grants (<channel>(<one node or area>))");
 }
 
+/// @brief Reads the "don't ask again" grants of a refs file.
+/// @param grants The list.
+/// @return The grants.
+/// @throws DocumentError If one is malformed, or isn't a rule that "don't ask again" grants.
+std::vector<Grant> grantsOf(const json& grants) {
+	if(!grants.is_array()) expect::fail("grants", "expected a list");
+	std::vector<Grant> result;
+	for(std::size_t i = 0; i < grants.size(); ++i) {
+		const std::string where = "grants[" + std::to_string(i) + "]";
+		const json& grant = expect::object(grants[i], where);
+		std::string rule = expect::string(grant.at("rule"), where + ".rule");
+		expectGrantRule(rule, where + ".rule");
+		result.push_back({std::move(rule), expect::string(grant.at("grantedBy"), where + ".grantedBy"),
+		                  expect::integer(grant.at("proposal"), where + ".proposal"),
+		                  expect::string(grant.at("time"), where + ".time")});
+	}
+	return result;
+}
+
 /// @brief Refuses to write an object that loading would refuse (parseUntrusted()'s limit): the history on disk would
 /// be damaged for good. A screen file can nest deeper, since it isn't read with that limit.
 /// @param value The object.
@@ -248,30 +267,24 @@ Repository::Refs Repository::readRefs(detail::HistoryStore& store) {
 		if(!mode) expect::fail("mode", R"(expected "default", "acceptEdits" or "plan")");
 		result.mode = *mode;
 
-		const json& proposals = refs.at("proposals");
-		if(!proposals.is_array()) expect::fail("proposals", "expected a list");
-		for(std::size_t i = 0; i < proposals.size(); ++i) {
-			const std::string where = "proposals[" + std::to_string(i) + "]";
-			Proposal proposal = readProposal(proposals[i], where);
-			if(proposal.id < 1 || proposal.id >= result.nextProposal ||
-			   std::ranges::find(result.proposals, proposal.id, &Proposal::id) != result.proposals.end())
-				expect::fail(where + ".id", "expected a proposal id below nextProposal, used once");
-			result.proposals.push_back(std::move(proposal));
-		}
-
-		const json& grants = refs.at("grants");
-		if(!grants.is_array()) expect::fail("grants", "expected a list");
-		for(std::size_t i = 0; i < grants.size(); ++i) {
-			const std::string where = "grants[" + std::to_string(i) + "]";
-			const json& grant = expect::object(grants[i], where);
-			std::string rule = expect::string(grant.at("rule"), where + ".rule");
-			expectGrantRule(rule, where + ".rule");
-			result.grants.push_back({std::move(rule), expect::string(grant.at("grantedBy"), where + ".grantedBy"),
-			                         expect::integer(grant.at("proposal"), where + ".proposal"),
-			                         expect::string(grant.at("time"), where + ".time")});
-		}
+		result.proposals = readProposals(refs.at("proposals"), result.nextProposal);
+		result.grants = grantsOf(refs.at("grants"));
 		return result;
 	});
+}
+
+std::vector<Repository::Proposal> Repository::readProposals(const json& proposals, int nextProposal) {
+	if(!proposals.is_array()) expect::fail("proposals", "expected a list");
+	std::vector<Proposal> result;
+	for(std::size_t i = 0; i < proposals.size(); ++i) {
+		const std::string where = "proposals[" + std::to_string(i) + "]";
+		Proposal proposal = readProposal(proposals[i], where);
+		if(proposal.id < 1 || proposal.id >= nextProposal ||
+		   std::ranges::find(result, proposal.id, &Proposal::id) != result.end())
+			expect::fail(where + ".id", "expected a proposal id below nextProposal, used once");
+		result.push_back(std::move(proposal));
+	}
+	return result;
 }
 
 Repository::Proposal Repository::readProposal(const json& entry, const std::string& where) {
@@ -466,24 +479,28 @@ json Repository::refsJson() const {
 	        {"packs", history_->packs()}};
 }
 
+// Parents before children, so every commit on disk has its whole history there too
+void Repository::writeCommits() {
+	std::vector<std::pair<std::string, bool>> pending{{main_.back(), false}}; // a commit; are its parents written?
+	for(const Proposal& proposal : proposals_) pending.emplace_back(proposal.head, false);
+	std::unordered_set<std::string> seen;
+	while(!pending.empty()) {
+		auto [id, parentsWritten] = std::move(pending.back());
+		pending.pop_back();
+		if(parentsWritten) {
+			writeCommit(objects_.at(id));
+			continue;
+		}
+		if(history_->hasObject(id) || !seen.insert(id).second) continue;
+		pending.emplace_back(id, true);
+		for(const std::string& parent : objects_.at(id).parents) pending.emplace_back(parent, false);
+	}
+}
+
 void Repository::saveHistory() noexcept {
 	if(!history_ || !history_->writable()) return;
 	try {
-		// Parents before children, so every commit on disk has its whole history there too
-		std::vector<std::pair<std::string, bool>> pending{{main_.back(), false}}; // a commit; are its parents written?
-		for(const Proposal& proposal : proposals_) pending.emplace_back(proposal.head, false);
-		std::unordered_set<std::string> seen;
-		while(!pending.empty()) {
-			auto [id, parentsWritten] = std::move(pending.back());
-			pending.pop_back();
-			if(parentsWritten) {
-				writeCommit(objects_.at(id));
-				continue;
-			}
-			if(history_->hasObject(id) || !seen.insert(id).second) continue;
-			pending.emplace_back(id, true);
-			for(const std::string& parent : objects_.at(id).parents) pending.emplace_back(parent, false);
-		}
+		writeCommits();
 
 		// Enough loose objects: into a pack, which the refs name before the loose files go
 		const bool packed = history_->packDue();
