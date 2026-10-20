@@ -62,7 +62,7 @@ std::FILE* openForWriting(const std::filesystem::path& file) {
 /// would let whoever made it choose where the history goes, or read and change it.
 /// @param directory The folder.
 /// @return The problem, or "" if it is a folder of this user's (or isn't there yet).
-std::string foreignFolder(const std::filesystem::path& directory) {
+std::string_view foreignFolder(const std::filesystem::path& directory) {
 	std::error_code error;
 	const std::filesystem::file_status status = std::filesystem::symlink_status(directory, error);
 	if(error || status.type() == std::filesystem::file_type::not_found) return "";
@@ -195,7 +195,7 @@ void FileLock::release() noexcept {
 /* HistoryStore */
 
 HistoryStore::HistoryStore(std::filesystem::path directory) : directory_(std::move(directory)) {
-	if(const std::string foreign = foreignFolder(directory_); !foreign.empty()) {
+	if(const std::string_view foreign = foreignFolder(directory_); !foreign.empty()) {
 		problem_ = foreign; // neither read nor written: the history stays in memory
 		usable_ = false;
 		return;

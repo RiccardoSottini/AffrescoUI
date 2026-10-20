@@ -104,8 +104,8 @@ TEST_CASE("core: parseUntrusted builds what json::parse builds, the order of key
 // minutes
 TEST_CASE("core: parseUntrusted reads an object of many keys in time in proportion to its text") {
 	std::string text = "{";
-	for(int i = 0; i < 300000; ++i) text += (i ? ",\"k" : "\"k") + std::to_string(i) + "\":" + std::to_string(i);
-	text += ",\"k7\":\"again\"}";
+	for(int i = 0; i < 300000; ++i) text += (i ? R"(,"k)" : R"("k)") + std::to_string(i) + R"(":)" + std::to_string(i);
+	text += R"(,"k7":"again"})";
 
 	const auto start = std::chrono::steady_clock::now();
 	const affresco::json value = affresco::parseUntrusted(text);

@@ -106,7 +106,7 @@ private:
 	/// @return Where it is now.
 	json* put(json value) {
 		if(open_.empty()) return &(root_ = std::move(value));
-		Open& parent = open_.back();
+		const Open& parent = open_.back();
 		if(parent.value->is_array()) return &parent.value->emplace_back(std::move(value));
 		return &(*parent.member = std::move(value));
 	}

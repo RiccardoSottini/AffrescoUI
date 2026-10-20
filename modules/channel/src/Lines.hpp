@@ -46,8 +46,8 @@ concept ChunkWriter = std::invocable<Write&, const char*, std::size_t>;
 /// @param dropCarriageReturns Whether a line ending in "\r\n" loses its '\r' (a Windows console's and cmd.exe's
 /// line breaks).
 template <ChunkReader Read>
-void readLines(Read read, Executor& executor, Channel& channel, std::shared_ptr<bool> alive, std::atomic<bool>* running,
-               bool dropCarriageReturns = false) {
+void readLines(Read read, Executor& executor, Channel& channel, const std::shared_ptr<bool>& alive,
+               std::atomic<bool>* running, bool dropCarriageReturns = false) {
 	std::string buffer;
 	char chunk[4096];
 	// Checked for every line, ended or not: the read that brings a line past the limit may also bring its end
