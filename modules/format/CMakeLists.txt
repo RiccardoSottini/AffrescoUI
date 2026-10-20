@@ -21,6 +21,10 @@ affrescoui_module(format
 	src/Runtime.cpp
 	src/Engine.cpp
 	src/Catalog.cpp
+	src/Reference.cpp
+	src/ReferenceNodes.cpp
+	src/ReferenceSections.cpp
+	src/ReferenceTables.cpp
 	src/DocumentContext.cpp
 	src/Binding.cpp
 	src/CompiledNode.cpp

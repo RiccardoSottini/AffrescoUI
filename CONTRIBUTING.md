@@ -157,8 +157,10 @@ What a format change must keep:
 - **The design rules** in [`SCREEN_FORMAT.md`](SCREEN_FORMAT.md#design-rules): words, not codes; familiar notation;
   one key, one meaning; named arguments beyond two; locality first; reviewable changes; notes; errors that name the
   place.
-- **Updated together:** the schema (`schema/affrescoui-screen.schema.json`), `SCREEN_FORMAT.md` and the catalog that
-  `get_catalog` returns change in the same pull request.
+- **Generated together:** the schema (`schema/affrescoui-screen.schema.json`), the tables of `SCREEN_FORMAT.md`
+  (between `<!-- generated: ... -->` markers) and the catalog that `get_catalog` returns all come from the registries
+  and the reference in `modules/format/src/Reference*.cpp`. Run `affrescoui schema -o
+  schema/affrescoui-screen.schema.json --doc SCREEN_FORMAT.md` after a change; CI fails while they are out of date.
 - **History stays RFC 6902** (JSON Patch). New edit syntax is sugar that normalises to it.
 - **Documents stay declarative:** no scripts inside documents.
 

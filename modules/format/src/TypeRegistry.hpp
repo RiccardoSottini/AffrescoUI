@@ -189,6 +189,10 @@ public:
 	/// @brief Every type, in the order first added (a type replaced keeps its place).
 	/// @return The types.
 	[[nodiscard]] std::vector<const NodeType*> inOrder() const;
+	/// @brief The properties that panels of other types take (addProperties()), in the order added.
+	[[nodiscard]] const std::vector<std::shared_ptr<const PropertySet>>& inherited() const noexcept {
+		return inherited_;
+	}
 
 private:
 	std::map<std::string, NodeType, std::less<>> types_;        ///< See types().

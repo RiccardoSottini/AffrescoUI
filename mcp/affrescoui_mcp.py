@@ -44,6 +44,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 TIMEOUT = 10  # seconds to wait for the host to answer
+GUIDE_TOPIC = 5000  # characters: about 1,500 tokens, the most a topic of the format guide gives
 NO_UNIX_SOCKETS = ("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: on Windows "
                    "no released CPython has them yet, see mcp/README.md")
 
@@ -484,7 +485,7 @@ def find_nodes(document, kind=None, text=None, prop=None, value=None, limit=20):
 
 def guide_sections(text):
     """SCREEN_FORMAT.md as its sections: (title, text) for the introduction ("introduction") and each "##" and "###"
-    heading; a "##" section includes its "###" ones."""
+    heading; a "##" section includes its "###" ones, or names them if they would make it longer than GUIDE_TOPIC."""
     lines = text.split("\n")
     sections, starts = [], [(0, 1, "introduction")]
     fence = False
@@ -498,7 +499,12 @@ def guide_sections(text):
         end = next((s for s, other, _ in starts[n + 1:] if other <= level), len(lines))
         if level == 1:  # the introduction ends where the first section starts
             end = starts[1][0] if len(starts) > 1 else len(lines)
-        sections.append((title.replace("`", ""), "\n".join(lines[start:end]).strip()))
+        part = "\n".join(lines[start:end]).strip()
+        inner = [(s, t) for s, other, t in starts[n + 1:] if start < s < end and other == level + 1]
+        if level == 2 and inner and len(part) > GUIDE_TOPIC:
+            part = ("\n".join(lines[start:inner[0][0]]).strip() + "\n\nMore in the topics: " +
+                    ", ".join(t.replace("`", "") for _, t in inner) + ".")
+        sections.append((title.replace("`", ""), part))
     return sections
 
 
