@@ -231,7 +231,7 @@ std::vector<PropertySpec> layoutItemProperties() {
 	        {"cell"}};
 }
 
-bool layoutItemProperty(Panel& panel, const std::string& key, const json& value, const std::string& at) {
+bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, const std::string& at) {
 	if(key == "maxWidth") panel.setMaxWidth(optionalLength(value, "none", at));
 	else if(key == "maxHeight") panel.setMaxHeight(optionalLength(value, "none", at));
 	else if(key == "aspectRatio") panel.setAspectRatio(aspectRatio(value, at));

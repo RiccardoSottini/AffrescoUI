@@ -97,9 +97,9 @@ TEST_CASE("damage: a panel moved by a layout pass is recorded again, one the pas
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
 	Panel& left = box(window->root(), 0, 0, 100, 300);
-	Panel& inside = box(left, 10, 10, 50, 50);
+	const Panel& inside = box(left, 10, 10, 50, 50);
 	Panel& right = box(window->root(), 200, 0, 100, 300);
-	Panel& still = box(right, 10, 10, 50, 50);
+	const Panel& still = box(right, 10, 10, 50, 50);
 	GeometryCache cache;
 	static_cast<void>(refreshFrame(cache, *window));
 

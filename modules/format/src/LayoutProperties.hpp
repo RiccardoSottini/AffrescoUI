@@ -14,6 +14,7 @@
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace affresco::format {
@@ -29,7 +30,7 @@ namespace affresco::format {
 /// @param at Its place, for errors.
 /// @return false if @p key isn't one of them.
 /// @throws DocumentError If the value isn't valid for the key.
-bool layoutItemProperty(Panel& panel, const std::string& key, const json& value, const std::string& at);
+bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, const std::string& at);
 
 /// @brief Sets the layout keys every node has back to their defaults, before an update applies the node's own.
 /// @param panel The panel.
