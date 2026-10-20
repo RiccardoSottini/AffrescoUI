@@ -89,6 +89,20 @@ TEST_CASE("budget: an event that runs too many steps stops, says where, and the 
 	CHECK(errors.lines.size() == 1);
 }
 
+TEST_CASE("budget: a loop's turns spend from it, even with nothing to do") {
+	const Errors errors;
+	// 10000 turns of a 10000-item list: 10^8 turns that ran no step, before each turn spent one.
+	const Built built(R"({
+		"fill": [{"set": "state.items", "to": "{{range(10000)}}"}],
+		"spin": [{"while": "{{true}}", "do": [{"forEach": "state.items"}]}]
+	})");
+	built.run("fill");
+	built.run("spin");
+	REQUIRE(errors.lines.size() == 1);
+	CHECK(errors.lines[0].find("actions.spin[0].do[0].forEach") != std::string::npos);
+	CHECK(errors.lines[0].find("100000 steps, its work budget") != std::string::npos);
+}
+
 TEST_CASE("budget: an expression that does too much stops at its place") {
 	const Errors errors;
 	const Built built(R"({"heavy": [{"set": "state.count", "to": "{{sum(range(10000), sum(range(10000), it))}}"}]})");
