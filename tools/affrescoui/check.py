@@ -170,6 +170,9 @@ def main():
                        "check: a file that isn't JSON")
         checker.long_pattern_input()
         checker.render_reaches_nobody()
+        large = os.path.join(scratch, "large.png")  # 9000 x 2 = 18,000 pixels: refused before it allocates anything
+        checker.run("render", templates[0], "-o", large, "--size", "9000x100", "--scale", "2", expect=3)
+        checker.expect(not os.path.exists(large), "render: a frame too large to draw left a file")
 
     for failure in checker.failures:
         print(f"FAILED  {failure}")

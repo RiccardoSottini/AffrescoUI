@@ -13,6 +13,7 @@
 
 #include "Png.hpp" // the library's PNG encoder (modules/screen/src)
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <format>
@@ -21,6 +22,10 @@
 namespace affresco::cli {
 
 namespace {
+
+/// The widest and tallest frame `render` draws, in pixels: the renderbuffer size every desktop OpenGL driver offers
+/// (Apple's and Mesa's llvmpipe have 16,384). A larger one came back black, after allocating gigabytes for it.
+constexpr int maxFrameSide = 16384;
 
 /// @brief Reads a whole number from the command line.
 /// @param text The digits.
@@ -155,6 +160,10 @@ Exit renderScreen(std::span<const std::string_view> args) {
 		window.setSize(wholeNumber(std::string_view(*size).substr(0, x), "--size"),
 		               wholeNumber(std::string_view(*size).substr(x + 1), "--size"));
 	}
+	// The window's size comes from --size or the file. Divided, not multiplied, so a huge one can't overflow
+	if(std::max(window.width(), window.height()) > maxFrameSide / scale)
+		throw std::runtime_error(std::format("a frame of {}x{} at scale {} is larger than {} pixels a side",
+		                                     window.width(), window.height(), scale, maxFrameSide));
 
 	if(!window.saveScreenshot(frame, scale)) throw std::runtime_error("couldn't draw the frame");
 	const std::optional<detail::RgbImage> image = detail::readPpm(frame);
