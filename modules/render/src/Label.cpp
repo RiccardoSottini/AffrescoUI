@@ -128,18 +128,27 @@ void Label::paint(Painter& painter) const {
 	if(!f || shown().empty()) return;
 
 	const Rect content = contentRect();
+	// Most labels are one line: then there is nothing to wrap, and no list of lines to make
+	if(!wrap_ && !shown().contains(U'\n')) {
+		paintLine(painter, *f, shown(), aligned(vertical_, content.top, content.height(), f->lineHeight()));
+		return;
+	}
+
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
 	const std::vector<std::u32string_view> lines = f->wrap(shown(), maxWidth);
-
 	const float textHeight = static_cast<float>(lines.size()) * f->lineHeight();
 	float top = aligned(vertical_, content.top, content.height(), textHeight);
-
-	for(std::u32string_view line : lines) {
-		const float left = aligned(horizontal_, content.left, content.width(), f->measure(line));
-		// Whole pixels keep glyphs sharp: atlas texels map 1:1 onto screen pixels
-		painter.drawText(*f, line, {std::round(left), std::round(top + f->ascent())}, textColor_);
+	for(const std::u32string_view line : lines) {
+		paintLine(painter, *f, line, top);
 		top += f->lineHeight();
 	}
+}
+
+void Label::paintLine(Painter& painter, const Font& font, std::u32string_view line, float top) const {
+	const Rect content = contentRect();
+	const float left = aligned(horizontal_, content.left, content.width(), font.measure(line));
+	// Whole pixels keep glyphs sharp: atlas texels map 1:1 onto screen pixels
+	painter.drawText(font, line, {std::round(left), std::round(top + font.ascent())}, textColor_);
 }
 
 } // namespace affresco

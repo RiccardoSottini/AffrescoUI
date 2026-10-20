@@ -81,14 +81,16 @@ const Font::Data::Measured& Font::Data::measure(std::u32string_view text) {
 
 	measured.text.assign(text); // reuses its storage: no allocation once it is large enough
 	measured.advances.resize(text.size());
-	// Most lines are plain from end to end: no cache, no shaping, no allocation
+	// A line drawn before is in the cache (a frame measures what it draws); most new lines are plain from end to end
+	if(const ShapedText* line = lines.find(text)) {
+		measured.advances.assign(line->advances.begin(), line->advances.end());
+		measured.width = line->width;
+		return measured;
+	}
 	float width = 0.0f;
 	std::size_t start = plainText().layOut(text, measured.advances, spaceAdvance, width, buffer.get());
 	if(start == text.size()) {
 		measured.width = width;
-	} else if(const ShapedText* line = lines.find(text)) {
-		measured.advances.assign(line->advances.begin(), line->advances.end());
-		measured.width = line->width;
 	} else if(hasRightToLeft(hb_unicode_funcs_get_default(), text)) {
 		const ShapedText& shaped = shape(text);
 		measured.advances.assign(shaped.advances.begin(), shaped.advances.end());

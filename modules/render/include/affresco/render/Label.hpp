@@ -90,6 +90,12 @@ protected:
 	std::u32string text_; ///< One element per code point.
 
 private:
+	/// @brief Draws one line of text, placed by the horizontal alignment.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param line The line.
+	/// @param top Its top, in window units.
+	void paintLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
 	/// @brief Puts the icon before the text in shown_, if the text, the icon or the font changed.
 	void updateShown();
 
