@@ -540,7 +540,9 @@ TEST_CASE("vcs: a history written by hand can't give the screen what no revision
 	INFO("error: " << error);
 	CHECK(error.starts_with("AffrescoUI history: " + objectFile(history, forged).string() + ": "));
 	CHECK(error.find(expected) != std::string::npos);
-	CHECK(second.head().id == root);
+	// Nothing was loaded: second is at its own revision 0. Not root's id, which holds the second it was made in
+	CHECK(second.head().number == 0);
+	CHECK(second.log().size() == 1);
 	CHECK(second.document() == permissionsScreen());
 }
 
