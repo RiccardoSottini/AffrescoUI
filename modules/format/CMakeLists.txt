@@ -15,6 +15,7 @@ affrescoui_module(format
 	src/Value.cpp
 	src/Rules.cpp
 	src/Sections.cpp
+	src/StateTypes.cpp
 	src/CapabilitySections.cpp
 	src/Runtime.cpp
 	src/Engine.cpp

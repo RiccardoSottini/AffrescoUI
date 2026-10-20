@@ -4,6 +4,7 @@
 
 #include "Checker.hpp"
 #include "SectionRegistry.hpp"
+#include "StateTypes.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -151,11 +152,39 @@ const json& stateOf(const json& document) {
 	return it != document.end() ? *it : none;
 }
 
+/// @brief Says which type a mismatch breaks, for its message.
+/// @param mismatch The mismatch, at "state.<key>..." .
+/// @return " (stateTypes.<key>)".
+std::string typeNote(const Mismatch& mismatch) {
+	const std::string_view place = std::string_view(mismatch.place).substr(std::string_view("state.").size());
+	return " (stateTypes." + std::string(place.substr(0, place.find_first_of(".["))) + ")";
+}
+
+/// @brief Refuses a revision after which the live state matches its types less than before: a value that no longer
+/// matches, or a type the state doesn't match. Mismatches that were there before don't block it.
+/// @param before The document with the live state in "state", before the revision.
+/// @param after The same, after it.
+/// @throws DocumentError If it brings a mismatch.
+void checkTypedState(const json& before, const json& after) {
+	if(!after.contains("stateTypes") && !before.contains("stateTypes")) return;
+	const std::vector<Mismatch> now = stateMismatches(after, stateOf(after));
+	if(now.empty()) return;
+	const std::vector<Mismatch> old = stateMismatches(before, stateOf(before));
+	for(const Mismatch& mismatch : now)
+		if(std::ranges::none_of(old, [&](const Mismatch& m) { return m.text() == mismatch.text(); }))
+			fail("revision", "the state wouldn't match its types: " + mismatch.text() + typeNote(mismatch));
+}
+
 } // namespace
 
 Rules::Rules() : sections_(builtInSections()) {}
 
-void Rules::validate(const json& doc) const { sections_->validate(doc); }
+// The document's own "state" must match its types; the live state is checked by checkChange() and findings()
+void Rules::validate(const json& doc) const {
+	sections_->validate(doc);
+	const std::vector<Mismatch> mismatches = stateMismatches(doc, stateOf(doc));
+	if(!mismatches.empty()) fail(mismatches.front().place, mismatches.front().problem + typeNote(mismatches.front()));
+}
 
 // In root, then screens, templates and components (NodeIds.hpp)
 std::optional<std::string> Rules::findNode(const json& doc, std::string_view nodeId) const {
@@ -201,6 +230,8 @@ void Rules::checkChange(const json& before, const json& after) const {
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
 
+	checkTypedState(before, after);
+
 	if(controlsIn(before) != controlsIn(after))
 		fail("revision",
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
@@ -222,9 +253,14 @@ void Rules::checkChange(const json& before, const json& after) const {
 }
 
 std::vector<std::string> Rules::findings(const json& document, const json& state) const {
-	const auto found = check(document, state, nativeActions_);
-	if(!found) return {"not checked: the screen is larger than the checker's limit"};
 	std::vector<std::string> lines;
+	for(const Mismatch& mismatch : stateMismatches(document, state)) // a state kept on disk may predate its types
+		lines.push_back(mismatch.text() + typeNote(mismatch));
+	const auto found = check(document, state, nativeActions_);
+	if(!found) {
+		lines.emplace_back("not checked: the screen is larger than the checker's limit");
+		return lines;
+	}
 	for(const Finding& finding : *found) lines.push_back(finding.text());
 	return lines;
 }
