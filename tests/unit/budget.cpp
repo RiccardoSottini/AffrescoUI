@@ -11,7 +11,6 @@
 
 #include <doctest/doctest.h>
 
-#include <chrono>
 #include <memory>
 #include <string>
 #include <vector>
@@ -77,12 +76,12 @@ TEST_CASE("budget: an event that runs too many steps stops, says where, and the 
 		"spin": [{"while": "{{true}}", "do": [{"forEach": "{{range(100)}}", "do": [{"increment": "state.count"}]}]}],
 		"once": [{"set": "state.text", "to": "done"}]
 	})");
-	const auto start = std::chrono::steady_clock::now();
 	built.run("spin");
-	CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(10));
 	REQUIRE(errors.lines.size() == 1);
 	CHECK(errors.lines[0].find("actions.spin[0]") != std::string::npos);
 	CHECK(errors.lines[0].find("100000 steps, its work budget") != std::string::npos);
+	// The budget counts steps, not time: the loop ran, then stopped before the limit.
+	CHECK(built.state("count").get<int>() > 0);
 	CHECK(built.state("count").get<int>() < static_cast<int>(affresco::format::stepsPerEvent));
 
 	built.run("once"); // the next event has a budget of its own
