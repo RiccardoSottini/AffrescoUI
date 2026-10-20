@@ -99,7 +99,7 @@ private:
 	bool handleQuery(const Incoming& in);
 	/// @brief Answers "render" with a picture of the screen: `{"type": "image", "format": "png", "data": base64, ...}`.
 	/// @param in The message: `proposal` (optional) and `scale` (1 by default, at most ScreenImages::maxScale).
-	/// @throws DocumentError If it is malformed, or the picture can't be drawn.
+	/// @throws DocumentError If it is malformed, over the rate of pictures, or the picture can't be drawn.
 	void sendImage(const Incoming& in);
 	/// @brief Handles blame: `{"type": "blame", "target": "#board"}` gives the commit on main that last changed it.
 	/// @param in The message.
@@ -117,6 +117,7 @@ private:
 	PeerLimits limits_;                                                   ///< What the peer may send.
 	TokenBucket messageRate_;                                             ///< Messages of any kind.
 	TokenBucket revisionRate_;                                            ///< Changes.
+	TokenBucket pictureRate_; ///< Pictures ("render"), at the rate of changes: each draws the whole screen.
 	bool limited_ = false;                                                ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
 };

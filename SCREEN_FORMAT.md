@@ -391,6 +391,7 @@ refusal in a row is logged:
 | One message | 8 MiB | `error` "message too large", without `id` (it isn't read) |
 | Messages of any kind | 100 a second, 200 at once | `error` "too many messages", without `id` |
 | Changes (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
+| Pictures (`render`), apart from the changes | 120 a minute, 30 at once | `rejected` "too many pictures", with `id` |
 | Sent to the peer and not yet read by it (a socket peer) | 64 MiB | the peer is disconnected |
 
 On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a

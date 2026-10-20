@@ -30,7 +30,13 @@ public:
 			    temporary / ("affrescoui-image-" + std::to_string(random()) + "-" + std::to_string(random()));
 			if(std::filesystem::create_directory(candidate, error)) path_ = candidate; // false if it exists
 		}
-		if(!path_.empty()) std::filesystem::permissions(path_, std::filesystem::perms::owner_all, error);
+		if(path_.empty()) return;
+		// Private before the picture goes in; a folder that can't be made private isn't used
+		std::filesystem::permissions(path_, std::filesystem::perms::owner_all, error);
+		if(error) {
+			std::filesystem::remove(path_, error);
+			path_.clear();
+		}
 	}
 	~ScratchFolder() {
 		std::error_code error; // nothing to do about a folder that can't be removed
@@ -48,6 +54,48 @@ private:
 
 } // namespace
 
+/// @brief Shows what was shown before a picture, then lets the runtime run handlers again: when the picture is drawn,
+/// or when drawing it fails or throws.
+class OffscreenImages::PutBack {
+public:
+	/// @brief Remembers what the person sees.
+	/// @param owner Whose state to put back.
+	/// @param previewed The proposal previewed now, if any.
+	PutBack(OffscreenImages& owner, std::optional<int> previewed) : images(owner), shown(previewed) {}
+	PutBack(const PutBack&) = delete;
+	PutBack& operator=(const PutBack&) = delete;
+	PutBack(PutBack&&) = delete;
+	PutBack& operator=(PutBack&&) = delete;
+	/// @brief Shows what was shown before, then lets the runtime run handlers again. Never throws: an exception
+	/// leaving a destructor ends the program.
+	~PutBack() {
+		try {
+			showAgain();
+		} catch(...) { // no memory even for the message
+			log(LogLevel::Error, "AffrescoUI screen: render: could not put the screen back");
+		}
+		images.runtime_.setHandlersSuspended(false);
+		images.rendering_ = false;
+	}
+
+	OffscreenImages& images;  ///< Whose state to put back.
+	std::optional<int> shown; ///< The proposal previewed before, if any.
+	bool switched = false;    ///< Whether something else was shown.
+
+private:
+	/// @brief Shows the proposal that was shown before, or main, and logs what fails.
+	void showAgain() const {
+		if(!switched) return;
+		try {
+			if(const std::optional<std::string> error = images.show(shown))
+				log(LogLevel::Warning, "AffrescoUI screen: render: could not show the preview again: " + *error);
+		} catch(const std::exception& failure) { // e.g. main's screen failing to rebuild
+			log(LogLevel::Error,
+			    std::string("AffrescoUI screen: render: could not put the screen back: ") + failure.what());
+		}
+	}
+};
+
 std::optional<std::string> OffscreenImages::render(const ImageRequest& request, Image& image) {
 	if(!runtime_.window()) return "AffrescoUI screen: render: the screen has no window yet";
 	if(rendering_) return "AffrescoUI screen: render: already drawing a picture";
@@ -61,45 +109,7 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 	runtime_.window()->runDeferredTasks();
 
 	// Show what was asked for, then put back what the person sees, whatever happens in between
-	class PutBack {
-	public:
-		/// @brief Remembers what the person sees.
-		/// @param owner Whose state to put back.
-		/// @param previewed The proposal previewed now, if any.
-		PutBack(OffscreenImages& owner, std::optional<int> previewed) : images(owner), shown(previewed) {}
-		PutBack(const PutBack&) = delete;
-		PutBack& operator=(const PutBack&) = delete;
-		PutBack(PutBack&&) = delete;
-		PutBack& operator=(PutBack&&) = delete;
-		/// @brief Shows what was shown before, then lets the runtime run handlers again. Never throws: an exception
-		/// leaving a destructor ends the program.
-		~PutBack() {
-			try {
-				showAgain();
-			} catch(...) { // no memory even for the message
-				log(LogLevel::Error, "AffrescoUI screen: render: could not put the screen back");
-			}
-			images.runtime_.setHandlersSuspended(false);
-			images.rendering_ = false;
-		}
-
-		OffscreenImages& images;  ///< Whose state to put back.
-		std::optional<int> shown; ///< The proposal previewed before, if any.
-		bool switched = false;    ///< Whether something else was shown.
-
-	private:
-		/// @brief Shows the proposal that was shown before, or main, and logs what fails.
-		void showAgain() const {
-			if(!switched) return;
-			try {
-				if(const std::optional<std::string> error = images.show(shown))
-					log(LogLevel::Warning, "AffrescoUI screen: render: could not show the preview again: " + *error);
-			} catch(const std::exception& failure) { // e.g. main's screen failing to rebuild
-				log(LogLevel::Error,
-				    std::string("AffrescoUI screen: render: could not put the screen back: ") + failure.what());
-			}
-		}
-	} putBack{*this, versions_.previewing()};
+	PutBack putBack{*this, versions_.previewing()};
 
 	rendering_ = true;
 	runtime_.setHandlersSuspended(true); // until PutBack has put the screen back

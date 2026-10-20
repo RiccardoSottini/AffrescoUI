@@ -24,6 +24,8 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
 - **Untrusted input has limits:** a line longer than `maxMessageBytes` (64 MiB) closes the channel; every message is
   parsed with `parseUntrusted` (nesting 256); a malformed or refused message gets an `error` or `rejected` answer and
   never ends the session; `render` takes a scale from 1 to `ScreenImages::maxScale` (2).
+- **Rates (`PeerLimits`):** messages of any kind, changes (they rebuild the screen) and pictures (`render` draws it, and
+  builds a proposal's and main's again) each have a token bucket of their own; pictures use the changes' rate.
 - **Only this user can connect.** On POSIX, the socket file is `0600`; on Windows, its access list has one entry, for
   this user. (The programs in `examples/` also check that the socket folder belongs to this user:
   `examples/SocketDir.hpp`.)

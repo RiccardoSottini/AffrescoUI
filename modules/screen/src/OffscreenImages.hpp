@@ -29,6 +29,9 @@ public:
 	[[nodiscard]] bool rendering() const noexcept override { return rendering_; }
 
 private:
+	/// @brief Puts back what the person sees, whatever happens while a picture is drawn.
+	class PutBack;
+
 	/// @brief Previews a proposal, or ends the preview.
 	/// @param proposal The proposal, or std::nullopt for main.
 	/// @return An error, or std::nullopt.
