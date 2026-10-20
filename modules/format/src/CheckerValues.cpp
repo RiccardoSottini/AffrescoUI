@@ -315,12 +315,13 @@ Shape Checker::follow(const std::string& root, const std::vector<PathKey>& keys,
 		if(definition("computed", name))
 			return walkKeys(computedShape(name), "computed." + name, keys, 1, scope, place);
 		report(place, "'computed." + name + "' doesn't exist",
-		       hintFor(name, definedNames("computed"), "computed.", "computed has"));
+		       hint([&] { return hintFor(name, definedNames("computed"), "computed.", "computed has"); }));
 		return walkKeys(anything, root, keys, 1, scope, place);
 	}
 	const Shape* shape = variable(root, scope);
 	if(!shape) {
-		report(place, "unknown variable '" + root + "'", hintFor(root, visibleNames(scope), "", ""));
+		report(place, "unknown variable '" + root + "'",
+		       hint([&] { return hintFor(root, visibleNames(scope), "", ""); }));
 		return walkKeys(anything, root, keys, 0, scope, place);
 	}
 	return walkKeys(*shape, root, keys, 0, scope, place);
@@ -349,7 +350,7 @@ const Shape& Checker::member(const Shape& shape, const std::string& described, c
 	if(shape.is_object()) {
 		if(const auto it = shape.find(name); it != shape.end()) return *it;
 		report(place, "'" + described + "." + name + "' doesn't exist",
-		       hintFor(name, keysOf(shape), described + ".", described + " has"));
+		       hint([&] { return hintFor(name, keysOf(shape), described + ".", described + " has"); }));
 		return anything;
 	}
 	if(shape.is_null()) return anything;

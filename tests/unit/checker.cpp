@@ -322,6 +322,31 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 	CHECK((found && found->size() == 1));
 }
 
+// Before, every finding compared its name with every name there is: 8,000 typos against a state of 8,000 keys took
+// 5.8 seconds to refuse, and a revision may hold far more of both
+TEST_CASE("checker: only the first findings of a pass get a hint, each against the first thousand names") {
+	json state = json::object();
+	for(int i = 0; i < 2000; ++i) state["key" + std::to_string(i)] = i;
+	json labels = json::array();
+	for(int i = 0; i < 200; ++i) labels.push_back({{"text", "{{state.kez" + std::to_string(i) + "}}"}});
+	const json document = {{"version", 1}, {"state", state}, {"root", {{"children", labels}}}};
+
+	const auto found = affresco::format::check(document, state);
+	REQUIRE(found);
+	REQUIRE(found->size() == 200); // every finding is there, each once
+	const auto hinted =
+	    std::ranges::count_if(*found, [](const Finding& finding) { return finding.hint.starts_with("did you mean"); });
+	CHECK(hinted == 50);
+	CHECK((*found)[0].text() == "root.children[0].text: 'state.kez0' doesn't exist (did you mean 'state.key0'?)");
+
+	// A name past the first thousand isn't compared
+	json many = json::object();
+	for(int i = 0; i < 1000; ++i) many["k" + std::to_string(i)] = i;
+	many["special"] = 1;
+	const json late = {{"version", 1}, {"state", many}, {"root", {{"text", "{{state.specail}}"}}}};
+	CHECK(lines(late).front().starts_with("root.text: 'state.specail' doesn't exist (state has k0, k1, k2,"));
+}
+
 TEST_CASE("checker: computed values that read each other are read safely") {
 	// One computed value's shape is still being read while an index reads another, which adds it to the shapes known
 	checkAll({{"an index that reads another computed value",
