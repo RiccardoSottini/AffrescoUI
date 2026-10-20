@@ -6,7 +6,9 @@
 - ids:    every template has an id on every node (ids --check);
 - render: the first frame is pixel for pixel what the rendering check's runner draws for the same scenario;
 - export and import: a change set goes into a screen's history on disk once, and comes back out of it;
-- the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3).
+- the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3);
+- a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
+- render connects to no channel the screen declares, even by an absolute path.
 
     python3 tools/affrescoui/check.py [--build DIR]
 
@@ -18,6 +20,7 @@ import glob
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -95,6 +98,40 @@ class Checker:
         patches = [revision["patch"] for revision in exported["revisions"]]
         self.expect(patches == [CHANGES["revisions"][0]["patch"]], f"export: {exported}")
 
+    def render_reaches_nobody(self):
+        """A screen whose channel names a listening socket by an absolute path, as a host's studio.sock: render draws
+        it without connecting (it used to connect, and send what the screen's open handler said)."""
+        if not hasattr(socket, "AF_UNIX"):
+            return
+        address = os.path.join(self.scratch, "host.sock")
+        listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        listener.bind(address)
+        listener.listen(4)
+        listener.setblocking(False)
+        path = os.path.join(self.scratch, "channels.screen.json")
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-screen", "version": 1, "channels": {"host": {"socket": address}},
+                       "actions": {"host:open": [{"send": "host", "data": {"type": "setMode", "mode": "acceptEdits"}}]},
+                       "root": {"id": "root", "color": "#203040"}}, file)
+        self.run("render", path, "-o", os.path.join(self.scratch, "channels.png"))
+        try:
+            listener.accept()
+            self.expect(False, "render: connected to the socket a channel names")
+        except BlockingIOError:
+            self.expect(True, "")
+        listener.close()
+
+    def long_pattern_input(self):
+        """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex
+        overflowed the stack on it), so check reports it as too long to check instead of crashing."""
+        path = os.path.join(self.scratch, "long.screen.json")
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-screen", "version": 1,
+                       "root": {"id": "root", "color": "{{1" + " " * 30000 + "}}"}}, file)
+        report = json.loads(self.run("check", path, "--json", expect=1))
+        self.expect(any(problem["source"] == "schema" and "too long to check" in problem["message"]
+                        for problem in report["problems"]), f"check: a long expression: {report}")
+
 
 def main():
     args, build = sys.argv[1:], os.path.join(ROOT, "build")
@@ -131,6 +168,11 @@ def main():
         checker.run("fmt", broken, expect=1)
         checker.expect(json.loads(checker.run("check", broken, "--json", expect=1))["problems"][0]["source"] == "json",
                        "check: a file that isn't JSON")
+        checker.long_pattern_input()
+        checker.render_reaches_nobody()
+        large = os.path.join(scratch, "large.png")  # 9000 x 2 = 18,000 pixels: refused before it allocates anything
+        checker.run("render", templates[0], "-o", large, "--size", "9000x100", "--scale", "2", expect=3)
+        checker.expect(not os.path.exists(large), "render: a frame too large to draw left a file")
 
     for failure in checker.failures:
         print(f"FAILED  {failure}")

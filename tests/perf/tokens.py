@@ -3,7 +3,7 @@
 its outline (get_screen with outline=true) and the canonical edits in tests/perf/edits (submit_revision's
 arguments); and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
 
-    pip install -r tests/perf/requirements.txt
+    pip install --require-hashes -r tests/perf/requirements.txt
     python3 tests/perf/tokens.py              # JSON lines
     python3 tests/perf/tokens.py --table      # a table to read
     python3 tests/perf/tokens.py --root ../base --out base-tokens.jsonl

@@ -6,12 +6,14 @@
 #include "SocketDir.hpp" // from examples/: the socket folder's checks, shared with affrescoui_host
 
 #include <affresco/affresco.hpp>
+#include <affresco/core/Json.hpp>
 
 #define GLFW_INCLUDE_NONE // window hints only: no OpenGL header
 #include <GLFW/glfw3.h>
 
 #include "Png.hpp" // the library's PNG encoder (modules/screen/src)
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <format>
@@ -20,6 +22,10 @@
 namespace affresco::cli {
 
 namespace {
+
+/// The widest and tallest frame `render` draws, in pixels: the renderbuffer size every desktop OpenGL driver offers
+/// (Apple's and Mesa's llvmpipe have 16,384). A larger one came back black, after allocating gigabytes for it.
+constexpr int maxFrameSide = 16384;
 
 /// @brief Reads a whole number from the command line.
 /// @param text The digits.
@@ -56,6 +62,26 @@ void applyPlugins(Screen& screen, const std::vector<std::string>& plugins) {
 			throw std::runtime_error(std::format("{}: {}", plugin, error));
 		std::cerr << "plugin applied: " << plugin << " (revision " << screen.revision() << ")\n";
 	}
+}
+
+/// @brief Loads a screen to draw it, connected to nobody: its channels, its includes' too, are pointed at one socket
+/// in a folder that is never created. A channel's own path can be absolute, and would then reach a running host's
+/// socket (its studio.sock, a reviewer's) and send it whatever the screen's `open` handler says.
+/// @param text The screen file.
+/// @param directory Where its relative paths ("include", fonts) are found.
+/// @param nowhere The folder that is never created.
+/// @return The screen.
+Screen unconnectedScreen(const std::string& text, const std::filesystem::path& directory,
+                         const std::filesystem::path& nowhere) {
+	Screen screen = Screen::fromString(text, directory);
+	json document = json::parse(screen.documentJson()); // the includes in place
+	if(document.contains("channels") && document["channels"].is_object()) {
+		for(auto& [name, channel] : document["channels"].items())
+			if(channel.is_object()) channel["socket"] = "none.sock";
+		screen = Screen::fromString(document.dump(), directory);
+	}
+	screen.setSocketDirectory(nowhere);
+	return screen;
 }
 
 /// @brief What `run` is told.
@@ -123,10 +149,10 @@ Exit renderScreen(std::span<const std::string_view> args) {
 
 	Application app;
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // never on screen
-	Screen screen = Screen::fromString(readFile(file), file.parent_path());
-	registerApplicationTypes(screen);
 	const std::filesystem::path frame = std::filesystem::path(*out).concat(".ppm");
-	screen.setSocketDirectory(frame.parent_path() / "affrescoui-render-no-host"); // never created: nobody answers
+	Screen screen =
+	    unconnectedScreen(readFile(file), file.parent_path(), frame.parent_path() / "affrescoui-render-no-host");
+	registerApplicationTypes(screen);
 	Window& window = screen.createWindow(app);
 	if(const std::optional<std::string> size = arguments.value("--size")) {
 		const std::size_t x = size->find('x');
@@ -134,6 +160,10 @@ Exit renderScreen(std::span<const std::string_view> args) {
 		window.setSize(wholeNumber(std::string_view(*size).substr(0, x), "--size"),
 		               wholeNumber(std::string_view(*size).substr(x + 1), "--size"));
 	}
+	// The window's size comes from --size or the file. Divided, not multiplied, so a huge one can't overflow
+	if(std::max(window.width(), window.height()) > maxFrameSide / scale)
+		throw std::runtime_error(std::format("a frame of {}x{} at scale {} is larger than {} pixels a side",
+		                                     window.width(), window.height(), scale, maxFrameSide));
 
 	if(!window.saveScreenshot(frame, scale)) throw std::runtime_error("couldn't draw the frame");
 	const std::optional<detail::RgbImage> image = detail::readPpm(frame);

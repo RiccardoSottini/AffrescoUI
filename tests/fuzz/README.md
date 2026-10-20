@@ -13,6 +13,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `delta` | A JSON object `{"from", "to", "delta"}`, to the history's deltas (`vcs/src/Deltas.hpp`), which a history on disk keeps for each commit and its id doesn't cover | Applying a delta gives a document or throws `json::exception` or `DocumentError`; the delta from `from` to `to` rebuilds `to` exactly |
 | `session` | Lines from two peers, through in-memory channels to `channel::Session`: the agent, or the reviewer (`studio`) when a line starts with `>`. The agent's limits are low (4 KiB a message, 24 messages, 6 changes, none refilled), so inputs reach them | Every answer is one JSON object with a `"type"` |
 | `text` | UTF-8 text, shaped, measured and wrapped by a `Font` with fallbacks for Arabic, Devanagari, Chinese and colour emoji (HarfBuzz and FreeType); the first byte picks the width | One advance per code point and one caret more, all finite; the advances sum to the width `measure` gives; wrapped lines are the text in order, cut only at a space or a line break |
+| `cli` | A screen file, as the `affrescoui` tool reads it (`tools/affrescoui`): the text reader and printer behind `fmt` and `ids`, the places `ids` names, and the schema check behind `check` | `fmt` writes the same JSON value, and formatting its output again changes nothing; the schema check reports problems, never throws |
 
 ## Running them
 
@@ -30,7 +31,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session` or `text` in place of `session`. `-fork=4 -ignore_crashes=1`
+Use `json`, `expression`, `revision`, `delta`, `session`, `text` or `cli` in place of `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
 

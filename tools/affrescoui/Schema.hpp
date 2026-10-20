@@ -141,7 +141,13 @@ private:
 	/// @return The regular expression.
 	const std::regex& compiled(const std::string& pattern);
 
-	json schema_;                               ///< The schema document.
+	/// @brief Tells whether a pattern matches somewhere in a text no longer than the patterns are run on.
+	/// @param text The text.
+	/// @param pattern The pattern (ECMAScript).
+	/// @return true if it matches; false if it doesn't, or if the text is too long to try (matchesText reports that).
+	bool searches(const std::string& text, const std::string& pattern);
+
+	json schema_;                              ///< The schema document.
 	std::map<std::string, std::regex> regexes_; ///< Patterns compiled so far.
 	int depth_ = 0;                             ///< How many "$ref"s deep the check is (a loop must stop).
 };
