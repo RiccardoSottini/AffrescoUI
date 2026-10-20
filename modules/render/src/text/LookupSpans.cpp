@@ -55,7 +55,7 @@ std::optional<std::size_t> LookupSpans::lookupSpan(unsigned lookup, int depth) {
 std::optional<std::size_t> LookupSpans::readLookup(unsigned lookup, int depth) {
 	const auto list = u16(8); // the header's offset to the lookup list
 	const auto entry = list ? u16(*list + 2 + 2 * std::size_t{lookup}) : std::nullopt;
-	if(!entry) return std::nullopt;
+	if(!list || !entry) return std::nullopt;
 	const std::size_t at = *list + *entry;
 	const auto type = u16(at), flags = u16(at + 2), count = u16(at + 4);
 	if(!type || !flags || !count) return std::nullopt;
@@ -128,13 +128,13 @@ std::optional<std::size_t> LookupSpans::ligatureSpan(std::size_t subtable) {
 	for(std::size_t s = 0; s < *sets; ++s) {
 		const auto setOffset = u16(subtable + 6 + 2 * s);
 		const auto ligatures = setOffset ? u16(subtable + *setOffset) : std::nullopt;
-		if(!ligatures) return std::nullopt;
+		if(!setOffset || !ligatures) return std::nullopt;
 		const std::size_t set = subtable + *setOffset;
 		for(std::size_t l = 0; l < *ligatures; ++l) {
 			if(++rulesRead_ > ruleBudget) return unbounded;
 			const auto offset = u16(set + 2 + 2 * l);
 			const auto count = offset ? u16(set + *offset + 2) : std::nullopt;
-			if(!count) return std::nullopt;
+			if(!offset || !count) return std::nullopt;
 			if(*count == 0) return unbounded;
 			const auto live = sequenceLive(components, set + *offset + 4, *count - 1, 1);
 			if(!live) return std::nullopt;
@@ -148,11 +148,12 @@ std::optional<std::size_t> LookupSpans::reverseChainSpan(std::size_t subtable) {
 	const Rules rules{subtable, Encoding::coverages, true, {}};
 	const auto backtrack = u16(subtable + 4);
 	const auto lookahead = backtrack ? u16(subtable + 6 + 2 * *backtrack) : std::nullopt;
-	if(!lookahead) return std::nullopt;
-	const auto before = sequenceLive(rules, subtable + 6, *backtrack, 0);
-	const auto after = sequenceLive(rules, subtable + 8 + 2 * *backtrack, *lookahead, 2);
+	if(!backtrack || !lookahead) return std::nullopt;
+	const std::size_t behind = *backtrack, ahead = *lookahead;
+	const auto before = sequenceLive(rules, subtable + 6, behind, 0);
+	const auto after = sequenceLive(rules, subtable + 8 + 2 * behind, ahead, 2);
 	if(!before || !after) return std::nullopt;
-	return *before && *after ? *backtrack + 1 + *lookahead : 0;
+	return before.value_or(false) && after.value_or(false) ? behind + 1 + ahead : 0;
 }
 
 /* Contextual rules */
@@ -192,7 +193,8 @@ std::optional<std::size_t> LookupSpans::ruleSetsSpan(const Rules& rules, std::si
 		const std::size_t set = rules.subtable + *setOffset;
 		const auto count = u16(set);
 		if(!count) return std::nullopt;
-		for(std::size_t r = 0; r < *count && span; ++r) {
+		const std::size_t rulesInSet = *count;
+		for(std::size_t r = 0; r < rulesInSet && span; ++r) {
 			if(++rulesRead_ > ruleBudget) return unbounded;
 			const auto offset = u16(set + 2 + 2 * r);
 			if(!offset) return std::nullopt;

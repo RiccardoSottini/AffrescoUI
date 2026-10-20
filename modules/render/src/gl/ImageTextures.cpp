@@ -73,7 +73,7 @@ void ImageTextures::pack(const Bitmap& bitmap, Entry& entry) {
 	if(spot) {
 		--index;
 	} else { // a new page, in the place of a freed one if there is one
-		const auto freed = std::ranges::find(pages_, nullptr);
+		const auto freed = std::ranges::find_if(pages_, [](const auto& page) { return !page; });
 		index = static_cast<std::size_t>(freed - pages_.begin());
 		if(freed == pages_.end()) pages_.emplace_back();
 		pages_[index] = std::make_unique<Page>(Page{createTexture(pageSize, pageSize, nullptr)});

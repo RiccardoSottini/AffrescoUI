@@ -164,7 +164,7 @@ bool PlainText::readLookups() {
 	if(!substitutionsAlike || !positionsAlike) return false;
 	for(Character& character : characters_)
 		if(hb_set_has(wide.get(), character.glyph)) character.plain = false;
-	scriptsAlike_ = *substitutionsAlike && *positionsAlike;
+	scriptsAlike_ = substitutionsAlike.value_or(false) && positionsAlike.value_or(false); // both read, checked above
 	return true;
 }
 
