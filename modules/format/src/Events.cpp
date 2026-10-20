@@ -361,17 +361,19 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	        {"cmd", event.mods.super()}});
 }
 
+// Without an "anchor", the parent is the anchor; the root holds every point, so it is no anchor
+bool Events::clickKeepsOpen(const Panel& panel, const Record& record, Vec2 position) const {
+	if(panel.bounds().contains(position)) return true;
+	Panel& root = engine_.window->root();
+	const Panel* anchor = record.overlayAnchor.empty() ? panel.parent() : root.findById(record.overlayAnchor);
+	return anchor && anchor != &root && anchor->bounds().contains(position);
+}
+
 void Events::dismissOverlays(const Vec2* position) {
 	bool closed = false;
 	for(auto& [panel, record] : engine_.reconciler.records()) {
 		if(!record.dismissOutside || !record.overlayOpen || !panel->isShown()) continue;
-		if(position) {
-			if(panel->bounds().contains(*position)) continue;
-			const Panel* anchor =
-			    record.overlayAnchor.empty() ? panel->parent() : engine_.window->root().findById(record.overlayAnchor);
-			// The anchor toggles it itself; the root holds every point, so it is no anchor
-			if(anchor && anchor != &engine_.window->root() && anchor->bounds().contains(*position)) continue;
-		}
+		if(position && clickKeepsOpen(*panel, record, *position)) continue;
 		try {
 			const std::string where = record.path + ".overlay.open";
 			const json::json_pointer pointer = format::statePointer(
