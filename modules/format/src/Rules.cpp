@@ -185,19 +185,39 @@ void checkStateSize(const json& before, const json& after) {
 		fail("revision", "the state would be larger than " + std::to_string(maxStateBytes >> 20) + " MiB of JSON");
 }
 
+/// @brief A state key's value and declared type before a revision.
+/// @param before The document with the live state in "state", before the revision.
+/// @param key The key.
+/// @return Its value and its type; nullptr for one it didn't have.
+std::pair<const json*, const json*> typedBefore(const json& before, const std::string& key) {
+	const json& state = stateOf(before);
+	const auto value = state.find(key);
+	const auto types = before.find("stateTypes");
+	const json* type = nullptr;
+	if(types != before.end() && types->is_object())
+		if(const auto it = types->find(key); it != types->end()) type = &*it;
+	return {value == state.end() ? nullptr : &*value, type};
+}
+
 /// @brief Refuses a revision after which the live state matches its types less than before: a value that no longer
 /// matches, or a type the state doesn't match. Mismatches that were there before don't block it.
 /// @param before The document with the live state in "state", before the revision.
 /// @param after The same, after it.
 /// @throws DocumentError If it brings a mismatch.
 void checkTypedState(const json& before, const json& after) {
-	if(!after.contains("stateTypes") && !before.contains("stateTypes")) return;
-	const std::vector<Mismatch> now = stateMismatches(after, stateOf(after));
-	if(now.empty()) return;
-	const std::vector<Mismatch> old = stateMismatches(before, stateOf(before));
-	for(const Mismatch& mismatch : now)
-		if(std::ranges::none_of(old, [&](const Mismatch& m) { return m.text() == mismatch.text(); }))
-			fail("revision", "the state wouldn't match its types: " + mismatch.text() + typeNote(mismatch));
+	const auto types = after.find("stateTypes");
+	if(types == after.end() || !types->is_object()) return;
+	const json& state = stateOf(after);
+	// Cost follows the change: a key whose value and type are as before matches as it did
+	for(const auto& [key, type] : types->items()) {
+		const auto value = state.find(key);
+		if(value == state.end()) continue;
+		const auto [oldValue, oldType] = typedBefore(before, key);
+		if(oldValue && oldType && *oldType == type && *oldValue == *value) continue;
+		const std::optional<Mismatch> now = typeMismatch(*value, type, "state." + key);
+		if(now && !(oldValue && oldType && typeMismatch(*oldValue, *oldType, "state." + key)))
+			fail("revision", "the state wouldn't match its types: " + now->text() + typeNote(*now));
+	}
 }
 
 } // namespace

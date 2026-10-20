@@ -12,6 +12,33 @@ namespace affresco::format {
 
 namespace {
 
+/// @brief Where a value is, built on the stack as matching goes down and written out only for a mismatch, so that a
+/// value that matches costs no allocation.
+struct Where {
+	const Where* parent = nullptr;     ///< The enclosing place, or nullptr for the outermost.
+	const std::string* root = nullptr; ///< The outermost place's text.
+	std::string_view key;              ///< ".key" after the parent's text, if not empty.
+	std::size_t index = noIndex;       ///< "[index]" after the parent's text, if set.
+
+	static constexpr std::size_t noIndex = static_cast<std::size_t>(-1); ///< No index.
+
+	/// @brief The place as text: "state.cards[2].title".
+	/// @return It.
+	[[nodiscard]] std::string text() const {
+		std::string result = parent ? parent->text() : root ? *root : std::string();
+		if(!key.empty()) result.append(".").append(key);
+		if(index != noIndex) result += "[" + std::to_string(index) + "]";
+		return result;
+	}
+};
+
+/// @brief The first way a value doesn't match a type.
+/// @param value The value.
+/// @param type The type.
+/// @param place The value's place.
+/// @return The first mismatch, or std::nullopt.
+std::optional<Mismatch> matchAt(const json& value, const json& type, const Where& place);
+
 /// @brief A name "type" may give, with its kinds.
 struct TypeName {
 	std::string_view name; ///< E.g. "integer".
@@ -133,12 +160,12 @@ void checkKeyword(const std::string& key, const json& value, const std::string& 
 /// @param type The type.
 /// @param place The value's place.
 /// @return The first mismatch, or std::nullopt.
-std::optional<Mismatch> numberLimits(const json& value, const json& type, const std::string& place) {
+std::optional<Mismatch> numberLimits(const json& value, const json& type, const Where& place) {
 	const double number = value.get<double>();
 	if(type.contains("minimum") && number < type["minimum"].get<double>())
-		return Mismatch{place, std::format("expected at least {}, got {}", type["minimum"].dump(), value.dump())};
+		return Mismatch{place.text(), std::format("expected at least {}, got {}", type["minimum"].dump(), value.dump())};
 	if(type.contains("maximum") && number > type["maximum"].get<double>())
-		return Mismatch{place, std::format("expected at most {}, got {}", type["maximum"].dump(), value.dump())};
+		return Mismatch{place.text(), std::format("expected at most {}, got {}", type["maximum"].dump(), value.dump())};
 	return std::nullopt;
 }
 
@@ -148,16 +175,16 @@ std::optional<Mismatch> numberLimits(const json& value, const json& type, const 
 /// @param type The type.
 /// @param place The value's place.
 /// @return The first mismatch, or std::nullopt.
-std::optional<Mismatch> sizeLimits(const json& value, const json& type, const std::string& place) {
+std::optional<Mismatch> sizeLimits(const json& value, const json& type, const Where& place) {
 	const bool text = value.is_string();
 	const std::size_t size = text ? characters(value.get_ref<const std::string&>()) : value.size();
 	const char* unit = text ? "characters" : "items";
 	const char* fewest = text ? "minLength" : "minItems";
 	const char* most = text ? "maxLength" : "maxItems";
 	if(type.contains(fewest) && size < type[fewest].get<std::size_t>())
-		return Mismatch{place, std::format("expected at least {} {}, got {}", type[fewest].dump(), unit, size)};
+		return Mismatch{place.text(), std::format("expected at least {} {}, got {}", type[fewest].dump(), unit, size)};
 	if(type.contains(most) && size > type[most].get<std::size_t>())
-		return Mismatch{place, std::format("expected at most {} {}, got {}", type[most].dump(), unit, size)};
+		return Mismatch{place.text(), std::format("expected at most {} {}, got {}", type[most].dump(), unit, size)};
 	return std::nullopt;
 }
 
@@ -166,7 +193,7 @@ std::optional<Mismatch> sizeLimits(const json& value, const json& type, const st
 /// @param type The type.
 /// @param place The value's place.
 /// @return The first mismatch, or std::nullopt.
-std::optional<Mismatch> limits(const json& value, const json& type, const std::string& place) {
+std::optional<Mismatch> limits(const json& value, const json& type, const Where& place) {
 	if(value.is_number()) return numberLimits(value, type, place);
 	if(value.is_string() || value.is_array()) return sizeLimits(value, type, place);
 	return std::nullopt;
@@ -177,21 +204,21 @@ std::optional<Mismatch> limits(const json& value, const json& type, const std::s
 /// @param type Its type.
 /// @param place Its place.
 /// @return The first mismatch, or std::nullopt.
-std::optional<Mismatch> objectMismatch(const json& value, const json& type, const std::string& place) {
+std::optional<Mismatch> objectMismatch(const json& value, const json& type, const Where& place) {
 	if(const auto required = type.find("required"); required != type.end())
 		for(const json& name : *required)
 			if(!value.contains(name.get<std::string>()))
-				return Mismatch{place, "missing '" + name.get<std::string>() + "'"};
+				return Mismatch{place.text(), "missing '" + name.get<std::string>() + "'"};
 	for(const auto& [key, item] : value.items()) {
-		const std::string at = std::format("{}.{}", place, key);
+		const Where at{&place, nullptr, key};
 		const json* inside = typeInside(type, &key);
 		if(inside) {
-			if(auto found = typeMismatch(item, *inside, at)) return found;
-		} else if(type.value("additionalProperties", json(true)) == false) {
+			if(auto found = matchAt(item, *inside, at)) return found;
+		} else if(const auto others = type.find("additionalProperties"); others != type.end() && *others == false) {
 			std::string names;
 			for(const auto& [name, property] : type.value("properties", json::object()).items())
 				names += (names.empty() ? "" : ", ") + name;
-			return Mismatch{at, "not one of its properties (" + (names.empty() ? std::string("none") : names) + ")"};
+			return Mismatch{at.text(), "not one of its properties (" + (names.empty() ? std::string("none") : names) + ")"};
 		}
 	}
 	return std::nullopt;
@@ -226,9 +253,12 @@ Kinds allowedKinds(const json& type) {
 	if(!type.is_object()) return anyKind;
 	Kinds kinds = 0;
 	if(const auto names = type.find("type"); names != type.end()) {
-		for(const json& name : names->is_array() ? *names : json::array({*names}))
+		const auto add = [&kinds](const json& name) {
 			if(const TypeName* found = name.is_string() ? typeNamed(name.get_ref<const std::string&>()) : nullptr)
 				kinds = static_cast<Kinds>(kinds | found->kinds);
+		};
+		if(names->is_array()) std::ranges::for_each(*names, add);
+		else add(*names); // one name, read where it is: matching a large state allocates nothing
 		return kinds;
 	}
 	const auto values = type.find("enum");
@@ -275,18 +305,18 @@ namespace {
 /// @param type The type, an object.
 /// @param place The value's place.
 /// @return The mismatch, or std::nullopt.
-std::optional<Mismatch> valueMismatch(const json& value, const json& type, const std::string& place) {
+std::optional<Mismatch> valueMismatch(const json& value, const json& type, const Where& place) {
 	if(const auto values = type.find("enum");
 	   values != type.end() && std::ranges::find(*values, value) == values->end()) {
 		std::string list;
 		for(std::size_t i = 0; i < values->size() && i < 8; ++i) list += (i ? ", " : "") + (*values)[i].dump();
 		if(values->size() > 8) list += ", ...";
-		return Mismatch{place, "expected one of " + list + ", got " + shortly(value)};
+		return Mismatch{place.text(), "expected one of " + list + ", got " + shortly(value)};
 	}
 	if(const auto only = type.find("const"); only != type.end() && *only != value)
-		return Mismatch{place, "expected " + shortly(*only) + ", got " + shortly(value)};
+		return Mismatch{place.text(), "expected " + shortly(*only) + ", got " + shortly(value)};
 	if(type.contains("type") && (kindOf(value) & allowedKinds(type)) == 0)
-		return Mismatch{place, "expected " + describeKinds(allowedKinds(type)) + ", got " + shortly(value)};
+		return Mismatch{place.text(), "expected " + describeKinds(allowedKinds(type)) + ", got " + shortly(value)};
 	return std::nullopt;
 }
 
@@ -295,11 +325,11 @@ std::optional<Mismatch> valueMismatch(const json& value, const json& type, const
 /// @param type Its type.
 /// @param place Its place.
 /// @return The first mismatch, or std::nullopt.
-std::optional<Mismatch> itemsMismatch(const json& value, const json& type, const std::string& place) {
+std::optional<Mismatch> itemsMismatch(const json& value, const json& type, const Where& place) {
 	const auto items = type.find("items");
 	if(items == type.end()) return std::nullopt;
 	for(std::size_t i = 0; i < value.size(); ++i)
-		if(auto found = typeMismatch(value[i], *items, place + "[" + std::to_string(i) + "]")) return found;
+		if(auto found = matchAt(value[i], *items, Where{&place, nullptr, {}, i})) return found;
 	return std::nullopt;
 }
 
@@ -342,18 +372,22 @@ std::string describeName(const json& name, const json& type, int depth) {
 	return std::string(found->says);
 }
 
-} // namespace
-
-std::optional<Mismatch> typeMismatch(const json& value, const json& type, const std::string& place) {
+std::optional<Mismatch> matchAt(const json& value, const json& type, const Where& place) {
 	if(type.is_boolean()) {
 		if(type.get<bool>()) return std::nullopt;
-		return Mismatch{place, "nothing may be here"};
+		return Mismatch{place.text(), "nothing may be here"};
 	}
 	if(auto found = valueMismatch(value, type, place)) return found;
 	if(auto found = limits(value, type, place)) return found;
 	if(value.is_object()) return objectMismatch(value, type, place);
 	if(value.is_array()) return itemsMismatch(value, type, place);
 	return std::nullopt;
+}
+
+} // namespace
+
+std::optional<Mismatch> typeMismatch(const json& value, const json& type, const std::string& place) {
+	return matchAt(value, type, Where{nullptr, &place, {}, Where::noIndex});
 }
 
 std::vector<Mismatch> stateMismatches(const json& document, const json& state) {
