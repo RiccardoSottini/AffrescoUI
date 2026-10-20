@@ -5,6 +5,8 @@ find_nodes, the format guide by topic, the changes a re-read returns, and messag
     python3 mcp/test_affrescoui_mcp.py
 """
 
+import contextlib
+import io
 import json
 import os
 import socket
@@ -136,6 +138,24 @@ class Malformed(unittest.TestCase):
         self.assertEqual([(m["id"], m.get("error", {}).get("code")) for m in sent],
                          [(None, -32600), (2, -32600), (3, None), (4, None)])
         self.assertEqual(server.client, "agent")
+
+    def test_lines_python_cant_read(self):
+        server, sent = self.server()
+        server.serve("[" * 200000 + "]" * 200000)  # deeper than Python's recursion limit
+        server.serve('{"jsonrpc": "2.0", "id": 5, "method": "ping"}')
+        self.assertEqual([(m["id"], m.get("error", {}).get("code")) for m in sent], [(None, -32700), (5, None)])
+
+    @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "the host is reached through AF_UNIX")
+    def test_a_launch_command_that_cant_start(self):
+        host = mcp.Host(os.path.join(HERE, "no-such-folder"), os.path.join(HERE, "no-such-program"), None)
+        with self.assertRaisesRegex(RuntimeError, "couldn't start"):
+            host.ensure()
+
+    def test_the_log_escapes_what_a_request_can_hold(self):
+        written = io.StringIO()
+        with contextlib.redirect_stderr(written):
+            mcp.log("request r1: a\nforged line\x1b[2J \\n \u0085 ok é")
+        self.assertEqual(written.getvalue(), "[affrescoui-mcp] request r1: a\\nforged line\\x1b[2J \\\\n \\x85 ok é\n")
 
     @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "the host is reached through AF_UNIX")
     def test_messages_from_the_host(self):

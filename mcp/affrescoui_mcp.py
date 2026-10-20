@@ -53,6 +53,11 @@ def guide_path():
 
 
 def log(text):
+    """Writes a line to stderr, the server's log. Its text can come from people (a request), so a backslash and the
+    characters that aren't printable are escaped, as the host's log does: a line can't forge another one, nor send
+    escape sequences to a terminal."""
+    text = "".join(c if c.isprintable() else c.encode("unicode_escape").decode("ascii")
+                   for c in str(text).replace("\\", "\\\\"))
     print(f"[affrescoui-mcp] {text}", file=sys.stderr, flush=True)
 
 
@@ -118,7 +123,10 @@ class Host:
             log(f"no host running: starting {self.launch}")
             # Windows parses a command line itself, and shlex would drop the backslashes of its paths
             command = self.launch if os.name == "nt" else shlex.split(self.launch)
-            subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
+            try:
+                subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
+            except OSError as failure:  # reported like a host that isn't there, not ending the server
+                raise RuntimeError(f"couldn't start {self.launch}: {failure}")
             for _ in range(50):
                 if os.path.exists(self.path):
                     break
@@ -137,7 +145,7 @@ class Host:
             for line in sock.makefile("r", encoding="utf-8", errors="replace"):
                 try:
                     message = json.loads(line)
-                except json.JSONDecodeError:
+                except (ValueError, RecursionError):  # as Server.serve
                     continue
                 if isinstance(message, dict):
                     self.dispatch(message)
@@ -807,6 +815,16 @@ class Server:
             return json.dumps(reply.get("changes"), indent=2), False
         raise UnknownTool(name)
 
+    def serve(self, line):
+        """One line from the client. A line Python can't read as JSON gets a parse error: bad syntax, nesting deeper
+        than its recursion limit, or (3.11 and later) an integer of more digits than it converts."""
+        try:
+            message = json.loads(line)
+        except (ValueError, RecursionError):  # json.JSONDecodeError is a ValueError
+            self.send({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}})
+            return
+        self.handle(message)
+
     def handle(self, request):
         refusal = malformed(request)
         if refusal:
@@ -889,10 +907,7 @@ def main():
         log(NO_UNIX_SOCKETS)
     for line in sys.stdin:
         if line.strip():
-            try:
-                server.handle(json.loads(line))
-            except json.JSONDecodeError:
-                server.send({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}})
+            server.serve(line)
 
 
 if __name__ == "__main__":
