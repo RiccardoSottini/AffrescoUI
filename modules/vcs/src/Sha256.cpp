@@ -1,7 +1,11 @@
+/// @file
+/// @brief SHA-256 (FIPS 180-4), for the ids of commits and documents: small, with no dependency.
+
 #include "Sha256.hpp"
 
 #include <array>
 #include <cstdint>
+#include <string_view>
 
 namespace affresco::vcs::detail {
 
@@ -24,13 +28,10 @@ constexpr std::array<std::uint32_t, 64> roundConstants = {
 /// @return The rotated word.
 constexpr std::uint32_t rotr(std::uint32_t x, unsigned n) { return (x >> n) | (x << (32u - n)); }
 
-} // namespace
-
-std::string sha256(std::string_view data) {
-	std::array<std::uint32_t, 8> hash = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-	                                     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
-
-	// Padding: a 1 bit, zeros, then the length in bits (big-endian), to a multiple of 64 bytes
+/// @brief Pads a message to a multiple of 64 bytes: a 1 bit, zeros, then the length in bits (big-endian).
+/// @param data The message.
+/// @return The padded message.
+std::string padded(std::string_view data) {
 	std::string message(data);
 	const std::uint64_t bits = static_cast<std::uint64_t>(data.size()) * 8u;
 	message.push_back(static_cast<char>(0x80));
@@ -39,44 +40,71 @@ std::string sha256(std::string_view data) {
 		message.push_back(static_cast<char>((bits >> shift) & 0xffu));
 		if(shift == 0) break;
 	}
+	return message;
+}
 
-	for(std::size_t chunk = 0; chunk < message.size(); chunk += 64) {
-		std::array<std::uint32_t, 64> w{};
-		for(std::size_t i = 0; i < 16; ++i)
-			for(std::size_t b = 0; b < 4; ++b)
-				w[i] = (w[i] << 8) | static_cast<std::uint32_t>(static_cast<unsigned char>(message[chunk + i * 4 + b]));
-		for(std::size_t i = 16; i < 64; ++i) {
-			const std::uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
-			const std::uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
-			w[i] = w[i - 16] + s0 + w[i - 7] + s1;
-		}
-
-		auto [a, b, c, d, e, f, g, h] = hash;
-		for(std::size_t i = 0; i < 64; ++i) {
-			const std::uint32_t t1 =
-			    h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + roundConstants[i] + w[i];
-			const std::uint32_t t2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
-			h = g;
-			g = f;
-			f = e;
-			e = d + t1;
-			d = c;
-			c = b;
-			b = a;
-			a = t1 + t2;
-		}
-		const std::array<std::uint32_t, 8> add = {a, b, c, d, e, f, g, h};
-		for(std::size_t i = 0; i < 8; ++i) hash[i] += add[i];
+/// @brief The message schedule of one 64-byte chunk.
+/// @param chunk The chunk's first byte.
+/// @return The 64 words.
+std::array<std::uint32_t, 64> scheduleOf(const char* chunk) {
+	std::array<std::uint32_t, 64> w{};
+	for(std::size_t i = 0; i < 16; ++i)
+		for(std::size_t b = 0; b < 4; ++b)
+			w[i] = (w[i] << 8) | static_cast<std::uint32_t>(static_cast<unsigned char>(chunk[i * 4 + b]));
+	for(std::size_t i = 16; i < 64; ++i) {
+		const std::uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
+		const std::uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
+		w[i] = w[i - 16] + s0 + w[i - 7] + s1;
 	}
+	return w;
+}
 
-	static constexpr char digits[] = "0123456789abcdef";
+/// @brief Adds one 64-byte chunk to the hash: the 64 rounds of the compression function.
+/// @param hash The hash so far, updated.
+/// @param chunk The chunk's first byte.
+void compress(std::array<std::uint32_t, 8>& hash, const char* chunk) {
+	const std::array<std::uint32_t, 64> w = scheduleOf(chunk);
+	auto [a, b, c, d, e, f, g, h] = hash;
+	for(std::size_t i = 0; i < 64; ++i) {
+		const std::uint32_t t1 =
+		    h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + roundConstants[i] + w[i];
+		const std::uint32_t t2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
+		h = g;
+		g = f;
+		f = e;
+		e = d + t1;
+		d = c;
+		c = b;
+		b = a;
+		a = t1 + t2;
+	}
+	const std::array<std::uint32_t, 8> add = {a, b, c, d, e, f, g, h};
+	for(std::size_t i = 0; i < 8; ++i) hash[i] += add[i];
+}
+
+/// @brief Writes a hash as hex.
+/// @param hash The hash.
+/// @return 64 lowercase hex digits.
+std::string toHex(const std::array<std::uint32_t, 8>& hash) {
+	static constexpr std::string_view digits = "0123456789abcdef";
 	std::string hex;
+	hex.reserve(64);
 	for(const std::uint32_t word : hash)
 		for(unsigned shift = 28;; shift -= 4) {
 			hex.push_back(digits[(word >> shift) & 0xfu]);
 			if(shift == 0) break;
 		}
 	return hex;
+}
+
+} // namespace
+
+std::string sha256(std::string_view data) {
+	std::array<std::uint32_t, 8> hash = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+	                                     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+	const std::string message = padded(data);
+	for(std::size_t chunk = 0; chunk < message.size(); chunk += 64) compress(hash, message.data() + chunk);
+	return toHex(hash);
 }
 
 } // namespace affresco::vcs::detail
