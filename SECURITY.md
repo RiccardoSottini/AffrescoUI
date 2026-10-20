@@ -248,6 +248,10 @@ Input from peers, revisions and change sets is limited so that one message can't
 | `pad(text, width)` | width up to 10,000 |
 | Step lists inside step lists and actions (`if`, `forEach`, `while`, `run`, named handlers) | 32 levels |
 | Components using components | 32 levels |
+| Computed values reading computed values | 32 levels |
+| Panels built inside each other (components and outlets included; a component or a screen inside itself stops here) | 256 levels |
+| A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
+| Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file |
 | Open proposals per channel | 16 |
@@ -309,6 +313,13 @@ These are not protected today. They are stated plainly so that you can decide wh
   but a line longer than a font keeps shaped (128 Ki code points) is shaped again every time it is drawn or measured:
   a label of a million characters on one line takes a fraction of a second each time. A process or stdio channel the
   host opens isn't a peer: it isn't held to these limits, and the host writes to it on the main thread.
+- **A revision of many operations costs operations times the document.** Each operation is applied to the whole
+  document as it stands: a `#id` path is looked up, and an operation that adds a node without an id collects every id
+  of the document to name it. A revision of 8,000 operations that each add a node without an id takes about 6.6
+  seconds on the main thread; give nodes their ids, or add them in one operation.
+- **Nested components and repeats multiply.** Each use builds its component's node: a component that uses another
+  twice, 25 levels down, builds 2^25 panels, and a `repeat` over 10,000 items inside another builds 100 million. The
+  depth limits above hold, but nothing limits how many panels a document builds.
 - **There is no total work budget per event, so nested loops multiply.** Each limit above holds on its own:
   a `while` of 10,000 iterations inside a `forEach` over a list of 10,000 items runs 100 million steps, and deeper
   nesting multiplies again. `after` and `debounce` steps schedule more work for later, and nothing caps how many are
@@ -319,6 +330,10 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
   it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
   should deny agents the `/state` paths those steps read.
+- **A revision can add a `copy` step.** `copy` puts text on the system clipboard, and it isn't a control step: an
+  allowed revision can make a button, or a timer, copy text the user didn't choose, which they may then paste into a
+  terminal. A proposal being previewed runs its timers too, so this can happen before anyone accepts it. Review
+  changes to handlers and timers before accepting them.
 - **A revision can point a font at any file.** `fonts.<name>.file` can be changed by a revision, and the app then
   reads that file, if it is a regular file of at most 256 MiB, and parses it as a font; the error a peer gets back
   says whether it could be read. The parsers are FreeType and HarfBuzz, which OSS-Fuzz fuzzes all the time, and far
