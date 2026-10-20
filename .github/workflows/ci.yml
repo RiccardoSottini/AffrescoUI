@@ -3,8 +3,8 @@
 # - Changes: whether the change needs a build at all (prose alone doesn't; the build jobs are then skipped);
 # - Linux: GCC; the unit, window, CLI, MCP and scenario tests, the rendering check, the package check, the API
 #   reference, and the quality gate (clang-tidy on the changed lines, function size);
-# - Linux (address + undefined sanitizers): one clang build with ASan, UBSan and libFuzzer's coverage: the tests, the
-#   rendering check, then every fuzz target for a short while;
+# - Linux (address + undefined sanitizers): GCC with ASan and UBSan: the tests and the rendering check;
+# - Fuzz, on pull requests: every fuzz target for 60 s, one after the other, from the nightly corpus;
 # - macOS (build only), Windows (not supported yet);
 # - Benchmarks (callgrind), on pull requests: base and head on the same runner;
 # - Quality report, on master: the whole repository and the coverage of the unit tests.
@@ -121,16 +121,13 @@ jobs:
     env:
       RENDER_CHECK_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
       RENDER_CHECK_RECORD: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change') }}
-      CC: clang-18
-      CXX: clang++-18
+      SANITIZE: -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer
       # Links the GLX library GLFW loads, so glfwTerminate() can't unload it, nor Mesa's driver behind it, before the
       # leak report: what the driver keeps until exit stays reachable, and isn't reported as a leak
       KEEP_GL: -Wl,--no-as-needed -l:libGLX.so.0 -Wl,--as-needed
       ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1
       UBSAN_OPTIONS: print_stacktrace=1
       LSAN_OPTIONS: suppressions=${{ github.workspace }}/.github/workflows/lsan.supp # empty for now, see the file
-      ASAN_SYMBOLIZER_PATH: /usr/lib/llvm-18/bin/llvm-symbolizer
-      FUZZ_SECONDS: "35" # each target; the nightly run gives each 15 minutes
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -138,14 +135,12 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
-          packages: xvfb xauth libgl1-mesa-dri clang-18 libclang-rt-18-dev llvm-18
-          cache: linux-clang-sanitizers
-      # AFFRESCOUI_BUILD_FUZZERS builds everything with ASan, UBSan (no recovery) and libFuzzer's coverage, at -O1 -g:
-      # the tests run on that build, and the fuzz targets are built in the same pass
+          packages: xvfb xauth libgl1-mesa-dri
+          cache: linux-gcc-sanitizers
       - name: Build
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAFFRESCOUI_BUILD_FUZZERS=ON \
-            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON "-DCMAKE_EXE_LINKER_FLAGS=$KEEP_GL"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE $KEEP_GL"
           cmake --build build
       - name: Unit tests # headless windows included
         run: ctest --test-dir build -R "unit|scenarios" --output-on-failure
@@ -154,7 +149,7 @@ jobs:
       - name: Rendering check
         run: |
           xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh -DCMAKE_BUILD_TYPE=Debug \
-            -DAFFRESCOUI_BUILD_FUZZERS=ON "-DCMAKE_EXE_LINKER_FLAGS=$KEEP_GL"
+            "-DCMAKE_C_FLAGS=$SANITIZE" "-DCMAKE_CXX_FLAGS=$SANITIZE" "-DCMAKE_EXE_LINKER_FLAGS=$SANITIZE $KEEP_GL"
       - name: Upload the frames
         if: failure() || env.RENDER_CHECK_RECORD == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -163,8 +158,34 @@ jobs:
           path: |
             build/render-check/*.png
             tests/render/golden/
+
+  # Every fuzz target for 60 s, one after the other, from the nightly corpus (tests/fuzz/README.md), built as
+  # nightly.yml builds them
+  fuzz:
+    name: Fuzz
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CC: clang-18
+      CXX: clang++-18
+      ASAN_SYMBOLIZER_PATH: /usr/lib/llvm-18/bin/llvm-symbolizer
+      FUZZ_SECONDS: "60"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: clang-18 libclang-rt-18-dev llvm-18
+          cache: linux-clang-fuzzers
+      - name: Build the fuzz targets
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAFFRESCOUI_BUILD_FUZZERS=ON \
+            -DAFFRESCOUI_BUILD_EXAMPLES=OFF -DAFFRESCOUI_BUILD_TESTS=OFF -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build
       - name: Restore the fuzz corpus of the nightly runs # read, never written, here
-        if: success() || failure()
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: fuzz-corpus
