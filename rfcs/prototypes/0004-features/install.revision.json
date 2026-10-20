@@ -1,0 +1,175 @@
+{
+	"type": "revision",
+	"message": "Install Word count 1.0.0, TODO tree 1.2.0",
+	"set": {
+		"/features/wordCount": {
+			"release": "1.0.0",
+			"source": "file:word-count.feature.json",
+			"enabled": true,
+			"order": 10,
+			"requires": {
+				"format": 1,
+				"points": [
+					"statusBar.right"
+				],
+				"exports": {
+					"editor.text": {
+						"type": "string"
+					}
+				}
+			},
+			"provides": {
+				"state": {
+					"characters": false
+				},
+				"computed": {
+					"words": "{{len(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), len(trim(it)) > 0))}}",
+					"characters": "{{len(app.editor.text)}}"
+				},
+				"actions": {
+					"toggle": {
+						"title": "Toggle Word or Character Count",
+						"category": "Word Count",
+						"do": {
+							"toggle": "state.wordCount.characters"
+						}
+					}
+				},
+				"menus": {
+					"statusBar.context": {
+						"items": {
+							"toggle": {}
+						}
+					}
+				},
+				"views": {
+					"statusBar.right": {
+						"wordCount-label": {
+							"style": "status",
+							"cursor": "hand",
+							"text": "{{state.wordCount.characters ? plural(computed.wordCount.characters, 'character') : plural(computed.wordCount.words, 'word')}}",
+							"onClick": "wordCount.toggle"
+						}
+					}
+				}
+			}
+		},
+		"/features/todoTree": {
+			"release": "1.2.0",
+			"source": "file:todo-tree.feature.json",
+			"enabled": true,
+			"order": 20,
+			"requires": {
+				"format": 1,
+				"points": [
+					"sidebar.views"
+				],
+				"exports": {
+					"workspace.files": {
+						"type": "array"
+					}
+				},
+				"features": {
+					"wordCount": "^1.0.0"
+				}
+			},
+			"provides": {
+				"state": {
+					"open": true
+				},
+				"computed": {
+					"count": "{{sum(app.workspace.files, count(split(it.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME')))}}"
+				},
+				"actions": {
+					"toggle": {
+						"title": "Show or Hide the TODO Tree",
+						"category": "TODO Tree",
+						"do": {
+							"toggle": "state.todoTree.open"
+						}
+					}
+				},
+				"keys": {
+					"mod+shift+t": "todoTree.toggle"
+				},
+				"views": {
+					"sidebar.views": {
+						"todoTree-view": {
+							"type": "column",
+							"gap": 2,
+							"anchors": {
+								"left": 0,
+								"right": 0
+							},
+							"height": 260,
+							"children": [
+								{
+									"id": "todoTree-header",
+									"type": "label",
+									"font": "small",
+									"textColor": "@muted",
+									"fitText": true,
+									"cursor": "hand",
+									"text": "TODO TREE ({{computed.todoTree.count}})",
+									"onClick": "todoTree.toggle"
+								},
+								{
+									"id": "todoTree-file",
+									"when": "{{state.todoTree.open}}",
+									"repeat": {
+										"for": "file",
+										"in": "app.workspace.files",
+										"index": "f",
+										"key": "{{file.name}}"
+									},
+									"let": {
+										"todos": "{{filter(split(file.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME'))}}"
+									},
+									"type": "column",
+									"anchors": {
+										"left": 0,
+										"right": 0
+									},
+									"height": "{{len(todos) == 0 ? 0 : 24 + len(todos) * 22}}",
+									"children": [
+										{
+											"id": "todoTree-file-name",
+											"type": "label",
+											"fitText": true,
+											"textColor": "@text",
+											"padding": 4,
+											"text": "{{file.name}}",
+											"visible": "{{len(todos) > 0}}"
+										},
+										{
+											"id": "todoTree-line",
+											"repeat": {
+												"for": "todo",
+												"in": "todos"
+											},
+											"type": "label",
+											"font": "small",
+											"textColor": "@text",
+											"padding": 3,
+											"height": 22,
+											"anchors": {
+												"left": 12,
+												"right": 0
+											},
+											"cursor": "hand",
+											"text": "{{trim(todo)}}",
+											"onClick": {
+												"set": "state.active",
+												"to": "{{f}}"
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				}
+			}
+		}
+	}
+}

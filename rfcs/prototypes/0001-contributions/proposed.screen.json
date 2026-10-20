@@ -1,0 +1,681 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "RFC 0001 prototype in the proposed syntax (it doesn't load today). The same app as today.screen.json: the commands, keys, menus and settings are declared once, and the palette, the menu, the keybinding editor and the settings page read the variables the RFC adds (commands, menus, keybindings, settingsList).",
+	"window": {
+		"title": "Contributions (proposed)",
+		"width": 1040,
+		"height": 640
+	},
+	"fonts": {
+		"default": {
+			"file": "../../../examples/assets/fonts/Roboto-Regular.ttf",
+			"size": 14
+		},
+		"small": {
+			"file": "../../../examples/assets/fonts/Roboto-Regular.ttf",
+			"size": 12
+		},
+		"title": {
+			"file": "../../../examples/assets/fonts/Roboto-Regular.ttf",
+			"size": 18
+		}
+	},
+	"colors": {
+		"background": "#f8fafc",
+		"surface": "#ffffff",
+		"border": "#e2e8f0",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"accent": "#4f46e5",
+		"accentSoft": "#e0e7ff",
+		"hover": "#f1f5f9"
+	},
+	"styles": {
+		"caption": {
+			"type": "label",
+			"font": "small",
+			"textColor": "@muted",
+			"fitText": true
+		},
+		"heading": {
+			"type": "label",
+			"font": "title",
+			"textColor": "@text",
+			"fitText": true
+		},
+		"cell": {
+			"type": "label",
+			"textColor": "@text",
+			"align": {
+				"vertical": "center"
+			}
+		},
+		"keycap": {
+			"type": "label",
+			"font": "small",
+			"textColor": "@muted",
+			"color": "@hover",
+			"radius": 4,
+			"padding": 4,
+			"fitText": true
+		},
+		"card": {
+			"color": "@surface",
+			"radius": 8,
+			"borderWidth": 1,
+			"borderColor": "@border"
+		}
+	},
+	"components": {
+		"commandRow": {
+			"note": "One command as a palette, a menu or the keybinding editor shows it: its title, its category and its key.",
+			"params": {
+				"command": {},
+				"selected": false
+			},
+			"node": {
+				"height": 34,
+				"anchors": {
+					"left": 0,
+					"right": 0
+				},
+				"radius": 4,
+				"color": "{{selected ? '@accentSoft' : '@surface'}}",
+				"hover": {
+					"color": "@hover"
+				},
+				"cursor": "hand",
+				"children": [
+					{
+						"id": "label-command-title",
+						"style": "cell",
+						"text": "{{command.category ? command.category + ': ' : ''}}{{command.title}}",
+						"anchors": {
+							"left": 10,
+							"top": 0,
+							"bottom": 0,
+							"right": 120
+						}
+					},
+					{
+						"id": "label-command-key",
+						"style": "keycap",
+						"when": "{{command.key}}",
+						"text": "{{command.keyLabel}}",
+						"anchors": {
+							"right": 10,
+							"top": 8
+						}
+					}
+				]
+			}
+		},
+		"settingRow": {
+			"note": "One setting, its control chosen by its type: what a generated settings page is made of.",
+			"params": {
+				"setting": {}
+			},
+			"node": {
+				"height": 58,
+				"color": "transparent",
+				"anchors": {
+					"left": 0,
+					"right": 0
+				},
+				"children": [
+					{
+						"id": "label-setting-title",
+						"type": "label",
+						"text": "{{setting.category}}: {{setting.title}}",
+						"textColor": "@text",
+						"fitText": true,
+						"anchors": {
+							"left": 0,
+							"top": 4
+						}
+					},
+					{
+						"id": "label-setting-description",
+						"style": "caption",
+						"text": "{{setting.description}}",
+						"anchors": {
+							"left": 0,
+							"top": 24
+						}
+					},
+					{
+						"id": "toggle-setting",
+						"when": "{{setting.type == 'boolean'}}",
+						"type": "toggle",
+						"checked": "{{setting.value}}",
+						"onChange": {
+							"set": "settings[setting.name]",
+							"to": "{{event.value}}"
+						},
+						"anchors": {
+							"right": 0,
+							"top": 10
+						},
+						"width": 40,
+						"height": 22,
+						"activeColor": "@accent"
+					},
+					{
+						"id": "slider-setting",
+						"when": "{{setting.type == 'number'}}",
+						"type": "slider",
+						"value": "{{setting.value}}",
+						"min": "{{setting.minimum}}",
+						"max": "{{setting.maximum}}",
+						"step": 1,
+						"onChange": {
+							"set": "settings[setting.name]",
+							"to": "{{event.value}}"
+						},
+						"anchors": {
+							"right": 40,
+							"top": 14
+						},
+						"width": 140,
+						"height": 16,
+						"activeColor": "@accent"
+					},
+					{
+						"id": "label-setting-number",
+						"when": "{{setting.type == 'number'}}",
+						"style": "caption",
+						"text": "{{setting.value}}",
+						"anchors": {
+							"right": 0,
+							"top": 14
+						}
+					},
+					{
+						"id": "row-setting-choices",
+						"when": "{{setting.enum}}",
+						"type": "row",
+						"gap": 4,
+						"anchors": {
+							"right": 0,
+							"top": 8
+						},
+						"width": 220,
+						"height": 26,
+						"from": "end",
+						"children": [
+							{
+								"id": "label-setting-choice",
+								"repeat": {
+									"for": "choice",
+									"in": "setting.enum"
+								},
+								"type": "label",
+								"font": "small",
+								"text": "{{choice}}",
+								"padding": 6,
+								"fitText": true,
+								"radius": 4,
+								"color": "{{setting.value == choice ? '@accent' : '@hover'}}",
+								"textColor": "{{setting.value == choice ? '#ffffff' : '@text'}}",
+								"cursor": "hand",
+								"onClick": {
+									"set": "settings[setting.name]",
+									"to": "{{choice}}"
+								}
+							}
+						]
+					}
+				]
+			}
+		}
+	},
+	"state": {
+		"query": "",
+		"palette": true,
+		"menuOpen": true,
+		"settings": {}
+	},
+	"persist": [
+		"state.settings"
+	],
+	"computed": {
+		"paletteItems": "{{filter(commands, it.enabled && contains(lower(it.category + ': ' + it.title), lower(state.query)))}}"
+	},
+	"settings": {
+		"editor.minimap": {
+			"type": "boolean",
+			"default": true,
+			"description": "Show a small map of the file next to the editor."
+		},
+		"editor.fontSize": {
+			"type": "number",
+			"default": 14,
+			"minimum": 8,
+			"maximum": 32,
+			"description": "The editor's font size, in pixels."
+		},
+		"workbench.colorTheme": {
+			"enum": [
+				"light",
+				"dark",
+				"contrast"
+			],
+			"default": "light",
+			"title": "Color Theme",
+			"description": "The colours of the whole window."
+		}
+	},
+	"actions": {
+		"files.save": {
+			"title": "Save",
+			"category": "File",
+			"icon": "save",
+			"do": [
+				{
+					"log": "saved"
+				}
+			]
+		},
+		"view.toggleMinimap": {
+			"title": "Toggle Minimap",
+			"category": "View",
+			"do": {
+				"toggle": "settings.editor.minimap"
+			}
+		},
+		"view.commandPalette": {
+			"title": "Show All Commands",
+			"category": "View",
+			"do": [
+				{
+					"set": "state.query",
+					"to": ""
+				},
+				{
+					"set": "state.palette",
+					"to": true
+				},
+				{
+					"focus": "#paletteInput"
+				}
+			]
+		},
+		"preferences.keybindings": {
+			"title": "Open Keyboard Shortcuts",
+			"category": "Preferences",
+			"do": [
+				{
+					"log": "keybindings"
+				}
+			]
+		},
+		"editor.format": {
+			"title": "Format Document",
+			"category": "Editor",
+			"enablement": "{{context.editorFocus}}",
+			"do": [
+				{
+					"log": "formatted"
+				}
+			]
+		}
+	},
+	"keys": {
+		"mod+s": "files.save",
+		"mod+shift+m": "view.toggleMinimap",
+		"mod+shift+p": "view.commandPalette",
+		"mod+k mod+s": "preferences.keybindings",
+		"shift+alt+f": {
+			"when": "{{context.editorFocus}}",
+			"do": "editor.format"
+		}
+	},
+	"menus": {
+		"view.appearance": {
+			"groups": [
+				"navigation",
+				"editor"
+			],
+			"items": {
+				"view.commandPalette": {
+					"group": "navigation"
+				},
+				"view.toggleMinimap": {
+					"group": "editor"
+				}
+			}
+		}
+	},
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "label-settings-heading",
+				"style": "heading",
+				"text": "Settings (generated from the schema)",
+				"anchors": {
+					"left": 24,
+					"top": 20
+				}
+			},
+			{
+				"id": "settingsPage",
+				"style": "card",
+				"anchors": {
+					"left": 24,
+					"top": 56,
+					"bottom": 24
+				},
+				"width": 470,
+				"children": [
+					{
+						"id": "column-settings",
+						"type": "column",
+						"gap": 6,
+						"anchors": {
+							"left": 16,
+							"right": 16,
+							"top": 12,
+							"bottom": 12
+						},
+						"children": [
+							{
+								"id": "setting",
+								"repeat": {
+									"for": "setting",
+									"in": "settingsList",
+									"key": "{{setting.name}}"
+								},
+								"use": "settingRow",
+								"with": {
+									"setting": "{{setting}}"
+								}
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "label-keybindings-heading",
+				"style": "heading",
+				"text": "Keyboard shortcuts (generated from the commands)",
+				"anchors": {
+					"left": 518,
+					"top": 20
+				}
+			},
+			{
+				"id": "keybindingEditor",
+				"style": "card",
+				"anchors": {
+					"left": 518,
+					"right": 24,
+					"top": 56,
+					"bottom": 24
+				},
+				"children": [
+					{
+						"id": "label-column-command",
+						"style": "caption",
+						"text": "COMMAND",
+						"anchors": {
+							"left": 16,
+							"top": 12
+						}
+					},
+					{
+						"id": "label-column-key",
+						"style": "caption",
+						"text": "KEYBINDING",
+						"anchors": {
+							"left": 250,
+							"top": 12
+						}
+					},
+					{
+						"id": "label-column-when",
+						"style": "caption",
+						"text": "WHEN",
+						"anchors": {
+							"left": 370,
+							"top": 12
+						}
+					},
+					{
+						"id": "column-keybindings",
+						"type": "column",
+						"gap": 2,
+						"anchors": {
+							"left": 8,
+							"right": 8,
+							"top": 34,
+							"bottom": 8
+						},
+						"children": [
+							{
+								"id": "keybinding",
+								"repeat": {
+									"for": "binding",
+									"in": "keybindings",
+									"key": "{{binding.key}} {{binding.command}}"
+								},
+								"height": 32,
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"hover": {
+									"color": "@hover"
+								},
+								"color": "@surface",
+								"children": [
+									{
+										"id": "label-keybinding-title",
+										"style": "cell",
+										"text": "{{binding.title}}",
+										"anchors": {
+											"left": 8,
+											"top": 0,
+											"bottom": 0
+										},
+										"width": 230
+									},
+									{
+										"id": "label-keybinding-key",
+										"style": "keycap",
+										"text": "{{binding.keyLabel}}",
+										"anchors": {
+											"left": 242,
+											"top": 7
+										}
+									},
+									{
+										"id": "label-keybinding-when",
+										"style": "caption",
+										"text": "{{binding.when || '-'}}",
+										"anchors": {
+											"left": 362,
+											"top": 9
+										}
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "menu",
+				"style": "card",
+				"overlay": {
+					"placement": "window",
+					"open": "state.menuOpen",
+					"dismiss": "outside"
+				},
+				"anchors": {
+					"left": 48,
+					"top": 300
+				},
+				"width": 280,
+				"height": 92,
+				"shadow": {
+					"y": 6,
+					"blur": 18
+				},
+				"children": [
+					{
+						"id": "column-menu",
+						"type": "column",
+						"anchors": {
+							"left": 6,
+							"right": 6,
+							"top": 6,
+							"bottom": 6
+						},
+						"children": [
+							{
+								"id": "menuItem",
+								"repeat": {
+									"for": "item",
+									"in": "menus['view.appearance']",
+									"key": "{{item.name}}"
+								},
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"height": "{{item.separator ? 43 : 36}}",
+								"onClick": [
+									{
+										"run": "{{item.name}}"
+									},
+									{
+										"set": "state.menuOpen",
+										"to": false
+									}
+								],
+								"color": "transparent",
+								"children": [
+									{
+										"id": "panel-menu-separator",
+										"when": "{{item.separator}}",
+										"height": 1,
+										"color": "@border",
+										"anchors": {
+											"left": 4,
+											"right": 4,
+											"top": 3
+										}
+									},
+									{
+										"id": "menuRow",
+										"use": "commandRow",
+										"with": {
+											"command": "{{item}}"
+										},
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"bottom": 0
+										}
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "palette",
+				"style": "card",
+				"overlay": {
+					"placement": "window",
+					"open": "state.palette",
+					"dismiss": "outside"
+				},
+				"anchors": {
+					"left": 498,
+					"top": 322
+				},
+				"width": 518,
+				"height": 262,
+				"shadow": {
+					"y": 8,
+					"blur": 24
+				},
+				"children": [
+					{
+						"id": "paletteInput",
+						"type": "textarea",
+						"anchors": {
+							"left": 10,
+							"right": 10,
+							"top": 10
+						},
+						"height": 34,
+						"padding": 8,
+						"radius": 4,
+						"color": "@hover",
+						"textColor": "@text",
+						"placeholder": "Type the name of a command",
+						"placeholderColor": "@muted",
+						"bind": "state.query",
+						"onSubmit": [
+							{
+								"if": "{{len(computed.paletteItems) > 0}}",
+								"then": [
+									{
+										"set": "state.palette",
+										"to": false
+									},
+									{
+										"run": "{{computed.paletteItems[0].name}}"
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "column-palette",
+						"type": "column",
+						"gap": 2,
+						"scroll": "vertical",
+						"anchors": {
+							"left": 10,
+							"right": 10,
+							"top": 52,
+							"bottom": 10
+						},
+						"children": [
+							{
+								"id": "paletteItem",
+								"repeat": {
+									"for": "command",
+									"in": "computed.paletteItems",
+									"index": "n",
+									"key": "{{command.name}}"
+								},
+								"use": "commandRow",
+								"with": {
+									"command": "{{command}}",
+									"selected": "{{n == 0}}"
+								},
+								"onClick": [
+									{
+										"set": "state.palette",
+										"to": false
+									},
+									{
+										"run": "{{command.name}}"
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,115 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "RFC 0004 prototype: a small editor app in the proposed syntax. It offers two contribution points (nodes with 'point') and two exports (named values features may read as app.<name>). compose.py installs features into it, and expands the result into a screen today's engine loads.",
+	"window": { "title": "Features prototype", "width": 960, "height": 560 },
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 },
+		"small": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 12 },
+		"code": { "file": "../../../examples/assets/fonts/JetBrainsMono-Regular.ttf", "size": 13 }
+	},
+	"colors": {
+		"background": "#ffffff",
+		"sidebar": "#f1f5f9",
+		"border": "#e2e8f0",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"accent": "#4f46e5",
+		"statusBar": "#4f46e5",
+		"statusText": "#ffffff"
+	},
+	"styles": {
+		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
+		"status": { "type": "label", "font": "small", "textColor": "@statusText", "fitText": true, "padding": 6 }
+	},
+	"services": { "search": { "provider": "search", "root": "workspace" } },
+	"exports": {
+		"editor.text": { "type": "string", "value": "{{state.files[state.active].text}}", "description": "The text of the file being edited." },
+		"workspace.files": { "type": "array", "value": "{{state.files}}", "description": "The open files: { name, text }." }
+	},
+	"state": {
+		"active": 0,
+		"files": [
+			{ "name": "main.cpp", "text": "// TODO: read the screen from the command line\nint main() {\n    return run(); // FIXME: report errors\n}\n" },
+			{ "name": "Board.cpp", "text": "#include \"Board.hpp\"\n\n// TODO: archive done cards\nvoid Board::archiveDone() {}\n" },
+			{ "name": "README.md", "text": "# Board\nA small native board app whose UI is a live document.\n" }
+		]
+	},
+	"keys": { "mod+1": { "set": "state.active", "to": 0 } },
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "sidebar",
+				"anchors": { "left": 0, "top": 0, "bottom": 26 },
+				"width": 280,
+				"color": "@sidebar",
+				"children": [
+					{ "id": "label-explorer", "style": "caption", "text": "EXPLORER", "anchors": { "left": 16, "top": 14 } },
+					{
+						"id": "column-files",
+						"type": "column",
+						"anchors": { "left": 8, "right": 8, "top": 38 },
+						"height": 100,
+						"children": [
+							{
+								"id": "file",
+								"repeat": { "for": "file", "in": "state.files", "index": "i", "key": "{{file.name}}" },
+								"type": "label",
+								"text": "{{file.name}}",
+								"padding": 6,
+								"height": 28,
+								"anchors": { "left": 0, "right": 0 },
+								"radius": 4,
+								"color": "{{i == state.active ? '#e0e7ff' : 'transparent'}}",
+								"textColor": "@text",
+								"cursor": "hand",
+								"onClick": { "set": "state.active", "to": "{{i}}" }
+							}
+						]
+					},
+					{
+						"id": "sidebarViews",
+						"point": "sidebar.views",
+						"type": "column",
+						"gap": 8,
+						"anchors": { "left": 8, "right": 8, "top": 150, "bottom": 8 },
+						"children": []
+					}
+				]
+			},
+			{
+				"id": "editor",
+				"type": "editor",
+				"bind": "state.files[state.active].text",
+				"font": "code",
+				"lineNumbers": true,
+				"anchors": { "left": 280, "right": 0, "top": 0, "bottom": 26 },
+				"color": "@background",
+				"textColor": "@text",
+				"lineColor": "#f8fafc"
+			},
+			{
+				"id": "statusBar",
+				"anchors": { "left": 0, "right": 0, "bottom": 0 },
+				"height": 26,
+				"color": "@statusBar",
+				"children": [
+					{ "id": "label-file", "style": "status", "text": "{{state.files[state.active].name}}", "anchors": { "left": 8, "top": 2 } },
+					{
+						"id": "statusRight",
+						"point": "statusBar.right",
+						"type": "row",
+						"from": "end",
+						"gap": 4,
+						"anchors": { "right": 8, "top": 2 },
+						"width": 400,
+						"height": 24,
+						"children": []
+					}
+				]
+			}
+		]
+	}
+}

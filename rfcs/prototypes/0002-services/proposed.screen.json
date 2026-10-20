@@ -1,0 +1,142 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "RFC 0002 in the proposed syntax (it doesn't load today): a file tree read from a host data model, find in files streamed from a search service, and a language server's diagnostics, each a service the screen declares and the host grants.",
+	"window": { "title": "Services (proposed)", "width": 1100, "height": 700 },
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"services": {
+		"files": { "provider": "fs", "root": "workspace", "note": "Read, write and list inside the root the host named 'workspace'; its tree is the model models.files.tree." },
+		"search": { "provider": "search", "root": "workspace" },
+		"cpp": {
+			"provider": "jsonrpc",
+			"process": "clangd",
+			"framing": "content-length",
+			"methods": {
+				"textDocument/hover": "read",
+				"textDocument/definition": "read",
+				"textDocument/formatting": "read",
+				"workspace/executeCommand": "write"
+			},
+			"restart": { "after": 2000, "times": 3 }
+		}
+	},
+	"state": {
+		"query": "",
+		"matches": [],
+		"finding": false,
+		"findProgress": null,
+		"findError": "",
+		"diagnostics": {},
+		"text": "",
+		"hover": null
+	},
+	"computed": {
+		"problemCount": "{{sum(values(state.diagnostics), len(it))}}"
+	},
+	"actions": {
+		"search.find": {
+			"title": "Find in Files",
+			"category": "Search",
+			"do": [
+				{ "set": "state.matches", "to": [] },
+				{
+					"invoke": "search.find",
+					"with": { "query": "{{state.query}}", "include": "**/*.cpp" },
+					"id": "find",
+					"append": "state.matches",
+					"keep": 2000,
+					"loading": "state.finding",
+					"progress": "state.findProgress",
+					"timeout": 60000,
+					"onError": [{ "set": "state.findError", "to": "{{error.message}}" }]
+				}
+			]
+		},
+		"search.cancel": { "title": "Cancel Search", "category": "Search", "enablement": "{{state.finding}}", "do": { "cancel": "find" } },
+		"files.open": [{ "invoke": "files.read", "with": { "path": "{{path}}" }, "into": "state.text", "id": "open" }],
+		"editor.hover": [
+			{
+				"invoke": "cpp.textDocument/hover",
+				"with": { "textDocument": { "uri": "{{uri}}" }, "position": { "line": "{{line}}", "character": "{{column}}" } },
+				"id": "hover",
+				"into": "state.hover",
+				"timeout": 2000
+			}
+		],
+		"cpp:workspace/configuration": [{ "respond": [{ "tabSize": 4 }] }]
+	},
+	"onLoad": [
+		{
+			"subscribe": "cpp.textDocument/publishDiagnostics",
+			"id": "diagnostics",
+			"do": { "set": "state.diagnostics[event.uri]", "to": "{{event.diagnostics}}" }
+		}
+	],
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{
+				"id": "explorer",
+				"type": "column",
+				"anchors": { "left": 0, "top": 0, "bottom": 24 },
+				"width": 260,
+				"scroll": "vertical",
+				"children": [
+					{
+						"id": "explorerEntry",
+						"repeat": { "for": "entry", "in": "models.files.tree", "key": "{{entry.path}}" },
+						"type": "label",
+						"text": "{{entry.name}}",
+						"padding": "{{8 + entry.depth * 12}}",
+						"height": 24,
+						"anchors": { "left": 0, "right": 0 },
+						"onClick": { "run": "files.open", "with": { "path": "{{entry.path}}" } }
+					}
+				]
+			},
+			{
+				"id": "searchPanel",
+				"anchors": { "left": 260, "right": 0, "top": 0, "bottom": 24 },
+				"children": [
+					{ "id": "searchInput", "type": "textarea", "bind": "state.query", "onSubmit": "search.find", "anchors": { "left": 12, "right": 12, "top": 12 }, "height": 32 },
+					{
+						"id": "label-search-status",
+						"type": "label",
+						"fitText": true,
+						"anchors": { "left": 12, "top": 52 },
+						"text": "{{state.finding ? 'Searching ' + (state.findProgress ? state.findProgress.done + ' of ' + state.findProgress.total : '') : len(state.matches) + ' results'}}"
+					},
+					{
+						"id": "column-matches",
+						"type": "column",
+						"scroll": "vertical",
+						"anchors": { "left": 12, "right": 12, "top": 80, "bottom": 12 },
+						"children": [
+							{
+								"id": "match",
+								"repeat": { "for": "match", "in": "state.matches", "key": "{{match.path}}:{{match.line}}" },
+								"type": "label",
+								"text": "{{match.path}}:{{match.line}}  {{match.text}}",
+								"height": 22,
+								"anchors": { "left": 0, "right": 0 },
+								"onClick": { "run": "files.open", "with": { "path": "{{match.path}}" } }
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "statusBar",
+				"type": "row",
+				"anchors": { "left": 0, "right": 0, "bottom": 0 },
+				"height": 24,
+				"color": "#1e293b",
+				"children": [
+					{ "id": "label-language-server", "type": "label", "textColor": "#e2e8f0", "fitText": true, "padding": 6, "text": "clangd: {{services.cpp.state}}" },
+					{ "id": "label-problems", "type": "label", "textColor": "#e2e8f0", "fitText": true, "padding": 6, "text": "{{plural(computed.problemCount, 'problem')}}" }
+				]
+			}
+		]
+	}
+}

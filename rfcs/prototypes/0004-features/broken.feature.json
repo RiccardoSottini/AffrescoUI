@@ -1,0 +1,23 @@
+{
+	"format": "affrescoui-feature",
+	"version": 1,
+	"name": "broken",
+	"release": "0.1.0",
+	"title": "A feature that can't be installed",
+	"note": "Every requirement or capability here is wrong on purpose: compose.py check lists each with its place.",
+	"requires": {
+		"format": 1,
+		"points": ["toolbar.main"],
+		"exports": { "editor.text": { "type": "number" }, "selection.items": { "type": "array" } },
+		"services": { "git": ["status"] },
+		"features": { "todoTree": "^2.0.0" }
+	},
+	"provides": {
+		"services": { "shell": { "provider": "process", "process": "bash" } },
+		"actions": {
+			"upload": { "do": { "call": "uploadEverything" } }
+		},
+		"keys": { "mod+1": "broken.upload" },
+		"views": { "statusBar.right": { "statusLabel": { "type": "label", "text": "x" } } }
+	}
+}

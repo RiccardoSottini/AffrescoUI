@@ -1,0 +1,81 @@
+{
+	"note": "What an agent sends to add a command with a shortcut and a menu entry. 'today, by hand' is the prototype's emulation (the lists kept in the state); 'today, a menu node' is how the templates build menus (a node per entry, and no palette entry at all); 'proposed' is RFC 0001's three edits.",
+	"today, by hand": {
+		"message": "Add Toggle Word Wrap with Alt+Z and a View menu entry",
+		"set": { "/actions/view.toggleWordWrap": [{ "toggle": "state.wordWrap" }], "/keys/alt+z": "view.toggleWordWrap" },
+		"add": {
+			"/state/commands/-": {
+				"name": "view.toggleWordWrap", "title": "Toggle Word Wrap", "category": "View", "key": "alt+z",
+				"keyLabel": "Alt+Z", "when": "", "enabled": true
+			},
+			"/state/menus/view.appearance/-": { "name": "view.toggleWordWrap", "group": "editor", "separator": false }
+		}
+	},
+	"today, a menu node": {
+		"message": "Add Toggle Word Wrap with Alt+Z and a View menu entry",
+		"set": { "/actions/view.toggleWordWrap": [{ "toggle": "state.wordWrap" }], "/keys/alt+z": "view.toggleWordWrap" },
+		"add": {
+			"#column-menu/children/-": {
+				"height": 36, "anchors": { "left": 0, "right": 0 }, "color": "transparent", "hover": { "color": "@hover" },
+				"cursor": "hand", "onClick": [{ "run": "view.toggleWordWrap" }, { "set": "state.menuOpen", "to": false }],
+				"children": [
+					{ "style": "cell", "text": "View: Toggle Word Wrap", "anchors": { "left": 10, "top": 0, "bottom": 0 } },
+					{ "style": "keycap", "text": "Alt+Z", "anchors": { "right": 10, "top": 8 } }
+				]
+			}
+		}
+	},
+	"proposed": {
+		"message": "Add Toggle Word Wrap with Alt+Z and a View menu entry",
+		"set": {
+			"/actions/view.toggleWordWrap": { "title": "Toggle Word Wrap", "category": "View", "do": { "toggle": "state.wordWrap" } },
+			"/keys/alt+z": "view.toggleWordWrap",
+			"/menus/view.appearance/items/view.toggleWordWrap": { "group": "editor" }
+		}
+	},
+	"today: the action alone": { "set": { "/actions/view.toggleWordWrap": [{ "toggle": "state.wordWrap" }] } },
+	"today: a menu entry kept in the state": {
+		"add": { "/state/menus/view.appearance/-": { "name": "view.toggleWordWrap", "group": "editor", "separator": false } }
+	},
+	"today: a menu entry as a node": {
+		"add": {
+			"#column-menu/children/-": {
+				"height": 36, "anchors": { "left": 0, "right": 0 }, "color": "transparent", "hover": { "color": "@hover" },
+				"cursor": "hand", "onClick": [{ "run": "view.toggleWordWrap" }, { "set": "state.menuOpen", "to": false }],
+				"children": [
+					{ "style": "cell", "text": "View: Toggle Word Wrap", "anchors": { "left": 10, "top": 0, "bottom": 0 } },
+					{ "style": "keycap", "text": "Alt+Z", "anchors": { "right": 10, "top": 8 } }
+				]
+			}
+		}
+	},
+	"alternative: a separate commands section": {
+		"message": "Add Toggle Word Wrap with Alt+Z and a View menu entry",
+		"set": {
+			"/actions/view.toggleWordWrap": [{ "toggle": "state.wordWrap" }],
+			"/commands/view.toggleWordWrap": { "title": "Toggle Word Wrap", "category": "View", "run": "view.toggleWordWrap" },
+			"/keys/alt+z": "view.toggleWordWrap",
+			"/menus/view.appearance/items/view.toggleWordWrap": { "group": "editor" }
+		}
+	},
+	"alternative: a keybindings list": {
+		"message": "Add Toggle Word Wrap with Alt+Z and a View menu entry",
+		"set": {
+			"/actions/view.toggleWordWrap": { "title": "Toggle Word Wrap", "category": "View", "do": { "toggle": "state.wordWrap" } },
+			"/menus/view.appearance/items/view.toggleWordWrap": { "group": "editor" }
+		},
+		"add": { "/keybindings/-": { "key": "alt+z", "command": "view.toggleWordWrap" } }
+	},
+	"proposed: the command alone": {
+		"set": { "/actions/view.toggleWordWrap": { "title": "Toggle Word Wrap", "category": "View", "do": { "toggle": "state.wordWrap" } } }
+	},
+	"proposed: the shortcut alone": { "set": { "/keys/alt+z": "view.toggleWordWrap" } },
+	"proposed: the shortcut, only while the editor has the focus": {
+		"set": { "/keys/alt+z": { "when": "{{context.editorFocus}}", "do": "view.toggleWordWrap" } }
+	},
+	"proposed: the menu entry alone": { "set": { "/menus/view.appearance/items/view.toggleWordWrap": { "group": "editor" } } },
+	"proposed: a setting": {
+		"set": { "/settings/editor.wordWrap": { "enum": ["off", "on", "bounded"], "default": "off", "description": "How lines wrap." } }
+	},
+	"proposed: a user rebinds a key": { "set": { "/keys/mod+k mod+w": "view.toggleWordWrap" }, "remove": ["/keys/alt+z"] }
+}

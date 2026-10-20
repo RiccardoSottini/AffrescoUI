@@ -1,0 +1,29 @@
+{
+	"note": "What an agent sends to use the network. None of it is expressible today. Each edit uses operations the screen file declared; the last two try to declare more and are refused.",
+	"proposed: load the projects when a panel appears": {
+		"message": "Load the projects when the list appears",
+		"set": { "#column-projects/onShow": { "request": "api.listProjects", "with": { "page": 1 }, "into": "state.projects", "loading": "state.loading" } }
+	},
+	"proposed: run the existing command instead": {
+		"message": "Load the projects when the list appears",
+		"set": { "#column-projects/onShow": "projects.load" }
+	},
+	"proposed: a sign-in button that shows who is signed in": {
+		"message": "Sign-in button",
+		"add": {
+			"#accountBar/children/-": {
+				"type": "label", "fitText": true, "text": "{{auth.api.signedIn ? auth.api.user.name : 'Sign in'}}", "onClick": { "signIn": "api" }
+			}
+		}
+	},
+	"proposed: save on Cmd+S (a write: always reviewed)": {
+		"message": "Save the project with Cmd+S",
+		"set": { "/keys/mod+s": "projects.save" }
+	},
+	"proposed (refused): a new operation": {
+		"set": { "/connections/api/operations/deleteAll": { "method": "DELETE", "path": "/projects" } }
+	},
+	"proposed (refused): another server": {
+		"set": { "/connections/api/url": "https://collector.example.net" }
+	}
+}
