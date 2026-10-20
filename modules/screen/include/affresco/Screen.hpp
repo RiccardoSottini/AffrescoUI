@@ -362,7 +362,7 @@ public:
 	/// application makes (a chart, a camera frame, a picture from the network); the nodes showing it are updated.
 	/// @param name The name.
 	/// @param bitmap The image, or nullptr to remove it.
-	void setImage(const std::string& name, std::shared_ptr<const Bitmap> bitmap);
+	void setImage(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap);
 	/// @brief Sets or replaces a named image from pixels.
 	/// @param name The name.
 	/// @param width Its width.

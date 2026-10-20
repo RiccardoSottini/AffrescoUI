@@ -64,8 +64,8 @@ Window& Runtime::createWindow(Application& app) {
 	return window;
 }
 
-void Runtime::setImage(const std::string& name, std::shared_ptr<const Bitmap> bitmap) {
-	impl_->document.images().setNamed(name, std::move(bitmap));
+void Runtime::setImage(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap) {
+	impl_->document.images().setNamed(name, bitmap);
 }
 
 void Runtime::allowImageDirectory(const std::filesystem::path& directory) {

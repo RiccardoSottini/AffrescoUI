@@ -154,7 +154,7 @@ public:
 	/// picture the application made. Nodes showing it are updated.
 	/// @param name The name.
 	/// @param bitmap The image, or nullptr to remove it.
-	void setImage(const std::string& name, std::shared_ptr<const Bitmap> bitmap);
+	void setImage(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap);
 
 	/// @brief Allows image files from a folder too: by default only the screen's own folder (and those inside it).
 	/// @param directory The folder.

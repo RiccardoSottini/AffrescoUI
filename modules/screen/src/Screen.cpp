@@ -573,8 +573,8 @@ Color Screen::resolveColor(std::string_view value) const {
 
 std::shared_ptr<const Font> Screen::font(std::string_view name) const { return impl_->runtime.font(name); }
 
-void Screen::setImage(const std::string& name, std::shared_ptr<const Bitmap> bitmap) {
-	impl_->runtime.setImage(name, std::move(bitmap));
+void Screen::setImage(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap) {
+	impl_->runtime.setImage(name, bitmap);
 }
 
 void Screen::setImage(const std::string& name, int width, int height, std::span<const std::uint8_t> rgba) {

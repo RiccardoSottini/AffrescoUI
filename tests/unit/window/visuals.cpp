@@ -46,9 +46,9 @@ std::shared_ptr<const affresco::Bitmap> plainImage(int width, int height) {
 /// @param window The window.
 /// @param bitmap Its image.
 /// @param x Its left.
-void addImage(affresco::Window& window, std::shared_ptr<const affresco::Bitmap> bitmap, float x) {
+void addImage(affresco::Window& window, const std::shared_ptr<const affresco::Bitmap>& bitmap, float x) {
 	auto& view = window.root().add<affresco::ImageView>();
-	view.setBitmap(std::move(bitmap));
+	view.setBitmap(bitmap);
 	view.setPosition(affresco::px(x), affresco::px(60.0f));
 	view.setSize(affresco::px(40.0f), affresco::px(40.0f));
 }
