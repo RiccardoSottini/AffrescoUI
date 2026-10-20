@@ -28,7 +28,9 @@ headers come with nlohmann/json, which only the modules that use documents link.
   slots connected during an emission run from the next one.
 - **`Channel` signals fire on the main thread,** whatever thread reads the transport.
 - **Untrusted JSON goes through `parseUntrusted`:** nothing deeper than 256 levels is built, and numbers too large
-  for a double are refused, so the recursive work done on a value can't overflow the stack.
+  for a double are refused, so the recursive work done on a value can't overflow the stack. It takes time in
+  proportion to the text: `json::parse` finds each key of an `ordered_json` object by looking at the members before
+  it, so an object of 100,000 keys took 8.5 s; `detail::UntrustedBuilder` finds them in a hash table.
 - **The log stays one line per message:** `log` escapes control characters, so text from peers can't forge a line
   or reach the terminal as an escape sequence.
 
