@@ -135,7 +135,7 @@ void Properties::readBehaviourKey(const Panel& panel, Record& record, std::strin
 		record.caret = statePath(record, value, at);
 	} else if(slot == Slot::Keys) {
 		record.keys = json::object();
-		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeShortcut(name)] = handler;
+		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeChord(name)] = handler;
 	} else if(slot == Slot::Drag) {
 		record.drag = object(value, at);
 	} else if(slot == Slot::Every) {
