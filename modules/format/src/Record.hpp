@@ -94,6 +94,9 @@ inline constexpr std::size_t maxLoopIterations = 10000; ///< "while" iterations 
 inline constexpr int maxComponentDepth = 32;            ///< Components inside components before giving up.
 /// Computed values that read computed values, before giving up: a chain of them recurses once per link.
 inline constexpr std::size_t maxComputedDepth = 32;
+/// Panels built inside each other before giving up. A document alone stays far below it (maxNesting levels of JSON
+/// hold half as many nodes); a component or a screen that holds itself (an outlet) would recurse without end.
+inline constexpr int maxNodeDepth = maxNesting;
 inline constexpr double frameMs = 16.0;                 ///< Animation frame period.
 inline constexpr double doubleClickSeconds = 0.4;       ///< Two clicks closer than this are a double click.
 inline constexpr float dragThreshold = 4.0f;            ///< Pixels the pointer moves before a press becomes a drag.

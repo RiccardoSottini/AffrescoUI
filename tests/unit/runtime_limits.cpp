@@ -88,3 +88,31 @@ TEST_CASE("format: computed values may read each other 32 levels deep, and a lon
 	REQUIRE(findings);
 	CHECK(findings->empty());
 }
+
+// Before, the reconciler built the panels of a component inside itself without end, and overflowed the stack
+TEST_CASE("format: a component or a screen inside itself is refused, not built without end") {
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(stateScreen);
+	screen.build(*window);
+	window->render();
+
+	const affresco::RevisionResult component = screen.submitRevision(revision(json::parse(R"([
+		{"op": "add", "path": "/components", "value": {"loop": {"node": {"type": "panel", "children": [{"use": "loop"}]}}}},
+		{"op": "add", "path": "/root/children/-", "value": {"id": "looping", "use": "loop"}}
+	])")));
+	CHECK(component.status == RevisionStatus::Rejected);
+	CHECK(component.error.ends_with("nodes nested too deeply (more than 256 levels: a component or a screen inside "
+	                                "itself?)"));
+
+	const affresco::RevisionResult outlet = screen.submitRevision(revision(json::parse(R"([
+		{"op": "add", "path": "/screens", "value": {"home": {"id": "home", "children": [{"id": "inner", "type": "outlet"}]}}},
+		{"op": "add", "path": "/root/children/-", "value": {"id": "shown", "type": "outlet"}}
+	])")));
+	CHECK(outlet.status == RevisionStatus::Rejected);
+	CHECK(outlet.error.find("nodes nested too deeply") != std::string::npos);
+
+	window->render(); // the screen as it was
+	CHECK(screen.revision() == 0);
+	CHECK(screen.find("out"));
+}
