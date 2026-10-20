@@ -1,0 +1,35 @@
+{
+	"note": "What an agent sends to use services. 'today' uses a native call, which no revision may add; the RFC's invoke of a declared, granted method may be added, and still goes through permissions and review.",
+	"today: a find in files button (refused: call is a control step)": {
+		"message": "A button that searches the workspace",
+		"add": {
+			"#searchPanel/children/-": {
+				"type": "label", "text": "Find", "onClick": { "call": "findInFiles", "with": { "query": "{{state.query}}" }, "into": "state.matches" }
+			}
+		}
+	},
+	"proposed: a find in files button": {
+		"message": "A button that searches the workspace",
+		"add": {
+			"#searchPanel/children/-": {
+				"type": "label", "text": "Find",
+				"onClick": { "invoke": "search.find", "with": { "query": "{{state.query}}" }, "id": "find", "append": "state.matches", "loading": "state.finding" }
+			}
+		}
+	},
+	"proposed: run the existing command from a button": {
+		"message": "A button that searches the workspace",
+		"add": { "#searchPanel/children/-": { "type": "label", "text": "Find", "onClick": "search.find" } }
+	},
+	"proposed: hover from the language server": {
+		"set": {
+			"/actions/editor.hover": [{ "invoke": "cpp.textDocument/hover", "with": { "textDocument": { "uri": "{{uri}}" }, "position": { "line": "{{line}}", "character": "{{column}}" } }, "into": "state.hover", "timeout": 2000 }]
+		}
+	},
+	"proposed: the problem count in the status bar": {
+		"add": { "#statusBar/children/-": { "type": "label", "fitText": true, "text": "{{plural(computed.problemCount, 'problem')}}" } }
+	},
+	"proposed (refused): a new service": {
+		"set": { "/services/shell": { "provider": "process", "process": "bash" } }
+	}
+}

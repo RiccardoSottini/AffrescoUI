@@ -1,0 +1,104 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "RFC 0003 in the proposed syntax (it doesn't load today): an app that signs in with OpenID Connect, lists and saves projects through declared operations, and hears changes live over a WebSocket. No token is ever in this document or its state: auth.api says who is signed in, nothing more.",
+	"window": { "title": "Network (proposed)", "width": 900, "height": 600 },
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"connections": {
+		"api": {
+			"url": "https://api.example.com/v1",
+			"auth": {
+				"type": "oauth",
+				"issuer": "https://login.example.com",
+				"client": "demo-desktop",
+				"scopes": ["openid", "profile", "projects"],
+				"flow": "browser"
+			},
+			"headers": { "Accept": "application/json" },
+			"timeout": 15000,
+			"retry": { "times": 2, "after": 500 },
+			"operations": {
+				"listProjects": { "path": "/projects", "query": { "page": "{{page}}" }, "mock": { "body": [{ "id": "p1", "name": "Preview project" }] } },
+				"getProject": { "path": "/projects/{id}" },
+				"saveProject": { "method": "PUT", "path": "/projects/{id}", "body": "{{project}}" },
+				"projectEvents": { "path": "/projects/events", "stream": "events" }
+			}
+		},
+		"live": {
+			"url": "wss://api.example.com/v1/live",
+			"auth": "api",
+			"reconnect": { "after": 2000 },
+			"messages": { "join": { "type": "join", "project": "{{project}}" } }
+		}
+	},
+	"state": { "projects": [], "loading": false, "saving": false, "error": "", "current": null },
+	"actions": {
+		"projects.load": {
+			"title": "Reload Projects",
+			"category": "Projects",
+			"enablement": "{{auth.api.signedIn}}",
+			"do": [
+				{
+					"request": "api.listProjects",
+					"with": { "page": 1 },
+					"into": "state.projects",
+					"loading": "state.loading",
+					"onError": [{ "set": "state.error", "to": "{{error.status == 403 ? 'You may not see these projects' : error.message}}" }]
+				}
+			]
+		},
+		"projects.save": [
+			{
+				"request": "api.saveProject",
+				"with": { "id": "{{state.current.id}}", "project": "{{state.current}}" },
+				"loading": "state.saving",
+				"onDone": [{ "run": "projects.load" }],
+				"onError": [{ "set": "state.error", "to": "{{error.message}}" }]
+			}
+		],
+		"account.signIn": { "title": "Sign In", "category": "Account", "do": [{ "signIn": "api", "onDone": "projects.load" }] },
+		"account.signOut": { "title": "Sign Out", "category": "Account", "enablement": "{{auth.api.signedIn}}", "do": [{ "signOut": "api" }] },
+		"live:open": [{ "request": "live.join", "with": { "project": "{{state.current.id}}" } }],
+		"live:projectChanged": [{ "run": "projects.load" }]
+	},
+	"onLoad": [{ "if": "{{auth.api.signedIn}}", "then": "projects.load" }],
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{
+				"id": "accountBar",
+				"type": "row",
+				"anchors": { "left": 0, "right": 0, "top": 0 },
+				"height": 44,
+				"from": "end",
+				"gap": 8,
+				"color": "#0f172a",
+				"children": [
+					{ "id": "label-user", "when": "{{auth.api.signedIn}}", "type": "label", "fitText": true, "padding": 12, "textColor": "#e2e8f0", "text": "{{auth.api.user.name}}" },
+					{ "id": "label-sign-in", "when": "{{!auth.api.signedIn}}", "type": "label", "fitText": true, "padding": 12, "textColor": "#ffffff", "cursor": "hand", "text": "{{auth.api.state == 'signingIn' ? 'Signing in…' : 'Sign in'}}", "onClick": "account.signIn" },
+					{ "id": "label-device-code", "when": "{{auth.api.device}}", "type": "label", "fitText": true, "padding": 12, "textColor": "#fde68a", "text": "Go to {{auth.api.device.url}} and enter {{auth.api.device.code}}" }
+				]
+			},
+			{
+				"id": "column-projects",
+				"type": "column",
+				"anchors": { "left": 16, "right": 16, "top": 60, "bottom": 16 },
+				"gap": 4,
+				"children": [
+					{ "id": "label-loading", "when": "{{state.loading}}", "type": "label", "fitText": true, "text": "Loading…" },
+					{ "id": "label-error", "when": "{{state.error}}", "type": "label", "fitText": true, "textColor": "#b91c1c", "text": "{{state.error}}" },
+					{
+						"id": "project",
+						"repeat": { "for": "project", "in": "state.projects", "key": "{{project.id}}" },
+						"type": "label",
+						"height": 32,
+						"anchors": { "left": 0, "right": 0 },
+						"text": "{{project.name}}",
+						"onClick": { "set": "state.current", "to": "{{project}}" }
+					}
+				]
+			}
+		]
+	}
+}

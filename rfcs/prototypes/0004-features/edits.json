@@ -1,0 +1,23 @@
+{
+	"note": "What an agent sends to add, switch off and remove the word count. 'today' writes its parts into the app's sections by hand (what a change set holds); 'proposed' uses a feature record (install.revision.json is the revision the host writes from a catalogue entry).",
+	"today: add the word count by hand": {
+		"message": "Word count in the status bar",
+		"set": {
+			"/state/wordCount": { "characters": false },
+			"/computed/wordCount": "{{ {words: len(filter(split(join(split(state.files[state.active].text, '\\n'), ' '), ' '), len(trim(it)) > 0)), characters: len(state.files[state.active].text)} }}",
+			"/actions/wordCount.toggle": { "toggle": "state.wordCount.characters" }
+		},
+		"add": {
+			"#statusRight/children/-": {
+				"id": "wordCount-label", "style": "status", "cursor": "hand", "onClick": "wordCount.toggle",
+				"text": "{{state.wordCount.characters ? plural(computed.wordCount.characters, 'character') : plural(computed.wordCount.words, 'word')}}"
+			}
+		}
+	},
+	"proposed: ask the host to install it from a catalogue": { "type": "installFeature", "feature": "wordCount", "release": "^1.0.0" },
+	"today: switch it off": { "remove": ["#wordCount-label", "/actions/wordCount.toggle", "/computed/wordCount", "/state/wordCount"] },
+	"proposed: switch it off": { "set": { "/features/wordCount/enabled": false } },
+	"proposed: remove it": { "remove": ["/features/wordCount"] },
+	"proposed: restyle the installed label": { "set": { "#wordCount-label/textColor": "#fde68a" } },
+	"proposed: put the word count before the TODO tree's shortcut": { "set": { "/features/wordCount/order": 5 } }
+}
