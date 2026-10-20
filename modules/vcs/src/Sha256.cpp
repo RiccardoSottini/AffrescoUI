@@ -43,10 +43,10 @@ std::string padded(std::string_view data) {
 	return message;
 }
 
-/// @brief The message schedule of one 64-byte chunk.
+/// @brief Adds one 64-byte chunk to the hash: its message schedule, then the 64 rounds of the compression function.
+/// @param hash The hash so far, updated.
 /// @param chunk The chunk's first byte.
-/// @return The 64 words.
-std::array<std::uint32_t, 64> scheduleOf(const char* chunk) {
+void compress(std::array<std::uint32_t, 8>& hash, const char* chunk) {
 	std::array<std::uint32_t, 64> w{};
 	for(std::size_t i = 0; i < 16; ++i)
 		for(std::size_t b = 0; b < 4; ++b)
@@ -56,14 +56,7 @@ std::array<std::uint32_t, 64> scheduleOf(const char* chunk) {
 		const std::uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
 		w[i] = w[i - 16] + s0 + w[i - 7] + s1;
 	}
-	return w;
-}
 
-/// @brief Adds one 64-byte chunk to the hash: the 64 rounds of the compression function.
-/// @param hash The hash so far, updated.
-/// @param chunk The chunk's first byte.
-void compress(std::array<std::uint32_t, 8>& hash, const char* chunk) {
-	const std::array<std::uint32_t, 64> w = scheduleOf(chunk);
 	auto [a, b, c, d, e, f, g, h] = hash;
 	for(std::size_t i = 0; i < 64; ++i) {
 		const std::uint32_t t1 =
