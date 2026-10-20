@@ -390,6 +390,7 @@ std::string Checker::variableNames(const Scope& scope) {
 const Shape& Checker::computedShape(const std::string& name) {
 	if(const auto it = computedShapes_.find(name); it != computedShapes_.end()) return it->second;
 	if(std::ranges::find(computing_, name) != computing_.end()) return anything; // a circle: the runtime reports it
+	if(computing_.size() >= maxComputedDepth) return anything;                   // too deep: the runtime reports it
 	computing_.push_back(name);
 	const Scope none;
 	Shape shape = shapeOf(document_.at("computed").at(name), none, "computed." + name);
