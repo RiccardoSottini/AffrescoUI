@@ -78,6 +78,13 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
   with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
   runs left to right (no bidirectional reordering yet). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
+- **Plain words skip shaping, with HarfBuzz's results.** A word of the first face's plain Latin-1 characters
+  (`text/PlainText`) is laid out from a table of advances with kerning, one read per character, without HarfBuzz or
+  the caches. Which characters are plain comes from the face's GSUB and GPOS lookups (`text/LookupSpans` reads how
+  many neighbours each one reads); what the lookups that read at most two do is taken from HarfBuzz itself, shaping
+  each character and each pair alone the first time it is met. Everything else (ligatures such as Roboto's `fi`,
+  contextual forms, marks, other scripts, fallback faces) is shaped as before. `tests/unit/plain_text.cpp` checks
+  that both give the same glyphs, advances, carets and widths, to the last bit.
 - **Colour glyphs share the text's batch.** Colour emoji (COLR fonts) go to RGBA atlas pages, which the renderer binds
   on a second texture unit next to the coverage page. A frame without colour glyphs (or without shapes) uses a shader
   without that code, so its pixels don't depend on it. A font's GPU pages are freed the first frame after it is gone.
@@ -134,7 +141,9 @@ src/
   FontCache.cpp            the bounded font cache, and the system's fallback fonts
   text/                    FontFace (one file at one size, in FreeType and HarfBuzz), GlyphAtlas (coverage and
                            colour pages), ShapedTextCache (LRU by text), FontData.hpp (what a Font holds),
-                           Shaping.cpp (runs, HarfBuzz, clusters into advances and carets)
+                           Shaping.cpp (runs, HarfBuzz, clusters into advances and carets), PlainText (words laid
+                           out without shaping), LookupSpans (how far GSUB and GPOS lookups reach, read with every
+                           offset checked), FontInspector.hpp (what tests see of a font)
   Color.cpp                hex colours
   detail/Utf8.hpp          UTF-8 decoding, shared by the text code
   detail/Ppm.hpp           PPM screenshots

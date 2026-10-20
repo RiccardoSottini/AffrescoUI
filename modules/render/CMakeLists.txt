@@ -9,6 +9,8 @@ affrescoui_module(render
 	src/FontCache.cpp
 	src/text/FontFace.cpp
 	src/text/GlyphAtlas.cpp
+	src/text/LookupSpans.cpp
+	src/text/PlainText.cpp
 	src/text/Shaping.cpp
 	src/Label.cpp
 	src/Panel.cpp

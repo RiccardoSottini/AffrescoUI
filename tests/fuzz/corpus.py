@@ -10,6 +10,7 @@
 - text:       every text of the templates and of the rendering check's screens;
 - cli:        the templates and the rendering check's screens as written, and nodes without ids;
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
+- lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds).
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -237,6 +238,30 @@ def action_seeds():
     return list(dict.fromkeys(seeds))
 
 
+def font_tables(path):
+    """A font file's tables, by tag (the table directory of a TrueType or OpenType file)."""
+    data = path.read_bytes()
+    count = int.from_bytes(data[4:6], "big")
+    tables = {}
+    for index in range(count):
+        record = data[12 + 16 * index:28 + 16 * index]
+        offset, length = int.from_bytes(record[8:12], "big"), int.from_bytes(record[12:16], "big")
+        tables[record[:4].decode("latin-1")] = data[offset:offset + length]
+    return tables
+
+
+def lookups_seeds():
+    """The GSUB (first byte 0) and GPOS (first byte 1) tables of the fonts the examples and the check use."""
+    fonts = sorted((ROOT / "examples/assets/fonts").glob("*.ttf")) + sorted((ROOT / "tests/render/fonts").glob("*.ttf"))
+    seeds = []
+    for path in fonts:
+        tables = font_tables(path)
+        for tag, kind in (("GSUB", b"\x00"), ("GPOS", b"\x01")):
+            if tag in tables:
+                seeds.append(kind + tables[tag])
+    return seeds
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -267,7 +292,8 @@ def dictionaries():
             "actions": tokens + expression + steps,
             "layout": tokens + schema_words() + ["\"1fr\"", "\"auto\"", "\"minmax(", "\"25%\"", "\"space-between\"",
                                                  "\"stretch\"", "\"16/9\"", "\"none\"", "\"row\"", "\"grid\"",
-                                                 "\"column\"", "1e38"]}
+                                                 "\"column\"", "1e38"],
+            "lookups": [chr(0) + chr(value) for value in range(10)]}  # big-endian 0..9
 
 
 def dictionary_entry(word):
@@ -283,7 +309,11 @@ def write(out, target, seeds, words):
     shutil.rmtree(directory, ignore_errors=True)
     directory.mkdir(parents=True)
     for index, seed in enumerate(seeds):
-        (directory / f"seed-{index:04}").write_text(seed, encoding="utf-8")
+        path = directory / f"seed-{index:04}"
+        if isinstance(seed, bytes):
+            path.write_bytes(seed)
+        else:
+            path.write_text(seed, encoding="utf-8")
     # Inputs that found a bug, kept as they were (regressions/<target>/), so the fuzzer starts from them too
     regressions = sorted((ROOT / "tests" / "fuzz" / "regressions" / target).glob("*"))
     for found in regressions:
@@ -308,6 +338,7 @@ def main():
     write(out, "cli", cli_seeds(), words["cli"])
     write(out, "actions", action_seeds(), words["actions"])
     write(out, "layout", layout_seeds(), words["layout"])
+    write(out, "lookups", lookups_seeds(), words["lookups"])
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@
 
 #include "text/FontFace.hpp"
 #include "text/GlyphAtlas.hpp"
+#include "text/PlainText.hpp"
 #include "text/ShapedTextCache.hpp"
 
 #include <cstdint>
@@ -55,6 +56,8 @@ struct Font::Data {
 		std::vector<float> advances; ///< Per code point, as ShapedText::advances.
 		float width = 0.0f;          ///< Their sum.
 	} measured;
+	/// @brief Words of the first face that need no shaping: made the first time text is measured or shaped.
+	std::optional<detail::PlainText> plain;
 	detail::HarfBuzzBuffer buffer;         ///< Reused for every run.
 	std::vector<std::uint32_t> codepoints; ///< The text being shaped, as HarfBuzz takes it.
 	std::vector<Run> runs;                 ///< The runs of the text being shaped.
@@ -81,6 +84,18 @@ struct Font::Data {
 	[[nodiscard]] std::optional<Glyph> rasterise(std::size_t face, unsigned index, bool mayAddPage);
 
 	/* Shaping (Shaping.cpp) */
+
+	/// @brief The fast path for plain words, made on first use.
+	/// @return It.
+	detail::PlainText& plainText();
+	/// @brief Lays out the plain words and spaces at a place of a text without shaping, into shaped text: their glyphs,
+	/// advances and carets, up to the first word that isn't plain.
+	/// @param text The whole text.
+	/// @param start Where to start.
+	/// @param pen Where it starts on the line; moved past what was laid out.
+	/// @param shaped Where it goes: its advances and carets have one entry per code point of @p text (and one more).
+	/// @return Where what was laid out ends: @p start if the first word isn't plain.
+	std::size_t layOutPlainWords(std::u32string_view text, std::size_t start, float& pen, ShapedText& shaped);
 
 	/// @brief Shapes a text, from the caches when they have it.
 	/// @param text The text.

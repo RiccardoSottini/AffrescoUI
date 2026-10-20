@@ -21,7 +21,8 @@ class FontCache;
 
 namespace detail {
 class FontFiles;
-}
+struct FontInspector;
+} // namespace detail
 
 /// @brief Which pages of a font's atlas: coverage (one byte per texel, tinted by the text's colour) or colour (four
 /// bytes per texel, premultiplied RGBA, e.g. colour emoji).
@@ -183,6 +184,7 @@ public:
 
 private:
 	friend class FontCache;
+	friend struct detail::FontInspector; // tests reach the fast path for plain text through it (src/text/)
 	struct Data; ///< The files, the atlas, the glyphs and the shaping caches; defined in src/text/FontData.hpp.
 
 	/// @brief An empty font, with no face or page yet: load() fills it.

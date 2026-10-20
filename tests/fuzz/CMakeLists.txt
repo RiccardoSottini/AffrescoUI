@@ -41,3 +41,5 @@ target_compile_definitions(affrescoui_fuzz_cli PRIVATE
 	AFFRESCOUI_FUZZ_SCHEMA="${PROJECT_SOURCE_DIR}/schema/affrescoui-screen.schema.json")
 affrescoui_fuzzer(actions affrescoui::format affrescoui::vcs)
 target_include_directories(affrescoui_fuzz_actions PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src) # Expression.hpp
+affrescoui_fuzzer(lookups affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # LookupSpans.hpp
