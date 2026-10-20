@@ -56,6 +56,17 @@ class Outline(unittest.TestCase):
         with self.assertRaises(ValueError):
             mcp.outline(SCREEN, at="#nope")
 
+    def test_the_state_types_come_first(self):
+        typed = {**SCREEN, "stateTypes": {
+            "filter": {"enum": ["all", "bug"]}, "volume": {"type": "number", "maximum": 100},
+            "cards": {"type": "array", "items": {"type": "object", "properties": {
+                "title": {"type": "string"}, "done": {"type": "boolean"}}}},
+            "note": {"type": ["string", "null"]}}}
+        self.assertEqual(mcp.outline(typed, depth=0).split("\n")[0],
+                         "state: filter: 'all' | 'bug'; volume: number; cards: list of {title: text, done: boolean}; "
+                         "note: text | null")
+        self.assertEqual(mcp.outline(typed, at="#row-filters", depth=0), "#row-filters +2")  # only the whole outline
+
     def test_long_text_is_cut(self):
         node = {"id": "label-long", "type": "label", "text": "A sentence much longer than an outline line needs"}
         self.assertEqual(mcp.summary(node, "#label-long"), '"A sentence much longer t..."')

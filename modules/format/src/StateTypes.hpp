@@ -41,12 +41,12 @@ inline constexpr Kinds numberKinds = static_cast<Kinds>(bit(Kind::Integer) | bit
 /// @brief The kind of a value.
 /// @param value The value.
 /// @return One kind.
-[[nodiscard]] Kinds kindOf(const json& value) noexcept;
+[[nodiscard]] Kinds kindOf(const json& value);
 
 /// @brief The kinds a type allows: from "type", else from "enum" or "const", else every kind.
 /// @param type The type.
 /// @return The kinds.
-[[nodiscard]] Kinds allowedKinds(const json& type) noexcept;
+[[nodiscard]] Kinds allowedKinds(const json& type);
 
 /// @brief Names kinds for a message: "a number", "text or null".
 /// @param kinds The kinds.
@@ -84,7 +84,7 @@ struct Mismatch {
 /// @param type The type (checked with checkType()).
 /// @param place The value's place, e.g. "state.count".
 /// @return The first mismatch found, or std::nullopt if it matches.
-[[nodiscard]] std::optional<Mismatch> mismatch(const json& value, const json& type, const std::string& place);
+[[nodiscard]] std::optional<Mismatch> typeMismatch(const json& value, const json& type, const std::string& place);
 
 /// @brief Every state key whose value doesn't match its declared type.
 /// @param document The document; its "stateTypes" are read.
@@ -96,7 +96,7 @@ struct Mismatch {
 /// @param type The type.
 /// @param key A property's name, or nullptr for an item (or a key computed while the screen runs).
 /// @return Its type, or nullptr if the type says nothing about it (then anything may be there).
-[[nodiscard]] const json* typeInside(const json& type, const std::string* key) noexcept;
+[[nodiscard]] const json* typeInside(const json& type, const std::string* key);
 
 /// @brief Describes a type in a few words, for messages and outlines: "number", "'all' | 'bug'", "list of {title:
 /// text, done: boolean}".

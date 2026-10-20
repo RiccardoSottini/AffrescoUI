@@ -366,13 +366,52 @@ def summary(node, address, styles=None):
     return " ".join(bits)
 
 
+TYPE_WORDS = {"string": "text", "number": "number", "integer": "whole number", "boolean": "boolean",
+              "object": "object", "array": "list", "null": "null"}
+
+
+def describe_type(kind, depth=0):
+    """A state type in a few words, as the runtime says it (StateTypes.cpp, describeType): "number", "'all' | 'bug'",
+    "list of {title: text}"."""
+    if isinstance(kind, bool):
+        return "anything" if kind else "nothing"
+    if not isinstance(kind, dict):
+        return "anything"
+    if isinstance(kind.get("enum"), list):
+        values = ["'" + v + "'" if isinstance(v, str) else compact(v) for v in kind["enum"][:8]]
+        return " | ".join(values) + (" | ..." if len(kind["enum"]) > 8 else "")
+    if "const" in kind:
+        return compact(kind["const"])
+    names = kind.get("type")
+    said = []
+    for name in names if isinstance(names, list) else [names]:
+        if name == "array" and "items" in kind:
+            said.append("list of ..." if depth >= 3 else "list of " + describe_type(kind["items"], depth + 1))
+        elif name == "object" and isinstance(kind.get("properties"), dict):
+            said.append("{...}" if depth >= 3 else "{" + ", ".join(
+                f"{key}: {describe_type(inside, depth + 1)}" for key, inside in kind["properties"].items()) + "}")
+        elif name in TYPE_WORDS:
+            said.append(TYPE_WORDS[name])
+    return " | ".join(said) or "anything"
+
+
+def state_types(document):
+    """The state's declared types ("stateTypes") on one line, for the outline: "state: filter: 'all' | 'bug';
+    volume: number"; "" if it declares none."""
+    types = document.get("stateTypes")
+    if not isinstance(types, dict) or not types:
+        return ""
+    return "state: " + "; ".join(f"{key}: {describe_type(kind)}" for key, kind in types.items())
+
+
 def outline(document, at=None, depth=None):
     """The node tree, one line per node: its address, then summary(). `at` (a node's address or pointer, found with
     locate) starts it there; `depth` stops it that many levels down, and a node with more inside says how many
-    ("+12"). Enough to choose where to edit, without the styling."""
+    ("+12"). Enough to choose where to edit, without the styling. The whole outline starts with the state's types,
+    when the screen declares them."""
     starts = [locate(document, at)] if at else trees(document)
     styles = document.get("styles")
-    lines = []  # [text, nodes inside it not shown]
+    lines = [[state_types(document), 0]] if not at and state_types(document) else []  # [text, nodes not shown]
     for pointer, start in starts:
         cut = None  # the last line at the deepest level shown: what is below it isn't
         for node, address, level, _ in walk_nodes(start, pointer):

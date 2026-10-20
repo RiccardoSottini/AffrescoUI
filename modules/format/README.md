@@ -65,7 +65,20 @@ evaluates each node's dynamic values; when they, the compiled node, the theme an
 appearance()`) are what was applied last, `Properties` only shows the widget's value again. A node whose application
 reads more than its values (an overlay's `open` written as a state path, a computed `bind` or `caret`, a computed
 `every` period) is applied on every update. A node that failed to apply is applied again at the next update, so its
-error comes again.
+error comes again. A consequence for applications: a change code makes to a built panel directly stays until its
+node is applied again (its values, the theme, the colours, the fonts or the document changed); before, every update
+put the document's values back. `Runtime::registerType` counts as a change of appearance, so panels of a type
+registered again apply its new function.
+
+## Typed state
+
+`stateTypes` (`StateTypes.hpp`, 4.4b) declares a JSON Schema per state key; the subset the library reads is checked by
+the section's validator. `Rules::validate` refuses a document whose own `state` doesn't match; `checkChange` refuses a
+revision that brings a mismatch into the live state (mismatches already there don't block it); `findings` warns of a
+state kept on disk that no longer matches. The checker (`CheckerTypes.cpp`) learns the declared keys and properties
+as readable, and reports writes, `bind`s and enum comparisons that don't fit. Nothing stops a step at run time: the
+types are a contract for revisions and a description for agents (the MCP outline shows them). The schema code is
+general: a settings page can describe its settings with it.
 
 ## Invariants
 
@@ -144,6 +157,8 @@ src/
   Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
   CompiledNode.*           a node compiled: slots, bindings, scoping keys
   Binding.*                a value compiled once: templates split, operators lowered
+  StateTypes.*             typed state: the stateTypes subset of JSON Schema, matching values, describing types
+  CheckerTypes.cpp         the checker's typed-state checks
   Reconciler.*             records, building and reconciling panels
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   Events.*                 input; Shortcuts.* names keys and shortcuts

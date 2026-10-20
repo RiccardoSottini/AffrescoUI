@@ -9,6 +9,7 @@
 
 #include "Expression.hpp"
 #include "Record.hpp"
+#include "StateTypes.hpp"
 
 #include <algorithm>
 #include <array>
@@ -179,6 +180,13 @@ struct Prepared {
 			}
 	}
 };
+
+/// @brief What a declared type lets the state hold, for reading paths (CheckerTypes.cpp): an object's properties
+/// (unless it lets other keys in too: then any key may be read), a list's items, or a single value.
+/// @param type The type.
+/// @param depth Types inside types so far.
+/// @return The shape.
+[[nodiscard]] Shape shapeOfType(const json& type, int depth);
 
 /// @brief Takes a node's properties, leaving its children in the document.
 /// @param node The node.
@@ -539,7 +547,61 @@ private:
 	/// @param place Where it is.
 	void write(const json& target, const Shape& value, Change change, const Scope& scope, const std::string& place);
 
+	/* Typed state (CheckerTypes.cpp) */
+	/// @brief Reads "stateTypes": what the state may hold gains each declared key and property.
+	void learnTypes();
+	/// @brief The declared type at a state path.
+	/// @param keys The path's keys, "state" first.
+	/// @return The type, or nullptr if none is declared there.
+	[[nodiscard]] const json* typeOf(const std::vector<PathKey>& keys) const;
+	/// @brief The kinds of value a value as written may give: its own, or an expression's, when known.
+	/// @param value The value.
+	/// @return The kinds; anyKind when unknown.
+	[[nodiscard]] Kinds kindsOf(const json& value) const;
+	/// @brief The kinds of value a compiled expression may give.
+	/// @param tree The operator tree.
+	/// @return The kinds; anyKind when unknown.
+	[[nodiscard]] Kinds kindsOfTree(const json& tree) const;
+	/// @brief The kinds of value `$if`, `$and`, `$or` and `$coalesce` may give: one of their arguments'.
+	/// @param name The operator.
+	/// @param raw Its arguments.
+	/// @return The kinds; anyKind for another operator.
+	[[nodiscard]] Kinds kindsOfChoice(std::string_view name, const json& raw) const;
+	/// @brief Checks a value written to a typed place: in full if it is used as it is, else the kinds it may give.
+	/// @param type The type there.
+	/// @param value The value as written.
+	/// @param keys The path written to, "state" first.
+	/// @param place Where the value is.
+	/// @param inside What is written inside the path, for the message: "" or "[...]" for an item pushed.
+	void checkValue(const json& type, const json& value, const std::vector<PathKey>& keys, const std::string& place,
+	                std::string_view inside);
+	/// @brief Checks what a state step writes against the type declared where it writes.
+	/// @param kind The step: set, push, toggle, increment or animate.
+	/// @param step The step's object.
+	/// @param place Where it is.
+	void checkWrite(std::string_view kind, const json& step, const std::string& place);
+	/// @brief Reports a value whose kinds a type doesn't take.
+	/// @param type The type.
+	/// @param kinds What the value may be.
+	/// @param keys The path written to, "state" first.
+	/// @param place Where the value is.
+	/// @param what Who writes, for the message: "this writes", "a slider writes".
+	void expectKinds(const json& type, Kinds kinds, const std::vector<PathKey>& keys, const std::string& place,
+	                 std::string_view what);
+	/// @brief Checks a widget's "bind" against the type declared at the path: a toggle writes true or false, a
+	/// slider a number, a text area or an editor text.
+	/// @param node The node.
+	/// @param target The state path.
+	/// @param place Where it is.
+	void checkBind(const Prepared& node, const json& target, const std::string& place);
+	/// @brief Checks `a == b` and `a != b` where one side is a state path with an "enum" or a "const" and the other
+	/// a value it never takes.
+	/// @param raw The operator's arguments.
+	/// @param place Where it is.
+	void checkComparison(const json& raw, const std::string& place);
+
 	const json& document_;                                    ///< The document.
+	const json* types_ = nullptr;                             ///< Its "stateTypes", if it has them.
 	const std::set<std::string, std::less<>>& nativeActions_; ///< Registered actions.
 	Shape state_;                                             ///< What the state may hold, learnt pass by pass.
 	Learning learnt_ = Learning::nothing;                     ///< What this pass learnt about the state.

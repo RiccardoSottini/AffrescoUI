@@ -230,6 +230,7 @@ Shape Checker::shapeOfExpression(std::string_view text, const Scope& scope, cons
 
 Shape Checker::shapeOfOperator(const std::string& name, const json& raw, const Scope& scope, const std::string& place) {
 	if(name == "$value") return shapeOfData(raw);
+	if(name == "$equals" || name == "$notEquals") checkComparison(raw, place);
 	if(name == "$get") return shapeOfGet(raw, scope, place);
 	if(name == "$path") return raw.is_string() ? shapeOfPath(raw.get<std::string>(), scope, place) : anything; // copied
 	if(name == "$object") {

@@ -60,9 +60,30 @@ std::string typePlace(const std::vector<PathKey>& keys) {
 std::string written(const std::vector<PathKey>& keys) {
 	std::string text = keys.front().name.get<std::string>();
 	for(std::size_t i = 1; i < keys.size(); ++i)
-		text += keys[i].name.is_string() ? "." + keys[i].name.get<std::string>()
-		                                 : "[" + (keys[i].name.is_null() ? std::string("...") : keys[i].name.dump()) + "]";
+		text += keys[i].name.is_string()
+		            ? "." + keys[i].name.get<std::string>()
+					: "[" + (keys[i].name.is_null() ? std::string("...") : keys[i].name.dump()) + "]";
 	return text;
+}
+
+/// @brief The keys of a compiled path into the state.
+/// @param path A tree: `{"$get": ["state", key, ...]}`.
+/// @return Its keys, "state" first (a key an expression gives is null); std::nullopt if it isn't a state path.
+std::optional<std::vector<PathKey>> stateKeys(const json& path) {
+	if(!path.is_object() || path.size() != 1 || !path.contains("$get")) return std::nullopt;
+	const json& raw = path["$get"];
+	if(!raw.is_array() || raw.empty() || raw[0] != "state") return std::nullopt;
+	std::vector<PathKey> keys;
+	for(const json& key : raw) keys.push_back({key.is_string() || key.is_number_integer() ? key : json(), nullptr});
+	return keys;
+}
+
+/// @brief A literal of a compiled expression: `{"$value": ...}`, a number or a boolean.
+/// @param tree The tree.
+/// @return The value; null if it isn't one.
+json literalOf(const json& tree) {
+	if(tree.is_object() && tree.size() == 1 && tree.contains("$value")) return tree["$value"];
+	return tree.is_primitive() ? tree : json();
 }
 
 } // namespace
@@ -72,9 +93,12 @@ Shape shapeOfType(const json& type, int depth) {
 	const Kinds kinds = allowedKinds(type);
 	if(kinds == bit(Kind::List)) return Shape::array({shapeOfType(type.value("items", json(true)), depth + 1)});
 	if(kinds != bit(Kind::Object)) return kinds == anyKind || (kinds & bit(Kind::Null)) == kinds ? anything : single;
-	// Its properties, unless it lets others in too (a map): then any key may be read
+	// Its properties, unless it says other keys come too (a map, "additionalProperties": true or a type): then any
+	// key may be read. Left out, the checker reads only the properties declared (and those the state holds), so a
+	// typo is found; matching a value still lets other keys in, as JSON Schema does.
 	const auto properties = type.find("properties");
-	if(properties == type.end() || !properties->is_object() || type.value("additionalProperties", json(false)) != false)
+	const auto others = type.find("additionalProperties");
+	if(properties == type.end() || !properties->is_object() || (others != type.end() && *others != false))
 		return anything;
 	Shape fields = Shape::object();
 	for(const auto& [key, inside] : properties->items()) fields[key] = shapeOfType(inside, depth + 1);
@@ -123,54 +147,54 @@ Kinds Checker::kindsOfTree(const json& tree) const {
 	if(among(booleanOperators, name)) return bit(Kind::Boolean);
 	if(among(numberOperators, name)) return numberKinds;
 	if(name == "$add") return static_cast<Kinds>(numberKinds | bit(Kind::Text));
-	if(name == "$get" && raw.is_array() && !raw.empty() && raw[0] == "state") {
-		std::vector<PathKey> keys;
-		for(const json& key : raw) keys.push_back({key.is_string() || key.is_number_integer() ? key : json(), nullptr});
-		const json* type = typeOf(keys);
+	if(const auto keys = stateKeys(tree)) {
+		const json* type = typeOf(*keys);
 		return type ? allowedKinds(*type) : anyKind;
 	}
-	if((name == "$if" && raw.is_array() && raw.size() == 3) ||
-	   ((name == "$and" || name == "$or" || name == "$coalesce") && raw.is_array())) {
-		Kinds kinds = 0;
-		for(std::size_t i = name == "$if" ? 1 : 0; i < raw.size(); ++i)
-			kinds = static_cast<Kinds>(kinds | kindsOfTree(raw[i]));
-		return kinds;
-	}
-	return anyKind;
+	return kindsOfChoice(name, raw);
+}
+
+Kinds Checker::kindsOfChoice(std::string_view name, const json& raw) const {
+	const bool choice = (name == "$if" && raw.size() == 3) || name == "$and" || name == "$or" || name == "$coalesce";
+	if(!choice || !raw.is_array()) return anyKind;
+	Kinds kinds = 0;
+	for(std::size_t i = name == "$if" ? 1 : 0; i < raw.size(); ++i)
+		kinds = static_cast<Kinds>(kinds | kindsOfTree(raw[i]));
+	return kinds;
 }
 
 void Checker::checkWrite(std::string_view kind, const json& step, const std::string& place) {
 	const json& target = step[std::string(kind)];
 	if(!types_ || !target.is_string() || isDynamic(target)) return;
-	const std::optional<std::vector<PathKey>> keys = parsePath(target.get_ref<const std::string&>(), place);
-	const json* type = keys ? typeOf(*keys) : nullptr;
+	const std::optional<std::vector<PathKey>> parsed = parsePath(target.get_ref<const std::string&>(), place);
+	if(!parsed) return;
+	const std::vector<PathKey>& keys = *parsed;
+	const json* type = typeOf(keys);
 	if(!type) return;
 	const std::string where = std::format("{}.{}", place, kind);
-	if(kind == "set" && step.contains("to")) {
-		const json& value = step["to"];
-		if(!holdsExpression(value)) { // a value as it is: matched in full, enums and limits too
-			if(const auto problem = mismatch(value, *type, written(*keys)))
-				report(place + ".to", problem->text(), typePlace(*keys));
-			return;
-		}
-		return expectKinds(*type, kindsOf(value), *keys, place + ".to", "this writes");
+	if(kind == "set" && step.contains("to")) checkValue(*type, step["to"], keys, place + ".to", "");
+	else if(kind == "toggle") expectKinds(*type, bit(Kind::Boolean), keys, where, "a toggle writes");
+	else if(kind == "increment" || kind == "animate") expectKinds(*type, numberKinds, keys, where, "it writes");
+	else if(kind == "push") {
+		expectKinds(*type, bit(Kind::List), keys, where, "a push needs");
+		if(const json* item = typeInside(*type, nullptr); item && step.contains("value"))
+			checkValue(*item, step["value"], keys, place + ".value", "[...]");
 	}
-	if(kind == "toggle") return expectKinds(*type, bit(Kind::Boolean), *keys, where, "a toggle writes");
-	if(kind == "increment" || kind == "animate")
-		return expectKinds(*type, numberKinds, *keys, where, "it writes");
-	if(kind == "push") {
-		expectKinds(*type, bit(Kind::List), *keys, where, "a push needs");
-		const json* item = typeInside(*type, nullptr);
-		if(item && step.contains("value") && !holdsExpression(step["value"]))
-			if(const auto problem = mismatch(step["value"], *item, written(*keys) + "[...]"))
-				report(place + ".value", problem->text(), typePlace(*keys));
-	}
+}
+
+void Checker::checkValue(const json& type, const json& value, const std::vector<PathKey>& keys,
+                         const std::string& place, std::string_view inside) {
+	if(holdsExpression(value)) return expectKinds(type, kindsOf(value), keys, place, "this writes");
+	// A value as it is: matched in full, its enum and limits too
+	if(const auto problem = typeMismatch(value, type, written(keys) + std::string(inside)))
+		report(place, problem->text(), typePlace(keys));
 }
 
 void Checker::expectKinds(const json& type, Kinds kinds, const std::vector<PathKey>& keys, const std::string& place,
                           std::string_view what) {
 	if((kinds & allowedKinds(type)) != 0) return;
-	report(place, std::format("'{}' takes {}, but {} {}", written(keys), describeType(type), what, describeKinds(kinds)),
+	report(place,
+	       std::format("'{}' takes {}, but {} {}", written(keys), describeType(type), what, describeKinds(kinds)),
 	       typePlace(keys));
 }
 
@@ -180,29 +204,23 @@ void Checker::checkBind(const Prepared& node, const json& target, const std::str
 	const std::string type = typeName && typeName->is_string() ? typeName->get<std::string>() : "panel";
 	const Kinds kinds = writtenByWidget(type);
 	if(kinds == anyKind) return;
-	const std::optional<std::vector<PathKey>> keys = parsePath(target.get_ref<const std::string&>(), place);
-	if(const json* declared = keys ? typeOf(*keys) : nullptr)
-		expectKinds(*declared, kinds, *keys, place, widgetName(type) + " writes");
+	const std::optional<std::vector<PathKey>> parsed = parsePath(target.get_ref<const std::string&>(), place);
+	if(!parsed) return;
+	if(const json* declared = typeOf(*parsed))
+		expectKinds(*declared, kinds, *parsed, place, widgetName(type) + " writes");
 }
 
 void Checker::checkComparison(const json& raw, const std::string& place) {
 	if(!types_ || !raw.is_array() || raw.size() != 2) return;
 	for(std::size_t side = 0; side < 2; ++side) {
-		const json& path = raw[side];
-		const json& other = raw[1 - side];
-		if(!path.is_object() || !path.contains("$get") || !path["$get"].is_array() || path["$get"].empty() ||
-		   path["$get"][0] != "state")
+		const std::optional<std::vector<PathKey>> keys = stateKeys(raw[side]);
+		const json literal = literalOf(raw[1 - side]);
+		if(!keys || literal.is_null()) continue;
+		const json* type = typeOf(*keys);
+		if(!type || (!type->contains("enum") && !type->contains("const")) || !typeMismatch(literal, *type, ""))
 			continue;
-		const json literal = other.is_object() && other.contains("$value") && other.size() == 1 ? other["$value"]
-		                     : other.is_primitive() && !other.is_null()                    ? other
-		                                                                                   : json();
-		if(literal.is_null()) continue;
-		std::vector<PathKey> keys;
-		for(const json& key : path["$get"]) keys.push_back({key.is_string() || key.is_number_integer() ? key : json(), nullptr});
-		const json* type = typeOf(keys);
-		if(type && (type->contains("enum") || type->contains("const")) && mismatch(literal, *type, "").has_value())
-			report(place, std::format("'{}' is never {}: it takes {}", written(keys), literal.dump(), describeType(*type)),
-			       typePlace(keys));
+		report(place, std::format("'{}' is never {}: it takes {}", written(*keys), literal.dump(), describeType(*type)),
+		       typePlace(*keys));
 	}
 }
 

@@ -177,6 +177,11 @@
 					"state": {
 						"type": "object"
 					},
+					"stateTypes": {
+						"type": "object",
+						"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
+						"additionalProperties": { "$ref": "#/$defs/v1/stateType" }
+					},
 					"computed": {
 						"type": "object",
 						"description": "Values derived from the state, read as computed.name"
@@ -303,6 +308,39 @@
 			"hexColor": {
 				"type": "string",
 				"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+			},
+			"stateType": {
+				"description": "A type, written as JSON Schema (the subset the runtime reads), or true (anything) or false (nothing)",
+				"type": ["object", "boolean"],
+				"additionalProperties": false,
+				"properties": {
+					"type": {
+						"oneOf": [
+							{ "$ref": "#/$defs/v1/stateTypeName" },
+							{ "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/v1/stateTypeName" } }
+						]
+					},
+					"enum": { "type": "array", "minItems": 1 },
+					"const": {},
+					"properties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/v1/stateType" } },
+					"required": { "type": "array", "items": { "type": "string" } },
+					"additionalProperties": { "$ref": "#/$defs/v1/stateType" },
+					"items": { "$ref": "#/$defs/v1/stateType" },
+					"minimum": { "type": "number" },
+					"maximum": { "type": "number" },
+					"minLength": { "type": "integer", "minimum": 0 },
+					"maxLength": { "type": "integer", "minimum": 0 },
+					"minItems": { "type": "integer", "minimum": 0 },
+					"maxItems": { "type": "integer", "minimum": 0 },
+					"description": { "type": "string" },
+					"title": { "type": "string" },
+					"note": { "type": "string" },
+					"default": {},
+					"examples": { "type": "array" }
+				}
+			},
+			"stateTypeName": {
+				"enum": ["string", "number", "integer", "boolean", "object", "array", "null"]
 			},
 			"color": {
 				"description": "\"#rgb\", \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"",
