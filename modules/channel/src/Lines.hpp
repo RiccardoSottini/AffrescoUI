@@ -43,32 +43,40 @@ concept ChunkWriter = std::invocable<Write&, const char*, std::size_t>;
 /// @param channel The channel whose signals fire.
 /// @param alive Cleared when the channel is destroyed; queued deliveries then do nothing.
 /// @param running Set to false when the stream ends (may be nullptr).
+/// @param dropCarriageReturns Whether a line ending in "\r\n" loses its '\r' (a Windows console's and cmd.exe's
+/// line breaks).
 template <ChunkReader Read>
-void readLines(Read read, Executor& executor, Channel& channel, std::shared_ptr<bool> alive,
-               std::atomic<bool>* running) {
+void readLines(Read read, Executor& executor, Channel& channel, std::shared_ptr<bool> alive, std::atomic<bool>* running,
+               bool dropCarriageReturns = false) {
 	std::string buffer;
 	char chunk[4096];
+	// Checked for every line, ended or not: the read that brings a line past the limit may also bring its end
+	const auto tooLong = [](std::size_t length) {
+		if(length <= maxMessageBytes) return false;
+		log(LogLevel::Warning,
+		    "AffrescoUI: a message longer than " + std::to_string(maxMessageBytes >> 20) + " MiB: closing the channel");
+		return true;
+	};
 
-	while(true) {
+	for(bool open = true; open;) {
 		const auto n = read(chunk, sizeof(chunk));
 		if(n <= 0) break;
 		const std::size_t searched = buffer.size(); // the bytes before have no line break
 		buffer.append(chunk, static_cast<std::size_t>(n));
 
 		std::size_t start = 0;
-		for(std::size_t end; (end = buffer.find('\n', std::max(start, searched))) != std::string::npos;
+		for(std::size_t end; open && (end = buffer.find('\n', std::max(start, searched))) != std::string::npos;
 		    start = end + 1) {
-			if(end == start) continue;
-			executor.post([&channel, alive, line = buffer.substr(start, end - start)] {
-				if(*alive) channel.onMessage(line);
-			});
+			std::size_t length = end - start;
+			if(dropCarriageReturns && length > 0 && buffer[end - 1] == '\r') --length;
+			if(tooLong(length)) open = false;
+			else if(length > 0)
+				executor.post([&channel, alive, line = buffer.substr(start, length)] {
+					if(*alive) channel.onMessage(line);
+				});
 		}
 		buffer.erase(0, start);
-		if(buffer.size() > maxMessageBytes) {
-			log(LogLevel::Warning, "AffrescoUI: a message longer than " + std::to_string(maxMessageBytes >> 20) +
-			                           " MiB: closing the channel");
-			break;
-		}
+		if(open && tooLong(buffer.size())) open = false;
 	}
 
 	if(running) *running = false;
