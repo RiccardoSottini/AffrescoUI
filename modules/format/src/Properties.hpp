@@ -151,6 +151,11 @@ private:
 	/// @param panel The panel.
 	/// @param record Its record, with its node and values.
 	void showValue(Panel& panel, Record& record) const;
+	/// @brief Shows the value of a widget whose type has value hooks (ValueHooks::show).
+	/// @param panel The panel.
+	/// @param record Its record, with its node and values.
+	/// @param bound Its bound state value, or nullptr if it isn't bound.
+	static void showWidgetValue(Panel& panel, Record& record, const json* bound);
 	/// @brief Tells whether a panel can "bind": a text area, or a widget with a value.
 	/// @param panel The panel.
 	/// @param record Its record.

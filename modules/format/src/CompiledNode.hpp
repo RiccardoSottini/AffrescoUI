@@ -99,7 +99,7 @@ struct CompiledRepeat {
 	std::string item = "item";   ///< "for": the item's variable.
 	std::string index = "index"; ///< "index": the position's variable.
 	std::unique_ptr<json> path;  ///< "in" written as a path ("state.messages"): its value as "{{...}}".
-	std::optional<Binding> list; ///< "in", compiled.
+	Binding list;                ///< "in", compiled.
 	std::optional<Binding> key;  ///< "key", compiled.
 };
 

@@ -11,6 +11,7 @@
 #include <doctest/doctest.h>
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -43,7 +44,7 @@ struct Built {
 	/// @brief Runs an action, then the update it asks for.
 	/// @param action The action.
 	/// @param event Its event.
-	void run(std::string_view action, std::string_view event = "{}") {
+	void run(std::string_view action, std::string_view event = "{}") const {
 		screen->runAction(action, window->root(), event);
 		window->render();
 	}
@@ -98,7 +99,7 @@ TEST_CASE("compiler: each property becomes a slot, and only dynamic values are e
 	REQUIRE(node->let.size() == 1);
 	CHECK(node->let[0].value.dynamic());
 	REQUIRE(node->when);
-	CHECK(node->when->dynamic());
+	CHECK((node->when && node->when->dynamic()));
 	CHECK_FALSE(node->repeat);
 }
 
@@ -109,11 +110,12 @@ TEST_CASE("compiler: a repeat, a dynamic style, and the keys that make a node ap
 		"overlay": {"open": "state.menuOpen"}
 	})");
 	REQUIRE(node->repeat);
-	CHECK(node->repeat->item == "tag");
-	CHECK(node->repeat->index == "i");
-	REQUIRE(node->repeat->path);
-	CHECK(*node->repeat->path == "{{state.tags}}"); // a path written before expressions
-	CHECK(node->repeat->key);
+	const CompiledRepeat& repeat = node->repeat ? *node->repeat : throw std::logic_error("no repeat");
+	CHECK(repeat.item == "tag");
+	CHECK(repeat.index == "i");
+	REQUIRE(repeat.path);
+	CHECK(*repeat.path == "{{state.tags}}"); // a path written before expressions
+	CHECK(repeat.key);
 	CHECK(node->style);
 	CHECK(node->alwaysApply); // an overlay whose "open" is a state path reads the state when it is applied
 	CHECK_FALSE(node->find("style"));
@@ -171,8 +173,8 @@ TEST_CASE("compiler: an unchanged panel is left alone, and applied again when it
 			{"id": "counter", "type": "label", "text": "{{state.count}}"}
 		]}
 	})"));
-	auto& counter = built.screen->get<affresco::Label>("counter");
-	affresco::Panel& box = built.screen->get("box");
+	const auto& counter = built.screen->get<affresco::Label>("counter");
+	const affresco::Panel& box = built.screen->get("box");
 	CHECK(counter.text() == "0");
 	CHECK(box.color() == affresco::Color::hex(0xffffff));
 
@@ -192,7 +194,7 @@ TEST_CASE("compiler: a revision compiles the new version, and the panels follow 
 			{"id": "title", "type": "label", "text": "{{state.title}}", "width": 80, "height": 20}
 		]}
 	})"));
-	auto& title = built.screen->get<affresco::Label>("title");
+	const auto& title = built.screen->get<affresco::Label>("title");
 	CHECK(title.text() == "Tasks");
 	CHECK(title.frame().width() == 80.0f);
 
@@ -208,7 +210,7 @@ TEST_CASE("compiler: a property that fails to apply fails again at the next upda
 		if(level == affresco::LogLevel::Error) errors.emplace_back(message);
 	});
 	{
-		Built built(json::parse(R"({
+		const Built built(json::parse(R"({
 			"format": "affrescoui-screen", "version": 1, "state": {"color": "#ff0000", "count": 0},
 			"actions": {"spoil": [{"set": "state.color", "to": "#zz0000"}], "count": [{"increment": "state.count"}]},
 			"root": {"id": "root", "children": [{"id": "box", "width": 10, "height": 10, "color": "{{state.color}}"}]}

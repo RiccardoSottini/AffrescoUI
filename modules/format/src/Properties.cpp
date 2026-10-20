@@ -156,13 +156,17 @@ void Properties::showValue(Panel& panel, Record& record) const {
 		if(newText != record.lastText) label->setText(newText.value_or(""));
 		record.lastText = newText;
 	}
+	showWidgetValue(panel, record, record.bind ? &bound : nullptr);
+}
+
+void Properties::showWidgetValue(Panel& panel, Record& record, const json* bound) {
 	if(std::ranges::none_of(record.sets, [](const auto& set) { return set && set->value.show; })) return;
 	json shown = json::object(); // what the value hooks read
 	for(const std::string_view key : valueKeys)
-		if(const CompiledProperty* property = node.find(key))
+		if(const CompiledProperty* property = record.node->find(key))
 			shown[std::string(key)] = CompiledNode::valueOf(*property, record.values);
 	for(const auto& set : record.sets)
-		if(set && set->value.show) set->value.show(panel, record.bind ? &bound : nullptr, shown, record.lastText);
+		if(set && set->value.show) set->value.show(panel, bound, shown, record.lastText);
 }
 
 // The node at rest, then each active state block on top (with its own styles)

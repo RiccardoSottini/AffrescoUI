@@ -105,12 +105,12 @@ private:
 	/// @throws DocumentError If a style is unknown.
 	[[nodiscard]] CompiledRef styled(const CompiledRef& node, const json& style, const std::string& at) const;
 	/// @brief The list a "repeat" goes over.
-	/// @param node The node, whose "repeat" is well formed.
+	/// @param repeat The node's "repeat", compiled.
 	/// @param locals The variables.
 	/// @param at The node's place, for errors.
 	/// @return The list, or null to build nothing.
 	/// @throws DocumentError If it isn't a list.
-	[[nodiscard]] json repeated(const CompiledNode& node, const Scope& locals, const std::string& at) const;
+	[[nodiscard]] json repeated(const CompiledRepeat& repeat, const Scope& locals, const std::string& at) const;
 	/// @brief Adds the instances of one child: one, or one per item of its "repeat".
 	/// @param node The child, compiled.
 	/// @param locals The parent's variables.

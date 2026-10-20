@@ -114,23 +114,16 @@ bool compileVariables(const json& value, std::vector<CompiledVariable>& into) {
 /// @return It, or std::nullopt if it is malformed (the builder reports it where the node is built).
 std::optional<CompiledRepeat> compileRepeat(const json& repeat) {
 	if(!repeat.is_object() || !repeat.contains("in")) return std::nullopt;
-	CompiledRepeat result;
-	if(repeat.contains("for")) {
-		if(!repeat["for"].is_string()) return std::nullopt;
-		result.item = repeat["for"].get<std::string>();
-	}
-	if(repeat.contains("index")) {
-		if(!repeat["index"].is_string()) return std::nullopt;
-		result.index = repeat["index"].get<std::string>();
-	}
+	const json item = repeat.value("for", json("item"));
+	const json index = repeat.value("index", json("index"));
+	if(!item.is_string() || !index.is_string()) return std::nullopt;
 	// "in" is a path ("state.messages") or any value/expression
 	const json& source = repeat["in"];
-	if(source.is_string() && !source.get_ref<const std::string&>().contains("{{")) {
-		result.path = std::make_unique<json>("{{" + source.get<std::string>() + "}}");
-		result.list.emplace(*result.path);
-	} else {
-		result.list.emplace(source);
-	}
+	std::unique_ptr<json> path;
+	if(source.is_string() && !source.get_ref<const std::string&>().contains("{{"))
+		path = std::make_unique<json>("{{" + source.get<std::string>() + "}}");
+	const json& list = path ? *path : source; // a json the unique_ptr owns stays where it is when the pointer moves
+	CompiledRepeat result{item.get<std::string>(), index.get<std::string>(), std::move(path), Binding(list), {}};
 	if(repeat.contains("key")) result.key.emplace(repeat["key"]);
 	return result;
 }

@@ -214,8 +214,8 @@ CompiledRef Builder::resolve(const json& child, const std::string& at) const {
 	return result;
 }
 
-json Builder::repeated(const CompiledNode& node, const Scope& locals, const std::string& at) const {
-	const json list = node.repeat->list->evaluate(engine_.document.context(locals, emptyObject()), at, "repeat.in");
+json Builder::repeated(const CompiledRepeat& repeat, const Scope& locals, const std::string& at) const {
+	const json list = repeat.list.evaluate(engine_.document.context(locals, emptyObject()), at, "repeat.in");
 	if(!list.is_null() && !list.is_array()) fail(at + ".repeat.in", "expected a list, got " + list.dump());
 	return list;
 }
@@ -236,7 +236,7 @@ void Builder::instances(const CompiledRef& node, const SharedScope& locals, cons
 	}
 	if(!node->repeat) reportRepeat(node->own["repeat"], at);
 	const CompiledRepeat& repeat = *node->repeat;
-	const json list = repeated(*node, *locals, at);
+	const json list = repeated(repeat, *locals, at);
 	for(std::size_t k = 0; k < list.size(); ++k) { // a null list has none
 		SharedScope scope = extend(locals, {{repeat.item, list[k]}, {repeat.index, k}});
 		std::string where = at + "[" + std::to_string(k) + "]";
