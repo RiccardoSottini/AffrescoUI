@@ -80,18 +80,21 @@ every run tries them again. A broken rule prints
 
 ## CI
 
-`.github/workflows/fuzz.yml` runs each target for 60 seconds on every pull request, and for 15 minutes every night.
-The nightly runs keep the corpus they grew in the Actions cache, and every run starts from the latest one, so the
-search goes on where it stopped. It also runs on demand (Actions, "Fuzz", "Run workflow"), for as long as you ask.
+The sanitizer job of `.github/workflows/ci.yml` builds every target with the tests, and runs each for 35 seconds on
+every pull request (`.github/workflows/fuzz.sh`, which finds the targets in the build: a new one needs no edit
+there). `.github/workflows/nightly.yml` runs each for 15 minutes every night and keeps the corpus it grew in the
+Actions cache; every run starts from the latest one, so the search goes on where it stopped. It also runs on demand
+(Actions, "Nightly", "Run workflow"), for as long as you ask. A failing input is uploaded as the `fuzz-found`
+artifact, in a folder named after its target.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `actions.cpp` | The targets |
+| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `actions.cpp`, `scenarios.cpp`, `png.cpp` | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates in `examples/assets/screens/`, the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |
 
 To add a target, for a new kind of input: a `<name>.cpp` with `LLVMFuzzerTestOneInput`, one `affrescoui_fuzzer()`
-line in `CMakeLists.txt`, its seeds in `corpus.py`, and its name in the matrix of `fuzz.yml`.
+line in `CMakeLists.txt`, and its seeds in `corpus.py`; CI finds it in the build.

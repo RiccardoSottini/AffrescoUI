@@ -5,7 +5,7 @@ Measures what a change costs in speed, memory and tokens, the same way on a lapt
 - `affrescoui_bench` runs the workloads below through the library's public API. It prints one JSON object per
   workload.
 - `tokens.py` counts the tokens of what agents read and write.
-- In CI, `.github/workflows/perf.yml` runs both on a pull request's base and head, and puts the tables in the job
+- In CI, the `Benchmarks (callgrind)` job of `.github/workflows/ci.yml` runs both on a pull request's base and head, and puts the tables in the job
   summary. It fails when a workload's instruction count grows by more than 3%.
 
 ## Running them

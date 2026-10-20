@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The benchmarks in CI (.github/workflows/perf.yml). Builds HEAD and a base commit the same way, measures both on this
+# The benchmarks in CI (.github/workflows/ci.yml, job "Benchmarks (callgrind)"). Builds HEAD and a base commit the same way, measures both on this
 # runner (instructions under callgrind for the workloads that don't draw, the main thread's CPU time for the frames,
 # tokens for the documents), then compare.py writes the tables and fails on a growth in instructions over 3%.
 #
