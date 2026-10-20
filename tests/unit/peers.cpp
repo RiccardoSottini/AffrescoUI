@@ -9,6 +9,7 @@
 #include <affresco/channel/Sockets.hpp>
 #include <affresco/core/Executor.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/core/ScreenImages.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -24,6 +25,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <random>
 #include <string>
 #include <string_view>
@@ -47,8 +49,9 @@ namespace {
 struct LimitedPeer {
 	/// @brief Connects the peer, as the author "studio" (who may change anything), and catches the log.
 	/// @param limits Its limits.
-	explicit LimitedPeer(const PeerLimits& limits)
-	    : session(channel, versions, "studio", {}, nullptr, limits) {
+	/// @param images What draws its pictures, if anything; must outlive the peer.
+	explicit LimitedPeer(const PeerLimits& limits, affresco::ScreenImages* images = nullptr)
+	    : session(channel, versions, "studio", {}, images, limits) {
 		affresco::setLogSink([this](affresco::LogLevel, std::string_view message) { logged.emplace_back(message); });
 		channel.sent.clear(); // hello
 	}
@@ -73,6 +76,20 @@ struct LimitedPeer {
 	affresco::test::MemoryChannel channel;                                          ///< What the peer receives.
 	affresco::channel::Session session;                                             ///< The peer's session.
 	std::vector<std::string> logged;                                                ///< Every log message.
+};
+
+/// @brief Pictures that cost nothing: counts how many were drawn.
+class CountingImages final : public affresco::ScreenImages {
+public:
+	[[nodiscard]] std::optional<std::string> render(const affresco::ImageRequest& /*request*/,
+	                                                affresco::Image& image) override {
+		++drawn;
+		image = {"png", 1, 1};
+		return std::nullopt;
+	}
+	[[nodiscard]] bool rendering() const noexcept override { return false; }
+
+	int drawn = 0; ///< Pictures drawn so far.
 };
 
 /// @brief An Executor whose tasks run on the test's thread, inside runUntil().
@@ -223,6 +240,29 @@ TEST_CASE("channel: a Session refuses changes over their own rate, and takes the
 	std::this_thread::sleep_for(150ms);
 	CHECK(change(6)["type"] == "applied");
 	CHECK(peer.versions.state()["count"] == 6);
+}
+
+TEST_CASE("channel: a Session refuses pictures over the rate of changes, which they cost as much as") {
+	PeerLimits limits;
+	limits.revisionsPerMinute = 600; // one every 100 ms
+	limits.revisionBurst = 2;
+	CountingImages images;
+	LimitedPeer peer(limits, &images);
+	const auto picture = [&](int id) { return peer.answer(json{{"type", "render"}, {"id", id}}.dump()); };
+
+	CHECK(picture(1)["type"] == "image");
+	CHECK(picture(2)["type"] == "image");
+	CHECK(picture(3) ==
+	      json{{"type", "rejected"}, {"error", "too many pictures: at most 600 a minute"}, {"revision", 0}, {"id", 3}});
+	CHECK(images.drawn == 2); // refused before drawing
+	CHECK(peer.answer(json{{"type", "revision"}, {"id", 4}, {"set", {{"/state/count", 4}}}}.dump())["type"] ==
+	      "applied"); // a rate of their own: changes still go through
+	CHECK(peer.logged == std::vector<std::string>{
+	                         "AffrescoUI: peer 'studio' is over its limits: too many pictures: at most 600 a minute"});
+
+	std::this_thread::sleep_for(150ms);
+	CHECK(picture(5)["type"] == "image");
+	CHECK(images.drawn == 3);
 }
 
 TEST_CASE("channel: a SocketServer refuses and logs a connection its peer check refuses") {

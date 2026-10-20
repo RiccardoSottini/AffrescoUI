@@ -18,8 +18,10 @@ struct PeerLimits {
 	std::size_t maxMessageBytes = std::size_t{8} << 20;
 	double messagesPerSecond = 100.0; ///< Messages of any kind, on average.
 	double messageBurst = 200.0;      ///< Messages at once, after a quiet time.
-	double revisionsPerMinute = 120.0; ///< Changes (revision, restore, revert, undo), which rebuild the screen.
-	double revisionBurst = 30.0;       ///< Changes at once, after a quiet time.
+	/// Changes (revision, restore, revert, undo), which rebuild the screen. Pictures ("render") have a rate of their
+	/// own, this one: each draws the whole screen.
+	double revisionsPerMinute = 120.0;
+	double revisionBurst = 30.0; ///< Changes at once, after a quiet time; pictures too.
 };
 
 /// @brief A token bucket: holds up to `burst` tokens, gains `perSecond` a second, and each event takes one.

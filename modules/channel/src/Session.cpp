@@ -32,10 +32,10 @@ std::string toBase64(std::string_view bytes) {
 
 Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog,
                  ScreenImages* images, const PeerLimits& limits)
-    : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)),
-      images_(images), limits_(limits),
-      messageRate_(limits.messagesPerSecond, limits.messageBurst, TokenBucket::Clock::now()),
-      revisionRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()) {
+    : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)), images_(images),
+      limits_(limits), messageRate_(limits.messagesPerSecond, limits.messageBurst, TokenBucket::Clock::now()),
+      revisionRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()),
+      pictureRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()) {
 	messages_ = channel_.onMessage.connect([this](const std::string& line) { handle(line); });
 
 	decisions_ = versions_.onDecision.connect([this](const Decision& decision) {
@@ -351,6 +351,13 @@ void Session::sendImage(const Incoming& in) {
 			expect::fail("render.scale", "expected 1 to " + std::to_string(ScreenImages::maxScale));
 	}
 	if(!images_) expect::fail("render", "this host draws no pictures");
+	// A picture takes the main thread for tens of milliseconds (a proposal's is built, then main's again): a read,
+	// but one that costs as much as a change, so it has the same rate
+	if(!pictureRate_.take(TokenBucket::Clock::now())) {
+		const std::string what = "too many pictures: at most " + toText(limits_.revisionsPerMinute) + " a minute";
+		overLimit(what);
+		throw DocumentError(what);
+	}
 
 	Image image;
 	if(const std::optional<std::string> error = images_->render(request, image)) throw DocumentError(*error);

@@ -9,12 +9,14 @@
 #include "affresco/vcs/Repository.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <fstream>
 #include <map>
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <string_view>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -337,6 +339,25 @@ json readInclude(const std::filesystem::path& path) {
 	return part;
 }
 
+/// @brief Merges one included file into a screen: each of its sections comes first and the screen's entries win;
+/// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped.
+/// @param document The screen.
+/// @param part The included file, its own includes already merged.
+void mergeInclude(json& document, const json& part) {
+	static constexpr std::array<std::string_view, 5> screensOwn = {"$schema", "format", "version", "root", "window"};
+	for(const auto& [key, value] : part.items()) {
+		if(std::ranges::find(screensOwn, key) != screensOwn.end()) {
+			if(!document.contains(key) && key != "$schema") document[key] = value;
+		} else if(!document.contains(key)) {
+			document[key] = value;
+		} else if(value.is_object() && document[key].is_object()) {
+			json merged = value;
+			merged.update(document[key]);
+			document[key] = std::move(merged);
+		}
+	}
+}
+
 /// @brief Merges a screen's "include" files into it (recursively, at most 8 deep): each section of an included file
 /// comes first and the including file's entries win; root and window come from the including file.
 /// @param document The screen.
@@ -355,18 +376,7 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
 		json part = readInclude(path);
 		resolveIncludes(part, path.parent_path(), depth + 1);
-
-		for(const auto& [key, value] : part.items()) {
-			if(key == "$schema" || key == "format" || key == "version" || key == "root" || key == "window") {
-				if(!document.contains(key) && key != "$schema") document[key] = value;
-			} else if(value.is_object() && (!document.contains(key) || document[key].is_object())) {
-				json merged = value;
-				if(document.contains(key)) merged.update(document[key]);
-				document[key] = std::move(merged);
-			} else if(!document.contains(key)) {
-				document[key] = value;
-			}
-		}
+		mergeInclude(document, part);
 	}
 }
 

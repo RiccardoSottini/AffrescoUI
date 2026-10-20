@@ -58,7 +58,8 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
   without that code, so its pixels don't depend on it. A font's GPU pages are freed the first frame after it is gone.
 - **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages hold at most 64 MiB in all (colour pages
   count four bytes a texel), so text naming many characters can't exhaust memory; past that, characters draw as `?`.
-  A font file is a regular file of at most 256 MiB. `FontCache` keeps at most 32 fonts and 128 MiB that nothing uses.
+  A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
+  32 fonts and 128 MiB that nothing uses. A `TextEditor` keeps 500 undo steps, and at most 256 MiB of them.
 
 ## Threads
 

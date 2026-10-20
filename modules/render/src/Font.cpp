@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstring>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 
@@ -44,6 +45,40 @@ void copyInto(const FT_Bitmap& bitmap, detail::GlyphAtlas::Page& page, int left,
 			to[3] = from[3];
 		}
 	}
+}
+
+/// @brief Where one line of a paragraph ends, and where the next one starts.
+struct LineBreak {
+	std::size_t end;  ///< One past the line's last code point.
+	std::size_t next; ///< The next line's first code point: past a space or a '\n' that ends this one.
+};
+
+/// @brief Breaks the line that starts at @p start: as many code points as fit @p maxWidth (at least one), cut back to
+/// the last space when the paragraph goes on.
+/// @param text The whole text.
+/// @param advances The paragraph's advances, one per code point.
+/// @param paragraphStart Where the paragraph starts in @p text.
+/// @param paragraphEnd Where it ends: at a '\n', or at the end of @p text.
+/// @param start Where the line starts.
+/// @param maxWidth How wide it may be.
+/// @return Its end, and where the next line starts.
+LineBreak breakLine(std::u32string_view text, std::span<const float> advances, std::size_t paragraphStart,
+                    std::size_t paragraphEnd, std::size_t start, float maxWidth) noexcept {
+	std::size_t end = start;       // end of the line being built
+	std::size_t lastSpace = start; // last space seen on it (start = none)
+	float width = 0.0f;
+	while(end < paragraphEnd) {
+		const float advance = advances[end - paragraphStart];
+		// A code point with no width of its own continues its cluster (a mark, the rest of a ligature): never cut
+		if(width + advance > maxWidth && end > start && advance > 0.0f) break;
+		if(text[end] == U' ') lastSpace = end;
+		width += advance;
+		++end;
+	}
+
+	if(end == paragraphEnd && end < text.size()) return {end, end + 1};            // past the '\n'
+	if(end < paragraphEnd && lastSpace > start) return {lastSpace, lastSpace + 1}; // the space itself is dropped
+	return {end, end};
 }
 
 } // namespace
@@ -244,26 +279,7 @@ std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxW
 			paragraph = &data_->measure(text.substr(start, paragraphEnd - start)).advances;
 		}
 
-		std::size_t end = start;       // end of the line being built
-		std::size_t lastSpace = start; // last space seen on it (start = none)
-		float width = 0.0f;
-		while(end < paragraphEnd) {
-			const float advance = (*paragraph)[end - paragraphStart];
-			// A code point with no width of its own continues its cluster (a mark, the rest of a ligature): never cut
-			if(width + advance > maxWidth && end > start && advance > 0.0f) break;
-			if(text[end] == U' ') lastSpace = end;
-			width += advance;
-			++end;
-		}
-
-		std::size_t next = end; // where the following line starts
-		if(end == paragraphEnd && end < text.size()) {
-			next = end + 1; // past the '\n'
-		} else if(end < paragraphEnd && lastSpace > start) {
-			end = lastSpace; // break at the last space; the space itself is dropped
-			next = lastSpace + 1;
-		}
-
+		const auto [end, next] = breakLine(text, *paragraph, paragraphStart, paragraphEnd, start, maxWidth);
 		lines.push_back(text.substr(start, end - start));
 		start = next;
 	}
