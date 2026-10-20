@@ -162,17 +162,18 @@ void Font::Data::resolveDirections() noexcept {
 	for(Run& run : runs)
 		run.rightToLeft = isOwnScript(run.script) && hb_script_get_horizontal_direction(run.script) == HB_DIRECTION_RTL;
 
-	// A neutral run takes the direction of the strong runs on both sides when they agree
-	std::optional<bool> before; // the direction of the last run with a script of its own
-	for(std::size_t i = 0; i < runs.size(); ++i) {
+	// A neutral run takes the direction of the strong runs on both sides when they agree. Neutral runs in a row share
+	// both sides, so each is visited once: a text that alternates faces can make one run per character
+	bool before = false; // the direction of the last run with a script of its own
+	for(std::size_t i = 0; i < runs.size();) {
 		if(isOwnScript(runs[i].script)) {
-			before = runs[i].rightToLeft;
+			before = runs[i++].rightToLeft;
 			continue;
 		}
-		std::optional<bool> after;
-		for(std::size_t next = i + 1; next < runs.size() && !after; ++next)
-			if(isOwnScript(runs[next].script)) after = runs[next].rightToLeft;
-		runs[i].rightToLeft = before.value_or(false) && after.value_or(false);
+		std::size_t after = i; // the next run with a script of its own
+		while(after < runs.size() && !isOwnScript(runs[after].script)) ++after;
+		const bool rightToLeft = before && after < runs.size() && runs[after].rightToLeft;
+		for(; i < after; ++i) runs[i].rightToLeft = rightToLeft;
 	}
 }
 
