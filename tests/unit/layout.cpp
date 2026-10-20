@@ -10,6 +10,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <initializer_list>
 #include <limits>
 #include <vector>
@@ -252,6 +253,21 @@ TEST_CASE("layout: grid children take the next free cells, row after row, around
 		CHECK(affresco::detail::placeGridItems(c.columns, c.cells, areas) == c.rows);
 		CHECK(areas == c.expected);
 	}
+}
+
+TEST_CASE("layout: a big grid child among taken rows is placed in a moment, not minutes") {
+	using affresco::GridCell;
+	using affresco::detail::GridArea;
+	// Two full rows leave no room for a 500 by 500 child: every position is tried, and each try once took the
+	// whole free window again (about 28 seconds for these three children).
+	const std::vector<GridCell> cells{{.column = 1, .row = 500, .columnSpan = 1000},
+	                                  {.column = 1, .row = 1000, .columnSpan = 1000},
+	                                  {.columnSpan = 500, .rowSpan = 500}};
+	std::vector<GridArea> areas;
+	const auto start = std::chrono::steady_clock::now();
+	CHECK(affresco::detail::placeGridItems(1000, cells, areas) == 1000);
+	CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(2));
+	CHECK(areas[2] == GridArea{0, 0, 500, 500}); // no room: it overlaps where it would have started
 }
 
 TEST_CASE("layout: grid tracks: pixels, percentages, fractions, content and minmax") {
