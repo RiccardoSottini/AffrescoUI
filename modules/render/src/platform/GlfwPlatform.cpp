@@ -145,8 +145,9 @@ void GlfwWindow::setCursor(Cursor cursor) {
 class GlfwPlatform final : public Platform {
 public:
 	/// @brief Starts GLFW, sending its errors to the log.
+	/// @param hiddenWindows Whether windows open hidden.
 	/// @throws std::runtime_error If GLFW can't start.
-	GlfwPlatform() {
+	explicit GlfwPlatform(bool hiddenWindows) : hiddenWindows_(hiddenWindows) {
 		glfwSetErrorCallback([](int code, const char* description) {
 			log(LogLevel::Error, "AffrescoUI: GLFW error " + std::to_string(code) + ": " + description);
 		});
@@ -166,6 +167,7 @@ public:
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+		if(hiddenWindows_) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		return std::make_unique<GlfwWindow>(title, width, height);
 	}
 
@@ -175,10 +177,15 @@ public:
 	}
 
 	void wake() override { glfwPostEmptyEvent(); }
+
+private:
+	bool hiddenWindows_; ///< Windows open hidden (ApplicationOptions::hiddenWindows).
 };
 
 } // namespace
 
-std::unique_ptr<Platform> createGlfwPlatform() { return std::make_unique<GlfwPlatform>(); }
+std::unique_ptr<Platform> createGlfwPlatform(bool hiddenWindows) {
+	return std::make_unique<GlfwPlatform>(hiddenWindows);
+}
 
 } // namespace affresco::platform

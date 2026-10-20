@@ -70,9 +70,12 @@ bool saveScreenshots(const Windows& windows, const std::string& path) {
 
 } // namespace
 
-Application::Application() {
+Application::Application() : Application(ApplicationOptions{}) {}
+
+Application::Application(ApplicationOptions options) {
 	if(instanceAlive) throw std::logic_error("AffrescoUI: only one affresco::Application can exist at a time");
-	platform_ = platform::createGlfwPlatform();
+	platform_ = platform::createGlfwPlatform(options.hiddenWindows);
+	if(options.clock) clock_ = options.clock;
 	instanceAlive = true;
 }
 
@@ -89,7 +92,7 @@ Window& Application::createWindow(std::string title, int width, int height) {
 
 	// Window's constructor is private: only the Application creates windows
 	windows_.push_back(std::unique_ptr<Window>(
-	    new Window(std::move(native), std::move(renderer), clock_, std::move(title), width, height)));
+	    new Window(std::move(native), std::move(renderer), *clock_, std::move(title), width, height)));
 	return *windows_.back();
 }
 
@@ -98,15 +101,15 @@ int Application::run() {
 	// normally for that long first (e.g. so peers can connect and change the screen)
 	const std::optional<std::string> screenshot = environmentVariable("AFFRESCOUI_SCREENSHOT");
 	const std::optional<std::string> after = environmentVariable("AFFRESCOUI_SCREENSHOT_AFTER");
-	const double deadline = clock_.seconds() + (after ? std::strtod(after->c_str(), nullptr) / 1000.0 : 0.0);
+	const double deadline = clock_->seconds() + (after ? std::strtod(after->c_str(), nullptr) / 1000.0 : 0.0);
 
 	running_ = true;
-	while(running_ && (!screenshot || clock_.seconds() < deadline)) {
+	while(running_ && (!screenshot || clock_->seconds() < deadline)) {
 		if(!renderOpenWindows(windows_)) break;
 
 		// Sleeps until there is input or a timer is due: no CPU or GPU used while idle
 		std::optional<double> wait = secondsToNextTimer(windows_);
-		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - clock_.seconds()));
+		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - clock_->seconds()));
 		platform_->waitEvents(wait);
 		runPostedTasks();
 	}
