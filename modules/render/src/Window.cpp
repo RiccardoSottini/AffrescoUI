@@ -30,6 +30,8 @@ void platform::NativeWindow::resized(Window& window, int width, int height) { wi
 
 void platform::NativeWindow::refresh(Window& window) { window.refresh(); }
 
+void platform::NativeWindow::framebufferResized(Window& window) { window.requestFrame(); }
+
 Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<detail::Renderer> renderer,
                const Clock& clock, std::string title, int width, int height)
     : native_(std::move(native)), renderer_(std::move(renderer)), clock_(&clock), title_(std::move(title)),

@@ -23,7 +23,7 @@ struct FlexItem {
 	float maxCross = std::numeric_limits<float>::infinity(); ///< Its maximum cross size.
 	float grow = 0.0f;                                       ///< Its share of the room left over.
 	float shrink = 0.0f;                                     ///< How much it gives up when the line overflows.
-	std::optional<CrossAlign> align;                         ///< Where it sits across; nullopt keeps its own place.
+	std::optional<CrossAlign> align{};                       ///< Where it sits across; nullopt keeps its own place.
 	bool sized = false; ///< The container gives it its main size even when it doesn't flex (it has a basis).
 };
 
@@ -39,11 +39,11 @@ struct FlexOptions {
 
 /// @brief Where one child goes, in the container's terms: what a Stack turns into anchors and sizes.
 struct FlexPlacement {
-	float main = 0.0f;                ///< Its offset from the container's start edge, or from its end edge.
-	bool fromEnd = false;             ///< Whether @ref main is measured from the end edge (Justify::End on one line).
-	std::optional<float> mainSize;    ///< The main size the container gives it; nullopt: its own.
-	std::optional<float> crossOffset; ///< Its offset from the cross start edge; nullopt: its own place across.
-	std::optional<float> crossSize;   ///< The cross size the container gives it (Stretch); nullopt: its own.
+	float main = 0.0f;                  ///< Its offset from the container's start edge, or from its end edge.
+	bool fromEnd = false;               ///< Whether @ref main is measured from the end edge (Justify::End on one line).
+	std::optional<float> mainSize{};    ///< The main size the container gives it; nullopt: its own.
+	std::optional<float> crossOffset{}; ///< Its offset from the cross start edge; nullopt: its own place across.
+	std::optional<float> crossSize{};   ///< The cross size the container gives it (Stretch); nullopt: its own.
 };
 
 /// @brief Lays the children of a row or a column out, like CSS flexbox: each child's hypothetical size is its base

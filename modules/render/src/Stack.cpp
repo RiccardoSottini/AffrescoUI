@@ -34,6 +34,33 @@ float maximumOf(const std::optional<Length>& maximum, float reference) noexcept 
 	return maximum ? maximum->resolve(reference) : std::numeric_limits<float>::infinity();
 }
 
+/// @brief A pair's value along a direction.
+/// @param pair Width and height, or x and y.
+/// @param row Whether the direction is a row.
+/// @return Its x in a row, its y in a column.
+float along(Vec2 pair, bool row) noexcept { return row ? pair.x : pair.y; }
+
+/// @brief A pair's value across a direction.
+/// @param pair Width and height, or x and y.
+/// @param row Whether the direction is a row.
+/// @return Its y in a row, its x in a column.
+float across(Vec2 pair, bool row) noexcept { return row ? pair.y : pair.x; }
+
+/// @brief Gives a child stretched across, with a ratio and no length of its own along the direction, the size along
+/// it that the stretched size and the ratio make.
+/// @param child The child.
+/// @param row Whether the container is a row.
+/// @param crossRoom The container's size across.
+/// @param item The child's item, with its alignment.
+void followStretchedRatio(const Panel& child, bool row, float crossRoom, detail::FlexItem& item) {
+	const Length ownMain = row ? child.width() : child.height();
+	if(!(child.aspectRatio() > 0.0f) || ownMain.value != 0.0f || child.basis() || item.align != CrossAlign::Stretch)
+		return;
+	const float stretched = std::max(std::min(crossRoom, item.maxCross), item.minCross);
+	item.base = row ? stretched * child.aspectRatio() : stretched / child.aspectRatio();
+	item.sized = true;
+}
+
 /// @brief What the flexible layout needs to know about a child.
 /// @param child The child, measured with no arranged size.
 /// @param row Whether the container is a row.
@@ -42,26 +69,20 @@ float maximumOf(const std::optional<Length>& maximum, float reference) noexcept 
 /// @return The item.
 detail::FlexItem flexItem(Panel& child, bool row, Vec2 size, std::optional<CrossAlign> align) {
 	const Vec2 measured = child.measuredSize(size);
-	const float room = row ? size.x : size.y, across = row ? size.y : size.x;
-	detail::FlexItem item{.base = row ? measured.x : measured.y,
-	                      .minMain = (row ? child.minWidth() : child.minHeight()).resolve(room),
-	                      .maxMain = maximumOf(row ? child.maxWidth() : child.maxHeight(), room),
-	                      .cross = row ? measured.y : measured.x,
-	                      .minCross = (row ? child.minHeight() : child.minWidth()).resolve(across),
-	                      .maxCross = maximumOf(row ? child.maxHeight() : child.maxWidth(), across),
+	const Vec2 minimum{child.minWidth().resolve(size.x), child.minHeight().resolve(size.y)};
+	const Vec2 maximum{maximumOf(child.maxWidth(), size.x), maximumOf(child.maxHeight(), size.y)};
+	const std::optional<Length> basis = child.basis();
+	detail::FlexItem item{.base = basis ? basis->resolve(along(size, row)) : along(measured, row),
+	                      .minMain = along(minimum, row),
+	                      .maxMain = along(maximum, row),
+	                      .cross = across(measured, row),
+	                      .minCross = across(minimum, row),
+	                      .maxCross = across(maximum, row),
 	                      .grow = child.grow(),
 	                      .shrink = child.shrink(),
 	                      .align = child.alignSelf() ? child.alignSelf() : align,
-	                      .sized = child.basis().has_value()};
-	if(const auto basis = child.basis()) item.base = basis->resolve(room);
-
-	// Stretched across, a child with a ratio and no length of its own along the direction follows the stretched size
-	const Length ownMain = row ? child.width() : child.height();
-	if(child.aspectRatio() > 0.0f && ownMain.value == 0.0f && !child.basis() && item.align == CrossAlign::Stretch) {
-		const float stretched = std::max(std::min(across, item.maxCross), item.minCross);
-		item.base = row ? stretched * child.aspectRatio() : stretched / child.aspectRatio();
-		item.sized = true;
-	}
+	                      .sized = basis.has_value()};
+	followStretchedRatio(child, row, across(size, row), item);
 	return item;
 }
 
@@ -132,9 +153,8 @@ void Stack::arrange() {
 Grid::Grid() : columns_(2, Track::fraction(1.0f)) { setColor(colors::transparent); }
 
 void Grid::setColumns(int columns) {
-	setColumns(
-	    std::vector<Track>(static_cast<std::size_t>(std::clamp(columns, 1, static_cast<int>(maxGridTracks))),
-		                   Track::fraction(1.0f)));
+	setColumns(std::vector<Track>(static_cast<std::size_t>(std::clamp(columns, 1, static_cast<int>(maxGridTracks))),
+	                              Track::fraction(1.0f)));
 }
 
 void Grid::setColumns(std::vector<Track> columns) {

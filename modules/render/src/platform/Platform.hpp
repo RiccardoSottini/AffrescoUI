@@ -93,6 +93,10 @@ protected:
 	/// @brief Asks a window to draw again now (during a live resize, its event loop is blocked).
 	/// @param window The window.
 	static void refresh(Window& window);
+	/// @brief Tells a window its framebuffer has another size (a resize, or a move to a screen of another scale): the
+	/// next frame draws everything, but the layout, in window units, doesn't change for it.
+	/// @param window The window.
+	static void framebufferResized(Window& window);
 };
 
 /// @brief The windowing system: starts it, opens windows, and waits for their events. One at a time, owned by the

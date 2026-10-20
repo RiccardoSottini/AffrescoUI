@@ -422,6 +422,10 @@ protected:
 	/// doesn't own (its measured size is cached until then).
 	void invalidate() noexcept;
 
+	/// @brief Whether invalidate() was called since this panel was last laid out: what prepareLayout() keeps from
+	/// earlier passes may be out of date only then (or after Window::invalidate()).
+	[[nodiscard]] bool isLayoutDirty() const noexcept { return layoutDirty_; }
+
 	/// @brief Stores a property's new value and calls invalidate(), unless the value is the one already there.
 	/// @tparam T The property's type; it must have ==.
 	/// @param member The property.
@@ -454,9 +458,24 @@ private:
 	/// @param parentSize See layout().
 	/// @param parentShown See layout().
 	void placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
-	/// @brief Ends this panel's layout: it is clean now, and what its subtree has (dirty panels left over, anchors to
-	/// other panels, overlays) is gathered from its children.
-	void finishLayout() noexcept;
+	/// @brief The positions of a panel's two edges on one axis, if anchored.
+	struct AnchoredEdges {
+		std::optional<float> start{}; ///< Top or left.
+		std::optional<float> end{};   ///< Bottom or right.
+	};
+	/// @brief Where a panel's two edges go on one axis.
+	/// @param edges Its anchored edges there.
+	/// @param position Where its start goes when neither is anchored.
+	/// @param size Its size there.
+	/// @param arranged Whether a container gave it that size (which then wins over the far anchor).
+	/// @return Its start and end.
+	[[nodiscard]] static std::pair<float, float> alongAxis(AnchoredEdges edges, float position, float size,
+	                                                       bool arranged) noexcept;
+	/// @brief Makes the size follow the aspect ratio, from the axis that is set (stretched axes count as set).
+	/// @param horizontal The anchored left and right edges.
+	/// @param vertical The anchored top and bottom edges.
+	/// @param parentSize See layout().
+	void followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, Vec2 parentSize) noexcept;
 	/// @brief Marks this panel as needing layout, and its ancestors as having a descendant that does.
 	void markLayoutDirty() noexcept;
 	/// @brief Applies the aspect ratio to a size: the axis that is set leads, within the other's bounds.
@@ -474,6 +493,14 @@ private:
 	/// @param parentSize See layout().
 	/// @return The position, or std::nullopt if the edge isn't anchored (or its other panel isn't there).
 	[[nodiscard]] std::optional<float> anchoredEdge(Edge edge, const Rect& origin, Vec2 parentSize) const;
+	/// @brief Whether this panel's frame is final for a layout pass.
+	/// @param pass The pass.
+	/// @return true if the pass laid it out already, or skipped it or an ancestor.
+	[[nodiscard]] bool isSettled(std::uint64_t pass) const noexcept;
+	/// @brief The position of an edge anchored to another panel's edge.
+	/// @param edge The edge; its bit in targetEdges_ is set.
+	/// @return The position, or std::nullopt if the other panel isn't there.
+	[[nodiscard]] std::optional<float> targetEdge(Edge edge) const;
 
 	/// @brief An anchor to another panel's edge.
 	struct AnchorTarget {
@@ -507,9 +534,13 @@ private:
 	};
 
 	/// @brief Whether a layout pass can leave this panel and its subtree as they are.
-	/// @param inputs What the pass gives it.
+	/// @param origin See layout().
+	/// @param clip See layout().
+	/// @param parentSize See layout().
+	/// @param parentShown See layout().
 	/// @return true if nothing they depend on changed.
-	[[nodiscard]] bool canSkipLayout(const LayoutInputs& inputs) const noexcept;
+	[[nodiscard]] bool canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize,
+	                                 bool parentShown) const noexcept;
 
 	/// @brief Takes ownership of a new last child.
 	/// @param child The child.
@@ -524,18 +555,19 @@ private:
 	Window* window_ = nullptr;                     ///< Not owning.
 	std::vector<std::unique_ptr<Panel>> children_; ///< Back to front.
 
-	Length x_, y_;                                        ///< Position on unanchored axes.
-	Length width_, height_;                               ///< Size.
-	Length minWidth_, minHeight_;                         ///< Minimum size.
-	std::optional<Length> maxWidth_, maxHeight_;          ///< Maximum size, if any.
-	float aspectRatio_ = 0.0f;                            ///< See aspectRatio().
-	float shrink_ = 0.0f;                                 ///< See shrink().
-	std::optional<Length> basis_;                         ///< See basis().
-	std::optional<CrossAlign> alignSelf_;                 ///< See alignSelf().
-	GridCell gridCell_;                                   ///< See gridCell().
-	std::array<std::optional<Length>, 4> anchors_;        ///< Indexed by Edge.
-	std::array<std::optional<AnchorTarget>, 4> targets_;  ///< Anchors to other panels, indexed by Edge.
-	float grow_ = 0.0f;                                   ///< See grow().
+	Length x_, y_;                                       ///< Position on unanchored axes.
+	Length width_, height_;                              ///< Size.
+	Length minWidth_, minHeight_;                        ///< Minimum size.
+	std::optional<Length> maxWidth_, maxHeight_;         ///< Maximum size, if any.
+	float aspectRatio_ = 0.0f;                           ///< See aspectRatio().
+	float shrink_ = 0.0f;                                ///< See shrink().
+	std::optional<Length> basis_;                        ///< See basis().
+	std::optional<CrossAlign> alignSelf_;                ///< See alignSelf().
+	GridCell gridCell_;                                  ///< See gridCell().
+	std::array<std::optional<Length>, 4> anchors_;       ///< Indexed by Edge.
+	std::array<std::optional<AnchorTarget>, 4> targets_; ///< Anchors to other panels, indexed by Edge.
+	std::uint8_t targetEdges_ = 0; ///< A bit per edge (1 << Edge) whose targets_ is set, read on every pass.
+	float grow_ = 0.0f;            ///< See grow().
 	std::optional<float> arrangedWidth_, arrangedHeight_; ///< Set by a container for this pass (arrangeSize()).
 	Color color_ = colors::panel;                         ///< Background.
 	CornerRadii radii_;                                   ///< See cornerRadii().
@@ -555,7 +587,8 @@ private:
 	Placement placement_ = Placement::Below; ///< See setOverlay().
 
 	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
-	std::optional<LayoutInputs> laidOut_;  ///< What the last pass gave it; nullopt before the first.
+	std::uint64_t skippedPass_ = 0;        ///< The window's layout pass that last skipped this panel and its subtree.
+	LayoutInputs laidOut_;                 ///< What the last pass gave it; nullopt before the first.
 	std::optional<MeasuredSize> measured_; ///< See measuredSize(); nullopt once something changed.
 	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
 	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.

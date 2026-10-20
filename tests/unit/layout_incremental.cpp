@@ -125,6 +125,7 @@ TEST_CASE("layout: incremental passes give the frames of a full pass, whatever c
 	const auto window = createHeadlessWindow(500, 400, clock);
 
 	// Rows and columns three deep, with anchored, growing, wrapping, scrolling and hidden panels
+	// NOLINTNEXTLINE(bugprone-random-generator-seed): a fixed seed, so a failing round can be played again
 	std::mt19937 random(20261020);
 	std::vector<Panel*> containers{&window->root()};
 	for(int i = 0; i < 40; ++i) {

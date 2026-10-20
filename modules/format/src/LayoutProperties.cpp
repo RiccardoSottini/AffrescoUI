@@ -13,12 +13,12 @@
 #include <format>
 #include <optional>
 #include <string_view>
+#include <utility>
 
 namespace affresco::format {
 
 using expect::fail;
 using expect::integer;
-using expect::number;
 using expect::object;
 using expect::string;
 
@@ -128,7 +128,7 @@ GridCell cell(const json& value, const std::string& at) {
 	for(const auto& [key, number] : object(value, at).items()) {
 		const std::string where = concatenate(at, ".", key);
 		const int amount = integer(number, where);
-		if(amount < 1 || amount > static_cast<int>(maxGridTracks))
+		if(amount < 1 || std::cmp_greater(amount, maxGridTracks))
 			fail(where, std::format("expected a whole number from 1 to {}", maxGridTracks));
 		if(key == "column") result.column = amount;
 		else if(key == "row") result.row = amount;
@@ -186,8 +186,10 @@ std::optional<Length> optionalLength(const json& value, std::string_view none, c
 /// runtime's reset (and "from") set it otherwise.
 /// @param panel The panel, a Stack.
 /// @param values The keys the node gives.
+/// @param reader Not used: these keys have no colours or fonts.
 /// @param path Its place, for errors.
-void applyStack(Panel& panel, const json& values, const PropertyReader&, const std::string& path) {
+void applyStack(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
+	static_cast<void>(reader);
 	auto* stack = dynamic_cast<Stack*>(&panel);
 	if(!stack) return;
 	const auto at = [&](const char* key) { return concatenate(path, ".", key); };
@@ -203,8 +205,10 @@ void applyStack(Panel& panel, const json& values, const PropertyReader&, const s
 /// @brief Applies the keys of a grid that its set holds, each to its default when the node doesn't give it.
 /// @param panel The panel, a Grid.
 /// @param values The keys the node gives.
+/// @param reader Not used: these keys have no colours or fonts.
 /// @param path Its place, for errors.
-void applyGrid(Panel& panel, const json& values, const PropertyReader&, const std::string& path) {
+void applyGrid(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
+	static_cast<void>(reader);
 	auto* grid = dynamic_cast<Grid*>(&panel);
 	if(!grid) return;
 	const auto at = [&](const char* key) { return concatenate(path, ".", key); };
@@ -276,7 +280,7 @@ std::shared_ptr<const PropertySet> gridProperties() {
 std::vector<Track> gridTracks(const json& value, const std::string& at) {
 	if(value.is_number()) {
 		const int columns = integer(value, at);
-		if(columns < 1 || columns > static_cast<int>(maxGridTracks))
+		if(columns < 1 || std::cmp_greater(columns, maxGridTracks))
 			fail(at, std::format("expected 1 to {} columns", maxGridTracks));
 		return std::vector<Track>(static_cast<std::size_t>(columns), Track::fraction(1.0f));
 	}

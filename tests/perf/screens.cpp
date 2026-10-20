@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdio>
 #include <format>
 #include <fstream>
 #include <memory>
@@ -306,11 +305,11 @@ std::vector<Workload> layoutWorkloads(Context& context) {
 		if(cards == cardsForFiveThousandPanels && panels < 5000)
 			throw std::logic_error(std::format("layout/5000 has only {} panels", panels));
 		const auto smaller = std::make_shared<bool>(false);
-		Workload workload{.name = cards == cardsForFiveThousandPanels ? "layout/5000" : "layout/" + std::to_string(cards),
+		Workload workload{.name =
+		                      cards == cardsForFiveThousandPanels ? "layout/5000" : "layout/" + std::to_string(cards),
 		                  .runs = 15};
 		workload.step = [&window = loaded.window, smaller] { resize(window, *smaller); };
 		workloads.push_back(std::move(workload));
-		std::fprintf(stderr, "%s: %zu panels\n", workloads.back().name.c_str(), panels);
 		if(cards != cardsForFiveThousandPanels) continue;
 
 		// One card's title changes: only what that moves is laid out again

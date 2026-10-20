@@ -182,8 +182,10 @@ void placeAlong(const FlexOptions& options, std::span<const FlexItem> items, std
                 std::span<FlexPlacement> placements) {
 	const float room = options.main;
 	const float before = lineLength(work, options.gap);
-	const bool filled = before < room ? growLine(items, work, room, options.gap)
-	                                  : before > room && shrinkLine(items, work, room, options.gap);
+	const bool grows = std::ranges::any_of(items, [](const FlexItem& item) { return item.grow > 0.0f; });
+	const bool shrinks = std::ranges::any_of(items, [](const FlexItem& item) { return item.shrink > 0.0f; });
+	const bool filled = before < room ? grows && growLine(items, work, room, options.gap)
+	                                  : before > room && shrinks && shrinkLine(items, work, room, options.gap);
 	const float total = filled ? room : lineLength(work, options.gap);
 
 	for(std::size_t i = 0; i < items.size(); ++i)

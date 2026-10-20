@@ -134,6 +134,30 @@ void fitSpanningContent(std::span<const Track> tracks, std::span<Sizing> sizing,
 	}
 }
 
+/// @brief Sizes the content tracks: as large as the largest child in each (its minimum, its maximum, or both), then
+/// wider where children spanning several tracks need it.
+/// @param tracks The declared tracks (those past them are content tracks).
+/// @param sizing Every track, the fixed sizes set.
+/// @param contents What the children need.
+/// @param gap Between tracks.
+void fitContent(std::span<const Track> tracks, std::span<Sizing> sizing, std::span<const TrackContent> contents,
+                float gap) {
+	const std::size_t count = sizing.size();
+	std::vector<TrackContent> spanning;
+	for(const TrackContent& content : contents) {
+		if(content.first >= count) continue;
+		if(content.span > 1) {
+			spanning.push_back({content.first, std::min(content.span, count - content.first), content.size});
+			continue;
+		}
+		const Track track = content.first < tracks.size() ? tracks[content.first] : Track::content();
+		Sizing& target = sizing[content.first];
+		if(track.minimum.unit == TrackUnit::Content) target.base = std::max(target.base, content.size);
+		if(track.maximum.unit == TrackUnit::Content) target.limit = std::max(target.limit, content.size);
+	}
+	fitSpanningContent(tracks, sizing, spanning, gap);
+}
+
 /// @brief Grows the tracks below their limit equally into the room left over (the fraction tracks wait).
 /// @param sizing The tracks.
 /// @param free The room left over.
@@ -220,19 +244,7 @@ void sizeTracks(std::span<const Track> tracks, std::size_t count, std::span<cons
 		else sizing[i].limit = fixedSize(track.maximum, available);
 	}
 
-	// Content: the largest child in each track (its minimum, its maximum, or both)
-	for(const TrackContent& content : contents) {
-		if(content.span != 1 || content.first >= count) continue;
-		const Track track = content.first < tracks.size() ? tracks[content.first] : Track::content();
-		Sizing& target = sizing[content.first];
-		if(track.minimum.unit == TrackUnit::Content) target.base = std::max(target.base, content.size);
-		if(track.maximum.unit == TrackUnit::Content) target.limit = std::max(target.limit, content.size);
-	}
-	std::vector<TrackContent> spanning;
-	for(const TrackContent& content : contents)
-		if(content.span > 1 && content.first < count)
-			spanning.push_back({content.first, std::min(content.span, count - content.first), content.size});
-	fitSpanningContent(tracks, sizing, spanning, gap);
+	fitContent(tracks, sizing, contents, gap);
 
 	const float gaps = count > 0 ? gap * static_cast<float>(count - 1) : 0.0f;
 	float free = available - gaps;

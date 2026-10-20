@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <tuple>
+#include <utility>
 
 namespace affresco {
 
@@ -14,6 +16,11 @@ namespace {
 /// @param edge The edge.
 /// @return Its index.
 constexpr std::size_t index(Edge edge) noexcept { return static_cast<std::size_t>(edge); }
+
+/// @brief The bit of an edge in Panel::targetEdges_.
+/// @param edge The edge.
+/// @return Its bit.
+constexpr std::uint8_t edgeBit(Edge edge) noexcept { return static_cast<std::uint8_t>(1u << index(edge)); }
 
 /// @brief The position of a rectangle's edge.
 /// @param rect The rectangle.
@@ -93,9 +100,9 @@ Vec2 Panel::measuredSize(Vec2 reference) {
 	const std::uint64_t generation = window_ ? window_->measureGeneration_ : 0;
 	if(measured_ && measured_->reference == reference && measured_->generation == generation) return measured_->size;
 	prepareLayout();
-	const Vec2 size = withAspectRatio(
-	    {bounded(width_, minWidth_, maxWidth_, reference.x), bounded(height_, minHeight_, maxHeight_, reference.y)},
-	    width_.value != 0.0f, height_.value != 0.0f, reference);
+	Vec2 size{bounded(width_, minWidth_, maxWidth_, reference.x),
+	          bounded(height_, minHeight_, maxHeight_, reference.y)};
+	if(aspectRatio_ > 0.0f) size = withAspectRatio(size, width_.value != 0.0f, height_.value != 0.0f, reference);
 	measured_ = MeasuredSize{reference, size, generation};
 	return size;
 }
@@ -195,9 +202,10 @@ void Panel::setAspectRatio(float ratio) {
 
 // Containers set their children's anchors on every pass: an anchor that stays the same changes nothing
 void Panel::setAnchor(Edge edge, Length offset) {
-	if(anchors_[index(edge)] == offset && !targets_[index(edge)]) return;
+	if(anchors_[index(edge)] == offset && (targetEdges_ & edgeBit(edge)) == 0) return;
 	anchors_[index(edge)] = offset;
 	targets_[index(edge)].reset();
+	targetEdges_ &= static_cast<std::uint8_t>(~edgeBit(edge));
 	invalidate();
 }
 
@@ -206,13 +214,15 @@ void Panel::setAnchorTo(Edge edge, std::string id, Edge targetEdge, float offset
 	if(anchors_[index(edge)] == px(0.0f) && targets_[index(edge)] == target) return;
 	anchors_[index(edge)] = px(0.0f);
 	targets_[index(edge)] = std::move(target);
+	targetEdges_ |= edgeBit(edge);
 	invalidate();
 }
 
 void Panel::clearAnchor(Edge edge) {
-	if(!anchors_[index(edge)] && !targets_[index(edge)]) return;
+	if(!anchors_[index(edge)] && (targetEdges_ & edgeBit(edge)) == 0) return;
 	anchors_[index(edge)].reset();
 	targets_[index(edge)].reset();
+	targetEdges_ &= static_cast<std::uint8_t>(~edgeBit(edge));
 	invalidate();
 }
 
@@ -305,17 +315,22 @@ void Panel::setVisible(bool visible) { setProperty(visible_, visible); }
 
 /* Layout */
 
-// Parent anchors are measured from the parent's (scrolled) frame; bottom/right ones from its unclipped size
+// Found by id, so the other panel may be anywhere in the tree
+std::optional<float> Panel::targetEdge(Edge edge) const {
+	const auto& target = targets_[index(edge)];
+	if(!target || !window_) return std::nullopt;
+	const Panel* other = window_->root().findById(target->id);
+	if(!other) return std::nullopt;
+	if(!other->isSettled(window_->layoutPass_)) window_->forwardAnchor_ = true; // a later panel: lay out again
+	return edgeOf(other->frame_, target->edge) + target->offset;
+}
+
+// Parent anchors are measured from the parent's (scrolled) frame; bottom/right ones from its unclipped size. Every
+// panel asks this for its four edges on every pass, so an anchor to another panel is told apart by a bit
 std::optional<float> Panel::anchoredEdge(Edge edge, const Rect& origin, Vec2 parentSize) const {
 	const auto& anchor = anchors_[index(edge)];
 	if(!anchor) return std::nullopt;
-
-	if(const auto& target = targets_[index(edge)]) {
-		const Panel* other = window_ ? window_->root().findById(target->id) : nullptr;
-		if(!other) return std::nullopt;
-		if(other->layoutPass_ != window_->layoutPass_) window_->forwardAnchor_ = true; // a later panel: lay out again
-		return edgeOf(other->frame_, target->edge) + target->offset;
-	}
+	if((targetEdges_ & edgeBit(edge)) != 0) return targetEdge(edge);
 
 	switch(edge) {
 	case Edge::Top:
@@ -330,22 +345,52 @@ std::optional<float> Panel::anchoredEdge(Edge edge, const Rect& origin, Vec2 par
 	return std::nullopt;
 }
 
-// A subtree whose inputs are the same and where nothing changed keeps the frames it has
-bool Panel::canSkipLayout(const LayoutInputs& inputs) const noexcept {
-	return window_ && !window_->layoutAll_ && !layoutDirty_ && !layoutBelow_ && !anchorsBelow_ && laidOut_ == inputs;
+// An edge anchored wins; without one the position places it; a container's size wins over the far anchor
+std::pair<float, float> Panel::alongAxis(AnchoredEdges edges, float position, float size, bool arranged) noexcept {
+	const float start = edges.start ? *edges.start : edges.end ? *edges.end - size : position;
+	return {start, edges.end && (!edges.start || !arranged) ? *edges.end : start + size};
+}
+
+// An axis stretched by its anchors is set too: the other one follows its stretched size
+void Panel::followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, Vec2 parentSize) noexcept {
+	const bool stretchedX = horizontal.start && horizontal.end && !arrangedWidth_;
+	const bool stretchedY = vertical.start && vertical.end && !arrangedHeight_;
+	if(stretchedX) size_.x = std::max(*horizontal.end - *horizontal.start, 0.0f);
+	if(stretchedY) size_.y = std::max(*vertical.end - *vertical.start, 0.0f);
+	size_ = withAspectRatio(size_, arrangedWidth_ || stretchedX || width_.value != 0.0f,
+	                        arrangedHeight_ || stretchedY || height_.value != 0.0f, parentSize);
+}
+
+// A subtree whose inputs are the same and where nothing changed keeps the frames it has. A panel never laid out is
+// dirty, so laidOut_ is read only once it holds a pass's inputs
+bool Panel::canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) const noexcept {
+	if(layoutDirty_ || layoutBelow_ || anchorsBelow_ || !window_ || window_->layoutAll_) return false;
+	return laidOut_.origin == origin && laidOut_.clip == clip && laidOut_.parentSize == parentSize &&
+	       laidOut_.parentShown == parentShown && laidOut_.arrangedWidth == arrangedWidth_ &&
+	       laidOut_.arrangedHeight == arrangedHeight_;
+}
+
+// Laid out in this pass, or inside a subtree the pass skipped: its frame won't change again in the pass
+bool Panel::isSettled(std::uint64_t pass) const noexcept {
+	if(layoutPass_ == pass) return true;
+	for(const Panel* panel = this; panel; panel = panel->parent_)
+		if(panel->skippedPass_ == pass) return true;
+	return false;
 }
 
 void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) {
-	const LayoutInputs inputs{origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
-	if(canSkipLayout(inputs)) return;
-	laidOut_ = inputs;
+	if(canSkipLayout(origin, clip, parentSize, parentShown)) {
+		skippedPass_ = window_->layoutPass_;
+		return;
+	}
+	laidOut_ = {origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
 
 	prepareLayout();
 	if(window_) layoutPass_ = window_->layoutPass_;
 	placeFrame(origin, clip, parentSize, parentShown);
 	arrange();
 	layoutChildren();
-	finishLayout();
+	layoutDirty_ = false;
 }
 
 void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) {
@@ -356,28 +401,13 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 	const auto bottom = anchoredEdge(Edge::Bottom, origin, parentSize);
 	const auto left = anchoredEdge(Edge::Left, origin, parentSize);
 	const auto right = anchoredEdge(Edge::Right, origin, parentSize);
-	if(aspectRatio_ > 0.0f) {
-		// An axis stretched by its anchors is set too: the other one follows its stretched size
-		const bool stretchedX = left && right && !arrangedWidth_, stretchedY = top && bottom && !arrangedHeight_;
-		if(stretchedX) size_.x = std::max(*right - *left, 0.0f);
-		if(stretchedY) size_.y = std::max(*bottom - *top, 0.0f);
-		size_ = withAspectRatio(size_, arrangedWidth_ || stretchedX || width_.value != 0.0f,
-		                        arrangedHeight_ || stretchedY || height_.value != 0.0f, parentSize);
-	}
+	if(aspectRatio_ > 0.0f) followAspectRatio({left, right}, {top, bottom}, parentSize);
 
 	Rect rect;
-
-	if(top) rect.top = *top;
-	else if(bottom) rect.top = *bottom - size_.y;
-	else rect.top = origin.top + y_.resolve(parentSize.y);
-
-	rect.bottom = bottom && (!top || !arrangedHeight_) ? *bottom : rect.top + size_.y;
-
-	if(left) rect.left = *left;
-	else if(right) rect.left = *right - size_.x;
-	else rect.left = origin.left + x_.resolve(parentSize.x);
-
-	rect.right = right && (!left || !arrangedWidth_) ? *right : rect.left + size_.x;
+	std::tie(rect.top, rect.bottom) =
+	    alongAxis({top, bottom}, origin.top + y_.resolve(parentSize.y), size_.y, arrangedHeight_.has_value());
+	std::tie(rect.left, rect.right) =
+	    alongAxis({left, right}, origin.left + x_.resolve(parentSize.x), size_.x, arrangedWidth_.has_value());
 
 	// A panel anchored on opposite edges is stretched: its real size (what children measure against) comes from them
 	size_ = {std::max(rect.width(), 0.0f), std::max(rect.height(), 0.0f)};
@@ -394,27 +424,22 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 	shown_ = parentShown && visible_ && rect.bottom >= rect.top && rect.right >= rect.left;
 }
 
-// A change made during the pass to a panel already laid out stays marked, for the next pass
-void Panel::finishLayout() noexcept {
-	layoutDirty_ = false;
-	bool below = false, overlays = false;
-	bool anchors = std::ranges::any_of(targets_, [](const auto& target) { return target.has_value(); });
-	for(const auto& child : children_) {
-		below = below || child->layoutDirty_ || child->layoutBelow_;
-		anchors = anchors || child->anchorsBelow_;
-		overlays = overlays || child->overlay_ || child->overlaysBelow_;
-	}
-	layoutBelow_ = below;
-	anchorsBelow_ = anchors;
-	overlaysBelow_ = overlays;
-}
-
+// What the subtree has is gathered from the children as they are laid out. A change made during the pass to a panel
+// already laid out stays marked, for the next pass
 void Panel::layoutChildren() {
 	auto pass = [this] {
 		const Rect origin{frame_.left - scroll_.x, frame_.top - scroll_.y, frame_.right - scroll_.x,
 		                  frame_.bottom - scroll_.y};
-		for(auto& child : children_)
-			if(!child->overlay_) child->layout(origin, bounds_, size_, shown_);
+		bool below = false, anchors = targetEdges_ != 0, overlays = false;
+		for(auto& child : children_) {
+			if(!child->overlay_) child->layout(origin, bounds_, size_, shown_); // overlays: after the whole tree
+			below = below || child->layoutDirty_ || child->layoutBelow_;
+			anchors = anchors || child->anchorsBelow_;
+			overlays = overlays || child->overlay_ || child->overlaysBelow_;
+		}
+		layoutBelow_ = below;
+		anchorsBelow_ = anchors;
+		overlaysBelow_ = overlays;
 	};
 	pass();
 	if(!isScrollable()) return;
