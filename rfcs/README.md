@@ -34,6 +34,23 @@ When you aren't sure, ask in an issue.
 An accepted RFC is a record of a decision, not documentation: once it is built, `SCREEN_FORMAT.md`,
 `VERSION_CONTROL.md` and the READMEs next to the code describe how things work.
 
+## Prototypes
+
+An RFC may come with a prototype in `prototypes/<number>-<name>/`: screens, scripts or checks that try the design
+before anything is built in the library (a screen that runs today, the proposed syntax side by side, the edits an
+agent would send, an executable specification of a protocol). Prototypes use only what exists and the Python standard
+library, change nothing outside their folder, and aren't part of the build. `prototypes/tokens.py` counts the tokens
+of a prototype's documents and edits, the way `tests/perf/tokens.py` does for the templates.
+
 ## Accepted RFCs
 
 None yet.
+
+## Under review
+
+| RFC | Decides |
+|---|---|
+| [0001: Contributions](0001-contributions.md) | Commands, keybindings with chords and `when`, context keys, menus, settings |
+| [0002: Services and data models](0002-services.md) | Native providers, out-of-process JSON-RPC services, `invoke` and `subscribe`, host data models (D2) |
+| [0003: Connections, sign-in and servers](0003-network.md) | Declared connections and operations, OAuth sign-in, secrets, remote peers, a document server (D3) |
+| [0004: Features as packages](0004-features.md) | Manifests, namespaces, installs as revisions, composition checks, signatures, a catalogue |
