@@ -28,6 +28,7 @@ affrescoui_module(format
 	src/Reconciler.cpp
 	src/Properties.cpp
 	src/PropertyValues.cpp
+	src/LayoutProperties.cpp
 	src/TypeRegistry.cpp
 	src/Types.cpp
 	src/EditorType.cpp

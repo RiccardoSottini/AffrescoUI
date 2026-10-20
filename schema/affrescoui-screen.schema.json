@@ -395,6 +395,37 @@
 					}
 				]
 			},
+			"crossAlign": {
+				"anyOf": [
+					{
+						"enum": [
+							"start",
+							"center",
+							"end",
+							"stretch"
+						]
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"track": {
+				"description": "A grid column or row: pixels (120), a percentage of the grid (\"25%\"), a fraction of the room left (\"1fr\"), \"auto\" (its largest child) or \"minmax(minimum, maximum)\"",
+				"anyOf": [
+					{
+						"type": "number",
+						"minimum": 0
+					},
+					{
+						"type": "string",
+						"pattern": "^(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?|minmax\\( *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *, *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *\\))$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
 			"stateBlock": {
 				"type": "object",
 				"description": "Properties shown in that state (any visual property, or a style)"
@@ -472,6 +503,44 @@
 					"minHeight": {
 						"$ref": "#/$defs/v1/length"
 					},
+					"maxWidth": {
+						"description": "The largest width (the minimum wins); \"none\" for no maximum",
+						"anyOf": [
+							{
+								"const": "none"
+							},
+							{
+								"$ref": "#/$defs/v1/length"
+							}
+						]
+					},
+					"maxHeight": {
+						"description": "The largest height (the minimum wins); \"none\" for no maximum",
+						"anyOf": [
+							{
+								"const": "none"
+							},
+							{
+								"$ref": "#/$defs/v1/length"
+							}
+						]
+					},
+					"aspectRatio": {
+						"description": "Width divided by height (1.5 or \"16/9\"): the height follows the width, or the width follows the height when only the height is set",
+						"anyOf": [
+							{
+								"type": "number",
+								"exclusiveMinimum": 0
+							},
+							{
+								"type": "string",
+								"pattern": "^[0-9]+(\\.[0-9]+)? */ *[0-9]+(\\.[0-9]+)?$"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
 					"anchors": {
 						"type": "object",
 						"additionalProperties": false,
@@ -510,6 +579,60 @@
 								"$ref": "#/$defs/v1/dynamic"
 							}
 						]
+					},
+					"shrink": {
+						"description": "In a row or column: how much of an overflow it gives up, in proportion to its size (CSS flex-shrink). Default 0",
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"basis": {
+						"description": "In a row or column: its size along it before growing or shrinking (CSS flex-basis); \"auto\" for its own",
+						"anyOf": [
+							{
+								"const": "auto"
+							},
+							{
+								"$ref": "#/$defs/v1/length"
+							}
+						]
+					},
+					"alignSelf": {
+						"description": "In a row, column or grid: where it sits across, over the container's alignItems",
+						"$ref": "#/$defs/v1/crossAlign"
+					},
+					"cell": {
+						"description": "In a grid: its first column and row (from 1) and how many it spans; left out, the next free cell",
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"column": {
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 1000
+							},
+							"row": {
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 1000
+							},
+							"columnSpan": {
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 1000
+							},
+							"rowSpan": {
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 1000
+							}
+						}
 					},
 					"color": {
 						"$ref": "#/$defs/v1/color"
@@ -899,9 +1022,81 @@
 							}
 						]
 					},
+					"justify": {
+						"description": "row, column, stack: how the children are spread along it (from is the older name of the first three)",
+						"anyOf": [
+							{
+								"enum": [
+									"start",
+									"center",
+									"end",
+									"space-between",
+									"space-around",
+									"space-evenly"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"alignItems": {
+						"description": "row, column, stack: where children sit across (left out: their own anchors); grid: down their cells (default start)",
+						"$ref": "#/$defs/v1/crossAlign"
+					},
+					"justifyItems": {
+						"description": "grid: where children sit across their cells (default stretch)",
+						"$ref": "#/$defs/v1/crossAlign"
+					},
+					"rowGap": {
+						"description": "Pixels between rows (a column's children, a wrapping row's lines, a grid's rows); default: gap",
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"columnGap": {
+						"description": "Pixels between columns (a row's children, a wrapping column's lines, a grid's columns); default: gap",
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
 					"columns": {
-						"type": "integer",
-						"minimum": 1
+						"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]",
+						"anyOf": [
+							{
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 1000
+							},
+							{
+								"type": "array",
+								"minItems": 1,
+								"maxItems": 1000,
+								"items": {
+									"$ref": "#/$defs/v1/track"
+								}
+							}
+						]
+					},
+					"rows": {
+						"description": "grid: the rows' tracks; rows past them are as tall as their tallest child",
+						"type": "array",
+						"maxItems": 1000,
+						"items": {
+							"$ref": "#/$defs/v1/track"
+						}
 					},
 					"checked": {
 						"$ref": "#/$defs/v1/flag"

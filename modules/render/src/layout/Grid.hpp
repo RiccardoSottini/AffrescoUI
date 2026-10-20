@@ -29,9 +29,6 @@ struct TrackContent {
 	float size = 0.0f;     ///< Its measured size along the tracks.
 };
 
-/// @brief The most rows or columns a grid has, whatever its children ask for: a child placed past it is clamped.
-inline constexpr std::size_t maxGridTracks = 1000;
-
 /// @brief Places a grid's children in cells: first those that name their column and row, then those that name only a
 /// row, then only a column, then the others row after row in the next free cells (the sparse placement of CSS).
 /// @param columns The grid's columns (at least 1); children are kept inside them, spans shortened to fit.

@@ -4,7 +4,13 @@
 /// @brief The values of flexible and grid layout: how a row or a column spreads its children (Justify), where a child
 /// sits across it (CrossAlign), the size of a grid's columns and rows (Track) and the cell a child takes (GridCell).
 
+#include <cstddef>
+
 namespace affresco {
+
+/// @brief The most columns or rows a grid has, whatever it declares or its children ask for: more are dropped, and a
+/// child placed past them is placed in the last.
+inline constexpr std::size_t maxGridTracks = 1000;
 
 /// @brief How a row or a column spreads its children along its direction, like CSS justify-content.
 enum class Justify {

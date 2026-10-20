@@ -100,7 +100,7 @@ public:
 	/// @param columns At least 1.
 	void setColumns(int columns);
 	/// @brief Sets the columns' tracks.
-	/// @param columns At least one track (none gives one equal column); at most detail::maxGridTracks are used.
+	/// @param columns At least one track (none gives one equal column); at most maxGridTracks are used.
 	void setColumns(std::vector<Track> columns);
 	/// @brief Sets the rows' tracks; rows past them are as tall as their tallest child.
 	/// @param rows The tracks; empty (the default) for rows as tall as their content.

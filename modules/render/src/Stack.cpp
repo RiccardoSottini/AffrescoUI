@@ -133,18 +133,18 @@ Grid::Grid() : columns_(2, Track::fraction(1.0f)) { setColor(colors::transparent
 
 void Grid::setColumns(int columns) {
 	setColumns(
-	    std::vector<Track>(static_cast<std::size_t>(std::clamp(columns, 1, static_cast<int>(detail::maxGridTracks))),
+	    std::vector<Track>(static_cast<std::size_t>(std::clamp(columns, 1, static_cast<int>(maxGridTracks))),
 		                   Track::fraction(1.0f)));
 }
 
 void Grid::setColumns(std::vector<Track> columns) {
 	if(columns.empty()) columns.push_back(Track::fraction(1.0f));
-	if(columns.size() > detail::maxGridTracks) columns.resize(detail::maxGridTracks);
+	if(columns.size() > maxGridTracks) columns.resize(maxGridTracks);
 	setProperty(columns_, std::move(columns));
 }
 
 void Grid::setRows(std::vector<Track> rows) {
-	if(rows.size() > detail::maxGridTracks) rows.resize(detail::maxGridTracks);
+	if(rows.size() > maxGridTracks) rows.resize(maxGridTracks);
 	setProperty(rows_, std::move(rows));
 }
 
@@ -218,7 +218,7 @@ void Grid::arrange() {
 			columnCount =
 			    std::max(columnCount, static_cast<std::size_t>(cell.column - 1 + std::max(cell.columnSpan, 1)));
 	}
-	columnCount = std::min(columnCount, detail::maxGridTracks);
+	columnCount = std::min(columnCount, maxGridTracks);
 	std::vector<detail::GridArea> areas;
 	const std::size_t rowsUsed = detail::placeGridItems(columnCount, cells, areas);
 
