@@ -170,7 +170,7 @@ TEST_CASE("plain text: most words of the templates take the fast path, so the co
 			const std::size_t end = std::min(line.find(U' ', start), line.size());
 			if(end > start) {
 				++words;
-				plain += FontInspector::isPlain(*roboto, std::u32string_view(line).substr(start, end - start)) ? 1 : 0;
+				if(FontInspector::isPlain(*roboto, std::u32string_view(line).substr(start, end - start))) ++plain;
 			}
 			start = end + 1;
 		}
