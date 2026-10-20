@@ -24,6 +24,6 @@ while IFS= read -r file; do
 	*.md) ;;
 	*) code=true ;;
 	esac
-done < <(git diff --name-only "$base" HEAD)
+done < <(git diff --no-renames --name-only "$base" HEAD) # a file moved into docs/ is also one gone from where it was
 echo "code=$code" >>"$output"
 echo "Changes since $(git rev-parse --short "$base"): code=$code"
