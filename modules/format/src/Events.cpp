@@ -369,7 +369,8 @@ void Events::dismissOverlays(const Vec2* position) {
 			if(panel->bounds().contains(*position)) continue;
 			const Panel* anchor =
 			    record.overlayAnchor.empty() ? panel->parent() : engine_.window->root().findById(record.overlayAnchor);
-			if(anchor && anchor->bounds().contains(*position)) continue; // the anchor toggles it itself
+			// The anchor toggles it itself; the root holds every point, so it is no anchor
+			if(anchor && anchor != &engine_.window->root() && anchor->bounds().contains(*position)) continue;
 		}
 		try {
 			const std::string where = record.path + ".overlay.open";

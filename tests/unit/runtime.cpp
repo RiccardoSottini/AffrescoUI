@@ -114,3 +114,52 @@ TEST_CASE("format: the shipped templates build on a headless window") {
 		CHECK(window->root().children().size() > 0);
 	}
 }
+
+namespace {
+
+/// @brief A screen with an open overlay that "dismiss"es, whose parent is the root (so it has no anchor of its own).
+constexpr const char* overlayScreen = R"json({
+	"format": "affrescoui-screen", "version": 1,
+	"state": { "open": true },
+	"root": { "id": "main", "children": [
+		{ "id": "menu", "width": 100, "height": 50,
+		  "overlay": { "placement": "center", "open": "state.open", "dismiss": "outside" } }
+	] }
+})json";
+
+} // namespace
+
+// Before, the overlay's parent stood for its anchor, which toggles it itself: the root holds every point, so no click
+// was outside it
+TEST_CASE("format: an overlay whose parent is the root closes on a click outside it") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(overlayScreen);
+	screen.build(*window);
+	window->render();
+	REQUIRE(screen.find("menu"));
+	REQUIRE(screen.find("menu")->isShown());
+
+	clickOn(*window, *screen.find("menu")); // inside: it stays
+	window->render();
+	CHECK(json::parse(screen.stateJson())["open"] == true);
+
+	window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, {5.0f, 5.0f}});
+	window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Release, {}, {5.0f, 5.0f}});
+	window->render();
+	CHECK(json::parse(screen.stateJson())["open"] == false);
+	CHECK_FALSE(screen.find("menu")->isShown());
+}
+
+TEST_CASE("format: Escape closes the open overlays when nothing has the focus") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(overlayScreen);
+	screen.build(*window);
+	window->render();
+	REQUIRE_FALSE(window->focusedPanel());
+
+	window->routeKey({affresco::Key::Escape, 0, affresco::Action::Press, {}});
+	window->render();
+	CHECK(json::parse(screen.stateJson())["open"] == false);
+}
