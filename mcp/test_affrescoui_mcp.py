@@ -11,6 +11,7 @@ import json
 import os
 import socket
 import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -149,6 +150,15 @@ class Scenarios(unittest.TestCase):
             "kanban.scenarios.json on proposal 3: 6 passed, 1 failed",
             "FAILED add-a-card, step 5: state columns[0].cards.length is 4, expected 5",
             "FAILED broken: could not start: no such file"]))
+
+    def test_only_a_scenarios_file_is_read(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        with tempfile.TemporaryDirectory() as folder:
+            other = os.path.join(folder, "settings.json")  # any other file the agent names, JSON or not
+            with open(other, "w", encoding="utf-8") as file:
+                json.dump({"token": "not for the agent"}, file)
+            self.assertEqual(server.run_scenarios({"file": other}),
+                             ("error: file: expected a *.scenarios.json file", True))
 
 
 class Rereads(unittest.TestCase):

@@ -138,4 +138,16 @@ struct Report {
 /// @return How each went.
 [[nodiscard]] Report run(const ScenarioFile& file, const Options& options);
 
+/// @brief Loads a screen connected to nobody: its channels, its includes' too, are pointed at one socket in a folder
+/// that is never created. A channel's own path can be absolute, and would then reach a running host's socket (its
+/// studio.sock, a reviewer's) and send it whatever the screen's `open` handler says. Scenarios play on such a screen,
+/// and `affrescoui render` draws one.
+/// @param document The screen's document, as JSON text.
+/// @param directory Where its relative paths ("include", fonts) are found.
+/// @param nowhere The folder that is never created.
+/// @return The screen.
+/// @throws std::exception If the document isn't a valid screen.
+[[nodiscard]] Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
+                                       const std::filesystem::path& nowhere);
+
 } // namespace affresco::automation

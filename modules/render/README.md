@@ -47,7 +47,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   again. **A widget whose size or arrangement depends on anything else must call `invalidate()` when it changes.**
 - **Flex and grid are pure functions** (`src/layout/Flex.*`, `src/layout/Grid.*`) of measured sizes, tested with
   tables of rectangles; `Stack` and `Grid` measure their children, call them, and turn the result into anchors and
-  arranged sizes. Their arithmetic keeps the 2017 rows, columns and grids on exactly the same pixels.
+  arranged sizes. Their arithmetic keeps the 2017 rows, columns and grids on exactly the same pixels. A grid has at
+  most `maxGridTracks` (1,000) tracks a side, and placing a child looks at each of the grid's cells about once at most.
 - **A window draws only when something changed,** and the event loop sleeps while nothing is due: idle costs no CPU.
 - **A frame draws only what changed.** Each panel keeps what it drew (`src/RetainedGeometry.hpp`: its clipped quads
   and the batch steps between them, recorded by `PaintRecorder`, the Painter panels draw with). Before a frame,

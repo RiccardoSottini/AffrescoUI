@@ -8,10 +8,15 @@
 #include "PngReader.hpp"
 
 #include <affresco/automation/Scenarios.hpp>
+#include <affresco/channel/Sockets.hpp>
+#include <affresco/core/Executor.hpp>
 
 #include <doctest/doctest.h>
 
+#include <filesystem>
 #include <fstream>
+#include <functional>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -83,6 +88,14 @@ automation::detail::KeyPress key(std::string_view text) {
 std::string oneStep(std::string_view step) {
 	return R"({"version": 1, "screen": "a.json", "scenarios": [{"name": "a", "steps": [)" + std::string(step) + "]}]}";
 }
+
+/// @brief An Executor that drops what it is given: a server that listens, and never answers.
+class Dropping final : public affresco::Executor {
+public:
+	/// @brief Drops @p task.
+	/// @param task The task.
+	void post(std::function<void()> task) override { static_cast<void>(task); }
+};
 
 } // namespace
 
@@ -260,4 +273,31 @@ TEST_CASE("automation: only the scenarios asked for, and on another document") {
 	REQUIRE(report.scenarios.size() == 1);
 	CHECK(report.scenarios[0].name == "second");
 	CHECK(report.scenarios[0].passed());
+}
+
+TEST_CASE("automation: a scenario's channels reach no host, by an absolute path either") {
+	// A document played (an agent's proposal, with run_scenarios) can name a running host's socket by its full path:
+	// were it to connect, its "open" handler could send that host what a reviewer would
+	const std::filesystem::path socket =
+	    std::filesystem::temp_directory_path() / ("aui-" + std::to_string(std::random_device{}()) + ".sock");
+	Dropping executor;
+	{
+		const affresco::channel::SocketServer host(executor, socket, [](std::unique_ptr<affresco::Channel>) {});
+		const Fixture fixture;
+		automation::Options options;
+		options.pictures = false;
+		json document = json::parse(counterScreen);
+		document["state"]["opened"] = false;
+		document["channels"] = {{"peer", {{"socket", socket.string()}}}};
+		document["actions"] = {{"peer:open", json::array({{{"set", "state.opened"}, {"to", true}}})}};
+		options.document = document.dump();
+		const automation::Report report = automation::run(
+		    fixture.scenarios(R"([{ "name": "alone", "steps": [{ "expect": { "state": "opened", "is": false } }] }])"),
+		    options);
+		REQUIRE(report.scenarios.size() == 1);
+		for(const automation::Failure& failure : report.scenarios[0].failures) INFO(failure.problem);
+		CHECK(report.scenarios[0].passed());
+	}
+	std::error_code ignored;
+	std::filesystem::remove(socket, ignored);
 }

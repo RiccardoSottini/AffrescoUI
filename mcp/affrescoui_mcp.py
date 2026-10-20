@@ -863,6 +863,8 @@ class Server:
         with affrescoui test, and reports compactly."""
         path = str(args.get("file", ""))
         path = path if os.path.isabs(path) or os.path.exists(path) else os.path.join(ROOT, path)
+        if not os.path.basename(path).endswith(".scenarios.json"):  # no other file: affrescoui test's errors
+            return "error: file: expected a *.scenarios.json file", True  # would quote its keys to the agent
         with open(path, encoding="utf-8") as file:
             shipped = json.load(file)
         document, shown = self.checked_document(args)
