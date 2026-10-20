@@ -181,6 +181,8 @@ src/
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
   Scheduler.*              timers, animations, debounces, transitions, deferred tasks
   Catalog.*                the catalog, from the registries
+  Reference*.*             the JSON Schema and SCREEN_FORMAT.md's tables, from the registries and each key's entry
+                           (ReferenceNodes.cpp, ReferenceSections.cpp); `affrescoui schema` writes them
   TypeRegistry.*           node types; Types.cpp, EditorType.cpp, ToggleType.cpp, SliderType.cpp, ImageType.cpp
                            register them, and IconProperty.cpp the labels' "icon"
   SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them
@@ -193,8 +195,9 @@ CMakeLists.txt             the affrescoui_format target and its sources
 **Add a widget type.** A new file that registers it, like `ToggleType.cpp`: a `PropertySet` with its properties
 (`PropertySpec`), an apply function that sets each from the values it is given (defaults for the missing ones), and,
 if it has a value, its `ValueHooks`; then `registry.add({name, about, factory, set, false})`, called from
-`registerBuiltInTypes` in `Types.cpp`. The catalog lists it from the registry. Add it to the schema and to
-`SCREEN_FORMAT.md` in the same change, and a scenario that shows it.
+`registerBuiltInTypes` in `Types.cpp`. The catalog, the schema and `SCREEN_FORMAT.md`'s tables list it from the
+registry: give its properties their entries in `ReferenceNodes.cpp` and a table (see below), run `affrescoui schema
+-o schema/affrescoui-screen.schema.json --doc SCREEN_FORMAT.md`, and add a scenario that shows it.
 
 **Add a property to every node.**
 1. give it a `Slot` (`CompiledNode.hpp`, and its name in `namedSlots` in `CompiledNode.cpp`), and apply it in
@@ -202,14 +205,17 @@ if it has a value, its `ValueHooks`; then `registry.add({name, about, factory, s
    goes in `LayoutProperties.cpp` instead (`layoutItemProperty`, reset in `resetLayoutItem`, listed in
    `layoutItemProperties`);
 2. list it in the panel's set in `Types.cpp` (the catalog reads it), with `transition` if it can animate;
-3. add it to the schema (`schema/affrescoui-screen.schema.json`) and to `SCREEN_FORMAT.md`, in the same change;
-4. if states (`hover`, `pressed`, ...) or `transition` may set it, say so in all three places;
+3. give it an entry in `ReferenceNodes.cpp` (its schema and its row in SCREEN_FORMAT.md's tables), then regenerate
+   both with `affrescoui schema -o schema/affrescoui-screen.schema.json --doc SCREEN_FORMAT.md` (ctest
+   `cli-reference` fails while they are out of date, and the `reference` unit tests while a key has no entry);
+4. if states (`hover`, `pressed`, ...) or `transition` may set it, say so in its entry;
 5. add a rendering-check scenario (`tests/render/scenarios/<area>.json`) that shows it.
 
 **Add a step.** Add it to a group (a `*Steps.cpp` file: its `StepType` and the code in the group's runner), or a
 new group in a new file registered from `registerBuiltInSteps` (the order there is the order groups are tried). The
-catalog lists it from the registry. Add the key to the checker's `stepNames` (`CheckerNodes.cpp`), the schema and
-`SCREEN_FORMAT.md`. If the step reaches outside the document (a program, a file, the network, history), it is a
+catalog lists it from the registry. Add the key to the checker's `stepNames` (`CheckerNodes.cpp`), give it and the
+keys it reads entries in `ReferenceSections.cpp`, and regenerate the schema and `SCREEN_FORMAT.md`'s tables with
+`affrescoui schema` (as above). If the step reaches outside the document (a program, a file, the network, history), it is a
 control step: mark it `control`, add it to `controlSteps` in `Rules.cpp` so a revision can't add it, and test that
 refusal in `tests/unit/rules.cpp`.
 

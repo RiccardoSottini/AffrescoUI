@@ -126,6 +126,18 @@ public:
 	/// @return The catalog (see SCREEN_FORMAT.md, "Catalog").
 	[[nodiscard]] json catalog() const;
 
+	/// @brief The JSON Schema of the format, with the types, sections and steps registered here (the application's
+	/// types among them).
+	/// @return The schema; schema/affrescoui-screen.schema.json is the one of the built-in types.
+	[[nodiscard]] json schema() const;
+
+	/// @brief Writes SCREEN_FORMAT.md's generated tables from the registries: the text between each
+	/// "<!-- generated: name -->" and "<!-- end generated -->".
+	/// @param markdown The document.
+	/// @return The document with its tables generated.
+	/// @throws std::invalid_argument If a marker has no end, or names a table that doesn't exist.
+	[[nodiscard]] std::string referenceTables(std::string_view markdown) const;
+
 	/// @brief The window built into, or nullptr before build().
 	[[nodiscard]] Window* window() const noexcept;
 

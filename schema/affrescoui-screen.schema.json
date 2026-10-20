@@ -170,17 +170,15 @@
 							"$ref": "#/$defs/v1/node"
 						}
 					},
-					"root": {
-						"$ref": "#/$defs/v1/node",
-						"description": "The window's root panel: it always fills the window"
-					},
 					"state": {
 						"type": "object"
 					},
 					"stateTypes": {
 						"type": "object",
 						"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
-						"additionalProperties": { "$ref": "#/$defs/v1/stateType" }
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/stateType"
+						}
 					},
 					"computed": {
 						"type": "object",
@@ -297,138 +295,12 @@
 								}
 							}
 						}
+					},
+					"root": {
+						"$ref": "#/$defs/v1/node",
+						"description": "The window's root panel: it always fills the window"
 					}
 				}
-			},
-			"permissionRule": {
-				"type": "string",
-				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
-				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
-			},
-			"hexColor": {
-				"type": "string",
-				"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-			},
-			"stateType": {
-				"description": "A type, written as JSON Schema (the subset the runtime reads), or true (anything) or false (nothing)",
-				"type": ["object", "boolean"],
-				"additionalProperties": false,
-				"properties": {
-					"type": {
-						"oneOf": [
-							{ "$ref": "#/$defs/v1/stateTypeName" },
-							{ "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/v1/stateTypeName" } }
-						]
-					},
-					"enum": { "type": "array", "minItems": 1 },
-					"const": {},
-					"properties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/v1/stateType" } },
-					"required": { "type": "array", "items": { "type": "string" } },
-					"additionalProperties": { "$ref": "#/$defs/v1/stateType" },
-					"items": { "$ref": "#/$defs/v1/stateType" },
-					"minimum": { "type": "number" },
-					"maximum": { "type": "number" },
-					"minLength": { "type": "integer", "minimum": 0 },
-					"maxLength": { "type": "integer", "minimum": 0 },
-					"minItems": { "type": "integer", "minimum": 0 },
-					"maxItems": { "type": "integer", "minimum": 0 },
-					"description": { "type": "string" },
-					"title": { "type": "string" },
-					"note": { "type": "string" },
-					"default": {},
-					"examples": { "type": "array" }
-				}
-			},
-			"stateTypeName": {
-				"enum": ["string", "number", "integer", "boolean", "object", "array", "null"]
-			},
-			"color": {
-				"description": "\"#rgb\", \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"",
-				"anyOf": [
-					{
-						"type": "string",
-						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_-]*|transparent)$"
-					},
-					{
-						"$ref": "#/$defs/v1/dynamic"
-					}
-				]
-			},
-			"length": {
-				"description": "Pixels (120 or \"120px\") or a percentage of the parent (\"50%\")",
-				"anyOf": [
-					{
-						"type": "number"
-					},
-					{
-						"type": "string",
-						"pattern": "^-?[0-9]+(\\.[0-9]+)?(px|%)?$"
-					},
-					{
-						"$ref": "#/$defs/v1/dynamic"
-					}
-				]
-			},
-			"edge": {
-				"description": "A length from the parent's edge, or another node's edge: \"#header.bottom + 8\"",
-				"anyOf": [
-					{
-						"$ref": "#/$defs/v1/length"
-					},
-					{
-						"type": "string",
-						"pattern": "^#[A-Za-z0-9_-]+\\.(top|bottom|left|right)( *[-+] *[0-9]+(\\.[0-9]+)?)?$"
-					}
-				]
-			},
-			"align": {
-				"anyOf": [
-					{
-						"enum": [
-							"start",
-							"center",
-							"end"
-						]
-					},
-					{
-						"$ref": "#/$defs/v1/dynamic"
-					}
-				]
-			},
-			"crossAlign": {
-				"anyOf": [
-					{
-						"enum": [
-							"start",
-							"center",
-							"end",
-							"stretch"
-						]
-					},
-					{
-						"$ref": "#/$defs/v1/dynamic"
-					}
-				]
-			},
-			"track": {
-				"description": "A grid column or row: pixels (120), a percentage of the grid (\"25%\"), a fraction of the room left (\"1fr\"), \"auto\" (its largest child) or \"minmax(minimum, maximum)\"",
-				"anyOf": [
-					{
-						"type": "number",
-						"minimum": 0
-					},
-					{
-						"type": "string",
-						"pattern": "^(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?|minmax\\( *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *, *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *\\))$"
-					},
-					{
-						"$ref": "#/$defs/v1/dynamic"
-					}
-				]
-			},
-			"stateBlock": {
-				"type": "object",
-				"description": "Properties shown in that state (any visual property, or a style)"
 			},
 			"node": {
 				"type": "object",
@@ -462,10 +334,6 @@
 					"id": {
 						"type": "string",
 						"description": "Addresses the node: #id in edits, nodes.id, anchors, focus"
-					},
-					"note": {
-						"type": "string",
-						"description": "A comment"
 					},
 					"style": {
 						"anyOf": [
@@ -710,9 +578,6 @@
 					"visible": {
 						"$ref": "#/$defs/v1/flag"
 					},
-					"disabled": {
-						"$ref": "#/$defs/v1/flag"
-					},
 					"cursor": {
 						"anyOf": [
 							{
@@ -731,6 +596,9 @@
 					},
 					"tooltip": {
 						"description": "Text, or a {{binding}}"
+					},
+					"disabled": {
+						"$ref": "#/$defs/v1/flag"
 					},
 					"scroll": {
 						"anyOf": [
@@ -778,21 +646,6 @@
 							}
 						}
 					},
-					"transition": {
-						"type": "object",
-						"additionalProperties": false,
-						"properties": {
-							"color": {
-								"type": "number"
-							},
-							"textColor": {
-								"type": "number"
-							},
-							"borderColor": {
-								"type": "number"
-							}
-						}
-					},
 					"hover": {
 						"$ref": "#/$defs/v1/stateBlock"
 					},
@@ -807,6 +660,21 @@
 					},
 					"pressed": {
 						"$ref": "#/$defs/v1/stateBlock"
+					},
+					"transition": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"color": {
+								"type": "number"
+							},
+							"textColor": {
+								"type": "number"
+							},
+							"borderColor": {
+								"type": "number"
+							}
+						}
 					},
 					"repeat": {
 						"type": "object",
@@ -844,10 +712,6 @@
 					"with": {
 						"type": "object",
 						"description": "A component's parameters"
-					},
-					"slot": {
-						"const": true,
-						"description": "In a component: where the use's children go"
 					},
 					"check": {
 						"type": "object",
@@ -899,8 +763,9 @@
 					"locked": {
 						"type": "boolean"
 					},
-					"autofocus": {
-						"type": "boolean"
+					"note": {
+						"type": "string",
+						"description": "A comment"
 					},
 					"text": {
 						"description": "Text, or a {{binding}}"
@@ -911,33 +776,6 @@
 					"font": {
 						"type": "string"
 					},
-					"icon": {
-						"type": "string",
-						"description": "label: an icon before the text, by its glyph name in the label's font or its fallbacks (e.g. Lucide's \"search\")"
-					},
-					"file": {
-						"type": "string",
-						"description": "image: a PNG or JPEG file, relative to the screen file and inside its folder (or one the host allows)"
-					},
-					"source": {
-						"type": "string",
-						"description": "image: an image the host names (Screen::setImage), instead of a file"
-					},
-					"fit": {
-						"anyOf": [
-							{
-								"enum": [
-									"contain",
-									"cover",
-									"fill"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "image: contain (default), cover or fill, like CSS object-fit"
-					},
 					"padding": {
 						"anyOf": [
 							{
@@ -947,9 +785,6 @@
 								"$ref": "#/$defs/v1/dynamic"
 							}
 						]
-					},
-					"wrap": {
-						"$ref": "#/$defs/v1/flag"
 					},
 					"align": {
 						"oneOf": [
@@ -971,6 +806,9 @@
 						],
 						"description": "label: text alignment; stack: v1 name of \"from\""
 					},
+					"wrap": {
+						"$ref": "#/$defs/v1/flag"
+					},
 					"fitText": {
 						"oneOf": [
 							{
@@ -991,11 +829,13 @@
 							}
 						]
 					},
-					"placeholder": {
-						"description": "Text, or a {{binding}}"
+					"icon": {
+						"type": "string",
+						"description": "label: an icon before the text, by its glyph name in the label's font or its fallbacks (e.g. Lucide's \"search\")"
 					},
-					"placeholderColor": {
-						"$ref": "#/$defs/v1/color"
+					"bind": {
+						"type": "string",
+						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider)"
 					},
 					"caret": {
 						"type": "string",
@@ -1020,9 +860,11 @@
 					"caretColor": {
 						"$ref": "#/$defs/v1/color"
 					},
-					"bind": {
-						"type": "string",
-						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider)"
+					"autofocus": {
+						"type": "boolean"
+					},
+					"onChange": {
+						"$ref": "#/$defs/v1/handler"
 					},
 					"gap": {
 						"anyOf": [
@@ -1034,16 +876,24 @@
 							}
 						]
 					},
-					"from": {
-						"$ref": "#/$defs/v1/align"
-					},
-					"direction": {
+					"rowGap": {
+						"description": "Pixels between rows (a column's children, a wrapping row's lines, a grid's rows); default: gap",
 						"anyOf": [
 							{
-								"enum": [
-									"row",
-									"column"
-								]
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"columnGap": {
+						"description": "Pixels between columns (a row's children, a wrapping column's lines, a grid's columns); default: gap",
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
 							},
 							{
 								"$ref": "#/$defs/v1/dynamic"
@@ -1068,32 +918,20 @@
 							}
 						]
 					},
+					"from": {
+						"$ref": "#/$defs/v1/align"
+					},
 					"alignItems": {
 						"description": "row, column, stack: where children sit across (left out: their own anchors); grid: down their cells (default start)",
 						"$ref": "#/$defs/v1/crossAlign"
 					},
-					"justifyItems": {
-						"description": "grid: where children sit across their cells (default stretch)",
-						"$ref": "#/$defs/v1/crossAlign"
-					},
-					"rowGap": {
-						"description": "Pixels between rows (a column's children, a wrapping row's lines, a grid's rows); default: gap",
+					"direction": {
 						"anyOf": [
 							{
-								"type": "number",
-								"minimum": 0
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
-					},
-					"columnGap": {
-						"description": "Pixels between columns (a row's children, a wrapping column's lines, a grid's columns); default: gap",
-						"anyOf": [
-							{
-								"type": "number",
-								"minimum": 0
+								"enum": [
+									"row",
+									"column"
+								]
 							},
 							{
 								"$ref": "#/$defs/v1/dynamic"
@@ -1126,18 +964,18 @@
 							"$ref": "#/$defs/v1/track"
 						}
 					},
-					"checked": {
-						"$ref": "#/$defs/v1/flag"
+					"justifyItems": {
+						"description": "grid: where children sit across their cells (default stretch)",
+						"$ref": "#/$defs/v1/crossAlign"
 					},
-					"value": {
-						"anyOf": [
-							{
-								"type": "number"
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
+					"trackColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"activeColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"knobColor": {
+						"$ref": "#/$defs/v1/color"
 					},
 					"min": {
 						"anyOf": [
@@ -1169,14 +1007,28 @@
 							}
 						]
 					},
-					"trackColor": {
-						"$ref": "#/$defs/v1/color"
+					"file": {
+						"type": "string",
+						"description": "image: a PNG or JPEG file, relative to the screen file and inside its folder (or one the host allows)"
 					},
-					"activeColor": {
-						"$ref": "#/$defs/v1/color"
+					"source": {
+						"type": "string",
+						"description": "image: an image the host names (Screen::setImage), instead of a file"
 					},
-					"knobColor": {
-						"$ref": "#/$defs/v1/color"
+					"fit": {
+						"anyOf": [
+							{
+								"enum": [
+									"contain",
+									"cover",
+									"fill"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "image: contain (default), cover or fill, like CSS object-fit"
 					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
@@ -1217,9 +1069,6 @@
 					"onKey": {
 						"$ref": "#/$defs/v1/handler"
 					},
-					"onChange": {
-						"$ref": "#/$defs/v1/handler"
-					},
 					"onSubmit": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -1228,6 +1077,29 @@
 					},
 					"onHide": {
 						"$ref": "#/$defs/v1/handler"
+					},
+					"slot": {
+						"const": true,
+						"description": "In a component: where the use's children go"
+					},
+					"placeholder": {
+						"description": "Text, or a {{binding}}"
+					},
+					"placeholderColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"checked": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"value": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
 					}
 				},
 				"if": {
@@ -1262,17 +1134,81 @@
 				},
 				"unevaluatedProperties": false
 			},
-			"dynamic": {
-				"description": "A {{binding or expression}}, or an operator ({\"$clamp\": [...]})",
-				"anyOf": [
-					{
-						"type": "string",
-						"pattern": "\\{\\{.*\\}\\}"
+			"step": {
+				"type": "object",
+				"minProperties": 1,
+				"additionalProperties": false,
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError), emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"properties": {
+					"set": {},
+					"push": {},
+					"remove": {},
+					"toggle": {},
+					"increment": {},
+					"if": {},
+					"forEach": {},
+					"while": {},
+					"run": {},
+					"call": {},
+					"emit": {},
+					"send": {},
+					"connect": {},
+					"patch": {},
+					"accept": {},
+					"reject": {},
+					"preview": {},
+					"endPreview": {
+						"const": true
 					},
-					{
-						"$ref": "#/$defs/v1/expression"
+					"restore": {},
+					"revert": {},
+					"undo": {
+						"const": true
+					},
+					"focus": {},
+					"scrollTo": {},
+					"navigate": {},
+					"after": {},
+					"debounce": {},
+					"animate": {},
+					"copy": {},
+					"log": {},
+					"stop": {},
+					"note": {},
+					"to": {},
+					"value": {},
+					"at": {},
+					"by": {},
+					"then": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"else": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"as": {},
+					"index": {},
+					"do": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"with": {},
+					"into": {},
+					"onError": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"data": {},
+					"message": {},
+					"head": {},
+					"reason": {},
+					"ms": {},
+					"easing": {
+						"enum": [
+							"linear",
+							"in",
+							"out",
+							"inOut"
+						]
 					}
-				]
+				}
 			},
 			"expression": {
 				"type": "object",
@@ -1291,42 +1227,43 @@
 						"$less",
 						"$greaterOrEqual",
 						"$lessOrEqual",
+						"$empty",
+						"$type",
 						"$add",
 						"$subtract",
 						"$multiply",
 						"$divide",
 						"$mod",
-						"$min",
-						"$max",
-						"$clamp",
 						"$round",
 						"$floor",
 						"$ceil",
 						"$abs",
-						"$length",
-						"$empty",
-						"$concat",
-						"$join",
-						"$split",
-						"$slice",
-						"$contains",
-						"$indexOf",
-						"$keys",
-						"$values",
-						"$reverse",
-						"$range",
+						"$min",
+						"$max",
+						"$clamp",
 						"$upper",
 						"$lower",
 						"$trim",
+						"$split",
 						"$number",
 						"$text",
 						"$fixed",
 						"$pad",
 						"$plural",
-						"$time",
-						"$now",
 						"$parseJson",
 						"$json",
+						"$length",
+						"$concat",
+						"$join",
+						"$slice",
+						"$contains",
+						"$indexOf",
+						"$keys",
+						"$values",
+						"$entries",
+						"$merge",
+						"$reverse",
+						"$range",
 						"$filter",
 						"$map",
 						"$count",
@@ -1335,11 +1272,212 @@
 						"$some",
 						"$every",
 						"$sort",
-						"$type",
-						"$merge",
-						"$entries"
+						"$now",
+						"$time"
 					]
 				}
+			},
+			"permissionRule": {
+				"type": "string",
+				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
+				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
+			},
+			"hexColor": {
+				"type": "string",
+				"pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+			},
+			"stateType": {
+				"description": "A type, written as JSON Schema (the subset the runtime reads), or true (anything) or false (nothing)",
+				"type": [
+					"object",
+					"boolean"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"type": {
+						"oneOf": [
+							{
+								"$ref": "#/$defs/v1/stateTypeName"
+							},
+							{
+								"type": "array",
+								"minItems": 1,
+								"items": {
+									"$ref": "#/$defs/v1/stateTypeName"
+								}
+							}
+						]
+					},
+					"enum": {
+						"type": "array",
+						"minItems": 1
+					},
+					"const": {},
+					"properties": {
+						"type": "object",
+						"additionalProperties": {
+							"$ref": "#/$defs/v1/stateType"
+						}
+					},
+					"required": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"additionalProperties": {
+						"$ref": "#/$defs/v1/stateType"
+					},
+					"items": {
+						"$ref": "#/$defs/v1/stateType"
+					},
+					"minimum": {
+						"type": "number"
+					},
+					"maximum": {
+						"type": "number"
+					},
+					"minLength": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"maxLength": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"minItems": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"maxItems": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"description": {
+						"type": "string"
+					},
+					"title": {
+						"type": "string"
+					},
+					"note": {
+						"type": "string"
+					},
+					"default": {},
+					"examples": {
+						"type": "array"
+					}
+				}
+			},
+			"stateTypeName": {
+				"enum": [
+					"string",
+					"number",
+					"integer",
+					"boolean",
+					"object",
+					"array",
+					"null"
+				]
+			},
+			"color": {
+				"description": "\"#rgb\", \"#rrggbb\", \"#rrggbbaa\", \"@name\" or \"transparent\"",
+				"anyOf": [
+					{
+						"type": "string",
+						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_-]*|transparent)$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"length": {
+				"description": "Pixels (120 or \"120px\") or a percentage of the parent (\"50%\")",
+				"anyOf": [
+					{
+						"type": "number"
+					},
+					{
+						"type": "string",
+						"pattern": "^-?[0-9]+(\\.[0-9]+)?(px|%)?$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"edge": {
+				"description": "A length from the parent's edge, or another node's edge: \"#header.bottom + 8\"",
+				"anyOf": [
+					{
+						"$ref": "#/$defs/v1/length"
+					},
+					{
+						"type": "string",
+						"pattern": "^#[A-Za-z0-9_-]+\\.(top|bottom|left|right)( *[-+] *[0-9]+(\\.[0-9]+)?)?$"
+					}
+				]
+			},
+			"align": {
+				"anyOf": [
+					{
+						"enum": [
+							"start",
+							"center",
+							"end"
+						]
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"crossAlign": {
+				"anyOf": [
+					{
+						"enum": [
+							"start",
+							"center",
+							"end",
+							"stretch"
+						]
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"track": {
+				"description": "A grid column or row: pixels (120), a percentage of the grid (\"25%\"), a fraction of the room left (\"1fr\"), \"auto\" (its largest child) or \"minmax(minimum, maximum)\"",
+				"anyOf": [
+					{
+						"type": "number",
+						"minimum": 0
+					},
+					{
+						"type": "string",
+						"pattern": "^(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?|minmax\\( *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *, *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *\\))$"
+					},
+					{
+						"$ref": "#/$defs/v1/dynamic"
+					}
+				]
+			},
+			"stateBlock": {
+				"type": "object",
+				"description": "Properties shown in that state (any visual property, or a style)"
+			},
+			"dynamic": {
+				"description": "A {{binding or expression}}, or an operator ({\"$clamp\": [...]})",
+				"anyOf": [
+					{
+						"type": "string",
+						"pattern": "\\{\\{.*\\}\\}"
+					},
+					{
+						"$ref": "#/$defs/v1/expression"
+					}
+				]
 			},
 			"pixels": {
 				"description": "A number of pixels, 0 or more",
@@ -1386,82 +1524,6 @@
 						}
 					}
 				]
-			},
-			"step": {
-				"type": "object",
-				"minProperties": 1,
-				"additionalProperties": false,
-				"description": "set+to, push+value, remove(+at), toggle, increment(+by), if+then(+else), forEach+do, while+do, run(+with), call(+with, into, onError), emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, after+do, debounce+do, animate+to(+ms, easing), copy, log, stop, note; review: accept, reject(+reason), preview, endPreview, restore, revert, undo",
-				"properties": {
-					"set": {},
-					"to": {},
-					"push": {},
-					"value": {},
-					"remove": {},
-					"at": {},
-					"toggle": {},
-					"increment": {},
-					"by": {},
-					"if": {},
-					"forEach": {},
-					"as": {},
-					"index": {},
-					"while": {},
-					"run": {},
-					"with": {},
-					"call": {},
-					"into": {},
-					"emit": {},
-					"data": {},
-					"send": {},
-					"connect": {},
-					"patch": {},
-					"message": {},
-					"focus": {},
-					"scrollTo": {},
-					"navigate": {},
-					"after": {},
-					"debounce": {},
-					"animate": {},
-					"ms": {},
-					"easing": {
-						"enum": [
-							"linear",
-							"in",
-							"out",
-							"inOut"
-						]
-					},
-					"copy": {},
-					"log": {},
-					"stop": {},
-					"note": {},
-					"accept": {},
-					"head": {},
-					"reject": {},
-					"reason": {},
-					"preview": {},
-					"endPreview": {
-						"const": true
-					},
-					"restore": {},
-					"revert": {},
-					"undo": {
-						"const": true
-					},
-					"then": {
-						"$ref": "#/$defs/v1/steps"
-					},
-					"else": {
-						"$ref": "#/$defs/v1/steps"
-					},
-					"do": {
-						"$ref": "#/$defs/v1/steps"
-					},
-					"onError": {
-						"$ref": "#/$defs/v1/steps"
-					}
-				}
 			}
 		}
 	}

@@ -143,4 +143,9 @@ Exit exportChanges(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit importChanges(std::span<const std::string_view> args);
 
+/// @brief `schema`: the format's JSON Schema and SCREEN_FORMAT.md's tables, generated from the registries.
+/// @param args The arguments.
+/// @return How it ended.
+Exit generateSchema(std::span<const std::string_view> args);
+
 } // namespace affresco::cli

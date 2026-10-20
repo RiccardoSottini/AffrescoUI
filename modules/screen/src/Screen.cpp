@@ -546,6 +546,12 @@ void Screen::setStateFile(std::filesystem::path file) {
 
 std::string Screen::catalogJson() const { return impl_->runtime.catalog().dump(); }
 
+json Screen::schema() const { return impl_->runtime.schema(); }
+
+std::string Screen::referenceTables(std::string_view markdown) const {
+	return impl_->runtime.referenceTables(markdown);
+}
+
 void Screen::onCall(std::string name, Call call) {
 	impl_->runtime.onCall(std::move(name), [call = std::move(call)](const json& arguments) {
 		const std::string result = call(arguments.dump());

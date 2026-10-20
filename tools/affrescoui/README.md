@@ -24,6 +24,7 @@ affrescoui help                         # every command; affrescoui <command> --
 | `fmt <file> [--check]` | Writes the file the way AffrescoUI files are written: tabs; an object written over several lines stays so, one member per line; anything else on one line, `{ "key": value }` and `[a, b]`, when it fits in 120 columns (a tab counts 4); empty lines between members kept; keys in their order; numbers and strings exactly as written. Formatting twice changes nothing. `--check` changes nothing and exits with 1 if the file isn't formatted. |
 | `ids <file> [--check]` | Gives a readable id to every node that has none (`label-blocked`, `panel-top-bar`; SCREEN_FORMAT.md, "Every type"), writing only the new `"id"` members into the file, and lists them. `--check` changes nothing and exits with 1 if a node has none. |
 | `export <file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]` | Writes the revisions after `--from` (default 0, the file as loaded) of the screen's history on disk as a change set ("plugin"), to stdout or `-o`. |
+| `schema [-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin\|examples] [--check]` | Generates the format's JSON Schema from the registries (the types, sections and steps the library has) and the reference in `modules/format/src/Reference*.cpp`, to `-o` or to stdout, and with `--doc` the tables of `SCREEN_FORMAT.md` between its `<!-- generated: name -->` and `<!-- end generated -->` markers. `--types examples` adds the example apps' own types (`code`), the way an application's schema has its registered types. `--check` writes nothing and exits with 1 if a file is out of date: ctest `cli-reference` runs it on the repository's files. |
 | `import <file> <changes.json> [--data DIR]` | Applies a change set to the screen's history on disk, all or nothing, once: a change set the history already has is skipped. Refused while another program (a running host) writes that history. |
 
 The history on disk is the one the host keeps: `<data folder>/<file name>.history`, the data folder being `--data`,
@@ -38,7 +39,7 @@ When the tool is built with the examples (the default), it knows their applicati
 | Code | Meaning |
 |---|---|
 | 0 | Done. For `check`, `fmt --check` and `ids --check`: nothing to report. |
-| 1 | The file has problems: `check` found some, `fmt --check` or `ids --check` would change it, `import` was refused, or the file isn't JSON for `fmt` and `ids`. |
+| 1 | The file has problems: `check` found some, `fmt --check`, `ids --check` or `schema --check` would change it, `import` was refused, or the file isn't JSON for `fmt` and `ids`. |
 | 2 | The command line is wrong: an unknown command or option, a missing file or value. |
 | 3 | It couldn't be done: a file can't be read or written, no window could be opened, the history is damaged or in use. |
 
