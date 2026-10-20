@@ -59,7 +59,10 @@ loaded. Hashes don't prove that a review made it, so a history is also checked a
 - what each open proposal touches, and what **Always allow** would grant for it, are worked out again from its
   commits.
 
-The folder is private to its owner, and a lock keeps a second host from writing it.
+The folder (`0700`) and every file in it (`0600`, never written through a symbolic link) are private to their owner,
+and a lock keeps a second host from writing it. A history folder that is a symbolic link, or on POSIX belongs to
+another user (as one in a shared data folder can), is neither read nor written: the history stays in memory, and a
+warning says why.
 
 System fonts are read only when the host asks: with `AFFRESCOUI_SYSTEM_FONTS=1` in its environment (or a `FontCache`
 given `FontCache::systemFonts()`), every font also falls back on a fixed list of the system's fonts for scripts and
@@ -255,6 +258,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file |
 | Open proposals per channel | 16 |
+| Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
+| Values the `copy` operations of one revision copy, in all (a copy of a list into itself doubles it) | 100,000 |
+| Members a revision may give one object (a screen file may hold a wider one: a revision may change it, not widen it) | 10,000 |
 | A commit named by its id or a prefix of it | 4 to 64 hexadecimal characters |
 | A proposal named by `proposal/<n>` | n up to 1,000,000 |
 | An approval's head commit | at least 7 characters |
@@ -267,6 +273,10 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
 | A pack of a history's objects, written | 16 MiB (more objects go into another pack) |
 | A text or key `affrescoui check` matches against a schema pattern (`std::regex` recurses on each character: a longer text is reported as too long to check, a longer key matches no pattern) | 10,000 characters |
+
+A revision's operations are applied before any permission rule judges them, so the three limits on revisions above
+hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
+proportion to its text, however many keys an object has.
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
 controls (U+0080 to U+009F) `\u0080` to `\u009f`, and a backslash `\\`. So text from a peer or a document can't forge
@@ -307,12 +317,19 @@ These are not protected today. They are stated plainly so that you can decide wh
   connect, and each new connection gets fresh limits. A socket's reader thread hands every line to the main thread
   as it arrives, so a peer that sends faster than the main thread refuses its messages still makes that queue grow;
   refusing is cheap (no parsing), so the main thread keeps up in practice. The open-proposal limit caps waiting
-  proposals, and the change rate caps how often they are pushed.
+  proposals, and the change rate caps how often they are pushed. Each connection also takes a file descriptor and two
+  threads: a peer that opens enough connections to use up the descriptors makes the server's accepting thread retry
+  without pause until one is closed, and one that uses up the threads stops the app (a thread that can't be started
+  ends the process).
 - **Large revisions.** A message can be up to 8 MiB, so a revision can still be large, and so can the lists it puts
   in the state, which the screen may render as one panel per item. A long text costs in proportion to its length,
   but a line longer than a font keeps shaped (128 Ki code points) is shaped again every time it is drawn or measured:
-  a label of a million characters on one line takes a fraction of a second each time. A process or stdio channel the
-  host opens isn't a peer: it isn't held to these limits, and the host writes to it on the main thread.
+  a label of a million characters on one line takes a fraction of a second each time. The limits above bound what
+  one revision costs, not to nothing: 10,000 operations that each add to an object of up to 10,000 members took
+  about 0.4 s to prepare (Release, Apple silicon), a revision that waits for review is prepared twice, and a peer may
+  send 30 changes at once. Reads have only the message rate: `diff` looks up each key of an object among the
+  other's, so diffing an object takes time in proportion to the square of its members. A process or stdio channel
+  the host opens isn't a peer: it isn't held to these limits, and the host writes to it on the main thread.
 - **A revision of many operations costs operations times the document.** Each operation is applied to the whole
   document as it stands: a `#id` path is looked up, and an operation that adds a node without an id collects every id
   of the document to name it. A revision of 8,000 operations that each add a node without an id takes about 6.6
@@ -320,6 +337,9 @@ These are not protected today. They are stated plainly so that you can decide wh
 - **Nested components and repeats multiply.** Each use builds its component's node: a component that uses another
   twice, 25 levels down, builds 2^25 panels, and a `repeat` over 10,000 items inside another builds 100 million. The
   depth limits above hold, but nothing limits how many panels a document builds.
+- **The name a peer gives itself isn't limited.** The part after the slash in `agent/<name>` is any text up to the
+  message size, line breaks included. It is shown to the other peers (`from` on a relayed request, `author` in the
+  history) and to the agents that read them; only the channel before the slash says who sent it.
 - **There is no total work budget per event, so nested loops multiply.** Each limit above holds on its own:
   a `while` of 10,000 iterations inside a `forEach` over a list of 10,000 items runs 100 million steps, and deeper
   nesting multiplies again. `after` and `debounce` steps schedule more work for later, and nothing caps how many are

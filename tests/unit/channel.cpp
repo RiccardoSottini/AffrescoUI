@@ -4,6 +4,7 @@
 /// shell.
 
 #include "Helpers.hpp"
+#include "Lines.hpp" // modules/channel/src: the line framing every channel shares
 
 #include <affresco/channel/Channels.hpp>
 #include <affresco/channel/Session.hpp>
@@ -219,6 +220,47 @@ TEST_CASE("channel: a SocketChannel splits lines across reads, and closes on a l
 	CHECK(received == std::vector<std::string>{"first", "second"});
 }
 #endif
+
+// Found in the security review of wave 2: Windows' process and stdio channels framed lines with a loop of their own,
+// which had no limit (a child's output without a line break grew without end) and searched the whole buffer at each
+// read. They now use this framing, with dropCarriageReturns for CRLF; it runs here on any system
+TEST_CASE("channel: the shared line framing drops CRs when asked, and ends the stream past maxMessageBytes") {
+	const auto frame = [](const std::string& stream, bool dropCarriageReturns) {
+		QueueExecutor executor;
+		MemoryChannel channel; // stands in for the channel whose signals fire
+		std::vector<std::string> lines;
+		bool closed = false;
+		channel.onMessage.connect([&](const std::string& line) { lines.push_back(line); });
+		channel.onClosed.connect([&] { closed = true; });
+		std::size_t at = 0;
+		const auto read = [&](char* data, std::size_t size) -> std::ptrdiff_t {
+			const std::size_t n = std::min(size, stream.size() - at);
+			std::copy_n(stream.data() + at, n, data);
+			at += n;
+			return static_cast<std::ptrdiff_t>(n);
+		};
+		std::atomic<bool> running = true;
+		affresco::channel::detail::readLines(read, executor, channel, std::make_shared<bool>(true), &running,
+		                                     dropCarriageReturns);
+		CHECK_FALSE(running);
+		CHECK(executor.runUntil([&] { return closed; }));
+		return std::pair(lines, at);
+	};
+
+	const std::string crlf = "first\r\n\r\nsecond\r\nthird\n";
+	CHECK(frame(crlf, true).first == std::vector<std::string>{"first", "second", "third"});
+	CHECK(frame(crlf, false).first == std::vector<std::string>{"first\r", "\r", "second\r", "third"});
+
+	// A line one byte longer than the limit ends the stream, even when its end comes in the same read (it was
+	// delivered then)
+	const std::string over = "before\r\n" + std::string(affresco::maxMessageBytes + 1, 'x') + "\nafter\n";
+	CHECK(frame(over, true).first == std::vector<std::string>{"before"});
+	// One that doesn't end stops the reading once it is past the limit, not at its end
+	const std::string endless = "before\n" + std::string(affresco::maxMessageBytes + (std::size_t{1} << 20), 'x');
+	const auto [lines, read] = frame(endless, false);
+	CHECK(lines == std::vector<std::string>{"before"});
+	CHECK(read < endless.size());
+}
 
 // Found by fuzzing (tests/fuzz, session): the parser's out_of_range got past Session::read and stopped the app
 TEST_CASE("channel: a message with a number too large for a double gets an error") {

@@ -30,6 +30,12 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A revert undoes what the commit changed,** in the document and, in the run that made it, in the live state; it is
   refused if a later commit or an action changed those parts since.
 - **Every change is atomic:** a revision applies whole, or nothing changes (`RevisionStatus::Rejected` says why).
+- **A revision is bounded before it is applied** (`detail::RevisionBudget`, `Budget.hpp`): 10,000 operations (a
+  proposal with all its commits too), 100,000 values copied by `copy` operations, and objects of at most 10,000
+  members. Its operations run before any permission rule judges them, so whatever they cost, any peer can make the
+  app pay it; and an object finds a key by looking at its members one by one.
+- **A history folder is private and its owner's:** files `0600` (never through a symbolic link), the folder `0700`;
+  one that is a symbolic link, or another user's, is neither read nor written.
 - **History is RFC 6902.** Compact edits (`set`, `add`, `remove`, `move`) are normalised to JSON Patch before they
   are stored, and so are the ids the document rules give to nodes an operation adds without one
   (`DocumentRules::nameNodes`): the stored patch is what was applied, so replaying it gives the same ids.

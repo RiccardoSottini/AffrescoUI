@@ -12,23 +12,29 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
 
 | Header | Offers |
 |---|---|
-| `Sockets.hpp` | `SocketChannel` (`connect` to a path, or wrap a connected socket) and `SocketServer` (listen; `onConnection`) |
+| `Sockets.hpp` | `SocketChannel` (`connect` to a path, or wrap a connected socket; a bounded send queue) and `SocketServer` (listen; `onConnection`; a `PeerCheck`, `peerIsThisUser` by default) |
 | `Channels.hpp` | `ProcessChannel` (a child process's stdin and stdout) and `StdioChannel` (this process's) |
 | `Session.hpp` | `Session`: the protocol for one peer over a `Channel`; `send`, `author`, `onRelay` |
+| `Limits.hpp` | `PeerLimits` (what one peer may send: message size, messages and changes a second) and `TokenBucket` |
 
 ## Invariants
 
 - **A peer is who it was connected as.** Everything it sends is authored by the session's `author` (followed by the
   name it gives itself after a `/`), so a peer can't claim to be someone else. Review messages are honoured only for
   authors the document lets review.
-- **Untrusted input has limits:** a line longer than `maxMessageBytes` (64 MiB) closes the channel; every message is
-  parsed with `parseUntrusted` (nesting 256); a malformed or refused message gets an `error` or `rejected` answer and
-  never ends the session; `render` takes a scale from 1 to `ScreenImages::maxScale` (2).
+- **Untrusted input has limits:** a line longer than `maxMessageBytes` (64 MiB) closes the channel, on every
+  transport and system (they share `Lines.hpp`); every message is parsed with `parseUntrusted` (nesting 256, in time
+  in proportion to its text); a malformed or refused message gets an `error` or `rejected` answer and never ends the
+  session; `render` takes a scale from 1 to `ScreenImages::maxScale` (2).
 - **Rates (`PeerLimits`):** messages of any kind, changes (they rebuild the screen) and pictures (`render` draws it, and
   builds a proposal's and main's again) each have a token bucket of their own; pictures use the changes' rate.
 - **Only this user can connect.** On POSIX, the socket file is `0600`; on Windows, its access list has one entry, for
-  this user. (The programs in `examples/` also check that the socket folder belongs to this user:
-  `examples/SocketDir.hpp`.)
+  this user. Each connection is checked when it is accepted: a program of another user is refused, closed and
+  logged (`SO_PEERCRED`, `getpeereid`, or on Windows the peer's process and its token). (The programs in
+  `examples/` also check that the socket folder belongs to this user: `examples/SocketDir.hpp`.)
+- **A peer is held to `PeerLimits`** (8 MiB a message, refused unparsed; 100 messages a second; 120 changes a
+  minute, and as many pictures; see the rates above), and one that reads slower than the app writes to it is
+  disconnected once 64 MiB wait for it.
 - **`request` and `reply` aren't interpreted:** they come out of `onRelay`, stamped with `from`, for whoever connects
   peers to each other (`affresco::Screen` passes them to the other peers).
 - **Closing a `ProcessChannel` ends the child and everything it started** (a process group on POSIX, a job object on
@@ -36,9 +42,10 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
 
 ## Threads
 
-Each transport has a thread of its own that only reads (or accepts) and posts what arrives to the `Executor`.
+Each transport has a thread of its own that only reads (or accepts) and posts what arrives to the `Executor`; a
+`SocketChannel` also has a writer thread, which writes what `send` queued, so the main thread never waits for a peer.
 Everything else runs on the main thread: `onMessage`, `onClosed`, `onConnection`, `send` and the whole `Session`.
-A channel being destroyed stops its thread; deliveries still queued for it do nothing.
+A channel being destroyed stops its threads; deliveries still queued for it do nothing.
 
 ## Errors
 
@@ -52,12 +59,13 @@ A channel being destroyed stops its thread; deliveries still queued for it do no
 - The session knows nothing of nodes: narrow reads (an outline, one node by `#id`, a search) are made by the peer on
   the document `getDocument` returns, as the MCP server does (`find_nodes`, `get_screen` with `outline`, `at`,
   `depth`). Only what crosses the local socket grows with the document, not what an agent reads.
-- The peer's user id isn't checked yet, and there is no rate limit (`SECURITY.md`, known gaps; 1.8b).
+- The number of peers isn't bounded, and neither is the queue a socket's reader hands lines to the main thread
+  through (`SECURITY.md`, known gaps).
 
 ## Extension points
 
 - **A new transport:** implement `Channel` (`core`). `Lines.hpp` has the line framing the transports share (a reader
-  thread that posts each line, and the length limit).
+  thread that posts each line, the length limit, and `dropCarriageReturns` for CRLF line breaks).
 - **A new protocol message:** see the recipe below. `Session::handle` passes each message to its group:
   `handleChange` (revisions, restore, revert, undo), `handleReview` (accept, reject, preview, mode, revoke) or
   `handleQuery` (document, catalog, history, diff, change sets, render).
@@ -65,7 +73,7 @@ A channel being destroyed stops its thread; deliveries still queued for it do no
 ## Files
 
 ```
-include/affresco/channel/   Sockets.hpp, Channels.hpp, Session.hpp
+include/affresco/channel/   Sockets.hpp, Channels.hpp, Session.hpp, Limits.hpp
 src/
   Sockets.cpp               SocketChannel and SocketServer; the POSIX and Winsock differences in one block
   Channels.cpp              ProcessChannel and StdioChannel; the process platform layer (POSIX and Windows)

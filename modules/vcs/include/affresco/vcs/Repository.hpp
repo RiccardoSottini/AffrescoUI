@@ -218,6 +218,15 @@ private:
 	/// @return The commit.
 	/// @throws DocumentError If there is none or the prefix is ambiguous.
 	[[nodiscard]] const Commit& find(const json& revision) const;
+	/// @brief Finds a commit by name, without "~n" (see find()).
+	/// @param name "HEAD", "main", "proposal/<id>", or a commit's id or the start of one.
+	/// @return The commit.
+	/// @throws DocumentError If there is none or the start of an id is ambiguous.
+	[[nodiscard]] const Commit& named(const std::string& name) const;
+	/// @brief blame() for a path of the live state: the last commit on main whose patch reached it.
+	/// @param pointer "/state" or a path inside it.
+	/// @return The commit, or revision 0 if none did.
+	[[nodiscard]] CommitInfo blameState(const std::string& pointer) const;
 	/// @brief Finds an open proposal.
 	/// @param id Its id.
 	/// @return It, or nullptr.
@@ -276,6 +285,15 @@ private:
 	/// @param revision The revision.
 	/// @throws DocumentError If the screen has moved on (a conflict).
 	void checkParent(const json& revision) const;
+	/// @brief Resolves the "#id" paths of one operation to JSON Pointers, and notes the areas it touches.
+	/// @param op The operation; its "path" and "from" are replaced.
+	/// @param kind Its "op".
+	/// @param view The document as rules see it, before the operation.
+	/// @param where Its place, for errors.
+	/// @param touches The areas the patch touches so far; gets this operation's new ones.
+	/// @throws DocumentError If a path isn't text, or names no node.
+	void resolvePaths(json& op, const std::string& kind, const json& view, const std::string& where,
+	                  std::vector<std::string>& touches) const;
 	/// @brief Applies a patch to a copy, one operation at a time, and checks the format's rules. Changes nothing.
 	/// @param patch The JSON Patch.
 	/// @param document The document to start from.
@@ -302,9 +320,8 @@ private:
 	/// @param touches What it touches (detail::area).
 	/// @param askedByRule Whether an "ask" rule matched it.
 	/// @return The rules, e.g. "agent(#board)"; empty if it can't be remembered.
-	[[nodiscard]] static std::vector<std::string> rememberedRules(const std::string& author,
-	                                                              const std::vector<std::string>& touches,
-	                                                              bool askedByRule);
+	[[nodiscard]] static std::vector<std::string>
+	rememberedRules(const std::string& author, const std::vector<std::string>& touches, bool askedByRule);
 	/// @brief Pushes a revision onto its author's open proposal ("proposal" in the revision).
 	/// @param revision The revision.
 	/// @param author Its author.
@@ -319,7 +336,8 @@ private:
 
 	/* History on disk (RepositoryHistory.cpp) */
 
-	/// @brief What the refs file holds: main's head, the open proposals, the grants, the mode and the change sets applied.
+	/// @brief What the refs file holds: main's head, the open proposals, the grants, the mode and the change sets
+	/// applied.
 	struct Refs;
 	/// @brief A commit's id: the SHA-256 of what it is (store() and the history on disk use it): its tree, parents,
 	/// author, committer, time, patch, proposal and message. Not its delta or snapshot, which say how it is kept.
@@ -358,7 +376,7 @@ private:
 	/// @return The commits, by id.
 	/// @throws DocumentError If one is missing or damaged.
 	[[nodiscard]] static std::unordered_map<std::string, Commit> readCommits(detail::HistoryStore& store,
-	                                                                        std::vector<std::string> heads);
+	                                                                         std::vector<std::string> heads);
 	/// @brief Counts each commit's distance to the nearest snapshot along first parents (Commit::sinceSnapshot).
 	/// @param objects The commits read, by id; sinceSnapshot is -1 for those not counted yet.
 	static void countFromSnapshots(std::unordered_map<std::string, Commit>& objects);
@@ -367,6 +385,12 @@ private:
 	/// @return What it holds; the proposals have no commits or patch yet (completeProposal()).
 	/// @throws DocumentError If it is damaged.
 	[[nodiscard]] static Refs readRefs(detail::HistoryStore& store);
+	/// @brief Reads the open proposals from the refs file.
+	/// @param proposals Their list.
+	/// @param nextProposal The next proposal's id: each one's is below it, and used once.
+	/// @return The proposals, without their commits and patch.
+	/// @throws DocumentError If one is malformed.
+	[[nodiscard]] static std::vector<Proposal> readProposals(const json& proposals, int nextProposal);
 	/// @brief Reads one proposal from the refs file.
 	/// @param entry Its entry.
 	/// @param where Its place in the file, for errors.
@@ -393,13 +417,17 @@ private:
 	/// @return false, changing nothing, if it began with another document.
 	/// @throws DocumentError If it is damaged, or its head can't be shown; then nothing changed.
 	bool loadHistory(detail::HistoryStore& store);
-	/// @brief The refs file's content: main's head, the open proposals, the grants, the mode and the change sets applied.
+	/// @brief The refs file's content: main's head, the open proposals, the grants, the mode and the change sets
+	/// applied.
 	/// @return It, without its checksum.
 	[[nodiscard]] json refsJson() const;
 	/// @brief Writes a commit, and its document if it is a snapshot the folder doesn't have yet.
 	/// @param commit The commit; its parents are on disk already.
 	/// @throws DocumentError If either can't be written, or is more than a history reads back.
 	void writeCommit(const Commit& commit);
+	/// @brief Writes the commits of main and of the open proposals that the folder doesn't have yet, parents first.
+	/// @throws DocumentError If one can't be written.
+	void writeCommits();
 	/// @brief Writes the commits the folder doesn't have yet, then the refs. A failure is logged, and the next change
 	/// tries again: the change itself stays.
 	void saveHistory() noexcept;
@@ -413,15 +441,15 @@ private:
 	json document_;               ///< main's head, or the proposal being previewed.
 	json state_ = json::object(); ///< The live state.
 
-	std::vector<Proposal> proposals_; ///< Open proposals, oldest first.
-	int nextProposal_ = 1;            ///< Next proposal id.
-	std::optional<int> previewing_;   ///< Proposal shown in place of main's head.
-	json committedState_;             ///< The live state, kept aside during a preview.
-	json committedDocument_;          ///< main's head's document, kept aside during a preview.
-	Mode mode_ = Mode::Default;       ///< The mode in force: see setMode() and setModeForThisRun().
-	Mode keptMode_ = Mode::Default;   ///< The mode the history keeps: the one a reviewer last chose (setMode()).
-	std::vector<Grant> grants_;       ///< "Don't ask again" rules.
-	bool importing_ = false;          ///< Commits are announced once the whole change set is in.
+	std::vector<Proposal> proposals_;   ///< Open proposals, oldest first.
+	int nextProposal_ = 1;              ///< Next proposal id.
+	std::optional<int> previewing_;     ///< Proposal shown in place of main's head.
+	json committedState_;               ///< The live state, kept aside during a preview.
+	json committedDocument_;            ///< main's head's document, kept aside during a preview.
+	Mode mode_ = Mode::Default;         ///< The mode in force: see setMode() and setModeForThisRun().
+	Mode keptMode_ = Mode::Default;     ///< The mode the history keeps: the one a reviewer last chose (setMode()).
+	std::vector<Grant> grants_;         ///< "Don't ask again" rules.
+	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
 };

@@ -206,21 +206,23 @@ json Repository::deltaOf(const Commit& commit) const {
 	return detail::delta(documentOf(objects_.at(commit.parents.front())), documentOf(commit));
 }
 
+// The live state isn't in the documents: the commits whose patches reached the path changed it
+CommitInfo Repository::blameState(const std::string& pointer) const {
+	const std::vector<std::string> path = detail::segmentsOf(pointer);
+	for(const std::string& id : main_ | std::views::reverse) {
+		const Commit& commit = objects_.at(id);
+		if(std::ranges::any_of(commit.patch, [&](const json& op) { return op.is_object() && reaches(op, path); }))
+			return info(commit);
+	}
+	return info(objects_.at(main_.front())); // as the screen file has it
+}
+
 CommitInfo Repository::blame(std::string_view target) const {
 	const std::string text(target);
 	if(text.empty() || (text.front() != '#' && text.front() != '/'))
 		fail("blame", R"(expected a node ("#board", "#board/text") or a path ("/colors/accent", "/state/cards"))");
 
-	// The live state isn't in the documents: the commits whose patches reached the path changed it
-	if(text == "/state" || text.starts_with("/state/")) {
-		const std::vector<std::string> path = detail::segmentsOf(text);
-		for(const std::string& id : main_ | std::views::reverse) {
-			const Commit& commit = objects_.at(id);
-			if(std::ranges::any_of(commit.patch, [&](const json& op) { return op.is_object() && reaches(op, path); }))
-				return info(commit);
-		}
-		return info(objects_.at(main_.front())); // as the screen file has it
-	}
+	if(text == "/state" || text.starts_with("/state/")) return blameState(text);
 
 	const json& head = mainDocument();
 	const std::string pointer = resolvePath(head, text, "blame");

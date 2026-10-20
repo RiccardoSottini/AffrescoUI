@@ -25,6 +25,7 @@
 #else
 #include <fcntl.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -44,8 +45,34 @@ std::FILE* openForWriting(const std::filesystem::path& file) {
 	std::FILE* opened = nullptr;
 	return _wfopen_s(&opened, file.c_str(), L"wb") == 0 ? opened : nullptr;
 #else
-	return std::fopen(file.c_str(), "wb");
+	// Its owner's only, whatever the process's umask; and never through a link left in its place
+	const int descriptor = ::open(file.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW, 0600);
+	if(descriptor < 0) return nullptr;
+	std::FILE* opened = ::fdopen(descriptor, "wb");
+	if(!opened) {
+		const int error = errno;
+		::close(descriptor);
+		errno = error; // for lastError()
+	}
+	return opened;
 #endif
+}
+
+/// @brief Why a history folder that is already there can't be used: one this user doesn't own, or a symbolic link,
+/// would let whoever made it choose where the history goes, or read and change it.
+/// @param directory The folder.
+/// @return The problem, or "" if it is a folder of this user's (or isn't there yet).
+std::string_view foreignFolder(const std::filesystem::path& directory) {
+	std::error_code error;
+	const std::filesystem::file_status status = std::filesystem::symlink_status(directory, error);
+	if(error || status.type() == std::filesystem::file_type::not_found) return "";
+	if(std::filesystem::is_symlink(status)) return "is a symbolic link, not a folder";
+	if(!std::filesystem::is_directory(status)) return "is not a folder";
+#ifndef _WIN32
+	struct stat info{};
+	if(::lstat(directory.c_str(), &info) != 0 || info.st_uid != ::geteuid()) return "belongs to another user";
+#endif
+	return "";
 }
 
 /// @brief Waits until what was written to a file is on the disk, not only in the system's cache.
@@ -87,6 +114,20 @@ bool syncDirectory([[maybe_unused]] const std::filesystem::path& directory) {
 #endif
 }
 
+#ifndef _WIN32
+/// @brief Which program holds a lock, from the process id it wrote into the lock file.
+/// @param descriptor The lock file, open.
+/// @return " (process 1234)", or "" if the file holds no process id.
+std::string heldBy(int descriptor) {
+	std::array<char, 24> holder{};
+	const ssize_t length = ::pread(descriptor, holder.data(), holder.size() - 1, 0);
+	const std::string process(holder.data(), length > 0 ? static_cast<std::size_t>(length) : 0);
+	const bool known =
+	    !process.empty() && std::ranges::all_of(process, [](char c) { return (c >= '0' && c <= '9') || c == '\n'; });
+	return known ? " (process " + process.substr(0, process.find('\n')) + ")" : "";
+}
+#endif
+
 /// @brief The current time, for a file name.
 /// @return UTC, e.g. "20261019T120000Z" (no ':', which Windows doesn't allow in names).
 std::string fileNameTime() {
@@ -120,17 +161,8 @@ std::optional<FileLock> FileLock::tryLock(const std::filesystem::path& file, std
 		return std::nullopt;
 	}
 	if(::flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
-		if(errno == EWOULDBLOCK) {
-			std::array<char, 24> holder{};
-			const ssize_t length = ::pread(descriptor, holder.data(), holder.size() - 1, 0);
-			const std::string process(holder.data(), length > 0 ? static_cast<std::size_t>(length) : 0);
-			const bool known = !process.empty() &&
-			                   std::ranges::all_of(process, [](char c) { return (c >= '0' && c <= '9') || c == '\n'; });
-			problem = "in use by another program" +
-			          (known ? " (process " + process.substr(0, process.find('\n')) + ")" : std::string());
-		} else {
-			problem = "can't be locked (" + lastError() + ")";
-		}
+		problem = errno == EWOULDBLOCK ? "in use by another program" + heldBy(descriptor)
+		                               : "can't be locked (" + lastError() + ")";
 		::close(descriptor);
 		return std::nullopt;
 	}
@@ -168,6 +200,11 @@ void FileLock::release() noexcept {
 /* HistoryStore */
 
 HistoryStore::HistoryStore(std::filesystem::path directory) : directory_(std::move(directory)) {
+	if(const std::string_view foreign = foreignFolder(directory_); !foreign.empty()) {
+		problem_ = foreign; // neither read nor written: the history stays in memory
+		usable_ = false;
+		return;
+	}
 	std::error_code error;
 	const bool created = std::filesystem::create_directories(directory_ / "objects", error);
 	if(error) {
@@ -183,7 +220,7 @@ HistoryStore::HistoryStore(std::filesystem::path directory) : directory_(std::mo
 
 bool HistoryStore::exists() const {
 	std::error_code error;
-	return std::filesystem::is_regular_file(refsFile(), error);
+	return usable_ && std::filesystem::is_regular_file(refsFile(), error);
 }
 
 void HistoryStore::writeRefs(const std::string& text) {

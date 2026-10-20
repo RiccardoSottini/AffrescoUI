@@ -7,6 +7,7 @@
 
 #include <doctest/doctest.h>
 
+#include <chrono>
 #include <cstddef>
 #include <ctime>
 #include <string>
@@ -84,6 +85,36 @@ TEST_CASE("core: parseUntrusted refuses a number too large for a double with a D
 	}
 	CHECK(affresco::parseUntrusted("1e308") == 1e308);
 	CHECK(affresco::parseUntrusted("123456789012345678901234567890").is_number_float()); // too big for an integer
+}
+
+TEST_CASE("core: parseUntrusted builds what json::parse builds, the order of keys and repeated keys included") {
+	std::string large = "{";
+	for(int i = 0; i < 40; ++i) large += "\"k" + std::to_string(i % 30) + "\": " + std::to_string(i) + ", ";
+	large += R"("z": [{"b": 1, "a": 2, "b": 3}], "k3": "last"})";
+	for(const std::string& text : {std::string(R"({"b": 1, "a": {"d": [true, null, 1.5, -2, 18446744073709551615]}})"),
+	                               std::string(R"({"x": 1, "x": 2})"), std::string(R"([[], {}, "", 0])"), large}) {
+		CAPTURE(text);
+		const affresco::json parsed = affresco::parseUntrusted(text);
+		CHECK(parsed.dump() == affresco::json::parse(text).dump()); // same keys, same order, same values
+	}
+}
+
+// Found in the security review of wave 2: ordered_json searches an object's keys one by one, so json::parse took time
+// in proportion to the square of an object's keys (100,000 keys in a 1 MiB message: 8.5 s); 300,000 would take
+// minutes
+TEST_CASE("core: parseUntrusted reads an object of many keys in time in proportion to its text") {
+	std::string text = "{";
+	for(int i = 0; i < 300000; ++i) text += (i ? R"(,"k)" : R"("k)") + std::to_string(i) + R"(":)" + std::to_string(i);
+	text += R"(,"k7":"again"})";
+
+	const auto start = std::chrono::steady_clock::now();
+	const affresco::json value = affresco::parseUntrusted(text);
+	const std::chrono::duration<double> took = std::chrono::steady_clock::now() - start;
+	CHECK(took.count() < 10.0); // 0.1 s in a Release build, 2.7 s with the sanitizers; minutes before
+	REQUIRE(value.size() == 300000);
+	CHECK(value["k7"] == "again");
+	CHECK(value.begin().key() == "k0");
+	CHECK((--value.end()).key() == "k299999");
 }
 
 // Messages carry text from peers and documents: a line break would forge a log line, an escape would reach the

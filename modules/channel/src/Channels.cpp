@@ -12,6 +12,8 @@
 #define NOMINMAX
 #include <windows.h>
 
+#include "Lines.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -143,7 +145,8 @@ HANDLE startShell(const std::wstring& shell, std::wstring commandLine, HANDLE jo
 	return started.hProcess;
 }
 
-/// @brief Reads @p input until it closes, posting each line to the channel's onMessage, then onClosed.
+/// @brief Reads @p input until it closes, posting each line to the channel's onMessage, then onClosed. The framing
+/// is the one every channel shares (detail::readLines): a line past maxMessageBytes ends the stream.
 /// @param input The handle to read.
 /// @param executor Delivers on the main thread.
 /// @param channel The channel whose signals fire.
@@ -151,28 +154,13 @@ HANDLE startShell(const std::wstring& shell, std::wstring commandLine, HANDLE jo
 /// @param running Set to false when the stream ends (may be nullptr).
 void readLines(HANDLE input, Executor& executor, Channel& channel, std::shared_ptr<bool> alive,
                std::atomic<bool>* running) {
-	std::string buffer;
-	char chunk[4096];
-
-	DWORD count = 0;
-	while(ReadFile(input, chunk, sizeof(chunk), &count, nullptr) && count > 0) {
-		buffer.append(chunk, count);
-
-		for(std::size_t end; (end = buffer.find('\n')) != std::string::npos;) {
-			std::string line = buffer.substr(0, end);
-			buffer.erase(0, end + 1);
-			if(!line.empty() && line.back() == '\r') line.pop_back(); // the console and cmd.exe end lines with CRLF
-			if(line.empty()) continue;
-			executor.post([&channel, alive, line = std::move(line)] {
-				if(*alive) channel.onMessage(line);
-			});
-		}
-	}
-
-	if(running) *running = false;
-	executor.post([&channel, alive] {
-		if(*alive) channel.onClosed();
-	});
+	const auto read = [input](char* data, std::size_t size) -> std::ptrdiff_t {
+		DWORD count = 0;
+		if(!ReadFile(input, data, static_cast<DWORD>(size), &count, nullptr)) return -1; // also when the writer closed
+		return static_cast<std::ptrdiff_t>(count);
+	};
+	// The console and cmd.exe end lines with CRLF
+	detail::readLines(read, executor, channel, std::move(alive), running, true);
 }
 
 /// @brief Writes a message followed by a line break.
