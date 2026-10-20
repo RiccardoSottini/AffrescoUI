@@ -7,6 +7,7 @@
 
 #include "CheckerImpl.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <format>
 
@@ -98,6 +99,23 @@ bool isChildrenPlace(std::string_view pointer) {
 	return pointer.ends_with(children) && isNodePlace(pointer.substr(0, pointer.size() - children.size()));
 }
 
+/// @brief Tells whether a node, or a node inside it, has no id (what NodeNamer would name).
+/// @param node The node.
+/// @return true if one has none.
+bool lacksId(const json& node) {
+	if(!node.is_object() || node.value("slot", json(false)) == true) return false;
+	if(!node.contains("id")) return true;
+	const auto children = node.find("children");
+	return children != node.end() && children->is_array() && std::ranges::any_of(*children, lacksId);
+}
+
+/// @brief Tells whether a list of nodes, or a section of them by name, holds a node without an id.
+/// @param nodes The list or the section.
+/// @return true if it does.
+bool anyLacksId(const json& nodes) {
+	return std::ranges::any_of(nodes, [](const json& node) { return lacksId(node); });
+}
+
 /// @brief Gives ids to one node going to a node place, and to the nodes inside it. A node that replaces one with an
 /// id keeps that id.
 /// @param document The document before the operation.
@@ -105,6 +123,7 @@ bool isChildrenPlace(std::string_view pointer) {
 /// @param replaces true if it replaces what is there.
 /// @param node The node, changed in place.
 void nameNode(const json& document, const std::string& place, bool replaces, json& node) {
+	if(!lacksId(node)) return;
 	const json* old = replaces ? valueAt(document, place) : nullptr;
 	if(old && old->is_object() && old->contains("id") && !node.contains("id")) {
 		json kept = {{"id", (*old)["id"]}}; // first, as NodeNamer writes ids
@@ -114,23 +133,48 @@ void nameNode(const json& document, const std::string& place, bool replaces, jso
 	NodeNamer(document).name(node, place, parentIdOf(document, place));
 }
 
+/// @brief Gives ids to a whole list of children, and to the nodes inside them, that have none.
+/// @param document The document before the operation.
+/// @param place The list's place ("/root/children").
+/// @param children The list, changed in place.
+void nameChildren(const json& document, const std::string& place, json& children) {
+	if(!anyLacksId(children)) return;
+	NodeNamer namer(document);
+	const std::string id = parentIdOf(document, place + "/0");
+	for(std::size_t i = 0; i < children.size(); ++i) namer.name(children[i], place + "/" + std::to_string(i), id);
+}
+
+/// @brief Gives ids to the nodes of a whole section ("screens" or "templates") that have none.
+/// @param document The document before the operation.
+/// @param place The section's place ("/screens").
+/// @param nodes The section, changed in place.
+void nameSection(const json& document, const std::string& place, json& nodes) {
+	if(!anyLacksId(nodes)) return;
+	NodeNamer namer(document);
+	for(auto& [name, node] : nodes.items()) namer.name(node, std::format("{}/{}", place, name), name);
+}
+
+/// @brief Gives ids to the nodes of a whole component that have none.
+/// @param document The document before the operation.
+/// @param place The component's place ("/components/chip").
+/// @param name The component's name.
+/// @param component The component, changed in place.
+void nameComponent(const json& document, const std::string& place, const std::string& name, json& component) {
+	if(component.is_object() && component.contains("node") && lacksId(component["node"]))
+		NodeNamer(document).name(component["node"], place + "/node", name);
+}
+
 } // namespace
 
+// Most nodes come with their ids: then nothing is named, and the document's ids aren't collected (a revision of many
+// operations would otherwise collect them once per operation)
 void Rules::nameNodes(const json& document, std::string_view pointer, bool replaces, json& value) const {
 	const std::string place(pointer);
 	const std::vector<std::string> keys = keysOfPointer(place);
-	if(isNodePlace(place) && value.is_object()) {
-		nameNode(document, place, replaces, value);
-	} else if(isChildrenPlace(place) && value.is_array()) {
-		NodeNamer namer(document); // a whole list of children
-		const std::string id = parentIdOf(document, place + "/0");
-		for(std::size_t i = 0; i < value.size(); ++i) namer.name(value[i], place + "/" + std::to_string(i), id);
-	} else if((place == "/screens" || place == "/templates") && value.is_object()) {
-		NodeNamer namer(document); // a whole section of nodes
-		for(auto& [name, node] : value.items()) namer.name(node, std::format("{}/{}", place, name), name);
-	} else if(keys.size() == 2 && keys[0] == "components" && value.is_object() && value.contains("node")) {
-		NodeNamer(document).name(value["node"], place + "/node", keys[1]);
-	}
+	if(isNodePlace(place) && value.is_object()) nameNode(document, place, replaces, value);
+	else if(isChildrenPlace(place) && value.is_array()) nameChildren(document, place, value);
+	else if((place == "/screens" || place == "/templates") && value.is_object()) nameSection(document, place, value);
+	else if(keys.size() == 2 && keys[0] == "components") nameComponent(document, place, keys[1], value);
 }
 
 std::string Rules::pathHint(const json& document, std::string_view path) const {

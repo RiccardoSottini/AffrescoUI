@@ -193,7 +193,8 @@ Shows the current screen from `screens`, filling the outlet unless the screen pl
 ```
 The use's other properties override the component's node; `with` values are evaluated where it is used and become
 variables of the node and its children. A child `{ "slot": true }` in the component is replaced by the use's
-`children`. Changing a component changes every use: one edit restyles a whole list.
+`children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
+(components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
 ## Values, expressions and state
 
@@ -236,7 +237,7 @@ are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reve
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
 **`computed`** values are evaluated when first read after the state changed, then cached; they may use each other
-(not in a circle). Prefer them to actions that recount things by hand.
+(not in a circle, and at most 32 deep). Prefer them to actions that recount things by hand.
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
 
@@ -274,7 +275,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 |---|---|
 | `set` | `{ "set": "state.current", "to": "{{index}}" }` |
 | `push` | `{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }` |
-| `remove` | `{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key |
+| `remove` | `{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object |
 | `toggle` | `{ "toggle": "state.dark" }` |
 | `increment` | `{ "increment": "state.clicks", "by": 1 }` |
 | `if` | `{ "if": "{{len(state.draft) == 0}}", "then": [...], "else": [...] }` |
@@ -301,7 +302,9 @@ history, never widen it. Nor may a revision move one to another trigger (a butto
 `keys`, `watch`, `onLoad`), or add a `run` or a handler that names an action with control steps, a native action, or
 a computed action name.
 
-Only paths under `state` can be changed. After an event's steps finish, the UI is updated once. Panels are reused where
+Only paths under `state` can be changed. A step can't write inside a value that is neither an object nor a list, nor
+more than 10,000 positions past a list's end (the positions between are filled with `null`). After an event's steps
+finish, the UI is updated once. Panels are reused where
 the structure didn't change, so focus, typing, scrolling and drags in progress are kept. Errors in actions are
 reported (on stderr and to the peers) and never crash the app.
 

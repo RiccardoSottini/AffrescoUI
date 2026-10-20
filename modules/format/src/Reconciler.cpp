@@ -82,7 +82,10 @@ std::pair<Panel*, bool> Reconciler::place(Panel& panel, std::size_t index, const
 	return {&panel.addChild(create(type, item.path)), true};
 }
 
-void Reconciler::reconcileChildren(const json& node, Panel& panel, Record& record, const std::string& path) {
+void Reconciler::reconcileChildren(const json& node, Panel& panel, Record& record, const std::string& path, int depth) {
+	if(depth >= maxNodeDepth)
+		fail(path, "nodes nested too deeply (more than " + std::to_string(maxNodeDepth) +
+		               " levels: a component or a screen inside itself?)");
 	std::optional<std::vector<Item>> items = childrenOf(node, record, path);
 	if(!items) return;
 
@@ -96,7 +99,7 @@ void Reconciler::reconcileChildren(const json& node, Panel& panel, Record& recor
 		childRecord.locals = std::move(item.locals);
 		childRecord.key = std::move(item.key);
 		engine_.properties.apply(*child, childRecord, props, item.path, false, created);
-		reconcileChildren(*item.node, *child, childRecord, item.path);
+		reconcileChildren(*item.node, *child, childRecord, item.path, depth + 1);
 		if(created && !engine_.handlersSuspended && childRecord.handlers.contains("onShow"))
 			engine_.scheduler.defer(engine_.runner.later(childRecord.handlers["onShow"], *child, {{"type", "show"}},
 			                                             childRecord.locals, childRecord.path + ".onShow"));

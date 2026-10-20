@@ -127,16 +127,19 @@ std::size_t distance(std::string_view a, std::string_view b) {
 /// The longest name a hint compares: distance() costs the product of the lengths, and a peer chooses them.
 constexpr std::size_t maxHintLength = 64;
 
+/// The most names a hint compares a name with: a peer chooses how many keys the state has.
+constexpr std::size_t maxHintNames = 1000;
+
 /// @brief Finds the name nearest to a mistyped one, if one is near enough to be what was meant.
 /// @param word The name as written.
 /// @param names The names that exist.
 /// @return The nearest name within one edit (two for names of five letters or more), or std::nullopt; none for
-/// names longer than maxHintLength.
+/// names longer than maxHintLength. Only the first maxHintNames names are compared.
 std::optional<std::string> closest(std::string_view word, const std::vector<std::string>& names) {
 	if(word.size() > maxHintLength) return std::nullopt;
 	std::size_t best = word.size() < 5 ? 2 : 3; // one more than allowed
 	std::optional<std::string> found;
-	for(const std::string& name : names) {
+	for(const std::string& name : names | std::views::take(maxHintNames)) {
 		if(name.size() > word.size() + best || word.size() > name.size() + best) continue; // too far apart to matter
 		if(const std::size_t d = distance(word, name); d < best) {
 			best = d;
@@ -208,6 +211,7 @@ void Checker::pass() {
 	componentsReached_.clear();
 	computedShapes_.clear();
 	computing_.clear();
+	hints_ = 0;
 
 	walkNodes();
 	walkHandlers();
@@ -262,7 +266,12 @@ void Checker::walkUnreached() {
 /* Findings and limits */
 
 void Checker::report(const std::string& place, std::string problem, std::string hint) {
-	findings_.insert(Finding{place, std::move(problem), std::move(hint)});
+	Finding finding{place, std::move(problem), std::move(hint)};
+	if(finding.hint.empty() && hints_ >= maxHints) { // the same finding may have been reported with its hint
+		const auto same = findings_.lower_bound(finding);
+		if(same != findings_.end() && same->place == finding.place && same->problem == finding.problem) return;
+	}
+	findings_.insert(std::move(finding));
 }
 
 bool Checker::visit() {
@@ -291,7 +300,7 @@ void Checker::refer(std::string_view kind, const char* sectionName, const std::s
                     const std::string& place) {
 	if(definition(sectionName, name)) return;
 	report(place, "unknown " + std::string(kind) + " '" + std::string(prefix) + name + "'",
-	       hintFor(name, definedNames(sectionName), prefix, "defined:"));
+	       hint([&] { return hintFor(name, definedNames(sectionName), prefix, "defined:"); }));
 }
 
 } // namespace checker

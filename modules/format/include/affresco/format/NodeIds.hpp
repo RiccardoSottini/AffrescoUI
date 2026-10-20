@@ -10,6 +10,7 @@
 #include "affresco/core/Json.hpp"
 
 #include <functional>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -106,8 +107,17 @@ private:
 	/// @return The words, joined by '-'.
 	[[nodiscard]] std::string typeOf(const json& node) const;
 
-	json styles_;                 ///< The document's "styles", which may give a node its type.
-	std::set<std::string> taken_; ///< Every id in the document, and those given out.
+	/// @brief Tells whether an id is the document's or was given out.
+	/// @param id The id.
+	/// @return true if it is taken.
+	[[nodiscard]] bool taken(const std::string& id) const;
+
+	json styles_;                              ///< The document's "styles", which may give a node its type.
+	std::vector<std::string> documentIds_;     ///< Every id in the document, sorted, each once.
+	std::set<std::string, std::less<>> given_; ///< The ids given out.
+	/// The number to try next after an id that was taken: every number below it is taken too, so a revision that
+	/// adds many alike nodes doesn't try "-2", "-3", ... again for each of them.
+	std::map<std::string, int, std::less<>> next_;
 };
 
 } // namespace affresco::format

@@ -52,7 +52,8 @@ void walk(const json& node, const std::string& pointer,
 std::optional<std::string> pathTo(const json& node, std::string_view id) {
 	if(!node.is_object()) return std::nullopt;
 	if(const auto slot = node.find("slot"); slot != node.end() && *slot == true) return std::nullopt;
-	if(const auto own = node.find("id"); own != node.end() && own->is_string() && own->get_ref<const std::string&>() == id)
+	if(const auto own = node.find("id");
+	   own != node.end() && own->is_string() && own->get_ref<const std::string&>() == id)
 		return std::string();
 	const auto children = node.find("children");
 	if(children == node.end() || !children->is_array()) return std::nullopt;
@@ -221,7 +222,8 @@ std::optional<std::string> findNodeWithId(const json& document, std::string_view
 	if(components == document.end() || !components->is_object()) return std::nullopt;
 	for(const auto& [name, component] : components->items())
 		if(const auto node = component.is_object() ? component.find("node") : component.end(); node != component.end())
-			if(std::optional<std::string> path = pathTo(*node, id)) return "/components/" + escaped(name) + "/node" + *path;
+			if(std::optional<std::string> path = pathTo(*node, id))
+				return "/components/" + escaped(name) + "/node" + *path;
 	return std::nullopt;
 }
 
@@ -285,8 +287,11 @@ bool isNodePlace(std::string_view pointer) {
 	return slashes == 3 && pointer.starts_with("/components/") && pointer.ends_with("/node");
 }
 
-NodeNamer::NodeNamer(const json& document) : styles_(document.value("styles", json::object())) {
-	for(std::string& id : nodeIds(document)) taken_.insert(std::move(id));
+NodeNamer::NodeNamer(const json& document)
+    : styles_(document.value("styles", json::object())), documentIds_(nodeIds(document)) {}
+
+bool NodeNamer::taken(const std::string& id) const {
+	return std::ranges::binary_search(documentIds_, id) || given_.contains(id);
 }
 
 std::string NodeNamer::typeOf(const json& node) const {
@@ -317,9 +322,14 @@ std::string NodeNamer::newId(const json& node, std::string_view parentId) {
 			words.erase(words.begin());
 	}
 	std::string id = words.empty() ? type : type + "-" + joined(words);
-	if(taken_.insert(id).second) return id;
-	for(int n = 2;; ++n)
-		if(std::string numbered = id + "-" + std::to_string(n); taken_.insert(numbered).second) return numbered;
+	if(!taken(id)) return *given_.insert(std::move(id)).first;
+	int& next = next_.try_emplace(id, 2).first->second;
+	for(;; ++next) {
+		if(std::string numbered = id + "-" + std::to_string(next); !taken(numbered)) {
+			++next;
+			return *given_.insert(std::move(numbered)).first;
+		}
+	}
 }
 
 void NodeNamer::name(json& node, const std::string& pointer, std::string_view parentId, const Visit& visit) {

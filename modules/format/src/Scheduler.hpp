@@ -57,7 +57,10 @@ public:
 	/// @param to Where it ends.
 	/// @param ms How long it takes.
 	/// @param easing "linear", "in", "out" or "inOut".
-	void animate(const json::json_pointer& pointer, double from, const json& to, double ms, std::string easing);
+	/// @param where The step's place: a frame that can't write the path (a revision changed the state) stops the
+	/// animation and is reported with it.
+	void animate(const json::json_pointer& pointer, double from, const json& to, double ms, std::string easing,
+	             std::string where);
 
 	/// @brief Starts, restarts or stops a panel's "every" timer, when its period changed.
 	/// @param panel The panel.

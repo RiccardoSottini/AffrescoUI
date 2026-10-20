@@ -136,6 +136,12 @@ private:
 	/// @brief Closes the open overlays that close on a click outside them.
 	/// @param position The click, or nullptr for Escape (closes them all).
 	void dismissOverlays(const Vec2* position);
+	/// @brief Tells whether a click is on an overlay or on its anchor, which toggles it itself, so it stays open.
+	/// @param panel The overlay.
+	/// @param record Its record.
+	/// @param position The click.
+	/// @return true if the click leaves it as it is.
+	[[nodiscard]] bool clickKeepsOpen(const Panel& panel, const Record& record, Vec2 position) const;
 
 	Engine& engine_;  ///< The runtime.
 	Press press_;     ///< The press in progress.

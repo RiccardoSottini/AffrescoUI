@@ -36,7 +36,10 @@ inline const Shape single = true; ///< Text, a number or a boolean.
 /// @return Its line, its column and the selected length.
 [[nodiscard]] inline Shape caretShape() { return {{"line", true}, {"column", true}, {"selected", true}}; }
 
-inline constexpr std::size_t maxVisits = 1000000;  ///< Nodes, steps and values a check visits before giving up.
+inline constexpr std::size_t maxVisits = 1000000; ///< Nodes, steps and values a check visits before giving up.
+/// Findings a pass gives a hint ("did you mean ..."): a hint compares the name with every name that exists, so a
+/// revision with many findings against a large state would otherwise cost their product. The first are listed.
+inline constexpr std::size_t maxHints = 50;
 inline constexpr int maxPasses = 5;                ///< Passes that learn what steps write, at most.
 inline constexpr int maxDepth = maxNesting;        ///< Nodes and actions inside each other before a branch stops.
 inline constexpr std::string_view openScope = "*"; ///< A variable that lets any name through (callers unknown).
@@ -218,6 +221,14 @@ private:
 	/// @param problem What.
 	/// @param hint What may be meant, or "".
 	void report(const std::string& place, std::string problem, std::string hint = {});
+	/// @brief A finding's hint, made only while the pass has hints left (maxHints).
+	/// @param make Makes the hint (hintFor()).
+	/// @return The hint, or "" once maxHints findings have one.
+	template <typename Make> [[nodiscard]] std::string hint(Make make) {
+		if(hints_ >= maxHints) return {};
+		++hints_;
+		return make();
+	}
 	/// @brief Counts one visit against maxVisits.
 	/// @return false once the limit is passed: the check stops.
 	[[nodiscard]] bool visit();
@@ -539,12 +550,13 @@ private:
 	/// Computed values checked in this pass. A map, not a JSON object (a vector): a shape read through a reference
 	/// stays where it is while other computed values are added.
 	std::map<std::string, Shape, std::less<>> computedShapes_;
-	std::vector<std::string> computing_;                   ///< Computed values being checked (finds circles).
-	std::size_t visits_ = 0;                               ///< Visits so far (maxVisits).
-	bool exhausted_ = false;                               ///< maxVisits was passed.
-	int nodeDepth_ = 0;                                    ///< Nodes inside each other now (maxDepth).
-	int actionDepth_ = 0;                                  ///< Actions inside each other now (maxActionDepth).
-	int styleDepth_ = 0;                                   ///< Styles chosen inside chosen styles now (16 at most).
+	std::vector<std::string> computing_; ///< Computed values being checked (finds circles).
+	std::size_t visits_ = 0;             ///< Visits so far (maxVisits).
+	bool exhausted_ = false;             ///< maxVisits was passed.
+	std::size_t hints_ = 0;              ///< Hints made in this pass (maxHints).
+	int nodeDepth_ = 0;                  ///< Nodes inside each other now (maxDepth).
+	int actionDepth_ = 0;                ///< Actions inside each other now (maxActionDepth).
+	int styleDepth_ = 0;                 ///< Styles chosen inside chosen styles now (16 at most).
 };
 
 } // namespace affresco::format::checker
