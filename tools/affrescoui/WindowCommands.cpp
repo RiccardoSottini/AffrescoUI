@@ -165,6 +165,7 @@ Exit renderScreen(std::span<const std::string_view> args) {
 		throw std::runtime_error(std::format("a frame of {}x{} at scale {} is larger than {} pixels a side",
 		                                     window.width(), window.height(), scale, maxFrameSide));
 
+	screen.waitForImages(); // image files decode on a worker thread
 	if(!window.saveScreenshot(frame, scale)) throw std::runtime_error("couldn't draw the frame");
 	const std::optional<detail::RgbImage> image = detail::readPpm(frame);
 	std::filesystem::remove(frame);

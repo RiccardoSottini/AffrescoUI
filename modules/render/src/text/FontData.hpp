@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -41,7 +42,9 @@ struct Font::Data {
 	std::vector<detail::FontFace> faces;             ///< The font first, then its fallbacks.
 	detail::GlyphAtlas atlas;                        ///< Made by bakeLatin1(), at the size Latin-1 fits.
 	std::unordered_map<std::uint64_t, Glyph> glyphs; ///< By face and glyph index: rasterised so far. Nodes never move.
-	std::unordered_map<char32_t, const Glyph*> nominal; ///< Unshaped glyphs beyond Latin-1, by code point.
+	std::unordered_map<char32_t, const Glyph*> nominal;    ///< Unshaped glyphs beyond Latin-1, by code point.
+	std::unordered_map<std::string, char32_t> namedGlyphs; ///< codepointNamed(), by name: at most namedGlyphsKept.
+	static constexpr std::size_t namedGlyphsKept = 1024;   ///< Names of glyphs remembered; more empties the map.
 	const Glyph* question = nullptr; ///< '?': what a missing character, or one past the atlas limit, draws.
 	float spaceAdvance = 0.0f;       ///< How wide a space is, between words.
 

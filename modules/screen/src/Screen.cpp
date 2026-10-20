@@ -33,11 +33,11 @@ struct Peer {
 
 /// @brief A channel the file declares: a program the screen talks to over a local socket.
 struct DeclaredChannel {
-	std::string name;                                      ///< Its name in the file: actions "<name>:<type>".
-	std::filesystem::path path;                            ///< The socket.
-	double reconnectMs = 0.0;                              ///< Wait before connecting again (0: never).
-	std::unique_ptr<channel::SocketChannel> socket;        ///< While connected.
-	std::uint64_t retry = 0;                               ///< The reconnect timer, if waiting.
+	std::string name;                               ///< Its name in the file: actions "<name>:<type>".
+	std::filesystem::path path;                     ///< The socket.
+	double reconnectMs = 0.0;                       ///< Wait before connecting again (0: never).
+	std::unique_ptr<channel::SocketChannel> socket; ///< While connected.
+	std::uint64_t retry = 0;                        ///< The reconnect timer, if waiting.
 };
 
 /// @brief The modules and the peers.
@@ -54,11 +54,11 @@ struct Screen::Impl {
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
 	std::shared_ptr<bool> alive = std::make_shared<bool>(true);  ///< Guards removals still queued after destruction.
 
-	Executor* executor = nullptr;                 ///< For channels (set by startChannels()).
-	std::filesystem::path socketDirectory;        ///< Where relative channel sockets are.
+	Executor* executor = nullptr;                    ///< For channels (set by startChannels()).
+	std::filesystem::path socketDirectory;           ///< Where relative channel sockets are.
 	std::map<std::string, DeclaredChannel> channels; ///< From "channels".
-	std::filesystem::path stateFile;              ///< Where "persist" paths are kept.
-	json saved;                                   ///< What was last loaded or written there.
+	std::filesystem::path stateFile;                 ///< Where "persist" paths are kept.
+	json saved;                                      ///< What was last loaded or written there.
 
 	/// @brief Builds the modules and forwards runtime events and errors to every peer.
 	/// @param document The screen.
@@ -117,7 +117,8 @@ struct Screen::Impl {
 	/// @param channel The channel.
 	void open(DeclaredChannel& channel) {
 		if(!executor) return;
-		if(Window* window = runtime.window(); window && channel.retry) window->cancelTimer(std::exchange(channel.retry, 0));
+		if(Window* window = runtime.window(); window && channel.retry)
+			window->cancelTimer(std::exchange(channel.retry, 0));
 		try {
 			channel.socket = channel::SocketChannel::connect(*executor, channel.path);
 		} catch(const std::exception& error) {
@@ -505,8 +506,8 @@ void Screen::startChannels(Executor& executor) {
 		const std::filesystem::path socket = spec["socket"].get<std::string>();
 		channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
 		const json& reconnect = spec.value("reconnect", json(false));
-		channel.reconnectMs = reconnect.is_object() ? reconnect.value("after", 2000.0)
-		                      : reconnect == true   ? 2000.0
+		channel.reconnectMs = reconnect.is_object()   ? reconnect.value("after", 2000.0)
+		                      : reconnect == true     ? 2000.0
 		                      : reconnect.is_number() ? reconnect.get<double>()
 		                                              : 0.0;
 		impl.open(channel);
@@ -566,9 +567,25 @@ Panel* Screen::find(std::string_view id) noexcept { return impl_->runtime.find(i
 
 Color Screen::color(std::string_view name) const { return impl_->runtime.color(name); }
 
-Color Screen::resolveColor(std::string_view value) const { return impl_->runtime.resolveColor(json(std::string(value))); }
+Color Screen::resolveColor(std::string_view value) const {
+	return impl_->runtime.resolveColor(json(std::string(value)));
+}
 
 std::shared_ptr<const Font> Screen::font(std::string_view name) const { return impl_->runtime.font(name); }
+
+void Screen::setImage(const std::string& name, std::shared_ptr<const Bitmap> bitmap) {
+	impl_->runtime.setImage(name, std::move(bitmap));
+}
+
+void Screen::setImage(const std::string& name, int width, int height, std::span<const std::uint8_t> rgba) {
+	setImage(name, Bitmap::fromPixels(width, height, rgba, Bitmap::Limits{}));
+}
+
+void Screen::allowImageDirectory(const std::filesystem::path& directory) {
+	impl_->runtime.allowImageDirectory(directory);
+}
+
+void Screen::waitForImages() { impl_->runtime.waitForImages(); }
 
 Connection Screen::onEvent(std::function<void(const std::string&)> listener) {
 	return impl_->events.connect(std::move(listener));

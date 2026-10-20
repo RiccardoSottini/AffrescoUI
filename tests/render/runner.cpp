@@ -166,6 +166,7 @@ void play(Player& player, const json& step) {
 
 	if(step.contains("capture")) {
 		const auto path = out / (name + "-" + step["capture"].get<std::string>() + ".ppm");
+		screen.waitForImages(); // image files decode on a worker thread: every one belongs in the frame
 		if(!window.saveScreenshot(path, scale)) throw std::runtime_error("could not save " + path.string());
 		checkAgainstScratch(window, path, scale);
 	} else if(step.contains("move")) {

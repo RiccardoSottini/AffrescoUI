@@ -13,6 +13,7 @@
 
 namespace affresco {
 
+class Bitmap;
 class Font;
 
 namespace detail {
@@ -21,7 +22,7 @@ namespace detail {
 enum class QuadKind : std::uint16_t {
 	plain = 0,      ///< A rectangle or a glyph of coverage.
 	shape = 1,      ///< A rounded rectangle, an outline or a shadow.
-	colorGlyph = 2, ///< A glyph from a colour page: its texels are its colours.
+	colorGlyph = 2, ///< A glyph from a colour page, or an image: its texels are its colours.
 };
 
 /// @brief One vertex, 32 bytes, as the GPU reads it.
@@ -46,6 +47,7 @@ enum class PaintStep : std::uint8_t {
 	text,       ///< A text starts: carry on with its font's page in use, or its first page.
 	glyphs,     ///< Glyphs of coverage from one atlas page of the text's font.
 	colorGlyph, ///< A colour glyph from one colour page of the text's font.
+	image,      ///< An image: its texture on the colour unit, next to the coverage page in use.
 };
 
 /// @brief One step of a recorded drawing, and the quads it adds.
@@ -55,6 +57,7 @@ struct PaintOp {
 	const Font* font = nullptr;       ///< text, glyphs, colorGlyph: the font (alive while the panel holds it).
 	std::uint32_t firstQuad = 0;      ///< Its first quad in the record's vertices.
 	std::uint32_t quads = 0;          ///< Its quads (0 when all were clipped away: the step still changes batches).
+	const Bitmap* bitmap = nullptr;   ///< image: the image (alive while the panel holds it).
 };
 
 /// @brief What a panel's paint() and paintOver() drew: the quads, already clipped, and the steps that place them in
@@ -66,7 +69,7 @@ struct PaintRecord {
 	std::size_t overStart = 0;    ///< The first step of paintOver(), drawn after the children.
 	std::optional<Rect> extent;   ///< What the quads cover, if any.
 	bool shapes = false;          ///< A shape quad is in it: the frame needs the shader with shapes.
-	bool color = false;           ///< A colour page is used: the frame needs the shader with colour glyphs.
+	bool color = false;           ///< A colour page or an image is in it: the frame needs the colour shader.
 
 	/// @brief Empties it, keeping its capacity.
 	void clear() noexcept {

@@ -5,6 +5,8 @@
 
 #include "affresco/render/Font.hpp"
 
+#include "detail/ShelfPacker.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -35,31 +37,16 @@ public:
 
 	/// @brief One square page.
 	struct Page {
-		/// @brief A row of glyphs.
-		struct Shelf {
-			int top;    ///< Its first row.
-			int height; ///< Its rows.
-			int right;  ///< The first free column.
-		};
-
 		int size = 0;                           ///< Width and height, in texels.
 		int bytesPerTexel = 1;                  ///< 1 for coverage, 4 for colour.
 		std::vector<std::uint8_t> pixels;       ///< Texels, top row first.
 		std::vector<Font::AtlasRegion> changes; ///< One per glyph added after the page was made.
-		std::vector<Shelf> shelves;             ///< Rows that glyphs are added to.
-		int freeTop = 0;                        ///< The first row below every shelf.
+		ShelfPacker packer;                     ///< Where glyphs go: below the white block on a coverage page.
 
 		/// @brief Makes an empty page; a coverage page gets its white block.
 		/// @param pageSize Width and height, in texels.
 		/// @param kind Coverage or colour.
 		Page(int pageSize, AtlasKind kind);
-
-		/// @brief Finds room for a box, on a shelf or on a new one.
-		/// @param width Its width, padding included.
-		/// @param height Its height, padding included.
-		/// @param shelfHeight The height a new shelf gets, if the box is not taller.
-		/// @return Its top-left texel, or nothing if the page is full.
-		[[nodiscard]] std::optional<std::array<int, 2>> place(int width, int height, int shelfHeight);
 	};
 
 	/// @brief An atlas with no page yet, until one with a size is assigned to it.

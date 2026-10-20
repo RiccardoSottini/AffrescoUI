@@ -34,6 +34,8 @@ affrescoui_module(format
 	src/EditorType.cpp
 	src/ToggleType.cpp
 	src/SliderType.cpp
+	src/ImageType.cpp
+	src/IconProperty.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Scheduler.cpp

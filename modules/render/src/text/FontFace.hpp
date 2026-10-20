@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace affresco::detail {
@@ -101,6 +102,10 @@ public:
 	/// @param codepoint The character.
 	/// @return The glyph's index, or 0 if it has none.
 	[[nodiscard]] unsigned glyphIndex(char32_t codepoint) const noexcept;
+	/// @brief The character of the glyph a name names (an icon font's "search", from its PostScript glyph names).
+	/// @param name The glyph's name.
+	/// @return The first character mapped to that glyph, or 0 if the face has no such name or no character for it.
+	[[nodiscard]] char32_t codepointNamed(const std::string& name) const noexcept;
 	/// @brief Whether it has colour glyphs (a COLR table, as colour emoji fonts do).
 	[[nodiscard]] bool hasColor() const noexcept { return color_; }
 	/// @brief Pixels per font unit.

@@ -7,6 +7,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/render/Application.hpp"
+#include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
@@ -42,7 +43,7 @@ public:
 
 	/// @brief Reads the document's colours and fonts and starts observing @p versions.
 	/// @param versions The document's version control; must outlive the runtime.
-	/// @param baseDirectory Where relative paths (fonts) are resolved from.
+	/// @param baseDirectory Where relative paths (fonts, images) are resolved from; image files must be inside it.
 	/// @throws DocumentError If a colour or font is invalid (e.g. a missing font file).
 	Runtime(VersionControl& versions, std::filesystem::path baseDirectory);
 	~Runtime();
@@ -146,6 +147,21 @@ public:
 	/// @return The colour.
 	/// @throws DocumentError If it is not a colour.
 	[[nodiscard]] Color resolveColor(const json& value) const;
+
+	/* Images */
+
+	/// @brief Sets, replaces or removes an image the document can show by name (`"source"` of an image node), e.g. a
+	/// picture the application made. Nodes showing it are updated.
+	/// @param name The name.
+	/// @param bitmap The image, or nullptr to remove it.
+	void setImage(const std::string& name, std::shared_ptr<const Bitmap> bitmap);
+
+	/// @brief Allows image files from a folder too: by default only the screen's own folder (and those inside it).
+	/// @param directory The folder.
+	void allowImageDirectory(const std::filesystem::path& directory);
+
+	/// @brief Waits until every image file asked for is decoded, and shows them: before a picture of the screen.
+	void waitForImages();
 
 	/// @brief Looks a font up in "fonts".
 	/// @param name The name.

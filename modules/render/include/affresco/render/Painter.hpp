@@ -10,6 +10,7 @@
 
 namespace affresco {
 
+class Bitmap;
 class Font;
 
 /// @brief The radius of each corner of a rounded rectangle, in window units. All zero is a plain rectangle.
@@ -65,6 +66,14 @@ public:
 	/// @param origin Left end of the baseline, in window units.
 	/// @param color The colour.
 	virtual void drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) = 0;
+
+	/// @brief Draws an image, stretched to a rectangle. Painters that can't draw images draw nothing.
+	/// @param bitmap The image.
+	/// @param rect Where it goes, in window units; the part outside the panel is clipped off.
+	virtual void drawImage(const Bitmap& bitmap, const Rect& rect) {
+		static_cast<void>(bitmap);
+		static_cast<void>(rect);
+	}
 
 	/// @brief Fills a rectangle with rounded corners, with anti-aliased edges.
 	/// @param rect In window units.

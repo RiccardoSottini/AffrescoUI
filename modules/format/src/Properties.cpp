@@ -42,6 +42,12 @@ std::shared_ptr<const Font> Properties::font(const json& value, const std::strin
 	return found;
 }
 
+ImageCache& Properties::images() const { return engine_.document.images(); }
+
+std::filesystem::path Properties::imageFile(const json& value, const std::string& at) const {
+	return engine_.document.imageFile(value, at);
+}
+
 /* Applying a node */
 
 // Cost follows the change: a node whose compiled form, values and colours are those applied last is left as it is

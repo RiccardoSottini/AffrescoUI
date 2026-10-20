@@ -61,6 +61,13 @@ FetchContent_MakeAvailable(json)
 # FreeType and HarfBuzz: the text of the rendering engine
 include(cmake/AffrescoUIText.cmake)
 
+# The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
+# of lucide-static 1.48.0 (examples/assets/fonts/README.md)
+file(SHA256 ${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts/Lucide.ttf AFFRESCOUI_LUCIDE_SHA256)
+if(NOT AFFRESCOUI_LUCIDE_SHA256 STREQUAL "eaf30a2a0d2ec0cfbf7ab69ed6dc6e39b7e5e2f0255c17856dcb0b73a15584bb")
+	message(FATAL_ERROR "examples/assets/fonts/Lucide.ttf isn't lucide-static 1.48.0's lucide.ttf (its hash differs)")
+endif()
+
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
 if(MSVC)
 	# /utf-8 isn't a warning, but goes wherever these do: the sources are UTF-8, and MSVC reads the ANSI code page

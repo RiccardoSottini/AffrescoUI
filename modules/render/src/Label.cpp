@@ -39,7 +39,27 @@ Label::Label(std::string_view text) : Label() { text_ = detail::fromUtf8(text); 
 
 void Label::setText(std::string_view utf8) {
 	text_ = detail::fromUtf8(utf8);
+	shownFont_ = 0;
 	invalidate();
+}
+
+void Label::setIcon(std::string name) {
+	if(name == icon_) return;
+	icon_ = std::move(name);
+	shownFont_ = 0;
+	invalidate();
+}
+
+void Label::updateShown() {
+	const Font* f = font();
+	if(icon_.empty() || !f || shownFont_ == f->id()) return;
+	shown_.clear();
+	if(const char32_t codepoint = f->codepointNamed(icon_)) {
+		shown_ += codepoint;
+		if(!text_.empty()) shown_ += U' ';
+	}
+	shown_ += text_;
+	shownFont_ = f->id();
 }
 
 std::string Label::text() const { return detail::toUtf8(text_); }
@@ -79,16 +99,17 @@ void Label::setFitToText(bool fit, float maxWidth) {
 }
 
 void Label::prepareLayout() {
+	updateShown();
 	const Font* f = font();
 	if(!fitToText_ || !f) return;
 
 	const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
 	// The text changes only through invalidate(): until then, comparing it with the fitted one would find it the same
-	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || (isLayoutDirty() && fitted_.text != text_)) {
-		const std::vector<std::u32string_view> lines = f->wrap(text_, maxTextWidth);
+	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || (isLayoutDirty() && fitted_.text != shown())) {
+		const std::vector<std::u32string_view> lines = f->wrap(shown(), maxTextWidth);
 		float textWidth = 0.0f;
 		for(const std::u32string_view line : lines) textWidth = std::max(textWidth, f->measure(line));
-		fitted_ = {text_, f->id(), maxTextWidth, textWidth, lines.size()};
+		fitted_ = {shown(), f->id(), maxTextWidth, textWidth, lines.size()};
 	}
 
 	const auto lineCount = static_cast<float>(std::max<std::size_t>(fitted_.lines, 1));
@@ -104,11 +125,11 @@ void Label::paint(Painter& painter) const {
 	Panel::paint(painter);
 
 	const Font* f = font();
-	if(!f || text_.empty()) return;
+	if(!f || shown().empty()) return;
 
 	const Rect content = contentRect();
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
-	const std::vector<std::u32string_view> lines = f->wrap(text_, maxWidth);
+	const std::vector<std::u32string_view> lines = f->wrap(shown(), maxWidth);
 
 	const float textHeight = static_cast<float>(lines.size()) * f->lineHeight();
 	float top = aligned(vertical_, content.top, content.height(), textHeight);
