@@ -87,6 +87,8 @@ FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, flo
 	// A font's height spans its ascender to its descender, as stb_truetype's did, so sizes stay what they were
 	const auto units = static_cast<float>(sizeOf == SizeOf::em ? face->units_per_EM : face->ascender - face->descender);
 	if(!(units > 0.0f) || !(size > 0.0f) || !std::isfinite(size)) throw unusable(path, "no height");
+	if(size > largestSize) // checked before any conversion to an integer: 1e30 doesn't fit one
+		throw unusable(path, "larger than " + std::to_string(static_cast<int>(largestSize)) + " pixels");
 	scale_ = size / units;
 	FT_Size_RequestRec request{sizeOf == SizeOf::em ? FT_SIZE_REQUEST_TYPE_NOMINAL : FT_SIZE_REQUEST_TYPE_REAL_DIM, 0,
 	                           std::lround(size * 64.0f), 0, 0};

@@ -209,6 +209,16 @@ TEST_CASE("fonts: a path that isn't a regular font file is refused, naming it") 
 	CHECK_THROWS_AS((void)Font::load(fonts() / "missing.ttf", 16.0f), std::runtime_error);
 }
 
+TEST_CASE("fonts: a size too large for an atlas is refused before it reaches FreeType's integers") {
+	CHECK_THROWS_WITH_AS((void)Font::load(fonts() / "Roboto-Regular.ttf", 1e30f),
+	                     doctest::Contains("larger than 4096 pixels"), std::runtime_error);
+	CHECK_THROWS_WITH_AS((void)Font::load(fonts() / "Roboto-Regular.ttf", 5000.0f),
+	                     doctest::Contains("larger than 4096 pixels"), std::runtime_error);
+	// Small enough, but Latin-1 doesn't fit a page
+	CHECK_THROWS_AS((void)Font::load(fonts() / "Roboto-Regular.ttf", 1000.0f), std::runtime_error);
+	CHECK(Font::load(fonts() / "Roboto-Regular.ttf", 200.0f)->lineHeight() > 0.0f);
+}
+
 // Each character comes from the other face, so every one is a run of its own, and none has a script of its own: the
 // direction of each used to be looked for in all the runs after it
 TEST_CASE("shaping: text that alternates faces costs in proportion to its length" * doctest::timeout(30)) {
