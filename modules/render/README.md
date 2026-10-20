@@ -17,7 +17,8 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
 | `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks |
-| `Stack.hpp` | `Stack` (a row or a column, with a gap and growing children) and `Grid` (equal columns) |
+| `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
+| `Layout.hpp` | The values of flexible and grid layout: `Justify`, `CrossAlign`, `Track` (pixels, percent, fractions, content, minmax), `GridCell` |
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text |
 | `TextArea.hpp` | `TextArea`: a single-line input |
 | `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses |
@@ -32,10 +33,21 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
 
 - **A parent owns its children** (`std::unique_ptr`); `parent()` and `window()` never own. Destroying a panel
   clears the window's focus, hover and capture if they point at it.
-- **Setters only mark the window dirty.** Layout runs once, before the next frame, then the tree is drawn. Changes
-  made during the layout pass itself (`prepareLayout`, `arrange`) don't schedule another one.
+- **Setters only mark what changed.** A setter stores a value only when it differs (`Panel::setProperty`), and then
+  marks the panel dirty and its ancestors as having a dirty descendant. Layout runs once, before the next frame, then
+  the tree is drawn. Changes made during the layout pass itself (`prepareLayout`, `arrange`) don't schedule another
+  one.
+- **Layout is incremental.** Each panel keeps what its last pass gave it (origin, clip, the parent's size, the size its
+  container arranged, whether its parent was shown). A pass skips a subtree whose inputs are the same and where
+  nothing changed; subtrees with an anchor to another panel are always laid out, as that panel may move. Measured
+  sizes (`measuredSize`) are kept until the panel changes. `Window::invalidate()` lays out and measures everything
+  again. **A widget whose size or arrangement depends on anything else must call `invalidate()` when it changes.**
+- **Flex and grid are pure functions** (`src/layout/Flex.*`, `src/layout/Grid.*`) of measured sizes, tested with
+  tables of rectangles; `Stack` and `Grid` measure their children, call them, and turn the result into anchors and
+  arranged sizes. Their arithmetic keeps the 2017 rows, columns and grids on exactly the same pixels.
 - **A window draws only when something changed,** and the event loop sleeps while nothing is due: idle costs no CPU.
-- **Layout per axis:** anchored edges first, then the position, then `max(size, minimum)`; percentages refer to the
+- **Layout per axis:** anchored edges first, then the position, then the size within its minimum and maximum (the
+  minimum wins), then the aspect ratio; percentages refer to the
   parent; a panel is clipped to its parent, and a panel clipped to nothing is not shown. Overlays are laid out, drawn
   and hit-tested after the whole tree, unclipped.
 - **Every OpenGL call is in `src/gl/`, and every GLFW call in `src/platform/GlfwPlatform.cpp`.** `Window.cpp` and
@@ -99,7 +111,9 @@ src/
   Renderer.hpp             detail::Renderer, what a window draws with
   platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call)
   Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
-  Stack.cpp                rows, columns and grids
+  Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
+  layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid
+                           (placement in cells, track sizing): pure functions
   Label.cpp, TextArea.cpp  text and a single-line input
   TextEditor.cpp           the multi-line editor
   Controls.cpp             Toggle and Slider
