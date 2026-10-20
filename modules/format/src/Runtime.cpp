@@ -3,6 +3,7 @@
 
 #include "Catalog.hpp"
 #include "Engine.hpp"
+#include "Reference.hpp"
 
 namespace affresco::format {
 
@@ -121,6 +122,12 @@ bool Runtime::hasAction(std::string_view name) const {
 Window* Runtime::window() const noexcept { return impl_->window; }
 
 json Runtime::catalog() const { return format::catalog(*impl_); }
+
+json Runtime::schema() const { return format::schema(*impl_); }
+
+std::string Runtime::referenceTables(std::string_view markdown) const {
+	return format::referenceTables(*impl_, markdown);
+}
 
 Panel* Runtime::find(std::string_view id) noexcept {
 	return impl_->window ? impl_->window->root().findById(id) : nullptr;

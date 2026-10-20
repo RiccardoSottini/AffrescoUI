@@ -123,6 +123,13 @@ class Guide(unittest.TestCase):
             self.assertIn(topic, contents)
             self.assertIn(topic, mcp.format_guide(text, topic).split("\n")[0])
         self.assertLess(len(contents), len(text) / 5)
+        for title, part in mcp.guide_sections(text):
+            self.assertLessEqual(len(part), mcp.GUIDE_TOPIC, title)
+
+    def test_a_long_topic_names_its_subsections(self):
+        guide = "# Format\n\n## Nodes\nAbout nodes.\n\n### label\n" + "x" * mcp.GUIDE_TOPIC + "\n\n### image\nPictures."
+        self.assertEqual(mcp.format_guide(guide, "nodes"), "## Nodes\nAbout nodes.\n\nMore in the topics: label, image.")
+        self.assertEqual(mcp.format_guide(guide, "image"), "### image\nPictures.")
 
 
 class Scenarios(unittest.TestCase):

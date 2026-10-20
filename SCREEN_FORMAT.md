@@ -52,6 +52,7 @@ Every part of the format follows these, and so should every extension:
 
 ## Top level
 
+<!-- generated: sections -->
 | Key | Meaning |
 |---|---|
 | `version` | Required. `1`. |
@@ -77,6 +78,7 @@ Every part of the format follows these, and so should every extension:
 | `persist` | `["state.habits", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it. |
 | `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win). |
 | `permissions` | Who may change the running screen (see [Version control](VERSION_CONTROL.md)). Revisions can't change it. |
+<!-- end generated -->
 
 ## Nodes
 
@@ -89,9 +91,10 @@ parent, later siblings on top of earlier ones.
 - **Align:** `"start"`, `"center"` or `"end"`.
 
 ### Every type
+<!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -106,6 +109,12 @@ parent, later siblings on top of earlier ones.
 | `basis` | In a `row`/`column`: its size along it before growing or shrinking (CSS flex-basis), a length; `"auto"` (the default) for its own `width` or `height`. |
 | `alignSelf` | In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's `alignItems`. |
 | `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
+<!-- end generated -->
+
+### Every type: look and behaviour
+<!-- generated: look -->
+| Key | Meaning |
+|---|---|
 | `color` | Background. Default: light grey for panels, transparent for labels, stacks and controls. |
 | `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
@@ -129,8 +138,10 @@ parent, later siblings on top of earlier ones.
 | `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
 | `note` | A comment. |
 | `on…` | Event handlers (see Events). |
+<!-- end generated -->
 
 ### `label`
+<!-- generated: label -->
 | Key | Meaning |
 |---|---|
 | `text` | The text. |
@@ -141,6 +152,7 @@ parent, later siblings on top of earlier ones.
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
+<!-- end generated -->
 
 ```json
 "fonts": { "default": { "file": "Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
@@ -160,6 +172,7 @@ indentation; Tab/Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. The caret's line 
 Tabs become 4 spaces. Applications build richer editors on it (syntax colours, commands): see
 `examples/CodeEditor.cpp`, the Forge template's `code` type.
 
+<!-- generated: editor -->
 | Key | Meaning |
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
@@ -169,6 +182,7 @@ Tabs become 4 spaces. Applications build richer editors on it (syntax colours, c
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
 | `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
 | `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
+<!-- end generated -->
 
 ### `row`, `column`, `stack`, `grid`
 `column` (also `stack`) places its children one below the other, `row` side by side, like a CSS flex container; they
@@ -177,6 +191,7 @@ unless `alignItems` or a child's `alignSelf` places them across too. Each child 
 within its minimum and maximum; children with `grow` share the room left over, and children with `shrink` give up an
 overflow.
 
+<!-- generated: stack -->
 | Key | Meaning |
 |---|---|
 | `gap` | Pixels between children (and between lines, when it wraps). |
@@ -186,11 +201,13 @@ overflow.
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
+<!-- end generated -->
 
 `grid` places its children in columns and rows, like a CSS grid: each in its `cell`, or in the next free cell, row
 after row. A child is as wide as its cell and keeps its own height at the top of it, unless `justifyItems`,
 `alignItems` or its `alignSelf` say otherwise.
 
+<!-- generated: grid -->
 | Key | Meaning |
 |---|---|
 | `columns` | A number of equal columns (default `2`), or a list of tracks: pixels (`200`), a percentage of the grid (`"25%"`), a share of the room left (`"1fr"`), `"auto"` (as wide as its widest child) or `"minmax(100, 1fr)"`. `"1fr"` is `minmax(0, 1fr)`, so equal fractions stay equal whatever their content; write `"minmax(auto, 1fr)"` to keep a track as wide as its content. At most 1,000. |
@@ -198,27 +215,32 @@ after row. A child is as wide as its cell and keeps its own height at the top of
 | `gap`, `rowGap`, `columnGap` | Pixels between cells; `rowGap` and `columnGap` over `gap`. |
 | `justifyItems` | Where children sit across their cells: `stretch` (default), `start`, `center` or `end`. |
 | `alignItems` | Where children sit down their cells: `start` (default), `center`, `end` or `stretch`. |
+<!-- end generated -->
 
 ### `toggle`, `checkbox`, `slider`
 Value controls. `bind` keeps the value in a state path; without it, `checked` (toggle, checkbox) or `value` (slider)
 shows a value and `onChange` (`event.value`) reacts. A control keeps its own clicks (they don't bubble).
 
+<!-- generated: control -->
 | Key | Meaning |
 |---|---|
 | `trackColor` | The empty or off part. |
 | `activeColor` | The filled or on part. |
 | `knobColor` | The knob (or the inside of the checkbox). |
 | `min`, `max`, `step` | Slider range (default 0 to 100) and snapping. |
+<!-- end generated -->
 
 ### `image`
 A PNG or JPEG picture, fitted to the node. Transparent until it arrives: files are decoded on a worker thread, and the
 picture appears when it is ready (a picture of the screen, `render`, waits for every one).
 
+<!-- generated: image -->
 | Key | Meaning |
 |---|---|
 | `file` | A PNG or JPEG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
 | `source` | Instead of `file`: an image the host names (`Screen::setImage("chart", …)`), e.g. a picture it made; the node shows each new one the host sets. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
+<!-- end generated -->
 
 ```json
 { "type": "image", "id": "avatar", "file": "images/avatar.png", "width": 48, "height": 48, "fit": "cover" }
@@ -329,6 +351,7 @@ caused it. A revision may have 100,000 operations and 16 MiB; a document may hav
 A handler is an action name, a step, or a list of steps. Pointer events get `event.x`/`y` (in the window),
 `event.left`/`top` (in the handling node) and its `width`/`height`.
 
+<!-- generated: events -->
 | Handler | When |
 |---|---|
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
@@ -342,6 +365,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onChange` | A bound or value control changed: `event.value`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
 | `onShow`, `onHide` | The node was built, or removed (by `when`, `repeat` or a revision). |
+<!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it
 has no handler, its nearest ancestor with one. A row with `onClick` needs no invisible overlay above its labels.
@@ -354,6 +378,7 @@ without Cmd, Ctrl or Alt go to the text (Escape still works).
 
 An action is a list of steps. Each step is an object whose first key says what it does:
 
+<!-- generated: steps -->
 | Step | Example |
 |---|---|
 | `set` | `{ "set": "state.current", "to": "{{index}}" }` |
@@ -378,6 +403,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+<!-- end generated -->
 
 **Control steps** (`call`, `send`, `connect`, `patch` and the review and history steps) can be written in the screen
 file, but no revision may add or change them: an agent can rearrange how the app uses the outside world and its own

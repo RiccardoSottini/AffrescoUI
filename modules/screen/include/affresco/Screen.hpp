@@ -157,6 +157,17 @@ public:
 	/// @return JSON text.
 	[[nodiscard]] std::string catalogJson() const;
 
+	/// @brief The JSON Schema of the format, with the types registered here (registerType()) among the built-in ones.
+	/// @return The schema.
+	[[nodiscard]] json schema() const;
+
+	/// @brief Writes SCREEN_FORMAT.md's generated tables (between "<!-- generated: name -->" and
+	/// "<!-- end generated -->") from what this screen has registered.
+	/// @param markdown The document.
+	/// @return The document with its tables generated.
+	/// @throws std::invalid_argument If a marker has no end, or names a table that doesn't exist.
+	[[nodiscard]] std::string referenceTables(std::string_view markdown) const;
+
 	/* Capabilities the file declares: "channels" (programs to talk to) and "persist" (state kept on disk) */
 
 	/// @brief Where programs on this machine meet by default, and where relative "channels" socket paths are found:

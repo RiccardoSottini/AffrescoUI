@@ -20,7 +20,7 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 8> list = {{
+	static constexpr std::array<Command, 9> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
 		 "Show a screen and let peers change it, like affrescoui_host", runScreen},
 	    {"check", "<file> [--json]", "Check a screen: the schema, the format's rules and the checker", checkScreen},
@@ -36,6 +36,9 @@ std::span<const Command> commands() {
 		 "Write the revisions after one, from the screen's history on disk, as a change set", exportChanges},
 	    {"import", "<file> <changes.json> [--data DIR]", "Apply a change set to the screen's history on disk",
 		 importChanges},
+	    {"schema", "[-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin|examples] [--check]",
+		 "Generate the format's JSON Schema and SCREEN_FORMAT.md's tables; --check only says if they are out of date",
+		 generateSchema},
 	}};
 	return list;
 }
