@@ -75,6 +75,7 @@ Connection Events::hookCaret(Panel& panel) {
 		Record* record = engine_.reconciler.recordOf(&panel);
 		if(!record || !record->caret) return;
 		try {
+			const DocumentContext::BudgetScope budget(engine_.document); // the path may hold expressions
 			const std::string where = record->path + ".caret";
 			const json::json_pointer pointer =
 			    format::statePointer(*record->caret, engine_.document.context(*record->locals, json::object()), where);
@@ -137,6 +138,7 @@ void Events::valueChanged(Panel& panel, const json& value) {
 	if(!record) return;
 	if(record->bind) {
 		try {
+			const DocumentContext::BudgetScope budget(engine_.document);
 			const std::string where = record->path + ".bind";
 			const json::json_pointer pointer =
 			    format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()), where);
@@ -298,6 +300,7 @@ void Events::mouseMove(Panel& panel, const MouseMoveEvent& event) {
 	if(press_.source && !press_.dragging &&
 	   std::hypot(at.x - press_.position.x, at.y - press_.position.y) > dragThreshold) {
 		try {
+			const DocumentContext::BudgetScope budget(engine_.document); // the data is evaluated only now
 			Record& source = *engine_.reconciler.recordOf(press_.source);
 			press_.data = engine_.document.evaluate(source.drag.value("data", json()), *source.locals, json::object(),
 			                                        source.path + ".drag");
@@ -370,6 +373,7 @@ bool Events::clickKeepsOpen(const Panel& panel, const Record& record, Vec2 posit
 }
 
 void Events::dismissOverlays(const Vec2* position) {
+	const DocumentContext::BudgetScope budget(engine_.document); // one for all the overlays' paths
 	bool closed = false;
 	for(auto& [panel, record] : engine_.reconciler.records()) {
 		if(!record.dismissOutside || !record.overlayOpen || !panel->isShown()) continue;

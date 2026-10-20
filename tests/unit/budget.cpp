@@ -130,6 +130,32 @@ TEST_CASE("budget: an update has a budget too, so a binding can't freeze the scr
 	    doctest::Contains("root.children[0].text"), affresco::DocumentError);
 }
 
+TEST_CASE("budget: a drag's data has a budget too, so dragging can't freeze the screen") {
+	const Errors errors;
+	const Built built("{}", R"([{"id": "source", "width": 100, "height": 100,
+		"drag": {"data": "{{sum(range(10000), sum(range(10000), it))}}"}}])");
+	built.window->render();
+	built.window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, {10.0f, 10.0f}});
+	built.window->routeMouseMove({60.0f, 60.0f});
+	REQUIRE(errors.lines.size() == 1);
+	CHECK(errors.lines[0].find("root.children[0].drag") != std::string::npos);
+	CHECK(errors.lines[0].find("10000000 operations, its work budget") != std::string::npos);
+}
+
+TEST_CASE("budget: the place a caret is written to has a budget too") {
+	const Errors errors;
+	const Built built("{}", R"([{"id": "field", "type": "editor", "width": 200, "height": 30,
+		"caret": "state[sum(range(10000), sum(range(10000), it)) > 0 ? 'text' : 'count']"}])");
+	built.window->render();
+	built.window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, {10.0f, 10.0f}});
+	built.window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Release, {}, {10.0f, 10.0f}});
+	built.window->routeChar({U'x'});
+	REQUIRE(!errors.lines.empty());
+	CHECK(errors.lines[0].find("root.children[0].caret") != std::string::npos);
+	CHECK(errors.lines[0].find("10000000 operations, its work budget") != std::string::npos);
+	CHECK(built.state("text") == "ab");
+}
+
 TEST_CASE("limits: a revision, a document and a state have sizes they can't pass") {
 	using namespace affresco::format;
 	const Rules rules;
