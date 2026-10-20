@@ -12,14 +12,61 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace affresco {
 
 namespace {
 
 bool instanceAlive = false; ///< Only one Application may exist.
+
+/// The windows an Application owns.
+using Windows = std::vector<std::unique_ptr<Window>>;
+
+/// @brief Renders every window that is still open (if something changed in it), and hides those asked to close.
+/// @param windows The windows.
+/// @return Whether any is still open.
+bool renderOpenWindows(const Windows& windows) {
+	bool anyOpen = false;
+	for(const auto& window : windows) {
+		if(window->shouldClose()) {
+			window->setVisible(false);
+			continue;
+		}
+		anyOpen = true;
+		window->render(); // no-op unless something changed
+	}
+	return anyOpen;
+}
+
+/// @brief How long until the first timer of any window is due.
+/// @param windows The windows.
+/// @return Seconds, or nothing if no window has a timer.
+std::optional<double> secondsToNextTimer(const Windows& windows) {
+	std::optional<double> wait;
+	for(const auto& window : windows)
+		if(const auto next = window->secondsToNextTimer()) wait = wait ? std::min(*wait, *next) : *next;
+	return wait;
+}
+
+/// @brief Saves a frame of each window: the first to @p path, the others to "<path>.1", "<path>.2" and so on.
+/// @param windows The windows.
+/// @param path The first file.
+/// @return Whether every frame was saved.
+bool saveScreenshots(const Windows& windows, const std::string& path) {
+	bool saved = true;
+	for(std::size_t i = 0; i < windows.size(); ++i) {
+		const std::string file = i == 0 ? path : path + "." + std::to_string(i);
+		const bool ok = windows[i]->saveScreenshot(file);
+		log(LogLevel::Info, "AffrescoUI: screenshot " + std::string(ok ? "saved: " : "FAILED: ") + file);
+		saved = saved && ok;
+	}
+	return saved;
+}
 
 } // namespace
 
@@ -55,21 +102,10 @@ int Application::run() {
 
 	running_ = true;
 	while(running_ && (!screenshot || clock_.seconds() < deadline)) {
-		bool anyOpen = false;
-		for(auto& window : windows_) {
-			if(window->shouldClose()) {
-				window->setVisible(false);
-				continue;
-			}
-			anyOpen = true;
-			window->render(); // no-op unless something changed
-		}
-		if(!anyOpen) break;
+		if(!renderOpenWindows(windows_)) break;
 
 		// Sleeps until there is input or a timer is due: no CPU or GPU used while idle
-		std::optional<double> wait;
-		for(auto& window : windows_)
-			if(const auto next = window->secondsToNextTimer()) wait = wait ? std::min(*wait, *next) : *next;
+		std::optional<double> wait = secondsToNextTimer(windows_);
 		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - clock_.seconds()));
 		platform_->waitEvents(wait);
 		runPostedTasks();
@@ -77,14 +113,7 @@ int Application::run() {
 	running_ = false;
 
 	if(!screenshot) return EXIT_SUCCESS;
-	bool saved = true;
-	for(std::size_t i = 0; i < windows_.size(); ++i) {
-		const std::string path = i == 0 ? *screenshot : *screenshot + "." + std::to_string(i);
-		const bool ok = windows_[i]->saveScreenshot(path);
-		log(LogLevel::Info, "AffrescoUI: screenshot " + std::string(ok ? "saved: " : "FAILED: ") + path);
-		saved = saved && ok;
-	}
-	return saved ? EXIT_SUCCESS : EXIT_FAILURE;
+	return saveScreenshots(windows_, *screenshot) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void Application::post(std::function<void()> task) {
