@@ -98,8 +98,8 @@ TEST_CASE("compiler: each property becomes a slot, and only dynamic values are e
 	CHECK(node->with[0].name == "gap");
 	REQUIRE(node->let.size() == 1);
 	CHECK(node->let[0].value.dynamic());
-	REQUIRE(node->when);
-	CHECK((node->when && node->when->dynamic()));
+	const std::optional<Binding>& when = node->when;
+	CHECK((when && when->dynamic()));
 	CHECK_FALSE(node->repeat);
 }
 
@@ -109,8 +109,9 @@ TEST_CASE("compiler: a repeat, a dynamic style, and the keys that make a node ap
 		"style": "{{on ? 'chipOn' : 'chip'}}",
 		"overlay": {"open": "state.menuOpen"}
 	})");
-	REQUIRE(node->repeat);
-	const CompiledRepeat& repeat = node->repeat ? *node->repeat : throw std::logic_error("no repeat");
+	const std::optional<CompiledRepeat>& compiled = node->repeat;
+	REQUIRE(compiled);
+	const CompiledRepeat& repeat = compiled ? *compiled : throw std::logic_error("no repeat");
 	CHECK(repeat.item == "tag");
 	CHECK(repeat.index == "i");
 	REQUIRE(repeat.path);

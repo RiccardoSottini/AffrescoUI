@@ -216,8 +216,9 @@ std::optional<Mismatch> objectMismatch(const json& value, const json& type, cons
 			if(auto found = matchAt(item, *inside, at)) return found;
 		} else if(const auto others = type.find("additionalProperties"); others != type.end() && *others == false) {
 			std::string names;
-			for(const auto& [name, property] : type.value("properties", json::object()).items())
-				names += (names.empty() ? "" : ", ") + name;
+			const auto properties = type.find("properties"); // a temporary's items() would outlive it (GCC 13)
+			if(properties != type.end() && properties->is_object())
+				for(const auto& [name, property] : properties->items()) names += (names.empty() ? "" : ", ") + name;
 			return Mismatch{at.text(), "not one of its properties (" + (names.empty() ? std::string("none") : names) + ")"};
 		}
 	}

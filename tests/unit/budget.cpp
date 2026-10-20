@@ -137,7 +137,7 @@ TEST_CASE("limits: a revision, a document and a state have sizes they can't pass
 	CHECK_THROWS_WITH_AS(rules.validate(document), doctest::Contains("state: larger than 32 MiB"),
 	                     affresco::DocumentError);
 
-	json before = {{"version", 1}, {"root", {{"id", "root"}}}, {"state", {{"big", ""}}}};
+	const json before = {{"version", 1}, {"root", {{"id", "root"}}}, {"state", {{"big", ""}}}};
 	json after = before;
 	after["state"]["big"] = std::string(maxStateBytes, 'a');
 	CHECK_THROWS_WITH_AS(rules.checkChange(before, after), doctest::Contains("the state would be larger"),

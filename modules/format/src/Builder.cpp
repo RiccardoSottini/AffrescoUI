@@ -234,8 +234,9 @@ void Builder::instances(const CompiledRef& node, const SharedScope& locals, cons
 		add(locals, at, nullptr);
 		return;
 	}
-	if(!node->repeat) reportRepeat(node->own["repeat"], at);
-	const CompiledRepeat& repeat = *node->repeat;
+	const std::optional<CompiledRepeat>& compiled = node->repeat;
+	if(!compiled) reportRepeat(node->own["repeat"], at);
+	const CompiledRepeat& repeat = *compiled;
 	const json list = repeated(repeat, *locals, at);
 	for(std::size_t k = 0; k < list.size(); ++k) { // a null list has none
 		SharedScope scope = extend(locals, {{repeat.item, list[k]}, {repeat.index, k}});
