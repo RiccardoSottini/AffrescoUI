@@ -11,7 +11,6 @@
 #include <cctype>
 #include <charconv>
 #include <functional>
-#include <new>
 #include <optional>
 #include <unordered_map>
 
@@ -212,25 +211,21 @@ json& statePlace(json& state, const json::json_pointer& pointer, const std::stri
 	return *at;
 }
 
-const json* findInState(const json& state, const json::json_pointer& pointer) noexcept {
-	try {
-		const json* at = &state;
-		for(const std::string& key : keysOf(pointer)) {
-			const std::optional<std::size_t> position = positionOf(key);
-			if(at->is_object()) {
-				const auto it = at->find(key);
-				if(it == at->end()) return nullptr;
-				at = &*it;
-			} else if(at->is_array() && position && *position < at->size()) {
-				at = &(*at)[*position];
-			} else {
-				return nullptr;
-			}
+const json* findInState(const json& state, const json::json_pointer& pointer) {
+	const json* at = &state;
+	for(const std::string& key : keysOf(pointer)) {
+		const std::optional<std::size_t> position = positionOf(key);
+		if(at->is_object()) {
+			const auto it = at->find(key);
+			if(it == at->end()) return nullptr;
+			at = &*it;
+		} else if(at->is_array() && position && *position < at->size()) {
+			at = &(*at)[*position];
+		} else {
+			return nullptr;
 		}
-		return at;
-	} catch(const std::bad_alloc&) { // copying the pointer's keys
-		return nullptr;
 	}
+	return at;
 }
 
 bool truthy(const json& value) noexcept {

@@ -132,7 +132,7 @@ constexpr const char* overlayScreen = R"json({
 // Before, the overlay's parent stood for its anchor, which toggles it itself: the root holds every point, so no click
 // was outside it
 TEST_CASE("format: an overlay whose parent is the root closes on a click outside it") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto window = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(overlayScreen);
 	screen.build(*window);
@@ -152,7 +152,7 @@ TEST_CASE("format: an overlay whose parent is the root closes on a click outside
 }
 
 TEST_CASE("format: Escape closes the open overlays when nothing has the focus") {
-	ManualClock clock;
+	const ManualClock clock;
 	const auto window = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(overlayScreen);
 	screen.build(*window);

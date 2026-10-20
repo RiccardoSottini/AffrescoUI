@@ -96,7 +96,7 @@ TEST_CASE("format: computed values may read each other 32 levels deep, and a lon
 	document["computed"] = computedChain(20000);
 	const auto findings = affresco::format::check(document, document["state"]);
 	REQUIRE(findings);
-	CHECK(findings->empty());
+	CHECK((findings && findings->empty()));
 }
 
 // Before, the reconciler built the panels of a component inside itself without end, and overflowed the stack

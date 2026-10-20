@@ -139,11 +139,12 @@ inline constexpr std::size_t maxListGap = 10000;
 /// or a position is more than maxListGap past the end of its list.
 [[nodiscard]] json& statePlace(json& state, const json::json_pointer& pointer, const std::string& where);
 
-/// @brief The value at a place in the state, read without making anything and without throwing.
+/// @brief The value at a place in the state, read without making anything, and without the JSON exceptions that
+/// state.value(pointer) throws for a key into a list that isn't a position.
 /// @param state The live state.
 /// @param pointer The place (statePointer()).
 /// @return The value, or nullptr if there is none (or the pointer can't lead to one).
-[[nodiscard]] const json* findInState(const json& state, const json::json_pointer& pointer) noexcept;
+[[nodiscard]] const json* findInState(const json& state, const json::json_pointer& pointer);
 
 /// @brief Tells whether a value counts as true.
 /// @param value The value.
