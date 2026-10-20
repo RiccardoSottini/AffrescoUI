@@ -1,0 +1,53 @@
+# The setup every build job shares (.github/workflows/README.md): the build tools and GLFW's headers, and a compile
+# cache (ccache) kept between runs. CMake picks ccache up from CMAKE_C_COMPILER_LAUNCHER and
+# CMAKE_CXX_COMPILER_LAUNCHER, set here for every later step, so the base builds of the rendering check, the quality
+# gate and the benchmarks use it too.
+#
+# The cache of a pull request is its own (GitHub scopes caches to the branch that wrote them): it starts from the
+# base branch's, and never changes what master's runs read.
+name: Set up the build
+description: Build tools, GLFW's headers and a compile cache, on Linux or macOS
+inputs:
+  packages:
+    description: More apt packages (Linux), space separated
+    default: ""
+  cache:
+    description: The compile cache's name, one per kind of build (the job's compiler and flags)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install the build tools (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        sudo apt-get update
+        # shellcheck disable=SC2086 # the packages are a list
+        sudo apt-get install -y --no-install-recommends ninja-build ccache \
+          libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
+          libwayland-dev libxkbcommon-dev wayland-protocols $PACKAGES
+    - name: Install the build tools (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install ninja ccache
+    - name: Use the compile cache
+      shell: bash
+      run: |
+        {
+          echo "CCACHE_DIR=$RUNNER_TEMP/ccache"
+          echo "CCACHE_MAXSIZE=600M"
+          # Paths are hashed relative to the folder that holds both the checkout and $RUNNER_TEMP, so the base's
+          # worktree (in $RUNNER_TEMP) hits the same entries as the checkout
+          echo "CCACHE_BASEDIR=$(dirname "$RUNNER_TEMP")"
+          echo "CCACHE_NOHASHDIR=true"
+          echo "CMAKE_C_COMPILER_LAUNCHER=ccache"
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache"
+        } >>"$GITHUB_ENV"
+    - name: Restore and keep the compile cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ccache
+        key: ccache-${{ inputs.cache }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: ccache-${{ inputs.cache }}-
