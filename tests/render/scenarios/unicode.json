@@ -1,11 +1,13 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../screens",
 	"scenarios": [
 		{
 			"name": "unicode",
 			"screen": "unicode.screen.json",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "click": "#editor" },
 				{ "key": "end" },
 				{ "key": "shift+left" },
@@ -13,10 +15,10 @@
 				{ "key": "shift+left" },
 				{ "key": "shift+left" },
 				{ "key": "shift+left" },
-				{ "capture": "selected" },
+				{ "expect": { "image": "selected" } },
 				{ "key": "backspace" },
 				{ "type": "World" },
-				{ "capture": "edited" }
+				{ "expect": { "image": "edited" } }
 			]
 		}
 	]

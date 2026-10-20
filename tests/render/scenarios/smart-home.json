@@ -1,21 +1,23 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../../../examples/assets/screens",
 	"scenarios": [
 		{
 			"name": "smart-home",
 			"screen": "smart-home.screen.json",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "click": "#light", "nth": 2 },
-				{ "capture": "light-on" },
+				{ "expect": { "image": "light-on" } },
 				{ "click": "#roomRow", "nth": 1 },
-				{ "capture": "kitchen" },
+				{ "expect": { "image": "kitchen" } },
 				{ "click": "#scene", "nth": 1 },
 				{ "wait": 1500 },
-				{ "capture": "scene-settled" },
+				{ "expect": { "image": "scene-settled" } },
 				{ "click": [190, 432] },
 				{ "wait": 600 },
-				{ "capture": "light-theme" }
+				{ "expect": { "image": "light-theme" } }
 			]
 		}
 	]

@@ -1,4 +1,6 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../../../examples/assets/screens",
 	"scenarios": [
 		{
@@ -29,13 +31,13 @@
 						{ "id": "clipped", "x": 130, "y": 440, "width": 80, "height": 80, "radius": 40, "color": "#22c55e", "borderWidth": 3, "borderColor": "#14532d", "shadow": { "blur": 8, "color": "#14532d" } }
 					]
 				} } } },
-				{ "capture": "styled" },
+				{ "expect": { "image": "styled" } },
 				{ "click": "#email" },
 				{ "move": "#signIn" },
-				{ "capture": "focused-hover" },
+				{ "expect": { "image": "focused-hover" } },
 				{ "move": "#hoverCard" },
 				{ "wait": 400 },
-				{ "capture": "transition-done" }
+				{ "expect": { "image": "transition-done" } }
 			]
 		},
 		{
@@ -58,7 +60,7 @@
 						{ "id": "lifted", "x": 20, "y": 110, "width": 140, "height": 60, "radius": { "topLeft": 4, "topRight": 12, "bottomRight": 20, "bottomLeft": 28 }, "color": "#ffffff", "shadow": { "y": 8, "blur": 16, "color": "#0f172a80" } }
 					]
 				} } } },
-				{ "capture": "styled" }
+				{ "expect": { "image": "styled" } }
 			]
 		}
 	]

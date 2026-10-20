@@ -1,10 +1,12 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../../../examples/assets/screens",
 	"scenarios": [
 		{
 			"name": "studio",
 			"screen": "studio.screen.json",
-			"steps": [{ "capture": "first-frame" }]
+			"steps": [{ "expect": { "image": "first-frame" } }]
 		}
 	]
 }
