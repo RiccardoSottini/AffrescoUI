@@ -60,9 +60,14 @@ LoadedScreen Context::load(const json& document, const std::filesystem::path& ba
 }
 
 Screen& Context::build(const std::string& text, const std::filesystem::path& baseDirectory, Window& window) {
+	Screen& screen = create(text, baseDirectory);
+	screen.build(window);
+	return screen;
+}
+
+Screen& Context::create(const std::string& text, const std::filesystem::path& baseDirectory) {
 	auto screen = std::make_unique<Screen>(Screen::fromString(text, baseDirectory));
 	configure(*screen);
-	screen->build(window);
 	loaded_.push_back(std::move(screen));
 	return *loaded_.back();
 }
@@ -131,6 +136,28 @@ std::vector<Workload> loadWorkloads(Context& context) {
 		workload.step = [&context, text, window] {
 			static_cast<void>(context.build(*text, context.screens(), **window));
 		};
+		workloads.push_back(std::move(workload));
+	}
+	return workloads;
+}
+
+/// @brief "build/<template>": building each template into a window, its document read and its fonts loaded
+/// beforehand. Each run keeps its screen, so `retainedBytes` is the memory of the panels built and what they keep.
+/// @param context The context.
+/// @return One workload per template.
+std::vector<Workload> buildWorkloads(Context& context) {
+	std::vector<Workload> workloads;
+	for(const std::string& name : templateNames(context.screens())) {
+		const auto text = std::make_shared<const std::string>(readFile(context.screens() / (name + ".screen.json")));
+		const auto document = std::make_shared<const json>(json::parse(*text));
+		const auto window = std::make_shared<Window*>(nullptr);
+		const auto screen = std::make_shared<Screen*>(nullptr);
+		Workload workload{.name = "build/" + name, .unit = "ms", .runs = 5};
+		workload.prepare = [&context, text, document, window, screen] {
+			*window = &context.openWindow(*document);
+			*screen = &context.create(*text, context.screens());
+		};
+		workload.step = [window, screen] { (*screen)->build(**window); };
 		workloads.push_back(std::move(workload));
 	}
 	return workloads;
@@ -286,6 +313,7 @@ std::vector<Workload> frameWorkloads(Context& context) {
 
 std::vector<Group> screenGroups() {
 	return {{"load", loadWorkloads},
+	        {"build", buildWorkloads},
 	        {"update", updateWorkloads},
 	        {"revision", revisionWorkloads},
 	        {"layout", layoutWorkloads},
