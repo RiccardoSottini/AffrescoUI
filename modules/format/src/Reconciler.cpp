@@ -52,7 +52,7 @@ std::optional<std::vector<Item>> Reconciler::childrenOf(const CompiledNode& node
 		}
 		return items;
 	}
-	if(const json* children = node.children()) return engine_.builder.expand(*children, record.locals, path);
+	if(node.children) return engine_.builder.expand(*node.children, record.locals, path);
 	if(record.managed == 0) return std::nullopt; // nothing built here before: leave the panel's own children alone
 	return std::vector<Item>{};
 }

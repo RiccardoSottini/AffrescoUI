@@ -45,6 +45,14 @@ bool hasLayout(const json& node) {
 	return std::ranges::any_of(keys, [&node](const char* key) { return node.contains(key); });
 }
 
+/// @brief A node's "children", where it is.
+/// @param node The node.
+/// @return The array as written, or nullptr.
+const json* childrenOf(const json& node) {
+	const auto it = node.find("children");
+	return it == node.end() ? nullptr : &*it;
+}
+
 /// @brief Reports what is wrong with a "repeat" that didn't compile, as building it reads it.
 /// @param repeat The "repeat" value.
 /// @param at The node's place.
@@ -88,9 +96,8 @@ json Builder::withStyles(const json& node, const std::string& path, int depth) c
 		merged.update(withStyles(object(document["styles"][key], "styles." + key), "styles." + key, depth + 1));
 	}
 
-	json own = node;
-	own.erase("style");
-	merged.update(own);
+	for(const auto& [key, value] : node.items()) // the node's own keys win
+		if(key != "style") merged[key] = value;
 	return merged;
 }
 
@@ -98,9 +105,9 @@ CompiledRef Builder::compiled(const json& node, const std::string& path, bool fi
 	Cache& cached = cache();
 	auto& map = fill ? cached.screens : cached.nodes;
 	if(const auto it = map.find(&node); it != map.end()) return it->second;
-	json merged = withStyles(node, path);
+	json merged = withStyles(withoutChildren(object(node, path)), path);
 	if(fill && !hasLayout(merged)) merged["fill"] = 0;
-	CompiledRef result = compileNode(std::make_shared<const json>(std::move(merged)));
+	CompiledRef result = compileNode(std::move(merged), childrenOf(node));
 	map.emplace(&node, result);
 	return result;
 }
@@ -179,10 +186,10 @@ CompiledRef Builder::styled(const CompiledRef& node, const json& style, const st
 	const auto it = std::ranges::find(choices, style, &Styled::value_type::first);
 	if(it != choices.end()) return it->second;
 
-	json chosen = *node->source; // this instance's own copy, with its style
+	json chosen = node->own; // the node with the style this instance chose
 	if(style.is_null() || (style.is_string() && style.get_ref<const std::string&>().empty())) chosen.erase("style");
 	else chosen["style"] = style;
-	CompiledRef result = compileNode(std::make_shared<const json>(withStyles(chosen, at)));
+	CompiledRef result = compileNode(withStyles(chosen, at), node->children, node->keep);
 	choices.emplace_back(style, result); // kept: the children cache knows its children by their place
 	return result;
 }
@@ -190,20 +197,19 @@ CompiledRef Builder::styled(const CompiledRef& node, const json& style, const st
 CompiledRef Builder::resolve(const json& child, const std::string& at) const {
 	Cache& cached = cache();
 	if(const auto it = cached.children.find(&child); it != cached.children.end()) return it->second;
-	NodeRef node;
+	CompiledRef result;
 	if(child.contains("use")) {
 		json raw = child;
 		for(int depth = 0; raw.contains("use"); ++depth) {
 			if(depth >= maxComponentDepth) fail(at, "components nested too deeply (a component uses itself?)");
 			raw = instantiateComponent(raw, at);
 		}
-		node = std::make_shared<const json>(withStyles(raw, at));
+		result = compileNode(std::make_shared<const json>(withStyles(raw, at))); // it holds the use's children
 	} else if(child.contains("style") && !isDynamic(child["style"])) {
-		node = std::make_shared<const json>(withStyles(child, at));
+		result = compileNode(withStyles(withoutChildren(child), at), childrenOf(child));
 	} else {
-		node = borrow(child);
+		result = compileNode(withoutChildren(child), childrenOf(child));
 	}
-	CompiledRef result = compileNode(std::move(node));
 	cached.children.emplace(&child, result);
 	return result;
 }

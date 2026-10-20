@@ -66,8 +66,8 @@ TEST_CASE("compiler: each property becomes a slot, and only dynamic values are e
 	CHECK(node->hasStateBlocks);
 	CHECK_FALSE(node->alwaysApply);
 	CHECK_FALSE(node->own.contains("children"));
-	REQUIRE(node->children());
-	CHECK(node->children()->size() == 1);
+	REQUIRE(node->children);
+	CHECK(node->children->size() == 1);
 
 	// Every key but the scoping ones, in the order written
 	std::vector<std::string> keys;

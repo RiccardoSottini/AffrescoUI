@@ -75,7 +75,7 @@ enum class Slot : std::uint8_t {
 /// @brief The slot of a property.
 /// @param key Its key in a node.
 /// @return The slot; Slot::Other for one the runtime doesn't apply itself.
-[[nodiscard]] Slot slotOf(std::string_view key) noexcept;
+[[nodiscard]] Slot slotOf(std::string_view key);
 
 /// @brief One property of a compiled node.
 struct CompiledProperty {
@@ -105,11 +105,11 @@ struct CompiledRepeat {
 
 /// @brief A node of one version of the document, compiled: what an update needs, decided once.
 ///
-/// Built by NodeCompiler from a resolved node (components instantiated, static styles merged) and shared by every
-/// panel built from it, so a repeat's thousand items share one. It owns a copy of the node without its "children",
-/// which its bindings refer to, so a record can keep it after the document changes. Its children are read from the
-/// resolved node, which only lives as long as that version of the document: an update reads them while it is
-/// current. Immutable once built.
+/// Built by the Builder from a resolved node (components instantiated, static styles merged) and shared by every
+/// panel built from it, so a repeat's thousand items share one. It owns the node's keys but "children", which its
+/// bindings refer to, so a record can keep it after the document changes. Its children are not copied: they stay in
+/// the document, or in the component's instance it keeps, and an update reads them while that version is current.
+/// Immutable once built.
 struct CompiledNode {
 	CompiledNode() = default;
 	CompiledNode(const CompiledNode&) = delete;
@@ -118,11 +118,12 @@ struct CompiledNode {
 	CompiledNode& operator=(CompiledNode&&) = delete;
 	~CompiledNode() = default;
 
-	NodeRef source;                           ///< The resolved node; its "children" are read during an update.
-	json own;                                 ///< The node without "children": what the bindings refer to.
-	std::string type = "panel";               ///< "type".
-	bool typeIsText = true;                   ///< false: "type" isn't text, an error where the node is built.
-	std::vector<CompiledProperty> properties; ///< Every key but "children", "type" and the scoping ones, in order.
+	json own;                       ///< The node's keys but "children": what the bindings refer to.
+	const json* children = nullptr; ///< Its "children" as written, or nullptr: in the document, or in keep.
+	NodeRef keep;                   ///< What holds children when the document doesn't (a component's instance).
+	std::string type = "panel";     ///< "type".
+	bool typeIsText = true;         ///< false: "type" isn't text, an error where the node is built.
+	std::vector<CompiledProperty> properties; ///< Every key but "children", "style" and the scoping ones, in order.
 	std::size_t evaluatedCount = 0;           ///< How many values an update evaluates.
 	bool hasId = false;                       ///< It has an "id".
 	bool hasStateBlocks = false;              ///< It has "hover", "pressed", ...
@@ -138,12 +139,6 @@ struct CompiledNode {
 	std::optional<Binding> when;          ///< "when".
 	std::optional<CompiledRepeat> repeat; ///< "repeat", when it is well formed.
 
-	/// @brief The node's "children", if it has any.
-	/// @return The array as written, or nullptr.
-	[[nodiscard]] const json* children() const {
-		const auto it = source->find("children");
-		return it == source->end() ? nullptr : &*it;
-	}
 	/// @brief A property's value: evaluated by the update, or as written.
 	/// @param property One of properties.
 	/// @param values The values the update evaluated.
@@ -160,10 +155,23 @@ struct CompiledNode {
 /// @brief A compiled node, shared by the panels built from it.
 using CompiledRef = std::shared_ptr<const CompiledNode>;
 
+/// @brief A node's keys but "children", copied.
+/// @param node The node, an object.
+/// @return The copy.
+[[nodiscard]] json withoutChildren(const json& node);
+
 /// @brief Compiles a resolved node. Malformed scoping keys are kept for the builder to report at each instance's
 /// place, as building reports them.
-/// @param source The node: components instantiated, static styles merged.
+/// @param keys The node's keys (components instantiated, static styles merged). A "children" among them came from a
+/// style: it is used if @p children is null, and kept by the compiled node.
+/// @param children The node's own "children", or nullptr; outlives the compiled node's use in an update.
+/// @param keep What holds @p children if the document doesn't, or null.
 /// @return The compiled node.
-[[nodiscard]] CompiledRef compileNode(NodeRef source);
+[[nodiscard]] CompiledRef compileNode(json keys, const json* children = nullptr, NodeRef keep = nullptr);
+
+/// @brief Compiles a node that holds its children (a component's instance), keeping it for them.
+/// @param node The node.
+/// @return The compiled node.
+[[nodiscard]] CompiledRef compileNode(const NodeRef& node);
 
 } // namespace affresco::format

@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <unordered_map>
 #include <utility>
 
 namespace affresco::format {
@@ -146,10 +148,15 @@ void compileScope(CompiledNode& node) {
 
 } // namespace
 
-Slot slotOf(std::string_view key) noexcept {
-	const auto it = std::ranges::find(namedSlots, key, &NamedSlot::key);
-	if(it != namedSlots.end()) return it->slot;
-	return handlerKey(std::string(key)) ? Slot::Handler : Slot::Other;
+Slot slotOf(std::string_view key) {
+	static const std::unordered_map<std::string_view, Slot> slots = [] { // built once, never changed
+		std::unordered_map<std::string_view, Slot> result;
+		for(const auto& [name, slot] : namedSlots) result.emplace(name, slot);
+		return result;
+	}();
+	if(const auto it = slots.find(key); it != slots.end()) return it->second;
+	const bool handler = key.size() > 2 && key.starts_with("on") && std::isupper(static_cast<unsigned char>(key[2]));
+	return handler ? Slot::Handler : Slot::Other;
 }
 
 const CompiledProperty* CompiledNode::find(std::string_view key) const noexcept {
@@ -157,12 +164,30 @@ const CompiledProperty* CompiledNode::find(std::string_view key) const noexcept 
 	return it == properties.end() ? nullptr : &*it;
 }
 
-CompiledRef compileNode(NodeRef source) {
+json withoutChildren(const json& node) {
+	json result = json::object();
+	for(const auto& [key, value] : node.items())
+		if(key != "children") result[key] = value;
+	return result;
+}
+
+CompiledRef compileNode(const NodeRef& node) {
+	const auto children = node->find("children");
+	return compileNode(withoutChildren(*node), children == node->end() ? nullptr : &*children, node);
+}
+
+CompiledRef compileNode(json keys, const json* children, NodeRef keep) {
 	auto node = std::make_shared<CompiledNode>();
-	node->own = json::object();
-	for(const auto& [key, value] : source->items())
-		if(key != "children") node->own[key] = value;
-	node->source = std::move(source);
+	if(const auto styled = keys.find("children"); styled != keys.end()) { // a style's children
+		if(!children) {
+			keep = std::make_shared<const json>(std::move(*styled));
+			children = keep.get();
+		}
+		keys.erase(styled);
+	}
+	node->own = std::move(keys);
+	node->children = children;
+	node->keep = std::move(keep);
 
 	const json& own = node->own; // its values stay where they are from here on: the bindings refer to them
 	if(own.contains("type")) {
