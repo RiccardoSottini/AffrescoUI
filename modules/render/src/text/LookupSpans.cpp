@@ -46,7 +46,8 @@ std::optional<std::size_t> LookupSpans::lookupSpan(unsigned lookup, int depth) {
 	if(depth > deepestNesting) return unbounded;
 	if(const auto found = spans_.find(lookup); found != spans_.end()) return found->second;
 	spans_[lookup] = unbounded; // while it is read: a lookup that applies itself is unbounded
-	const std::optional<std::size_t> span = readLookup(lookup, depth);
+	std::optional<std::size_t> span = readLookup(lookup, depth);
+	if(span) span = std::min(*span, unbounded); // a ligature or a context can count up to 65,535 glyphs
 	spans_[lookup] = span;
 	return span;
 }
