@@ -7,7 +7,8 @@
 - delta:      the Kanban template and changed copies of it (keys reordered, a node added), with deltas to apply;
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
               and in short conversations between the agent and the reviewer (lines starting with '>');
-- text:       every text of the templates and of the rendering check's screens.
+- text:       every text of the templates and of the rendering check's screens;
+- cli:        the templates and the rendering check's screens as written, and nodes without ids.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -183,6 +184,23 @@ def text_seeds():
     return list(dict.fromkeys(seed for seed in seeds if seed.strip() and "{{" not in seed))
 
 
+def cli_seeds():
+    """Screen files as written (tabs, blank lines, members on one line), and nodes without ids for `ids` to name."""
+    files = sorted(SCREENS.glob("*.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
+    seeds = [path.read_text(encoding="utf-8") for path in files]
+    seeds.append('{\n\t"format": "affrescoui-screen",\n\n\t"version": 1,\n\t"root": { "children": [{ "type": "label", '
+                 '"text": "{{state.title}}" }, {\n\t\t"type": "row", "children": [] }] }\n}\n')
+    return seeds
+
+
+def schema_words():
+    """Every property name the screen schema knows, as a key: what screen files are made of."""
+    schema = json.loads((ROOT / "schema" / "affrescoui-screen.schema.json").read_text(encoding="utf-8"))
+    names = {key for value in walk(schema) if isinstance(value, dict) and isinstance(value.get("properties"), dict)
+             for key in value["properties"]}
+    return [f'"{name}":' for name in sorted(names)]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -205,7 +223,7 @@ def dictionaries():
     text = ["\u200d", "\ufe0f", "\u0301", "\u0323", " ", "\n", "\t", "\u0627\u0644", "\u094d", "\U0001F1EE",
             "\U0001F3FD", "fi", "ffl", "->", "!=="]
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
-            "delta": delta, "text": text}
+            "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words()}
 
 
 def dictionary_entry(word):
@@ -243,6 +261,7 @@ def main():
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
     write(out, "text", text_seeds(), words["text"])
+    write(out, "cli", cli_seeds(), words["cli"])
 
 
 if __name__ == "__main__":

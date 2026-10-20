@@ -164,6 +164,18 @@ class ChangesTest(ScratchRepository):
         self.assertEqual(changes.file_at(self.root, "HEAD", "modules/a.cpp"), "one\ntwo\nthree\nfour\n")
         self.assertIsNone(changes.file_at(self.root, "HEAD", "modules/c.cpp"))
 
+    def test_files_git_writes_in_quotes_are_judged_too(self):
+        # git quotes these names, and they used to be skipped: their changes passed the gate unseen
+        for name in ("modules/café.cpp", 'modules/a "b".cpp', "modules/tab\there.cpp"):
+            self.write(name, "x\n")
+            self.git("add", name)
+        self.write("modules/a.cpp", "one\ntwo\nthree\nFOUR\n")
+        self.git("mv", "modules/a.cpp", "modules/à.cpp")
+        files = changes.changed_files(self.root, "HEAD", ["modules"], (".cpp",))
+        self.assertEqual(sorted((file.path, file.base_path, file.ranges) for file in files),
+                         [('modules/a "b".cpp', None, [(1, 1)]), ("modules/café.cpp", None, [(1, 1)]),
+                          ("modules/tab\there.cpp", None, [(1, 1)]), ("modules/à.cpp", "modules/a.cpp", [(4, 4)])])
+
     def test_bytes_that_are_not_utf8_are_replaced(self):
         with open(os.path.join(self.root, "modules/a.cpp"), "wb") as file:
             file.write(b"one\n\xe9\n")  # a Latin-1 byte
