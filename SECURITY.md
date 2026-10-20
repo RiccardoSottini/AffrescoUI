@@ -197,6 +197,25 @@ a process (the `ProcessChannel` and `StdioChannel` classes are only opened by ho
 or write files, apart from the parts of the state its `persist` section lists, which go to the state file the host
 chose.
 
+### The `affrescoui` tool and the MCP server
+The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
+- `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
+  keeps to the same limit, and schema patterns matched only on texts up to the limit below (the `cli` fuzz target).
+  `check` also loads the screen as the library does, `include`s included, and an `include` may name any file (an
+  absolute path too): checking a file reads every JSON object file it names, and the checker's messages can quote
+  parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
+- `run`, `render`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set
+  given to `import` or `run --plugin` is trusted like one given to `affrescoui_host --plugin`. `import` refuses a
+  history another program is writing.
+
+The MCP server (`mcp/affrescoui_mcp.py`) is started by the agent's client and talks to the host over `agent.sock`, so
+the host makes it the author `agent` whatever name the client gives. It only passes on what the agent asks for:
+it has no tool to approve, to read or write files other than the format guide, or to run a program (`--launch`, a
+command on its own command line, is the only one). A message from either side that it can't use gets an error and
+costs only that message. What it hands the agent (a person's request, the document, events) was written by peers
+and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
+"Requests relayed between peers").
+
 ## Limits
 
 Input from peers, revisions and change sets is limited so that one message can't exhaust the stack or loop forever:
@@ -231,11 +250,32 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Shaped text kept per font (least recently used dropped first) | 4,096 lines of 128 Ki code points in all, 8,192 words of 64 Ki |
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
 | A pack of a history's objects, written | 16 MiB (more objects go into another pack) |
+| A text or key `affrescoui check` matches against a schema pattern (`std::regex` recurses on each character: a longer text is reported as too long to check, a longer key matches no pattern) | 10,000 characters |
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
 controls (U+0080 to U+009F) `\u0080` to `\u009f`, and a backslash `\\`. So text from a peer or a document can't forge
 a log line or send escape sequences to a terminal, and an escape in the log always stands for a control character,
 never for text that looks like one.
+
+## CI and releases
+
+The workflows in `.github/workflows/` run a pull request's code as untrusted:
+- they run on `pull_request`, never `pull_request_target`, with a read-only token and no secrets, and the checkout
+  keeps no credentials;
+- every action is pinned by its commit (Dependabot proposes updates), and every Python tool CI installs is pinned by
+  hash (`--require-hashes`); the C++ dependencies are fetched by URL and SHA-256;
+- the fuzz corpus in the Actions cache is written only by the nightly runs, never by a pull request;
+- the labels that accept a change in pixels (`visual-change`) or speed (`perf-change`) are set by the maintainer.
+
+The quality gate reads its rules (`.clang-tidy`, the thresholds, the coverage floor) from the base, so an honest
+change can't loosen what judges it. A pull request can still change the workflows and the scripts that run them
+(`.github/`, `tools/quality/`, `tests/perf/`, `tests/render/`, `tests/fuzz/`), and its checks then run its own
+version: a green check on such a pull request says nothing until someone has read that part of it.
+
+A release is made only from a tag `v*`, which only the maintainer can push (RELEASING.md). It builds in a fresh run,
+with no cache, and makes a draft: the archives, `SHA256SUMS` and build-provenance attestations signed through the
+run's identity. The MCP package goes to PyPI by trusted publishing, from a protected environment the maintainer
+approves.
 
 ## Known gaps
 
@@ -282,5 +322,9 @@ These are not protected today. They are stated plainly so that you can decide wh
   damaged delta stops that rebuild with an error; but a delta written by hand that rebuilds the right document can't
   be told from one the program wrote, which is the trust above.
 - **Windows is new.** The socket channels run on Windows through Winsock's `AF_UNIX`, with an owner-only access list
-  on each socket file and the peer's user checked through its process. CI builds it, but doesn't run its tests, so
-  it is far less tested than macOS and Linux.
+  on each socket file and the peer's user checked through its process. CI builds it and runs its unit tests, but
+  that job may fail without failing CI, and its window tests, rendering check and fuzzing don't run there, so it is
+  far less tested than macOS and Linux.
+- **The MCP server keeps what waits for the agent without a limit.** The news for `get_events` and the requests not
+  yet answered stay in its memory until the agent reads or answers them. The host's limits slow how fast peers can
+  add to them, not how much piles up over a long session with an agent that never asks.
