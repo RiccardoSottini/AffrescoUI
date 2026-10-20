@@ -3,7 +3,8 @@
 
 #include "Pictures.hpp"
 
-#include "Png.hpp" // the screen module's PNG encoder and PPM reader
+#include "Headless.hpp" // the render module's frame drawn from scratch
+#include "Png.hpp"      // the screen module's PNG encoder and PPM reader
 #include "PngReader.hpp"
 
 #include "affresco/render/Window.hpp"
@@ -97,6 +98,26 @@ void compareWithGolden(const affresco::detail::RgbImage& frame, Picture& picture
 		picture.problem += " (see " + base.string() + ".diff.png)";
 }
 
+/// @brief Checks that a frame, drawn from retained geometry where something changed, is the frame drawn from scratch:
+/// a pixel a partial frame failed to redraw shows here, whatever the golden image says.
+/// @param window The window that drew the frame.
+/// @param scale Pixels per window unit.
+/// @param frame The frame.
+/// @param picture Filled in when they differ: the problem, with the frame drawn from scratch saved next to it.
+/// @param options Where that frame goes.
+/// @return Whether they are the same.
+bool sameAsFromScratch(Window& window, int scale, const affresco::detail::RgbImage& frame, Picture& picture,
+                       const Options& options) {
+	const std::vector<std::uint8_t> scratch = affresco::detail::drawFromScratch(window, scale);
+	if(std::ranges::equal(frame.rgb, scratch)) return true;
+	picture.problem = "stale pixels: it differs from the same frame drawn from scratch";
+	const std::filesystem::path reference = options.output / (picture.name + ".scratch.png");
+	if(!options.output.empty() && scratch.size() == frame.rgb.size() &&
+	   writePng(reference, frame.width, frame.height, scratch))
+		picture.problem += " (" + reference.string() + ")";
+	return false;
+}
+
 } // namespace
 
 Picture takePicture(Window& window, int scale, const std::string& name, PictureKind kind, const Options& options,
@@ -109,6 +130,7 @@ Picture takePicture(Window& window, int scale, const std::string& name, PictureK
 		picture.problem = "could not draw the window";
 		return picture;
 	}
+	if(!sameAsFromScratch(window, scale, *frame, picture, options)) return picture;
 
 	if(kind == PictureKind::Capture) {
 		if(options.output.empty()) picture.problem = "a capture needs a folder to write to (--out)";
