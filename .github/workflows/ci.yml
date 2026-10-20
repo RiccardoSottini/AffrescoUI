@@ -243,10 +243,12 @@ jobs:
         with:
           packages: valgrind xvfb xauth libgl1-mesa-dri python3-venv
           cache: linux-gcc-release-benchmarks
-      - name: Install tiktoken # for tests/perf/tokens.py only, in its own environment (apt manages the system's Python)
+      # tiktoken, for tests/perf/tokens.py only, in its own environment (apt manages the system's Python), with what it
+      # needs, each file checked against its hash
+      - name: Install tiktoken
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install -r tests/perf/requirements.txt
+          "$RUNNER_TEMP/venv/bin/pip" install --require-hashes -r tests/perf/requirements.txt
           echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Measure base and head
         run: xvfb-run -a -s "-screen 0 1920x1080x24" tests/perf/ci.sh
