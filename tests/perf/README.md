@@ -68,6 +68,7 @@ as the OpenGL driver's, aren't counted.
 | `history/diff` | A diff of two commits on the 10,000-commit history, the farthest from their snapshot: the worst rebuild |
 | `history/load/10000` | Opening a folder holding a history of 10,000 commits (written once, unmeasured, as one change set) |
 | `load/<template>` | Parsing, validating and building a template into a window. The window is opened before the run. Each run keeps its screen, so `retainedBytes` is the memory of a loaded screen |
+| `build/<template>` | Building a template into a window (`Screen::build`, with its checker warnings). The window is opened and the screen read, its fonts loaded, before the run. `retainedBytes` is the memory of the panels built and what the runtime keeps for them: divide it by the screen's panels for the memory per panel |
 | `update/<cards>` | One state change on the Kanban template, filled to 14, 100 or 400 cards, followed by its reconciliation and layout. The change renames the board (`set state.board`). The board is filled by copying the template's own 12 cards into its four columns in turn, so even `update/14` has two copies |
 | `revision/<template>/<edit>` | One canonical edit from `edits/<template>.json`, applied as a revision: the commit, the reconciliation and the layout. Each edit has its own screen. Between runs the edit is taken back, unmeasured. The history still grows (see below) |
 | `layout/400` | Laying out the largest screen, the Kanban template with 400 cards, after a resize |

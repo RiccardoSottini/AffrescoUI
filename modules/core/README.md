@@ -25,7 +25,8 @@ headers come with nlohmann/json, which only the modules that use documents link.
 - **Interfaces only.** A module may depend on `core`, and on another module only as `CMakeLists.txt` at the root
   shows (`format` uses `render`; `screen` uses all). Anything else that crosses a module boundary is an interface here.
 - **`Signal` never allocates while it emits,** and a slot may connect or disconnect (itself too) during an emission:
-  slots connected during an emission run from the next one.
+  slots connected during an emission run from the next one, and a slot that disconnects itself is destroyed once the
+  emission ends, never while it runs. Its slots are a vector: a signal with one slot keeps one small allocation.
 - **`Channel` signals fire on the main thread,** whatever thread reads the transport.
 - **Untrusted JSON goes through `parseUntrusted`:** nothing deeper than 256 levels is built, and numbers too large
   for a double are refused, so the recursive work done on a value can't overflow the stack. It takes time in
