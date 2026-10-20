@@ -80,6 +80,17 @@ as readable, and reports writes, `bind`s and enum comparisons that don't fit. No
 types are a contract for revisions and a description for agents (the MCP outline shows them). The schema code is
 general: a settings page can describe its settings with it.
 
+## Design tokens
+
+`tokens` (`DesignTokens.hpp`) generalises `colors`: numbers (spacing, radii, type sizes) and colours, aliases
+(`"@other"`, of a token or of `colors`) and per-theme values. `readTokens` resolves them once per version of the
+document, merges the colour tokens into the colour table (so `@name` works the same for both) and keeps the number
+tokens apart. `Properties::applyVisual` replaces a property value written as `"@name"` with its number through
+`DocumentContext::resolveToken`; a font's `size` reads the token's base value. Since the theme and the colours are
+part of `appearance()`, a theme switch or an edit to `tokens` applies every panel again. Limits: 4,096 tokens, 32
+themes, aliases 16 deep (deeper, or circular, is an error). A token is a number in every theme or a colour in every
+theme, and a name can't be both a colour and a token.
+
 ## Invariants
 
 - **A revision can't widen a capability.** `checkChange` refuses a revision that changes `permissions`, `channels` or
@@ -192,6 +203,7 @@ src/
   Runtime.cpp              the public API, forwarding to the engine
   Engine.hpp / .cpp        the composition root: registries and subsystems
   DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
+  DesignTokens.*           the "tokens" section: aliases, per-theme values, colour and number tables
   Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
   CompiledNode.*           a node compiled: slots, bindings, scoping keys
   Binding.*                a value compiled once: templates split, operators lowered

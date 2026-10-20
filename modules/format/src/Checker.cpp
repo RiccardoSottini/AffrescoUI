@@ -300,6 +300,7 @@ std::vector<std::string> Checker::definedNames(const char* sectionName) const {
 void Checker::refer(std::string_view kind, const char* sectionName, const std::string& name, std::string_view prefix,
                     const std::string& place) {
 	if(definition(sectionName, name)) return;
+	if(std::string_view(sectionName) == "colors" && definition("tokens", name)) return; // a colour token
 	report(place, "unknown " + std::string(kind) + " '" + std::string(prefix) + name + "'",
 	       hint([&] { return hintFor(name, definedNames(sectionName), prefix, "defined:"); }));
 }

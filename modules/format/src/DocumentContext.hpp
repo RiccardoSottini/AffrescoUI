@@ -4,6 +4,7 @@
 /// @brief format::DocumentContext: what the document's values are read against: colours, fonts, the theme, the
 /// globals, the cached "computed" values and the screen an outlet shows.
 
+#include "DesignTokens.hpp"
 #include "NodeKeys.hpp"
 #include "Reads.hpp"
 
@@ -167,6 +168,15 @@ public:
 	/// @return The colour.
 	/// @throws DocumentError If there is no such colour.
 	[[nodiscard]] Color namedColor(std::string_view name) const;
+	/// @brief Looks a number up in "tokens", in the current theme.
+	/// @param name The name, without "@".
+	/// @return The number, or nothing if no number token has this name.
+	[[nodiscard]] std::optional<float> numberToken(std::string_view name) const;
+	/// @brief Replaces "@name" of a number token by its number, in the current theme.
+	/// @param value The value.
+	/// @param scratch Holds the number when there is one.
+	/// @return The number in scratch, or value itself.
+	[[nodiscard]] const json& resolveToken(const json& value, json& scratch) const;
 	/// @brief Reads a "shadow": { "x", "y", "blur", "color" }, each optional.
 	/// @param value The value.
 	/// @param path Its place, for errors.
@@ -218,10 +228,7 @@ private:
 		json window, revision, other; ///< Window size, current revision, and the rest (proposals, computed, ...).
 	};
 	/// @brief A named colour, with variants per theme.
-	struct NamedColor {
-		Color base;                                       ///< The first value: used without a matching theme.
-		std::map<std::string, Color, std::less<>> themes; ///< "light" -> colour, "dark" -> colour.
-	};
+	using NamedColor = Themed<Color>;
 
 	/// @brief The globals, built once and reused until globalsChanged().
 	[[nodiscard]] const Globals& globals() const;
@@ -241,7 +248,8 @@ private:
 
 	Engine& engine_;                                                        ///< The runtime.
 	std::filesystem::path baseDirectory_;                                   ///< Where font paths are resolved from.
-	std::map<std::string, NamedColor, std::less<>> colors_;                 ///< From "colors".
+	ColorTable colors_;                                                     ///< From "colors" and colour tokens.
+	NumberTable numberTokens_;                                              ///< Number tokens of "tokens".
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts_; ///< From "fonts".
 	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
 	ImageCache images_;                      ///< See images().

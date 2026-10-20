@@ -95,8 +95,15 @@
 									"type": "string"
 								},
 								"size": {
-									"type": "number",
-									"exclusiveMinimum": 0
+									"anyOf": [
+										{
+											"type": "number",
+											"exclusiveMinimum": 0
+										},
+										{
+											"$ref": "#/$defs/v1/tokenName"
+										}
+									]
 								},
 								"fallback": {
 									"type": "array",
@@ -122,6 +129,28 @@
 									"minProperties": 1,
 									"additionalProperties": {
 										"$ref": "#/$defs/v1/hexColor"
+									}
+								}
+							]
+						}
+					},
+					"tokens": {
+						"type": "object",
+						"maxProperties": 4096,
+						"description": "Design tokens (\"@name\"): numbers and colors, aliases (\"@other\"), or per theme: {\"light\": ..., \"dark\": ...}",
+						"propertyNames": {
+							"pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$"
+						},
+						"additionalProperties": {
+							"anyOf": [
+								{
+									"$ref": "#/$defs/v1/tokenValue"
+								},
+								{
+									"type": "object",
+									"minProperties": 1,
+									"additionalProperties": {
+										"$ref": "#/$defs/v1/tokenValue"
 									}
 								}
 							]
@@ -1712,7 +1741,7 @@
 				"anyOf": [
 					{
 						"type": "string",
-						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_-]*|transparent)$"
+						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_.-]*|transparent)$"
 					},
 					{
 						"$ref": "#/$defs/v1/dynamic"
@@ -1796,7 +1825,7 @@
 				"description": "Properties shown in that state (any visual property, or a style)"
 			},
 			"dynamic": {
-				"description": "A {{binding or expression}}, or an operator ({\"$clamp\": [...]})",
+				"description": "A {{binding or expression}}, an operator ({\"$clamp\": [...]}), or a \"@token\"",
 				"anyOf": [
 					{
 						"type": "string",
@@ -1804,6 +1833,30 @@
 					},
 					{
 						"$ref": "#/$defs/v1/expression"
+					},
+					{
+						"$ref": "#/$defs/v1/tokenName"
+					}
+				]
+			},
+			"tokenName": {
+				"description": "\"@name\" of a token of \"tokens\"",
+				"type": "string",
+				"pattern": "^@[A-Za-z_][A-Za-z0-9_.-]*$"
+			},
+			"tokenValue": {
+				"anyOf": [
+					{
+						"type": "number"
+					},
+					{
+						"$ref": "#/$defs/v1/hexColor"
+					},
+					{
+						"const": "transparent"
+					},
+					{
+						"$ref": "#/$defs/v1/tokenName"
 					}
 				]
 			},

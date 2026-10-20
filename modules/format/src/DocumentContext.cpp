@@ -45,6 +45,21 @@ std::vector<std::filesystem::path> fallbackFiles(const json& fonts, const json& 
 	return files;
 }
 
+/// @brief Reads a font's "size": a number, or "@name" of a number token (in the base theme: fonts don't switch).
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @param tokens The number tokens.
+/// @return The size.
+/// @throws DocumentError If it is neither.
+float fontSize(const json& value, const std::string& path, const NumberTable& tokens) {
+	if(value.is_string() && value.get_ref<const std::string&>().starts_with('@')) {
+		const auto it = tokens.find(std::string_view(value.get_ref<const std::string&>()).substr(1));
+		if(it == tokens.end()) fail(path, "unknown number token '" + value.get<std::string>() + "'");
+		return it->second.base;
+	}
+	return number(value, path);
+}
+
 /// @brief Reads a hex colour.
 /// @param hex The value.
 /// @param at Its place, for errors.
@@ -97,6 +112,7 @@ std::map<std::string, DocumentContext::NamedColor, std::less<>> DocumentContext:
 void DocumentContext::readDerived() {
 	const json& doc = engine_.versions.document();
 	auto newColors = readColors(doc);
+	auto newNumbers = readTokens(doc, newColors);
 	decltype(fonts_) newFonts;
 
 	if(doc.contains("fonts")) {
@@ -106,7 +122,7 @@ void DocumentContext::readDerived() {
 			if(!value.contains("file") || !value.contains("size")) fail(path, R"(a font needs "file" and "size")");
 
 			const std::string file = (baseDirectory_ / string(value["file"], path + ".file")).string();
-			const float size = number(value["size"], path + ".size");
+			const float size = fontSize(value["size"], path + ".size", newNumbers);
 			const std::vector<std::filesystem::path> fallbacks =
 			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
 			try {
@@ -118,6 +134,7 @@ void DocumentContext::readDerived() {
 	}
 
 	colors_ = std::move(newColors);
+	numberTokens_ = std::move(newNumbers);
 	fonts_ = std::move(newFonts);
 	changeAppearance();
 }
@@ -243,8 +260,7 @@ Color DocumentContext::color(const json& value, const std::string& path) const {
 	if(name.starts_with('@')) {
 		const auto it = colors_.find(std::string_view(name).substr(1));
 		if(it == colors_.end()) fail(path, "unknown color '" + name + "'");
-		const auto variant = it->second.themes.find(theme_);
-		return variant != it->second.themes.end() ? variant->second : it->second.base;
+		return it->second.in(theme_);
 	}
 
 	const auto parsed = Color::parseHex(name);
@@ -255,8 +271,23 @@ Color DocumentContext::color(const json& value, const std::string& path) const {
 Color DocumentContext::namedColor(std::string_view name) const {
 	const auto it = colors_.find(name);
 	if(it == colors_.end()) throw DocumentError("AffrescoUI screen: unknown color '" + std::string(name) + "'");
-	const auto variant = it->second.themes.find(theme_);
-	return variant != it->second.themes.end() ? variant->second : it->second.base;
+	return it->second.in(theme_);
+}
+
+std::optional<float> DocumentContext::numberToken(std::string_view name) const {
+	const auto it = numberTokens_.find(name);
+	if(it == numberTokens_.end()) return std::nullopt;
+	return it->second.in(theme_);
+}
+
+const json& DocumentContext::resolveToken(const json& value, json& scratch) const {
+	if(!value.is_string()) return value;
+	const auto& text = value.get_ref<const std::string&>();
+	if(!text.starts_with('@')) return value;
+	const auto number = numberToken(std::string_view(text).substr(1));
+	if(!number) return value;
+	scratch = *number;
+	return scratch;
 }
 
 // Like CSS box-shadow: "x" and "y" move it and "blur" softens it

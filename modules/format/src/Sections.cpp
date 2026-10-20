@@ -96,6 +96,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"window"}); // checked by the runtime when it opens the window
 	registry.add({"fonts"});  // checked by the runtime, which loads them
 	registry.add({"colors"});
+	registry.add({"tokens"}); // checked by the runtime, which resolves them
 	registry.add({"theme"});
 	registry.add({"styles", checkObject});
 	registry.add({"components", checkComponents});

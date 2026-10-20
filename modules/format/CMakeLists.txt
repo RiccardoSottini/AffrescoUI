@@ -25,6 +25,7 @@ affrescoui_module(format
 	src/ReferenceNodes.cpp
 	src/ReferenceSections.cpp
 	src/ReferenceTables.cpp
+	src/DesignTokens.cpp
 	src/DocumentContext.cpp
 	src/ItemIndex.cpp
 	src/AsyncCalls.cpp

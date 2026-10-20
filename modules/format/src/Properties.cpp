@@ -285,9 +285,10 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	reset(panel, record);
 
 	std::string at; // reused: one allocation for the node's places
+	json token;     // a number token's value, when the property names one ("@space.m")
 	for(const auto& [key, slot, pointer] : properties.entries) {
 		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
-		const json& value = *pointer;
+		const json& value = engine_.document.resolveToken(*pointer, token);
 		at.assign(record.path).append(".").append(key);
 		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look))
 			continue;
