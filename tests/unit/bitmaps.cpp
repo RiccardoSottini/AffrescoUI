@@ -13,6 +13,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <filesystem>
@@ -69,6 +70,47 @@ private:
 	std::vector<std::function<void()>> tasks_; ///< Posted, not yet run.
 };
 
+/// @brief A 1 by 1 RGBA PNG whose compressed pixels inflate to far more than its one pixel: a literal, then
+/// back-references of 258 bytes in fixed Huffman codes, as a decompression bomb is made.
+/// @param inflated About how many bytes the pixels inflate to.
+/// @return The file's bytes (stb_image checks no CRC or Adler-32, so they are left zero).
+std::vector<std::uint8_t> inflatingPng(std::size_t inflated) {
+	std::vector<std::uint8_t> zlib{0x78, 0x01};
+	std::uint32_t bits = 0;
+	int used = 0;
+	const auto put = [&](std::uint32_t value, int count) { // least significant bit first
+		bits |= value << used;
+		for(used += count; used >= 8; used -= 8, bits >>= 8) zlib.push_back(static_cast<std::uint8_t>(bits));
+	};
+	const auto code = [&](std::uint32_t value, int count) { // Huffman codes go most significant bit first
+		for(int bit = count - 1; bit >= 0; --bit) put((value >> bit) & 1u, 1);
+	};
+	put(1, 1); // the final block,
+	put(1, 2); // in fixed codes:
+	std::size_t made = 0;
+	for(; made < std::min<std::size_t>(inflated, 5); ++made) code(0x30, 8); // literal zeros: a filter byte, a pixel
+	for(; made < inflated; made += 258) {
+		code(0xC5, 8); // length 258 (code 285)
+		code(0, 5);    // at distance 1
+	}
+	code(0, 7); // the end of the block
+	put(0, 7);  // to a whole byte
+	zlib.insert(zlib.end(), 4, 0);
+
+	std::vector<std::uint8_t> png{0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+	const auto chunk = [&png](const char* type, const std::vector<std::uint8_t>& data) {
+		const auto size = static_cast<std::uint32_t>(data.size());
+		for(int shift = 24; shift >= 0; shift -= 8) png.push_back(static_cast<std::uint8_t>(size >> shift));
+		png.insert(png.end(), type, type + 4);
+		png.insert(png.end(), data.begin(), data.end());
+		png.insert(png.end(), 4, 0);
+	};
+	chunk("IHDR", {0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0}); // 1 by 1, 8-bit RGBA
+	chunk("IDAT", zlib);
+	chunk("IEND", {});
+	return png;
+}
+
 } // namespace
 
 TEST_CASE("bitmaps: PNG and JPEG decode to premultiplied RGBA, and transparent pixels lose their colour") {
@@ -110,6 +152,14 @@ TEST_CASE("bitmaps: what isn't an image within the limits is refused before it i
 	CHECK_THROWS_AS((void)Bitmap::load(images(), {}), std::runtime_error); // a folder
 	CHECK_THROWS_AS((void)Bitmap::fromPixels(0, 1, {}, {}), std::invalid_argument);
 	CHECK_THROWS_AS((void)Bitmap::fromPixels(2, 2, text, {}), std::invalid_argument);
+}
+
+TEST_CASE("bitmaps: compressed pixels that inflate far beyond the image's size are refused, not allocated") {
+	const std::vector<std::uint8_t> bomb = inflatingPng(std::size_t{64} << 20); // 64 MiB from about 400 KiB
+	CHECK(bomb.size() < (std::size_t{1} << 19));
+	CHECK_THROWS_AS((void)Bitmap::decode(bomb, {}), std::runtime_error);
+	const std::vector<std::uint8_t> exact = inflatingPng(5); // a filter byte and one pixel: an image
+	CHECK(Bitmap::decode(exact, {})->width() == 1);
 }
 
 TEST_CASE("image cache: without an executor a file is decoded at once, once, and kept") {

@@ -4,6 +4,29 @@
 
 #include "affresco/render/Bitmap.hpp"
 
+#include <cstdlib>
+
+namespace {
+
+/// @brief The most stb_image may grow a buffer to on this thread, set from the image's header before it decodes.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): stb_image's allocator macros take no context
+thread_local std::size_t growthLimit = 0;
+
+/// @brief stb_image's realloc, refused beyond growthLimit: what a PNG inflates to is otherwise bounded only by 4 GiB,
+/// whatever its header says, so a small file could make it allocate gigabytes.
+/// @param pointer The buffer.
+/// @param bytes Its new size.
+/// @return The buffer, or nullptr (stb_image then fails the image).
+void* growWithin(void* pointer, std::size_t bytes) noexcept {
+	// NOLINTNEXTLINE(cppcoreguidelines-no-malloc): stb_image frees its buffers with free()
+	return bytes > growthLimit ? nullptr : std::realloc(pointer, bytes);
+}
+
+} // namespace
+
+#define STBI_MALLOC(bytes) std::malloc(bytes)
+#define STBI_FREE(pointer) std::free(pointer)
+#define STBI_REALLOC_SIZED(pointer, oldBytes, newBytes) growWithin(pointer, newBytes)
 #define STBI_ONLY_PNG
 #define STBI_ONLY_JPEG
 #define STBI_NO_STDIO
@@ -102,9 +125,14 @@ std::shared_ptr<const Bitmap> Bitmap::decode(std::span<const std::uint8_t> bytes
 	if(const char* problem = sizeProblem(width, height, limits))
 		throw std::runtime_error(std::string("AffrescoUI: image refused: ") + problem);
 
+	// Buffers grow by doubling, to twice the compressed bytes or twice the rows at 16 bits and 4 channels at most
+	const auto tall = static_cast<std::size_t>(height);
+	const std::size_t rows = static_cast<std::size_t>(width) * tall * 8 + tall;
+	growthLimit = 2 * (bytes.size() + rows) + (std::size_t{1} << 20);
 	int decodedWidth = 0, decodedHeight = 0;
 	const std::unique_ptr<stbi_uc, StbDeleter> decoded(
 	    stbi_load_from_memory(bytes.data(), length, &decodedWidth, &decodedHeight, &channels, 4));
+	growthLimit = 0;
 	if(!decoded) throw std::runtime_error(std::string("AffrescoUI: broken image (") + stbi_failure_reason() + ")");
 	if(decodedWidth != width || decodedHeight != height)
 		throw std::runtime_error("AffrescoUI: broken image (its size changed while decoding)");
