@@ -45,9 +45,8 @@ constexpr std::array<std::string_view, 18> properties = {
 /// @param name "enter", "a", "7", "f5".
 /// @return The key, or std::nullopt.
 std::optional<Key> keyOf(std::string_view name) {
-	if(const auto* named = std::ranges::find(namedKeys, name, &std::pair<std::string_view, Key>::first);
-	   named != namedKeys.end())
-		return named->second;
+	for(const auto& [named, key] : namedKeys)
+		if(named == name) return key;
 	if(name.size() == 1 && name[0] >= 'a' && name[0] <= 'z')
 		return static_cast<Key>(static_cast<int>(Key::A) + (name[0] - 'a'));
 	if(name.size() == 1 && name[0] >= '0' && name[0] <= '9')
@@ -58,6 +57,15 @@ std::optional<Key> keyOf(std::string_view name) {
 		if(error == std::errc() && end == name.data() + name.size() && number >= 1 && number <= 12)
 			return static_cast<Key>(static_cast<int>(Key::F1) + number - 1);
 	}
+	return std::nullopt;
+}
+
+/// @brief Reads a modifier.
+/// @param name "shift", "ctrl", "alt", "cmd" or "mod".
+/// @return Its bit in Mods, or std::nullopt.
+std::optional<int> modifierBit(std::string_view name) {
+	for(const auto& [modifier, bit] : modifiers)
+		if(modifier == name) return bit;
 	return std::nullopt;
 }
 
@@ -99,10 +107,9 @@ std::optional<KeyPress> parseKey(std::string_view text) {
 	std::string_view rest = text;
 	for(std::size_t plus = rest.find('+'); plus != std::string_view::npos && plus + 1 < rest.size();
 	    plus = rest.find('+')) {
-		const auto* modifier =
-		    std::ranges::find(modifiers, rest.substr(0, plus), &std::pair<std::string_view, int>::first);
-		if(modifier == modifiers.end()) return std::nullopt;
-		press.mods.bits |= modifier->second;
+		const std::optional<int> bit = modifierBit(rest.substr(0, plus));
+		if(!bit) return std::nullopt;
+		press.mods.bits |= *bit;
 		rest.remove_prefix(plus + 1);
 	}
 	const std::optional<Key> key = keyOf(rest);
