@@ -74,6 +74,42 @@ TEST_CASE("ids: nodes without one get readable ids from their type and what they
 	CHECK(again == document);
 }
 
+// Before, each alike node tried "-2", "-3", ... from the start: 8,000 in one revision took 2.3 seconds, and the time
+// grew with the square of their number. The numbers given are the same: the first free one, in order
+TEST_CASE("ids: alike nodes are numbered from the first free number, once each") {
+	json document = permissionsScreen();
+	document["root"]["children"].push_back({{"id", "panel-main-2"}});
+	document["root"]["children"].push_back({{"id", "panel-main-4"}});
+	NodeNamer namer(document);
+	json added = json::array();
+	for(int i = 0; i < 5; ++i) added.push_back(json::object());
+	for(std::size_t i = 0; i < added.size(); ++i)
+		namer.name(added[i], "/root/children/" + std::to_string(i + 5), "main");
+	std::vector<std::string> ids;
+	for(const json& node : added) ids.push_back(node["id"].get<std::string>());
+	CHECK(ids ==
+	      std::vector<std::string>{"panel-main", "panel-main-3", "panel-main-5", "panel-main-6", "panel-main-7"});
+
+	// Twenty thousand in one revision
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, permissionsScreen());
+	json many = json::array();
+	for(int i = 0; i < 20000; ++i) many.push_back(json::object());
+	REQUIRE(
+	    repository.submit({{"author", "studio"}, {"add", {{"#main/children/-", {{"id", "list"}, {"children", many}}}}}})
+	        .status == RevisionStatus::Applied);
+	const json& children = repository.document()["root"]["children"][3]["children"];
+	CHECK(children[0]["id"] == "panel-list");
+	CHECK(children[19999]["id"] == "panel-list-20000");
+	CHECK(affresco::format::duplicateIds(repository.document()).empty());
+
+	// Nodes that have their ids are left as they are
+	const json named = {{{"id", "a"}}, {{"id", "b"}, {"children", {{{"id", "c"}}}}}};
+	REQUIRE(repository.submit({{"author", "studio"}, {"set", {{"#list/children", named}}}}).status ==
+	        RevisionStatus::Applied);
+	CHECK(repository.document()["root"]["children"][3]["children"] == named);
+}
+
 TEST_CASE("ids: where nodes go, and places as errors write them") {
 	using affresco::format::isNodePlace;
 	using affresco::format::placeOf;
