@@ -6,6 +6,7 @@
 #include "affresco/core/Log.hpp"
 
 #include "text/FontData.hpp"
+#include "text/FontInspector.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -245,6 +246,20 @@ bool Font::hasGlyph(char32_t codepoint) const noexcept {
 	return codepoint >= firstCodepoint && data_->faceFor(codepoint).has_value();
 }
 
+char32_t Font::codepointNamed(std::string_view name) const {
+	constexpr std::size_t longestName = 128; // glyph names are short; a document's text needn't be looked up
+	if(name.empty() || name.size() > longestName) return 0;
+	Data& data = *data_;
+	std::string key(name);
+	if(const auto found = data.namedGlyphs.find(key); found != data.namedGlyphs.end()) return found->second;
+	char32_t codepoint = 0;
+	for(auto face = data.faces.begin(); face != data.faces.end() && codepoint == 0; ++face)
+		codepoint = face->codepointNamed(key);
+	if(data.namedGlyphs.size() >= Data::namedGlyphsKept) data.namedGlyphs.clear();
+	data.namedGlyphs.emplace(std::move(key), codepoint);
+	return codepoint;
+}
+
 /* Shaped text */
 
 const Font::ShapedText& Font::shape(std::u32string_view text) const {
@@ -267,6 +282,7 @@ float Font::measure(std::u32string_view text) const noexcept {
 
 std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxWidth) const {
 	std::vector<std::u32string_view> lines;
+	lines.reserve(4); // most texts wrap into a few lines: one allocation, rather than one each time the vector grows
 
 	// Each paragraph (up to a '\n') is measured once; its lines are views into it, broken by its advances
 	const std::vector<float>* paragraph = nullptr;
@@ -292,7 +308,23 @@ std::size_t Font::memoryBytes() const noexcept {
 	constexpr std::size_t node = 32; // a hash map node's pointers and hash, roughly
 	return sizeof(Font) + data.atlas.bytes() + data.glyphs.size() * (sizeof(Glyph) + node) +
 	       data.nominal.size() * (sizeof(const Glyph*) + node) + data.words.bytes() + data.lines.bytes() +
-	       data.uncached.glyphs.capacity() * sizeof(ShapedGlyph);
+	       data.uncached.glyphs.capacity() * sizeof(ShapedGlyph) + (data.plain ? data.plain->bytes() : 0);
+}
+
+/* What tests see */
+
+void detail::FontInspector::setPlainTextEnabled(const Font& font, bool enabled) {
+	font.data_->plainText().setEnabled(enabled);
+}
+
+std::size_t detail::FontInspector::plainCharacters(const Font& font) {
+	return font.data_->plainText().plainCharacters();
+}
+
+bool detail::FontInspector::isPlain(const Font& font, std::u32string_view word) {
+	std::vector<float> advances(word.size());
+	float pen = 0.0f;
+	return font.data_->plainText().layOut(word, advances, 0.0f, pen, font.data_->buffer.get()) == word.size();
 }
 
 /* Atlas */

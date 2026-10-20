@@ -110,6 +110,18 @@ unsigned FontFace::glyphIndex(char32_t codepoint) const noexcept {
 	return FT_Get_Char_Index(face_.get(), codepoint);
 }
 
+char32_t FontFace::codepointNamed(const std::string& name) const noexcept {
+	FT_Face face = face_.get();
+	if(!FT_HAS_GLYPH_NAMES(face) || name.empty()) return 0;
+	const FT_UInt glyph = FT_Get_Name_Index(face, name.c_str());
+	if(glyph == 0) return 0;
+	// The face's characters, in order, until one maps to the glyph: icon fonts map each once, in the private use area
+	FT_UInt index = 0;
+	for(FT_ULong code = FT_Get_First_Char(face, &index); index != 0; code = FT_Get_Next_Char(face, code, &index))
+		if(index == glyph) return static_cast<char32_t>(code);
+	return 0;
+}
+
 float FontFace::emPixels() const noexcept { return static_cast<float>(face_->units_per_EM) * scale_; }
 
 float FontFace::ascent() const noexcept { return static_cast<float>(face_->ascender) * scale_; }

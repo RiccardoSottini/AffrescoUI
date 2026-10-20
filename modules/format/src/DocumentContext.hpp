@@ -9,6 +9,7 @@
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/FontCache.hpp"
+#include "affresco/render/ImageCache.hpp"
 #include "affresco/render/Painter.hpp"
 
 #include <cstdint>
@@ -143,6 +144,18 @@ public:
 	/// @brief Records that the same values may now look different (a node type was registered or replaced).
 	void changeAppearance() noexcept { ++appearance_; }
 
+	/* Images */
+
+	/// @brief Where the screen's images come from: files of the allowed folders (the screen's own folder, and those the
+	/// host allows), and images the host names.
+	[[nodiscard]] ImageCache& images() noexcept { return images_; }
+	/// @brief Reads an image's "file": relative to the screen's folder, inside an allowed folder.
+	/// @param value The path.
+	/// @param path Its place, for errors.
+	/// @return The file.
+	/// @throws DocumentError If it isn't text, or is outside the allowed folders.
+	[[nodiscard]] std::filesystem::path imageFile(const json& value, const std::string& path) const;
+
 	/* The screen an outlet shows */
 
 	/// @brief The screen shown now.
@@ -189,6 +202,7 @@ private:
 	std::map<std::string, NamedColor, std::less<>> colors_;                 ///< From "colors".
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts_; ///< From "fonts".
 	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
+	ImageCache images_;                      ///< See images().
 	std::string theme_;                      ///< "theme", evaluated at each update.
 	std::string screen_;                     ///< The screen an "outlet" shows.
 	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.

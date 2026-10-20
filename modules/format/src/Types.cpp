@@ -1,8 +1,8 @@
 /// @file
 /// @brief The core node types (panel, label, textarea, stack, row, column, grid, outlet): their factories, and their
 /// properties for the catalog. The runtime applies these properties itself (Properties.cpp); the widgets (editor,
-/// toggle, checkbox, slider) register from their own files, with their apply functions. The catalog lists the types
-/// in the order they are registered here.
+/// toggle, checkbox, slider, image) and the labels' "icon" register from their own files, with their apply functions.
+/// The catalog lists the types in the order they are registered here.
 
 #include "LayoutProperties.hpp"
 #include "TypeRegistry.hpp"
@@ -113,6 +113,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 
 	auto label = std::make_shared<PropertySet>();
 	label->properties = textProperties();
+	label->properties.push_back({"icon", ValueKind::Text}); // applied by IconProperty.cpp, listed here for the catalog
 	addCore(registry, "label", "Text", [] { return std::make_unique<Label>(); }, label);
 
 	auto textarea = std::make_shared<PropertySet>();
@@ -147,6 +148,8 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	    gridProperties());
 	registerToggleTypes(registry);
 	registerSliderType(registry);
+	registerImageType(registry);
+	registerIconProperty(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

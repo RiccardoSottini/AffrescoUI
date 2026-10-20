@@ -61,7 +61,17 @@ Color hexColor(const json& hex, const std::string& at) {
 DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
     : engine_(engine), baseDirectory_(std::move(baseDirectory)),
       computedLookup_([this](std::string_view name) { return computed(name); }),
-      nodeLookup_([this](std::string_view id) { return node(id); }) {}
+      nodeLookup_([this](std::string_view id) { return node(id); }) {
+	if(!baseDirectory_.empty()) images_.allowDirectory(baseDirectory_);
+}
+
+std::filesystem::path DocumentContext::imageFile(const json& value, const std::string& path) const {
+	const std::filesystem::path file = baseDirectory_ / string(value, path);
+	// A revision may change the path: it must not show a picture from anywhere on the disk
+	if(!images_.allows(file))
+		fail(path, "the file is outside the screen's folder and the folders the host allows: " + file.string());
+	return file;
+}
 
 std::map<std::string, DocumentContext::NamedColor, std::less<>> DocumentContext::readColors(const json& doc) {
 	std::map<std::string, NamedColor, std::less<>> result;

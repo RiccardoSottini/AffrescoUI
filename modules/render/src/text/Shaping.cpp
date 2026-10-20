@@ -5,6 +5,8 @@
 #include "text/FontData.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <span>
 
 namespace affresco {
 
@@ -72,20 +74,29 @@ const Font::ShapedText& Font::Data::shape(std::u32string_view text) {
 }
 
 const Font::Data::Measured& Font::Data::measure(std::u32string_view text) {
-	if(text == measured.text) return measured;
+	// Compared as bytes: a char32_t string compares character by character, which wrap() would pay for every line
+	if(text.size() == measured.text.size() &&
+	   std::memcmp(text.data(), measured.text.data(), text.size() * sizeof(char32_t)) == 0)
+		return measured;
 
 	measured.text.assign(text); // reuses its storage: no allocation once it is large enough
+	measured.advances.resize(text.size());
+	// A line drawn before is in the cache (a frame measures what it draws); most new lines are plain from end to end
 	if(const ShapedText* line = lines.find(text)) {
 		measured.advances.assign(line->advances.begin(), line->advances.end());
 		measured.width = line->width;
+		return measured;
+	}
+	float width = 0.0f;
+	std::size_t start = plainText().layOut(text, measured.advances, spaceAdvance, width, buffer.get());
+	if(start == text.size()) {
+		measured.width = width;
 	} else if(hasRightToLeft(hb_unicode_funcs_get_default(), text)) {
 		const ShapedText& shaped = shape(text);
 		measured.advances.assign(shaped.advances.begin(), shaped.advances.end());
 		measured.width = shaped.width;
 	} else { // as shapeWords(), without the glyphs: a new line of known words takes no shaping and no allocation
-		measured.advances.resize(text.size());
-		float width = 0.0f;
-		for(std::size_t start = 0; start < text.size();) {
+		while(start < text.size()) {
 			if(text[start] == U' ') {
 				width += measured.advances[start++] = spaceAdvance;
 				continue;
@@ -94,11 +105,41 @@ const Font::Data::Measured& Font::Data::measure(std::u32string_view text) {
 			const ShapedText& shaped = word(text.substr(start, end - start));
 			std::ranges::copy(shaped.advances, measured.advances.begin() + static_cast<std::ptrdiff_t>(start));
 			width += shaped.width;
-			start = end;
+			const std::span<float> rest(measured.advances.data() + end, text.size() - end);
+			start = end + plainText().layOut(text.substr(end), rest, spaceAdvance, width, buffer.get());
 		}
 		measured.width = width;
 	}
 	return measured;
+}
+
+detail::PlainText& Font::Data::plainText() {
+	if(!plain) plain.emplace(faces.front());
+	return *plain;
+}
+
+// Walks what PlainText laid out as it did, so glyph positions and carets are those shapeWords() gives HarfBuzz's
+std::size_t Font::Data::layOutPlainWords(std::u32string_view text, std::size_t start, float& pen, ShapedText& shaped) {
+	detail::PlainText& fast = plainText();
+	const std::span<float> advances(shaped.advances.data() + start, text.size() - start);
+	float linePen = pen;
+	const std::size_t end = start + fast.layOut(text.substr(start), advances, spaceAdvance, pen, buffer.get());
+
+	float wordPen = 0.0f;
+	for(std::size_t i = start; i < end; ++i) {
+		if(text[i] == U' ') {
+			linePen += wordPen;
+			wordPen = 0.0f;
+			shaped.carets[i] = linePen;
+			linePen += spaceAdvance;
+			continue;
+		}
+		const Glyph& found = glyph(0, fast.glyphIndex(text[i]));
+		if(found.quad.right > found.quad.left) shaped.glyphs.push_back({&found, wordPen + linePen, -0.0f});
+		shaped.carets[i] = linePen + wordPen;
+		wordPen += shaped.advances[i];
+	}
+	return end;
 }
 
 const Font::ShapedText& Font::Data::word(std::u32string_view text) {
@@ -128,6 +169,10 @@ void Font::Data::shapeWords(std::u32string_view text, ShapedText& shaped) {
 			continue;
 		}
 
+		if(const std::size_t plainEnd = layOutPlainWords(text, start, pen, shaped); plainEnd > start) {
+			start = plainEnd;
+			continue;
+		}
 		const std::size_t end = std::min(text.find(U' ', start), text.size());
 		const ShapedText& found = word(text.substr(start, end - start));
 		for(const ShapedGlyph& glyph : found.glyphs) shaped.glyphs.push_back({glyph.glyph, glyph.x + pen, glyph.y});

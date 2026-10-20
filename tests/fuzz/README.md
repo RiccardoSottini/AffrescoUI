@@ -16,6 +16,8 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `layout` | A JSON node, put in a screen as the root's only child, built into a headless window, laid out at two sizes, and its geometry recorded (`GeometryCache`, no OpenGL): flex and grid keys, tracks, cells, aspect ratios | Errors are `DocumentError`s; a shown panel's bounds aren't inverted and lie within its parent's |
 | `cli` | A screen file, as the `affrescoui` tool reads it (`tools/affrescoui`): the text reader and printer behind `fmt` and `ids`, the places `ids` names, and the schema check behind `check` | `fmt` writes the same JSON value, and formatting its output again changes nothing; the schema check reports problems, never throws |
 | `actions` | A JSON value, run as the steps of an action of the Kanban template (its state and actions, no window) | Every event stops within its work budget (the run's `-timeout` catches one that doesn't), and writes no more into the state than the budget lets it |
+| `image` | A file's bytes, decoded by `Bitmap::decode` (stb_image, PNG and JPEG) within small limits: a revision can name any file in an allowed folder | What decodes is within the limits, four bytes a pixel, premultiplied (no channel above its alpha); anything else is a `std::runtime_error` |
+| `lookups` | A font's GSUB or GPOS table (the first byte: odd for GPOS), read by `text/LookupSpans` for the fast path of plain text: a revision can name any font file | Every span is at most `unbounded`, and the same when read again |
 
 ## Running them
 
@@ -33,7 +35,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `cli` or `layout` in place of `session`. `-fork=4 -ignore_crashes=1`
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `cli`, `actions`, `layout`, `lookups` or `image` in place of `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
 

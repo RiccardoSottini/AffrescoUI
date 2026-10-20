@@ -21,7 +21,8 @@ class FontCache;
 
 namespace detail {
 class FontFiles;
-}
+struct FontInspector;
+} // namespace detail
 
 /// @brief Which pages of a font's atlas: coverage (one byte per texel, tinted by the text's colour) or colour (four
 /// bytes per texel, premultiplied RGBA, e.g. colour emoji).
@@ -127,6 +128,13 @@ public:
 	/// @param codepoint A Unicode code point.
 	[[nodiscard]] bool hasGlyph(char32_t codepoint) const noexcept;
 
+	/// @brief Finds the character of a glyph by its name, as icon fonts name theirs ("search", "arrow-left"): in the
+	/// font, then in its fallbacks. Give an icon font as a fallback of a text font, and its icons are drawn with the
+	/// text, at its size, from the same atlas.
+	/// @param name The glyph's name: at most 128 bytes.
+	/// @return The character, or 0 if no face names a glyph so (or maps a character to it).
+	[[nodiscard]] char32_t codepointNamed(std::string_view name) const;
+
 	/// @brief Shapes one line of text, rasterising the glyphs it meets for the first time.
 	///
 	/// A character no file has draws as '?', as do control characters (a '\n' is not a line break here).
@@ -183,6 +191,7 @@ public:
 
 private:
 	friend class FontCache;
+	friend struct detail::FontInspector; // tests reach the fast path for plain text through it (src/text/)
 	struct Data; ///< The files, the atlas, the glyphs and the shaping caches; defined in src/text/FontData.hpp.
 
 	/// @brief An empty font, with no face or page yet: load() fills it.

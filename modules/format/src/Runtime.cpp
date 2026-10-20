@@ -59,9 +59,20 @@ Window& Runtime::createWindow(Application& app) {
 	window.setMinSize(settings.contains("minWidth") ? integer(settings["minWidth"], "window.minWidth") : 0,
 	                  settings.contains("minHeight") ? integer(settings["minHeight"], "window.minHeight") : 0);
 
+	impl_->document.images().setExecutor(&app); // decoded files arrive through the event loop from now on
 	build(window);
 	return window;
 }
+
+void Runtime::setImage(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap) {
+	impl_->document.images().setNamed(name, bitmap);
+}
+
+void Runtime::allowImageDirectory(const std::filesystem::path& directory) {
+	impl_->document.images().allowDirectory(directory);
+}
+
+void Runtime::waitForImages() { impl_->document.images().finishPending(); }
 
 void Runtime::build(Window& window) {
 	Engine& engine = *impl_;
@@ -88,7 +99,9 @@ void Runtime::onAction(std::string name, Action action) {
 	impl_->nativeActions.insert_or_assign(std::move(name), std::move(action));
 }
 
-void Runtime::onCall(std::string name, Call call) { impl_->nativeCalls.insert_or_assign(std::move(name), std::move(call)); }
+void Runtime::onCall(std::string name, Call call) {
+	impl_->nativeCalls.insert_or_assign(std::move(name), std::move(call));
+}
 
 void Runtime::onUnhandledAction(UnhandledAction fallback) { impl_->unhandled = std::move(fallback); }
 

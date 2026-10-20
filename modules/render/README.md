@@ -5,8 +5,8 @@ internal platform layer), the OpenGL 4.1 core context and the renderer (behind a
 nothing about documents: you build the tree in C++, or `format` builds
 it from a screen document. It keeps the ideas of 2017: nested panels, pixel and percentage sizes, anchors to edges,
 minimum sizes, hex colours and signal-to-slot events. It adds rows, columns and grids, scrolling, overlays, rounded
-shapes with borders and shadows, shaped text with fallback fonts and colour emoji, and a multi-line editor. No public
-header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` (uses `core`; vendors glad from
+shapes with borders and shadows, shaped text with fallback fonts and colour emoji, images and icons, and a multi-line editor. No public
+header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescoui::render` (uses `core`; vendors glad from
 `external/`; links FreeType and HarfBuzz, pinned in `cmake/AffrescoUIText.cmake`).
 
 ## Public headers (`include/affresco/render/`)
@@ -19,13 +19,16 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
 | `Layout.hpp` | The values of flexible and grid layout: `Justify`, `CrossAlign`, `Track` (pixels, percent, fractions, content, minmax), `GridCell` |
-| `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text |
+| `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`) |
 | `TextArea.hpp` | `TextArea`: a single-line input |
 | `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
 | `Font.hpp` | `Font`: a font and its fallbacks at one size; `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
-| `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text); `CornerRadii`, `Shadow` |
+| `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images); `CornerRadii`, `Shadow` |
+| `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG, stb_image) and `fromPixels`, within `Bitmap::Limits` |
+| `ImageCache.hpp` | `ImageCache`: files decoded on a worker thread and delivered on the main one (through an `Executor`), only from allowed folders, kept within a bound; images the host names; `Request`s that cancel when destroyed |
+| `ImageView.hpp` | `ImageView`: a panel showing a bitmap, a file or a named image, with `ImageFit` (`contain`, `cover`, `fill`) |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
 
@@ -78,9 +81,24 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
   with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
   runs left to right (no bidirectional reordering yet). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
+- **Plain words skip shaping, with HarfBuzz's results.** A word of the first face's plain Latin-1 characters
+  (`text/PlainText`) is laid out from a table of advances with kerning, one read per character, without HarfBuzz or
+  the caches. Which characters are plain comes from the face's GSUB and GPOS lookups (`text/LookupSpans` reads how
+  many neighbours each one reads); what the lookups that read at most two do is taken from HarfBuzz itself, shaping
+  each character and each pair alone the first time it is met. Everything else (ligatures such as Roboto's `fi`,
+  contextual forms, marks, other scripts, fallback faces) is shaped as before. `tests/unit/plain_text.cpp` checks
+  that both give the same glyphs, advances, carets and widths, to the last bit.
 - **Colour glyphs share the text's batch.** Colour emoji (COLR fonts) go to RGBA atlas pages, which the renderer binds
   on a second texture unit next to the coverage page. A frame without colour glyphs (or without shapes) uses a shader
   without that code, so its pixels don't depend on it. A font's GPU pages are freed the first frame after it is gone.
+- **Images are decoded off the main thread and drawn with the text.** An `ImageCache` decodes files on its worker
+  thread and posts them to the main thread; files must be inside a folder it allows (resolved, links followed). On the
+  GPU (`gl/ImageTextures`), images of up to 256 a side are packed into shared 1,024 × 1,024 RGBA pages with a border
+  that repeats their edges, larger ones get a texture of their own, and both are freed the first frame after their
+  `Bitmap` is gone (a page once no image on it is alive). An image is a colour quad bound where a font's colour page
+  would be, next to the batch's coverage page, so text, icons and the small images of one page draw in one call.
+- **Icons are glyphs.** `Font::codepointNamed` finds a glyph by its PostScript name in the font and its fallbacks;
+  with an icon font (Lucide) as a fallback of the text font, a label's icon comes from the text's own atlas.
 - **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages hold at most 64 MiB in all (colour pages
   count four bytes a texel), so text naming many characters can't exhaust memory; past that, characters draw as `?`.
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
@@ -88,9 +106,10 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
 
 ## Threads
 
-Everything here runs on the main thread, inside `Application::run`. The one exception is `Application::post`, which
-any thread may call: the task runs on the main thread, and the event loop wakes for it. This is how channels deliver
-messages. Timers (`Window::setTimer`) and deferred tasks (`Window::defer`) run on the main thread too; an owner that
+Everything here runs on the main thread, inside `Application::run`. There are two exceptions. `Application::post` may
+be called from any thread: the task runs on the main thread, and the event loop wakes for it. This is how channels
+deliver messages. Each `ImageCache` has a worker thread that only decodes files (`Bitmap::load`) and posts the
+results that way; it is stopped and joined when its cache is destroyed, and what it posted then does nothing. Timers (`Window::setTimer`) and deferred tasks (`Window::defer`) run on the main thread too; an owner that
 captures `this` in one must cancel its timers in its destructor.
 
 ## Errors
@@ -127,23 +146,30 @@ src/
   Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid
                            (placement in cells, track sizing): pure functions
-  Label.cpp, TextArea.cpp  text and a single-line input
+  Label.cpp, TextArea.cpp  text (and its icon) and a single-line input
+  Bitmap.cpp               decoding PNG and JPEG (stb_image compiled here), within limits
+  ImageCache.cpp           the worker, the deliveries, the allowed folders, the bound
+  ImageView.cpp            showing an image, fitted
   TextEditor.cpp           the multi-line editor
   Controls.cpp             Toggle and Slider
   Font.cpp                 the font: loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas
   FontCache.cpp            the bounded font cache, and the system's fallback fonts
   text/                    FontFace (one file at one size, in FreeType and HarfBuzz), GlyphAtlas (coverage and
                            colour pages), ShapedTextCache (LRU by text), FontData.hpp (what a Font holds),
-                           Shaping.cpp (runs, HarfBuzz, clusters into advances and carets)
+                           Shaping.cpp (runs, HarfBuzz, clusters into advances and carets), PlainText (words laid
+                           out without shaping), LookupSpans (how far GSUB and GPOS lookups reach, read with every
+                           offset checked), FontInspector.hpp (what tests see of a font)
   Color.cpp                hex colours
   detail/Utf8.hpp          UTF-8 decoding, shared by the text code
   detail/Ppm.hpp           PPM screenshots
   RetainedGeometry.hpp     what a panel drew: quads, batch steps, what the drawing depended on (no OpenGL)
   PaintRecorder.*          the Painter panels draw with: clipped quads and batch steps, recorded
   GeometryCache.*          before a frame: the panels that changed or moved recorded again, the damage, the shaders
+  detail/ShelfPacker.hpp   shelf packing, shared by the glyph atlas and the image pages
   gl/                      everything OpenGL: Context (state, read-back, canvases, scissored regions), GlObjects
                            (RAII names), Shader, QuadRenderer (replays records into batches and draws them),
-                           OpenGlRenderer (the Renderer: canvases with their damage, a full frame as the fallback)
+                           ImageTextures (image pages and textures), OpenGlRenderer (the Renderer: canvases with
+                           their damage, a full frame as the fallback)
 CMakeLists.txt             the affrescoui_render target and its sources
 ```
 

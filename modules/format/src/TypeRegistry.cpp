@@ -25,6 +25,11 @@ void TypeRegistry::add(NodeType type) {
 	types_.insert_or_assign(std::move(name), std::move(type));
 }
 
+void TypeRegistry::addProperties(std::shared_ptr<const PropertySet> set) {
+	if(set && set->appliesTo && std::ranges::find(inherited_, set) == inherited_.end())
+		inherited_.push_back(std::move(set));
+}
+
 std::vector<const NodeType*> TypeRegistry::inOrder() const {
 	std::vector<const NodeType*> result;
 	result.reserve(order_.size());
@@ -50,7 +55,7 @@ std::unique_ptr<Panel> TypeRegistry::create(const std::string& type, const std::
 	}
 	expect::fail(path, "unknown type '" + type +
 	                       "' (built in: panel, label, textarea, editor, stack, row, column, grid, toggle, checkbox, "
-	                       "slider, outlet; others must be registered)");
+	                       "slider, image, outlet; others must be registered)");
 }
 
 PropertySets TypeRegistry::setsFor(const NodeType* type, const Panel& panel) const {
