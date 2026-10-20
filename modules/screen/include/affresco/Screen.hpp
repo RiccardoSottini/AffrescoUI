@@ -93,6 +93,12 @@ public:
 	/// @brief Takes over another screen, which can then only be destroyed or assigned to.
 	/// @return This screen.
 	Screen& operator=(Screen&&) noexcept;
+	/// @brief A screen has one window and one history: it can't be copied.
+	Screen(const Screen&) = delete;
+	/// @brief A screen has one window and one history: it can't be copied.
+	/// @return Never.
+	Screen& operator=(const Screen&) = delete;
+	/// @brief Stops listening, closes the peers and channels, and takes back the window's timers and signals.
 	~Screen();
 
 	/* Before building */

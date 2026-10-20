@@ -1,0 +1,109 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/RiccardoSottini/AffrescoUI/schema/affrescoui-scenarios.schema.json",
+	"title": "AffrescoUI Scenarios",
+	"description": "Scripted checks a screen ships with, played by `affrescoui test` and the MCP tool run_scenarios. Specification: SCREEN_FORMAT.md, \"Scenarios\".",
+	"type": "object",
+	"required": ["version", "scenarios"],
+	"additionalProperties": false,
+	"properties": {
+		"$schema": { "type": "string" },
+		"format": { "const": "affrescoui-scenarios" },
+		"version": { "const": 1 },
+		"note": { "type": "string" },
+		"screen": { "type": "string", "description": "The screen file every scenario plays on, unless it names its own." },
+		"screens": { "type": "string", "description": "The folder screens are in, relative to this file (default: its own)." },
+		"scenarios": {
+			"type": "array",
+			"minItems": 1,
+			"maxItems": 1000,
+			"items": { "$ref": "#/$defs/scenario" }
+		}
+	},
+	"$defs": {
+		"name": { "type": "string", "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$" },
+		"target": {
+			"description": "\"#id\": the centre of the first shown node with that id (\"nth\" picks another), or [x, y] in window units.",
+			"oneOf": [
+				{ "type": "string", "pattern": "^#.+" },
+				{ "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2 }
+			]
+		},
+		"nth": { "type": "integer", "minimum": 0 },
+		"scenario": {
+			"type": "object",
+			"required": ["name", "steps"],
+			"additionalProperties": false,
+			"properties": {
+				"name": { "$ref": "#/$defs/name" },
+				"screen": { "type": "string" },
+				"scale": { "type": "integer", "minimum": 1, "maximum": 4 },
+				"note": { "type": "string" },
+				"steps": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/step" } }
+			}
+		},
+		"step": {
+			"oneOf": [
+				{ "type": "object", "required": ["note"], "properties": { "note": { "type": "string" } }, "additionalProperties": false },
+				{ "$ref": "#/$defs/pointer" },
+				{ "type": "object", "required": ["drag", "to"], "additionalProperties": false, "properties": {
+					"drag": { "$ref": "#/$defs/target" }, "to": { "$ref": "#/$defs/target" }, "nth": { "$ref": "#/$defs/nth" },
+					"toNth": { "$ref": "#/$defs/nth" }, "moves": { "type": "integer", "minimum": 1, "maximum": 100 }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["scroll"], "additionalProperties": false, "properties": {
+					"scroll": { "$ref": "#/$defs/target" }, "dx": { "type": "number" }, "dy": { "type": "number" },
+					"nth": { "$ref": "#/$defs/nth" }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["type"], "additionalProperties": false, "properties": {
+					"type": { "type": "string", "maxLength": 100000 }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["key"], "additionalProperties": false, "properties": {
+					"key": { "type": "string", "pattern": "^((shift|ctrl|alt|cmd|mod)\\+)*([a-z0-9]|f([1-9]|1[0-2])|enter|escape|tab|backspace|delete|insert|space|left|right|up|down|home|end|pageup|pagedown|slash|backslash|minus|equal|comma|period|semicolon|apostrophe|leftbracket|rightbracket)$" },
+					"note": { "type": "string" } } },
+				{ "type": "object", "required": ["wait"], "additionalProperties": false, "properties": {
+					"wait": { "type": "number", "minimum": 0, "maximum": 600000, "description": "Milliseconds of the scenario's clock." },
+					"note": { "type": "string" } } },
+				{ "type": "object", "required": ["revision"], "additionalProperties": false, "properties": {
+					"revision": { "type": "object" }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["action"], "additionalProperties": false, "properties": {
+					"action": { "type": "string", "minLength": 1 }, "event": { "type": "object" }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["resize"], "additionalProperties": false, "properties": {
+					"resize": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 16384 }, "minItems": 2, "maxItems": 2 },
+					"note": { "type": "string" } } },
+				{ "type": "object", "required": ["capture"], "additionalProperties": false, "properties": {
+					"capture": { "$ref": "#/$defs/name" }, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["expect"], "additionalProperties": false, "properties": {
+					"expect": { "$ref": "#/$defs/expectation" }, "note": { "type": "string" } } }
+			]
+		},
+		"pointer": {
+			"description": "move, click, press or release: one of them, with a target.",
+			"type": "object",
+			"minProperties": 1,
+			"maxProperties": 3,
+			"additionalProperties": false,
+			"properties": {
+				"move": { "$ref": "#/$defs/target" },
+				"click": { "$ref": "#/$defs/target" },
+				"press": { "$ref": "#/$defs/target" },
+				"release": { "$ref": "#/$defs/target" },
+				"nth": { "$ref": "#/$defs/nth" },
+				"note": { "type": "string" }
+			},
+			"oneOf": [{ "required": ["move"] }, { "required": ["click"] }, { "required": ["press"] }, { "required": ["release"] }]
+		},
+		"expectation": {
+			"oneOf": [
+				{ "type": "object", "required": ["state", "is"], "additionalProperties": false, "properties": {
+					"state": { "type": "string", "description": "A path into the live state, without 'state.': \"cards[0].title\", \"cards.length\"." },
+					"is": true, "note": { "type": "string" } } },
+				{ "type": "object", "required": ["node"], "additionalProperties": false,
+				  "properties": {
+					"node": { "type": "string", "pattern": "^#.+" }, "nth": { "$ref": "#/$defs/nth" },
+					"exists": { "type": "boolean" }, "text": { "type": "string" },
+					"property": { "enum": ["text", "textColor", "color", "borderColor", "borderWidth", "shown", "visible", "focused", "hovered", "tooltip", "checked", "value", "x", "y", "width", "height", "scrollX", "scrollY"] },
+					"is": true, "note": { "type": "string" } },
+				  "oneOf": [{ "required": ["exists"] }, { "required": ["text"] }, { "required": ["property", "is"] }] },
+				{ "type": "object", "required": ["image"], "additionalProperties": false, "properties": {
+					"image": { "$ref": "#/$defs/name" }, "note": { "type": "string" } } }
+			]
+		}
+	}
+}

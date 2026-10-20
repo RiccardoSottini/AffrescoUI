@@ -12,12 +12,14 @@ recipes.
 
 ## The layers
 
-Six modules, one CMake target each. They depend on each other only as the arrows show, and anything else crossing a
-module boundary goes through an interface in `core`.
+Seven modules, one CMake target each. They depend on each other only as the arrows show, and anything else crossing a
+module boundary goes through an interface in `core`. `automation`, on top, plays a screen's scenarios through the
+public API (plus the render module's headless window, which isn't public yet).
 
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"nodeSpacing": 30, "rankSpacing": 40, "padding": 14}, "themeVariables": {"fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94A3B8", "primaryTextColor": "#0F172A", "edgeLabelBackground": "#FFFFFF"}}}%%
 flowchart TB
+    automation["<b>automation</b> · scenarios<br/>a screen's own checks, played headless"]
     screen["<b>screen</b> · affresco::Screen<br/>puts the modules together"]
     format["<b>format</b> · Rules, Checker, Runtime<br/>the screen format"]
     vcs["<b>vcs</b> · Repository<br/>commits, proposals, permissions"]
@@ -25,6 +27,7 @@ flowchart TB
     render["<b>render</b> · Application, Window, Panel<br/>layout, text, input, OpenGL"]
     core["<b>core</b> · interfaces<br/>Executor · Channel · VersionControl · DocumentRules · ScreenImages · Signal · Json · Log"]
 
+    automation --> screen
     screen --> format & vcs & channel
     format --> render
     format & vcs & channel & render --> core
@@ -36,6 +39,7 @@ flowchart TB
     classDef c_render fill:#EDE9FE,stroke:#7C3AED,stroke-width:1.5px,color:#4C1D95
     classDef c_core fill:#FFFFFF,stroke:#CBD5E1,stroke-width:1px,color:#0F172A
     class screen root
+    class automation c_core
     class channel c_channel
     class vcs c_vcs
     class format c_format
@@ -51,9 +55,11 @@ flowchart TB
 | [`vcs`](modules/vcs/README.md) | `affrescoui::vcs` | Version control of any JSON document | `VersionControl` (`Repository`) | `DocumentRules` |
 | [`channel`](modules/channel/README.md) | `affrescoui::channel` | Transports and the live protocol | `Channel` | `Executor`, `VersionControl`, `ScreenImages` |
 | [`screen`](modules/screen/README.md) | `affrescoui::affrescoui` | The composition root, `affresco::Screen` | `ScreenImages` | every module |
+| [`automation`](modules/automation/README.md) | `affrescoui::automation` | Scenarios: the checks a screen ships with, played headless, pictures against golden images | | `screen` |
 
 Outside the library: `examples/` (the host, the Studio, an application type), `mcp/` (an MCP server that is a peer
-like any other), and `tests/` (`unit`, `render`, `fuzz`, `perf`, `package`).
+like any other), `tools/` (the `affrescoui` command-line tool), and `tests/` (`unit`, `render`, `fuzz`, `perf`,
+`package`). The rendering check (`tests/render`) is scenarios whose expectations are pictures.
 
 Rules that hold across the layers:
 - **No public header exposes OpenGL or GLFW.** Every OpenGL call is in `modules/render/src/gl/`, and every GLFW call

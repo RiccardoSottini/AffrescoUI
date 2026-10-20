@@ -182,6 +182,34 @@ std::vector<std::string> describingWords(const json& node) {
 	return {};
 }
 
+/// @brief Finds the node with an id in the trees of a section of named node trees ("screens", "templates").
+/// @param document The document, an object.
+/// @param section The section.
+/// @param id The id.
+/// @return The node's JSON Pointer, or std::nullopt.
+std::optional<std::string> findInSection(const json& document, const char* section, std::string_view id) {
+	const auto nodes = document.find(section);
+	if(nodes == document.end() || !nodes->is_object()) return std::nullopt;
+	for(const auto& [name, node] : nodes->items())
+		if(std::optional<std::string> path = pathTo(node, id))
+			return "/" + std::string(section) + "/" + escaped(name) + *path;
+	return std::nullopt;
+}
+
+/// @brief Finds the node with an id in the components' "node" trees.
+/// @param document The document, an object.
+/// @param id The id.
+/// @return The node's JSON Pointer, or std::nullopt.
+std::optional<std::string> findInComponents(const json& document, std::string_view id) {
+	const auto components = document.find("components");
+	if(components == document.end() || !components->is_object()) return std::nullopt;
+	for(const auto& [name, component] : components->items())
+		if(const auto node = component.is_object() ? component.find("node") : component.end(); node != component.end())
+			if(std::optional<std::string> path = pathTo(*node, id))
+				return "/components/" + escaped(name) + "/node" + *path;
+	return std::nullopt;
+}
+
 } // namespace
 
 std::vector<std::pair<std::string, const json*>> nodeTrees(const json& document) {
@@ -211,20 +239,9 @@ std::optional<std::string> findNodeWithId(const json& document, std::string_view
 	if(!document.is_object()) return std::nullopt;
 	if(const auto root = document.find("root"); root != document.end())
 		if(std::optional<std::string> path = pathTo(*root, id)) return "/root" + *path;
-	for(const char* section : {"screens", "templates"}) {
-		const auto nodes = document.find(section);
-		if(nodes == document.end() || !nodes->is_object()) continue;
-		for(const auto& [name, node] : nodes->items())
-			if(std::optional<std::string> path = pathTo(node, id))
-				return "/" + std::string(section) + "/" + escaped(name) + *path;
-	}
-	const auto components = document.find("components");
-	if(components == document.end() || !components->is_object()) return std::nullopt;
-	for(const auto& [name, component] : components->items())
-		if(const auto node = component.is_object() ? component.find("node") : component.end(); node != component.end())
-			if(std::optional<std::string> path = pathTo(*node, id))
-				return "/components/" + escaped(name) + "/node" + *path;
-	return std::nullopt;
+	for(const char* section : {"screens", "templates"})
+		if(std::optional<std::string> path = findInSection(document, section, id)) return path;
+	return findInComponents(document, id);
 }
 
 std::vector<DuplicateId> duplicateIds(const json& document) {

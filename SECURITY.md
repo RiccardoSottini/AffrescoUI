@@ -283,6 +283,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | One revision (`Rules::checkRevision`, before any of it is applied) | 100,000 operations, and 16 MiB as JSON |
 | A document, without its state (`Rules::validate`, at load and after every revision) | 32 MiB as JSON |
 | The state: the document's own, and the live state after a revision (unless it was already larger) | 32 MiB as JSON |
+| A scenarios file (`affrescoui test`, `run_scenarios`; an agent can write one) | 1,000 scenarios, 10,000 steps each, 100,000 bytes a `type`, a `wait` of 10 minutes of the scenario's clock and 1,000,000 timer runs in one, 100 moves a `drag`, a `resize` side of 16,384; names of letters, digits, `-`, `_` and `.` (they become file names) |
+| A golden image read by an image expectation | An 8-bit RGB or RGBA PNG, not interlaced, of 32 Mi pixels at most; anything else is refused |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in

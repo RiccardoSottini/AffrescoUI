@@ -13,7 +13,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 
 | Header | Offers |
 |---|---|
-| `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their `SteadyClock`; the `Executor` (`post`) |
+| `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
 | `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks |
@@ -74,7 +74,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   capture, runs timers and deferred tasks and lays out, but never draws; its clipboard is its own.
   `detail::createHeadlessWindow` (`src/Headless.hpp`, internal for now) creates one for tests.
 - **One clock per window.** Timers, the tooltip delay and double clicks read `Window::clock()`; an `Application`'s
-  windows share a `SteadyClock`, and tests use `detail::ManualClock` to move time by hand.
+  windows share a `SteadyClock` (or the clock its `ApplicationOptions` give), and tests and automation use
+  `detail::ManualClock` to move time by hand.
 - **One `Application` at a time.** A second one throws.
 - **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
   from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run

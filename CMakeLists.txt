@@ -87,6 +87,7 @@ endif()
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
+#   automation  scenarios: scripted checks a screen ships with, played headless     affrescoui
 #
 # affrescoui_module(<name> <sources...>) makes the target affrescoui_<name> with the alias affrescoui::<name>, its
 # public headers in modules/<name>/include, its private ones in modules/<name>/src, and the strict warnings.
@@ -100,7 +101,7 @@ function(affrescoui_module name)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
-foreach(module core render format vcs channel screen)
+foreach(module core render format vcs channel screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
 

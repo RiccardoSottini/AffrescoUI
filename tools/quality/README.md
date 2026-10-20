@@ -6,14 +6,17 @@ clean-ups can pick their files.
 
 | What | Checks | In CI |
 |---|---|---|
-| **Gate: clang-tidy** | No finding of [`.clang-tidy`](../../.clang-tidy) in a line the change adds or modifies | `Quality gate` fails |
-| **Gate: function size** | No function the change touches is over 80 lines or complexity 15, unless it was already over and didn't grow | `Quality gate` fails |
+| **Gate: clang-tidy** | No finding of [`.clang-tidy`](../../.clang-tidy) in a line the change adds or modifies | `Linux` fails (its "Quality gate" step) |
+| **Gate: function size** | No function the change touches is over 80 lines or complexity 15, unless it was already over and didn't grow | `Linux` fails (its "Quality gate" step) |
 | **Report: coverage** | Line, function and branch coverage of the unit tests, per module | Job summary, `coverage` artifact |
 | **Floor: coverage** | The line coverage of `core`, `vcs`, `channel` and `format/Rules.cpp` stays at or above [`coverage-baseline.json`](coverage-baseline.json) | `Quality report` fails |
 | **Report: whole repository** | The 20 longest and 20 most complex functions, tidy findings per module, check and file | Job summary, `quality-report` artifact |
 
-The workflow is [`.github/workflows/quality.yml`](../../.github/workflows/quality.yml). It runs on every pull request
-and on every push to `master`.
+The gates run in the `Linux` job of [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), on every pull request
+and every push to `master`, after the tests (they configure a clang build of their own; they don't build it). The
+reports and the coverage floor run in its `Quality report` job, on pushes to `master` only: they take about 15 minutes,
+which a pull request doesn't need. A drop below the floor then shows on `master`; run `run.sh coverage` locally to
+see it before.
 
 ## The gates
 
@@ -71,7 +74,7 @@ with its counts by module, check and file.
 You need CMake, Ninja, Python 3.9 or newer, and an LLVM with clang-tidy.
 - **macOS:** `brew install llvm ninja`. Builds use Xcode's clang and its `llvm-cov`; clang-tidy comes from Homebrew.
 - **Linux (Debian, Ubuntu):** `sudo apt install ninja-build clang-18 clang-tidy-18 llvm-18`, plus GLFW's X11 and
-  Wayland headers (the list is in `quality.yml`).
+  Wayland headers (the list is in `.github/actions/setup/action.yml`).
 
 ```sh
 tools/quality/run.sh gate             # what changed since HEAD left origin/master, uncommitted changes included
@@ -103,7 +106,7 @@ than CI does; CI's result is the one that counts.
 | `functions.py` | Function length and complexity with lizard; the size gate |
 | `tidy.py` | Runs clang-tidy in parallel and collects its findings |
 | `coverage.py` | Per-module coverage from `llvm-cov export` |
-| `test_quality.py` | Unit tests of the above (`run.sh test`, in the `Quality gate` job) |
+| `test_quality.py` | Unit tests of the above (`run.sh test`, in the `Linux` job's "Quality gate" step) |
 | `thresholds.json` | The limits, the aims, and the folders checked (`modules`, `examples`, `tests`) |
 | `coverage-baseline.json` | The coverage floor, per module and per file |
 | `requirements.txt` | lizard and its dependencies, pinned by hash |

@@ -1,0 +1,109 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "What the Sign-in template does, checked headless: affrescoui test sign-in.scenarios.json",
+	"screen": "sign-in.screen.json",
+	"scenarios": [
+		{
+			"name": "sign-in",
+			"note": "A valid email and a password of 8 characters or more sign in and greet the user by email",
+			"steps": [
+				{ "click": "#email" },
+				{ "type": "ada@example.com" },
+				{ "click": "#password" },
+				{ "type": "correct horse" },
+				{ "expect": { "state": "email", "is": "ada@example.com" } },
+				{ "click": "#signIn" },
+				{ "expect": { "node": "#label-you-re-in", "text": "You're in" } },
+				{ "expect": { "node": "#label-signed-in-as", "text": "Signed in as ada@example.com" } },
+				{ "expect": { "node": "#signIn", "exists": false } },
+				{ "expect": { "state": "submitted", "is": false } }
+			]
+		},
+		{
+			"name": "errors-show-only-after-submit",
+			"note": "A wrong email and a short password show no error while typing, and both errors once Sign in is pressed",
+			"steps": [
+				{ "click": "#email" },
+				{ "type": "not-an-email" },
+				{ "click": "#password" },
+				{ "type": "short" },
+				{ "expect": { "node": "#label-error", "exists": false } },
+				{ "click": "#signIn" },
+				{ "expect": { "state": "submitted", "is": true } },
+				{ "expect": { "node": "#label-error", "nth": 0, "text": "Enter an email address" } },
+				{ "expect": { "node": "#label-error", "nth": 1, "text": "At least 8 characters" } },
+				{ "expect": { "node": "#email", "property": "height", "is": 68 } },
+				{ "expect": { "node": "#label-welcome-back", "exists": true } }
+			]
+		},
+		{
+			"name": "fixing-a-field-clears-its-error",
+			"note": "After a failed sign-in, correcting the email removes its error at once while the password's stays",
+			"steps": [
+				{ "click": "#email" },
+				{ "type": "ada" },
+				{ "click": "#signIn" },
+				{ "expect": { "node": "#label-error", "nth": 1, "exists": true } },
+				{ "click": "#email" },
+				{ "type": "@example.com" },
+				{ "expect": { "node": "#label-error", "text": "At least 8 characters" } },
+				{ "expect": { "node": "#label-error", "nth": 1, "exists": false } },
+				{ "expect": { "node": "#email", "property": "height", "is": 44 } }
+			]
+		},
+		{
+			"name": "go-to-create-account-and-back",
+			"note": "The link opens the create-account screen without old errors; its back link and Escape return to sign in",
+			"steps": [
+				{ "click": "#signIn" },
+				{ "expect": { "node": "#label-error", "exists": true } },
+				{ "click": "#toCreate" },
+				{ "expect": { "node": "#label-create-an-account", "text": "Create an account" } },
+				{ "expect": { "node": "#label-error", "exists": false } },
+				{ "click": "#label-back-to-sign" },
+				{ "expect": { "node": "#label-welcome-back", "exists": true } },
+				{ "click": "#toCreate" },
+				{ "key": "escape" },
+				{ "expect": { "node": "#label-create-an-account", "exists": false } },
+				{ "expect": { "node": "#toCreate", "exists": true } }
+			]
+		},
+		{
+			"name": "create-an-account",
+			"note": "Create account needs a name too; with all three fields valid it signs in",
+			"steps": [
+				{ "click": "#toCreate" },
+				{ "click": "#checked-field-form-2" },
+				{ "type": "jon@example.com" },
+				{ "click": "#checked-field-form-3" },
+				{ "type": "a long password" },
+				{ "click": "#label-create-account" },
+				{ "expect": { "node": "#label-error", "text": "Enter your name" } },
+				{ "expect": { "node": "#label-error", "nth": 1, "exists": false } },
+				{ "click": "#checked-field-form" },
+				{ "type": "Jon Doe" },
+				{ "click": "#label-create-account" },
+				{ "expect": { "state": "name", "is": "Jon Doe" } },
+				{ "expect": { "node": "#label-signed-in-as", "text": "Signed in as jon@example.com" } }
+			]
+		},
+		{
+			"name": "sign-out",
+			"note": "Signing out returns to sign in with the email kept and the password cleared",
+			"steps": [
+				{ "click": "#email" },
+				{ "type": "ada@example.com" },
+				{ "click": "#password" },
+				{ "type": "12345678" },
+				{ "click": "#signIn" },
+				{ "click": "#label-sign-out" },
+				{ "expect": { "state": "password", "is": "" } },
+				{ "expect": { "node": "#label-welcome-back", "exists": true } },
+				{ "expect": { "node": "#textarea-placeholder", "nth": 0, "text": "ada@example.com" } },
+				{ "expect": { "node": "#textarea-placeholder", "nth": 1, "text": "" } }
+			]
+		}
+	]
+}

@@ -20,10 +20,11 @@ compile_commands.json
 docs/
 CLAUDE.local.md
 
-# .github: the README media, the CI workflows and the contributor templates are published
+# .github: the README media, the CI workflows and their shared actions, and the contributor templates are published
 .github/*
 !.github/media/
 !.github/workflows/
+!.github/actions/
 !.github/dependabot.yml
 !.github/ISSUE_TEMPLATE/
 !.github/pull_request_template.md

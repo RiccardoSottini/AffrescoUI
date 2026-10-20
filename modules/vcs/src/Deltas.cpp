@@ -165,6 +165,23 @@ void collect(const json& from, const json& to, std::string& path, json& out) {
 	if(!identical(from, to)) out.push_back({{"op", "replace"}, {"path", path}, {"value", to}});
 }
 
+/// @brief Whether a member of an operation is text.
+/// @param operation The operation.
+/// @param key The member.
+bool hasText(const json& operation, const char* key) { return operation.contains(key) && operation[key].is_string(); }
+
+/// @brief Refuses to add inside a value that can't hold anything, such as a number, with an error that names it.
+/// @param document The document.
+/// @param path Where the operation adds.
+/// @param where The operation's place, for the error.
+/// @throws DocumentError If the parent is there and is neither an object, an array nor null.
+void expectContainerAt(const json& document, const json::json_pointer& path, const std::string& where) {
+	const json* parent = path.empty() ? nullptr : locate(document, path.parent_pointer().to_string());
+	if(parent && !parent->is_structured() && !parent->is_null()) // null becomes an object, as in nlohmann::json
+		fail(where, "'" + path.parent_pointer().to_string() + "' is a " + parent->type_name() +
+		                ": nothing can be added inside it");
+}
+
 } // namespace
 
 json delta(const json& from, const json& to) {
@@ -175,20 +192,14 @@ json delta(const json& from, const json& to) {
 }
 
 void applyOperation(json& document, json operation, const std::string& where) {
-	const auto text = [&](const char* key) { return operation.contains(key) && operation[key].is_string(); };
-	const std::string kind = text("op") ? operation["op"].get<std::string>() : "";
-	if(kind == "move" && text("path") && text("from")) {
+	const std::string kind = hasText(operation, "op") ? operation["op"].get<std::string>() : "";
+	if(kind == "move" && hasText(operation, "path") && hasText(operation, "from")) {
 		json value = document.at(json::json_pointer(operation["from"].get<std::string>()));
 		document.patch_inplace(json::array({{{"op", "remove"}, {"path", operation["from"]}}}));
 		operation = {{"op", "add"}, {"path", operation["path"]}, {"value", std::move(value)}};
 	}
-	if(text("path") && (kind == "add" || kind == "copy" || kind == "move")) {
-		const json::json_pointer path(operation["path"].get<std::string>());
-		const json* parent = path.empty() ? nullptr : locate(document, path.parent_pointer().to_string());
-		if(parent && !parent->is_structured() && !parent->is_null()) // null becomes an object, as in nlohmann::json
-			fail(where, "'" + path.parent_pointer().to_string() + "' is a " + parent->type_name() +
-			                ": nothing can be added inside it");
-	}
+	if(hasText(operation, "path") && (kind == "add" || kind == "copy" || kind == "move"))
+		expectContainerAt(document, json::json_pointer(operation["path"].get<std::string>()), where);
 	document.patch_inplace(json::array({std::move(operation)}));
 }
 

@@ -92,6 +92,16 @@ private:
 	/// @return false if it is none of these.
 	/// @throws DocumentError If it is malformed.
 	bool handleReview(const Incoming& in);
+	/// @brief Carries out a reviewer's decision (handleReview(), once the peer may review).
+	/// @param in The message: accept, reject, preview, endPreview, setMode or revoke.
+	/// @return Why it was refused, or std::nullopt.
+	/// @throws DocumentError If it is malformed.
+	std::optional<std::string> decide(const Incoming& in);
+	/// @brief The "proposal" a review message names.
+	/// @param in The message.
+	/// @return The proposal's id.
+	/// @throws DocumentError If it has none, or it isn't a whole number.
+	static int proposalOf(const Incoming& in);
 	/// @brief Handles getDocument, getCatalog, getHistory, diff, exportChanges and render.
 	/// @param in The message.
 	/// @return false if it is none of these.

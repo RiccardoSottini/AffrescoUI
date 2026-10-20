@@ -1,7 +1,14 @@
+/// @file
+/// @brief channel::Session: the live protocol for one peer. Reads its messages within its limits, passes each to its
+/// group (changes, review, queries, blame) and answers it; relays requests and replies.
+
 #include "affresco/channel/Session.hpp"
 #include "affresco/core/Log.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
+#include <string_view>
 #include <utility>
 
 namespace affresco::channel {
@@ -26,6 +33,13 @@ std::string toBase64(std::string_view bytes) {
 		text += left > 2 ? alphabet[group & 63] : '=';
 	}
 	return text;
+}
+
+/// @brief A message's "type", read without throwing.
+/// @param message The message, an object.
+/// @return It, or "" if it has none or it isn't text.
+std::string typeOf(const json& message) {
+	return message.contains("type") && message["type"].is_string() ? message["type"].get<std::string>() : "";
 }
 
 } // namespace
@@ -108,8 +122,7 @@ void Session::handle(const std::string& line) {
 
 	// Read without throwing: a peer's malformed message must not take the app down
 	const json& m = *message;
-	const Incoming in{m, m.contains("type") && m["type"].is_string() ? m["type"].get<std::string>() : "",
-	                  m.value("id", json()), authorOf(m)};
+	const Incoming in{m, typeOf(m), m.value("id", json()), authorOf(m)};
 
 	try {
 		if(in.type == "request" || in.type == "reply") {
@@ -200,7 +213,7 @@ bool Session::handleChange(const Incoming& in) {
 	}
 
 	const json& m = in.message;
-	auto revision = [&] {
+	const auto revision = [&] {
 		if(!m.contains("revision")) expect::fail(in.type + ".revision", "expected a revision number or a commit");
 		return m["revision"];
 	};
@@ -224,46 +237,9 @@ bool Session::handleChange(const Incoming& in) {
 // accept, reject, preview, endPreview, setMode, revoke: decisions, for reviewers only (an agent must not approve
 // its own changes)
 bool Session::handleReview(const Incoming& in) {
-	const json& m = in.message;
-	std::function<std::optional<std::string>()> decide;
-	auto proposal = [&] { return expect::integer(m.value("proposal", json()), in.type + ".proposal"); };
-
-	if(in.type == "accept") {
-		// The peer says which version it approves: the branch may move while the reviewer looks at it
-		decide = [&]() -> std::optional<std::string> {
-			if(!m.contains("head") || !m["head"].is_string())
-				expect::fail("accept.head", "expected the proposal's head commit: the version you reviewed");
-			return versions_.accept(proposal(), {in.author, m["head"].get<std::string>(), m.value("dontAskAgain", false)});
-		};
-	} else if(in.type == "reject") {
-		decide = [&]() -> std::optional<std::string> {
-			const int p = proposal();
-			if(versions_.reject(p, toText(m.value("reason", json(""))))) return std::nullopt;
-			return "AffrescoUI screen: no proposal " + std::to_string(p);
-		};
-	} else if(in.type == "preview") {
-		decide = [&] { return versions_.preview(proposal()); };
-	} else if(in.type == "endPreview") {
-		decide = [&]() -> std::optional<std::string> {
-			versions_.endPreview();
-			return std::nullopt;
-		};
-	} else if(in.type == "setMode") {
-		decide = [&]() -> std::optional<std::string> {
-			const auto mode = modeFromString(expect::string(m.value("mode", json()), "setMode.mode"));
-			if(!mode) return "AffrescoUI screen: setMode.mode: expected \"default\", \"acceptEdits\" or \"plan\"";
-			versions_.setMode(*mode);
-			return std::nullopt;
-		};
-	} else if(in.type == "revoke") {
-		decide = [&]() -> std::optional<std::string> {
-			const std::string rule = expect::string(m.value("rule", json()), "revoke.rule");
-			if(versions_.revokeGrant(rule)) return std::nullopt;
-			return "AffrescoUI screen: no grant '" + rule + "'";
-		};
-	} else {
-		return false;
-	}
+	static constexpr std::array<std::string_view, 6> decisions = {"accept",     "reject",  "preview",
+	                                                              "endPreview", "setMode", "revoke"};
+	if(std::ranges::find(decisions, in.type) == decisions.end()) return false;
 
 	const int at = versions_.head().number;
 	if(!versions_.mayReview(author_)) {
@@ -273,10 +249,44 @@ bool Session::handleReview(const Incoming& in) {
 		      {"id", in.id}});
 		return true;
 	}
-	if(const std::optional<std::string> error = decide())
+	if(const std::optional<std::string> error = decide(in))
 		send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", in.id}});
 	else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", in.id}});
 	return true;
+}
+
+std::optional<std::string> Session::decide(const Incoming& in) {
+	const json& m = in.message;
+	if(in.type == "accept") {
+		// The peer says which version it approves: the branch may move while the reviewer looks at it
+		if(!m.contains("head") || !m["head"].is_string())
+			expect::fail("accept.head", "expected the proposal's head commit: the version you reviewed");
+		return versions_.accept(proposalOf(in),
+		                        {in.author, m["head"].get<std::string>(), m.value("dontAskAgain", false)});
+	}
+	if(in.type == "reject") {
+		const int proposal = proposalOf(in);
+		if(versions_.reject(proposal, toText(m.value("reason", json(""))))) return std::nullopt;
+		return "AffrescoUI screen: no proposal " + std::to_string(proposal);
+	}
+	if(in.type == "preview") return versions_.preview(proposalOf(in));
+	if(in.type == "endPreview") {
+		versions_.endPreview();
+		return std::nullopt;
+	}
+	if(in.type == "setMode") {
+		const auto mode = modeFromString(expect::string(m.value("mode", json()), "setMode.mode"));
+		if(!mode) return R"(AffrescoUI screen: setMode.mode: expected "default", "acceptEdits" or "plan")";
+		versions_.setMode(*mode);
+		return std::nullopt;
+	}
+	const std::string rule = expect::string(m.value("rule", json()), "revoke.rule"); // revoke
+	if(versions_.revokeGrant(rule)) return std::nullopt;
+	return "AffrescoUI screen: no grant '" + rule + "'";
+}
+
+int Session::proposalOf(const Incoming& in) {
+	return expect::integer(in.message.value("proposal", json()), in.type + ".proposal");
 }
 
 // getDocument, getCatalog, getHistory, diff, exportChanges, render: reads, which change nothing

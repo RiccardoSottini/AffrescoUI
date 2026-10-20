@@ -11,7 +11,9 @@
 - cli:        the templates and the rendering check's screens as written, and nodes without ids;
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
 - lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
-- image:      the rendering check's PNG and JPEG files (binary seeds).
+- image:      the rendering check's PNG and JPEG files (binary seeds);
+- scenarios:  every scenarios file, the templates' and the rendering check's;
+- png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data).
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -22,6 +24,8 @@ import argparse
 import json
 import re
 import shutil
+import struct
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -269,6 +273,29 @@ def image_seeds():
     return [path.read_bytes() for path in sorted(folder.glob("*.png")) + sorted(folder.glob("*.jpg"))]
 
 
+def scenario_seeds():
+    """Every scenarios file: the templates' own and the rendering check's, as they are."""
+    paths = sorted(SCREENS.glob("*.scenarios.json")) + sorted((ROOT / "tests" / "render" / "scenarios").glob("*.json"))
+    return [path.read_text(encoding="utf-8") for path in paths]
+
+
+def png(width, height, filters, channels=3, level=9):
+    """A small PNG file whose rows use the given filters in turn, as encoders write them."""
+    def chunk(kind, body):
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+    rows = b"".join(bytes([filters[y % len(filters)]]) + bytes((x * 31 + y * 17) % 256 for x in range(width * channels))
+                    for y in range(height))
+    header = struct.pack(">IIBBBBB", width, height, 8, 2 if channels == 3 else 6, 0, 0, 0)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(rows, level)) +
+            chunk(b"IEND", b""))
+
+
+def png_seeds():
+    """PNG files of every kind the reader takes: RGB and RGBA, every row filter, stored and compressed data."""
+    return [png(3, 2, [0]), png(5, 4, [0, 1, 2, 3, 4]), png(4, 3, [4], channels=4), png(16, 9, [2], level=0),
+            png(1, 1, [0], level=1)]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -294,6 +321,14 @@ def dictionaries():
     # Characters shaping treats apart: joiners, variation selectors, marks, spaces, line breaks, right-to-left letters
     text = ["\u200d", "\ufe0f", "\u0301", "\u0323", " ", "\n", "\t", "\u0627\u0644", "\u094d", "\U0001F1EE",
             "\U0001F3FD", "fi", "ffl", "->", "!=="]
+    # The steps and keys of scenarios files (SCREEN_FORMAT.md, "Scenarios"), and the Kanban template's ids
+    scenarios = tokens + ["version", "screen", "scenarios", "name", "steps", "note", "nth", "toNth", "moves", "dx",
+                          "dy", "event", "capture", "move", "click", "press", "release", "drag", "to", "scroll", "type",
+                          "key", "revision", "action", "resize", "wait", "expect", "state", "node", "image", "is",
+                          "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter", "escape",
+                          ".length", "[0]"]
+    scenarios += [f"#{node}" for node in kanban_ids()]
+    pngs = ["PNG", "IHDR", "IDAT", "IEND", "x\x01", "x^", "\x00\x00\x00\x0d"]  # ASCII: the dictionary is written UTF-8
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
             "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
             "actions": tokens + expression + steps,
@@ -301,7 +336,8 @@ def dictionaries():
                                                  "\"stretch\"", "\"16/9\"", "\"none\"", "\"row\"", "\"grid\"",
                                                  "\"column\"", "1e38"],
             "lookups": [chr(0) + chr(value) for value in range(10)],  # big-endian 0..9
-            "image": ["IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"]}
+            "image": ["IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
+            "scenarios": scenarios, "png": pngs}
 
 
 def dictionary_entry(word):
@@ -348,6 +384,8 @@ def main():
     write(out, "layout", layout_seeds(), words["layout"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
+    write(out, "scenarios", scenario_seeds(), words["scenarios"])
+    write(out, "png", png_seeds(), words["png"])
 
 
 if __name__ == "__main__":

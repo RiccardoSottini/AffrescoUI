@@ -1,17 +1,19 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../../../examples/assets/screens",
 	"scenarios": [
 		{
 			"name": "sign-in",
 			"screen": "sign-in.screen.json",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "click": "#email" },
 				{ "type": "not-an-email" },
 				{ "click": "#password" },
-				{ "capture": "invalid-email" },
+				{ "expect": { "image": "invalid-email" } },
 				{ "click": "#toCreate" },
-				{ "capture": "create-account" }
+				{ "expect": { "image": "create-account" } }
 			]
 		}
 	]

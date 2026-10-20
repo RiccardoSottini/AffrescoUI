@@ -27,8 +27,8 @@ namespace {
 /// @return It.
 const affresco::Font& font() {
 	static const std::shared_ptr<const affresco::Font> loaded = [] {
-		// Next to this file in the checkout (the build gives the compiler its absolute path)
-		const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path().parent_path().parent_path();
+		// In the checkout, wherever the target runs from
+		const std::filesystem::path root = AFFRESCOUI_FUZZ_CHECKOUT;
 		const std::filesystem::path fonts = root / "examples/assets/fonts", subsets = root / "tests/render/fonts";
 		const std::array fallbacks{subsets / "NotoSansArabic-Subset.ttf", subsets / "NotoSansDevanagari-Subset.ttf",
 		                           subsets / "NotoSansSC-Subset.ttf", subsets / "TwemojiMozilla-Subset.ttf"};

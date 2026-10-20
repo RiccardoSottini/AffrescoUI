@@ -6,7 +6,7 @@
 
 #include <stdexcept>
 
-#if defined(_WIN32)
+#ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -256,6 +256,8 @@ void ProcessChannel::Process::end() noexcept {
 #include <sys/wait.h>
 #include <unistd.h>
 
+// The environment that posix_spawn passes on: POSIX's own variable, which not every C library's unistd.h declares
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-redundant-declaration)
 extern char** environ;
 
 namespace affresco::channel {
@@ -339,8 +341,8 @@ ProcessChannel::Process::Process(const std::string& command) {
 	posix_spawnattr_setpgroup(&attributes, 0);
 
 	std::string shell = "/bin/sh", flag = "-c", script = command;
-	char* argv[] = {shell.data(), flag.data(), script.data(), nullptr};
-	const int spawned = posix_spawn(&pid, "/bin/sh", &actions, &attributes, argv, environ);
+	const std::array<char*, 4> argv = {shell.data(), flag.data(), script.data(), nullptr};
+	const int spawned = posix_spawn(&pid, "/bin/sh", &actions, &attributes, argv.data(), environ);
 	posix_spawnattr_destroy(&attributes);
 	posix_spawn_file_actions_destroy(&actions);
 	closeDescriptor(input[0]);
@@ -369,8 +371,7 @@ void ProcessChannel::Process::end() noexcept {
 namespace affresco::channel {
 
 ProcessChannel::ProcessChannel(Executor& executor, const std::string& command)
-    : executor_(executor), process_(std::make_unique<Process>(command)) {
-	running_ = true;
+    : executor_(executor), process_(std::make_unique<Process>(command)), running_(true) {
 	try {
 		reader_ = std::thread([this] { readLines(process_->fromChild, executor_, *this, alive_, &running_); });
 	} catch(...) {

@@ -32,10 +32,12 @@ import itertools
 import json
 import os
 import shlex
+import shutil
 import socket
 import stat
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -517,6 +519,72 @@ def format_guide(text, topic=None):
     return (sections[0][1] + "\n\nTopics (pass one as `topic`, or \"all\" for the whole guide): " + titles + ".")
 
 
+def pointer_parts(pointer):
+    """A JSON Pointer's segments, unescaped (RFC 6901): "/a~1b/0" -> ["a/b", "0"]."""
+    if pointer == "":
+        return []
+    if not pointer.startswith("/"):
+        raise ValueError(f"not a JSON Pointer: {pointer!r}")
+    return [part.replace("~1", "/").replace("~0", "~") for part in pointer[1:].split("/")]
+
+
+def apply_patch(document, patch):
+    """A copy of document with an RFC 6902 JSON Patch applied (what get_diff returns for a proposal)."""
+    root = {"": json.loads(json.dumps(document))}  # a holder, so the whole document can be replaced too
+
+    def parent(pointer):
+        parts = [""] + pointer_parts(pointer)
+        at = root
+        for part in parts[:-1]:
+            at = at[int(part)] if isinstance(at, list) else at[part]
+        return at, parts[-1]
+
+    def take(pointer, remove):
+        holder, key = parent(pointer)
+        index = int(key) if isinstance(holder, list) else key
+        return holder.pop(index) if remove else holder[index]
+
+    def put(pointer, value, replace):
+        holder, key = parent(pointer)
+        if isinstance(holder, list):
+            index = len(holder) if key == "-" else int(key)
+            holder[index:index + (1 if replace else 0)] = [value]
+        else:
+            holder[key] = value
+
+    for operation in patch:
+        kind, path = operation["op"], operation["path"]
+        if kind in ("add", "replace"):
+            put(path, operation["value"], kind == "replace")
+        elif kind == "remove":
+            take(path, True)
+        elif kind in ("move", "copy"):
+            put(path, take(operation["from"], kind == "move"), False)
+        elif kind == "test" and take(path, False) != operation["value"]:
+            raise ValueError(f"test failed at {path}")
+    return root[""]
+
+
+def find_cli():
+    """The affrescoui command-line tool: $AFFRESCOUI_CLI, else on the PATH, else in the repository's build folder."""
+    candidates = [os.environ.get("AFFRESCOUI_CLI"), shutil.which("affrescoui"),
+                  os.path.join(ROOT, "build", "affrescoui.exe" if os.name == "nt" else "affrescoui")]
+    for candidate in candidates:
+        if candidate and os.path.isfile(candidate):
+            return candidate
+    raise RuntimeError("the affrescoui tool isn't found: build it (cmake --build build), put it on the PATH, or set "
+                       "AFFRESCOUI_CLI")
+
+
+def scenarios_report(report, shown):
+    """affrescoui test --json's report of one file, as a few lines: the totals, then one line per failure."""
+    lines = [f"{report.get('file')} on {shown}: {report.get('passed')} passed, {report.get('failed')} failed"]
+    for failure in report.get("failures") or []:
+        step = f", step {failure['step']}" if failure.get("step") else ""
+        lines.append(f"FAILED {failure.get('scenario')}{step}: {failure.get('problem')}")
+    return "\n".join(lines)
+
+
 def object_schema(properties=None, required=None):
     schema = {"type": "object", "properties": properties or {}}
     if required:
@@ -608,6 +676,22 @@ TOOLS = [
      "inputSchema": object_schema({"proposal": {"type": "integer",
                                                 "description": "An open proposal to show applied (optional)"},
                                    "scale": {"type": "integer", "description": "1 (default) or 2"}}),
+     "annotations": {"readOnlyHint": True}},
+    {"name": "run_scenarios",
+     "description": "Check your work with the screen's own scenarios (scripted clicks, typing, waits and expectations "
+                    "of state and nodes, played headless): on main as it runs now, or with an open proposal applied "
+                    "(`proposal`, e.g. the one submit_revision just opened). `file` is the scenarios file shipped "
+                    "next to the screen (examples/assets/screens/kanban.scenarios.json). Pass `scenarios` (a list of "
+                    "{name, steps}) to play your own instead of the file's, `only` for one by name. Answers in a few "
+                    "lines: the totals, then \"FAILED <scenario>, step <n>: <what>\" per failure. Nothing changes: "
+                    "scenarios play on a copy, without a window. SCREEN_FORMAT.md, \"Scenarios\", lists the steps.",
+     "inputSchema": object_schema({
+         "file": {"type": "string", "description": "A *.scenarios.json file: absolute, or relative to the repository"},
+         "proposal": {"type": "integer", "description": "An open proposal to check, applied to main (optional)"},
+         "only": {"type": "string", "description": "Play only the scenario of this name (optional)"},
+         "scenarios": {"type": "array", "items": {"type": "object"},
+                       "description": "Scenarios to play instead of the file's, on its screen (optional)"},
+     }, ["file"]),
      "annotations": {"readOnlyHint": True}},
     {"name": "get_history",
      "description": "main's commits, oldest first (like git log): number, short id, author, committer (who approved "
@@ -763,6 +847,43 @@ class Server:
         return [{"type": "image", "data": reply.get("data", ""), "mimeType": "image/png"},
                 {"type": "text", "text": caption}], False
 
+    def checked_document(self, args):
+        """The document scenarios play on: main as the host has it now, or with an open proposal applied."""
+        reply = self.host.request({"type": "getDocument"})
+        document, shown = reply.get("document") or {}, f"main at revision {reply.get('revision')}"
+        if "proposal" in args:
+            diff = self.host.request({"type": "diff", "proposal": args["proposal"]})
+            if diff.get("type") != "diff":
+                raise RuntimeError(f"proposal {args['proposal']}: {diff.get('error') or diff.get('message')}")
+            document, shown = apply_patch(document, diff.get("patch") or []), f"proposal {args['proposal']}"
+        return document, shown
+
+    def run_scenarios(self, args):
+        """Plays a scenarios file (or the agent's own scenarios, on its screen) on the running screen's document,
+        with affrescoui test, and reports compactly."""
+        path = str(args.get("file", ""))
+        path = path if os.path.isabs(path) or os.path.exists(path) else os.path.join(ROOT, path)
+        with open(path, encoding="utf-8") as file:
+            shipped = json.load(file)
+        document, shown = self.checked_document(args)
+        with tempfile.TemporaryDirectory(prefix="affrescoui-scenarios-") as scratch:
+            screen = os.path.join(scratch, "screen.json")
+            with open(screen, "w", encoding="utf-8") as file:
+                json.dump(document, file)
+            if "scenarios" in args:  # the agent's own, on the file's screen: its folder holds the fonts and includes
+                own = {"format": "affrescoui-scenarios", "version": 1,
+                       "screens": os.path.abspath(os.path.join(os.path.dirname(path), shipped.get("screens", "."))),
+                       "scenarios": args["scenarios"], **({"screen": shipped["screen"]} if "screen" in shipped else {})}
+                path = os.path.join(scratch, "own.scenarios.json")
+                with open(path, "w", encoding="utf-8") as file:
+                    json.dump(own, file)
+            command = [find_cli(), "test", "--json", "--document", screen, path]
+            command += ["--only", str(args["only"])] if args.get("only") else []
+            result = subprocess.run(command, capture_output=True, text=True, timeout=300)
+        if result.returncode not in (0, 1) or not result.stdout.strip():
+            return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui test failed'}", True
+        return scenarios_report(json.loads(result.stdout.strip().splitlines()[-1]), shown), False
+
     def get_blame(self, args):
         """The commit on main that last changed a node or a value."""
         reply = self.host.request({"type": "blame", "target": args.get("target", "")})
@@ -835,6 +956,8 @@ class Server:
             return describe(host.request(revision))
         if name == "render_screen":
             return self.render_screen(args)
+        if name == "run_scenarios":
+            return self.run_scenarios(args)
         if name == "get_history":
             reply = host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
             return compact(reply.get("entries")), False
