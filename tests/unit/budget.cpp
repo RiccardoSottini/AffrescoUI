@@ -89,6 +89,7 @@ TEST_CASE("budget: an event that runs too many steps stops, says where, and the 
 	CHECK(errors.lines.size() == 1);
 }
 
+// Found by fuzzing (tests/fuzz, actions): a forEach with no "do" inside a while ran turns that spent nothing
 TEST_CASE("budget: a loop's turns spend from it, even with nothing to do") {
 	const Errors errors;
 	// 10000 turns of a 10000-item list: 10^8 turns that ran no step, before each turn spent one.

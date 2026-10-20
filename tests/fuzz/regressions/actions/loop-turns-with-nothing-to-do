@@ -1,0 +1,1 @@
+[{"while":"{{true}}","do":[{"forEach":"{{range(400)}}","n%o":[{"push":"sms","value":"{{it}}"}]}]}]
