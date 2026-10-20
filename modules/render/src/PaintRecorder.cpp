@@ -47,7 +47,7 @@ void PaintRecorder::beginStep(PaintStep step, const Font* font, std::uint32_t pa
 		return;
 	const auto firstQuad = static_cast<std::uint32_t>(record_.vertices.size() / verticesPerQuad);
 	record_.ops.push_back({step, page, font, firstQuad, 0});
-	if(step == PaintStep::colorGlyph) record_.color = true;
+	if(step == PaintStep::colorGlyph || step == PaintStep::image) record_.color = true;
 }
 
 void PaintRecorder::addQuad(const std::array<Vertex, 4>& corners) {
@@ -81,6 +81,13 @@ void PaintRecorder::drawText(const Font& font, std::u32string_view text, Vec2 or
 		if(last.step != PaintStep::glyphs || last.page != glyph.page) beginStep(PaintStep::glyphs, &font, glyph.page);
 		pushQuad(quad, glyph.uv, color);
 	}
+}
+
+// Its coordinates are within the image: where it lies in its texture is known only when it is replayed
+void PaintRecorder::drawImage(const Bitmap& bitmap, const Rect& rect) {
+	beginStep(PaintStep::image);
+	record_.ops.back().bitmap = &bitmap;
+	pushQuad(rect, {0.0f, 0.0f, 1.0f, 1.0f}, colors::white, QuadKind::colorGlyph);
 }
 
 // Clips the quad to the panel (adjusting the texture coordinates to match) and adds it

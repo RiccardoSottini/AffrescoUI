@@ -7,6 +7,7 @@
 #include "Renderer.hpp"
 #include "RetainedGeometry.hpp"
 #include "gl/GlObjects.hpp"
+#include "gl/ImageTextures.hpp"
 
 #include "affresco/render/Font.hpp"
 
@@ -44,7 +45,12 @@ namespace affresco::gl {
 /// that has no shape code at all, so it keeps exactly the pixels it had before shapes existed, on every driver; the
 /// same goes for colour glyphs. Which of them a frame has is known for the whole frame, even one drawn in a region.
 ///
-/// The textures of a font's atlas pages are kept while the font lives, and freed by the first frame after it is gone.
+/// Images (an image step of a record) are colour quads too: their texture (an image page, or the image's own) is bound
+/// where a font's colour page would be, next to the batch's coverage page, so text, rectangles and images from one image
+/// page share a batch. Their texels are premultiplied, as colour glyphs' are.
+///
+/// The textures of a font's atlas pages are kept while the font lives, and freed by the first frame after it is gone;
+/// so are an image's (ImageTextures).
 class QuadRenderer final {
 public:
 	/// @brief Compiles the shaders and sets up the vertex layout, in the current context.
@@ -86,14 +92,15 @@ public:
 private:
 	/// @brief A run of quads drawn with the same texture.
 	struct Batch {
-		GLuint texture;              ///< The texture.
-		Vec2 white;                  ///< Its white texel.
-		std::size_t firstQuad;       ///< First quad of the run.
-		std::size_t quadCount;       ///< Quads in the run.
-		const Font* font = nullptr;  ///< The font whose atlas page the texture holds, if any; alive for the frame.
-		std::uint32_t page = 0;      ///< That page.
-		GLuint colorTexture = 0;     ///< The font's colour page its colour glyphs sample; 0 while it has none.
-		std::uint32_t colorPage = 0; ///< That colour page.
+		GLuint texture;             ///< The texture.
+		Vec2 white;                 ///< Its white texel.
+		std::size_t firstQuad;      ///< First quad of the run.
+		std::size_t quadCount;      ///< Quads in the run.
+		const Font* font = nullptr; ///< The font whose atlas page the texture holds, if any; alive for the frame.
+		std::uint32_t page = 0;     ///< That page.
+		GLuint colorTexture = 0; ///< What its colour quads sample: a font's colour page or an image's texture; 0: none.
+		const Font* colorFont = nullptr; ///< The font whose colour page colorTexture is; nullptr for an image.
+		std::uint32_t colorPage = 0;     ///< That colour page.
 	};
 
 	/// @brief A font's atlas page on the GPU.
@@ -128,7 +135,9 @@ private:
 	/// @param record The record.
 	/// @param op The step.
 	/// @param white Whether they take the white texel.
-	void addQuads(const detail::PaintRecord& record, const detail::PaintOp& op, bool white);
+	/// @param within For an image, where it is in its texture (its quads hold coordinates within it); else nullptr.
+	void addQuads(const detail::PaintRecord& record, const detail::PaintOp& op, bool white,
+	              const Rect* within = nullptr);
 	/// @brief Uploads the frame's quads and draws each batch, with the shader the frame needs.
 	/// @param width Window width, in window units.
 	/// @param height Window height, in window units.
@@ -143,10 +152,11 @@ private:
 	/// @param font The font.
 	/// @param page Its atlas page.
 	void useFontPage(const Font& font, std::uint32_t page);
-	/// @brief Gives the current batch a font's colour page, starting a new batch if it has another one.
-	/// @param font The font; the current batch draws from one of its coverage pages.
-	/// @param page Its colour page.
-	void useColorPage(const Font& font, std::uint32_t page);
+	/// @brief Gives the current batch a texture for its colour quads, starting a new batch if it has another one.
+	/// @param texture A font's colour page, or an image's texture.
+	/// @param font The font whose colour page it is, or nullptr for an image.
+	/// @param page That colour page.
+	void useColorTexture(GLuint texture, const Font* font, std::uint32_t page);
 	/// @brief The texture of a font's atlas page, uploaded on first use.
 	/// @param font The font.
 	/// @param page The page.
@@ -193,6 +203,7 @@ private:
 	Texture whiteTexture_;                                         ///< 1x1, for frames without text.
 	std::unordered_map<std::uint64_t, FontTextures> fontTextures_; ///< By Font::id().
 	detail::GeometryCache cache_;                                  ///< The panels' geometry, frame after frame.
+	ImageTextures images_;                                         ///< The images drawn.
 
 	// Per frame, reused so steady-state frames don't allocate
 	std::vector<detail::Vertex> vertices_;    ///< 4 per quad.

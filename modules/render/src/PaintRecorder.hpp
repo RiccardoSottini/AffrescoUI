@@ -30,6 +30,7 @@ public:
 	void fillRoundedRect(const Rect& rect, const CornerRadii& radii, Color color) override;
 	void strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) override;
 	void drawShadow(const Rect& rect, const CornerRadii& radii, const Shadow& shadow) override;
+	void drawImage(const Bitmap& bitmap, const Rect& rect) override;
 
 private:
 	/// @brief How a shape is drawn.

@@ -8,7 +8,9 @@ following components, which keep their own licenses:
 | glad 0.1.36 (generated OpenGL loader) | `external/glad/` (vendored) | Public domain; `khrplatform.h`: MIT-style Khronos license (in the file) |
 | Roboto font | `examples/assets/fonts/` (vendored) | Apache License 2.0 (`examples/assets/fonts/LICENSE-Roboto.txt`) |
 | JetBrains Mono font | `examples/assets/fonts/` (vendored) | SIL Open Font License 1.1 (`examples/assets/fonts/LICENSE-JetBrainsMono.txt`) |
+| Lucide 1.48.0 icon font (`lucide-static`) | `examples/assets/fonts/Lucide.ttf` (vendored, SHA-256 checked by CMake) | ISC License; the icons derived from Feather: MIT License (`examples/assets/fonts/LICENSE-Lucide.txt`) |
 | GLFW 3.4 | downloaded by CMake | zlib/libpng license |
+| stb_image 2.30 (PNG and JPEG decoder) | downloaded by CMake at a pinned commit, SHA-256 checked | Public domain (Unlicense) or MIT, at your choice (end of `stb_image.h`) |
 | nlohmann/json 3.11.3 | downloaded by CMake | MIT |
 | FreeType 2.14.3 (glyph rasteriser) | downloaded by CMake | The FreeType License (FTL), chosen of FTL or GPLv2 (`docs/FTL.TXT` in its archive) |
 | HarfBuzz 12.3.2 (text shaping) | downloaded by CMake | "Old MIT" (`COPYING` in its archive; `src/ms-use/COPYING`: MIT) |

@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
@@ -24,6 +24,9 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   before their peers go.
 - **A peer is authored by the name it was connected with,** whatever name it gives itself. Every peer hears about
   commits, proposals and `emit` events; `request` and `reply` go to the other peers.
+- **Pictures show every image:** `render` waits for the image files still being decoded before it draws.
+- **Image files stay in their folders:** a screen's `image` nodes read files only inside the screen file's folder
+  and the folders the host allows with `allowImageDirectory`.
 - **Pictures never show, and change nothing:** to draw a proposal for a peer, the screen first runs the tasks main
   had deferred, then previews the proposal with the runtime's handlers suspended, draws offscreen and puts the old
   preview back, within one call and without presenting a frame. Events the runtime emits meanwhile aren't sent, and

@@ -2,6 +2,7 @@
 #include "PaintRecorder.hpp"
 #include "gl/Shader.hpp"
 
+#include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
 
@@ -207,6 +208,7 @@ void QuadRenderer::startFrame() {
 	batches_.clear();
 	drawCalls_ = 0;
 	std::erase_if(fontTextures_, [](const auto& entry) { return entry.second.font.expired(); });
+	images_.collect();
 }
 
 void QuadRenderer::draw(const detail::Frame& frame, const std::optional<Rect>& region, bool shapes, bool color) {
@@ -251,7 +253,7 @@ void QuadRenderer::submit(int width, int height, bool shapes, bool color) {
 
 	for(const Batch& batch : batches_) {
 		if(batch.font) updateFontTexture(*batch.font, batch.page, AtlasKind::coverage);
-		if(batch.colorTexture != 0) updateFontTexture(*batch.font, batch.colorPage, AtlasKind::color);
+		if(batch.colorFont) updateFontTexture(*batch.colorFont, batch.colorPage, AtlasKind::color);
 	}
 
 	glBindVertexArray(vertexArray_.id());
@@ -337,14 +339,23 @@ void QuadRenderer::replay(const detail::PaintRecord& record, std::size_t first, 
 			addQuads(record, op, false);
 			break;
 		case PaintStep::colorGlyph:
-			useColorPage(*op.font, op.page);
+			useColorTexture(fontTexture(*op.font, op.page, AtlasKind::color), op.font, op.page);
 			addQuads(record, op, false);
 			break;
+		case PaintStep::image: {
+			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
+			const ImageTextures::Placement placed = images_.place(*op.bitmap);
+			useColorTexture(placed.texture, nullptr, 0);
+			addQuads(record, op, false, &placed.uv);
+			break;
+		}
 		}
 	}
 }
 
-void QuadRenderer::addQuads(const detail::PaintRecord& record, const detail::PaintOp& op, bool white) {
+// An image's quads hold coordinates within the image; its place in its texture is known only now
+void QuadRenderer::addQuads(const detail::PaintRecord& record, const detail::PaintOp& op, bool white,
+                            const Rect* within) {
 	const Vec2 texel = batches_.back().white;
 	const std::uint16_t u = toUnorm16(texel.x), v = toUnorm16(texel.y);
 	for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
@@ -355,6 +366,9 @@ void QuadRenderer::addQuads(const detail::PaintRecord& record, const detail::Pai
 			if(white) {
 				vertex.u = u;
 				vertex.v = v;
+			} else if(within) {
+				vertex.u = toUnorm16(within->left + within->width() * static_cast<float>(vertex.u) / 65535.0f);
+				vertex.v = toUnorm16(within->top + within->height() * static_cast<float>(vertex.v) / 65535.0f);
 			}
 			vertices_.push_back(vertex);
 		}
@@ -368,15 +382,15 @@ void QuadRenderer::useFontPage(const Font& font, std::uint32_t page) {
 	batches_.back().page = page;
 }
 
-void QuadRenderer::useColorPage(const Font& font, std::uint32_t page) {
-	const GLuint texture = fontTexture(font, page, AtlasKind::color);
+void QuadRenderer::useColorTexture(GLuint texture, const Font* font, std::uint32_t page) {
 	if(batches_.back().colorTexture == texture) return;
-	if(batches_.back().colorTexture != 0) { // another colour page: the same coverage page, in a new batch
+	if(batches_.back().colorTexture != 0) { // another colour texture: the same coverage page, in a new batch
 		const Batch current = batches_.back();
 		batches_.push_back({current.texture, current.white, vertices_.size() / detail::verticesPerQuad, 0, current.font,
 		                    current.page});
 	}
 	batches_.back().colorTexture = texture;
+	batches_.back().colorFont = font;
 	batches_.back().colorPage = page;
 }
 

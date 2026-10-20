@@ -19,31 +19,10 @@ GlyphAtlas::Page::Page(int pageSize, AtlasKind kind)
     : size(pageSize), bytesPerTexel(kind == AtlasKind::color ? 4 : 1),
       pixels(static_cast<std::size_t>(pageSize) * static_cast<std::size_t>(pageSize) *
 	             static_cast<std::size_t>(bytesPerTexel),
-	         0) {
+	         0),
+      packer(pageSize, kind == AtlasKind::color ? 0 : whiteRows) {
 	if(kind == AtlasKind::color) return;
 	pixels[0] = pixels[1] = pixels[static_cast<std::size_t>(size)] = pixels[static_cast<std::size_t>(size) + 1] = 255;
-	freeTop = whiteRows;
-}
-
-std::optional<std::array<int, 2>> GlyphAtlas::Page::place(int width, int height, int shelfHeight) {
-	if(width > size) return std::nullopt;
-
-	// The shortest shelf the box fits on wastes the fewest rows
-	Shelf* best = nullptr;
-	for(Shelf& shelf : shelves)
-		if(shelf.height >= height && shelf.right + width <= size && (!best || shelf.height < best->height))
-			best = &shelf;
-
-	if(!best) {
-		const int rows = std::max(height, shelfHeight);
-		if(freeTop + rows > size) return std::nullopt;
-		best = &shelves.emplace_back(Shelf{freeTop, rows, 0});
-		freeTop += rows;
-	}
-
-	const std::array<int, 2> at{best->right, best->top};
-	best->right += width;
-	return at;
 }
 
 GlyphAtlas::GlyphAtlas(int firstPageSize, int shelfHeight) : shelfHeight_(shelfHeight) {
@@ -54,7 +33,7 @@ GlyphAtlas::GlyphAtlas(int firstPageSize, int shelfHeight) : shelfHeight_(shelfH
 std::optional<GlyphAtlas::Spot> GlyphAtlas::place(AtlasKind kind, int width, int height, bool mayAddPage) {
 	std::vector<Page>& list = pages(kind);
 	for(std::size_t p = 0; p < list.size(); ++p)
-		if(const auto at = list[p].place(width, height, shelfHeight_))
+		if(const auto at = list[p].packer.place(width, height, shelfHeight_))
 			return Spot{static_cast<std::uint32_t>(p), (*at)[0], (*at)[1]};
 	if(!mayAddPage) return std::nullopt;
 
@@ -70,7 +49,7 @@ std::optional<GlyphAtlas::Spot> GlyphAtlas::place(AtlasKind kind, int width, int
 
 	Page& page = list.emplace_back(size, kind);
 	bytes_ += added;
-	const auto at = page.place(width, height, shelfHeight_);
+	const auto at = page.packer.place(width, height, shelfHeight_);
 	if(!at) return std::nullopt; // not reached: an empty page has room for what fits in one
 	return Spot{static_cast<std::uint32_t>(list.size() - 1), (*at)[0], (*at)[1]};
 }

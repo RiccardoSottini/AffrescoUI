@@ -36,6 +36,16 @@ public:
 	/// @brief The text, one element per code point.
 	[[nodiscard]] const std::u32string& codepoints() const noexcept { return text_; }
 
+	/// @brief Shows an icon before the text (with a space between when there is text), in the text's colour.
+	///
+	/// The icon is a glyph named in the label's font or its fallbacks (Font::codepointNamed()): give the font an icon
+	/// font as a fallback, and the icon is drawn at the text's size, in the same batch. A name no face has shows
+	/// nothing.
+	/// @param name The glyph's name, e.g. "search"; empty for none.
+	void setIcon(std::string name);
+	/// @brief The icon's name, or empty.
+	[[nodiscard]] const std::string& icon() const noexcept { return icon_; }
+
 	/// @brief Sets the label's own font.
 	/// @param font The font, or nullptr for the window's default.
 	void setFont(std::shared_ptr<const Font> font);
@@ -74,17 +84,31 @@ protected:
 
 	/// @brief The frame minus the padding.
 	[[nodiscard]] Rect contentRect() const noexcept;
+	/// @brief What is drawn: the icon and the text, as of the last layout. Without an icon, the text.
+	[[nodiscard]] const std::u32string& shown() const noexcept { return icon_.empty() ? text_ : shown_; }
 
 	std::u32string text_; ///< One element per code point.
 
 private:
-	std::shared_ptr<const Font> font_;                           ///< nullptr: the window's default.
-	Color textColor_ = colors::black;                            ///< See textColor().
-	float padding_ = 0.0f;                                       ///< See padding().
-	Align horizontal_ = Align::Start;                            ///< Horizontal alignment.
-	Align vertical_ = Align::Start;                              ///< Vertical alignment.
-	bool wrap_ = false;                                          ///< See setWrap().
-	bool fitToText_ = false;                                     ///< See setFitToText().
+	/// @brief Draws one line of text, placed by the horizontal alignment.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param line The line.
+	/// @param top Its top, in window units.
+	void paintLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
+	/// @brief Puts the icon before the text in shown_, if the text, the icon or the font changed.
+	void updateShown();
+
+	std::string icon_;                 ///< See icon().
+	std::u32string shown_;             ///< The icon's character, a space and the text: see shown().
+	std::uint64_t shownFont_ = 0;      ///< The Font::id() shown_ was made with (0: to make again).
+	std::shared_ptr<const Font> font_; ///< nullptr: the window's default.
+	Color textColor_ = colors::black;  ///< See textColor().
+	float padding_ = 0.0f;             ///< See padding().
+	Align horizontal_ = Align::Start;  ///< Horizontal alignment.
+	Align vertical_ = Align::Start;    ///< Vertical alignment.
+	bool wrap_ = false;                ///< See setWrap().
+	bool fitToText_ = false;           ///< See setFitToText().
 	float fitMaxWidth_ = std::numeric_limits<float>::infinity(); ///< See setFitToText().
 
 	/// @brief What prepareLayout() last fitted the label to, so a layout that changes none of it (a resize, a

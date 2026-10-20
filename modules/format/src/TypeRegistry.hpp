@@ -7,9 +7,11 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/ImageCache.hpp"
 #include "affresco/render/Panel.hpp"
 
 #include <array>
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <memory>
@@ -57,6 +59,16 @@ public:
 	/// @return The font.
 	/// @throws DocumentError If it isn't a font of the document.
 	[[nodiscard]] virtual std::shared_ptr<const Font> font(const json& value, const std::string& at) const = 0;
+
+	/// @brief Where the document's images come from.
+	[[nodiscard]] virtual ImageCache& images() const = 0;
+
+	/// @brief Reads an image file: relative to the screen's folder, inside the folders images may come from.
+	/// @param value The path.
+	/// @param at Its place, for errors.
+	/// @return The file.
+	/// @throws DocumentError If it isn't text or is outside those folders.
+	[[nodiscard]] virtual std::filesystem::path imageFile(const json& value, const std::string& at) const = 0;
 
 protected:
 	PropertyReader() = default;
@@ -141,6 +153,11 @@ public:
 	/// @param type The type; its property set may be null for none.
 	void add(NodeType type);
 
+	/// @brief Adds properties that panels of other types take, chosen by PropertySet::appliesTo (e.g. "icon" on
+	/// labels).
+	/// @param set The properties; appliesTo must be set.
+	void addProperties(std::shared_ptr<const PropertySet> set);
+
 	/// @brief Finds a type.
 	/// @param name Its name.
 	/// @return The type, or nullptr.
@@ -192,5 +209,11 @@ void registerSliderType(TypeRegistry& registry);
 /// @brief Registers "editor" (EditorType.cpp).
 /// @param registry The registry.
 void registerEditorType(TypeRegistry& registry);
+/// @brief Registers "image" (ImageType.cpp).
+/// @param registry The registry.
+void registerImageType(TypeRegistry& registry);
+/// @brief Registers "icon", a property of labels (IconProperty.cpp).
+/// @param registry The registry.
+void registerIconProperty(TypeRegistry& registry);
 
 } // namespace affresco::format

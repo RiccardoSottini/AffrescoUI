@@ -9,6 +9,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/render/Application.hpp"
+#include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
@@ -19,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -37,18 +39,18 @@ using ScreenError = DocumentError;
 /// go on receiving input (its panels stay, inert).
 class Screen {
 public:
-	using Action = std::function<void(Panel& sender)>;                                     ///< A native action.
+	using Action = std::function<void(Panel& sender)>; ///< A native action.
 	/// A native function for "call" steps: gets the step's "with" as JSON text, returns what "into" stores as JSON
 	/// text. Throwing std::exception runs the step's "onError" steps.
 	using Call = std::function<std::string(const std::string& argumentsJson)>;
-	using Factory = std::function<std::unique_ptr<Panel>()>;                               ///< Creates a custom type.
+	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a custom type.
 	/// Applies a custom type's own properties to one of its panels: the node's evaluated values for the names given at
 	/// registration, as a JSON object in text (only those it has; colours as written, see resolveColor()). Called when
 	/// they change, so a name that is missing means its default. Throwing std::exception reports the error at the node.
 	using ApplyProperties = std::function<void(Panel& panel, const std::string& propertiesJson)>;
 	using UnhandledAction = std::function<void(const std::string& action, Panel& sender)>; ///< Fallback handler.
-	using ProposalInfo = affresco::ProposalInfo;                                                ///< An open proposal.
-	using CommitInfo = affresco::CommitInfo;                                                    ///< A commit.
+	using ProposalInfo = affresco::ProposalInfo;                                           ///< An open proposal.
+	using CommitInfo = affresco::CommitInfo;                                               ///< A commit.
 
 	/// @brief How fromFile() keeps a screen's version-control history.
 	enum class History {
@@ -72,7 +74,8 @@ public:
 	/// @brief Loads a screen file, with its data in a folder of the caller's choice.
 	/// @param path The file; relative font and "include" paths are resolved from its directory.
 	/// @param dataDirectory Where "<file name>.history/" and "<file name>.state.json" are kept.
-	/// @param history Whether the history is kept there or in memory only; the "persist" state is kept there either way.
+	/// @param history Whether the history is kept there or in memory only; the "persist" state is kept there either
+	/// way.
 	/// @return The screen, not yet built.
 	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
@@ -94,8 +97,8 @@ public:
 
 	/* Before building */
 
-	/// @brief Registers a custom "type" usable in the file. It has the properties of the built-in type its panel derives
-	/// from (e.g. a TextEditor subclass has those of "editor"), plus its own.
+	/// @brief Registers a custom "type" usable in the file. It has the properties of the built-in type its panel
+	/// derives from (e.g. a TextEditor subclass has those of "editor"), plus its own.
 	/// @param name The type name.
 	/// @param factory Creates its panel.
 	/// @param properties Its own property names.
@@ -152,8 +155,8 @@ public:
 
 	/// @brief Where programs on this machine meet by default, and where relative "channels" socket paths are found:
 	/// $AFFRESCOUI_SOCKET_DIR if it is set, else a folder of this user's: %LOCALAPPDATA%\\affrescoui\\sockets on
-	/// Windows, `/tmp/affrescoui-<uid>` elsewhere. mcp/affrescoui_mcp.py is to follow the same rule (roadmap 1.1d); until
-	/// then it ignores the variable and defaults to `/tmp/affrescoui-<uid>`, so pass it --socket.
+	/// Windows, `/tmp/affrescoui-<uid>` elsewhere. mcp/affrescoui_mcp.py is to follow the same rule (roadmap 1.1d);
+	/// until then it ignores the variable and defaults to `/tmp/affrescoui-<uid>`, so pass it --socket.
 	/// @return The directory; it may not exist yet.
 	[[nodiscard]] static std::filesystem::path defaultSocketDirectory();
 
@@ -352,6 +355,28 @@ public:
 	/// @return The font.
 	/// @throws ScreenError If there is no such font.
 	[[nodiscard]] std::shared_ptr<const Font> font(std::string_view name) const;
+
+	/* Images */
+
+	/// @brief Sets, replaces or removes an image the screen shows by name: an image node's `"source"`. For content the
+	/// application makes (a chart, a camera frame, a picture from the network); the nodes showing it are updated.
+	/// @param name The name.
+	/// @param bitmap The image, or nullptr to remove it.
+	void setImage(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap);
+	/// @brief Sets or replaces a named image from pixels.
+	/// @param name The name.
+	/// @param width Its width.
+	/// @param height Its height.
+	/// @param rgba Red, green, blue and alpha per pixel, top row first, not premultiplied: width * height * 4 bytes.
+	/// @throws std::invalid_argument If the size is empty, larger than 8,192 on a side or 4,096 by 4,096 in all, or
+	/// doesn't match @p rgba.
+	void setImage(const std::string& name, int width, int height, std::span<const std::uint8_t> rgba);
+	/// @brief Allows the screen's image files to come from a folder too. By default only the screen file's own folder
+	/// (and the folders inside it) is allowed, so that a revision can't show any picture on the disk.
+	/// @param directory The folder.
+	void allowImageDirectory(const std::filesystem::path& directory);
+	/// @brief Waits until every image file asked for is decoded and shown (a picture of the screen does it itself).
+	void waitForImages();
 
 private:
 	struct Impl;
