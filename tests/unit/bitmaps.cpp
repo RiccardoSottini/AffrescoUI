@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -160,6 +161,17 @@ TEST_CASE("bitmaps: compressed pixels that inflate far beyond the image's size a
 	CHECK_THROWS_AS((void)Bitmap::decode(bomb, {}), std::runtime_error);
 	const std::vector<std::uint8_t> exact = inflatingPng(5); // a filter byte and one pixel: an image
 	CHECK(Bitmap::decode(exact, {})->width() == 1);
+}
+
+TEST_CASE("bitmaps: a PNG whose first IDAT chunk is empty is refused before it is decoded") {
+	// Found by fuzzing: stb_image copied such a chunk from a null buffer. The real data follows the empty chunk here
+	const std::vector<std::uint8_t> image = inflatingPng(5);
+	const std::size_t idat = 8 + 25; // the signature, then IHDR: its length, type, 13 bytes and CRC
+	std::vector<std::uint8_t> broken(image.begin(), image.begin() + static_cast<std::ptrdiff_t>(idat));
+	broken.insert(broken.end(), {0, 0, 0, 0, 'I', 'D', 'A', 'T', 0, 0, 0, 0});
+	broken.insert(broken.end(), image.begin() + static_cast<std::ptrdiff_t>(idat), image.end());
+	CHECK_THROWS_AS((void)Bitmap::decode(broken, {}), std::runtime_error);
+	CHECK(Bitmap::decode(image, {})->width() == 1);
 }
 
 TEST_CASE("image cache: without an executor a file is decoded at once, once, and kept") {
