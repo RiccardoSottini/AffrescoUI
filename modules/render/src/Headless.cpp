@@ -21,6 +21,17 @@ struct WindowFactory {
 		return std::unique_ptr<Window>(new Window(nullptr, nullptr, clock, std::move(title), width, height));
 	}
 
+	/// @brief Renders a frame, without presenting it.
+	/// @param window The window.
+	static void renderOnly(Window& window) {
+		window.runTimers();
+		window.runDeferred();
+		if(!window.redrawDirty_) return;
+		if(window.renderer_) window.draw();
+		else window.updateLayout();
+		window.redrawDirty_ = false;
+	}
+
 	/// @brief A window's next frame, its damage handed over.
 	/// @param window The window.
 	/// @return The frame.
@@ -53,5 +64,7 @@ std::vector<std::uint8_t> drawFromScratch(Window& window, int scale) {
 }
 
 Frame takeFrame(Window& window) { return WindowFactory::take(window); }
+
+void renderWithoutPresenting(Window& window) { WindowFactory::renderOnly(window); }
 
 } // namespace affresco::detail

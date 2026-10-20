@@ -74,6 +74,7 @@ Panel& Panel::replaceChild(std::size_t index, std::unique_ptr<Panel> child) {
 	child->parent_ = this;
 	child->attachTo(window_);
 	children_.at(index) = std::move(child);
+	treeChanged();
 	invalidate();
 	return *children_[index];
 }
@@ -81,6 +82,7 @@ Panel& Panel::replaceChild(std::size_t index, std::unique_ptr<Panel> child) {
 void Panel::removeChildren(std::size_t from) {
 	if(from >= children_.size()) return;
 	children_.erase(children_.begin() + static_cast<std::ptrdiff_t>(from), children_.end());
+	treeChanged();
 	invalidate();
 }
 
@@ -90,6 +92,7 @@ void Panel::moveChild(std::size_t from, std::size_t to) {
 	std::unique_ptr<Panel> child = std::move(children_[from]);
 	children_.erase(children_.begin() + static_cast<std::ptrdiff_t>(from));
 	children_.insert(children_.begin() + static_cast<std::ptrdiff_t>(to), std::move(child));
+	treeChanged(); // the first panel of an id, depth first, may be another one now
 	invalidate();
 }
 
@@ -133,12 +136,19 @@ void Panel::adopt(std::unique_ptr<Panel> child) {
 	child->parent_ = this;
 	child->attachTo(window_);
 	children_.push_back(std::move(child));
+	treeChanged();
 	invalidate();
 }
 
 void Panel::attachTo(Window* window) noexcept {
 	window_ = window;
 	for(auto& child : children_) child->attachTo(window);
+}
+
+void Panel::setId(std::string id) { id_ = std::move(id); }
+
+void Panel::treeChanged() noexcept {
+	if(window_) ++window_->treeGeneration_;
 }
 
 void Panel::invalidate() noexcept {
@@ -336,7 +346,12 @@ void Panel::setVisible(bool visible) { setProperty(visible_, visible); }
 std::optional<float> Panel::targetEdge(Edge edge) const {
 	const auto& target = targets_[index(edge)];
 	if(!target || !window_) return std::nullopt;
-	const Panel* other = window_->root().findById(target->id);
+	// Found again once panels came or went, or the one found has another id now (only one that is found is kept)
+	if(target->found != window_->treeGeneration_ || !target->other || target->other->id_ != target->id) {
+		target->other = window_->root().findById(target->id);
+		target->found = window_->treeGeneration_;
+	}
+	const Panel* other = target->other;
 	if(!other) return std::nullopt;
 	if(!other->isSettled(window_->layoutPass_)) window_->forwardAnchor_ = true; // a later panel: lay out again
 	return edgeOf(other->frame_, target->edge) + target->offset;

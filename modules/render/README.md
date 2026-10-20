@@ -46,6 +46,18 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
   tables of rectangles; `Stack` and `Grid` measure their children, call them, and turn the result into anchors and
   arranged sizes. Their arithmetic keeps the 2017 rows, columns and grids on exactly the same pixels.
 - **A window draws only when something changed,** and the event loop sleeps while nothing is due: idle costs no CPU.
+- **A frame draws only what changed.** Each panel keeps what it drew (`src/RetainedGeometry.hpp`: its clipped quads
+  and the batch steps between them, recorded by `PaintRecorder`, the Painter panels draw with). Before a frame,
+  `GeometryCache` visits only the panels whose drawing changed (`invalidatePaint()`, or `invalidate()`) and those a
+  layout pass laid out since the last frame (their pass stamp), records again those that changed or whose frame,
+  bounds, clip or scroll did, and gathers the damage: where each was and is, and where a hidden or destroyed panel
+  was. The OpenGL renderer draws into canvases that keep their pixels (one for the window, copied to it each frame;
+  one for screenshots), each only within its damage (scissor), or whole when it is new, the window was resized or
+  invalidated, the frame needs other shaders, or most of it changed. Replaying the records gives the batches and
+  vertices drawing directly gave, and which shaders a frame needs is known for the whole tree, so a frame has the
+  pixels a full frame would. The rendering check proves it: every capture is also drawn from scratch
+  (`detail::drawFromScratch`) and must be the same. **A widget whose drawing depends on anything else must call
+  `invalidatePaint()` (or `invalidate()`) when it changes.** One renderer per window: it clears the panels' paint bits.
 - **Layout per axis:** anchored edges first, then the position, then the size within its minimum and maximum (the
   minimum wins), then the aspect ratio; percentages refer to the
   parent; a panel is clipped to its parent, and a panel clipped to nothing is not shown. Overlays are laid out, drawn
@@ -53,7 +65,8 @@ header exposes OpenGL, GLFW, FreeType or HarfBuzz. Target: `affrescoui::render` 
 - **Every OpenGL call is in `src/gl/`, and every GLFW call in `src/platform/GlfwPlatform.cpp`.** `Window.cpp` and
   `Application.cpp` call neither: the OS window is a `platform::NativeWindow` (`src/platform/Platform.hpp`), and
   drawing a `detail::Renderer` (`src/Renderer.hpp`), whose OpenGL implementation (`gl/OpenGlRenderer.cpp`) uses
-  `gl::QuadRenderer`: batched quads, one draw call per texture switch, clipping on the CPU.
+  `gl::QuadRenderer`: batched quads replayed from the panels' records, one draw call per texture switch, clipping on
+  the CPU.
 - **A window without a platform window or renderer is headless.** It routes input, keeps the focus, hover and
   capture, runs timers and deferred tasks and lays out, but never draws; its clipboard is its own.
   `detail::createHeadlessWindow` (`src/Headless.hpp`, internal for now) creates one for tests.
@@ -125,8 +138,12 @@ src/
   Color.cpp                hex colours
   detail/Utf8.hpp          UTF-8 decoding, shared by the text code
   detail/Ppm.hpp           PPM screenshots
-  gl/                      everything OpenGL: Context (state, read-back), GlObjects (RAII names), Shader,
-                           QuadRenderer (the batched renderer and its Painter), OpenGlRenderer (the Renderer)
+  RetainedGeometry.hpp     what a panel drew: quads, batch steps, what the drawing depended on (no OpenGL)
+  PaintRecorder.*          the Painter panels draw with: clipped quads and batch steps, recorded
+  GeometryCache.*          before a frame: the panels that changed or moved recorded again, the damage, the shaders
+  gl/                      everything OpenGL: Context (state, read-back, canvases, scissored regions), GlObjects
+                           (RAII names), Shader, QuadRenderer (replays records into batches and draws them),
+                           OpenGlRenderer (the Renderer: canvases with their damage, a full frame as the fallback)
 CMakeLists.txt             the affrescoui_render target and its sources
 ```
 
@@ -144,10 +161,12 @@ public:
 window.add<Badge>().setColor(affresco::Color::hex(0x2563eb));
 ```
 
-Give it its own signals for what it means (`Toggle::onToggled`), and call `invalidate()` when its look changes.
+Give it its own signals for what it means (`Toggle::onToggled`). When its look changes, call `invalidatePaint()`
+(or store the value with `setLook(member, value)`); when its size or arrangement may change too, `invalidate()`
+(or `setProperty`). The next frame draws it again, and only where it is.
 
-**Add a property to `Panel`.** A getter and a setter that stores the value and calls `invalidate()`; the layout or
-`paint` reads it. Document its default. If screen documents should set it, the `format` README says how.
+**Add a property to `Panel`.** A getter and a setter that stores the value with `setProperty` (it changes the layout)
+or `setLook` (only the drawing); the layout or `paint` reads it. Document its default. If screen documents should set it, the `format` README says how.
 
 **Test a window without a display.**
 

@@ -302,6 +302,7 @@ private:
 	bool layingOut_ = false;           ///< A layout pass is running.
 	bool layoutAll_ = true;            ///< The next pass lays out every panel (see invalidate()).
 	std::uint64_t measureGeneration_ = 0;
+	std::uint64_t treeGeneration_ = 1;  ///< Moves on when panels come, go, move or change id (Panel::treeChanged()).
 	std::uint64_t paintGeneration_ = 0; ///< See detail::Frame::paintGeneration.
 	std::optional<Rect> damage_;        ///< Where panels were that are gone, since the last frame.
 	bool damageAll_ = true; ///< The next frame draws everything (see detail::Frame::damageAll). ///< Panels' measured

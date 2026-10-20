@@ -185,6 +185,20 @@ def text_seeds():
     return list(dict.fromkeys(seed for seed in seeds if seed.strip() and "{{" not in seed))
 
 
+def layout_seeds():
+    """Every node of the layout and damage screens of the rendering check, with their flex and grid keys, and a few
+    that push the limits: as many tracks as a grid may have, cells past them, sizes near the float's limit."""
+    seeds = []
+    for name in ("layout.screen.json", "damage.screen.json"):
+        document = json.loads((ROOT / "tests" / "render" / "screens" / name).read_text(encoding="utf-8"))
+        seeds += [compact(node) for node in document["root"]["children"]]
+    seeds.append(compact({"type": "grid", "columns": ["1fr"] * 1000, "rows": ["auto"] * 3, "fill": 0,
+                          "children": [{"cell": {"column": 1000, "row": 1000, "columnSpan": 5}, "height": 10}]}))
+    seeds.append(compact({"type": "row", "wrap": True, "justify": "space-evenly", "alignItems": "stretch",
+                          "width": "1e38", "children": [{"width": 3e38, "shrink": 1, "aspectRatio": "16/9"}] * 4}))
+    return seeds
+
+
 def cli_seeds():
     """Screen files as written (tabs, blank lines, members on one line), and nodes without ids for `ids` to name."""
     files = sorted(SCREENS.glob("*.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
@@ -250,7 +264,10 @@ def dictionaries():
             "\U0001F3FD", "fi", "ffl", "->", "!=="]
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
             "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
-            "actions": tokens + expression + steps}
+            "actions": tokens + expression + steps,
+            "layout": tokens + schema_words() + ["\"1fr\"", "\"auto\"", "\"minmax(", "\"25%\"", "\"space-between\"",
+                                                 "\"stretch\"", "\"16/9\"", "\"none\"", "\"row\"", "\"grid\"",
+                                                 "\"column\"", "1e38"]}
 
 
 def dictionary_entry(word):
@@ -290,6 +307,7 @@ def main():
     write(out, "text", text_seeds(), words["text"])
     write(out, "cli", cli_seeds(), words["cli"])
     write(out, "actions", action_seeds(), words["actions"])
+    write(out, "layout", layout_seeds(), words["layout"])
 
 
 if __name__ == "__main__":

@@ -188,6 +188,13 @@ renderer (`detail::Renderer`) are internal interfaces, and a window built withou
 reads one `Clock`; the tests use a headless window and a manual clock (`modules/render/src/Headless.hpp`, internal
 for now).
 
+Layout and drawing follow the change (4.5, 7.8). A setter marks its panel dirty and its ancestors as having a dirty
+descendant; a layout pass skips each subtree whose inputs are the same and where nothing changed, and rows, columns
+and grids are pure functions of measured sizes (`modules/render/src/layout/`). Each panel keeps what it drew; a frame
+records again only the panels that changed or moved, and draws only where they were and are, into a canvas that keeps
+its pixels, with a full frame as the fallback. Every capture of the rendering check is also drawn from scratch and must
+be the same.
+
 Expressions are lowered once into typed nodes and run on small values that read the state in place (7.5,
 `modules/format/README.md`). Each version of a document is compiled once into nodes whose properties are typed slots
 with compiled bindings (7.6): an update evaluates only the dynamic values, and leaves alone a panel whose values,

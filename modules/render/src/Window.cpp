@@ -419,6 +419,7 @@ void Window::routeCursorEnter(bool entered) {
 }
 
 void Window::forget(const Panel& panel) noexcept {
+	++treeGeneration_; // an anchor may have found it
 	if(panel.geometry_ && panel.geometry_->recorded) { // where it drew is damage
 		detail::addTo(damage_, detail::reachOf(panel.geometry_->key.bounds, panel.geometry_->record));
 		requestFrame();

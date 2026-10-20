@@ -15,6 +15,12 @@ python3 tests/render/check.py --update       # rewrite the golden images (only f
 
 A frame that differs is saved to `build/render-check/` next to a `.diff.png`, with the changed pixels in red.
 
+Captures are drawn the way the window draws its frames: from each panel's retained geometry, only where something
+changed since the last capture. The runner also draws each one from scratch, and fails the scenario on any pixel that
+differs ("stale pixels", with the frame drawn from scratch saved as `<frame>.scratch.ppm`), whatever the golden image
+says. The `damage` scenario (`scenarios/damage.json`) moves, overlaps, hides, pushes and scrolls panels through such
+partial frames.
+
 Frames don't depend on the machine or on what ran before. The window is hidden and only gets the events the steps
 send. Captures are drawn offscreen at the scenario's `scale` (1 by default; `kanban-retina` uses 2, the Retina path).
 Screens load without a state file, and channels find no host.

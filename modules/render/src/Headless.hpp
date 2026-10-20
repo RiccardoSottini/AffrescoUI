@@ -54,6 +54,12 @@ private:
 /// @return Tightly packed 8-bit RGB, top row first; empty for a headless window.
 [[nodiscard]] std::vector<std::uint8_t> drawFromScratch(Window& window, int scale);
 
+/// @brief Does what Window::render() does, but doesn't present the frame: timers, deferred tasks, layout, and drawing
+/// into the window's canvas (copied to its back buffer). What a frame costs the library, without the windowing
+/// system's own cost of showing it (benchmarks).
+/// @param window The window; a headless one lays out instead.
+void renderWithoutPresenting(Window& window);
+
 /// @brief What a window's renderer would be given for its next frame, and the damage handed over with it (the window
 /// forgets it, as after a frame). For tests of retained geometry, which need no OpenGL.
 /// @param window The window, laid out.

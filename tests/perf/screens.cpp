@@ -4,6 +4,7 @@
 
 #include "Bench.hpp"
 #include "CodeEditor.hpp"
+#include "Headless.hpp"
 
 #define GLFW_INCLUDE_NONE // only the window hint: no OpenGL header (Linux may have none installed)
 #include <GLFW/glfw3.h>
@@ -326,6 +327,16 @@ std::vector<Workload> layoutWorkloads(Context& context) {
 	return workloads;
 }
 
+/// @brief The first text field of a tree, depth first.
+/// @param panel The tree.
+/// @return The field, or nullptr.
+TextArea* firstTextArea(Panel& panel) {
+	if(auto* field = dynamic_cast<TextArea*>(&panel)) return field;
+	for(const auto& child : panel.children())
+		if(TextArea* field = firstTextArea(*child)) return field;
+	return nullptr;
+}
+
 /// @brief "frame/<cards>": laying out and drawing a full frame of the Kanban template, in the main thread's CPU time
 /// (the GPU's work isn't counted).
 /// @param context The context.
@@ -341,6 +352,26 @@ std::vector<Workload> frameWorkloads(Context& context) {
 		};
 		workloads.push_back(std::move(workload));
 	}
+
+	// The caret of the board's text field appears and disappears, as a blink does: one small region drawn again
+	const LoadedScreen busy = context.load(kanbanWithCards(context.screens(), cardCounts.back()), context.screens());
+	TextArea* field = firstTextArea(busy.window.root());
+	if(!field) throw std::logic_error("the Kanban template has no text field");
+	busy.window.render();
+	Workload blink{.name = "frame/blink/" + std::to_string(cardCounts.back()), .runs = 15, .cpuTime = true};
+	blink.step = [&window = busy.window, field] {
+		window.setFocus(window.focusedPanel() == field ? nullptr : field);
+		window.render();
+	};
+	workloads.push_back(std::move(blink));
+
+	// The same, without presenting the frame: what it costs the library, the windowing system's part left out
+	Workload drawn{.name = "frame/blink/" + std::to_string(cardCounts.back()) + "/drawn", .runs = 15, .cpuTime = true};
+	drawn.step = [&window = busy.window, field] {
+		window.setFocus(window.focusedPanel() == field ? nullptr : field);
+		detail::renderWithoutPresenting(window);
+	};
+	workloads.push_back(std::move(drawn));
 	return workloads;
 }
 

@@ -33,7 +33,7 @@ Length length(const json& value, const std::string& path) {
 		try {
 			std::size_t used = 0;
 			const float amount = std::stof(t, &used);
-			if(used == t.size()) return {amount, unit};
+			if(used == t.size() && std::isfinite(amount)) return {amount, unit};
 			// NOLINTNEXTLINE(bugprone-empty-catch): not a number, reported below like any other malformed length
 		} catch(const std::exception&) {
 		}

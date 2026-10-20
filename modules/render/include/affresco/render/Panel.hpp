@@ -129,7 +129,7 @@ public:
 
 	/// @brief Sets the id.
 	/// @param id Any string.
-	void setId(std::string id) { id_ = std::move(id); }
+	void setId(std::string id);
 	/// @brief The id; empty if none was set.
 	[[nodiscard]] const std::string& id() const noexcept { return id_; }
 
@@ -498,6 +498,8 @@ private:
 	/// @param vertical The anchored top and bottom edges.
 	/// @param parentSize See layout().
 	void followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, Vec2 parentSize) noexcept;
+	/// @brief Tells the window that panels came, went, moved or changed id: anchors to other panels find them again.
+	void treeChanged() noexcept;
 	/// @brief Marks this panel as needing layout, and its ancestors as having a descendant that does.
 	void markLayoutDirty() noexcept;
 	/// @brief Marks this panel's drawing as out of date, and its ancestors as having a descendant whose is.
@@ -531,9 +533,17 @@ private:
 		std::string id; ///< The other panel.
 		Edge edge;      ///< Its edge.
 		float offset;   ///< Added to that edge's position.
+		/// The panel @ref id found, kept while the window's tree generation is @ref found's (no panel came or went) and
+		/// it still has that id: the tree isn't searched on every pass. Never dereferenced once the generation moved on.
+		mutable const Panel* other = nullptr;
+		mutable std::uint64_t found = 0; ///< The tree generation @ref other was found in; 0: not yet.
 
-		/// @brief Equal when every member is equal.
-		bool operator==(const AnchorTarget&) const = default;
+		/// @brief Equal when they name the same edge of the same panel, at the same offset.
+		/// @param that The other target.
+		/// @return true if so.
+		bool operator==(const AnchorTarget& that) const noexcept {
+			return id == that.id && edge == that.edge && offset == that.offset;
+		}
 	};
 
 	/// @brief What a layout pass gave this panel. The next pass skips the panel and its subtree when they are the
