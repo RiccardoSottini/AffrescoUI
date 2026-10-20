@@ -72,7 +72,11 @@ as the OpenGL driver's, aren't counted.
 | `update/<cards>` | One state change on the Kanban template, filled to 14, 100 or 400 cards, followed by its reconciliation and layout. The change renames the board (`set state.board`). The board is filled by copying the template's own 12 cards into its four columns in turn, so even `update/14` has two copies |
 | `revision/<template>/<edit>` | One canonical edit from `edits/<template>.json`, applied as a revision: the commit, the reconciliation and the layout. Each edit has its own screen. Between runs the edit is taken back, unmeasured. The history still grows (see below) |
 | `layout/400` | Laying out the largest screen, the Kanban template with 400 cards, after a resize |
-| `frame/<cards>` | Laying out and drawing a full frame of the Kanban template with 14 or 400 cards. This is the main thread's CPU time; the GPU's work isn't counted |
+| `layout/5000` | The same with 770 cards: 5,066 panels, more than the 5,000 that roadmap item 4.5 sets 4 ms of layout for |
+| `layout/5000/change` | On that screen, one card's title changes, then the layout: only what the change moves is laid out again |
+| `frame/<cards>` | Laying out and drawing a full frame of the Kanban template with 14 or 400 cards (`Window::invalidate()`: every panel laid out, recorded and drawn again). This is the main thread's CPU time; the GPU's work isn't counted |
+| `frame/blink/400` | On the 400-card board, the text field's caret appears or disappears (its focus changes, as a blink would), then a frame: only that field is recorded and drawn again. The main thread's CPU time, presenting the frame included |
+| `frame/blink/400/drawn` | The same, without presenting the frame (`detail::renderWithoutPresenting`): what the frame costs the library, the windowing system's own part left out. Roadmap item 7.8 asks for 0.1 ms or less |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

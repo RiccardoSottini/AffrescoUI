@@ -26,28 +26,55 @@ void beginFrame(int framebufferWidth, int framebufferHeight);
 /// @return Tightly packed 8-bit RGB, top row first.
 [[nodiscard]] std::vector<std::uint8_t> readBackBuffer(int width, int height);
 
-/// @brief Draws into an offscreen image instead of the window while it exists: frames of a fixed size, whatever the
-/// display (screenshots for tests).
-class OffscreenTarget {
+/// @brief A rectangle of a framebuffer's pixels, counted from its bottom-left corner as OpenGL does.
+struct PixelRect {
+	int x = 0;      ///< Its left edge.
+	int y = 0;      ///< Its bottom edge.
+	int width = 0;  ///< Its width.
+	int height = 0; ///< Its height.
+};
+
+/// @brief Starts drawing only within a region of the current framebuffer: viewport, blending, the region cleared to
+/// transparent black, and everything drawn clipped to it (scissor) until endRegion().
+/// @param framebufferWidth In pixels.
+/// @param framebufferHeight In pixels.
+/// @param region The region.
+void beginRegion(int framebufferWidth, int framebufferHeight, const PixelRect& region);
+
+/// @brief Ends beginRegion(): drawing is no longer clipped.
+void endRegion();
+
+/// @brief An image that keeps what was drawn into it from frame to frame, so the next frame draws only what changed:
+/// the window's frames go through one, then are copied to the window; screenshots for tests have their own.
+///
+/// Created and destroyed in its window's context (main thread).
+class Canvas {
 public:
-	/// @brief Creates the image and draws into it from now on.
+	Canvas() = default;
+	/// @brief Deletes the image.
+	~Canvas();
+	Canvas(const Canvas&) = delete;
+	Canvas& operator=(const Canvas&) = delete;
+	Canvas(Canvas&&) = delete;
+	Canvas& operator=(Canvas&&) = delete;
+
+	/// @brief Gives it a size, creating the image again if it has another one.
 	/// @param width In pixels.
 	/// @param height In pixels.
-	OffscreenTarget(int width, int height);
-	/// @brief Draws into the window again.
-	~OffscreenTarget();
-
-	OffscreenTarget(const OffscreenTarget&) = delete;
-	OffscreenTarget& operator=(const OffscreenTarget&) = delete;
-
-	/// @brief Reads what was drawn.
+	/// @return true if the image was created: what was drawn is gone.
+	bool resize(int width, int height);
+	/// @brief Draws into it from now on.
+	void bind() const;
+	/// @brief Reads what was drawn, then draws into the window again.
 	/// @return Tightly packed 8-bit RGB, top row first.
 	[[nodiscard]] std::vector<std::uint8_t> pixels() const;
+	/// @brief Copies it to the window's back buffer, then draws into the window again.
+	void copyToWindow() const;
 
 private:
-	int width_, height_;       ///< In pixels.
-	unsigned framebuffer_ = 0; ///< The framebuffer object.
-	unsigned color_ = 0;       ///< Its colour renderbuffer.
+	int width_ = 0, height_ = 0; ///< In pixels.
+	unsigned framebuffer_ = 0;   ///< The framebuffer object; 0 before the first resize().
+	unsigned color_ = 0;         ///< Its colour renderbuffer.
 };
 
 } // namespace affresco::gl

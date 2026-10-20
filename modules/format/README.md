@@ -40,7 +40,7 @@ Each subsystem's header says its role, its invariants and its callers:
 
 | Registry | Registers | From |
 |---|---|---|
-| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks | `Types.cpp` (the core types), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`; the application's `registerType` |
+| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`; the application's `registerType` |
 | `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
@@ -167,6 +167,9 @@ src/
   CheckerTypes.cpp         the checker's typed-state checks
   Reconciler.*             records, building and reconciling panels
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
+  LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
+                           alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
+                           stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
   Events.*                 input; Shortcuts.* names keys and shortcuts
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
   Scheduler.*              timers, animations, debounces, transitions, deferred tasks
@@ -187,7 +190,9 @@ if it has a value, its `ValueHooks`; then `registry.add({name, about, factory, s
 
 **Add a property to every node.**
 1. give it a `Slot` (`CompiledNode.hpp`, and its name in `namedSlots` in `CompiledNode.cpp`), and apply it in
-   `Properties.cpp` (`commonProperty`, or a group such as `shapeProperty`), with a reset in `reset`;
+   `Properties.cpp` (`commonProperty`, or a group such as `shapeProperty`), with a reset in `reset`; a layout key
+   goes in `LayoutProperties.cpp` instead (`layoutItemProperty`, reset in `resetLayoutItem`, listed in
+   `layoutItemProperties`);
 2. list it in the panel's set in `Types.cpp` (the catalog reads it), with `transition` if it can animate;
 3. add it to the schema (`schema/affrescoui-screen.schema.json`) and to `SCREEN_FORMAT.md`, in the same change;
 4. if states (`hover`, `pressed`, ...) or `transition` may set it, say so in all three places;

@@ -24,10 +24,7 @@ void TextArea::setPlaceholder(std::string_view utf8) {
 	invalidate();
 }
 
-void TextArea::setPlaceholderColor(Color color) {
-	placeholderColor_ = color;
-	invalidate();
-}
+void TextArea::setPlaceholderColor(Color color) { setLook(placeholderColor_, color); }
 
 void TextArea::keyEvent(const KeyEvent& event) {
 	if(event.key == Key::Backspace && event.action != Action::Release && !text_.empty()) {
@@ -60,7 +57,7 @@ void TextArea::charEvent(const CharEvent& event) {
 }
 
 void TextArea::focusEvent(bool focused) {
-	invalidate(); // caret appears/disappears
+	invalidatePaint(); // caret appears/disappears
 
 	Label::focusEvent(focused);
 }

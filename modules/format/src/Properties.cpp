@@ -2,6 +2,7 @@
 /// @brief format::Properties: a node's evaluated values on its panel.
 
 #include "Properties.hpp"
+#include "LayoutProperties.hpp"
 #include "Engine.hpp"
 #include "PropertyValues.hpp"
 #include "Shortcuts.hpp"
@@ -227,6 +228,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setShadow({});
 	panel.setCursor(record.defaultCursor);
 	panel.setGrow(0.0f);
+	resetLayoutItem(panel);
 	panel.setTooltip({});
 	panel.clearOverlay();
 
@@ -467,7 +469,7 @@ bool Properties::stackProperty(Stack& stack, Slot slot, const json& value, const
 }
 
 bool Properties::gridProperty(Grid& grid, Slot slot, const json& value, const std::string& at) {
-	if(slot == Slot::Columns) grid.setColumns(integer(value, at));
+	if(slot == Slot::Columns) grid.setColumns(gridTracks(value, at));
 	else if(slot == Slot::Gap) grid.setGap(number(value, at));
 	else return false;
 	return true;

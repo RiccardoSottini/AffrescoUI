@@ -6,6 +6,7 @@
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Layout.hpp"
 #include "affresco/render/Length.hpp"
 #include "affresco/render/Painter.hpp"
 #include "affresco/core/Signal.hpp"
@@ -18,6 +19,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -28,6 +30,11 @@ class Window;
 namespace gl {
 class QuadRenderer;
 }
+
+namespace detail {
+struct PanelGeometry;
+class GeometryCache;
+} // namespace detail
 
 /// @brief An edge of a panel, for anchors.
 enum class Edge {
@@ -66,7 +73,8 @@ enum class Placement {
 /// the event hooks, size themselves in prepareLayout() and place their children in arrange().
 class Panel {
 public:
-	Panel() = default;
+	/// @brief An empty panel: no size, anchored nowhere, the default colour.
+	Panel();
 	/// @brief Destroys the subtree and clears the window's focus, hover and capture if they point here.
 	virtual ~Panel();
 
@@ -121,7 +129,7 @@ public:
 
 	/// @brief Sets the id.
 	/// @param id Any string.
-	void setId(std::string id) { id_ = std::move(id); }
+	void setId(std::string id);
 	/// @brief The id; empty if none was set.
 	[[nodiscard]] const std::string& id() const noexcept { return id_; }
 
@@ -169,6 +177,21 @@ public:
 	/// @brief Sets the minimum height.
 	/// @param minHeight The minimum.
 	void setMinHeight(Length minHeight);
+	/// @brief Sets the maximum size; the minimum wins when they disagree, as in CSS.
+	/// @param maxWidth The maximum width, or std::nullopt (the default) for none.
+	/// @param maxHeight The maximum height, or std::nullopt for none.
+	void setMaxSize(std::optional<Length> maxWidth, std::optional<Length> maxHeight);
+	/// @brief Sets the maximum width.
+	/// @param maxWidth The maximum, or std::nullopt for none.
+	void setMaxWidth(std::optional<Length> maxWidth);
+	/// @brief Sets the maximum height.
+	/// @param maxHeight The maximum, or std::nullopt for none.
+	void setMaxHeight(std::optional<Length> maxHeight);
+	/// @brief Keeps the width and the height in a ratio: the height follows the width, unless only the height is set
+	/// (a non-zero height, or stretched by anchors or a container), then the width follows the height. When both are
+	/// set, the ratio is ignored, as in CSS.
+	/// @param ratio Width divided by height; 0 (the default) for none.
+	void setAspectRatio(float ratio);
 	/// @brief The width.
 	[[nodiscard]] Length width() const noexcept { return width_; }
 	/// @brief The height.
@@ -177,6 +200,12 @@ public:
 	[[nodiscard]] Length minWidth() const noexcept { return minWidth_; }
 	/// @brief The minimum height.
 	[[nodiscard]] Length minHeight() const noexcept { return minHeight_; }
+	/// @brief The maximum width, if any.
+	[[nodiscard]] std::optional<Length> maxWidth() const noexcept { return maxWidth_; }
+	/// @brief The maximum height, if any.
+	[[nodiscard]] std::optional<Length> maxHeight() const noexcept { return maxHeight_; }
+	/// @brief Width divided by height, or 0 for none.
+	[[nodiscard]] float aspectRatio() const noexcept { return aspectRatio_; }
 
 	/* Anchors: keep an edge at a fixed distance from the same edge of the parent */
 
@@ -203,6 +232,27 @@ public:
 	void setGrow(float grow);
 	/// @brief The share of spare room it takes in a Stack.
 	[[nodiscard]] float grow() const noexcept { return grow_; }
+	/// @brief Sets how much this panel gives up when the children of a row or a column don't fit, like CSS
+	/// flex-shrink: the overflow is taken in proportion to shrink times size, down to the minimum size.
+	/// @param shrink 0 (the default) keeps its size, so children overflow as they always have.
+	void setShrink(float shrink);
+	/// @brief How much it gives up when its row or column overflows.
+	[[nodiscard]] float shrink() const noexcept { return shrink_; }
+	/// @brief Sets its size along a row or a column before growing or shrinking, like CSS flex-basis.
+	/// @param basis The size (percentages of the container), or std::nullopt (the default) for its own width or height.
+	void setBasis(std::optional<Length> basis);
+	/// @brief Its size along a row or a column before flexing, if set.
+	[[nodiscard]] std::optional<Length> basis() const noexcept { return basis_; }
+	/// @brief Sets where this panel sits across its row or column, over the container's choice (CSS align-self).
+	/// @param align The place, or std::nullopt (the default) for the container's.
+	void setAlignSelf(std::optional<CrossAlign> align);
+	/// @brief Where it sits across its row or column, if it chose.
+	[[nodiscard]] std::optional<CrossAlign> alignSelf() const noexcept { return alignSelf_; }
+	/// @brief Sets the cell it takes in a Grid.
+	/// @param cell Its column, row and spans; the default lets the grid place it in the next free cell.
+	void setGridCell(GridCell cell);
+	/// @brief The cell it asks for in a Grid.
+	[[nodiscard]] const GridCell& gridCell() const noexcept { return gridCell_; }
 
 	/* Scrolling */
 
@@ -281,9 +331,7 @@ public:
 	/// @brief The flag set by setVisible().
 	[[nodiscard]] bool isVisible() const noexcept { return visible_; }
 	/// @brief Whether it is on screen: visible, with visible ancestors and a non-empty area.
-	[[nodiscard]] bool isShown() const noexcept {
-		return shown_;
-	}
+	[[nodiscard]] bool isShown() const noexcept { return shown_; }
 
 	/* Layout results, valid after the last layout pass */
 
@@ -296,13 +344,20 @@ public:
 	/// @brief The top-left corner, relative to the parent's.
 	[[nodiscard]] Vec2 relativePosition() const noexcept;
 
-	/// @brief Measures the height this panel takes in a layout pass, for containers such as Stack.
+	/// @brief Measures the size this panel takes in a layout pass, for containers such as Stack: its own size within
+	/// its minimum and maximum, with its aspect ratio, after prepareLayout().
+	/// @param reference The parent's size, for percentages.
+	/// @return The size.
+	[[nodiscard]] Vec2 measuredSize(Vec2 reference);
+	/// @brief Measures the height this panel takes in a layout pass (measuredSize(), the parent's width as the other
+	/// reference).
 	/// @param reference The parent's height, for percentages.
-	/// @return max(height, minHeight), after prepareLayout().
+	/// @return The height.
 	[[nodiscard]] float measuredHeight(float reference);
-	/// @brief Measures the width this panel takes in a layout pass, for containers such as Stack.
+	/// @brief Measures the width this panel takes in a layout pass (measuredSize(), the parent's height as the other
+	/// reference).
 	/// @param reference The parent's width, for percentages.
-	/// @return max(width, minWidth), after prepareLayout().
+	/// @return The width.
 	[[nodiscard]] float measuredWidth(float reference);
 
 	/// @brief Finds the deepest shown panel at a point; later siblings are on top.
@@ -366,8 +421,41 @@ protected:
 	/// @param painter Clips to bounds().
 	virtual void paintOver(Painter& painter) const;
 
-	/// @brief Tells the window that the layout or the drawing changed.
+	/// @brief Tells the window that this panel's layout or drawing changed: the next layout pass lays it out again
+	/// (with its ancestors and whatever they place differently), and the next frame draws it again.
+	///
+	/// Call it whenever something that prepareLayout(), arrange() or paint() reads changes, even something the panel
+	/// doesn't own (its measured size is cached until then).
 	void invalidate() noexcept;
+
+	/// @brief Tells the window that only this panel's drawing changed (a colour, a caret): the next frame draws it
+	/// again, and no layout pass runs for it. When its size or arrangement may change too, call invalidate() instead.
+	void invalidatePaint() noexcept;
+
+	/// @brief Whether invalidate() was called since this panel was last laid out: what prepareLayout() keeps from
+	/// earlier passes may be out of date only then (or after Window::invalidate()).
+	[[nodiscard]] bool isLayoutDirty() const noexcept { return layoutDirty_; }
+
+	/// @brief Stores a property's new value and calls invalidate(), unless the value is the one already there.
+	/// @tparam T The property's type; it must have ==.
+	/// @param member The property.
+	/// @param value Its new value.
+	template <typename T> void setProperty(T& member, std::type_identity_t<T> value) {
+		if(member == value) return;
+		member = std::move(value);
+		invalidate();
+	}
+
+	/// @brief Stores the new value of a property that only changes the drawing and calls invalidatePaint(), unless the
+	/// value is the one already there.
+	/// @tparam T The property's type; it must have ==.
+	/// @param member The property.
+	/// @param value Its new value.
+	template <typename T> void setLook(T& member, std::type_identity_t<T> value) {
+		if(member == value) return;
+		member = std::move(value);
+		invalidatePaint();
+	}
 
 	/// @brief Gives a child the size a container decided, for this layout pass, instead of its own.
 	/// @param child The child.
@@ -378,6 +466,7 @@ protected:
 private:
 	friend class Window;
 	friend class gl::QuadRenderer;
+	friend class detail::GeometryCache;
 
 	/// @brief Computes frame, bounds and visibility for this panel and its subtree.
 	/// @param origin The parent's frame, moved by its scroll offset: what positions and anchors are measured from.
@@ -385,6 +474,43 @@ private:
 	/// @param parentSize The parent's unclipped size, for percentages and bottom/right anchors.
 	/// @param parentShown Whether the parent is shown.
 	void layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief Computes frame, bounds and visibility from the inputs of the pass (layout()'s arguments).
+	/// @param origin See layout().
+	/// @param clip See layout().
+	/// @param parentSize See layout().
+	/// @param parentShown See layout().
+	void placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief The positions of a panel's two edges on one axis, if anchored.
+	struct AnchoredEdges {
+		std::optional<float> start{}; ///< Top or left.
+		std::optional<float> end{};   ///< Bottom or right.
+	};
+	/// @brief Where a panel's two edges go on one axis.
+	/// @param edges Its anchored edges there.
+	/// @param position Where its start goes when neither is anchored.
+	/// @param size Its size there.
+	/// @param arranged Whether a container gave it that size (which then wins over the far anchor).
+	/// @return Its start and end.
+	[[nodiscard]] static std::pair<float, float> alongAxis(AnchoredEdges edges, float position, float size,
+	                                                       bool arranged) noexcept;
+	/// @brief Makes the size follow the aspect ratio, from the axis that is set (stretched axes count as set).
+	/// @param horizontal The anchored left and right edges.
+	/// @param vertical The anchored top and bottom edges.
+	/// @param parentSize See layout().
+	void followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, Vec2 parentSize) noexcept;
+	/// @brief Tells the window that panels came, went, moved or changed id: anchors to other panels find them again.
+	void treeChanged() noexcept;
+	/// @brief Marks this panel as needing layout, and its ancestors as having a descendant that does.
+	void markLayoutDirty() noexcept;
+	/// @brief Marks this panel's drawing as out of date, and its ancestors as having a descendant whose is.
+	void markPaintDirty() noexcept;
+	/// @brief Applies the aspect ratio to a size: the axis that is set leads, within the other's bounds.
+	/// @param size The size, within its bounds.
+	/// @param widthSet Whether the width is set (non-zero, stretched or given by a container).
+	/// @param heightSet Whether the height is set.
+	/// @param reference The parent's size, for percentages.
+	/// @return The size; unchanged without a ratio, or with both or neither axis set.
+	[[nodiscard]] Vec2 withAspectRatio(Vec2 size, bool widthSet, bool heightSet, Vec2 reference) const noexcept;
 	/// @brief Lays out the children (not overlays) inside this panel's frame, moved by the scroll offset.
 	void layoutChildren();
 	/// @brief The absolute position of an anchored edge.
@@ -393,13 +519,62 @@ private:
 	/// @param parentSize See layout().
 	/// @return The position, or std::nullopt if the edge isn't anchored (or its other panel isn't there).
 	[[nodiscard]] std::optional<float> anchoredEdge(Edge edge, const Rect& origin, Vec2 parentSize) const;
+	/// @brief Whether this panel's frame is final for a layout pass.
+	/// @param pass The pass.
+	/// @return true if the pass laid it out already, or skipped it or an ancestor.
+	[[nodiscard]] bool isSettled(std::uint64_t pass) const noexcept;
+	/// @brief The position of an edge anchored to another panel's edge.
+	/// @param edge The edge; its bit in targetEdges_ is set.
+	/// @return The position, or std::nullopt if the other panel isn't there.
+	[[nodiscard]] std::optional<float> targetEdge(Edge edge) const;
 
 	/// @brief An anchor to another panel's edge.
 	struct AnchorTarget {
 		std::string id; ///< The other panel.
 		Edge edge;      ///< Its edge.
 		float offset;   ///< Added to that edge's position.
+		/// The panel @ref id found, kept while the window's tree generation is @ref found's (no panel came or went) and
+		/// it still has that id: the tree isn't searched on every pass. Never dereferenced once the generation moved on.
+		mutable const Panel* other = nullptr;
+		mutable std::uint64_t found = 0; ///< The tree generation @ref other was found in; 0: not yet.
+
+		/// @brief Equal when they name the same edge of the same panel, at the same offset.
+		/// @param that The other target.
+		/// @return true if so.
+		bool operator==(const AnchorTarget& that) const noexcept {
+			return id == that.id && edge == that.edge && offset == that.offset;
+		}
 	};
+
+	/// @brief What a layout pass gave this panel. The next pass skips the panel and its subtree when they are the
+	/// same, nothing in the subtree changed, and nothing in it is anchored to another panel.
+	struct LayoutInputs {
+		Rect origin;                         ///< See layout().
+		Rect clip;                           ///< See layout().
+		Vec2 parentSize;                     ///< See layout().
+		std::optional<float> arrangedWidth;  ///< The width its container gave it.
+		std::optional<float> arrangedHeight; ///< The height its container gave it.
+		bool parentShown = false;            ///< See layout().
+
+		/// @brief Equal when every member is equal.
+		bool operator==(const LayoutInputs&) const = default;
+	};
+
+	/// @brief A size measuredSize() computed, kept until the panel changes.
+	struct MeasuredSize {
+		Vec2 reference;               ///< What its percentages referred to.
+		Vec2 size;                    ///< The size.
+		std::uint64_t generation = 0; ///< The window's measure generation (Window::invalidate() starts a new one).
+	};
+
+	/// @brief Whether a layout pass can leave this panel and its subtree as they are.
+	/// @param origin See layout().
+	/// @param clip See layout().
+	/// @param parentSize See layout().
+	/// @param parentShown See layout().
+	/// @return true if nothing they depend on changed.
+	[[nodiscard]] bool canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize,
+	                                 bool parentShown) const noexcept;
 
 	/// @brief Takes ownership of a new last child.
 	/// @param child The child.
@@ -414,21 +589,28 @@ private:
 	Window* window_ = nullptr;                     ///< Not owning.
 	std::vector<std::unique_ptr<Panel>> children_; ///< Back to front.
 
-	Length x_, y_;                                 ///< Position on unanchored axes.
-	Length width_, height_;                        ///< Size.
-	Length minWidth_, minHeight_;                  ///< Minimum size.
+	Length x_, y_;                                       ///< Position on unanchored axes.
+	Length width_, height_;                              ///< Size.
+	Length minWidth_, minHeight_;                        ///< Minimum size.
+	std::optional<Length> maxWidth_, maxHeight_;         ///< Maximum size, if any.
+	float aspectRatio_ = 0.0f;                           ///< See aspectRatio().
+	float shrink_ = 0.0f;                                ///< See shrink().
+	std::optional<Length> basis_;                        ///< See basis().
+	std::optional<CrossAlign> alignSelf_;                ///< See alignSelf().
+	GridCell gridCell_;                                  ///< See gridCell().
 	std::array<std::optional<Length>, 4> anchors_;       ///< Indexed by Edge.
 	std::array<std::optional<AnchorTarget>, 4> targets_; ///< Anchors to other panels, indexed by Edge.
-	float grow_ = 0.0f;                                  ///< See grow().
+	std::uint8_t targetEdges_ = 0; ///< A bit per edge (1 << Edge) whose targets_ is set, read on every pass.
+	float grow_ = 0.0f;            ///< See grow().
 	std::optional<float> arrangedWidth_, arrangedHeight_; ///< Set by a container for this pass (arrangeSize()).
-	Color color_ = colors::panel;                        ///< Background.
-	CornerRadii radii_;                                  ///< See cornerRadii().
-	float borderWidth_ = 0.0f;                           ///< See borderWidth().
-	Color borderColor_ = colors::black;                  ///< See borderColor().
-	Shadow shadow_;                                      ///< See shadow().
-	bool visible_ = true;                                ///< See setVisible().
-	Cursor cursor_ = Cursor::Arrow;                      ///< See setCursor().
-	std::string tooltip_;                                ///< See tooltip().
+	Color color_ = colors::panel;                         ///< Background.
+	CornerRadii radii_;                                   ///< See cornerRadii().
+	float borderWidth_ = 0.0f;                            ///< See borderWidth().
+	Color borderColor_ = colors::black;                   ///< See borderColor().
+	Shadow shadow_;                                       ///< See shadow().
+	bool visible_ = true;                                 ///< See setVisible().
+	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
+	std::string tooltip_;                                 ///< See tooltip().
 
 	bool scrollX_ = false, scrollY_ = false; ///< See setScrollable().
 	Vec2 scroll_;                            ///< See scrollOffset().
@@ -438,11 +620,22 @@ private:
 	std::string overlayAnchor_;              ///< See setOverlay().
 	Placement placement_ = Placement::Below; ///< See setOverlay().
 
-	std::uint64_t layoutPass_ = 0; ///< The window's layout pass this panel was last laid out in.
-	Rect frame_;         ///< See frame().
-	Rect bounds_;        ///< See bounds().
-	Vec2 size_;          ///< See resolvedSize().
-	bool shown_ = false; ///< See isShown().
+	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
+	std::uint64_t skippedPass_ = 0;        ///< The window's layout pass that last skipped this panel and its subtree.
+	LayoutInputs laidOut_;                 ///< What the last pass gave it, once laid out (see canSkipLayout()).
+	std::optional<MeasuredSize> measured_; ///< See measuredSize(); nullopt once something changed.
+	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
+	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.
+	bool anchorsBelow_ = false;            ///< It or a descendant is anchored to another panel: never skipped.
+	bool overlaysBelow_ = false;           ///< A descendant is an overlay, for Window::layoutOverlays().
+	Rect frame_;                           ///< See frame().
+	Rect bounds_;                          ///< See bounds().
+	Vec2 size_;                            ///< See resolvedSize().
+	bool shown_ = false;                   ///< See isShown().
+
+	bool paintStale_ = true;                          ///< Its drawing changed since the renderer last recorded it.
+	bool paintBelow_ = false;                         ///< A descendant's paintStale_ is set.
+	std::unique_ptr<detail::PanelGeometry> geometry_; ///< What it drew last, kept by the renderer; null until drawn.
 };
 
 } // namespace affresco

@@ -261,6 +261,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
 | Values the `copy` operations of one revision copy, in all (a copy of a list into itself doubles it) | 100,000 |
 | Members a revision may give one object (a screen file may hold a wider one: a revision may change it, not widen it) | 10,000 |
+| A grid's column or row tracks (`columns`, `rows`), and the column, row or span a child's `cell` names | 1,000 (a document asking for more is refused; columns and rows a layout pass makes stop there) |
 | A commit named by its id or a prefix of it | 4 to 64 hexadecimal characters |
 | A proposal named by `proposal/<n>` | n up to 1,000,000 |
 | An approval's head commit | at least 7 characters |

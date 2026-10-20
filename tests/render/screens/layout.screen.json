@@ -1,0 +1,130 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Flexible and grid layout, for the rendering check: justification, alignment across, shrinking within a minimum, wrapping with row and column gaps, grid tracks (pixels, fractions, minmax) with cells and spans, an aspect ratio and a maximum width.",
+
+	"window": { "title": "Layout", "width": 720, "height": 520 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 }
+	},
+
+	"colors": {
+		"background": "#f8fafc",
+		"band": "#e2e8f0",
+		"text": "#0f172a",
+		"a": "#6366f1",
+		"b": "#0ea5e9",
+		"c": "#f97316",
+		"d": "#22c55e",
+		"white": "#ffffff"
+	},
+
+	"state": { "justify": "space-between", "tags": ["one", "two", "three", "four", "five", "six", "seven"] },
+
+	"styles": {
+		"band": { "color": "@band", "anchors": { "left": 20 }, "width": 330 },
+		"chip": { "type": "label", "textColor": "@white", "align": "center", "width": 70, "radius": 6 }
+	},
+
+	"root": {
+		"id": "panel-root",
+		"color": "@background",
+		"children": [
+			{
+				"id": "row-justified",
+				"type": "row",
+				"style": "band",
+				"y": 20,
+				"height": 60,
+				"justify": "{{state.justify}}",
+				"alignItems": "center",
+				"children": [
+					{ "id": "label-short", "style": "chip", "text": "short", "height": 24, "color": "@a" },
+					{ "id": "label-tall", "style": "chip", "text": "tall", "height": 44, "color": "@b" },
+					{ "id": "label-stretched", "style": "chip", "text": "stretch", "height": 10, "color": "@c", "alignSelf": "stretch" }
+				]
+			},
+			{
+				"id": "row-shrinking",
+				"type": "row",
+				"style": "band",
+				"y": 100,
+				"height": 40,
+				"gap": 6,
+				"children": [
+					{ "id": "label-kept", "style": "chip", "text": "min 140", "width": 200, "shrink": 1, "minWidth": 140, "alignSelf": "stretch", "color": "@a" },
+					{ "id": "label-shrunk", "style": "chip", "text": "shrinks", "width": 200, "shrink": 1, "alignSelf": "stretch", "color": "@b" },
+					{ "id": "label-twice", "style": "chip", "text": "twice", "width": 200, "shrink": 2, "alignSelf": "stretch", "color": "@c" }
+				]
+			},
+			{
+				"id": "row-wrapping",
+				"type": "row",
+				"style": "band",
+				"y": 160,
+				"height": 110,
+				"wrap": true,
+				"justify": "center",
+				"rowGap": 10,
+				"columnGap": 6,
+				"children": [
+					{
+						"id": "label-tag",
+						"repeat": { "for": "tag", "in": "state.tags", "index": "i" },
+						"style": "chip",
+						"text": "{{tag}}",
+						"height": "{{i % 2 == 0 ? 28 : 36}}",
+						"color": "{{i % 3 == 0 ? '@a' : i % 3 == 1 ? '@b' : '@d'}}"
+					}
+				]
+			},
+			{
+				"id": "grid-tracks",
+				"type": "grid",
+				"anchors": { "left": 370, "right": 20 },
+				"y": 20,
+				"height": 250,
+				"color": "@band",
+				"columns": [80, "1fr", "minmax(60, 2fr)"],
+				"rows": [40, "auto", 50],
+				"gap": 8,
+				"alignItems": "center",
+				"children": [
+					{ "id": "label-corner", "style": "chip", "text": "80 px", "height": 30, "color": "@a" },
+					{ "id": "label-wide", "style": "chip", "text": "spans two", "height": 30, "cell": { "columnSpan": 2 }, "color": "@b" },
+					{ "id": "label-tall-cell", "style": "chip", "text": "two rows", "height": 60, "cell": { "column": 1, "row": 2, "rowSpan": 2 }, "alignSelf": "stretch", "color": "@c" },
+					{ "id": "label-auto-row", "style": "chip", "text": "auto row", "height": 70, "color": "@d" },
+					{ "id": "label-placed", "style": "chip", "text": "row 3", "height": 24, "cell": { "column": 3, "row": 3 }, "color": "@a" }
+				]
+			},
+			{
+				"id": "column-end",
+				"type": "column",
+				"x": 20,
+				"y": 290,
+				"width": 330,
+				"height": 210,
+				"color": "@band",
+				"justify": "end",
+				"alignItems": "stretch",
+				"gap": 6,
+				"children": [
+					{ "id": "label-capped", "style": "chip", "text": "max 200", "height": 30, "maxWidth": 200, "color": "@a" },
+					{ "id": "label-full", "style": "chip", "text": "stretched", "height": 30, "color": "@b" },
+					{ "id": "label-centred", "style": "chip", "text": "centred", "height": 30, "alignSelf": "center", "color": "@c" }
+				]
+			},
+			{
+				"id": "panel-ratio",
+				"anchors": { "left": 370, "right": 160 },
+				"y": 290,
+				"aspectRatio": "16/9",
+				"color": "@d",
+				"radius": 8,
+				"children": [{ "id": "label-ratio", "type": "label", "text": "16/9", "textColor": "@white", "align": "center", "fill": 0 }]
+			}
+		]
+	}
+}

@@ -1,6 +1,14 @@
+/// @file
+/// @brief Stack and Grid: they measure their children, hand the sizes to the pure layout functions (layout/Flex,
+/// layout/Grid), and turn the placements into anchors and arranged sizes.
+
 #include "affresco/render/Stack.hpp"
 
+#include "layout/Flex.hpp"
+#include "layout/Grid.hpp"
+
 #include <algorithm>
+#include <limits>
 #include <vector>
 
 namespace affresco {
@@ -12,132 +20,267 @@ namespace {
 /// @return The children, in order.
 std::vector<Panel*> placed(const Panel& panel) {
 	std::vector<Panel*> result;
+	result.reserve(panel.children().size());
 	for(const auto& child : panel.children())
 		if(child->isVisible() && !child->isOverlay()) result.push_back(child.get());
 	return result;
+}
+
+/// @brief A maximum, resolved.
+/// @param maximum The maximum, if any.
+/// @param reference What percentages refer to.
+/// @return In pixels; infinity for none.
+float maximumOf(const std::optional<Length>& maximum, float reference) noexcept {
+	return maximum ? maximum->resolve(reference) : std::numeric_limits<float>::infinity();
+}
+
+/// @brief A pair's value along a direction.
+/// @param pair Width and height, or x and y.
+/// @param row Whether the direction is a row.
+/// @return Its x in a row, its y in a column.
+float along(Vec2 pair, bool row) noexcept { return row ? pair.x : pair.y; }
+
+/// @brief A pair's value across a direction.
+/// @param pair Width and height, or x and y.
+/// @param row Whether the direction is a row.
+/// @return Its y in a row, its x in a column.
+float across(Vec2 pair, bool row) noexcept { return row ? pair.y : pair.x; }
+
+/// @brief Gives a child stretched across, with a ratio and no length of its own along the direction, the size along
+/// it that the stretched size and the ratio make.
+/// @param child The child.
+/// @param row Whether the container is a row.
+/// @param crossRoom The container's size across.
+/// @param item The child's item, with its alignment.
+void followStretchedRatio(const Panel& child, bool row, float crossRoom, detail::FlexItem& item) {
+	const Length ownMain = row ? child.width() : child.height();
+	if(!(child.aspectRatio() > 0.0f) || ownMain.value != 0.0f || child.basis() || item.align != CrossAlign::Stretch)
+		return;
+	const float stretched = std::max(std::min(crossRoom, item.maxCross), item.minCross);
+	item.base = row ? stretched * child.aspectRatio() : stretched / child.aspectRatio();
+	item.sized = true;
+}
+
+/// @brief What the flexible layout needs to know about a child.
+/// @param child The child, measured with no arranged size.
+/// @param row Whether the container is a row.
+/// @param size The container's size.
+/// @param align The container's alignment across.
+/// @return The item.
+detail::FlexItem flexItem(Panel& child, bool row, Vec2 size, std::optional<CrossAlign> align) {
+	const Vec2 measured = child.measuredSize(size);
+	const Vec2 minimum{child.minWidth().resolve(size.x), child.minHeight().resolve(size.y)};
+	const Vec2 maximum{maximumOf(child.maxWidth(), size.x), maximumOf(child.maxHeight(), size.y)};
+	const std::optional<Length> basis = child.basis();
+	detail::FlexItem item{.base = basis ? basis->resolve(along(size, row)) : along(measured, row),
+	                      .minMain = along(minimum, row),
+	                      .maxMain = along(maximum, row),
+	                      .cross = across(measured, row),
+	                      .minCross = across(minimum, row),
+	                      .maxCross = across(maximum, row),
+	                      .grow = child.grow(),
+	                      .shrink = child.shrink(),
+	                      .align = child.alignSelf() ? child.alignSelf() : align,
+	                      .sized = basis.has_value()};
+	followStretchedRatio(child, row, across(size, row), item);
+	return item;
 }
 
 } // namespace
 
 Stack::Stack() { setColor(colors::transparent); }
 
-void Stack::setGap(float gap) {
-	gap_ = gap;
-	invalidate();
-}
+void Stack::setGap(float gap) { setProperty(gap_, gap); }
+
+void Stack::setRowGap(std::optional<float> gap) { setProperty(rowGap_, gap); }
+
+void Stack::setColumnGap(std::optional<float> gap) { setProperty(columnGap_, gap); }
 
 void Stack::setAlignment(Align alignment) {
-	alignment_ = alignment;
-	invalidate();
+	setJustify(alignment == Align::Center ? Justify::Center : alignment == Align::End ? Justify::End : Justify::Start);
 }
 
-void Stack::setDirection(Direction direction) {
-	direction_ = direction;
-	invalidate();
+Align Stack::alignment() const noexcept {
+	return justify_ == Justify::Center ? Align::Center : justify_ == Justify::End ? Align::End : Align::Start;
 }
 
-void Stack::setWrap(bool wrap) {
-	wrap_ = wrap;
-	invalidate();
-}
+void Stack::setJustify(Justify justify) { setProperty(justify_, justify); }
+
+void Stack::setAlignItems(std::optional<CrossAlign> align) { setProperty(alignItems_, align); }
+
+void Stack::setDirection(Direction direction) { setProperty(direction_, direction); }
+
+void Stack::setWrap(bool wrap) { setProperty(wrap_, wrap); }
 
 void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
 	const Edge start = row ? Edge::Left : Edge::Top, end = row ? Edge::Right : Edge::Bottom;
-	const float room = row ? resolvedSize().x : resolvedSize().y;
-	const float across = row ? resolvedSize().y : resolvedSize().x;
+	const Edge crossStart = row ? Edge::Top : Edge::Left, crossEnd = row ? Edge::Bottom : Edge::Right;
+	const Vec2 size = resolvedSize();
 	const std::vector<Panel*> children = placed(*this);
 
-	// Each child's own length along the direction, then spare room shared by the growing ones
-	std::vector<float> lengths;
-	float total = 0.0f, shares = 0.0f;
+	std::vector<detail::FlexItem> items;
+	items.reserve(children.size());
 	for(Panel* child : children) {
-		arrangeSize(*child, std::nullopt, std::nullopt);
-		lengths.push_back(row ? child->measuredWidth(room) : child->measuredHeight(room));
-		total += lengths.back();
-		shares += child->grow();
-	}
-	if(!children.empty()) total += gap_ * static_cast<float>(children.size() - 1);
-
-	if(row && wrap_) {
-		// Lines left to right, top to bottom; the stack sets both anchors of each child
-		float x = 0.0f, y = 0.0f, lineHeight = 0.0f;
-		for(std::size_t i = 0; i < children.size(); ++i) {
-			const float height = children[i]->measuredHeight(across);
-			if(x > 0.0f && x + lengths[i] > room) {
-				x = 0.0f;
-				y += lineHeight + gap_;
-				lineHeight = 0.0f;
-			}
-			children[i]->clearAnchor(Edge::Right);
-			children[i]->clearAnchor(Edge::Bottom);
-			children[i]->setAnchor(Edge::Left, px(x));
-			children[i]->setAnchor(Edge::Top, px(y));
-			x += lengths[i] + gap_;
-			lineHeight = std::max(lineHeight, height);
-		}
-		return;
+		arrangeSize(*child, std::nullopt, std::nullopt); // measured as itself, not as last pass arranged it
+		items.push_back(flexItem(*child, row, size, alignItems_));
 	}
 
-	if(shares > 0.0f && room > total) {
-		const float spare = room - total;
-		for(std::size_t i = 0; i < children.size(); ++i) {
-			if(children[i]->grow() <= 0.0f) continue;
-			lengths[i] += spare * children[i]->grow() / shares;
-			if(row) arrangeSize(*children[i], lengths[i], std::nullopt);
-			else arrangeSize(*children[i], std::nullopt, lengths[i]);
-		}
-		total = room;
-	}
+	const float rowGap = rowGap_.value_or(gap_), columnGap = columnGap_.value_or(gap_);
+	const detail::FlexOptions options{.main = row ? size.x : size.y,
+	                                  .cross = row ? size.y : size.x,
+	                                  .gap = row ? columnGap : rowGap,
+	                                  .lineGap = row ? rowGap : columnGap,
+	                                  .justify = justify_,
+	                                  .wrap = wrap_};
+	std::vector<detail::FlexPlacement> placements;
+	detail::layoutFlex(options, items, placements);
 
-	float offset = 0.0f;
-	if(alignment_ == Align::End) {
-		for(std::size_t i = children.size(); i-- > 0;) { // from the end back
-			children[i]->clearAnchor(start);
-			children[i]->setAnchor(end, px(offset));
-			offset += lengths[i] + gap_;
-		}
-		return;
-	}
-	if(alignment_ == Align::Center) offset = std::max((room - total) / 2.0f, 0.0f);
 	for(std::size_t i = 0; i < children.size(); ++i) {
-		children[i]->clearAnchor(end);
-		children[i]->setAnchor(start, px(offset));
-		offset += lengths[i] + gap_;
+		Panel& child = *children[i];
+		const detail::FlexPlacement& placement = placements[i];
+		child.clearAnchor(placement.fromEnd ? start : end);
+		child.setAnchor(placement.fromEnd ? end : start, px(placement.main));
+		if(placement.crossOffset) {
+			child.clearAnchor(crossEnd);
+			child.setAnchor(crossStart, px(*placement.crossOffset));
+		}
+		if(row) arrangeSize(child, placement.mainSize, placement.crossSize);
+		else arrangeSize(child, placement.crossSize, placement.mainSize);
 	}
 }
 
-Grid::Grid() { setColor(colors::transparent); }
+Grid::Grid() : columns_(2, Track::fraction(1.0f)) { setColor(colors::transparent); }
 
 void Grid::setColumns(int columns) {
-	columns_ = std::max(columns, 1);
-	invalidate();
+	setColumns(std::vector<Track>(static_cast<std::size_t>(std::clamp(columns, 1, static_cast<int>(maxGridTracks))),
+	                              Track::fraction(1.0f)));
 }
 
-void Grid::setGap(float gap) {
-	gap_ = gap;
-	invalidate();
+void Grid::setColumns(std::vector<Track> columns) {
+	if(columns.empty()) columns.push_back(Track::fraction(1.0f));
+	if(columns.size() > maxGridTracks) columns.resize(maxGridTracks);
+	setProperty(columns_, std::move(columns));
 }
+
+void Grid::setRows(std::vector<Track> rows) {
+	if(rows.size() > maxGridTracks) rows.resize(maxGridTracks);
+	setProperty(rows_, std::move(rows));
+}
+
+void Grid::setGap(float gap) { setProperty(gap_, gap); }
+
+void Grid::setRowGap(std::optional<float> gap) { setProperty(rowGap_, gap); }
+
+void Grid::setColumnGap(std::optional<float> gap) { setProperty(columnGap_, gap); }
+
+void Grid::setJustifyItems(CrossAlign align) { setProperty(justifyItems_, align); }
+
+void Grid::setAlignItems(CrossAlign align) { setProperty(alignItems_, align); }
+
+namespace {
+
+/// @brief Where a child sits in its cell along one axis.
+/// @param align Its alignment.
+/// @param start The cell's start.
+/// @param cell The cell's size.
+/// @param own The child's own size.
+/// @return Its offset from the grid's edge.
+float placedIn(CrossAlign align, float start, float cell, float own) noexcept {
+	switch(align) {
+	case CrossAlign::Center:
+		return start + (cell - own) / 2.0f;
+	case CrossAlign::End:
+		return start + cell - own;
+	case CrossAlign::Start:
+	case CrossAlign::Stretch:
+		return start;
+	}
+	return start;
+}
+
+/// @brief Whether any of a grid's tracks takes its size from its content.
+/// @param tracks The declared tracks.
+/// @param count How many tracks there are (the implicit ones are content tracks).
+/// @return true if so.
+bool hasContentTracks(const std::vector<Track>& tracks, std::size_t count) {
+	return count > tracks.size() || std::ranges::any_of(tracks, [](const Track& track) {
+		       return track.minimum.unit == TrackUnit::Content || track.maximum.unit == TrackUnit::Content;
+	       });
+}
+
+/// @brief The size of the tracks from one to another, with the gaps between them.
+/// @param starts Where each track starts.
+/// @param sizes Each track's size.
+/// @param first The first track.
+/// @param span How many tracks.
+/// @return The size.
+float spanned(const std::vector<float>& starts, const std::vector<float>& sizes, std::size_t first, std::size_t span) {
+	const std::size_t last = first + span - 1;
+	return starts[last] + sizes[last] - starts[first];
+}
+
+} // namespace
 
 void Grid::arrange() {
 	const std::vector<Panel*> children = placed(*this);
-	const auto columns = static_cast<std::size_t>(columns_);
-	const float cell =
-	    std::max((resolvedSize().x - gap_ * static_cast<float>(columns - 1)) / static_cast<float>(columns), 0.0f);
+	const Vec2 size = resolvedSize();
+	const float rowGap = rowGap_.value_or(gap_), columnGap = columnGap_.value_or(gap_);
 
-	float top = 0.0f;
-	for(std::size_t first = 0; first < children.size(); first += columns) {
-		float rowHeight = 0.0f;
-		for(std::size_t i = first; i < std::min(first + columns, children.size()); ++i) {
-			Panel& child = *children[i];
-			arrangeSize(child, cell, std::nullopt);
-			child.clearAnchor(Edge::Right);
-			child.clearAnchor(Edge::Bottom);
-			child.setAnchor(Edge::Left, px(static_cast<float>(i - first) * (cell + gap_)));
-			child.setAnchor(Edge::Top, px(top));
-			rowHeight = std::max(rowHeight, child.measuredHeight(resolvedSize().y));
-		}
-		top += rowHeight + gap_;
+	// Children that ask for a column past the declared ones add columns
+	std::vector<GridCell> cells;
+	cells.reserve(children.size());
+	std::size_t columnCount = columns_.size();
+	for(const Panel* child : children) {
+		cells.push_back(child->gridCell());
+		const GridCell& cell = cells.back();
+		if(cell.column > 0)
+			columnCount =
+			    std::max(columnCount, static_cast<std::size_t>(cell.column - 1 + std::max(cell.columnSpan, 1)));
+	}
+	columnCount = std::min(columnCount, maxGridTracks);
+	std::vector<detail::GridArea> areas;
+	const std::size_t rowsUsed = detail::placeGridItems(columnCount, cells, areas);
+
+	// Columns first: the children's heights may depend on the width their cells give them
+	std::vector<Vec2> own(children.size());
+	std::vector<detail::TrackContent> contents;
+	const bool measureWidths = hasContentTracks(columns_, columnCount) || justifyItems_ != CrossAlign::Stretch;
+	for(std::size_t i = 0; i < children.size(); ++i) {
+		arrangeSize(*children[i], std::nullopt, std::nullopt);
+		if(!measureWidths) continue;
+		own[i].x = children[i]->measuredWidth(size.x);
+		contents.push_back({areas[i].column, areas[i].columnSpan, own[i].x});
+	}
+	std::vector<float> columnSizes, columnStarts;
+	detail::sizeTracks(columns_, columnCount, contents, size.x, columnGap, columnSizes);
+	detail::trackStarts(columnSizes, columnGap, columnStarts);
+
+	contents.clear();
+	for(std::size_t i = 0; i < children.size(); ++i) {
+		if(justifyItems_ == CrossAlign::Stretch)
+			arrangeSize(*children[i], spanned(columnStarts, columnSizes, areas[i].column, areas[i].columnSpan),
+			            std::nullopt);
+		own[i].y = children[i]->measuredHeight(size.y);
+		contents.push_back({areas[i].row, areas[i].rowSpan, own[i].y});
+	}
+	std::vector<float> rowSizes, rowStarts;
+	detail::sizeTracks(rows_, std::max(rowsUsed, rows_.size()), contents, size.y, rowGap, rowSizes);
+	detail::trackStarts(rowSizes, rowGap, rowStarts);
+
+	for(std::size_t i = 0; i < children.size(); ++i) {
+		Panel& child = *children[i];
+		const detail::GridArea& area = areas[i];
+		const float cellWidth = spanned(columnStarts, columnSizes, area.column, area.columnSpan);
+		const float cellHeight = spanned(rowStarts, rowSizes, area.row, area.rowSpan);
+		const CrossAlign vertical = child.alignSelf().value_or(alignItems_);
+		const bool stretchX = justifyItems_ == CrossAlign::Stretch, stretchY = vertical == CrossAlign::Stretch;
+		arrangeSize(child, stretchX ? std::optional(cellWidth) : std::nullopt,
+		            stretchY ? std::optional(cellHeight) : std::nullopt);
+		child.clearAnchor(Edge::Right);
+		child.clearAnchor(Edge::Bottom);
+		child.setAnchor(Edge::Left, px(placedIn(justifyItems_, columnStarts[area.column], cellWidth, own[i].x)));
+		child.setAnchor(Edge::Top, px(placedIn(vertical, rowStarts[area.row], cellHeight, own[i].y)));
 	}
 }
 

@@ -97,9 +97,15 @@ parent, later siblings on top of earlier ones.
 | `children` | Array of nodes. |
 | `x`, `y` | Position inside the parent (used when the matching edge isn't anchored). |
 | `width`, `height`, `minWidth`, `minHeight` | Size. The minimum wins over a smaller size. |
+| `maxWidth`, `maxHeight` | The largest size (a length, or `"none"`, the default). The minimum wins over the maximum, as in CSS. |
+| `aspectRatio` | Width divided by height, `1.5` or `"16/9"`: the height follows the width, unless only the height is set (a non-zero `height`, opposite anchors, or a container's stretch), then the width follows the height. With both set, it is ignored, as in CSS. |
 | `anchors` | `{ "top", "bottom", "left", "right" }`: keep that edge this far from the parent's same edge. Anchoring opposite edges stretches the node. A value `"#id.edge + 8"` puts the edge at another node's edge (`"top": "#header.bottom + 12"`, `"bottom": "#footer.top - 8"`). |
 | `fill` | Anchor all four edges this far in (`0` or `true` to cover the parent). |
 | `grow` | In a `row`/`column`: the share of the spare room it takes, like CSS flex-grow. |
+| `shrink` | In a `row`/`column`: how much of an overflow it gives up, in proportion to `shrink` times its size, down to its minimum (CSS flex-shrink). Default `0`: it keeps its size and the children overflow, as they always have (CSS's default is 1). |
+| `basis` | In a `row`/`column`: its size along it before growing or shrinking (CSS flex-basis), a length; `"auto"` (the default) for its own `width` or `height`. |
+| `alignSelf` | In a `row`/`column`/`grid`: where it sits across (`start`, `center`, `end`, `stretch`), over the container's `alignItems`. |
+| `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
 | `color` | Background. Default: light grey for panels, transparent for labels, stacks and controls. |
 | `radius` | Rounds the corners, in pixels: one number for all four (`8`), or `{ "topLeft", "topRight", "bottomRight", "bottomLeft" }` (corners left out are square). A radius larger than half the shorter side is clamped to it, so `999` makes a pill or a circle. Edges are anti-aliased. Children are still clipped to the square bounds, and the corners still take clicks. Default: `0`. |
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
@@ -157,17 +163,33 @@ Tabs become 4 spaces. Applications build richer editors on it (syntax colours, c
 | `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
 
 ### `row`, `column`, `stack`, `grid`
-`column` (also `stack`) places its children one below the other, `row` side by side; they manage their children's
-positions along that direction and leave the other direction to the children's own anchors.
+`column` (also `stack`) places its children one below the other, `row` side by side, like a CSS flex container; they
+manage their children's positions along that direction and leave the other direction to the children's own anchors,
+unless `alignItems` or a child's `alignSelf` places them across too. Each child starts at its `basis` or its own size,
+within its minimum and maximum; children with `grow` share the room left over, and children with `shrink` give up an
+overflow.
 
 | Key | Meaning |
 |---|---|
-| `gap` | Pixels between children. |
-| `from` | Where the block sits: `start` (default), `center` or `end` (a column from the bottom, like a chat: overflow is clipped at the top). `align` is an older name for it on `stack`. |
+| `gap` | Pixels between children (and between lines, when it wraps). |
+| `rowGap`, `columnGap` | Pixels between rows and between columns, over `gap`: in a column `rowGap` is between children, in a wrapping row between lines. |
+| `justify` | How the children are spread along it: `start` (default), `center`, `end` (a column from the bottom, like a chat: overflow is clipped at the top), `space-between`, `space-around` or `space-evenly`, as in CSS. |
+| `from` | The older form of `justify`, with `start`, `center` or `end`. `align` is an older name for it on `stack`. |
+| `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
-| `wrap` | On a row: continue on a new line when a child doesn't fit. |
+| `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
 
-`grid` places its children in equal `columns` (an integer), `gap` apart; each row is as tall as its tallest child.
+`grid` places its children in columns and rows, like a CSS grid: each in its `cell`, or in the next free cell, row
+after row. A child is as wide as its cell and keeps its own height at the top of it, unless `justifyItems`,
+`alignItems` or its `alignSelf` say otherwise.
+
+| Key | Meaning |
+|---|---|
+| `columns` | A number of equal columns (default `2`), or a list of tracks: pixels (`200`), a percentage of the grid (`"25%"`), a share of the room left (`"1fr"`), `"auto"` (as wide as its widest child) or `"minmax(100, 1fr)"`. `"1fr"` is `minmax(0, 1fr)`, so equal fractions stay equal whatever their content; write `"minmax(auto, 1fr)"` to keep a track as wide as its content. At most 1,000. |
+| `rows` | Tracks for the rows, as `columns`. Rows past them, and every row without `rows`, are as tall as their tallest child. |
+| `gap`, `rowGap`, `columnGap` | Pixels between cells; `rowGap` and `columnGap` over `gap`. |
+| `justifyItems` | Where children sit across their cells: `stretch` (default), `start`, `center` or `end`. |
+| `alignItems` | Where children sit down their cells: `start` (default), `center`, `end` or `stretch`. |
 
 ### `toggle`, `checkbox`, `slider`
 Value controls. `bind` keeps the value in a state path; without it, `checked` (toggle, checkbox) or `value` (slider)

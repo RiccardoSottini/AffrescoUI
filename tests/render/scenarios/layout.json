@@ -1,0 +1,17 @@
+{
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "layout",
+			"screen": "layout.screen.json",
+			"note": "Flexible and grid layout: justification, alignment, shrinking, wrapping, grid tracks and cells, an aspect ratio; then another justification, and a narrower window that relays out only what depends on its width",
+			"steps": [
+				{ "capture": "first-frame" },
+				{ "revision": { "message": "Spread evenly", "set": { "/state/justify": "space-evenly" } } },
+				{ "capture": "space-evenly" },
+				{ "resize": [600, 520] },
+				{ "capture": "narrower" }
+			]
+		}
+	]
+}
