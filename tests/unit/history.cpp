@@ -540,7 +540,9 @@ TEST_CASE("vcs: a history written by hand can't give the screen what no revision
 	INFO("error: " << error);
 	CHECK(error.starts_with("AffrescoUI history: " + objectFile(history, forged).string() + ": "));
 	CHECK(error.find(expected) != std::string::npos);
-	CHECK(second.head().id == root);
+	// Nothing was loaded: second is at its own revision 0. Not root's id, which holds the second it was made in
+	CHECK(second.head().number == 0);
+	CHECK(second.log().size() == 1);
 	CHECK(second.document() == permissionsScreen());
 }
 
@@ -613,4 +615,48 @@ TEST_CASE("vcs: a history written by hand can't grant more than \"don't ask agai
 	CHECK(error.contains(std::format("{}: '{}' is not a rule that \"don't ask again\" grants", place, rule)));
 	CHECK(second.grants().empty());
 	CHECK(second.proposals().empty());
+}
+
+// Found in the security review of wave 2: the files were made with the process's default mode (0644 with the usual
+// umask). The folder is private, but a file copied or moved out of it took that mode along
+TEST_CASE("vcs: every file of a history is readable by its owner only") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+
+	Repository repository(rules, permissionsScreen());
+	REQUIRE(repository.openHistory(history).memoryOnly.empty());
+	fill(repository);
+
+	using std::filesystem::perms;
+	CHECK((std::filesystem::status(history).permissions() & perms::all) == perms::owner_all);
+	int files = 0;
+	for(const auto& entry : std::filesystem::recursive_directory_iterator(history)) {
+		if(!entry.is_regular_file()) continue;
+		CAPTURE(entry.path().string());
+		CHECK((entry.status().permissions() & (perms::group_all | perms::others_all)) == perms::none);
+		++files;
+	}
+	CHECK(files >= 4); // the lock, the refs and the objects
+}
+
+// Found in the security review of wave 2: a history folder that is a symbolic link was followed, so whoever made the
+// link chose where the history went (and which folder was made private)
+TEST_CASE("vcs: a history folder that is a symbolic link is refused, and nothing is written through it") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path elsewhere = folder.path() / "elsewhere";
+	std::filesystem::create_directories(elsewhere);
+	std::filesystem::permissions(elsewhere, std::filesystem::perms::all);
+	const std::filesystem::path history = folder.path() / "board.history";
+	std::filesystem::create_directory_symlink(elsewhere, history);
+
+	Repository repository(rules, permissionsScreen());
+	const Repository::OpenedHistory opened = repository.openHistory(history);
+	CHECK_FALSE(opened.loaded);
+	CHECK(opened.memoryOnly.find("is a symbolic link") != std::string::npos);
+	REQUIRE(repository.submit({{"author", "studio"}, {"set", {{"#title/text", "Done"}}}}).status ==
+	        RevisionStatus::Applied);
+	CHECK(std::filesystem::is_empty(elsewhere));
+	CHECK(std::filesystem::status(elsewhere).permissions() == std::filesystem::perms::all); // untouched
 }

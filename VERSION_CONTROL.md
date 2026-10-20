@@ -171,6 +171,11 @@ inside those areas apply without asking.
   current `main`.
 - **The history can't be rewritten.** `main` only grows, and commit ids chain every commit to its parents.
 - **No flooding:** a channel can have at most 16 open proposals.
+- **A revision costs in proportion to its size.** Its operations are applied before any rule judges them, so they are
+  bounded first: at most 10,000 operations (its compact edits and its JSON Patch together; a proposal with all its
+  commits too), at most 100,000 values copied by its `copy` operations in all (a copy of a list into itself doubles
+  it), and no object given more than 10,000 members. A screen file may hold a wider object: a revision may change
+  it, not widen it.
 - **Merges never guess:** a proposal that no longer applies to `main` is closed with the reason, and a revert whose
   parts changed later is refused as a conflict.
 
@@ -247,6 +252,10 @@ kanban.history/
 - **One writer.** The program that writes a history holds its `lock`, which the system releases if the program ends.
   Another program that opens the same screen file meanwhile loads the same history but never writes it. A warning
   says so (`in use by another program (process 3495)`), and its own changes stay in memory.
+- **Private.** The folder is made readable by its owner only (`0700`), and every file in it is created `0600`, never
+  through a symbolic link left in its place. A history folder that is a symbolic link, or on POSIX belongs to another
+  user (in a shared data folder), is neither read nor written: the history stays in memory, and a warning says why
+  (`is a symbolic link, not a folder`, `belongs to another user`).
 - **When the screen file changes.** A history belongs to the version of the file it began with: its revision 0. If the
   file differs (a template update, a hand edit, a changed `include`), the old history is moved aside, whole, to
   `<file name>.history.replaced-<UTC time>/`, a warning says where, and a new history starts from the file as it is
