@@ -8,6 +8,7 @@ with it (`cmake --install`).
 affrescoui check screen.json            # the schema, the format's rules and the checker
 affrescoui fmt screen.json              # write it the way AffrescoUI files are written
 affrescoui render screen.json -o out.png --scale 2
+affrescoui test screen.scenarios.json   # play the screen's scenarios: what passed, what failed
 affrescoui run screen.json              # show it, and let the Studio and agents change it
 affrescoui help                         # every command; affrescoui <command> --help for one
 ```
@@ -19,6 +20,7 @@ affrescoui help                         # every command; affrescoui <command> --
 | `run <file> [--socket DIR] [--data DIR] [--mode default\|acceptEdits\|plan] [--plugin changes.json]...` | Shows a screen and lets peers change it, as `affrescoui_host` does: `studio.sock` and `agent.sock` in the socket folder, the history and `persist` state in the data folder, `--plugin` change sets applied once. `--mode` holds for this run only. |
 | `check <file> [--json]` | Checks a screen without opening a window: the JSON, the schema (`schema/affrescoui-screen.schema.json`, built into the tool), the format's rules as the library loads it, and the checker (an `id` two nodes have, and what the screen refers to but doesn't define). One line per problem, or with `--json` one object: `{"file", "ok", "problems": [{"source", "place", "message"}]}`, `source` being `json`, `schema`, `format` or `checker`. |
 | `render <file> -o out.png [--scale 1\|2] [--size WIDTHxHEIGHT]` | Draws the screen's first frame offscreen, as the rendering check does (a hidden window, the file as it is, no saved history or state, channels finding nobody), and writes a PNG. `--size` resizes the window first; a frame over 16,384 pixels a side (size times scale) is refused. Even a channel at an absolute path finds nobody. Needs OpenGL: a display, or Xvfb. |
+| `test <scenarios.json>... [--json] [--only NAME] [--goldens DIR] [--update] [--out DIR] [--document FILE]` | Plays a screen's scenarios (SCREEN_FORMAT.md, "Scenarios"; `modules/automation`), headless unless one expects a picture, and reports compactly: `kanban.scenarios.json: 7 passed, 0 failed`, then `FAILED <scenario>, step <n>: <what>` per failure; with `--json` one line per file, `{"file", "passed", "failed", "failures": [{"scenario", "step", "problem"}]}`. `--goldens` is where the golden images of `expect image` are, `--update` records them all from this run, `--out` receives captures and frames that differ with their diffs. `--document` plays on that document instead of the scenarios' screen file (the running screen's, a proposal applied), its fonts and includes still found next to the screen file. Exits with 1 if a scenario failed or the file is malformed. The library's log is quiet unless `--verbose`. |
 | `fmt <file> [--check]` | Writes the file the way AffrescoUI files are written: tabs; an object written over several lines stays so, one member per line; anything else on one line, `{ "key": value }` and `[a, b]`, when it fits in 120 columns (a tab counts 4); empty lines between members kept; keys in their order; numbers and strings exactly as written. Formatting twice changes nothing. `--check` changes nothing and exits with 1 if the file isn't formatted. |
 | `ids <file> [--check]` | Gives a readable id to every node that has none (`label-blocked`, `panel-top-bar`; SCREEN_FORMAT.md, "Every type"), writing only the new `"id"` members into the file, and lists them. `--check` changes nothing and exits with 1 if a node has none. |
 | `export <file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]` | Writes the revisions after `--from` (default 0, the file as loaded) of the screen's history on disk as a change set ("plugin"), to stdout or `-o`. |
@@ -44,7 +46,8 @@ When the tool is built with the examples (the default), it knows their applicati
 
 `check.py` here (ctest `cli`) runs every command on every template: `check` passes, `fmt --check` passes after
 `fmt` and the JSON reads the same, every node has an id, `render` draws the same pixels as the rendering check's
-runner for each template's first frame, a change set goes into a history on disk once and comes back out, and a wrong
+runner for each template's first frame, every template's scenarios pass with `test` (and a failing expectation or a
+malformed scenarios file exits with 1), a change set goes into a history on disk once and comes back out, and a wrong
 command line exits with 2 and a missing file with 3. It needs a window, like the rendering check:
 
 ```sh

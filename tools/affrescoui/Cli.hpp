@@ -113,6 +113,11 @@ Exit runScreen(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit checkScreen(std::span<const std::string_view> args);
 
+/// @brief `test`: plays a screen's scenarios and reports pass and fail compactly.
+/// @param args The arguments.
+/// @return How it ended.
+Exit testScreen(std::span<const std::string_view> args);
+
 /// @brief `render`: a picture of a screen's first frame, drawn offscreen.
 /// @param args The arguments.
 /// @return How it ended.
