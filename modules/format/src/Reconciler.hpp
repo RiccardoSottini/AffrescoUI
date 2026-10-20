@@ -71,7 +71,9 @@ private:
 	/// @param panel The panel.
 	/// @param record Its record.
 	/// @param path Its place, for errors.
-	void reconcileChildren(const json& node, Panel& panel, Record& record, const std::string& path);
+	/// @param depth The panel's depth below the window's root, or below the panel a template is built in.
+	/// @throws DocumentError If the panels would nest deeper than maxNodeDepth.
+	void reconcileChildren(const json& node, Panel& panel, Record& record, const std::string& path, int depth = 0);
 	/// @brief The children to build: the current screen for an outlet, else the node's "children".
 	/// @param node The node.
 	/// @param record Its record.

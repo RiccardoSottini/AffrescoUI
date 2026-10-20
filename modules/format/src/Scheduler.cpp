@@ -73,14 +73,21 @@ std::uint64_t Scheduler::repeating(double delayMs, std::function<void(const Rear
 }
 
 // A number in the state moves to "to" over "ms", one frame at a time
-void Scheduler::animate(const json::json_pointer& pointer, double from, const json& to, double ms, std::string easing) {
+void Scheduler::animate(const json::json_pointer& pointer, double from, const json& to, double ms, std::string easing,
+                        std::string where) {
 	const std::string key = pointer.to_string();
 	if(const auto it = animations_.find(key); it != animations_.end()) engine_.window->cancelTimer(it->second);
 	animations_[key] = repeating(frameMs, [this, pointer, key, from, to, ms, easing = std::move(easing),
-	                                       start = engine_.now()](const Rearm& rearm) {
+	                                       where = std::move(where), start = engine_.now()](const Rearm& rearm) {
 		const double progress = std::min((engine_.now() - start) * 1000.0 / ms, 1.0);
-		engine_.versions.state()[pointer] =
-		    progress >= 1.0 ? to : json(from + (to.get<double>() - from) * ease(easing, progress));
+		try {
+			statePlace(engine_.versions.state(), pointer, where) =
+			    progress >= 1.0 ? to : json(from + (to.get<double>() - from) * ease(easing, progress));
+		} catch(const DocumentError& error) { // not thrown out of the timer, into the event loop
+			animations_.erase(key);
+			engine_.report(error.what());
+			return;
+		}
 		engine_.document.markStateChanged();
 		engine_.reconciler.requestReconcile();
 		if(progress < 1.0) animations_[key] = rearm(frameMs);

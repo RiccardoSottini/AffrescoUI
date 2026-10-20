@@ -159,6 +159,8 @@ json DocumentContext::computed(std::string_view name) const {
 	if(computedValues_.contains(key)) return computedValues_[key];
 	if(std::ranges::find(computing_, key) != computing_.end())
 		fail("computed." + key, "computed values refer to each other in a circle");
+	if(computing_.size() >= maxComputedDepth)
+		fail("computed." + key, "computed values read each other too deeply (more than 32 levels)");
 	computing_.push_back(key);
 	json value;
 	try {

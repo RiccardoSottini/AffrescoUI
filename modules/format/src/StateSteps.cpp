@@ -3,6 +3,9 @@
 
 #include "Engine.hpp"
 
+#include <cstdint>
+#include <limits>
+
 namespace affresco::format {
 
 namespace {
@@ -13,15 +16,28 @@ namespace {
 void removeFrom(const Running& s, json& state) {
 	const json::json_pointer pointer = s.target("remove");
 	if(!s.step.contains("at")) {
-		if(state.contains(pointer)) state[pointer.parent_pointer()].erase(pointer.back());
+		if(!findInState(state, pointer)) return;
+		json& holder = statePlace(state, pointer.parent_pointer(), s.where);
+		if(!holder.is_object()) fail(s.where, R"(to remove an item of a list, name the list and the item's "at")");
+		holder.erase(pointer.back());
 		return;
 	}
-	json& array = state[pointer];
+	json& array = statePlace(state, pointer, s.where);
 	const json at = s.value("at");
 	if(!array.is_array() || !at.is_number_integer() || at.get<std::int64_t>() < 0 ||
 	   static_cast<std::size_t>(at.get<std::int64_t>()) >= array.size())
 		fail(s.where, "nothing to remove at " + at.dump());
 	array.erase(static_cast<std::size_t>(at.get<std::int64_t>()));
+}
+
+/// @brief Tells whether two integers add up to one: integers stay integers, unless their sum doesn't fit (an
+/// overflow would be undefined behaviour), when it is a double.
+/// @param a An integer.
+/// @param b Another.
+/// @return true if a + b fits in 64 bits.
+bool fitsSum(std::int64_t a, std::int64_t b) noexcept {
+	return b >= 0 ? a <= std::numeric_limits<std::int64_t>::max() - b
+	              : a >= std::numeric_limits<std::int64_t>::min() - b;
 }
 
 /// @brief "increment": adds "by" (1 by default) to a number in the state.
@@ -30,12 +46,13 @@ void removeFrom(const Running& s, json& state) {
 void increment(const Running& s, json& state) {
 	const json::json_pointer pointer = s.target("increment");
 	const json by = s.value(s.step.value("by", json(1)), s.where + ".by");
-	json current = state.value(pointer, json(0));
-	if(current.is_null()) current = 0;
+	const json* found = findInState(state, pointer);
+	const json current = found && !found->is_null() ? *found : json(0);
 	if(!current.is_number() || !by.is_number()) fail(s.where, "\"increment\" needs numbers");
-	state[pointer] = current.is_number_integer() && by.is_number_integer()
-	                     ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
-	                     : json(current.get<double>() + by.get<double>());
+	const bool integers = current.is_number_integer() && by.is_number_integer() &&
+	                      fitsSum(current.get<std::int64_t>(), by.get<std::int64_t>());
+	statePlace(state, pointer, s.where) = integers ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
+	                                               : json(current.get<double>() + by.get<double>());
 }
 
 /// @brief Runs a state step.
@@ -52,10 +69,10 @@ std::optional<bool> runStateStep(const Running& s) {
 		const json::json_pointer pointer = s.target("set");
 		json value = s.value("to");
 		expect::shallowEnough(value, pointerDepth(pointer), where + ".to");
-		state[pointer] = std::move(value);
+		statePlace(state, pointer, where) = std::move(value);
 	} else if(step.contains("push")) {
 		const json::json_pointer pointer = s.target("push");
-		json& array = state[pointer];
+		json& array = statePlace(state, pointer, where);
 		if(array.is_null()) array = json::array();
 		if(!array.is_array()) fail(where + ".push", "is not a list");
 		json value = s.value(step.value("value", json()), where + ".value");
@@ -65,7 +82,9 @@ std::optional<bool> runStateStep(const Running& s) {
 		removeFrom(s, state);
 	} else if(step.contains("toggle")) {
 		const json::json_pointer pointer = s.target("toggle");
-		state[pointer] = !format::truthy(state.value(pointer, json()));
+		const json* found = findInState(state, pointer);
+		const bool on = found && format::truthy(*found);
+		statePlace(state, pointer, where) = !on;
 	} else if(step.contains("increment")) {
 		increment(s, state);
 	} else {

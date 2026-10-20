@@ -9,7 +9,9 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <functional>
+#include <optional>
 #include <unordered_map>
 
 namespace affresco::format {
@@ -74,6 +76,27 @@ std::shared_ptr<const detail::Compiled> build(const std::string& text, const std
 	}
 	result->program = detail::lower(result->tree);
 	return result;
+}
+
+/// @brief The keys of a JSON Pointer, outermost first.
+/// @param pointer The pointer.
+/// @return Its keys, unescaped.
+std::vector<std::string> keysOf(const json::json_pointer& pointer) {
+	std::vector<std::string> keys;
+	for(json::json_pointer rest = pointer; !rest.empty(); rest = rest.parent_pointer()) keys.push_back(rest.back());
+	std::ranges::reverse(keys);
+	return keys;
+}
+
+/// @brief Reads a key into a list as a position, as JSON Pointers write them: digits, without a leading zero.
+/// @param key The key.
+/// @return The position, or std::nullopt if the key isn't one.
+std::optional<std::size_t> positionOf(std::string_view key) noexcept {
+	if(key.empty() || (key.size() > 1 && key.front() == '0')) return std::nullopt;
+	std::size_t position = 0;
+	const auto [end, error] = std::from_chars(key.data(), key.data() + key.size(), position);
+	if(error != std::errc() || end != key.data() + key.size()) return std::nullopt;
+	return position;
 }
 
 /// @brief The outermost place: what a caller gave.
@@ -162,6 +185,47 @@ json::json_pointer statePointer(std::string_view path, const Context& context, c
 		else pointer /= static_cast<std::size_t>(keys[i].integer());
 	}
 	return pointer;
+}
+
+json& statePlace(json& state, const json::json_pointer& pointer, const std::string& where) {
+	json* at = &state;
+	for(const std::string& key : keysOf(pointer)) {
+		const std::optional<std::size_t> position = positionOf(key);
+		if(at->is_null()) *at = position || key == "-" ? json::array() : json::object(); // as state[pointer] makes it
+		if(at->is_object()) {
+			at = &(*at)[key];
+			continue;
+		}
+		if(!at->is_array())
+			fail(where, "can't write '" + key + "' inside a " + std::string(at->type_name()) + " of the state");
+		if(key == "-") {
+			at = &at->emplace_back();
+			continue;
+		}
+		if(!position) fail(where, "'" + key + "' isn't a position in a list of the state");
+		if(*position > at->size() + maxListGap)
+			fail(where, "position " + key + " is more than " + std::to_string(maxListGap) +
+			                " past the end of a list of " + std::to_string(at->size()));
+		at = &(*at)[*position]; // a position past the end fills the list up to it with null
+	}
+	return *at;
+}
+
+const json* findInState(const json& state, const json::json_pointer& pointer) {
+	const json* at = &state;
+	for(const std::string& key : keysOf(pointer)) {
+		const std::optional<std::size_t> position = positionOf(key);
+		if(at->is_object()) {
+			const auto it = at->find(key);
+			if(it == at->end()) return nullptr;
+			at = &*it;
+		} else if(at->is_array() && position && *position < at->size()) {
+			at = &(*at)[*position];
+		} else {
+			return nullptr;
+		}
+	}
+	return at;
 }
 
 bool truthy(const json& value) noexcept {

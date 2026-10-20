@@ -124,6 +124,28 @@ struct Placeholders {
 /// @throws DocumentError If the path doesn't start with "state" or is malformed.
 [[nodiscard]] json::json_pointer statePointer(std::string_view path, const Context& context, const std::string& where);
 
+/// Positions past a list's end that a step may write to; the positions between are filled with null. Without it,
+/// one write to `state.items[2000000000]` would fill the list with two billion nulls.
+inline constexpr std::size_t maxListGap = 10000;
+
+/// @brief The place in the state a JSON Pointer names, made if it is missing, ready to be written: what
+/// `state[pointer]` does, except that it throws DocumentError where that would throw a JSON exception (which no event
+/// handler catches), and refuses to grow a list without bound.
+/// @param state The live state.
+/// @param pointer The place (statePointer()).
+/// @param where The step's place, for errors.
+/// @return The value there: null if it was just made.
+/// @throws DocumentError If a value on the way is neither an object nor a list, a key into a list isn't a position,
+/// or a position is more than maxListGap past the end of its list.
+[[nodiscard]] json& statePlace(json& state, const json::json_pointer& pointer, const std::string& where);
+
+/// @brief The value at a place in the state, read without making anything, and without the JSON exceptions that
+/// state.value(pointer) throws for a key into a list that isn't a position.
+/// @param state The live state.
+/// @param pointer The place (statePointer()).
+/// @return The value, or nullptr if there is none (or the pointer can't lead to one).
+[[nodiscard]] const json* findInState(const json& state, const json::json_pointer& pointer);
+
 /// @brief Tells whether a value counts as true.
 /// @param value The value.
 /// @return false for false, null, 0, "", [] and {}.

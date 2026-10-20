@@ -75,8 +75,10 @@ Connection Events::hookCaret(Panel& panel) {
 		Record* record = engine_.reconciler.recordOf(&panel);
 		if(!record || !record->caret) return;
 		try {
-			engine_.versions.state()[format::statePointer(
-			    *record->caret, engine_.document.context(*record->locals, json::object()), record->path + ".caret")] = {
+			const std::string where = record->path + ".caret";
+			const json::json_pointer pointer =
+			    format::statePointer(*record->caret, engine_.document.context(*record->locals, json::object()), where);
+			statePlace(engine_.versions.state(), pointer, where) = {
 			    {"line", caret.line + 1}, {"column", caret.column + 1}, {"selected", editor->selectedLength()}};
 			engine_.document.markStateChanged();
 			engine_.reconciler.requestReconcile();
@@ -135,9 +137,10 @@ void Events::valueChanged(Panel& panel, const json& value) {
 	if(!record) return;
 	if(record->bind) {
 		try {
-			const json none = json::object();
-			engine_.versions.state()[format::statePointer(
-			    *record->bind, engine_.document.context(*record->locals, none), record->path + ".bind")] = value;
+			const std::string where = record->path + ".bind";
+			const json::json_pointer pointer =
+			    format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()), where);
+			statePlace(engine_.versions.state(), pointer, where) = value;
 			engine_.document.markStateChanged();
 			engine_.reconciler.requestReconcile();
 		} catch(const DocumentError& error) {
@@ -358,20 +361,24 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	        {"cmd", event.mods.super()}});
 }
 
+// Without an "anchor", the parent is the anchor; the root holds every point, so it is no anchor
+bool Events::clickKeepsOpen(const Panel& panel, const Record& record, Vec2 position) const {
+	if(panel.bounds().contains(position)) return true;
+	Panel& root = engine_.window->root();
+	const Panel* anchor = record.overlayAnchor.empty() ? panel.parent() : root.findById(record.overlayAnchor);
+	return anchor && anchor != &root && anchor->bounds().contains(position);
+}
+
 void Events::dismissOverlays(const Vec2* position) {
 	bool closed = false;
 	for(auto& [panel, record] : engine_.reconciler.records()) {
 		if(!record.dismissOutside || !record.overlayOpen || !panel->isShown()) continue;
-		if(position) {
-			if(panel->bounds().contains(*position)) continue;
-			const Panel* anchor =
-			    record.overlayAnchor.empty() ? panel->parent() : engine_.window->root().findById(record.overlayAnchor);
-			if(anchor && anchor->bounds().contains(*position)) continue; // the anchor toggles it itself
-		}
+		if(position && clickKeepsOpen(*panel, record, *position)) continue;
 		try {
-			engine_.versions.state()[format::statePointer(*record.overlayOpen,
-			                                              engine_.document.context(*record.locals, json::object()),
-			                                              record.path + ".overlay.open")] = false;
+			const std::string where = record.path + ".overlay.open";
+			const json::json_pointer pointer = format::statePointer(
+			    *record.overlayOpen, engine_.document.context(*record.locals, json::object()), where);
+			statePlace(engine_.versions.state(), pointer, where) = false;
 			closed = true;
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());

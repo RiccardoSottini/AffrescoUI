@@ -25,7 +25,7 @@ bool call(const Running& s) {
 			if(step.contains("into")) {
 				const json::json_pointer pointer = s.target("into");
 				expect::shallowEnough(result, pointerDepth(pointer), where + ".into");
-				engine.versions.state()[pointer] = std::move(result);
+				statePlace(engine.versions.state(), pointer, where + ".into") = std::move(result);
 				engine.document.markStateChanged();
 			}
 		} catch(const DocumentError&) {

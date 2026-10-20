@@ -211,7 +211,8 @@ const json* Checker::componentNamed(const std::string& name, const std::string& 
 	const bool valid =
 	    component && component->is_object() && component->contains("node") && (*component)["node"].is_object();
 	if(!valid) {
-		report(place, "unknown component '" + name + "'", hintFor(name, definedNames("components"), "", "defined:"));
+		report(place, "unknown component '" + name + "'",
+		       hint([&] { return hintFor(name, definedNames("components"), "", "defined:"); }));
 		return nullptr;
 	}
 	componentsReached_.insert(name);
@@ -231,7 +232,7 @@ json Checker::takeParameters(const Prepared& use, const json& component, const s
 			    place != use.parameterPlaces.end() ? place->second : std::format("{}.{}", use.where("with"), key);
 			if(written && !with.contains(key))
 				report(at, std::format("unknown parameter '{}' of component '{}'", key, name),
-				       hintFor(key, keysOf(with), "", "it takes"));
+				       hint([&] { return hintFor(key, keysOf(with), "", "it takes"); }));
 			with[key] = value;
 			places[key] = at;
 		}
@@ -505,9 +506,11 @@ void Checker::callAction(const std::string& name, const Scope& scope, const std:
 		return;
 	}
 	if(nativeActions_.contains(name)) return;
-	std::vector<std::string> names = definedNames("actions");
-	names.insert(names.end(), nativeActions_.begin(), nativeActions_.end());
-	report(place, "unknown action '" + name + "'", hintFor(name, names, "", "defined:"));
+	report(place, "unknown action '" + name + "'", hint([&] {
+		       std::vector<std::string> names = definedNames("actions");
+		       names.insert(names.end(), nativeActions_.begin(), nativeActions_.end());
+		       return hintFor(name, names, "", "defined:");
+	       }));
 }
 
 } // namespace affresco::format::checker

@@ -35,14 +35,14 @@ void animate(const Running& s) {
 	const double ms = s.step.contains("ms") ? s.milliseconds("ms") : 300.0;
 	const std::string easing = s.step.contains("easing") ? string(s.step["easing"], s.where + ".easing") : "out";
 	Engine& engine = s.steps.engine();
-	const json current = engine.versions.state().value(pointer, json(0));
-	const double from = current.is_number() ? current.get<double>() : 0.0;
+	const json* current = findInState(engine.versions.state(), pointer);
+	const double from = current && current->is_number() ? current->get<double>() : 0.0;
 	if(!engine.window || ms <= 0.0) {
-		engine.versions.state()[pointer] = to;
+		statePlace(engine.versions.state(), pointer, s.where) = to;
 		engine.document.markStateChanged();
 		return;
 	}
-	engine.scheduler.animate(pointer, from, to, ms, easing);
+	engine.scheduler.animate(pointer, from, to, ms, easing, s.where);
 }
 
 /// @brief Runs a step over time.

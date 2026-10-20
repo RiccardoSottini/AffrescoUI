@@ -61,7 +61,12 @@ change, so one read-only registry of each is shared.
   it back.
 - **State changes during one event become one update,** run once the event has been delivered.
 - **Limits** (untrusted documents): expression nesting 100; `while` 10,000 iterations; `forEach` lists, `range` and
-  `pad` 10,000; nested actions 32; nested components 32; styles using styles 16; `include` inside `include` 8.
+  `pad` 10,000; nested actions 32; nested components 32; computed values reading computed values 32; panels built
+  inside each other 256 (`maxNodeDepth`); styles using styles 16; `include` inside `include` 8; a state write at most
+  10,000 positions past a list's end (`maxListGap`). The checker gives hints to the first 50 findings of a pass, each
+  compared with at most 1,000 names.
+- **State writes go through `statePlace()`** (`Expression.hpp`), never `state[pointer]`: it throws `DocumentError`
+  where nlohmann would throw a `json::exception`, which no event handler catches, and bounds how far a list grows.
 
 ## Threads
 
