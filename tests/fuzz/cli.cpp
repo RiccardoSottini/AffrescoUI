@@ -30,7 +30,7 @@ namespace {
 /// @return The schema, ready to check with.
 affresco::cli::Schema& screenSchema() {
 	static affresco::cli::Schema schema = [] {
-		std::ifstream file(AFFRESCOUI_FUZZ_SCHEMA);
+		const std::ifstream file(AFFRESCOUI_FUZZ_SCHEMA);
 		if(!file) affresco::fuzz::broken("the schema " AFFRESCOUI_FUZZ_SCHEMA " can be read");
 		std::stringstream content;
 		content << file.rdbuf();
@@ -42,12 +42,16 @@ affresco::cli::Schema& screenSchema() {
 /// @brief Finds, in the text tree, each node `ids` would name, as the command does before it writes the ids.
 /// @param tree The text tree.
 /// @param document The same document, as the library reads it.
-void findNamedNodes(affresco::cli::TextValue& tree, json document) {
+/// @return Whether the namer named them (else it threw what `ids` reports as a failure).
+bool findNamedNodes(affresco::cli::TextValue& tree, json document) {
 	try {
 		for(const auto& [pointer, id] : affresco::format::NodeNamer::nameAll(document))
 			static_cast<void>(affresco::cli::valueAt(tree, pointer));
-	} catch(const json::exception&) { // what `ids` reports as a failure
+		return true;
+	} catch(const json::exception&) {
+		return false;
 	} catch(const affresco::DocumentError&) {
+		return false;
 	}
 }
 
@@ -72,7 +76,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	if(affresco::cli::printText(affresco::cli::parseText(formatted)) != formatted)
 		affresco::fuzz::broken("formatting a formatted file changes nothing");
 
-	findNamedNodes(tree, document);
+	static_cast<void>(findNamedNodes(tree, document));
 	try {
 		static_cast<void>(screenSchema().check(document));
 	} catch(const std::exception&) {

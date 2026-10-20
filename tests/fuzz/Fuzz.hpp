@@ -54,7 +54,7 @@ inline void silenceLog() {
 /// @return The document.
 inline const json& kanbanTemplate() {
 	static const json document = [] {
-		std::ifstream file(AFFRESCOUI_FUZZ_TEMPLATE);
+		const std::ifstream file(AFFRESCOUI_FUZZ_TEMPLATE);
 		if(!file) broken("the template " AFFRESCOUI_FUZZ_TEMPLATE " can be read");
 		std::stringstream content;
 		content << file.rdbuf();
