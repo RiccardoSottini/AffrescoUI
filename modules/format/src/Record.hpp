@@ -53,6 +53,7 @@ struct Record {
 	json handlers = json::object();       ///< "onClick" and the others: an action name or steps each.
 	json keys;                            ///< Shortcuts: "cmd+k" -> handler (null: none).
 	json drag;                            ///< "drag", unevaluated (data is read when a drag starts).
+	json context;                         ///< "context", unevaluated (read with the `context` variable).
 	json key;                             ///< A keyed repeat's key for this item (null: none).
 	std::optional<std::string> bind;      ///< State path the value mirrors.
 	std::optional<std::string> caret;     ///< State path a text editor writes its caret to.

@@ -68,6 +68,7 @@ enum class Slot : std::uint8_t {
 	Caret,   ///< "caret".
 	Keys,    ///< "keys".
 	Drag,    ///< "drag".
+	Context, ///< "context".
 	Every,   ///< "every".
 	/* Anything else */
 	Other, ///< A property a registered type has, or none has (an error when it is applied).

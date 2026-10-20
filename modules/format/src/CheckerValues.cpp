@@ -16,7 +16,7 @@ namespace {
 /// "window", "revision" and "event" can't be hidden by a local; the others can.
 constexpr auto fixedVariables = std::to_array<std::string_view>({"window", "revision", "event"});
 constexpr auto screenVariables =
-    std::to_array<std::string_view>({"nodes", "proposals", "history", "preview", "mode", "theme", "screen"});
+    std::to_array<std::string_view>({"nodes", "proposals", "history", "preview", "mode", "theme", "screen", "context", "commands", "keybindings"});
 
 /// List functions whose second argument sees each item as `it` (Expression.cpp, applyToItems()).
 constexpr auto itemOperators =

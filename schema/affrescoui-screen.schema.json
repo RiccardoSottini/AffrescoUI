@@ -223,13 +223,20 @@
 					"actions": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/steps"
+							"anyOf": [
+								{
+									"$ref": "#/$defs/v1/steps"
+								},
+								{
+									"$ref": "#/$defs/v1/command"
+								}
+							]
 						}
 					},
 					"keys": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/handler"
+							"$ref": "#/$defs/v1/keyHandler"
 						},
 						"description": "Screen-wide shortcuts: \"mod+k\" -> handler"
 					},
@@ -791,10 +798,14 @@
 							"data": {}
 						}
 					},
+					"context": {
+						"type": "object",
+						"description": "Keys this node adds to the context variable while it or a child has the focus"
+					},
 					"keys": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/handler"
+							"$ref": "#/$defs/v1/keyHandler"
 						},
 						"description": "Shortcuts while focused: \"mod+k\" -> handler"
 					},
@@ -2042,6 +2053,64 @@
 					},
 					{
 						"$ref": "#/$defs/v1/steps"
+					}
+				]
+			},
+			"command": {
+				"type": "object",
+				"additionalProperties": false,
+				"description": "An action that describes itself; \"enablement\" is checked for keys, menus and palettes",
+				"properties": {
+					"title": {
+						"type": "string"
+					},
+					"category": {
+						"type": "string"
+					},
+					"icon": {
+						"type": "string"
+					},
+					"enablement": {},
+					"description": {
+						"type": "string"
+					},
+					"do": {
+						"$ref": "#/$defs/v1/handler"
+					}
+				}
+			},
+			"binding": {
+				"type": "object",
+				"required": [
+					"do"
+				],
+				"additionalProperties": false,
+				"description": "A key binding: runs \"do\" (an action name or steps) when \"when\" is true",
+				"properties": {
+					"when": {},
+					"do": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"with": {
+						"type": "object"
+					}
+				}
+			},
+			"keyHandler": {
+				"description": "A handler, a binding, or bindings (the first that applies runs)",
+				"anyOf": [
+					{
+						"$ref": "#/$defs/v1/handler"
+					},
+					{
+						"$ref": "#/$defs/v1/binding"
+					},
+					{
+						"type": "array",
+						"minItems": 1,
+						"items": {
+							"$ref": "#/$defs/v1/binding"
+						}
 					}
 				]
 			},

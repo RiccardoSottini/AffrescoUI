@@ -33,7 +33,7 @@ Each subsystem's header says its role, its invariants and its callers:
 | `Builder` | compiles each node once per version of the document; a node's children after `use`, `repeat`, `with`, `let`, `check`, styles and `when` |
 | `Reconciler` | the record of every panel built; keeps the panels in line with the document; batched updates |
 | `Properties` | a compiled node's values on its panel, by slot; the property sets node types registered |
-| `Events` | pointer, keys, focus, drag and drop, bubbling, overlays closed by a click outside, widgets' values |
+| `Events` | pointer, keys (one walk resolves bindings and chords, `resolve`), focus, drag and drop, bubbling, overlays closed by a click outside, widgets' values |
 | `Steps` | handlers and actions; each step runs in the group of the step registry that recognises it |
 | `Scheduler` | `every`, `after`, `debounce`, `animate`, transitions and deferred tasks, on the window's clock |
 | catalog | `Catalog.cpp`: what the format offers, built from the registries |
@@ -221,7 +221,9 @@ src/
   LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
                            stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
-  Events.*                 input; Shortcuts.* names keys and shortcuts
+  Events.*                 input; Shortcuts.* names keys, chords and shortcuts
+  Contributions.*          commands and keybindings: what is one, enablement, the context, commands and
+                           keybindings variables (built when read, DocumentContext::addVariable)
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
   Scheduler.*              timers, animations, debounces, transitions, deferred tasks
   Catalog.*                the catalog, from the registries

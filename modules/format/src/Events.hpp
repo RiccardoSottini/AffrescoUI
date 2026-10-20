@@ -8,6 +8,7 @@
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <string>
 #include <string_view>
 
 namespace affresco::format {
@@ -47,6 +48,9 @@ public:
 	/// @param handler E.g. "onHover".
 	/// @param event The event.
 	void fire(Panel& panel, std::string_view handler, const json& event);
+	/// @brief The chord in progress: the presses so far of a key with several ("ctrl+k"), or empty.
+	/// @return It, normalised.
+	[[nodiscard]] const std::string& chord() const noexcept { return chord_; }
 
 private:
 	/// @brief A press that may become a click, a double click or a drag.
@@ -80,9 +84,22 @@ private:
 	/// @param panel The panel.
 	/// @param value The new value.
 	void valueChanged(Panel& panel, const json& value);
-	/// @brief Runs a screen-wide shortcut ("keys"), and closes the overlays on Escape.
-	/// @param event The key event, from the window.
-	void screenKey(const KeyEvent& event);
+	/// @brief Resolves a key press in one walk: the chord in progress, the "keys" of the focused panel and its
+	/// ancestors, then the document's; a focused text input keeps plain keys from the document's (rfcs/0001).
+	/// @param from The focused panel, or nullptr.
+	/// @param event The event.
+	/// @return true if a binding ran, a chord started or went on, or a press ended one.
+	bool resolve(Panel* from, const KeyEvent& event);
+	/// @brief Runs a key's handler if one of its bindings applies: plain steps, a binding `{when, do, with}`
+	/// (skipped if its "when" is false or its command is disabled) or a list of them (the first that applies).
+	/// @param handler The handler, as written.
+	/// @param owner The panel whose "keys" it is (the root for the document's).
+	/// @param locals Their locals.
+	/// @param press The press, normalised.
+	/// @param where Its place, for errors.
+	/// @return true if it ran.
+	bool runBinding(const json& handler, Panel& owner, const Scope& locals, const std::string& press,
+	                const std::string& where);
 	/// @brief The panel that handles an event: this one or its nearest ancestor with the handler (bubbling).
 	/// @param from The panel the event happened on.
 	/// @param handler E.g. "onClick".
@@ -151,6 +168,8 @@ private:
 	Engine& engine_;  ///< The runtime.
 	Press press_;     ///< The press in progress.
 	Click lastClick_; ///< For double clicks.
+	std::string chord_;        ///< The chord in progress (chord()).
+	bool keyResolved_ = false; ///< The focused panel resolved the press the window is about to get.
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct {
 		Connection resized = 0, key = 0, button = 0; ///< onResize, onKey, onMouseButton.

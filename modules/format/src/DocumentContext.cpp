@@ -77,7 +77,8 @@ DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirec
     : engine_(engine), baseDirectory_(std::move(baseDirectory)),
       computedLookup_([this](std::string_view name) { return computed(name); }),
       nodeLookup_([this](std::string_view id) { return node(id); }),
-      modelLookup_([this](std::string_view place) { return engine_.models.at(place); }) {
+      modelLookup_([this](std::string_view place) { return engine_.models.at(place); }),
+      variableLookup_([this](std::string_view name) { return variable(name); }) {
 	if(!baseDirectory_.empty()) images_.allowDirectory(baseDirectory_);
 }
 
@@ -174,7 +175,36 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 Context DocumentContext::context(const Scope& locals, const json& event) const {
 	const Globals& g = globals();
 	return Context{engine_.versions.state(), g.window, g.revision, event, locals, g.other, &nodeLookup_,
-	               &computedLookup_, budget_, reads_, &modelLookup_};
+	               &computedLookup_, budget_, reads_, &modelLookup_, &variableLookup_};
+}
+
+void DocumentContext::addVariable(std::string name, std::function<json()> build) {
+	builders_.insert_or_assign(std::move(name), std::move(build));
+	++variablesEpoch_;
+}
+
+const json* DocumentContext::variable(std::string_view name) const {
+	const auto builder = builders_.find(name);
+	if(builder == builders_.end()) return nullptr;
+	if(building_.empty() && (builtEpoch_ != variablesEpoch_ || builtStateVersion_ != stateVersion_)) {
+		built_.clear(); // only between builds: a value read in an evaluation stays valid until it ends
+		builtEpoch_ = variablesEpoch_;
+		builtStateVersion_ = stateVersion_;
+	}
+	// a variable is built from what no state change announces (the focus, a chord): what reads it reads always
+	if(reads_) reads_->always = true;
+	if(const auto found = built_.find(name); found != built_.end()) return &found->second;
+	if(std::ranges::find(building_, name) != building_.end()) return nullptr; // it reads itself
+	building_.emplace_back(name);
+	json value;
+	try {
+		value = builder->second();
+	} catch(...) {
+		building_.pop_back();
+		throw;
+	}
+	building_.pop_back();
+	return &built_.insert_or_assign(std::string(name), std::move(value)).first->second;
 }
 
 /* The work budget */

@@ -183,7 +183,11 @@ constexpr KeyReference nodeTable[] = {
 	 "`{ \"ms\": 1000, \"do\": steps }`: runs while the node exists.", "look"},
     {"drag", R"json({"type": "object", "additionalProperties": false, "properties": {"data": {}}})json",
 	 "`{ \"data\": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`.", "look"},
-    {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v1/handler"},
+    {"context", R"json({"type": "object", "description": "Keys this node adds to the context variable while it or a child has the focus"})json",
+	 "`{ \"editorFocus\": true }`: keys added to the `context` variable while the node or a child has the focus "
+	 "(an inner node wins); `when` clauses read them.",
+	 "look"},
+    {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v1/keyHandler"},
 		"description": "Shortcuts while focused: \"mod+k\" -> handler"})json",
 	 "Shortcuts while the node or a child has the focus: `\"enter\" → handler`.", "look"},
     {"locked", R"json({"type": "boolean"})json",

@@ -72,7 +72,7 @@ Every part of the format follows these, and so should every extension:
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
-| `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels. |
+| `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
 | `keys` | Screen-wide shortcuts: `"mod+k" → handler` (see Events). |
 | `onLoad` | A handler run once after the first update. |
 | `channels` | Programs the screen talks to (see Channels). A capability: revisions can't change it. |
@@ -136,6 +136,7 @@ parent, later siblings on top of earlier ones.
 | `check` | `{ "rule": "{{len(value) >= 3}}", "message": "Too short", "value": ... }`: `value` defaults to the node's bound value; gives the node and its children `valid` and `error`. |
 | `every` | `{ "ms": 1000, "do": steps }`: runs while the node exists. |
 | `drag` | `{ "data": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`. |
+| `context` | `{ "editorFocus": true }`: keys added to the `context` variable while the node or a child has the focus (an inner node wins); `when` clauses read them. |
 | `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`. |
 | `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
 | `note` | A comment. |
@@ -489,6 +490,36 @@ has no handler, its nearest ancestor with one. A row with `onClick` needs no inv
 **Shortcuts:** `"keys"` on the document (anywhere) or on a node (while it or a child is focused): `"mod+k"`,
 `"cmd+shift+p"`, `"escape"`, `"up"`, `"f5"`. `mod` is Cmd on macOS, Ctrl elsewhere. While a text area is focused, keys
 without Cmd, Ctrl or Alt go to the text (Escape still works).
+
+### Commands and keybindings
+
+**Commands:** an action may be an object that describes itself: `{ "title": "Save", "category": "File", "icon":
+"save", "enablement": "{{state.dirty}}", "description": "...", "do": "write" }`. `do` is an action name or steps. An
+object with both step keys and command keys is an error. `enablement` is checked only when a key, a menu or a palette
+runs the command; a `run` step and the application's code ignore it.
+
+**Chords and bindings:** a key may be a chord of up to 4 presses separated by spaces: `"mod+k mod+s"`. A key's value
+is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 } }` (`with` gives the steps local
+variables), or a list of bindings, where the first that applies runs.
+
+**Resolution:** one walk per press.
+1. A focused text area keeps plain keys, except Escape and the keys of the focused node and its ancestors.
+2. During a chord, a press that doesn't continue it ends it and is dropped; Escape ends it.
+3. The scopes go from the focused node to the root, then to the document's `keys`.
+4. A binding is skipped when its `when` is false or its command is disabled.
+5. A press that starts a chord waits for the next one.
+6. If nothing matched, `onKey` bubbles.
+
+**Variables:**
+- `context`: `focus` (the focused node's id), `focusPath` (the ids from the root), `textInputFocus`, `overlay` (one is
+  open), `chord` (the presses so far, or null), `platform` (`"mac"`, `"windows"` or `"linux"`), and the keys of the
+  node `context` of the focused node and its ancestors (an inner node wins).
+- `commands`: `{ name, title, category, icon, description, enabled, key, keyLabel }`, sorted by category, then title.
+- `keybindings`: `{ key, keyLabel, command, title, when, scope }`, the document's first (`"screen"`), then by node
+  (`"#id"`) and key.
+
+The checker reports a key bound twice in a scope with the same `when`, a single press that a chord starting with it
+shadows, an unknown action in `do`, and a `when` it can't read.
 
 ## Actions
 

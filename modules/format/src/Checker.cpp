@@ -234,7 +234,7 @@ void Checker::walkNodes() {
 void Checker::walkHandlers() {
 	const Scope none;
 	if(const json* keys = section("keys"))
-		for(const auto& [key, handler] : keys->items()) walkHandler(handler, none, "keys." + key);
+		walkKeys(*keys, none, "keys");
 	if(const auto onLoad = document_.find("onLoad"); onLoad != document_.end()) walkHandler(*onLoad, none, "onLoad");
 	if(const json* watch = section("watch"))
 		for(const auto& [path, handler] : watch->items()) {

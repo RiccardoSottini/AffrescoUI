@@ -69,6 +69,7 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"keys"},
 	                  {"every"},
 	                  {"drag"},
+	                  {"context"},
 	                  {"locked", ValueKind::Boolean},
 	                  {"note", ValueKind::Text}});
 }

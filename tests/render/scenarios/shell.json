@@ -1,0 +1,27 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "commands-and-keybindings",
+			"screen": "shell.screen.json",
+			"steps": [
+				{ "key": "mod+s" },
+				{ "expect": { "state": "n", "is": 0 } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "n", "is": 1 } },
+				{ "key": "mod+k" },
+				{ "key": "mod+d" },
+				{ "expect": { "state": "dirty", "is": true } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "n", "is": 100 } },
+				{ "click": "#input" },
+				{ "key": "mod+l" },
+				{ "expect": { "state": "focused", "is": "input" } },
+				{ "type": "ab" },
+				{ "expect": { "node": "#input", "text": "ab" } }
+			]
+		}
+	]
+}

@@ -3,6 +3,7 @@
 
 #include "Steps.hpp"
 #include "Engine.hpp"
+#include "Contributions.hpp"
 
 #include <algorithm>
 
@@ -63,8 +64,13 @@ std::function<void()> Steps::later(json steps, Panel& sender, json event, Shared
 void Steps::runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
                      const std::string& where) {
 	const json& document = engine_.versions.document();
-	if(document.contains("actions") && document["actions"].contains(name)) {
+	const bool declared = document.contains("actions") && document["actions"].contains(name);
+	if(declared && isCommand(document["actions"][name]) && document["actions"][name].contains("do")) {
+		const json run = document["actions"][name]["do"]; // a command runs its "do": steps, or another action's name
+		runSteps(run.is_string() ? json{{"run", run}} : run, sender, event, locals, "actions." + name + ".do");
+	} else if(declared && !isCommand(document["actions"][name])) {
 		const json steps = document["actions"][name]; // a copy: the steps may revise the document
+		checkCommand(steps, "actions." + name);
 		runSteps(steps, sender, event, locals, "actions." + name);
 	} else if(const auto it = engine_.nativeActions.find(name); it != engine_.nativeActions.end()) {
 		it->second(sender);

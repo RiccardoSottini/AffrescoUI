@@ -53,6 +53,7 @@ affrescoui_module(format
 	src/PathType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
+	src/Contributions.cpp
 	src/Scheduler.cpp
 	src/Steps.cpp
 	src/StepRegistry.cpp

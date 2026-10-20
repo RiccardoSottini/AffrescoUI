@@ -26,7 +26,7 @@ constexpr std::array<std::string_view, 3> valueKeys = {"text", "checked", "value
 /// @return true if it reads it.
 bool behaviourSlot(Slot slot, std::string_view key) noexcept {
 	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::Keys ||
-	       slot == Slot::Drag || slot == Slot::Every || key == "autofocus" || key == "locked";
+	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context || key == "autofocus" || key == "locked";
 }
 
 } // namespace
@@ -89,6 +89,7 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 	record.handlers = json::object();
 	record.keys = nullptr;
 	record.drag = nullptr;
+	record.context = nullptr;
 	record.bind.reset();
 	record.caret.reset();
 	Behaviour behaviour;
@@ -138,6 +139,8 @@ void Properties::readBehaviourKey(const Panel& panel, Record& record, std::strin
 		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeChord(name)] = handler;
 	} else if(slot == Slot::Drag) {
 		record.drag = object(value, at);
+	} else if(slot == Slot::Context) {
+		record.context = object(value, at);
 	} else if(slot == Slot::Every) {
 		behaviour.everyMs = everyPeriod(record, value, at);
 	} else if(key == "autofocus") {

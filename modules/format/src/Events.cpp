@@ -3,6 +3,7 @@
 
 #include "Events.hpp"
 #include "Engine.hpp"
+#include "Contributions.hpp"
 #include "Shortcuts.hpp"
 
 #include "affresco/render/TextEditor.hpp"
@@ -35,7 +36,10 @@ void Events::connect(Window& window) {
 	windowHooks_.resized =
 	    window.onResize.connect([this](const ResizeEvent&) { engine_.reconciler.requestReconcile(); });
 	// Screen-wide shortcuts ("keys"); a focused text area keeps plain keys for typing
-	windowHooks_.key = window.onKey.connect([this](const KeyEvent& event) { screenKey(event); });
+	windowHooks_.key = window.onKey.connect([this](const KeyEvent& event) {
+		if(!keyResolved_ && engine_.window) resolve(engine_.window->focusedPanel(), event);
+		keyResolved_ = false;
+	});
 	// A press outside an open overlay that closes on it
 	windowHooks_.button = window.onMouseButton.connect([this](const MouseButtonEvent& event) {
 		if(event.action == affresco::Action::Press) dismissOverlays(&event.position);
@@ -57,6 +61,7 @@ void Events::hookUp(Panel& panel, Record& adopted) {
 		Record* record = reconciler.recordOf(&panel);
 		if(!record) return;
 		record->focused = focused;
+		engine_.document.contextChanged();
 		engine_.properties.refresh(panel, *record);
 		fire(panel, focused ? "onFocus" : "onBlur", {{"type", focused ? "focus" : "blur"}});
 	});
@@ -186,24 +191,89 @@ void Events::valueChanged(Panel& panel, const json& value) {
 	fire(panel, "onChange", {{"type", "change"}, {"value", value}});
 }
 
-void Events::screenKey(const KeyEvent& event) {
-	if(event.action == affresco::Action::Release) return;
-	if(event.key == Key::Escape) dismissOverlays(nullptr);
-	const json& document = engine_.versions.document();
-	if(!document.contains("keys") || !document["keys"].is_object()) return;
+bool Events::resolve(Panel* from, const KeyEvent& event) {
+	if(event.action == affresco::Action::Release) return false;
 	const std::string name = shortcut(event);
-	const Panel* focused = engine_.window->focusedPanel();
-	const bool typing = dynamic_cast<const TextArea*>(focused) || dynamic_cast<const TextEditor*>(focused);
-	if(name.empty() ||
-	   (typing && !event.mods.super() && !event.mods.control() && !event.mods.alt() && name != "escape"))
-		return;
-	for(const auto& [written, handler] : document["keys"].items()) {
-		if(normalizeShortcut(written) != name) continue;
-		const json steps = handler;
-		engine_.runner.handle(steps, engine_.window->root(), {{"type", "key"}, {"key", name}}, *noVariables(),
-		                      "keys." + written);
-		return;
+	if(name.empty()) return false;
+	const bool chording = !chord_.empty();
+	if(name == "escape") {
+		if(chording) { // Escape ends a chord, and does nothing else
+			chord_.clear();
+			engine_.document.contextChanged();
+			return true;
+		}
+		dismissOverlays(nullptr);
 	}
+	const std::string press = chording ? chord_ + " " + name : name;
+	const std::string prefix = press + " ";
+	bool waits = false; // some key starts with this press
+	const auto starts = [&](const json& keys, bool normalise) {
+		if(!keys.is_object()) return;
+		for(const auto& [written, handler] : keys.items())
+			waits = waits || (normalise ? normalizeChord(written) : written).starts_with(prefix);
+	};
+	const auto finish = [&](bool ran) {
+		if(!ran && waits) chord_ = press; // the press starts a chord, or goes on with one
+		else chord_.clear();              // it ran, or ends a chord, which drops it
+		if(chording || !chord_.empty()) engine_.document.contextChanged();
+		return ran || waits || chording;
+	};
+
+	// The focused panel and its ancestors
+	for(Panel* p = from; p; p = p->parent()) {
+		const Record* record = engine_.reconciler.recordOf(p);
+		if(!record || !record->keys.is_object()) continue;
+		starts(record->keys, false);
+		if(!record->keys.contains(press)) continue;
+		const json handler = record->keys[press]; // a copy: the handler may revise the document
+		const SharedScope locals = record->locals;
+		if(runBinding(handler, *p, *locals, press, record->path + ".keys." + press)) return finish(true);
+	}
+
+	// The document's; a focused text input keeps plain keys for typing
+	const json& document = engine_.versions.document();
+	const bool typing = (dynamic_cast<const TextArea*>(from) || dynamic_cast<const TextEditor*>(from)) && !chording &&
+	                    !event.mods.super() && !event.mods.control() && !event.mods.alt() && name != "escape";
+	if(!typing && document.contains("keys") && document["keys"].is_object() && engine_.window) {
+		starts(document["keys"], true);
+		for(const auto& [written, handler] : document["keys"].items()) {
+			if(normalizeChord(written) != press) continue;
+			const json copy = handler;
+			if(runBinding(copy, engine_.window->root(), *noVariables(), press, "keys." + written)) return finish(true);
+		}
+	}
+	return finish(false);
+}
+
+bool Events::runBinding(const json& handler, Panel& owner, const Scope& locals, const std::string& press,
+                        const std::string& where) {
+	const json event = {{"type", "key"}, {"key", press}};
+	if(!isBinding(handler) && !isBindingList(handler)) {
+		engine_.runner.handle(handler, owner, event, locals, where);
+		return true;
+	}
+	const json bindings = isBindingList(handler) ? handler : json::array({handler});
+	for(std::size_t i = 0; i < bindings.size(); ++i) {
+		const json& binding = bindings[i];
+		const std::string at = isBindingList(handler) ? where + "[" + std::to_string(i) + "]" : where;
+		try {
+			if(binding.contains("when") &&
+			   !truthy(engine_.document.evaluate(binding["when"], locals, event, at + ".when")))
+				continue;
+			const json& run = binding["do"];
+			if(run.is_string() && !commandEnabled(engine_, run.get<std::string>())) continue;
+			Scope scope{&locals, nullptr, json::object()};
+			if(binding.contains("with") && binding["with"].is_object())
+				for(const auto& [key, value] : binding["with"].items())
+					scope.vars[key] = engine_.document.evaluate(value, locals, event, at + ".with." + key);
+			engine_.runner.handle(run, owner, event, scope, at + ".do");
+			return true;
+		} catch(const DocumentError& error) {
+			engine_.report(error.what());
+			return true;
+		}
+	}
+	return false;
 }
 
 /* Handlers */
@@ -396,19 +466,10 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	                                                     event.action == affresco::Action::Press)
 		fire(panel, "onSubmit", {{"type", "submit"}, {"text", textArea->text()}});
 
-	// Shortcuts on the focused panel or its ancestors
+	// Keys ("keys") on the focused panel, its ancestors and the document, in one walk (the window's hook skips it)
+	keyResolved_ = true;
+	if(resolve(&panel, event)) return;
 	const std::string name = shortcut(event);
-	if(!name.empty()) {
-		for(Panel* p = &panel; p; p = p->parent()) {
-			const Record* record = engine_.reconciler.recordOf(p);
-			if(!record || !record->keys.is_object() || !record->keys.contains(name)) continue;
-			const json handler = record->keys[name];
-			const SharedScope locals = record->locals;
-			engine_.runner.handle(handler, *p, {{"type", "key"}, {"key", name}}, *locals,
-			                      record->path + ".keys." + name);
-			return;
-		}
-	}
 	bubble(panel, "onKey",
 	       {{"type", "key"},
 	        {"key", keyName(event.key)},

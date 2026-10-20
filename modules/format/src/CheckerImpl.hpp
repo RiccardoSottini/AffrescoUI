@@ -375,6 +375,12 @@ private:
 	/// @param scope The variables.
 	/// @param place Where it is.
 	void walkHandler(const json& handler, const Scope& scope, const std::string& place);
+	/// @brief Checks a scope's "keys": handlers and bindings `{when, do, with}` (or lists of them), the same key
+	/// twice with the same "when", and a single press that a chord starting with it shadows.
+	/// @param keys The "keys" object.
+	/// @param scope The variables.
+	/// @param place Where it is.
+	void walkKeys(const json& keys, const Scope& scope, const std::string& place);
 	/// @brief Checks a list of steps, or one step.
 	/// @param steps The steps.
 	/// @param scope The variables.

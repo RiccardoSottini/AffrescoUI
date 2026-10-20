@@ -80,6 +80,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"caret", Slot::Caret},
     {"keys", Slot::Keys},
     {"drag", Slot::Drag},
+    {"context", Slot::Context},
     {"every", Slot::Every},
 });
 
@@ -92,7 +93,7 @@ constexpr auto scopingKeys =
 /// @return true for the handlers and the other structural keys.
 bool structuralSlot(Slot slot) noexcept {
 	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::Keys ||
-	       slot == Slot::Drag || slot == Slot::Every;
+	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context;
 }
 
 /// @brief Tells whether applying a property reads more than its value: the state, or the node's variables.
