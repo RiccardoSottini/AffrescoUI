@@ -1,11 +1,13 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../screens",
 	"scenarios": [
 		{
 			"name": "scripts",
 			"screen": "scripts.screen.json",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "click": "#editor" },
 				{ "key": "home" },
 				{ "key": "right" },
@@ -33,7 +35,7 @@
 				{ "key": "right" },
 				{ "key": "shift+right" },
 				{ "key": "shift+right" },
-				{ "capture": "inside-ligature" },
+				{ "expect": { "image": "inside-ligature" } },
 				{ "key": "end" },
 				{ "key": "shift+left" },
 				{ "key": "shift+left" },
@@ -41,9 +43,9 @@
 				{ "key": "shift+left" },
 				{ "key": "shift+left" },
 				{ "key": "shift+left" },
-				{ "capture": "selected" },
+				{ "expect": { "image": "selected" } },
 				{ "type": "x" },
-				{ "capture": "edited" }
+				{ "expect": { "image": "edited" } }
 			]
 		}
 	]

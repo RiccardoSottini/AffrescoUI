@@ -507,6 +507,64 @@ program of another user.
 properties, events, steps, control steps, operators, variables and sections, plus the custom types, native actions and
 native functions the application registered. Agents read it instead of guessing.
 
+## Scenarios
+
+A screen can ship its own checks: `<name>.scenarios.json` next to it, scripted input and expectations that
+`affrescoui test` (and the MCP tool `run_scenarios`) plays, so a person or an agent proves a change with the screen's
+own scenarios. Schema: [`schema/affrescoui-scenarios.schema.json`](schema/affrescoui-scenarios.schema.json).
+
+```json
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screen": "kanban.screen.json",
+	"scenarios": [
+		{ "name": "add-a-card", "steps": [
+			{ "click": "#newCard" },
+			{ "type": "Write tests" },
+			{ "key": "enter" },
+			{ "expect": { "state": "columns[0].cards.length", "is": 5 } },
+			{ "expect": { "node": "#cardTitle", "nth": 4, "text": "Write tests" } }
+		] }
+	]
+}
+```
+
+Each scenario starts from the screen as loaded (no saved history or state) and plays alone: its channels find no host,
+and the clock moves only when a step waits, so it plays the same way on any machine. It runs headless; only a picture
+needs OpenGL. A scenario may name its own `screen`, and `screens` gives the folder they are in (default: the file's).
+`scale` (1 to 4) sets the pixels per window unit of its pictures. `note` is allowed on the file, a scenario and a step.
+
+| Step | Does |
+|---|---|
+| `{ "click": target }` | Moves the pointer there, presses and releases the left button. `move`, `press`, `release` do one part |
+| `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
+| `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
+| `{ "type": "text" }` | Types into the focused node, a character at a time |
+| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
+| `{ "wait": 500 }` | Moves the clock on, running timers, animations and tooltips as they come due. What a handler leaves for the next frame (`focus`) runs at the next wait: `{ "wait": 0 }` |
+| `{ "revision": { ... } }` | Applies a revision as the application would |
+| `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
+| `{ "resize": [960, 720] }` | Resizes the window |
+| `{ "expect": ... }` | Checks something (below) |
+| `{ "capture": "name" }` | Saves a picture as `<scenario>-<name>.png` (`affrescoui test --out`) |
+
+A target is `"#id"`, the centre of the first shown node with that id (`"nth": 2` picks the third), or `[x, y]` in
+window units. Expectations:
+
+| Expectation | Holds when |
+|---|---|
+| `{ "state": "cards[0].title", "is": "Plan" }` | The live state has that value there (a path as expressions write it, without `state.`; `.length` counts a list or a text) |
+| `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
+| `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY` (positions and sizes in window units, within 0.01) |
+| `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
+
+A failed expectation is reported and the scenario goes on; a step that can't be played (no such node, a refused
+revision) ends it. The report is one line per file and one per failure:
+`FAILED add-a-card, step 4: state columns[0].cards.length is 4, expected 5`. Limits: 1,000 scenarios a file, 10,000
+steps a scenario, a `wait` of 10 minutes, 100,000 bytes typed at once.
+
 ## Errors
 
 Loading stops at the first problem and names its place in the file:

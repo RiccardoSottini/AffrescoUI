@@ -67,8 +67,9 @@ A channel being destroyed stops its threads; deliveries still queued for it do n
 - **A new transport:** implement `Channel` (`core`). `Lines.hpp` has the line framing the transports share (a reader
   thread that posts each line, the length limit, and `dropCarriageReturns` for CRLF line breaks).
 - **A new protocol message:** see the recipe below. `Session::handle` passes each message to its group:
-  `handleChange` (revisions, restore, revert, undo), `handleReview` (accept, reject, preview, mode, revoke) or
-  `handleQuery` (document, catalog, history, diff, change sets, render).
+  `handleChange` (revisions, restore, revert, undo), `handleReview` (accept, reject, preview, mode, revoke: it checks
+  that the peer may review, then `decide` carries the decision out) or `handleQuery` (document, catalog, history,
+  diff, change sets, render).
 
 ## Files
 

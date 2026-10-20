@@ -1,3 +1,7 @@
+/// @file
+/// @brief The effects of a change that permission rules judge: the places a pattern covers, whether a change
+/// touches them, and the area an operation touches.
+
 #include "Permissions.hpp"
 
 #include <algorithm>
@@ -55,6 +59,27 @@ struct Place {
 	std::string pointer; ///< Where it is in the view.
 };
 
+/// @brief Adds the places one segment of a pattern leads to from a place: the segment itself, or for "*" every
+/// member of an object or element of an array there (nothing if it is neither).
+/// @param view The view.
+/// @param place The place.
+/// @param segment The segment, still escaped (split()).
+/// @param next Gets the places.
+void expandSegment(const json& view, const Place& place, const std::string& segment, std::vector<Place>& next) {
+	if(segment != "*") {
+		next.push_back({place.name + "/" + segment, place.pointer + "/" + segment});
+		return;
+	}
+	const json* value = locate(view, place.pointer);
+	if(value && value->is_object()) {
+		for(const auto& [key, item] : value->items())
+			next.push_back({place.name + "/" + escape(key), place.pointer + "/" + escape(key)});
+	} else if(value && value->is_array()) {
+		for(std::size_t i = 0; i < value->size(); ++i)
+			next.push_back({place.name + "/" + std::to_string(i), place.pointer + "/" + std::to_string(i)});
+	}
+}
+
 /// @brief Lists the places a pattern covers in a view, expanding "*" (one segment) and "#id" (a node).
 /// @param rules Finds "#id" nodes.
 /// @param view The view.
@@ -76,20 +101,7 @@ std::vector<Place> expand(const DocumentRules& rules, const json& view, const st
 
 	for(const std::string& segment : split(rest)) {
 		std::vector<Place> next;
-		for(const Place& place : places) {
-			if(segment != "*") {
-				next.push_back({place.name + "/" + segment, place.pointer + "/" + segment});
-				continue;
-			}
-			const json* value = locate(view, place.pointer);
-			if(value && value->is_object()) {
-				for(const auto& [key, item] : value->items())
-					next.push_back({place.name + "/" + escape(key), place.pointer + "/" + escape(key)});
-			} else if(value && value->is_array()) {
-				for(std::size_t i = 0; i < value->size(); ++i)
-					next.push_back({place.name + "/" + std::to_string(i), place.pointer + "/" + std::to_string(i)});
-			}
-		}
+		for(const Place& place : places) expandSegment(view, place, segment, next);
 		places = std::move(next);
 	}
 	return places;
@@ -114,7 +126,7 @@ json mask(const DocumentRules& rules, json view, const std::vector<std::string>&
 			json& parent = view[p.parent_pointer()];
 			if(parent.is_object()) parent.erase(p.back());
 			else view[p] = masked;
-		} catch(const json::exception&) {
+		} catch(const json::exception&) { // NOLINT(bugprone-empty-catch): a place the view can't hold masks nothing
 		}
 	}
 	return view;
@@ -158,7 +170,7 @@ bool authorMatches(std::string_view ruleAuthor, std::string_view author) {
 
 // Compared by name ("#id/..."), so a protected node that only moved (its siblings changed) is unchanged
 bool changes(const DocumentRules& rules, const json& before, const json& after, const std::string& pattern) {
-	auto contents = [&](const json& view) {
+	const auto contents = [&](const json& view) {
 		std::map<std::string, const json*> found;
 		for(const Place& place : expand(rules, view, pattern)) found[place.name] = locate(view, place.pointer);
 		return found;

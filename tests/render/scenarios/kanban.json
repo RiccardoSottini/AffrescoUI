@@ -1,30 +1,32 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../../../examples/assets/screens",
 	"scenarios": [
 		{
 			"name": "kanban",
 			"screen": "kanban.screen.json",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "move": [283, 278] },
-				{ "capture": "button-hover" },
+				{ "expect": { "image": "button-hover" } },
 				{ "click": [283, 278] },
-				{ "capture": "card-moved" },
+				{ "expect": { "image": "card-moved" } },
 				{ "click": "#filter", "nth": 1 },
-				{ "capture": "filter-bug" },
+				{ "expect": { "image": "filter-bug" } },
 				{ "click": "#filter", "nth": 0 },
 				{ "click": "#newCard" },
 				{ "type": "Write render tests" },
-				{ "capture": "typing" },
+				{ "expect": { "image": "typing" } },
 				{ "key": "enter" },
-				{ "capture": "card-added" },
+				{ "expect": { "image": "card-added" } },
 				{ "revision": { "message": "Warm top bar", "set": { "#topBar/color": "#7c2d12" } } },
-				{ "capture": "revision" },
+				{ "expect": { "image": "revision" } },
 				{ "click": "#member" },
-				{ "capture": "member-menu" },
+				{ "expect": { "image": "member-menu" } },
 				{ "key": "escape" },
 				{ "resize": [960, 720] },
-				{ "capture": "resized" }
+				{ "expect": { "image": "resized" } }
 			]
 		},
 		{
@@ -34,16 +36,16 @@
 				{ "press": "#card" },
 				{ "move": [600, 300] },
 				{ "move": [790, 300] },
-				{ "capture": "dragging" },
+				{ "expect": { "image": "dragging" } },
 				{ "release": [790, 300] },
-				{ "capture": "dropped" }
+				{ "expect": { "image": "dropped" } }
 			]
 		},
 		{
 			"name": "kanban-retina",
 			"screen": "kanban.screen.json",
 			"scale": 2,
-			"steps": [{ "capture": "first-frame" }]
+			"steps": [{ "expect": { "image": "first-frame" } }]
 		}
 	]
 }

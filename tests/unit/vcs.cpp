@@ -71,7 +71,7 @@ TEST_CASE("vcs: an accept that names an outdated head is refused") {
 
 	const auto refused = repository.accept(proposed.proposal, {"studio", reviewed.substr(0, 7), false});
 	REQUIRE(refused);
-	CHECK(refused->find("changed since you reviewed it") != std::string::npos);
+	CHECK(refused.value_or("").find("changed since you reviewed it") != std::string::npos);
 	CHECK(repository.proposals().size() == 1); // still open, for another look
 	CHECK(repository.head().number == 0);
 
@@ -113,7 +113,7 @@ TEST_CASE("vcs: an author can't review its own proposal") {
 		REQUIRE(proposed.status == RevisionStatus::Proposed);
 		const auto refused = repository.accept(proposed.proposal, {"studio", proposed.commit, false});
 		REQUIRE(refused);
-		CHECK(refused->find("may not accept its own proposal") != std::string::npos);
+		CHECK(refused.value_or("").find("may not accept its own proposal") != std::string::npos);
 	}
 	SUBCASE("another name on the author's channel") {
 		const affresco::RevisionResult proposed =
@@ -121,7 +121,7 @@ TEST_CASE("vcs: an author can't review its own proposal") {
 		REQUIRE(proposed.status == RevisionStatus::Proposed);
 		const auto refused = repository.accept(proposed.proposal, {"agent/other", proposed.commit, false});
 		REQUIRE(refused);
-		CHECK(refused->find("may not accept its own proposal") != std::string::npos);
+		CHECK(refused.value_or("").find("may not accept its own proposal") != std::string::npos);
 	}
 	CHECK(repository.proposals().size() == 1);
 	CHECK(repository.head().number == 0);

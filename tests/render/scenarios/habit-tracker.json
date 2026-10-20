@@ -1,17 +1,19 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../../../examples/assets/screens",
 	"scenarios": [
 		{
 			"name": "habit-tracker",
 			"screen": "habit-tracker.screen.json",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "click": "#habit", "nth": 2 },
-				{ "capture": "habit-done" },
+				{ "expect": { "image": "habit-done" } },
 				{ "click": "#newHabit" },
 				{ "type": "Drink water" },
 				{ "key": "enter" },
-				{ "capture": "habit-added" }
+				{ "expect": { "image": "habit-added" } }
 			]
 		}
 	]

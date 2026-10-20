@@ -1,0 +1,91 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "What the Habit tracker template (Streak) does, checked headless: affrescoui test habit-tracker.scenarios.json",
+	"screen": "habit-tracker.screen.json",
+	"scenarios": [
+		{
+			"name": "check-a-habit",
+			"note": "Clicking an unchecked habit ticks it, adds a day to its streak and counts it as done today",
+			"steps": [
+				{ "expect": { "node": "#doneCount", "text": "2 of 5 done" } },
+				{ "click": "#habit", "nth": 2 },
+				{ "expect": { "state": "habits[2].done", "is": true } },
+				{ "expect": { "state": "habits[2].streak", "is": 32 } },
+				{ "expect": { "node": "#checkbox-habit", "nth": 2, "property": "checked", "is": true } },
+				{ "expect": { "node": "#label-habit-streak-0", "nth": 2, "text": "32 day streak" } },
+				{ "expect": { "node": "#doneCount", "text": "3 of 5 done" } },
+				{ "expect": { "node": "#label-stat-value", "nth": 1, "text": "32 days" } }
+			]
+		},
+		{
+			"name": "uncheck-a-habit",
+			"note": "Clicking the checkbox of a done habit unticks it and takes the day back off its streak",
+			"steps": [
+				{ "click": "#checkbox-habit", "nth": 0 },
+				{ "expect": { "state": "habits[0].done", "is": false } },
+				{ "expect": { "state": "habits[0].streak", "is": 11 } },
+				{ "expect": { "node": "#checkbox-habit", "nth": 0, "property": "checked", "is": false } },
+				{ "expect": { "node": "#label-stat-value", "nth": 0, "text": "11 days" } },
+				{ "expect": { "node": "#label-stat-value", "nth": 2, "text": "1 / 5" } }
+			]
+		},
+		{
+			"name": "today-follows-the-checks",
+			"note": "Today's square in the heatmap follows how many habits are done (the watch on doneToday)",
+			"steps": [
+				{ "expect": { "state": "weeks[19][3]", "is": 2 } },
+				{ "click": "#habit", "nth": 2 },
+				{ "click": "#habit", "nth": 3 },
+				{ "expect": { "state": "weeks[19][3]", "is": 4 } },
+				{ "expect": { "node": "#panel-level", "nth": 136, "property": "tooltip", "is": "4 habits", "note": "Thursday has no day label" } },
+				{ "click": "#habit", "nth": 4 },
+				{ "expect": { "state": "weeks[19][3]", "is": 4, "note": "five done still shows the darkest shade" } }
+			]
+		},
+		{
+			"name": "add-a-habit",
+			"note": "Typing a name and pressing Enter adds an unchecked habit with the next colour",
+			"steps": [
+				{ "click": "#newHabit" },
+				{ "type": "  Drink water " },
+				{ "key": "enter" },
+				{ "expect": { "state": "habits.length", "is": 6 } },
+				{ "expect": { "state": "habits[5]", "is": { "name": "Drink water", "done": false, "streak": 0, "week": 0, "color": "#0891b2" } } },
+				{ "expect": { "state": "newHabit", "is": "" } },
+				{ "expect": { "node": "#label-habit-name", "nth": 5, "text": "Drink water" } },
+				{ "expect": { "node": "#label-habit-streak-0", "nth": 5, "text": "Start today" } },
+				{ "expect": { "node": "#doneCount", "text": "2 of 6 done" } }
+			]
+		},
+		{
+			"name": "ignore-a-blank-habit",
+			"note": "Enter with an empty or blank name adds nothing; Cmd+N puts the keyboard in the field",
+			"steps": [
+				{ "key": "mod+n" },
+				{ "wait": 0, "note": "the focus lands on the next frame" },
+				{ "expect": { "node": "#newHabit", "property": "focused", "is": true } },
+				{ "key": "enter" },
+				{ "type": "    " },
+				{ "key": "enter" },
+				{ "expect": { "state": "habits.length", "is": 5 } },
+				{ "expect": { "node": "#habit", "nth": 5, "exists": false } }
+			]
+		},
+		{
+			"name": "change-a-past-day",
+			"note": "Clicking a day in the heatmap steps it to the next shade, wrapping from 4 back to 0",
+			"steps": [
+				{ "expect": { "node": "#panel-level", "nth": 0, "property": "tooltip", "is": "Mon: 2 habits" } },
+				{ "click": "#panel-level", "nth": 0 },
+				{ "expect": { "state": "weeks[0][0]", "is": 3 } },
+				{ "expect": { "node": "#panel-level", "nth": 0, "property": "color", "is": "#16a34a" } },
+				{ "click": "#panel-level", "nth": 0 },
+				{ "click": "#panel-level", "nth": 0 },
+				{ "expect": { "state": "weeks[0][0]", "is": 0 } },
+				{ "expect": { "node": "#label-stat-value", "nth": 3, "text": "318", "note": "the 320 check-ins, less the 2 of that day" } }
+			]
+		}
+	]
+}

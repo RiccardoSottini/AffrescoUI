@@ -1,0 +1,107 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "What the Music player template does, checked headless: affrescoui test music-player.scenarios.json",
+	"screen": "music-player.screen.json",
+	"scenarios": [
+		{
+			"name": "playback-advances-each-second",
+			"note": "While playing, the timer adds a second to the elapsed time; paused, the time stands still",
+			"steps": [
+				{ "expect": { "node": "#elapsed", "text": "1:24" } },
+				{ "wait": 3000 },
+				{ "expect": { "state": "elapsed", "is": 87 } },
+				{ "expect": { "node": "#elapsed", "text": "1:27" } },
+				{ "click": "#playPause" },
+				{ "expect": { "state": "isPlaying", "is": false } },
+				{ "expect": { "node": "#playPause", "text": ">" } },
+				{ "wait": 3000 },
+				{ "expect": { "state": "elapsed", "is": 87 } }
+			]
+		},
+		{
+			"name": "space-plays-and-pauses",
+			"note": "Space pauses and resumes playback, and the playing marker in the sidebar follows",
+			"steps": [
+				{ "expect": { "node": "#panel-playlist", "exists": true } },
+				{ "key": "space" },
+				{ "expect": { "state": "isPlaying", "is": false } },
+				{ "expect": { "node": "#panel-playlist", "exists": false } },
+				{ "key": "space" },
+				{ "expect": { "state": "isPlaying", "is": true } },
+				{ "expect": { "node": "#playPause", "text": "||" } }
+			]
+		},
+		{
+			"name": "skip-tracks",
+			"note": "» and the right arrow play the next track from the start; « and the left arrow go back",
+			"steps": [
+				{ "click": "#label-next" },
+				{ "expect": { "state": "playingTrack", "is": 3 } },
+				{ "expect": { "state": "elapsed", "is": 0 } },
+				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas" } },
+				{ "key": "right" },
+				{ "expect": { "node": "#nowPlaying", "text": "Sixteen Bytes" } },
+				{ "click": "#label-previous" },
+				{ "key": "left" },
+				{ "expect": { "state": "playingTrack", "is": 2 } },
+				{ "expect": { "node": "#nowPlaying", "text": "One Draw Call" } }
+			]
+		},
+		{
+			"name": "seek-in-a-track",
+			"note": "Clicking the middle of the seek bar jumps to half of the track (3:18), and playback goes on from there",
+			"steps": [
+				{ "click": "#seek" },
+				{ "expect": { "state": "elapsed", "is": 99 } },
+				{ "expect": { "node": "#elapsed", "text": "1:39" } },
+				{ "wait": 1000 },
+				{ "expect": { "node": "#elapsed", "text": "1:40" } }
+			]
+		},
+		{
+			"name": "a-track-ends-and-the-next-plays",
+			"note": "When the elapsed time reaches the track's length, the next track starts from 0:00",
+			"steps": [
+				{ "press": "#seek" },
+				{ "release": "#label-track-time-2", "note": "past the right end of the bar: the end of the track" },
+				{ "expect": { "state": "elapsed", "is": 198 } },
+				{ "wait": 1000 },
+				{ "expect": { "state": "playingTrack", "is": 3 } },
+				{ "expect": { "state": "elapsed", "is": 0 } },
+				{ "expect": { "node": "#nowPlaying", "text": "Glyph Atlas" } }
+			]
+		},
+		{
+			"name": "play-another-playlist",
+			"note": "Clicking a playlist opens it; clicking one of its tracks plays it, and the last track's » stops playback",
+			"steps": [
+				{ "click": "#playlist", "nth": 1 },
+				{ "expect": { "state": "current", "is": 1 } },
+				{ "expect": { "node": "#listName", "text": "Morning Run" } },
+				{ "expect": { "node": "#track", "nth": 4, "exists": false } },
+				{ "click": "#track", "nth": 3 },
+				{ "expect": { "state": "playingList", "is": 1 } },
+				{ "expect": { "node": "#nowPlaying", "text": "Finish Line" } },
+				{ "click": "#label-next" },
+				{ "expect": { "state": "isPlaying", "is": false } },
+				{ "expect": { "state": "playingTrack", "is": 3 } }
+			]
+		},
+		{
+			"name": "set-the-volume",
+			"note": "The up and down arrows move the volume by 10 and stop at 100",
+			"steps": [
+				{ "key": "up" },
+				{ "key": "up" },
+				{ "key": "up" },
+				{ "key": "up" },
+				{ "expect": { "state": "volume", "is": 100 } },
+				{ "key": "down" },
+				{ "expect": { "state": "volume", "is": 90 } },
+				{ "expect": { "node": "#volume", "property": "value", "is": 90 } }
+			]
+		}
+	]
+}

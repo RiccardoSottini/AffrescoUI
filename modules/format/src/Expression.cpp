@@ -228,6 +228,7 @@ const json* findInState(const json& state, const json::json_pointer& pointer) {
 	return at;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): each value is read as the type it was checked to have, so nothing throws
 bool truthy(const json& value) noexcept {
 	if(value.is_boolean()) return value.get<bool>();
 	if(value.is_null()) return false;
@@ -236,8 +237,9 @@ bool truthy(const json& value) noexcept {
 	return !value.empty();
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): each value is read as the type it was checked to have, so nothing throws
 bool isDynamic(const json& value) noexcept {
-	if(value.is_string()) return value.get_ref<const std::string&>().find("{{") != std::string::npos;
+	if(value.is_string()) return value.get_ref<const std::string&>().contains("{{");
 	return value.is_object() && value.size() == 1 && value.begin().key().starts_with('$');
 }
 

@@ -1,4 +1,6 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../screens",
 	"scenarios": [
 		{
@@ -6,15 +8,15 @@
 			"screen": "visuals.screen.json",
 			"note": "Images (PNG and JPEG, each fit, packed and alone) and icons (in a fallback font and a font of their own); a revision that changes an image's file and fit, and an icon; an icon button's hover colour",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "revision": { "message": "Another picture, another fit, another icon", "set": {
 					"#contain/file": "images/banner.png",
 					"#fill/fit": "contain",
 					"#bell/icon": "bell-ring"
 				} } },
-				{ "capture": "revised" },
+				{ "expect": { "image": "revised" } },
 				{ "move": "#settings" },
-				{ "capture": "icon-hover" }
+				{ "expect": { "image": "icon-hover" } }
 			]
 		},
 		{
@@ -22,7 +24,7 @@
 			"screen": "visuals.screen.json",
 			"scale": 2,
 			"note": "Images and icons at two pixels per window unit",
-			"steps": [{ "capture": "first-frame" }]
+			"steps": [{ "expect": { "image": "first-frame" } }]
 		}
 	]
 }

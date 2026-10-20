@@ -124,6 +124,33 @@ class Guide(unittest.TestCase):
         self.assertLess(len(contents), len(text) / 5)
 
 
+class Scenarios(unittest.TestCase):
+    def test_a_proposals_patch_applies_to_a_copy(self):
+        document = {"root": {"children": [{"id": "a"}, {"id": "b"}]}, "colors": {"accent": "#111111"}}
+        patched = mcp.apply_patch(document, [
+            {"op": "replace", "path": "/colors/accent", "value": "#222222"},
+            {"op": "add", "path": "/root/children/1", "value": {"id": "new"}},
+            {"op": "add", "path": "/root/children/-", "value": {"id": "last"}},
+            {"op": "remove", "path": "/root/children/0"},
+            {"op": "move", "from": "/colors/accent", "path": "/colors/main"},
+            {"op": "copy", "from": "/colors/main", "path": "/colors/a~1b"},
+            {"op": "test", "path": "/colors/main", "value": "#222222"}])
+        self.assertEqual(patched, {"root": {"children": [{"id": "new"}, {"id": "b"}, {"id": "last"}]},
+                                   "colors": {"main": "#222222", "a/b": "#222222"}})
+        self.assertEqual(document["colors"], {"accent": "#111111"})  # the original is untouched
+        with self.assertRaises(ValueError):
+            mcp.apply_patch(document, [{"op": "test", "path": "/colors/accent", "value": "#000000"}])
+
+    def test_the_report_is_a_few_lines(self):
+        report = {"file": "kanban.scenarios.json", "passed": 6, "failed": 1, "failures": [
+            {"scenario": "add-a-card", "step": 5, "problem": "state columns[0].cards.length is 4, expected 5"},
+            {"scenario": "broken", "step": 0, "problem": "could not start: no such file"}]}
+        self.assertEqual(mcp.scenarios_report(report, "proposal 3"), "\n".join([
+            "kanban.scenarios.json on proposal 3: 6 passed, 1 failed",
+            "FAILED add-a-card, step 5: state columns[0].cards.length is 4, expected 5",
+            "FAILED broken: could not start: no such file"]))
+
+
 class Rereads(unittest.TestCase):
     def test_changes_are_addressed_by_id(self):
         after = json.loads(json.dumps(SCREEN))

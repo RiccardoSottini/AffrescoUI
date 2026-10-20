@@ -64,7 +64,8 @@ include/affresco/
   Screen.hpp             the Screen class
   affresco.hpp           the umbrella header
 src/
-  Screen.cpp             Screen and Screen::Impl: loading, the data and socket folders, persist, channels, peers
+  Screen.cpp             Screen and Screen::Impl: loading (with "include": resolveIncludes, mergeInclude), the data
+                         and socket folders, persist, channels, peers
   OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render"
   Png.hpp / .cpp         a small PNG encoder and a PPM reader
 CMakeLists.txt           the affrescoui target and its sources

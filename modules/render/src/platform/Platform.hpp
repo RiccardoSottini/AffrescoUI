@@ -129,9 +129,10 @@ public:
 };
 
 /// @brief Starts GLFW.
+/// @param hiddenWindows Whether its windows open hidden (never on screen, drawn offscreen only).
 /// @return The platform.
 /// @throws std::runtime_error If GLFW can't start.
-[[nodiscard]] std::unique_ptr<Platform> createGlfwPlatform();
+[[nodiscard]] std::unique_ptr<Platform> createGlfwPlatform(bool hiddenWindows = false);
 
 } // namespace platform
 } // namespace affresco

@@ -1,0 +1,53 @@
+# CI
+
+Three workflows. Every job that builds builds once and runs everything that build can: one build per kind of
+compiler and flags, kept warm by a compile cache (ccache) shared across runs.
+
+| Workflow | When | Jobs |
+|---|---|---|
+| [`ci.yml`](ci.yml) | Every pull request (opened, pushed to, labelled), every push to `master` | `Changes`, `Linux`, `Linux (address + undefined sanitizers)`, `macOS (build only)`, `Windows (not supported yet)`, `Benchmarks (callgrind)` (pull requests), `Quality report` (`master`) |
+| [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand | `Fuzz (nightly)` |
+| [`release.yml`](release.yml) | A `v*` tag ([RELEASING.md](../../RELEASING.md)) | The release builds |
+
+CodeQL's analyses (`Analyze (actions)`, `Analyze (c-cpp)`, `Analyze (python)`) come from the repository's CodeQL
+default setup, a setting, not a workflow here.
+
+## The jobs of `ci.yml`
+
+| Job | Runs | Checks | Required |
+|---|---|---|---|
+| `Changes` | Always, about 10 s | Whether the change needs a build ([`changes.sh`](changes.sh)): a change to `docs/`, `rfcs/` or Markdown no test reads builds nothing, and the jobs below are skipped (a skipped job counts as passing) | |
+| `Linux` | Code changes | GCC 13, warnings as errors. Unit tests (headless windows too); window tests (Xvfb, llvmpipe); the CLI's and the MCP server's tests; the templates' scenarios (`affrescoui test`); the rendering check against golden images recorded from the base commit on this runner ([`render-check.sh`](render-check.sh)); the package check; the API reference (Doxygen, warnings as errors); the quality gate (clang-tidy 18 on the changed lines, function length and complexity, with the base's rules) | Yes |
+| `Linux (address + undefined sanitizers)` | Code changes | GCC with ASan and UBSan: unit tests and scenarios, window tests, the rendering check (leaks too) | Yes |
+| `Fuzz` | Pull requests with code changes | Every fuzz target for 60 s, one after the other, from the nightly corpus ([`fuzz.sh`](fuzz.sh)), built as `nightly.yml` builds them | No |
+| `macOS (build only)` | Code changes | Apple clang, warnings as errors; unit tests and the templates' scenarios, headless (the runners have no GPU, so nothing that draws) | Yes |
+| `Windows (not supported yet)` | Code changes | MSVC; unit tests and scenarios. Allowed to fail (`continue-on-error`) until Windows support lands, then proposed as required | No |
+| `Benchmarks (callgrind)` | Pull requests with code changes | Base and head built the same way on this runner ([`tests/perf/ci.sh`](../../tests/perf/ci.sh)): instructions under callgrind, frame CPU time, allocations, memory, tokens; fails when a workload's instructions grow over 3% | No |
+| `Quality report` | Pushes to `master` | The coverage of the unit tests against the floor in `tools/quality/coverage-baseline.json` (the base's), and the whole-repository report (artifacts `quality-report`, `coverage`) | No |
+
+**Labels**, set by the maintainer only: `visual-change` makes the rendering check record the frames instead of
+comparing them (they are uploaded), and `perf-change` lets the benchmarks grow. Adding or removing a label runs
+`ci.yml` again. Every job runs again, not only the one the label decides: a job skipped in the newer run would show
+as skipped, which branch protection counts as passing, and would hide a failure of the older run.
+
+**Less waiting.** A new push cancels the run of the one before (`concurrency`). The compile cache is kept per kind of
+build (`ccache-<kind>-...`); a pull request reads the base branch's and writes its own, never master's.
+
+**What is protected.** Every workflow has `contents: read` only and no `pull_request_target`; every action is pinned by
+its commit; checkouts don't keep the token. A pull request's code is built and run with that read-only token, and
+nothing it writes reaches `master`'s caches. The golden images and the base benchmarks are built from the base commit
+on the same runner. A fuzz input that fails is uploaded under its target's name (`fuzz-found`).
+
+## Running each check locally
+
+| Check | Command |
+|---|---|
+| Build, unit, window, CLI, MCP, scenarios, rendering | `cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON && cmake --build build && ctest --test-dir build` |
+| The templates' scenarios | `build/affrescoui test examples/assets/screens/*.scenarios.json` |
+| Rendering check | `python3 tests/render/check.py` (never `--update` unless the pictures should change) |
+| Package check | `python3 tests/package/check.py` |
+| API reference | `doxygen Doxyfile` |
+| Quality gate | `tools/quality/run.sh gate origin/master` ([`tools/quality/README.md`](../../tools/quality/README.md)) |
+| Sanitizers and fuzzing | `CC=clang CXX=clang++ cmake -S . -B build-fuzz -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAFFRESCOUI_BUILD_FUZZERS=ON`, build, `ctest --test-dir build-fuzz`, then `.github/workflows/fuzz.sh build-fuzz 60` ([`tests/fuzz/README.md`](../../tests/fuzz/README.md) for macOS) |
+| Benchmarks | [`tests/perf/README.md`](../../tests/perf/README.md) |
+| Coverage and the whole report | `tools/quality/run.sh coverage` and `tools/quality/run.sh report` |

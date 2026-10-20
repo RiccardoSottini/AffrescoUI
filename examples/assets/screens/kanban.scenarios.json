@@ -1,0 +1,107 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "What the Kanban template does, checked headless: affrescoui test kanban.scenarios.json",
+	"screen": "kanban.screen.json",
+	"scenarios": [
+		{
+			"name": "add-a-card",
+			"note": "Typing in the new-card field and pressing Enter adds the card at the end of the Backlog",
+			"steps": [
+				{ "click": "#newCard" },
+				{ "type": "Write render tests" },
+				{ "expect": { "state": "newCard", "is": "Write render tests" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 5 } },
+				{ "expect": { "state": "columns[0].cards[4].title", "is": "Write render tests" } },
+				{ "expect": { "state": "newCard", "is": "" } },
+				{ "expect": { "node": "#cardTitle", "nth": 4, "text": "Write render tests" } },
+				{ "expect": { "node": "#columnCount", "text": "5" } }
+			]
+		},
+		{
+			"name": "ignore-a-blank-card",
+			"note": "Pressing Enter with only spaces in the new-card field adds nothing",
+			"steps": [
+				{ "click": "#newCard" },
+				{ "type": "   " },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "node": "#columnCount", "text": "4" } }
+			]
+		},
+		{
+			"name": "filter-by-tag",
+			"note": "Clicking the bug chip shows only bug cards, and a new card takes the filter's tag; Escape shows every card again",
+			"steps": [
+				{ "click": "#filter", "nth": 1 },
+				{ "expect": { "state": "filter", "is": "bug" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "expect": { "node": "#card", "nth": 2, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 3, "exists": false } },
+				{ "click": "#newCard" },
+				{ "type": "Login loops forever" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[4].tag", "is": "bug" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "filter", "is": "all" } },
+				{ "expect": { "node": "#card", "nth": 12, "exists": true } }
+			]
+		},
+		{
+			"name": "move-a-card-with-buttons",
+			"note": "» moves a card one column right and « moves it back to the end of the column it came from",
+			"steps": [
+				{ "click": "#move-button-card-2", "note": "» on the first Backlog card" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 3 } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "expect": { "state": "columns[1].cards[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "node": "#columnCount", "nth": 1, "text": "4" } },
+				{ "click": "#move-button-card", "nth": 3, "note": "« on the moved card, the fourth In progress card" },
+				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 3 } }
+			]
+		},
+		{
+			"name": "drag-a-card-to-another-column",
+			"note": "Dragging the first Backlog card onto the Review column moves it there",
+			"steps": [
+				{ "drag": "#card", "to": "#column", "toNth": 2, "moves": 4, "note": "the first card onto the third column, Review" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 3 } },
+				{ "expect": { "state": "columns[2].cards.length", "is": 3 } },
+				{ "expect": { "state": "columns[2].cards[2].title", "is": "Onboarding checklist for new teams" } },
+				{ "expect": { "node": "#columnCount", "nth": 2, "text": "3" } }
+			]
+		},
+		{
+			"name": "show-one-members-cards",
+			"note": "The avatars open the members menu; picking a person shows only their cards and closes the menu; Escape clears it",
+			"steps": [
+				{ "click": "#member" },
+				{ "expect": { "state": "membersOpen", "is": true } },
+				{ "expect": { "node": "#label-member-name", "nth": 1, "text": "Maya Klein" } },
+				{ "click": "#panel-member", "nth": 1 },
+				{ "expect": { "state": "owner", "is": "MK" } },
+				{ "expect": { "state": "membersOpen", "is": false } },
+				{ "expect": { "node": "#cardOwner", "nth": 0, "text": "MK" } },
+				{ "expect": { "node": "#card", "nth": 2, "exists": true } },
+				{ "expect": { "node": "#card", "nth": 3, "exists": false } },
+				{ "key": "escape" },
+				{ "expect": { "state": "owner", "is": "" } }
+			]
+		},
+		{
+			"name": "shortcut-focuses-new-card",
+			"note": "Cmd+N puts the keyboard in the new-card field, so typing and Enter add a card",
+			"steps": [
+				{ "key": "mod+n" },
+				{ "wait": 0, "note": "the focus lands on the next frame" },
+				{ "expect": { "node": "#newCard", "property": "focused", "is": true } },
+				{ "type": "From the keyboard" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[4].title", "is": "From the keyboard" } }
+			]
+		}
+	]
+}

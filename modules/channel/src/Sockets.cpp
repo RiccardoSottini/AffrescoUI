@@ -6,6 +6,7 @@
 
 #include "Lines.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstring>
 #include <mutex>
@@ -13,7 +14,7 @@
 #include <stdexcept>
 #include <string>
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -44,7 +45,7 @@ namespace {
 
 /* The platform */
 
-#if defined(_WIN32)
+#ifdef _WIN32
 
 static_assert(sizeof(SocketHandle) == sizeof(SOCKET), "SocketHandle must hold a SOCKET");
 
@@ -263,7 +264,7 @@ void shutdownSocket(SocketHandle socket) noexcept { shutdown(socket, SHUT_RDWR);
 /// @param socket The socket.
 void ignoreBrokenPipes([[maybe_unused]] SocketHandle socket) {
 	std::signal(SIGPIPE, SIG_IGN); // writing to a peer that went away must not kill the app
-#if defined(SO_NOSIGPIPE)
+#ifdef SO_NOSIGPIPE
 	const int on = 1;
 	setsockopt(socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
 #endif
@@ -323,7 +324,7 @@ public:
 	AcceptWait() = default;
 	/// @brief Closes the pipe.
 	~AcceptWait() {
-		for(int fd : wake_)
+		for(const int fd : wake_)
 			if(fd >= 0) close(fd);
 	}
 	AcceptWait(const AcceptWait&) = delete;
@@ -334,15 +335,15 @@ public:
 	/// @return false on an error (see lastError()).
 	[[nodiscard]] bool watch(SocketHandle listener) {
 		listener_ = listener;
-		return pipe(wake_) == 0;
+		return pipe(wake_.data()) == 0;
 	}
 
 	/// @brief Blocks until a peer connects, or until stop().
 	/// @return true when a connection may be waiting; false once stopped, or on an error of poll() or the listener.
 	[[nodiscard]] bool waitForConnection() {
-		pollfd watched[2] = {{listener_, POLLIN, 0}, {wake_[0], POLLIN, 0}};
+		std::array<pollfd, 2> watched = {{{listener_, POLLIN, 0}, {wake_[0], POLLIN, 0}}};
 		while(true) {
-			if(poll(watched, 2, -1) < 0) {
+			if(poll(watched.data(), 2, -1) < 0) {
 				if(errno == EINTR) continue; // a signal, not a reason to stop accepting
 				return false;
 			}
@@ -361,7 +362,7 @@ public:
 
 private:
 	SocketHandle listener_ = noSocket; ///< The socket watched.
-	int wake_[2] = {-1, -1};           ///< Written by stop().
+	std::array<int, 2> wake_ = {-1, -1}; ///< Written by stop().
 };
 
 #endif

@@ -5,6 +5,8 @@
 - fmt:    a template formatted once passes fmt --check, and reads back as the same JSON, keys in the same order;
 - ids:    every template has an id on every node (ids --check);
 - render: the first frame is pixel for pixel what the rendering check's runner draws for the same scenario;
+- test:   every template's scenarios pass, in text and with --json; a failing expectation and a malformed file exit
+          with 1;
 - export and import: a change set goes into a screen's history on disk once, and comes back out of it;
 - the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3);
 - a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
@@ -13,7 +15,7 @@
     python3 tools/affrescoui/check.py [--build DIR]
 
 render needs a window: a display, or Xvfb on Linux (as the rendering check). Only the Python standard library is
-needed; the PNG and PPM readers are the rendering check's.
+needed.
 """
 
 import glob
@@ -21,15 +23,57 @@ import json
 import os
 import shutil
 import socket
+import struct
 import subprocess
 import sys
 import tempfile
+import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SCREENS = os.path.join(ROOT, "examples", "assets", "screens")
-sys.path.insert(0, os.path.join(ROOT, "tests", "render"))
-import check as render_check  # noqa: E402  (read_png, read_ppm)
+RENDER_SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios")
+
+
+def read_png(path):
+    """An 8-bit RGB PNG (any row filter), as the tool and the runner write them: (width, height, RGB bytes)."""
+    with open(path, "rb") as file:
+        data = file.read()
+    position, idat = 8, b""
+    while position < len(data):
+        length, kind = struct.unpack(">I4s", data[position:position + 8])
+        body = data[position + 8:position + 8 + length]
+        if kind == b"IHDR":
+            width, height = struct.unpack(">II", body[:8])
+        elif kind == b"IDAT":
+            idat += body
+        position += 12 + length
+    raw, stride, out = zlib.decompress(idat), width * 3, bytearray()
+    previous = bytearray(stride)
+    for y in range(height):
+        kind, row = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        for i in range(stride if kind else 0):
+            left, up = row[i - 3] if i >= 3 else 0, previous[i]
+            corner = previous[i - 3] if i >= 3 else 0
+            if kind == 4:
+                p = left + up - corner
+                pa, pb, pc = abs(p - left), abs(p - up), abs(p - corner)
+                predicted = left if pa <= pb and pa <= pc else up if pb <= pc else corner
+            else:
+                predicted = {1: left, 2: up, 3: (left + up) // 2}[kind]
+            row[i] = (row[i] + predicted) & 255
+        out += row
+        previous = row
+    return width, height, bytes(out)
+
+
+def render_scenarios():
+    """The rendering check's scenarios, as (the folder of their screens, the scenario)."""
+    for name in sorted(os.listdir(RENDER_SCENARIOS)):
+        with open(os.path.join(RENDER_SCENARIOS, name), encoding="utf-8") as file:
+            area = json.load(file)
+        for scenario in area["scenarios"]:
+            yield os.path.normpath(os.path.join(RENDER_SCENARIOS, area["screens"])), scenario
 
 CHANGES = {"format": "affrescoui-changes", "version": 1, "name": "cli-check",
            "revisions": [{"author": "cli-check", "message": "A colour for the tool's check",
@@ -75,17 +119,39 @@ class Checker:
         self.expect(same, f"fmt {name}: the formatted file reads as different JSON")
         self.run("ids", "--check", path)
 
-    def render(self, scenarios_file, scenario, path):
-        """The first frame of a scenario that captures it first, against the runner's."""
+    def render(self, screens, scenario, path):
+        """The first frame of a scenario whose first step expects it, against the runner's capture of it."""
         frames = os.path.join(self.scratch, "frames")
         os.makedirs(frames, exist_ok=True)
-        capture = scenario["steps"][0]["capture"]
-        if subprocess.run([self.runner, scenarios_file, scenario["name"], frames]).returncode != 0:
+        first = {"format": "affrescoui-scenarios", "version": 1, "screens": screens,
+                 "scenarios": [{"name": scenario["name"], "screen": scenario["screen"],
+                                "scale": scenario.get("scale", 1), "steps": [{"capture": "first"}]}]}
+        scenarios_file = os.path.join(self.scratch, "first.scenarios.json")
+        with open(scenarios_file, "w", encoding="utf-8") as file:
+            json.dump(first, file)
+        if subprocess.run([self.runner, "--out", frames, scenarios_file], capture_output=True).returncode != 0:
             return self.expect(False, f"the runner failed on {scenario['name']}")
-        expected = render_check.read_ppm(os.path.join(frames, f"{scenario['name']}-{capture}.ppm"))
+        expected = read_png(os.path.join(frames, f"{scenario['name']}-first.png"))
         out = os.path.join(self.scratch, scenario["name"] + ".png")
         self.run("render", path, "-o", out, "--scale", str(scenario.get("scale", 1)))
-        self.expect(render_check.read_png(out) == expected, f"render {scenario['name']}: not the runner's first frame")
+        self.expect(read_png(out) == expected, f"render {scenario['name']}: not the runner's first frame")
+
+    def test(self, path):
+        """A template's scenarios pass; a failing one and a malformed file exit with 1."""
+        self.expect(" 0 failed" in self.run("test", path), f"test {path}: a scenario failed")
+        report = json.loads(self.run("test", path, "--json"))
+        self.expect(report["failed"] == 0 and report["passed"] >= 5, f"test --json {path}: {report}")
+        wrong = os.path.join(self.scratch, "wrong.scenarios.json")
+        with open(wrong, "w", encoding="utf-8") as file:
+            json.dump({"version": 1, "screens": SCREENS, "screen": "kanban.screen.json", "scenarios": [
+                {"name": "wrong", "steps": [{"expect": {"state": "board", "is": "Not the board"}}]}]}, file)
+        output = self.run("test", wrong, expect=1)
+        self.expect('FAILED wrong, step 1: state board is "Product launch", expected "Not the board"' in output,
+                    f"test: a failing expectation: {output}")
+        with open(wrong, "w", encoding="utf-8") as file:
+            json.dump({"version": 1, "screens": SCREENS, "screen": "kanban.screen.json",
+                       "scenarios": [{"name": "a", "steps": [{"clik": "#card"}]}]}, file)
+        self.run("test", wrong, expect=1)
 
     def history(self, path):
         data = os.path.join(self.scratch, "data")
@@ -149,13 +215,13 @@ def main():
             name = os.path.basename(path)[:-len(".screen.json")]
             checker.check(path)
             checker.format(name, path)
-        for scenarios_file, scenario in render_check.read_scenarios():
-            with open(scenarios_file, encoding="utf-8") as file:
-                screens = os.path.join(os.path.dirname(scenarios_file), json.load(file)["screens"])
+        for screens, scenario in render_scenarios():
             path = os.path.normpath(os.path.join(screens, scenario["screen"]))
-            # The templates' first frames: scenarios that capture before any step, on a shipped template
-            if "capture" in scenario["steps"][0] and os.path.dirname(path) == os.path.normpath(SCREENS):
-                checker.render(scenarios_file, scenario, path)
+            # The templates' first frames: scenarios that expect a picture before any step, on a shipped template
+            if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) == os.path.normpath(SCREENS):
+                checker.render(screens, scenario, path)
+        for path in sorted(glob.glob(os.path.join(SCREENS, "*.scenarios.json"))):
+            checker.test(path)
         checker.history(os.path.join(SCREENS, "kanban.screen.json"))
 
         checker.run("check", expect=2)                                  # no file

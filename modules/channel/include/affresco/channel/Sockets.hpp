@@ -22,7 +22,7 @@
 
 namespace affresco::channel {
 
-#if defined(_WIN32)
+#ifdef _WIN32
 using SocketHandle = std::uintptr_t; ///< A Winsock `SOCKET`, without including winsock2.h in this header.
 #else
 using SocketHandle = int; ///< A socket's file descriptor.

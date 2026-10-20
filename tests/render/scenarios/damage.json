@@ -1,4 +1,6 @@
 {
+	"format": "affrescoui-scenarios",
+	"version": 1,
 	"screens": "../screens",
 	"scenarios": [
 		{
@@ -6,23 +8,23 @@
 			"screen": "damage.screen.json",
 			"note": "Frames drawn only where they changed, each also drawn from scratch by the runner: a panel and its shadow moving over and under others, then back; a panel hidden with its children and shown again; a column pushed by its growing first child; a scrolled list of rounded cards with shadows; a text colour",
 			"steps": [
-				{ "capture": "first-frame" },
+				{ "expect": { "image": "first-frame" } },
 				{ "move": "#label-mover" },
-				{ "capture": "moved" },
+				{ "expect": { "image": "moved" } },
 				{ "move": [600, 400] },
-				{ "capture": "moved-back" },
+				{ "expect": { "image": "moved-back" } },
 				{ "press": "#panel-hider" },
-				{ "capture": "hidden" },
+				{ "expect": { "image": "hidden" } },
 				{ "release": [525, 75] },
-				{ "capture": "shown" },
+				{ "expect": { "image": "shown" } },
 				{ "move": "#label-first" },
-				{ "capture": "grown" },
+				{ "expect": { "image": "grown" } },
 				{ "scroll": "#column-list", "dy": -3 },
-				{ "capture": "scrolled" },
+				{ "expect": { "image": "scrolled" } },
 				{ "move": "#label-colour" },
-				{ "capture": "text-colour" },
+				{ "expect": { "image": "text-colour" } },
 				{ "move": [600, 400] },
-				{ "capture": "rest" }
+				{ "expect": { "image": "rest" } }
 			]
 		}
 	]
