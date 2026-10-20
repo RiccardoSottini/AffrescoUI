@@ -84,20 +84,22 @@ public:
 		AfterEarlierWrites ///< And never before any earlier write (the refs, after the objects they name).
 	};
 
-	/// @brief Opens a history folder, creating it if needed, and takes its lock if it can.
+	/// @brief Opens a history folder, creating it if needed, and takes its lock if it can. A folder that is a
+	/// symbolic link, or (on POSIX) belongs to another user, is neither read nor written.
 	/// @param directory The folder.
 	explicit HistoryStore(std::filesystem::path directory);
 
 	/// @brief Tells whether this program may write the history (it holds the lock).
 	[[nodiscard]] bool writable() const noexcept { return lock_.has_value(); }
-	/// @brief Why this program may not write the history: in use by another program, or not creatable.
+	/// @brief Why this program may not write the history: in use by another program, not creatable, a symbolic link
+	/// or another user's.
 	[[nodiscard]] const std::string& problem() const noexcept { return problem_; }
 	/// @brief The folder.
 	[[nodiscard]] const std::filesystem::path& directory() const noexcept { return directory_; }
 
 	/// @brief The refs file.
 	[[nodiscard]] std::filesystem::path refsFile() const { return directory_ / "refs.json"; }
-	/// @brief Tells whether a history was written here (it has a refs file).
+	/// @brief Tells whether a history was written here (it has a refs file), in a folder that may be read.
 	[[nodiscard]] bool exists() const;
 	/// @brief Reads the refs file.
 	/// @return Its text.
@@ -176,12 +178,13 @@ private:
 	/// @throws HistoryError If it can't be created or synced.
 	static void createFolder(const std::filesystem::path& folder);
 
-	std::filesystem::path directory_;         ///< The folder.
-	std::optional<FileLock> lock_;            ///< Held while this program writes the history.
-	std::string problem_;                     ///< Why there is no lock.
-	std::unordered_set<std::string> objects_; ///< Objects known to be on disk.
-	std::string refs_;                        ///< What the refs file was last written or read with.
-	std::vector<std::string> packs_;          ///< The packs, oldest first.
+	std::filesystem::path directory_;                     ///< The folder.
+	std::optional<FileLock> lock_;                        ///< Held while this program writes the history.
+	std::string problem_;                                 ///< Why there is no lock.
+	bool usable_ = true;                                  ///< false for a symbolic link or another user's folder.
+	std::unordered_set<std::string> objects_;             ///< Objects known to be on disk.
+	std::string refs_;                                    ///< What the refs file was last written or read with.
+	std::vector<std::string> packs_;                      ///< The packs, oldest first.
 	std::unordered_map<std::string, std::string> packed_; ///< Objects of the packs read, by id, until read.
 	/// Loose objects not yet packed: id, and the text of one written here (one read is read again to pack it).
 	std::vector<std::pair<std::string, std::optional<std::string>>> loose_;
