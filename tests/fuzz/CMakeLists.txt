@@ -28,3 +28,12 @@ affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel
 affrescoui_fuzzer(delta affrescoui::vcs)
 affrescoui_fuzzer(text affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_text PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # detail/Utf8.hpp
+# What the affrescoui tool reads (tools/affrescoui): its own sources, linked only into the fuzzer (the tool's target
+# compiles them otherwise), and the schema it builds in
+affrescoui_fuzzer(cli affrescoui::format)
+if(AFFRESCOUI_BUILD_FUZZERS)
+	target_sources(affrescoui_fuzz_cli PRIVATE ${PROJECT_SOURCE_DIR}/tools/affrescoui/JsonText.cpp
+		${PROJECT_SOURCE_DIR}/tools/affrescoui/Schema.cpp)
+endif()
+target_compile_definitions(affrescoui_fuzz_cli PRIVATE
+	AFFRESCOUI_FUZZ_SCHEMA="${PROJECT_SOURCE_DIR}/schema/affrescoui-screen.schema.json")
