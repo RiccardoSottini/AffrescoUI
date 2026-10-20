@@ -15,7 +15,8 @@ INPUT                  = modules/core/include \
                          modules/format/include \
                          modules/vcs/include \
                          modules/channel/include \
-                         modules/screen/include
+                         modules/screen/include \
+                         modules/automation/include
 FILE_PATTERNS          = *.hpp
 RECURSIVE              = YES
 STRIP_FROM_PATH        = modules
@@ -24,7 +25,8 @@ STRIP_FROM_INC_PATH    = modules/core/include \
                          modules/format/include \
                          modules/vcs/include \
                          modules/channel/include \
-                         modules/screen/include
+                         modules/screen/include \
+                         modules/automation/include
 # Implementation details stay out of the reference
 EXCLUDE_SYMBOLS        = detail detail::*
 

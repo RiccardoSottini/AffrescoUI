@@ -3,56 +3,16 @@
 
 #include "OffscreenImages.hpp"
 #include "Png.hpp"
+#include "ScratchFolder.hpp"
 
 #include "affresco/core/Log.hpp"
 #include "affresco/render/Window.hpp"
 
 #include <algorithm>
 #include <filesystem>
-#include <random>
 #include <utility>
 
 namespace affresco::detail {
-
-namespace {
-
-/// @brief A new folder only this user can open, for one picture's file; removed with everything in it.
-class ScratchFolder {
-public:
-	/// @brief Creates the folder in the system's temporary directory, under a random name nobody can take first.
-	ScratchFolder() {
-		std::error_code error;
-		const std::filesystem::path temporary = std::filesystem::temp_directory_path(error);
-		if(error) return;
-		std::random_device random;
-		for(int attempt = 0; attempt < 8 && path_.empty(); ++attempt) {
-			const std::filesystem::path candidate =
-			    temporary / ("affrescoui-image-" + std::to_string(random()) + "-" + std::to_string(random()));
-			if(std::filesystem::create_directory(candidate, error)) path_ = candidate; // false if it exists
-		}
-		if(path_.empty()) return;
-		// Private before the picture goes in; a folder that can't be made private isn't used
-		std::filesystem::permissions(path_, std::filesystem::perms::owner_all, error);
-		if(error) {
-			std::filesystem::remove(path_, error);
-			path_.clear();
-		}
-	}
-	~ScratchFolder() {
-		std::error_code error; // nothing to do about a folder that can't be removed
-		if(!path_.empty()) std::filesystem::remove_all(path_, error);
-	}
-	ScratchFolder(const ScratchFolder&) = delete;
-	ScratchFolder& operator=(const ScratchFolder&) = delete;
-
-	/// @brief The folder, or an empty path if it couldn't be created.
-	[[nodiscard]] const std::filesystem::path& path() const noexcept { return path_; }
-
-private:
-	std::filesystem::path path_; ///< See path().
-};
-
-} // namespace
 
 /// @brief Shows what was shown before a picture, then lets the runtime run handlers again: when the picture is drawn,
 /// or when drawing it fails or throws.

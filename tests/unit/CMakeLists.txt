@@ -8,15 +8,16 @@ FetchContent_MakeAvailable(doctest)
 # Unit tests for the modules that need no window
 file(GLOB affrescoui_unit_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp)
-# Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp and Png.hpp stay private
+# Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp, Png.hpp and automation's Internal.hpp and PngReader.hpp stay private
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
-	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src)
+	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
+	${PROJECT_SOURCE_DIR}/modules/automation/src)
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
-target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui) # all modules; screen.cpp loads screens, no window
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation) # all modules; screen.cpp loads screens, no window
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it
 target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
@@ -37,7 +38,7 @@ target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOUR
 target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
-target_link_libraries(affrescoui_window_tests PRIVATE affrescoui)
+target_link_libraries(affrescoui_window_tests PRIVATE affrescoui::automation) # and through it, the library
 set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it
 target_compile_options(affrescoui_window_tests PRIVATE ${AFFRESCOUI_WARNINGS})
