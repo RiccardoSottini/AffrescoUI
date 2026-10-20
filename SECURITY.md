@@ -181,7 +181,9 @@ Whatever a native function or action does, it does with the host's full rights. 
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
-`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets. Every message that arrives
+`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
+is, so a screen file can name any socket, a running host's `studio.sock` too, and connects to it as soon as its window
+opens. Every message that arrives
 there runs the screen's `<name>:<type>` action, if it has one, with the message as its event, so the program at the
 other end can run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
 
@@ -204,15 +206,18 @@ The command-line tool (`tools/affrescoui`) reads screen files people, agents and
   `check` also loads the screen as the library does, `include`s included, and an `include` may name any file (an
   absolute path too): checking a file reads every JSON object file it names, and the checker's messages can quote
   parts of them. Check a file from someone you don't trust where that is fine, such as a CI runner.
-- `run`, `render`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set
-  given to `import` or `run --plugin` is trusted like one given to `affrescoui_host --plugin`. `import` refuses a
-  history another program is writing.
+- `render` draws the first frame offscreen without the history or saved state, and connects to nobody: every channel
+  the screen declares, by an absolute path too, is pointed at a folder that is never created. A frame over 16,384
+  pixels a side is refused before anything is drawn.
+- `run`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set given to
+  `import` or `run --plugin` is trusted like one given to `affrescoui_host --plugin`. `import` refuses a history
+  another program is writing.
 
 The MCP server (`mcp/affrescoui_mcp.py`) is started by the agent's client and talks to the host over `agent.sock`, so
 the host makes it the author `agent` whatever name the client gives. It only passes on what the agent asks for:
 it has no tool to approve, to read or write files other than the format guide, or to run a program (`--launch`, a
 command on its own command line, is the only one). A message from either side that it can't use gets an error and
-costs only that message. What it hands the agent (a person's request, the document, events) was written by peers
+costs only that message, and its log escapes what isn't printable, as the host's does. What it hands the agent (a person's request, the document, events) was written by peers
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
 
