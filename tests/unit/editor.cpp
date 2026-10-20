@@ -1,6 +1,6 @@
 /// @file
 /// @brief Unit tests for render's TextEditor in a headless window: what a document can make it do with sizes far out
-/// of range.
+/// of range, and the bound on what its undo steps keep.
 
 #include "Headless.hpp"
 
@@ -60,4 +60,24 @@ TEST_CASE("editor: a frame far larger than any integer pages and clicks to the e
 	for(const Action action : {Action::Press, Action::Release}) // far below the first line, in the frame's terms
 		test.window->routeMouseButton({affresco::MouseButton::Left, action, {}, {100.0f, 100.0f}});
 	CHECK(test.editor.caret() == TextEditor::Position{2, 5});
+}
+
+TEST_CASE("editor: undo steps keep at most 256 MiB, the oldest dropped first") {
+	EditorWindow test;
+	// Each text is 16 Ki lines of 63 characters, kept in about 4.6 MiB: about 57 fit, where 500 steps of a small text
+	// would be kept. Short lines, so the caret's line is quick to shape
+	std::string lines;
+	for(int line = 0; line < 16383; ++line) lines += std::string(63, 'a') + "\n";
+	constexpr int texts = 62; // more than fit
+	for(int i = 0; i < texts; ++i) test.editor.setText(std::to_string(i) + "\n" + lines);
+
+	int undone = 0;
+	for(std::string before = test.editor.text(); undone <= texts; ++undone) {
+		test.press(Key::Z, 0x0002 | 0x0008); // Ctrl+Z, or Cmd+Z
+		if(test.editor.text() == before) break;
+		before = test.editor.text();
+	}
+	CHECK(undone >= 50);
+	CHECK(undone <= 60);
+	CHECK(test.editor.text().starts_with(std::to_string(texts - 1 - undone) + "\n"));
 }

@@ -171,7 +171,11 @@ private:
 		std::vector<std::u32string> lines; ///< The text.
 		Position caret;                    ///< The caret.
 		Position anchor;                   ///< The selection's other end.
+		std::size_t bytes = 0;             ///< What it keeps in memory, roughly, for the bound on undo.
 	};
+
+	/// @brief Adds the text as it is now as an undo step, dropping the oldest past 500 steps or 256 MiB in all.
+	void remember();
 
 	/// @brief The height of one line, in pixels.
 	[[nodiscard]] float lineHeight() const noexcept;
