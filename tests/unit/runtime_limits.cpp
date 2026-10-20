@@ -54,6 +54,16 @@ std::string revision(const json& patch) {
 	return json{{"author", "agent"}, {"message", "test"}, {"patch", patch}}.dump();
 }
 
+/// @brief The messages of the errors a peer heard.
+/// @param peer The peer.
+/// @return Their messages, oldest first.
+std::vector<std::string> errorsOf(const affresco::test::MemoryChannel& peer) {
+	std::vector<std::string> errors;
+	for(const json& message : peer.sent)
+		if(message.value("type", "") == "error") errors.push_back(message.value("message", ""));
+	return errors;
+}
+
 } // namespace
 
 // Before, each link was a level of recursion in the checker and in the runtime, and a revision of 20,000 links
@@ -115,4 +125,56 @@ TEST_CASE("format: a component or a screen inside itself is refused, not built w
 	window->render(); // the screen as it was
 	CHECK(screen.revision() == 0);
 	CHECK(screen.find("out"));
+}
+
+// Before, the JSON exception went out of the step, through the window's input routing, and ended the program
+TEST_CASE("format: a step writing through what a revision made a number reports an error instead of throwing") {
+	affresco::test::MemoryChannel peer; // before the screen: its session uses it until it goes
+	affresco::Screen screen = affresco::Screen::fromString(stateScreen);
+	screen.connect(peer, "watcher");
+	affresco::Panel sender;
+	affresco::setLogSink([](affresco::LogLevel, std::string_view) {});
+
+	REQUIRE(screen.submitRevision(revision({{{"op", "replace"}, {"path", "/state/form"}, {"value", 5}}})).status ==
+	        RevisionStatus::Applied);
+	CHECK_NOTHROW(screen.runAction("save", sender));
+	CHECK_NOTHROW(screen.runAction("flip", sender));
+	REQUIRE(
+	    screen.submitRevision(revision({{{"op", "replace"}, {"path", "/state/items"}, {"value", {1, 2}}}})).status ==
+	    RevisionStatus::Applied);
+	CHECK_NOTHROW(screen.runAction("forget", sender));
+	CHECK(errorsOf(peer) == std::vector<std::string>{
+	                            "AffrescoUI screen: actions.save[0]: can't write 'name' inside a number of the state",
+	                            "AffrescoUI screen: actions.flip[0]: can't write 'name' inside a number of the state",
+	                            "AffrescoUI screen: actions.forget[0]: to remove an item of a list, name the list and "
+	                            "the item's \"at\""});
+	CHECK(json::parse(screen.stateJson())["form"] == 5);
+	CHECK(json::parse(screen.stateJson())["items"] == json({1, 2}));
+	affresco::setLogSink(nullptr);
+}
+
+// Before, state.items[2000000000] filled the list with two billion nulls (gigabytes) on the user's click
+TEST_CASE("format: a step writes at most maxListGap positions past a list's end") {
+	affresco::test::MemoryChannel peer;
+	affresco::Screen screen = affresco::Screen::fromString(stateScreen);
+	screen.connect(peer, "watcher");
+	affresco::Panel sender;
+	affresco::setLogSink([](affresco::LogLevel, std::string_view) {});
+
+	const auto select = [&](const json& position) {
+		REQUIRE(screen.submitRevision(revision({{{"op", "replace"}, {"path", "/state/selected"}, {"value", position}}}))
+		            .status == RevisionStatus::Applied);
+		screen.runAction("pick", sender);
+		return json::parse(screen.stateJson())["items"];
+	};
+	CHECK(select(2) == json({nullptr, nullptr, true})); // a small gap is filled with null, as before
+	CHECK(select(3 + 10000).size() == 10004);
+	CHECK(select(2000000000).size() == 10004);
+	CHECK(select(-1).size() == 10004);
+	CHECK(errorsOf(peer) == std::vector<std::string>{
+	                            "AffrescoUI screen: actions.pick[0]: position 2000000000 is more than 10000 past the "
+	                            "end of a list of 10004",
+	                            "AffrescoUI screen: actions.pick[0]: position 18446744073709551615 is more than "
+	                            "10000 past the end of a list of 10004"});
+	affresco::setLogSink(nullptr);
 }

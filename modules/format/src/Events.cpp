@@ -75,8 +75,10 @@ Connection Events::hookCaret(Panel& panel) {
 		Record* record = engine_.reconciler.recordOf(&panel);
 		if(!record || !record->caret) return;
 		try {
-			engine_.versions.state()[format::statePointer(
-			    *record->caret, engine_.document.context(*record->locals, json::object()), record->path + ".caret")] = {
+			const std::string where = record->path + ".caret";
+			const json::json_pointer pointer =
+			    format::statePointer(*record->caret, engine_.document.context(*record->locals, json::object()), where);
+			statePlace(engine_.versions.state(), pointer, where) = {
 			    {"line", caret.line + 1}, {"column", caret.column + 1}, {"selected", editor->selectedLength()}};
 			engine_.document.markStateChanged();
 			engine_.reconciler.requestReconcile();
@@ -135,9 +137,10 @@ void Events::valueChanged(Panel& panel, const json& value) {
 	if(!record) return;
 	if(record->bind) {
 		try {
-			const json none = json::object();
-			engine_.versions.state()[format::statePointer(
-			    *record->bind, engine_.document.context(*record->locals, none), record->path + ".bind")] = value;
+			const std::string where = record->path + ".bind";
+			const json::json_pointer pointer =
+			    format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()), where);
+			statePlace(engine_.versions.state(), pointer, where) = value;
 			engine_.document.markStateChanged();
 			engine_.reconciler.requestReconcile();
 		} catch(const DocumentError& error) {
@@ -369,9 +372,10 @@ void Events::dismissOverlays(const Vec2* position) {
 			if(anchor && anchor->bounds().contains(*position)) continue; // the anchor toggles it itself
 		}
 		try {
-			engine_.versions.state()[format::statePointer(*record.overlayOpen,
-			                                              engine_.document.context(*record.locals, json::object()),
-			                                              record.path + ".overlay.open")] = false;
+			const std::string where = record.path + ".overlay.open";
+			const json::json_pointer pointer = format::statePointer(
+			    *record.overlayOpen, engine_.document.context(*record.locals, json::object()), where);
+			statePlace(engine_.versions.state(), pointer, where) = false;
 			closed = true;
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());

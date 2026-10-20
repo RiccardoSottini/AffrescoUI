@@ -43,6 +43,8 @@ void Steps::handle(const json& handler, Panel& sender, const json& event, const 
 		else runSteps(handler, sender, event, locals, where);
 	} catch(const DocumentError& error) {
 		engine_.report(error.what());
+	} catch(const json::exception& error) { // a JSON error a step didn't turn into a DocumentError: never into the loop
+		engine_.report(where + ": " + error.what());
 	}
 	if(engine_.document.stateChanged()) engine_.reconciler.requestReconcile();
 }
