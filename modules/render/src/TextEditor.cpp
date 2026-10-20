@@ -187,14 +187,18 @@ TextEditor::Position TextEditor::positionAt(Vec2 point) const noexcept {
 	const float row = std::floor(y / lineHeight());
 	Position p;
 	if(row < 0.0f) return p; // above the text: the start
+	// Below (or not a number, from a huge frame): the end, before the row is converted to an integer
+	if(!(row < static_cast<float>(lines_.size()))) return {lines_.size() - 1, lines_.back().size()};
 	p.line = static_cast<std::size_t>(row);
-	if(p.line >= lines_.size()) return {lines_.size() - 1, lines_.back().size()}; // below: the end
 	p.column = columnAt(p.line, point.x - frame().left - gutterWidth() + scroll_.x);
 	return p;
 }
 
 std::size_t TextEditor::visibleLines() const noexcept {
-	return static_cast<std::size_t>(std::max(std::floor((frame().height() - textPadding) / lineHeight()), 1.0f));
+	// No more than the text has: a huge height (or not a number) must not reach the conversion to an integer
+	const float rows =
+	    std::min(std::floor((frame().height() - textPadding) / lineHeight()), static_cast<float>(lines_.size()));
+	return rows >= 1.0f ? static_cast<std::size_t>(rows) : 1;
 }
 
 void TextEditor::clampScroll() noexcept {
@@ -650,6 +654,7 @@ void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& lay
 	// Runs of one colour, each shaped on its own, where the whole line's shaping puts them (so the caret matches).
 	// Their widths are read first: drawing a run shapes it, which may drop the line's shaping from the cache
 	const std::vector<float>& advances = font.shape(text).advances;
+	if(advances.size() < text.size()) return; // out of memory: Font::shape() gave nothing
 	runs.clear();
 	for(std::size_t start = 0; start < text.size();) {
 		std::size_t end = start + 1;
