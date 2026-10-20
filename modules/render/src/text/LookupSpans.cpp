@@ -10,7 +10,7 @@ namespace affresco::detail {
 namespace {
 
 constexpr int deepestNesting = 4;                ///< Lookups applied inside lookups, followed this deep.
-constexpr std::size_t ruleBudget = 1'000'000;    ///< Rules and ligatures read in one table at most.
+constexpr std::size_t ruleBudget = 1'000'000;    ///< Rules, ligatures and what they list, read in a table at most.
 constexpr std::size_t ignoreBaseGlyphs = 0x0002; ///< A lookup flag: such a lookup sees other neighbours than pairs.
 
 /// @brief The wider of two spans, either of which may be unreadable.
@@ -60,22 +60,24 @@ std::optional<std::size_t> LookupSpans::readLookup(unsigned lookup, int depth) {
 	const auto type = u16(at), flags = u16(at + 2), count = u16(at + 4);
 	if(!type || !flags || !count) return std::nullopt;
 	if(*flags & ignoreBaseGlyphs) return unbounded;
+	rulesRead_ += *count; // up to 65,535 subtables, in each of up to 65,535 lookups
+	if(rulesRead_ > ruleBudget) return unbounded;
 
-	const std::size_t extension = positioning_ ? 9 : 7;
 	std::optional<std::size_t> span = 0;
 	for(std::size_t i = 0; i < *count && span; ++i) {
 		const auto offset = u16(at + 6 + 2 * i);
 		if(!offset) return std::nullopt;
-		std::size_t subtable = at + *offset, subtableType = *type;
-		if(subtableType == extension) { // the subtable says its real type, and where it is
-			const auto real = u16(subtable + 2), far = u32(subtable + 4);
-			if(!real || !far) return std::nullopt;
-			subtableType = *real;
-			subtable += *far;
-		}
-		span = widest(span, subtableSpan(subtableType, subtable, depth));
+		span = widest(span, extendedSpan(*type, at + *offset, depth));
 	}
 	return span;
+}
+
+std::optional<std::size_t> LookupSpans::extendedSpan(std::size_t type, std::size_t subtable, int depth) {
+	const std::size_t extension = positioning_ ? 9 : 7;
+	if(type != extension) return subtableSpan(type, subtable, depth);
+	const auto real = u16(subtable + 2), far = u32(subtable + 4); // the subtable says its real type, and where it is
+	if(!real || !far) return std::nullopt;
+	return subtableSpan(*real, subtable + *far, depth);
 }
 
 std::optional<std::size_t> LookupSpans::subtableSpan(std::size_t type, std::size_t subtable, int depth) {
@@ -250,6 +252,8 @@ std::optional<LookupSpans::RuleShape> LookupSpans::contextRule(const Rules& rule
 // A lookup applied at a glyph of the rule may read past the rule's last glyph: as far as its own span reaches
 std::optional<std::size_t> LookupSpans::withNested(std::size_t glyphs, std::size_t records, std::size_t count,
                                                    int depth) {
+	rulesRead_ += count; // many rules can share one rule of 65,535 records
+	if(rulesRead_ > ruleBudget) return unbounded;
 	std::size_t nested = 0;
 	for(std::size_t i = 0; i < count; ++i) {
 		const auto lookup = u16(records + 4 * i + 2);
@@ -265,6 +269,8 @@ std::optional<std::size_t> LookupSpans::withNested(std::size_t glyphs, std::size
 
 std::optional<bool> LookupSpans::sequenceLive(const Rules& rules, std::size_t sequence, std::size_t count,
                                               std::size_t part) {
+	rulesRead_ += count; // as withNested(): a shared sequence of 65,535 glyphs
+	if(rulesRead_ > ruleBudget) return true;
 	for(std::size_t i = 0; i < count; ++i) {
 		const auto value = u16(sequence + 2 * i);
 		if(!value) return std::nullopt;

@@ -12,6 +12,7 @@
 
 #include "detail/Utf8.hpp"
 #include "text/FontInspector.hpp"
+#include "text/LookupSpans.hpp"
 
 #include <doctest/doctest.h>
 
@@ -130,6 +131,31 @@ void checkFont(const std::filesystem::path& path, float size) {
 	for(const std::u32string& line : generatedText()) checkSame(pair, line);
 }
 
+/// @brief A GSUB table of two lookups: a context substitution (format 1) whose rules all share one rule, which applies
+/// the second lookup (a single substitution with no subtables) through many lookup records.
+/// @param sets How many rule sets there are, all the same set.
+/// @param rules How many rules each set has, all the same rule.
+/// @param records How many lookup records the rule has.
+/// @return The table.
+std::vector<std::uint8_t> sharedRulesTable(std::size_t sets, std::size_t rules, std::size_t records) {
+	std::vector<std::uint8_t> table;
+	const auto put = [&table](std::size_t value) {
+		table.push_back(static_cast<std::uint8_t>(value >> 8));
+		table.push_back(static_cast<std::uint8_t>(value));
+	};
+	put(1), put(0), put(0), put(0), put(10); // version 1.0, no scripts or features, the lookups at 10
+	put(2), put(6), put(14);                 // two lookups, at 16 and 24
+	put(5), put(0), put(1), put(16);         // a context substitution, its subtable at 32
+	put(1), put(0), put(0), put(0);          // a single substitution with no subtables
+	put(1), put(0), put(sets);               // format 1, no coverage read, the sets
+	for(std::size_t set = 0; set < sets; ++set) put(6 + 2 * sets);
+	put(rules);
+	for(std::size_t rule = 0; rule < rules; ++rule) put(2 + 2 * rules);
+	put(1), put(records); // one glyph, then the records: at the first glyph, the second lookup
+	for(std::size_t record = 0; record < records; ++record) put(0), put(1);
+	return table;
+}
+
 } // namespace
 
 TEST_CASE("plain text: Roboto's plain words equal HarfBuzz's, at two sizes") {
@@ -143,6 +169,15 @@ TEST_CASE("plain text: JetBrains Mono's plain words equal HarfBuzz's, around its
 
 TEST_CASE("plain text: a subset font with few Latin characters equals HarfBuzz's") {
 	checkFont(testFonts() / "NotoSansArabic-Subset.ttf", 16.0f);
+}
+
+TEST_CASE("plain text: font tables that share their rules are read within a budget, records and glyphs counted") {
+	const std::vector<unsigned> candidates{1};
+	const std::vector<std::uint8_t> small = sharedRulesTable(2, 3, 4);
+	CHECK(affresco::detail::LookupSpans(small, false, candidates).span(0) == 1);
+	// A thousand rules of 65,535 records each: read whole, tens of millions of steps in a table of 260 KiB
+	const std::vector<std::uint8_t> shared = sharedRulesTable(10, 100, 65'535);
+	CHECK(affresco::detail::LookupSpans(shared, false, candidates).span(0) == affresco::detail::LookupSpans::unbounded);
 }
 
 TEST_CASE("plain text: which words take the fast path") {
