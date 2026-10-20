@@ -108,6 +108,24 @@ private:
 	/// @param sets Where the count of sets is; their offsets follow it.
 	/// @param depth As lookupSpan().
 	[[nodiscard]] std::optional<std::size_t> ruleSetsSpan(const Rules& rules, std::size_t sets, int depth);
+	/// @brief What a rule matches, read.
+	struct RuleShape {
+		std::size_t glyphs = 0;  ///< Backtrack, input and lookahead glyphs; unbounded for a rule with no input.
+		std::size_t records = 0; ///< Where its lookup records are.
+		std::size_t lookups = 0; ///< How many there are.
+		bool live = true;        ///< Whether every glyph it names (but the first) can be a candidate.
+	};
+
+	/// @brief Reads a chained rule (formats 1 and 2, or a format 3 subtable after its format).
+	/// @param rules How the rule names glyphs.
+	/// @param rule Where its backtrack count is.
+	/// @return What it matches, or nothing if it can't be read.
+	[[nodiscard]] std::optional<RuleShape> chainedRule(const Rules& rules, std::size_t rule);
+	/// @brief Reads a contextual rule that isn't chained (formats 1 and 2, or a format 3 subtable after its format).
+	/// @param rules How the rule names glyphs.
+	/// @param rule Where its glyph count is.
+	/// @return What it matches, or nothing if it can't be read.
+	[[nodiscard]] std::optional<RuleShape> contextRule(const Rules& rules, std::size_t rule);
 	/// @brief A rule's span, or 0 if one of its glyphs (but the first) can't be a candidate.
 	/// @param rules How the rule names glyphs.
 	/// @param rule Where it is: for a chained rule, its backtrack count; else its glyph count.
@@ -129,6 +147,14 @@ private:
 	/// @param classes Where it is.
 	/// @return The classes, or nothing if it can't be read.
 	[[nodiscard]] std::optional<std::vector<std::size_t>> classesOf(std::size_t classes);
+	/// @brief The class of each candidate in a class definition of format 1 (a first glyph and a class per glyph).
+	/// @param classes Where it is.
+	/// @return The classes, in the candidates' order, or nothing if it can't be read.
+	[[nodiscard]] std::optional<std::vector<std::size_t>> listedClasses(std::size_t classes) const;
+	/// @brief The class of each candidate in a class definition of format 2 (sorted ranges).
+	/// @param classes Where it is.
+	/// @return The classes, in the candidates' order, or nothing if it can't be read or its ranges aren't sorted.
+	[[nodiscard]] std::optional<std::vector<std::size_t>> rangedClasses(std::size_t classes) const;
 	/// @brief A rule's span: its glyphs, widened by the widest lookup it applies inside them.
 	/// @param glyphs How many glyphs the rule matches.
 	/// @param records Where its lookup records are (sequence index, lookup index: four bytes each).

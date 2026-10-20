@@ -140,6 +140,14 @@ parent, later siblings on top of earlier ones.
 | `align` | One value for both axes, or `{ "horizontal", "vertical" }`. |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
+| `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
+
+```json
+"fonts": { "default": { "file": "Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+           "icons": { "file": "Lucide.ttf", "size": 15 } },
+...
+{ "type": "label", "icon": "trash-2", "text": "Delete", "textColor": "@danger" }
+```
 
 ### `textarea`
 Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state path kept in sync both ways, or
@@ -201,6 +209,22 @@ shows a value and `onChange` (`event.value`) reacts. A control keeps its own cli
 | `activeColor` | The filled or on part. |
 | `knobColor` | The knob (or the inside of the checkbox). |
 | `min`, `max`, `step` | Slider range (default 0 to 100) and snapping. |
+
+### `image`
+A PNG or JPEG picture, fitted to the node. Transparent until it arrives: files are decoded on a worker thread, and the
+picture appears when it is ready (a picture of the screen, `render`, waits for every one).
+
+| Key | Meaning |
+|---|---|
+| `file` | A PNG or JPEG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
+| `source` | Instead of `file`: an image the host names (`Screen::setImage("chart", …)`), e.g. a picture it made; the node shows each new one the host sets. |
+| `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
+
+```json
+{ "type": "image", "id": "avatar", "file": "images/avatar.png", "width": 48, "height": 48, "fit": "cover" }
+```
+
+Small images (up to 256 pixels a side) share textures, so a list of thumbnails draws in one batch with its text.
 
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
@@ -534,6 +558,8 @@ screen.registerType("chart", [] { return std::make_unique<MyChart>(); }); // a c
 screen.registerType("gauge", [] { return std::make_unique<MyGauge>(); }, {"needle"},
                     [&](affresco::Panel& panel, const std::string& propertiesJson) { /* {"needle": "@accent"} */ });
 screen.onCall("pickFile", [](const std::string& argumentsJson) { return R"("/tmp/a.png")"; }); // {"call": "pickFile"}
+screen.allowImageDirectory(photos);                    // image files from there too, not only the screen's folder
+screen.setImage("chart", width, height, rgbaPixels);    // {"type": "image", "source": "chart"}; again to change it
 affresco::Window& window = screen.createWindow(app); // also connects the file's channels
 screen.listen(app, "/tmp/affrescoui-501/agent.sock", "agent"); // peers can change it from now on
 app.run();

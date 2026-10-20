@@ -79,7 +79,7 @@ public:
 	/// @brief Sets, replaces or removes a named image, and delivers it to those who watch the name.
 	/// @param name The name.
 	/// @param bitmap The image, or nullptr to remove it.
-	void setNamed(const std::string& name, std::shared_ptr<const Bitmap> bitmap);
+	void setNamed(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap);
 	/// @brief A named image.
 	/// @param name The name.
 	/// @return It, or nullptr.

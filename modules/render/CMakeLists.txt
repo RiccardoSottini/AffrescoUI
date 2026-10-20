@@ -37,3 +37,8 @@ target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR
 	${stb_image_SOURCE_DIR})
 target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw freetype affrescoui_harfbuzz)
 target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
+# stb_image's JPEG decoder lets signed integers overflow on crafted input (found by the image fuzz target): wrapping
+# is what it expects, so the one file that compiles it wraps, and the sanitizers don't stop there
+if(NOT MSVC)
+	set_source_files_properties(src/Bitmap.cpp PROPERTIES COMPILE_OPTIONS "-fwrapv;-fno-sanitize=signed-integer-overflow")
+endif()

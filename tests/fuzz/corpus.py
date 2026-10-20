@@ -10,7 +10,8 @@
 - text:       every text of the templates and of the rendering check's screens;
 - cli:        the templates and the rendering check's screens as written, and nodes without ids;
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
-- lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds).
+- lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
+- image:      the rendering check's PNG and JPEG files (binary seeds).
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -262,6 +263,12 @@ def lookups_seeds():
     return seeds
 
 
+def image_seeds():
+    """The images of the rendering check's screens."""
+    folder = ROOT / "tests/render/screens/images"
+    return [path.read_bytes() for path in sorted(folder.glob("*.png")) + sorted(folder.glob("*.jpg"))]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -293,7 +300,8 @@ def dictionaries():
             "layout": tokens + schema_words() + ["\"1fr\"", "\"auto\"", "\"minmax(", "\"25%\"", "\"space-between\"",
                                                  "\"stretch\"", "\"16/9\"", "\"none\"", "\"row\"", "\"grid\"",
                                                  "\"column\"", "1e38"],
-            "lookups": [chr(0) + chr(value) for value in range(10)]}  # big-endian 0..9
+            "lookups": [chr(0) + chr(value) for value in range(10)],  # big-endian 0..9
+            "image": ["IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"]}
 
 
 def dictionary_entry(word):
@@ -339,6 +347,7 @@ def main():
     write(out, "actions", action_seeds(), words["actions"])
     write(out, "layout", layout_seeds(), words["layout"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
+    write(out, "image", image_seeds(), words["image"])
 
 
 if __name__ == "__main__":

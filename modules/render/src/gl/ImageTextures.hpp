@@ -32,8 +32,8 @@ public:
 
 	/// @brief Where an image is on the GPU.
 	struct Placement {
-		GLuint texture; ///< Its texture.
-		Rect uv;        ///< Its texture coordinates there.
+		GLuint texture = 0; ///< Its texture.
+		Rect uv;            ///< Its texture coordinates there.
 	};
 
 	/// @brief Where an image is, uploading it the first time.

@@ -110,12 +110,15 @@ std::optional<bool> readTable(hb_face_t* face, hb_tag_t table, std::span<const u
 	return std::ranges::all_of(different, [&](unsigned lookup) { return noScriptSpans.span(lookup) == 0u; });
 }
 
-/// @brief Whether a face has a table.
+/// @brief Whether HarfBuzz shapes a face its own way, which the tables read here don't describe: AAT tables,
+/// variations, or a legacy kern table when there is no GPOS.
 /// @param face The face.
-/// @param tag The table.
-bool hasTable(hb_face_t* face, hb_tag_t tag) {
-	const std::unique_ptr<hb_blob_t, HarfBuzzDeleter> blob(hb_face_reference_table(face, tag));
-	return hb_blob_get_length(blob.get()) > 0;
+bool shapedOtherwise(hb_face_t* face) { // NOLINT(misc-const-correctness): HarfBuzz takes faces as non-const
+	if(hb_aat_layout_has_substitution(face) || hb_aat_layout_has_positioning(face) ||
+	   hb_aat_layout_has_tracking(face) || hb_ot_var_has_data(face))
+		return true;
+	const std::unique_ptr<hb_blob_t, HarfBuzzDeleter> kern(hb_face_reference_table(face, HB_TAG('k', 'e', 'r', 'n')));
+	return !hb_ot_layout_has_positioning(face) && hb_blob_get_length(kern.get()) > 0;
 }
 
 } // namespace
@@ -143,11 +146,7 @@ PlainText::PlainText(const FontFace& face) : face_(face), scale_(face.scale()) {
 
 bool PlainText::readLookups() {
 	hb_face_t* face = hb_font_get_face(face_.shaper());
-	// HarfBuzz shapes these its own way: AAT tables, variations, and a legacy kern table when there is no GPOS
-	if(hb_aat_layout_has_substitution(face) || hb_aat_layout_has_positioning(face) ||
-	   hb_aat_layout_has_tracking(face) || hb_ot_var_has_data(face))
-		return false;
-	if(!hb_ot_layout_has_positioning(face) && hasTable(face, HB_TAG('k', 'e', 'r', 'n'))) return false;
+	if(shapedOtherwise(face)) return false;
 
 	std::vector<unsigned> candidates, noScript;
 	for(const Character& character : characters_) {

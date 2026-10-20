@@ -269,6 +269,11 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A font's size (a document can ask for any: a larger one is refused) | 4,096 pixels |
 | A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel) |
 | A font file (regular files only: no devices or pipes) | 256 MiB |
+| An image file (`image` nodes; regular files only, inside the screen's folder or one the host allows) | 64 MiB |
+| A decoded image (from its header, before any pixel is decoded) | 8,192 pixels a side, 4,096 × 4,096 pixels in all |
+| Image files waiting to be decoded | 256; more show nothing |
+| Decoded image files kept that nothing shows (least recently used dropped first) | 256 MiB |
+| A glyph name an `icon` looks up | 128 bytes; 1,024 names remembered per font |
 | Fonts kept that no screen, panel or window uses (`FontCache`, least recently used dropped first) | 32 fonts and 128 MiB |
 | Shaped text kept per font (least recently used dropped first) | 4,096 lines of 128 Ki code points in all, 8,192 words of 64 Ki |
 | A file of a history on disk, read at start (nothing larger or deeper is written) | 64 MiB, and 256 levels of JSON |
@@ -365,11 +370,20 @@ These are not protected today. They are stated plainly so that you can decide wh
   reads that file, if it is a regular file of at most 256 MiB, and parses it as a font; the error a peer gets back
   says whether it could be read. The parsers are FreeType and HarfBuzz, which OSS-Fuzz fuzzes all the time, and far
   more hardened than stb_truetype was; still, a malformed font is untrusted input to C and C++ libraries, and the
-  `text` fuzz target here fuzzes the text, not the font files. A picture of a proposal (`render`) loads the
-  proposal's fonts, and any peer may ask for one, so the font a proposal names is read and parsed before a reviewer
-  looks at it. Fonts no screen uses are bounded (the limits above),
+  `text` fuzz target here fuzzes the text, not the font files (`lookups` fuzzes the GSUB and GPOS tables the fast
+  path for plain text reads itself). A picture of a proposal (`render`) loads the proposal's fonts, and any peer may
+  ask for one, so the font a proposal names is read and parsed before a reviewer looks at it. Fonts no screen uses
+  are bounded (the limits above),
   but the fonts the current document declares are all kept, however many it declares: only the document's size
   bounds them, and each costs at least its first atlas page (up to 16 MiB for very large sizes).
+- **Image files are decoded by stb_image.** A revision can point an `image` node at any file inside the screen's
+  folder (and the folders the host allows), and the app decodes it, as PNG or JPEG, on a worker thread. Files
+  elsewhere are refused, the path resolved with symbolic links followed, so a revision can't show a picture from
+  anywhere on the disk; a host that allows a folder (`Screen::allowImageDirectory`) allows every picture in it to
+  agents, and a picture of a proposal (`render`) decodes the files the proposal names before a reviewer sees it.
+  stb_image is small and widely used but not hardened like libpng: its input is bounded (the limits above,
+  read from the header first) and fuzzed (`image`), and only PNG and JPEG are compiled in. Font files are not held
+  to folders yet (the gap above).
 - **A history on disk is only as safe as its folder.** Anyone who can write the data folder can write a history
   whose hashes are valid. The checks above hold, but deny rules aren't replayed for each commit on `main`, so such a
   history can contain changes the deny rules would have refused, as long as its head passes the revision check. This

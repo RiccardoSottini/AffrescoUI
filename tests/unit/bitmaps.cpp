@@ -60,7 +60,7 @@ public:
 			const std::scoped_lock lock(mutex_);
 			tasks.swap(tasks_);
 		}
-		for(auto& task : tasks) task();
+		for(const auto& task : tasks) task();
 		return tasks.size();
 	}
 

@@ -25,7 +25,7 @@ ImageFit fitOf(const json& value, const std::string& at) {
 	const std::string name = string(value, at);
 	for(const auto& [word, fit] : fits)
 		if(word == name) return fit;
-	fail(at, "expected \"contain\", \"cover\" or \"fill\"");
+	fail(at, R"(expected "contain", "cover" or "fill")");
 }
 
 /// @brief Shows an image node's picture: the host's named image ("source"), else a file ("file"), else none.
@@ -45,7 +45,7 @@ void applyImage(Panel& panel, const json& values, const PropertyReader& reader, 
 } // namespace
 
 void registerImageType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"file", ValueKind::Text}, {"source", ValueKind::Text}, {"fit", ValueKind::Text}};
 	set->apply = applyImage; // when the values change: a new file is asked for once
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const ImageView*>(&panel) != nullptr; };

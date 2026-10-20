@@ -11,7 +11,7 @@ namespace affresco {
 
 ImageView::ImageView() { setColor(colors::transparent); }
 
-void ImageView::setBitmap(std::shared_ptr<const Bitmap> bitmap) {
+void ImageView::setBitmap(const std::shared_ptr<const Bitmap>& bitmap) {
 	request_.cancel();
 	source_.clear();
 	deliver(bitmap);

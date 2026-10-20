@@ -33,7 +33,7 @@ public:
 
 	/// @brief Shows an image, and forgets the file or name asked for before.
 	/// @param bitmap The image, or nullptr for none.
-	void setBitmap(std::shared_ptr<const Bitmap> bitmap);
+	void setBitmap(const std::shared_ptr<const Bitmap>& bitmap);
 	/// @brief The image shown, or nullptr.
 	[[nodiscard]] const std::shared_ptr<const Bitmap>& bitmap() const noexcept { return bitmap_; }
 	/// @brief Shows a file's image, once the cache has it. Asking for the file shown already does nothing.

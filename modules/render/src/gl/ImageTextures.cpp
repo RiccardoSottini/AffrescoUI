@@ -80,15 +80,17 @@ void ImageTextures::pack(const Bitmap& bitmap, Entry& entry) {
 		spot = pages_[index]->packer.place(width, height, 0);
 	}
 
+	// An empty page has room for any image packed (at most 258 texels a side, border included)
+	const std::array<int, 2> at = spot.value_or(std::array<int, 2>{0, 0});
 	Page& page = *pages_[index];
 	const std::vector<std::uint8_t> texels = withBorder(bitmap);
 	glBindTexture(GL_TEXTURE_2D, page.texture.id());
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, (*spot)[0], (*spot)[1], width, height, GL_RGBA, GL_UNSIGNED_BYTE, texels.data());
+	glTexSubImage2D(GL_TEXTURE_2D, 0, at[0], at[1], width, height, GL_RGBA, GL_UNSIGNED_BYTE, texels.data());
 	++page.alive;
 
 	const float texel = 1.0f / static_cast<float>(pageSize);
-	const auto left = static_cast<float>((*spot)[0] + 1), top = static_cast<float>((*spot)[1] + 1);
+	const auto left = static_cast<float>(at[0] + 1), top = static_cast<float>(at[1] + 1);
 	entry.page = index;
 	entry.uv = {left * texel, top * texel, (left + static_cast<float>(bitmap.width())) * texel,
 	            (top + static_cast<float>(bitmap.height())) * texel};

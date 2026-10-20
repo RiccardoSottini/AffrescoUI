@@ -202,48 +202,47 @@ std::optional<std::size_t> LookupSpans::ruleSetsSpan(const Rules& rules, std::si
 	return span;
 }
 
-// A chained rule: backtrack count and glyphs, input count and glyphs, lookahead count and glyphs, lookup count and
-// records. A plain rule: glyph count, lookup count, glyphs, records. Rules leave the first input glyph out (the
-// coverage has it); format 3 has a coverage for every input glyph
 std::optional<std::size_t> LookupSpans::ruleSpan(const Rules& rules, std::size_t rule, int depth) {
-	const std::size_t skipped = rules.encoding == Encoding::coverages ? 0 : 1;
-	std::array<std::size_t, 3> counts{}; // backtrack, input, lookahead
-	std::size_t records = 0, lookups = 0;
-	bool live = true;
-	const auto readSequence = [&](std::size_t part, std::size_t count, std::size_t at) -> bool {
-		counts[part] = count;
-		const std::size_t listed = part == 1 ? count - skipped : count;
-		const auto sequence = sequenceLive(rules, at, listed, part);
-		live = live && sequence.value_or(false);
-		return sequence.has_value();
-	};
+	const std::optional<RuleShape> shape = rules.chained ? chainedRule(rules, rule) : contextRule(rules, rule);
+	if(!shape) return std::nullopt;
+	if(shape->glyphs == unbounded) return unbounded;
+	if(!shape->live) return 0; // it never matches text made of candidates
+	return withNested(shape->glyphs, shape->records, shape->lookups, depth);
+}
 
-	if(rules.chained) {
-		const auto backtrack = u16(rule);
-		if(!backtrack || !readSequence(0, *backtrack, rule + 2)) return std::nullopt;
-		std::size_t at = rule + 2 + 2 * *backtrack;
-		const auto input = u16(at);
-		if(!input) return std::nullopt;
-		if(*input == 0) return unbounded;
-		if(!readSequence(1, *input, at + 2)) return std::nullopt;
-		at += 2 + 2 * (*input - skipped);
-		const auto lookahead = u16(at);
-		if(!lookahead || !readSequence(2, *lookahead, at + 2)) return std::nullopt;
-		at += 2 + 2 * *lookahead;
+// Backtrack count and glyphs, input count and glyphs, lookahead count and glyphs, lookup count and records. Rules leave
+// the first input glyph out (the coverage has it); format 3 has a coverage for every input glyph
+std::optional<LookupSpans::RuleShape> LookupSpans::chainedRule(const Rules& rules, std::size_t rule) {
+	const std::size_t skipped = rules.encoding == Encoding::coverages ? 0 : 1;
+	RuleShape shape;
+	std::size_t at = rule;
+	for(std::size_t part = 0; part < 3; ++part) {
 		const auto count = u16(at);
 		if(!count) return std::nullopt;
-		records = at + 2;
-		lookups = *count;
-	} else {
-		const auto glyphs = u16(rule), count = u16(rule + 2);
-		if(!glyphs || !count) return std::nullopt;
-		if(*glyphs == 0) return unbounded;
-		if(!readSequence(1, *glyphs, rule + 4)) return std::nullopt;
-		records = rule + 4 + 2 * (*glyphs - skipped);
-		lookups = *count;
+		if(part == 1 && *count == 0) return RuleShape{unbounded, 0, 0, true};
+		const std::size_t listed = part == 1 ? *count - skipped : *count;
+		const auto live = sequenceLive(rules, at + 2, listed, part);
+		if(!live) return std::nullopt;
+		shape.live = shape.live && *live;
+		shape.glyphs += *count;
+		at += 2 + 2 * listed;
 	}
-	if(!live) return 0; // it never matches text made of candidates
-	return withNested(counts[0] + counts[1] + counts[2], records, lookups, depth);
+	const auto lookups = u16(at);
+	if(!lookups) return std::nullopt;
+	shape.records = at + 2;
+	shape.lookups = *lookups;
+	return shape;
+}
+
+// Glyph count, lookup count, the glyphs (all but the first, or a coverage for each in format 3), the records
+std::optional<LookupSpans::RuleShape> LookupSpans::contextRule(const Rules& rules, std::size_t rule) {
+	const std::size_t skipped = rules.encoding == Encoding::coverages ? 0 : 1;
+	const auto glyphs = u16(rule), lookups = u16(rule + 2);
+	if(!glyphs || !lookups) return std::nullopt;
+	if(*glyphs == 0) return RuleShape{unbounded, 0, 0, true};
+	const auto live = sequenceLive(rules, rule + 4, *glyphs - skipped, 1);
+	if(!live) return std::nullopt;
+	return RuleShape{*glyphs, rule + 4 + 2 * (*glyphs - skipped), *lookups, *live};
 }
 
 // A lookup applied at a glyph of the rule may read past the rule's last glyph: as far as its own span reaches
@@ -308,40 +307,47 @@ std::optional<bool> LookupSpans::coverageLive(std::size_t coverage) {
 
 std::optional<std::vector<std::size_t>> LookupSpans::classesOf(std::size_t classes) {
 	const auto format = u16(classes);
-	if(!format) return std::nullopt;
+	std::optional<std::vector<std::size_t>> found;
+	if(format == std::optional<std::size_t>(1)) found = listedClasses(classes);
+	else if(format == std::optional<std::size_t>(2)) found = rangedClasses(classes);
+	if(!found) return std::nullopt;
+	std::ranges::sort(*found);
+	const auto [first, last] = std::ranges::unique(*found);
+	found->erase(first, last);
+	return found;
+}
+
+// Format 1: a first glyph, and a class for each glyph from it
+std::optional<std::vector<std::size_t>> LookupSpans::listedClasses(std::size_t classes) const {
+	const auto first = u16(classes + 2), count = u16(classes + 4);
+	if(!first || !count) return std::nullopt;
 	std::vector<std::size_t> found;
-	if(*format == 1) {
-		const auto first = u16(classes + 2), count = u16(classes + 4);
-		if(!first || !count) return std::nullopt;
-		for(const unsigned glyph : candidates_) {
-			const bool listed = glyph >= *first && glyph - *first < *count;
-			const auto value = listed ? u16(classes + 6 + 2 * (glyph - *first)) : std::optional<std::size_t>(0);
-			if(!value) return std::nullopt;
-			found.push_back(*value);
-		}
-	} else if(*format == 2) {
-		const auto count = u16(classes + 2);
-		if(!count) return std::nullopt;
-		std::vector<std::array<std::size_t, 3>> ranges; // first, last, class: sorted, as shaping searches them
-		ranges.reserve(*count);
-		for(std::size_t i = 0; i < *count; ++i) {
-			const auto first = u16(classes + 4 + 6 * i), last = u16(classes + 6 + 6 * i),
-			           value = u16(classes + 8 + 6 * i);
-			if(!first || !last || !value || *last < *first || (!ranges.empty() && *first <= ranges.back()[1]))
-				return std::nullopt;
-			ranges.push_back({*first, *last, *value});
-		}
-		for(const unsigned glyph : candidates_) {
-			const auto range =
-			    std::ranges::upper_bound(ranges, std::size_t{glyph}, {}, [](const auto& r) { return r[0]; });
-			found.push_back(range != ranges.begin() && glyph <= (range - 1)->at(1) ? (range - 1)->at(2) : 0);
-		}
-	} else {
-		return std::nullopt;
+	for(const unsigned glyph : candidates_) {
+		const bool listed = glyph >= *first && glyph - *first < *count;
+		const auto value = listed ? u16(classes + 6 + 2 * (glyph - *first)) : std::optional<std::size_t>(0);
+		if(!value) return std::nullopt;
+		found.push_back(*value);
 	}
-	std::ranges::sort(found);
-	const auto [first, last] = std::ranges::unique(found);
-	found.erase(first, last);
+	return found;
+}
+
+// Format 2: ranges of glyphs and their classes, sorted, as shaping searches them
+std::optional<std::vector<std::size_t>> LookupSpans::rangedClasses(std::size_t classes) const {
+	const auto count = u16(classes + 2);
+	if(!count) return std::nullopt;
+	std::vector<std::array<std::size_t, 3>> ranges; // first, last, class
+	ranges.reserve(*count);
+	for(std::size_t i = 0; i < *count; ++i) {
+		const auto first = u16(classes + 4 + 6 * i), last = u16(classes + 6 + 6 * i), value = u16(classes + 8 + 6 * i);
+		if(!first || !last || !value || *last < *first || (!ranges.empty() && *first <= ranges.back()[1]))
+			return std::nullopt;
+		ranges.push_back({*first, *last, *value});
+	}
+	std::vector<std::size_t> found;
+	for(const unsigned glyph : candidates_) {
+		const auto range = std::ranges::upper_bound(ranges, std::size_t{glyph}, {}, [](const auto& r) { return r[0]; });
+		found.push_back(range != ranges.begin() && glyph <= (range - 1)->at(1) ? (range - 1)->at(2) : 0);
+	}
 	return found;
 }
 

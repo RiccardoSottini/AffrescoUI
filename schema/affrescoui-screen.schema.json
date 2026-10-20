@@ -435,7 +435,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -450,6 +450,7 @@
 									"toggle",
 									"checkbox",
 									"slider",
+									"image",
 									"outlet"
 								]
 							},
@@ -910,6 +911,33 @@
 					"font": {
 						"type": "string"
 					},
+					"icon": {
+						"type": "string",
+						"description": "label: an icon before the text, by its glyph name in the label's font or its fallbacks (e.g. Lucide's \"search\")"
+					},
+					"file": {
+						"type": "string",
+						"description": "image: a PNG or JPEG file, relative to the screen file and inside its folder (or one the host allows)"
+					},
+					"source": {
+						"type": "string",
+						"description": "image: an image the host names (Screen::setImage), instead of a file"
+					},
+					"fit": {
+						"anyOf": [
+							{
+								"enum": [
+									"contain",
+									"cover",
+									"fill"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "image: contain (default), cover or fill, like CSS object-fit"
+					},
 					"padding": {
 						"anyOf": [
 							{
@@ -1221,6 +1249,7 @@
 									"toggle",
 									"checkbox",
 									"slider",
+									"image",
 									"outlet"
 								]
 							}

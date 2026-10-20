@@ -15,7 +15,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 |---|---|
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds) and `pathHint` (hints for paths that find nothing); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
@@ -29,7 +29,7 @@ Each subsystem's header says its role, its invariants and its callers:
 
 | Subsystem | Does |
 |---|---|
-| `DocumentContext` | colours, fonts (from a bounded `FontCache`), the theme, the globals of expressions, the `computed` cache, the screen an outlet shows |
+| `DocumentContext` | colours, fonts (from a bounded `FontCache`), images (an `ImageCache`: files of the allowed folders, the host's named images), the theme, the globals of expressions, the `computed` cache, the screen an outlet shows |
 | `Builder` | compiles each node once per version of the document; a node's children after `use`, `repeat`, `with`, `let`, `check`, styles and `when` |
 | `Reconciler` | the record of every panel built; keeps the panels in line with the document; batched updates |
 | `Properties` | a compiled node's values on its panel, by slot; the property sets node types registered |
@@ -40,7 +40,7 @@ Each subsystem's header says its role, its invariants and its callers:
 
 | Registry | Registers | From |
 |---|---|---|
-| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`; the application's `registerType` |
+| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`; the application's `registerType` |
 | `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
@@ -93,6 +93,9 @@ general: a settings page can describe its settings with it.
   typing, scroll and drags survive. If a version can't be built, the runtime refuses it and version control rolls
   it back.
 - **State changes during one event become one update,** run once the event has been delivered.
+- **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
+  (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
+  naming one is refused. A screen loaded from a string without a base directory allows none.
 - **Limits** (untrusted documents): expression nesting 100; `while` 10,000 iterations; `forEach` lists, `range` and
   `pad` 10,000; nested actions 32; nested components 32; computed values reading computed values 32; panels built
   inside each other 256 (`maxNodeDepth`); styles using styles 16; `include` inside `include` 8; a state write at most
@@ -112,7 +115,10 @@ general: a settings page can describe its settings with it.
 Main thread only. The runtime reads and writes the `VersionControl` it was given, and its deferred work, timers and
 animations run through the window (`Window::defer`, `setTimer`) and read its clock. When it is destroyed it cancels
 its timers, its deferred tasks check that it is still alive, and it disconnects every signal it connected (the
-window's and its panels'), so a window can outlive its screen.
+window's and its panels'), so a window can outlive its screen. Image files are decoded on the `ImageCache`'s worker
+thread; from `createWindow(app)` on, the decoded images come back through the `Application` (an `Executor`), and
+before it (`build` on a window of the caller's) they are decoded when asked for. `waitForImages` waits for the worker
+and shows what it decoded.
 
 ## Errors
 
@@ -174,7 +180,8 @@ src/
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
   Scheduler.*              timers, animations, debounces, transitions, deferred tasks
   Catalog.*                the catalog, from the registries
-  TypeRegistry.*           node types; Types.cpp, EditorType.cpp, ToggleType.cpp, SliderType.cpp register them
+  TypeRegistry.*           node types; Types.cpp, EditorType.cpp, ToggleType.cpp, SliderType.cpp, ImageType.cpp
+                           register them, and IconProperty.cpp the labels' "icon"
   SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them
   Record.hpp, NodeKeys.hpp what the runtime keeps per panel, and what a node's keys mean
 CMakeLists.txt             the affrescoui_format target and its sources

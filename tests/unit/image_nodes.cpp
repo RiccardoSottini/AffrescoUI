@@ -151,7 +151,7 @@ TEST_CASE("icons: a label's icon is a glyph named in its font or a fallback, dra
 }
 
 TEST_CASE("image nodes and icons are in the catalog") {
-	affresco::Screen screen = affresco::Screen::fromString(imageScreen().dump(), screens());
+	const affresco::Screen screen = affresco::Screen::fromString(imageScreen().dump(), screens());
 	const json catalog = json::parse(screen.catalogJson());
 	const json& image = catalog["types"]["image"]["properties"];
 	for(const char* property : {"file", "source", "fit"}) CHECK(std::ranges::find(image, property) != image.end());

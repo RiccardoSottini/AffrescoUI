@@ -26,7 +26,7 @@ namespace {
 /// @return Its path.
 std::filesystem::path resolved(const std::filesystem::path& file) {
 	std::error_code error;
-	std::filesystem::path path = std::filesystem::weakly_canonical(file, error);
+	const std::filesystem::path path = std::filesystem::weakly_canonical(file, error);
 	return error ? std::filesystem::absolute(file, error).lexically_normal() : path;
 }
 
@@ -245,7 +245,7 @@ ImageCache::Request ImageCache::load(const std::filesystem::path& file, Delivery
 	return {state_, id};
 }
 
-void ImageCache::setNamed(const std::string& name, std::shared_ptr<const Bitmap> bitmap) {
+void ImageCache::setNamed(const std::string& name, const std::shared_ptr<const Bitmap>& bitmap) {
 	State& state = *state_;
 	if(bitmap) state.named[name] = bitmap;
 	else state.named.erase(name);

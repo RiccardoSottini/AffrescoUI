@@ -253,8 +253,8 @@ char32_t Font::codepointNamed(std::string_view name) const {
 	std::string key(name);
 	if(const auto found = data.namedGlyphs.find(key); found != data.namedGlyphs.end()) return found->second;
 	char32_t codepoint = 0;
-	for(const detail::FontFace& face : data.faces)
-		if((codepoint = face.codepointNamed(key)) != 0) break;
+	for(auto face = data.faces.begin(); face != data.faces.end() && codepoint == 0; ++face)
+		codepoint = face->codepointNamed(key);
 	if(data.namedGlyphs.size() >= Data::namedGlyphsKept) data.namedGlyphs.clear();
 	data.namedGlyphs.emplace(std::move(key), codepoint);
 	return codepoint;
