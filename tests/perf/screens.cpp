@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdio>
 #include <format>
 #include <fstream>
 #include <memory>
@@ -280,15 +281,50 @@ void resize(Window& window, bool& smaller) {
 	layOut(window);
 }
 
-/// @brief "layout/400": laying out the largest screen, the Kanban template with 400 cards, after a resize.
+/// @brief How many panels a tree has.
+/// @param panel The tree's root.
+/// @return The panels, the root included.
+std::size_t panelCount(const Panel& panel) {
+	std::size_t count = 1;
+	for(const auto& child : panel.children()) count += panelCount(*child);
+	return count;
+}
+
+/// @brief The cards that fill the Kanban template to at least 5,000 panels (checked when the workload is set up).
+constexpr int cardsForFiveThousandPanels = 770;
+
+/// @brief "layout/400": laying out the largest template screen, the Kanban template with 400 cards, after a resize;
+/// "layout/5000": the same with enough cards for 5,000 panels.
 /// @param context The context.
-/// @return The workload.
+/// @return The workloads.
 std::vector<Workload> layoutWorkloads(Context& context) {
-	const LoadedScreen loaded = context.load(kanbanWithCards(context.screens(), cardCounts.back()), context.screens());
-	const auto smaller = std::make_shared<bool>(false);
-	Workload workload{.name = "layout/" + std::to_string(cardCounts.back()), .runs = 15};
-	workload.step = [&window = loaded.window, smaller] { resize(window, *smaller); };
-	return single(std::move(workload));
+	std::vector<Workload> workloads;
+	for(const int cards : {cardCounts.back(), cardsForFiveThousandPanels}) {
+		const LoadedScreen loaded = context.load(kanbanWithCards(context.screens(), cards), context.screens());
+		layOut(loaded.window);
+		const std::size_t panels = panelCount(loaded.window.root());
+		if(cards == cardsForFiveThousandPanels && panels < 5000)
+			throw std::logic_error(std::format("layout/5000 has only {} panels", panels));
+		const auto smaller = std::make_shared<bool>(false);
+		Workload workload{.name = cards == cardsForFiveThousandPanels ? "layout/5000" : "layout/" + std::to_string(cards),
+		                  .runs = 15};
+		workload.step = [&window = loaded.window, smaller] { resize(window, *smaller); };
+		workloads.push_back(std::move(workload));
+		std::fprintf(stderr, "%s: %zu panels\n", workloads.back().name.c_str(), panels);
+		if(cards != cardsForFiveThousandPanels) continue;
+
+		// One card's title changes: only what that moves is laid out again
+		auto* title = dynamic_cast<Label*>(loaded.window.root().findById("cardTitle"));
+		if(!title) throw std::logic_error("the Kanban template has no cardTitle label");
+		Workload change{.name = "layout/5000/change", .runs = 15};
+		change.step = [&window = loaded.window, title, smaller] {
+			*smaller = !*smaller;
+			title->setText(*smaller ? "A title that changed" : "Another title");
+			layOut(window);
+		};
+		workloads.push_back(std::move(change));
+	}
+	return workloads;
 }
 
 /// @brief "frame/<cards>": laying out and drawing a full frame of the Kanban template, in the main thread's CPU time

@@ -88,11 +88,16 @@ Panel* Panel::findById(std::string_view id) noexcept {
 	return nullptr;
 }
 
+// Kept until the panel changes (invalidate()) or the window starts a new generation (Window::invalidate())
 Vec2 Panel::measuredSize(Vec2 reference) {
+	const std::uint64_t generation = window_ ? window_->measureGeneration_ : 0;
+	if(measured_ && measured_->reference == reference && measured_->generation == generation) return measured_->size;
 	prepareLayout();
-	const Vec2 size{bounded(width_, minWidth_, maxWidth_, reference.x),
-	                bounded(height_, minHeight_, maxHeight_, reference.y)};
-	return withAspectRatio(size, width_.value != 0.0f, height_.value != 0.0f, reference);
+	const Vec2 size = withAspectRatio(
+	    {bounded(width_, minWidth_, maxWidth_, reference.x), bounded(height_, minHeight_, maxHeight_, reference.y)},
+	    width_.value != 0.0f, height_.value != 0.0f, reference);
+	measured_ = MeasuredSize{reference, size, generation};
+	return size;
 }
 
 float Panel::measuredHeight(float reference) { return measuredSize({parent_ ? parent_->size_.x : 0.0f, reference}).y; }
@@ -125,26 +130,28 @@ void Panel::attachTo(Window* window) noexcept {
 }
 
 void Panel::invalidate() noexcept {
-	if(window_) window_->invalidate();
+	measured_.reset();
+	markLayoutDirty();
+	if(window_) window_->requestLayout();
+}
+
+// Ancestors already marked have theirs marked too, so the walk stops at the first one
+void Panel::markLayoutDirty() noexcept {
+	layoutDirty_ = true;
+	for(Panel* ancestor = parent_; ancestor && !ancestor->layoutBelow_; ancestor = ancestor->parent_)
+		ancestor->layoutBelow_ = true;
 }
 
 /* Position */
 
 void Panel::setPosition(Length x, Length y) {
-	x_ = x;
-	y_ = y;
-	invalidate();
+	setProperty(x_, x);
+	setProperty(y_, y);
 }
 
-void Panel::setX(Length x) {
-	x_ = x;
-	invalidate();
-}
+void Panel::setX(Length x) { setProperty(x_, x); }
 
-void Panel::setY(Length y) {
-	y_ = y;
-	invalidate();
-}
+void Panel::setY(Length y) { setProperty(y_, y); }
 
 Vec2 Panel::relativePosition() const noexcept {
 	if(!parent_) return {bounds_.left, bounds_.top};
@@ -154,73 +161,56 @@ Vec2 Panel::relativePosition() const noexcept {
 /* Size */
 
 void Panel::setSize(Length width, Length height) {
-	width_ = width;
-	height_ = height;
-	invalidate();
+	setProperty(width_, width);
+	setProperty(height_, height);
 }
 
-void Panel::setWidth(Length width) {
-	width_ = width;
-	invalidate();
-}
+void Panel::setWidth(Length width) { setProperty(width_, width); }
 
-void Panel::setHeight(Length height) {
-	height_ = height;
-	invalidate();
-}
+void Panel::setHeight(Length height) { setProperty(height_, height); }
 
 void Panel::setMinSize(Length minWidth, Length minHeight) {
-	minWidth_ = minWidth;
-	minHeight_ = minHeight;
-	invalidate();
+	setProperty(minWidth_, minWidth);
+	setProperty(minHeight_, minHeight);
 }
 
-void Panel::setMinWidth(Length minWidth) {
-	minWidth_ = minWidth;
-	invalidate();
-}
+void Panel::setMinWidth(Length minWidth) { setProperty(minWidth_, minWidth); }
 
-void Panel::setMinHeight(Length minHeight) {
-	minHeight_ = minHeight;
-	invalidate();
-}
+void Panel::setMinHeight(Length minHeight) { setProperty(minHeight_, minHeight); }
 
 void Panel::setMaxSize(std::optional<Length> maxWidth, std::optional<Length> maxHeight) {
-	maxWidth_ = maxWidth;
-	maxHeight_ = maxHeight;
-	invalidate();
+	setProperty(maxWidth_, maxWidth);
+	setProperty(maxHeight_, maxHeight);
 }
 
-void Panel::setMaxWidth(std::optional<Length> maxWidth) {
-	maxWidth_ = maxWidth;
-	invalidate();
-}
+void Panel::setMaxWidth(std::optional<Length> maxWidth) { setProperty(maxWidth_, maxWidth); }
 
-void Panel::setMaxHeight(std::optional<Length> maxHeight) {
-	maxHeight_ = maxHeight;
-	invalidate();
-}
+void Panel::setMaxHeight(std::optional<Length> maxHeight) { setProperty(maxHeight_, maxHeight); }
 
 void Panel::setAspectRatio(float ratio) {
-	aspectRatio_ = std::isfinite(ratio) ? std::max(ratio, 0.0f) : 0.0f;
-	invalidate();
+	setProperty(aspectRatio_, std::isfinite(ratio) ? std::max(ratio, 0.0f) : 0.0f);
 }
 
 /* Anchors */
 
+// Containers set their children's anchors on every pass: an anchor that stays the same changes nothing
 void Panel::setAnchor(Edge edge, Length offset) {
+	if(anchors_[index(edge)] == offset && !targets_[index(edge)]) return;
 	anchors_[index(edge)] = offset;
 	targets_[index(edge)].reset();
 	invalidate();
 }
 
 void Panel::setAnchorTo(Edge edge, std::string id, Edge targetEdge, float offset) {
+	AnchorTarget target{std::move(id), targetEdge, offset};
+	if(anchors_[index(edge)] == px(0.0f) && targets_[index(edge)] == target) return;
 	anchors_[index(edge)] = px(0.0f);
-	targets_[index(edge)] = AnchorTarget{std::move(id), targetEdge, offset};
+	targets_[index(edge)] = std::move(target);
 	invalidate();
 }
 
 void Panel::clearAnchor(Edge edge) {
+	if(!anchors_[index(edge)] && !targets_[index(edge)]) return;
 	anchors_[index(edge)].reset();
 	targets_[index(edge)].reset();
 	invalidate();
@@ -228,39 +218,23 @@ void Panel::clearAnchor(Edge edge) {
 
 std::optional<Length> Panel::anchor(Edge edge) const noexcept { return anchors_[index(edge)]; }
 
-void Panel::setGrow(float grow) {
-	grow_ = std::max(grow, 0.0f);
-	invalidate();
-}
+void Panel::setGrow(float grow) { setProperty(grow_, std::max(grow, 0.0f)); }
 
-void Panel::setShrink(float shrink) {
-	shrink_ = std::max(shrink, 0.0f);
-	invalidate();
-}
+void Panel::setShrink(float shrink) { setProperty(shrink_, std::max(shrink, 0.0f)); }
 
-void Panel::setBasis(std::optional<Length> basis) {
-	basis_ = basis;
-	invalidate();
-}
+void Panel::setBasis(std::optional<Length> basis) { setProperty(basis_, basis); }
 
-void Panel::setAlignSelf(std::optional<CrossAlign> align) {
-	alignSelf_ = align;
-	invalidate();
-}
+void Panel::setAlignSelf(std::optional<CrossAlign> align) { setProperty(alignSelf_, align); }
 
-void Panel::setGridCell(GridCell cell) {
-	gridCell_ = cell;
-	invalidate();
-}
+void Panel::setGridCell(GridCell cell) { setProperty(gridCell_, cell); }
 
 /* Scrolling */
 
 void Panel::setScrollable(bool horizontal, bool vertical) {
-	scrollX_ = horizontal;
-	scrollY_ = vertical;
-	if(!scrollX_) scroll_.x = 0.0f;
-	if(!scrollY_) scroll_.y = 0.0f;
-	invalidate();
+	setProperty(scrollX_, horizontal);
+	setProperty(scrollY_, vertical);
+	if(!scrollX_) setProperty(scroll_.x, 0.0f);
+	if(!scrollY_) setProperty(scroll_.y, 0.0f);
 }
 
 // Within the content laid out last time: the offset ranges over the part that doesn't fit
@@ -297,53 +271,37 @@ void Panel::scrollIntoView() {
 /* Overlays */
 
 void Panel::setOverlay(std::string anchorId, Placement placement) {
-	overlay_ = true;
-	overlayAnchor_ = std::move(anchorId);
-	placement_ = placement;
-	invalidate();
+	setProperty(overlay_, true);
+	setProperty(overlayAnchor_, std::move(anchorId));
+	setProperty(placement_, placement);
 }
 
 void Panel::clearOverlay() {
-	if(!overlay_) return;
-	overlay_ = false;
-	overlayAnchor_.clear();
-	invalidate();
+	setProperty(overlay_, false);
+	setProperty(overlayAnchor_, std::string());
 }
 
 void Panel::setTooltip(std::string text) { tooltip_ = std::move(text); }
 
 /* Appearance */
 
-void Panel::setColor(Color color) {
-	color_ = color;
-	invalidate();
-}
+void Panel::setColor(Color color) { setProperty(color_, color); }
 
-void Panel::setCornerRadii(CornerRadii radii) {
-	radii_ = radii;
-	invalidate();
-}
+void Panel::setCornerRadii(CornerRadii radii) { setProperty(radii_, radii); }
 
 void Panel::setBorder(float width, Color color) {
-	borderWidth_ = width;
-	borderColor_ = color;
-	invalidate();
+	setProperty(borderWidth_, width);
+	setProperty(borderColor_, color);
 }
 
-void Panel::setShadow(const Shadow& shadow) {
-	shadow_ = shadow;
-	invalidate();
-}
+void Panel::setShadow(const Shadow& shadow) { setProperty(shadow_, shadow); }
 
 void Panel::setCursor(Cursor cursor) {
 	cursor_ = cursor;
 	if(window_) window_->updateCursor();
 }
 
-void Panel::setVisible(bool visible) {
-	visible_ = visible;
-	invalidate();
-}
+void Panel::setVisible(bool visible) { setProperty(visible_, visible); }
 
 /* Layout */
 
@@ -372,10 +330,25 @@ std::optional<float> Panel::anchoredEdge(Edge edge, const Rect& origin, Vec2 par
 	return std::nullopt;
 }
 
+// A subtree whose inputs are the same and where nothing changed keeps the frames it has
+bool Panel::canSkipLayout(const LayoutInputs& inputs) const noexcept {
+	return window_ && !window_->layoutAll_ && !layoutDirty_ && !layoutBelow_ && !anchorsBelow_ && laidOut_ == inputs;
+}
+
 void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) {
+	const LayoutInputs inputs{origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
+	if(canSkipLayout(inputs)) return;
+	laidOut_ = inputs;
+
 	prepareLayout();
 	if(window_) layoutPass_ = window_->layoutPass_;
+	placeFrame(origin, clip, parentSize, parentShown);
+	arrange();
+	layoutChildren();
+	finishLayout();
+}
 
+void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) {
 	size_ = {arrangedWidth_ ? *arrangedWidth_ : bounded(width_, minWidth_, maxWidth_, parentSize.x),
 	         arrangedHeight_ ? *arrangedHeight_ : bounded(height_, minHeight_, maxHeight_, parentSize.y)};
 
@@ -419,9 +392,21 @@ void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool p
 
 	bounds_ = rect;
 	shown_ = parentShown && visible_ && rect.bottom >= rect.top && rect.right >= rect.left;
+}
 
-	arrange();
-	layoutChildren();
+// A change made during the pass to a panel already laid out stays marked, for the next pass
+void Panel::finishLayout() noexcept {
+	layoutDirty_ = false;
+	bool below = false, overlays = false;
+	bool anchors = std::ranges::any_of(targets_, [](const auto& target) { return target.has_value(); });
+	for(const auto& child : children_) {
+		below = below || child->layoutDirty_ || child->layoutBelow_;
+		anchors = anchors || child->anchorsBelow_;
+		overlays = overlays || child->overlay_ || child->overlaysBelow_;
+	}
+	layoutBelow_ = below;
+	anchorsBelow_ = anchors;
+	overlaysBelow_ = overlays;
 }
 
 void Panel::layoutChildren() {

@@ -170,9 +170,13 @@ public:
 
 	/* Rendering */
 
-	/// @brief Marks layout and frame as out of date. Changes made by the layout pass itself don't count.
+	/// @brief Marks the whole layout and frame as out of date: the next pass lays out every panel again and measures
+	/// every size again, as for something all panels read (the default font). A change to one panel needs only that
+	/// panel's own invalidate(). Changes made by the layout pass itself don't count.
 	void invalidate() noexcept {
-		if(!layingOut_) layoutDirty_ = redrawDirty_ = true; // changes made by the layout pass itself don't count
+		if(layingOut_) return;
+		layoutDirty_ = redrawDirty_ = layoutAll_ = true;
+		++measureGeneration_;
 	}
 
 	/// @brief Runs a task once the current event has been fully delivered (or before the next frame).
@@ -231,6 +235,13 @@ private:
 
 	/// @brief Lays the tree out if anything changed; the root fills the window.
 	void updateLayout();
+	/// @brief Schedules a layout pass and a frame, for a panel that changed. Changes made by the layout pass itself
+	/// don't schedule another one.
+	void requestLayout() noexcept {
+		if(!layingOut_) layoutDirty_ = redrawDirty_ = true;
+	}
+	/// @brief Schedules a frame without a layout pass.
+	void requestFrame() noexcept { redrawDirty_ = true; }
 	/// @brief Lays out and draws the tree into the back buffer, in this window's context.
 	/// @pre The window has a renderer.
 	void draw();
@@ -271,16 +282,18 @@ private:
 	std::string clipboard_;                          ///< A headless window's clipboard.
 	bool visible_ = true;                            ///< Whether a headless window counts as shown.
 
-	std::string title_;                           ///< See title().
-	int width_ = 0, height_ = 0;                  ///< Size, in window units.
-	int minWidth_ = 0, minHeight_ = 0;            ///< Minimum size.
-	Vec2 cursor_;                                 ///< Last pointer position.
-	bool layoutDirty_ = true;                     ///< Layout needed before the next frame.
-	bool redrawDirty_ = true;                     ///< render() must draw.
-	bool layingOut_ = false;                      ///< A layout pass is running.
-	std::uint64_t layoutPass_ = 0;                ///< Counts layout passes (Panel::layoutPass_ says which one it was in).
-	bool forwardAnchor_ = false;                  ///< A panel anchored to one not laid out yet in this pass.
-	int routing_ = 0;                             ///< Depth of event delivery in progress.
+	std::string title_;                   ///< See title().
+	int width_ = 0, height_ = 0;          ///< Size, in window units.
+	int minWidth_ = 0, minHeight_ = 0;    ///< Minimum size.
+	Vec2 cursor_;                         ///< Last pointer position.
+	bool layoutDirty_ = true;             ///< Layout needed before the next frame.
+	bool redrawDirty_ = true;             ///< render() must draw.
+	bool layingOut_ = false;              ///< A layout pass is running.
+	bool layoutAll_ = true;               ///< The next pass lays out every panel (see invalidate()).
+	std::uint64_t measureGeneration_ = 0; ///< Panels' measured sizes from an older generation are measured again.
+	std::uint64_t layoutPass_ = 0;        ///< Counts layout passes (Panel::layoutPass_ says which one it was in).
+	bool forwardAnchor_ = false;          ///< A panel anchored to one not laid out yet in this pass.
+	int routing_ = 0;                     ///< Depth of event delivery in progress.
 	std::vector<std::function<void()>> deferred_; ///< See defer().
 
 	std::shared_ptr<const Font> defaultFont_; ///< See defaultFont().
@@ -294,14 +307,14 @@ private:
 		double due;                 ///< clock().seconds() when it runs.
 		std::function<void()> task; ///< The work.
 	};
-	std::vector<Timer> timers_;    ///< See setTimer().
+	std::vector<Timer> timers_;               ///< See setTimer().
 	std::vector<Timer>* dueTimers_ = nullptr; ///< The due timers runTimers() is running, for cancelTimer().
-	std::uint64_t nextTimerId_ = 1; ///< The next timer's id.
+	std::uint64_t nextTimerId_ = 1;           ///< The next timer's id.
 
-	std::vector<Panel*> overlays_;    ///< Overlays shown in the last layout, in drawing order.
-	std::unique_ptr<Label> tooltip_;  ///< The tooltip, created on first use.
-	bool tooltipShown_ = false;       ///< The tooltip is on screen.
-	std::uint64_t tooltipTimer_ = 0;  ///< The delay before showing it, if running.
+	std::vector<Panel*> overlays_;   ///< Overlays shown in the last layout, in drawing order.
+	std::unique_ptr<Label> tooltip_; ///< The tooltip, created on first use.
+	bool tooltipShown_ = false;      ///< The tooltip is on screen.
+	std::uint64_t tooltipTimer_ = 0; ///< The delay before showing it, if running.
 
 	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.
 	Panel root_;                           ///< Fills the window.

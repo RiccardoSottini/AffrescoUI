@@ -19,6 +19,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -414,8 +415,22 @@ protected:
 	/// @param painter Clips to bounds().
 	virtual void paintOver(Painter& painter) const;
 
-	/// @brief Tells the window that the layout or the drawing changed.
+	/// @brief Tells the window that this panel's layout or drawing changed: the next layout pass lays it out again
+	/// (with its ancestors and whatever they place differently), and the next frame draws it again.
+	///
+	/// Call it whenever something that prepareLayout(), arrange() or paint() reads changes, even something the panel
+	/// doesn't own (its measured size is cached until then).
 	void invalidate() noexcept;
+
+	/// @brief Stores a property's new value and calls invalidate(), unless the value is the one already there.
+	/// @tparam T The property's type; it must have ==.
+	/// @param member The property.
+	/// @param value Its new value.
+	template <typename T> void setProperty(T& member, std::type_identity_t<T> value) {
+		if(member == value) return;
+		member = std::move(value);
+		invalidate();
+	}
 
 	/// @brief Gives a child the size a container decided, for this layout pass, instead of its own.
 	/// @param child The child.
@@ -433,6 +448,17 @@ private:
 	/// @param parentSize The parent's unclipped size, for percentages and bottom/right anchors.
 	/// @param parentShown Whether the parent is shown.
 	void layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief Computes frame, bounds and visibility from the inputs of the pass (layout()'s arguments).
+	/// @param origin See layout().
+	/// @param clip See layout().
+	/// @param parentSize See layout().
+	/// @param parentShown See layout().
+	void placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief Ends this panel's layout: it is clean now, and what its subtree has (dirty panels left over, anchors to
+	/// other panels, overlays) is gathered from its children.
+	void finishLayout() noexcept;
+	/// @brief Marks this panel as needing layout, and its ancestors as having a descendant that does.
+	void markLayoutDirty() noexcept;
 	/// @brief Applies the aspect ratio to a size: the axis that is set leads, within the other's bounds.
 	/// @param size The size, within its bounds.
 	/// @param widthSet Whether the width is set (non-zero, stretched or given by a container).
@@ -454,7 +480,36 @@ private:
 		std::string id; ///< The other panel.
 		Edge edge;      ///< Its edge.
 		float offset;   ///< Added to that edge's position.
+
+		/// @brief Equal when every member is equal.
+		bool operator==(const AnchorTarget&) const = default;
 	};
+
+	/// @brief What a layout pass gave this panel. The next pass skips the panel and its subtree when they are the
+	/// same, nothing in the subtree changed, and nothing in it is anchored to another panel.
+	struct LayoutInputs {
+		Rect origin;                         ///< See layout().
+		Rect clip;                           ///< See layout().
+		Vec2 parentSize;                     ///< See layout().
+		std::optional<float> arrangedWidth;  ///< The width its container gave it.
+		std::optional<float> arrangedHeight; ///< The height its container gave it.
+		bool parentShown = false;            ///< See layout().
+
+		/// @brief Equal when every member is equal.
+		bool operator==(const LayoutInputs&) const = default;
+	};
+
+	/// @brief A size measuredSize() computed, kept until the panel changes.
+	struct MeasuredSize {
+		Vec2 reference;               ///< What its percentages referred to.
+		Vec2 size;                    ///< The size.
+		std::uint64_t generation = 0; ///< The window's measure generation (Window::invalidate() starts a new one).
+	};
+
+	/// @brief Whether a layout pass can leave this panel and its subtree as they are.
+	/// @param inputs What the pass gives it.
+	/// @return true if nothing they depend on changed.
+	[[nodiscard]] bool canSkipLayout(const LayoutInputs& inputs) const noexcept;
 
 	/// @brief Takes ownership of a new last child.
 	/// @param child The child.
@@ -499,11 +554,17 @@ private:
 	std::string overlayAnchor_;              ///< See setOverlay().
 	Placement placement_ = Placement::Below; ///< See setOverlay().
 
-	std::uint64_t layoutPass_ = 0; ///< The window's layout pass this panel was last laid out in.
-	Rect frame_;                   ///< See frame().
-	Rect bounds_;                  ///< See bounds().
-	Vec2 size_;                    ///< See resolvedSize().
-	bool shown_ = false;           ///< See isShown().
+	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
+	std::optional<LayoutInputs> laidOut_;  ///< What the last pass gave it; nullopt before the first.
+	std::optional<MeasuredSize> measured_; ///< See measuredSize(); nullopt once something changed.
+	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
+	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.
+	bool anchorsBelow_ = false;            ///< It or a descendant is anchored to another panel: never skipped.
+	bool overlaysBelow_ = false;           ///< A descendant is an overlay, for Window::layoutOverlays().
+	Rect frame_;                           ///< See frame().
+	Rect bounds_;                          ///< See bounds().
+	Vec2 size_;                            ///< See resolvedSize().
+	bool shown_ = false;                   ///< See isShown().
 };
 
 } // namespace affresco

@@ -69,20 +69,11 @@ detail::FlexItem flexItem(Panel& child, bool row, Vec2 size, std::optional<Cross
 
 Stack::Stack() { setColor(colors::transparent); }
 
-void Stack::setGap(float gap) {
-	gap_ = gap;
-	invalidate();
-}
+void Stack::setGap(float gap) { setProperty(gap_, gap); }
 
-void Stack::setRowGap(std::optional<float> gap) {
-	rowGap_ = gap;
-	invalidate();
-}
+void Stack::setRowGap(std::optional<float> gap) { setProperty(rowGap_, gap); }
 
-void Stack::setColumnGap(std::optional<float> gap) {
-	columnGap_ = gap;
-	invalidate();
-}
+void Stack::setColumnGap(std::optional<float> gap) { setProperty(columnGap_, gap); }
 
 void Stack::setAlignment(Align alignment) {
 	setJustify(alignment == Align::Center ? Justify::Center : alignment == Align::End ? Justify::End : Justify::Start);
@@ -92,25 +83,13 @@ Align Stack::alignment() const noexcept {
 	return justify_ == Justify::Center ? Align::Center : justify_ == Justify::End ? Align::End : Align::Start;
 }
 
-void Stack::setJustify(Justify justify) {
-	justify_ = justify;
-	invalidate();
-}
+void Stack::setJustify(Justify justify) { setProperty(justify_, justify); }
 
-void Stack::setAlignItems(std::optional<CrossAlign> align) {
-	alignItems_ = align;
-	invalidate();
-}
+void Stack::setAlignItems(std::optional<CrossAlign> align) { setProperty(alignItems_, align); }
 
-void Stack::setDirection(Direction direction) {
-	direction_ = direction;
-	invalidate();
-}
+void Stack::setDirection(Direction direction) { setProperty(direction_, direction); }
 
-void Stack::setWrap(bool wrap) {
-	wrap_ = wrap;
-	invalidate();
-}
+void Stack::setWrap(bool wrap) { setProperty(wrap_, wrap); }
 
 void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
@@ -161,40 +140,23 @@ void Grid::setColumns(int columns) {
 void Grid::setColumns(std::vector<Track> columns) {
 	if(columns.empty()) columns.push_back(Track::fraction(1.0f));
 	if(columns.size() > detail::maxGridTracks) columns.resize(detail::maxGridTracks);
-	columns_ = std::move(columns);
-	invalidate();
+	setProperty(columns_, std::move(columns));
 }
 
 void Grid::setRows(std::vector<Track> rows) {
 	if(rows.size() > detail::maxGridTracks) rows.resize(detail::maxGridTracks);
-	rows_ = std::move(rows);
-	invalidate();
+	setProperty(rows_, std::move(rows));
 }
 
-void Grid::setGap(float gap) {
-	gap_ = gap;
-	invalidate();
-}
+void Grid::setGap(float gap) { setProperty(gap_, gap); }
 
-void Grid::setRowGap(std::optional<float> gap) {
-	rowGap_ = gap;
-	invalidate();
-}
+void Grid::setRowGap(std::optional<float> gap) { setProperty(rowGap_, gap); }
 
-void Grid::setColumnGap(std::optional<float> gap) {
-	columnGap_ = gap;
-	invalidate();
-}
+void Grid::setColumnGap(std::optional<float> gap) { setProperty(columnGap_, gap); }
 
-void Grid::setJustifyItems(CrossAlign align) {
-	justifyItems_ = align;
-	invalidate();
-}
+void Grid::setJustifyItems(CrossAlign align) { setProperty(justifyItems_, align); }
 
-void Grid::setAlignItems(CrossAlign align) {
-	alignItems_ = align;
-	invalidate();
-}
+void Grid::setAlignItems(CrossAlign align) { setProperty(alignItems_, align); }
 
 namespace {
 
