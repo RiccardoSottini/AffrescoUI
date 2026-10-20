@@ -1,3 +1,7 @@
+/// @file
+/// @brief affresco::Screen, the composition root: puts the format's rules, the repository, the runtime and the peers
+/// together, and adds includes, declared channels and the "persist" state file.
+
 #include "affresco/Screen.hpp"
 #include "OffscreenImages.hpp"
 
@@ -24,6 +28,8 @@
 
 namespace affresco {
 
+namespace {
+
 /// @brief A program connected to the screen.
 struct Peer {
 	std::unique_ptr<Channel> owned;            ///< Its channel, if it came through a socket.
@@ -39,6 +45,8 @@ struct DeclaredChannel {
 	std::unique_ptr<channel::SocketChannel> socket; ///< While connected.
 	std::uint64_t retry = 0;                        ///< The reconnect timer, if waiting.
 };
+
+} // namespace
 
 /// @brief The modules and the peers.
 ///
@@ -87,6 +95,12 @@ struct Screen::Impl {
 		socketDirectory = Screen::defaultSocketDirectory();
 	}
 
+	Impl(const Impl&) = delete;            ///< Callbacks hold `this`: it never copies.
+	Impl& operator=(const Impl&) = delete; ///< Callbacks hold `this`: it never copies.
+	Impl(Impl&&) = delete;                 ///< Callbacks hold `this`: it never moves (the Screen moves its pointer).
+	Impl& operator=(Impl&&) = delete;      ///< Callbacks hold `this`: it never moves.
+
+	/// @brief Stops the servers and the reconnect timers before the peers and modules go.
 	~Impl() {
 		*alive = false;
 		servers.clear();
@@ -188,7 +202,7 @@ struct Screen::Impl {
 		if(!document.contains("persist")) return pointers;
 		for(const json& path : document["persist"]) {
 			std::string pointer;
-			std::string rest = path.get<std::string>().substr(6); // after "state."
+			const std::string rest = path.get<std::string>().substr(6); // after "state."
 			for(std::size_t start = 0; start <= rest.size();) {
 				const std::size_t dot = std::min(rest.find('.', start), rest.size());
 				pointer += "/" + rest.substr(start, dot - start);
@@ -211,7 +225,7 @@ struct Screen::Impl {
 	/// @brief Reads the state file into the live state (the paths it has).
 	void load() {
 		if(persisted().empty()) return;
-		std::ifstream in(stateFile);
+		const std::ifstream in(stateFile);
 		std::stringstream text;
 		text << in.rdbuf();
 		json file;
@@ -434,7 +448,7 @@ Screen Screen::fromFile(const std::filesystem::path& path) { return fromFile(pat
 
 Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
                         History history) {
-	std::ifstream file(path);
+	const std::ifstream file(path);
 	if(!file) {
 		throw ScreenError(
 		    "AffrescoUI screen: could not open " + std::filesystem::absolute(path).string() +
@@ -650,6 +664,7 @@ bool Screen::undo(std::string* error) {
 	return revert(revision(), error);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): head() only throws if memory runs out, which ends the program anyway
 int Screen::revision() const noexcept { return impl_->repository.head().number; }
 
 std::string Screen::exportChanges(int fromRevision, std::string_view name) const {
@@ -679,7 +694,7 @@ void Screen::connect(Channel& channel, std::string author) { impl_->add(channel,
 void Screen::listen(Executor& executor, const std::filesystem::path& path, std::string author) {
 	Impl* impl = impl_.get();
 	impl->servers.push_back(std::make_unique<channel::SocketServer>(
-	    executor, path, [impl, &executor, author](std::unique_ptr<Channel> connection) {
+	    executor, path, [impl, &executor, author = std::move(author)](std::unique_ptr<Channel> connection) {
 		    Channel& channel = *connection;
 		    Peer& peer = impl->add(channel, std::move(connection), author);
 		    // Gone: removed after the signal that says so has finished
