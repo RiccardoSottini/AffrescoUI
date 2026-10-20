@@ -220,17 +220,15 @@ float spanned(const std::vector<float>& starts, const std::vector<float>& sizes,
 	return starts[last] + sizes[last] - starts[first];
 }
 
-} // namespace
-
-void Grid::arrange() {
-	const std::vector<Panel*> children = placed(*this);
-	const Vec2 size = resolvedSize();
-	const float rowGap = rowGap_.value_or(gap_), columnGap = columnGap_.value_or(gap_);
-
-	// Children that ask for a column past the declared ones add columns
-	std::vector<GridCell> cells;
+/// @brief The cells the children ask for, and how many columns the grid has: children that ask for a column past the
+/// declared ones add columns, up to maxGridTracks.
+/// @param children The grid's placed children.
+/// @param declared How many columns the grid declares.
+/// @param cells Set to each child's cell, in order.
+/// @return The number of columns.
+std::size_t gridCells(const std::vector<Panel*>& children, std::size_t declared, std::vector<GridCell>& cells) {
 	cells.reserve(children.size());
-	std::size_t columnCount = columns_.size();
+	std::size_t columnCount = declared;
 	for(const Panel* child : children) {
 		cells.push_back(child->gridCell());
 		const GridCell& cell = cells.back();
@@ -238,7 +236,18 @@ void Grid::arrange() {
 			columnCount =
 			    std::max(columnCount, static_cast<std::size_t>(cell.column - 1 + std::max(cell.columnSpan, 1)));
 	}
-	columnCount = std::min(columnCount, maxGridTracks);
+	return std::min(columnCount, maxGridTracks);
+}
+
+} // namespace
+
+void Grid::arrange() {
+	const std::vector<Panel*> children = placed(*this);
+	const Vec2 size = resolvedSize();
+	const float rowGap = rowGap_.value_or(gap_), columnGap = columnGap_.value_or(gap_);
+
+	std::vector<GridCell> cells;
+	const std::size_t columnCount = gridCells(children, columns_.size(), cells);
 	std::vector<detail::GridArea> areas;
 	const std::size_t rowsUsed = detail::placeGridItems(columnCount, cells, areas);
 
