@@ -79,6 +79,16 @@
 		]
 	},
 
+	"stateTypes": {
+		"today": {"type": "string"},
+		"newHabit": {"type": "string"},
+		"palette": {"type": "array", "items": {"type": "string"}},
+		"habitColors": {"type": "array", "items": {"type": "string"}},
+		"habits": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "done": {"type": "boolean"}, "streak": {"type": "number"}, "week": {"type": "number"}, "color": {"type": "string"}}}},
+		"days": {"type": "array", "items": {"type": "string"}},
+		"weeks": {"type": "array", "items": {"type": "array", "items": {"type": "number"}}}
+	},
+
 	"persist": ["state.habits", "state.weeks"],
 
 	"computed": {

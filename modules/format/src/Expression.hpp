@@ -59,6 +59,19 @@ using SharedScope = std::shared_ptr<const Scope>;
 	return scope;
 }
 
+/// @brief The work one event or one update may still do (SECURITY.md, "Limits"). Each step run, each operation of an
+/// expression evaluated and each byte a step writes into the state spends from it; when one runs out, what is
+/// running stops with an error that names its place.
+struct WorkBudget {
+	std::size_t steps = 0;      ///< Steps it may still run.
+	std::size_t operations = 0; ///< Expression operations it may still evaluate (a list function's item is one).
+	std::size_t bytes = 0;      ///< Bytes it may still write into the state.
+};
+
+inline constexpr std::size_t stepsPerEvent = 100000;        ///< The steps one event or update may run.
+inline constexpr std::size_t operationsPerEvent = 10000000; ///< The expression operations it may evaluate.
+inline constexpr std::size_t bytesPerEvent = 64u << 20;     ///< The bytes its steps may write into the state: 64 MiB.
+
 /// @brief Reads a built panel's geometry by id, for the `nodes` variable: `{x, y, width, height, visible}`, or null.
 using NodeLookup = std::function<json(std::string_view id)>;
 
@@ -72,6 +85,7 @@ struct Context {
 	const json& globals;                  ///< Other screen-wide variables (proposals, history, computed, theme, ...).
 	const NodeLookup* nodes = nullptr;    ///< For the `nodes` variable (none: it is unknown).
 	const NodeLookup* computed = nullptr; ///< For `computed.<name>`, evaluated when read (none: from globals).
+	WorkBudget* budget = nullptr;         ///< What the event or update may still do (none: unlimited, for tools).
 };
 
 /// @brief Evaluates templates, expressions and operators, recursing into objects and arrays.

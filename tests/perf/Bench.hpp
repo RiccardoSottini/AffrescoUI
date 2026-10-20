@@ -66,6 +66,12 @@ public:
 	/// @return The screen, kept until the Context goes.
 	/// @throws ScreenError If it can't be built.
 	Screen& build(const std::string& text, const std::filesystem::path& baseDirectory, Window& window);
+	/// @brief Loads a screen without building it, as the "build" workload prepares it.
+	/// @param text The screen document, as text.
+	/// @param baseDirectory Where its relative paths are resolved from.
+	/// @return The screen, kept until the Context goes.
+	/// @throws ScreenError If it can't be read.
+	Screen& create(const std::string& text, const std::filesystem::path& baseDirectory);
 
 	/// @brief Opens a hidden window for a document, sized from its "window" section.
 	/// @param document The screen document.

@@ -105,6 +105,17 @@
 		]
 	},
 
+	"stateTypes": {
+		"current": {"type": "number"},
+		"playingList": {"type": "number"},
+		"playingTrack": {"type": "number"},
+		"isPlaying": {"type": "boolean"},
+		"elapsed": {"type": "number"},
+		"volume": {"type": "number", "minimum": 0, "maximum": 100},
+		"menu": {"type": "array", "items": {"type": "string"}},
+		"playlists": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "initials": {"type": "string"}, "color": {"type": "string"}, "description": {"type": "string"}, "length": {"type": "string"}, "tracks": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "artist": {"type": "string"}, "album": {"type": "string"}, "time": {"type": "string"}}}}}}}
+	},
+
 	"computed": {
 		"list": "{{state.playlists[state.current]}}",
 		"playing": "{{state.playlists[state.playingList]}}",

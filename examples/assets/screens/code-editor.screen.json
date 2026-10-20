@@ -137,6 +137,21 @@
 		"query": ""
 	},
 
+	"stateTypes": {
+		"project": {"type": "string"},
+		"tabs": {"type": "array", "items": {"type": "number"}},
+		"active": {"type": "number"},
+		"caret": {"type": "object", "properties": {"line": {"type": "number"}, "column": {"type": "number"}, "selected": {"type": "number"}}},
+		"command": {"type": "string"},
+		"tree": {"type": "array", "items": {"type": "object", "properties": {"label": {"type": "string"}, "depth": {"type": "number"}, "file": {"type": "number"}}}},
+		"files": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "path": {"type": "string"}, "language": {"type": "string"}, "dirty": {"type": "boolean"}, "text": {"type": "string"}}}},
+		"terminal": {"type": "array", "items": {"type": "object", "properties": {"t": {"type": "string"}, "c": {"type": "string"}}}},
+		"activity": {"type": "array", "items": {"type": "object", "properties": {"short": {"type": "string"}, "name": {"type": "string"}}}},
+		"commands": {"type": "object", "properties": {"help": {"type": "array", "items": {"type": "object", "properties": {"t": {"type": "string"}, "c": {"type": "string"}}}}, "build": {"type": "array", "items": {"type": "object", "properties": {"t": {"type": "string"}, "c": {"type": "string"}}}}, "run": {"type": "array", "items": {"type": "object", "properties": {"t": {"type": "string"}, "c": {"type": "string"}}}}}},
+		"palette": {"type": "boolean"},
+		"query": {"type": "string"}
+	},
+
 	"computed": {
 		"file": "{{state.files[state.active]}}",
 		"matches": "{{filter(range(len(state.files)), contains(lower(state.files[it].name), lower(trim(state.query))))}}"

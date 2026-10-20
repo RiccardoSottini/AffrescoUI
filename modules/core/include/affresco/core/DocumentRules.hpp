@@ -75,6 +75,12 @@ public:
 	/// @throws DocumentError If the change is forbidden.
 	virtual void checkChange(const json& before, const json& after) const = 0;
 
+	/// @brief Checks a revision's size before any of it is applied, so a peer can't make the screen do unbounded
+	/// work. The default takes any size.
+	/// @param patch The revision's operations, as JSON Patch.
+	/// @throws DocumentError If it is too large.
+	virtual void checkRevision([[maybe_unused]] const json& patch) const {}
+
 	/// @brief Gives ids to the nodes a revision puts somewhere without one, before the change is applied, so that the
 	/// commit, the history and every diff show them. The default gives none (a format without nodes).
 	/// @param document The document as it is before the operation, with the live state as its "state".

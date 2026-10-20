@@ -4,6 +4,8 @@
 
 #include "Checker.hpp"
 #include "SectionRegistry.hpp"
+#include "Limits.hpp"
+#include "StateTypes.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -151,11 +153,93 @@ const json& stateOf(const json& document) {
 	return it != document.end() ? *it : none;
 }
 
+/// @brief Says which type a mismatch breaks, for its message.
+/// @param mismatch The mismatch, at "state.<key>..." .
+/// @return " (stateTypes.<key>)".
+std::string typeNote(const Mismatch& mismatch) {
+	const std::string_view place = std::string_view(mismatch.place).substr(std::string_view("state.").size());
+	return " (stateTypes." + std::string(place.substr(0, place.find_first_of(".["))) + ")";
+}
+
+/// @brief Refuses a document larger than maxDocumentBytes without its "state", or whose "state" is larger than
+/// maxStateBytes.
+/// @param document The document.
+/// @throws DocumentError If it is.
+void checkDocumentSize(const json& document) {
+	std::size_t bytes = 0;
+	for(const auto& [key, value] : document.items())
+		if(key != "state") bytes += key.size() + approximateBytes(value, maxDocumentBytes);
+	if(bytes > maxDocumentBytes)
+		fail("", "the screen is larger than " + std::to_string(maxDocumentBytes >> 20) + " MiB of JSON");
+	if(approximateBytes(stateOf(document), maxStateBytes) > maxStateBytes)
+		fail("state", "larger than " + std::to_string(maxStateBytes >> 20) + " MiB of JSON");
+}
+
+/// @brief Refuses a revision after which the live state is larger than maxStateBytes, and larger than before.
+/// @param before The document with the live state in "state", before the revision.
+/// @param after The same, after it.
+/// @throws DocumentError If it would be.
+void checkStateSize(const json& before, const json& after) {
+	const std::size_t now = approximateBytes(stateOf(after), maxStateBytes);
+	if(now > maxStateBytes && now > approximateBytes(stateOf(before)))
+		fail("revision", "the state would be larger than " + std::to_string(maxStateBytes >> 20) + " MiB of JSON");
+}
+
+/// @brief A state key's value and declared type before a revision.
+/// @param before The document with the live state in "state", before the revision.
+/// @param key The key.
+/// @return Its value and its type; nullptr for one it didn't have.
+std::pair<const json*, const json*> typedBefore(const json& before, const std::string& key) {
+	const json& state = stateOf(before);
+	const auto value = state.find(key);
+	const auto types = before.find("stateTypes");
+	const json* type = nullptr;
+	if(types != before.end() && types->is_object())
+		if(const auto it = types->find(key); it != types->end()) type = &*it;
+	return {value == state.end() ? nullptr : &*value, type};
+}
+
+/// @brief Refuses a revision after which the live state matches its types less than before: a value that no longer
+/// matches, or a type the state doesn't match. Mismatches that were there before don't block it.
+/// @param before The document with the live state in "state", before the revision.
+/// @param after The same, after it.
+/// @throws DocumentError If it brings a mismatch.
+void checkTypedState(const json& before, const json& after) {
+	const auto types = after.find("stateTypes");
+	if(types == after.end() || !types->is_object()) return;
+	const json& state = stateOf(after);
+	// Cost follows the change: a key whose value and type are as before matches as it did
+	for(const auto& [key, type] : types->items()) {
+		const auto value = state.find(key);
+		if(value == state.end()) continue;
+		const auto [oldValue, oldType] = typedBefore(before, key);
+		if(oldValue && oldType && *oldType == type && *oldValue == *value) continue;
+		const std::optional<Mismatch> now = typeMismatch(*value, type, "state." + key);
+		if(now && !(oldValue && oldType && typeMismatch(*oldValue, *oldType, "state." + key)))
+			fail("revision", "the state wouldn't match its types: " + now->text() + typeNote(*now));
+	}
+}
+
 } // namespace
 
 Rules::Rules() : sections_(builtInSections()) {}
 
-void Rules::validate(const json& doc) const { sections_->validate(doc); }
+void Rules::checkRevision(const json& patch) const {
+	if(patch.is_array() && patch.size() > maxRevisionOperations)
+		fail("revision.patch", std::to_string(patch.size()) + " operations, more than the " +
+		                           std::to_string(maxRevisionOperations) + " a revision may have");
+	if(approximateBytes(patch, maxRevisionBytes) > maxRevisionBytes)
+		fail("revision.patch", "more than " + std::to_string(maxRevisionBytes >> 20) +
+		                           " MiB of JSON, more than a revision may have");
+}
+
+// The document's own "state" must match its types; the live state is checked by checkChange() and findings()
+void Rules::validate(const json& doc) const {
+	sections_->validate(doc);
+	checkDocumentSize(doc);
+	const std::vector<Mismatch> mismatches = stateMismatches(doc, stateOf(doc));
+	if(!mismatches.empty()) fail(mismatches.front().place, mismatches.front().problem + typeNote(mismatches.front()));
+}
 
 // In root, then screens, templates and components (NodeIds.hpp)
 std::optional<std::string> Rules::findNode(const json& doc, std::string_view nodeId) const {
@@ -201,6 +285,9 @@ void Rules::checkChange(const json& before, const json& after) const {
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
 
+	checkTypedState(before, after);
+	checkStateSize(before, after);
+
 	if(controlsIn(before) != controlsIn(after))
 		fail("revision",
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
@@ -222,9 +309,14 @@ void Rules::checkChange(const json& before, const json& after) const {
 }
 
 std::vector<std::string> Rules::findings(const json& document, const json& state) const {
-	const auto found = check(document, state, nativeActions_);
-	if(!found) return {"not checked: the screen is larger than the checker's limit"};
 	std::vector<std::string> lines;
+	for(const Mismatch& mismatch : stateMismatches(document, state)) // a state kept on disk may predate its types
+		lines.push_back(mismatch.text() + typeNote(mismatch));
+	const auto found = check(document, state, nativeActions_);
+	if(!found) {
+		lines.emplace_back("not checked: the screen is larger than the checker's limit");
+		return lines;
+	}
 	for(const Finding& finding : *found) lines.push_back(finding.text());
 	return lines;
 }

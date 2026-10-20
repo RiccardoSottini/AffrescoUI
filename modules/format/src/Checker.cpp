@@ -190,6 +190,7 @@ Checker::Checker(const json& document, const json& state, const std::set<std::st
     : document_(document), nativeActions_(nativeActions), state_(Shape::object()) {
 	if(state.is_object())
 		for(const auto& [key, value] : state.items()) state_[key] = shapeOfData(value);
+	learnTypes();
 }
 
 std::optional<std::vector<Finding>> Checker::run() {

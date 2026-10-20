@@ -69,6 +69,7 @@ std::optional<bool> runStateStep(const Running& s) {
 		const json::json_pointer pointer = s.target("set");
 		json value = s.value("to");
 		expect::shallowEnough(value, pointerDepth(pointer), where + ".to");
+		engine.document.spendBytes(value, where + ".to");
 		statePlace(state, pointer, where) = std::move(value);
 	} else if(step.contains("push")) {
 		const json::json_pointer pointer = s.target("push");
@@ -77,6 +78,7 @@ std::optional<bool> runStateStep(const Running& s) {
 		if(!array.is_array()) fail(where + ".push", "is not a list");
 		json value = s.value(step.value("value", json()), where + ".value");
 		expect::shallowEnough(value, pointerDepth(pointer) + 1, where + ".value");
+		engine.document.spendBytes(value, where + ".value");
 		array.push_back(std::move(value));
 	} else if(step.contains("remove")) {
 		removeFrom(s, state);

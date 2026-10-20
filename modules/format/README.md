@@ -30,9 +30,9 @@ Each subsystem's header says its role, its invariants and its callers:
 | Subsystem | Does |
 |---|---|
 | `DocumentContext` | colours, fonts (from a bounded `FontCache`), the theme, the globals of expressions, the `computed` cache, the screen an outlet shows |
-| `Builder` | a node's children after `use`, `repeat`, `with`, `let`, `check`, styles and `when` |
+| `Builder` | compiles each node once per version of the document; a node's children after `use`, `repeat`, `with`, `let`, `check`, styles and `when` |
 | `Reconciler` | the record of every panel built; keeps the panels in line with the document; batched updates |
-| `Properties` | a node's evaluated values on its panel; the property sets node types registered |
+| `Properties` | a compiled node's values on its panel, by slot; the property sets node types registered |
 | `Events` | pointer, keys, focus, drag and drop, bubbling, overlays closed by a click outside, widgets' values |
 | `Steps` | handlers and actions; each step runs in the group of the step registry that recognises it |
 | `Scheduler` | `every`, `after`, `debounce`, `animate`, transitions and deferred tasks, on the window's clock |
@@ -46,6 +46,39 @@ Each subsystem's header says its role, its invariants and its callers:
 
 The type registry belongs to each runtime, since applications add to it; the built-in steps and sections never
 change, so one read-only registry of each is shared.
+
+## Compiled nodes
+
+Each node of a version of the document is compiled once (`CompiledNode.hpp`, 7.6) and shared by every update and
+every panel built from it:
+- **Resolved:** its component instantiated and its static styles merged. A node with a dynamic `style` is compiled
+  once for each style it chooses.
+- **Slots:** each property is a `Slot` (`color`, `Layout`, `Font`, a handler, a state block, ...), so applying it
+  dispatches on the slot instead of comparing text.
+- **Bindings:** each value is a `Binding` (`Binding.hpp`): templates split and operators lowered once. A value that
+  can't change is used as written; the others are evaluated by each update into the record's `values`. `with`,
+  `let`, `when`, `repeat` and a dynamic `style` are bindings too.
+- **Children** are not copied: they stay in the document, or in the component instance the compiled node keeps.
+
+The `Builder` keeps the compiled nodes of the current version and drops them when the document changes. An update
+evaluates each node's dynamic values; when they, the compiled node, the theme and the colours (`DocumentContext::
+appearance()`) are what was applied last, `Properties` only shows the widget's value again. A node whose application
+reads more than its values (an overlay's `open` written as a state path, a computed `bind` or `caret`, a computed
+`every` period) is applied on every update. A node that failed to apply is applied again at the next update, so its
+error comes again. A consequence for applications: a change code makes to a built panel directly stays until its
+node is applied again (its values, the theme, the colours, the fonts or the document changed); before, every update
+put the document's values back. `Runtime::registerType` counts as a change of appearance, so panels of a type
+registered again apply its new function.
+
+## Typed state
+
+`stateTypes` (`StateTypes.hpp`, 4.4b) declares a JSON Schema per state key; the subset the library reads is checked by
+the section's validator. `Rules::validate` refuses a document whose own `state` doesn't match; `checkChange` refuses a
+revision that brings a mismatch into the live state (mismatches already there don't block it); `findings` warns of a
+state kept on disk that no longer matches. The checker (`CheckerTypes.cpp`) learns the declared keys and properties
+as readable, and reports writes, `bind`s and enum comparisons that don't fit. Nothing stops a step at run time: the
+types are a contract for revisions and a description for agents (the MCP outline shows them). The schema code is
+general: a settings page can describe its settings with it.
 
 ## Invariants
 
@@ -67,6 +100,12 @@ change, so one read-only registry of each is shared.
   compared with at most 1,000 names.
 - **State writes go through `statePlace()`** (`Expression.hpp`), never `state[pointer]`: it throws `DocumentError`
   where nlohmann would throw a `json::exception`, which no event handler catches, and bounds how far a list grows.
+- **Every event and every update has a work budget** (1.8c, `WorkBudget` in `Expression.hpp`, started by
+  `DocumentContext::BudgetScope` in `Steps::handle` and `Reconciler::reconcile`): 100,000 steps
+  (`Steps::runStep`), 10,000,000 expression operations (`Machine::run`) and 64 MiB written into the state (`set`,
+  `push`). Nested handlers share the outermost one's. Past one, what runs stops with an error that names its place.
+- **Sizes** (`Limits.hpp`, in `Rules`): a revision of at most 100,000 operations and 16 MiB (`checkRevision`, called
+  by version control before applying it), a document of 32 MiB without its state, a state of 32 MiB.
 
 ## Threads
 
@@ -121,7 +160,11 @@ src/
   Runtime.cpp              the public API, forwarding to the engine
   Engine.hpp / .cpp        the composition root: registries and subsystems
   DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
-  Builder.*                use, repeat, with, let, check, styles, when
+  Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
+  CompiledNode.*           a node compiled: slots, bindings, scoping keys
+  Binding.*                a value compiled once: templates split, operators lowered
+  StateTypes.*             typed state: the stateTypes subset of JSON Schema, matching values, describing types
+  CheckerTypes.cpp         the checker's typed-state checks
   Reconciler.*             records, building and reconciling panels
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   Events.*                 input; Shortcuts.* names keys and shortcuts
@@ -143,7 +186,8 @@ if it has a value, its `ValueHooks`; then `registry.add({name, about, factory, s
 `SCREEN_FORMAT.md` in the same change, and a scenario that shows it.
 
 **Add a property to every node.**
-1. apply it in `Properties.cpp` (`commonProperty`, or a group such as `shapeProperty`), with a reset in `reset`;
+1. give it a `Slot` (`CompiledNode.hpp`, and its name in `namedSlots` in `CompiledNode.cpp`), and apply it in
+   `Properties.cpp` (`commonProperty`, or a group such as `shapeProperty`), with a reset in `reset`;
 2. list it in the panel's set in `Types.cpp` (the catalog reads it), with `transition` if it can animate;
 3. add it to the schema (`schema/affrescoui-screen.schema.json`) and to `SCREEN_FORMAT.md`, in the same change;
 4. if states (`hover`, `pressed`, ...) or `transition` may set it, say so in all three places;

@@ -8,7 +8,8 @@
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
               and in short conversations between the agent and the reviewer (lines starting with '>');
 - text:       every text of the templates and of the rendering check's screens;
-- cli:        the templates and the rendering check's screens as written, and nodes without ids.
+- cli:        the templates and the rendering check's screens as written, and nodes without ids;
+- actions:    every action and handler of the templates, and steps that spend a whole work budget.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -201,6 +202,27 @@ def schema_words():
     return [f'"{name}":' for name in sorted(names)]
 
 
+def action_seeds():
+    """The actions target's seeds: every action and inline handler of the templates, and steps that spend a whole
+    work budget (loops, nested lists, a value that doubles)."""
+    seeds = []
+    for path in sorted(SCREENS.glob("*.screen.json")):
+        document = json.loads(path.read_text(encoding="utf-8"))
+        seeds += [compact(steps) for steps in document.get("actions", {}).values()]
+        for value in walk(document.get("root", {})):
+            if isinstance(value, dict):
+                seeds += [compact(handler) for key, handler in value.items()
+                          if key.startswith("on") and isinstance(handler, (list, dict))]
+    seeds += [compact(steps) for steps in [
+        [{"while": "{{true}}", "do": [{"increment": "state.spins"}]}],
+        [{"while": "{{true}}", "do": [{"forEach": "{{range(100)}}", "do": [{"push": "state.items", "value": "{{it}}"}]}]}],
+        [{"set": "state.text", "to": "ab"}, {"while": "{{true}}", "do": [{"set": "state.text",
+                                                                           "to": "{{state.text + state.text}}"}]}],
+        [{"set": "state.total", "to": "{{sum(range(10000), sum(range(10000), it))}}"}],
+    ]]
+    return list(dict.fromkeys(seeds))
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -219,11 +241,16 @@ def dictionaries():
               "//"]
     delta = tokens + ["from", "to", "delta", "op", "add", "remove", "replace", "move", "copy", "test", "path", "value",
                       "/0", "/-", "~0", "~1", "1.0", "-0.0"]
+    # The steps and the keys they read, from the step groups' registrations (modules/format/src/*Steps.cpp)
+    groups = "".join(path.read_text() for path in sorted((ROOT / "modules/format/src").glob("*Steps.cpp")))
+    steps = sorted(set(re.findall(r'\{"(\w+)", \{', groups)) | set(re.findall(r'"(\w+)"', "".join(
+        re.findall(r'\{"\w+", \{([^}]*)\}', groups)))) | {"do", "with", "run", "state.", "to", "value"})
     # Characters shaping treats apart: joiners, variation selectors, marks, spaces, line breaks, right-to-left letters
     text = ["\u200d", "\ufe0f", "\u0301", "\u0323", " ", "\n", "\t", "\u0627\u0644", "\u094d", "\U0001F1EE",
             "\U0001F3FD", "fi", "ffl", "->", "!=="]
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
-            "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words()}
+            "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
+            "actions": tokens + expression + steps}
 
 
 def dictionary_entry(word):
@@ -262,6 +289,7 @@ def main():
     write(out, "delta", delta_seeds(), words["delta"])
     write(out, "text", text_seeds(), words["text"])
     write(out, "cli", cli_seeds(), words["cli"])
+    write(out, "actions", action_seeds(), words["actions"])
 
 
 if __name__ == "__main__":

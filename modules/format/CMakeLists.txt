@@ -15,11 +15,15 @@ affrescoui_module(format
 	src/Value.cpp
 	src/Rules.cpp
 	src/Sections.cpp
+	src/StateTypes.cpp
+	src/Limits.cpp
 	src/CapabilitySections.cpp
 	src/Runtime.cpp
 	src/Engine.cpp
 	src/Catalog.cpp
 	src/DocumentContext.cpp
+	src/Binding.cpp
+	src/CompiledNode.cpp
 	src/Builder.cpp
 	src/Reconciler.cpp
 	src/Properties.cpp
@@ -44,6 +48,7 @@ affrescoui_module(format
 	src/Checker.cpp
 	src/CheckerNodes.cpp
 	src/CheckerValues.cpp
+	src/CheckerTypes.cpp
 	src/NodeIds.cpp
 	src/RulesNodes.cpp)
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)

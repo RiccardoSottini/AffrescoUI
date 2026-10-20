@@ -67,6 +67,7 @@ Every part of the format follows these, and so should every extension:
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
 | `templates` | `name → node`, built by code on demand (`Screen::instantiate`). |
 | `state` | The app's data, any JSON object. |
+| `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels. |
@@ -240,6 +241,42 @@ are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reve
 (not in a circle, and at most 32 deep). Prefer them to actions that recount things by hand.
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
+
+**Work budget:** an event (a handler, a timer, `onLoad`, `watch`) or an update may run 100,000 steps, evaluate
+10,000,000 expression operations (each item a list function visits counts) and write 64 MiB into the state. Past
+one, what is running stops with an error that names its place (`actions.spin[0]: the event ran more than 100000
+steps, its work budget: the action stopped`), and the screen goes on. An update that stops refuses the version that
+caused it. A revision may have 100,000 operations and 16 MiB; a document may have 32 MiB, and so may its state
+(SECURITY.md, "Limits").
+
+### Typed state
+`stateTypes` declares what a state key holds, one JSON Schema per key:
+
+```json
+"stateTypes": {
+	"filter": { "enum": ["all", "bug", "feature"] },
+	"volume": { "type": "number", "minimum": 0, "maximum": 100 },
+	"cards": { "type": "array", "items": { "type": "object", "properties": { "title": { "type": "string" } } } }
+}
+```
+
+- **Keywords:** `type` (`string`, `number`, `integer`, `boolean`, `object`, `array`, `null`, or a list of them),
+  `enum`, `const`, `properties`, `required`, `additionalProperties` (`true`, `false` or a type), `items`, `minimum`,
+  `maximum`, `minLength`, `maxLength` (characters), `minItems`, `maxItems`; notes: `description`, `title`, `default`,
+  `examples`, `note`. `true` is any value, `false` none. Another keyword is an error that names its place.
+- **The screen's own `state`** must match: a mismatch is an error when the screen is read
+  (`state.volume: expected at most 100, got 120 (stateTypes.volume)`).
+- **A revision** may not bring a state value that doesn't match, nor a type the state doesn't match; mismatches that
+  were there before don't block it. A state kept on disk that no longer matches opens with a warning.
+- **The checker** reports a `set` whose value can't match (a value written as it is is matched in full, enums and
+  limits too; an expression by the kind of value it gives), a `toggle` of something that isn't a boolean, an
+  `increment` or `animate` of something that isn't a number, a `push` onto something that isn't a list or of an item
+  that doesn't match, a `bind` whose widget writes another kind of value (a toggle or checkbox writes true or false,
+  a slider a number, a text area or editor text), and `a == b` or `a != b` comparing a state path that has an `enum`
+  with a value it never takes. A declared key or property can be read even before the state holds it; an object's
+  other keys are read only if its type says `"additionalProperties": true` or a type.
+- **While the screen runs,** steps and widgets aren't stopped by the types: they are a contract for revisions and a
+  description for agents and tools.
 
 ## Events
 
@@ -479,6 +516,11 @@ affresco::Window& window = screen.createWindow(app); // also connects the file's
 screen.listen(app, "/tmp/affrescoui-501/agent.sock", "agent"); // peers can change it from now on
 app.run();
 ```
+
+The document decides how a built panel looks. An update applies a node again only when something it shows changed:
+its values, the theme, the colours, the fonts, or a new version of the document. So a change code makes to a built
+panel directly (`screen.find("logo")->setColor(...)`) stays until one of those changes, then the document's values
+replace it. To keep a change, make it in the document (state, or a revision), or in a registered type's apply function.
 
 See the templates in `examples/assets/screens/`: `kanban` (the one `affrescoui_host` opens: rows, components, drag and
 drop, a popover), `smart-home` (themes, computed values, switches and sliders, animations), `music-player` (a playback

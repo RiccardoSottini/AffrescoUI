@@ -342,6 +342,7 @@ void Repository::resolvePaths(json& op, const std::string& kind, const json& vie
 // that earlier operations added or moved
 Repository::Prepared Repository::prepare(const json& patch, const json& document, const json& state) const {
 	if(!patch.is_array()) fail("revision.patch", "expected a JSON Patch array");
+	rules_.checkRevision(patch); // before any of it is applied
 
 	detail::RevisionBudget budget(patch); // before any work: a peer's revision may be made to be slow
 	Prepared result;

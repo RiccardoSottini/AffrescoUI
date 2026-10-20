@@ -102,6 +102,17 @@
 		]
 	},
 
+	"stateTypes": {
+		"board": {"type": "string"},
+		"filter": {"type": "string"},
+		"filters": {"type": "array", "items": {"type": "string"}},
+		"newCard": {"type": "string"},
+		"owner": {"type": "string"},
+		"membersOpen": {"type": "boolean"},
+		"members": {"type": "array", "items": {"type": "object", "properties": {"who": {"type": "string"}, "name": {"type": "string"}, "color": {"type": "string"}}}},
+		"columns": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "color": {"type": "string"}, "cards": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "tag": {"type": "string"}, "who": {"type": "string"}, "points": {"type": "number"}}}}}}}
+	},
+
 	"computed": {
 		"lastColumn": "{{len(state.columns) - 1}}"
 	},

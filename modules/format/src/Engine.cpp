@@ -18,6 +18,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 }
 
 void Engine::documentChanged() {
+	builder.forgetVersion(); // what was compiled belongs to the version before
 	document.readDerived();
 	document.bumpStateVersion(); // a revision may change the state too
 	reconciler.reconcile();

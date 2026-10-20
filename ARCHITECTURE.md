@@ -189,7 +189,9 @@ reads one `Clock`; the tests use a headless window and a manual clock (`modules/
 for now).
 
 Expressions are lowered once into typed nodes and run on small values that read the state in place (7.5,
-`modules/format/README.md`). A history keeps each commit as a delta from its parent, with a snapshot every 64
+`modules/format/README.md`). Each version of a document is compiled once into nodes whose properties are typed slots
+with compiled bindings (7.6): an update evaluates only the dynamic values, and leaves alone a panel whose values,
+compiled node and theme are those it applied last. A history keeps each commit as a delta from its parent, with a snapshot every 64
 commits, and packs its files on disk (4.8a, `modules/vcs/README.md`).
 
 Text is shaped with HarfBuzz and rasterised with FreeType (2.3b, `modules/render/README.md`): runs of one face and

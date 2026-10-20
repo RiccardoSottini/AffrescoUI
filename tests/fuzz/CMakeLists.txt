@@ -37,3 +37,5 @@ if(AFFRESCOUI_BUILD_FUZZERS)
 endif()
 target_compile_definitions(affrescoui_fuzz_cli PRIVATE
 	AFFRESCOUI_FUZZ_SCHEMA="${PROJECT_SOURCE_DIR}/schema/affrescoui-screen.schema.json")
+affrescoui_fuzzer(actions affrescoui::format affrescoui::vcs)
+target_include_directories(affrescoui_fuzz_actions PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src) # Expression.hpp

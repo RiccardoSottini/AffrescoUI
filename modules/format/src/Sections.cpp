@@ -2,6 +2,7 @@
 /// @brief format::SectionRegistry, and the built-in sections that aren't capabilities.
 
 #include "SectionRegistry.hpp"
+#include "StateTypes.hpp"
 
 #include <algorithm>
 #include <array>
@@ -101,6 +102,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"templates", checkObject});
 	registry.add({"screens", checkObject});
 	registry.add({"state"});
+	registry.add({"stateTypes", checkStateTypes}); // a type per state key (StateTypes.hpp)
 	registry.add({"computed", checkObject});
 	registry.add({"watch", checkObject});
 	registry.add({"actions", checkObject});

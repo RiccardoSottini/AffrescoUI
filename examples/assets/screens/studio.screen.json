@@ -75,6 +75,25 @@
 		}
 	},
 
+	"stateTypes": {
+		"connected": {"type": "boolean"},
+		"status": {"type": "string"},
+		"canReview": {"type": "boolean"},
+		"revision": {"type": "number"},
+		"head": {"type": "string"},
+		"mode": {"enum": ["default", "acceptEdits", "plan"]},
+		"grants": {"type": "array"},
+		"proposals": {"type": "array"},
+		"previewing": {"type": ["number", "null"]},
+		"history": {"type": "array"},
+		"log": {"type": "array"},
+		"draft": {"type": "string"},
+		"patch": {"type": "string"},
+		"modes": {"type": "array", "items": {"type": "object", "properties": {"mode": {"type": "string"}, "label": {"type": "string"}, "width": {"type": "number"}}}},
+		"modeHelp": {"type": "object", "properties": {"default": {"type": "string"}, "acceptEdits": {"type": "string"}, "plan": {"type": "string"}}},
+		"logColors": {"type": "object", "properties": {"you": {"type": "string"}, "ai": {"type": "string"}, "commit": {"type": "string"}, "review": {"type": "string"}, "error": {"type": "string"}}}
+	},
+
 	"styles": {
 		"card": { "color": "@card" },
 		"cardTitle": {

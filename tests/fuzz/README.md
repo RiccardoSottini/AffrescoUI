@@ -14,6 +14,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `session` | Lines from two peers, through in-memory channels to `channel::Session`: the agent, or the reviewer (`studio`) when a line starts with `>`. The agent's limits are low (4 KiB a message, 24 messages, 6 changes, none refilled), so inputs reach them | Every answer is one JSON object with a `"type"` |
 | `text` | UTF-8 text, shaped, measured and wrapped by a `Font` with fallbacks for Arabic, Devanagari, Chinese and colour emoji (HarfBuzz and FreeType); the first byte picks the width | One advance per code point and one caret more, all finite; the advances sum to the width `measure` gives; wrapped lines are the text in order, cut only at a space or a line break |
 | `cli` | A screen file, as the `affrescoui` tool reads it (`tools/affrescoui`): the text reader and printer behind `fmt` and `ids`, the places `ids` names, and the schema check behind `check` | `fmt` writes the same JSON value, and formatting its output again changes nothing; the schema check reports problems, never throws |
+| `actions` | A JSON value, run as the steps of an action of the Kanban template (its state and actions, no window) | Every event stops within its work budget (the run's `-timeout` catches one that doesn't), and writes no more into the state than the budget lets it |
 
 ## Running them
 
@@ -82,7 +83,7 @@ search goes on where it stopped. It also runs on demand (Actions, "Fuzz", "Run w
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp` | The targets |
+| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `actions.cpp` | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates in `examples/assets/screens/`, the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |
