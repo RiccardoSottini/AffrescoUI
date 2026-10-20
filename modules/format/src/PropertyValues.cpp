@@ -2,6 +2,7 @@
 /// @brief Readers for property values, and the layout properties.
 
 #include "PropertyValues.hpp"
+#include "LayoutProperties.hpp"
 #include "NodeKeys.hpp"
 
 #include <cctype>
@@ -16,13 +17,6 @@ using expect::number;
 using expect::object;
 using expect::string;
 
-namespace {
-
-/// @brief Reads a length: 120 or "120px" (pixels), "50%" (of the parent).
-/// @param value The value.
-/// @param path Its place, for errors.
-/// @return The length.
-/// @throws DocumentError If it is not a length.
 Length length(const json& value, const std::string& path) {
 	if(value.is_number()) return px(value.get<float>());
 
@@ -39,7 +33,7 @@ Length length(const json& value, const std::string& path) {
 		try {
 			std::size_t used = 0;
 			const float amount = std::stof(t, &used);
-			if(used == t.size()) return {amount, unit};
+			if(used == t.size() && std::isfinite(amount)) return {amount, unit};
 			// NOLINTNEXTLINE(bugprone-empty-catch): not a number, reported below like any other malformed length
 		} catch(const std::exception&) {
 		}
@@ -47,6 +41,8 @@ Length length(const json& value, const std::string& path) {
 
 	fail(path, R"(expected a length: a number of pixels, "12px" or "50%")");
 }
+
+namespace {
 
 /// @brief Reads an edge name: "top", "bottom", "left" or "right".
 /// @param name The name.
@@ -170,7 +166,7 @@ bool layoutProperty(Panel& panel, std::string_view key, const json& value, const
 		for(const auto& [name, offset] : object(value, at).items())
 			anchor(panel, name, offset, concatenate(at, ".", name));
 	} else {
-		return false;
+		return layoutItemProperty(panel, key, value, at);
 	}
 	return true;
 }

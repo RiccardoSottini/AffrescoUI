@@ -1,4 +1,5 @@
 #include "gl/QuadRenderer.hpp"
+#include "PaintRecorder.hpp"
 #include "gl/Shader.hpp"
 
 #include "affresco/render/Font.hpp"
@@ -8,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <initializer_list>
+#include <limits>
 #include <string>
 
 namespace affresco::gl {
@@ -147,33 +149,13 @@ std::string join(std::initializer_list<std::string_view> parts) {
 	return source;
 }
 
-constexpr std::size_t verticesPerQuad = 4; ///< Corners.
-constexpr std::size_t indicesPerQuad = 6;  ///< Two triangles.
+constexpr std::size_t indicesPerQuad = 6; ///< Two triangles.
 
 /// @brief Converts to a normalized 16-bit integer.
 /// @param value In [0, 1]; clamped.
 /// @return In [0, 65535].
 std::uint16_t toUnorm16(float value) noexcept {
 	return static_cast<std::uint16_t>(std::lround(std::clamp(value, 0.0f, 1.0f) * 65535.0f));
-}
-
-/// @brief The longest radius, outline or blur a vertex holds, in window units.
-constexpr float longestShapeLength = 65535.0f / 16.0f;
-
-/// @brief Converts a shape's length to the vertex's sixteenths of a window unit.
-/// @param value In window units; clamped to [0, longestShapeLength].
-/// @return In [0, 65535].
-std::uint16_t toSixteenths(float value) noexcept {
-	return static_cast<std::uint16_t>(std::lround(std::clamp(value, 0.0f, longestShapeLength) * 16.0f));
-}
-
-/// @brief The part of a rectangle inside another one.
-/// @param rect The rectangle.
-/// @param clip The other one.
-/// @return The intersection; empty (right <= left or bottom <= top) if they don't overlap.
-Rect intersect(const Rect& rect, const Rect& clip) noexcept {
-	return {std::max(rect.left, clip.left), std::max(rect.top, clip.top), std::min(rect.right, clip.right),
-	        std::min(rect.bottom, clip.bottom)};
 }
 
 } // namespace
@@ -199,19 +181,20 @@ QuadRenderer::QuadRenderer()
 	glBindVertexArray(vertexArray_.id());
 
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer_.id());
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void*>(offsetof(Vertex, x)));
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(detail::Vertex),
+	                      reinterpret_cast<const void*>(offsetof(detail::Vertex, x)));
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(Vertex),
-	                      reinterpret_cast<const void*>(offsetof(Vertex, u)));
+	glVertexAttribPointer(1, 2, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(detail::Vertex),
+	                      reinterpret_cast<const void*>(offsetof(detail::Vertex, u)));
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex),
-	                      reinterpret_cast<const void*>(offsetof(Vertex, r)));
+	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(detail::Vertex),
+	                      reinterpret_cast<const void*>(offsetof(detail::Vertex, r)));
 	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-	                      reinterpret_cast<const void*>(offsetof(Vertex, insideX)));
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(detail::Vertex),
+	                      reinterpret_cast<const void*>(offsetof(detail::Vertex, insideX)));
 	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(4, 4, GL_UNSIGNED_SHORT, GL_FALSE, sizeof(Vertex),
-	                      reinterpret_cast<const void*>(offsetof(Vertex, radius)));
+	glVertexAttribPointer(4, 4, GL_UNSIGNED_SHORT, GL_FALSE, sizeof(detail::Vertex),
+	                      reinterpret_cast<const void*>(offsetof(detail::Vertex, radius)));
 	glEnableVertexAttribArray(4);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer_.id());
@@ -219,24 +202,46 @@ QuadRenderer::QuadRenderer()
 	glBindVertexArray(0);
 }
 
-void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, const Panel* tooltip, int width,
-                        int height) {
+void QuadRenderer::startFrame() {
 	vertices_.clear();
 	batches_.clear();
-	hasShapes_ = false;
-	hasColor_ = false;
 	drawCalls_ = 0;
 	std::erase_if(fontTextures_, [](const auto& entry) { return entry.second.font.expired(); });
-	const Rect window{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)};
-	collect(root, window);
-	for(const Panel* overlay : overlays) collect(*overlay, window);
-	if(tooltip) collect(*tooltip, window);
+}
 
-	const std::size_t quads = vertices_.size() / verticesPerQuad;
+void QuadRenderer::draw(const detail::Frame& frame, const std::optional<Rect>& region, bool shapes, bool color) {
+	startFrame();
+	region_ = region;
+	replayTree(frame.root);
+	for(const Panel* overlay : frame.overlays) replayTree(*overlay);
+	if(frame.tooltip) replayTree(*frame.tooltip);
+	region_.reset();
+	submit(frame.width, frame.height, shapes, color);
+}
+
+void QuadRenderer::drawFromScratch(const detail::Frame& frame) {
+	startFrame();
+	scratchShapes_ = scratchColor_ = false;
+	const Rect window{0.0f, 0.0f, static_cast<float>(frame.width), static_cast<float>(frame.height)};
+	scratchTree(frame.root, window, 0);
+	for(const Panel* overlay : frame.overlays) scratchTree(*overlay, window, 0);
+	if(frame.tooltip) scratchTree(*frame.tooltip, window, 0);
+	submit(frame.width, frame.height, scratchShapes_, scratchColor_);
+}
+
+void QuadRenderer::draw(Panel& root, std::span<Panel* const> overlays, Panel* tooltip, int width, int height) {
+	// A generation of its own, so every panel is recorded again: this renderer may not be the window's
+	const detail::Frame frame{root, overlays, tooltip, width, height, 0, ++ownGeneration_, std::nullopt, true};
+	const detail::Refreshed refreshed = refresh(frame);
+	draw(frame, std::nullopt, refreshed.shapes, refreshed.color);
+}
+
+// One program for the whole frame, so shapes and colour glyphs still never break a batch
+void QuadRenderer::submit(int width, int height, bool shapes, bool color) {
+	const std::size_t quads = vertices_.size() / detail::verticesPerQuad;
 	if(quads == 0) return;
 
-	// One program for the whole frame, so shapes and colour glyphs still never break a batch
-	Shader& shader = shaders_[(hasShapes_ ? 1u : 0u) + (hasColor_ ? 2u : 0u)];
+	Shader& shader = shaders_[(shapes ? 1u : 0u) + (color ? 2u : 0u)];
 	glUseProgram(shader.program.id());
 	if(width != shader.width || height != shader.height) {
 		glUniform2f(shader.scaleLocation, 2.0f / static_cast<float>(width), -2.0f / static_cast<float>(height));
@@ -254,18 +259,18 @@ void QuadRenderer::draw(const Panel& root, std::span<Panel* const> overlays, con
 
 	// Re-specifying the whole store lets the driver orphan the old one instead of waiting for the GPU to finish with it
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer_.id());
-	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices_.size() * sizeof(Vertex)), vertices_.data(),
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices_.size() * sizeof(detail::Vertex)), vertices_.data(),
 	             GL_STREAM_DRAW);
 
-	drawBatches();
+	drawBatches(color);
 	glBindVertexArray(0);
 }
 
-void QuadRenderer::drawBatches() {
+void QuadRenderer::drawBatches(bool color) {
 	glActiveTexture(GL_TEXTURE0);
 	for(const Batch& batch : batches_) {
 		if(batch.quadCount == 0) continue;
-		if(hasColor_) {
+		if(color) {
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, batch.colorTexture != 0 ? batch.colorTexture : whiteTexture_.id());
 			glActiveTexture(GL_TEXTURE0);
@@ -277,51 +282,83 @@ void QuadRenderer::drawBatches() {
 	}
 }
 
-// Pre-order traversal: parents first, so children (and later siblings) are drawn on top
-void QuadRenderer::collect(const Panel& panel, const Rect& outerClip) {
+// Pre-order traversal: parents first, so children (and later siblings) are drawn on top. A subtree outside the region
+// draws nothing there: its children are clipped to its bounds, and its shadow is in its record's extent
+void QuadRenderer::replayTree(const Panel& panel) {
 	if(!panel.isShown()) return; // hidden panels hide their whole subtree
+	const detail::PanelGeometry* geometry = panel.geometry_.get();
+	if(!geometry || !geometry->recorded) return;
+	if(region_ && !detail::overlaps(*region_, detail::reachOf(panel.bounds(), geometry->record))) return;
 
-	clip_ = panel.bounds();
-	outerClip_ = outerClip;
-	panel.paint(*this);
-
+	const detail::PaintRecord& record = geometry->record;
+	replay(record, 0, record.overStart);
 	for(const auto& child : panel.children())
-		if(!child->isOverlay()) collect(*child, panel.bounds()); // overlays are drawn after the whole tree
-
-	clip_ = panel.bounds();
-	outerClip_ = outerClip;
-	panel.paintOver(*this);
+		if(!child->isOverlay()) replayTree(*child); // overlays are drawn after the whole tree
+	replay(record, record.overStart, record.ops.size());
 }
 
-void QuadRenderer::fillRect(const Rect& rect, Color color) {
-	if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
+void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::size_t depth) {
+	if(!panel.isShown()) return;
+	if(scratch_.size() <= depth) scratch_.emplace_back();
+	detail::PaintRecord& record = scratch_[depth];
+	record.clear();
+	detail::PaintRecorder recorder(record, panel.bounds(), outerClip);
+	panel.paint(recorder);
+	record.overStart = record.ops.size();
+	panel.paintOver(recorder);
+	scratchShapes_ = scratchShapes_ || record.shapes;
+	scratchColor_ = scratchColor_ || record.color;
 
-	// Solid rectangles never break a batch: they sample the current texture's white texel
-	const Vec2 white = batches_.back().white;
-	pushQuad(rect, Rect{white.x, white.y, white.x, white.y}, color);
+	replay(record, 0, record.overStart);
+	for(const auto& child : panel.children())
+		if(!child->isOverlay()) scratchTree(*child, panel.bounds(), depth + 1);
+	replay(record, record.overStart, record.ops.size());
 }
 
-void QuadRenderer::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
-	// Carry on with the font's page in use, so runs of text from a later page stay in one batch
-	const bool sameFont = !batches_.empty() && batches_.back().font == &font;
-	std::uint32_t page = sameFont ? batches_.back().page : 0;
-	useFontPage(font, page);
-
-	// Shaped glyphs come left to right, and spaces aren't among them
-	for(const Font::ShapedGlyph& placed : font.shape(text).glyphs) {
-		const float penX = origin.x + placed.x, baseline = origin.y + placed.y;
-		if(penX > clip_.right) break; // the rest of the line is clipped anyway
-
-		const Font::Glyph& glyph = *placed.glyph;
-		const Rect quad{penX + glyph.quad.left, baseline + glyph.quad.top, penX + glyph.quad.right,
-		                baseline + glyph.quad.bottom};
-		if(glyph.color) {
-			useColorPage(font, glyph.page);
-			pushQuad(quad, glyph.uv, Color{1.0f, 1.0f, 1.0f, color.a}, QuadKind::colorGlyph); // its own colours
-			continue;
+// The steps change the batches as drawing directly did: fills take the white texel of the texture in use, and text
+// carries on with its font's page in use
+void QuadRenderer::replay(const detail::PaintRecord& record, std::size_t first, std::size_t last) {
+	using detail::PaintStep;
+	for(std::size_t i = first; i < last; ++i) {
+		const detail::PaintOp& op = record.ops[i];
+		switch(op.step) {
+		case PaintStep::fill:
+			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
+			addQuads(record, op, true);
+			break;
+		case PaintStep::text: {
+			const bool sameFont = !batches_.empty() && batches_.back().font == op.font;
+			textPage_ = sameFont ? batches_.back().page : 0;
+			useFontPage(*op.font, textPage_);
+			break;
 		}
-		if(glyph.page != page) useFontPage(font, page = glyph.page);
-		pushQuad(quad, glyph.uv, color);
+		case PaintStep::glyphs:
+			if(op.page != textPage_) useFontPage(*op.font, textPage_ = op.page);
+			addQuads(record, op, false);
+			break;
+		case PaintStep::colorGlyph:
+			useColorPage(*op.font, op.page);
+			addQuads(record, op, false);
+			break;
+		}
+	}
+}
+
+void QuadRenderer::addQuads(const detail::PaintRecord& record, const detail::PaintOp& op, bool white) {
+	const Vec2 texel = batches_.back().white;
+	const std::uint16_t u = toUnorm16(texel.x), v = toUnorm16(texel.y);
+	for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
+		const auto corners =
+		    std::span(record.vertices).subspan(quad * detail::verticesPerQuad, detail::verticesPerQuad);
+		if(region_ && !detail::overlaps(*region_, {corners[0].x, corners[0].y, corners[2].x, corners[2].y})) continue;
+		for(detail::Vertex vertex : corners) {
+			if(white) {
+				vertex.u = u;
+				vertex.v = v;
+			}
+			vertices_.push_back(vertex);
+		}
+		++batches_.back().quadCount;
 	}
 }
 
@@ -336,108 +373,16 @@ void QuadRenderer::useColorPage(const Font& font, std::uint32_t page) {
 	if(batches_.back().colorTexture == texture) return;
 	if(batches_.back().colorTexture != 0) { // another colour page: the same coverage page, in a new batch
 		const Batch current = batches_.back();
-		batches_.push_back(
-		    {current.texture, current.white, vertices_.size() / verticesPerQuad, 0, current.font, current.page});
+		batches_.push_back({current.texture, current.white, vertices_.size() / detail::verticesPerQuad, 0, current.font,
+		                    current.page});
 	}
 	batches_.back().colorTexture = texture;
 	batches_.back().colorPage = page;
-	hasColor_ = true;
 }
 
 void QuadRenderer::useTexture(GLuint texture, Vec2 white) {
 	if(!batches_.empty() && batches_.back().texture == texture) return;
-	batches_.push_back({texture, white, vertices_.size() / verticesPerQuad, 0});
-}
-
-// Clips the quad to the panel being painted (adjusting the texture coordinates to match) and appends it
-void QuadRenderer::pushQuad(const Rect& rect, const Rect& uv, Color color, QuadKind kind) {
-	const auto [cr, cg, cb, ca] = color.toBytes();
-	if(ca == 0) return; // invisible: e.g. pure layout containers
-
-	const Rect q = intersect(rect, clip_);
-	if(q.right <= q.left || q.bottom <= q.top) return;
-
-	Rect t = uv;
-	if(q != rect) {
-		auto lerp = [](float a, float b, float f) { return a + (b - a) * f; };
-		t.left = lerp(uv.left, uv.right, (q.left - rect.left) / rect.width());
-		t.right = lerp(uv.left, uv.right, (q.right - rect.left) / rect.width());
-		t.top = lerp(uv.top, uv.bottom, (q.top - rect.top) / rect.height());
-		t.bottom = lerp(uv.top, uv.bottom, (q.bottom - rect.top) / rect.height());
-	}
-
-	const std::uint16_t u0 = toUnorm16(t.left), v0 = toUnorm16(t.top);
-	const std::uint16_t u1 = toUnorm16(t.right), v1 = toUnorm16(t.bottom);
-	const auto marker = static_cast<std::uint16_t>(kind);
-	vertices_.push_back({q.left, q.top, u0, v0, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
-	vertices_.push_back({q.right, q.top, u1, v0, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
-	vertices_.push_back({q.right, q.bottom, u1, v1, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
-	vertices_.push_back({q.left, q.bottom, u0, v1, cr, cg, cb, ca, 0.0f, 0.0f, 0, 0, 0, marker});
-	++batches_.back().quadCount;
-}
-
-void QuadRenderer::fillRoundedRect(const Rect& rect, const CornerRadii& radii, Color color) {
-	pushShape(rect, radii, {.color = color}, clip_);
-}
-
-void QuadRenderer::strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) {
-	if(width > 0.0f) pushShape(rect, radii, {.color = color, .outline = width}, clip_);
-}
-
-// A shadow falls outside its panel, so it is clipped to what clips the panel instead
-void QuadRenderer::drawShadow(const Rect& rect, const CornerRadii& radii, const Shadow& shadow) {
-	const Rect moved{rect.left + shadow.offset.x, rect.top + shadow.offset.y, rect.right + shadow.offset.x,
-	                 rect.bottom + shadow.offset.y};
-	pushShape(moved, radii, {.color = shadow.color, .blur = std::clamp(shadow.blur, 0.0f, longestShapeLength)},
-	          outerClip_);
-}
-
-// Four quarters meeting at the centre: inside a quarter, the distance to the shape's edge depends only on the two
-// nearest edges and their corner, so each vertex needs just those. Shapes never break a batch: they sample the current
-// texture's white texel, like fillRect()
-void QuadRenderer::pushShape(const Rect& rect, const CornerRadii& radii, const ShapeStyle& style, const Rect& clip) {
-	if(!(rect.width() > 0.0f) || !(rect.height() > 0.0f) || style.color.toBytes()[3] == 0) return; // also drops NaN
-	if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
-
-	// A radius past the centre would reach into the next quarter; an outline that wide is the whole shape
-	const float largest = std::min(rect.width(), rect.height()) / 2.0f;
-	ShapeStyle clamped = style;
-	if(clamped.outline >= largest) clamped.outline = 0.0f;
-
-	// Room past the edges for the anti-aliased edge, or three standard deviations of the blur
-	const float margin = 1.0f + style.blur * 1.5f;
-	const float centreX = (rect.left + rect.right) / 2.0f, centreY = (rect.top + rect.bottom) / 2.0f;
-	const std::array<Quarter, 4> quarters{{
-	    {{rect.left - margin, rect.top - margin, centreX, centreY}, radii.topLeft, true, true},
-	    {{centreX, rect.top - margin, rect.right + margin, centreY}, radii.topRight, false, true},
-	    {{centreX, centreY, rect.right + margin, rect.bottom + margin}, radii.bottomRight, false, false},
-	    {{rect.left - margin, centreY, centreX, rect.bottom + margin}, radii.bottomLeft, true, false},
-	}};
-	for(Quarter quarter : quarters) {
-		quarter.radius = std::clamp(quarter.radius, 0.0f, largest);
-		pushQuarter(rect, quarter, clamped, clip);
-	}
-}
-
-void QuadRenderer::pushQuarter(const Rect& rect, const Quarter& quarter, const ShapeStyle& style, const Rect& clip) {
-	const Rect q = intersect(quarter.piece, clip);
-	if(q.right <= q.left || q.bottom <= q.top) return;
-
-	// Linear in the position, so the GPU interpolates them exactly
-	const auto insideX = [&](float x) { return quarter.left ? x - rect.left : rect.right - x; };
-	const auto insideY = [&](float y) { return quarter.top ? y - rect.top : rect.bottom - y; };
-
-	const auto [cr, cg, cb, ca] = style.color.toBytes();
-	const Vec2 white = batches_.back().white;
-	const std::uint16_t u = toUnorm16(white.x), v = toUnorm16(white.y);
-	const std::uint16_t radius = toSixteenths(quarter.radius), outline = toSixteenths(style.outline),
-	                    blur = toSixteenths(style.blur);
-	for(const auto [x, y] :
-	    {Vec2{q.left, q.top}, Vec2{q.right, q.top}, Vec2{q.right, q.bottom}, Vec2{q.left, q.bottom}})
-		vertices_.push_back({x, y, u, v, cr, cg, cb, ca, insideX(x), insideY(y), radius, outline, blur,
-		                     static_cast<std::uint16_t>(QuadKind::shape)});
-	++batches_.back().quadCount;
-	hasShapes_ = true;
+	batches_.push_back({texture, white, vertices_.size() / detail::verticesPerQuad, 0});
 }
 
 GLuint QuadRenderer::fontTexture(const Font& font, std::uint32_t page, AtlasKind kind) {
@@ -498,7 +443,7 @@ void QuadRenderer::reserveQuads(std::size_t quads) {
 	std::vector<GLuint> indices;
 	indices.reserve(quadCapacity_ * indicesPerQuad);
 	for(std::size_t q = 0; q < quadCapacity_; ++q) {
-		const auto v = static_cast<GLuint>(q * verticesPerQuad);
+		const auto v = static_cast<GLuint>(q * detail::verticesPerQuad);
 		indices.insert(indices.end(), {v, v + 1, v + 2, v + 2, v + 3, v});
 	}
 

@@ -39,7 +39,7 @@ protected:
 	void paint(Painter& painter) const override;
 
 private:
-	std::u32string placeholder_;                    ///< See setPlaceholder().
+	std::u32string placeholder_;             ///< See setPlaceholder().
 	Color placeholderColor_ = colors::muted; ///< See setPlaceholderColor().
 };
 

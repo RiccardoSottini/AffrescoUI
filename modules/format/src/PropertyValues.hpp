@@ -16,6 +16,13 @@
 
 namespace affresco::format {
 
+/// @brief Reads a length: 120 or "120px" (pixels), "50%" (of the parent).
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The length.
+/// @throws DocumentError If it is not a length.
+[[nodiscard]] Length length(const json& value, const std::string& path);
+
 /// @brief Reads "start", "center" or "end".
 /// @param value The value.
 /// @param path Its place, for errors.

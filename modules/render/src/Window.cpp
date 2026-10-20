@@ -6,7 +6,9 @@
 #include "affresco/render/Window.hpp"
 #include "affresco/render/Label.hpp"
 
+#include "GeometryCache.hpp"
 #include "Renderer.hpp"
+#include "RetainedGeometry.hpp"
 #include "detail/Ppm.hpp"
 #include "platform/Platform.hpp"
 
@@ -29,6 +31,8 @@ constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
 void platform::NativeWindow::resized(Window& window, int width, int height) { window.resized(width, height); }
 
 void platform::NativeWindow::refresh(Window& window) { window.refresh(); }
+
+void platform::NativeWindow::framebufferResized(Window& window) { window.requestFrame(); }
 
 Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<detail::Renderer> renderer,
                const Clock& clock, std::string title, int width, int height)
@@ -60,7 +64,7 @@ void Window::setSize(int width, int height) {
 	height_ = std::max(height, minHeight_);
 	if(native_) native_->setSize(width_, height_); // the OS then reports the size: resized()
 	else resized(width_, height_);                 // headless: as the OS would
-	invalidate();
+	requestLayout();
 }
 
 void Window::setMinSize(int minWidth, int minHeight) {
@@ -83,7 +87,8 @@ bool Window::shouldClose() const { return native_ && native_->shouldClose(); }
 void Window::resized(int width, int height) {
 	width_ = width;
 	height_ = height;
-	invalidate();
+	requestLayout(); // the root's size changes, and with it what depends on it
+	damageAll_ = true;
 	onResize(ResizeEvent{width, height});
 }
 
@@ -144,6 +149,7 @@ void Window::updateLayout() {
 		overlays_.clear();
 		layoutOverlays(root_);
 	}
+	layoutAll_ = false;
 
 	if(tooltipShown_ && tooltip_) {
 		const Vec2 size{tooltip_->measuredWidth(width), tooltip_->measuredHeight(height)};
@@ -159,6 +165,7 @@ void Window::updateLayout() {
 
 // Pre-order, after the tree: an overlay's own overlays come after it, so they are drawn on top of it
 void Window::layoutOverlays(Panel& panel) {
+	if(!panel.overlaysBelow_) return; // known from the panel's last layout, which a skipped subtree keeps
 	for(auto& child : panel.children_) {
 		if(child->overlay_) {
 			layoutOverlay(*child, panel);
@@ -213,17 +220,23 @@ void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
 	overlay.layout(origin, area, Vec2{width, height}, parent.shown_);
 }
 
+detail::Frame Window::frame() noexcept {
+	return {
+	    root_,   overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_, layoutPass_, paintGeneration_,
+	    damage_, damageAll_};
+}
+
 void Window::draw() {
 	native_->makeCurrent();
 	updateLayout();
 	// On HiDPI screens the framebuffer has more pixels than the window has units
-	renderer_->draw({root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_},
-	                native_->framebufferSize());
+	renderer_->draw(frame(), native_->framebufferSize());
+	clearDamage();
 }
 
 void Window::defer(std::function<void()> task) {
 	deferred_.push_back(std::move(task));
-	if(routing_ == 0) invalidate(); // make sure a frame comes, which runs it
+	if(routing_ == 0) requestFrame(); // make sure a frame comes, which runs it
 }
 
 void Window::runDeferred() {
@@ -322,8 +335,8 @@ bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
 	updateLayout();
 
 	const platform::PixelSize size{width_ * scale, height_ * scale};
-	const std::vector<std::uint8_t> pixels =
-	    renderer_->drawOffscreen({root_, overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_}, size);
+	const std::vector<std::uint8_t> pixels = renderer_->drawOffscreen(frame(), size);
+	clearDamage();
 	return detail::writePpm(path, size.width, size.height, pixels);
 }
 
@@ -368,7 +381,7 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 		if(tooltipShown_ || tooltipTimer_) { // a press dismisses the tooltip until the pointer moves to another panel
 			cancelTimer(std::exchange(tooltipTimer_, 0));
 			tooltipShown_ = false;
-			invalidate();
+			requestLayout();
 		}
 		if(event.button == MouseButton::Left) setFocus(hit);
 		if(!grabbed_) grabbed_ = hit;
@@ -406,6 +419,11 @@ void Window::routeCursorEnter(bool entered) {
 }
 
 void Window::forget(const Panel& panel) noexcept {
+	++treeGeneration_; // an anchor may have found it
+	if(panel.geometry_ && panel.geometry_->recorded) { // where it drew is damage
+		detail::addTo(damage_, detail::reachOf(panel.geometry_->key.bounds, panel.geometry_->record));
+		requestFrame();
+	}
 	if(focused_ == &panel) focused_ = nullptr;
 	if(hovered_ == &panel) hovered_ = nullptr;
 	if(grabbed_ == &panel) grabbed_ = nullptr;
@@ -434,7 +452,7 @@ void Window::restartTooltip() {
 	cancelTimer(std::exchange(tooltipTimer_, 0));
 	if(tooltipShown_) {
 		tooltipShown_ = false;
-		invalidate();
+		requestLayout();
 	}
 
 	const Panel* owner = hovered_;
@@ -454,7 +472,7 @@ void Window::restartTooltip() {
 		}
 		tooltip_->setText(text);
 		tooltipShown_ = true;
-		invalidate();
+		requestLayout(); // placed at the pointer by the next pass
 	});
 }
 

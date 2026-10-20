@@ -8,8 +8,15 @@
 /// The frames don't depend on the machine or on what ran before: the window is hidden and only receives the events the
 /// steps send, captures are drawn offscreen at the scenario's "scale" (default 1) whatever the display, and screens
 /// are loaded without a state file. check.py runs every scenario and compares the frames with the golden images.
+///
+/// A capture is drawn the way the window draws its frames: from each panel's retained geometry, only where something
+/// changed since the last capture. Each one is also drawn from scratch, and the two must be the same: a pixel the
+/// renderer failed to draw again (a stale pixel) fails the scenario, whatever the golden image says.
 
 #include "CodeEditor.hpp"
+
+#include "Headless.hpp"
+#include "detail/Ppm.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -26,6 +33,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 using json = nlohmann::json;
 
@@ -68,7 +76,8 @@ affresco::Vec2 pointOf(affresco::Window& window, const json& step, const json& t
 	const std::string id = target.get<std::string>().substr(1);
 	int n = step.value("nth", 0);
 	const affresco::Panel* panel = findShown(window.root(), id, n);
-	if(!panel) throw std::runtime_error("no shown panel '#" + id + "' (nth " + std::to_string(step.value("nth", 0)) + ")");
+	if(!panel)
+		throw std::runtime_error("no shown panel '#" + id + "' (nth " + std::to_string(step.value("nth", 0)) + ")");
 	const affresco::Rect& r = panel->bounds();
 	return {(r.left + r.right) / 2.0f, (r.top + r.bottom) / 2.0f};
 }
@@ -79,10 +88,10 @@ affresco::Vec2 pointOf(affresco::Window& window, const json& step, const json& t
 /// @throws std::runtime_error If the key is unknown.
 std::pair<affresco::Key, affresco::Mods> keyOf(const std::string& text) {
 	static const std::map<std::string, affresco::Key> named = {
-	    {"enter", affresco::Key::Enter},  {"escape", affresco::Key::Escape}, {"tab", affresco::Key::Tab},
+	    {"enter", affresco::Key::Enter},         {"escape", affresco::Key::Escape}, {"tab", affresco::Key::Tab},
 	    {"backspace", affresco::Key::Backspace}, {"delete", affresco::Key::Delete}, {"space", affresco::Key::Space},
-	    {"left", affresco::Key::Left},    {"right", affresco::Key::Right},   {"up", affresco::Key::Up},
-	    {"down", affresco::Key::Down},    {"home", affresco::Key::Home},     {"end", affresco::Key::End},
+	    {"left", affresco::Key::Left},           {"right", affresco::Key::Right},   {"up", affresco::Key::Up},
+	    {"down", affresco::Key::Down},           {"home", affresco::Key::Home},     {"end", affresco::Key::End},
 	    {"slash", affresco::Key::Slash}};
 	static const std::map<std::string, int> modifiers = {{"shift", 0x1}, {"ctrl", 0x2}, {"alt", 0x4}, {"cmd", 0x8}};
 
@@ -97,6 +106,38 @@ std::pair<affresco::Key, affresco::Mods> keyOf(const std::string& text) {
 	if(rest.size() == 1 && rest[0] >= 'a' && rest[0] <= 'z')
 		return {static_cast<affresco::Key>(static_cast<int>(affresco::Key::A) + (rest[0] - 'a')), mods};
 	throw std::runtime_error("unknown key '" + text + "'");
+}
+
+/// @brief Reads the pixels of a binary PPM the window wrote.
+/// @param path The file.
+/// @return Its RGB bytes.
+/// @throws std::runtime_error If it can't be read.
+std::vector<std::uint8_t> ppmPixels(const std::filesystem::path& path) {
+	std::ifstream file(path, std::ios::binary);
+	std::string magic;
+	int width = 0, height = 0, maximum = 0;
+	if(!(file >> magic >> width >> height >> maximum) || magic != "P6")
+		throw std::runtime_error("not a PPM: " + path.string());
+	file.get(); // the one whitespace after the header
+	std::vector<std::uint8_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 3);
+	file.read(reinterpret_cast<char*>(pixels.data()), static_cast<std::streamsize>(pixels.size()));
+	if(!file) throw std::runtime_error("truncated PPM: " + path.string());
+	return pixels;
+}
+
+/// @brief Checks that a capture, drawn from retained geometry where something changed, is the frame drawn from scratch.
+/// @param window The window.
+/// @param path The capture.
+/// @param scale Its pixels per window unit.
+/// @throws std::runtime_error If they differ: the frame drawn from scratch is saved next to it.
+void checkAgainstScratch(affresco::Window& window, const std::filesystem::path& path, int scale) {
+	const std::vector<std::uint8_t> scratch = affresco::detail::drawFromScratch(window, scale);
+	if(ppmPixels(path) == scratch) return;
+	std::filesystem::path reference = path;
+	reference.replace_extension(".scratch.ppm");
+	affresco::detail::writePpm(reference, window.width() * scale, window.height() * scale, scratch);
+	throw std::runtime_error("stale pixels: " + path.string() + " differs from the same frame drawn from scratch (" +
+	                         reference.string() + ")");
 }
 
 /// @brief A scenario being played.
@@ -126,6 +167,7 @@ void play(Player& player, const json& step) {
 	if(step.contains("capture")) {
 		const auto path = out / (name + "-" + step["capture"].get<std::string>() + ".ppm");
 		if(!window.saveScreenshot(path, scale)) throw std::runtime_error("could not save " + path.string());
+		checkAgainstScratch(window, path, scale);
 	} else if(step.contains("move")) {
 		window.routeMouseMove(pointOf(window, step, step["move"]));
 	} else if(step.contains("click")) {
@@ -180,13 +222,13 @@ int main(int argc, char** argv) {
 		const auto scenario = std::ranges::find_if(all["scenarios"], [&](const json& s) { return s["name"] == name; });
 		if(scenario == all["scenarios"].end()) throw std::runtime_error("no scenario '" + name + "'");
 
-		const std::filesystem::path file = scenarios.parent_path() / all["screens"].get<std::string>() /
-		                                   (*scenario)["screen"].get<std::string>();
+		const std::filesystem::path file =
+		    scenarios.parent_path() / all["screens"].get<std::string>() / (*scenario)["screen"].get<std::string>();
 		affresco::Application app;
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // never on screen
 		affresco::Screen screen = affresco::Screen::fromString(readFile(file), file.parent_path());
-		screen.setPlaceholderTypes(true);         // as affrescoui_host does
-		examples::registerCodeEditor(screen);     // and its application-layer "code" type
+		screen.setPlaceholderTypes(true);           // as affrescoui_host does
+		examples::registerCodeEditor(screen);       // and its application-layer "code" type
 		screen.setSocketDirectory(out / "no-host"); // channels find nobody: the "disconnected" look, every time
 
 		Player player{screen, screen.createWindow(app), out, name, scenario->value("scale", 1)};

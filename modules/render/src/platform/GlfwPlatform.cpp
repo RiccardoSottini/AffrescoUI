@@ -99,7 +99,7 @@ void GlfwWindow::connect(Window& window) {
 	// (During a live resize on macOS the loop is blocked and the refresh callback fires after every step.)
 	glfwSetWindowSizeCallback(handle_,
 	                          [](GLFWwindow* native, int width, int height) { resized(owner(native), width, height); });
-	glfwSetFramebufferSizeCallback(handle_, [](GLFWwindow* native, int, int) { owner(native).invalidate(); });
+	glfwSetFramebufferSizeCallback(handle_, [](GLFWwindow* native, int, int) { framebufferResized(owner(native)); });
 	glfwSetWindowRefreshCallback(handle_, [](GLFWwindow* native) { refresh(owner(native)); });
 
 	glfwSetKeyCallback(handle_, [](GLFWwindow* native, int key, int scancode, int action, int mods) {

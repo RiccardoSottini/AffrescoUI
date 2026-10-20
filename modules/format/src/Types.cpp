@@ -4,6 +4,7 @@
 /// toggle, checkbox, slider) register from their own files, with their apply functions. The catalog lists the types
 /// in the order they are registered here.
 
+#include "LayoutProperties.hpp"
 #include "TypeRegistry.hpp"
 
 #include "affresco/render/Label.hpp"
@@ -83,6 +84,15 @@ std::vector<PropertySpec> textProperties() {
 	        {"fitText"}};
 }
 
+/// @brief A set with the layout keys every node has added at its end (LayoutProperties.cpp).
+/// @param set The set.
+/// @return A copy of it, with them.
+std::shared_ptr<const PropertySet> withLayoutItems(const std::shared_ptr<const PropertySet>& set) {
+	auto extended = std::make_shared<PropertySet>(*set);
+	for(PropertySpec spec : layoutItemProperties()) extended->properties.push_back(std::move(spec));
+	return extended;
+}
+
 /// @brief Adds a core type.
 /// @param registry The registry.
 /// @param name Its name.
@@ -99,7 +109,7 @@ void addCore(TypeRegistry& registry, std::string name, std::string about, NodeTy
 void registerBuiltInTypes(TypeRegistry& registry) {
 	addCore(
 	    registry, "panel", "A rectangle; children are placed by their anchors",
-	    [] { return std::make_unique<Panel>(); }, commonProperties());
+	    [] { return std::make_unique<Panel>(); }, withLayoutItems(commonProperties()));
 
 	auto label = std::make_shared<PropertySet>();
 	label->properties = textProperties();
@@ -118,10 +128,10 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 
 	const auto column = [] { return std::make_unique<Stack>(); };
 	addCore(registry, "stack", "Children in a column or a row", column,
-	        described({{"gap", ValueKind::Number},
-	                   {"direction", ValueKind::Text},
-	                   {"from", ValueKind::Text},
-	                   {"wrap", ValueKind::Boolean}}));
+	        stackProperties({{"gap", ValueKind::Number},
+	                         {"direction", ValueKind::Text},
+	                         {"from", ValueKind::Text},
+	                         {"wrap", ValueKind::Boolean}}));
 	addCore(
 	    registry, "row", "A stack in a row",
 	    [] {
@@ -129,12 +139,12 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 		    row->setDirection(Direction::Row);
 		    return row;
 	    },
-	    described({{"gap", ValueKind::Number}, {"from", ValueKind::Text}, {"wrap", ValueKind::Boolean}}));
+	    stackProperties({{"gap", ValueKind::Number}, {"from", ValueKind::Text}, {"wrap", ValueKind::Boolean}}));
 	addCore(registry, "column", "A stack in a column", column,
-	        described({{"gap", ValueKind::Number}, {"from", ValueKind::Text}}));
+	        stackProperties({{"gap", ValueKind::Number}, {"from", ValueKind::Text}, {"wrap", ValueKind::Boolean}}));
 	addCore(
-	    registry, "grid", "Children in equal columns", [] { return std::make_unique<Grid>(); },
-	    described({{"columns", ValueKind::Number}, {"gap", ValueKind::Number}}));
+	    registry, "grid", "Children in columns and rows of tracks", [] { return std::make_unique<Grid>(); },
+	    gridProperties());
 	registerToggleTypes(registry);
 	registerSliderType(registry);
 	addCore(

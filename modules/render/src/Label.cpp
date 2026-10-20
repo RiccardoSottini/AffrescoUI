@@ -54,10 +54,7 @@ const Font* Label::font() const noexcept {
 	return window() ? window()->defaultFont() : nullptr;
 }
 
-void Label::setTextColor(Color color) {
-	textColor_ = color;
-	invalidate();
-}
+void Label::setTextColor(Color color) { setLook(textColor_, color); }
 
 void Label::setPadding(float padding) {
 	padding_ = padding;
@@ -86,7 +83,8 @@ void Label::prepareLayout() {
 	if(!fitToText_ || !f) return;
 
 	const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
-	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || fitted_.text != text_) {
+	// The text changes only through invalidate(): until then, comparing it with the fitted one would find it the same
+	if(fitted_.font != f->id() || fitted_.maxWidth != maxTextWidth || (isLayoutDirty() && fitted_.text != text_)) {
 		const std::vector<std::u32string_view> lines = f->wrap(text_, maxTextWidth);
 		float textWidth = 0.0f;
 		for(const std::u32string_view line : lines) textWidth = std::max(textWidth, f->measure(line));

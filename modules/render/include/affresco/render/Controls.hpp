@@ -43,11 +43,11 @@ protected:
 	void paint(Painter& painter) const override;
 
 private:
-	Look look_;                                ///< See Look.
-	bool checked_ = false;                     ///< See isChecked().
-	Color onColor_ = colors::accent;           ///< See setOnColor().
-	Color offColor_ = colors::idle;            ///< See setOffColor().
-	Color knobColor_ = colors::white;          ///< See setKnobColor().
+	Look look_;                       ///< See Look.
+	bool checked_ = false;            ///< See isChecked().
+	Color onColor_ = colors::accent;  ///< See setOnColor().
+	Color offColor_ = colors::idle;   ///< See setOffColor().
+	Color knobColor_ = colors::white; ///< See setKnobColor().
 };
 
 /// @brief A value in a range, set by clicking or dragging along a track.
