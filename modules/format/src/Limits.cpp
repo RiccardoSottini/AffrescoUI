@@ -3,6 +3,7 @@
 
 #include "Limits.hpp"
 
+#include <array>
 #include <charconv>
 #include <vector>
 
@@ -16,11 +17,11 @@ namespace {
 std::size_t scalarBytes(const json& value) {
 	if(value.is_string()) return value.get_ref<const std::string&>().size() + 2;
 	if(value.is_number()) {
-		char digits[32];
-		const auto written = value.is_number_float()
-		                         ? std::to_chars(digits, digits + sizeof(digits), value.get<double>())
-		                         : std::to_chars(digits, digits + sizeof(digits), value.get<std::int64_t>());
-		return static_cast<std::size_t>(written.ptr - digits);
+		std::array<char, 32> digits{};
+		char* const end = digits.data() + digits.size();
+		const auto written = value.is_number_float() ? std::to_chars(digits.data(), end, value.get<double>())
+		                                             : std::to_chars(digits.data(), end, value.get<std::int64_t>());
+		return static_cast<std::size_t>(written.ptr - digits.data());
 	}
 	return value.is_boolean() && !value.get<bool>() ? 5 : 4; // false, true, null
 }

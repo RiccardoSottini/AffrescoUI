@@ -167,7 +167,7 @@ TEST_CASE("types: the checker finds writes, bindings and comparisons that don't 
 
 	const std::vector<std::string> found = findingsOf(screen);
 	const auto has = [&found](const std::string& text) {
-		return std::ranges::any_of(found, [&](const std::string& line) { return line.find(text) != std::string::npos; });
+		return std::ranges::any_of(found, [&](const std::string& line) { return line.contains(text); });
 	};
 	CHECK(has(R"(actions.pick[0].to: state.filter: expected one of "all", "bug", got "bugs" (stateTypes.filter))"));
 	CHECK(has("actions.flip[0].toggle: 'state.count' takes number, but a toggle writes true or false"));

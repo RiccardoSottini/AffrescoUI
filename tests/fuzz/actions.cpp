@@ -19,7 +19,7 @@
 
 using affresco::json;
 
-extern "C" int LLVMFuzzerInitialize(int*, char***) {
+extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
 	affresco::fuzz::silenceLog();
 	return 0;
 }
