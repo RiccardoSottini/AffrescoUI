@@ -3,6 +3,9 @@
 
 #include "Engine.hpp"
 
+#include <cstdint>
+#include <limits>
+
 namespace affresco::format {
 
 namespace {
@@ -27,6 +30,16 @@ void removeFrom(const Running& s, json& state) {
 	array.erase(static_cast<std::size_t>(at.get<std::int64_t>()));
 }
 
+/// @brief Tells whether two integers add up to one: integers stay integers, unless their sum doesn't fit (an
+/// overflow would be undefined behaviour), when it is a double.
+/// @param a An integer.
+/// @param b Another.
+/// @return true if a + b fits in 64 bits.
+bool fitsSum(std::int64_t a, std::int64_t b) noexcept {
+	return b >= 0 ? a <= std::numeric_limits<std::int64_t>::max() - b
+	              : a >= std::numeric_limits<std::int64_t>::min() - b;
+}
+
 /// @brief "increment": adds "by" (1 by default) to a number in the state.
 /// @param s The step.
 /// @param state The state.
@@ -36,9 +49,10 @@ void increment(const Running& s, json& state) {
 	const json* found = findInState(state, pointer);
 	const json current = found && !found->is_null() ? *found : json(0);
 	if(!current.is_number() || !by.is_number()) fail(s.where, "\"increment\" needs numbers");
-	statePlace(state, pointer, s.where) = current.is_number_integer() && by.is_number_integer()
-	                                          ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
-	                                          : json(current.get<double>() + by.get<double>());
+	const bool integers = current.is_number_integer() && by.is_number_integer() &&
+	                      fitsSum(current.get<std::int64_t>(), by.get<std::int64_t>());
+	statePlace(state, pointer, s.where) = integers ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
+	                                               : json(current.get<double>() + by.get<double>());
 }
 
 /// @brief Runs a state step.

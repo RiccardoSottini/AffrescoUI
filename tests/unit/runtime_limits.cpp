@@ -178,3 +178,21 @@ TEST_CASE("format: a step writes at most maxListGap positions past a list's end"
 	                            "10000 past the end of a list of 10004"});
 	affresco::setLogSink(nullptr);
 }
+
+// Before, two integers whose sum doesn't fit in 64 bits overflowed (undefined behaviour, which UBSan reports)
+TEST_CASE("format: increment gives a double when the integers' sum doesn't fit in one") {
+	affresco::Screen screen = affresco::Screen::fromString(stateScreen);
+	affresco::Panel sender;
+	REQUIRE(screen.submitRevision(revision({{{"op", "replace"}, {"path", "/state/by"}, {"value", 2}}})).status ==
+	        RevisionStatus::Applied);
+	screen.runAction("count", sender);
+	CHECK(json::parse(screen.stateJson())["count"] == 3);
+
+	const std::int64_t largest = std::numeric_limits<std::int64_t>::max();
+	REQUIRE(screen.submitRevision(revision({{{"op", "replace"}, {"path", "/state/by"}, {"value", largest}}})).status ==
+	        RevisionStatus::Applied);
+	screen.runAction("count", sender);
+	const json count = json::parse(screen.stateJson())["count"];
+	CHECK(count.is_number_float());
+	CHECK(count.get<double>() == doctest::Approx(static_cast<double>(largest)));
+}
