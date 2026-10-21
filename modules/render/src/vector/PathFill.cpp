@@ -42,7 +42,7 @@ struct Span {
 }
 
 /// @brief Calls @p visit with each edge of each contour (each closed): its two ends.
-template <typename Visit> void forEachEdge(std::span<const VectorPath::Contour> contours, Visit&& visit) {
+template <typename Visit> void forEachEdge(std::span<const VectorPath::Contour> contours, const Visit& visit) {
 	for(const VectorPath::Contour& contour : contours)
 		for(std::size_t index = 0; index < contour.points.size(); ++index)
 			visit(contour.points[index], contour.points[(index + 1) % contour.points.size()]);
@@ -64,7 +64,7 @@ public:
 		});
 		std::ranges::sort(edges_, {}, [](const Edge& edge) { return edge.top.y; });
 		std::ranges::sort(heights_);
-		heights_.erase(std::unique(heights_.begin(), heights_.end()), heights_.end());
+		heights_.erase(std::ranges::unique(heights_).begin(), heights_.end());
 	}
 
 	/// @brief Fills every band.
@@ -199,7 +199,8 @@ void appendFringe(const VectorPath::Contour& contour, float outwardSign, float f
 		const float squared = std::max(vector::dot(average, average), 0.25f);
 		return plus(contour.points[index], times(average, feather / squared));
 	};
-	Vec2 firstCorner = corner(0), previousCorner = firstCorner;
+	const Vec2 firstCorner = corner(0);
+	Vec2 previousCorner = firstCorner;
 	for(std::size_t index = 0; index < count && !vector::meshIsFull(mesh, meshQuadLimit); ++index) {
 		const std::size_t next = (index + 1) % count;
 		const Vec2 nextCorner = next == 0 ? firstCorner : corner(next);

@@ -108,9 +108,9 @@ private:
 	/// @return The font.
 	[[nodiscard]] const Font& fontOf(const TextRun& run) const noexcept;
 	/// @brief Adds a line from the pending pieces, merging neighbours of one run, and places it.
-	/// @param begin Its first code point.
-	/// @param end One past its last.
-	void finishLine(std::size_t begin, std::size_t end);
+	/// @param lineBegin Its first code point.
+	/// @param lineEnd One past its last.
+	void finishLine(std::size_t lineBegin, std::size_t lineEnd);
 	/// @brief Places every line by the alignment, once all are made.
 	/// @param boxWidth The width they are aligned in.
 	/// @param align Their placement.

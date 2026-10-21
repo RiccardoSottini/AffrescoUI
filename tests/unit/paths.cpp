@@ -239,7 +239,7 @@ TEST_CASE("render: SVG icons decode as images, within the limits") {
 	CHECK(bitmap->width() == 24); // twice its size, for crisp icons
 	CHECK(bitmap->height() == 16);
 	const auto pixels = bitmap->pixels();
-	const std::size_t left = (8 * 24 + 4) * 4, right = (8 * 24 + 20) * 4;
+	const std::size_t left = (std::size_t{8} * 24 + 4) * 4, right = (std::size_t{8} * 24 + 20) * 4;
 	CHECK(pixels[left] == 255);
 	CHECK(pixels[left + 3] == 255);
 	CHECK(pixels[right + 2] > 100); // blue over red, half
