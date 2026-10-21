@@ -53,7 +53,9 @@ Main thread only. Channels deliver messages through the `Executor` given to `lis
 ## Extension points
 
 Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `onAction`, `onCall`,
-`onUnhandledAction`, `onEvent`; and `setModel` for a `DataModel` the screen shows with `"in": "models.<name>"`. Plus the peers: `connect(channel, author)` for a channel you made, and
+`onUnhandledAction`, `onEvent`; `setModel` for a `DataModel` the screen shows with `"in": "models.<name>"`; and
+`onAsyncCall` for a slow function run on a worker thread (with `setExecutor` for a window the Screen didn't create;
+destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and
 `listen(executor, path, author)` for a socket that accepts any number of them. `registerType` goes through the
 runtime's type registry (`modules/format/README.md`).
 

@@ -20,10 +20,10 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",     "push",     "remove",  "toggle", "increment",  "if",    "forEach",  "while",
-	 "run",     "call",     "emit",    "send",   "connect",    "patch", "accept",   "reject",
-	 "preview", "restore",  "revert",  "undo",   "endPreview", "focus", "scrollTo", "navigate",
-	 "after",   "debounce", "animate", "copy",   "log",        "stop",  "note"});
+    {"set",      "push",    "remove",   "toggle",  "increment", "if",         "forEach", "while",
+	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
+	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
+	 "navigate", "after",   "debounce", "animate", "copy",      "log",        "stop",    "note"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -110,10 +110,12 @@ bool mayReferTo(const std::string& key, const json& value) {
 /// @brief Tells whether a step's key is what the step writes, or where: those are read by walkWrite().
 /// @param kind The step.
 /// @param key A key of it.
-/// @return true for the target of a state step, "to" of set, "value" of push and "into" of call.
+/// @return true for the target of a state step, "to" of set, "value" of push and "into", "loading" and
+/// "progress" of call.
 bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
-	       (kind == "push" && key == "value") || (kind == "call" && key == "into");
+	       (kind == "push" && key == "value") ||
+	       (kind == "call" && (key == "into" || key == "loading" || key == "progress"));
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -461,7 +463,8 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
-		if(key == "onError") layer.vars["error"] = single; // a native call's error message
+		if(key == "onError") layer.vars["error"] = single;                          // a native call's error message
+		if(key == "then" && step.contains("call")) layer.vars["result"] = anything; // and its result
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}
 }
@@ -476,7 +479,11 @@ void Checker::walkWrite(std::string_view kind, const json& step, const Scope& sc
 	else if(kind == "push") write(step[key], valueOf("value"), Change::push, scope, place + "." + key);
 	else if(kind == "remove") write(step[key], anything, Change::none, scope, place + "." + key);
 	else if(among(stateSteps, kind)) write(step[key], single, Change::set, scope, place + "." + key); // numbers, flags
-	else if(kind == "call" && step.contains("into")) write(step["into"], anything, Change::set, scope, place + ".into");
+	else if(kind == "call")
+		for(const char* name : {"into", "loading", "progress"})
+			if(step.contains(name))
+				write(step[name], std::string_view(name) == "into" ? anything : single, Change::set, scope,
+				      place + "." + name);
 }
 
 void Checker::walkRun(const json& step, const Scope& scope, const std::string& place) {

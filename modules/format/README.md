@@ -15,7 +15,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 |---|---|
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds) and `pathHint` (hints for paths that find nothing); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
@@ -110,6 +110,14 @@ general: a settings page can describe its settings with it.
   `models` gives agents each model's count, the shape of a row and one sample row, never every row; the checker
   accepts any `models.<name>` (models exist only while the application runs), and building fails, naming the models
   there are, when the name is none of them (`tests/unit/models.cpp`).
+- **Async calls** (4.7). `onAsyncCall(name, call)` registers a slow native function: a `call` step runs it on a
+  worker pool (2 to 4 threads, started on first use), so no frame waits for it (`src/AsyncCalls.*`). The step's
+  `loading` place is true while it runs, `progress` goes from 0 to 1, partial results stream into `into`, `timeout`
+  (ms) ends it with the error `timeout`, `then` runs with `result` and `onError` with `error`; `{"cancel": name}`
+  stops its calls. Reports are coalesced: at most one delivery per call waits on the `Executor` (the Application,
+  or `setExecutor`), and it carries the latest values. At most 64 calls run at once. A call ended (cancelled, timed
+  out, or its runtime destroyed) changes nothing more; destroying the runtime waits for the functions running, so
+  they should check `cancelled()`. Without an executor the call runs at once (`tests/unit/async.cpp`).
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
@@ -193,6 +201,7 @@ src/
   Reads.*                  what values read and what changed in the state, and when they meet
   ItemIndex.*              the children of a long list by the item of the state they read
   Models.*                 the application's data models, their rows' places and their outline for agents
+  AsyncCalls.*             slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,

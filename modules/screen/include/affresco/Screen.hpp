@@ -3,6 +3,7 @@
 /// @file
 /// @brief Screen: a live UI described in the AffrescoUI Screen Format, with all the modules put together.
 
+#include "affresco/core/CallProgress.hpp"
 #include "affresco/core/Channel.hpp"
 #include "affresco/core/DataModel.hpp"
 #include "affresco/core/Executor.hpp"
@@ -44,6 +45,9 @@ public:
 	/// A native function for "call" steps: gets the step's "with" as JSON text, returns what "into" stores as JSON
 	/// text. Throwing std::exception runs the step's "onError" steps.
 	using Call = std::function<std::string(const std::string& argumentsJson)>;
+	/// A slow native function for "call" steps, run on a worker thread: like Call, and it may report progress and
+	/// partial results (JSON values) and should stop soon once cancelled, both through @p call.
+	using AsyncCall = std::function<std::string(const std::string& argumentsJson, CallProgress& call)>;
 	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a custom type.
 	/// Applies a custom type's own properties to one of its panels: the node's evaluated values for the names given at
 	/// registration, as a JSON object in text (only those it has; colours as written, see resolveColor()). Called when
@@ -148,6 +152,18 @@ public:
 	/// @param name The function's name.
 	/// @param call The function.
 	void onCall(std::string name, Call call);
+
+	/// @brief Registers a slow native function for "call" steps: it runs on a worker thread, so no frame waits for it,
+	/// with the step's "loading", "progress", "timeout" and "then", and `{"cancel": name}` to stop it (see
+	/// format::Runtime::onAsyncCall()). Destroying the Screen waits for the functions running.
+	/// @param name The function's name.
+	/// @param call The function; called on a worker thread, so it must not touch panels or the Screen.
+	void onAsyncCall(std::string name, AsyncCall call);
+
+	/// @brief Sets where the results of slow calls are posted, for a window the Screen didn't create (createWindow()
+	/// uses the Application).
+	/// @param executor The executor (outlives the Screen), or nullptr to run them at once.
+	void setExecutor(Executor* executor) noexcept;
 
 	/// @brief Registers a data model the screen shows with `"repeat": {"in": "models.<name>"}`: rows the application
 	/// owns, read one at a time; a change of a row updates only what reads it. Agents see its count, shape and a sample

@@ -3,7 +3,9 @@
 /// @file
 /// @brief format::Runtime: brings a screen document to life with the rendering engine.
 
+#include "affresco/core/CallProgress.hpp"
 #include "affresco/core/DataModel.hpp"
+#include "affresco/core/Executor.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
@@ -35,6 +37,9 @@ public:
 	/// A native function for "call" steps: takes the step's "with" value, returns what "into" stores. Throwing
 	/// std::exception runs the step's "onError" steps (with `error`).
 	using Call = std::function<json(const json& arguments)>;
+	/// A slow native function for "call" steps, run on a worker thread: like Call, and it may report progress and
+	/// partial results, and should stop soon once the call is cancelled (both through @p call).
+	using AsyncCall = std::function<json(const json& arguments, CallProgress& call)>;
 	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a custom node type.
 	/// Applies a custom type's own properties to one of its panels: the node's evaluated values for the names given at
 	/// registration (only those it has; colours and fonts as written, see resolveColor() and font()). Called when they
@@ -99,6 +104,19 @@ public:
 	/// @param name The function's name.
 	/// @param call The function.
 	void onCall(std::string name, Call call);
+
+	/// @brief Registers a slow native function for "call" steps: it runs on a worker thread, so no frame waits for it.
+	/// The step may add "loading" (a state path, true while it runs), "progress" (a state path, from 0 to 1),
+	/// "timeout" (milliseconds) and "then" (steps run with `result`); `{"cancel": name}` stops its calls. Results
+	/// arrive through the Executor (the Application, from createWindow()); without one, it runs at once. Destroying the
+	/// runtime waits for the functions running, so they should check CallProgress::cancelled().
+	/// @param name The function's name (taken over a Call of the same name).
+	/// @param call The function; called on a worker thread, so it must not touch panels or the runtime.
+	void onAsyncCall(std::string name, AsyncCall call);
+
+	/// @brief Sets where the results of asynchronous calls are posted, for a window the runtime didn't create.
+	/// @param executor The executor (outlives the runtime), or nullptr to run them at once.
+	void setExecutor(Executor* executor) noexcept;
 
 	/// @brief Registers a data model the document shows with `"repeat": {"in": "models.<name>"}`: its rows are read
 	/// one at a time, and a change of a row updates only what reads that row. Agents see its count, shape and a sample.

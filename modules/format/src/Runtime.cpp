@@ -22,6 +22,7 @@ Runtime::~Runtime() {
 	impl_->versions.setObserver(nullptr);
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
+	impl_->calls.cancelAll();      // and what slow calls return would reach it
 }
 
 void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
@@ -61,6 +62,7 @@ Window& Runtime::createWindow(Application& app) {
 	                  settings.contains("minHeight") ? integer(settings["minHeight"], "window.minHeight") : 0);
 
 	impl_->document.images().setExecutor(&app); // decoded files arrive through the event loop from now on
+	impl_->calls.setExecutor(&app);             // and so do the results of slow calls
 	build(window);
 	return window;
 }
@@ -103,6 +105,12 @@ void Runtime::onAction(std::string name, Action action) {
 void Runtime::onCall(std::string name, Call call) {
 	impl_->nativeCalls.insert_or_assign(std::move(name), std::move(call));
 }
+
+void Runtime::onAsyncCall(std::string name, AsyncCall call) {
+	impl_->asyncCalls.insert_or_assign(std::move(name), std::move(call));
+}
+
+void Runtime::setExecutor(Executor* executor) noexcept { impl_->calls.setExecutor(executor); }
 
 void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->models.set(std::move(name), std::move(model));

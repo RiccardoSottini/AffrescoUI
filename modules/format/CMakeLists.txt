@@ -27,6 +27,7 @@ affrescoui_module(format
 	src/ReferenceTables.cpp
 	src/DocumentContext.cpp
 	src/ItemIndex.cpp
+	src/AsyncCalls.cpp
 	src/Models.cpp
 	src/Reads.cpp
 	src/Binding.cpp

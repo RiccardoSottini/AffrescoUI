@@ -14,6 +14,7 @@ headers come with nlohmann/json, which only the modules that use documents link.
 | `Signal.hpp` | `Signal<Args...>` and `Connection`: any number of slots on one event source, in connection order |
 | `DataModel.hpp` | `DataModel` (rows the application owns: `size`, `row`, and `onChange` with a `ModelChange` range) and `ListModel`, one kept in memory |
 | `Executor.hpp` | `Executor::post`: run a task on the main thread, from any thread |
+| `CallProgress.hpp` | `CallProgress`: what a slow native call on a worker thread reads (`cancelled`) and reports (`progress`, `partial`); thread-safe |
 | `Channel.hpp` | `Channel`: a two-way stream of one-line messages; `onMessage`, `onClosed`; `maxMessageBytes` (64 MiB) |
 | `Json.hpp` | `json`, `DocumentError`, `parseUntrusted` (nesting limit `maxNesting` = 256), `toText`, the `expect::` readers |
 | `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied), `PermissionRule`, `Permissions` |
@@ -69,6 +70,7 @@ include/affresco/core/
   DataModel.hpp       DataModel, ModelChange and ListModel: rows a document shows
   DocumentRules.hpp   what version control needs to know about a document format
   Executor.hpp        run work on the main thread
+  CallProgress.hpp    a slow call's cancellation, progress and partial results
   Json.hpp            json, DocumentError, parseUntrusted, toText, expect::
   Log.hpp             levels, the sink, log()
   ScreenImages.hpp    pictures of the screen for peers
