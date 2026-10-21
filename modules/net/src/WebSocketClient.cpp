@@ -357,7 +357,7 @@ void ClientSocket::wait(bool write, std::chrono::milliseconds timeout) {
 }
 
 std::array<std::uint8_t, 4> ClientSocket::mask() {
-	const std::uint32_t bits = random_();
+	const auto bits = static_cast<std::uint32_t>(random_());
 	return {static_cast<std::uint8_t>(bits), static_cast<std::uint8_t>(bits >> 8), static_cast<std::uint8_t>(bits >> 16),
 	        static_cast<std::uint8_t>(bits >> 24)};
 }

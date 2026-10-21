@@ -34,8 +34,8 @@ enum class Stream {
 struct Request {
 	std::string method = "GET"; ///< GET, POST, PUT, PATCH or DELETE.
 	std::string url;            ///< https://, or http:// to the loopback only. The host must allow its origin.
-	Headers headers;            ///< Extra headers (never Host, Content-Length or Transfer-Encoding: the client sets them).
-	std::string body;           ///< Sent as it is (with a Content-Type header of the caller's).
+	Headers headers{};          ///< Extra headers (never Host, Content-Length or Transfer-Encoding: the client sets them).
+	std::string body{};         ///< Sent as it is (with a Content-Type header of the caller's).
 	/// The longest the whole request may take, or for a stream, the longest until its response starts.
 	std::chrono::milliseconds timeout{30000};
 	int retries = 0; ///< Retries after a network error, 429, 502, 503 or 504 (for requests that only read).

@@ -30,11 +30,10 @@ constexpr KeyReference sectionTable[] = {
 		"properties": {"color": {"type": "string"}, "width": {"type": "number", "minimum": 0},
 		"offset": {"type": "number", "minimum": 0}}}]}}})json",
 	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of "
-	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS: the bar at the top of the "
-	 "screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); "
-	 "`focusRing`: a ring drawn above everything around the node the keyboard focused (Tab, the arrows; not a click), "
-	 "following its corners: a colour, or `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the defaults; "
-	 "the ring is on unless set), or `false` (none).",
+	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS, Windows; elsewhere "
+	 "none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the "
+	 "node the keyboard focused: a colour, `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the "
+	 "defaults), or `false` (none).",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",
@@ -44,12 +43,10 @@ constexpr KeyReference sectionTable[] = {
 		"description": "Other fonts in \"fonts\", asked in order for characters this one lacks; drawn at this font's size",
 		"maxItems": 8, "items": {"type": "string"}}}}})json",
 	 "`name → { \"file\", \"size\", \"fallback\" }`, paths relative to the screen file (TrueType or OpenType, a "
-	 "collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs "
-	 "(kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji "
-	 "too, from colour (COLR) fonts. `\"fallback\": [\"symbols\"]` names other fonts, asked in order for a character "
-	 "this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`: on "
-	 "macOS, key labels in menus use ⌘ ⇧ ⌥ ⌃, which many text fonts lack (JetBrains Mono has them). A "
-	 "right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right.",
+	 "collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script "
+	 "(kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `\"fallback\": "
+	 "[\"symbols\"]` names other fonts asked in order for a character this one lacks; a character none has shows as "
+	 "`?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has).",
 	 "sections"},
     {"colors", R"json({"type": "object",
 		"description": "Named colors (\"@name\"), or per theme: {\"light\": ..., \"dark\": ...}",
@@ -64,10 +61,8 @@ constexpr KeyReference sectionTable[] = {
 		"minProperties": 1, "additionalProperties": {"$ref": "#/$defs/v1/tokenValue"}}]}})json",
 	 "`name → value`: a number (spacing, a radius, a type size), a colour (`\"#rrggbb\"`, `\"transparent\"`), an alias "
 	 "(`\"@other\"`, of a token or of `colors`), or per theme `{ \"light\": ..., \"dark\": ... }` of those. Used as "
-	 "`\"@name\"` wherever a number or a colour fits: `\"padding\": \"@space.m\"`, `\"radius\": \"@radius.card\"`, "
-	 "`\"color\": \"@color.surface\"`, a font's `\"size\": \"@type.body\"`, and the members of `anchors`, `radius` "
-	 "and `shadow`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at "
-	 "most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it.",
+	 "`\"@name\"` wherever a number or a colour fits (`\"padding\": \"@space.m\"`, a font's `\"size\"`). Switched by "
+	 "`theme` like `colors`; a name in both is an error. Aliases go at most 16 deep.",
 	 "sections"},
     {"theme", R"json({"description": "Which color variant is shown, e.g. \"{{state.theme}}\""})json",
 	 "Which variant of the colors and tokens is shown, usually bound: `\"{{state.theme}}\"`. Without a match, the first variant.",
@@ -211,9 +206,8 @@ constexpr KeyReference stepTable[] = {
     {"request", "",
 	 "`{ \"request\": \"api.getProject\", \"with\": {\"id\": \"{{state.id}}\"}, \"into\": \"state.project\", "
 	 "\"loading\": \"state.busy\" }`: an operation (or a WebSocket message) of a declared connection, built from its "
-	 "declaration; the keys of `invoke`, with `error` as `{code, message, status, body}`. While a proposal is "
-	 "previewed only a read without a `mock` reaches the server: the others answer with their mock, or fail with "
-	 "`preview`",
+	 "declaration; the keys of `invoke`, with `error` as `{code, message, status, body}`. In a preview only a read "
+	 "without a `mock` reaches the server: the others answer with their mock, or fail with `preview`",
 	 "steps"},
     {"subscribe", "",
 	 "`{ \"subscribe\": \"build.output\", \"append\": \"state.log\", \"keep\": 500, \"id\": \"build\" }`: a "
