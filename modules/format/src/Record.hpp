@@ -80,7 +80,8 @@ struct Record {
 		Connection hover = 0, focus = 0, button = 0, move = 0, scroll = 0, key = 0; ///< Every panel's.
 		Connection value = 0; ///< A widget's value (a text area's text, or ValueHooks::listen()).
 		Connection caret = 0; ///< A text editor's caret.
-	} hooks;                  ///< See Hooks.
+		EventConnections events{}; ///< A widget's own events (WidgetEvents::listen()).
+	} hooks;                 ///< See Hooks.
 };
 
 /// @brief A child to build.

@@ -101,9 +101,15 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 
 void Properties::readHandler(const Panel& panel, Record& record, const std::string& key, const json& value,
                              const std::string& at) {
-	if(std::ranges::find(handlerNames, key) == std::end(handlerNames))
-		fail(at, "unknown event (expected onClick, onDoubleClick, onContextMenu, onPress, onRelease, onDrag, onDrop, "
-		         "onHover, onLeave, onFocus, onBlur, onScroll, onKey, onChange, onSubmit, onShow or onHide)");
+	if(std::ranges::find(handlerNames, key) == std::end(handlerNames)) {
+		std::string expected = "unknown event (expected ";
+		for(std::size_t i = 0; i < handlerNames.size(); ++i)
+			expected.append(handlerNames[i])
+			    .append(i + 2 < handlerNames.size()   ? ", "
+				        : i + 1 < handlerNames.size() ? " or "
+				                                      : ")");
+		fail(at, expected);
+	}
 	if(!value.is_string() && !value.is_array() && !value.is_object()) fail(at, "expected an action name or steps");
 	if(key == "onSubmit" && !dynamic_cast<const TextArea*>(&panel)) fail(at, "only text areas have \"onSubmit\"");
 	record.handlers[key] = value;
@@ -114,7 +120,8 @@ void Properties::readBehaviourKey(const Panel& panel, Record& record, std::strin
 	const auto& [slot, value, at, hasId] = property;
 	if(slot == Slot::Bind) {
 		if(!bindable(panel, record))
-			fail(at, "only text areas, text editors, toggles, checkboxes and sliders can \"bind\"");
+			fail(at, "only text areas, text editors and widgets with a value (toggles, checkboxes, sliders, splits, "
+			         "tabs, trees, lists, tables) can \"bind\"");
 		record.bind = statePath(record, value, at);
 	} else if(slot == Slot::Caret) {
 		if(!dynamic_cast<const TextEditor*>(&panel)) fail(at, "only text editors have \"caret\"");

@@ -1,0 +1,39 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "views",
+			"screen": "views.screen.json",
+			"note": "Splits and tabs: the first frame, a sash dragged (row and column), a tab picked with the keys, closed with Delete, dragged to the end, an overflowing strip scrolled, and a sash reset by a double click",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "press": [142, 150] },
+				{ "move": [222, 150] },
+				{ "release": [222, 150] },
+				{ "press": [300, 218] },
+				{ "move": [300, 168] },
+				{ "release": [300, 168] },
+				{ "expect": { "image": "sashes-dragged" } },
+				{ "click": "#editor-tabs" },
+				{ "key": "home" },
+				{ "key": "right" },
+				{ "expect": { "image": "tab-picked" } },
+				{ "key": "delete" },
+				{ "expect": { "image": "tab-closed" } },
+				{ "press": [30, 18] },
+				{ "move": [200, 18] },
+				{ "move": [470, 18] },
+				{ "release": [470, 18] },
+				{ "expect": { "image": "tab-moved" } },
+				{ "scroll": "#panel-tabs", "dy": -3 },
+				{ "expect": { "image": "strip-scrolled" } },
+				{ "wait": 1000 },
+				{ "click": [222, 150] },
+				{ "click": [222, 150] },
+				{ "expect": { "image": "sash-reset" } }
+			]
+		}
+	]
+}

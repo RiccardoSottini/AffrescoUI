@@ -1,0 +1,66 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "A table and a tree with sticky folders, for the rendering check: a file table sorted by a header click and with a column dragged wider, beside a tree whose open folders stay pinned at the top as it scrolls. What the user did lives in state.",
+
+	"window": { "title": "Tables", "width": 480, "height": 320 },
+
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+
+	"colors": { "background": "#f8fafc", "sidebar": "#e2e8f0", "text": "#0f172a", "selected": "#ddd6fe",
+		"accent": "#7c3aed" },
+
+	"state": {
+		"files": [
+			{ "id": "ListView.cpp", "cells": ["ListView.cpp", 412, "source"] },
+			{ "id": "TreeView.cpp", "cells": ["TreeView.cpp", 188, "source"] },
+			{ "id": "TableView.cpp", "cells": ["TableView.cpp", 236, "source"] },
+			{ "id": "RowWindow.cpp", "cells": ["RowWindow.cpp", 97, "source"] },
+			{ "id": "ListView.hpp", "cells": ["ListView.hpp", 210, "header"] },
+			{ "id": "TreeView.hpp", "cells": ["TreeView.hpp", 101, "header"] },
+			{ "id": "TableView.hpp", "cells": ["TableView.hpp", 126, "header"] },
+			{ "id": "README.md", "cells": ["README.md", 230, "text"] },
+			{ "id": "CMakeLists.txt", "cells": ["CMakeLists.txt", 64, "build"] },
+			{ "id": "lists.cpp", "cells": ["lists.cpp", 406, "test"] },
+			{ "id": "tables.cpp", "cells": ["tables.cpp", 250, "test"] },
+			{ "id": "views.cpp", "cells": ["views.cpp", 180, "bench"] },
+			{ "id": "lists.json", "cells": ["lists.json", 32, "scenario"] },
+			{ "id": "tables.json", "cells": ["tables.json", 30, "scenario"] },
+			{ "id": "a-very-long-file-name-that-is-cut-short.txt",
+				"cells": ["a-very-long-file-name-that-is-cut-short.txt", 1, "text"] },
+			{ "id": "unknown", "cells": ["unknown", null, null] }
+		],
+		"modules": [
+			{ "id": "modules", "children": [
+				{ "id": "render", "children": ["Font.cpp", "ListView.cpp", "Painter.cpp", "Panel.cpp", "RowWindow.cpp",
+					"TableView.cpp", "TreeView.cpp", "Window.cpp"] },
+				{ "id": "format", "children": ["Builder.cpp", "ListItems.cpp", "ListType.cpp", "NodeKeys.hpp",
+					"ReferenceNodes.cpp", "Runtime.cpp"] }
+			] },
+			"README.md"
+		],
+		"sorted": "",
+		"descending": false,
+		"resized": "",
+		"width": 0
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "type": "table", "id": "files", "width": 300, "height": "100%", "items": "{{state.files}}",
+				"columns": [{ "id": "name", "title": "Name", "width": 140 }, { "id": "size", "title": "Lines", "width": 80 },
+					{ "id": "kind", "title": "Kind", "width": 80 }],
+				"textColor": "@text", "selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent",
+				"onSort": [{ "set": "state.sorted", "to": "{{event.column}}" },
+					{ "set": "state.descending", "to": "{{event.descending}}" }],
+				"onColumnResize": [{ "set": "state.resized", "to": "{{event.column}}" },
+					{ "set": "state.width", "to": "{{event.width}}" }] },
+			{ "type": "tree", "id": "explorer", "x": 312, "width": 168, "height": "100%", "color": "@sidebar",
+				"items": "{{state.modules}}", "expanded": ["modules", "render", "format"], "stickyRows": 2,
+				"textColor": "@text", "selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent" }
+		]
+	}
+}

@@ -396,6 +396,12 @@ protected:
 	/// @brief Handles a scroll with the pointer over it.
 	/// @param event The event.
 	virtual void scrollEvent(const ScrollEvent& event) { onScroll(event); }
+	/// @brief Scrolls by a wheel or trackpad amount, for the window: the nearest panel under the pointer that scrolls
+	/// takes it, its ancestors don't. The default scrolls the children of a scrollable panel; widgets that scroll
+	/// what they draw themselves (lists, tab strips) override it.
+	/// @param delta Pixels; positive scrolls towards the end.
+	/// @return true if it scrolled.
+	virtual bool scrollContent(Vec2 delta) { return isScrollable() && scrollBy(delta); }
 	/// @brief Handles a focus change.
 	/// @param focused true if it gained the focus.
 	virtual void focusEvent(bool focused) { onFocusChanged(focused); }

@@ -307,7 +307,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -323,6 +323,11 @@
 									"checkbox",
 									"slider",
 									"image",
+									"split",
+									"tabs",
+									"list",
+									"tree",
+									"table",
 									"outlet"
 								]
 							},
@@ -835,7 +840,7 @@
 					},
 					"bind": {
 						"type": "string",
-						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider)"
+						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"
 					},
 					"caret": {
 						"type": "string",
@@ -939,7 +944,7 @@
 						]
 					},
 					"columns": {
-						"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]",
+						"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]; table: the columns: an id (also the title), or { id, title, width }",
 						"anyOf": [
 							{
 								"type": "integer",
@@ -953,6 +958,45 @@
 								"items": {
 									"$ref": "#/$defs/v1/track"
 								}
+							},
+							{
+								"type": "array",
+								"maxItems": 256,
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "object",
+											"required": [
+												"id"
+											],
+											"properties": {
+												"id": {
+													"type": [
+														"string",
+														"number"
+													]
+												},
+												"title": {
+													"type": [
+														"string",
+														"number"
+													]
+												},
+												"width": {
+													"type": "number",
+													"minimum": 24,
+													"maximum": 10000
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
 							}
 						]
 					},
@@ -1030,6 +1074,273 @@
 						],
 						"description": "image: contain (default), cover or fill, like CSS object-fit"
 					},
+					"value": {
+						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"maxItems": 100000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"defaultSizes": {
+						"type": "array",
+						"maxItems": 1000,
+						"items": {
+							"type": "number",
+							"minimum": 0
+						},
+						"description": "split: the sizes a double click on a sash (or Home) goes back to"
+					},
+					"minSize": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"type": "array",
+								"maxItems": 1000,
+								"items": {
+									"type": "number",
+									"minimum": 0
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "split: the smallest size of every pane, or of each in order"
+					},
+					"sashSize": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"sashColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"sashActiveColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"tabs": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 10000,
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "object",
+											"required": [
+												"id"
+											],
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"label": {
+													"type": "string"
+												},
+												"marker": {
+													"type": "boolean"
+												},
+												"closable": {
+													"type": "boolean"
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"
+					},
+					"activeTextColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"activeBackground": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"accentColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"items": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1000000,
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "number"
+										},
+										{
+											"type": "object",
+											"required": [
+												"id"
+											],
+											"properties": {
+												"id": {
+													"type": [
+														"string",
+														"number"
+													]
+												},
+												"label": {
+													"type": [
+														"string",
+														"number"
+													]
+												},
+												"expandable": {
+													"type": "boolean"
+												},
+												"children": {
+													"type": "array"
+												},
+												"cells": {
+													"type": "array",
+													"minItems": 1,
+													"maxItems": 256,
+													"items": {
+														"type": [
+															"string",
+															"number",
+															"boolean",
+															"null"
+														]
+													}
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "list, tree, table: the rows: an id, or { id, label, children (tree), expandable (tree), cells (table) }"
+					},
+					"expanded": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1000000,
+								"items": {
+									"type": [
+										"string",
+										"number"
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "tree: the ids of the open nodes"
+					},
+					"stickyRows": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 16
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"
+					},
+					"sort": {
+						"anyOf": [
+							{
+								"type": "null"
+							},
+							{
+								"type": "object",
+								"required": [
+									"column"
+								],
+								"properties": {
+									"column": {
+										"type": [
+											"string",
+											"number"
+										]
+									},
+									"descending": {
+										"type": "boolean"
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "table: the order: { column, descending }, or null"
+					},
+					"selection": {
+						"anyOf": [
+							{
+								"enum": [
+									"none",
+									"single",
+									"multiple"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "list, tree: none, single (default) or multiple"
+					},
+					"rowHeight": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 1,
+								"maximum": 1000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "list, tree: each row's height in pixels (default 24)"
+					},
+					"selectedTextColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"selectedBackground": {
+						"$ref": "#/$defs/v1/color"
+					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -1078,6 +1389,24 @@
 					"onHide": {
 						"$ref": "#/$defs/v1/handler"
 					},
+					"onClose": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onMove": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onExpand": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onOpen": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onSort": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onColumnResize": {
+						"$ref": "#/$defs/v1/handler"
+					},
 					"slot": {
 						"const": true,
 						"description": "In a component: where the use's children go"
@@ -1090,16 +1419,6 @@
 					},
 					"checked": {
 						"$ref": "#/$defs/v1/flag"
-					},
-					"value": {
-						"anyOf": [
-							{
-								"type": "number"
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
 					}
 				},
 				"if": {
@@ -1122,6 +1441,11 @@
 									"checkbox",
 									"slider",
 									"image",
+									"split",
+									"tabs",
+									"list",
+									"tree",
+									"table",
 									"outlet"
 								]
 							}
