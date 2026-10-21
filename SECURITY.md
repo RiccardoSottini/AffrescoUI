@@ -124,7 +124,11 @@ screens, actions, and the live state.
   hide an "accept" inside a button and approve itself, or give the screen new access to the outside world.
 - **ways to run a control step**: a revision can't add a `run`, a handler or a `do` that names an action holding
   control steps (found through the actions it runs in turn), an action the document doesn't define (the
-  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`.
+  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`. Nor can it add a
+  use of a component that runs the actions its parameters name with computed parameters: the built-in `menu`,
+  `submenu`, `contextMenu`, `menuBar`, `dialog` and `toast` fed their items, buttons or actions from the state, a
+  `quickPick` at all (its recent items are kept in the state), or the document's own component holding a computed
+  `run`.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
@@ -368,7 +372,9 @@ These are not protected today. They are stated plainly so that you can decide wh
   every change of theirs is reviewed).
 - **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
   it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
-  should deny agents the `/state` paths those steps read.
+  should deny agents the `/state` paths those steps read. The same holds for a menu, dialog, toast or quick pick the
+  screen already feeds from the state: a revision can change the items it runs (a quick pick keeps its recent items
+  in `/state/<name>/recent`), so deny agents those paths when the screen has actions that control changes.
 - **A revision can add a `copy` step.** `copy` puts text on the system clipboard, and it isn't a control step: an
   allowed revision can make a button, or a timer, copy text the user didn't choose, which they may then paste into a
   terminal. A proposal being previewed runs its timers too, so this can happen before anyone accepts it. Review

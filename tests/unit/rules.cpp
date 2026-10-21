@@ -113,3 +113,45 @@ TEST_CASE("format: a revision may not move a control step or a reference to one 
 	reordered["root"]["children"].insert(reordered["root"]["children"].begin(), {{"type", "label"}, {"text", "Hi"}});
 	CHECK(allowed(reordered));
 }
+
+// The built-in menus, dialog, toast and quick pick run the actions their items name, through a computed "run" in the
+// library's own definition, which the document never shows: a revision fed them items from the state, and so ran
+// any action, a control one too
+TEST_CASE("format: a revision may not add a built-in that runs actions named by the state") {
+	const auto added = [](const char* node) {
+		json after = withNode(json::parse(node));
+		after["state"].update(json::parse(R"({"d": false, "m": false, "t": false, "title": "", "a": "approve",
+			"buttons": [{"title": "OK", "run": "approve"}], "items": [], "actions": [], "menus": []})"));
+		return allowed(after);
+	};
+	for(const char* node : {
+	        R"({"use": "dialog", "with": {"open": "state.d", "buttons": "{{state.buttons}}"}})",
+	        R"({"use": "menu", "with": {"open": "state.m", "items": "{{state.items}}"}})",
+	        R"({"use": "contextMenu", "with": {"open": "state.m", "items": [{"title": "A", "run": "{{state.a}}"}]}})",
+	        R"({"use": "toast", "with": {"open": "state.t", "actions": "{{state.actions}}"}})",
+	        R"({"use": "menuBar", "with": {"menus": "{{state.menus}}"}})",
+	        R"({"use": "quickPick", "with": {"providers": [{"items": [{"title": "A", "run": "refresh"}]}]}})",
+	        R"({"use": "dialog", "with": {"open": "state.d", "buttons": [{"title": "OK", "run": "approve"}]}})",
+	    }) {
+		CAPTURE(node);
+		CHECK_FALSE(added(node));
+	}
+	CHECK(added(R"({"use": "dialog", "with": {"open": "state.d", "title": "{{state.title}}",
+		"buttons": [{"title": "OK", "run": "refresh"}]}})"));
+	CHECK(added(R"({"use": "menu", "with": {"open": "state.m", "items": [{"title": "A", "run": "refresh"}]}})"));
+}
+
+TEST_CASE("format: a revision may not add a use of the document's own component that runs a computed action, fed "
+          "by the state") {
+	json before = screenWithActions();
+	before["state"]["act"] = "approve";
+	before["components"] = json::parse(R"({"go": {"params": {"act": "refresh"},
+		"node": {"type": "panel", "onClick": [{"run": "{{act}}"}]}}})");
+	json after = before;
+	after["root"]["children"][0]["children"] = json::parse(R"([{"use": "go", "with": {"act": "{{state.act}}"}}])");
+	const affresco::format::Rules rules;
+	CHECK_THROWS_WITH_AS(rules.checkChange(before, after), doctest::Contains("permission denied"),
+	                     affresco::DocumentError);
+	after["root"]["children"][0]["children"][0]["with"]["act"] = "refresh"; // a literal one is scanned as it is
+	CHECK_NOTHROW(rules.checkChange(before, after));
+}
