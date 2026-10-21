@@ -275,6 +275,8 @@ bool Events::runBinding(const json& handler, Panel& owner, const Scope& locals, 
                         const std::string& where) {
 	const json event = {{"type", "key"}, {"key", press}};
 	if(!isBinding(handler) && !isBindingList(handler)) {
+		// The short form ("ctrl+s": "save") skips a disabled command like a binding does, so the key falls through
+		if(handler.is_string() && !commandEnabled(engine_, handler.get<std::string>())) return false;
 		engine_.runner.handle(handler, owner, event, locals, where);
 		return true;
 	}
