@@ -2,9 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 1,
-
-	"note": "Streak: a habit tracker. Tick habits, click heatmap days to change them; habits and the heatmap are kept on disk (persist).",
-
+	"note": "Streak: a habit tracker. Tick habits, click heatmap days to change them, read the charts, the day-by-day history and the notes; habits, the heatmap, the notes and the theme are kept on disk (persist).",
 	"window": {
 		"title": "Streak: an AffrescoUI template",
 		"width": 1280,
@@ -12,40 +10,53 @@
 		"minWidth": 1040,
 		"minHeight": 640
 	},
-
 	"fonts": {
-		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
-		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
-		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17 },
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons"] },
 		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 26 },
-		"figure": { "file": "../fonts/Roboto-Regular.ttf", "size": 34 }
+		"figure": { "file": "../fonts/Roboto-Regular.ttf", "size": 34 },
+		"icons": { "file": "../fonts/Lucide.ttf", "size": 18 },
+		"iconsSmall": { "file": "../fonts/Lucide.ttf", "size": 13 }
 	},
-
-	"colors": {
-		"background": "#f6f5f2",
-		"surface": "#ffffff",
-		"text": "#1c1917",
-		"muted": "#78716c",
-		"border": "#e7e5e4",
-		"rowHover": "#fafaf9",
-		"input": "#f5f5f4",
-		"inputFocused": "#ecfdf5",
-		"accent": "#16a34a",
-		"accentSoft": "#dcfce7",
-		"track": "#f0efed"
+	"theme": "{{state.theme}}",
+	"tokens": {
+		"radius.card": 10,
+		"radius.chip": 6,
+		"color.background": { "light": "#f6f5f2", "dark": "#0c0a09" },
+		"color.surface": { "light": "#ffffff", "dark": "#1c1917" },
+		"color.text": { "light": "#1c1917", "dark": "#f5f5f4" },
+		"color.muted": { "light": "#78716c", "dark": "#a8a29e" },
+		"color.border": { "light": "#e7e5e4", "dark": "#33302d" },
+		"color.rowHover": { "light": "#fafaf9", "dark": "#262220" },
+		"color.input": { "light": "#f5f5f4", "dark": "#292524" },
+		"color.inputFocused": { "light": "#ecfdf5", "dark": "#052e16" },
+		"color.accent": { "light": "#16a34a", "dark": "#22c55e" },
+		"color.accentSoft": { "light": "#dcfce7", "dark": "#143d24" },
+		"color.track": { "light": "#f0efed", "dark": "#292524" },
+		"color.level0": { "light": "#e2ece6", "dark": "#292524" },
+		"color.level1": { "light": "#a7f3c0", "dark": "#14532d" },
+		"color.level2": { "light": "#4ade80", "dark": "#15803d" },
+		"color.level3": { "light": "#16a34a", "dark": "#22c55e" },
+		"color.level4": { "light": "#14532d", "dark": "#86efac" },
+		"color.danger": { "light": "#dc2626", "dark": "#f87171" },
+		"color.backdrop": { "light": "#1c191766", "dark": "#00000099" },
+		"color.toast": { "light": "#1c1917", "dark": "#f5f5f4" },
+		"color.toastText": { "light": "#ffffff", "dark": "#1c1917" }
 	},
-
 	"permissions": {
 		"allow": ["studio"],
 		"ask": ["agent(/actions)"],
 		"deny": ["*(#statusBar)"],
 		"reviewers": ["studio"]
 	},
-
 	"state": {
+		"theme": "light",
+		"tab": "today",
 		"today": "Thursday, 15 October",
+		"todayShort": "Thu 15 Oct",
 		"newHabit": "",
-		"palette": ["#e2ece6", "#a7f3c0", "#4ade80", "#16a34a", "#14532d"],
+		"palette": ["@color.level0", "@color.level1", "@color.level2", "@color.level3", "@color.level4"],
 		"habitColors": ["#16a34a", "#2563eb", "#d97706", "#db2777", "#7c3aed", "#0891b2"],
 		"habits": [
 			{ "name": "Read 20 pages", "done": true, "streak": 12, "week": 86, "color": "#16a34a" },
@@ -76,42 +87,143 @@
 			[2, 2, 4, 4, 4, 3, 2],
 			[4, 4, 3, 4, 4, 2, 3],
 			[4, 4, 4, 2, 0, 0, 0]
-		]
+		],
+		"notes": [
+			{
+				"date": "Mon 5 Oct",
+				"habit": "Read 20 pages",
+				"text": "Started a new book. Twenty pages feels small, which is the point."
+			},
+			{
+				"date": "Fri 9 Oct",
+				"habit": "Ten minutes of stretching",
+				"text": "Missed it again. Moving it to right after the run, so one habit leads to the other."
+			},
+			{
+				"date": "Sun 11 Oct",
+				"habit": "No phone after 22:00",
+				"text": "Left the phone in the kitchen and read instead. Slept before eleven."
+			},
+			{
+				"date": "Tue 13 Oct",
+				"habit": "Practise C++ for an hour",
+				"text": "A month without a gap. Next: write the tests first, then the code."
+			},
+			{
+				"date": "Wed 14 Oct",
+				"habit": "Run or walk 5 km",
+				"text": "Rain all morning, so a slow walk at lunch instead. It still counts."
+			},
+			{
+				"date": "Thu 15 Oct",
+				"habit": "Read 20 pages",
+				"text": "Finished the chapter on move semantics. Twelve days in a row now, the longest run since the summer."
+			}
+		],
+		"newNote": "",
+		"noteFilter": "",
+		"historySort": { "column": "ago", "descending": false },
+		"historyPick": null,
+		"draft": { "open": false, "name": "", "color": "#16a34a" },
+		"deleting": { "open": false, "h": 0, "name": "" },
+		"toast": { "open": false, "message": "" }
 	},
-
 	"stateTypes": {
-		"today": {"type": "string"},
-		"newHabit": {"type": "string"},
-		"palette": {"type": "array", "items": {"type": "string"}},
-		"habitColors": {"type": "array", "items": {"type": "string"}},
-		"habits": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "done": {"type": "boolean"}, "streak": {"type": "number"}, "week": {"type": "number"}, "color": {"type": "string"}}}},
-		"days": {"type": "array", "items": {"type": "string"}},
-		"weeks": {"type": "array", "items": {"type": "array", "items": {"type": "number"}}}
+		"theme": { "enum": ["light", "dark"] },
+		"tab": { "enum": ["today", "history", "notes"] },
+		"today": { "type": "string" },
+		"todayShort": { "type": "string" },
+		"newHabit": { "type": "string" },
+		"palette": { "type": "array", "items": { "type": "string" } },
+		"habitColors": { "type": "array", "items": { "type": "string" } },
+		"habits": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"name": { "type": "string" },
+					"done": { "type": "boolean" },
+					"streak": { "type": "number" },
+					"week": { "type": "number" },
+					"color": { "type": "string" }
+				}
+			}
+		},
+		"days": { "type": "array", "items": { "type": "string" } },
+		"weeks": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+		"notes": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"date": { "type": "string" },
+					"habit": { "type": "string" },
+					"text": { "type": "string" }
+				}
+			}
+		},
+		"newNote": { "type": "string" },
+		"noteFilter": { "type": "string" },
+		"historySort": {
+			"type": "object",
+			"properties": { "column": { "type": "string" }, "descending": { "type": "boolean" } }
+		},
+		"historyPick": { "type": ["string", "null"] },
+		"draft": {
+			"type": "object",
+			"properties": { "open": { "type": "boolean" }, "name": { "type": "string" }, "color": { "type": "string" } }
+		},
+		"deleting": {
+			"type": "object",
+			"properties": { "open": { "type": "boolean" }, "h": { "type": "number" }, "name": { "type": "string" } }
+		},
+		"toast": { "type": "object", "properties": { "open": { "type": "boolean" }, "message": { "type": "string" } } }
 	},
-
-	"persist": ["state.habits", "state.weeks"],
-
+	"persist": ["state.habits", "state.weeks", "state.notes", "state.theme"],
 	"computed": {
 		"doneToday": "{{count(state.habits, it.done)}}",
 		"bestStreak": "{{max(map(state.habits, it.streak))}}",
-		"checkIns": "{{sum(state.weeks, sum(it))}}"
+		"checkIns": "{{sum(state.weeks, sum(it))}}",
+		"weekly": "{{map(state.weeks, round(sum(it) * 100 / 28))}}",
+		"completionLine": "{{join(map(computed.weekly, (index == 0 ? 'M ' : 'L ') + index * 10 + ' ' + (100 - it)), ' ')}}",
+		"completionArea": "{{computed.completionLine + ' L 190 100 L 0 100 Z'}}",
+		"streakHeights": "{{map(state.habits, max(round(it.streak * 110 / max(computed.bestStreak, 1)), 3))}}",
+		"history": "{{map(range(137), {id: text(index), cells: [time(1792065600000 - index * 86400000, 'ddd D MMM'), index, floor((136 - index) / 7) + 1, state.weeks[floor((136 - index) / 7)][(136 - index) % 7] + ' of ' + len(state.habits), state.weeks[floor((136 - index) / 7)][(136 - index) % 7] * 20 + '%']})}}",
+		"average": "{{round(computed.checkIns * 20 / 137)}}",
+		"notes": "{{reverse(state.noteFilter == '' ? state.notes : filter(state.notes, it.habit == state.noteFilter))}}"
 	},
-
 	"watch": { "computed.doneToday": { "set": "state.weeks[19][3]", "to": "{{min(event.value, 4)}}" } },
-
 	"styles": {
-		"card": { "color": "@surface" },
+		"card": { "color": "@color.surface", "radius": "@radius.card" },
 		"cardTitle": {
 			"type": "label",
 			"font": "heading",
-			"textColor": "@text",
+			"textColor": "@color.text",
 			"anchors": { "left": 24, "top": 20 },
 			"fitText": true
 		},
-		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
-		"legend": { "anchors": { "top": 1 }, "width": 14, "height": 14 }
+		"caption": { "type": "label", "font": "small", "textColor": "@color.muted", "fitText": true },
+		"legend": { "anchors": { "top": 1 }, "width": 14, "height": 14 },
+		"iconButton": {
+			"type": "label",
+			"font": "default",
+			"text": "",
+			"width": 32,
+			"height": 32,
+			"radius": "@radius.chip",
+			"color": "transparent",
+			"hover": { "color": "@color.rowHover" },
+			"textColor": "@color.muted",
+			"align": "center",
+			"cursor": "hand"
+		},
+		"chartCard": {
+			"color": "@color.surface",
+			"radius": "@radius.card",
+			"anchors": { "top": 0, "bottom": 0 },
+			"grow": 1
+		}
 	},
-
 	"actions": {
 		"check": [
 			{ "note": "with: h (a habit's index): ticks or unticks it and moves its streak" },
@@ -134,330 +246,670 @@
 				}
 			},
 			{ "set": "state.newHabit", "to": "" }
-		]
+		],
+		"notify": [
+			{ "note": "with: message. A toast in the corner for a few seconds" },
+			{ "set": "state.toast", "to": { "open": true, "message": "{{message}}" } },
+			{ "debounce": 4000, "do": [{ "set": "state.toast.open", "to": false }] }
+		],
+		"openNewHabit": [
+			{
+				"set": "state.draft",
+				"to": {
+					"open": true,
+					"name": "",
+					"color": "{{state.habitColors[len(state.habits) % len(state.habitColors)]}}"
+				}
+			}
+		],
+		"createHabit": [
+			{ "if": "{{len(trim(state.draft.name)) == 0}}", "then": [{ "stop": true }] },
+			{
+				"push": "state.habits",
+				"value": {
+					"name": "{{trim(state.draft.name)}}",
+					"done": false,
+					"streak": 0,
+					"week": 0,
+					"color": "{{state.draft.color}}"
+				}
+			},
+			{ "set": "state.draft.open", "to": false },
+			{ "run": "notify", "with": { "message": "Added {{trim(state.draft.name)}}" } }
+		],
+		"closeNewHabit": [{ "set": "state.draft.open", "to": false }],
+		"askDelete": [
+			{ "note": "with: h (a habit's index)" },
+			{ "set": "state.deleting", "to": { "open": true, "h": "{{h}}", "name": "{{state.habits[h].name}}" } }
+		],
+		"deleteHabit": [
+			{ "remove": "state.habits", "at": "{{state.deleting.h}}" },
+			{ "set": "state.deleting.open", "to": false },
+			{ "run": "notify", "with": { "message": "Deleted {{state.deleting.name}}" } }
+		],
+		"closeDelete": [{ "set": "state.deleting.open", "to": false }],
+		"addNote": [
+			{ "if": "{{len(trim(state.newNote)) == 0}}", "then": [{ "stop": true }] },
+			{
+				"push": "state.notes",
+				"value": {
+					"date": "{{state.todayShort}}",
+					"habit": "{{state.noteFilter == '' ? state.habits[0].name : state.noteFilter}}",
+					"text": "{{trim(state.newNote)}}"
+				}
+			},
+			{ "set": "state.newNote", "to": "" }
+		],
+		"toggleTheme": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }]
 	},
-
-	"keys": { "mod+n": { "focus": "#newHabit" } },
-
+	"keys": {
+		"mod+n": { "focus": "#newHabit" },
+		"mod+shift+n": "openNewHabit",
+		"mod+1": { "set": "state.tab", "to": "today" },
+		"mod+2": { "set": "state.tab", "to": "history" },
+		"mod+3": { "set": "state.tab", "to": "notes" },
+		"mod+j": "toggleTheme"
+	},
 	"root": {
 		"id": "panel-root",
-		"color": "@background",
+		"color": "@color.background",
 		"children": [
 			{
 				"type": "label",
 				"text": "Streak",
 				"font": "title",
-				"textColor": "@text",
+				"textColor": "@color.text",
 				"anchors": { "left": 32, "top": 28 },
 				"fitText": true,
 				"id": "logo"
 			},
-			{ "id": "label-an-affresco-ui", "style": "caption", "text": "an AffrescoUI template", "anchors": { "left": 34, "top": 64 } },
+			{
+				"id": "label-an-affresco-ui",
+				"style": "caption",
+				"text": "an AffrescoUI template",
+				"anchors": { "left": 34, "top": 64 }
+			},
+			{
+				"id": "tabs",
+				"type": "tabs",
+				"anchors": { "left": 190, "top": 32 },
+				"width": 300,
+				"height": 36,
+				"tabs": [
+					{ "id": "today", "label": "Today", "closable": false },
+					{ "id": "history", "label": "History", "closable": false },
+					{ "id": "notes", "label": "Notes", "closable": false }
+				],
+				"value": "{{state.tab}}",
+				"color": "transparent",
+				"textColor": "@color.muted",
+				"activeTextColor": "@color.text",
+				"activeBackground": "@color.surface",
+				"accentColor": "@color.accent",
+				"onChange": { "set": "state.tab", "to": "{{event.value}}" }
+			},
 			{
 				"type": "label",
 				"text": "{{state.today}}",
 				"font": "heading",
-				"textColor": "@muted",
-				"anchors": { "right": 32, "top": 34 },
+				"textColor": "@color.muted",
+				"anchors": { "right": 76, "top": 36 },
 				"fitText": true,
 				"id": "date"
 			},
 			{
-				"id": "today",
-				"anchors": { "left": 24, "top": 100, "bottom": 56 },
-				"width": 400,
-				"style": "card",
-				"children": [
-					{ "id": "label-today", "style": "cardTitle", "text": "Today" },
-					{
-						"style": "caption",
-						"text": "{{computed.doneToday}} of {{len(state.habits)}} done",
-						"anchors": { "right": 24, "top": 24 },
-						"id": "doneCount"
-					},
-					{
-						"anchors": { "left": 24, "right": 24, "top": 56 },
-						"height": 6,
-						"color": "@track",
-						"children": [
-							{
-								"id": "panel-progress",
-								"anchors": { "left": 0, "top": 0, "bottom": 0 },
-								"width": "{{round(computed.doneToday * 100 / max(len(state.habits), 1))}}%",
-								"color": "@accent"
-							}
-						],
-						"id": "progress"
-					},
-					{
-						"id": "habits",
-						"type": "stack",
-						"anchors": { "left": 12, "right": 12, "top": 80, "bottom": 72 },
-						"gap": 4,
-						"children": [
-							{
-								"id": "habit",
-								"repeat": { "for": "habit", "in": "state.habits", "index": "h" },
-								"anchors": { "left": 0, "right": 0 },
-								"height": 64,
-								"color": "@surface",
-								"hover": { "color": "@rowHover" },
-								"cursor": "hand",
-								"onClick": { "run": "check", "with": { "h": "{{h}}" } },
-								"children": [
-									{
-										"id": "panel-habit",
-										"anchors": { "left": 0, "top": 12, "bottom": 12 },
-										"width": 3,
-										"color": "{{habit.color}}"
-									},
-									{
-										"id": "checkbox-habit",
-										"type": "checkbox",
-										"anchors": { "left": 16, "top": 21 },
-										"width": 22,
-										"height": 22,
-										"checked": "{{habit.done}}",
-										"activeColor": "{{habit.color}}",
-										"trackColor": "@border",
-										"knobColor": "@surface",
-										"onChange": { "run": "check", "with": { "h": "{{h}}" } }
-									},
-									{
-										"id": "label-habit-name",
-										"type": "label",
-										"text": "{{habit.name}}",
-										"textColor": "{{habit.done ? '@muted' : '@text'}}",
-										"anchors": { "left": 54, "top": 13 },
-										"fitText": true
-									},
-									{
-										"id": "label-habit-streak-0",
-										"style": "caption",
-										"text": "{{habit.streak > 0 ? habit.streak + ' day streak' : 'Start today'}}",
-										"anchors": { "left": 54, "top": 36 }
-									},
-									{
-										"id": "label-habit-week",
-										"type": "label",
-										"text": "{{habit.week}}%",
-										"font": "small",
-										"textColor": "{{habit.color}}",
-										"anchors": { "right": 14, "top": 0, "bottom": 0 },
-										"width": 48,
-										"align": { "horizontal": "end", "vertical": "center" }
-									}
-								]
-							}
-						],
-						"scroll": "vertical"
-					},
-					{
-						"id": "newHabit",
-						"type": "textarea",
-						"anchors": { "left": 24, "right": 24, "bottom": 20 },
-						"height": 38,
-						"padding": 12,
-						"color": "@input",
-						"focused": { "color": "@inputFocused" },
-						"textColor": "@text",
-						"placeholder": "Add a habit and press Enter",
-						"placeholderColor": "@muted",
-						"bind": "state.newHabit",
-						"onSubmit": "addHabit"
-					}
-				]
+				"id": "themeToggle",
+				"style": "iconButton",
+				"icon": "{{state.theme == 'light' ? 'moon' : 'sun'}}",
+				"anchors": { "right": 28, "top": 30 },
+				"tooltip": "Switch light and dark (Cmd+J)",
+				"onClick": "toggleTheme"
 			},
 			{
-				"id": "stats",
-				"anchors": { "left": 440, "right": 24, "top": 100 },
-				"height": 112,
+				"id": "page-today",
+				"when": "{{state.tab == 'today'}}",
+				"anchors": { "left": 0, "right": 0, "top": 92, "bottom": 32 },
+				"color": "transparent",
 				"children": [
 					{
-						"id": "panel-stat",
-						"repeat": {
-							"for": "stat",
-							"in": [
-								{ "label": "Current streak", "value": "{{plural(state.habits[0].streak, 'day')}}" },
-								{ "label": "Best streak", "value": "{{plural(computed.bestStreak, 'day')}}" },
-								{
-									"label": "Completed today",
-									"value": "{{computed.doneToday}} / {{len(state.habits)}}"
-								},
-								{ "label": "Check-ins", "value": "{{computed.checkIns}}" }
-							]
-						},
-						"anchors": { "top": 0, "bottom": 0 },
-						"color": "transparent",
+						"id": "today",
+						"anchors": { "left": 24, "top": 8, "bottom": 24 },
+						"width": 400,
+						"style": "card",
 						"children": [
+							{ "id": "label-today", "style": "cardTitle", "text": "Today" },
 							{
-								"id": "panel-card",
-								"anchors": { "left": 0, "right": 16, "top": 0, "bottom": 0 },
-								"style": "card",
-								"children": [
-									{
-										"id": "label-stat-label",
-										"style": "caption",
-										"text": "{{stat.label}}",
-										"anchors": { "left": 20, "top": 20 }
-									},
-									{
-										"id": "label-stat-value",
-										"type": "label",
-										"text": "{{stat.value}}",
-										"font": "figure",
-										"textColor": "@text",
-										"anchors": { "left": 20, "top": 44 },
-										"fitText": true
-									}
-								]
-							}
-						],
-						"grow": 1
-					}
-				],
-				"type": "row"
-			},
-			{
-				"id": "grid",
-				"anchors": { "left": 440, "right": 40, "top": 228 },
-				"height": 252,
-				"style": "card",
-				"children": [
-					{ "id": "label-last-20-weeks", "style": "cardTitle", "text": "Last 20 weeks" },
-					{ "id": "label-click-a-day", "style": "caption", "text": "Click a day to change it", "anchors": { "right": 24, "top": 24 } },
-					{
-						"anchors": { "left": 24, "top": 62 },
-						"width": 40,
-						"height": 160,
-						"color": "transparent",
-						"children": [
-							{
-								"id": "label-day",
-								"repeat": { "for": "day", "in": "state.days" },
 								"style": "caption",
-								"text": "{{day}}",
-								"anchors": { "left": 0 },
-								"y": "{{index * 22 + 2}}"
-							}
-						],
-						"id": "days"
-					},
-					{
-						"anchors": { "left": 72, "top": 62 },
-						"width": 440,
-						"height": 154,
-						"children": [
+								"text": "{{computed.doneToday}} of {{len(state.habits)}} done",
+								"anchors": { "right": 60, "top": 24 },
+								"id": "doneCount"
+							},
 							{
-								"id": "column-week",
-								"repeat": { "for": "week", "in": "state.weeks", "index": "w" },
-								"anchors": { "top": 0, "bottom": 0 },
-								"width": 18,
+								"id": "newHabitButton",
+								"style": "iconButton",
+								"icon": "plus",
+								"anchors": { "right": 16, "top": 14 },
+								"tooltip": "New habit… (Cmd+Shift+N)",
+								"onClick": "openNewHabit"
+							},
+							{
+								"anchors": { "left": 24, "right": 24, "top": 56 },
+								"height": 6,
+								"color": "@color.track",
 								"children": [
 									{
-										"id": "panel-level",
-										"repeat": { "for": "level", "in": "week", "index": "d" },
-										"anchors": { "left": 0, "right": 0 },
-										"height": 18,
-										"color": "{{state.palette[level]}}",
-										"cursor": "hand",
-										"onClick": { "set": "state.weeks[w][d]", "to": "{{(level + 1) % 5}}" },
-										"tooltip": "{{state.days[d] ? state.days[d] + ': ' : ''}}{{plural(level, 'habit')}}"
+										"id": "panel-progress",
+										"anchors": { "left": 0, "top": 0, "bottom": 0 },
+										"width": "{{round(computed.doneToday * 100 / max(len(state.habits), 1))}}%",
+										"color": "@color.accent"
 									}
 								],
-								"type": "column",
-								"gap": 4
-							}
-						],
-						"id": "heatmap",
-						"type": "row",
-						"gap": 4
-					},
-					{
-						"anchors": { "right": 24, "bottom": 18 },
-						"width": 200,
-						"height": 16,
-						"color": "transparent",
-						"children": [
-							{ "id": "label-less", "style": "caption", "text": "Less", "anchors": { "left": 0, "top": 0 } },
+								"id": "progress"
+							},
 							{
-								"id": "row-legend",
-								"type": "row",
-								"gap": 6,
-								"anchors": { "left": 40, "top": 0 },
-								"width": 100,
-								"height": 16,
+								"id": "habits",
+								"type": "stack",
+								"anchors": { "left": 12, "right": 12, "top": 80, "bottom": 72 },
+								"gap": 4,
 								"children": [
 									{
-										"id": "panel-shade",
-										"repeat": { "for": "shade", "in": "state.palette" },
-										"style": "legend",
-										"color": "{{shade}}"
+										"id": "habit",
+										"repeat": { "for": "habit", "in": "state.habits", "index": "h" },
+										"anchors": { "left": 0, "right": 0 },
+										"height": 64,
+										"color": "@color.surface",
+										"hover": { "color": "@color.rowHover" },
+										"cursor": "hand",
+										"onClick": { "run": "check", "with": { "h": "{{h}}" } },
+										"children": [
+											{
+												"id": "panel-habit",
+												"anchors": { "left": 0, "top": 12, "bottom": 12 },
+												"width": 3,
+												"color": "{{habit.color}}"
+											},
+											{
+												"id": "checkbox-habit",
+												"type": "checkbox",
+												"anchors": { "left": 16, "top": 21 },
+												"width": 22,
+												"height": 22,
+												"checked": "{{habit.done}}",
+												"activeColor": "{{habit.color}}",
+												"trackColor": "@color.border",
+												"knobColor": "@color.surface",
+												"onChange": { "run": "check", "with": { "h": "{{h}}" } }
+											},
+											{
+												"id": "label-habit-name",
+												"type": "label",
+												"text": "{{habit.name}}",
+												"textColor": "{{habit.done ? '@color.muted' : '@color.text'}}",
+												"anchors": { "left": 54, "top": 13 },
+												"fitText": true
+											},
+											{
+												"id": "label-habit-streak-0",
+												"style": "caption",
+												"text": "{{habit.streak > 0 ? habit.streak + ' day streak' : 'Start today'}}",
+												"anchors": { "left": 54, "top": 36 }
+											},
+											{
+												"id": "deleteHabit",
+												"style": "iconButton",
+												"font": "small",
+												"icon": "trash-2",
+												"anchors": { "right": 62, "top": 16 },
+												"hover": { "color": "@color.track", "textColor": "@color.danger" },
+												"tooltip": "Delete this habit",
+												"onClick": { "run": "askDelete", "with": { "h": "{{h}}" } }
+											},
+											{
+												"id": "label-habit-week",
+												"type": "label",
+												"text": "{{habit.week}}%",
+												"font": "small",
+												"textColor": "{{habit.color}}",
+												"anchors": { "right": 14, "top": 0, "bottom": 0 },
+												"width": 48,
+												"align": { "horizontal": "end", "vertical": "center" }
+											}
+										]
 									}
-								]
+								],
+								"scroll": "vertical"
 							},
-							{ "id": "label-more", "style": "caption", "text": "More", "anchors": { "left": 146, "top": 0 } }
-						],
-						"id": "legend"
-					}
-				]
-			},
-			{
-				"id": "weekly",
-				"anchors": { "left": 440, "right": 40, "top": 496, "bottom": 56 },
-				"style": "card",
-				"children": [
-					{ "id": "label-this-week", "style": "cardTitle", "text": "This week" },
+							{
+								"id": "newHabit",
+								"type": "textarea",
+								"anchors": { "left": 24, "right": 24, "bottom": 20 },
+								"height": 38,
+								"padding": 12,
+								"color": "@color.input",
+								"focused": { "color": "@color.inputFocused" },
+								"textColor": "@color.text",
+								"placeholder": "Add a habit and press Enter",
+								"placeholderColor": "@color.muted",
+								"bind": "state.newHabit",
+								"onSubmit": "addHabit"
+							}
+						]
+					},
 					{
-						"type": "stack",
-						"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 16 },
-						"gap": 14,
+						"id": "stats",
+						"anchors": { "left": 440, "right": 24, "top": 8 },
+						"height": 112,
 						"children": [
 							{
-								"id": "panel-habit-2",
-								"repeat": { "for": "habit", "in": "state.habits" },
-								"anchors": { "left": 0, "right": 0 },
-								"height": 18,
+								"id": "panel-stat",
+								"repeat": {
+									"for": "stat",
+									"in": [
+										{
+											"label": "Current streak",
+											"value": "{{plural(state.habits[0].streak, 'day')}}"
+										},
+										{ "label": "Best streak", "value": "{{plural(computed.bestStreak, 'day')}}" },
+										{
+											"label": "Completed today",
+											"value": "{{computed.doneToday}} / {{len(state.habits)}}"
+										},
+										{ "label": "Check-ins", "value": "{{computed.checkIns}}" }
+									]
+								},
+								"anchors": { "top": 0, "bottom": 0 },
 								"color": "transparent",
 								"children": [
 									{
-										"id": "label-habit-name-2",
-										"type": "label",
-										"text": "{{habit.name}}",
-										"font": "small",
-										"textColor": "@text",
-										"anchors": { "left": 0, "top": 0, "bottom": 0 },
-										"width": 200,
-										"align": { "horizontal": "start", "vertical": "center" }
-									},
-									{
-										"id": "panel-habit-3",
-										"anchors": { "left": 210, "right": 56, "top": 6 },
-										"height": 6,
-										"color": "@track",
+										"id": "panel-card",
+										"anchors": { "left": 0, "right": 16, "top": 0, "bottom": 0 },
+										"style": "card",
 										"children": [
 											{
-												"id": "panel-habit-4",
-												"anchors": { "left": 0, "top": 0, "bottom": 0 },
-												"width": "{{habit.week}}%",
-												"color": "{{habit.color}}"
+												"id": "label-stat-label",
+												"style": "caption",
+												"text": "{{stat.label}}",
+												"anchors": { "left": 20, "top": 20 }
+											},
+											{
+												"id": "label-stat-value",
+												"type": "label",
+												"text": "{{stat.value}}",
+												"font": "figure",
+												"textColor": "@color.text",
+												"anchors": { "left": 20, "top": 44 },
+												"fitText": true
+											}
+										]
+									}
+								],
+								"grow": 1
+							}
+						],
+						"type": "row"
+					},
+					{
+						"id": "grid",
+						"anchors": { "left": 440, "right": 40, "top": 136 },
+						"height": 252,
+						"style": "card",
+						"children": [
+							{ "id": "label-last-20-weeks", "style": "cardTitle", "text": "Last 20 weeks" },
+							{
+								"id": "label-click-a-day",
+								"style": "caption",
+								"text": "Click a day to change it",
+								"anchors": { "right": 24, "top": 24 }
+							},
+							{
+								"anchors": { "left": 24, "top": 62 },
+								"width": 40,
+								"height": 160,
+								"color": "transparent",
+								"children": [
+									{
+										"id": "label-day",
+										"repeat": { "for": "day", "in": "state.days" },
+										"style": "caption",
+										"text": "{{day}}",
+										"anchors": { "left": 0 },
+										"y": "{{index * 22 + 2}}"
+									}
+								],
+								"id": "days"
+							},
+							{
+								"anchors": { "left": 72, "top": 62 },
+								"width": 440,
+								"height": 154,
+								"children": [
+									{
+										"id": "column-week",
+										"repeat": { "for": "week", "in": "state.weeks", "index": "w" },
+										"anchors": { "top": 0, "bottom": 0 },
+										"width": 18,
+										"children": [
+											{
+												"id": "panel-level",
+												"repeat": { "for": "level", "in": "week", "index": "d" },
+												"anchors": { "left": 0, "right": 0 },
+												"height": 18,
+												"color": "{{state.palette[level]}}",
+												"cursor": "hand",
+												"onClick": { "set": "state.weeks[w][d]", "to": "{{(level + 1) % 5}}" },
+												"tooltip": "{{state.days[d] ? state.days[d] + ': ' : ''}}{{plural(level, 'habit')}}"
+											}
+										],
+										"type": "column",
+										"gap": 4
+									}
+								],
+								"id": "heatmap",
+								"type": "row",
+								"gap": 4
+							},
+							{
+								"anchors": { "right": 24, "bottom": 18 },
+								"width": 200,
+								"height": 16,
+								"color": "transparent",
+								"children": [
+									{
+										"id": "label-less",
+										"style": "caption",
+										"text": "Less",
+										"anchors": { "left": 0, "top": 0 }
+									},
+									{
+										"id": "row-legend",
+										"type": "row",
+										"gap": 6,
+										"anchors": { "left": 40, "top": 0 },
+										"width": 100,
+										"height": 16,
+										"children": [
+											{
+												"id": "panel-shade",
+												"repeat": { "for": "shade", "in": "state.palette" },
+												"style": "legend",
+												"color": "{{shade}}"
 											}
 										]
 									},
 									{
-										"id": "label-habit-week-2",
-										"type": "label",
-										"text": "{{habit.week}}%",
-										"font": "small",
-										"textColor": "@muted",
-										"anchors": { "right": 0, "top": 0, "bottom": 0 },
-										"width": 48,
-										"align": { "horizontal": "end", "vertical": "center" }
+										"id": "label-more",
+										"style": "caption",
+										"text": "More",
+										"anchors": { "left": 146, "top": 0 }
+									}
+								],
+								"id": "legend"
+							}
+						]
+					},
+					{
+						"id": "charts",
+						"type": "row",
+						"gap": 16,
+						"anchors": { "left": 440, "right": 40, "top": 404, "bottom": 24 },
+						"children": [
+							{
+								"id": "completion",
+								"style": "chartCard",
+								"children": [
+									{
+										"id": "label-weekly-completion",
+										"style": "cardTitle",
+										"text": "Weekly completion"
+									},
+									{
+										"id": "completionNow",
+										"style": "caption",
+										"text": "{{computed.weekly[19]}}% this week so far",
+										"anchors": { "right": 24, "top": 24 }
+									},
+									{
+										"id": "completionMid",
+										"type": "path",
+										"d": "M 0 50 L 190 50",
+										"viewBox": "0 0 190 100",
+										"fit": "fill",
+										"anchors": { "left": 24, "right": 24, "top": 64, "bottom": 40 },
+										"stroke": "@color.border",
+										"strokeDash": [4, 4]
+									},
+									{
+										"id": "completionArea",
+										"type": "path",
+										"d": "{{computed.completionArea}}",
+										"viewBox": "0 0 190 100",
+										"fit": "fill",
+										"anchors": { "left": 24, "right": 24, "top": 64, "bottom": 40 },
+										"fillColor": "@color.accentSoft"
+									},
+									{
+										"id": "completionLine",
+										"type": "path",
+										"d": "{{computed.completionLine}}",
+										"viewBox": "0 0 190 100",
+										"fit": "fill",
+										"anchors": { "left": 24, "right": 24, "top": 64, "bottom": 40 },
+										"stroke": "@color.accent",
+										"strokeWidth": 2.5,
+										"strokeJoin": "round",
+										"strokeCap": "round"
+									},
+									{
+										"id": "label-weeks-ago",
+										"style": "caption",
+										"text": "20 weeks ago",
+										"anchors": { "left": 24, "bottom": 16 }
+									},
+									{
+										"id": "label-this-week",
+										"style": "caption",
+										"text": "This week",
+										"anchors": { "right": 24, "bottom": 16 }
+									}
+								]
+							},
+							{
+								"id": "streaks",
+								"style": "chartCard",
+								"children": [
+									{ "id": "label-streaks", "style": "cardTitle", "text": "Streaks" },
+									{
+										"id": "streakBest",
+										"style": "caption",
+										"text": "Best: {{plural(computed.bestStreak, 'day')}}",
+										"anchors": { "right": 24, "top": 24 }
+									},
+									{
+										"id": "streakBars",
+										"type": "row",
+										"gap": 12,
+										"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 16 },
+										"children": [
+											{
+												"id": "column-streak",
+												"repeat": { "for": "habit", "in": "state.habits", "index": "h" },
+												"anchors": { "top": 0, "bottom": 0 },
+												"grow": 1,
+												"color": "transparent",
+												"tooltip": "{{habit.name}}: {{plural(habit.streak, 'day')}}",
+												"children": [
+													{
+														"id": "label-streak-value",
+														"type": "label",
+														"font": "small",
+														"text": "{{habit.streak}}",
+														"textColor": "@color.text",
+														"anchors": {
+															"left": 0,
+															"right": 0,
+															"bottom": "{{computed.streakHeights[h] + 26}}"
+														},
+														"height": 16,
+														"align": "center"
+													},
+													{
+														"id": "panel-streak",
+														"anchors": { "left": 6, "right": 6, "bottom": 22 },
+														"height": "{{computed.streakHeights[h]}}",
+														"radius": { "topLeft": 4, "topRight": 4 },
+														"color": "{{habit.color}}"
+													},
+													{
+														"id": "label-streak-name",
+														"type": "label",
+														"font": "small",
+														"text": "{{split(habit.name, ' ')[0]}}",
+														"textColor": "@color.muted",
+														"anchors": { "left": 0, "right": 0, "bottom": 0 },
+														"height": 16,
+														"align": "center"
+													}
+												]
+											}
+										]
 									}
 								]
 							}
+						]
+					}
+				]
+			},
+			{
+				"id": "page-history",
+				"when": "{{state.tab == 'history'}}",
+				"anchors": { "left": 24, "right": 24, "top": 100, "bottom": 56 },
+				"style": "card",
+				"children": [
+					{ "id": "label-history", "style": "cardTitle", "text": "Every day" },
+					{
+						"id": "historySummary",
+						"style": "caption",
+						"text": "{{len(computed.history)}} days  ·  {{computed.average}}% on average  ·  click a title to sort",
+						"anchors": { "right": 24, "top": 24 }
+					},
+					{
+						"id": "historyTable",
+						"type": "table",
+						"anchors": { "left": 12, "right": 12, "top": 60, "bottom": 12 },
+						"color": "@color.surface",
+						"rowHeight": 32,
+						"items": "{{computed.history}}",
+						"value": "{{state.historyPick}}",
+						"sort": "{{state.historySort}}",
+						"columns": [
+							{ "id": "day", "title": "Day", "width": 320 },
+							{ "id": "ago", "title": "Days ago", "width": 220 },
+							{ "id": "week", "title": "Week", "width": 200 },
+							{ "id": "done", "title": "Habits done", "width": 260 },
+							{ "id": "score", "title": "Score", "width": 180 }
 						],
-						"id": "weeklyBars"
+						"textColor": "@color.text",
+						"selectedTextColor": "@color.text",
+						"selectedBackground": "@color.accentSoft",
+						"accentColor": "@color.accent",
+						"onChange": { "set": "state.historyPick", "to": "{{event.value}}" },
+						"onSort": {
+							"set": "state.historySort",
+							"to": { "column": "{{event.column}}", "descending": "{{event.descending}}" }
+						}
+					}
+				]
+			},
+			{
+				"id": "page-notes",
+				"when": "{{state.tab == 'notes'}}",
+				"anchors": { "left": 24, "right": 24, "top": 100, "bottom": 56 },
+				"style": "card",
+				"children": [
+					{ "id": "label-notes", "style": "cardTitle", "text": "Notes" },
+					{
+						"id": "noteFilter",
+						"type": "label",
+						"font": "small",
+						"textColor": "@color.muted",
+						"anchors": { "right": "{{state.noteFilter == '' ? 24 : 96}}", "top": 22 },
+						"width": 420,
+						"height": 18,
+						"align": "end",
+						"text": "{{state.noteFilter == '' ? 'Click a habit to see only its notes' : 'Only the notes about ' + state.noteFilter}}"
+					},
+					{
+						"id": "showAll",
+						"type": "label",
+						"font": "small",
+						"when": "{{state.noteFilter != ''}}",
+						"text": "Show all",
+						"textColor": "@color.accent",
+						"anchors": { "right": 24, "top": 22 },
+						"width": 64,
+						"height": 18,
+						"align": "end",
+						"cursor": "hand",
+						"onClick": { "set": "state.noteFilter", "to": "" }
+					},
+					{
+						"id": "notesList",
+						"type": "stack",
+						"gap": 8,
+						"scroll": "vertical",
+						"anchors": { "left": 24, "right": 24, "top": 60, "bottom": 72 },
+						"children": [
+							{
+								"id": "note",
+								"repeat": { "for": "note", "in": "computed.notes" },
+								"anchors": { "left": 0, "right": 0 },
+								"height": 48,
+								"radius": "@radius.chip",
+								"color": "@color.track",
+								"children": [
+									{
+										"id": "panel-note",
+										"anchors": { "left": 0, "top": 0, "bottom": 0 },
+										"width": 3,
+										"color": "{{some(state.habits, it.name == note.habit) ? find(state.habits, it.name == note.habit).color : '@color.muted'}}"
+									},
+									{
+										"id": "noteText",
+										"type": "label",
+										"wrap": true,
+										"textColor": "@color.text",
+										"anchors": { "left": 18, "right": 18, "top": 15, "bottom": 6 },
+										"runs": [
+											{ "text": "{{note.date}}", "bold": true },
+											"   ",
+											{
+												"text": "{{note.habit}}",
+												"link": "{{note.habit}}",
+												"color": "{{some(state.habits, it.name == note.habit) ? find(state.habits, it.name == note.habit).color : '@color.muted'}}"
+											},
+											"   ",
+											{ "text": "{{note.text}}", "italic": true, "color": "@color.muted" }
+										],
+										"onLink": { "set": "state.noteFilter", "to": "{{event.link}}" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "newNote",
+						"type": "textarea",
+						"anchors": { "left": 24, "right": 24, "bottom": 20 },
+						"height": 38,
+						"padding": 12,
+						"radius": "@radius.chip",
+						"color": "@color.input",
+						"focused": { "color": "@color.inputFocused" },
+						"textColor": "@color.text",
+						"placeholderColor": "@color.muted",
+						"placeholder": "A note about {{state.noteFilter == '' ? state.habits[0].name : state.noteFilter}}, then Enter",
+						"bind": "state.newNote",
+						"onSubmit": "addNote"
 					}
 				]
 			},
@@ -465,14 +917,19 @@
 				"id": "statusBar",
 				"anchors": { "left": 0, "right": 0, "bottom": 0 },
 				"height": 32,
-				"color": "@surface",
+				"color": "@color.surface",
 				"children": [
-					{ "id": "panel-status-bar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
+					{
+						"id": "panel-status-bar",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 1,
+						"color": "@color.border"
+					},
 					{
 						"type": "label",
 						"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
 						"font": "small",
-						"textColor": "@muted",
+						"textColor": "@color.muted",
 						"anchors": { "left": 32, "top": 0, "bottom": 0, "right": 200 },
 						"align": { "horizontal": "start", "vertical": "center" },
 						"id": "statusText"
@@ -481,13 +938,104 @@
 						"type": "label",
 						"text": "{{window.width}} × {{window.height}}",
 						"font": "small",
-						"textColor": "@muted",
+						"textColor": "@color.muted",
 						"anchors": { "right": 32, "top": 0, "bottom": 0 },
 						"width": 160,
 						"align": { "horizontal": "end", "vertical": "center" },
 						"id": "statusSize"
 					}
 				]
+			},
+			{
+				"id": "newHabitDialog",
+				"use": "dialog",
+				"with": {
+					"open": "state.draft.open",
+					"title": "New habit",
+					"message": "Something small enough to do every day.",
+					"width": 440,
+					"height": 236,
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"backdrop": "@color.backdrop",
+					"buttons": [{ "title": "Add", "run": "createHabit" }, { "title": "Cancel", "run": "closeNewHabit" }]
+				},
+				"children": [
+					{
+						"id": "draftName",
+						"type": "textarea",
+						"anchors": { "left": 20, "right": 20, "top": 76 },
+						"height": 34,
+						"padding": 10,
+						"radius": "@radius.chip",
+						"borderWidth": 1,
+						"borderColor": "@color.border",
+						"color": "@color.input",
+						"focused": { "borderColor": "@color.accent" },
+						"textColor": "@color.text",
+						"placeholder": "Drink a glass of water",
+						"placeholderColor": "@color.muted",
+						"autofocus": true,
+						"bind": "state.draft.name",
+						"onSubmit": "createHabit"
+					},
+					{
+						"id": "swatches",
+						"type": "row",
+						"gap": 10,
+						"anchors": { "left": 20, "top": 124 },
+						"width": 220,
+						"height": 26,
+						"children": [
+							{
+								"id": "swatch",
+								"repeat": { "for": "swatch", "in": "state.habitColors" },
+								"width": 26,
+								"height": 26,
+								"radius": 999,
+								"color": "{{swatch}}",
+								"cursor": "hand",
+								"borderWidth": "{{state.draft.color == swatch ? 3 : 0}}",
+								"borderColor": "@color.surface",
+								"tooltip": "{{swatch}}",
+								"onClick": { "set": "state.draft.color", "to": "{{swatch}}" }
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "deleteDialog",
+				"use": "dialog",
+				"with": {
+					"open": "state.deleting.open",
+					"title": "Delete {{state.deleting.name}}?",
+					"message": "Its streak and its check-ins go too. Notes about it stay.",
+					"width": 440,
+					"height": 160,
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.danger",
+					"backdrop": "@color.backdrop",
+					"buttons": [
+						{ "title": "Delete", "run": "deleteHabit" },
+						{ "title": "Cancel", "run": "closeDelete" }
+					]
+				}
+			},
+			{
+				"id": "toast",
+				"use": "toast",
+				"with": {
+					"open": "state.toast.open",
+					"message": "{{state.toast.message}}",
+					"color": "@color.toast",
+					"textColor": "@color.toastText",
+					"accent": "@color.accent"
+				}
 			}
 		]
 	}
