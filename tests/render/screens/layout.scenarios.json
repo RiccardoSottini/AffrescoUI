@@ -1,0 +1,73 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Where flexible and grid layout put each node, checked headless (ctest scenarios): the numbers the rendering check's layout pictures show, held so a faster layout pass can't move them.",
+	"screen": "layout.screen.json",
+	"scenarios": [
+		{
+			"name": "row-justified",
+			"note": "Space between, centred across; a stretched child takes the row's height",
+			"steps": [
+				{ "expect": { "node": "#label-short", "property": "x", "is": 20 } },
+				{ "expect": { "node": "#label-short", "property": "y", "is": 38 } },
+				{ "expect": { "node": "#label-tall", "property": "x", "is": 150 } },
+				{ "expect": { "node": "#label-stretched", "property": "x", "is": 280 } },
+				{ "expect": { "node": "#label-stretched", "property": "height", "is": 60 } },
+				{ "revision": { "author": "scenario", "message": "Centred", "patch": [{ "op": "replace", "path": "/state/justify", "value": "center" }] } },
+				{ "expect": { "node": "#label-short", "property": "x", "is": 80 } },
+				{ "expect": { "node": "#label-stretched", "property": "x", "is": 220 } }
+			]
+		},
+		{
+			"name": "row-shrinking",
+			"note": "Three children of 200 in 330: shrunk by their weights, one held at its minimum",
+			"steps": [
+				{ "expect": { "node": "#label-kept", "property": "width", "is": 140 } },
+				{ "expect": { "node": "#label-shrunk", "property": "width", "is": 126 } },
+				{ "expect": { "node": "#label-twice", "property": "width", "is": 52 } },
+				{ "expect": { "node": "#label-twice", "property": "x", "is": 298 } }
+			]
+		},
+		{
+			"name": "row-wrapping",
+			"note": "Seven tags wrap onto lines, centred, with row and column gaps",
+			"steps": [
+				{ "expect": { "node": "#label-tag", "nth": 0, "property": "x", "is": 36 } },
+				{ "expect": { "node": "#label-tag", "nth": 0, "property": "y", "is": 160 } },
+				{ "expect": { "node": "#label-tag", "nth": 4, "property": "x", "is": 74 } },
+				{ "expect": { "node": "#label-tag", "nth": 4, "property": "y", "is": 206 } },
+				{ "expect": { "node": "#label-tag", "nth": 6, "property": "y", "is": 206 } }
+			]
+		},
+		{
+			"name": "grid-tracks",
+			"note": "Pixel, fraction and minmax columns; an auto row; spans and placed cells",
+			"steps": [
+				{ "expect": { "node": "#label-corner", "property": "x", "is": 370 } },
+				{ "expect": { "node": "#label-wide", "property": "x", "is": 458 } },
+				{ "expect": { "node": "#label-wide", "property": "width", "is": 242 } },
+				{ "expect": { "node": "#label-tall-cell", "property": "y", "is": 68 } },
+				{ "expect": { "node": "#label-tall-cell", "property": "height", "is": 128 } },
+				{ "expect": { "node": "#label-auto-row", "property": "x", "is": 458 } },
+				{ "expect": { "node": "#label-placed", "property": "x", "is": 544 } },
+				{ "expect": { "node": "#label-placed", "property": "y", "is": 159 } }
+			]
+		},
+		{
+			"name": "column-and-ratio",
+			"note": "A column justified to its end, a maximum width, a centred child, and a 16/9 panel",
+			"steps": [
+				{ "expect": { "node": "#label-capped", "property": "width", "is": 200 } },
+				{ "expect": { "node": "#label-capped", "property": "y", "is": 398 } },
+				{ "expect": { "node": "#label-full", "property": "width", "is": 330 } },
+				{ "expect": { "node": "#label-centred", "property": "x", "is": 150 } },
+				{ "expect": { "node": "#panel-ratio", "property": "width", "is": 190 } },
+				{ "expect": { "node": "#panel-ratio", "property": "height", "is": 106.875 } },
+				{ "resize": [900, 520] },
+				{ "expect": { "node": "#panel-ratio", "property": "width", "is": 370 } },
+				{ "expect": { "node": "#panel-ratio", "property": "height", "is": 208.125 } }
+			]
+		}
+	]
+}

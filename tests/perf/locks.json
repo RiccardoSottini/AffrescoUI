@@ -1,0 +1,23 @@
+{
+	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400; the limits leave room for runners and callgrind.",
+	"locks": [
+		{
+			"name": "layout/5000/change",
+			"of": "layout/5000",
+			"atMost": 0.05,
+			"why": "one changed panel lays out only what it moves, not the whole tree"
+		},
+		{
+			"name": "frame/blink/400/drawn",
+			"of": "frame/400",
+			"atMost": 0.5,
+			"why": "a blinking caret redraws only its damage region"
+		},
+		{
+			"name": "frame/blink/400",
+			"of": "frame/400",
+			"atMost": 0.8,
+			"why": "a frame where nothing but the caret changed reuses the cached draw list"
+		}
+	]
+}

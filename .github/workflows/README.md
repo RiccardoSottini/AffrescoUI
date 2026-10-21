@@ -5,8 +5,8 @@ compiler and flags, kept warm by a compile cache (ccache) shared across runs.
 
 | Workflow | When | Jobs |
 |---|---|---|
-| [`ci.yml`](ci.yml) | Every pull request (opened, pushed to, labelled), every push to `master` | `Changes`, `Linux`, `Linux (address + undefined sanitizers)`, `macOS (build only)`, `Windows (not supported yet)`, `Benchmarks (callgrind)` (pull requests), `Quality report` (`master`) |
-| [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand | `Fuzz (nightly)` |
+| [`ci.yml`](ci.yml) | Every pull request (opened, pushed to, labelled), every push to `master` | `Changes`, `Linux`, `Linux (address + undefined sanitizers)`, `macOS (build only)`, `Windows`, `Benchmarks (callgrind)` (pull requests), `Quality report` (`master`) |
+| [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand | `Fuzz (nightly)`, `Scaling (nightly)` |
 | [`release.yml`](release.yml) | A `v*` tag ([RELEASING.md](../../RELEASING.md)) | The release builds |
 
 CodeQL's analyses (`Analyze (actions)`, `Analyze (c-cpp)`, `Analyze (python)`) come from the repository's CodeQL
@@ -21,8 +21,8 @@ default setup, a setting, not a workflow here.
 | `Linux (address + undefined sanitizers)` | Code changes | GCC with ASan and UBSan: unit tests and scenarios, window tests, the rendering check (leaks too) | Yes |
 | `Fuzz` | Pull requests with code changes | Every fuzz target for 60 s, one after the other, from the nightly corpus ([`fuzz.sh`](fuzz.sh)), built as `nightly.yml` builds them | No |
 | `macOS (build only)` | Code changes | Apple clang, warnings as errors; unit tests and the templates' scenarios, headless (the runners have no GPU, so nothing that draws) | Yes |
-| `Windows (not supported yet)` | Code changes | MSVC; unit tests and scenarios. Allowed to fail (`continue-on-error`) until Windows support lands, then proposed as required | No |
-| `Benchmarks (callgrind)` | Pull requests with code changes | Base and head built the same way on this runner ([`tests/perf/ci.sh`](../../tests/perf/ci.sh)): instructions under callgrind, frame CPU time, allocations, memory, tokens; fails when a workload's instructions grow over 3% | No |
+| `Windows` | Code changes | MSVC, warnings as errors; unit tests, the templates' scenarios and the CLI's tests, headless (the runners have no OpenGL 4.1, so `render` isn't checked there) | Yes |
+| `Benchmarks (callgrind)` | Pull requests with code changes | Base and head built the same way on this runner ([`tests/perf/ci.sh`](../../tests/perf/ci.sh)): instructions under callgrind, frame CPU time, allocations, memory, tokens; fails when a workload's instructions grow over 3%, or when an area's cost grows faster with its n than `tests/perf/scaling-baseline.json` allows ([`tests/perf/README.md`](../../tests/perf/README.md), "Scaling") | No |
 | `Quality report` | Pushes to `master` | The coverage of the unit tests against the floor in `tools/quality/coverage-baseline.json` (the base's), and the whole-repository report (artifacts `quality-report`, `coverage`) | No |
 
 **Labels**, set by the maintainer only: `visual-change` makes the rendering check record the frames instead of

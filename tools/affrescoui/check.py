@@ -12,10 +12,10 @@
 - a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
 - render connects to no channel the screen declares, even by an absolute path.
 
-    python3 tools/affrescoui/check.py [--build DIR]
+    python3 tools/affrescoui/check.py [--build DIR] [--headless]
 
-render needs a window: a display, or Xvfb on Linux (as the rendering check). Only the Python standard library is
-needed.
+render needs a window: a display, or Xvfb on Linux (as the rendering check). --headless leaves out what draws (the
+Windows runners have no OpenGL 4.1). Only the Python standard library is needed.
 """
 
 import glob
@@ -92,7 +92,7 @@ class Checker:
 
     def run(self, *args, expect=0):
         """Runs the tool; a different exit code is a failure. Returns its output."""
-        result = subprocess.run([self.tool, *args], capture_output=True, text=True)
+        result = subprocess.run([self.tool, *args], capture_output=True, text=True, encoding="utf-8")
         self.expect(result.returncode == expect,
                     f"affrescoui {' '.join(args)}: exit {result.returncode}, expected {expect}\n"
                     f"{result.stdout}{result.stderr}")
@@ -200,11 +200,13 @@ class Checker:
 
 
 def main():
-    args, build = sys.argv[1:], os.path.join(ROOT, "build")
+    args, build, headless = sys.argv[1:], os.path.join(ROOT, "build"), False
     while args:
         arg = args.pop(0)
         if arg == "--build" and args:
             build = args.pop(0)
+        elif arg == "--headless":
+            headless = True
         else:
             sys.exit(__doc__)
 
@@ -215,7 +217,7 @@ def main():
             name = os.path.basename(path)[:-len(".screen.json")]
             checker.check(path)
             checker.format(name, path)
-        for screens, scenario in render_scenarios():
+        for screens, scenario in [] if headless else render_scenarios():
             path = os.path.normpath(os.path.join(screens, scenario["screen"]))
             # The templates' first frames: scenarios that expect a picture before any step, on a shipped template
             if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) == os.path.normpath(SCREENS):
@@ -235,10 +237,11 @@ def main():
         checker.expect(json.loads(checker.run("check", broken, "--json", expect=1))["problems"][0]["source"] == "json",
                        "check: a file that isn't JSON")
         checker.long_pattern_input()
-        checker.render_reaches_nobody()
-        large = os.path.join(scratch, "large.png")  # 9000 x 2 = 18,000 pixels: refused before it allocates anything
-        checker.run("render", templates[0], "-o", large, "--size", "9000x100", "--scale", "2", expect=3)
-        checker.expect(not os.path.exists(large), "render: a frame too large to draw left a file")
+        if not headless:
+            checker.render_reaches_nobody()
+            large = os.path.join(scratch, "large.png")  # 9000 x 2 = 18,000 pixels: refused before it allocates
+            checker.run("render", templates[0], "-o", large, "--size", "9000x100", "--scale", "2", expect=3)
+            checker.expect(not os.path.exists(large), "render: a frame too large to draw left a file")
 
     for failure in checker.failures:
         print(f"FAILED  {failure}")

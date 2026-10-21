@@ -7,6 +7,8 @@ Measures what a change costs in speed, memory and tokens, the same way on a lapt
 - `tokens.py` counts the tokens of what agents read and write.
 - In CI, the `Benchmarks (callgrind)` job of `.github/workflows/ci.yml` runs both on a pull request's base and head, and puts the tables in the job
   summary. It fails when a workload's instruction count grows by more than 3%.
+- `scaling.py` measures how each area's cost grows with its n, and fails when it grows faster than the baseline's
+  ("Scaling", below).
 
 ## Running them
 
@@ -111,6 +113,63 @@ The canonical edits are typical agent requests: change a colour, rename a label,
 a button with its action, move a card, remove a node, and add an item or a node to each template. The `revision`
 workloads apply every one of them, so an edit that no longer applies fails the benchmark instead of being counted.
 
+## Scaling
+
+A 3% threshold catches a change that makes one size slower. It misses a change that makes the cost grow faster with
+the size of what is worked on, which small templates hide until a large app meets it. `scaling.py` measures that:
+
+```sh
+pip install --require-hashes -r tests/perf/requirements.txt   # tiktoken
+python3 tests/perf/scaling.py                                 # wall time, allocations, memory, tokens
+python3 tests/perf/scaling.py --callgrind                     # and instructions (Linux, valgrind)
+python3 tests/perf/scaling.py --size large                    # the nightly sizes
+```
+
+- `affrescoui_bench --scaling small` runs each area at 5 sizes that double; `--scaling large` at 7. The workloads are
+  named `scaling/<area>/<n>` (`scaling_screens.cpp` needs a window, `scaling_engine.cpp` doesn't). `scaling.py` adds
+  the agent areas, measured with the MCP server's own functions.
+- For each area and metric, the least-squares line through (log n, log cost) gives the exponent k of cost ~ n^k. The
+  metrics are instructions (callgrind, all but the frames), time (wall clock; CPU time for the frames), allocations,
+  retained memory and tokens. A metric with a value of 0 (e.g. nothing kept) has no exponent.
+- `scaling-baseline.json` gives each area its n and its target class (`O(1)`, `O(log n)`, `O(n)`, `O(n log n)`,
+  `O(n^2)`), and holds the exponents recorded on Linux with callgrind, per size set (`--record` rewrites them and keeps
+  the targets).
+- The gate judges the metrics that barely move between runs: instructions, allocations, retained memory and tokens.
+  It fails when an exponent is more than 0.15 above the baseline's, or when an area has no target. The `perf-change`
+  label (`--allow`) reports a rise without failing; a missing target still fails. Time is reported only.
+- An area meets its target when its first metric of instructions, tokens and time has a k at most 0.15 above the
+  class's (0, 1 or 2), or 0.3 above it for the classes with a log. Missing it is reported, not failed: the baseline records where the library is today.
+- Pull requests run the small sizes (`ci.sh`); the large ones run nightly (`.github/workflows/nightly.yml`). The job
+  summary has a table: each area's n, n range, exponent, target and whether it is met, then every metric's exponent.
+
+The areas:
+
+| Area | n | Target |
+|---|---|---|
+| `update` | Kanban cards | O(1): one state change, its reconciliation and layout |
+| `layout`, `frame` | Kanban cards | O(n): a full layout after a resize; a full frame |
+| `frame/damage` | Kanban cards | O(1): a frame that redraws one changed region |
+| `load`, `build` | Kanban cards | O(n): parse, validate and build; build only |
+| `revision` | Kanban cards | O(1): the same small patch to a growing document |
+| `checker` | Kanban cards | O(n): the checker's findings and validation |
+| `history/commit` | commits | O(1): a commit, and the memory it keeps |
+| `history/restore`, `revert`, `diff` | commits | O(1) |
+| `history/blame`, `history/load` | commits | O(n): blame searches the whole history; loading reads it |
+| `expressions/list`, `sort` | list items | O(n): filter, map and sum; O(n log n): a sort |
+| `text/measure`, `wrap`, `shape` | characters | O(n): Latin, Greek and Cyrillic words with icons |
+| `editor/insert`, `delete`, `caret` | lines | O(1): one key in an editor of n lines |
+| `peer` | strings in a message | O(n): a peer's revision parsed, checked and committed |
+| `agent/outline`, `agent/find` | nodes | O(n): the outline's tokens; `find_nodes`' time |
+| `agent/reread` | nodes | O(1): the tokens of a re-read after one commit |
+| `tokens/document` | nodes | O(n): the minified document (O(1) tokens per node) |
+
+And the adversarial shapes: `adversarial/fonts` (characters that alternate between a font and its fallback),
+`adversarial/deep` (panels nested n deep), `adversarial/line` (one word of n characters, no place to break),
+`adversarial/siblings` (a stack of n labels) and `adversarial/keys` (one change in a state of n keys).
+
+A new area needs its target in `scaling-baseline.json`, then `--record` on Linux with `--callgrind` for both size
+sets.
+
 ## Adding a workload
 
 1. Choose a group. `screens.cpp` holds the groups that need a window: `load`, `update`, `revision`, `layout` and
@@ -150,3 +209,21 @@ same program and inputs, the count barely moves between runs, so a small growth 
 
 The job fails if a workload's instructions grow by more than 3%. When a slowdown is intended, the maintainer adds the
 `perf-change` label to the pull request. The tables still show the growth, and the job passes.
+
+## Gains locked in
+
+A 3% gate compares the head with its base, so a gain lost over many small steps would pass. `locks.json` holds the
+gains that must stay: each lock says a workload costs at most `atMost` times another workload of the same run, in the
+same unit. `compare.py` checks them on the head's results and fails the job like a growth in instructions (the
+`perf-change` label lets it pass too).
+
+| Lock | At most | The gain |
+|---|---:|---|
+| `layout/5000/change` / `layout/5000` | 0.05 | incremental layout: one change lays out only what it moves |
+| `frame/blink/400/drawn` / `frame/400` | 0.5 | damage regions: a blinking caret redraws only its region |
+| `frame/blink/400` / `frame/400` | 0.8 | an unchanged frame reuses the cached draw list |
+
+When set, the ratios were 0.007, 0.21 and 0.46; the limits leave room for noisy runners. The compiled screens and the
+expression cache are held by the scaling gate instead (`update`, `revision` and `expressions/*`, above). Where layout,
+images, icons and partial redraws put each node is held by the scenario suites in `tests/render/screens/` (ctest
+`scenarios`), so a faster path can't change what the tree holds.

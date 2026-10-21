@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The benchmarks in CI (.github/workflows/ci.yml, job "Benchmarks (callgrind)"). Builds HEAD and a base commit the same way, measures both on this
 # runner (instructions under callgrind for the workloads that don't draw, the main thread's CPU time for the frames,
-# tokens for the documents), then compare.py writes the tables and fails on a growth in instructions over 3%.
+# tokens for the documents), then compare.py writes the tables and fails on a growth in instructions over 3%, and
+# scaling.py fails when an area's cost grows faster with its n than the baseline's (tests/perf/README.md, "Scaling").
 #
 # Usage, from the repository root, under a display (xvfb-run): tests/perf/ci.sh
 #
@@ -63,5 +64,10 @@ if [ "${PERF_ALLOW:-}" = true ]; then
 	echo "::notice title=Benchmarks::The perf-change label is set: growth is reported, not failed"
 	allow=(--allow)
 fi
+status=0
 python3 tests/perf/compare.py --base "$out/base" --head "$out/head" --summary "${GITHUB_STEP_SUMMARY:-/dev/null}" \
-	"${allow[@]}"
+	"${allow[@]}" || status=1
+# How each area's cost grows with its n, at the small sizes, against tests/perf/scaling-baseline.json (scaling.py)
+python3 tests/perf/scaling.py --build "$here/build-perf" --size small --callgrind --out "$out/scaling/head.json" \
+	--summary "${GITHUB_STEP_SUMMARY:-/dev/null}" "${allow[@]}" || status=1
+exit "$status"

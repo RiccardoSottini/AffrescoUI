@@ -1,0 +1,72 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "The changes that redraw part of the window, checked headless (ctest scenarios): what each one does to the tree, and that it all comes back, so a narrower redraw can't skip a change.",
+	"screen": "damage.screen.json",
+	"scenarios": [
+		{
+			"name": "mover",
+			"note": "Hovered, the panel moves over the others and grows; away, it comes back",
+			"steps": [
+				{ "move": "#label-mover" },
+				{ "expect": { "node": "#label-mover", "property": "hovered", "is": true } },
+				{ "expect": { "node": "#label-mover", "property": "x", "is": 200 } },
+				{ "expect": { "node": "#label-mover", "property": "width", "is": 150 } },
+				{ "move": [600, 400] },
+				{ "expect": { "node": "#label-mover", "property": "hovered", "is": false } },
+				{ "expect": { "node": "#label-mover", "property": "x", "is": 30 } },
+				{ "expect": { "node": "#label-mover", "property": "width", "is": 120 } }
+			]
+		},
+		{
+			"name": "hider",
+			"note": "Pressed, the panel hides with its children; released, they come back",
+			"steps": [
+				{ "press": "#panel-hider" },
+				{ "expect": { "node": "#panel-hider", "property": "visible", "is": false } },
+				{ "release": [525, 75], "note": "where the hidden panel was" },
+				{ "expect": { "node": "#panel-hider", "property": "visible", "is": true } },
+				{ "expect": { "node": "#label-inside", "property": "shown", "is": true } }
+			]
+		},
+		{
+			"name": "grower",
+			"note": "The column's first child grows on hover and pushes the others down",
+			"steps": [
+				{ "expect": { "node": "#label-third", "property": "y", "is": 246 } },
+				{ "move": "#label-first" },
+				{ "expect": { "node": "#label-first", "property": "height", "is": 90 } },
+				{ "expect": { "node": "#label-first", "property": "color", "is": "#f97316" } },
+				{ "expect": { "node": "#label-second", "property": "y", "is": 248 } },
+				{ "expect": { "node": "#label-third", "property": "y", "is": 296 } },
+				{ "move": [600, 400] },
+				{ "expect": { "node": "#label-third", "property": "y", "is": 246 } }
+			]
+		},
+		{
+			"name": "scrolled-list",
+			"note": "The list scrolls under its rounded cards; the rows move with it",
+			"steps": [
+				{ "scroll": "#column-list", "dy": -3 },
+				{ "expect": { "node": "#column-list", "property": "scrollY", "is": 72 } },
+				{ "expect": { "node": "#label-row", "nth": 0, "property": "y", "is": 78 } },
+				{ "scroll": "#column-list", "dy": -50 },
+				{ "expect": { "node": "#column-list", "property": "scrollY", "is": 172 } },
+				{ "scroll": "#column-list", "dy": 50 },
+				{ "expect": { "node": "#column-list", "property": "scrollY", "is": 0, "note": "back at the top" } }
+			]
+		},
+		{
+			"name": "text-colour",
+			"note": "Only the text's colour changes on hover",
+			"steps": [
+				{ "move": "#label-colour" },
+				{ "expect": { "node": "#label-colour", "property": "textColor", "is": "#f97316" } },
+				{ "expect": { "node": "#label-colour", "property": "x", "is": 470 } },
+				{ "move": [600, 400] },
+				{ "expect": { "node": "#label-colour", "property": "textColor", "is": "#0f172a" } }
+			]
+		}
+	]
+}
