@@ -212,6 +212,7 @@ void appendFringe(const VectorPath::Contour& contour, float outwardSign, float f
 
 void appendFill(std::span<const VectorPath::Contour> contours, FillRule rule, std::vector<MeshVertex>& mesh,
                 float feather) {
+	if(!vector::finite(contours)) return;
 	Trapezoids trapezoids(contours, rule, mesh);
 	trapezoids.run();
 	if(!(feather > 0.0f)) return;

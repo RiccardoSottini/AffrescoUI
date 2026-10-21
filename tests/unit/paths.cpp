@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -205,6 +206,24 @@ TEST_CASE("render: fills and strokes stop at the quad limit, drawing whole piece
 	affresco::appendStroke(contoursOf("M0 0 H20000 V20000 H0 Z"), style, stroke);
 	CHECK(stroke.size() / 4 <= affresco::meshQuadLimit);
 	CHECK(stroke.size() / 4 > affresco::meshQuadLimit - 200); // drawn in part, up to the limit
+}
+
+TEST_CASE("render: a path scaled past the float range draws nothing, and its dashes end") {
+	// A huge scale (a tiny view box) turns the points infinite, and the line between two of them NaN long
+	const VectorPath path = VectorPath::parse("M0 0 L1e6 0 L1e6 1");
+	const affresco::PathTransform huge{{1e33f, 1e33f}, {0.0f, 0.0f}};
+	StrokeStyle style;
+	style.width = 2.0f;
+	style.dash = {4.0f, 4.0f};
+	const float infinity = std::numeric_limits<float>::infinity();
+	for(const std::vector<VectorPath::Contour>& contours :
+	    {path.flatten(huge), std::vector<VectorPath::Contour>{{{{0.0f, 0.0f}, {infinity, 0.0f}, {infinity, 1.0f}}, false}}}) {
+		std::vector<MeshVertex> stroke, fill;
+		affresco::appendStroke(contours, style, stroke, 1.0f); // returns
+		affresco::appendFill(contours, FillRule::nonZero, fill, 1.0f);
+		CHECK(stroke.empty());
+		CHECK(fill.empty());
+	}
 }
 
 TEST_CASE("render: SVG icons decode as images, within the limits") {

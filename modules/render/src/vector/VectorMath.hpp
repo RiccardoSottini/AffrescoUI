@@ -5,10 +5,12 @@
 
 #include "affresco/render/Geometry.hpp"
 #include "affresco/render/Painter.hpp"
+#include "affresco/render/VectorPath.hpp"
 
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <span>
 #include <vector>
 
 namespace affresco::vector {
@@ -32,6 +34,16 @@ namespace affresco::vector {
 [[nodiscard]] inline Vec2 normalized(Vec2 a) noexcept {
 	const float size = length(a);
 	return size > 1.0e-12f ? times(a, 1.0f / size) : Vec2{};
+}
+
+/// @brief Tells whether every point of contours is finite: a scale past the float range makes them infinite or NaN,
+/// which have no shape and whose lengths never run out.
+/// @param contours The contours.
+[[nodiscard]] inline bool finite(std::span<const VectorPath::Contour> contours) noexcept {
+	for(const VectorPath::Contour& contour : contours)
+		for(const Vec2 point : contour.points)
+			if(!std::isfinite(point.x) || !std::isfinite(point.y)) return false;
+	return true;
 }
 
 /// @brief Tells whether a mesh holds as many quads as it may.

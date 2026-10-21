@@ -186,7 +186,7 @@ private:
 		if(!std::isfinite(length) || length < 0.0f) return {};
 		sum += length;
 	}
-	if(!(sum > 0.0f) || totalLength / sum > 100000.0f) return {};
+	if(!(sum > 0.0f) || !(totalLength / sum <= 100000.0f)) return {}; // NaN too: it would never run out
 	std::vector<float> pattern = dash;
 	if(pattern.size() % 2 != 0) pattern.insert(pattern.end(), dash.begin(), dash.end());
 	return pattern;
@@ -238,7 +238,7 @@ private:
 
 void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeStyle& style, std::vector<MeshVertex>& mesh,
                   float feather) {
-	if(!(style.width > 0.0f) || !std::isfinite(style.width)) return;
+	if(!(style.width > 0.0f) || !std::isfinite(style.width) || !vector::finite(contours)) return;
 	Stroker stroker(style, mesh, std::min(std::max(feather, 0.0f), 4.0f));
 	for(const VectorPath::Contour& contour : contours) {
 		if(contour.points.empty()) continue;
