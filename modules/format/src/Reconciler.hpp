@@ -106,6 +106,10 @@ private:
 	/// @param changes What changed.
 	/// @param depth The panel's depth (reconcileChildren()).
 	void updateChildren(Panel& panel, Record& record, const StateChanges& changes, int depth);
+	/// @brief Copies again, in place, the items a panel's variables hold that a change lies in or covers.
+	/// @param locals The panel's variables.
+	/// @param changes What changed.
+	void refreshItems(const Scope& locals, const StateChanges& changes) const;
 	/// @brief Gathers what a panel's subtree reads, from its own reads and its children's.
 	/// @param panel The panel.
 	/// @param record Its record.
