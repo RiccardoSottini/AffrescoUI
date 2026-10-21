@@ -110,3 +110,23 @@ TEST_CASE("format: window.menuBar gives the window the menus, whose items run th
 	window->render();
 	CHECK(state(screen)["ran"] == "save");
 }
+
+TEST_CASE("format: a native menu bar that lists a large menu many times keeps to a budget of items") {
+	// Win32 numbers menu items with 16 bits: 20 copies of a 5,000-item menu would wrap them
+	json document = json::parse(desktopScreen);
+	json big = json::object();
+	for(int i = 0; i < 5000; ++i) big["i" + std::to_string(i)] = {{"run", "save"}};
+	document["menus"]["big"] = big;
+	document["window"]["menuBar"] = json::array();
+	for(int i = 0; i < 20; ++i) document["window"]["menuBar"].push_back({{"menu", "big"}});
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document.dump());
+	screen.build(*window);
+	window->render();
+
+	std::size_t items = 0;
+	for(const auto& menu : window->menuBar()) items += 1 + menu.submenu.size();
+	CHECK(items == 10000);
+	CHECK(window->menuBar().size() == 2); // 1 + 5,000, then 1 + 4,998
+}

@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -166,12 +167,33 @@ bool shown(Engine& engine, const json& when, const std::string& where) {
 	}
 }
 
+/// How many more menu items may be made, submenus' included.
+struct MenuBudget {
+	std::size_t left = maxMenuItems; ///< Items still allowed.
+	bool full = false;               ///< Whether an item was left out (reported once).
+};
+
+/// @brief Takes one item from a budget.
+/// @param engine The runtime, which hears once that the budget ran out.
+/// @param budget The budget.
+/// @param where What is being made, for the report.
+/// @return false if the budget is spent: the item and the rest are left out.
+bool take(Engine& engine, MenuBudget& budget, std::string_view where) {
+	if(budget.left == 0) {
+		if(!std::exchange(budget.full, true))
+			engine.report(std::string(where) + ": more than " + std::to_string(maxMenuItems) +
+			              " items in all; the rest are left out");
+		return false;
+	}
+	--budget.left;
+	return true;
+}
+
 /// What the menus resolve from, and how many items they may still resolve to.
 struct MenuSources {
 	const json& menus;                                     ///< The "menus" section.
 	std::unordered_map<std::string, const json*> commands; ///< The `commands` variable's commands, by name.
-	std::size_t left = maxMenuItems;                       ///< Items still allowed, submenus' included.
-	bool full = false;                                     ///< Whether an item was left out (reported once).
+	MenuBudget budget;                                     ///< Items still allowed.
 };
 
 /// @brief One menu of the `menus` variable: its items that pass their "when", by group, order and key, with a
@@ -189,12 +211,7 @@ json menuOf(Engine& engine, MenuSources& sources, const std::string& name, int d
 	for(const auto& [key, item] : menus[name].items()) {
 		if(!item.is_object()) continue;
 		if(item.contains("when") && !shown(engine, item["when"], "menus." + name + "." + key + ".when")) continue;
-		if(sources.left == 0) {
-			if(!std::exchange(sources.full, true))
-				engine.report("menus: more than " + std::to_string(maxMenuItems) + " items in all; the rest are left out");
-			break;
-		}
-		--sources.left;
+		if(!take(engine, sources.budget, "menus")) break;
 		json entry = {{"name", key},        {"title", item.value("title", key)}, {"icon", item.value("icon", json())},
 		              {"enabled", true},    {"key", nullptr},                   {"keyLabel", nullptr},
 		              {"group", item.value("group", "")}, {"separator", false}, {"order", item.value("order", 0.0)}};
@@ -241,7 +258,7 @@ json menusOf(Engine& engine) {
 	const json& document = engine.versions.document();
 	json resolved = json::object();
 	if(!document.contains("menus") || !document["menus"].is_object()) return resolved;
-	MenuSources sources{document["menus"], {}};
+	MenuSources sources{document["menus"], {}, {}};
 	if(const json* commands = engine.document.variable("commands"))
 		for(const json& command : *commands)
 			if(const auto name = command.find("name"); name != command.end() && name->is_string())
@@ -253,8 +270,9 @@ json menusOf(Engine& engine) {
 /// @brief A native menu item from a resolved one (menuOf()); choosing it runs its action, like the drawn menus do.
 /// @param engine The runtime.
 /// @param entry The resolved item.
+/// @param budget Native items still allowed in the bar.
 /// @return The item.
-MenuItem nativeItem(Engine& engine, const json& entry) {
+MenuItem nativeItem(Engine& engine, const json& entry, MenuBudget& budget) {
 	MenuItem item;
 	item.separator = entry.value("separator", false);
 	if(item.separator) return item;
@@ -262,7 +280,10 @@ MenuItem nativeItem(Engine& engine, const json& entry) {
 	if(const auto label = entry.find("keyLabel"); label != entry.end() && label->is_string()) item.keyLabel = *label;
 	item.enabled = entry.value("enabled", true);
 	if(const auto submenu = entry.find("submenu"); submenu != entry.end() && submenu->is_array())
-		for(const json& child : *submenu) item.submenu.push_back(nativeItem(engine, child));
+		for(const json& child : *submenu) {
+			if(!take(engine, budget, "window.menuBar")) break;
+			item.submenu.push_back(nativeItem(engine, child, budget));
+		}
 	if(const auto run = entry.find("run"); run != entry.end()) {
 		json step = {{"run", *run}};
 		if(const auto with = entry.find("with"); with != entry.end() && !with->is_null()) step["with"] = *with;
@@ -297,8 +318,13 @@ void showMenuBar(Engine& engine) {
 			}
 		}
 		if(bar == engine.menuBar) return;
+		// The bar may list a menu many times; Win32 numbers its items with 16 bits, so the bar keeps to one budget
 		std::vector<MenuItem> items;
-		for(const json& entry : bar) items.push_back(nativeItem(engine, entry));
+		MenuBudget budget;
+		for(const json& entry : bar) {
+			if(!take(engine, budget, "window.menuBar")) break;
+			items.push_back(nativeItem(engine, entry, budget));
+		}
 		engine.menuBar = std::move(bar);
 		window->setMenuBar(std::move(items));
 	} catch(const DocumentError& error) {
