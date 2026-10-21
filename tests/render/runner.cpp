@@ -9,12 +9,14 @@
 /// Frames that differ are written to --out with a diff (changed pixels in red). Exits with 1 if anything failed.
 
 #include "CodeEditor.hpp"
+#include "Forge.hpp"
 
 #include <affresco/Screen.hpp>
 #include <affresco/automation/Scenarios.hpp>
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <string>
 #include <string_view>
@@ -92,7 +94,11 @@ int main(int argc, char** argv) {
 	try {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
-		options.prepare = [](affresco::Screen& screen) { examples::registerCodeEditor(screen); }; // as affrescoui_host
+		// As affrescoui_host and affrescoui_forge; Forge's scenarios see forge/folder open, and no file dialog
+		options.prepare = [](affresco::Screen& screen) {
+			examples::registerCodeEditor(screen);
+			forge::registerNatives(screen, std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER));
+		};
 		std::vector<std::string> files;
 		if(!readArguments(std::vector<std::string_view>(argv + 1, argv + argc), options, files)) return 2;
 		return playAll(files, options) ? EXIT_FAILURE : EXIT_SUCCESS;

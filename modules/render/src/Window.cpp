@@ -105,6 +105,15 @@ bool Window::setMenuBar(std::vector<MenuItem> menus) {
 	return nativeMenuBar_;
 }
 
+std::vector<std::string> Window::chooseFiles(const FileDialog& dialog) {
+	if(fileDialogHandler_) return fileDialogHandler_(dialog);
+	return native_ ? native_->chooseFiles(dialog) : std::vector<std::string>{};
+}
+
+void Window::setFileDialogHandler(FileDialogHandler handler) { fileDialogHandler_ = std::move(handler); }
+
+bool Window::fileDialogs() const { return fileDialogHandler_ || (native_ && native_->fileDialogs()); }
+
 void Window::resized(int width, int height) {
 	width_ = width;
 	height_ = height;

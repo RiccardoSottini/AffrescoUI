@@ -644,16 +644,26 @@ std::vector<CodeEditor::Token> CodeEditor::tokenize(std::u32string_view line, bo
 	return tokens;
 }
 
+void CodeEditor::goToLine(std::size_t line, long long request) {
+	if(request == goToRequest_ || lines().size() == 0) return;
+	goToRequest_ = request;
+	moveCaret({std::min(line == 0 ? 0 : line - 1, lines().size() - 1), 0}, false);
+}
+
 /* Registration */
 
 void registerCodeEditor(affresco::Screen& screen) {
 	screen.registerType(
-	    "code", [] { return std::make_unique<CodeEditor>(); }, {"language", "syntax"},
+	    "code", [] { return std::make_unique<CodeEditor>(); }, {"language", "syntax", "goTo"},
 	    [&screen](affresco::Panel& panel, const std::string& propertiesJson) {
 		    auto& editor = dynamic_cast<CodeEditor&>(panel); // the factory above made it
 		    const affresco::json properties = affresco::json::parse(propertiesJson);
 		    editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "");
 		    editor.resetTokenColors();
+		    // "goTo": { "line": 12, "request": 3 } moves the caret, once per request (Forge's go to line)
+		    if(const auto goTo = properties.find("goTo"); goTo != properties.end() && goTo->is_object())
+			    editor.goToLine(static_cast<std::size_t>(std::max(0.0, goTo->value("line", 1.0))),
+			                    static_cast<long long>(goTo->value("request", 0.0)));
 		    if(!properties.contains("syntax")) return;
 		    for(const auto& [name, value] : properties["syntax"].items()) {
 			    const auto token = static_cast<std::size_t>(std::ranges::find(tokenNames, name) - tokenNames.begin());

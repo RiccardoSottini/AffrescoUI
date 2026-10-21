@@ -26,6 +26,8 @@ struct ListItem {
 	std::uint32_t depth = 0;        ///< Its level in a tree: 0 for a root.
 	std::size_t end = 0;     ///< One past its last descendant, in the model's order (its own index + 1 for none).
 	bool expandable = false; ///< Has children, or may get them: a tree shows a chevron.
+	std::string icon = {};   ///< A glyph drawn before the label, by name (Font::codepointNamed()), or empty.
+	std::optional<Color> iconColor = {}; ///< The icon's colour; the text's if not set.
 
 	/// @brief Equal when every field is.
 	bool operator==(const ListItem&) const = default;
@@ -215,6 +217,14 @@ protected:
 	/// @param row The row.
 	/// @param mods The modifier keys held.
 	void moveCursor(std::size_t row, Mods mods);
+	/// @brief Draws an item's icon, if it has one its font can draw, at the start of its label.
+	/// @param painter Where.
+	/// @param font The font.
+	/// @param item The item.
+	/// @param origin The label's start: left edge and baseline.
+	/// @param color The text's colour, for an icon without its own.
+	/// @return How far the label moves right for it: 0 without an icon.
+	float paintIcon(Painter& painter, const Font& font, const ListItem& item, Vec2 origin, Color color) const;
 	/// @brief The left padding of a row's text.
 	[[nodiscard]] static constexpr float padding() noexcept { return 8.0f; }
 	/// @brief The colour of a tree's guides and a table's lines.

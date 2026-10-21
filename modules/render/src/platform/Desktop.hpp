@@ -1,13 +1,15 @@
 #pragma once
 
 /// @file
-/// @brief What GLFW doesn't do, per OS: the system's colour scheme and motion setting, and a window's native menu bar. Each OS has its
-/// own file (DesktopMac.mm, DesktopWin32.cpp, DesktopOther.cpp); only the GLFW platform uses them.
+/// @brief What GLFW doesn't do, per OS: the system's colour scheme and motion setting, a window's native menu bar, and
+/// file dialogs. Each OS has its own file (DesktopMac.mm, DesktopWin32.cpp, DesktopOther.cpp), and the file dialogs one
+/// for all (FileDialogs.cpp); only the GLFW platform uses them.
 
 #include "affresco/render/Events.hpp"
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 struct GLFWwindow;
@@ -15,6 +17,7 @@ struct GLFWwindow;
 namespace affresco {
 
 struct MenuItem;
+struct FileDialog;
 
 namespace platform::desktop {
 
@@ -57,6 +60,15 @@ using MenuChosen = std::function<void(std::function<void()> run)>;
 /// @param chosen Called when the user chooses an item.
 /// @return The bar, or nullptr where native menus aren't supported.
 [[nodiscard]] std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen);
+
+/// @brief Whether this build shows file dialogs (not on Linux built without D-Bus).
+[[nodiscard]] bool fileDialogs() noexcept;
+
+/// @brief Shows a file dialog over a window and waits for the user (see Window::chooseFiles()).
+/// @param window The GLFW window it belongs to.
+/// @param dialog What it asks for.
+/// @return The paths chosen (UTF-8), or none if the user cancelled, it failed, or there are no file dialogs.
+[[nodiscard]] std::vector<std::string> chooseFiles(GLFWwindow* window, const FileDialog& dialog);
 
 } // namespace platform::desktop
 } // namespace affresco

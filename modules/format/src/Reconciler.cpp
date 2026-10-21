@@ -34,15 +34,16 @@ bool sameScope(const Scope* a, const Scope* b) {
 	return a == b;
 }
 
-/// @brief Gives the window the ring of "window.focusRing" (a colour, { "color", "width", "offset" }, or false), if it
-/// changed. Errors are reported, and leave the ring as it was.
+/// @brief Gives the window the ring of "window.focusRing" (a colour, { "color", "width", "offset" }, or false; the
+/// default ring when it is left out), if it changed. Errors are reported, and leave the ring as it was.
 /// @param engine The runtime, with a window.
 void showFocusRing(Engine& engine) {
 	if(!engine.window) return;
 	const json& document = engine.versions.document();
-	std::optional<FocusRing> ring;
+	std::optional<FocusRing> ring = FocusRing{}; // on unless the document says otherwise
 	try {
 		if(document.contains("window") && document["window"].is_object() && document["window"].contains("focusRing")) {
+			ring.reset();
 			const json& value = document["window"]["focusRing"];
 			const std::string at = "window.focusRing";
 			if(value.is_object()) {

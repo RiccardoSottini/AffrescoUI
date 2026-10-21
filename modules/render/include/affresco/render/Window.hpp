@@ -56,6 +56,33 @@ struct FocusRing {
 	bool operator==(const FocusRing&) const = default;
 };
 
+/// @brief What a file dialog asks for (FileDialog::kind).
+enum class FileDialogKind {
+	Open,  ///< Files to open, which exist.
+	Save,  ///< A file to save to, which may exist.
+	Folder ///< A folder.
+};
+
+/// @brief A kind of file a file dialog lists (FileDialog::filters).
+struct FileFilter {
+	std::string name;                    ///< What it shows (e.g. "Images").
+	std::vector<std::string> extensions; ///< The extensions, without the dot (e.g. "png", "jpg").
+};
+
+/// @brief A file dialog the OS shows (Window::chooseFiles()).
+struct FileDialog {
+	FileDialogKind kind = FileDialogKind::Open; ///< Open, save or choose a folder.
+	std::string title;                          ///< Its title; empty for the OS's own.
+	std::vector<FileFilter> filters;            ///< The kinds of file listed (open and save); none lists all.
+	std::string folder;                         ///< The folder it starts in; empty for the OS's choice.
+	std::string name;                           ///< The file name it suggests (save).
+	bool multiple = false;                      ///< Several files may be chosen (open).
+};
+
+/// @brief Answers file dialogs instead of the OS (Window::setFileDialogHandler()): tests, automation, or an app's own
+/// dialog. Returns the paths chosen, or none for a cancel.
+using FileDialogHandler = std::function<std::vector<std::string>(const FileDialog& dialog)>;
+
 /// @brief A root Panel filling a window: routes input to its panels, keeps the focus, hover and mouse capture, runs
 /// timers and deferred tasks, lays the tree out, and draws only when something changed. Created by Application.
 ///
@@ -129,6 +156,19 @@ public:
 	[[nodiscard]] const std::vector<MenuItem>& menuBar() const noexcept { return menus_; }
 	/// @brief Whether the OS shows the menu bar (see setMenuBar()).
 	[[nodiscard]] bool nativeMenuBar() const noexcept { return nativeMenuBar_; }
+
+	/// @brief Shows a file dialog over the window and waits until the user chooses or cancels (the frames stop
+	/// meanwhile; the OS keeps the dialog responsive). Call it from input handling, never from a frame or a timer that
+	/// repeats: the OS may refuse dialogs no user asked for.
+	/// @param dialog What it asks for.
+	/// @return The paths chosen (UTF-8, absolute), or none if the user cancelled, it failed, or there are no file
+	/// dialogs (headless, Linux built without D-Bus). The handler of setFileDialogHandler() answers first, if set.
+	std::vector<std::string> chooseFiles(const FileDialog& dialog);
+	/// @brief Answers file dialogs instead of the OS, headless too (tests, automation, an app's own dialog).
+	/// @param handler The handler; an empty one gives them back to the OS.
+	void setFileDialogHandler(FileDialogHandler handler);
+	/// @brief Whether chooseFiles() can show anything: a handler is set, or the OS shows file dialogs.
+	[[nodiscard]] bool fileDialogs() const;
 
 	/* Content */
 
@@ -361,6 +401,7 @@ private:
 	bool reducedMotion_ = false;                     ///< See reducedMotion().
 	std::vector<MenuItem> menus_;                    ///< See menuBar().
 	bool nativeMenuBar_ = false;                     ///< See nativeMenuBar().
+	FileDialogHandler fileDialogHandler_;            ///< See setFileDialogHandler().
 
 	std::string title_;                ///< See title().
 	int width_ = 0, height_ = 0;       ///< Size, in window units.

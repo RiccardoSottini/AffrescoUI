@@ -33,8 +33,8 @@ constexpr KeyReference sectionTable[] = {
 	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS: the bar at the top of the "
 	 "screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); "
 	 "`focusRing`: a ring drawn above everything around the node the keyboard focused (Tab, the arrows; not a click), "
-	 "following its corners: a colour, or `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the defaults), "
-	 "or `false` (the default: none).",
+	 "following its corners: a colour, or `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the defaults; "
+	 "the ring is on unless set), or `false` (none).",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",
@@ -132,7 +132,8 @@ constexpr KeyReference sectionTable[] = {
 	 "`[\"state.habits\", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it.",
 	 "sections"},
     {"include", R"json({"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]})json",
-	 "`[\"parts/sidebar.json\", ...]`: files merged in at load, section by section (this file's entries win).",
+	 "`[\"parts/sidebar.json\", ...]`: files merged in at load, section by section (this file's entries win; `menus` "
+	 "menu by menu, so several files add to one menu).",
 	 "sections"},
     {"permissions", R"json({"type": "object", "additionalProperties": false,
 		"description": "Who may change the running screen (VERSION_CONTROL.md). Revisions can't change it.",
@@ -162,7 +163,7 @@ constexpr KeyReference stepTable[] = {
 	 "steps"},
     {"call", "",
 	 "`{ \"call\": \"pickFile\", \"with\": {...}, \"into\": \"state.file\", \"onError\": [...] }`: a native function "
-	 "(`Screen::onCall`); `error` in `onError`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: "
+	 "(`Screen::onCall`); `error` in `onError`, `result` in `then`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: "
 	 "`\"loading\": \"state.busy\"` is true while it runs, `\"progress\": \"state.done\"` goes from 0 to 1, partial "
 	 "results stream into `into`, `\"timeout\": 5000` ends it with the error `timeout`, `then` runs with `result`",
 	 "steps"},

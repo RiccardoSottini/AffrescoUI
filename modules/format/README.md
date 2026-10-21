@@ -125,7 +125,7 @@ theme, and a name can't be both a colour and a token.
   worker pool (2 to 4 threads, started on first use), so no frame waits for it (`src/AsyncCalls.*`). The step's
   `loading` place is true while it runs, `progress` goes from 0 to 1, partial results stream into `into`, `timeout`
   (ms) ends it with the error `timeout`, `then` runs with `result` and `onError` with `error`; `{"cancel": name}`
-  stops its calls. Reports are coalesced: at most one delivery per call waits on the `Executor` (the Application,
+  stops its calls. A plain `onCall` function runs `then` with `result` too, right after it returns. Reports are coalesced: at most one delivery per call waits on the `Executor` (the Application,
   or `setExecutor`), and it carries the latest values. At most 64 calls run at once. A call ended (cancelled, timed
   out, or its runtime destroyed) changes nothing more; destroying the runtime waits for the functions running, so
   they should check `cancelled()`. Without an executor the call runs at once (`tests/unit/async.cpp`).
@@ -180,6 +180,8 @@ and shows what it decoded.
 - **Events out:** `onEvent` (`emit` steps), `onSend` (`send` steps to a channel), `onConnect`, `onUpdated`.
 - **Showing a document for a moment:** `setHandlersSuspended(true)` keeps the panels in line without running
   `onShow`, `onHide` or `watch`, taking focus or animating colours (pictures of proposals use it).
+- **Item icons:** a list, tree or table item may carry `icon` (a glyph name) and `iconColor`; an application's
+  model gives them through `ListItem`, so file icon themes stay in the application (`examples/forge`).
 - **Expression functions:** a new function is a new row of the table in its group's file
   (`src/ExpressionFunctions<Group>.cpp`): its name, arguments, one line of documentation, arity and implementation.
   The parser, the catalog's `operators` and SCREEN_FORMAT.md's function list (a unit test checks it against
