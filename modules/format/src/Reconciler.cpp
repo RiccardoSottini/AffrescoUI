@@ -118,6 +118,12 @@ void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std
 void Reconciler::gatherReads(const Panel& panel, Record& record) const {
 	record.subtreeReads = record.valueReads;
 	record.subtreeReads.add(record.expandReads);
+	// A change inside the item it lies in reaches its handlers too (refreshItems())
+	for(const Scope* scope = record.locals.get(); scope; scope = scope->parent) {
+		if(scope->fromState.empty()) continue;
+		record.subtreeReads.addPath(scope->origin);
+		break;
+	}
 	const auto& children = panel.children();
 	if(record.managed >= ItemIndex::minChildren)
 		record.items.start(children.size());
@@ -139,8 +145,27 @@ bool Reconciler::updateKept(Panel& kept, const Item& item, const StateChanges& c
 	return true;
 }
 
+// A kept panel's variables keep a copy of the items they lie in: a change inside one copies it again in place, so the
+// panel's handlers, timers and those below it see it as it is now (bindings read it live while updating)
+void Reconciler::refreshItems(const Scope& locals, const StateChanges& changes) const {
+	for(const Scope* scope = &locals; scope; scope = scope->parent) {
+		if(scope->fromState.empty() ||
+		   std::ranges::none_of(changes.paths, [&](const std::string& path) { return overlaps(scope->origin, path); }))
+			continue;
+		json value;
+		if(scope->origin.starts_with(modelPlaces))
+			value = engine_.models.at(scope->origin);
+		else if(const json* lying = findInState(engine_.versions.state(), json::json_pointer(scope->origin)))
+			value = *lying;
+		if(value.is_null()) continue; // gone: the list that shows it is built again
+		// A scope that holds an item is made by extend() as make_shared<Scope>(), so the object itself isn't const
+		const_cast<Scope*>(scope)->vars[scope->fromState] = std::move(value);
+	}
+}
+
 void Reconciler::updatePanel(Panel& panel, Record& record, const StateChanges& changes, int depth) {
 	if(!record.subtreeReads.touchedBy(changes)) return;
+	refreshItems(*record.locals, changes);
 	if(record.valueReads.touchedBy(changes)) {
 		const Item own{record.node, record.locals, record.path, nullptr};
 		ReadSet reads;

@@ -243,12 +243,13 @@ TEST_CASE("list: typing jumps to the next label that starts with what was typed 
 
 TEST_CASE("list: new items keep the selection and the cursor by id, and drops land between rows") {
 	ListFixture fixture;
+	fixture.window->setFocus(fixture.list);
+	fixture.type(U'f'); // the cursor jumps to fig, and selects it like the arrow keys
+	REQUIRE(fixture.list->cursor() == 5);
+	fixture.selections.clear();
 	fixture.list->setSelection({"cherry", "banana", "cherry"});
 	CHECK(fixture.list->selection() == std::vector<std::string>{"banana", "cherry"});
 	CHECK(fixture.list->isSelected("cherry"));
-	fixture.window->setFocus(fixture.list);
-	fixture.type(U'f');
-	REQUIRE(fixture.list->cursor() == 5);
 
 	fixture.list->setModel(plainItems({"fig", "banana", "kiwi"}));
 	fixture.window->render();
