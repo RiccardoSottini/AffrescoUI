@@ -184,6 +184,29 @@ TEST_CASE("render: strokes have their width, joins, caps and dashes") {
 	CHECK(coverageAt(bevel, {54.0f, -4.0f}) == 0.0f);
 }
 
+TEST_CASE("render: fills and strokes stop at the quad limit, drawing whole pieces") {
+	// Two combs whose teeth cross at every height: each piece of a band is a trapezoid a tooth
+	std::string combs = "M0 0";
+	for(int tooth = 0; tooth < 2000; ++tooth) combs += " l1 10 l1-10";
+	combs += " Z M0.5 0";
+	for(int tooth = 0; tooth < 2000; ++tooth) combs += " l1.01 7 l1.01-7";
+	combs += " Z";
+	std::vector<MeshVertex> fill;
+	affresco::appendFill(contoursOf(combs), FillRule::evenOdd, fill, 0.0f);
+	CHECK(fill.size() / 4 <= affresco::meshQuadLimit);
+
+	// A long square stroked with short round-capped dashes and dots: circles, far more than the limit
+	StrokeStyle style;
+	style.width = 3.5f;
+	style.join = affresco::LineJoin::round;
+	style.cap = affresco::LineCap::round;
+	style.dash = {3.0f, 0.5f, 0.0f}; // odd, so repeated: dashes of no length between, each a dot
+	std::vector<MeshVertex> stroke;
+	affresco::appendStroke(contoursOf("M0 0 H20000 V20000 H0 Z"), style, stroke);
+	CHECK(stroke.size() / 4 <= affresco::meshQuadLimit);
+	CHECK(stroke.size() / 4 > affresco::meshQuadLimit - 200); // drawn in part, up to the limit
+}
+
 TEST_CASE("render: SVG icons decode as images, within the limits") {
 	constexpr std::string_view icon = R"svg(<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 24 16">

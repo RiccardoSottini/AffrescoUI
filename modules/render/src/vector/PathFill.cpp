@@ -131,9 +131,11 @@ private:
 			winding += span.direction;
 			const bool inside = isInside(winding, rule_);
 			if(!wasInside && inside) left = &span;
-			else if(wasInside && !inside && left != nullptr)
+			else if(wasInside && !inside && left != nullptr) {
+				if(vector::meshIsFull(mesh_, meshQuadLimit)) return;
 				vector::pushQuad(mesh_, {MeshVertex{{left->topX, top}}, MeshVertex{{span.topX, top}},
 				                         MeshVertex{{span.bottomX, bottom}}, MeshVertex{{left->bottomX, bottom}}});
+			}
 		}
 	}
 

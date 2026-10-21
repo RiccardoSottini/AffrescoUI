@@ -29,8 +29,8 @@ public:
 	/// @param feather How wide the fringes are.
 	PolygonWriter(std::vector<MeshVertex>& mesh, float feather) : mesh_(mesh), feather_(feather) {}
 
-	/// @brief Tells whether the mesh holds as many quads as it may.
-	[[nodiscard]] bool full() const noexcept { return vector::meshIsFull(mesh_, meshQuadLimit); }
+	/// @brief Tells whether the mesh holds as many quads as it may, or a piece didn't fit (no later piece is drawn).
+	[[nodiscard]] bool full() const noexcept { return stopped_ || vector::meshIsFull(mesh_, meshQuadLimit); }
 
 	/// @brief Draws a convex polygon.
 	/// @param corners Its corners, in order around it (either way), at most polygonLimit.
@@ -38,10 +38,16 @@ public:
 	void polygon(std::span<const Vec2> corners, std::span<const bool> fringed) {
 		const std::size_t count = std::min(corners.size(), polygonLimit);
 		if(count < 3 || full()) return;
+		const bool feathered = feather_ > 0.0f;
+		const auto fringes = feathered ? static_cast<std::size_t>(std::ranges::count(fringed.first(count), true)) : 0;
+		if(mesh_.size() / 4 + count - 2 + fringes > meshQuadLimit) { // a piece is drawn whole or not at all
+			stopped_ = true;
+			return;
+		}
 		for(std::size_t index = 1; index + 1 < count; ++index)
 			vector::pushQuad(mesh_, {MeshVertex{corners[0]}, MeshVertex{corners[index]}, MeshVertex{corners[index + 1]},
 			                         MeshVertex{corners[index + 1]}});
-		if(!(feather_ > 0.0f)) return;
+		if(!feathered) return;
 		float area = 0.0f;
 		for(std::size_t index = 0; index < count; ++index) area += vector::cross(corners[index], corners[(index + 1) % count]);
 		const float sign = area > 0.0f ? -1.0f : 1.0f; // outside is on the right of a counter-clockwise polygon
@@ -81,6 +87,7 @@ private:
 
 	std::vector<MeshVertex>& mesh_; ///< Where the quads go.
 	float feather_;                 ///< How wide the fringes are.
+	bool stopped_ = false;          ///< Whether a piece didn't fit.
 };
 
 /// @brief Strokes open and closed runs of points.
