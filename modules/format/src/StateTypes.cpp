@@ -66,7 +66,7 @@ constexpr auto keywords = std::to_array<std::string_view>(
 /// @param name The name.
 /// @return It, or nullptr.
 const TypeName* typeNamed(std::string_view name) noexcept {
-	const auto* const it = std::ranges::find(typeNames, name, &TypeName::name);
+	const auto it = std::ranges::find(typeNames, name, &TypeName::name); // not a pointer with MSVC's library
 	return it == typeNames.end() ? nullptr : &*it;
 }
 

@@ -1,5 +1,5 @@
 # Builds the downloads: the host, the Studio and the affrescoui tool for macOS (one universal binary for arm64 and
-# x86_64), Linux (x86_64) and Windows (x86_64, while it builds), plus the MCP server's Python package; then checks each
+# x86_64), Linux (x86_64) and Windows (x86_64), plus the MCP server's Python package; then checks each
 # archive on a clean machine of its system, with no source tree there.
 #
 # - A pushed tag v* (only the maintainer pushes tags) also makes a draft GitHub Release with the archives, SHA256SUMS
@@ -49,7 +49,6 @@ jobs:
     name: Binaries (${{ matrix.platform }})
     needs: version
     runs-on: ${{ matrix.runner }}
-    continue-on-error: ${{ matrix.optional }} # Windows: kept while it doesn't build yet (roadmap 1.1)
     permissions:
       contents: read
     strategy:
@@ -58,15 +57,12 @@ jobs:
         include:
           - platform: macos-universal
             runner: macos-latest
-            optional: false
             configure: -G Ninja "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
           - platform: linux-x86_64
             runner: ubuntu-24.04
-            optional: false
             configure: -G Ninja
           - platform: windows-x86_64
             runner: windows-latest
-            optional: true
             configure: -A x64
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,15 +126,14 @@ jobs:
     name: Check the download (${{ matrix.platform }})
     needs: binaries
     runs-on: ${{ matrix.runner }}
-    continue-on-error: ${{ matrix.optional }}
     permissions: {}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { platform: macos-universal, runner: macos-latest, optional: false }
-          - { platform: linux-x86_64, runner: ubuntu-24.04, optional: false }
-          - { platform: windows-x86_64, runner: windows-latest, optional: true }
+          - { platform: macos-universal, runner: macos-latest }
+          - { platform: linux-x86_64, runner: ubuntu-24.04 }
+          - { platform: windows-x86_64, runner: windows-latest }
     steps:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -201,7 +196,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "AffrescoUI $VERSION" \
-            --notes "Downloads for macOS (universal), Linux (x86_64) and Windows (x86_64, when it built). Check them with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`. The MCP server: \`pipx install affrescoui-mcp\`." \
+            --notes "Downloads for macOS (universal), Linux (x86_64) and Windows (x86_64). Check them with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`. The MCP server: \`pipx install affrescoui-mcp\`." \
             dist/*
 
   pypi:

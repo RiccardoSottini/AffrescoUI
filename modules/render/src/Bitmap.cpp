@@ -25,9 +25,12 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 } // namespace
 
 // stb_image casts what these macros return in C style, and GCC reports it where they are defined (here, outside the
-// system header), so the warning is off from the definitions to the end of the include.
+// system header), so the warning is off from the definitions to the end of the include (MSVC has no such warning,
+// and warns about pragmas it doesn't know).
+#if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
 #define STBI_MALLOC(bytes) std::malloc(bytes)
 #define STBI_FREE(pointer) std::free(pointer)
 #define STBI_REALLOC_SIZED(pointer, oldBytes, newBytes) growWithin(pointer, newBytes)
@@ -40,7 +43,9 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#if defined(__GNUC__)
 #pragma GCC diagnostic pop
+#endif
 
 #include <atomic>
 #include <climits>
