@@ -1,0 +1,24 @@
+{
+	"format": "affrescoui-screen",
+	"version": 1,
+	"state": { "n": 0, "dirty": false, "focused": null },
+	"actions": {
+		"add": [{ "increment": "state.n", "by": 1 }],
+		"save": { "title": "Save", "category": "File", "enablement": "{{state.dirty}}",
+		          "do": [{ "set": "state.n", "to": 100 }] },
+		"markDirty": [{ "toggle": "state.dirty" }],
+		"where": [{ "set": "state.focused", "to": "{{context.focus}}" }]
+	},
+	"keys": {
+		"mod+s": "save",
+		"mod+k mod+d": "markDirty",
+		"mod+r": [{ "when": "{{state.dirty}}", "do": "save" }, { "do": "add" }]
+	},
+	"root": {
+		"type": "column", "id": "root", "color": "#1e1e1e",
+		"children": [
+			{ "type": "textarea", "id": "input", "height": 40, "context": { "inInput": true },
+			  "keys": { "mod+l": { "when": "{{context.inInput}}", "do": "where" } } }
+		]
+	}
+}

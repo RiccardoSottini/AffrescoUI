@@ -38,6 +38,14 @@ enum class Slot : std::uint8_t {
 	Transition, ///< "transition".
 	Scroll,     ///< "scroll".
 	Overlay,    ///< "overlay".
+	Focusable,  ///< "focusable".
+	TabIndex,   ///< "tabIndex".
+	Arrows,     ///< "arrows".
+	Mnemonic,   ///< "mnemonic".
+	/* Every panel's accessibility */
+	Role,        ///< "role".
+	Label,       ///< "label".
+	Description, ///< "description".
 	/* Every panel's shape */
 	Radius,      ///< "radius".
 	BorderWidth, ///< "borderWidth".
@@ -68,6 +76,7 @@ enum class Slot : std::uint8_t {
 	Caret,   ///< "caret".
 	Keys,    ///< "keys".
 	Drag,    ///< "drag".
+	Context, ///< "context".
 	Every,   ///< "every".
 	/* Anything else */
 	Other, ///< A property a registered type has, or none has (an error when it is applied).

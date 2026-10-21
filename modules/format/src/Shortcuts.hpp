@@ -26,4 +26,20 @@ namespace affresco::format {
 /// @return The normalised shortcut.
 [[nodiscard]] std::string normalizeShortcut(std::string_view text);
 
+/// @brief Writes a chord, presses separated by spaces, each the way normalizeShortcut() does: "Mod+K  Mod + S" is
+/// "cmd+k cmd+s" on macOS. A single press is a chord of one.
+/// @param text The chord as written.
+/// @return The normalised chord, its presses joined by one space.
+[[nodiscard]] std::string normalizeChord(std::string_view text);
+
+/// @brief The presses of a normalised chord.
+/// @param chord The chord, as normalizeChord() writes it.
+/// @return How many presses it has: 1 for a single press.
+[[nodiscard]] std::size_t chordLength(std::string_view chord);
+
+/// @brief A normalised chord as people read it: "⌘K ⌘S" on macOS, "Ctrl+K Ctrl+S" elsewhere.
+/// @param chord The chord, as normalizeChord() writes it.
+/// @return Its label.
+[[nodiscard]] std::string keyLabel(std::string_view chord);
+
 } // namespace affresco::format

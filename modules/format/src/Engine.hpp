@@ -70,6 +70,7 @@ struct Engine : VersionObserver {
 	Runtime::UnhandledAction unhandled;                                ///< Actions nobody handles.
 	bool placeholderTypes = false;                                     ///< Unknown types become plain panels.
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
+	json menuBar = json::array();                                      ///< The native menu bar last shown (showMenuBar()).
 
 	DocumentContext document; ///< Colours, fonts, theme, globals, computed values, the screen shown.
 	Builder builder;          ///< Expands children.

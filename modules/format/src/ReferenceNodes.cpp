@@ -135,12 +135,39 @@ constexpr KeyReference nodeTable[] = {
 		"properties": {"anchor": {"type": "string"}, "placement": {"enum": ["below", "below-end",
 		"above", "above-end", "right", "left", "center", "window"]},
 		"open": {"description": "A state path (\"state.menuOpen\") or a value"},
-		"dismiss": {"const": "outside"}}})json",
+		"dismiss": {"const": "outside"}, "modal": {"$ref": "#/$defs/v1/flag"}}})json",
 	 "`{ \"anchor\": \"#id\", \"placement\": \"below\", \"open\": \"state.menuOpen\", \"dismiss\": \"outside\" }`: "
 	 "drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, "
 	 "`above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in "
 	 "the window). `open` is a state path (or a value); with `\"dismiss\": \"outside\"`, a click outside it or Escape "
-	 "sets it to false.",
+	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first focusable "
+	 "node inside gets the focus) and gives it back when it closes.",
+	 "look"},
+    {"focusable", "flag",
+	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",
+	 "look"},
+    {"role", R"json({"description": "A role, or a {{binding}}"})json",
+	 "What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, "
+	 "`list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for "
+	 "labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an "
+	 "`onClick`; other nodes have none and are skipped in the accessibility tree.",
+	 "look"},
+    {"label", R"json({"description": "Text, or a {{binding}}"})json",
+	 "The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an "
+	 "input's or a slider's text is its value, not its name).",
+	 "look"},
+    {"description", R"json({"description": "Text, or a {{binding}}"})json",
+	 "A longer accessible description, read after the name.", "look"},
+    {"tabIndex", R"json({"anyOf": [{"type": "integer", "minimum": -1}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out.",
+	 "look"},
+    {"arrows", R"json({"anyOf": [{"enum": ["vertical", "horizontal", "both"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), "
+	 "wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is.",
+	 "look"},
+    {"mnemonic", R"json({"description": "One letter, or a {{binding}}"})json",
+	 "A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` "
+	 "node, the letter alone does.",
 	 "look"},
     {"hover", "stateBlock",
 	 "Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). "
@@ -183,7 +210,11 @@ constexpr KeyReference nodeTable[] = {
 	 "`{ \"ms\": 1000, \"do\": steps }`: runs while the node exists.", "look"},
     {"drag", R"json({"type": "object", "additionalProperties": false, "properties": {"data": {}}})json",
 	 "`{ \"data\": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`.", "look"},
-    {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v1/handler"},
+    {"context", R"json({"type": "object", "description": "Keys this node adds to the context variable while it or a child has the focus"})json",
+	 "`{ \"editorFocus\": true }`: keys added to the `context` variable while the node or a child has the focus "
+	 "(an inner node wins); `when` clauses read them.",
+	 "look"},
+    {"keys", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v1/keyHandler"},
 		"description": "Shortcuts while focused: \"mod+k\" -> handler"})json",
 	 "Shortcuts while the node or a child has the focus: `\"enter\" → handler`.", "look"},
     {"locked", R"json({"type": "boolean"})json",
@@ -453,7 +484,8 @@ constexpr KeyReference nodeTable[] = {
     {"onDrag", "handler", "The pointer moves while pressed: `event.dx`, `event.dy` since the press.", "events"},
     {"onDrop", "handler",
 	 "A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or "
-	 "`tree`, `event.index`, `id` and `place`: `\"before\"`, `\"inside\"` or `\"after\"` that row).",
+	 "`tree`, `event.index`, `id` and `place`: `\"before\"`, `\"inside\"` or `\"after\"` that row); or files from the "
+	 "OS: `event.files` (their paths).",
 	 "events"},
     {"onHover", "handler", "The pointer enters or leaves the node (or a child).", "events"},
     {"onLeave", "handler", "", "events"},

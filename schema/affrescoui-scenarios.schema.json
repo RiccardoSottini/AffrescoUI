@@ -23,11 +23,16 @@
 	"$defs": {
 		"name": { "type": "string", "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$" },
 		"target": {
-			"description": "\"#id\": the centre of the first shown node with that id (\"nth\" picks another), or [x, y] in window units.",
+			"description": "\"#id\": the centre of the first shown node with that id (\"nth\" picks another), { \"role\", \"name\" }: the first shown node with that role (and accessible name), or [x, y] in window units.",
 			"oneOf": [
 				{ "type": "string", "pattern": "^#.+" },
+				{ "$ref": "#/$defs/byRole" },
 				{ "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2 }
 			]
+		},
+		"byRole": {
+			"type": "object", "required": ["role"], "additionalProperties": false,
+			"properties": { "role": { "type": "string", "minLength": 1 }, "name": { "type": "string" } }
 		},
 		"nth": { "type": "integer", "minimum": 0 },
 		"scenario": {
@@ -96,9 +101,9 @@
 					"is": true, "note": { "type": "string" } } },
 				{ "type": "object", "required": ["node"], "additionalProperties": false,
 				  "properties": {
-					"node": { "type": "string", "pattern": "^#.+" }, "nth": { "$ref": "#/$defs/nth" },
+					"node": { "oneOf": [{ "type": "string", "pattern": "^#.+" }, { "$ref": "#/$defs/byRole" }] }, "nth": { "$ref": "#/$defs/nth" },
 					"exists": { "type": "boolean" }, "text": { "type": "string" },
-					"property": { "enum": ["text", "textColor", "color", "borderColor", "borderWidth", "shown", "visible", "focused", "hovered", "tooltip", "checked", "value", "x", "y", "width", "height", "scrollX", "scrollY"] },
+					"property": { "enum": ["text", "textColor", "color", "borderColor", "borderWidth", "shown", "visible", "focused", "hovered", "tooltip", "checked", "value", "x", "y", "width", "height", "scrollX", "scrollY", "role", "name", "description"] },
 					"is": true, "note": { "type": "string" } },
 				  "oneOf": [{ "required": ["exists"] }, { "required": ["text"] }, { "required": ["property", "is"] }] },
 				{ "type": "object", "required": ["image"], "additionalProperties": false, "properties": {

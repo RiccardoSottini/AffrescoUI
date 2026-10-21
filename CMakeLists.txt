@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 project(AffrescoUI VERSION 0.1.0 LANGUAGES C CXX)
+if(APPLE)
+	enable_language(OBJC OBJCXX) # the render module's native menus and colour scheme (Cocoa); OBJC first, for GLFW's .m files
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

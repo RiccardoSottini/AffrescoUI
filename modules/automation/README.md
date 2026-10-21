@@ -27,6 +27,9 @@ rendering check (`tests/render`) is a set of scenarios whose expectations are pi
 - **Time moves only on `wait`.** The window's clock is a `ManualClock`. A wait runs each timer at its own time, in
   order (rounded up to the microsecond), so a repeating timer runs once per period and an animation draws each frame,
   as in real time. What a handler leaves for the next frame (a `focus`) runs at the next wait.
+- **Targets as a person finds them.** A target is `"#id"`, `[x, y]`, or `{ "role", "name" }`: the first shown node
+  with that role and accessible name (`render`'s `Accessibility.hpp`), the way Testing Library finds elements; the
+  properties `role`, `name` and `description` read them.
 - **Expectations don't stop a scenario; steps that can't be played do.** A failed expectation is recorded and the
   scenario goes on; a target that isn't there, a refused revision or an action that throws ends it.
 - **Pictures are the rendering check's.** A picture is `Window::saveScreenshot` at the scenario's scale, compared pixel

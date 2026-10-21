@@ -8,7 +8,9 @@
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco::format {
 
@@ -47,6 +49,16 @@ public:
 	/// @param handler E.g. "onHover".
 	/// @param event The event.
 	void fire(Panel& panel, std::string_view handler, const json& event);
+	/// @brief The chord in progress: the presses so far of a key with several ("ctrl+k"), or empty.
+	/// @return It, normalised.
+	[[nodiscard]] const std::string& chord() const noexcept { return chord_; }
+	/// @brief A modal overlay opened or closed: it takes the focus (its first focusable node, after the layout) and
+	/// keeps Tab inside, then gives the focus back to the panel that had it.
+	/// @param overlay The overlay.
+	/// @param open Whether it opened.
+	void modal(Panel& overlay, bool open);
+	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
+	void dismissAll() { dismissOverlays(nullptr); }
 
 private:
 	/// @brief A press that may become a click, a double click or a drag.
@@ -80,9 +92,22 @@ private:
 	/// @param panel The panel.
 	/// @param value The new value.
 	void valueChanged(Panel& panel, const json& value);
-	/// @brief Runs a screen-wide shortcut ("keys"), and closes the overlays on Escape.
-	/// @param event The key event, from the window.
-	void screenKey(const KeyEvent& event);
+	/// @brief Resolves a key press in one walk: the chord in progress, the "keys" of the focused panel and its
+	/// ancestors, then the document's; a focused text input keeps plain keys from the document's (rfcs/0001).
+	/// @param from The focused panel, or nullptr.
+	/// @param event The event.
+	/// @return true if a binding ran, a chord started or went on, or a press ended one.
+	bool resolve(Panel* from, const KeyEvent& event);
+	/// @brief Runs a key's handler if one of its bindings applies: plain steps, a binding `{when, do, with}`
+	/// (skipped if its "when" is false or its command is disabled) or a list of them (the first that applies).
+	/// @param handler The handler, as written.
+	/// @param owner The panel whose "keys" it is (the root for the document's).
+	/// @param locals Their locals.
+	/// @param press The press, normalised.
+	/// @param where Its place, for errors.
+	/// @return true if it ran.
+	bool runBinding(const json& handler, Panel& owner, const Scope& locals, const std::string& press,
+	                const std::string& where);
 	/// @brief The panel that handles an event: this one or its nearest ancestor with the handler (bubbling).
 	/// @param from The panel the event happened on.
 	/// @param handler E.g. "onClick".
@@ -124,6 +149,31 @@ private:
 	/// @brief Updates the drop target under the pointer during a drag, and a widget target's drop indicator.
 	/// @param at The pointer.
 	void dragOver(Vec2 at);
+	/// @brief The panels the focus can move to inside a scope, in tab order: shown, with a record and not disabled,
+	/// focusable or a text input, with a "tabIndex" of 0 or more (positive ones first).
+	/// @param scope The scope.
+	/// @param list true for an "arrows" scope: its nested "arrows" nodes are skipped; false for Tab: nested modal
+	/// overlays are skipped.
+	/// @return Them.
+	std::vector<Panel*> focusables(Panel& scope, bool list);
+	/// @brief Where Tab moves: the last open modal overlay, else the root.
+	/// @return It.
+	Panel& modalScope();
+	/// @brief Moves the focus with the keyboard when no binding took the key: Tab and Shift+Tab, the arrows, Home
+	/// and End inside an "arrows" node, Enter and Space on a focusable node, and mnemonics.
+	/// @param from The focused panel, or nullptr.
+	/// @param event The event.
+	/// @return true if it did something.
+	bool navigate(Panel* from, const KeyEvent& event);
+	/// @brief Clicks a panel from the keyboard: its (or its nearest ancestor's) "onClick".
+	/// @param panel The panel.
+	/// @return true if one ran.
+	bool keyClick(Panel& panel);
+	/// @brief Focuses a panel after the update and its layout, if it still exists then.
+	/// @param panel The panel, or nullptr for the first focusable node inside `scope`.
+	/// @param scope The overlay to look in, when `panel` is nullptr.
+	/// @param frames How many more frames to wait for `scope` to be laid out and shown.
+	void focusLater(Panel* panel, Panel* scope, int frames = 2);
 	/// @brief Runs shortcuts ("keys") and "onKey" for a key pressed on a focused panel.
 	/// @param panel The panel.
 	/// @param event The event.
@@ -151,9 +201,25 @@ private:
 	Engine& engine_;  ///< The runtime.
 	Press press_;     ///< The press in progress.
 	Click lastClick_; ///< For double clicks.
+	std::string chord_;        ///< The chord in progress (chord()).
+	bool keyResolved_ = false; ///< The focused panel resolved the press the window is about to get.
+	/// @brief An open modal overlay, and who had the focus before it.
+	struct Modal {
+		Panel* overlay = nullptr;  ///< The overlay.
+		Panel* previous = nullptr; ///< The focus before it opened (nullptr: none, or destroyed since).
+	};
+	std::vector<Modal> modals_; ///< Open modal overlays, the last opened last.
+	/// @brief What focusLater() will focus (nullptr: forgotten, destroyed meanwhile).
+	struct FocusLater {
+		Panel* panel = nullptr; ///< The panel, or nullptr to look inside scope.
+		Panel* scope = nullptr; ///< The overlay.
+		bool pending = false;   ///< Scheduled.
+		bool cancelled = false; ///< A target was destroyed meanwhile.
+	};
+	FocusLater focusLater_; ///< The focus change scheduled by focusLater().
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct {
-		Connection resized = 0, key = 0, button = 0; ///< onResize, onKey, onMouseButton.
+		Connection resized = 0, key = 0, button = 0, display = 0, drop = 0; ///< onResize, onKey, onMouseButton, ...
 	} windowHooks_;
 };
 

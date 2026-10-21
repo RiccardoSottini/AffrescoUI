@@ -1,0 +1,36 @@
+{
+	"format": "affrescoui-screen",
+	"version": 1,
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "n": 0, "bar": {}, "settingsQuery": "" },
+	"actions": {
+		"add": [{ "increment": "state.n", "by": 1 }],
+		"save": { "title": "Save", "do": "add" },
+		"bigger": [{ "set": "settings.editor.fontSize", "to": 18 }]
+	},
+	"keys": { "mod+s": "save", "mod+b": "bigger" },
+	"menus": {
+		"file": {
+			"new": { "run": "add", "title": "New", "group": "1_new" },
+			"save": { "run": "save", "group": "2_save" },
+			"bigger": { "run": "bigger", "title": "Bigger font", "group": "3_view" }
+		}
+	},
+	"settings": {
+		"editor.fontSize": { "type": "integer", "minimum": 6, "maximum": 40, "default": 14, "title": "Font size",
+		                     "description": "The editor's font size, in points." },
+		"editor.wordWrap": { "type": "boolean", "default": false, "title": "Word wrap",
+		                     "description": "Wrap long lines at the window's edge." },
+		"workbench.title": { "type": "string", "default": "Untitled", "title": "Window title",
+		                     "description": "The text in the title bar." }
+	},
+	"root": {
+		"id": "root", "color": "#1e1e1e",
+		"children": [{ "type": "column", "fill": true, "children": [
+			{ "use": "menuBar", "id": "bar", "width": "100%",
+			  "with": { "open": "state.bar", "menus": [{ "name": "file", "title": "File", "items": "{{menus.file}}" }] } },
+			{ "use": "settingsPage", "id": "page", "width": "100%", "grow": 1,
+			  "with": { "search": "{{state.settingsQuery}}" } }
+		] }]
+	}
+}

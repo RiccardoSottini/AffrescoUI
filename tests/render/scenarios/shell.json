@@ -1,0 +1,80 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "commands-and-keybindings",
+			"screen": "shell.screen.json",
+			"steps": [
+				{ "key": "mod+s" },
+				{ "expect": { "state": "n", "is": 0 } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "n", "is": 1 } },
+				{ "key": "mod+k" },
+				{ "key": "mod+d" },
+				{ "expect": { "state": "dirty", "is": true } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "n", "is": 100 } },
+				{ "click": "#input" },
+				{ "key": "mod+l" },
+				{ "expect": { "state": "focused", "is": "input" } },
+				{ "type": "ab" },
+				{ "expect": { "node": "#input", "text": "ab" } }
+			]
+		},
+		{
+			"name": "overlays",
+			"screen": "overlays.screen.json",
+			"steps": [
+				{ "wait": 50 },
+				{ "key": "alt+f" },
+				{ "wait": 50 },
+				{ "expect": { "state": "bar.file", "is": true } },
+				{ "expect": { "image": "menu-open" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "last", "is": "new" } },
+				{ "expect": { "state": "bar.file", "is": false } },
+				{ "key": "alt+s" },
+				{ "expect": { "state": "answer", "is": "stop" } },
+				{ "click": "#ask" },
+				{ "wait": 50 },
+				{ "expect": { "image": "dialog" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "answer", "is": "save" } },
+				{ "expect": { "state": "dialog", "is": false } }
+			]
+		},
+		{
+			"name": "menus-and-settings",
+			"screen": "settings.screen.json",
+			"steps": [
+				{ "wait": 50 },
+				{ "expect": { "image": "settings-page" } },
+				{ "key": "mod+b" },
+				{ "wait": 50 },
+				{ "expect": { "image": "settings-modified" } },
+				{ "key": "alt+f" },
+				{ "wait": 50 },
+				{ "expect": { "image": "file-menu" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "n", "is": 1 } }
+			]
+		},
+		{
+			"name": "quick-pick",
+			"screen": "quickpick.screen.json",
+			"steps": [
+				{ "wait": 50 },
+				{ "expect": { "image": "quick-pick" } },
+				{ "type": "mcp" },
+				{ "wait": 50 },
+				{ "expect": { "image": "quick-pick-filtered" } },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "expect": { "state": "opened", "is": "mouse.cpp" } },
+				{ "expect": { "state": "quickPick.open", "is": false } }
+			]
+		}
+	]
+}

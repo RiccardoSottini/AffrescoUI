@@ -104,6 +104,10 @@ inline constexpr std::size_t bytesPerEvent = 64u << 20;     ///< The bytes its s
 /// @brief Reads a built panel's geometry by id, for the `nodes` variable: `{x, y, width, height, visible}`, or null.
 using NodeLookup = std::function<json(std::string_view id)>;
 
+/// @brief Gives a screen-wide variable built when it is read (`context`, `commands`, ...): its value, or null if the
+/// name is none of them. The value stays valid for the whole evaluation.
+using VariableLookup = std::function<const json*(std::string_view name)>;
+
 /// @brief What a path can see while a value is evaluated.
 struct Context {
 	const json& state;                    ///< The live state.
@@ -117,6 +121,7 @@ struct Context {
 	WorkBudget* budget = nullptr;         ///< What the event or update may still do (none: unlimited, for tools).
 	ReadSet* reads = nullptr;             ///< Gets the places of the state read, for fine-grained updates (or none).
 	const NodeLookup* models = nullptr;   ///< A data model's row by its place, "/~m/files/3" (Models.hpp), or none.
+	const VariableLookup* variables = nullptr; ///< Variables built when read (none: only the others).
 };
 
 /// @brief Evaluates templates, expressions and operators, recursing into objects and arrays.

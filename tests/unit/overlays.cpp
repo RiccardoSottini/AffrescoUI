@@ -1,0 +1,293 @@
+/// @file
+/// @brief Overlays and focus (src/Events.cpp, src/BuiltInComponents.cpp): the tab order, modal overlays that trap
+/// the focus, arrow keys and mnemonics, the dismiss step, and the built-in menu, dialog and toast components.
+
+#include "Checker.hpp"
+#include "Headless.hpp"
+
+#include <affresco/affresco.hpp>
+
+#include <doctest/doctest.h>
+
+#include <string>
+
+using affresco::json;
+using affresco::detail::createHeadlessWindow;
+using affresco::detail::ManualClock;
+
+namespace {
+
+/// @brief Presses and releases a key.
+/// @param window The window.
+/// @param key The key.
+/// @param mods The modifiers (0x1 Shift, 0x4 Alt).
+void press(affresco::Window& window, affresco::Key key, int mods = 0) {
+	window.routeKey({key, 0, affresco::Action::Press, {mods}});
+	window.routeKey({key, 0, affresco::Action::Release, {mods}});
+}
+
+/// @brief Clicks the middle of a panel, as the user would.
+/// @param window The window.
+/// @param panel The panel.
+void clickOn(affresco::Window& window, const affresco::Panel& panel) {
+	const affresco::Rect& frame = panel.frame();
+	const affresco::Vec2 middle{(frame.left + frame.right) / 2.0f, (frame.top + frame.bottom) / 2.0f};
+	for(const affresco::Action action : {affresco::Action::Press, affresco::Action::Release})
+		window.routeMouseButton({affresco::MouseButton::Left, action, {}, middle});
+}
+
+/// @brief The id of the focused panel.
+/// @param window The window.
+/// @return It, or "" if none has the focus.
+std::string focusedId(const affresco::Window& window) {
+	return window.focusedPanel() ? window.focusedPanel()->id() : "";
+}
+
+/// @brief The screen's state.
+/// @param screen The screen.
+/// @return It.
+json state(const affresco::Screen& screen) { return json::parse(screen.stateJson()); }
+
+/// @brief Builds a screen on a window and lays it out, running what waits for the next turn (a modal's focus).
+/// @param window The window.
+/// @param clock Its clock.
+/// @param screen The screen.
+void settle(affresco::Window& window, ManualClock& clock, affresco::Screen& screen) {
+	window.render();
+	clock.advance(1.0);
+	window.render();
+	(void)screen;
+}
+
+/// @brief A menu bar's document: a File menu with a submenu, and actions that count.
+constexpr const char* menuScreen = R"json({
+	"format": "affrescoui-screen", "version": 1,
+	"state": { "n": 0, "last": null, "bar": {} },
+	"actions": {
+		"add": [{ "increment": "state.n", "by": 1 }, { "set": "state.last", "to": "{{what ?? 'add'}}" }]
+	},
+	"root": { "id": "root", "type": "column", "children": [
+		{ "id": "bar", "use": "menuBar", "with": { "open": "state.bar", "menus": [
+			{ "name": "file", "title": "File", "items": [
+				{ "title": "New", "run": "add", "with": { "what": "new" } },
+				{ "separator": true },
+				{ "title": "Recent", "submenu": [{ "title": "One", "run": "add", "with": { "what": "one" } }] },
+				{ "title": "Off", "enabled": false, "run": "add" }
+			] }
+		] } }
+	] }
+})json";
+
+} // namespace
+
+TEST_CASE("format: Tab follows tabIndex first, then the tree, and Shift+Tab goes back") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "a", "height": 20, "focusable": true },
+			{ "id": "b", "height": 20, "focusable": true, "tabIndex": 1 },
+			{ "id": "skip", "height": 20, "focusable": true, "tabIndex": -1 },
+			{ "id": "c", "height": 20, "focusable": true }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	CHECK(focusedId(*window) == "b");
+	press(*window, affresco::Key::Tab);
+	CHECK(focusedId(*window) == "a");
+	press(*window, affresco::Key::Tab);
+	CHECK(focusedId(*window) == "c");
+	press(*window, affresco::Key::Tab); // wraps
+	CHECK(focusedId(*window) == "b");
+	press(*window, affresco::Key::Tab, 0x1);
+	CHECK(focusedId(*window) == "c");
+}
+
+TEST_CASE("format: Enter or Space on a focusable node clicks it, and Alt with its mnemonic does too") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1, "state": { "n": 0, "keyboard": null },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "go", "height": 20, "focusable": true, "mnemonic": "g",
+			  "onClick": [{ "increment": "state.n", "by": 1 }, { "set": "state.keyboard", "to": "{{event.keyboard}}" }] }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	press(*window, affresco::Key::Enter);
+	press(*window, affresco::Key::Space);
+	CHECK(state(screen)["n"] == 2);
+	CHECK(state(screen)["keyboard"] == true);
+	window->setFocus(nullptr);
+	press(*window, affresco::Key::G, 0x4);
+	CHECK(state(screen)["n"] == 3);
+}
+
+TEST_CASE("format: the arrows move through a list, Tab leaves it in one step, and a letter picks an item") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1, "state": { "picked": null },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "list", "type": "column", "height": 60, "arrows": "vertical", "children": [
+				{ "id": "x", "height": 20, "focusable": true, "mnemonic": "x" },
+				{ "id": "y", "height": 20, "focusable": true, "mnemonic": "y",
+				  "onClick": { "set": "state.picked", "to": "y" } },
+				{ "id": "z", "height": 20, "focusable": true }
+			] },
+			{ "id": "after", "height": 20, "focusable": true }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	CHECK(focusedId(*window) == "x");
+	press(*window, affresco::Key::Down);
+	CHECK(focusedId(*window) == "y");
+	press(*window, affresco::Key::End);
+	CHECK(focusedId(*window) == "z");
+	press(*window, affresco::Key::Down); // wraps
+	CHECK(focusedId(*window) == "x");
+	press(*window, affresco::Key::Up);
+	CHECK(focusedId(*window) == "z");
+	press(*window, affresco::Key::Y);
+	CHECK(state(screen)["picked"] == "y");
+	press(*window, affresco::Key::Tab); // past the list
+	CHECK(focusedId(*window) == "after");
+}
+
+TEST_CASE("format: a modal overlay takes the focus, keeps Tab inside, and gives the focus back when it closes") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1, "state": { "open": false },
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "opener", "height": 20, "focusable": true, "onClick": { "set": "state.open", "to": true } },
+			{ "id": "outside", "height": 20, "focusable": true },
+			{ "id": "box", "width": 200, "height": 80, "type": "column",
+			  "overlay": { "placement": "center", "open": "state.open", "dismiss": "outside", "modal": true },
+			  "children": [
+				{ "id": "one", "height": 20, "focusable": true },
+				{ "id": "two", "height": 20, "focusable": true, "onClick": { "dismiss": true } }
+			  ] }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	REQUIRE(focusedId(*window) == "opener");
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock, screen);
+	CHECK(focusedId(*window) == "one");
+	press(*window, affresco::Key::Tab);
+	CHECK(focusedId(*window) == "two");
+	press(*window, affresco::Key::Tab); // stays inside
+	CHECK(focusedId(*window) == "one");
+
+	press(*window, affresco::Key::Tab);
+	press(*window, affresco::Key::Enter); // "dismiss": true
+	settle(*window, clock, screen);
+	CHECK(state(screen)["open"] == false);
+	CHECK(focusedId(*window) == "opener");
+}
+
+TEST_CASE("format: the built-in menu bar opens a menu, runs an item, and a submenu click keeps it open") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(menuScreen);
+	screen.build(*window);
+	settle(*window, clock, screen);
+	REQUIRE(window->root().children().size() > 0);
+
+	press(*window, affresco::Key::F, 0x4); // Alt+F: the File title's mnemonic
+	settle(*window, clock, screen);
+	CHECK(state(screen)["bar"]["file"] == true);
+	REQUIRE(window->focusedPanel()); // the modal menu gave the focus to its first item
+
+	press(*window, affresco::Key::Enter); // New
+	settle(*window, clock, screen);
+	CHECK(state(screen)["n"] == 1);
+	CHECK(state(screen)["last"] == "new");
+	CHECK(state(screen)["bar"]["file"] == false);
+
+	press(*window, affresco::Key::F, 0x4);
+	settle(*window, clock, screen);
+	press(*window, affresco::Key::R); // Recent opens its submenu
+	settle(*window, clock, screen);
+	CHECK(state(screen)["bar"]["fileSub"]["m2"] == true);
+	CHECK(state(screen)["bar"]["file"] == true);
+
+	REQUIRE(window->focusedPanel());
+	clickOn(*window, *window->focusedPanel()); // One, in the submenu: the File menu doesn't close first
+	settle(*window, clock, screen);
+	CHECK(state(screen)["last"] == "one");
+	CHECK(state(screen)["bar"]["file"] == false);
+
+	press(*window, affresco::Key::F, 0x4);
+	settle(*window, clock, screen);
+	press(*window, affresco::Key::O); // Off is disabled
+	settle(*window, clock, screen);
+	CHECK(state(screen)["n"] == 2);
+	press(*window, affresco::Key::Escape);
+	settle(*window, clock, screen);
+	CHECK(state(screen)["bar"]["file"] == false);
+}
+
+TEST_CASE("format: the built-in dialog and toast run their buttons and actions, and close") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(800, 600, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"state": { "dialog": true, "toast": true, "answer": null },
+		"actions": { "answer": [{ "set": "state.answer", "to": "{{choice}}" }] },
+		"root": { "id": "root", "children": [
+			{ "id": "ask", "use": "dialog", "with": { "open": "state.dialog", "title": "Save changes?",
+			  "buttons": [{ "title": "Save", "run": "answer", "with": { "choice": "save" } }, { "title": "Cancel" }] } },
+			{ "id": "note", "use": "toast", "with": { "open": "state.toast", "message": "Indexing", "progress": 0.5,
+			  "actions": [{ "title": "Stop", "run": "answer", "with": { "choice": "stop" } }] } }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	REQUIRE(window->focusedPanel()); // the dialog is modal: Save has the focus
+	press(*window, affresco::Key::Enter);
+	settle(*window, clock, screen);
+	CHECK(state(screen)["answer"] == "save");
+	CHECK(state(screen)["dialog"] == false);
+
+	press(*window, affresco::Key::S, 0x4); // Stop, the toast's action
+	settle(*window, clock, screen);
+	CHECK(state(screen)["answer"] == "stop");
+	CHECK(state(screen)["toast"] == false);
+}
+
+TEST_CASE("format: the checker knows the built-in components, and a document's own component wins") {
+	const json document = json::parse(menuScreen);
+	const auto found = affresco::format::check(document, document["state"], {});
+	REQUIRE(found);
+	std::string lines;
+	for(const auto& finding : *found) lines += finding.text() + "\n";
+	CAPTURE(lines);
+	CHECK(found->empty());
+
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"components": { "menu": { "node": { "id": "mine", "height": 10 } } },
+		"root": { "id": "root", "children": [{ "id": "m", "use": "menu" }] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+	CHECK(screen.find("m"));
+}

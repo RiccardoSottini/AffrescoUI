@@ -83,6 +83,30 @@ std::optional<Modifier> modifierNamed(std::string_view name) {
 	return std::nullopt;
 }
 
+/// The labels of the keys whose names are words, for keyLabel().
+constexpr std::array<std::pair<std::string_view, std::string_view>, 5> keyLabels = {
+    {{"minus", "-"}, {"equal", "="}, {"comma", ","}, {"period", "."}, {"slash", "/"}}};
+
+/// @brief The label of one normalised press: "⌘⇧K" on macOS, "Ctrl+Shift+K" elsewhere.
+/// @param press The press, "cmd+shift+k".
+/// @return Its label.
+std::string pressLabel(std::string_view press) {
+	const std::size_t last = press.rfind('+');
+	const std::string_view mods = last == std::string_view::npos ? "" : press.substr(0, last + 1);
+	std::string key(last == std::string_view::npos ? press : press.substr(last + 1));
+	for(const auto& [name, label] : keyLabels)
+		if(key == name) key = label;
+	if(!key.empty()) key[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(key[0])));
+	const auto has = [&](std::string_view name) { return mods.find(name) != std::string_view::npos; };
+#ifdef __APPLE__
+	return std::string(has("ctrl+") ? "⌃" : "") + (has("alt+") ? "⌥" : "") + (has("shift+") ? "⇧" : "") +
+	       (has("cmd+") ? "⌘" : "") + key;
+#else
+	return std::string(has("ctrl+") ? "Ctrl+" : "") + (has("alt+") ? "Alt+" : "") + (has("shift+") ? "Shift+" : "") +
+	       (has("cmd+") ? "Super+" : "") + key;
+#endif
+}
+
 } // namespace
 
 std::string keyName(Key key) {
@@ -121,6 +145,40 @@ std::string normalizeShortcut(std::string_view text) {
 	}
 	return std::string(held[Command] ? "cmd+" : "") + (held[Control] ? "ctrl+" : "") + (held[Alt] ? "alt+" : "") +
 	       (held[Shift] ? "shift+" : "") + key;
+}
+
+std::string normalizeChord(std::string_view text) {
+	std::vector<std::string> presses;
+	bool join = false; // the next word belongs to the last press: one of them is next to a '+'
+	for(std::size_t at = 0; at < text.size();) {
+		if(text[at] == ' ') {
+			++at;
+			continue;
+		}
+		const std::size_t end = std::min(text.find(' ', at), text.size());
+		const std::string_view word = text.substr(at, end - at);
+		if(join || (word.front() == '+' && !presses.empty())) presses.back() += word;
+		else presses.emplace_back(word);
+		join = word.back() == '+';
+		at = end;
+	}
+	std::string chord;
+	for(const std::string& press : presses) chord += (chord.empty() ? "" : " ") + normalizeShortcut(press);
+	return chord;
+}
+
+std::size_t chordLength(std::string_view chord) {
+	return chord.empty() ? 0 : static_cast<std::size_t>(std::ranges::count(chord, ' ')) + 1;
+}
+
+std::string keyLabel(std::string_view chord) {
+	std::string label;
+	for(std::size_t at = 0; at <= chord.size();) {
+		const std::size_t end = std::min(chord.find(' ', at), chord.size());
+		label += (label.empty() ? "" : " ") + pressLabel(chord.substr(at, end - at));
+		at = end + 1;
+	}
+	return label;
 }
 
 } // namespace affresco::format

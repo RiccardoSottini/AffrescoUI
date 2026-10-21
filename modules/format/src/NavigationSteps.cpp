@@ -1,5 +1,5 @@
 /// @file
-/// @brief The steps that move the user: focus, scrollTo, navigate.
+/// @brief The steps that move the user: focus, scrollTo, navigate, dismiss.
 
 #include "Engine.hpp"
 
@@ -52,13 +52,17 @@ std::optional<bool> runNavigationStep(const Running& s) {
 		navigate(s);
 		return true;
 	}
+	if(s.step.contains("dismiss")) { // closes the open overlays, e.g. a menu once an item is chosen
+		if(boolean(s.value("dismiss"), s.where + ".dismiss")) s.steps.engine().events.dismissAll();
+		return true;
+	}
 	return std::nullopt;
 }
 
 } // namespace
 
 void registerNavigationSteps(StepRegistry& registry) {
-	registry.add({"navigation", {{"focus", {}}, {"scrollTo", {}}, {"navigate", {}}}, runNavigationStep});
+	registry.add({"navigation", {{"focus", {}}, {"scrollTo", {}}, {"navigate", {}}, {"dismiss", {}}}, runNavigationStep});
 }
 
 } // namespace affresco::format

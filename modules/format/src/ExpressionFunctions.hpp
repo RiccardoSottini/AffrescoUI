@@ -137,6 +137,8 @@ struct Function {
 [[nodiscard]] std::span<const Function> itemFunctions();
 /// @copydoc logicFunctions
 [[nodiscard]] std::span<const Function> timeFunctions();
+/// @copydoc logicFunctions
+[[nodiscard]] std::span<const Function> fuzzyFunctions();
 
 /* Helpers the tables share */
 

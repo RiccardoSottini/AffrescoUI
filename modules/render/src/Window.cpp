@@ -28,18 +28,31 @@ constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
 
 } // namespace
 
+platform::NativeWindow& platform::NativeWindow::of(Window& window) { return *window.native_; }
+
 void platform::NativeWindow::resized(Window& window, int width, int height) { window.resized(width, height); }
 
 void platform::NativeWindow::refresh(Window& window) { window.refresh(); }
 
 void platform::NativeWindow::framebufferResized(Window& window) { window.requestFrame(); }
 
+void platform::NativeWindow::displayChanged(Window& window, float scale) {
+	window.routeDisplay({scale, window.colorScheme(), window.reducedMotion()});
+}
+
+void platform::NativeWindow::dropped(Window& window, const DropEvent& event) { window.routeDrop(event); }
+
+void platform::NativeWindow::chosen(Window& window, std::function<void()> run) { window.runChosen(std::move(run)); }
+
 Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<detail::Renderer> renderer,
                const Clock& clock, std::string title, int width, int height)
     : native_(std::move(native)), renderer_(std::move(renderer)), clock_(&clock), title_(std::move(title)),
       width_(width), height_(height) {
 	root_.attachTo(this);
-	if(native_) native_->connect(*this);
+	if(native_) {
+		scale_ = native_->contentScale();
+		native_->connect(*this);
+	}
 }
 
 Window::~Window() {
@@ -84,6 +97,14 @@ void Window::setVisible(bool visible) {
 
 bool Window::shouldClose() const { return native_ && native_->shouldClose(); }
 
+/* Desktop */
+
+bool Window::setMenuBar(std::vector<MenuItem> menus) {
+	menus_ = std::move(menus);
+	nativeMenuBar_ = native_ && native_->setMenuBar(menus_);
+	return nativeMenuBar_;
+}
+
 void Window::resized(int width, int height) {
 	width_ = width;
 	height_ = height;
@@ -103,8 +124,15 @@ void Window::setFocus(Panel* panel) {
 	if(panel == focused_) return;
 
 	Panel* previous = std::exchange(focused_, panel);
+	focusVisible_ = keyInput_;
+	if(focusRing_) requestLayout();
 	if(previous) previous->focusEvent(false);
 	if(focused_) focused_->focusEvent(true);
+}
+
+void Window::setFocusRing(std::optional<FocusRing> ring) {
+	focusRing_ = ring;
+	requestLayout();
 }
 
 std::string Window::clipboardText() const { return native_ ? native_->clipboardText() : clipboard_; }
@@ -158,9 +186,35 @@ void Window::updateLayout() {
 		if(top + size.y > height) top = cursor_.y - size.y - 8.0f;
 		tooltip_->layout(Rect{left, top, left + size.x, top + size.y}, area, Vec2{width, height}, true);
 	}
+	layoutFocusRing();
 	layingOut_ = false;
 
 	layoutDirty_ = false;
+}
+
+void Window::layoutFocusRing() {
+	drawn_ = overlays_;
+	if(!focusRing_ || !focusVisible() || !focused_->isShown()) return;
+	if(!ring_) {
+		ring_ = std::make_unique<Panel>();
+		ring_->attachTo(this);
+		ring_->setColor(colors::transparent);
+	}
+	const FocusRing& ring = *focusRing_;
+	const float out = ring.offset + ring.width;
+	const auto around = [out](float radius) { return radius > 0.0f ? radius + out : 0.0f; };
+	const CornerRadii& radii = focused_->cornerRadii();
+	ring_->setBorder(ring.width, ring.color);
+	ring_->setCornerRadii(
+	    {around(radii.topLeft), around(radii.topRight), around(radii.bottomRight), around(radii.bottomLeft)});
+
+	const Rect& f = focused_->frame_;
+	const Rect box{f.left - out, f.top - out, f.right + out, f.bottom + out};
+	ring_->width_ = px(box.right - box.left);
+	ring_->height_ = px(box.bottom - box.top);
+	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
+	ring_->layout(box, Rect{0.0f, 0.0f, width, height}, Vec2{width, height}, true);
+	drawn_.push_back(ring_.get());
 }
 
 // Pre-order, after the tree: an overlay's own overlays come after it, so they are drawn on top of it
@@ -222,7 +276,7 @@ void Window::layoutOverlay(Panel& overlay, const Panel& parent) {
 
 detail::Frame Window::frame() noexcept {
 	return {
-	    root_,   overlays_, tooltipShown_ ? tooltip_.get() : nullptr, width_, height_, layoutPass_, paintGeneration_,
+	    root_,   drawn_,    tooltipShown_ ? tooltip_.get() : nullptr, width_, height_, layoutPass_, paintGeneration_,
 	    damage_, damageAll_};
 }
 
@@ -345,6 +399,7 @@ bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
 
 void Window::routeKey(const KeyEvent& event) {
 	++routing_;
+	keyInput_ = true;
 	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
 	onKey(event);
 
@@ -383,6 +438,7 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 			tooltipShown_ = false;
 			requestLayout();
 		}
+		keyInput_ = false;
 		if(event.button == MouseButton::Left) setFocus(hit);
 		if(!grabbed_) grabbed_ = hit;
 	}
@@ -418,16 +474,50 @@ void Window::routeCursorEnter(bool entered) {
 	onCursorEnter(CursorEnterEvent{entered});
 }
 
+void Window::routeDrop(const DropEvent& event) {
+	++routing_;
+	cursor_ = event.position;
+	setHovered(panelAt(event.position));
+	onDrop(event);
+
+	if(--routing_ == 0) runDeferred();
+}
+
+void Window::routeDisplay(const DisplayEvent& event) {
+	if(event.scale == scale_ && event.colorScheme == colorScheme_ && event.reducedMotion == reducedMotion_) return;
+	if(event.scale != scale_) {
+		scale_ = event.scale;
+		damageAll_ = true; // the glyphs and edges land on other pixels
+		requestFrame();
+	}
+	colorScheme_ = event.colorScheme;
+	reducedMotion_ = event.reducedMotion;
+	onDisplay(event);
+	runDeferred();
+}
+
+void Window::runChosen(std::function<void()> run) {
+	if(!run) return;
+	++routing_;
+	run();
+
+	if(--routing_ == 0) runDeferred();
+}
+
 void Window::forget(const Panel& panel) noexcept {
 	++treeGeneration_; // an anchor may have found it
 	if(panel.geometry_ && panel.geometry_->recorded) { // where it drew is damage
 		detail::addTo(damage_, detail::reachOf(panel.geometry_->key.bounds, panel.geometry_->record));
 		requestFrame();
 	}
-	if(focused_ == &panel) focused_ = nullptr;
+	if(focused_ == &panel) {
+		focused_ = nullptr;
+		if(focusRing_) requestLayout();
+	}
 	if(hovered_ == &panel) hovered_ = nullptr;
 	if(grabbed_ == &panel) grabbed_ = nullptr;
 	std::erase(overlays_, &panel);
+	std::erase(drawn_, &panel);
 }
 
 // Like CSS :hover, a panel counts as hovered while the pointer is over it or over any of its descendants

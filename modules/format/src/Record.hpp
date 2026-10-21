@@ -53,6 +53,7 @@ struct Record {
 	json handlers = json::object();       ///< "onClick" and the others: an action name or steps each.
 	json keys;                            ///< Shortcuts: "cmd+k" -> handler (null: none).
 	json drag;                            ///< "drag", unevaluated (data is read when a drag starts).
+	json context;                         ///< "context", unevaluated (read with the `context` variable).
 	json key;                             ///< A keyed repeat's key for this item (null: none).
 	std::optional<std::string> bind;      ///< State path the value mirrors.
 	std::optional<std::string> caret;     ///< State path a text editor writes its caret to.
@@ -74,6 +75,12 @@ struct Record {
 	std::optional<std::string> overlayOpen; ///< An overlay's "open" state path.
 	bool dismissOutside = false;            ///< The overlay closes on a click outside it (and on Escape).
 	std::string overlayAnchor;              ///< The overlay's anchor id (empty: the parent).
+	bool modal = false;                     ///< The overlay traps the focus while it is open ("modal").
+	bool modalShown = false;                ///< Events::modal() was told it opened (kept across updates).
+	bool focusable = false;                 ///< Tab, Enter and Space reach it ("focusable").
+	int tabIndex = 0;                       ///< "tabIndex": positive ones first, -1 leaves the tab order.
+	std::string arrows;                     ///< "arrows": "vertical", "horizontal" or "both" move the focus inside.
+	char mnemonic = 0;                      ///< "mnemonic": its letter, lowercase (0: none).
 
 	/// @brief The connections the events subsystem made to the panel's signals, which ~Runtime takes back (0: none).
 	struct Hooks {

@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <format>
 
 namespace affresco::format {
@@ -26,7 +27,7 @@ constexpr std::array<std::string_view, 3> valueKeys = {"text", "checked", "value
 /// @return true if it reads it.
 bool behaviourSlot(Slot slot, std::string_view key) noexcept {
 	return slot == Slot::Handler || slot == Slot::Bind || slot == Slot::Caret || slot == Slot::Keys ||
-	       slot == Slot::Drag || slot == Slot::Every || key == "autofocus" || key == "locked";
+	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context || key == "autofocus" || key == "locked";
 }
 
 } // namespace
@@ -89,6 +90,7 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 	record.handlers = json::object();
 	record.keys = nullptr;
 	record.drag = nullptr;
+	record.context = nullptr;
 	record.bind.reset();
 	record.caret.reset();
 	Behaviour behaviour;
@@ -135,9 +137,11 @@ void Properties::readBehaviourKey(const Panel& panel, Record& record, std::strin
 		record.caret = statePath(record, value, at);
 	} else if(slot == Slot::Keys) {
 		record.keys = json::object();
-		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeShortcut(name)] = handler;
+		for(const auto& [name, handler] : object(value, at).items()) record.keys[normalizeChord(name)] = handler;
 	} else if(slot == Slot::Drag) {
 		record.drag = object(value, at);
+	} else if(slot == Slot::Context) {
+		record.context = object(value, at);
 	} else if(slot == Slot::Every) {
 		behaviour.everyMs = everyPeriod(record, value, at);
 	} else if(key == "autofocus") {
@@ -251,6 +255,9 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setGrow(0.0f);
 	resetLayoutItem(panel);
 	panel.setTooltip({});
+	panel.setAccessibleRole({});
+	panel.setAccessibleLabel({});
+	panel.setAccessibleDescription({});
 	panel.clearOverlay();
 
 	if(auto* label = dynamic_cast<Label*>(&panel)) {
@@ -281,6 +288,11 @@ void Properties::reset(Panel& panel, Record& record) {
 	record.overlayOpen.reset();
 	record.dismissOutside = false;
 	record.overlayAnchor.clear();
+	record.modal = false;
+	record.focusable = false;
+	record.tabIndex = 0;
+	record.arrows.clear();
+	record.mnemonic = 0;
 }
 
 void Properties::applyVisual(Panel& panel, Record& record, const Visual& properties, bool isRoot) {
@@ -310,6 +322,8 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	applySets(panel, record, look);
 	transitionLook(panel, record, look, shown);
 	finish(panel, look);
+	if(panel.accessibleRole().empty() && record.focusable && record.handlers.contains("onClick"))
+		panel.setAccessibleRole("button"); // what it is to a person, and to scenarios looking for it by role
 }
 
 void Properties::finish(Panel& panel, const Look& look) {
@@ -361,6 +375,15 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 	case Slot::Tooltip:
 		panel.setTooltip(text(value));
 		break;
+	case Slot::Role:
+		panel.setAccessibleRole(text(value));
+		break;
+	case Slot::Label:
+		panel.setAccessibleLabel(text(value));
+		break;
+	case Slot::Description:
+		panel.setAccessibleDescription(text(value));
+		break;
 	case Slot::Disabled:
 		record.disabled = boolean(value, at);
 		break;
@@ -373,6 +396,23 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 	case Slot::Overlay:
 		overlay(panel, record, value, at, look);
 		break;
+	case Slot::Focusable:
+		record.focusable = boolean(value, at);
+		break;
+	case Slot::TabIndex:
+		record.tabIndex = static_cast<int>(std::max(number(value, at), -1.0f));
+		break;
+	case Slot::Arrows:
+		record.arrows = string(value, at);
+		if(record.arrows != "vertical" && record.arrows != "horizontal" && record.arrows != "both")
+			fail(at, R"(expected "vertical", "horizontal" or "both")");
+		break;
+	case Slot::Mnemonic: {
+		const std::string letter = text(value);
+		record.mnemonic = letter.empty() ? '\0'
+		                                 : static_cast<char>(std::tolower(static_cast<unsigned char>(letter.front())));
+		break;
+	}
 	default:
 		return false;
 	}
@@ -429,8 +469,8 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 void Properties::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
 	const json& overlay = object(value, at);
 	for(const auto& [k, v] : overlay.items())
-		if(k != "anchor" && k != "placement" && k != "open" && k != "dismiss")
-			fail(at + "." + k, "unknown property (expected anchor, placement, open or dismiss)");
+		if(k != "anchor" && k != "placement" && k != "open" && k != "dismiss" && k != "modal")
+			fail(at + "." + k, "unknown property (expected anchor, placement, open, dismiss or modal)");
 	std::string anchor = overlay.contains("anchor") ? string(overlay["anchor"], at + ".anchor") : "";
 	if(anchor.starts_with('#')) anchor.erase(0, 1);
 	record.overlayAnchor = anchor;
@@ -450,6 +490,12 @@ void Properties::overlay(Panel& panel, Record& record, const json& value, const 
 		if(string(overlay["dismiss"], at + ".dismiss") != "outside") fail(at + ".dismiss", "expected \"outside\"");
 		if(!record.overlayOpen) fail(at + ".dismiss", "needs \"open\" to be a state path, e.g. \"state.menuOpen\"");
 		record.dismissOutside = true;
+	}
+	// A modal overlay traps the focus while it is open, and gives it back when it closes
+	record.modal = overlay.contains("modal") && boolean(overlay["modal"], at + ".modal");
+	if((record.modal && look.overlayOpen.value_or(true)) != record.modalShown) {
+		record.modalShown = !record.modalShown;
+		engine_.events.modal(panel, record.modalShown);
 	}
 }
 

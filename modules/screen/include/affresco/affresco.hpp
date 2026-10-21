@@ -12,6 +12,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 
+#include "affresco/render/Accessibility.hpp"
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Controls.hpp"

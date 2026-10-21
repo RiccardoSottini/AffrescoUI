@@ -37,7 +37,7 @@ void animate(const Running& s) {
 	Engine& engine = s.steps.engine();
 	const json* current = findInState(engine.versions.state(), pointer);
 	const double from = current && current->is_number() ? current->get<double>() : 0.0;
-	if(!engine.window || ms <= 0.0) {
+	if(!engine.window || ms <= 0.0 || engine.window->reducedMotion()) {
 		statePlace(engine.versions.state(), pointer, s.where) = to;
 		engine.document.markStateChanged(pointer);
 		return;

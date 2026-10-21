@@ -2,8 +2,11 @@
 /// @brief The checker's walk of nodes (components, styles, repeat, variables, properties, references) and of
 /// behaviour (handlers, steps, actions run with their callers' variables).
 
+#include "BuiltInComponents.hpp"
 #include "CheckerImpl.hpp"
+#include "Contributions.hpp"
 #include "Models.hpp"
+#include "Shortcuts.hpp"
 
 #include <format>
 
@@ -23,7 +26,8 @@ constexpr auto stepNames = std::to_array<std::string_view>(
     {"set",      "push",    "remove",   "toggle",  "increment", "if",         "forEach", "while",
 	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
 	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
-	 "navigate", "after",   "debounce", "animate", "copy",      "log",        "stop",    "note"});
+	 "navigate", "dismiss", "after",    "debounce", "animate",  "copy",       "log",     "stop",
+	 "note"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -211,6 +215,7 @@ bool Checker::expandUse(Prepared& node, Slot& slot) {
 
 const json* Checker::componentNamed(const std::string& name, const std::string& place) {
 	const json* component = definition("components", name);
+	if(!component) component = builtInComponent(name); // the document's own win
 	const bool valid =
 	    component && component->is_object() && component->contains("node") && (*component)["node"].is_object();
 	if(!valid) {
@@ -338,8 +343,7 @@ bool Checker::walkBehaviour(const std::string& key, const json& value, const Sco
 	if(handlerKey(key)) {
 		walkHandler(value, scope, place);
 	} else if(key == "keys" && value.is_object()) {
-		for(const auto& [shortcut, handler] : value.items())
-			walkHandler(handler, scope, std::format("{}.{}", place, shortcut));
+		walkKeys(value, scope, place);
 	} else if(key == "every" && value.is_object()) {
 		if(value.contains("ms")) read(value["ms"], scope, place + ".ms");
 		if(value.contains("do")) walkHandler(value["do"], scope, place + ".do");
@@ -421,6 +425,42 @@ void Checker::walkHandler(const json& handler, const Scope& scope, const std::st
 	else walkSteps(handler, scope, place);
 }
 
+void Checker::walkKeys(const json& keys, const Scope& scope, const std::string& place) {
+	std::set<std::pair<std::string, std::string>> seen; // (key, "when") pairs
+	std::set<std::string> firstPresses;                  // the first press of each chord
+	for(const auto& [written, handler] : keys.items()) {
+		const std::string key = normalizeChord(written);
+		const std::string at = std::format("{}.{}", place, written);
+		if(const auto space = key.find(' '); space != std::string::npos) firstPresses.insert(key.substr(0, space));
+		if(!isBinding(handler) && !isBindingList(handler)) {
+			if(!seen.emplace(key, "").second) report(at, "the key '" + key + "' is bound twice in this scope");
+			walkHandler(handler, scope, at);
+			continue;
+		}
+		const json bindings = isBindingList(handler) ? handler : json::array({handler});
+		for(std::size_t i = 0; i < bindings.size(); ++i) {
+			const json& binding = bindings[i];
+			const std::string here = isBindingList(handler) ? at + "[" + std::to_string(i) + "]" : at;
+			const std::string when = binding.contains("when") ? binding["when"].dump() : "";
+			if(!seen.emplace(key, when).second)
+				report(here, "the key '" + key + "' is bound twice in this scope with the same \"when\"",
+				       "give one of them a different \"when\", or remove it");
+			if(binding.contains("when")) read(binding["when"], scope, here + ".when");
+			Scope inner{&scope, nullptr, json(), {}, {}};
+			if(binding.contains("with") && binding["with"].is_object())
+				for(const auto& [name, value] : binding["with"].items()) {
+					read(value, scope, here + ".with." + name);
+					inner.vars[name] = anything;
+				}
+			walkHandler(binding["do"], inner, here + ".do");
+		}
+	}
+	for(const auto& [key, when] : seen)
+		if(firstPresses.contains(key))
+			report(std::format("{}.{}", place, key), "the key '" + key + "' is shadowed by a chord that starts with it",
+			       "a press of it waits for the chord's next press: bind another key");
+}
+
 void Checker::walkSteps(const json& steps, const Scope& scope, const std::string& place) {
 	if(steps.is_array()) {
 		for(std::size_t i = 0; i < steps.size(); ++i) walkStep(steps[i], scope, place + "[" + std::to_string(i) + "]");
@@ -437,7 +477,7 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 	if(!kind) {
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
-		       "patch, focus, scrollTo, navigate, after, debounce, animate, copy, log, stop, note, accept, reject, "
+		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, reject, "
 		       "preview, endPreview, restore, revert or undo");
 		return;
 	}
@@ -492,6 +532,7 @@ void Checker::walkRun(const json& step, const Scope& scope, const std::string& p
 	if(const auto with = step.find("with"); with != step.end() && with->is_object())
 		for(const auto& [name, value] : with->items())
 			layer.vars[name] = shapeOf(value, scope, std::format("{}.with.{}", place, name));
+	else if(with != step.end()) read(*with, scope, place + ".with"); // computed whole: its names aren't known
 	const json& name = step["run"];
 	if(name.is_string() && !isDynamic(name)) callAction(name.get<std::string>(), layer, place + ".run");
 	else read(name, scope, place + ".run"); // a name an expression computes: not checked
@@ -515,7 +556,12 @@ void Checker::callAction(const std::string& name, const Scope& scope, const std:
 		if(actionDepth_ >= maxActionDepth || !walked_.insert("action " + name + "|" + variableNames(scope)).second)
 			return;
 		++actionDepth_;
-		walkSteps(*steps, scope, "actions." + name);
+		if(isCommand(*steps)) { // a command: its "enablement", then its "do"
+			if(steps->contains("enablement")) read((*steps)["enablement"], Scope(), "actions." + name + ".enablement");
+			if(steps->contains("do")) walkHandler((*steps)["do"], scope, "actions." + name + ".do");
+		} else {
+			walkSteps(*steps, scope, "actions." + name);
+		}
 		--actionDepth_;
 		return;
 	}

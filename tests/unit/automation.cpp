@@ -103,7 +103,9 @@ TEST_CASE("automation: a scenarios file that is wrong says where") {
 	CHECK(errorOf(oneStep(R"({"clik": "#a"})")).starts_with("AffrescoUI scenarios: place.scenarios.json: "
 	                                                        "scenarios[0].steps[0]: unknown step"));
 	CHECK(errorOf(oneStep(R"({"click": "#a", "type": "x"})")).contains("one step does one thing: 'click' and 'type'"));
-	CHECK(errorOf(oneStep(R"({"click": "a"})")).contains("steps[0].click: expected [x, y] in window units, or \"#id\""));
+	CHECK(errorOf(oneStep(R"({"click": "a"})")).contains("steps[0].click: expected [x, y] in window units, \"#id\", or"));
+	CHECK(errorOf(oneStep(R"({"click": {"name": "Save"}})")).contains("steps[0].click.role: expected a role"));
+	CHECK(errorOf(oneStep(R"({"click": {"role": "button", "nme": "Save"}})")).contains("click.nme: unknown key here"));
 	CHECK(errorOf(oneStep(R"({"key": "cmd+nope"})")).contains("steps[0].key: expected a key: enter,"));
 	CHECK(errorOf(oneStep(R"({"wait": -1})")).contains("steps[0].wait: expected milliseconds"));
 	CHECK(errorOf(oneStep(R"({"click": "#a", "colour": 1})")).contains("steps[0].colour: unknown key here"));
@@ -226,16 +228,23 @@ TEST_CASE("automation: scenarios play headless, on a clock that moves only when 
 			{ "click": "#nothing" },
 			{ "click": "#count" }
 		] },
-		{ "name": "draws", "steps": [{ "expect": { "image": "first-frame" } }] }
+		{ "name": "draws", "steps": [{ "expect": { "image": "first-frame" } }] },
+		{ "name": "by-role", "steps": [
+			{ "click": { "role": "text", "name": "0 clicks" } },
+			{ "expect": { "node": { "role": "text", "name": "1 clicks" }, "exists": true } },
+			{ "expect": { "node": "#field", "property": "role", "is": "textbox" } },
+			{ "expect": { "node": { "role": "textbox" }, "property": "focused", "is": false } },
+			{ "click": { "role": "button", "name": "Nothing" } }
+		] }
 	])"),
 	                                                  options);
 
-	REQUIRE(report.scenarios.size() == 4);
+	REQUIRE(report.scenarios.size() == 5);
 	CHECK(report.scenarios[0].passed());
 	CHECK(report.scenarios[1].passed());
 	for(const automation::Failure& failure : report.scenarios[1].failures) INFO(failure.problem);
 	CHECK(report.passed() == 2);
-	CHECK(report.failed() == 2);
+	CHECK(report.failed() == 3);
 
 	// Failed expectations are recorded and the scenario goes on; a step that can't be played ends it
 	const automation::ScenarioResult& fails = report.scenarios[2];
@@ -247,15 +256,20 @@ TEST_CASE("automation: scenarios play headless, on a clock that moves only when 
 	CHECK(fails.stepsPlayed == 2);
 
 	CHECK(report.scenarios[3].failures.at(0).problem.contains("this run has no OpenGL"));
+	const automation::ScenarioResult& byRole = report.scenarios[4];
+	REQUIRE(byRole.failures.size() == 1);
+	CHECK(byRole.failures[0].problem == "click: no shown node button 'Nothing'");
+	CHECK(byRole.stepsPlayed == 4);
 
-	CHECK(report.text() == "counter.scenarios.json: 2 passed, 2 failed\n"
+	CHECK(report.text() == "counter.scenarios.json: 2 passed, 3 failed\n"
 	                       "FAILED fails, step 1: state clicks is 0, expected 5\n"
 	                       "FAILED fails, step 2: #nothing doesn't exist, expected it to\n"
 	                       "FAILED fails, step 3: click: no shown node '#nothing'\n"
-	                       "FAILED draws: could not start: it draws pictures, and this run has no OpenGL\n");
+	                       "FAILED draws: could not start: it draws pictures, and this run has no OpenGL\n"
+	                       "FAILED by-role, step 5: click: no shown node button 'Nothing'\n");
 	const json summary = report.toJson();
 	CHECK(summary["passed"] == 2);
-	CHECK(summary["failures"].size() == 4);
+	CHECK(summary["failures"].size() == 5);
 	CHECK(summary["failures"][0] == json{{"scenario", "fails"}, {"step", 1}, {"problem", "state clicks is 0, expected 5"}});
 }
 

@@ -2,6 +2,8 @@
 /// @brief format::SectionRegistry, and the built-in sections that aren't capabilities.
 
 #include "SectionRegistry.hpp"
+#include "Contributions.hpp"
+#include "Settings.hpp"
 #include "StateTypes.hpp"
 
 #include <algorithm>
@@ -108,6 +110,8 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"watch", checkObject});
 	registry.add({"actions", checkObject});
 	registry.add({"keys", checkObject});
+	registry.add({"menus", checkMenus});       // Contributions.hpp
+	registry.add({"settings", checkSettings}); // Settings.hpp
 	registry.add({"onLoad"});
 	registry.add(channelsSection());
 	registry.add(persistSection());
