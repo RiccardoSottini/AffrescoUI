@@ -16,12 +16,14 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
 | `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
-| `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks |
+| `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture) |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
 | `Layout.hpp` | The values of flexible and grid layout: `Justify`, `CrossAlign`, `Track` (pixels, percent, fractions, content, minmax), `GridCell` |
-| `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`) |
+| `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
+| `RichText.hpp` | `TextRun` (a part of a text with its own font, colour, link or inline icon) and `TextLayout` (runs broken into lines across styles, hit testing, carets) |
 | `TextArea.hpp` | `TextArea`: a single-line input |
-| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses |
+| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`) |
+| `TextModel.hpp` | `TextModel`: UTF-8 text of any size as a piece tree, with a line index (`line`, `offsetOf`, `positionOf`), O(log n) edits, undo as operations (`beginStep`, `endStep`, `undo`) and `onChanged` (`TextChange`); `TextLines`, its lines decoded and kept for reading again |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
 | `Split.hpp` | `Split`: panes along a row or a column with sashes between them; sizes within minimums, the last pane taking the rest; dragged, reset by a double click or Home, moved by the arrow keys (PageUp and PageDown pick a sash); `onSizesChanged` |
 | `Tabs.hpp` | `Tabs`: a strip of `Tab`s, one active; it scrolls when they overflow, closes (a button or Delete), reorders by dragging (`onMoved`), shows where a tab dragged from another strip would go (`insertionAt`, `showDropIndicator`), and moves with the arrow keys, Home and End |
@@ -29,12 +31,14 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `ListView.hpp` | `ListView`: rows of a `ItemModel` (`ItemList`, or an application's own model), drawing only those in view; single or multiple selection kept by id across new items, arrow keys, pages, type-to-find, `onOpened`, a drop line or outline (`dropTargetAt`); once scrolled, the top row stays in place when items are added above it |
 | `TreeView.hpp` | `TreeView`: a `ListView` over a pre-order tree, showing only the open nodes' rows, with indent guides and chevrons; Right and Left open, close and walk; `onExpandedChanged`; the open folders of the top row pinned as it scrolls (`setStickyRows`) |
 | `TableView.hpp` | `TableView`: a `ListView` of rows of cells under a header; a header click sorts (numbers before text, stable, again to reverse: `onSortChanged`), a header edge drag resizes a column (`onColumnResized`); the order and widths given replace the user's only when they change |
-| `Font.hpp` | `Font`: a font and its fallbacks at one size; `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
+| `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
-| `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images); `CornerRadii`, `Shadow` |
-| `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG, stb_image) and `fromPixels`, within `Bitmap::Limits` |
+| `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images, meshes of anti-aliased quads with `fillMesh`); `CornerRadii`, `Shadow`, `MeshVertex` |
+| `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG with stb_image, SVG icons rasterised at twice their size) and `fromPixels`, within `Bitmap::Limits` |
 | `ImageCache.hpp` | `ImageCache`: files decoded on a worker thread and delivered on the main one (through an `Executor`), only from allowed folders, kept within a bound; images the host names; `Request`s that cancel when destroyed |
 | `ImageView.hpp` | `ImageView`: a panel showing a bitmap, a file or a named image, with `ImageFit` (`contain`, `cover`, `fill`) |
+| `VectorPath.hpp` | `VectorPath`: SVG path data parsed within `VectorPath::Limits` (or built with `moveTo`, `lineTo`, `cubicTo`, `close`) and flattened; `appendFill` (`FillRule`) and `appendStroke` (`StrokeStyle`: width, `LineJoin`, `LineCap`, dashes), the meshes that draw it, within `meshQuadLimit` and `meshWorkLimit` |
+| `PathView.hpp` | `PathView`: a panel drawing a path, filled and stroked, fitted to it through a view box with `ImageFit`; its meshes are built again only when the path, the style or the size changes |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
 
@@ -105,12 +109,27 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   that repeats their edges, larger ones get a texture of their own, and both are freed the first frame after their
   `Bitmap` is gone (a page once no image on it is alive). An image is a colour quad bound where a font's colour page
   would be, next to the batch's coverage page, so text, icons and the small images of one page draw in one call.
+- **A cached subtree is one quad.** A panel with `setCached(true)` has its subtree drawn into a texture of its own
+  (`gl/SubtreeTextures`, a framebuffer object per subtree, premultiplied RGBA, within a budget of 64 Mi texels), then
+  drawn as one colour quad of it every frame. It is drawn into it again only when a panel in it was recorded again or
+  marked, or when its area changes; a subtree over the budget is drawn directly. Textures not used in a full frame
+  are freed. Screenshots draw from scratch, without the cache.
 - **Icons are glyphs.** `Font::codepointNamed` finds a glyph by its PostScript name in the font and its fallbacks;
   with an icon font (Lucide) as a fallback of the text font, a label's icon comes from the text's own atlas.
+- **Rich text is runs.** A label's `TextRun`s each name their font (a bold, italic or larger variant), colour, link
+  or icon; `TextLayout` breaks them into lines at spaces across runs, each line as tall as its tallest font, and is
+  made again only when the runs, the font or the width change. A press on a link emits `onLink`; a selectable label
+  selects with the mouse and Cmd/Ctrl+A and copies with Cmd/Ctrl+C.
 - **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages hold at most 64 MiB in all (colour pages
   count four bytes a texel), so text naming many characters can't exhaust memory; past that, characters draw as `?`.
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
-  32 fonts and 128 MiB that nothing uses. A `TextEditor` keeps 500 undo steps, and at most 256 MiB of them.
+  32 fonts and 128 MiB that nothing uses. A `TextModel` (a `TextEditor`'s text) keeps 500 undo steps, and at most
+  256 MiB of removed text in them; invalid UTF-8 becomes U+FFFD as it comes in.
+- **Large texts:** a `TextModel` copies a file once into buffers that are only appended to, and keeps pieces of them
+  in a treap with the bytes and line feeds under each node, so an edit or finding a line costs O(log n). A 50 MB
+  text opens in under a second, an edit takes under 50 µs, and memory stays under 1.5 times the text
+  (`tests/unit/text_model.cpp`). The editor decodes and colours only the visible lines (the colouring state of each
+  line above them is kept), and past 4,096 lines estimates its width from the longest line.
 
 ## Threads
 
@@ -154,11 +173,19 @@ src/
   Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid
                            (placement in cells, track sizing): pure functions
-  Label.cpp, TextArea.cpp  text (and its icon) and a single-line input
-  Bitmap.cpp               decoding PNG and JPEG (stb_image compiled here), within limits
+  Label.cpp, TextArea.cpp  text (and its icon, runs, links and selection) and a single-line input
+  RichText.cpp             TextLayout: runs into lines, hit testing, carets
+  Bitmap.cpp               decoding PNG and JPEG (stb_image compiled here), within limits; SVG goes to vector/
   ImageCache.cpp           the worker, the deliveries, the allowed folders, the bound
   ImageView.cpp            showing an image, fitted
-  TextEditor.cpp           the multi-line editor
+  PathView.cpp             showing a vector path, fitted
+  vector/                  VectorPath.cpp (parsing, flattening), PathFill.cpp (scanline trapezoids by the fill
+                           rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
+                           MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
+                           SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
+  TextEditor.cpp           the multi-line editor: input, selection, scrolling, undo through its model
+  TextEditorPaint.cpp      its drawing: visible lines in runs of one colour, selection, gutter, caret
+  TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   Controls.cpp             Toggle and Slider
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
   RowWindow.cpp            the rows in view: fixed heights, or measured ones in a Fenwick tree
@@ -171,7 +198,8 @@ src/
                            colour pages), ShapedTextCache (LRU by text), FontData.hpp (what a Font holds),
                            Shaping.cpp (runs, HarfBuzz, clusters into advances and carets), PlainText (words laid
                            out without shaping), LookupSpans (how far GSUB and GPOS lookups reach, read with every
-                           offset checked), FontInspector.hpp (what tests see of a font)
+                           offset checked), FontInspector.hpp (what tests see of a font), PieceTree (the text model's
+                           treap of pieces over append-only buffers, with line feeds counted)
   Color.cpp                hex colours
   detail/Utf8.hpp          UTF-8 decoding, shared by the text code
   detail/Ppm.hpp           PPM screenshots
@@ -181,7 +209,8 @@ src/
   detail/ShelfPacker.hpp   shelf packing, shared by the glyph atlas and the image pages
   gl/                      everything OpenGL: Context (state, read-back, canvases, scissored regions), GlObjects
                            (RAII names), Shader, QuadRenderer (replays records into batches and draws them),
-                           ImageTextures (image pages and textures), OpenGlRenderer (the Renderer: canvases with
+                           QuadRendererCache (cached subtrees), SubtreeTextures (their textures and
+                           framebuffers), ImageTextures (image pages and textures), OpenGlRenderer (the Renderer: canvases with
                            their damage, a full frame as the fallback)
 CMakeLists.txt             the affrescoui_render target and its sources
 ```

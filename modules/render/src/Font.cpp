@@ -142,14 +142,15 @@ Font::Font() : data_(std::make_unique<Data>()) {}
 Font::~Font() = default;
 
 std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float pixelHeight,
-                                       std::span<const std::filesystem::path> fallbacks) {
+                                       std::span<const std::filesystem::path> fallbacks, FontStyle style) {
 	detail::FontFiles files; // the faces keep their files; nothing else shares them
-	return load(path, pixelHeight, fallbacks, {}, files);
+	return load(path, pixelHeight, fallbacks, {}, files, style);
 }
 
 std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float pixelHeight,
                                        std::span<const std::filesystem::path> fallbacks,
-                                       std::span<const std::filesystem::path> optional, detail::FontFiles& files) {
+                                       std::span<const std::filesystem::path> optional, detail::FontFiles& files,
+                                       FontStyle style) {
 	static std::atomic<std::uint64_t> nextId = 1;
 
 	std::shared_ptr<Font> font(new Font());
@@ -157,13 +158,13 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
 	data.library = detail::startFreeType();
 	data.faces.reserve(1 + fallbacks.size() + optional.size());
 	using SizeOf = detail::FontFace::SizeOf;
-	data.faces.emplace_back(data.library.get(), files.read(path), pixelHeight, SizeOf::height, path);
+	data.faces.emplace_back(data.library.get(), files.read(path), pixelHeight, SizeOf::height, path, style);
 	const float em = data.faces.front().emPixels(); // fallbacks get the font's em, so their text looks as large
 	for(const std::filesystem::path& fallback : fallbacks)
-		data.faces.emplace_back(data.library.get(), files.read(fallback), em, SizeOf::em, fallback);
+		data.faces.emplace_back(data.library.get(), files.read(fallback), em, SizeOf::em, fallback, style);
 	for(const std::filesystem::path& extra : optional) {
 		try {
-			data.faces.emplace_back(data.library.get(), files.read(extra), em, SizeOf::em, extra);
+			data.faces.emplace_back(data.library.get(), files.read(extra), em, SizeOf::em, extra, style);
 		} catch(const std::runtime_error& error) {
 			log(LogLevel::Warning, std::string("AffrescoUI: skipping a system font: ") + error.what());
 		}
@@ -173,6 +174,7 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
 
 	font->id_ = nextId++;
 	font->pixelHeight_ = pixelHeight;
+	font->style_ = style;
 	font->ascent_ = data.faces.front().ascent();
 	font->lineHeight_ = data.faces.front().lineHeight();
 

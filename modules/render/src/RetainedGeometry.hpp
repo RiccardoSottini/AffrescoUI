@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace affresco {
@@ -97,11 +98,14 @@ struct PaintKey {
 
 /// @brief What a panel keeps of its drawing, owned by the panel; the renderer fills it.
 struct PanelGeometry {
-	PaintRecord record;         ///< What it drew.
-	PaintKey key;               ///< What that depended on.
-	bool recorded = false;      ///< record and key hold a drawing (the panel was shown when last refreshed).
-	bool subtreeShapes = false; ///< It or a descendant (not an overlay) is shown and has shapes.
-	bool subtreeColor = false;  ///< It or a descendant (not an overlay) is shown and uses colour pages.
+	PaintRecord record;               ///< What it drew.
+	PaintKey key;                     ///< What that depended on.
+	bool recorded = false;            ///< record and key hold a drawing (the panel was shown when last refreshed).
+	bool subtreeShapes = false;       ///< It or a descendant (not an overlay) is shown and has shapes.
+	bool subtreeColor = false;        ///< It or a descendant (not an overlay) is shown and uses colour pages.
+	bool cached = false;              ///< It is shown and cached (Panel::setCached()): drawn as one colour quad.
+	std::uint64_t id = 0;             ///< Unique among geometries: names its subtree's texture.
+	std::uint64_t subtreeVersion = 0; ///< For a cached panel: changes when its subtree's drawing may have.
 };
 
 /// @brief Whether two rectangles overlap (touching edges don't).
@@ -119,6 +123,15 @@ constexpr bool overlaps(const Rect& a, const Rect& b) noexcept {
 constexpr Rect unite(const Rect& a, const Rect& b) noexcept {
 	return {a.left < b.left ? a.left : b.left, a.top < b.top ? a.top : b.top, a.right > b.right ? a.right : b.right,
 	        a.bottom > b.bottom ? a.bottom : b.bottom};
+}
+
+/// @brief The smallest rectangle holding a quad's vertices (a mesh's quads are any convex shape, not rectangles).
+/// @param corners Its vertices.
+/// @return Their bounds.
+constexpr Rect boundsOf(std::span<const Vertex> corners) noexcept {
+	Rect bounds{corners[0].x, corners[0].y, corners[0].x, corners[0].y};
+	for(const Vertex& corner : corners.subspan(1)) bounds = unite(bounds, {corner.x, corner.y, corner.x, corner.y});
+	return bounds;
 }
 
 /// @brief Adds a rectangle to a damage region, kept as one rectangle.

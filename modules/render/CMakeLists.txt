@@ -7,6 +7,9 @@ affrescoui_module(render
 	src/ImageCache.cpp
 	src/ImageView.cpp
 	src/TextEditor.cpp
+	src/TextEditorPaint.cpp
+	src/TextModel.cpp
+	src/text/PieceTree.cpp
 	src/Color.cpp
 	src/Controls.cpp
 	src/Split.cpp
@@ -23,6 +26,7 @@ affrescoui_module(render
 	src/text/PlainText.cpp
 	src/text/Shaping.cpp
 	src/Label.cpp
+	src/RichText.cpp
 	src/Panel.cpp
 	src/Stack.cpp
 	src/layout/Flex.cpp
@@ -32,11 +36,21 @@ affrescoui_module(render
 	src/Headless.cpp
 	src/GeometryCache.cpp
 	src/PaintRecorder.cpp
+	src/PathView.cpp
+	src/vector/VectorPath.cpp
+	src/vector/PathFill.cpp
+	src/vector/PathStroke.cpp
+	src/vector/Svg.cpp
+	src/vector/SvgStyle.cpp
+	src/vector/SvgXml.cpp
+	src/vector/MeshRasterizer.cpp
 	src/platform/GlfwPlatform.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp
 	src/gl/QuadRenderer.cpp
+	src/gl/QuadRendererCache.cpp
+	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
 	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include

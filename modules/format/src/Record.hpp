@@ -81,7 +81,8 @@ struct Record {
 		Connection value = 0; ///< A widget's value (a text area's text, or ValueHooks::listen()).
 		Connection caret = 0; ///< A text editor's caret.
 		EventConnections events{}; ///< A widget's own events (WidgetEvents::listen()).
-	} hooks;                 ///< See Hooks.
+		Connection link = 0;       ///< A label's links.
+	} hooks;                       ///< See Hooks.
 };
 
 /// @brief A child to build.
@@ -100,8 +101,8 @@ inline constexpr std::size_t maxComputedDepth = 32;
 /// Panels built inside each other before giving up. A document alone stays far below it (maxNesting levels of JSON
 /// hold half as many nodes); a component or a screen that holds itself (an outlet) would recurse without end.
 inline constexpr int maxNodeDepth = maxNesting;
-inline constexpr double frameMs = 16.0;                 ///< Animation frame period.
-inline constexpr double doubleClickSeconds = 0.4;       ///< Two clicks closer than this are a double click.
-inline constexpr float dragThreshold = 4.0f;            ///< Pixels the pointer moves before a press becomes a drag.
+inline constexpr double frameMs = 16.0;           ///< Animation frame period.
+inline constexpr double doubleClickSeconds = 0.4; ///< Two clicks closer than this are a double click.
+inline constexpr float dragThreshold = 4.0f;      ///< Pixels the pointer moves before a press becomes a drag.
 
 } // namespace affresco::format

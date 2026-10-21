@@ -39,7 +39,20 @@ Label::Label(std::string_view text) : Label() { text_ = detail::fromUtf8(text); 
 
 void Label::setText(std::string_view utf8) {
 	text_ = detail::fromUtf8(utf8);
+	runs_.clear();
 	shownFont_ = 0;
+	++textVersion_;
+	anchor_ = caret_ = 0;
+	invalidate();
+}
+
+void Label::setRuns(std::vector<TextRun> runs) {
+	runs_ = std::move(runs);
+	text_.clear();
+	for(const TextRun& run : runs_)
+		if(run.icon.empty()) text_ += run.text;
+	++textVersion_;
+	anchor_ = caret_ = 0;
 	invalidate();
 }
 
@@ -47,6 +60,7 @@ void Label::setIcon(std::string name) {
 	if(name == icon_) return;
 	icon_ = std::move(name);
 	shownFont_ = 0;
+	++textVersion_;
 	invalidate();
 }
 
@@ -102,6 +116,14 @@ void Label::prepareLayout() {
 	updateShown();
 	const Font* f = font();
 	if(!fitToText_ || !f) return;
+	if(!runs_.empty()) {
+		const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
+		layout_.layOut(runs_, *f, maxTextWidth, 0.0f, Align::Start);
+		laidOut_ = {}; // made for fitting: textLayout() makes it again in the fitted box
+		setSize(px(std::ceil(layout_.width()) + 2.0f * padding_),
+		        px(std::max(layout_.height(), f->lineHeight()) + 2.0f * padding_));
+		return;
+	}
 
 	const float maxTextWidth = wrap_ ? fitMaxWidth_ - 2.0f * padding_ : std::numeric_limits<float>::infinity();
 	// The text changes only through invalidate(): until then, comparing it with the fitted one would find it the same
@@ -125,7 +147,12 @@ void Label::paint(Painter& painter) const {
 	Panel::paint(painter);
 
 	const Font* f = font();
-	if(!f || shown().empty()) return;
+	if(!f || (shown().empty() && runs_.empty())) return;
+	if(!runs_.empty() || anchor_ != caret_) {
+		const Vec2 origin = blockOrigin();
+		if(anchor_ != caret_) paintSelection(painter, origin);
+		if(!runs_.empty()) return paintRuns(painter, origin);
+	}
 
 	const Rect content = contentRect();
 	// Most labels are one line: then there is nothing to wrap, and no list of lines to make
@@ -149,6 +176,140 @@ void Label::paintLine(Painter& painter, const Font& font, std::u32string_view li
 	const float left = aligned(horizontal_, content.left, content.width(), font.measure(line));
 	// Whole pixels keep glyphs sharp: atlas texels map 1:1 onto screen pixels
 	painter.drawText(font, line, {std::round(left), std::round(top + font.ascent())}, textColor_);
+}
+
+/* Rich text and selection */
+
+namespace {
+
+/// @brief Whether a code point is in a Private Use Area, where icon fonts put their glyphs.
+/// @param codepoint The code point.
+/// @return true for U+E000 to U+F8FF and planes 15 and 16.
+bool privateUse(char32_t codepoint) noexcept {
+	return (codepoint >= 0xE000 && codepoint <= 0xF8FF) || codepoint >= 0xF0000;
+}
+
+} // namespace
+
+void Label::setSelectable(bool selectable) {
+	if(selectable == selectable_) return;
+	selectable_ = selectable;
+	if(cursor() == (selectable ? Cursor::Arrow : Cursor::IBeam)) setCursor(selectable ? Cursor::IBeam : Cursor::Arrow);
+	if(!selectable) select(0, 0);
+}
+
+void Label::select(std::size_t from, std::size_t to) {
+	const std::size_t length = textLayout().text().size();
+	anchor_ = std::min(from, length);
+	caret_ = std::min(to, length);
+	invalidatePaint();
+}
+
+std::string Label::selectedText() const {
+	const auto [from, to] = selection();
+	const std::u32string& text = textLayout().text();
+	std::u32string picked;
+	for(std::size_t index = from; index < std::min(to, text.size()); ++index)
+		if(!privateUse(text[index])) picked += text[index];
+	return detail::toUtf8(picked);
+}
+
+void Label::setSelectionColor(Color color) { setLook(selectionColor_, color); }
+
+const TextLayout& Label::textLayout() const {
+	const Font* f = font();
+	if(!f) return layout_;
+	const Rect content = contentRect();
+	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
+	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal_, shown().size()};
+	if(key == laidOut_) return layout_;
+	if(runs_.empty()) {
+		layout_.layOutPlain(shown(), *f, maxWidth, content.width(), horizontal_);
+	} else {
+		layout_.layOut(runs_, *f, maxWidth, content.width(), horizontal_);
+	}
+	laidOut_ = key;
+	return layout_;
+}
+
+Vec2 Label::blockOrigin() const {
+	const Rect content = contentRect();
+	return {content.left, aligned(vertical_, content.top, content.height(), textLayout().height())};
+}
+
+void Label::paintRuns(Painter& painter, Vec2 origin) const {
+	const TextLayout& laid = textLayout();
+	const std::u32string_view text = laid.text();
+	for(const TextLayout::Line& line : laid.lines()) {
+		// Whole pixels keep glyphs sharp, as in paintLine()
+		const float baseline = std::round(origin.y + line.top + line.ascent);
+		for(std::size_t index = line.firstPiece; index < line.endPiece; ++index) {
+			const TextLayout::Piece& piece = laid.pieces()[index];
+			const TextRun& run = runs_[piece.run];
+			const Color color = run.color.value_or(textColor_);
+			const float left = std::round(origin.x + piece.x);
+			painter.drawText(*piece.font, text.substr(piece.begin, piece.end - piece.begin), {left, baseline}, color);
+			if(!run.link.empty()) painter.fillRect({left, baseline + 1.0f, left + piece.width, baseline + 2.0f}, color);
+		}
+	}
+}
+
+void Label::paintSelection(Painter& painter, Vec2 origin) const {
+	const TextLayout& laid = textLayout();
+	const auto [from, to] = selection();
+	for(const TextLayout::Line& line : laid.lines()) {
+		if(to <= line.begin || from >= line.end) continue;
+		const float left = laid.caretX(line, std::max(from, line.begin));
+		const float right = laid.caretX(line, std::min(to, line.end));
+		painter.fillRect({origin.x + std::min(left, right), origin.y + line.top, origin.x + std::max(left, right),
+		                  origin.y + line.top + line.height},
+		                 selectionColor_);
+	}
+}
+
+void Label::keyEvent(const KeyEvent& event) {
+	Panel::keyEvent(event);
+	if(!selectable_ || event.action == Action::Release || !(event.mods.super() || event.mods.control())) return;
+	if(event.key == Key::C && anchor_ != caret_ && window()) window()->setClipboardText(selectedText());
+	if(event.key == Key::A) select(0, textLayout().text().size());
+}
+
+void Label::mouseButtonEvent(const MouseButtonEvent& event) {
+	Panel::mouseButtonEvent(event);
+	if(event.button != MouseButton::Left) return;
+	if(event.action == Action::Release) {
+		selecting_ = false;
+		return;
+	}
+	const TextLayout& laid = textLayout();
+	const Vec2 origin = blockOrigin();
+	const Vec2 at{event.position.x - origin.x, event.position.y - origin.y};
+	if(const auto piece = runs_.empty() ? std::nullopt : laid.pieceAt(at)) {
+		// A copy: the handler may change the runs
+		if(const std::string link = runs_[laid.pieces()[*piece].run].link; !link.empty()) return onLink(link);
+	}
+	if(!selectable_) return;
+	anchor_ = caret_ = laid.positionAt(at);
+	selecting_ = true;
+	invalidatePaint();
+}
+
+void Label::mouseMoveEvent(const MouseMoveEvent& event) {
+	Panel::mouseMoveEvent(event);
+	if(!selecting_) return;
+	const Vec2 origin = blockOrigin();
+	const std::size_t at = textLayout().positionAt({event.position.x - origin.x, event.position.y - origin.y});
+	if(at == caret_) return;
+	caret_ = at;
+	invalidatePaint();
+}
+
+void Label::focusEvent(bool focused) {
+	if(!focused) {
+		selecting_ = false;
+		if(anchor_ != caret_) select(0, 0);
+	}
+	Panel::focusEvent(focused);
 }
 
 } // namespace affresco

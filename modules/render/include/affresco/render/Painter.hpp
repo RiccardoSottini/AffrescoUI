@@ -6,12 +6,22 @@
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Geometry.hpp"
 
+#include <span>
 #include <string_view>
 
 namespace affresco {
 
 class Bitmap;
 class Font;
+
+/// @brief A corner of a quad in a mesh: where it is, and how much of the mesh's colour it takes there.
+struct MeshVertex {
+	Vec2 position;         ///< In window units, before the mesh's offset.
+	float coverage = 1.0f; ///< In [0, 1]: 1 inside the shape, 0 at the outer edge of its fringe.
+
+	/// @brief Equal when every member is equal.
+	constexpr bool operator==(const MeshVertex&) const noexcept = default;
+};
 
 /// @brief The radius of each corner of a rounded rectangle, in window units. All zero is a plain rectangle.
 struct CornerRadii {
@@ -106,6 +116,17 @@ public:
 		static_cast<void>(rect);
 		static_cast<void>(radii);
 		static_cast<void>(shadow);
+	}
+
+	/// @brief Fills a mesh of convex quads (a vector path's fill or stroke), each vertex taking the colour times its
+	/// coverage. Painters that can't draw meshes draw nothing.
+	/// @param quads The quads, 4 vertices each, in order around the quad (a triangle repeats its last vertex).
+	/// @param offset Added to every position.
+	/// @param color The colour; transparent meshes are skipped.
+	virtual void fillMesh(std::span<const MeshVertex> quads, Vec2 offset, Color color) {
+		static_cast<void>(quads);
+		static_cast<void>(offset);
+		static_cast<void>(color);
 	}
 };
 

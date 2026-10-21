@@ -40,7 +40,7 @@ Each subsystem's header says its role, its invariants and its callers:
 
 | Registry | Registers | From |
 |---|---|---|
-| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`; the application's `registerType` |
+| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
 | `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
@@ -79,6 +79,17 @@ state kept on disk that no longer matches. The checker (`CheckerTypes.cpp`) lear
 as readable, and reports writes, `bind`s and enum comparisons that don't fit. Nothing stops a step at run time: the
 types are a contract for revisions and a description for agents (the MCP outline shows them). The schema code is
 general: a settings page can describe its settings with it.
+
+## Design tokens
+
+`tokens` (`DesignTokens.hpp`) generalises `colors`: numbers (spacing, radii, type sizes) and colours, aliases
+(`"@other"`, of a token or of `colors`) and per-theme values. `readTokens` resolves them once per version of the
+document, merges the colour tokens into the colour table (so `@name` works the same for both) and keeps the number
+tokens apart. `Properties::applyVisual` replaces a property value written as `"@name"` with its number through
+`DocumentContext::resolveToken`; a font's `size` reads the token's base value. Since the theme and the colours are
+part of `appearance()`, a theme switch or an edit to `tokens` applies every panel again. Limits: 4,096 tokens, 32
+themes, aliases 16 deep (deeper, or circular, is an error). A token is a number in every theme or a colour in every
+theme, and a name can't be both a colour and a token.
 
 ## Invariants
 
@@ -121,6 +132,9 @@ general: a settings page can describe its settings with it.
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
+- **`cache` is only a hint:** a node with `"cache": true` is drawn from a texture of its own (`Panel::setCached`).
+  It looks the same and grants nothing, so `checkChange` has nothing to check; the renderer keeps its textures within
+  a budget and draws a subtree directly beyond it.
 - **Limits** (untrusted documents): expression nesting 100; `while` 10,000 iterations; `forEach` lists, `range` and
   `pad` 10,000; nested actions 32; nested components 32; computed values reading computed values 32; panels built
   inside each other 256 (`maxNodeDepth`); styles using styles 16; `include` inside `include` 8; a state write at most
@@ -192,6 +206,7 @@ src/
   Runtime.cpp              the public API, forwarding to the engine
   Engine.hpp / .cpp        the composition root: registries and subsystems
   DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
+  DesignTokens.*           the "tokens" section: aliases, per-theme values, colour and number tables
   Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
   CompiledNode.*           a node compiled: slots, bindings, scoping keys
   Binding.*                a value compiled once: templates split, operators lowered
@@ -214,8 +229,10 @@ src/
                            (ReferenceNodes.cpp, ReferenceSections.cpp); `affrescoui schema` writes them
   TypeRegistry.*           node types; Types.cpp, EditorType.cpp, ToggleType.cpp, SliderType.cpp, ImageType.cpp,
                            SplitType.cpp, TabsType.cpp, ListType.cpp (list and tree; ListItems.* reads their
-                           items within limits, without recursion)
-                           register them, and IconProperty.cpp the labels' "icon"
+                           items within limits, without recursion), PathType.cpp ("path": d, viewBox, fill and
+                           stroke, the data parsed only when it changes)
+                           register them, IconProperty.cpp the labels' "icon", and RunsProperty.cpp their
+                           "runs", "selectable" and "selectionColor" (within limits: 256 runs, 64 Ki characters)
   SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them
   Record.hpp, NodeKeys.hpp what the runtime keeps per panel, and what a node's keys mean
 CMakeLists.txt             the affrescoui_format target and its sources

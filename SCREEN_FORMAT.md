@@ -62,7 +62,8 @@ Every part of the format follows these, and so should every extension:
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
 | `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
-| `theme` | Which variant of the colors is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
+| `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits: `"padding": "@space.m"`, `"radius": "@radius.card"`, `"color": "@color.surface"`, and a font's `"size": "@type.body"`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it. |
+| `theme` | Which variant of the colors and tokens is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
@@ -94,7 +95,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -120,6 +121,7 @@ parent, later siblings on top of earlier ones.
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `visible` | `false` hides the node and its children. |
+| `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same. Default: `false`. |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
@@ -152,6 +154,9 @@ parent, later siblings on top of earlier ones.
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
+| `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
+| `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
+| `selectionColor` | The selection's colour (default `#b4d5fe`). |
 <!-- end generated -->
 
 ```json
@@ -237,7 +242,7 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 <!-- generated: image -->
 | Key | Meaning |
 |---|---|
-| `file` | A PNG or JPEG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
+| `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
 | `source` | Instead of `file`: an image the host names (`Screen::setImage("chart", …)`), e.g. a picture it made; the node shows each new one the host sets. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
 <!-- end generated -->
@@ -322,6 +327,35 @@ top stays in place.
 { "type": "tree", "id": "explorer", "items": "{{state.files}}", "expanded": "{{state.open}}", "bind": "state.chosen",
   "onExpand": [ { "set": "state.open", "to": "{{event.expanded ? concat(state.open, [event.id]) : filter(state.open, it != event.id)}}" } ] }
 ```
+
+### `path`
+A vector shape from SVG path data, filled and stroked, fitted to the node (like an icon or a chart line). It is
+drawn anti-aliased in the same batch as the panels and text around it, and its meshes are built again only when its
+data or its size changes.
+
+<!-- generated: path -->
+| Key | Meaning |
+|---|---|
+| `d` | SVG path data: `M L H V C S Q T A Z`, upper case absolute and lower case relative, e.g. `"M 0 0 L 10 0 L 5 8 Z"`. At most 64 KiB and 16,384 commands, coordinates within a million: a revision with data that can't be read is refused, naming the place of the problem. |
+| `viewBox` | The area of the data's coordinates fitted to the node, `"x y width height"` like SVG's. Without it the data is in the node's own pixels, from its top-left corner. |
+| `fit` | How the view box fills the node: `"contain"` (the default), `"cover"` or `"fill"`, as for images. |
+| `fillColor` | The inside's colour; without it the path isn't filled. |
+| `fillRule` | Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole). |
+| `stroke` | The outline's colour; without it there is no outline. |
+| `strokeWidth` | The outline's width (default 1), in the view box's units (pixels when stretched by `"fill"`). |
+| `strokeJoin` | Corners: `"miter"` (the default, bevelled past 4 widths), `"round"` or `"bevel"`. |
+| `strokeCap` | Ends: `"butt"` (the default), `"round"` or `"square"`. |
+| `strokeDash` | Dash and gap lengths, repeated, e.g. `[6, 3]` (at most 64); without it the outline is solid. |
+<!-- end generated -->
+
+```json
+{ "type": "path", "id": "check", "d": "M 4 12 L 9 17 L 20 6", "viewBox": "0 0 24 24", "width": 24, "height": 24,
+  "stroke": "@accent", "strokeWidth": 2.5, "strokeCap": "round", "strokeJoin": "round" }
+```
+
+An `image` can also show an SVG file (`.svg`, at most 1 MiB): paths and basic shapes with solid fills and strokes,
+rasterised at twice the size it declares. Gradients, text, masks, filters and rotations aren't drawn.
+`examples/assets/components/charts.json` has line, bar and area charts built on `path`, to `include`.
 
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
@@ -439,6 +473,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`. |
 | `onChange` | A bound or value control changed: `event.value`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
+| `onLink` | A press on a part of `runs` with a link: `event.link`. |
 | `onShow`, `onHide` | The node was built, or removed (by `when`, `repeat` or a revision). |
 | `onClose` | A tab's close button or Delete: `event.id`. |
 | `onMove` | A tab dragged along its strip: `event.id`, `from`, `to`. |

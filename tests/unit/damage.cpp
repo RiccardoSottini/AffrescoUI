@@ -138,3 +138,23 @@ TEST_CASE("damage: Window::invalidate() records every panel again and damages ev
 	CHECK(frame.damageAll);
 	CHECK(cache.refresh(frame).damage == Rect{0, 0, 400, 300});
 }
+
+TEST_CASE("damage: a cached subtree needs the colour shader, and damages like any other panel") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	Panel& group = box(window->root(), 10, 10, 200, 100);
+	Panel& inner = box(group, 10, 10, 50, 50);
+	GeometryCache cache;
+	CHECK_FALSE(refreshFrame(cache, *window).color);
+
+	group.setCached(true); // drawn as one quad of its texture, a colour page
+	CHECK(refreshFrame(cache, *window).color);
+
+	inner.setColor(affresco::Color::hex(0x22c55e));
+	const Refreshed changed = refreshFrame(cache, *window);
+	REQUIRE(changed.damage);
+	CHECK(changed.color);
+
+	group.setCached(false);
+	CHECK_FALSE(refreshFrame(cache, *window).color);
+}

@@ -36,6 +36,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"borderWidth", Slot::BorderWidth},
     {"borderColor", Slot::BorderColor},
     {"shadow", Slot::Shadow},
+    {"cache", Slot::Cache},
     {"x", Slot::Layout},
     {"y", Slot::Layout},
     {"width", Slot::Layout},

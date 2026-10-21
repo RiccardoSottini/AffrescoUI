@@ -42,6 +42,11 @@ std::shared_ptr<const Font> Properties::font(const json& value, const std::strin
 	return found;
 }
 
+std::shared_ptr<const Font> Properties::fontVariant(const Font* base, float pixelHeight, FontStyle style,
+                                                    const std::string& at) const {
+	return engine_.document.fontVariant(base, pixelHeight, style, at);
+}
+
 ImageCache& Properties::images() const { return engine_.document.images(); }
 
 std::filesystem::path Properties::imageFile(const json& value, const std::string& at) const {
@@ -112,6 +117,8 @@ void Properties::readHandler(const Panel& panel, Record& record, const std::stri
 	}
 	if(!value.is_string() && !value.is_array() && !value.is_object()) fail(at, "expected an action name or steps");
 	if(key == "onSubmit" && !dynamic_cast<const TextArea*>(&panel)) fail(at, "only text areas have \"onSubmit\"");
+	if(key == "onLink" && (!dynamic_cast<const Label*>(&panel) || dynamic_cast<const TextArea*>(&panel)))
+		fail(at, "only labels have \"onLink\"");
 	record.handlers[key] = value;
 }
 
@@ -239,6 +246,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setCornerRadii({});
 	panel.setBorder(0.0f, colors::black);
 	panel.setShadow({});
+	panel.setCached(false);
 	panel.setCursor(record.defaultCursor);
 	panel.setGrow(0.0f);
 	resetLayoutItem(panel);
@@ -285,9 +293,10 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	reset(panel, record);
 
 	std::string at; // reused: one allocation for the node's places
+	json token;     // a number token's value, when the property names one ("@space.m")
 	for(const auto& [key, slot, pointer] : properties.entries) {
 		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
-		const json& value = *pointer;
+		const json& value = engine_.document.resolveToken(*pointer, token);
 		at.assign(record.path).append(".").append(key);
 		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look))
 			continue;
@@ -407,6 +416,9 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 		break; // set last, as it may transition
 	case Slot::Shadow:
 		panel.setShadow(engine_.document.shadow(value, at));
+		break;
+	case Slot::Cache:
+		panel.setCached(boolean(value, at));
 		break;
 	default:
 		return false;
