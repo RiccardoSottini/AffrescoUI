@@ -11,6 +11,9 @@ affrescoui_module(render
 	src/Controls.cpp
 	src/Split.cpp
 	src/Tabs.cpp
+	src/RowWindow.cpp
+	src/ListView.cpp
+	src/TreeView.cpp
 	src/Font.cpp
 	src/FontCache.cpp
 	src/text/FontFace.cpp

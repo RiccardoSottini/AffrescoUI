@@ -210,7 +210,7 @@ constexpr KeyReference nodeTable[] = {
 	 "areas.",
 	 "label"},
     {"bind", R"json({"type": "string",
-		"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs)"})json",
+		"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"})json",
 	 "A state path holding the text (lines joined by `\"\\n\"`), kept in sync both ways. Without it, `text` sets the "
 	 "text.",
 	 "editor"},
@@ -310,7 +310,7 @@ constexpr KeyReference nodeTable[] = {
 	 "image"},
     {"direction", "",
 	 "`\"row\"` (the default: panes side by side, vertical sashes) or `\"column\"` (one above the other).", "split"},
-    {"value", R"json({"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id",
+    {"value", R"json({"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
 		"anyOf": [{"type": "number"}, {"type": "string"}, {"type": "array", "maxItems": 100000},
 		{"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "The panes' sizes in pixels, in order (`bind` keeps them in a state path). The last pane takes what is left; "
@@ -343,6 +343,38 @@ constexpr KeyReference nodeTable[] = {
     {"activeTextColor", "color", "", "tabs"},
     {"activeBackground", "color", "", "tabs"},
     {"accentColor", "color", "", "tabs"},
+    {"items", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"anyOf": [{"type": "string"},
+		{"type": "number"}, {"type": "object", "required": ["id"], "properties": {"id": {"type": ["string", "number"]},
+		"label": {"type": ["string", "number"]}, "expandable": {"type": "boolean"}, "children": {"type": "array"}}}]}},
+		{"$ref": "#/$defs/v1/dynamic"}],
+		"description": "list, tree: the rows: an id, or { id, label, children (tree), expandable (tree) }"})json",
+	 "The rows, in order (or a binding such as `\"{{state.files}}\"`): a string (its id and label), or `{ \"id\", "
+	 "\"label\" }`; in a `tree`, also `\"children\"` (a list of items) and `\"expandable\"` (a closed node whose "
+	 "children aren't loaded yet: `onExpand` can load them). Only the rows in view are drawn, so a list scrolls "
+	 "through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
+	 "list"},
+    {"expanded", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"type": ["string", "number"]}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "tree: the ids of the open nodes"})json",
+	 "On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there "
+	 "to keep them over a rebuild.",
+	 "list"},
+    {"selection", R"json({"anyOf": [{"enum": ["none", "single", "multiple"]}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "list, tree: none, single (default) or multiple"})json",
+	 "`\"single\"` (the default), `\"multiple\"` (Shift adds a range, Cmd or Ctrl one row) or `\"none\"`.", "list"},
+    {"value", "",
+	 "The selected id, or with `\"multiple\"` the list of them (`bind` keeps it in a state path); a change runs "
+	 "`onChange`.",
+	 "list"},
+    {"rowHeight", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 1000}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "list, tree: each row's height in pixels (default 24)"})json",
+	 "Each row's height in pixels (default 24).", "list"},
+    {"font", "", "The rows' font and colours: their text, the selected rows' text and background, and the accent "
+	 "(the keyboard cursor, the drop line, a tree's guides).",
+	 "list"},
+    {"textColor", "", "", "list"},
+    {"selectedTextColor", "color", "", "list"},
+    {"selectedBackground", "color", "", "list"},
+    {"accentColor", "", "", "list"},
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
@@ -350,7 +382,9 @@ constexpr KeyReference nodeTable[] = {
     {"onRelease", "handler", "", "events"},
     {"onDrag", "handler", "The pointer moves while pressed: `event.dx`, `event.dy` since the press.", "events"},
     {"onDrop", "handler",
-	 "A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes).", "events"},
+	 "A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or "
+	 "`tree`, `event.index`, `id` and `place`: `\"before\"`, `\"inside\"` or `\"after\"` that row).",
+	 "events"},
     {"onHover", "handler", "The pointer enters or leaves the node (or a child).", "events"},
     {"onLeave", "handler", "", "events"},
     {"onFocus", "handler", "Keyboard focus.", "events"},

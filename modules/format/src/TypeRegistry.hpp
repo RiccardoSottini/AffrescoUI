@@ -250,6 +250,9 @@ void registerSplitType(TypeRegistry& registry);
 /// @brief Registers "tabs" (TabsType.cpp).
 /// @param registry The registry.
 void registerTabsType(TypeRegistry& registry);
+/// @brief Registers "list" and "tree" (ListType.cpp).
+/// @param registry The registry.
+void registerListTypes(TypeRegistry& registry);
 /// @brief Registers "icon", a property of labels (IconProperty.cpp).
 /// @param registry The registry.
 void registerIconProperty(TypeRegistry& registry);

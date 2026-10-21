@@ -1,0 +1,36 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "lists",
+			"screen": "lists.screen.json",
+			"note": "Trees and lists: the first frame, a folder opened by its chevron, a file picked and opened with the keys, a folder closed with Left, rows added to a multiple selection with Shift, and a row found by typing",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [29, 36] },
+				{ "expect": { "state": "open", "is": ["src", "views"] } },
+				{ "expect": { "image": "folder-opened" } },
+				{ "click": [120, 60] },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "expect": { "state": "opened", "is": "TreeView.cpp" } },
+				{ "expect": { "image": "file-opened" } },
+				{ "key": "left" },
+				{ "key": "left" },
+				{ "expect": { "state": "open", "is": ["src"] } },
+				{ "expect": { "image": "folder-closed" } },
+				{ "click": [300, 25] },
+				{ "key": "shift+down" },
+				{ "key": "shift+down" },
+				{ "expect": { "state": "picked", "is": ["Ada", "Alan", "Barbara"] } },
+				{ "expect": { "image": "range-picked" } },
+				{ "wait": 1100 },
+				{ "type": "ma" },
+				{ "expect": { "state": "picked", "is": ["Margaret"] } },
+				{ "expect": { "image": "typed-to-find" } }
+			]
+		}
+	]
+}

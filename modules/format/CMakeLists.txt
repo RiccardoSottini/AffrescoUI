@@ -45,6 +45,8 @@ affrescoui_module(format
 	src/ImageType.cpp
 	src/SplitType.cpp
 	src/TabsType.cpp
+	src/ListItems.cpp
+	src/ListType.cpp
 	src/IconProperty.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp

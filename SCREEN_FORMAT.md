@@ -94,7 +94,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -291,6 +291,32 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
   "onClose": [ { "set": "state.open", "to": "{{filter(state.open, it.id != event.id)}}" } ] }
 ```
 
+### `list` and `tree`
+Rows of items, one or more of them selected, drawn only where they are in view: a list of a million items scrolls
+and selects as fast as one of ten. The items come from the node (`items`, usually bound to state) and the selection
+goes back to it (`value`, `bind`, `onChange`). A click selects a row, Shift a range, Cmd or Ctrl one more; the arrow
+keys, Page Up and Page Down, Home and End move the selection, and typing a row's first letters finds it. Enter or a
+double click runs `onOpen`. A `tree` nests its items' `children` with indent guides: a click on the chevron, or Right
+and Left, open and close a node (`onExpand`), and Left goes to the parent. With `"drag": {}` on the node, rows drag
+(`event.data` is `{ "id", "ids" }`: the row, and every selected one if it is selected) and drop onto any `list` or
+`tree`, whose `onDrop` gets the row and the place (a line between rows, or an outline around a tree's node).
+
+<!-- generated: list -->
+| Key | Meaning |
+|---|---|
+| `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label" }`; in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
+| `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. |
+| `selection` | `"single"` (the default), `"multiple"` (Shift adds a range, Cmd or Ctrl one row) or `"none"`. |
+| `value` | The selected id, or with `"multiple"` the list of them (`bind` keeps it in a state path); a change runs `onChange`. |
+| `rowHeight` | Each row's height in pixels (default 24). |
+| `font`, `textColor`, `selectedTextColor`, `selectedBackground`, `accentColor` | The rows' font and colours: their text, the selected rows' text and background, and the accent (the keyboard cursor, the drop line, a tree's guides). |
+<!-- end generated -->
+
+```json
+{ "type": "tree", "id": "explorer", "items": "{{state.files}}", "expanded": "{{state.open}}", "bind": "state.chosen",
+  "onExpand": [ { "set": "state.open", "to": "{{event.expanded ? concat(state.open, [event.id]) : filter(state.open, it != event.id)}}" } ] }
+```
+
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
 
@@ -400,7 +426,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
-| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes). |
+| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |

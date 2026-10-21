@@ -111,7 +111,8 @@ struct Group {
 /// @return The groups.
 [[nodiscard]] std::vector<Group> screenGroups();
 
-/// @brief The groups that need no window: expressions, commits, text (engine.cpp) and history (history.cpp).
+/// @brief The groups that need no window: expressions, commits, text (engine.cpp), history (history.cpp) and
+/// views (views.cpp, headless windows).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> engineGroups();
 
@@ -119,6 +120,11 @@ struct Group {
 /// @param context The context.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> historyWorkloads(const Context& context);
+
+/// @brief The "views" group's workloads (views.cpp): a tree's 100,000-item folder opened then closed (two operations),
+/// and a 100,000-row list scrolled to a new place and drawn, on headless windows.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> viewWorkloads(Context&);
 
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 

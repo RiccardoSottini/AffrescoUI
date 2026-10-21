@@ -307,7 +307,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -325,6 +325,8 @@
 									"image",
 									"split",
 									"tabs",
+									"list",
+									"tree",
 									"outlet"
 								]
 							},
@@ -837,7 +839,7 @@
 					},
 					"bind": {
 						"type": "string",
-						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs)"
+						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"
 					},
 					"caret": {
 						"type": "string",
@@ -1033,7 +1035,7 @@
 						"description": "image: contain (default), cover or fill, like CSS object-fit"
 					},
 					"value": {
-						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id",
+						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
 						"anyOf": [
 							{
 								"type": "number"
@@ -1145,6 +1147,106 @@
 					"accentColor": {
 						"$ref": "#/$defs/v1/color"
 					},
+					"items": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1000000,
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "number"
+										},
+										{
+											"type": "object",
+											"required": [
+												"id"
+											],
+											"properties": {
+												"id": {
+													"type": [
+														"string",
+														"number"
+													]
+												},
+												"label": {
+													"type": [
+														"string",
+														"number"
+													]
+												},
+												"expandable": {
+													"type": "boolean"
+												},
+												"children": {
+													"type": "array"
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "list, tree: the rows: an id, or { id, label, children (tree), expandable (tree) }"
+					},
+					"expanded": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1000000,
+								"items": {
+									"type": [
+										"string",
+										"number"
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "tree: the ids of the open nodes"
+					},
+					"selection": {
+						"anyOf": [
+							{
+								"enum": [
+									"none",
+									"single",
+									"multiple"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "list, tree: none, single (default) or multiple"
+					},
+					"rowHeight": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 1,
+								"maximum": 1000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "list, tree: each row's height in pixels (default 24)"
+					},
+					"selectedTextColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"selectedBackground": {
+						"$ref": "#/$defs/v1/color"
+					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -1244,6 +1346,8 @@
 									"image",
 									"split",
 									"tabs",
+									"list",
+									"tree",
 									"outlet"
 								]
 							}
