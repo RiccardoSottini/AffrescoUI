@@ -1,0 +1,30 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "tables",
+			"screen": "tables.screen.json",
+			"note": "Tables and sticky folders: the first frame, a sort by a header click and its reverse, a column dragged wider by its header's edge, the table scrolled, and the tree scrolled with its open folders pinned at the top",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [180, 14] },
+				{ "expect": { "state": "sorted", "is": "size" } },
+				{ "expect": { "image": "sorted" } },
+				{ "click": [180, 14] },
+				{ "expect": { "state": "descending", "is": true } },
+				{ "expect": { "image": "sorted-descending" } },
+				{ "press": [140, 14] },
+				{ "move": [180, 14] },
+				{ "release": [180, 14] },
+				{ "expect": { "state": "width", "is": 180 } },
+				{ "expect": { "image": "column-resized" } },
+				{ "scroll": "#files", "dy": -3 },
+				{ "expect": { "image": "table-scrolled" } },
+				{ "scroll": "#explorer", "dy": -4 },
+				{ "expect": { "image": "folders-pinned" } }
+			]
+		}
+	]
+}

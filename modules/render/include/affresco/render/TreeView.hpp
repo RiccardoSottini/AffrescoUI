@@ -5,7 +5,9 @@
 
 #include "affresco/render/ListView.hpp"
 
+#include <cstddef>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace affresco {
@@ -21,6 +23,9 @@ struct ExpandChange {
 /// skipping closed subtrees whole. Which folders are open is given (setExpanded()) and the tree reports what the user
 /// does (onExpandedChanged): Right opens a folder or moves to its first child, Left closes it or moves to its parent,
 /// and a click on the chevron toggles it. Drops can land between rows or inside a folder.
+///
+/// With sticky rows (setStickyRows()), the open folders the top row is in stay pinned at the top as their children
+/// scroll under them, outermost first; a click on one scrolls back to it.
 class TreeView : public ListView {
 public:
 	/// @brief Sets which items are open; the others are closed. Call it again after setModel(): the flags are per item.
@@ -36,14 +41,25 @@ public:
 	/// @param expanded Whether to open it.
 	void expand(std::size_t item, bool expanded);
 
+	/// @brief Sets how many folders the top row is in stay pinned at the top as it scrolls.
+	/// @param count At most this many, outermost first; 0 (the default) pins none.
+	void setStickyRows(std::size_t count);
+	/// @brief How many folders stay pinned at the top at most.
+	[[nodiscard]] std::size_t stickyRows() const noexcept { return stickyRows_; }
+	/// @brief The items pinned at the top now, outermost first.
+	[[nodiscard]] const std::vector<std::size_t>& stuck() const noexcept { return stuck_; }
+
 	Signal<const ExpandChange&> onExpandedChanged; ///< The user opened or closed an item.
 
 protected:
-	void buildRows(std::vector<std::size_t>& rows) const override;
+	void buildRows(std::vector<std::size_t>& rows) override;
 	void paintRow(Painter& painter, const Font& font, std::size_t row, const Rect& area, Color color) const override;
 	bool rowKey(const KeyEvent& event) override;
 	bool rowPress(std::size_t row, Vec2 position) override;
 	[[nodiscard]] bool dropsInside() const noexcept override { return true; }
+	void paintOverlay(Painter& painter, const Font& font) const override;
+	/// @brief Finds the folders to pin at the top and decodes their labels.
+	void viewChanged() override;
 
 private:
 	/// @brief How far one level indents, in pixels.
@@ -63,10 +79,22 @@ private:
 	/// @param open Whether the item is open.
 	/// @param color Its colour.
 	static void paintChevron(Painter& painter, float left, float middle, bool open, Color color);
+	/// @brief Draws an item's guides, chevron and label.
+	/// @param painter Where.
+	/// @param font The font.
+	/// @param item Its index in the model.
+	/// @param label Its label, decoded.
+	/// @param area Its row's rectangle.
+	/// @param color Its text colour.
+	void paintItem(Painter& painter, const Font& font, std::size_t item, std::u32string_view label, const Rect& area,
+	               Color color) const;
 
-	std::vector<char> expanded_;         ///< Per item, whether it is open.
-	std::vector<std::string> lastGiven_; ///< The ids setExpanded() was last given, to skip repeats.
+	std::vector<char> expanded_;             ///< Per item, whether it is open.
+	std::vector<std::string> lastGiven_;     ///< The ids setExpanded() was last given, to skip repeats.
 	const ListModel* expandedFor_ = nullptr; ///< The model those ids were matched against.
+	std::size_t stickyRows_ = 0;             ///< See setStickyRows().
+	std::vector<std::size_t> stuck_;         ///< See stuck().
+	std::vector<std::u32string> stuckText_;  ///< Their labels, decoded; the storage is reused.
 };
 
 } // namespace affresco

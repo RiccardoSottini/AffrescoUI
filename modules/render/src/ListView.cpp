@@ -15,24 +15,12 @@ namespace affresco {
 
 namespace {
 
-constexpr std::size_t decodeMargin = 16;    ///< Rows decoded beyond the view, so a short scroll decodes nothing.
-constexpr double doubleClickTime = 0.4;     ///< Seconds between two presses on a row that open it.
-constexpr double typeToFindTime = 1.0;      ///< Seconds after which typing starts a new search.
-constexpr std::size_t maxTyped = 64;        ///< The most bytes type-to-find keeps.
-constexpr float scrollBarWidth = 4.0f;      ///< The scroll bar's thumb, in pixels.
-constexpr float minimumThumb = 16.0f;       ///< The shortest thumb, in pixels.
-
-/// @brief Decodes UTF-8 into a string, reusing its storage.
-/// @param out Gets the code points.
-/// @param text UTF-8 text.
-void decodeInto(std::u32string& out, std::string_view text) {
-	out.clear();
-	while(!text.empty()) {
-		const detail::Decoded decoded = detail::decodeUtf8(text);
-		out.push_back(decoded.codepoint);
-		text.remove_prefix(decoded.length);
-	}
-}
+constexpr std::size_t decodeMargin = 16; ///< Rows decoded beyond the view, so a short scroll decodes nothing.
+constexpr double doubleClickTime = 0.4;  ///< Seconds between two presses on a row that open it.
+constexpr double typeToFindTime = 1.0;   ///< Seconds after which typing starts a new search.
+constexpr std::size_t maxTyped = 64;     ///< The most bytes type-to-find keeps.
+constexpr float scrollBarWidth = 4.0f;   ///< The scroll bar's thumb, in pixels.
+constexpr float minimumThumb = 16.0f;    ///< The shortest thumb, in pixels.
 
 /// @brief Whether text starts with a prefix, ignoring the case of ASCII letters.
 /// @param text UTF-8 text.
@@ -66,21 +54,26 @@ void ListView::setModel(std::shared_ptr<const ListModel> model) {
 	const auto idOf = [this](std::size_t index) {
 		return model_ && index < model_->size() ? model_->item(index).id : std::string();
 	};
+	const std::size_t topRow = rows_.empty() || scroll_ <= 0.0f ? rows_.size() : window_.rowAt(scroll_);
+	const std::string topId = topRow < rows_.size() ? idOf(rows_[topRow]) : std::string();
+	const float topOffset = topRow < rows_.size() ? scroll_ - window_.offsetOf(topRow) : 0.0f;
 	const std::string cursorId = idOf(cursor_), anchorId = idOf(anchor_);
 	model_ = std::move(model);
 	const std::size_t size = model_ ? model_->size() : 0;
 	cursor_ = anchor_ = size;
+	std::size_t top = size;
 	std::vector<std::string> kept;
 	for(std::size_t i = 0; i < size; ++i) {
 		const std::string& id = model_->item(i).id;
 		if(id == cursorId && !cursorId.empty()) cursor_ = i;
 		if(id == anchorId && !anchorId.empty()) anchor_ = i;
+		if(id == topId && !topId.empty()) top = i;
 		if(!selection_.empty() && std::binary_search(selection_.begin(), selection_.end(), id)) kept.push_back(id);
 	}
 	std::sort(kept.begin(), kept.end());
 	kept.erase(std::unique(kept.begin(), kept.end()), kept.end());
 	selection_ = std::move(kept);
-	rebuildRows();
+	rebuildRowsKeeping(top, topOffset);
 }
 
 void ListView::setSelection(std::vector<std::string> ids) {
@@ -118,17 +111,26 @@ const Font* ListView::font() const noexcept {
 	return window() ? window()->defaultFont() : nullptr;
 }
 
-void ListView::buildRows(std::vector<std::size_t>& rows) const {
+void ListView::buildRows(std::vector<std::size_t>& rows) {
 	const std::size_t size = model_ ? model_->size() : 0;
 	rows.resize(size);
 	for(std::size_t i = 0; i < size; ++i) rows[i] = i;
 }
 
-void ListView::rebuildRows() {
+void ListView::rebuildRows(bool anchored) {
+	// Anchoring starts once scrolled: a list at its top stays there as rows are added above
+	const std::size_t row = !anchored || rows_.empty() || scroll_ <= 0.0f ? rows_.size() : window_.rowAt(scroll_);
+	if(row >= rows_.size()) rebuildRowsKeeping(model_ ? model_->size() : 0, 0.0f);
+	else rebuildRowsKeeping(rows_[row], scroll_ - window_.offsetOf(row));
+}
+
+void ListView::rebuildRowsKeeping(std::size_t item, float offset) {
 	rows_.clear();
 	if(model_) buildRows(rows_);
 	window_.reset(rows_.size(), rowHeight_);
 	decoded_ = {};
+	const std::size_t row = model_ && item < model_->size() ? rowOf(item) : rows_.size();
+	if(row < rows_.size()) scroll_ = window_.offsetOf(row) + offset; // arrange() clamps it
 	invalidate();
 }
 
@@ -151,17 +153,21 @@ void ListView::arrange() {
 
 void ListView::decodeShown() {
 	const RowRange range = window_.visible(scroll_, viewport(), decodeMargin);
-	if(range == decoded_ || !model_) return;
+	if(range == decoded_ || !model_) {
+		viewChanged();
+		return;
+	}
 	// Decode a little more than the view, so a short scroll finds its rows ready
 	const std::size_t cells = shownCells();
 	shown_.resize((range.last - range.first) * cells);
 	for(std::size_t row = range.first; row < range.last; ++row) {
 		const ListItem& item = model_->item(rows_[row]);
 		for(std::size_t cell = 0; cell < cells; ++cell)
-			decodeInto(shown_[(row - range.first) * cells + cell],
-			           cell < item.cells.size() ? std::string_view(item.cells[cell]) : std::string_view());
+			detail::decodeInto(shown_[(row - range.first) * cells + cell],
+			                   cell < item.cells.size() ? std::string_view(item.cells[cell]) : std::string_view());
 	}
 	decoded_ = range;
+	viewChanged();
 }
 
 std::u32string_view ListView::shownText(std::size_t row, std::size_t cell) const noexcept {
@@ -351,7 +357,13 @@ void ListView::paint(Painter& painter) const {
 		paintRow(painter, *text, row, area, selected ? selectedText_ : text_);
 		if(focused && rows_[row] == cursor_) outline(painter, area, 1.0f, accent_);
 	}
+	paintOverlay(painter, *text);
 	paintOverRows(painter);
+}
+
+void ListView::paintOverlay(Painter& painter, const Font& font) const {
+	static_cast<void>(painter);
+	static_cast<void>(font);
 }
 
 void ListView::paintRow(Painter& painter, const Font& font, std::size_t row, const Rect& area, Color color) const {

@@ -24,8 +24,8 @@ struct ListItem {
 	std::string id;                 ///< What names it in the selection and in signals; unique within the list.
 	std::vector<std::string> cells; ///< Its text, UTF-8: the label first; a table has one per column.
 	std::uint32_t depth = 0;        ///< Its level in a tree: 0 for a root.
-	std::size_t end = 0;            ///< One past its last descendant, in the model's order (its own index + 1 for none).
-	bool expandable = false;        ///< Has children, or may get them: a tree shows a chevron.
+	std::size_t end = 0;     ///< One past its last descendant, in the model's order (its own index + 1 for none).
+	bool expandable = false; ///< Has children, or may get them: a tree shows a chevron.
 
 	/// @brief Equal when every field is.
 	bool operator==(const ListItem&) const = default;
@@ -73,7 +73,7 @@ enum class DropPlace : std::uint8_t {
 
 /// @brief A place something dragged over a list would land.
 struct DropTarget {
-	std::size_t row = 0;              ///< The row, or the number of rows past the last.
+	std::size_t row = 0;                ///< The row, or the number of rows past the last.
 	DropPlace place = DropPlace::After; ///< Where, relative to it.
 
 	/// @brief Equal when both fields are.
@@ -167,7 +167,7 @@ protected:
 
 	/// @brief Fills the rows from the model: every item, in order. A tree skips collapsed subtrees, a table sorts.
 	/// @param rows Empty; gets the items' indices.
-	virtual void buildRows(std::vector<std::size_t>& rows) const;
+	virtual void buildRows(std::vector<std::size_t>& rows);
 	/// @brief Draws a row's content over its background.
 	/// @param painter Where.
 	/// @param font The font.
@@ -184,6 +184,13 @@ protected:
 	/// @param position In window units.
 	/// @return Whether it was handled.
 	virtual bool rowPress(std::size_t row, Vec2 position);
+	/// @brief Draws over the rows, under the drop indicator and the scroll bar (a table's header, a tree's sticky
+	/// rows).
+	/// @param painter Where.
+	/// @param font The font.
+	virtual void paintOverlay(Painter& painter, const Font& font) const;
+	/// @brief Called when the rows in view or their scroll position may have changed, after their text was decoded.
+	virtual void viewChanged() {}
 	/// @brief Whether a drop can land inside a row, not only between rows.
 	[[nodiscard]] virtual bool dropsInside() const noexcept { return false; }
 	/// @brief The height above the rows a subclass draws in (a table's header).
@@ -192,7 +199,11 @@ protected:
 	[[nodiscard]] virtual std::size_t shownCells() const noexcept { return 1; }
 
 	/// @brief Rebuilds the rows (buildRows()), keeping the cursor, and lays out again.
-	void rebuildRows();
+	/// @param anchored Whether the item at the top of the view stays there (scroll anchoring), once scrolled; else the
+	/// scroll position stays.
+	void rebuildRows(bool anchored = true);
+	/// @brief Where each row sits.
+	[[nodiscard]] const RowWindow& rowWindow() const noexcept { return window_; }
 	/// @brief The font the rows use: setFont()'s, or the window's default.
 	[[nodiscard]] const Font* font() const noexcept;
 	/// @brief A visible row's cell, decoded for drawing.
@@ -214,6 +225,10 @@ protected:
 	std::vector<std::size_t> rows_; ///< The items shown, in order: see itemAt().
 
 private:
+	/// @brief Rebuilds the rows and scrolls so an item sits where it was.
+	/// @param item The item at the top of the view, or past the model's end to keep the scroll position.
+	/// @param offset How far the view's top was below the item's top.
+	void rebuildRowsKeeping(std::size_t item, float offset);
 	/// @brief Decodes the text of the rows in view, plus a margin, when they changed.
 	void decodeShown();
 	/// @brief Clamps the scroll position to the rows.
@@ -234,26 +249,26 @@ private:
 	/// @param painter Where.
 	void paintOverRows(Painter& painter) const;
 
-	std::shared_ptr<const ListModel> model_;          ///< See model().
-	RowWindow window_;                                ///< Where each row sits.
+	std::shared_ptr<const ListModel> model_;              ///< See model().
+	RowWindow window_;                                    ///< Where each row sits.
 	SelectionMode selectionMode_ = SelectionMode::Single; ///< See setSelectionMode().
-	std::vector<std::string> selection_;              ///< See selection().
-	std::size_t cursor_ = 0;                          ///< See cursor().
-	std::size_t anchor_ = 0;                          ///< Where a Shift range starts: an item index.
-	float rowHeight_ = 24.0f;                         ///< See setRowHeight().
-	std::shared_ptr<const Font> font_;                ///< See setFont().
-	Color text_ = colors::black;                      ///< See setColors().
-	Color selectedText_ = colors::white;              ///< See setColors().
-	Color selectedBackground_ = colors::accent;       ///< See setColors().
-	Color accent_ = colors::accent;                   ///< See setColors().
-	float scroll_ = 0.0f;                             ///< See scrollPosition().
-	RowRange decoded_;                                ///< The rows whose text shown_ holds.
-	std::vector<std::u32string> shown_;               ///< Their cells, shownCells() per row.
-	std::optional<DropTarget> dropIndicator_;         ///< See showDropIndicator().
-	std::string typed_;                               ///< What type-to-find has, UTF-8.
-	double typedAt_ = -1.0;                           ///< When the last character was typed, on the window's clock.
-	std::size_t lastPressRow_ = 0;                    ///< The row of the last press, for double clicks.
-	double lastPress_ = -1.0;                         ///< When it was, on the window's clock.
+	std::vector<std::string> selection_;                  ///< See selection().
+	std::size_t cursor_ = 0;                              ///< See cursor().
+	std::size_t anchor_ = 0;                              ///< Where a Shift range starts: an item index.
+	float rowHeight_ = 24.0f;                             ///< See setRowHeight().
+	std::shared_ptr<const Font> font_;                    ///< See setFont().
+	Color text_ = colors::black;                          ///< See setColors().
+	Color selectedText_ = colors::white;                  ///< See setColors().
+	Color selectedBackground_ = colors::accent;           ///< See setColors().
+	Color accent_ = colors::accent;                       ///< See setColors().
+	float scroll_ = 0.0f;                                 ///< See scrollPosition().
+	RowRange decoded_;                                    ///< The rows whose text shown_ holds.
+	std::vector<std::u32string> shown_;                   ///< Their cells, shownCells() per row.
+	std::optional<DropTarget> dropIndicator_;             ///< See showDropIndicator().
+	std::string typed_;                                   ///< What type-to-find has, UTF-8.
+	double typedAt_ = -1.0;                               ///< When the last character was typed, on the window's clock.
+	std::size_t lastPressRow_ = 0;                        ///< The row of the last press, for double clicks.
+	double lastPress_ = -1.0;                             ///< When it was, on the window's clock.
 };
 
 } // namespace affresco

@@ -20,7 +20,7 @@ struct Level {
 };
 
 /// @brief Reads one item, without its children.
-/// @param value A string, or {id, label, expandable}.
+/// @param value A string, or {id, label, cells, expandable}.
 /// @param level The list it is in.
 /// @param index Its place there.
 /// @return The item, its depth and end not set.
@@ -34,8 +34,15 @@ ListItem readItem(const json& value, const Level& level, std::size_t index) {
 	const auto id = value.find("id");
 	if(id == value.end() || !(id->is_string() || id->is_number())) fail(place() + ".id", "an item needs an id");
 	ListItem item{text(*id), {}};
-	const auto label = value.find("label");
-	item.cells.push_back(label != value.end() ? text(*label) : item.id);
+	if(const auto cells = value.find("cells"); cells != value.end()) {
+		if(!cells->is_array() || cells->empty()) fail(place() + ".cells", "expected a list of texts");
+		if(cells->size() > maxCells) fail(place() + ".cells", "too many cells (at most 256)");
+		item.cells.reserve(cells->size());
+		for(const json& cell : *cells) item.cells.push_back(cell.is_null() ? std::string() : text(cell));
+	} else {
+		const auto label = value.find("label");
+		item.cells.push_back(label != value.end() ? text(*label) : item.id);
+	}
 	if(const auto expandable = value.find("expandable"); expandable != value.end())
 		item.expandable = boolean(*expandable, place() + ".expandable");
 	return item;
@@ -64,11 +71,13 @@ std::vector<ListItem> readItems(const json& value, bool tree, const std::string&
 		item.end = items.size() + 1;
 		const auto children = tree && entry.is_object() ? entry.find("children") : entry.end();
 		const bool nests = tree && entry.is_object() && children != entry.end();
-		if(nests && !children->is_array()) fail(concatenate(level.path, "[", std::to_string(index) + "].children"), "expected a list of items");
+		if(nests && !children->is_array())
+			fail(concatenate(level.path, "[", std::to_string(index) + "].children"), "expected a list of items");
 		if(nests && !children->empty()) item.expandable = true;
 		items.push_back(std::move(item));
 		if(!nests || children->empty()) continue;
-		if(levels.size() > maxDepth) fail(concatenate(level.path, "[", std::to_string(index) + "]"), "items nest too deep (at most 256 levels)");
+		if(levels.size() > maxDepth)
+			fail(concatenate(level.path, "[", std::to_string(index) + "]"), "items nest too deep (at most 256 levels)");
 		std::string childPath = concatenate(level.path, "[", std::to_string(index) + "].children");
 		levels.push_back({&*children, 0, items.size() - 1, std::move(childPath)}); // level is not used after this
 	}

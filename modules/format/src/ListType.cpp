@@ -1,13 +1,15 @@
 /// @file
-/// @brief The "list" and "tree" node types: virtualised ListView and TreeView rows from state, the selection as their
-/// value, their open and expand events, and their part in drag and drop.
+/// @brief The "list", "tree" and "table" node types: virtualised ListView, TreeView and TableView rows from state, the
+/// selection as their value, their open, expand, sort and resize events, and their part in drag and drop.
 
 #include "ListItems.hpp"
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
+#include "affresco/render/TableView.hpp"
 #include "affresco/render/TreeView.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -17,6 +19,17 @@
 namespace affresco::format {
 
 namespace {
+
+constexpr std::size_t maxColumns = 256;     ///< The most columns a table has.
+constexpr double maxColumnWidth = 10'000.0; ///< The widest a column is, in pixels.
+constexpr double maxStickyRows = 16.0;      ///< The most folders a tree pins at its top.
+
+/// @brief Which of the three types a set of properties is for.
+enum class ListKind : std::uint8_t {
+	List,  ///< "list"
+	Tree,  ///< "tree"
+	Table, ///< "table"
+};
 
 /// @brief Reads "selection": "none", "single" or "multiple".
 /// @param value The value.
@@ -28,6 +41,42 @@ SelectionMode readSelectionMode(const json& value, const std::string& path) {
 	if(mode == "single") return SelectionMode::Single;
 	if(mode == "multiple") return SelectionMode::Multiple;
 	fail(path, "expected \"none\", \"single\" or \"multiple\"");
+}
+
+/// @brief Reads a table's "columns": texts (the id, also the title), or { id, title, width }.
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The columns.
+std::vector<TableColumn> readColumns(const json& value, const std::string& path) {
+	if(!value.is_array()) fail(path, "expected a list of columns");
+	if(value.size() > maxColumns) fail(path, "too many columns (at most 256)");
+	std::vector<TableColumn> columns;
+	columns.reserve(value.size());
+	for(std::size_t i = 0; i < value.size(); ++i) {
+		const json& entry = value[i];
+		const std::string place = path + "[" + std::to_string(i) + "]";
+		if(entry.is_string() || entry.is_number()) {
+			columns.push_back({text(entry), text(entry)});
+			continue;
+		}
+		if(!entry.is_object() || !entry.contains("id")) fail(place, "expected a column: text, or {\"id\", \"title\"}");
+		TableColumn column{text(entry["id"]), entry.contains("title") ? text(entry["title"]) : text(entry["id"])};
+		if(entry.contains("width"))
+			column.width = static_cast<float>(std::clamp(double{number(entry["width"], place + ".width")},
+			                                             double{TableView::minimumColumnWidth()}, maxColumnWidth));
+		columns.push_back(std::move(column));
+	}
+	return columns;
+}
+
+/// @brief Reads a table's "sort": { column, descending }, or null for the items' order.
+/// @param value The value.
+/// @param path Its place, for errors.
+/// @return The order.
+TableSort readSort(const json& value, const std::string& path) {
+	if(value.is_null()) return {};
+	if(!value.is_object() || !value.contains("column")) fail(path, "expected {\"column\", \"descending\"} or null");
+	return {text(value["column"]), value.contains("descending") && boolean(value["descending"], path + ".descending")};
 }
 
 /// @brief Sets a list's items, unless they are the ones it shows already.
@@ -47,9 +96,27 @@ void applyItems(ListView& list, const json& values, bool tree, const std::string
 	list.setModel(std::make_shared<SourcedItems>(readItems(given, tree, path + ".items"), given));
 }
 
-/// @brief Sets a list's or a tree's items, open folders, selection mode, row height, font and colours.
-/// @param panel The panel, a ListView or a TreeView.
-/// @param values Its items, expanded, selection, rowHeight, font and colours, if given.
+/// @brief Sets what only trees and tables have: a tree's open folders and sticky rows, a table's columns and order.
+/// @param list The list.
+/// @param values The node's properties.
+/// @param path The node's place, for errors.
+void applyTreeOrTable(ListView& list, const json& values, const std::string& path) {
+	if(auto* tree = dynamic_cast<TreeView*>(&list)) {
+		tree->setExpanded(values.contains("expanded") ? readIds(values["expanded"], path + ".expanded")
+		                                              : std::vector<std::string>());
+		const double sticky = values.contains("stickyRows") ? number(values["stickyRows"], path + ".stickyRows") : 0.0;
+		tree->setStickyRows(static_cast<std::size_t>(std::clamp(sticky, 0.0, maxStickyRows)));
+	} else if(auto* table = dynamic_cast<TableView*>(&list)) {
+		table->setColumns(values.contains("columns") ? readColumns(values["columns"], path + ".columns")
+		                                             : std::vector<TableColumn>());
+		table->setSort(values.contains("sort") ? readSort(values["sort"], path + ".sort") : TableSort());
+	}
+}
+
+/// @brief Sets a list's, a tree's or a table's items, selection mode, row height, font and colours, and what only
+/// trees and tables have (applyTreeOrTable()).
+/// @param panel The panel, a ListView.
+/// @param values Its items, selection, rowHeight, font, colours and the rest, if given.
 /// @param reader Reads colours and fonts.
 /// @param path The node's place, for errors.
 void applyList(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
@@ -58,14 +125,12 @@ void applyList(Panel& panel, const json& values, const PropertyReader& reader, c
 	const auto colorOr = [&](const char* key, Color fallback) {
 		return values.contains(key) ? reader.color(values[key], path + "." + key) : fallback;
 	};
-	auto* tree = dynamic_cast<TreeView*>(list);
-	applyItems(*list, values, tree != nullptr, path);
-	if(tree) tree->setExpanded(values.contains("expanded") ? readIds(values["expanded"], path + ".expanded") :
-	                                                          std::vector<std::string>());
-	list->setSelectionMode(values.contains("selection") ? readSelectionMode(values["selection"], path + ".selection") :
-	                                                      SelectionMode::Single);
-	list->setRowHeight(values.contains("rowHeight") ? static_cast<float>(number(values["rowHeight"], path + ".rowHeight")) :
-	                                                  24.0f);
+	applyItems(*list, values, dynamic_cast<TreeView*>(list) != nullptr, path);
+	applyTreeOrTable(*list, values, path);
+	list->setSelectionMode(values.contains("selection") ? readSelectionMode(values["selection"], path + ".selection")
+	                                                    : SelectionMode::Single);
+	list->setRowHeight(
+	    values.contains("rowHeight") ? static_cast<float>(number(values["rowHeight"], path + ".rowHeight")) : 24.0f);
 	list->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
 	list->setColors(colorOr("textColor", colors::black), colorOr("selectedTextColor", colors::white),
 	                colorOr("selectedBackground", colors::accent), colorOr("accentColor", colors::accent));
@@ -96,11 +161,10 @@ void showSelection(Panel& panel, const json* bound, const json& properties, std:
 Connection listenToSelection(Panel& panel, std::function<void(const json&)> changed) {
 	auto* list = dynamic_cast<ListView*>(&panel);
 	if(!list) return 0;
-	return list->onSelectionChanged.connect(
-	    [list, changed = std::move(changed)](const std::vector<std::string>& ids) {
-		    if(list->selectionMode() == SelectionMode::Multiple) changed(json(ids));
-		    else changed(ids.empty() ? json(nullptr) : json(ids.front()));
-	    });
+	return list->onSelectionChanged.connect([list, changed = std::move(changed)](const std::vector<std::string>& ids) {
+		if(list->selectionMode() == SelectionMode::Multiple) changed(json(ids));
+		else changed(ids.empty() ? json(nullptr) : json(ids.front()));
+	});
 }
 
 /// @brief Disconnects listenToSelection().
@@ -110,8 +174,9 @@ void stopListeningToSelection(Panel& panel, Connection connection) {
 	if(auto* list = dynamic_cast<ListView*>(&panel)) list->onSelectionChanged.disconnect(connection);
 }
 
-/// @brief Runs "onOpen" for Enter or a double click, and a tree's "onExpand".
-/// @param panel The panel, a ListView or a TreeView.
+/// @brief Runs "onOpen" for Enter or a double click, a tree's "onExpand", and a table's "onSort" and
+/// "onColumnResize".
+/// @param panel The panel, a ListView.
 /// @param sink Runs a handler.
 /// @return The connections.
 EventConnections listenToListEvents(Panel& panel, EventSink sink) {
@@ -119,12 +184,20 @@ EventConnections listenToListEvents(Panel& panel, EventSink sink) {
 	if(!list) return {};
 	const Connection open =
 	    list->onOpened.connect([sink](const std::string& id) { sink("onOpen", json{{"type", "open"}, {"id", id}}); });
-	Connection expand = 0;
+	Connection expand = 0, sort = 0, resize = 0;
 	if(auto* tree = dynamic_cast<TreeView*>(list))
 		expand = tree->onExpandedChanged.connect([sink](const ExpandChange& change) {
 			sink("onExpand", json{{"type", "expand"}, {"id", change.id}, {"expanded", change.expanded}});
 		});
-	return {open, expand, 0, 0};
+	if(auto* table = dynamic_cast<TableView*>(list)) {
+		sort = table->onSortChanged.connect([sink](const TableSort& order) {
+			sink("onSort", json{{"type", "sort"}, {"column", order.column}, {"descending", order.descending}});
+		});
+		resize = table->onColumnResized.connect([sink](const ColumnResize& change) {
+			sink("onColumnResize", json{{"type", "columnResize"}, {"column", change.column}, {"width", change.width}});
+		});
+	}
+	return {open, expand, sort, resize};
 }
 
 /// @brief Disconnects listenToListEvents().
@@ -135,6 +208,10 @@ void stopListeningToListEvents(Panel& panel, const EventConnections& connections
 	if(!list) return;
 	list->onOpened.disconnect(connections[0]);
 	if(auto* tree = dynamic_cast<TreeView*>(list)) tree->onExpandedChanged.disconnect(connections[1]);
+	if(auto* table = dynamic_cast<TableView*>(list)) {
+		table->onSortChanged.disconnect(connections[2]);
+		table->onColumnResized.disconnect(connections[3]);
+	}
 }
 
 /// @brief The data of rows dragged out of a list: the selection when the pressed row is in it, else that row.
@@ -164,17 +241,35 @@ json dropAt(Panel& panel, const Vec2* position) {
 	const DropTarget target = list->dropTargetAt(*position);
 	list->showDropIndicator(target);
 	const bool onRow = target.row < list->rowCount();
-	const char* place = target.place == DropPlace::Inside ? "inside" : target.place == DropPlace::After ? "after" :
-	                                                                                                     "before";
+	const char* place = target.place == DropPlace::Inside  ? "inside"
+	                    : target.place == DropPlace::After ? "after"
+	                                                       : "before";
 	return {{"index", static_cast<std::int64_t>(target.row)},
 	        {"id", onRow ? json(list->model()->item(list->itemAt(target.row)).id) : json(nullptr)},
 	        {"place", place}};
 }
 
-/// @brief The properties, hooks and events shared by lists and trees.
-/// @param tree Whether it is the tree's, which has "expanded".
+/// @brief Whether a panel is a tree.
+/// @param panel The panel.
+/// @return true when it is.
+bool isTree(const Panel& panel) { return dynamic_cast<const TreeView*>(&panel) != nullptr; }
+
+/// @brief Whether a panel is a table.
+/// @param panel The panel.
+/// @return true when it is.
+bool isTable(const Panel& panel) { return dynamic_cast<const TableView*>(&panel) != nullptr; }
+
+/// @brief Whether a panel is a list that is neither a tree nor a table.
+/// @param panel The panel.
+/// @return true when it is.
+bool isPlainList(const Panel& panel) {
+	return dynamic_cast<const ListView*>(&panel) != nullptr && !isTree(panel) && !isTable(panel);
+}
+
+/// @brief The properties, hooks and events of lists, trees and tables.
+/// @param kind Which: a tree adds "expanded" and "stickyRows", a table "columns" and "sort".
 /// @return The set.
-std::shared_ptr<PropertySet> listProperties(bool tree) {
+std::shared_ptr<PropertySet> listProperties(ListKind kind) {
 	auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},
 	                   {"value", ValueKind::Any},
@@ -186,15 +281,15 @@ std::shared_ptr<PropertySet> listProperties(bool tree) {
 	                   {"selectedTextColor", ValueKind::Color},
 	                   {"selectedBackground", ValueKind::Color},
 	                   {"accentColor", ValueKind::Color}};
-	if(tree) set->properties.insert(set->properties.begin() + 3, {"expanded", ValueKind::Any});
+	if(kind == ListKind::Tree)
+		set->properties.insert(set->properties.begin() + 3,
+		                       {{"expanded", ValueKind::Any}, {"stickyRows", ValueKind::Number}});
+	else if(kind == ListKind::Table)
+		set->properties.insert(set->properties.begin() + 3, {{"columns", ValueKind::Any}, {"sort", ValueKind::Any}});
 	set->apply = applyList;
 	set->everyUpdate = true; // colours follow the theme; unchanged items are skipped
 	set->keepsClicks = true;
-	if(tree) set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TreeView*>(&panel) != nullptr; };
-	else
-		set->appliesTo = [](const Panel& panel) {
-			return dynamic_cast<const ListView*>(&panel) != nullptr && dynamic_cast<const TreeView*>(&panel) == nullptr;
-		};
+	set->appliesTo = kind == ListKind::Tree ? isTree : kind == ListKind::Table ? isTable : isPlainList;
 	set->value = {"value", showSelection, listenToSelection, stopListeningToSelection};
 	set->events = {listenToListEvents, stopListeningToListEvents};
 	set->drag = {dragData, dropAt, false};
@@ -205,9 +300,13 @@ std::shared_ptr<PropertySet> listProperties(bool tree) {
 
 void registerListTypes(TypeRegistry& registry) {
 	registry.add({"list", "A virtualised list: selection, keyboard, type-to-find and drag and drop, any length",
-	              [] { return std::make_unique<ListView>(); }, listProperties(false), false});
-	registry.add({"tree", "A virtualised tree: folders open and close, guides, keyboard, multi-select, drag and drop",
-	              [] { return std::make_unique<TreeView>(); }, listProperties(true), false});
+	              [] { return std::make_unique<ListView>(); }, listProperties(ListKind::List), false});
+	registry.add({"tree",
+	              "A virtualised tree: folders open and close, guides, sticky folders, keyboard, multi-select, drag "
+	              "and drop",
+	              [] { return std::make_unique<TreeView>(); }, listProperties(ListKind::Tree), false});
+	registry.add({"table", "A virtualised table: columns, sorting by a header click, resizable columns, any length",
+	              [] { return std::make_unique<TableView>(); }, listProperties(ListKind::Table), false});
 }
 
 } // namespace affresco::format

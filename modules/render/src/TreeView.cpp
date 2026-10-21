@@ -4,6 +4,7 @@
 #include "affresco/render/TreeView.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Painter.hpp"
+#include "detail/Utf8.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -43,7 +44,7 @@ void TreeView::expand(std::size_t item, bool expanded) {
 	onExpandedChanged(change);
 }
 
-void TreeView::buildRows(std::vector<std::size_t>& rows) const {
+void TreeView::buildRows(std::vector<std::size_t>& rows) {
 	const ListModel& items = *model();
 	const std::size_t size = items.size();
 	// One pass in pre-order: a closed item's subtree is skipped whole
@@ -84,7 +85,38 @@ bool TreeView::rowKey(const KeyEvent& event) {
 	return true;
 }
 
+void TreeView::setStickyRows(std::size_t count) {
+	if(count == stickyRows_) return;
+	stickyRows_ = count;
+	viewChanged();
+	invalidatePaint();
+}
+
+void TreeView::viewChanged() {
+	stuck_.clear();
+	const RowWindow& rows = rowWindow();
+	if(stickyRows_ == 0 || !model() || rowCount() == 0 || scrollPosition() <= 0.0f) return;
+	// The folders the top row is in, innermost first, then reversed: each is shown, so it's open and above the view
+	for(std::size_t item = parentOf(itemAt(rows.rowAt(scrollPosition()))); item < model()->size();
+	    item = parentOf(item))
+		stuck_.push_back(item);
+	std::reverse(stuck_.begin(), stuck_.end());
+	if(stuck_.size() > stickyRows_) stuck_.resize(stickyRows_);
+	stuckText_.resize(std::max(stuckText_.size(), stuck_.size()));
+	for(std::size_t i = 0; i < stuck_.size(); ++i) {
+		const ListItem& entry = model()->item(stuck_[i]);
+		detail::decodeInto(stuckText_[i],
+		                   entry.cells.empty() ? std::string_view() : std::string_view(entry.cells.front()));
+	}
+}
+
 bool TreeView::rowPress(std::size_t row, Vec2 position) {
+	const float along = (position.y - frame().top) / rowWindow().rowHeight();
+	if(along >= 0.0f && along < static_cast<float>(stuck_.size())) {
+		const std::size_t folder = rowOf(stuck_[static_cast<std::size_t>(along)]);
+		if(folder < rowCount()) moveCursor(folder, {});
+		return true;
+	}
 	const std::size_t item = itemAt(row);
 	if(!model()->item(item).expandable) return false;
 	const float left = chevronLeft(item, frame().left);
@@ -94,7 +126,25 @@ bool TreeView::rowPress(std::size_t row, Vec2 position) {
 }
 
 void TreeView::paintRow(Painter& painter, const Font& font, std::size_t row, const Rect& area, Color color) const {
-	const std::size_t item = itemAt(row);
+	paintItem(painter, font, itemAt(row), shownText(row, 0), area, color);
+}
+
+void TreeView::paintOverlay(Painter& painter, const Font& font) const {
+	if(stuck_.empty()) return;
+	const Rect& f = frame();
+	const float height = std::round(rowWindow().rowHeight());
+	for(std::size_t i = 0; i < stuck_.size(); ++i) {
+		const float top = f.top + static_cast<float>(i) * height;
+		const Rect area{f.left, top, f.right, top + height};
+		painter.fillRect(area, color());
+		paintItem(painter, font, stuck_[i], stuckText_[i], area, textColor());
+	}
+	const float bottom = f.top + static_cast<float>(stuck_.size()) * height;
+	painter.fillRect({f.left, bottom, f.right, bottom + 1.0f}, accent().withAlpha(0.25f));
+}
+
+void TreeView::paintItem(Painter& painter, const Font& font, std::size_t item, std::u32string_view label,
+                         const Rect& area, Color color) const {
 	const ListItem& entry = model()->item(item);
 	const float middle = std::round(area.top + area.height() / 2.0f);
 	// Indent guides: one line per level above this item
@@ -105,7 +155,7 @@ void TreeView::paintRow(Painter& painter, const Font& font, std::size_t row, con
 	const float left = chevronLeft(item, area.left);
 	if(entry.expandable) paintChevron(painter, left, middle, isExpanded(item), color);
 	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
-	painter.drawText(font, shownText(row, 0), {left + chevronSize + chevronGap, baseline}, color);
+	painter.drawText(font, label, {left + chevronSize + chevronGap, baseline}, color);
 }
 
 void TreeView::paintChevron(Painter& painter, float left, float middle, bool open, Color color) {

@@ -15,6 +15,7 @@ namespace affresco::format {
 
 inline constexpr std::size_t maxItems = 1'000'000; ///< The most items a list, a tree or a table reads.
 inline constexpr std::size_t maxDepth = 256;       ///< The deepest a tree nests.
+inline constexpr std::size_t maxCells = 256;       ///< The most cells a table's item has.
 
 /// @brief Items read from a node, with the JSON they came from, so an update that gives the same items keeps them.
 class SourcedItems final : public ItemList {

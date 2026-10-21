@@ -14,6 +14,7 @@ affrescoui_module(render
 	src/RowWindow.cpp
 	src/ListView.cpp
 	src/TreeView.cpp
+	src/TableView.cpp
 	src/Font.cpp
 	src/FontCache.cpp
 	src/text/FontFace.cpp
