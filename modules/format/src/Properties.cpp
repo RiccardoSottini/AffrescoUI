@@ -413,7 +413,8 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 		record.focusable = boolean(value, at);
 		break;
 	case Slot::TabIndex:
-		record.tabIndex = static_cast<int>(std::max(number(value, at), -1.0f));
+		// Clamped before the cast: a number past int's range (1e30) would be undefined behaviour
+		record.tabIndex = static_cast<int>(std::clamp(number(value, at), -1.0f, 1.0e9f));
 		break;
 	case Slot::Arrows:
 		record.arrows = string(value, at);
