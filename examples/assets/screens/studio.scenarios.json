@@ -1,0 +1,225 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screen": "studio.screen.json",
+	"scenarios": [
+		{
+			"name": "studio-starts-disconnected",
+			"note": "Before a host answers, the header offers Reconnect and the queue is empty",
+			"steps": [
+				{ "expect": { "node": "#status", "text": "Not connected: start affrescoui_host (retrying every 2 s)" } },
+				{ "expect": { "node": "#label-reconnect", "exists": true } },
+				{ "expect": { "node": "#label-main-revision-revision", "exists": false } },
+				{ "expect": { "node": "#label-nothing-to-review", "exists": true } },
+				{ "expect": { "node": "#logEmpty", "exists": true } }
+			]
+		},
+		{
+			"name": "connecting-shows-the-queue",
+			"note": "The hello and the document fill the header, the tabs and the first proposal",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": [], "author": "claude", "committer": "riccardo", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": [], "author": "claude", "committer": "riccardo", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
+				{ "expect": { "state": "connected", "is": true } },
+				{ "expect": { "node": "#status", "text": "Connected as 'riccardo'" } },
+				{ "expect": { "node": "#label-main-revision-revision", "text": "main  ·  revision 4  ·  a1b2c3d" } },
+				{ "expect": { "node": "#label-p-message", "text": "Add a Blocked column" } },
+				{ "expect": { "node": "#label-p-id-p", "text": "#3  ·  claude  ·  1 commit, 3 changes  ·  e4f5a6b" } },
+				{ "expect": { "node": "#change", "text": "set #boardName/text \"Q4\"", "nth": 2 } },
+				{ "expect": { "node": "#label-always-allow", "exists": true } },
+				{ "expect": { "state": "log[0].text", "is": "Connected to the host, at revision 4 (a1b2c3d)" } }
+			]
+		},
+		{
+			"name": "choose-a-proposal",
+			"note": "A row of the list shows that proposal; one with nothing to remember has no Always allow",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": [], "author": "claude", "committer": "riccardo", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": [], "author": "claude", "committer": "riccardo", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
+				{ "click": [700, 198], "note": "the second row" },
+				{ "expect": { "state": "selected", "is": 4 } },
+				{ "expect": { "node": "#label-p-message", "text": "Switch to a dark theme" } },
+				{ "expect": { "node": "#label-always-allow", "exists": false } },
+				{ "expect": { "node": "#label-remember", "exists": false } }
+			]
+		},
+		{
+			"name": "reject-asks-first",
+			"note": "Reject opens a dialog; Escape keeps the proposal, the dialog's Reject drops it",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": [], "author": "claude", "committer": "riccardo", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": [], "author": "claude", "committer": "riccardo", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
+				{ "wait": 50 },
+				{ "click": "#label-reject" },
+				{ "wait": 50 },
+				{ "expect": { "state": "rejecting.open", "is": true } },
+				{ "expect": { "state": "rejecting.id", "is": 3 } },
+				{ "expect": { "state": "rejecting.message", "is": "Add a Blocked column" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "rejecting.open", "is": false } },
+				{ "click": "#label-reject" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "rejecting.open", "is": false } }
+			]
+		},
+		{
+			"name": "the-previewed-proposal-is-marked",
+			"note": "While a proposal is previewed its card says so and its button ends the preview",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": [], "author": "claude", "committer": "riccardo", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": [], "author": "claude", "committer": "riccardo", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
+				{ "expect": { "node": "#label-previewed-end-preview", "text": "Preview" } },
+				{ "action": "host:review", "event": { "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": 3, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }] } },
+				{ "expect": { "node": "#label-previewing", "exists": true } },
+				{ "expect": { "node": "#label-previewed-end-preview", "text": "End preview" } }
+			]
+		},
+		{
+			"name": "a-new-proposal-pops-a-toast",
+			"note": "A longer review queue tells who proposed what, then the toast goes",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:review", "event": { "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }] } },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "expect": { "state": "toast.message", "is": "New proposal #4 from claude" } },
+				{ "wait": 4100 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		},
+		{
+			"name": "merged-and-rejected-are-logged",
+			"note": "The outcome of a review lands in the activity log, merged ones in a toast too",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": [], "author": "claude", "committer": "riccardo", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": [], "author": "claude", "committer": "riccardo", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
+				{ "action": "host:applied", "event": { "proposal": 3 } },
+				{ "expect": { "state": "toast.message", "is": "Proposal #3 merged" } },
+				{ "action": "host:rejected", "event": { "proposal": 4, "error": "it conflicts with main" } },
+				{ "action": "host:rejected", "event": { "error": "not allowed" } },
+				{ "action": "host:committed", "event": { "revision": 5, "short": "f00ba47", "author": "claude", "message": "Add a Blocked column" } },
+				{ "expect": { "node": "#label-main-revision-revision", "text": "main  ·  revision 5  ·  f00ba47" } },
+				{ "expect": { "node": "#label-entry-text", "nth": 3, "text": "Proposal #3 merged" } },
+				{ "expect": { "node": "#label-entry-text", "nth": 4, "text": "Proposal #4 rejected: it conflicts with main" } },
+				{ "expect": { "node": "#label-entry-text", "nth": 5, "text": "Rejected: not allowed" } },
+				{ "expect": { "node": "#label-entry-text", "nth": 6, "text": "Revision 5 (f00ba47) by claude: Add a Blocked column" } }
+			]
+		},
+		{
+			"name": "history-reverts-and-restores",
+			"note": "The table lists main newest first; Revert and Restore ask before changing it",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": [], "author": "claude", "committer": "riccardo", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": [], "author": "claude", "committer": "riccardo", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
+				{ "key": "mod+2" },
+				{ "expect": { "state": "tab", "is": "history" } },
+				{ "expect": { "node": "#label-history", "text": "5 commits on main, newest first" } },
+				{ "expect": { "node": "#label-entry-author-entry", "text": "riccardo: Direct change from the Studio" } },
+				{ "expect": { "node": "#label-restore", "exists": false } },
+				{ "click": [700, 245], "note": "revision 3" },
+				{ "expect": { "state": "historyPick", "is": 3 } },
+				{ "expect": { "node": "#label-entry-number-entry", "text": "3  ·  3c3c3c3  ·  approved by riccardo" } },
+				{ "click": "#label-restore" },
+				{ "wait": 50 },
+				{ "expect": { "state": "changing.open", "is": true } },
+				{ "expect": { "state": "changing.kind", "is": "restore" } },
+				{ "expect": { "state": "changing.number", "is": 3 } },
+				{ "key": "escape" },
+				{ "expect": { "state": "changing.open", "is": false } },
+				{ "click": "#label-revert" },
+				{ "wait": 50 },
+				{ "expect": { "state": "changing.kind", "is": "revert" } }
+			]
+		},
+		{
+			"name": "rules-show-the-mode-and-grants",
+			"note": "The Rules tab explains the mode and lists the rules that no longer ask",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "default", "grants": [{ "rule": "edit text", "grantedBy": "riccardo", "proposal": 2, "time": 1759990000 }], "you": "riccardo", "canReview": true } },
+				{ "action": "host:history", "event": { "revision": 4, "entries": [{ "id": "0f0f0f00f0f0f00f0f0f00f0f0f00f0f0f0", "short": "0f0f0f0", "number": 0, "parents": [], "author": "host", "committer": "host", "message": "The Kanban template", "time": 1759990000, "proposal": null }, { "id": "1a1a1a11a1a1a11a1a1a11a1a1a11a1a1a1", "short": "1a1a1a1", "number": 1, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Rename the board to Q4", "time": 1759990001, "proposal": null }, { "id": "2b2b2b22b2b2b22b2b2b22b2b2b22b2b2b2", "short": "2b2b2b2", "number": 2, "parents": [], "author": "claude", "committer": "riccardo", "message": "Shorter card titles", "time": 1759990002, "proposal": null }, { "id": "3c3c3c33c3c3c33c3c3c33c3c3c33c3c3c3", "short": "3c3c3c3", "number": 3, "parents": [], "author": "claude", "committer": "riccardo", "message": "Add due dates", "time": 1759990003, "proposal": null }, { "id": "a1b2c3da1b2c3da1b2c3da1b2c3da1b2c3d", "short": "a1b2c3d", "number": 4, "parents": [], "author": "riccardo", "committer": "riccardo", "message": "Direct change from the Studio", "time": 1759990004, "proposal": null }] } },
+				{ "key": "mod+3" },
+				{ "expect": { "node": "#label-mode-help-mode", "text": "Ask first: AI changes no rule allows wait here for you." } },
+				{ "expect": { "node": "#label-don-t-ask", "text": "Don't ask again: edit text" } },
+				{ "expect": { "node": "#label-granted-by", "text": "Granted by riccardo on proposal #2" } },
+				{ "action": "host:review", "event": { "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Add a Blocked column", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 3, "touches": ["/root/children/1"], "remember": ["add columns"], "changes": ["add #column-blocked", "set #column-blocked/title \"Blocked\"", "set #boardName/text \"Q4\""], "reason": "asks", "time": 1760000000 }, { "id": 4, "branch": "proposal/4", "author": "claude", "message": "Switch to a dark theme", "base": "a1b2c3d", "head": "c7d8e9f", "short": "c7d8e9f", "commits": 2, "operations": 1, "touches": ["/theme"], "remember": [], "changes": ["set /theme \"dark\""], "reason": "asks", "time": 1760000100 }], "previewing": null, "mode": "plan", "grants": [] } },
+				{ "expect": { "node": "#label-mode-help-mode", "text": "Plan: the AI can only propose, even where it is allowed." } },
+				{ "expect": { "node": "#panel-g", "exists": false } },
+				{ "expect": { "node": "#label-grants-help", "text": "No rules yet: Always allow on a proposal adds one." } }
+			]
+		},
+		{
+			"name": "ask-the-ai",
+			"note": "Cmd+Enter sends the draft and logs it; an empty draft sends nothing",
+			"steps": [
+				{ "key": "mod+enter" },
+				{ "expect": { "state": "log", "is": [] } },
+				{ "click": "#draft" },
+				{ "type": "add a Blocked column" },
+				{ "key": "mod+enter" },
+				{ "expect": { "state": "draft", "is": "" } },
+				{ "expect": { "node": "#label-entry-text", "nth": 1, "text": "You: add a Blocked column" } }
+			]
+		},
+		{
+			"name": "a-direct-change-must-be-json",
+			"note": "Apply refuses text that is not a patch or edits, and keeps it to fix",
+			"steps": [
+				{ "click": "#patch" },
+				{ "type": "nope" },
+				{ "click": "#label-apply" },
+				{ "expect": { "state": "patch", "is": "nope" } },
+				{ "expect": { "node": "#label-entry-text", "nth": 0, "text": "Not JSON: a patch [{\"op\": ...}] or edits {\"set\": {...}}" } },
+				{ "click": "#label-clear-log" },
+				{ "expect": { "state": "log", "is": [] } },
+				{ "click": "#patch" },
+				{ "key": "mod+a" },
+				{ "key": "backspace" }
+			]
+		},
+		{
+			"name": "a-direct-change-is-sent",
+			"note": "A valid patch is sent and the field clears",
+			"steps": [
+				{ "click": "#patch" },
+				{ "type": "{\"set\": {\"#boardName/text\": \"Q4\"}}" },
+				{ "click": "#label-apply" },
+				{ "expect": { "state": "patch", "is": "" } }
+			]
+		},
+		{
+			"name": "losing-the-host",
+			"note": "When the host goes, the header says so and offers Reconnect",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:closed", "event": { "message": "The host closed the connection" } },
+				{ "expect": { "state": "connected", "is": false } },
+				{ "expect": { "node": "#label-reconnect", "exists": true } },
+				{ "expect": { "node": "#label-entry-text", "nth": 3, "text": "The host closed the connection" } }
+			]
+		},
+		{
+			"name": "switch-theme-and-tabs",
+			"note": "The sun button and Cmd+J switch the theme; Cmd+1, 2 and 3 the tabs",
+			"steps": [
+				{ "click": "#themeToggle" },
+				{ "expect": { "state": "theme", "is": "light" } },
+				{ "key": "mod+j" },
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "key": "mod+2" },
+				{ "expect": { "node": "#historyPage", "exists": true } },
+				{ "key": "mod+3" },
+				{ "expect": { "node": "#rulesPage", "exists": true } },
+				{ "key": "mod+1" },
+				{ "expect": { "node": "#reviewPage", "exists": true } }
+			]
+		}
+	]
+}

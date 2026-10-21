@@ -15,7 +15,7 @@
 				{ "expect": { "node": "#elapsed", "text": "1:27" } },
 				{ "click": "#playPause" },
 				{ "expect": { "state": "isPlaying", "is": false } },
-				{ "expect": { "node": "#playPause", "text": ">" } },
+				{ "expect": { "node": "#playPause", "property": "tooltip", "is": "Play or pause (Space)" } },
 				{ "wait": 3000 },
 				{ "expect": { "state": "elapsed", "is": 87 } }
 			]
@@ -30,7 +30,7 @@
 				{ "expect": { "node": "#panel-playlist", "exists": false } },
 				{ "key": "space" },
 				{ "expect": { "state": "isPlaying", "is": true } },
-				{ "expect": { "node": "#playPause", "text": "||" } }
+				{ "expect": { "node": "#playPause", "property": "tooltip", "is": "Play or pause (Space)" } }
 			]
 		},
 		{
@@ -79,6 +79,7 @@
 			"steps": [
 				{ "click": "#playlist", "nth": 1 },
 				{ "expect": { "state": "current", "is": 1 } },
+				{ "expect": { "node": "#cover", "property": "shown", "is": true } },
 				{ "expect": { "node": "#listName", "text": "Morning Run" } },
 				{ "expect": { "node": "#track", "nth": 4, "exists": false } },
 				{ "click": "#track", "nth": 3 },
@@ -101,6 +102,69 @@
 				{ "key": "down" },
 				{ "expect": { "state": "volume", "is": 90 } },
 				{ "expect": { "node": "#volume", "property": "value", "is": 90 } }
+			]
+		},
+		{
+			"name": "the-library-plays-a-song",
+			"note": "The library holds 3,000 songs in a table; picking one and pressing Enter plays it, and the queue shows the songs after it",
+			"steps": [
+				{ "click": "#label-menu", "nth": 0 },
+				{ "expect": { "state": "page", "is": "library" } },
+				{ "expect": { "state": "library[2999].cells[0]", "is": 3000 } },
+				{ "expect": { "node": "#libraryCount", "text": "3000 songs  ·  find one with Cmd+P" } },
+				{ "click": [400, 237], "note": "the third row" },
+				{ "expect": { "state": "libraryPick", "is": "2" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "playingList", "is": -1 } },
+				{ "expect": { "state": "playingTrack", "is": 2 } },
+				{ "expect": { "node": "#nowPlaying", "text": "Electric Rivers" } },
+				{ "expect": { "node": "#queueFrom", "text": "from All songs" } },
+				{ "key": "right" },
+				{ "expect": { "node": "#nowPlaying", "text": "Paper Rivers" } }
+			]
+		},
+		{
+			"name": "find-a-song-with-the-quick-pick",
+			"note": "Cmd+P finds a song among 3,000 by its title and plays it from the library",
+			"steps": [
+				{ "key": "mod+p" },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "type": "golden comets (live" },
+				{ "key": "enter" },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "page", "is": "library" } },
+				{ "expect": { "state": "playingList", "is": -1 } },
+				{ "expect": { "node": "#nowPlaying", "text": "Golden Comets (Live)" } }
+			]
+		},
+		{
+			"name": "the-command-palette-and-shortcuts",
+			"note": "Cmd+Shift+P lists every command; Cmd+U hides the queue and Cmd+L shows the library",
+			"steps": [
+				{ "key": "mod+shift+p" },
+				{ "expect": { "state": "quickPick.query", "is": ">" } },
+				{ "type": "hide the queue" },
+				{ "key": "enter" },
+				{ "expect": { "state": "queueOpen", "is": false } },
+				{ "expect": { "node": "#queuePane", "exists": false } },
+				{ "key": "mod+u" },
+				{ "expect": { "state": "queueOpen", "is": true } },
+				{ "key": "mod+l" },
+				{ "expect": { "state": "page", "is": "library" } },
+				{ "click": "#playlist", "nth": 3 },
+				{ "expect": { "state": "page", "is": "playlist" } },
+				{ "expect": { "node": "#listName", "text": "Focus" } }
+			]
+		},
+		{
+			"name": "the-queue-plays-what-comes-next",
+			"note": "Clicking a song under Up next plays it, and the waveform restarts",
+			"steps": [
+				{ "expect": { "node": "#queueTitle", "text": "One Draw Call" } },
+				{ "click": [1100, 380], "note": "the second song up next" },
+				{ "expect": { "state": "playingTrack", "is": 4 } },
+				{ "expect": { "node": "#queueTitle", "text": "Sixteen Bytes" } },
+				{ "expect": { "state": "elapsed", "is": 0 } }
 			]
 		}
 	]

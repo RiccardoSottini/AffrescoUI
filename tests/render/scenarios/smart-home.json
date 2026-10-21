@@ -10,14 +10,40 @@
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#light", "nth": 2 },
 				{ "expect": { "image": "light-on" } },
-				{ "click": "#roomRow", "nth": 1 },
+				{ "click": [130, 343], "note": "Kitchen, in the rooms tree" },
 				{ "expect": { "image": "kitchen" } },
 				{ "click": "#scene", "nth": 1 },
 				{ "wait": 1500 },
 				{ "expect": { "image": "scene-settled" } },
-				{ "click": [190, 432] },
+				{ "click": "#toggle-theme-switch" },
 				{ "wait": 600 },
 				{ "expect": { "image": "light-theme" } }
+			]
+		},
+		{
+			"name": "smart-home-devices",
+			"screen": "smart-home.screen.json",
+			"steps": [
+				{ "click": "#deviceAction", "nth": 1 },
+				{ "wait": 450 },
+				{ "expect": { "image": "device-working" } },
+				{ "wait": 600 },
+				{ "expect": { "image": "device-answered" } },
+				{ "click": [26, 283], "note": "close the Ground floor in the rooms tree" },
+				{ "expect": { "image": "floor-closed" } }
+			]
+		},
+		{
+			"name": "smart-home-pages",
+			"screen": "smart-home.screen.json",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "expect": { "image": "energy" } },
+				{ "key": "mod+comma" },
+				{ "expect": { "image": "settings" } },
+				{ "key": "mod+t" },
+				{ "wait": 600 },
+				{ "expect": { "image": "settings-light" } }
 			]
 		}
 	]

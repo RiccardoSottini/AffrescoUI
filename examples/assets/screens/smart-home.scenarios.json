@@ -32,14 +32,18 @@
 		},
 		{
 			"name": "pick-a-room",
-			"note": "Clicking a room in the sidebar shows its name, its lights and its climate",
+			"note": "Clicking a room in the rooms tree shows its name, its picture, its lights and its climate",
 			"steps": [
-				{ "click": "#roomRow", "nth": 1 },
+				{ "click": [130, 343], "note": "Kitchen, under Ground floor" },
 				{ "expect": { "state": "room", "is": 1 } },
 				{ "expect": { "node": "#greeting", "text": "Kitchen" } },
+				{ "expect": { "node": "#roomImage", "property": "shown", "is": true } },
 				{ "expect": { "node": "#label-light-name", "nth": 0, "text": "Pendants" } },
 				{ "expect": { "node": "#light", "nth": 2, "exists": false } },
-				{ "expect": { "node": "#target", "text": "21°" } }
+				{ "expect": { "node": "#target", "text": "21°" } },
+				{ "click": [26, 283], "note": "the arrow closes a floor; picking a floor picks no room" },
+				{ "expect": { "state": "room", "is": 1 } },
+				{ "expect": { "state": "floorsOpen", "is": ["upper"] } }
 			]
 		},
 		{
@@ -92,6 +96,71 @@
 				{ "key": "mod+t" },
 				{ "expect": { "state": "theme", "is": "dark" } },
 				{ "expect": { "node": "#toggle-theme-switch", "property": "checked", "is": false } }
+			]
+		},
+		{
+			"name": "a-device-call-takes-a-while",
+			"note": "A device tile shows its progress while the call runs, then its new state and a toast; a second call waits for the first",
+			"steps": [
+				{ "click": "#deviceAction", "nth": 1 },
+				{ "expect": { "state": "devices[1].busy", "is": true } },
+				{ "expect": { "node": "#deviceState", "nth": 1, "text": "Waiting for it…" } },
+				{ "click": "#deviceAction", "nth": 2, "note": "ignored while the vacuum is busy" },
+				{ "expect": { "state": "devices[2].busy", "is": false } },
+				{ "wait": 450 },
+				{ "expect": { "node": "#busyToast", "exists": true } },
+				{ "wait": 500 },
+				{ "expect": { "state": "devices[1].busy", "is": false } },
+				{ "expect": { "state": "devices[1].on", "is": true } },
+				{ "expect": { "node": "#deviceState", "nth": 1, "text": "Cleaning" } },
+				{ "expect": { "node": "#deviceAction", "nth": 1, "text": "Dock" } },
+				{ "expect": { "state": "toast", "is": { "open": true, "message": "Vacuum: cleaning" } } },
+				{ "wait": 4100 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		},
+		{
+			"name": "pages-from-the-sidebar-and-keys",
+			"note": "The sidebar and Cmd+1, Cmd+2, Cmd+, switch between Home, Energy and Settings",
+			"steps": [
+				{ "click": "#navItem", "nth": 1 },
+				{ "expect": { "state": "page", "is": "energy" } },
+				{ "expect": { "node": "#greeting", "exists": false } },
+				{ "expect": { "node": "#todayFigure", "text": "24.4 kWh" } },
+				{ "expect": { "node": "#peakFigure", "text": "18:00" } },
+				{ "key": "mod+comma" },
+				{ "expect": { "state": "page", "is": "settings" } },
+				{ "key": "mod+1" },
+				{ "expect": { "node": "#greeting", "text": "Living room" } },
+				{ "click": "#energy", "note": "the energy card in the sidebar opens the Energy page" },
+				{ "expect": { "state": "page", "is": "energy" } }
+			]
+		},
+		{
+			"name": "the-room-table-picks-a-room",
+			"note": "On the Energy page, picking a row of the table picks that room",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "click": [800, 629], "note": "the Bedroom row" },
+				{ "expect": { "state": "room", "is": 2 } },
+				{ "key": "mod+1" },
+				{ "expect": { "node": "#greeting", "text": "Bedroom" } }
+			]
+		},
+		{
+			"name": "settings-change-the-scenes",
+			"note": "The Away temperature and the device notifications come from the settings page",
+			"steps": [
+				{ "key": "mod+comma" },
+				{ "click": [1060, 180], "note": "the Away temperature slider, near its start" },
+				{ "click": [1191, 237], "note": "switch device notifications off" },
+				{ "key": "mod+1" },
+				{ "click": "#scene", "nth": 2 },
+				{ "expect": { "state": "rooms[2].target", "is": 13 } },
+				{ "click": "#deviceAction", "nth": 0 },
+				{ "wait": 1000 },
+				{ "expect": { "state": "devices[0].on", "is": false } },
+				{ "expect": { "state": "toast.open", "is": false, "note": "no toast with notifications off" } }
 			]
 		}
 	]
