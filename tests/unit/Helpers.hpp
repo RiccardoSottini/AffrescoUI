@@ -71,4 +71,20 @@ private:
 	std::vector<std::function<void()>> tasks_; ///< Posted, not yet run.
 };
 
+/// Whether this build runs under a sanitizer, which checks memory but slows the code down: timing checks skip it.
+/// @return True under AddressSanitizer (GCC or clang).
+constexpr bool underSanitizer() {
+#if defined(__SANITIZE_ADDRESS__)
+	return true;
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+	return true;
+#else
+	return false;
+#endif
+#else
+	return false;
+#endif
+}
+
 } // namespace affresco::test

@@ -5,6 +5,7 @@
 
 #include "Checker.hpp"
 #include "Headless.hpp"
+#include "Helpers.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -220,7 +221,7 @@ TEST_CASE("format: a settings section of many settings is checked in a time that
 	const auto start = std::chrono::steady_clock::now();
 	CHECK_NOTHROW((void)affresco::Screen::fromString(screen.dump()));
 	const std::chrono::duration<double> took = std::chrono::steady_clock::now() - start;
-	CHECK(took.count() < 5.0); // seconds; before, each setting looked at every other: 50,000 took over 10 s
+	if(!affresco::test::underSanitizer()) CHECK(took.count() < 5.0); // seconds; before, each setting looked at every other: 50,000 took over 10 s
 }
 
 TEST_CASE("format: a bad menus section is refused when the screen loads") {

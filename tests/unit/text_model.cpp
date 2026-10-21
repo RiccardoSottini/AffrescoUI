@@ -2,6 +2,7 @@
 /// @brief Unit tests for render's TextModel: edits, the line index, positions and offsets, undo as operations, change
 /// events, invalid UTF-8, and the cost of a 50 MB text (open, edit, memory).
 
+#include "Helpers.hpp"
 #include <affresco/render/TextModel.hpp>
 
 #include <doctest/doctest.h>
@@ -197,7 +198,7 @@ TEST_CASE("text model: 50 MB opens in 1 s, an edit takes 50 us, memory stays und
 	const auto opening = Clock::now();
 	model.assign(text);
 	const double openSeconds = std::chrono::duration<double>(Clock::now() - opening).count();
-	CHECK(openSeconds <= 1.0);
+	if(!affresco::test::underSanitizer()) CHECK(openSeconds <= 1.0);
 	CHECK(model.lineCount() == text.size() / line.size() + 1);
 
 	constexpr int edits = 20000;
@@ -212,7 +213,7 @@ TEST_CASE("text model: 50 MB opens in 1 s, an edit takes 50 us, memory stays und
 		model.endStep();
 	}
 	const double editMicroseconds = std::chrono::duration<double, std::micro>(Clock::now() - editing).count() / edits;
-	CHECK(editMicroseconds <= 50.0);
+	if(!affresco::test::underSanitizer()) CHECK(editMicroseconds <= 50.0);
 	MESSAGE("open " << openSeconds << " s, edit " << editMicroseconds << " us, memory "
 	                << static_cast<double>(model.memory()) / static_cast<double>(text.size()) << "x");
 	CHECK(static_cast<double>(model.memory()) <= 1.5 * static_cast<double>(text.size()));

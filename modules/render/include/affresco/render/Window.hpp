@@ -73,9 +73,9 @@ struct FileFilter {
 struct FileDialog {
 	FileDialogKind kind = FileDialogKind::Open; ///< Open, save or choose a folder.
 	std::string title;                          ///< Its title; empty for the OS's own.
-	std::vector<FileFilter> filters;            ///< The kinds of file listed (open and save); none lists all.
-	std::string folder;                         ///< The folder it starts in; empty for the OS's choice.
-	std::string name;                           ///< The file name it suggests (save).
+	std::vector<FileFilter> filters{};          ///< The kinds of file listed (open and save); none lists all.
+	std::string folder{};                       ///< The folder it starts in; empty for the OS's choice.
+	std::string name{};                         ///< The file name it suggests (save).
 	bool multiple = false;                      ///< Several files may be chosen (open).
 };
 
