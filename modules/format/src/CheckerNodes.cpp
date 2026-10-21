@@ -2,6 +2,7 @@
 /// @brief The checker's walk of nodes (components, styles, repeat, variables, properties, references) and of
 /// behaviour (handlers, steps, actions run with their callers' variables).
 
+#include "BuiltInComponents.hpp"
 #include "CheckerImpl.hpp"
 #include "Contributions.hpp"
 #include "Models.hpp"
@@ -25,7 +26,8 @@ constexpr auto stepNames = std::to_array<std::string_view>(
     {"set",      "push",    "remove",   "toggle",  "increment", "if",         "forEach", "while",
 	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
 	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
-	 "navigate", "after",   "debounce", "animate", "copy",      "log",        "stop",    "note"});
+	 "navigate", "dismiss", "after",    "debounce", "animate",  "copy",       "log",     "stop",
+	 "note"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -213,6 +215,7 @@ bool Checker::expandUse(Prepared& node, Slot& slot) {
 
 const json* Checker::componentNamed(const std::string& name, const std::string& place) {
 	const json* component = definition("components", name);
+	if(!component) component = builtInComponent(name); // the document's own win
 	const bool valid =
 	    component && component->is_object() && component->contains("node") && (*component)["node"].is_object();
 	if(!valid) {
@@ -474,7 +477,7 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 	if(!kind) {
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
-		       "patch, focus, scrollTo, navigate, after, debounce, animate, copy, log, stop, note, accept, reject, "
+		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, reject, "
 		       "preview, endPreview, restore, revert or undo");
 		return;
 	}
@@ -529,6 +532,7 @@ void Checker::walkRun(const json& step, const Scope& scope, const std::string& p
 	if(const auto with = step.find("with"); with != step.end() && with->is_object())
 		for(const auto& [name, value] : with->items())
 			layer.vars[name] = shapeOf(value, scope, std::format("{}.with.{}", place, name));
+	else if(with != step.end()) read(*with, scope, place + ".with"); // computed whole: its names aren't known
 	const json& name = step["run"];
 	if(name.is_string() && !isDynamic(name)) callAction(name.get<std::string>(), layer, place + ".run");
 	else read(name, scope, place + ".run"); // a name an expression computes: not checked

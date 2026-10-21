@@ -3,6 +3,7 @@
 
 #include "Checker.hpp"
 
+#include "BuiltInComponents.hpp"
 #include "CheckerImpl.hpp"
 
 #include "affresco/format/NodeIds.hpp"
@@ -267,6 +268,10 @@ void Checker::walkUnreached() {
 /* Findings and limits */
 
 void Checker::report(const std::string& place, std::string problem, std::string hint) {
+	if(place.starts_with("components.")) { // a built-in's own body is the library's, tested there
+		const std::string name = place.substr(11, place.find_first_of(".[", 11) - 11);
+		if(!definition("components", name) && builtInComponent(name)) return;
+	}
 	Finding finding{place, std::move(problem), std::move(hint)};
 	if(finding.hint.empty() && hints_ >= maxHints) { // the same finding may have been reported with its hint
 		const auto same = findings_.lower_bound(finding);

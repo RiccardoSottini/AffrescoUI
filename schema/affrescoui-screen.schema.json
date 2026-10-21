@@ -95,15 +95,8 @@
 									"type": "string"
 								},
 								"size": {
-									"anyOf": [
-										{
-											"type": "number",
-											"exclusiveMinimum": 0
-										},
-										{
-											"$ref": "#/$defs/v1/tokenName"
-										}
-									]
+									"type": "number",
+									"exclusiveMinimum": 0
 								},
 								"fallback": {
 									"type": "array",
@@ -129,28 +122,6 @@
 									"minProperties": 1,
 									"additionalProperties": {
 										"$ref": "#/$defs/v1/hexColor"
-									}
-								}
-							]
-						}
-					},
-					"tokens": {
-						"type": "object",
-						"maxProperties": 4096,
-						"description": "Design tokens (\"@name\"): numbers and colors, aliases (\"@other\"), or per theme: {\"light\": ..., \"dark\": ...}",
-						"propertyNames": {
-							"pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$"
-						},
-						"additionalProperties": {
-							"anyOf": [
-								{
-									"$ref": "#/$defs/v1/tokenValue"
-								},
-								{
-									"type": "object",
-									"minProperties": 1,
-									"additionalProperties": {
-										"$ref": "#/$defs/v1/tokenValue"
 									}
 								}
 							]
@@ -343,7 +314,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -359,12 +330,6 @@
 									"checkbox",
 									"slider",
 									"image",
-									"split",
-									"tabs",
-									"list",
-									"tree",
-									"table",
-									"path",
 									"outlet"
 								]
 							},
@@ -620,9 +585,6 @@
 					"visible": {
 						"$ref": "#/$defs/v1/flag"
 					},
-					"cache": {
-						"$ref": "#/$defs/v1/flag"
-					},
 					"cursor": {
 						"anyOf": [
 							{
@@ -688,8 +650,42 @@
 							},
 							"dismiss": {
 								"const": "outside"
+							},
+							"modal": {
+								"$ref": "#/$defs/v1/flag"
 							}
 						}
+					},
+					"focusable": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"tabIndex": {
+						"anyOf": [
+							{
+								"type": "integer",
+								"minimum": -1
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"arrows": {
+						"anyOf": [
+							{
+								"enum": [
+									"vertical",
+									"horizontal",
+									"both"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"mnemonic": {
+						"description": "One letter, or a {{binding}}"
 					},
 					"hover": {
 						"$ref": "#/$defs/v1/stateBlock"
@@ -733,7 +729,7 @@
 								"type": "string"
 							},
 							"in": {
-								"description": "A path like \"state.items\", a data model of the application like \"models.files\", or any value"
+								"description": "A path like \"state.items\", or any value"
 							},
 							"index": {
 								"type": "string"
@@ -882,60 +878,9 @@
 						"type": "string",
 						"description": "label: an icon before the text, by its glyph name in the label's font or its fallbacks (e.g. Lucide's \"search\")"
 					},
-					"runs": {
-						"type": "array",
-						"maxItems": 256,
-						"items": {
-							"oneOf": [
-								{
-									"type": [
-										"string",
-										"number",
-										"boolean"
-									]
-								},
-								{
-									"type": "object",
-									"additionalProperties": false,
-									"properties": {
-										"text": {},
-										"icon": {
-											"type": "string"
-										},
-										"font": {
-											"type": "string"
-										},
-										"size": {
-											"type": "number"
-										},
-										"bold": {
-											"type": "boolean"
-										},
-										"italic": {
-											"type": "boolean"
-										},
-										"color": {
-											"$ref": "#/$defs/v1/color"
-										},
-										"link": {
-											"type": "string",
-											"maxLength": 2048
-										}
-									}
-								}
-							]
-						},
-						"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"
-					},
-					"selectable": {
-						"$ref": "#/$defs/v1/flag"
-					},
-					"selectionColor": {
-						"$ref": "#/$defs/v1/color"
-					},
 					"bind": {
 						"type": "string",
-						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"
+						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider)"
 					},
 					"caret": {
 						"type": "string",
@@ -952,6 +897,9 @@
 						"$ref": "#/$defs/v1/color"
 					},
 					"lineColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"selectionColor": {
 						"$ref": "#/$defs/v1/color"
 					},
 					"caretColor": {
@@ -1036,7 +984,7 @@
 						]
 					},
 					"columns": {
-						"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]; table: the columns: an id (also the title), or { id, title, width }",
+						"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]",
 						"anyOf": [
 							{
 								"type": "integer",
@@ -1050,45 +998,6 @@
 								"items": {
 									"$ref": "#/$defs/v1/track"
 								}
-							},
-							{
-								"type": "array",
-								"maxItems": 256,
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"type": "object",
-											"required": [
-												"id"
-											],
-											"properties": {
-												"id": {
-													"type": [
-														"string",
-														"number"
-													]
-												},
-												"title": {
-													"type": [
-														"string",
-														"number"
-													]
-												},
-												"width": {
-													"type": "number",
-													"minimum": 24,
-													"maximum": 10000
-												}
-											}
-										}
-									]
-								}
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
 							}
 						]
 					},
@@ -1145,7 +1054,7 @@
 					},
 					"file": {
 						"type": "string",
-						"description": "image: a PNG, JPEG or SVG file, relative to the screen file and inside its folder (or one the host allows)"
+						"description": "image: a PNG or JPEG file, relative to the screen file and inside its folder (or one the host allows)"
 					},
 					"source": {
 						"type": "string",
@@ -1164,370 +1073,7 @@
 								"$ref": "#/$defs/v1/dynamic"
 							}
 						],
-						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
-					},
-					"value": {
-						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
-						"anyOf": [
-							{
-								"type": "number"
-							},
-							{
-								"type": "string"
-							},
-							{
-								"type": "array",
-								"maxItems": 100000
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
-					},
-					"defaultSizes": {
-						"type": "array",
-						"maxItems": 1000,
-						"items": {
-							"type": "number",
-							"minimum": 0
-						},
-						"description": "split: the sizes a double click on a sash (or Home) goes back to"
-					},
-					"minSize": {
-						"anyOf": [
-							{
-								"type": "number",
-								"minimum": 0
-							},
-							{
-								"type": "array",
-								"maxItems": 1000,
-								"items": {
-									"type": "number",
-									"minimum": 0
-								}
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "split: the smallest size of every pane, or of each in order"
-					},
-					"sashSize": {
-						"anyOf": [
-							{
-								"type": "number",
-								"minimum": 0,
-								"maximum": 64
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
-					},
-					"sashColor": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"sashActiveColor": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"tabs": {
-						"anyOf": [
-							{
-								"type": "array",
-								"maxItems": 10000,
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"type": "object",
-											"required": [
-												"id"
-											],
-											"properties": {
-												"id": {
-													"type": "string"
-												},
-												"label": {
-													"type": "string"
-												},
-												"marker": {
-													"type": "boolean"
-												},
-												"closable": {
-													"type": "boolean"
-												}
-											}
-										}
-									]
-								}
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"
-					},
-					"activeTextColor": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"activeBackground": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"accentColor": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"items": {
-						"anyOf": [
-							{
-								"type": "array",
-								"maxItems": 1000000,
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"type": "number"
-										},
-										{
-											"type": "object",
-											"required": [
-												"id"
-											],
-											"properties": {
-												"id": {
-													"type": [
-														"string",
-														"number"
-													]
-												},
-												"label": {
-													"type": [
-														"string",
-														"number"
-													]
-												},
-												"expandable": {
-													"type": "boolean"
-												},
-												"children": {
-													"type": "array"
-												},
-												"cells": {
-													"type": "array",
-													"minItems": 1,
-													"maxItems": 256,
-													"items": {
-														"type": [
-															"string",
-															"number",
-															"boolean",
-															"null"
-														]
-													}
-												}
-											}
-										}
-									]
-								}
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "list, tree, table: the rows: an id, or { id, label, children (tree), expandable (tree), cells (table) }"
-					},
-					"expanded": {
-						"anyOf": [
-							{
-								"type": "array",
-								"maxItems": 1000000,
-								"items": {
-									"type": [
-										"string",
-										"number"
-									]
-								}
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "tree: the ids of the open nodes"
-					},
-					"stickyRows": {
-						"anyOf": [
-							{
-								"type": "number",
-								"minimum": 0,
-								"maximum": 16
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"
-					},
-					"sort": {
-						"anyOf": [
-							{
-								"type": "null"
-							},
-							{
-								"type": "object",
-								"required": [
-									"column"
-								],
-								"properties": {
-									"column": {
-										"type": [
-											"string",
-											"number"
-										]
-									},
-									"descending": {
-										"type": "boolean"
-									}
-								}
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "table: the order: { column, descending }, or null"
-					},
-					"selection": {
-						"anyOf": [
-							{
-								"enum": [
-									"none",
-									"single",
-									"multiple"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "list, tree: none, single (default) or multiple"
-					},
-					"rowHeight": {
-						"anyOf": [
-							{
-								"type": "number",
-								"minimum": 1,
-								"maximum": 1000
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "list, tree: each row's height in pixels (default 24)"
-					},
-					"selectedTextColor": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"selectedBackground": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"d": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "path: SVG path data (M L H V C S Q T A Z, absolute and relative)"
-					},
-					"viewBox": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "path: the area of the data fitted to the node, \"x y width height\""
-					},
-					"fillColor": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"fillRule": {
-						"anyOf": [
-							{
-								"enum": [
-									"nonzero",
-									"evenodd"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "path: which points are inside, nonzero (default) or evenodd"
-					},
-					"stroke": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"strokeWidth": {
-						"anyOf": [
-							{
-								"type": "number",
-								"minimum": 0
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
-					},
-					"strokeJoin": {
-						"anyOf": [
-							{
-								"enum": [
-									"miter",
-									"round",
-									"bevel"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
-					},
-					"strokeCap": {
-						"anyOf": [
-							{
-								"enum": [
-									"butt",
-									"round",
-									"square"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
-					},
-					"strokeDash": {
-						"anyOf": [
-							{
-								"type": "array",
-								"maxItems": 64,
-								"items": {
-									"type": "number",
-									"minimum": 0
-								}
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						]
+						"description": "image: contain (default), cover or fill, like CSS object-fit"
 					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
@@ -1571,31 +1117,10 @@
 					"onSubmit": {
 						"$ref": "#/$defs/v1/handler"
 					},
-					"onLink": {
-						"$ref": "#/$defs/v1/handler"
-					},
 					"onShow": {
 						"$ref": "#/$defs/v1/handler"
 					},
 					"onHide": {
-						"$ref": "#/$defs/v1/handler"
-					},
-					"onClose": {
-						"$ref": "#/$defs/v1/handler"
-					},
-					"onMove": {
-						"$ref": "#/$defs/v1/handler"
-					},
-					"onExpand": {
-						"$ref": "#/$defs/v1/handler"
-					},
-					"onOpen": {
-						"$ref": "#/$defs/v1/handler"
-					},
-					"onSort": {
-						"$ref": "#/$defs/v1/handler"
-					},
-					"onColumnResize": {
 						"$ref": "#/$defs/v1/handler"
 					},
 					"slot": {
@@ -1610,6 +1135,16 @@
 					},
 					"checked": {
 						"$ref": "#/$defs/v1/flag"
+					},
+					"value": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
 					}
 				},
 				"if": {
@@ -1632,12 +1167,6 @@
 									"checkbox",
 									"slider",
 									"image",
-									"split",
-									"tabs",
-									"list",
-									"tree",
-									"table",
-									"path",
 									"outlet"
 								]
 							}
@@ -1654,7 +1183,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError), emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -1666,7 +1195,6 @@
 					"while": {},
 					"run": {},
 					"call": {},
-					"cancel": {},
 					"emit": {},
 					"send": {},
 					"connect": {},
@@ -1685,6 +1213,9 @@
 					"focus": {},
 					"scrollTo": {},
 					"navigate": {},
+					"dismiss": {
+						"const": true
+					},
 					"after": {},
 					"debounce": {},
 					"animate": {},
@@ -1712,9 +1243,6 @@
 					"onError": {
 						"$ref": "#/$defs/v1/steps"
 					},
-					"loading": {},
-					"progress": {},
-					"timeout": {},
 					"data": {},
 					"message": {},
 					"head": {},
@@ -1904,7 +1432,7 @@
 				"anyOf": [
 					{
 						"type": "string",
-						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_.-]*|transparent)$"
+						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_-]*|transparent)$"
 					},
 					{
 						"$ref": "#/$defs/v1/dynamic"
@@ -1988,7 +1516,7 @@
 				"description": "Properties shown in that state (any visual property, or a style)"
 			},
 			"dynamic": {
-				"description": "A {{binding or expression}}, an operator ({\"$clamp\": [...]}), or a \"@token\"",
+				"description": "A {{binding or expression}}, or an operator ({\"$clamp\": [...]})",
 				"anyOf": [
 					{
 						"type": "string",
@@ -1996,30 +1524,6 @@
 					},
 					{
 						"$ref": "#/$defs/v1/expression"
-					},
-					{
-						"$ref": "#/$defs/v1/tokenName"
-					}
-				]
-			},
-			"tokenName": {
-				"description": "\"@name\" of a token of \"tokens\"",
-				"type": "string",
-				"pattern": "^@[A-Za-z_][A-Za-z0-9_.-]*$"
-			},
-			"tokenValue": {
-				"anyOf": [
-					{
-						"type": "number"
-					},
-					{
-						"$ref": "#/$defs/v1/hexColor"
-					},
-					{
-						"const": "transparent"
-					},
-					{
-						"$ref": "#/$defs/v1/tokenName"
 					}
 				]
 			},

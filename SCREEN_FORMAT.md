@@ -126,7 +126,11 @@ parent, later siblings on top of earlier ones.
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
-| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. |
+| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
+| `focusable` | `true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable). |
+| `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
+| `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
+| `mnemonic` | A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` node, the letter alone does. |
 | `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
 | `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 | `repeat` | `{ "for": "card", "in": "state.cards", "index": "i", "key": "{{card.id}}" }`: one node per list item. With `key`, a node follows its item when the list is reordered (keeping focus and scroll). |
@@ -375,6 +379,25 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 `children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
+**Built-in components** need no definition (a screen's own component of the same name wins). They are written in the
+format, take their colours as parameters, and keep their open state where `open` says (a state path):
+- `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
+  `{ "title", "keyLabel", "mnemonic", "enabled", "separator", "submenu", "run", "with" }`. The arrows, Home, End and
+  the items' first letters move and choose; Enter or a click runs the item's action and closes the menus; a click
+  outside or Escape closes them. A submenu's state is `open + 'Sub'`, one key per item (`.m0`, `.m1`, ...).
+- `menuBar`: `menus` of `{ "name", "title", "items" }`; Alt with a menu's first letter opens it, and `open` is an
+  object with one flag per menu name.
+- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
+  trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
+  `children` go between the message and the buttons.
+- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
+- `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
+
+```json
+{ "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
+  "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
+```
+
 ## Values, expressions and state
 
 Wherever a value is expected it can be computed:
@@ -536,7 +559,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `if` | `{ "if": "{{len(state.draft) == 0}}", "then": [...], "else": [...] }` |
 | `forEach` | `{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }` |
 | `while` | `{ "while": "{{state.n < 10}}", "do": [...] }` (at most 10,000 iterations) |
-| `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed |
+| `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed, and `with` too (`"{{item.with}}"`, an object or null) |
 | `call` | `{ "call": "pickFile", "with": {...}, "into": "state.file", "onError": [...] }`: a native function (`Screen::onCall`); `error` in `onError`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: `"loading": "state.busy"` is true while it runs, `"progress": "state.done"` goes from 0 to 1, partial results stream into `into`, `"timeout": 5000` ends it with the error `timeout`, `then` runs with `result` |
 | `cancel` | `{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
@@ -545,6 +568,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
+| `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |

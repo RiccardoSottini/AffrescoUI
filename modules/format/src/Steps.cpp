@@ -16,8 +16,11 @@ json Running::value(const json& v, const std::string& at) const {
 }
 
 json::json_pointer Running::target(const char* key) const {
-	return format::statePointer(string(step[key], where + "." + key), steps.engine().document.context(locals, event),
-	                            where + "." + key);
+	const std::string at = where + "." + key;
+	const Context context = steps.engine().document.context(locals, event);
+	// A computed place, e.g. {"toggle": "{{open}}"} in a component given "state.menuOpen"
+	const std::string path = isDynamic(step[key]) ? string(value(step[key], at), at) : string(step[key], at);
+	return format::statePointer(path, context, at);
 }
 
 json Running::list(const json& source, const std::string& at) const {

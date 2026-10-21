@@ -31,9 +31,12 @@ bool forEach(const Running& s) {
 void runAction(const Running& s) {
 	// "with": the action's own variables, e.g. {"run": "moveCard", "with": {"to": "{{c + 1}}"}}
 	Scope scope{&s.locals, nullptr, json::object(), {}, {}};
-	if(s.step.contains("with"))
-		for(const auto& [name, v] : object(s.step["with"], s.where + ".with").items())
-			scope.vars[name] = s.value(v, s.where + ".with." + name);
+	// or computed whole, e.g. {"with": "{{item.with}}"} (null: none)
+	if(const auto with = s.step.find("with"); with != s.step.end() && with->is_object())
+		for(const auto& [name, v] : with->items()) scope.vars[name] = s.value(v, s.where + ".with." + name);
+	else if(with != s.step.end())
+		if(const json computed = s.value(*with, s.where + ".with"); !computed.is_null())
+			scope.vars.update(object(computed, s.where + ".with"));
 	s.steps.runNamed(text(s.value("run")), s.sender, s.event, scope, s.where + ".run");
 }
 

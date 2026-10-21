@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <format>
 
 namespace affresco::format {
@@ -284,6 +285,11 @@ void Properties::reset(Panel& panel, Record& record) {
 	record.overlayOpen.reset();
 	record.dismissOutside = false;
 	record.overlayAnchor.clear();
+	record.modal = false;
+	record.focusable = false;
+	record.tabIndex = 0;
+	record.arrows.clear();
+	record.mnemonic = 0;
 }
 
 void Properties::applyVisual(Panel& panel, Record& record, const Visual& properties, bool isRoot) {
@@ -376,6 +382,23 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 	case Slot::Overlay:
 		overlay(panel, record, value, at, look);
 		break;
+	case Slot::Focusable:
+		record.focusable = boolean(value, at);
+		break;
+	case Slot::TabIndex:
+		record.tabIndex = static_cast<int>(std::max(number(value, at), -1.0f));
+		break;
+	case Slot::Arrows:
+		record.arrows = string(value, at);
+		if(record.arrows != "vertical" && record.arrows != "horizontal" && record.arrows != "both")
+			fail(at, R"(expected "vertical", "horizontal" or "both")");
+		break;
+	case Slot::Mnemonic: {
+		const std::string letter = text(value);
+		record.mnemonic = letter.empty() ? '\0'
+		                                 : static_cast<char>(std::tolower(static_cast<unsigned char>(letter.front())));
+		break;
+	}
 	default:
 		return false;
 	}
@@ -432,8 +455,8 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 void Properties::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
 	const json& overlay = object(value, at);
 	for(const auto& [k, v] : overlay.items())
-		if(k != "anchor" && k != "placement" && k != "open" && k != "dismiss")
-			fail(at + "." + k, "unknown property (expected anchor, placement, open or dismiss)");
+		if(k != "anchor" && k != "placement" && k != "open" && k != "dismiss" && k != "modal")
+			fail(at + "." + k, "unknown property (expected anchor, placement, open, dismiss or modal)");
 	std::string anchor = overlay.contains("anchor") ? string(overlay["anchor"], at + ".anchor") : "";
 	if(anchor.starts_with('#')) anchor.erase(0, 1);
 	record.overlayAnchor = anchor;
@@ -453,6 +476,12 @@ void Properties::overlay(Panel& panel, Record& record, const json& value, const 
 		if(string(overlay["dismiss"], at + ".dismiss") != "outside") fail(at + ".dismiss", "expected \"outside\"");
 		if(!record.overlayOpen) fail(at + ".dismiss", "needs \"open\" to be a state path, e.g. \"state.menuOpen\"");
 		record.dismissOutside = true;
+	}
+	// A modal overlay traps the focus while it is open, and gives it back when it closes
+	record.modal = overlay.contains("modal") && boolean(overlay["modal"], at + ".modal");
+	if((record.modal && look.overlayOpen.value_or(true)) != record.modalShown) {
+		record.modalShown = !record.modalShown;
+		engine_.events.modal(panel, record.modalShown);
 	}
 }
 

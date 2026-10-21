@@ -131,7 +131,7 @@ constexpr KeyReference stepTable[] = {
     {"while", "", "`{ \"while\": \"{{state.n < 10}}\", \"do\": [...] }` (at most 10,000 iterations)", "steps"},
     {"run", "",
 	 "`{ \"run\": \"moveCard\", \"with\": { \"from\": \"{{c}}\", \"to\": \"{{c + 1}}\" } }`: an action with variables; "
-	 "the name may be computed",
+	 "the name may be computed, and `with` too (`\"{{item.with}}\"`, an object or null)",
 	 "steps"},
     {"call", "",
 	 "`{ \"call\": \"pickFile\", \"with\": {...}, \"into\": \"state.file\", \"onError\": [...] }`: a native function "
@@ -148,6 +148,8 @@ constexpr KeyReference stepTable[] = {
     {"navigate", "", "`{ \"navigate\": \"settings\" }` or `\"back\"`", "steps"},
     {"focus", "", "`{ \"focus\": \"#input\" }`, `{ \"scrollTo\": \"#row7\" }` (after the update)", "steps"},
     {"scrollTo", "", "", "steps"},
+    {"dismiss", R"json({"const": true})json",
+	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
     {"after", "", "`{ \"after\": 2000, \"do\": [...] }`: later", "steps"},
     {"debounce", "", "`{ \"debounce\": 300, \"do\": [...] }`: later, unless run again in the meantime (search boxes)",
 	 "steps"},

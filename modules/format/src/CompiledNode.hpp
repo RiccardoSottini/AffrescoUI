@@ -38,6 +38,10 @@ enum class Slot : std::uint8_t {
 	Transition, ///< "transition".
 	Scroll,     ///< "scroll".
 	Overlay,    ///< "overlay".
+	Focusable,  ///< "focusable".
+	TabIndex,   ///< "tabIndex".
+	Arrows,     ///< "arrows".
+	Mnemonic,   ///< "mnemonic".
 	/* Every panel's shape */
 	Radius,      ///< "radius".
 	BorderWidth, ///< "borderWidth".

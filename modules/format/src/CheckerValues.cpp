@@ -445,6 +445,7 @@ PathKey Checker::parseIndex(std::string_view inner, const std::string& place) {
 
 void Checker::write(const json& target, const Shape& value, Change change, const Scope& scope,
                     const std::string& place) {
+	if(isDynamic(target)) read(target, scope, place); // a computed place: where it writes isn't known
 	if(!target.is_string() || isDynamic(target)) return;
 	const std::optional<std::vector<PathKey>> keys = parsePath(target.get_ref<const std::string&>(), place);
 	if(!keys) return;

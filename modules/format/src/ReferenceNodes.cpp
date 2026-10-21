@@ -135,12 +135,27 @@ constexpr KeyReference nodeTable[] = {
 		"properties": {"anchor": {"type": "string"}, "placement": {"enum": ["below", "below-end",
 		"above", "above-end", "right", "left", "center", "window"]},
 		"open": {"description": "A state path (\"state.menuOpen\") or a value"},
-		"dismiss": {"const": "outside"}}})json",
+		"dismiss": {"const": "outside"}, "modal": {"$ref": "#/$defs/v1/flag"}}})json",
 	 "`{ \"anchor\": \"#id\", \"placement\": \"below\", \"open\": \"state.menuOpen\", \"dismiss\": \"outside\" }`: "
 	 "drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, "
 	 "`above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in "
 	 "the window). `open` is a state path (or a value); with `\"dismiss\": \"outside\"`, a click outside it or Escape "
-	 "sets it to false.",
+	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first focusable "
+	 "node inside gets the focus) and gives it back when it closes.",
+	 "look"},
+    {"focusable", "flag",
+	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",
+	 "look"},
+    {"tabIndex", R"json({"anyOf": [{"type": "integer", "minimum": -1}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out.",
+	 "look"},
+    {"arrows", R"json({"anyOf": [{"enum": ["vertical", "horizontal", "both"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), "
+	 "wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is.",
+	 "look"},
+    {"mnemonic", R"json({"description": "One letter, or a {{binding}}"})json",
+	 "A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` "
+	 "node, the letter alone does.",
 	 "look"},
     {"hover", "stateBlock",
 	 "Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). "

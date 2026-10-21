@@ -34,6 +34,7 @@ affrescoui_module(format
 	src/Binding.cpp
 	src/CompiledNode.cpp
 	src/Builder.cpp
+	src/BuiltInComponents.cpp
 	src/Reconciler.cpp
 	src/Properties.cpp
 	src/PropertyValues.cpp

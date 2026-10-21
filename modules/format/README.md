@@ -33,7 +33,7 @@ Each subsystem's header says its role, its invariants and its callers:
 | `Builder` | compiles each node once per version of the document; a node's children after `use`, `repeat`, `with`, `let`, `check`, styles and `when` |
 | `Reconciler` | the record of every panel built; keeps the panels in line with the document; batched updates |
 | `Properties` | a compiled node's values on its panel, by slot; the property sets node types registered |
-| `Events` | pointer, keys (one walk resolves bindings and chords, `resolve`), focus, drag and drop, bubbling, overlays closed by a click outside, widgets' values |
+| `Events` | pointer, keys (one walk resolves bindings and chords, `resolve`), focus (tab order, focus scopes, arrows, mnemonics), drag and drop, bubbling, overlays closed by a click outside, widgets' values |
 | `Steps` | handlers and actions; each step runs in the group of the step registry that recognises it |
 | `Scheduler` | `every`, `after`, `debounce`, `animate`, transitions and deferred tasks, on the window's clock |
 | catalog | `Catalog.cpp`: what the format offers, built from the registries |
@@ -208,6 +208,7 @@ src/
   DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
   DesignTokens.*           the "tokens" section: aliases, per-theme values, colour and number tables
   Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
+  BuiltInComponents.*      menus, the menu bar, dialogs, toasts and hover cards, written in the format
   CompiledNode.*           a node compiled: slots, bindings, scoping keys
   Binding.*                a value compiled once: templates split, operators lowered
   StateTypes.*             typed state: the stateTypes subset of JSON Schema, matching values, describing types

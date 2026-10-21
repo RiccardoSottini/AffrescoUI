@@ -22,6 +22,28 @@
 				{ "type": "ab" },
 				{ "expect": { "node": "#input", "text": "ab" } }
 			]
+		},
+		{
+			"name": "overlays",
+			"screen": "overlays.screen.json",
+			"steps": [
+				{ "wait": 50 },
+				{ "key": "alt+f" },
+				{ "wait": 50 },
+				{ "expect": { "state": "bar.file", "is": true } },
+				{ "expect": { "image": "menu-open" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "last", "is": "new" } },
+				{ "expect": { "state": "bar.file", "is": false } },
+				{ "key": "alt+s" },
+				{ "expect": { "state": "answer", "is": "stop" } },
+				{ "click": "#ask" },
+				{ "wait": 50 },
+				{ "expect": { "image": "dialog" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "answer", "is": "save" } },
+				{ "expect": { "state": "dialog", "is": false } }
+			]
 		}
 	]
 }

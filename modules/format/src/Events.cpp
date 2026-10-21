@@ -37,7 +37,10 @@ void Events::connect(Window& window) {
 	    window.onResize.connect([this](const ResizeEvent&) { engine_.reconciler.requestReconcile(); });
 	// Screen-wide shortcuts ("keys"); a focused text area keeps plain keys for typing
 	windowHooks_.key = window.onKey.connect([this](const KeyEvent& event) {
-		if(!keyResolved_ && engine_.window) resolve(engine_.window->focusedPanel(), event);
+		if(!keyResolved_ && engine_.window) {
+			Panel* focused = engine_.window->focusedPanel();
+			if(!resolve(focused, event)) navigate(focused, event);
+		}
 		keyResolved_ = false;
 	});
 	// A press outside an open overlay that closes on it
@@ -170,6 +173,10 @@ void Events::forget(const Panel& panel) noexcept {
 	if(press_.source == &panel) press_.source = nullptr;
 	if(press_.over == &panel) press_.over = nullptr;
 	if(lastClick_.owner == &panel) lastClick_.owner = nullptr;
+	std::erase_if(modals_, [&panel](const Modal& open) { return open.overlay == &panel; });
+	for(Modal& open : modals_)
+		if(open.previous == &panel) open.previous = nullptr;
+	if(focusLater_.panel == &panel || focusLater_.scope == &panel) focusLater_.cancelled = true;
 }
 
 void Events::valueChanged(Panel& panel, const json& value) {
@@ -470,7 +477,7 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	keyResolved_ = true;
 	if(resolve(&panel, event)) return;
 	const std::string name = shortcut(event);
-	bubble(panel, "onKey",
+	const bool handled = bubble(panel, "onKey",
 	       {{"type", "key"},
 	        {"key", keyName(event.key)},
 	        {"shortcut", name},
@@ -478,11 +485,193 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	        {"ctrl", event.mods.control()},
 	        {"alt", event.mods.alt()},
 	        {"cmd", event.mods.super()}});
+	if(!handled && engine_.reconciler.recordOf(&panel)) navigate(&panel, event);
+}
+
+/* Focus */
+
+void Events::modal(Panel& overlay, bool open) {
+	Window* window = engine_.window;
+	if(!window) return;
+	if(open) {
+		Panel* focused = window->focusedPanel();
+		modals_.push_back({&overlay, engine_.reconciler.recordOf(focused) ? focused : nullptr});
+		focusLater(nullptr, &overlay);
+		return;
+	}
+	const auto it = std::ranges::find(modals_, &overlay, &Modal::overlay);
+	if(it == modals_.end()) return;
+	Panel* previous = it->previous;
+	modals_.erase(it);
+	bool inside = focusLater_.pending && focusLater_.scope == &overlay;
+	for(Panel* p = window->focusedPanel(); p && !inside; p = p->parent()) inside = p == &overlay;
+	if(inside) focusLater(previous, nullptr);
+}
+
+void Events::focusLater(Panel* panel, Panel* scope, int frames) {
+	focusLater_.panel = panel;
+	focusLater_.scope = scope;
+	focusLater_.cancelled = false;
+	if(std::exchange(focusLater_.pending, true)) return; // one is scheduled already, and does this instead
+	engine_.scheduler.once(0.0, [this, frames] {
+		const auto target = std::exchange(focusLater_, {});
+		if(target.cancelled || !engine_.window) return;
+		// Deferred tasks run before the frame's layout, which is what shows an overlay just opened
+		if(target.scope && !target.scope->isShown() && target.scope->isVisible() && frames > 0) {
+			focusLater(target.panel, target.scope, frames - 1);
+			return;
+		}
+		Panel* focus = target.panel;
+		if(target.scope) {
+			const std::vector<Panel*> inside = focusables(*target.scope, false);
+			focus = inside.empty() ? target.scope : inside.front();
+		}
+		engine_.window->setFocus(focus);
+	});
+}
+
+std::vector<Panel*> Events::focusables(Panel& scope, bool list) {
+	std::vector<Panel*> result;
+	std::vector<Panel*> positive; // a "tabIndex" over 0
+	const auto add = [&](Panel* panel, const Record& record) {
+		if(record.tabIndex <= 0 || list) {
+			result.push_back(panel);
+			return;
+		}
+		const auto after = std::ranges::upper_bound(positive, record.tabIndex, {}, [this](Panel* p) {
+			return engine_.reconciler.recordOf(p)->tabIndex;
+		});
+		positive.insert(after, panel);
+	};
+	const auto visit = [&](this const auto& self, Panel& panel) -> void {
+		if(!panel.isShown()) return;
+		const Record* record = engine_.reconciler.recordOf(&panel);
+		if(record && record->disabled) return;
+		if(record && &panel != &scope) {
+			if(list ? !record->arrows.empty() : record->modal) return;
+			if(!list && !record->arrows.empty()) { // Tab stops once in a list: on its focused item, else its first
+				const std::vector<Panel*> items = focusables(panel, true);
+				Panel* focused = engine_.window ? engine_.window->focusedPanel() : nullptr;
+				const auto it = std::ranges::find(items, focused);
+				if(!items.empty()) add(it != items.end() ? *it : items.front(), *engine_.reconciler.recordOf(*items.begin()));
+				return;
+			}
+		}
+		const bool input = dynamic_cast<const TextArea*>(&panel) || dynamic_cast<const TextEditor*>(&panel);
+		if(record && &panel != &scope && record->tabIndex >= 0 && (record->focusable || input)) add(&panel, *record);
+		for(const auto& child : panel.children()) self(*child);
+	};
+	visit(scope);
+	positive.insert(positive.end(), result.begin(), result.end());
+	return positive;
+}
+
+Panel& Events::modalScope() {
+	for(auto it = modals_.rbegin(); it != modals_.rend(); ++it)
+		if(it->overlay->isShown()) return *it->overlay;
+	return engine_.window->root();
+}
+
+bool Events::keyClick(Panel& panel) {
+	if(!handlerOwner(&panel, "onClick")) return false;
+	return bubble(panel, "onClick", {{"type", "click"}, {"keyboard", true}});
+}
+
+bool Events::navigate(Panel* from, const KeyEvent& event) {
+	if(event.action == affresco::Action::Release || !engine_.window) return false;
+	const Mods mods = event.mods;
+	const bool input = dynamic_cast<const TextArea*>(from) || dynamic_cast<const TextEditor*>(from);
+	const bool plain = !mods.super() && !mods.control() && !mods.alt();
+	Window& window = *engine_.window;
+
+	// Tab and Shift+Tab, in the open modal overlay if any (a code editor keeps Tab for indenting)
+	if(event.key == Key::Tab && plain && !dynamic_cast<const TextEditor*>(from)) {
+		const std::vector<Panel*> order = focusables(modalScope(), false);
+		if(order.empty()) return false;
+		Panel* at = from;
+		auto it = order.end();
+		for(; at && it == order.end(); at = at->parent()) it = std::ranges::find(order, at);
+		const std::size_t n = order.size();
+		std::size_t next = mods.shift() ? n - 1 : 0;
+		if(it != order.end()) {
+			const auto here = static_cast<std::size_t>(it - order.begin());
+			next = mods.shift() ? (here + n - 1) % n : (here + 1) % n;
+		}
+		window.setFocus(order[next]);
+		return true;
+	}
+	if(input) return false; // a text input keeps the other keys for typing
+
+	// Alt+letter: the mnemonic's node, in the open modal overlay if any
+	const char letter = event.key >= Key::A && event.key <= Key::Z
+	                        ? static_cast<char>('a' + (static_cast<int>(event.key) - static_cast<int>(Key::A)))
+	                        : '\0';
+	const auto clickMnemonic = [&](Panel& scope) {
+		for(Panel* panel : focusables(scope, true))
+			if(engine_.reconciler.recordOf(panel)->mnemonic == letter) return keyClick(*panel);
+		return false;
+	};
+	if(letter && mods.alt() && !mods.super() && !mods.control()) { // anywhere in it, lists too
+		Panel& scope = modalScope();
+		const auto find = [&](this const auto& self, Panel& panel) -> Panel* {
+			const Record* record = engine_.reconciler.recordOf(&panel);
+			if(!panel.isShown() || (record && record->disabled) || (record && &panel != &scope && record->modal))
+				return nullptr;
+			if(record && &panel != &scope && record->mnemonic == letter) return &panel;
+			for(const auto& child : panel.children())
+				if(Panel* found = self(*child)) return found;
+			return nullptr;
+		};
+		Panel* found = find(scope);
+		return found && keyClick(*found);
+	}
+
+	if(!from || !plain || mods.shift()) return false;
+	const Record* own = engine_.reconciler.recordOf(from);
+	if(own && own->focusable && (event.key == Key::Enter || event.key == Key::KeypadEnter || event.key == Key::Space))
+		return keyClick(*from);
+
+	// Inside the nearest "arrows" node: the arrows, Home, End and its mnemonics
+	Panel* list = from;
+	const Record* listRecord = nullptr;
+	for(; list; list = list->parent()) {
+		listRecord = engine_.reconciler.recordOf(list);
+		if(listRecord && !listRecord->arrows.empty()) break;
+	}
+	if(!list) return false;
+	if(letter) return clickMnemonic(*list);
+	const std::string& axis = listRecord->arrows;
+	const bool vertical = axis != "horizontal", horizontal = axis != "vertical";
+	int step = 0;
+	if((vertical && event.key == Key::Down) || (horizontal && event.key == Key::Right)) step = 1;
+	else if((vertical && event.key == Key::Up) || (horizontal && event.key == Key::Left)) step = -1;
+	else if(event.key != Key::Home && event.key != Key::End) return false;
+
+	const std::vector<Panel*> items = focusables(*list, true);
+	if(items.empty()) return false;
+	const auto n = static_cast<long>(items.size());
+	long here = -1;
+	for(Panel* at = from; at && here < 0; at = at->parent())
+		if(const auto it = std::ranges::find(items, at); it != items.end()) here = it - items.begin();
+	long next = event.key == Key::Home ? 0 : event.key == Key::End ? n - 1 : here < 0 ? (step > 0 ? 0 : n - 1)
+	                                                                        : (here + step + n) % n;
+	window.setFocus(items[static_cast<std::size_t>(next)]);
+	return true;
+}
+
+/// @brief Tells whether a point is on a shown panel inside another, an overlay such as a submenu being one.
+/// @param panel The outer panel.
+/// @param position The point.
+/// @return true if it is.
+static bool insideShown(const Panel& panel, Vec2 position) {
+	if(!panel.isShown()) return false;
+	if(panel.bounds().contains(position)) return true;
+	return std::ranges::any_of(panel.children(), [&](const auto& child) { return insideShown(*child, position); });
 }
 
 // Without an "anchor", the parent is the anchor; the root holds every point, so it is no anchor
 bool Events::clickKeepsOpen(const Panel& panel, const Record& record, Vec2 position) const {
-	if(panel.bounds().contains(position)) return true;
+	if(insideShown(panel, position)) return true; // a submenu open from it counts as inside
 	Panel& root = engine_.window->root();
 	const Panel* anchor = record.overlayAnchor.empty() ? panel.parent() : root.findById(record.overlayAnchor);
 	return anchor && anchor != &root && anchor->bounds().contains(position);
