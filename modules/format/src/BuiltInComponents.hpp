@@ -1,6 +1,6 @@
 /// @file
-/// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage), used like a
-/// document's own.
+/// @brief The built-in components (menu, menuBar, contextMenu, dialog, toast, hoverCard, settingsPage, quickPick),
+/// used like a document's own.
 
 #pragma once
 

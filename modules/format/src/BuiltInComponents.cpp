@@ -71,6 +71,93 @@ json menu(std::string_view placement, std::string_view extraParams, bool nested)
 	return {{"params", std::move(params)}, {"node", std::move(node)}};
 }
 
+/// @brief The quick pick: a search field over the matching items of its providers, the recently chosen first. Its
+/// state is under state[name]: open, query, index (the selected row), top (the first row shown) and recent.
+constexpr std::string_view quickPickNode = R"({
+	"overlay": { "placement": "window", "open": "{{'state.' + name + '.open'}}", "dismiss": "outside", "modal": true },
+	"x": "{{max(0, (window.width - width) / 2)}}", "y": 48, "width": "{{width}}",
+	"height": "{{50 + max(1, min(total, rows)) * rowHeight}}", "color": "{{color}}", "radius": 6, "borderWidth": 1,
+	"borderColor": "#454545",
+	"let": {
+		"base": "{{'state.' + name}}",
+		"qp": "{{state[name]}}",
+		"q": "{{qp.query ?? ''}}",
+		"provider": "{{find(providers, len(it.prefix ?? '') > 0 && indexOf(q, it.prefix) == 0) ?? find(providers, len(it.prefix ?? '') == 0)}}",
+		"search": "{{slice(q, len(provider.prefix ?? ''))}}",
+		"key": "{{provider.key ?? 'title'}}",
+		"home": "{{len(provider.prefix ?? '') == 0}}",
+		"recent": "{{home ? qp.recent ?? [] : []}}",
+		"recentKeys": "{{map(recent, it[key])}}",
+		"recentHits": "{{fuzzySort(recent, search, key)}}",
+		"results": "{{slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + len(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
+		"total": "{{len(results)}}",
+		"sel": "{{clamp(qp.index ?? 0, 0, max(0, total - 1))}}",
+		"top": "{{clamp(qp.top ?? 0, 0, max(0, total - rows))}}"
+	},
+	"keys": {
+		"down": [{ "set": "{{base + '.top'}}", "to": "{{max(top, min(sel + 1, total - 1) - rows + 1)}}" },
+		         { "set": "{{base + '.index'}}", "to": "{{min(sel + 1, max(0, total - 1))}}" }],
+		"up": [{ "set": "{{base + '.top'}}", "to": "{{min(top, max(sel - 1, 0))}}" },
+		       { "set": "{{base + '.index'}}", "to": "{{max(sel - 1, 0)}}" }],
+		"enter": [{ "if": "{{total > 0}}", "then": [{ "forEach": "{{[results[sel]]}}", "as": "pick", "do": [] }] }]
+	},
+	"children": [
+		{ "type": "textarea", "bind": "{{base + '.query'}}", "autofocus": true,
+		  "placeholder": "{{provider.placeholder ?? 'Type to search'}}", "anchors": { "left": 8, "right": 8, "top": 8 },
+		  "height": 28, "padding": 6, "color": "{{field}}", "textColor": "{{textColor}}", "placeholderColor": "{{dimColor}}",
+		  "onChange": [{ "set": "{{base + '.index'}}", "to": 0 }, { "set": "{{base + '.top'}}", "to": 0 }] },
+		{ "when": "{{total == 0}}", "type": "label", "text": "No matching results", "textColor": "{{dimColor}}",
+		  "anchors": { "left": 14, "top": 48 }, "fitText": true },
+		{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 44 }, "height": "{{min(total, rows) * rowHeight}}",
+		  "onScroll": { "set": "{{base + '.top'}}",
+		                "to": "{{clamp(top + (event.dy < 0 ? 1 : event.dy > 0 ? -1 : 0), 0, max(0, total - rows))}}" },
+		  "children": [{
+			"repeat": { "for": "r", "in": "{{slice(results, top, top + rows)}}", "index": "i" },
+			"anchors": { "left": 0, "right": 0 }, "height": "{{rowHeight}}", "cursor": "hand",
+			"color": "{{top + i == sel ? highlight : color}}", "hover": { "color": "{{highlight}}" },
+			"onClick": [{ "set": "{{base + '.index'}}", "to": "{{top + i}}" },
+			            { "forEach": "{{[r]}}", "as": "pick", "do": [] }],
+			"children": [
+				{ "type": "row", "anchors": { "left": 14, "right": 140, "top": "{{(rowHeight - 18) / 2}}" }, "height": 18,
+				  "children": [{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}",
+				                 "textColor": "{{p.match ? accent : textColor}}", "fitText": true }] },
+				{ "type": "label", "text": "{{top + i < len(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
+				  "textColor": "{{dimColor}}", "anchors": { "right": 14, "top": "{{(rowHeight - 18) / 2}}" },
+				  "fitText": true }
+			]
+		  }]
+		}
+	]
+})";
+
+/// @brief What choosing does, with the chosen result as "pick" (captured, as closing and clearing change the
+/// results): closes, puts it first in the recent items (for the default provider), clears the query, then runs the
+/// item's "run" (with its "with"), or else the provider's "run" with the item as "item".
+constexpr std::string_view quickPickChoose = R"([
+	{ "set": "{{base + '.open'}}", "to": false },
+	{ "if": "{{home}}", "then": [{ "set": "{{base + '.recent'}}",
+		"to": "{{slice(concat([pick.item], filter(qp.recent ?? [], it[key] != pick.item[key])), 0, recentLimit)}}" }] },
+	{ "forEach": "{{[provider.run]}}", "as": "providerRun", "do": [
+		{ "set": "{{base + '.query'}}", "to": "" }, { "set": "{{base + '.index'}}", "to": 0 },
+		{ "set": "{{base + '.top'}}", "to": 0 },
+		{ "if": "{{pick.item.run != null}}", "then": [{ "run": "{{pick.item.run}}", "with": "{{pick.item.with}}" }],
+		  "else": [{ "if": "{{providerRun != null}}", "then": [{ "run": "{{providerRun}}", "with": "{{ {item: pick.item} }}" }] }] }
+	] }
+])";
+
+/// @brief Builds the quick pick component, its two ways to choose sharing quickPickChoose.
+/// @return The definition.
+json quickPick() {
+	json node = json::parse(quickPickNode);
+	const json choose = json::parse(quickPickChoose);
+	node["keys"]["enter"][0]["then"][0]["do"] = choose;
+	node["children"][2]["children"][0]["onClick"][1]["do"] = choose;
+	json params = json::parse(R"({"name": "quickPick", "providers": [], "rows": 10, "rowHeight": 26, "width": 600,
+		"limit": 1000, "recentLimit": 10, "color": "#252526", "textColor": "#cccccc", "dimColor": "#8b8b8b",
+		"accent": "#2aaaff", "highlight": "#04395e", "field": "#3c3c3c"})");
+	return {{"params", std::move(params)}, {"node", std::move(node)}};
+}
+
 /// @brief The other built-ins, in the format.
 constexpr std::string_view others = R"({
 "menuBar": {
@@ -230,6 +317,7 @@ const std::map<std::string, json, std::less<>>& all() {
 		made.emplace("menu", menu("below", "", true));
 		made.emplace("submenu", menu("right", "", false));
 		made.emplace("contextMenu", menu("window", R"(, "x": 0, "y": 0)", true));
+		made.emplace("quickPick", quickPick());
 		for(auto& [name, definition] : json::parse(others).items()) made.emplace(name, std::move(definition));
 		return made;
 	}();

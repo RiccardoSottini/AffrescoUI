@@ -208,8 +208,8 @@ src/
   DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
   DesignTokens.*           the "tokens" section: aliases, per-theme values, colour and number tables
   Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
-  BuiltInComponents.*      menus, the menu bar, dialogs, toasts, hover cards and the settings page, written in the
-                           format
+  BuiltInComponents.*      menus, the menu bar, dialogs, toasts, hover cards, the settings page and the quick
+                           pick, written in the format
   CompiledNode.*           a node compiled: slots, bindings, scoping keys
   Binding.*                a value compiled once: templates split, operators lowered
   StateTypes.*             typed state: the stateTypes subset of JSON Schema, matching values, describing types

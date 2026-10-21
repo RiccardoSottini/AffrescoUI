@@ -395,6 +395,12 @@ format, take their colours as parameters, and keep their open state where `open`
 - `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
 - `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
 - `settingsPage`: the document's settings with a search field (see Menus and settings).
+- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run" }` (the one whose
+  `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`) and the
+  matching letters highlighted. Its state is `state[name]` (`name` is `quickPick`): `open`, `query`, `index`, `top`
+  and `recent` (the default provider's last `recentLimit` choices, shown first). Only the visible `rows` are built;
+  the arrows move, Enter or a click runs the item's `run` (with its `with`), or else the provider's `run` with the
+  item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
@@ -426,13 +432,17 @@ Wherever a value is expected it can be computed:
   `len(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
-  `time(milliseconds, 'ddd D MMM HH:mm')`;
+  `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 
 Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
 are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
+`fuzzy` matches the query's characters in order, in any case, and gives null or `{ score, ranges, parts }`: `ranges`
+are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
+`fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
+the best first (an empty query keeps the order), at most `limit` of them.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`); `theme`;
 `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,

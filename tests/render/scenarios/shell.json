@@ -60,6 +60,21 @@
 				{ "key": "enter" },
 				{ "expect": { "state": "n", "is": 1 } }
 			]
+		},
+		{
+			"name": "quick-pick",
+			"screen": "quickpick.screen.json",
+			"steps": [
+				{ "wait": 50 },
+				{ "expect": { "image": "quick-pick" } },
+				{ "type": "mcp" },
+				{ "wait": 50 },
+				{ "expect": { "image": "quick-pick-filtered" } },
+				{ "key": "down" },
+				{ "key": "enter" },
+				{ "expect": { "state": "opened", "is": "mouse.cpp" } },
+				{ "expect": { "state": "quickPick.open", "is": false } }
+			]
 		}
 	]
 }

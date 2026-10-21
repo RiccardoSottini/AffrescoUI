@@ -1368,7 +1368,9 @@
 						"$every",
 						"$sort",
 						"$now",
-						"$time"
+						"$time",
+						"$fuzzy",
+						"$fuzzySort"
 					]
 				}
 			},

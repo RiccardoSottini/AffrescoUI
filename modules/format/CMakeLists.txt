@@ -12,6 +12,7 @@ affrescoui_module(format
 	src/ExpressionFunctionsLists.cpp
 	src/ExpressionFunctionsItems.cpp
 	src/ExpressionFunctionsTime.cpp
+	src/ExpressionFunctionsFuzzy.cpp
 	src/Value.cpp
 	src/Rules.cpp
 	src/Sections.cpp

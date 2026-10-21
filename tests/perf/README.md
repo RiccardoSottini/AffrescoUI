@@ -63,6 +63,7 @@ as the OpenGL driver's, aren't counted.
 | Workload | What one operation is |
 |---|---|
 | `expressions` | One evaluation of an expression from `tests/unit/expressions.cpp`. Every expression that succeeds is used, except the two that test the 10,000-item limits. Each run evaluates the table 100 times. Evaluation reuses the compiled expression, as a screen does |
+| `fuzzy/100000` | A quick pick's filter: `fuzzySort` over 100,000 path-like texts, keeping the best 50. Roadmap item 8.3 asks for 10 ms or less |
 | `commits` | One small commit (a label's text) on the Kanban template's history, 1,000 per run. `retainedBytes` is the memory each commit keeps |
 | `text` | Measuring and wrapping 10,000 lines, in Roboto at 15 px, to 240 px |
 | `history/commit/<n>` | One small commit (a label's text) on a Kanban history of 100 or 10,000 commits, 100 per run: the same cost at both sizes, and `retainedBytes` is what each commit keeps. Each run adds to the history |
