@@ -1,0 +1,87 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screen": "game-launcher.screen.json",
+	"scenarios": [
+		{ "name": "library", "steps": [
+			{ "expect": { "node": "#details-title", "text": "Starfall Odyssey" } },
+			{ "click": { "role": "button", "name": "Neon Drift" } },
+			{ "expect": { "state": "selected", "is": "neon" } },
+			{ "expect": { "node": "#details-title", "text": "Neon Drift" } },
+			{ "capture": "covers" }
+		] },
+		{ "name": "filter", "steps": [
+			{ "click": "#search" },
+			{ "type": "iron" },
+			{ "expect": { "node": "#game-card", "property": "name", "is": "Iron Hollow" } },
+			{ "expect": { "node": "#game-card", "nth": 1, "exists": false } },
+			{ "key": "escape" },
+			{ "expect": { "state": "query", "is": "" } },
+			{ "action": "showLibrary" },
+			{ "revision": { "type": "revision", "message": "Show favourites", "set": { "/state/filter": "favourites" } } },
+			{ "expect": { "node": "#game-card", "nth": 2, "property": "name", "is": "Tidebreaker" } }
+		] },
+		{ "name": "table", "steps": [
+			{ "action": "tableView" },
+			{ "action": "showLibrary" },
+			{ "expect": { "node": "#games-table", "property": "shown", "is": true } },
+			{ "capture": "table" }
+		] },
+		{ "name": "play", "steps": [
+			{ "click": "#play-button" },
+			{ "expect": { "state": "games[0].hours", "is": 87 } },
+			{ "expect": { "state": "toast.open", "is": true } },
+			{ "wait": 600 },
+			{ "capture": "toast" },
+			{ "wait": 3000 },
+			{ "expect": { "state": "toast.open", "is": false } }
+		] },
+		{ "name": "uninstall", "steps": [
+			{ "click": "#uninstall-button" },
+			{ "expect": { "state": "confirm", "is": true } },
+			{ "capture": "dialog" },
+			{ "click": { "role": "button", "name": "Remove" } },
+			{ "expect": { "state": "games[0].installed", "is": false } },
+			{ "expect": { "node": "#install-button", "property": "shown", "is": true } }
+		] },
+		{ "name": "context-menu", "steps": [
+			{ "click": { "role": "button", "name": "Iron Hollow" } },
+			{ "action": "openContextMenu", "event": { "x": 470, "y": 220 } },
+			{ "expect": { "state": "ctxOpen", "is": true } },
+			{ "expect": { "state": "selected", "is": "ironhollow" } },
+			{ "wait": 0 },
+			{ "capture": "menu" }
+		] },
+		{ "name": "quick-pick", "steps": [
+			{ "key": "mod+p" },
+			{ "wait": 0 },
+			{ "expect": { "state": "quickPick.open", "is": true } },
+			{ "type": "tide" },
+			{ "wait": 0 },
+			{ "capture": "games" },
+			{ "key": "enter" },
+			{ "expect": { "state": "selected", "is": "tidebreaker" } },
+			{ "key": "mod+shift+p" },
+			{ "wait": 0 },
+			{ "type": "stats" },
+			{ "wait": 0 },
+			{ "capture": "commands" },
+			{ "key": "enter" },
+			{ "expect": { "state": "view", "is": "stats" } }
+		] },
+		{ "name": "stats", "steps": [
+			{ "key": "mod+2" },
+			{ "expect": { "state": "view", "is": "stats" } },
+			{ "capture": "charts" }
+		] },
+		{ "name": "settings", "steps": [
+			{ "key": "mod+3" },
+			{ "capture": "page" },
+			{ "action": "toggleTheme" },
+			{ "expect": { "state": "settings['appearance.theme']", "is": "light" } },
+			{ "action": "showLibrary" },
+			{ "wait": 200 },
+			{ "capture": "light" }
+		] }
+	]
+}
