@@ -318,7 +318,9 @@ const std::map<std::string, json, std::less<>>& all() {
 		made.emplace("submenu", menu("right", "", false));
 		made.emplace("contextMenu", menu("window", R"(, "x": 0, "y": 0)", true));
 		made.emplace("quickPick", quickPick());
-		for(auto& [name, definition] : json::parse(others).items()) made.emplace(name, std::move(definition));
+		// Kept in a variable: a temporary in a range-for's range isn't kept alive before C++23's P2718 (GCC 15, clang 19)
+		json parsed = json::parse(others);
+		for(auto& [name, definition] : parsed.items()) made.emplace(name, std::move(definition));
 		return made;
 	}();
 	return components;
