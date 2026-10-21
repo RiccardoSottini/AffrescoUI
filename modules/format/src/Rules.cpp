@@ -122,10 +122,14 @@ public:
 	/// @param found Receives the findings.
 	void walk(const json& value, const std::string& trigger, Part part, std::vector<std::string>& found) const {
 		if(value.is_object()) {
-			if(std::ranges::any_of(controlSteps,
-			                       [&](std::string_view key) { return value.contains(std::string(key)); }))
-				found.push_back(trigger + ": " + value.dump());
-			if(runsControl(value))
+			bool control = false; // one look at each key, not one search of them per control step
+			bool uses = false;
+			for(const auto& entry : value.items()) {
+				control = control || std::ranges::find(controlSteps, entry.key()) != std::ranges::end(controlSteps);
+				uses = uses || entry.key() == "use";
+			}
+			if(control) found.push_back(trigger + ": " + value.dump());
+			if(uses && runsControl(value))
 				found.push_back(trigger + ": use " + value["use"].dump() + " with parameters that may control");
 			for(const auto& [key, item] : value.items()) member(key, item, trigger, part, found);
 		} else if(value.is_array()) {
