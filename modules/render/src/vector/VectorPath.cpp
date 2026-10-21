@@ -56,7 +56,9 @@ public:
 	/// @param point Its first point, in window units.
 	void start(Vec2 point) {
 		finish();
+		if(count_ >= flattenPointLimit) return; // past the limit, a contour starts empty and stays so
 		current_.points.push_back(point);
+		++count_;
 	}
 
 	/// @brief Starts a contour at a point unless one is under way (a line after Z starts at the closed one's start).
@@ -212,6 +214,7 @@ private:
 		path_.moveTo(point);
 		current_ = start_ = control_ = point;
 		curve_ = Curve::none;
+		closed_ = false; // a move after Z starts the new contour itself
 	}
 
 	/// @brief Adds a line.

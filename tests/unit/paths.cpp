@@ -99,7 +99,8 @@ TEST_CASE("render: path data parses every command, absolute and relative") {
 TEST_CASE("render: broken path data is refused, naming the place") {
 	CHECK(refusal("L10 10").find("must start with M") != std::string::npos);
 	CHECK(refusal("M0 0 L10").find("expected a number at character") != std::string::npos);
-	CHECK(refusal("M0 0 X5 5").find("expected a command") != std::string::npos);
+	CHECK(refusal("M0 0 X5 5").find("unknown command 'X'") != std::string::npos);
+	CHECK(refusal("M0 0 L5 5 Z 1 1").find("expected a command") != std::string::npos); // Z takes no numbers
 	CHECK_FALSE(refusal("M1e9 0").empty()); // past the largest coordinate
 	VectorPath::Limits small;
 	small.commands = 4;
@@ -123,7 +124,7 @@ TEST_CASE("render: flattening keeps curves within the tolerance and the points w
 	CHECK(scaled.front().points.back() == affresco::Vec2{205.0f, 5.0f});
 
 	std::string many = "M0 0";
-	for(int index = 0; index < 4000; ++index) many += " c0 1e5 1e5 1e5 1e5 0";
+	for(int index = 0; index < 3000; ++index) many += " c0 1e5 1e5 1e5 1e5 0"; // within the 64 KiB limit
 	std::size_t points = 0;
 	for(const VectorPath::Contour& contour : VectorPath::parse(many).flatten({}, 0.001f))
 		points += contour.points.size();
