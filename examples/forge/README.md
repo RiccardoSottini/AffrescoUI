@@ -1,0 +1,59 @@
+# Forge: a demo IDE in JSON
+
+Forge is a demo of what the library can carry: a code workbench whose whole user interface is one screen document,
+which people and agents change while it runs. It uses only the library's public API. It is an example, not part of
+the library.
+
+```
+./build/affrescoui_forge [folder] [--socket DIR] [--data DIR]
+```
+
+With a folder, Forge opens it; without one, it shows the welcome page and its Open Folder button. Like
+`affrescoui_host`, it listens for the Studio and an agent in `DIR`. The layout, the theme and the settings are kept in
+`--data DIR`.
+
+## How it is built
+
+`forge.screen.json` names the window, the fonts and the root, and includes one file per feature. Each feature lives in
+its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
+
+| Feature | What it adds |
+|---|---|
+| `shell` | The title bar with the command centre, the activity bar (explorer, go to file, problems, settings), the side bar with the explorer, editor groups with tabs, the panel area, the status bar, zen mode, and the welcome page |
+| `palette` | The command palette (`>`), quick open over the file index, go to line (`:`), and the settings and keybinding pages, generated from the contributions |
+| `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
+| `panels` | Problems, output, notifications (toasts and a list), and progress |
+
+There are only four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
+- `forge.index`: the open folder as a tree and a flat file list, with file icons.
+- `forge.openFolder`: asks the OS for a folder (`Window::chooseFiles`).
+- `forge.read`: reads a file inside the open folder.
+- `forge.importTheme`: asks for a VS Code theme and returns it as tokens.
+
+A native's arguments never name a path outside the open folder.
+
+## Contribution points
+
+A feature adds itself to the workbench through the sections below. `include` merges them, and the including file wins
+on a clash.
+
+| Section | Contributes | Read by |
+|---|---|---|
+| `actions` | Commands: `{ "title", "category", "icon", "enablement", "description", "do" }` | The palette (`>`), menus, keys, and the keybindings page |
+| `keys` | Key bindings, `"mod+shift+p": "showCommands"`; chords such as `"mod+k z"` | The keybindings page, the menus' shortcut labels |
+| `menus` | Menu items, `menu → { key → { "run", "group", "order", "when" } }`; menu by menu, so several features add to `view` | The native menu bar (macOS, Windows), or the in-window one |
+| `settings` | Typed settings with defaults and descriptions, read as `settings.workbench.fileIcons` | The settings page, which is generated from them |
+| `tokens` | Colours and sizes per theme (`"@color.accent"`) | Every node; a theme switch restyles the workbench |
+| `components` | Parts of the workbench, used as `{ "use": "forgePanel" }` | The root and other components |
+| `state`, `computed`, `persist` | The feature's data, and what survives a restart | Its own components |
+
+To add a view, write `features/<name>/<name>.json` with these sections and add it to `include` in
+`forge.screen.json`. The palette, the menus and the settings and keybinding pages list it with no other change.
+
+## Themes
+
+A theme is a set of variants of the same tokens (`themes.json`), switched by `"theme": "{{state.theme}}"`.
+- **Preferences > Import Color Theme...** reads a VS Code colour theme (JSON with comments). It maps the theme's
+  `colors` onto Forge's colour tokens (a colour it lacks comes from its `type`), keeps it in `state.themes`, and switches to it.
+- **The file icon theme** maps file names and extensions to Lucide glyphs and colours. Turn it off in the settings
+  (`workbench.fileIcons`).
