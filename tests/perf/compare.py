@@ -7,7 +7,8 @@ Each directory holds *.jsonl files from run.py and tokens.py, one result per lin
 the ones only the base has are listed. Only
 instruction counts (unit "instructions") are gated: a workload whose count grows by more than --threshold percent
 fails, unless --allow is given (the pull request has the perf-change label). Wall clock, allocations, memory and
-tokens are reported, not gated.
+tokens are reported, not gated. The gains in locks.json are also checked on the head alone: a workload that costs
+more than its limit times another of the same run fails the same way.
 """
 
 import argparse
@@ -107,6 +108,26 @@ def report(base, head, threshold, allow):
     return "\n".join(lines), regressions
 
 
+def check_locks(head, path):
+    """The locked-in gains (locks.json) as a markdown table, and the ones head breaks: a workload that costs more than
+    atMost times another of the same run, in the same unit. A lock whose workloads weren't measured is skipped."""
+    with open(path, encoding="utf-8") as file:
+        locks = json.load(file)["locks"]
+    lines = ["#### Gains locked in (tests/perf/locks.json)", "", "| Workload | Of | Ratio | At most | Why |",
+             "|---|---|---:|---:|---|"]
+    broken = []
+    for lock in locks:
+        name, of = lock["name"], lock["of"]
+        if name not in head or of not in head or head[name]["unit"] != head[of]["unit"] or not head[of]["value"]:
+            continue
+        ratio = head[name]["value"] / head[of]["value"]
+        mark = "" if ratio <= lock["atMost"] else " **broken**"
+        lines.append(f"| `{name}` | `{of}` | {ratio:.3f}{mark} | {lock['atMost']:g} | {lock['why']} |")
+        if ratio > lock["atMost"]:
+            broken.append(f"{name} costs {ratio:.3f} of {of}, more than {lock['atMost']:g}")
+    return "\n".join(lines + [""]), broken
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base", required=True, help="the base's results (a directory of *.jsonl)")
@@ -114,12 +135,16 @@ def main():
     parser.add_argument("--threshold", type=float, default=3.0, help="largest growth in instructions, in percent")
     parser.add_argument("--allow", action="store_true", help="report growth without failing (perf-change label)")
     parser.add_argument("--summary", help="also append the report to this file (e.g. $GITHUB_STEP_SUMMARY)")
+    parser.add_argument("--locks", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "locks.json"),
+                        help="the gains locked in: ratios between workloads of the head's run")
     args = parser.parse_args()
 
     base, head = load(args.base), load(args.head)
     if not head:
         sys.exit(f"compare.py: no results in {args.head}")
     text, regressions = report(base, head, args.threshold, args.allow)
+    locks, broken = check_locks(head, args.locks)
+    text += "\n" + locks
     print(text)
     if args.summary:
         with open(args.summary, "a", encoding="utf-8") as summary:
@@ -127,6 +152,10 @@ def main():
     if regressions and not args.allow:
         for name in regressions:
             print(f"::error title=Benchmarks::{name} grew by more than {args.threshold:g}% in instructions")
+    if broken and not args.allow:
+        for message in broken:
+            print(f"::error title=Benchmarks::A locked-in gain is lost: {message}")
+    if (regressions or broken) and not args.allow:
         sys.exit(1)
 
 

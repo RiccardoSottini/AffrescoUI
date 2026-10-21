@@ -1,0 +1,48 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Images and icons, checked headless (ctest scenarios): where the pictures and icon buttons sit, what hovering an icon button changes, and a picture swapped by a revision, so caching images and glyphs can't change what the tree holds.",
+	"screen": "visuals.screen.json",
+	"scenarios": [
+		{
+			"name": "pictures",
+			"note": "Each fit keeps its frame; a row of the same small image at three sizes",
+			"steps": [
+				{ "expect": { "node": "#contain", "property": "width", "is": 150 } },
+				{ "expect": { "node": "#cover", "property": "x", "is": 200 } },
+				{ "expect": { "node": "#fill", "property": "height", "is": 90 } },
+				{ "expect": { "node": "#badge", "property": "x", "is": 230 } },
+				{ "expect": { "node": "#badgeWide", "property": "x", "is": 284 } },
+				{ "expect": { "node": "#badgeWide", "property": "width", "is": 60 } },
+				{ "expect": { "node": "#banner", "property": "shown", "is": true } }
+			]
+		},
+		{
+			"name": "picture-swapped",
+			"note": "A revision gives a frame another picture, then takes it back",
+			"steps": [
+				{ "revision": { "author": "scenario", "message": "Another picture", "patch": [{ "op": "replace", "path": "#contain/file", "value": "images/banner.png" }] } },
+				{ "expect": { "node": "#contain", "property": "width", "is": 150 } },
+				{ "revision": { "author": "scenario", "message": "The first picture", "patch": [{ "op": "replace", "path": "#contain/file", "value": "images/landscape.png" }] } },
+				{ "expect": { "node": "#contain", "property": "shown", "is": true } }
+			]
+		},
+		{
+			"name": "icon-buttons",
+			"note": "Icon buttons in a row; an unknown icon keeps its text; hovered, the colours change",
+			"steps": [
+				{ "expect": { "node": "#settings", "property": "x", "is": 138 } },
+				{ "expect": { "node": "#delete", "property": "x", "is": 226 } },
+				{ "expect": { "node": "#unknown", "property": "x", "is": 334 } },
+				{ "expect": { "node": "#unknown", "text": "No icon" } },
+				{ "move": "#bell" },
+				{ "expect": { "node": "#bell", "property": "textColor", "is": "#7c3aed" } },
+				{ "expect": { "node": "#bell", "property": "borderColor", "is": "#7c3aed" } },
+				{ "move": [540, 390] },
+				{ "expect": { "node": "#bell", "property": "borderColor", "is": "#cbd5e1" } },
+				{ "expect": { "node": "#bigIcon", "property": "width", "is": 48 } }
+			]
+		}
+	]
+}
