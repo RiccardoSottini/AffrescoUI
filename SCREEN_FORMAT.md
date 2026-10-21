@@ -114,7 +114,7 @@ parent, later siblings on top of earlier ones.
 | `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
 <!-- end generated -->
 
-### Every type: look and behaviour
+### Every type: look
 <!-- generated: look -->
 | Key | Meaning |
 |---|---|
@@ -129,6 +129,14 @@ parent, later siblings on top of earlier ones.
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
 | `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
+| `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
+| `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
+<!-- end generated -->
+
+### Every type: focus and accessibility
+<!-- generated: access -->
+| Key | Meaning |
+|---|---|
 | `focusable` | `true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable). |
 | `role` | What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, `list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an `onClick`; other nodes have none and are skipped in the accessibility tree. |
 | `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
@@ -136,8 +144,12 @@ parent, later siblings on top of earlier ones.
 | `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
 | `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
 | `mnemonic` | A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` node, the letter alone does. |
-| `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
-| `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
+<!-- end generated -->
+
+### Every type: behaviour
+<!-- generated: behaviour -->
+| Key | Meaning |
+|---|---|
 | `repeat` | `{ "for": "card", "in": "state.cards", "index": "i", "key": "{{card.id}}" }`: one node per list item. With `key`, a node follows its item when the list is reordered (keeping focus and scroll). |
 | `when` | Build the node only if the value is truthy. |
 | `let` | `{ "on": "{{tag == state.filter}}" }`: named values for the node and its children, evaluated in order. |
