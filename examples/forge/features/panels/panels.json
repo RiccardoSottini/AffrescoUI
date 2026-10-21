@@ -1,0 +1,117 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Forge's panels: Problems (TODO and FIXME lines of the open files, a click goes to the line), Output (a log every feature writes to with the notify action), Notifications (the toast's history) and progress (a toast with a bar while a long task runs). The panel's tabs and the status bar counts come from this state.",
+
+	"state": {
+		"problems": [],
+		"output": [],
+		"notifications": [],
+		"toast": { "open": false, "message": "", "progress": null },
+		"panelTab": "problems"
+	},
+
+	"computed": {
+		"errors": "{{count(state.problems, it.severity == 'error')}}",
+		"warnings": "{{count(state.problems, it.severity == 'warning')}}",
+		"problemRows": "{{map(state.problems, {id: index, icon: it.severity == 'error' ? 'circle-x' : it.severity == 'warning' ? 'alert-triangle' : 'info', iconColor: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', cells: [it.message, it.label, it.line]})}}",
+		"outputRows": "{{map(state.output, {id: index, label: time(it.time, 'HH:mm:ss') + '  ' + it.text})}}",
+		"notificationRows": "{{map(reverse(state.notifications), {id: index, label: it.message, icon: it.severity == 'error' ? 'circle-x' : 'bell'})}}"
+	},
+
+	"actions": {
+		"notify": [
+			{ "push": "state.output", "value": "{{ {time: now(), text: '[' + severity + '] ' + message} }}" },
+			{ "push": "state.notifications", "value": "{{ {time: now(), severity: severity, message: message} }}" },
+			{ "set": "state.toast", "to": "{{ {open: true, message: message, progress: null} }}" },
+			{ "debounce": 4000, "do": [{ "set": "state.toast.open", "to": false }] }
+		],
+		"log": [{ "push": "state.output", "value": "{{ {time: now(), text: text} }}" }],
+		"scanProblems": { "title": "Scan Open Files for Problems", "category": "Problems", "icon": "search",
+			"description": "List the TODO and FIXME lines of the open files in Problems.",
+			"do": [
+				{ "set": "state.problems", "to": [] },
+				{ "forEach": "{{filter(state.docs, it.kind == 'file')}}", "as": "doc", "do": [
+					{ "forEach": "{{filter(map(split(doc.text, '\n'), {text: trim(it), line: index + 1}), contains(it.text, 'TODO') || contains(it.text, 'FIXME'))}}", "as": "hit", "do": [
+						{ "push": "state.problems", "value": "{{ {severity: contains(hit.text, 'FIXME') ? 'warning' : 'info', message: slice(hit.text, 0, 120), file: doc.id, label: doc.label, line: hit.line} }}" }
+					] }
+				] },
+				{ "run": "log", "with": { "text": "{{'Problems: ' + plural(len(state.problems), 'item')}}" } }
+			] },
+		"goToProblem": [
+			{ "forEach": "{{[state.problems[number(event.id)]]}}", "as": "p", "do": [
+				{ "run": "showTab", "with": { "id": "{{p.file}}", "label": "{{p.label}}" } },
+				{ "run": "goToLine", "with": { "line": "{{p.line}}" } }
+			] }
+		],
+		"showProblems": { "title": "Focus Problems", "category": "View", "icon": "alert-triangle",
+			"do": [{ "set": "state.layout.panel", "to": true }, { "set": "state.panelTab", "to": "problems" }] },
+		"showOutput": { "title": "Focus Output", "category": "View", "icon": "terminal",
+			"do": [{ "set": "state.layout.panel", "to": true }, { "set": "state.panelTab", "to": "output" }] },
+		"showNotifications": { "title": "Show Notifications", "category": "View", "icon": "bell",
+			"do": [{ "set": "state.layout.panel", "to": true }, { "set": "state.panelTab", "to": "notifications" }] },
+		"clearOutput": { "title": "Clear Output", "category": "Output", "do": [{ "set": "state.output", "to": [] }] },
+		"clearNotifications": { "title": "Clear All Notifications", "category": "Notifications",
+			"do": [{ "set": "state.notifications", "to": [] }, { "set": "state.toast.open", "to": false }] },
+		"reindex": { "title": "Reindex Folder", "category": "Files", "icon": "folder",
+			"description": "Read the folder again, showing the progress.",
+			"do": [
+				{ "set": "state.toast", "to": { "open": true, "message": "Indexing the folder", "progress": 0.2 } },
+				{ "call": "forge.index", "with": { "icons": "{{settings.workbench.fileIcons ? state.iconTheme : null}}" },
+				  "into": "state.folder",
+				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Indexing failed: ' + error}}" } }],
+				  "then": [
+					{ "set": "state.toast.progress", "to": 1 },
+					{ "run": "log", "with": { "text": "{{'Indexed ' + plural(len(result.files), 'file') + (result.truncated ? ' (truncated)' : '')}}" } },
+					{ "debounce": 1500, "do": [{ "set": "state.toast.open", "to": false }] }
+				  ] }
+			] }
+	},
+
+	"menus": {
+		"view": {
+			"problems": { "run": "showProblems", "group": "3_panels", "order": 1 },
+			"output": { "run": "showOutput", "group": "3_panels", "order": 2 },
+			"notifications": { "run": "showNotifications", "group": "3_panels", "order": 3 }
+		}
+	},
+
+	"keys": {
+		"mod+shift+m": "showProblems",
+		"mod+shift+u": "showOutput"
+	},
+
+	"components": {
+		"forgePanel": {
+			"node": {
+				"type": "column", "id": "panel", "color": "@color.panel", "borderWidth": 1, "borderColor": "@color.border",
+				"children": [
+					{ "type": "row", "id": "panel-head", "width": "100%", "height": 32, "alignItems": "center",
+					  "children": [
+						{ "type": "tabs", "id": "panel-tabs", "width": 420, "height": 32, "bind": "state.panelTab",
+						  "color": "@color.panel", "textColor": "@color.muted", "activeTextColor": "@color.text",
+						  "activeBackground": "@color.panel", "accentColor": "@color.accent",
+						  "tabs": "{{[{id: 'problems', label: 'Problems' + (len(state.problems) > 0 ? ' ' + len(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'notifications', label: 'Notifications', closable: false}]}}" },
+						{ "id": "panel-gap", "grow": 1 },
+						{ "type": "label", "id": "panel-close", "icon": "x", "textColor": "@color.muted", "padding": 8,
+						  "fitText": true, "cursor": "hand", "tooltip": "Close Panel", "hover": { "color": "@color.hover" },
+						  "onClick": { "run": "togglePanel" } }
+					  ] },
+					{ "when": "{{state.panelTab == 'problems'}}", "type": "table", "id": "problems", "width": "100%", "grow": 1,
+					  "items": "{{computed.problemRows}}", "rowHeight": 22, "color": "@color.panel",
+					  "textColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
+					  "columns": [{ "id": "message", "title": "Message", "width": 420 }, { "id": "file", "title": "File", "width": 160 },
+					              { "id": "line", "title": "Line", "width": 60 }],
+					  "onOpen": { "run": "goToProblem" } },
+					{ "when": "{{state.panelTab == 'output'}}", "type": "list", "id": "output", "width": "100%", "grow": 1,
+					  "items": "{{computed.outputRows}}", "rowHeight": 20, "font": "code", "color": "@color.panel",
+					  "textColor": "@color.text", "selectedBackground": "@color.selection" },
+					{ "when": "{{state.panelTab == 'notifications'}}", "type": "list", "id": "notifications", "width": "100%",
+					  "grow": 1, "items": "{{computed.notificationRows}}", "rowHeight": 22, "color": "@color.panel",
+					  "textColor": "@color.text", "selectedBackground": "@color.selection" }
+				]
+			}
+		}
+	}
+}
