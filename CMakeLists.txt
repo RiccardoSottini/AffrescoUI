@@ -64,6 +64,9 @@ FetchContent_MakeAvailable(json)
 # FreeType and HarfBuzz: the text of the rendering engine
 include(cmake/AffrescoUIText.cmake)
 
+# libcurl with the platform's TLS: the network module (RFC 0003, decision D3)
+include(cmake/AffrescoUINetwork.cmake)
+
 # The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
 # of lucide-static 1.48.0 (examples/assets/fonts/README.md)
 file(SHA256 ${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts/Lucide.ttf AFFRESCOUI_LUCIDE_SHA256)
@@ -89,6 +92,8 @@ endif()
 #   format   JSON screen format: rules, expressions, building panels, actions        core, render
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
+#   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
+#   services services: folders, programs and JSON-RPC servers a screen calls         core
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
 #   automation  scenarios: scripted checks a screen ships with, played headless     affrescoui
 #
@@ -104,7 +109,7 @@ function(affrescoui_module name)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
-foreach(module core render format vcs channel screen automation)
+foreach(module core render format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
 

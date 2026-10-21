@@ -87,6 +87,25 @@ A **peer** is a program connected to the running screen over a local socket. The
   and the Studio and the MCP server don't check its permissions. The directory and the file keep other users from
   connecting at all; the user check above refuses them if they get through.
 
+### Remote peers
+A host may also accept peers over WebSocket (`Screen::listenWebSocket`, `net::PeerServer`), from other machines:
+- **Every peer brings a token**, as `Authorization: Bearer <token>` on the upgrade request, or as a first message
+  `{"type": "auth", "token": "<token>"}` within 5 seconds. The host's `TokenVerifier` checks it and names the author
+  the peer's changes are made as; the token is never kept, logged or passed on. A peer with no token, or one the
+  verifier refuses, is closed with a reason (401 on the upgrade, or close code 1008), and the refusal is logged with
+  its address, never with the token. There is no listening socket without authentication.
+- **Browsers are held to an allowlist of origins.** A request with an `Origin` header (every browser sends one) is
+  refused with 403 unless the origin is in `PeerServerOptions::allowedOrigins`; the list is empty by default, so no
+  web page can connect. Programs that send no `Origin` are judged by their token alone.
+- **On the loopback by default.** The server refuses to listen on any other address unless `allowRemote` is set. It
+  has no TLS code of its own: put a TLS proxy in front of it (`examples/deploy/Caddyfile`) and keep it on the loopback,
+  so tokens never cross the network in the clear.
+- **Connections are capped**: how many peers are connected or opening at once, and how fast one address may open
+  connections (a token bucket per address); over either, the connection is refused (503 or 429) before it is read.
+  Behind a proxy every connection comes from the proxy's address, so the rate is shared by all its clients.
+- Once accepted, a remote peer is held to the same `PeerLimits` and permission rules as any other peer.
+- `net::connectPeer` connects as a remote peer: to `wss://` (TLS verified), or to `ws://` on the loopback only.
+
 ### What a peer may send
 Each peer is held to limits (`channel::PeerLimits`; the defaults are in "Limits" below), so one peer can't take the
 app's time or memory from the others:
@@ -118,6 +137,7 @@ screens, actions, and the live state.
 - `permissions`, the rules themselves;
 - `channels`, the programs the screen talks to;
 - `persist`, what the screen writes to disk;
+- `services`, the local programs and folders the screen uses (and the host has granted);
 - **control steps**: `accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo` and `patch` (which
   control changes), and `call`, `send` and `connect` (which reach outside the screen). A revision can't add, remove,
   alter or move one to another trigger (a handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could
@@ -131,6 +151,11 @@ screens, actions, and the live state.
   `run`. A use of the document's own component (which wins over a built-in of the same name) is scanned with its
   defaults and literal parameters in place: `{"use": "go", "with": {"act": "approve"}}` is refused when `go` runs
   `"{{act}}"` and `approve` holds a control step, as is one expanded through more than 64 nested uses.
+  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`.
+- **service steps out of bounds**: `respond` is a control step. An `invoke` or `subscribe` a revision adds must name
+  a declared service and a method of it the provider lets revisions use, by a fixed name; and when the method writes
+  or runs something it is always reviewed: the change becomes a proposal whatever the allow rules, grants or mode
+  say, and a person must approve it.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
@@ -192,6 +217,17 @@ A host can register native code that documents use:
   Still, register as native actions only things the person using the app may trigger.
 
 Whatever a native function or action does, it does with the host's full rights. Version control can't see inside it.
+
+### Connections a screen declares
+
+A screen's `connections` section names servers and the operations the screen may ask them (RFC 0003). It is a
+capability, like `services`: a revision can't change it, and may add `request` and `subscribe` steps only for
+operations it declares, written out (a computed name is refused). A step a revision adds that writes or runs
+(`effect` other than `read`) is always reviewed. The host allows each origin first (`Screen::network().allow`); until
+then every request is refused. A document never holds a credential: the headers that carry one are refused, and an
+`auth` key is accepted for sign-in, which is not implemented yet. While a proposal is previewed, only a read without
+a `mock` reaches a server; any other operation answers from its mock, or fails with `preview`, so a preview has no
+side effects.
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
@@ -304,6 +340,29 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |
 | Slow calls (`Screen::onAsyncCall`) running or waiting for a worker at once | 64; more end with an error (`onError`) |
 | A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign (a contour scaled past 10^12 on screen isn't drawn), 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
+| A response body, a server-sent event or line of a stream, or a WebSocket message the `net` module receives (`Request::maxBodyBytes`) | 8 MiB by default; a larger one fails with `tooLarge` (a WebSocket is closed with 1009) |
+| A response's headers, or a WebSocket handshake's answer | 64 KiB and 256 lines |
+| Headers a request adds (`checkHeaders`) | 100, 64 KiB in all; no line breaks or NUL, none the transport sets |
+| A URL the `net` module reaches | 8,192 bytes; https and wss to an allowed origin, http and ws to the loopback only; no user info |
+| Requests in flight to one origin, and started and not finished in all | 6 (more wait), 256 (more fail with `refused`) |
+| Bytes a WebSocket holds unsent, and events or messages posted to the main thread and not yet handled | 16 MiB (`send` refuses more), 4,096 (more fail with `tooLarge`) |
+| Remote peers (`PeerServerOptions`) connected or opening at once | 32; more are refused with 503 |
+| Connections one address may open | 5 a second, 10 at once; more are refused with 429. 4,096 addresses are tracked (past that, those back to a full burst are forgotten) |
+| A remote peer's token | 5 s to arrive (as a first message); 8 KiB at most |
+| A remote peer's upgrade request | 16 KiB and 64 header lines; a larger one is refused with 431 |
+| One message from a remote peer, and what waits to be written to it | 8 MiB a message (a larger one closes it with 1009); 64 MiB queued, or a write stalled for 10 s, closes it |
+| Where a peer server listens | The loopback, unless `allowRemote` is set |
+| Redirects a request follows | 5, within its origin only |
+| Retries of a request | 5, GET only, after a network error, 429, 502, 503 or 504; a server's `Retry-After` up to an hour |
+| TLS | 1.2 or later; the certificate and the host name are always verified (no option turns it off) |
+| What a service program writes (`services`: a JSON-RPC frame or line) | Headers 8 KiB, a body or a line 8 MiB; a larger one stops the service. An error message from it is cut to 1,000 bytes |
+| A JSON-RPC service | 256 calls waiting for an answer, 256 subscriptions, 16 MiB waiting to be written to it |
+| A `process` service | 16 runs at once; its input 1 MiB; a line of its output 64 KiB (a longer one arrives in pieces) |
+| An `fs` service | 16 calls at once; a file read or written 8 MiB, UTF-8 text only; a listing 10,000 entries; paths that resolve inside its folder only |
+| Service calls of one screen (`invoke`, `subscribe`, `respond`) | 1,024 calls running, 256 subscriptions, 256 requests from services waiting for `respond`; a call's `keep` and the events it queues 10,000 |
+| A screen's `connections` | 64 connections, 256 operations and messages each; a `timeout` of 10 minutes at most (30 s by default), `retry.times` 5 at most |
+| Requests one connection starts (`request`, `subscribe`) | 50 a second; more fail with `refused`. Each also has the `net` module's limits above |
+| Headers a connection or an operation declares | Names that are HTTP tokens of 64 bytes at most; never `Authorization`, `Proxy-Authorization`, `Cookie`, `Host`, `Content-Length` or `Transfer-Encoding` (credentials come from sign-in, never from the document) |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
@@ -347,14 +406,19 @@ approves.
 
 These are not protected today. They are stated plainly so that you can decide what to expose.
 
+- **Services aren't sandboxed.** A program the host allows (`allowProcess`) runs with the user's rights, and a
+  JSON-RPC service may do whatever its program does once started; `fs` keeps paths inside its folder, but a program
+  writing to that folder at the same time could swap a folder for a link between the check and the use. Grant only
+  programs and folders you trust the screen with.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`.
 - **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
   connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
   a non-elevated host, and is then refused.
-- **The rate limits are per peer, and the queue to the main thread isn't bounded.** Nothing limits how many peers
-  connect, and each new connection gets fresh limits. A socket's reader thread hands every line to the main thread
+- **The rate limits are per peer, and the queue to the main thread isn't bounded.** Over local sockets nothing
+  limits how many peers connect, and each new connection gets fresh limits (remote peers over WebSocket are capped in
+  number and in connection rate, "Limits" above). A socket's reader thread hands every line to the main thread
   as it arrives, so a peer that sends faster than the main thread refuses its messages still makes that queue grow;
   refusing is cheap (no parsing), so the main thread keeps up in practice. The open-proposal limit caps waiting
   proposals, and the change rate caps how often they are pushed. Each connection also takes a file descriptor and two

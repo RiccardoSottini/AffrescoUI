@@ -6,6 +6,8 @@
 #include "affresco/core/CallProgress.hpp"
 #include "affresco/core/DataModel.hpp"
 #include "affresco/core/Executor.hpp"
+#include "affresco/core/Network.hpp"
+#include "affresco/core/Services.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
@@ -117,6 +119,19 @@ public:
 	/// @brief Sets where the results of asynchronous calls are posted, for a window the runtime didn't create.
 	/// @param executor The executor (outlives the runtime), or nullptr to run them at once.
 	void setExecutor(Executor* executor) noexcept;
+
+	/// @brief Sets the services the document's "services" section declares (RFC 0002): it loads them now and again
+	/// whenever the section changes, reporting each one refused through onError. "invoke", "subscribe" and "respond"
+	/// steps talk to them; results arrive through the Executor, like those of asynchronous calls.
+	/// @param services The services (outlive the runtime, or are replaced first), or nullptr for none.
+	void setServices(services::Services* services);
+
+	/// @brief Sets the network the document's "connections" section uses (RFC 0003): "request" and "subscribe" steps
+	/// reach a connection only through it, and only once the host allowed the connection's origin. The connections
+	/// load again.
+	/// @param network The network (outlives the runtime, or is replaced first), or nullptr: every connection is
+	/// refused.
+	void setNetwork(network::Network* network);
 
 	/// @brief Registers a data model the document shows with `"repeat": {"in": "models.<name>"}`: its rows are read
 	/// one at a time, and a change of a row updates only what reads that row. Agents see its count, shape and a sample.

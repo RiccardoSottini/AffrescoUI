@@ -27,7 +27,7 @@ runs:
         # shellcheck disable=SC2086 # the packages are a list
         sudo apt-get install -y --no-install-recommends ninja-build ccache \
           libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev \
-          libwayland-dev libxkbcommon-dev wayland-protocols $PACKAGES
+          libwayland-dev libxkbcommon-dev wayland-protocols libssl-dev $PACKAGES
     - name: Install the build tools (macOS)
       if: runner.os == 'macOS'
       shell: bash

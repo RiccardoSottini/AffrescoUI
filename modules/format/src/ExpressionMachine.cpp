@@ -323,7 +323,7 @@ std::optional<Value> Machine::variable(Root root, std::string_view name, const P
 	if(root == Root::Nodes && context_.nodes) return std::nullopt;
 	fail(place, "unknown variable '" + std::string(name) +
 	                "' (state, event, window, revision, proposals, history, preview, mode, computed, theme, screen, "
-	                "nodes, context, commands, keybindings, or a name given by repeat, forEach, let, with or a component's params)");
+	                "nodes, context, commands, keybindings, services, or a name given by repeat, forEach, let, with or a component's params)");
 }
 
 std::optional<Value> Machine::namedVariable(std::string_view name) const {

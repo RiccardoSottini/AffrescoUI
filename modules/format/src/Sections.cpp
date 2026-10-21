@@ -114,6 +114,8 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"settings", checkSettings}); // Settings.hpp
 	registry.add({"onLoad"});
 	registry.add(channelsSection());
+	registry.add(servicesSection());
+	registry.add(connectionsSection());
 	registry.add(persistSection());
 	registry.add({.name = "include", .inDocument = false}); // merged when the file is read (Screen)
 	registry.add(permissionsSection());

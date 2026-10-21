@@ -68,6 +68,13 @@ void registerBuiltInSections(SectionRegistry& registry);
 /// @brief "channels": programs the screen talks to over local sockets; a capability (CapabilitySections.cpp).
 /// @return The section.
 [[nodiscard]] SectionType channelsSection();
+/// @brief "services": programs and folders the screen calls by method name; a capability (CapabilitySections.cpp).
+/// @return The section.
+[[nodiscard]] SectionType servicesSection();
+/// @brief "connections": servers the screen talks to over HTTP and WebSocket, and what it may ask them; a capability
+/// (ConnectionSpec.cpp).
+/// @return The section.
+[[nodiscard]] SectionType connectionsSection();
 /// @brief "persist": state paths kept on disk; a capability (CapabilitySections.cpp).
 /// @return The section.
 [[nodiscard]] SectionType persistSection();

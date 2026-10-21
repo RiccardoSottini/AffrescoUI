@@ -4,6 +4,7 @@
 /// @brief format::Rules: the AffrescoUI Screen Format as rules for version control.
 
 #include "affresco/core/DocumentRules.hpp"
+#include "affresco/core/Services.hpp"
 
 #include <functional>
 #include <memory>
@@ -20,7 +21,7 @@ class SectionRegistry;
 /// "permissions" holds rules like Claude Code's: `{"allow": [...], "ask": [...], "deny": [...], "reviewers": [...]}`,
 /// each rule "author" or "author(pattern)". Without a "permissions" section everyone may change everything.
 /// Revisions may never change the permissions or add or alter control steps (accept, reject, preview, restore,
-/// revert, undo, patch, call), so no author can approve itself. Nor may they refer to state paths, variables,
+/// revert, undo, patch, call, send, connect, respond), so no author can approve itself. Nor may they refer to state paths, variables,
 /// actions, styles, components, parameters, fonts, colours or screens that don't exist (SCREEN_FORMAT.md, "Errors").
 ///
 /// Used on the main thread: the checker compiles expressions through the main thread's cache.
@@ -47,8 +48,9 @@ public:
 	/// @return The rules.
 	[[nodiscard]] Permissions permissions(const json& document) const override;
 
-	/// @brief Forbids changing "permissions", adding or altering control steps, and referring to what the screen
-	/// doesn't define (findings that were there before don't count).
+	/// @brief Forbids changing "permissions" (or another capability section, such as "services"), adding or altering
+	/// control steps, adding uses of services the document doesn't declare or methods kept from revisions (RFC 0002),
+	/// and referring to what the screen doesn't define (findings that were there before don't count).
 	/// @param before The document now, with the live state as its "state".
 	/// @param after The document after the change, with the live state after it.
 	/// @throws DocumentError If the change is forbidden; what() lists the new findings, each with its place.
@@ -86,9 +88,22 @@ public:
 	/// @param name The action.
 	void addNativeAction(std::string name);
 
+	/// @brief Sets the screen's services, so a revision is checked against what their methods are and do.
+	/// @param services The services (outlive the rules, or are replaced first), or nullptr: then a revision may add
+	/// uses of declared services only, each one reviewed.
+	void setServices(const services::Services* services) noexcept { services_ = services; }
+
+	/// @brief One line for each use of a service method that writes or runs that the change adds (or of one the
+	/// services can't describe): version control makes such a change a proposal, whoever makes it.
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @return The lines, e.g. "uses files.write (writes: ...)".
+	[[nodiscard]] std::vector<std::string> reviewLines(const json& before, const json& after) const override;
+
 private:
 	std::set<std::string, std::less<>> nativeActions_; ///< From addNativeAction().
 	std::shared_ptr<const SectionRegistry> sections_;  ///< The sections; shared by copies, never changed.
+	const services::Services* services_ = nullptr;     ///< See setServices().
 };
 
 } // namespace affresco::format

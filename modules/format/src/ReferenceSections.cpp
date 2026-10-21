@@ -127,6 +127,39 @@ constexpr KeyReference sectionTable[] = {
 		"note": {"type": "string"}, "reconnect": {"anyOf": [{"type": "boolean"}, {"type": "number"},
 		{"type": "object", "properties": {"after": {"type": "number"}}}]}}}})json",
 	 "Programs the screen talks to (see Channels). A capability: revisions can't change it.", "sections"},
+    {"services", R"json({"type": "object", "maxProperties": 64,
+		"description": "Services the screen uses (RFC 0002), each {\"provider\": ...}. Revisions can't change it.",
+		"additionalProperties": {"type": "object", "required": ["provider"],
+		"properties": {"provider": {"type": "string"}}}})json",
+	 "`{\"files\": {\"provider\": \"fs\", \"root\": \"workspace\"}}`: services that `invoke` and `subscribe` "
+	 "steps talk to, read by the application's providers (`jsonrpc`, `process`, `fs`); their status is the `services` "
+	 "variable. A capability: revisions can't change it.",
+	 "sections"},
+    {"connections", R"json({"type": "object", "maxProperties": 64,
+		"description": "Servers the screen talks to over HTTP or WebSocket (RFC 0003), and what it may ask them. Revisions can't change it.",
+		"additionalProperties": {"type": "object", "required": ["url"], "additionalProperties": false,
+		"properties": {"url": {"type": "string"}, "auth": {"type": ["object", "string"]},
+		"headers": {"type": "object", "additionalProperties": {"type": "string"}},
+		"timeout": {"type": "integer", "minimum": 1, "maximum": 600000},
+		"retry": {"type": "object", "additionalProperties": false, "properties": {"times": {"type": "integer",
+		"minimum": 0, "maximum": 5}, "after": {"type": "integer", "minimum": 1, "maximum": 60000}}},
+		"reconnect": {"anyOf": [{"type": "boolean"}, {"type": "object", "properties": {"after": {"type": "integer"}}}]},
+		"operations": {"type": "object", "maxProperties": 256, "additionalProperties": {"type": "object",
+		"additionalProperties": false, "properties": {"method": {"enum": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"]},
+		"path": {"type": "string"}, "query": {"type": "object"}, "body": {}, "form": {"type": "boolean"},
+		"headers": {"type": "object", "additionalProperties": {"type": "string"}},
+		"effect": {"enum": ["read", "write"]}, "stream": {"enum": ["events", "lines"]},
+		"result": {"type": "string"}, "timeout": {"type": "integer", "minimum": 1, "maximum": 600000},
+		"mock": {"type": "object", "properties": {"status": {"type": "integer"}, "body": {}}}}}},
+		"messages": {"type": "object", "maxProperties": 256}, "note": {"type": "string"}}}})json",
+	 "`{\"api\": {\"url\": \"https://api.example.com/v1\", \"operations\": {\"getProject\": {\"path\": "
+	 "\"/projects/{id}\"}}}}`: servers that `request` and `subscribe` steps talk to, each request built from its "
+	 "declared operation (method, `path` with `{name}` segments from `with`, `query`, `body`, `headers`, `effect`, "
+	 "`stream`, `result`, `timeout`, `mock`); a `ws://`/`wss://` connection has `messages` and runs the actions "
+	 "`name:open`, `name:<type>`, `name:error`, `name:closed`. The host allows the origins (`network.allow`). "
+	 "`connections.<name>` is `{online, pending, state, error}`. A capability: revisions use its operations, never "
+	 "add them.",
+	 "sections"},
     {"persist", R"json({"type": "array", "items": {"type": "string", "pattern": "^state\\."},
 		"description": "State paths kept on disk. Revisions can't change it."})json",
 	 "`[\"state.habits\", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it.",
@@ -169,6 +202,27 @@ constexpr KeyReference stepTable[] = {
 	 "steps"},
     {"cancel", "", R"(`{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more)",
 	 "steps"},
+    {"invoke", "",
+	 "`{ \"invoke\": \"files.read\", \"with\": {\"path\": \"a.txt\"}, \"into\": \"state.text\" }`: a method of "
+	 "a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with "
+	 "the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's "
+	 "events go to `append` (the last `keep`) or run `onEvent` with `events`",
+	 "steps"},
+    {"request", "",
+	 "`{ \"request\": \"api.getProject\", \"with\": {\"id\": \"{{state.id}}\"}, \"into\": \"state.project\", "
+	 "\"loading\": \"state.busy\" }`: an operation (or a WebSocket message) of a declared connection, built from its "
+	 "declaration; the keys of `invoke`, with `error` as `{code, message, status, body}`. While a proposal is "
+	 "previewed only a read without a `mock` reaches the server: the others answer with their mock, or fail with "
+	 "`preview`",
+	 "steps"},
+    {"subscribe", "",
+	 "`{ \"subscribe\": \"build.output\", \"append\": \"state.log\", \"keep\": 500, \"id\": \"build\" }`: a "
+	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs with `events`",
+	 "steps"},
+    {"respond", "",
+	 "`{ \"respond\": \"{{state.answer}}\" }` or `{ \"respond\": null, \"error\": \"no\" }`: answers the "
+	 "service request that ran the action `service:method` (its `request`); a control step",
+	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
@@ -209,6 +263,11 @@ constexpr KeyReference stepTable[] = {
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
+    {"append", "", "", ""},
+    {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "",
+	 ""},
+    {"id", "", "", ""},
+    {"error", "", "", ""},
     {"data", "", "", ""},
     {"message", "", "", ""},
     {"ms", "", "", ""},
@@ -219,6 +278,8 @@ constexpr KeyReference stepTable[] = {
     {"else", "steps", "", ""},
     {"do", "steps", "", ""},
     {"onError", "steps", "", ""},
+    {"onEvent", "steps", "", ""},
+    {"onDone", "steps", "", ""},
 };
 
 /// The shared values: "$defs/v1" entries the other schemas refer to.

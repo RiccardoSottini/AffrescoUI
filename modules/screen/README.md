@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
@@ -31,6 +31,12 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   had deferred, then previews the proposal with the runtime's handlers suspended, draws offscreen and puts the old
   preview back, within one call and without presenting a frame. Events the runtime emits meanwhile aren't sent, and
   no onShow, onHide or watch step runs.
+- **Services are the host's grants:** `services()` is the screen's `services::ServiceRegistry`. The host grants
+  folders (`addRoot`) and programs (`allowProcess`) and may add providers before building; the file's `services`
+  section can only name them, and its services start at their first use. They stop when the screen is destroyed.
+- **Origins are the host's grants too:** `network()` is the screen's `net::Client`, made at the first call. The
+  file's `connections` reach only the origins the host allows (`network().allow("https://api.example.com")`); its
+  results arrive through the screen's executor.
 - **Data stays with the user:** the history and `persist` state live under `defaultDataDirectory()`
   (`$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui`), and sockets under `defaultSocketDirectory()`.
 - **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks, native menu bar and
@@ -56,7 +62,9 @@ Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `o
 `onUnhandledAction`, `onEvent`; `setModel` for a `DataModel` the screen shows with `"in": "models.<name>"`; and
 `onAsyncCall` for a slow function run on a worker thread (with `setExecutor` for a window the Screen didn't create;
 destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and
-`listen(executor, path, author)` for a socket that accepts any number of them. `registerType` goes through the
+`listen(executor, path, author)` for a socket that accepts any number of them, and
+`listenWebSocket(executor, "127.0.0.1:7420", verifier)` for remote peers, each authored as its token's verifier says
+(`modules/net/README.md`). `registerType` goes through the
 runtime's type registry (`modules/format/README.md`).
 
 ## Files
