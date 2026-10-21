@@ -5,17 +5,24 @@
 
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
+#include "affresco/render/RichText.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace affresco {
 
 /// @brief A panel that draws text, with padding, alignment, optional wrap and optional fit-to-text sizing.
+///
+/// The text is one style, or rich: runs of their own font, colour, link or inline icon (setRuns()). A selectable
+/// label lets the user select its text with the mouse and copy it with Cmd/Ctrl+C.
 ///
 /// Transparent background by default; uses the window's default font unless given one. Glyphs land on whole pixels,
 /// which keeps them sharp.
@@ -35,6 +42,36 @@ public:
 	[[nodiscard]] std::string text() const;
 	/// @brief The text, one element per code point.
 	[[nodiscard]] const std::u32string& codepoints() const noexcept { return text_; }
+
+	/// @brief Replaces the text with runs of styled text; setText() goes back to one style.
+	/// @param runs The runs, in order; text() is their text, without icons.
+	void setRuns(std::vector<TextRun> runs);
+	/// @brief The runs, or empty when the text has one style.
+	[[nodiscard]] const std::vector<TextRun>& runs() const noexcept { return runs_; }
+
+	/// @brief Lets the user select the text with the mouse, and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects all).
+	/// @param selectable true to allow it.
+	void setSelectable(bool selectable);
+	/// @brief Whether the text can be selected.
+	[[nodiscard]] bool selectable() const noexcept { return selectable_; }
+	/// @brief The selection, as code point positions in textLayout().text(): from and to, from <= to.
+	[[nodiscard]] std::pair<std::size_t, std::size_t> selection() const noexcept {
+		return {std::min(anchor_, caret_), std::max(anchor_, caret_)};
+	}
+	/// @brief Selects code points of textLayout().text().
+	/// @param from The first.
+	/// @param to One past the last.
+	void select(std::size_t from, std::size_t to);
+	/// @brief The selected text as UTF-8, without icons (code points in the Private Use Areas, where icon fonts put
+	/// their glyphs).
+	[[nodiscard]] std::string selectedText() const;
+	/// @brief Sets the selection's colour.
+	/// @param color The colour.
+	void setSelectionColor(Color color);
+
+	/// @brief The text as laid out for the label's current box: lines of pieces, from the block of lines' top-left.
+	/// Empty without a font.
+	[[nodiscard]] const TextLayout& textLayout() const;
 
 	/// @brief Shows an icon before the text (with a space between when there is text), in the text's colour.
 	///
@@ -78,9 +115,15 @@ public:
 	/// @param maxWidth With wrap on, the widest the label may get.
 	void setFitToText(bool fit, float maxWidth = std::numeric_limits<float>::infinity());
 
+	Signal<const std::string&> onLink; ///< A press on a run with a link: the link.
+
 protected:
 	void prepareLayout() override;
 	void paint(Painter& painter) const override;
+	void keyEvent(const KeyEvent& event) override;
+	void mouseButtonEvent(const MouseButtonEvent& event) override;
+	void mouseMoveEvent(const MouseMoveEvent& event) override;
+	void focusEvent(bool focused) override;
 
 	/// @brief The frame minus the padding.
 	[[nodiscard]] Rect contentRect() const noexcept;
@@ -98,6 +141,38 @@ private:
 	void paintLine(Painter& painter, const Font& font, std::u32string_view line, float top) const;
 	/// @brief Puts the icon before the text in shown_, if the text, the icon or the font changed.
 	void updateShown();
+	/// @brief Draws the runs.
+	/// @param painter The painter.
+	/// @param origin The block of lines' top-left.
+	void paintRuns(Painter& painter, Vec2 origin) const;
+	/// @brief Highlights the selection.
+	/// @param painter The painter.
+	/// @param origin The block of lines' top-left.
+	void paintSelection(Painter& painter, Vec2 origin) const;
+	/// @brief Where the block of lines starts: the content's left, and its top by the vertical alignment.
+	[[nodiscard]] Vec2 blockOrigin() const;
+
+	/// @brief What layout_ was made from, to make it again only when it changes.
+	struct LaidOut {
+		std::uint64_t text = 0;     ///< textVersion_ (0: not yet).
+		std::uint64_t font = 0;     ///< Font::id().
+		float maxWidth = 0.0f;      ///< Where lines break.
+		float boxWidth = 0.0f;      ///< The width they are aligned in.
+		Align align = Align::Start; ///< Their placement.
+		std::size_t length = 0;     ///< The shown text's length (a text area changes it without a version).
+		/// @brief Whether two are the same.
+		friend bool operator==(const LaidOut&, const LaidOut&) = default;
+	};
+
+	std::vector<TextRun> runs_;                   ///< See runs().
+	mutable TextLayout layout_;                   ///< See textLayout().
+	mutable LaidOut laidOut_;                     ///< What layout_ was made from.
+	std::uint64_t textVersion_ = 1;               ///< Changes with the text, its runs or its icon.
+	bool selectable_ = false;                     ///< See selectable().
+	bool selecting_ = false;                      ///< The mouse is selecting.
+	std::size_t anchor_ = 0;                      ///< Where the selection started.
+	std::size_t caret_ = 0;                       ///< Where it ends.
+	Color selectionColor_ = Color::hex(0xb4d5fe); ///< See setSelectionColor().
 
 	std::string icon_;                 ///< See icon().
 	std::u32string shown_;             ///< The icon's character, a space and the text: see shown().

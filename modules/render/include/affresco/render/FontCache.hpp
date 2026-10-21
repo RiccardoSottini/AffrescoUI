@@ -53,10 +53,12 @@ public:
 	/// @param path As Font::load().
 	/// @param pixelHeight As Font::load().
 	/// @param fallbacks As Font::load().
+	/// @param style As Font::load().
 	/// @return The font.
 	/// @throws std::runtime_error As Font::load(); the cache is then as it was.
 	[[nodiscard]] std::shared_ptr<const Font> load(const std::filesystem::path& path, float pixelHeight,
-	                                               std::span<const std::filesystem::path> fallbacks = {});
+	                                               std::span<const std::filesystem::path> fallbacks = {},
+	                                               FontStyle style = {});
 
 	/// @brief How many fonts it keeps now.
 	[[nodiscard]] std::size_t size() const noexcept { return fonts_.size(); }
@@ -73,7 +75,7 @@ public:
 private:
 	/// @brief A font and what it was loaded from.
 	struct Entry {
-		std::string key;                  ///< File, size and fallbacks.
+		std::string key;                  ///< File, size, style and fallbacks.
 		std::shared_ptr<const Font> font; ///< The font.
 	};
 

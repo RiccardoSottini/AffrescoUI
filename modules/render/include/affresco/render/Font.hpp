@@ -31,6 +31,15 @@ enum class AtlasKind : std::uint8_t {
 	color,    ///< Premultiplied red, green, blue and alpha per texel.
 };
 
+/// @brief A style synthesised from a font's outlines, for a family that ships one file: bold thickens them (and widens
+/// advances to match), italic slants them.
+struct FontStyle {
+	bool bold = false;   ///< Outlines thickened by 1/24 em.
+	bool italic = false; ///< Outlines slanted by about 11 degrees.
+	/// @brief Whether two styles are the same.
+	friend bool operator==(const FontStyle&, const FontStyle&) = default;
+};
+
 /// @brief A font file and its fallbacks at one pixel height: text shaped into glyphs and rasterised into atlas pages.
 ///
 /// **Shaping.** Text is shaped with HarfBuzz: kerning, ligatures, combining marks, and the joining and reordering of
@@ -95,10 +104,12 @@ public:
 	/// @param pixelHeight Size in pixels: from the top of the tallest glyph to the bottom of the deepest.
 	/// @param fallbacks Font files asked, in order, for characters the font lacks. Their glyphs are drawn with the
 	/// font's em size (so their text looks as large as the font's), on the font's baseline.
+	/// @param style Bold or italic, synthesised from the outlines of the font and its fallbacks.
 	/// @return The font. Its first page is the smallest square (256 to 4096 texels) that fits Latin-1.
 	/// @throws std::runtime_error If a file can't be read, isn't a usable font, or Latin-1 doesn't fit.
 	[[nodiscard]] static std::shared_ptr<const Font> load(const std::filesystem::path& path, float pixelHeight,
-	                                                      std::span<const std::filesystem::path> fallbacks = {});
+	                                                      std::span<const std::filesystem::path> fallbacks = {},
+	                                                      FontStyle style = {});
 
 	/// @brief Frees the font's data and pages.
 	~Font();
@@ -107,6 +118,8 @@ public:
 
 	/// @brief The size it was rasterised at, in pixels.
 	[[nodiscard]] float pixelHeight() const noexcept { return pixelHeight_; }
+	/// @brief The style synthesised from its outlines.
+	[[nodiscard]] FontStyle style() const noexcept { return style_; }
 	/// @brief Distance from the baseline to the top of the tallest glyph.
 	[[nodiscard]] float ascent() const noexcept { return ascent_; }
 	/// @brief Distance from one baseline to the next.
@@ -203,12 +216,13 @@ private:
 	/// @param fallbacks As load().
 	/// @param optional More fallbacks, after @p fallbacks; one that can't be read or used is left out.
 	/// @param files Reads the files.
+	/// @param style As load().
 	/// @return The font.
 	/// @throws std::runtime_error As load().
 	[[nodiscard]] static std::shared_ptr<const Font> load(const std::filesystem::path& path, float pixelHeight,
 	                                                      std::span<const std::filesystem::path> fallbacks,
 	                                                      std::span<const std::filesystem::path> optional,
-	                                                      detail::FontFiles& files);
+	                                                      detail::FontFiles& files, FontStyle style = {});
 
 	/// @brief Rasterises Latin-1 into the first page, if it fits, taking what the font lacks from its fallbacks.
 	/// @param size The page's width and height, in texels.
@@ -226,6 +240,7 @@ private:
 
 	std::uint64_t id_ = 0;     ///< See id().
 	float pixelHeight_ = 0.0f; ///< See pixelHeight().
+	FontStyle style_;          ///< See style().
 	float ascent_ = 0.0f;      ///< See ascent().
 	float lineHeight_ = 0.0f;  ///< See lineHeight().
 	/// @brief Latin-1, by codepoint - firstCodepoint, final once loaded (characters the font lacks hold a fallback's

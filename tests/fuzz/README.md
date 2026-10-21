@@ -16,6 +16,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `png` | A file's bytes, to the PNG reader golden images go through (`automation/src/PngReader.hpp`) | Refused with a reason, or a picture of width × height × 3 bytes within the pixel limit |
 | `text` | UTF-8 text, shaped, measured and wrapped by a `Font` with fallbacks for Arabic, Devanagari, Chinese and colour emoji (HarfBuzz and FreeType); the first byte picks the width | One advance per code point and one caret more, all finite; the advances sum to the width `measure` gives; wrapped lines are the text in order, cut only at a space or a line break |
 | `layout` | A JSON node, put in a screen as the root's only child, built into a headless window, laid out at two sizes, and its geometry recorded (`GeometryCache`, no OpenGL): flex and grid keys, tracks, cells, aspect ratios | Errors are `DocumentError`s; a shown panel's bounds aren't inverted and lie within its parent's |
+| `richtext` | Runs of UTF-8 text cut at U+001F, each led by a style byte (bold, larger, italic, a link), laid out by `TextLayout` across fonts; the first byte picks the width and the alignment | Lines cover the text in order and stack up, every piece is on its line and placed, positions and hits stay in the text, carets are finite |
 | `cli` | A screen file, as the `affrescoui` tool reads it (`tools/affrescoui`): the text reader and printer behind `fmt` and `ids`, the places `ids` names, and the schema check behind `check` | `fmt` writes the same JSON value, and formatting its output again changes nothing; the schema check reports problems, never throws |
 | `actions` | A JSON value, run as the steps of an action of the Kanban template (its state and actions, no window) | Every event stops within its work budget (the run's `-timeout` catches one that doesn't), and writes no more into the state than the budget lets it |
 | `image` | A file's bytes, decoded by `Bitmap::decode` (stb_image, PNG and JPEG) within small limits: a revision can name any file in an allowed folder | What decodes is within the limits, four bytes a pixel, premultiplied (no channel above its alpha); anything else is a `std::runtime_error` |
@@ -37,7 +38,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `cli`, `actions`, `layout`, `lookups`, `image`, `scenarios` or `png` in place of `session`. `-fork=4 -ignore_crashes=1`
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `scenarios` or `png` in place of `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
 
@@ -91,7 +92,7 @@ artifact, in a folder named after its target.
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `actions.cpp`, `scenarios.cpp`, `png.cpp` | The targets |
+| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `scenarios.cpp`, `png.cpp` | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates in `examples/assets/screens/`, the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |

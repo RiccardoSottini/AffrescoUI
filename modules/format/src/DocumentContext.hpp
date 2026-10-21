@@ -187,6 +187,16 @@ public:
 	/// @param name The name.
 	/// @return The font, or nullptr.
 	[[nodiscard]] std::shared_ptr<const Font> findFont(std::string_view name) const;
+	/// @brief A font of "fonts" in another size or style (a bold run of rich text): its file and fallbacks, loaded
+	/// through the font cache. A document has at most 32 variants, until its fonts change.
+	/// @param base A font of "fonts", or nullptr for "default".
+	/// @param pixelHeight The size.
+	/// @param style The style.
+	/// @param at Its place, for errors.
+	/// @return The font, or nullptr if @p base isn't a font of "fonts".
+	/// @throws DocumentError If the variants are used up, or the font can't load.
+	[[nodiscard]] std::shared_ptr<const Font> fontVariant(const Font* base, float pixelHeight, FontStyle style,
+	                                                      const std::string& at);
 	/// @brief Evaluates "theme" for this update.
 	void updateTheme();
 	/// @brief Counts what changes how the same values look: the theme, the colours, the fonts, the node types. A panel
@@ -251,6 +261,13 @@ private:
 	ColorTable colors_;                                                     ///< From "colors" and colour tokens.
 	NumberTable numberTokens_;                                              ///< Number tokens of "tokens".
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts_; ///< From "fonts".
+	/// @brief Where a font of "fonts" comes from, to load it in another size or style.
+	struct FontSource {
+		std::filesystem::path file;                   ///< Its file.
+		std::vector<std::filesystem::path> fallbacks; ///< Its fallbacks' files.
+	};
+	std::map<std::uint64_t, FontSource> fontSources_;                          ///< By Font::id(), for fonts_.
+	std::map<std::string, std::shared_ptr<const Font>, std::less<>> variants_; ///< See fontVariant(), by key.
 	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
 	ImageCache images_;                      ///< See images().
 	std::string theme_;                      ///< "theme", evaluated at each update.

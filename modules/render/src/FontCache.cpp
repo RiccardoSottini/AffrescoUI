@@ -58,10 +58,13 @@ std::vector<std::filesystem::path> systemFontCandidates() {
 /// @param path Its file.
 /// @param pixelHeight Its size.
 /// @param fallbacks Its fallbacks.
-/// @return File, size and fallbacks, in one string.
+/// @param style Its style.
+/// @return File, size, style and fallbacks, in one string.
 std::string keyOf(const std::filesystem::path& path, float pixelHeight,
-                  std::span<const std::filesystem::path> fallbacks) {
+                  std::span<const std::filesystem::path> fallbacks, FontStyle style) {
 	std::string key = path.lexically_normal().string() + "@" + std::to_string(pixelHeight);
+	if(style.bold) key += "+bold";
+	if(style.italic) key += "+italic";
 	for(const std::filesystem::path& fallback : fallbacks) key += "|" + fallback.lexically_normal().string();
 	return key;
 }
@@ -78,15 +81,15 @@ FontCache::FontCache(Limits limits, std::vector<std::filesystem::path> systemFal
 FontCache::~FontCache() = default;
 
 std::shared_ptr<const Font> FontCache::load(const std::filesystem::path& path, float pixelHeight,
-                                            std::span<const std::filesystem::path> fallbacks) {
-	const std::string key = keyOf(path, pixelHeight, fallbacks);
+                                            std::span<const std::filesystem::path> fallbacks, FontStyle style) {
+	const std::string key = keyOf(path, pixelHeight, fallbacks, style);
 	for(auto entry = fonts_.begin(); entry != fonts_.end(); ++entry)
 		if(entry->key == key) {
 			fonts_.splice(fonts_.begin(), fonts_, entry);
 			return entry->font;
 		}
 
-	std::shared_ptr<const Font> font = Font::load(path, pixelHeight, fallbacks, systemFallbacks_, *files_);
+	std::shared_ptr<const Font> font = Font::load(path, pixelHeight, fallbacks, systemFallbacks_, *files_, style);
 	fonts_.push_front({key, font});
 	trim(); // the new font is in use: the caller holds it
 	return font;

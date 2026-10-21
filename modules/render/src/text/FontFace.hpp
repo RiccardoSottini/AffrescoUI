@@ -4,6 +4,8 @@
 /// @brief detail::FontFile, FontFiles and FontFace: font files read once and shared, and one file at one size, opened
 /// with FreeType (rasterising) and HarfBuzz (shaping).
 
+#include "affresco/render/Font.hpp"
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <hb.h>
@@ -94,9 +96,10 @@ public:
 	/// @param size The size, in pixels: more than 0, at most largestSize.
 	/// @param sizeOf What @p size measures.
 	/// @param path Its path, for errors.
+	/// @param style Bold or italic, synthesised from its outlines (not its colour glyphs).
 	/// @throws std::runtime_error If it isn't a usable scalable font, or the size is out of range.
 	FontFace(FT_Library library, std::shared_ptr<const FontFile> file, float size, SizeOf sizeOf,
-	         const std::filesystem::path& path);
+	         const std::filesystem::path& path, FontStyle style = {});
 
 	/// @brief Its glyph for a character.
 	/// @param codepoint The character.
@@ -127,11 +130,16 @@ public:
 	[[nodiscard]] std::optional<Bitmap> render(unsigned glyph) const noexcept;
 
 private:
+	/// @brief Thickens or slants a glyph's outline in place, as its style asks.
+	/// @param outline The outline, in 26.6 pixels.
+	void synthesize(FT_Outline& outline) const noexcept;
+
 	std::shared_ptr<const FontFile> file_; ///< Declared first, so the face and the font are freed before it.
 	std::unique_ptr<FT_FaceRec_, TextLibraryDeleter> face_; ///< FreeType's face, pointing into file_.
 	std::unique_ptr<hb_font_t, TextLibraryDeleter> shaper_; ///< HarfBuzz's font, pointing into file_.
 	float scale_ = 0.0f;                                    ///< See scale().
 	bool color_ = false;                                    ///< See hasColor().
+	FontStyle style_;                                       ///< Synthesised when a glyph is rendered.
 };
 
 } // namespace affresco::detail

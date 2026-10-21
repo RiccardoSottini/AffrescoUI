@@ -191,6 +191,15 @@ def text_seeds():
     return list(dict.fromkeys(seed for seed in seeds if seed.strip() and "{{" not in seed))
 
 
+def richtext_seeds():
+    """Runs as the richtext target reads them: a width byte, then runs cut at U+001F, each led by its style byte."""
+    seeds = ["\x40" + "\x1f".join(chr(style) + text for style, text in enumerate(words))
+             for words in (["Plain ", "bold", " and ", "big", " italic ", "both", " ", "linked words"],
+                           ["one", "\n", "two three four five six", "", "\u0627\u0644 \U0001F600"])]
+    seeds += ["\x00" + "\x1f" * 300, "\x10" + "\x01" + "word " * 200, "\xff" + "\x02\n\n\n"]
+    return seeds
+
+
 def layout_seeds():
     """Every node of the layout and damage screens of the rendering check, with their flex and grid keys, and a few
     that push the limits: as many tracks as a grid may have, cells past them, sizes near the float's limit."""
@@ -379,6 +388,7 @@ def main():
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
     write(out, "text", text_seeds(), words["text"])
+    write(out, "richtext", richtext_seeds(), words["text"] + ["\x1f", "\x01", "\x02", "\x04", "\x08"])
     write(out, "cli", cli_seeds(), words["cli"])
     write(out, "actions", action_seeds(), words["actions"])
     write(out, "layout", layout_seeds(), words["layout"])

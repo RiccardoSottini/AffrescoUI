@@ -60,6 +60,16 @@ public:
 	/// @throws DocumentError If it isn't a font of the document.
 	[[nodiscard]] virtual std::shared_ptr<const Font> font(const json& value, const std::string& at) const = 0;
 
+	/// @brief A font of "fonts" in another size or style, e.g. for a bold run of rich text.
+	/// @param base A font of "fonts", or nullptr for "default".
+	/// @param pixelHeight The size, in pixels.
+	/// @param style The style.
+	/// @param at Its place, for errors.
+	/// @return The font, or nullptr if @p base isn't a font of "fonts".
+	/// @throws DocumentError If the document has too many sizes and styles, or the font can't load.
+	[[nodiscard]] virtual std::shared_ptr<const Font> fontVariant(const Font* base, float pixelHeight, FontStyle style,
+	                                                              const std::string& at) const = 0;
+
 	/// @brief Where the document's images come from.
 	[[nodiscard]] virtual ImageCache& images() const = 0;
 
@@ -256,5 +266,8 @@ void registerListTypes(TypeRegistry& registry);
 /// @brief Registers "icon", a property of labels (IconProperty.cpp).
 /// @param registry The registry.
 void registerIconProperty(TypeRegistry& registry);
+/// @brief Registers "runs", "selectable" and "selectionColor", properties of labels (RunsProperty.cpp).
+/// @param registry The registry.
+void registerRichTextProperties(TypeRegistry& registry);
 
 } // namespace affresco::format

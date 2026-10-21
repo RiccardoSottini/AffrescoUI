@@ -153,6 +153,9 @@ parent, later siblings on top of earlier ones.
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
 | `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
+| `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
+| `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
+| `selectionColor` | The selection's colour (default `#b4d5fe`). |
 <!-- end generated -->
 
 ```json
@@ -440,6 +443,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onKey` | A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`. |
 | `onChange` | A bound or value control changed: `event.value`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
+| `onLink` | A press on a part of `runs` with a link: `event.link`. |
 | `onShow`, `onHide` | The node was built, or removed (by `when`, `repeat` or a revision). |
 | `onClose` | A tab's close button or Delete: `event.id`. |
 | `onMove` | A tab dragged along its strip: `event.id`, `from`, `to`. |

@@ -42,6 +42,11 @@ std::shared_ptr<const Font> Properties::font(const json& value, const std::strin
 	return found;
 }
 
+std::shared_ptr<const Font> Properties::fontVariant(const Font* base, float pixelHeight, FontStyle style,
+                                                    const std::string& at) const {
+	return engine_.document.fontVariant(base, pixelHeight, style, at);
+}
+
 ImageCache& Properties::images() const { return engine_.document.images(); }
 
 std::filesystem::path Properties::imageFile(const json& value, const std::string& at) const {
@@ -112,6 +117,8 @@ void Properties::readHandler(const Panel& panel, Record& record, const std::stri
 	}
 	if(!value.is_string() && !value.is_array() && !value.is_object()) fail(at, "expected an action name or steps");
 	if(key == "onSubmit" && !dynamic_cast<const TextArea*>(&panel)) fail(at, "only text areas have \"onSubmit\"");
+	if(key == "onLink" && (!dynamic_cast<const Label*>(&panel) || dynamic_cast<const TextArea*>(&panel)))
+		fail(at, "only labels have \"onLink\"");
 	record.handlers[key] = value;
 }
 

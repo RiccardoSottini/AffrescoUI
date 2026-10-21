@@ -209,6 +209,23 @@ constexpr KeyReference nodeTable[] = {
 	 "examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text "
 	 "areas.",
 	 "label"},
+    {"runs", R"json({"type": "array", "maxItems": 256, "items": {"oneOf": [{"type": ["string", "number", "boolean"]},
+		{"type": "object", "additionalProperties": false, "properties": {"text": {}, "icon": {"type": "string"},
+		"font": {"type": "string"}, "size": {"type": "number"}, "bold": {"type": "boolean"},
+		"italic": {"type": "boolean"}, "color": {"$ref": "#/$defs/v1/color"}, "link": {"type": "string",
+		"maxLength": 2048}}}]},
+		"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"})json",
+	 "Rich text instead of `text`: a list of parts, each text or `{ \"text\", \"bold\", \"italic\", \"size\", "
+	 "\"font\", \"color\", \"link\", \"icon\" }`. `font` names a font of `fonts` (default: the label's); `bold`, "
+	 "`italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is "
+	 "underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at "
+	 "spaces across parts. At most 256 parts and 65,536 characters. Not on text areas.",
+	 "label"},
+    {"selectable", "flag",
+	 "The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons "
+	 "are left out of the copy.",
+	 "label"},
+    {"selectionColor", "color", "The selection's colour (default `#b4d5fe`).", "label"},
     {"bind", R"json({"type": "string",
 		"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"})json",
 	 "A state path holding the text (lines joined by `\"\\n\"`), kept in sync both ways. Without it, `text` sets the "
@@ -415,6 +432,7 @@ constexpr KeyReference nodeTable[] = {
 	 "events"},
     {"onChange", "", "A bound or value control changed: `event.value`.", "events"},
     {"onSubmit", "handler", "Enter in a text area: `event.text`.", "events"},
+    {"onLink", "handler", "A press on a part of `runs` with a link: `event.link`.", "events"},
     {"onShow", "handler", "The node was built, or removed (by `when`, `repeat` or a revision).", "events"},
     {"onHide", "handler", "", "events"},
     {"onClose", "handler", "A tab's close button or Delete: `event.id`.", "events"},

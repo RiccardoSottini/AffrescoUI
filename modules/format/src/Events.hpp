@@ -72,6 +72,10 @@ private:
 	/// @param panel The panel, a TextEditor.
 	/// @return The connection, or 0 if it isn't one.
 	Connection hookCaret(Panel& panel);
+	/// @brief Connects a label's links to its "onLink".
+	/// @param panel The panel, a Label.
+	/// @return The connection, or 0 if it isn't one.
+	Connection hookLink(Panel& panel);
 	/// @brief Writes a value to a bound state path and runs the panel's "onChange".
 	/// @param panel The panel.
 	/// @param value The new value.

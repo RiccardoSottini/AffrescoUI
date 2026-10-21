@@ -114,6 +114,10 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	auto label = std::make_shared<PropertySet>();
 	label->properties = textProperties();
 	label->properties.push_back({"icon", ValueKind::Text}); // applied by IconProperty.cpp, listed here for the catalog
+	// Applied by RunsProperty.cpp, listed here for the catalog
+	label->properties.push_back({"runs", ValueKind::Any, false});
+	label->properties.push_back({"selectable", ValueKind::Boolean, false});
+	label->properties.push_back({"selectionColor", ValueKind::Color});
 	addCore(registry, "label", "Text", [] { return std::make_unique<Label>(); }, label);
 
 	auto textarea = std::make_shared<PropertySet>();
@@ -153,6 +157,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerTabsType(registry);
 	registerListTypes(registry);
 	registerIconProperty(registry);
+	registerRichTextProperties(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

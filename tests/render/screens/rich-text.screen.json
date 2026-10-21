@@ -1,0 +1,61 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Rich text, for the rendering check: runs with bold, italic, larger and coloured parts, a link and an inline icon, wrapped across styles, and a selectable label. The scenario selects all of it, then edits one run.",
+
+	"window": { "title": "Rich text", "width": 420, "height": 240 },
+
+	"state": { "link": "none yet" },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons"] },
+		"icons": { "file": "../../../examples/assets/fonts/Lucide.ttf", "size": 16 }
+	},
+
+	"colors": { "background": "#f8fafc", "text": "#0f172a", "accent": "#7c3aed", "danger": "#dc2626" },
+
+	"root": {
+		"id": "page",
+		"color": "@background",
+		"children": [
+			{
+				"type": "label",
+				"id": "intro",
+				"x": 20,
+				"y": 20,
+				"width": 380,
+				"height": 90,
+				"wrap": true,
+				"textColor": "@text",
+				"runs": [
+					"Rich text mixes ",
+					{ "text": "bold", "bold": true },
+					", ",
+					{ "text": "italic", "italic": true },
+					" and ",
+					{ "text": "larger", "size": 24, "color": "@accent" },
+					" parts in one label, wraps them at spaces across styles, shows ",
+					{ "icon": "star", "color": "@danger" },
+					" icons inline and has ",
+					{ "text": "links", "link": "https://example.com/docs" },
+					"."
+				],
+				"onLink": { "set": "state.link", "to": "{{event.link}}" }
+			},
+			{
+				"type": "label",
+				"id": "selectable",
+				"x": 20,
+				"y": 130,
+				"width": 380,
+				"height": 30,
+				"textColor": "@text",
+				"text": "This label can be selected and copied.",
+				"selectable": true,
+				"selectionColor": "#c7d2fe"
+			},
+			{ "type": "label", "id": "lastLink", "x": 20, "y": 180, "width": 380, "height": 30, "textColor": "@text", "text": "Last link: {{state.link}}" }
+		]
+	}
+}

@@ -114,6 +114,7 @@ void DocumentContext::readDerived() {
 	auto newColors = readColors(doc);
 	auto newNumbers = readTokens(doc, newColors);
 	decltype(fonts_) newFonts;
+	decltype(fontSources_) newSources;
 
 	if(doc.contains("fonts")) {
 		for(const auto& [name, value] : object(doc["fonts"], "fonts").items()) {
@@ -126,7 +127,9 @@ void DocumentContext::readDerived() {
 			const std::vector<std::filesystem::path> fallbacks =
 			    fallbackFiles(doc["fonts"], value, path, baseDirectory_);
 			try {
-				newFonts.emplace(name, fontCache_.load(file, size, fallbacks));
+				std::shared_ptr<const Font> font = fontCache_.load(file, size, fallbacks);
+				newSources[font->id()] = {file, fallbacks};
+				newFonts.emplace(name, std::move(font));
 			} catch(const std::runtime_error& error) {
 				fail(path, error.what());
 			}
@@ -136,6 +139,8 @@ void DocumentContext::readDerived() {
 	colors_ = std::move(newColors);
 	numberTokens_ = std::move(newNumbers);
 	fonts_ = std::move(newFonts);
+	fontSources_ = std::move(newSources);
+	variants_.clear();
 	changeAppearance();
 }
 
@@ -307,6 +312,30 @@ Shadow DocumentContext::shadow(const json& value, const std::string& path) const
 std::shared_ptr<const Font> DocumentContext::findFont(std::string_view name) const {
 	const auto it = fonts_.find(name);
 	return it == fonts_.end() ? nullptr : it->second;
+}
+
+std::shared_ptr<const Font> DocumentContext::fontVariant(const Font* base, float pixelHeight, FontStyle style,
+                                                         const std::string& at) {
+	constexpr std::size_t variantLimit = 32;
+	if(!base) {
+		const auto found = fonts_.find("default");
+		if(found == fonts_.end()) return nullptr;
+		base = found->second.get();
+	}
+	const auto source = fontSources_.find(base->id());
+	if(source == fontSources_.end()) return nullptr;
+	if(pixelHeight == base->pixelHeight() && style == base->style())
+		return fontCache_.load(source->second.file, pixelHeight, source->second.fallbacks);
+	const std::string key = std::format("{}/{}/{}{}", base->id(), pixelHeight, style.bold, style.italic);
+	if(const auto found = variants_.find(key); found != variants_.end()) return found->second;
+	if(variants_.size() >= variantLimit)
+		fail(at, std::format("at most {} sizes and styles of fonts in a document", variantLimit));
+	try {
+		auto font = fontCache_.load(source->second.file, pixelHeight, source->second.fallbacks, style);
+		return variants_.emplace(key, std::move(font)).first->second;
+	} catch(const std::runtime_error& error) {
+		fail(at, error.what());
+	}
 }
 
 void DocumentContext::updateTheme() {

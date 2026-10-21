@@ -867,6 +867,57 @@
 						"type": "string",
 						"description": "label: an icon before the text, by its glyph name in the label's font or its fallbacks (e.g. Lucide's \"search\")"
 					},
+					"runs": {
+						"type": "array",
+						"maxItems": 256,
+						"items": {
+							"oneOf": [
+								{
+									"type": [
+										"string",
+										"number",
+										"boolean"
+									]
+								},
+								{
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"text": {},
+										"icon": {
+											"type": "string"
+										},
+										"font": {
+											"type": "string"
+										},
+										"size": {
+											"type": "number"
+										},
+										"bold": {
+											"type": "boolean"
+										},
+										"italic": {
+											"type": "boolean"
+										},
+										"color": {
+											"$ref": "#/$defs/v1/color"
+										},
+										"link": {
+											"type": "string",
+											"maxLength": 2048
+										}
+									}
+								}
+							]
+						},
+						"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"
+					},
+					"selectable": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"selectionColor": {
+						"$ref": "#/$defs/v1/color"
+					},
 					"bind": {
 						"type": "string",
 						"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"
@@ -886,9 +937,6 @@
 						"$ref": "#/$defs/v1/color"
 					},
 					"lineColor": {
-						"$ref": "#/$defs/v1/color"
-					},
-					"selectionColor": {
 						"$ref": "#/$defs/v1/color"
 					},
 					"caretColor": {
@@ -1410,6 +1458,9 @@
 						"$ref": "#/$defs/v1/handler"
 					},
 					"onSubmit": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onLink": {
 						"$ref": "#/$defs/v1/handler"
 					},
 					"onShow": {

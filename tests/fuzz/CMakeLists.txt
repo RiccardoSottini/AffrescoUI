@@ -30,6 +30,8 @@ affrescoui_fuzzer(text affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.h
 target_include_directories(affrescoui_fuzz_text PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # detail/Utf8.hpp
 # Where its fonts are: not from __FILE__, which a compiler cache (CCACHE_BASEDIR in CI) makes relative to the build
 target_compile_definitions(affrescoui_fuzz_text PRIVATE AFFRESCOUI_FUZZ_CHECKOUT="${PROJECT_SOURCE_DIR}")
+affrescoui_fuzzer(richtext affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_compile_definitions(affrescoui_fuzz_richtext PRIVATE AFFRESCOUI_FUZZ_CHECKOUT="${PROJECT_SOURCE_DIR}")
 affrescoui_fuzzer(layout affrescoui)
 target_include_directories(affrescoui_fuzz_layout PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # Headless.hpp
 # What the affrescoui tool reads (tools/affrescoui): its own sources, linked only into the fuzzer (the tool's target
