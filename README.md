@@ -16,7 +16,7 @@
 
 <br/>
 
-<img src=".github/media/kanban-after.png" width="860" alt="The Flow Kanban board template, rendered natively by AffrescoUI after an AI agent added a Blocked column while it ran">
+<img src=".github/media/kanban-after.png" width="860" alt="The Flow Kanban board with tabs, a split and a cards-per-column chart, rendered natively by AffrescoUI after an AI agent added a Blocked column while it ran">
 
 <sub>A native C++ / OpenGL Kanban board. Claude Code proposed a new <b>Blocked</b> column over the agent socket: new
 data and a five-column layout in one revision. It was reviewed and accepted while the app kept running, and it can
@@ -34,8 +34,8 @@ running. Your typing, focus and drags survive.
 
 <table>
 <tr>
-<td width="50%" align="center"><img src=".github/media/kanban.png" alt="Kanban board at revision 0"><br/><sub><b>Revision 0</b>: the template as shipped</sub></td>
-<td width="50%" align="center"><img src=".github/media/kanban-after.png" alt="Kanban board at revision 1"><br/><sub><b>Revision 1</b>: <code>agent/claude-code</code> added a Blocked column</sub></td>
+<td width="50%" align="center"><img src=".github/media/kanban.png" alt="The Flow Kanban board at revision 0, with tabs, a split and a details panel"><br/><sub><b>Revision 0</b>: the template as shipped</sub></td>
+<td width="50%" align="center"><img src=".github/media/kanban-after.png" alt="The Flow Kanban board at revision 1, with a Blocked column added by an agent"><br/><sub><b>Revision 1</b>: <code>agent/claude-code</code> added a Blocked column</sub></td>
 </tr>
 </table>
 
@@ -239,8 +239,8 @@ flowchart LR
    or restored. See [VERSION_CONTROL.md](VERSION_CONTROL.md).
 
 <p align="center">
-<img src=".github/media/studio.png" width="640" alt="The AffrescoUI Studio: ask the AI, direct changes, review each proposal's changes line by line with modes and grants, activity and history"><br/>
-<sub>The <b>AffrescoUI Studio</b>, a client that is itself an AffrescoUI screen (layout, behaviour and its connection, no C++): ask the AI, edit directly, review each change line by line, always allow, revert, restore.</sub>
+<img src=".github/media/studio.png" width="640" alt="The AffrescoUI Studio, connected to a host: ask the AI, direct changes, and the Review, History and Rules tabs in a resizable split"><br/>
+<sub>The <b>AffrescoUI Studio</b>, a client that is itself an AffrescoUI screen (layout, behaviour and its connection, no C++): ask the AI, edit directly, then review each proposal on the Review tab, browse the History table (revert, restore) and set the mode and grants on Rules. Dark by default, Cmd+J for light.</sub>
 </p>
 
 ## Quick start
@@ -279,20 +279,24 @@ every template and compares each frame with a golden image, pixel for pixel
 
 ## Templates
 
-Five starting points, each a single `.screen.json` file with its layout, state and behaviour, and each ready to be
+Seven starting points, each a single `.screen.json` file with its layout, state and behaviour, and each ready to be
 reshaped live by an agent. Open any of them with `./build/affrescoui_host examples/assets/screens/<name>.screen.json`.
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board"><br/><b>Flow</b> · <code>kanban</code><br/><sub>Columns, cards, label filters, drag and drop, a members popover, quick add.</sub></td>
-<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home panel"><br/><b>Haven</b> · <code>smart-home</code><br/><sub>Rooms, switches and dimmers, thermostat, blinds, animated scenes, light and dark themes.</sub></td>
+<td width="50%" valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with tabs, a split and a chart"><br/><b>Flow</b> · <code>kanban</code><br/><sub>Boards in tabs, a board or a sortable card table beside a details panel with a chart and notes, a card context menu, an edit dialog, toasts, a go-to-card quick pick and a command palette, light and dark tokens.</sub></td>
+<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home panel with a room tree"><br/><b>Haven</b> · <code>smart-home</code><br/><sub>Rooms in a tree by floor, device tiles with a simulated async call, an Energy page of charts and a room table, a Settings page built from a schema.</sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player"><br/><b>Tempo</b> · <code>music-player</code><br/><sub>Playlists, a playback timer, seeking, volume, keyboard controls.</sub></td>
-<td valign="top"><img src=".github/media/code-editor.png" alt="Forge, a code editor"><br/><b>Forge</b> · <code>code-editor</code><br/><sub>A real code editor (selection, undo, Cmd+/, unsaved dots, Cmd+S), explorer, tabs, a terminal that answers, a Cmd+P palette.</sub></td>
+<td valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with album art and a queue"><br/><b>Tempo</b> · <code>music-player</code><br/><sub>Album art, playlists or a sortable 3,000-song library beside a queue with a waveform, Cmd+P song finder and a command palette, a level meter.</sub></td>
+<td valign="top"><img src=".github/media/code-editor.png" alt="Bottega, a code editor with a file tree and tabs"><br/><b>Bottega</b> · <code>code-editor</code><br/><sub>A file tree, tabs with unsaved markers that ask before closing, a 5,000-line file, a problems table (TODO, FIXME), quick open and a command palette.</sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker"><br/><b>Streak</b> · <code>habit-tracker</code><br/><sub>Daily habits, streaks, a clickable 20-week grid, kept on disk between runs.</sub></td>
+<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with charts"><br/><b>Streak</b> · <code>habit-tracker</code><br/><sub>Today, History and Notes tabs, completion and streak charts, a New habit dialog, a sortable 137-day table, linked notes, light and dark tokens.</sub></td>
+<td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields"><br/><b>Sign in</b> · <code>sign-in</code><br/><sub>Validated fields with icons and error states, remember me, a password strength meter, a forgot-password dialog, light and dark tokens.</sub></td>
+</tr>
+<tr>
+<td valign="top"><img src=".github/media/forge.png" alt="Forge, a demo IDE workbench"><br/><b>Forge</b> · <code>examples/forge</code><br/><sub>A demo IDE whose whole interface is one screen document: the workbench shell, command palette, themes and panels. Run <code>./build/affrescoui_forge</code>.</sub></td>
 <td valign="top"><br/><sub>Ideas for an agent to try: <i>"add a Blocked column"</i>, <i>"a Movie night scene that dims every light"</i>,
 <i>"show the album name under the track title"</i>, <i>"a dark theme for the habit tracker"</i>.</sub></td>
 </tr>
@@ -361,7 +365,7 @@ target_link_libraries(my_app PRIVATE affrescoui::affrescoui)
   overlays, tooltips, timers, typed input events, mouse capture, hover, cursors, TrueType text with wrap and
   fit-to-text, a text input with caret and paste, a multi-line text editor (selection, undo, clipboard), switches and
   sliders, HiDPI.
-- **Examples:** `affrescoui_host` (any screen, the Kanban template by default), five templates and a sign-in screen,
+- **Examples:** `affrescoui_host` (any screen, the Kanban template by default), seven templates, the Forge workbench,
   `affrescoui_studio` (a client that is itself an AffrescoUI screen, connection included), and the MCP server.
 
 </details>
