@@ -31,6 +31,7 @@ public:
 	void strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) override;
 	void drawShadow(const Rect& rect, const CornerRadii& radii, const Shadow& shadow) override;
 	void drawImage(const Bitmap& bitmap, const Rect& rect) override;
+	void fillMesh(std::span<const MeshVertex> quads, Vec2 offset, Color color) override;
 
 private:
 	/// @brief How a shape is drawn.
@@ -70,6 +71,10 @@ private:
 	/// @param style How it is drawn, with the outline already clamped.
 	/// @param clip What it is clipped to.
 	void pushQuarter(const Rect& rect, const Quarter& quarter, const ShapeStyle& style, const Rect& clip);
+	/// @brief Clips a mesh's quad to the panel and adds what is left, as one quad or a fan of quads.
+	/// @param corners Its 4 corners, already moved to window units.
+	/// @param color Its colour, before the corners' coverage.
+	void pushMeshQuad(const std::array<MeshVertex, 4>& corners, Color color);
 	/// @brief Adds four vertices to the current step and its quad to the extent.
 	/// @param corners Top-left, top-right, bottom-right, bottom-left.
 	void addQuad(const std::array<Vertex, 4>& corners);

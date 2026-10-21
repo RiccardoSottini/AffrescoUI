@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+	<!-- A badge for the rendering check: a filled circle, an even-odd ring, a dashed rect and a stroked check -->
+	<title>Badge</title>
+	<circle cx="12" cy="12" r="11" fill="#7c3aed"/>
+	<path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 5a7 7 0 1 1 0 14a7 7 0 1 1 0-14z" fill="#ffffff" fill-rule="evenodd" opacity="0.5"/>
+	<g transform="translate(1 1)" stroke="#fde047" fill="none">
+		<rect x="1" y="1" width="20" height="20" rx="3" stroke-width="0.75" stroke-dasharray="2 1"/>
+	</g>
+	<polyline points="7,12 10.5,15.5 17,8.5" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

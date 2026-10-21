@@ -25,6 +25,7 @@ affrescoui_module(format
 	src/ReferenceNodes.cpp
 	src/ReferenceSections.cpp
 	src/ReferenceTables.cpp
+	src/DesignTokens.cpp
 	src/DocumentContext.cpp
 	src/ItemIndex.cpp
 	src/AsyncCalls.cpp
@@ -48,6 +49,8 @@ affrescoui_module(format
 	src/ListItems.cpp
 	src/ListType.cpp
 	src/IconProperty.cpp
+	src/RunsProperty.cpp
+	src/PathType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Scheduler.cpp

@@ -114,6 +114,11 @@ constexpr KeyReference nodeTable[] = {
 	 "the parent, like the node itself.",
 	 "look"},
     {"visible", "flag", "`false` hides the node and its children.", "look"},
+    {"cache", "flag",
+	 "`true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them "
+	 "changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same. "
+	 "Default: `false`.",
+	 "look"},
     {"cursor", R"json({"anyOf": [{"enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"]},
 		{"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "`arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`.", "look"},
@@ -209,6 +214,23 @@ constexpr KeyReference nodeTable[] = {
 	 "examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text "
 	 "areas.",
 	 "label"},
+    {"runs", R"json({"type": "array", "maxItems": 256, "items": {"oneOf": [{"type": ["string", "number", "boolean"]},
+		{"type": "object", "additionalProperties": false, "properties": {"text": {}, "icon": {"type": "string"},
+		"font": {"type": "string"}, "size": {"type": "number"}, "bold": {"type": "boolean"},
+		"italic": {"type": "boolean"}, "color": {"$ref": "#/$defs/v1/color"}, "link": {"type": "string",
+		"maxLength": 2048}}}]},
+		"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"})json",
+	 "Rich text instead of `text`: a list of parts, each text or `{ \"text\", \"bold\", \"italic\", \"size\", "
+	 "\"font\", \"color\", \"link\", \"icon\" }`. `font` names a font of `fonts` (default: the label's); `bold`, "
+	 "`italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is "
+	 "underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at "
+	 "spaces across parts. At most 256 parts and 65,536 characters. Not on text areas.",
+	 "label"},
+    {"selectable", "flag",
+	 "The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons "
+	 "are left out of the copy.",
+	 "label"},
+    {"selectionColor", "color", "The selection's colour (default `#b4d5fe`).", "label"},
     {"bind", R"json({"type": "string",
 		"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"})json",
 	 "A state path holding the text (lines joined by `\"\\n\"`), kept in sync both ways. Without it, `text` sets the "
@@ -298,8 +320,8 @@ constexpr KeyReference nodeTable[] = {
     {"max", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json", "", "control"},
     {"step", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json", "", "control"},
     {"file", R"json({"type": "string",
-		"description": "image: a PNG or JPEG file, relative to the screen file and inside its folder (or one the host allows)"})json",
-	 "A PNG or JPEG file, relative to the screen file. It must be inside the screen file's folder (or the folders "
+		"description": "image: a PNG, JPEG or SVG file, relative to the screen file and inside its folder (or one the host allows)"})json",
+	 "A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders "
 	 "inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is "
 	 "refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or "
 	 "decoded shows nothing (and is logged).",
@@ -310,7 +332,7 @@ constexpr KeyReference nodeTable[] = {
 	 "shows each new one the host sets.",
 	 "image"},
     {"fit", R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"$ref": "#/$defs/v1/dynamic"}],
-		"description": "image: contain (default), cover or fill, like CSS object-fit"})json",
+		"description": "image and path: contain (default), cover or fill, like CSS object-fit"})json",
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},
@@ -396,6 +418,33 @@ constexpr KeyReference nodeTable[] = {
     {"selectedTextColor", "color", "", "list"},
     {"selectedBackground", "color", "", "list"},
     {"accentColor", "", "", "list"},
+    {"d", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "path: SVG path data (M L H V C S Q T A Z, absolute and relative)"})json",
+	 "SVG path data: `M L H V C S Q T A Z`, upper case absolute and lower case relative, e.g. `\"M 0 0 L 10 0 L 5 8 "
+	 "Z\"`. At most 64 KiB and 16,384 commands, coordinates within a million: a revision with data that can't be read "
+	 "is refused, naming the place of the problem.",
+	 "path"},
+    {"viewBox", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "path: the area of the data fitted to the node, \"x y width height\""})json",
+	 "The area of the data's coordinates fitted to the node, `\"x y width height\"` like SVG's. Without it the data is "
+	 "in the node's own pixels, from its top-left corner.",
+	 "path"},
+    {"fit", "", "How the view box fills the node: `\"contain\"` (the default), `\"cover\"` or `\"fill\"`, as for images.",
+	 "path"},
+    {"fillColor", "color", "The inside's colour; without it the path isn't filled.", "path"},
+    {"fillRule", R"json({"anyOf": [{"enum": ["nonzero", "evenodd"]}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "path: which points are inside, nonzero (default) or evenodd"})json",
+	 "Which points are inside: `\"nonzero\"` (the default) or `\"evenodd\"` (a shape inside another is a hole).", "path"},
+    {"stroke", "color", "The outline's colour; without it there is no outline.", "path"},
+    {"strokeWidth", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The outline's width (default 1), in the view box's units (pixels when stretched by `\"fill\"`).", "path"},
+    {"strokeJoin", R"json({"anyOf": [{"enum": ["miter", "round", "bevel"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Corners: `\"miter\"` (the default, bevelled past 4 widths), `\"round\"` or `\"bevel\"`.", "path"},
+    {"strokeCap", R"json({"anyOf": [{"enum": ["butt", "round", "square"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Ends: `\"butt\"` (the default), `\"round\"` or `\"square\"`.", "path"},
+    {"strokeDash", R"json({"anyOf": [{"type": "array", "maxItems": 64, "items": {"type": "number", "minimum": 0}},
+		{"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Dash and gap lengths, repeated, e.g. `[6, 3]` (at most 64); without it the outline is solid.", "path"},
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
@@ -415,6 +464,7 @@ constexpr KeyReference nodeTable[] = {
 	 "events"},
     {"onChange", "", "A bound or value control changed: `event.value`.", "events"},
     {"onSubmit", "handler", "Enter in a text area: `event.text`.", "events"},
+    {"onLink", "handler", "A press on a part of `runs` with a link: `event.link`.", "events"},
     {"onShow", "handler", "The node was built, or removed (by `when`, `repeat` or a revision).", "events"},
     {"onHide", "handler", "", "events"},
     {"onClose", "handler", "A tab's close button or Delete: `event.id`.", "events"},

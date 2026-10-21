@@ -3,6 +3,8 @@
 
 #include "text/FontFace.hpp"
 
+#include FT_OUTLINE_H
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -22,6 +24,11 @@ struct HarfBuzzDeleter {
 	/// @brief Frees a face.
 	void operator()(hb_face_t* face) const noexcept { hb_face_destroy(face); }
 };
+
+/// How much bold thickens outlines, as a share of the em (FreeType's own FT_GlyphSlot_Embolden uses 1/24).
+constexpr float boldShare = 1.0f / 24.0f;
+/// How far italic slants outlines: horizontal shift per unit of height (the tangent of about 11 degrees).
+constexpr float italicSlant = 0.2f;
 
 /// @brief The error for a file that isn't a usable font.
 /// @param path The file.
@@ -74,8 +81,8 @@ std::size_t FontFiles::bytes() const noexcept {
 }
 
 FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, float size, SizeOf sizeOf,
-                   const std::filesystem::path& path)
-    : file_(std::move(file)) {
+                   const std::filesystem::path& path, FontStyle style)
+    : file_(std::move(file)), style_(style) {
 	const std::vector<unsigned char>& bytes = file_->bytes;
 	FT_Face face = nullptr;
 	if(bytes.empty() || FT_New_Memory_Face(library, bytes.data(), static_cast<FT_Long>(bytes.size()), 0, &face) != 0)
@@ -102,6 +109,9 @@ FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, flo
 	const std::unique_ptr<hb_face_t, HarfBuzzDeleter> shapingFace(hb_face_create(blob.get(), 0));
 	if(hb_face_get_glyph_count(shapingFace.get()) == 0) throw unusable(path, "HarfBuzz finds no glyphs");
 	shaper_.reset(hb_font_create(shapingFace.get()));
+	// Shaping widens advances as the outlines are thickened, and slants mark positions as they are
+	if(style_.bold) hb_font_set_synthetic_bold(shaper_.get(), boldShare, 0.0f, false);
+	if(style_.italic) hb_font_set_synthetic_slant(shaper_.get(), italicSlant);
 }
 
 unsigned FontFace::glyphIndex(char32_t codepoint) const noexcept {
@@ -137,6 +147,7 @@ std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph) const noexcept 
 	const FT_Int32 flags = FT_LOAD_NO_HINTING | (color_ ? FT_LOAD_COLOR : FT_LOAD_NO_BITMAP);
 	FT_Face face = face_.get();
 	if(FT_Load_Glyph(face, glyph, flags) != 0) return std::nullopt;
+	if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE) synthesize(face->glyph->outline);
 	if(face->glyph->format != FT_GLYPH_FORMAT_BITMAP && FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0)
 		return std::nullopt;
 
@@ -144,6 +155,14 @@ std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph) const noexcept 
 	const bool isColor = bitmap.pixel_mode == FT_PIXEL_MODE_BGRA;
 	if(!isColor && bitmap.pixel_mode != FT_PIXEL_MODE_GRAY) return std::nullopt; // e.g. a one-bit bitmap
 	return Bitmap{&bitmap, face->glyph->bitmap_left, face->glyph->bitmap_top, isColor};
+}
+
+void FontFace::synthesize(FT_Outline& outline) const noexcept {
+	if(style_.italic) {
+		FT_Matrix slant{0x10000, static_cast<FT_Fixed>(std::lround(italicSlant * 65536.0f)), 0, 0x10000};
+		FT_Outline_Transform(&outline, &slant);
+	}
+	if(style_.bold) FT_Outline_Embolden(&outline, static_cast<FT_Pos>(std::lround(emPixels() * boldShare * 64.0f)));
 }
 
 } // namespace affresco::detail

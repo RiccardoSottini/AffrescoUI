@@ -59,6 +59,8 @@ public:
 	/* PropertyReader, for the apply functions of node types */
 	[[nodiscard]] Color color(const json& value, const std::string& at) const override;
 	[[nodiscard]] std::shared_ptr<const Font> font(const json& value, const std::string& at) const override;
+	[[nodiscard]] std::shared_ptr<const Font> fontVariant(const Font* base, float pixelHeight, FontStyle style,
+	                                                      const std::string& at) const override;
 	[[nodiscard]] ImageCache& images() const override;
 	[[nodiscard]] std::filesystem::path imageFile(const json& value, const std::string& at) const override;
 

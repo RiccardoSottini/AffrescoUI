@@ -355,12 +355,12 @@ void CodeEditor::setLanguage(std::string_view name) {
 	                                                                           : Language::Plain;
 	if(language == language_) return;
 	language_ = language;
-	invalidate();
+	recolor();
 }
 
 void CodeEditor::setTokenColor(Token token, Color color) {
 	tokenColors_[static_cast<std::size_t>(token)] = color;
-	invalidate();
+	recolor();
 }
 
 void CodeEditor::resetTokenColors() {
@@ -371,7 +371,7 @@ void CodeEditor::resetTokenColors() {
 	                Color::hex(0xb5cea8),
 	                Color::hex(0x6f8f6b),
 	                Color::hex(0x7aa7ff)};
-	invalidate();
+	recolor();
 }
 
 /* Colouring */

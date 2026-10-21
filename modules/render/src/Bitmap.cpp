@@ -1,8 +1,10 @@
 /// @file
-/// @brief Bitmap: decoding PNG and JPEG with stb_image (compiled here, PNG and JPEG only, no file access of its own),
+/// @brief Bitmap: decoding SVG icons (vector/Svg.hpp), and PNG and JPEG with stb_image (compiled here, PNG and JPEG only, no file access of its own),
 /// within limits checked before any pixel is decoded.
 
 #include "affresco/render/Bitmap.hpp"
+
+#include "vector/Svg.hpp"
 
 #include <cstdlib>
 
@@ -47,9 +49,12 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 #pragma GCC diagnostic pop
 #endif
 
+#include <algorithm>
 #include <atomic>
 #include <climits>
+#include <cstddef>
 #include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -93,6 +98,28 @@ std::vector<std::uint8_t> premultiplied(std::span<const std::uint8_t> rgba) {
 	return pixels;
 }
 
+/// @brief Tells whether a PNG's first IDAT chunk is empty. stb_image copies such a chunk from a null buffer (undefined
+/// behaviour found by fuzzing), so it is refused before decoding. Other data, and a broken chunk list, are left to
+/// stb_image.
+/// @param bytes The image file's bytes.
+/// @return Whether the bytes are a PNG whose first IDAT chunk has no data.
+bool emptyFirstImageData(std::span<const std::uint8_t> bytes) noexcept {
+	static constexpr std::uint8_t signature[] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+	if(bytes.size() < sizeof signature || !std::equal(std::begin(signature), std::end(signature), bytes.begin()))
+		return false;
+	std::size_t at = sizeof signature;
+	while(bytes.size() - at >= 8) { // a length and a type
+		std::uint32_t length = 0;
+		for(std::size_t i = 0; i < 4; ++i) length = (length << 8) | bytes[at + i];
+		if(std::equal(bytes.begin() + static_cast<std::ptrdiff_t>(at + 4),
+		              bytes.begin() + static_cast<std::ptrdiff_t>(at + 8), "IDAT"))
+			return length == 0;
+		if(length > 0x7FFFFFFFu || bytes.size() - at - 8 < std::size_t{length} + 4) return false; // its data and CRC
+		at += 12 + std::size_t{length};
+	}
+	return false;
+}
+
 } // namespace
 
 Bitmap::Bitmap(Key /*key*/, int width, int height, std::vector<std::uint8_t> pixels)
@@ -126,7 +153,9 @@ std::shared_ptr<const Bitmap> Bitmap::load(const std::filesystem::path& file, co
 std::shared_ptr<const Bitmap> Bitmap::decode(std::span<const std::uint8_t> bytes, const Limits& limits) {
 	if(bytes.size() > limits.fileBytes || bytes.size() > static_cast<std::size_t>(INT_MAX))
 		throw std::runtime_error("AffrescoUI: image larger than allowed");
+	if(vector::looksLikeSvg(bytes)) return vector::rasterizeSvg(bytes, limits);
 	const auto length = static_cast<int>(bytes.size());
+	if(emptyFirstImageData(bytes)) throw std::runtime_error("AffrescoUI: broken image (an empty first IDAT chunk)");
 
 	// The size first, from the header: nothing is decoded for an image beyond the limits
 	int width = 0, height = 0, channels = 0;

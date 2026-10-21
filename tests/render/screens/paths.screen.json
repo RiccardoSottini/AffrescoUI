@@ -1,0 +1,47 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Vector paths, for the rendering check: fills by both rules, strokes with each join and cap, dashes, curves and arcs, the line, bar and area charts from examples/assets/components/charts.json, and an SVG file as an image. The scenario changes the chart's values and a stroke.",
+
+	"include": ["../../../examples/assets/components/charts.json"],
+
+	"window": { "title": "Paths", "width": 560, "height": 360 },
+
+	"state": { "sales": [3, 7, 4, 9, 6, 11, 8] },
+
+	"colors": { "background": "#f8fafc", "frame": "#e2e8f0", "accent": "#7c3aed", "ink": "#0f172a", "warm": "#f97316" },
+
+	"styles": {
+		"tile": { "type": "path", "width": 100, "height": 100, "color": "@frame", "viewBox": "0 0 100 100" }
+	},
+
+	"root": {
+		"id": "page",
+		"color": "@background",
+		"children": [
+			{ "id": "star-nonzero", "style": "tile", "x": 20, "y": 20, "fillColor": "@accent",
+			  "d": "M50 5 L79 95 L2 39 L98 39 L21 95 Z" },
+			{ "id": "star-evenodd", "style": "tile", "x": 140, "y": 20, "fillColor": "@accent", "fillRule": "evenodd",
+			  "d": "M50 5 L79 95 L2 39 L98 39 L21 95 Z" },
+			{ "id": "joins", "style": "tile", "x": 260, "y": 20, "stroke": "@ink", "strokeWidth": 10,
+			  "d": "M10 30 L30 10 L50 30 M10 60 L30 40 L50 60 M10 90 L30 70 L50 90",
+			  "strokeJoin": "round" },
+			{ "id": "caps", "style": "tile", "x": 380, "y": 20, "stroke": "@warm", "strokeWidth": 12, "strokeCap": "round",
+			  "d": "M20 20 L80 20 M20 50 L80 50 M20 80 L80 80" },
+			{ "id": "curves", "style": "tile", "x": 20, "y": 140, "stroke": "@accent", "strokeWidth": 4,
+			  "fillColor": "#7c3aed33", "strokeDash": [10, 5],
+			  "d": "M10 80 C 30 10, 70 10, 90 80 Q 50 100 10 80 Z" },
+			{ "id": "arcs", "style": "tile", "x": 140, "y": 140, "stroke": "@ink", "strokeWidth": 3, "fillColor": "@warm",
+			  "d": "M20 50 A 30 30 0 1 1 80 50 A 30 20 0 0 1 20 50 Z" },
+			{ "id": "line", "use": "lineChart", "x": 260, "y": 140, "width": 280, "height": 90,
+			  "with": { "values": "{{state.sales}}", "color": "@accent" } },
+			{ "id": "area", "use": "areaChart", "x": 260, "y": 240, "width": 130, "height": 100,
+			  "with": { "values": "{{state.sales}}", "color": "#f9731680" } },
+			{ "id": "bars", "use": "barChart", "x": 400, "y": 240, "width": 140, "height": 100,
+			  "with": { "values": "{{state.sales}}", "color": "@ink" } },
+			{ "type": "image", "id": "badge", "x": 20, "y": 260, "width": 80, "height": 80, "file": "images/badge.svg" },
+			{ "type": "image", "id": "badge-small", "x": 120, "y": 276, "width": 48, "height": 48, "file": "images/badge.svg" }
+		]
+	}
+}

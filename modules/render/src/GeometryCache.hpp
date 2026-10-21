@@ -71,6 +71,7 @@ private:
 	bool all_ = true;                   ///< This refresh visits and records everything (a new generation).
 	std::optional<Rect> damage_;        ///< This refresh's damage.
 	std::uint64_t frameGeneration_ = 0; ///< This refresh's generation, for the panels' keys.
+	std::uint64_t changes_ = 0; ///< Panels recorded again or hidden, counted: tells cached subtrees they changed.
 	/// The overlays and tooltip drawn last time, in order, with the area they took (never dereferenced).
 	std::vector<std::pair<const Panel*, Rect>> above_;
 };

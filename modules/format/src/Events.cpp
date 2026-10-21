@@ -86,6 +86,14 @@ void Events::hookUp(Panel& panel, Record& adopted) {
 		break;
 	}
 	hooks.caret = hookCaret(panel);
+	hooks.link = hookLink(panel);
+}
+
+Connection Events::hookLink(Panel& panel) {
+	auto* label = dynamic_cast<Label*>(&panel);
+	if(!label) return 0;
+	return label->onLink.connect(
+	    [this, &panel](const std::string& link) { fire(panel, "onLink", {{"type", "link"}, {"link", link}}); });
 }
 
 Connection Events::hookCaret(Panel& panel) {
@@ -132,6 +140,7 @@ void Events::unhook(Panel& panel, const Record& record) {
 		break;
 	}
 	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) editor->onCaretMoved.disconnect(hooks.caret);
+	if(auto* label = dynamic_cast<Label*>(&panel)) label->onLink.disconnect(hooks.link);
 }
 
 // Only the panels still in the window are reached: a panel the application removed itself is gone, and its record

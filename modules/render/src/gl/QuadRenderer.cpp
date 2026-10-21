@@ -213,10 +213,17 @@ void QuadRenderer::startFrame() {
 
 void QuadRenderer::draw(const detail::Frame& frame, const std::optional<Rect>& region, bool shapes, bool color) {
 	startFrame();
+	std::array<GLint, 4> viewport{};
+	glGetIntegerv(GL_VIEWPORT, viewport.data());
+	framebufferWidth_ = viewport[2];
+	framebufferHeight_ = viewport[3];
+	frameWidth_ = frame.width;
+	frameHeight_ = frame.height;
 	region_ = region;
 	replayTree(frame.root);
 	for(const Panel* overlay : frame.overlays) replayTree(*overlay);
 	if(frame.tooltip) replayTree(*frame.tooltip);
+	if(!region_) subtrees_.collect(); // a region's frame may have skipped cached subtrees that are still there
 	region_.reset();
 	submit(frame.width, frame.height, shapes, color);
 }
@@ -291,8 +298,11 @@ void QuadRenderer::replayTree(const Panel& panel) {
 	const detail::PanelGeometry* geometry = panel.geometry_.get();
 	if(!geometry || !geometry->recorded) return;
 	if(region_ && !detail::overlaps(*region_, detail::reachOf(panel.bounds(), geometry->record))) return;
+	if(geometry->cached && replayCached(panel, *geometry)) return;
+	replayContent(panel, geometry->record);
+}
 
-	const detail::PaintRecord& record = geometry->record;
+void QuadRenderer::replayContent(const Panel& panel, const detail::PaintRecord& record) {
 	replay(record, 0, record.overStart);
 	for(const auto& child : panel.children())
 		if(!child->isOverlay()) replayTree(*child); // overlays are drawn after the whole tree
@@ -361,7 +371,7 @@ void QuadRenderer::addQuads(const detail::PaintRecord& record, const detail::Pai
 	for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
 		const auto corners =
 		    std::span(record.vertices).subspan(quad * detail::verticesPerQuad, detail::verticesPerQuad);
-		if(region_ && !detail::overlaps(*region_, {corners[0].x, corners[0].y, corners[2].x, corners[2].y})) continue;
+		if(region_ && !detail::overlaps(*region_, detail::boundsOf(corners))) continue;
 		for(detail::Vertex vertex : corners) {
 			if(white) {
 				vertex.u = u;

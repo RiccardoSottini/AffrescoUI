@@ -1,0 +1,25 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "rich-text",
+			"screen": "rich-text.screen.json",
+			"note": "Rich text: the first frame, the selectable label selected with a click and Cmd/Ctrl+A, then one run made bold and red",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": "#selectable" },
+				{ "key": "cmd+a" },
+				{ "expect": { "image": "selected" } },
+				{
+					"revision": {
+						"message": "Make the first words bold and red",
+						"set": { "/root/children/0/runs/0": { "text": "Rich text mixes ", "bold": true, "color": "@danger" } }
+					}
+				},
+				{ "expect": { "image": "edited" } }
+			]
+		}
+	]
+}

@@ -1,6 +1,6 @@
 /// @file
-/// @brief Fuzzes image decoding (render's Bitmap, with stb_image): a revision can name any file in an allowed folder,
-/// and a file there can hold anything.
+/// @brief Fuzzes image decoding (render's Bitmap, with stb_image and the SVG subset): a revision can name any file in
+/// an allowed folder, and a file there can hold anything.
 ///
 /// The input is a file's bytes, decoded within small limits so that inputs reach them: 512 KiB, 512 on a side,
 /// 65,536 pixels.

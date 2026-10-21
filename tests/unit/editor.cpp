@@ -64,10 +64,10 @@ TEST_CASE("editor: a frame far larger than any integer pages and clicks to the e
 
 TEST_CASE("editor: undo steps keep at most 256 MiB, the oldest dropped first") {
 	EditorWindow test;
-	// Each text is 16 Ki lines of 63 characters, kept in about 4.6 MiB: about 57 fit, where 500 steps of a small text
-	// would be kept. Short lines, so the caret's line is quick to shape
+	// A step keeps the text its edit removed: here each text, 73,000 lines of 63 characters (about 4.45 MiB), so about
+	// 57 fit, where 500 steps of a small text would be kept. Short lines, so the caret's line is quick to shape
 	std::string lines;
-	for(int line = 0; line < 16383; ++line) lines += std::string(63, 'a') + "\n";
+	for(int line = 0; line < 73000; ++line) lines += std::string(63, 'a') + "\n";
 	constexpr int texts = 62; // more than fit
 	for(int i = 0; i < texts; ++i) test.editor.setText(std::to_string(i) + "\n" + lines);
 

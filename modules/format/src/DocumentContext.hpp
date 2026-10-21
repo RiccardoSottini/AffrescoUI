@@ -4,6 +4,7 @@
 /// @brief format::DocumentContext: what the document's values are read against: colours, fonts, the theme, the
 /// globals, the cached "computed" values and the screen an outlet shows.
 
+#include "DesignTokens.hpp"
 #include "NodeKeys.hpp"
 #include "Reads.hpp"
 
@@ -167,6 +168,15 @@ public:
 	/// @return The colour.
 	/// @throws DocumentError If there is no such colour.
 	[[nodiscard]] Color namedColor(std::string_view name) const;
+	/// @brief Looks a number up in "tokens", in the current theme.
+	/// @param name The name, without "@".
+	/// @return The number, or nothing if no number token has this name.
+	[[nodiscard]] std::optional<float> numberToken(std::string_view name) const;
+	/// @brief Replaces "@name" of a number token by its number, in the current theme.
+	/// @param value The value.
+	/// @param scratch Holds the number when there is one.
+	/// @return The number in scratch, or value itself.
+	[[nodiscard]] const json& resolveToken(const json& value, json& scratch) const;
 	/// @brief Reads a "shadow": { "x", "y", "blur", "color" }, each optional.
 	/// @param value The value.
 	/// @param path Its place, for errors.
@@ -177,6 +187,16 @@ public:
 	/// @param name The name.
 	/// @return The font, or nullptr.
 	[[nodiscard]] std::shared_ptr<const Font> findFont(std::string_view name) const;
+	/// @brief A font of "fonts" in another size or style (a bold run of rich text): its file and fallbacks, loaded
+	/// through the font cache. A document has at most 32 variants, until its fonts change.
+	/// @param base A font of "fonts", or nullptr for "default".
+	/// @param pixelHeight The size.
+	/// @param style The style.
+	/// @param at Its place, for errors.
+	/// @return The font, or nullptr if @p base isn't a font of "fonts".
+	/// @throws DocumentError If the variants are used up, or the font can't load.
+	[[nodiscard]] std::shared_ptr<const Font> fontVariant(const Font* base, float pixelHeight, FontStyle style,
+	                                                      const std::string& at);
 	/// @brief Evaluates "theme" for this update.
 	void updateTheme();
 	/// @brief Counts what changes how the same values look: the theme, the colours, the fonts, the node types. A panel
@@ -218,10 +238,7 @@ private:
 		json window, revision, other; ///< Window size, current revision, and the rest (proposals, computed, ...).
 	};
 	/// @brief A named colour, with variants per theme.
-	struct NamedColor {
-		Color base;                                       ///< The first value: used without a matching theme.
-		std::map<std::string, Color, std::less<>> themes; ///< "light" -> colour, "dark" -> colour.
-	};
+	using NamedColor = Themed<Color>;
 
 	/// @brief The globals, built once and reused until globalsChanged().
 	[[nodiscard]] const Globals& globals() const;
@@ -241,8 +258,16 @@ private:
 
 	Engine& engine_;                                                        ///< The runtime.
 	std::filesystem::path baseDirectory_;                                   ///< Where font paths are resolved from.
-	std::map<std::string, NamedColor, std::less<>> colors_;                 ///< From "colors".
+	ColorTable colors_;                                                     ///< From "colors" and colour tokens.
+	NumberTable numberTokens_;                                              ///< Number tokens of "tokens".
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> fonts_; ///< From "fonts".
+	/// @brief Where a font of "fonts" comes from, to load it in another size or style.
+	struct FontSource {
+		std::filesystem::path file;                   ///< Its file.
+		std::vector<std::filesystem::path> fallbacks; ///< Its fallbacks' files.
+	};
+	std::map<std::uint64_t, FontSource> fontSources_;                          ///< By Font::id(), for fonts_.
+	std::map<std::string, std::shared_ptr<const Font>, std::less<>> variants_; ///< See fontVariant(), by key.
 	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
 	ImageCache images_;                      ///< See images().
 	std::string theme_;                      ///< "theme", evaluated at each update.
