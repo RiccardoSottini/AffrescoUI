@@ -400,12 +400,7 @@ void Panel::followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, 
 	                        arrangedHeight_ || stretchedY || height_.value != 0.0f, parentSize);
 }
 
-// A subtree whose inputs are the same and where nothing changed keeps the frames it has. A panel never laid out is
-// dirty, so laidOut_ is read only once it holds a pass's inputs
-bool Panel::canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) const noexcept {
-	return !layoutBelow_ && hasSameInputs(origin, clip, parentSize, parentShown);
-}
-
+// A panel never laid out is dirty, so laidOut_ is read only once it holds a pass's inputs
 bool Panel::hasSameInputs(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) const noexcept {
 	if(layoutDirty_ || anchorsBelow_ || !window_ || window_->layoutAll_) return false;
 	return laidOut_.origin == origin && laidOut_.clip == clip && laidOut_.parentSize == parentSize &&
@@ -422,14 +417,16 @@ bool Panel::isSettled(std::uint64_t pass) const noexcept {
 }
 
 void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) {
-	if(canSkipLayout(origin, clip, parentSize, parentShown)) {
+	// A subtree whose inputs are the same and where nothing changed keeps the frames it has
+	const bool sameInputs = hasSameInputs(origin, clip, parentSize, parentShown);
+	if(sameInputs && !layoutBelow_) {
 		skippedPass_ = window_->layoutPass_;
 		return;
 	}
 	// Only panels below the children changed: the children measure as they did (a measured size is kept until the
 	// panel itself changes), so they stay where arrange() put them
-	const bool arranged = hasSameInputs(origin, clip, parentSize, parentShown) &&
-	                      std::ranges::none_of(children_, [](const auto& child) { return child->layoutDirty_; });
+	const bool arranged =
+	    sameInputs && std::ranges::none_of(children_, [](const auto& child) { return child->layoutDirty_; });
 	laidOut_ = {origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
 
 	prepareLayout();
