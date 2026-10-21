@@ -74,7 +74,7 @@ void TableView::buildRows(std::vector<std::size_t>& rows) {
 	std::iota(rows.begin(), rows.end(), std::size_t{0});
 	const std::size_t column = sortColumn();
 	if(column < columns_.size() && size > 1) {
-		const ListModel& items = *model();
+		const ItemModel& items = *model();
 		numbers_.resize(size);
 		for(std::size_t i = 0; i < size; ++i) {
 			const ListItem& item = items.item(i);

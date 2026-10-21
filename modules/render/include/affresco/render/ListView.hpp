@@ -33,10 +33,10 @@ struct ListItem {
 
 /// @brief Where the items of a list come from: the seam a data model plugs into. A tree's items are in pre-order, each
 /// with its depth and the end of its subtree.
-class ListModel {
+class ItemModel {
 public:
 	/// @brief Destroys the model.
-	virtual ~ListModel() = default;
+	virtual ~ItemModel() = default;
 	/// @brief How many items.
 	[[nodiscard]] virtual std::size_t size() const noexcept = 0;
 	/// @brief One item.
@@ -45,7 +45,7 @@ public:
 };
 
 /// @brief A model that holds its items.
-class ItemList : public ListModel {
+class ItemList : public ItemModel {
 public:
 	/// @brief A model of these items.
 	/// @param items In order; a tree's in pre-order.
@@ -81,7 +81,7 @@ struct DropTarget {
 };
 
 /// @brief A list of rows of which only those in view are laid out and drawn, so it holds a million items as easily
-/// as ten. The items come from a ListModel; the selection is given (setSelection()) and the list reports what the user
+/// as ten. The items come from a ItemModel; the selection is given (setSelection()) and the list reports what the user
 /// does (onSelectionChanged, onOpened), so it always shows its owner's state.
 ///
 /// A click selects; with SelectionMode::Multiple, Cmd or Ctrl toggles a row and Shift selects from the anchor. The
@@ -94,9 +94,9 @@ public:
 
 	/// @brief Sets the items. The selection and the cursor keep the items whose ids are still there.
 	/// @param model The items, or nullptr for none.
-	void setModel(std::shared_ptr<const ListModel> model);
+	void setModel(std::shared_ptr<const ItemModel> model);
 	/// @brief The items.
-	[[nodiscard]] const std::shared_ptr<const ListModel>& model() const noexcept { return model_; }
+	[[nodiscard]] const std::shared_ptr<const ItemModel>& model() const noexcept { return model_; }
 	/// @brief Sets how many items the user can select; selected items beyond that stay selected until the next change.
 	/// @param mode The mode.
 	void setSelectionMode(SelectionMode mode) noexcept { selectionMode_ = mode; }
@@ -249,7 +249,7 @@ private:
 	/// @param painter Where.
 	void paintOverRows(Painter& painter) const;
 
-	std::shared_ptr<const ListModel> model_;              ///< See model().
+	std::shared_ptr<const ItemModel> model_;              ///< See model().
 	RowWindow window_;                                    ///< Where each row sits.
 	SelectionMode selectionMode_ = SelectionMode::Single; ///< See setSelectionMode().
 	std::vector<std::string> selection_;                  ///< See selection().

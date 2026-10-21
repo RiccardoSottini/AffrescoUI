@@ -45,7 +45,7 @@ void TreeView::expand(std::size_t item, bool expanded) {
 }
 
 void TreeView::buildRows(std::vector<std::size_t>& rows) {
-	const ListModel& items = *model();
+	const ItemModel& items = *model();
 	const std::size_t size = items.size();
 	// One pass in pre-order: a closed item's subtree is skipped whole
 	for(std::size_t i = 0; i < size;) {

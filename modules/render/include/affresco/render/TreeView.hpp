@@ -91,7 +91,7 @@ private:
 
 	std::vector<char> expanded_;             ///< Per item, whether it is open.
 	std::vector<std::string> lastGiven_;     ///< The ids setExpanded() was last given, to skip repeats.
-	const ListModel* expandedFor_ = nullptr; ///< The model those ids were matched against.
+	const ItemModel* expandedFor_ = nullptr; ///< The model those ids were matched against.
 	std::size_t stickyRows_ = 0;             ///< See setStickyRows().
 	std::vector<std::size_t> stuck_;         ///< See stuck().
 	std::vector<std::u32string> stuckText_;  ///< Their labels, decoded; the storage is reused.

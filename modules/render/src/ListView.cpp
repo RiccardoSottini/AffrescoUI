@@ -49,7 +49,7 @@ void outline(Painter& painter, const Rect& area, float width, Color color) {
 
 ListView::ListView() { setColor(colors::white); }
 
-void ListView::setModel(std::shared_ptr<const ListModel> model) {
+void ListView::setModel(std::shared_ptr<const ItemModel> model) {
 	if(model == model_) return;
 	const auto idOf = [this](std::size_t index) {
 		return model_ && index < model_->size() ? model_->item(index).id : std::string();
