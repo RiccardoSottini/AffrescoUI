@@ -1,0 +1,64 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Splits and tabs, for the rendering check: a strip of closable tabs (one marked) over a row split whose right pane is a column split, with a narrow strip that overflows and scrolls. The sizes and the active tab live in state; closing and reordering are handled in JSON.",
+
+	"window": { "title": "Splits and tabs", "width": 480, "height": 320 },
+
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+
+	"colors": { "background": "#f8fafc", "sidebar": "#e2e8f0", "editor": "#ffffff", "panel": "#f1f5f9",
+		"text": "#0f172a", "accent": "#7c3aed" },
+
+	"state": {
+		"open": [
+			{ "id": "main", "label": "main.cpp" },
+			{ "id": "split", "label": "Split.hpp", "marker": true },
+			{ "id": "tabs", "label": "Tabs.cpp" },
+			{ "id": "notes", "label": "notes.md" }
+		],
+		"rest": [],
+		"active": "main",
+		"sizes": [140],
+		"rows": [180],
+		"panel": "terminal"
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "type": "tabs", "id": "editor-tabs", "width": "100%", "height": 36, "tabs": "{{state.open}}",
+				"bind": "state.active", "accentColor": "@accent",
+				"onClose": [{ "set": "state.open", "to": "{{filter(state.open, it.id != event.id)}}" }],
+				"onMove": [
+					{ "set": "state.rest", "to": "{{filter(state.open, it.id != event.id)}}" },
+					{ "set": "state.open", "to": "{{concat(slice(state.rest, 0, event.to), [state.open[event.from]], slice(state.rest, event.to))}}" }
+				] },
+			{ "type": "split", "id": "main-split", "y": 36, "width": "100%", "height": 284, "bind": "state.sizes",
+				"minSize": 80, "sashSize": 4, "sashColor": "#cbd5e1", "sashActiveColor": "@accent",
+				"children": [
+					{ "id": "sidebar", "color": "@sidebar", "children": [
+						{ "type": "label", "id": "sidebar-title", "x": 12, "y": 10, "text": "Explorer", "textColor": "@text" }
+					] },
+					{ "type": "split", "id": "editor-split", "direction": "column", "bind": "state.rows", "minSize": 60,
+						"sashSize": 4, "sashColor": "#cbd5e1", "children": [
+							{ "id": "editor", "color": "@editor", "children": [
+								{ "type": "label", "id": "editor-title", "x": 12, "y": 10, "text": "{{state.active}}", "textColor": "@text" }
+							] },
+							{ "id": "panel", "color": "@panel", "children": [
+								{ "type": "tabs", "id": "panel-tabs", "width": 180, "height": 30, "bind": "state.panel",
+									"tabs": [
+										{ "id": "problems", "label": "Problems", "closable": false },
+										{ "id": "output", "label": "Output", "closable": false },
+										{ "id": "terminal", "label": "Terminal", "closable": false },
+										{ "id": "ports", "label": "Ports", "closable": false },
+										{ "id": "debug", "label": "Debug console", "closable": false }
+									] }
+							] }
+						] }
+				] }
+		]
+	}
+}

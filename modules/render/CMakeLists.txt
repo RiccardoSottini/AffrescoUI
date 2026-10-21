@@ -9,6 +9,8 @@ affrescoui_module(render
 	src/TextEditor.cpp
 	src/Color.cpp
 	src/Controls.cpp
+	src/Split.cpp
+	src/Tabs.cpp
 	src/Font.cpp
 	src/FontCache.cpp
 	src/text/FontFace.cpp

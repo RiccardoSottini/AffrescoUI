@@ -43,6 +43,8 @@ affrescoui_module(format
 	src/ToggleType.cpp
 	src/SliderType.cpp
 	src/ImageType.cpp
+	src/SplitType.cpp
+	src/TabsType.cpp
 	src/IconProperty.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp

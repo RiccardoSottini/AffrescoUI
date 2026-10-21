@@ -94,7 +94,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -248,6 +248,49 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 
 Small images (up to 256 pixels a side) share textures, so a list of thumbnails draws in one batch with its text.
 
+### `split`
+Its children are panes laid side by side (or one above the other), with a sash between each two: drag a sash to
+resize, double-click it to go back to the default sizes. With the split focused, the arrow keys move the chosen sash
+by 8 pixels (32 with Shift), Page Up and Page Down choose another, Home resets. A pane never gets smaller than its
+`minSize`; the last pane takes what is left.
+
+<!-- generated: split -->
+| Key | Meaning |
+|---|---|
+| `direction` | `"row"` (the default: panes side by side, vertical sashes) or `"column"` (one above the other). |
+| `value` | The panes' sizes in pixels, in order (`bind` keeps them in a state path). The last pane takes what is left; missing sizes share it equally. Moving a sash runs `onChange` with the new sizes. |
+| `defaultSizes` | The sizes a double click on a sash (or Home on the focused split) goes back to; left out, equal panes. |
+| `minSize` | The smallest size of every pane (a number), or of each in order (a list; its last one is used for the rest). |
+| `sashSize` | Pixels between two panes (default 4); the pointer finds a thin sash a little either side. |
+| `sashColor`, `sashActiveColor` | The sash (default transparent) and the sash being dragged or chosen by keyboard. |
+<!-- end generated -->
+
+```json
+{ "type": "split", "id": "workbench", "bind": "state.layout.sizes", "minSize": [160, 240], "defaultSizes": [240],
+  "children": [ { "type": "panel", "id": "side" }, { "type": "panel", "id": "editors" } ] }
+```
+
+### `tabs`
+A strip of tabs, one of them active. The tabs come from the node (`tabs`, usually bound to state), and the strip
+reports what the user does, so the state stays the one source: picking a tab changes `value` (and `onChange`), the
+close button or Delete runs `onClose`, and dragging a tab along the strip runs `onMove` (`event.from`, `event.to`,
+counted without the tab). The arrow keys, Home and End pick tabs; the strip scrolls with the wheel when they don't fit.
+With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: that strip's `onDrop` gets
+`event.data` (`{ "id", "index" }`) and `event.index`, the place it goes, shown by a line while dragging.
+
+<!-- generated: tabs -->
+| Key | Meaning |
+|---|---|
+| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most 10,000; the strip scrolls sideways when they don't fit. |
+| `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
+| `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
+<!-- end generated -->
+
+```json
+{ "type": "tabs", "id": "editor-tabs", "height": 32, "tabs": "{{state.open}}", "bind": "state.active",
+  "onClose": [ { "set": "state.open", "to": "{{filter(state.open, it.id != event.id)}}" } ] }
+```
+
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
 
@@ -357,7 +400,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
-| `onDrop` | A dragged node was dropped here: `event.data`. |
+| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |
@@ -365,6 +408,11 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onChange` | A bound or value control changed: `event.value`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
 | `onShow`, `onHide` | The node was built, or removed (by `when`, `repeat` or a revision). |
+| `onClose` | A tab's close button or Delete: `event.id`. |
+| `onMove` | A tab dragged along its strip: `event.id`, `from`, `to`. |
+| `onExpand` | A tree row opened or closed: `event.id`, `expanded`. |
+| `onOpen` | Enter or a double click on a tree, list or table row: `event.id`. |
+| `onSort` | A table header clicked: `event.column`, `descending`. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it

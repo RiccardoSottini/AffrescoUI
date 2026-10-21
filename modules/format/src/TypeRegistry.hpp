@@ -100,6 +100,30 @@ struct ValueHooks {
 	void (*stopListening)(Panel& panel, Connection connection) = nullptr;
 };
 
+/// @brief Connections a widget's events hold (WidgetEvents); unused places are 0.
+using EventConnections = std::array<Connection, 4>;
+/// @brief Runs a node's handler for a widget's event: the handler's name (e.g. "onClose") and the event.
+using EventSink = std::function<void(std::string_view handler, json event)>;
+
+/// @brief A widget's own events besides its value, e.g. a tab's "onClose": run as its node's handlers.
+struct WidgetEvents {
+	/// Connects the panel's signals; @p sink runs a handler of the node. Returns the connections.
+	EventConnections (*listen)(Panel& panel, EventSink sink) = nullptr;
+	/// Disconnects what listen() connected.
+	void (*stopListening)(Panel& panel, const EventConnections& connections) = nullptr;
+};
+
+/// @brief How a widget takes part in drag and drop besides its node's "drag" and "onDrop".
+struct DragHooks {
+	/// The data of a drag that starts at @p press when the node's "drag" gives none; null: nothing to drag there.
+	json (*data)(const Panel& panel, Vec2 press) = nullptr;
+	/// Shows where a drag over the widget at @p position would drop (nullptr: hides it), and returns the fields the
+	/// drop event gets besides "data", e.g. {"index": 2}.
+	json (*dropAt)(Panel& panel, const Vec2* position) = nullptr;
+	/// Whether the widget handles a drop on itself (a tab strip reorders): its "onDrop" isn't run for that.
+	bool ownDrops = false;
+};
+
 /// @brief The properties a kind of panel has besides those of every panel, and how they are applied.
 struct PropertySet {
 	/// Its properties, in the order the catalog lists them. Behaviour keys ("bind", "text", "checked", "autofocus")
@@ -119,6 +143,10 @@ struct PropertySet {
 	/// Whether a click on the widget is its own, like a native control's: it changed the widget's value, so it doesn't
 	/// bubble to an ancestor's "onClick" (unless the node has one of its own).
 	bool keepsClicks = false;
+	/// Its own events, if any.
+	WidgetEvents events;
+	/// Its part in drag and drop, if any.
+	DragHooks drag;
 
 	/// @brief Finds one of its properties.
 	/// @param name The name.
@@ -216,6 +244,12 @@ void registerEditorType(TypeRegistry& registry);
 /// @brief Registers "image" (ImageType.cpp).
 /// @param registry The registry.
 void registerImageType(TypeRegistry& registry);
+/// @brief Registers "split" (SplitType.cpp).
+/// @param registry The registry.
+void registerSplitType(TypeRegistry& registry);
+/// @brief Registers "tabs" (TabsType.cpp).
+/// @param registry The registry.
+void registerTabsType(TypeRegistry& registry);
 /// @brief Registers "icon", a property of labels (IconProperty.cpp).
 /// @param registry The registry.
 void registerIconProperty(TypeRegistry& registry);

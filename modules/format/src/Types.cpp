@@ -149,6 +149,8 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerToggleTypes(registry);
 	registerSliderType(registry);
 	registerImageType(registry);
+	registerSplitType(registry);
+	registerTabsType(registry);
 	registerIconProperty(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
