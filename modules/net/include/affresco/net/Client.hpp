@@ -23,7 +23,7 @@ struct ClientOptions {
 	/// The proxy, e.g. "http://proxy.example.com:3128": nullopt follows the environment (HTTPS_PROXY, NO_PROXY, as
 	/// curl reads them), "" uses none.
 	std::optional<std::string> proxy;
-	std::string caFile;                ///< A PEM file of extra certificate authorities, or empty for the system's.
+	std::string caFile{};              ///< A PEM file of extra certificate authorities, or empty for the system's.
 	std::size_t maxPerOrigin = 6;      ///< Requests in flight to one origin; more wait their turn.
 	std::size_t maxWaiting = 256;      ///< Requests started and not finished, in all; more fail with "refused".
 	std::size_t maxSendQueueBytes = std::size_t{16} << 20; ///< Bytes a WebSocket may hold unsent; send() refuses more.

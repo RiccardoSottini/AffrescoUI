@@ -96,7 +96,7 @@ TEST_CASE("format: validate accepts the capability sections when well formed, an
 	    {"permissions: a rule with \"/**\"", "/permissions/allow/1", "agent(/state/**)", ""},
 	    // include exists only while a file loads: a document never holds it
 	    {"include", "/include", json::array({"parts.json"}), "include: unknown section"},
-	    {"a section the format doesn't know", "/services", json::object(), "services: unknown section"},
+	    {"a section the format doesn't know", "/gadgets", json::object(), "gadgets: unknown section"},
 	};
 	for(const Case& change : cases) {
 		CAPTURE(change.what);
