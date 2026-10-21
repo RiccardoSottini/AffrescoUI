@@ -16,6 +16,7 @@
 
 #include <doctest/doctest.h>
 
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -163,6 +164,15 @@ TEST_CASE("row window: fixed rows cost nothing to place, and measured rows move 
 	CHECK(rows.visible(0.0f, 100.0f, 2) == RowRange{});
 }
 
+TEST_CASE("row window: an offset past size_t's range, infinite or NaN gives the last or the first row") {
+	RowWindow rows;
+	rows.reset(3, 20.0f);
+	CHECK(rows.rowAt(1.0e30f) == 2);
+	CHECK(rows.rowAt(std::numeric_limits<float>::infinity()) == 2);
+	CHECK(rows.rowAt(std::numeric_limits<float>::quiet_NaN()) == 0);
+	CHECK(rows.visible(0.0f, 1.0e30f, 2) == RowRange{0, 3});
+}
+
 TEST_CASE("list: a click selects, Shift selects a range, Cmd toggles, and a double click opens") {
 	ListFixture fixture;
 	fixture.click(rowPoint(1));
@@ -221,6 +231,18 @@ TEST_CASE("list: the keys move the cursor and scroll it into view, and Enter ope
 	fixture.press(Key::Up, Mods{0x0001});
 	fixture.press(Key::Up, Mods{0x0001});
 	CHECK(fixture.list->selection() == std::vector<std::string>{"elder", "fig", "grape"});
+}
+
+TEST_CASE("list: a list taller than size_t's range pages to its last row and back") {
+	ListFixture fixture;
+	fixture.list->setSize(px(200), px(1.0e30f));
+	fixture.window->render();
+	fixture.window->setFocus(fixture.list);
+	fixture.press(Key::Down);
+	fixture.press(Key::PageDown);
+	CHECK(fixture.list->cursor() == 9);
+	fixture.press(Key::PageUp);
+	CHECK(fixture.list->cursor() == 0);
 }
 
 TEST_CASE("list: typing jumps to the next label that starts with what was typed in the last second") {

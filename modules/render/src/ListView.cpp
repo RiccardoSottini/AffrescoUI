@@ -272,7 +272,9 @@ void ListView::keyEvent(const KeyEvent& event) {
 	if(count > 0 && event.action != Action::Release && !rowKey(event)) {
 		const std::size_t row = rowOf(cursor_);
 		const bool none = row >= count;
-		const auto page = static_cast<std::size_t>(std::max(viewport() / rowHeight_, 1.0f));
+		// At most the row count before the cast: a list 1e30 tall is past size_t's range, where the cast is undefined
+		const float rows = std::min(std::max(1.0f, viewport() / rowHeight_), static_cast<float>(count));
+		const auto page = static_cast<std::size_t>(rows);
 		const Mods shift{event.mods.bits & 0x0001};
 		if(event.key == Key::Up) moveCursor(none || row == 0 ? 0 : row - 1, shift);
 		else if(event.key == Key::Down) moveCursor(none ? 0 : std::min(row + 1, count - 1), shift);
