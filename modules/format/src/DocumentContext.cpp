@@ -340,6 +340,7 @@ const json& DocumentContext::resolveMemberTokens(const json& value, json& scratc
 		if(!std::exchange(copied, true)) scratch = value;
 		scratch[key] = std::move(number);
 	}
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): like resolveToken(), callers pass the document's values
 	return copied ? scratch : value;
 }
 

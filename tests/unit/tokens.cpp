@@ -102,7 +102,8 @@ TEST_CASE("tokens: anchors, radius and shadow read number tokens in their member
 	                                        {"anchors", {{"right", "@space.m"}, {"bottom", "@space.s"}}},
 	                                        {"radius", {{"topLeft", "@space.m"}}},
 	                                        {"shadow", {{"x", "@space.s"}, {"blur", "@space.m"}}}});
-	CHECK(affresco::format::check(document, document["state"], {})->empty());
+	const auto found = affresco::format::check(document, document["state"], {});
+	CHECK((found && found->empty()));
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(300, 200, clock);
 	affresco::Screen screen = affresco::Screen::fromString(document.dump(), {});

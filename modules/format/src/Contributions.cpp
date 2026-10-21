@@ -196,6 +196,24 @@ struct MenuSources {
 	MenuBudget budget;                                     ///< Items still allowed.
 };
 
+/// @brief Gives a menu item what its command says: its title and icon unless the item has its own, whether it is
+/// enabled, and its key.
+/// @param entry The resolved item.
+/// @param item The item as written.
+/// @param commands The commands, by name.
+void describeCommand(json& entry, const json& item, const std::unordered_map<std::string, const json*>& commands) {
+	const auto run = item.find("run");
+	if(run == item.end() || !run->is_string()) return;
+	const auto command = commands.find(run->get<std::string>());
+	if(command == commands.end()) return;
+	const json& c = *command->second;
+	if(!item.contains("title")) entry["title"] = c["title"];
+	if(!item.contains("icon")) entry["icon"] = c["icon"];
+	entry["enabled"] = c["enabled"];
+	entry["key"] = c["key"];
+	entry["keyLabel"] = c["keyLabel"];
+}
+
 /// @brief One menu of the `menus` variable: its items that pass their "when", by group, order and key, with a
 /// separator between groups, and what their commands say.
 /// @param engine The runtime.
@@ -219,15 +237,7 @@ json menuOf(Engine& engine, MenuSources& sources, const std::string& name, int d
 			entry["run"] = item["run"];
 			if(item.contains("with")) entry["with"] = item["with"];
 		}
-		if(const auto run = item.find("run"); run != item.end() && run->is_string())
-			if(const auto command = sources.commands.find(run->get<std::string>()); command != sources.commands.end()) {
-				const json& c = *command->second;
-				if(!item.contains("title")) entry["title"] = c["title"];
-				if(!item.contains("icon")) entry["icon"] = c["icon"];
-				entry["enabled"] = c["enabled"];
-				entry["key"] = c["key"];
-				entry["keyLabel"] = c["keyLabel"];
-			}
+		describeCommand(entry, item, sources.commands);
 		if(const auto submenu = item.find("submenu"); submenu != item.end() && submenu->is_string())
 			entry["submenu"] = *submenu;
 		kept.push_back(std::move(entry));

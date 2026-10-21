@@ -234,11 +234,19 @@ private:
 	return total;
 }
 
+/// @brief Tells whether a stroke draws anything that can be measured: a positive, finite width along finite points.
+/// @param contours The contours.
+/// @param style The stroke.
+/// @return true if it does.
+bool strokable(std::span<const VectorPath::Contour> contours, const StrokeStyle& style) {
+	return style.width > 0.0f && std::isfinite(style.width) && vector::finite(contours);
+}
+
 } // namespace
 
 void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeStyle& style, std::vector<MeshVertex>& mesh,
                   float feather) {
-	if(!(style.width > 0.0f) || !std::isfinite(style.width) || !vector::finite(contours)) return;
+	if(!strokable(contours, style)) return;
 	Stroker stroker(style, mesh, std::min(std::max(feather, 0.0f), 4.0f));
 	for(const VectorPath::Contour& contour : contours) {
 		if(contour.points.empty()) continue;

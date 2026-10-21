@@ -20,6 +20,15 @@ using affresco::detail::ManualClock;
 
 namespace {
 
+/// @brief The items of a resolved menu, its submenus' included.
+/// @param menu The menu.
+/// @return How many.
+std::size_t itemsIn(const json& menu) {
+	std::size_t total = 0;
+	for(const json& entry : menu) total += 1 + (entry.contains("submenu") ? itemsIn(entry["submenu"]) : 0);
+	return total;
+}
+
 /// @brief A screen with commands, keys, menus and settings.
 /// @param menus The document's "menus".
 /// @param root The root node.
@@ -95,15 +104,6 @@ std::vector<std::string> findings(const json& document) {
 /// @return true if one does.
 bool anyHas(const std::vector<std::string>& lines, const std::string& text) {
 	return std::ranges::any_of(lines, [&](const std::string& line) { return line.contains(text); });
-}
-
-/// @brief The items of a resolved menu, its submenus' included.
-/// @param menu The menu.
-/// @return How many.
-std::size_t itemsIn(const json& menu) {
-	std::size_t total = 0;
-	for(const json& entry : menu) total += 1 + (entry.contains("submenu") ? itemsIn(entry["submenu"]) : 0);
-	return total;
 }
 
 } // namespace

@@ -28,6 +28,22 @@ const DragHooks* dragHooks(const Record* record) {
 	return nullptr;
 }
 
+/// @brief Runs a key handler's short form ("ctrl+s": "save"), unless it names a disabled command: then the key falls
+/// through, as it does past a disabled binding.
+/// @param engine The runtime.
+/// @param handler The handler.
+/// @param owner The panel it runs on.
+/// @param event The key event.
+/// @param locals The local variables.
+/// @param where Its place in the document.
+/// @return true if it ran.
+bool runShortForm(Engine& engine, const json& handler, Panel& owner, const json& event, const Scope& locals,
+                  const std::string& where) {
+	if(handler.is_string() && !commandEnabled(engine, handler.get<std::string>())) return false;
+	engine.runner.handle(handler, owner, event, locals, where);
+	return true;
+}
+
 } // namespace
 
 /* Connections */
@@ -274,12 +290,7 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 bool Events::runBinding(const json& handler, Panel& owner, const Scope& locals, const std::string& press,
                         const std::string& where) {
 	const json event = {{"type", "key"}, {"key", press}};
-	if(!isBinding(handler) && !isBindingList(handler)) {
-		// The short form ("ctrl+s": "save") skips a disabled command like a binding does, so the key falls through
-		if(handler.is_string() && !commandEnabled(engine_, handler.get<std::string>())) return false;
-		engine_.runner.handle(handler, owner, event, locals, where);
-		return true;
-	}
+	if(!isBinding(handler) && !isBindingList(handler)) return runShortForm(engine_, handler, owner, event, locals, where);
 	const json bindings = isBindingList(handler) ? handler : json::array({handler});
 	for(std::size_t i = 0; i < bindings.size(); ++i) {
 		const json& binding = bindings[i];

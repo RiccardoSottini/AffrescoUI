@@ -30,6 +30,19 @@ bool behaviourSlot(Slot slot, std::string_view key) noexcept {
 	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context || key == "autofocus" || key == "locked";
 }
 
+/// @brief A property's value with the number tokens it names resolved ("@space.m"): its own, or its members' for
+/// the objects that hold numbers ("anchors", "radius", "shadow").
+/// @param document The document, which knows the tokens.
+/// @param slot The property's slot.
+/// @param value The value.
+/// @param scratch Holds the resolved value when it differs.
+/// @return The value in scratch, or value itself.
+const json& withTokens(const DocumentContext& document, Slot slot, const json& value, json& scratch) {
+	if(value.is_object() && (slot == Slot::Layout || slot == Slot::Radius || slot == Slot::Shadow))
+		return document.resolveMemberTokens(value, scratch);
+	return document.resolveToken(value, scratch);
+}
+
 } // namespace
 
 /* PropertyReader */
@@ -308,10 +321,7 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	json token;     // a number token's value ("@space.m"), or an object with its members' tokens resolved
 	for(const auto& [key, slot, pointer] : properties.entries) {
 		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
-		const bool members =
-		    pointer->is_object() && (slot == Slot::Layout || slot == Slot::Radius || slot == Slot::Shadow);
-		const json& value = members ? engine_.document.resolveMemberTokens(*pointer, token)
-		                            : engine_.document.resolveToken(*pointer, token);
+		const json& value = withTokens(engine_.document, slot, *pointer, token);
 		at.assign(record.path).append(".").append(key);
 		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look))
 			continue;
