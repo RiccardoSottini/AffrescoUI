@@ -59,5 +59,7 @@ affrescoui_fuzzer(sse affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp r
 target_include_directories(affrescoui_fuzz_sse PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # Streams.hpp
 affrescoui_fuzzer(websocket affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_websocket PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # WebSocketFrames.hpp
+affrescoui_fuzzer(peer_handshake affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_peer_handshake PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # PeerHandshake.hpp
 affrescoui_fuzzer(frames affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_frames PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # Framing.hpp

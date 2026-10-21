@@ -1,0 +1,13 @@
+# Remote peers behind TLS (SECURITY.md, "Remote peers").
+#
+# The host accepts remote peers on the loopback only:
+#     screen.listenWebSocket(app, "127.0.0.1:7420", MyTokenVerifier{...});
+# and Caddy terminates TLS in front of it, with a certificate it obtains and renews for the name below. Peers then
+# connect to wss://example.com/ with their token ("Authorization: Bearer <token>" on the upgrade, or a first message
+# {"type": "auth", "token": "<token>"}). Replace example.com with your host's name.
+#
+# The server sees every connection as coming from the proxy, so its per-address rate limit applies to the proxy as a
+# whole: set PeerServerOptions::connectionsPerSecond and connectionBurst with that in mind, or rate-limit here.
+example.com {
+	reverse_proxy 127.0.0.1:7420
+}

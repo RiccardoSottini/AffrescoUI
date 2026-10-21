@@ -15,7 +15,8 @@
 - path:       every path data of the templates, the rendering check's screens and the charts, with drawing bytes;
 - scenarios:  every scenarios file, the templates' and the rendering check's;
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
-- frames:     Content-Length frames and lines, as a service process writes them.
+- frames:     Content-Length frames and lines, as a service process writes them;
+- peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -357,6 +358,16 @@ def websocket_seeds():
     return [b"\x02" + hello, b"\x03" + masked, b"\x08" + fragments, b"\x04" + close, b"\x02\x81\x7f" + bytes(8)]
 
 
+def peer_handshake_seeds():
+    """Upgrade requests (odd first byte) and first messages (even first byte)."""
+    head = ("GET /live HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+            "Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n")
+    return ["\x01" + head + "\r\n", "\x01" + head + "Authorization: Bearer good\r\n\r\n",
+            "\x01" + head + "Origin: https://studio.example.com\r\nOrigin: https://other.example.com\r\n\r\n",
+            "\x01GET / HTTP/1.0\r\nUpgrade: h2c\r\n\r\n", '\x00{"type": "auth", "token": "good"}',
+            '\x00{"type": "auth", "token": ""}', '\x00{"type": "hello"}']
+
+
 def frames_seeds():
     """Content-Length frames (even first byte) and lines (odd first byte), cut into pieces of a few sizes."""
     body = '{"jsonrpc":"2.0","id":1,"result":{}}'
@@ -412,6 +423,9 @@ def dictionaries():
                               "Location", "Upgrade", "websocket", "Connection", "Sec-WebSocket-Accept"],
             "sse": ["data:", "data: ", "event:", "id:", "retry:", ":", "\n", "\r\n", "\r", "\n\n"],
             "frames": ["Content-Length: ", "content-length:", "\r\n", "\r\n\r\n", "\n", '"jsonrpc":"2.0"'],
+            "peer_handshake": ["GET ", " HTTP/1.1", "\r\n", "\r\n\r\n", ": ", "Upgrade", "websocket", "Connection",
+                               "Sec-WebSocket-Key", "Sec-WebSocket-Version", "13", "Origin", "Authorization",
+                               "Bearer ", '"type"', '"auth"', '"token"'],
             "websocket": ["\x81", "\x01", "\x80", "\x88", "\x89", "\x8a", "\x7e", "\x7f", "\x03\xe8"],
             "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"]}
 
@@ -469,6 +483,7 @@ def main():
     write(out, "sse", sse_seeds(), words["sse"])
     write(out, "websocket", websocket_seeds(), words["websocket"])
     write(out, "frames", frames_seeds(), words["frames"])
+    write(out, "peer_handshake", peer_handshake_seeds(), words["peer_handshake"])
 
 
 if __name__ == "__main__":

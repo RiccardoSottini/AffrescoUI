@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
@@ -62,7 +62,9 @@ Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `o
 `onUnhandledAction`, `onEvent`; `setModel` for a `DataModel` the screen shows with `"in": "models.<name>"`; and
 `onAsyncCall` for a slow function run on a worker thread (with `setExecutor` for a window the Screen didn't create;
 destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and
-`listen(executor, path, author)` for a socket that accepts any number of them. `registerType` goes through the
+`listen(executor, path, author)` for a socket that accepts any number of them, and
+`listenWebSocket(executor, "127.0.0.1:7420", verifier)` for remote peers, each authored as its token's verifier says
+(`modules/net/README.md`). `registerType` goes through the
 runtime's type registry (`modules/format/README.md`).
 
 ## Files

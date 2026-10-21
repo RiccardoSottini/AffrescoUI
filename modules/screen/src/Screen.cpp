@@ -10,6 +10,7 @@
 #include "affresco/core/Log.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/net/RemotePeers.hpp"
 #include "affresco/vcs/Repository.hpp"
 
 #include <algorithm>
@@ -86,6 +87,7 @@ struct Screen::Impl {
 	detail::OffscreenImages images{repository, runtime};         ///< Pictures for peers ("render").
 	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
+	std::vector<std::unique_ptr<net::PeerServer>> peerServers;   ///< From listenWebSocket().
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
 	std::shared_ptr<bool> alive = std::make_shared<bool>(true);  ///< Guards removals still queued after destruction.
 
@@ -133,6 +135,7 @@ struct Screen::Impl {
 	~Impl() {
 		*alive = false;
 		servers.clear();
+		peerServers.clear();
 		if(Window* window = runtime.window()) // the reconnect timers point at the screen
 			for(const auto& [name, channel] : channels)
 				if(channel.retry) window->cancelTimer(channel.retry);
@@ -322,6 +325,20 @@ struct Screen::Impl {
 		});
 		peers.push_back(std::move(peer));
 		return *peers.back();
+	}
+
+	/// @brief Adds a peer whose channel the screen owns, and removes it once its channel closes.
+	/// @param mainThread Runs the removal after the signal that says so has finished.
+	/// @param connection The channel.
+	/// @param name The name it is authored as.
+	void adopt(Executor& mainThread, std::unique_ptr<Channel> connection, std::string name) {
+		Channel& channel = *connection;
+		Peer& peer = add(channel, std::move(connection), std::move(name));
+		channel.onClosed.connect([this, &mainThread, peer = &peer] {
+			mainThread.post([this, peer, guard = alive] {
+				if(*guard) remove(peer);
+			});
+		});
 	}
 
 	/// @brief Removes a peer that went away.
@@ -774,15 +791,22 @@ void Screen::listen(Executor& executor, const std::filesystem::path& path, std::
 	Impl* impl = impl_.get();
 	impl->servers.push_back(std::make_unique<channel::SocketServer>(
 	    executor, path, [impl, &executor, author = std::move(author)](std::unique_ptr<Channel> connection) {
-		    Channel& channel = *connection;
-		    Peer& peer = impl->add(channel, std::move(connection), author);
-		    // Gone: removed after the signal that says so has finished
-		    channel.onClosed.connect([impl, &executor, peer = &peer] {
-			    executor.post([impl, peer, alive = impl->alive] {
-				    if(*alive) impl->remove(peer);
-			    });
-		    });
+		    impl->adopt(executor, std::move(connection), author);
 	    }));
+}
+
+std::uint16_t Screen::listenWebSocket(Executor& executor, std::string_view address,
+                                      std::shared_ptr<net::TokenVerifier> verifier, net::PeerServerOptions options) {
+	Impl* impl = impl_.get();
+	auto server = std::make_unique<net::PeerServer>(
+	    executor, address, std::move(verifier),
+	    [impl, &executor](std::unique_ptr<Channel> connection, std::string author) {
+		    impl->adopt(executor, std::move(connection), std::move(author));
+	    },
+	    std::move(options));
+	const std::uint16_t port = server->port();
+	impl->peerServers.push_back(std::move(server));
+	return port;
 }
 
 void Screen::setMode(Mode mode) { impl_->repository.setMode(mode); }
