@@ -192,6 +192,12 @@ public:
 	/// @param scratch Holds the number when there is one.
 	/// @return The number in scratch, or value itself.
 	[[nodiscard]] const json& resolveToken(const json& value, json& scratch) const;
+	/// @brief Replaces "@name" of number tokens by their numbers in an object's members ("anchors", "radius" and
+	/// "shadow"), in the current theme.
+	/// @param value The object.
+	/// @param scratch Holds a copy with the numbers when a member names one.
+	/// @return The copy in scratch, or value itself.
+	[[nodiscard]] const json& resolveMemberTokens(const json& value, json& scratch) const;
 	/// @brief Reads a "shadow": { "x", "y", "blur", "color" }, each optional.
 	/// @param value The value.
 	/// @param path Its place, for errors.

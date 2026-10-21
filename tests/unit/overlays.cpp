@@ -107,6 +107,28 @@ TEST_CASE("format: Tab follows tabIndex first, then the tree, and Shift+Tab goes
 	CHECK(focusedId(*window) == "c");
 }
 
+TEST_CASE("format: a tabIndex past int's range is the last in the tab order, and a negative one is skipped") {
+	ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"root": { "id": "root", "type": "column", "children": [
+			{ "id": "huge", "height": 20, "focusable": true, "tabIndex": 1e30 },
+			{ "id": "one", "height": 20, "focusable": true, "tabIndex": 1 },
+			{ "id": "below", "height": 20, "focusable": true, "tabIndex": -1e30 }
+		] }
+	})json");
+	screen.build(*window);
+	settle(*window, clock, screen);
+
+	press(*window, affresco::Key::Tab);
+	CHECK(focusedId(*window) == "one");
+	press(*window, affresco::Key::Tab);
+	CHECK(focusedId(*window) == "huge");
+	press(*window, affresco::Key::Tab); // wraps, past the skipped one
+	CHECK(focusedId(*window) == "one");
+}
+
 TEST_CASE("format: Enter or Space on a focusable node clicks it, and Alt with its mnemonic does too") {
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);

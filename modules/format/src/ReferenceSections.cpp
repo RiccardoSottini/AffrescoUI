@@ -47,7 +47,8 @@ constexpr KeyReference sectionTable[] = {
 	 "collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs "
 	 "(kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji "
 	 "too, from colour (COLR) fonts. `\"fallback\": [\"symbols\"]` names other fonts, asked in order for a character "
-	 "this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A "
+	 "this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`: on "
+	 "macOS, key labels in menus use ⌘ ⇧ ⌥ ⌃, which many text fonts lack (JetBrains Mono has them). A "
 	 "right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right.",
 	 "sections"},
     {"colors", R"json({"type": "object",
@@ -64,8 +65,8 @@ constexpr KeyReference sectionTable[] = {
 	 "`name → value`: a number (spacing, a radius, a type size), a colour (`\"#rrggbb\"`, `\"transparent\"`), an alias "
 	 "(`\"@other\"`, of a token or of `colors`), or per theme `{ \"light\": ..., \"dark\": ... }` of those. Used as "
 	 "`\"@name\"` wherever a number or a colour fits: `\"padding\": \"@space.m\"`, `\"radius\": \"@radius.card\"`, "
-	 "`\"color\": \"@color.surface\"`, and a font's `\"size\": \"@type.body\"`. Names may hold dots by convention "
-	 "(`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at "
+	 "`\"color\": \"@color.surface\"`, a font's `\"size\": \"@type.body\"`, and the members of `anchors`, `radius` "
+	 "and `shadow`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at "
 	 "most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it.",
 	 "sections"},
     {"theme", R"json({"description": "Which color variant is shown, e.g. \"{{state.theme}}\""})json",
@@ -146,15 +147,15 @@ constexpr KeyReference sectionTable[] = {
 
 /// The keys of a step: the steps, then the keys they read.
 constexpr KeyReference stepTable[] = {
-    {"set", "", "`{ \"set\": \"state.current\", \"to\": \"{{index}}\" }`", "steps"},
-    {"push", "", "`{ \"push\": \"state.columns[c].cards\", \"value\": \"{{state.draft}}\" }`", "steps"},
-    {"remove", "", "`{ \"remove\": \"state.items\", \"at\": 0 }`, or without `at` to delete a key of an object",
+    {"set", "", R"(`{ "set": "state.current", "to": "{{index}}" }`)", "steps"},
+    {"push", "", R"(`{ "push": "state.columns[c].cards", "value": "{{state.draft}}" }`)", "steps"},
+    {"remove", "", R"(`{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object)",
 	 "steps"},
-    {"toggle", "", "`{ \"toggle\": \"state.dark\" }`", "steps"},
-    {"increment", "", "`{ \"increment\": \"state.clicks\", \"by\": 1 }`", "steps"},
-    {"if", "", "`{ \"if\": \"{{len(state.draft) == 0}}\", \"then\": [...], \"else\": [...] }`", "steps"},
-    {"forEach", "", "`{ \"forEach\": \"state.items\", \"as\": \"item\", \"index\": \"i\", \"do\": [...] }`", "steps"},
-    {"while", "", "`{ \"while\": \"{{state.n < 10}}\", \"do\": [...] }` (at most 10,000 iterations)", "steps"},
+    {"toggle", "", R"(`{ "toggle": "state.dark" }`)", "steps"},
+    {"increment", "", R"(`{ "increment": "state.clicks", "by": 1 }`)", "steps"},
+    {"if", "", R"(`{ "if": "{{len(state.draft) == 0}}", "then": [...], "else": [...] }`)", "steps"},
+    {"forEach", "", R"(`{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }`)", "steps"},
+    {"while", "", R"(`{ "while": "{{state.n < 10}}", "do": [...] }` (at most 10,000 iterations))", "steps"},
     {"run", "",
 	 "`{ \"run\": \"moveCard\", \"with\": { \"from\": \"{{c}}\", \"to\": \"{{c + 1}}\" } }`: an action with variables; "
 	 "the name may be computed, and `with` too (`\"{{item.with}}\"`, an object or null)",
@@ -165,26 +166,25 @@ constexpr KeyReference stepTable[] = {
 	 "`\"loading\": \"state.busy\"` is true while it runs, `\"progress\": \"state.done\"` goes from 0 to 1, partial "
 	 "results stream into `into`, `\"timeout\": 5000` ends it with the error `timeout`, `then` runs with `result`",
 	 "steps"},
-    {"cancel", "", "`{ \"cancel\": \"search\" }`: stop the running slow calls of a function; they change nothing more",
+    {"cancel", "", R"(`{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more)",
 	 "steps"},
-    {"emit", "", "`{ \"emit\": \"saved\", \"data\": {...} }`: an event for every connected peer", "steps"},
-    {"send", "", "`{ \"send\": \"host\", \"data\": {...} }`: a message on a declared channel", "steps"},
-    {"connect", "", "`{ \"connect\": \"host\" }`: connect a declared channel now", "steps"},
-    {"patch", "", "`{ \"patch\": [JSON Patch ops], \"message\": \"...\" }`: the app revises its own document", "steps"},
-    {"navigate", "", "`{ \"navigate\": \"settings\" }` or `\"back\"`", "steps"},
-    {"focus", "", "`{ \"focus\": \"#input\" }`, `{ \"scrollTo\": \"#row7\" }` (after the update)", "steps"},
+    {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
+    {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
+    {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
+    {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
+    {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
+    {"focus", "", R"(`{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update))", "steps"},
     {"scrollTo", "", "", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
-    {"after", "", "`{ \"after\": 2000, \"do\": [...] }`: later", "steps"},
-    {"debounce", "", "`{ \"debounce\": 300, \"do\": [...] }`: later, unless run again in the meantime (search boxes)",
+    {"after", "", R"(`{ "after": 2000, "do": [...] }`: later)", "steps"},
+    {"debounce", "", R"(`{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes))",
 	 "steps"},
     {"animate", "",
-	 "`{ \"animate\": \"state.progress\", \"to\": 100, \"ms\": 300, \"easing\": \"out\" }` (`linear`, `in`, `out`, "
-	 "`inOut`)",
+	 R"(`{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`))",
 	 "steps"},
-    {"copy", "", "`{ \"copy\": \"{{state.link}}\" }`: to the clipboard", "steps"},
-    {"log", "", "`{ \"log\": \"n is {{state.n}}\" }`, a comment, `{ \"stop\": true }` (end the action)", "steps"},
+    {"copy", "", R"(`{ "copy": "{{state.link}}" }`: to the clipboard)", "steps"},
+    {"log", "", R"(`{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action))", "steps"},
     {"note", "", "", "steps"},
     {"stop", "", "", "steps"},
     {"preview", "",

@@ -89,13 +89,17 @@ def gate(arguments):
     base = subprocess.run(["git", "rev-parse", "--short", arguments.base], cwd=ROOT, check=True, capture_output=True,
                           text=True).stdout.strip()
 
+    # A .cpp file this platform doesn't build (DesktopWin32.cpp on Linux) has no compile command, so clang-tidy can't
+    # parse it: its tidy findings are left to a platform that builds it, and only its function sizes are judged here
+    unbuilt = tidy.unbuilt(lines, tidy.translation_units(arguments.build, ROOT, sources))
+    tidied = sorted(path for path in lines if path not in unbuilt)
     with tempfile.TemporaryDirectory() as folder:
         config, text = None, rule_file(ROOT, arguments.base, TIDY_CONFIG)
         if text is not None:
             config = os.path.join(folder, "clang-tidy.yaml")
             with open(config, "w", encoding="utf-8") as file:
                 file.write(text)
-        findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, sorted(lines), sources,
+        findings, failures = tidy.run(arguments.clang_tidy, arguments.build, ROOT, tidied, sources,
                                       arguments.jobs, lines, config)
     too_big, notes = functions.gate(changed, read_file, lambda path: changes.file_at(ROOT, arguments.base, path),
                                     limits)
@@ -104,6 +108,9 @@ def gate(arguments):
               f"{len(changed)} C++ files changed. clang-tidy {tidy.version(arguments.clang_tidy)}, "
               f"function limits: {limits['length']} lines, complexity {limits['complexity']}. The rules "
               f"(`{TIDY_CONFIG}`, `{THRESHOLDS}`) are {base}'s.", ""]
+    if unbuilt:
+        report += ["Not built on this platform, so not given to clang-tidy here: "
+                   + ", ".join(f"`{path}`" for path in unbuilt) + ".", ""]
     report += section("clang-tidy findings in the changed lines", [
         f"`{f['file']}:{f['line']}` {f['message']} [`{f['check']}`]" for f in findings])
     report += section("Files clang-tidy couldn't parse (so they weren't checked)", [

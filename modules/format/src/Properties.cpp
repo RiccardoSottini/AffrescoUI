@@ -30,6 +30,19 @@ bool behaviourSlot(Slot slot, std::string_view key) noexcept {
 	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context || key == "autofocus" || key == "locked";
 }
 
+/// @brief A property's value with the number tokens it names resolved ("@space.m"): its own, or its members' for
+/// the objects that hold numbers ("anchors", "radius", "shadow").
+/// @param document The document, which knows the tokens.
+/// @param slot The property's slot.
+/// @param value The value.
+/// @param scratch Holds the resolved value when it differs.
+/// @return The value in scratch, or value itself.
+const json& withTokens(const DocumentContext& document, Slot slot, const json& value, json& scratch) {
+	if(value.is_object() && (slot == Slot::Layout || slot == Slot::Radius || slot == Slot::Shadow))
+		return document.resolveMemberTokens(value, scratch);
+	return document.resolveToken(value, scratch);
+}
+
 } // namespace
 
 /* PropertyReader */
@@ -305,10 +318,10 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	reset(panel, record);
 
 	std::string at; // reused: one allocation for the node's places
-	json token;     // a number token's value, when the property names one ("@space.m")
+	json token;     // a number token's value ("@space.m"), or an object with its members' tokens resolved
 	for(const auto& [key, slot, pointer] : properties.entries) {
 		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
-		const json& value = engine_.document.resolveToken(*pointer, token);
+		const json& value = withTokens(engine_.document, slot, *pointer, token);
 		at.assign(record.path).append(".").append(key);
 		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look))
 			continue;
@@ -400,7 +413,8 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 		record.focusable = boolean(value, at);
 		break;
 	case Slot::TabIndex:
-		record.tabIndex = static_cast<int>(std::max(number(value, at), -1.0f));
+		// Clamped before the cast: a number past int's range (1e30) would be undefined behaviour
+		record.tabIndex = static_cast<int>(std::clamp(number(value, at), -1.0f, 1.0e9f));
 		break;
 	case Slot::Arrows:
 		record.arrows = string(value, at);

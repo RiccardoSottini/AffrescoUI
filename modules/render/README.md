@@ -117,7 +117,9 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   (`gl/SubtreeTextures`, a framebuffer object per subtree, premultiplied RGBA, within a budget of 64 Mi texels), then
   drawn as one colour quad of it every frame. It is drawn into it again only when a panel in it was recorded again or
   marked, or when its area changes; a subtree over the budget is drawn directly. Textures not used in a full frame
-  are freed. Screenshots draw from scratch, without the cache.
+  are freed. Screenshots use the cache too; the frame the rendering check draws from scratch doesn't. Where the
+  subtree is opaque the two are the same pixel for pixel; where its own edge is translucent (its rounded corners over
+  what is behind) a pixel may be one level of 255 off, as the texture rounds it once more.
 - **Icons are glyphs.** `Font::codepointNamed` finds a glyph by its PostScript name in the font and its fallbacks;
   with an icon font (Lucide) as a fallback of the text font, a label's icon comes from the text's own atlas.
 - **Rich text is runs.** A label's `TextRun`s each name their font (a bold, italic or larger variant), colour, link

@@ -42,10 +42,14 @@ public:
 	/// can't cancel what it has deferred.
 	/// @param task The work.
 	void defer(std::function<void()> task) const;
-	/// @brief Sets a window timer that runs once, kept until it runs (cancelAll() cancels it).
+	/// @brief Sets a window timer that runs once, kept until it runs (cancelOnce() and cancelAll() cancel it).
 	/// @param delayMs Milliseconds from now.
 	/// @param task The work.
-	void once(double delayMs, std::function<void()> task);
+	/// @return An id for cancelOnce().
+	std::uint64_t once(double delayMs, std::function<void()> task);
+	/// @brief Cancels a timer once() set, unless it has run or is running.
+	/// @param id From once().
+	void cancelOnce(std::uint64_t id);
 	/// @brief Runs a task after a delay, unless it is scheduled again under the same key before then.
 	/// @param key What it is (the step's place and its sender).
 	/// @param delayMs Milliseconds from now.

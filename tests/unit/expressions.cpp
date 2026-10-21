@@ -236,6 +236,10 @@ const std::vector<Case> cases = {
     {"{{min(5)}}", 5, {}},
     {"{{min('a', 1)}}", {}, "test.$min: expected a number, got \"a\""},
     {"{{clamp(5, 10, 0)}}", 10, {}},
+    // Fuzzy matching (the quick pick's): in order, any case; tests/unit/quickpick.cpp has the ranges and the order
+    {"{{fuzzy('z', 'abc')}}", nullptr, {}},
+    {"{{fuzzySort(state.items, 'z')}}", json::array(), {}},
+    {"{{fuzzySort(state.items, 'b')[0].item}}", "b", {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
     {"{{clamp(1, 2)}}", {}, "test.$clamp: expected 3 arguments"},
     {"{{round(-2.5)}}", -3, {}},

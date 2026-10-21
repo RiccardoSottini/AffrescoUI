@@ -27,7 +27,7 @@ bool WorkerPool::run(std::function<void()> task) {
 void WorkerPool::work(const std::stop_token& stop) {
 	std::unique_lock lock(mutex_);
 	while(wake_.wait(lock, stop, [this] { return !queue_.empty(); })) {
-		std::function<void()> task = std::move(queue_.front());
+		const std::function<void()> task = std::move(queue_.front());
 		queue_.pop_front();
 		lock.unlock();
 		task();
@@ -122,7 +122,8 @@ bool AsyncCalls::start(const Running& s, const std::string& name, const Runtime:
 	             &s.sender,
 	             s.event,
 	             snapshot(s.locals),
-	             s.where};
+	             s.where,
+	             0};
 	if(step.contains("into")) call.into = s.target("into");
 	if(step.contains("loading")) call.loading = s.target("loading");
 	if(step.contains("progress")) call.progress = s.target("progress");
@@ -152,7 +153,8 @@ bool AsyncCalls::start(const Running& s, const std::string& name, const Runtime:
 		failCall(id, "too many calls running (at most " + std::to_string(maxRunning) + ")");
 		return true;
 	}
-	if(timeout > 0.0 && engine_.window) engine_.scheduler.once(timeout, [this, id] { failCall(id, "timeout"); });
+	if(timeout > 0.0 && engine_.window)
+		pending_.at(id).timeout = engine_.scheduler.once(timeout, [this, id] { failCall(id, "timeout"); });
 	return true;
 }
 
@@ -214,6 +216,7 @@ AsyncCalls::Pending AsyncCalls::finish(std::map<std::uint64_t, Pending>::iterato
 	Pending call = std::move(it->second);
 	pending_.erase(it);
 	call.job->stopped = true;
+	if(call.timeout) engine_.scheduler.cancelOnce(call.timeout); // or each frame would look at it
 	if(call.loading) write(*call.loading, false, call.where + ".loading");
 	return call;
 }

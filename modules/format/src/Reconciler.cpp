@@ -53,7 +53,7 @@ void showFocusRing(Engine& engine) {
 					else if(key == "offset") ring->offset = pixels(item, at + ".offset");
 					else fail(at + "." + key, "unknown property");
 				}
-			} else if(!(value.is_boolean() && !value.get<bool>()))
+			} else if(!value.is_boolean() || value.get<bool>())
 				ring = FocusRing{.color = engine.document.color(value, at)};
 		}
 	} catch(const DocumentError& error) {
@@ -189,8 +189,7 @@ void Reconciler::refreshItems(const Scope& locals, const StateChanges& changes) 
 		else if(const json* lying = findInState(engine_.versions.state(), json::json_pointer(scope->origin)))
 			value = *lying;
 		if(value.is_null()) continue; // gone: the list that shows it is built again
-		// A scope that holds an item is made by extend() as make_shared<Scope>(), so the object itself isn't const
-		const_cast<Scope*>(scope)->vars[scope->fromState] = std::move(value);
+		scope->vars[scope->fromState] = std::move(value); // vars is mutable for this refresh
 	}
 }
 
@@ -397,7 +396,7 @@ void Reconciler::requestStateUpdate() { queue(); }
 Panel& Reconciler::buildDetached(const json& node, Panel& parent, const std::string& path) {
 	SharedScope scope = noVariables();
 	const CompiledRef scopedNode = engine_.builder.scoped(engine_.builder.compiled(node, path), scope, path);
-	Item item{scopedNode, scope, path, nullptr};
+	const Item item{scopedNode, scope, path, nullptr};
 	ReadSet reads;
 	std::vector<json> values = valuesOf(item, reads);
 	const std::string& type = typeOf(*scopedNode, path);

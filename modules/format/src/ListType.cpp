@@ -40,7 +40,7 @@ SelectionMode readSelectionMode(const json& value, const std::string& path) {
 	if(mode == "none") return SelectionMode::None;
 	if(mode == "single") return SelectionMode::Single;
 	if(mode == "multiple") return SelectionMode::Multiple;
-	fail(path, "expected \"none\", \"single\" or \"multiple\"");
+	fail(path, R"(expected "none", "single" or "multiple")");
 }
 
 /// @brief Reads a table's "columns": texts (the id, also the title), or { id, title, width }.
@@ -59,7 +59,7 @@ std::vector<TableColumn> readColumns(const json& value, const std::string& path)
 			columns.push_back({text(entry), text(entry)});
 			continue;
 		}
-		if(!entry.is_object() || !entry.contains("id")) fail(place, "expected a column: text, or {\"id\", \"title\"}");
+		if(!entry.is_object() || !entry.contains("id")) fail(place, R"(expected a column: text, or {"id", "title"})");
 		TableColumn column{text(entry["id"]), entry.contains("title") ? text(entry["title"]) : text(entry["id"])};
 		if(entry.contains("width"))
 			column.width = static_cast<float>(std::clamp(double{number(entry["width"], place + ".width")},
@@ -75,7 +75,7 @@ std::vector<TableColumn> readColumns(const json& value, const std::string& path)
 /// @return The order.
 TableSort readSort(const json& value, const std::string& path) {
 	if(value.is_null()) return {};
-	if(!value.is_object() || !value.contains("column")) fail(path, "expected {\"column\", \"descending\"} or null");
+	if(!value.is_object() || !value.contains("column")) fail(path, R"(expected {"column", "descending"} or null)");
 	return {text(value["column"]), value.contains("descending") && boolean(value["descending"], path + ".descending")};
 }
 

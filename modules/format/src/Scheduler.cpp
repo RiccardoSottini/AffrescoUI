@@ -43,13 +43,18 @@ void Scheduler::defer(std::function<void()> task) const {
 	});
 }
 
-void Scheduler::once(double delayMs, std::function<void()> task) {
+std::uint64_t Scheduler::once(double delayMs, std::function<void()> task) {
 	const auto id = std::make_shared<std::uint64_t>(); // known once set, before it can run
 	*id = engine_.window->setTimer(delayMs, [this, id, task = std::move(task)] {
 		once_.erase(*id);
 		task();
 	});
 	once_.insert(*id);
+	return *id;
+}
+
+void Scheduler::cancelOnce(std::uint64_t id) {
+	if(once_.erase(id) != 0) engine_.window->cancelTimer(id); // a timer that runs is no longer in once_
 }
 
 void Scheduler::debounce(const std::string& key, double delayMs, std::function<void()> task) {

@@ -86,7 +86,7 @@ void QuadRenderer::renderCached(const Panel& panel, const detail::PanelGeometry&
 
 	std::swap(outer.vertices, vertices_);
 	std::swap(outer.batches, batches_);
-	region_ = std::move(region);
+	region_ = region;
 	textPage_ = textPage;
 	--passDepth_;
 	entry.version = geometry.subtreeVersion;

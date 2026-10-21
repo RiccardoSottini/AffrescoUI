@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <ranges>
 #include <utility>
 
 namespace affresco {
@@ -283,19 +284,19 @@ bool TextModel::undo(bool redo, TextPosition& caret, TextPosition& anchor) {
 	Step step = std::move(from.back());
 	from.pop_back();
 
-	// Each operation is replaced by its opposite, last first; the opposite step keeps the text it removes
+	// Each operation is replaced by its opposite, last first; the opposite step keeps the text it removes, in the order
+	// its operations were applied, as every step does
 	Step opposite{{}, caret, anchor, sizeof(Step)};
 	replaying_ = true;
-	for(auto operation = step.operations.rbegin(); operation != step.operations.rend(); ++operation) {
+	for(const auto& operation : std::views::reverse(step.operations)) {
 		std::string removed;
-		removed.reserve(operation->inserted);
-		tree_->read(operation->offset, operation->inserted, [&](std::string_view part) { removed.append(part); });
-		replace(operation->offset, operation->inserted, operation->removed);
+		removed.reserve(operation.inserted);
+		tree_->read(operation.offset, operation.inserted, [&](std::string_view part) { removed.append(part); });
+		replace(operation.offset, operation.inserted, operation.removed);
 		opposite.bytes += removed.size() + sizeof(Operation);
-		opposite.operations.push_back({operation->offset, std::move(removed), operation->removed.size()});
+		opposite.operations.push_back({operation.offset, std::move(removed), operation.removed.size()});
 	}
 	replaying_ = false;
-	std::ranges::reverse(opposite.operations);
 	caret = step.caret;
 	anchor = step.anchor;
 	to.push_back(std::move(opposite));

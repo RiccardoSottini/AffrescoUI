@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <ranges>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -399,10 +400,9 @@ void Panel::followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, 
 	                        arrangedHeight_ || stretchedY || height_.value != 0.0f, parentSize);
 }
 
-// A subtree whose inputs are the same and where nothing changed keeps the frames it has. A panel never laid out is
-// dirty, so laidOut_ is read only once it holds a pass's inputs
-bool Panel::canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) const noexcept {
-	if(layoutDirty_ || layoutBelow_ || anchorsBelow_ || !window_ || window_->layoutAll_) return false;
+// A panel never laid out is dirty, so laidOut_ is read only once it holds a pass's inputs
+bool Panel::hasSameInputs(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) const noexcept {
+	if(layoutDirty_ || anchorsBelow_ || !window_ || window_->layoutAll_) return false;
 	return laidOut_.origin == origin && laidOut_.clip == clip && laidOut_.parentSize == parentSize &&
 	       laidOut_.parentShown == parentShown && laidOut_.arrangedWidth == arrangedWidth_ &&
 	       laidOut_.arrangedHeight == arrangedHeight_;
@@ -417,16 +417,22 @@ bool Panel::isSettled(std::uint64_t pass) const noexcept {
 }
 
 void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) {
-	if(canSkipLayout(origin, clip, parentSize, parentShown)) {
+	// A subtree whose inputs are the same and where nothing changed keeps the frames it has
+	const bool sameInputs = hasSameInputs(origin, clip, parentSize, parentShown);
+	if(sameInputs && !layoutBelow_) {
 		skippedPass_ = window_->layoutPass_;
 		return;
 	}
+	// Only panels below the children changed: the children measure as they did (a measured size is kept until the
+	// panel itself changes), so they stay where arrange() put them
+	const bool arranged =
+	    sameInputs && std::ranges::none_of(children_, [](const auto& child) { return child->layoutDirty_; });
 	laidOut_ = {origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
 
 	prepareLayout();
 	if(window_) layoutPass_ = window_->layoutPass_;
 	placeFrame(origin, clip, parentSize, parentShown);
-	arrange();
+	if(!arranged) arrange();
 	layoutChildren();
 	layoutDirty_ = false;
 }
@@ -465,7 +471,7 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 // What the subtree has is gathered from the children as they are laid out. A change made during the pass to a panel
 // already laid out stays marked, for the next pass
 void Panel::layoutChildren() {
-	auto pass = [this] {
+	const auto pass = [this] {
 		const Rect origin{frame_.left - scroll_.x, frame_.top - scroll_.y, frame_.right - scroll_.x,
 		                  frame_.bottom - scroll_.y};
 		bool below = false, anchors = targetEdges_ != 0, overlays = false;
@@ -498,9 +504,9 @@ void Panel::layoutChildren() {
 Panel* Panel::hitTest(Vec2 point) noexcept {
 	if(!shown_ || !bounds_.contains(point)) return nullptr;
 
-	for(auto it = children_.rbegin(); it != children_.rend(); ++it) {
-		if((*it)->overlay_) continue; // hit-tested by the window, above everything
-		if(Panel* hit = (*it)->hitTest(point)) return hit;
+	for(const auto& child : std::views::reverse(children_)) {
+		if(child->overlay_) continue; // hit-tested by the window, above everything
+		if(Panel* hit = child->hitTest(point)) return hit;
 	}
 
 	return this;

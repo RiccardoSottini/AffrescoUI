@@ -159,7 +159,7 @@ std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph) const noexcept 
 
 void FontFace::synthesize(FT_Outline& outline) const noexcept {
 	if(style_.italic) {
-		FT_Matrix slant{0x10000, static_cast<FT_Fixed>(std::lround(italicSlant * 65536.0f)), 0, 0x10000};
+		const FT_Matrix slant{0x10000, static_cast<FT_Fixed>(std::lround(italicSlant * 65536.0f)), 0, 0x10000};
 		FT_Outline_Transform(&outline, &slant);
 	}
 	if(style_.bold) FT_Outline_Embolden(&outline, static_cast<FT_Pos>(std::lround(emPixels() * boldShare * 64.0f)));

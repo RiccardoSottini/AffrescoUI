@@ -48,7 +48,9 @@ std::size_t segmentEnd(std::u32string_view text, std::size_t begin, std::size_t 
 /// @return The rest.
 std::u32string_view trimmed(std::u32string_view text) noexcept {
 	const std::size_t last = text.find_last_not_of(U' ');
-	return last == std::u32string_view::npos ? std::u32string_view{} : text.substr(0, last + 1);
+	if(last == std::u32string_view::npos) return {};
+	text.remove_suffix(text.size() - last - 1);
+	return text;
 }
 
 } // namespace
@@ -124,8 +126,8 @@ void TextLayout::layOutPlain(std::u32string_view text, const Font& font, float m
 	this->align(boxWidth, align);
 }
 
-void TextLayout::finishLine(std::size_t begin, std::size_t end) {
-	Line line{pieces_.size(), pieces_.size(), begin, end, height_, 0.0f, 0.0f, 0.0f};
+void TextLayout::finishLine(std::size_t lineBegin, std::size_t lineEnd) {
+	Line line{pieces_.size(), pieces_.size(), lineBegin, lineEnd, height_, 0.0f, 0.0f, 0.0f};
 	for(const Piece& word : pending_) {
 		Piece* last = pieces_.size() > line.firstPiece ? &pieces_.back() : nullptr;
 		if(last && last->run == word.run && last->end == word.begin) {

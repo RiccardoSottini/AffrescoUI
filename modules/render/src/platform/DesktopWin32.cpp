@@ -102,6 +102,7 @@ private:
 			AppendMenuW(menu, MF_POPUP | MF_STRING | state, reinterpret_cast<UINT_PTR>(submenu), title.c_str());
 			return;
 		}
+		if(actions_.size() >= 0xFFFF) return; // WM_COMMAND carries 16-bit ids
 		actions_.push_back(item.run);
 		AppendMenuW(menu, MF_STRING | state, actions_.size(), title.c_str()); // ids from 1: 0 is no command
 	}

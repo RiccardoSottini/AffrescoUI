@@ -60,9 +60,9 @@ Every part of the format follows these, and so should every extension:
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
 | `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS: the bar at the top of the screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: a ring drawn above everything around the node the keyboard focused (Tab, the arrows; not a click), following its corners: a colour, or `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (the default: none). |
-| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
+| `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`: on macOS, key labels in menus use ⌘ ⇧ ⌥ ⌃, which many text fonts lack (JetBrains Mono has them). A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
-| `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits: `"padding": "@space.m"`, `"radius": "@radius.card"`, `"color": "@color.surface"`, and a font's `"size": "@type.body"`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it. |
+| `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits: `"padding": "@space.m"`, `"radius": "@radius.card"`, `"color": "@color.surface"`, a font's `"size": "@type.body"`, and the members of `anchors`, `radius` and `shadow`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it. |
 | `theme` | Which variant of the colors and tokens is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters (see Components). |
@@ -114,7 +114,7 @@ parent, later siblings on top of earlier ones.
 | `cell` | In a `grid`: `{ "column": 2, "row": 1, "columnSpan": 2, "rowSpan": 1 }`, counted from 1 (each key optional). Without `column` and `row`, it takes the next free cell, row after row. |
 <!-- end generated -->
 
-### Every type: look and behaviour
+### Every type: look
 <!-- generated: look -->
 | Key | Meaning |
 |---|---|
@@ -123,12 +123,20 @@ parent, later siblings on top of earlier ones.
 | `borderWidth`, `borderColor` | A border drawn inside the node's edges (it doesn't change the layout), over the background and under the children, following `radius`. Default: no border; `borderColor` defaults to black. |
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `visible` | `false` hides the node and its children. |
-| `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same. Default: `false`. |
+| `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). Default: `false`. |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
 | `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
+| `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
+| `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
+<!-- end generated -->
+
+### Every type: focus and accessibility
+<!-- generated: access -->
+| Key | Meaning |
+|---|---|
 | `focusable` | `true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable). |
 | `role` | What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, `list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an `onClick`; other nodes have none and are skipped in the accessibility tree. |
 | `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
@@ -136,8 +144,12 @@ parent, later siblings on top of earlier ones.
 | `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
 | `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
 | `mnemonic` | A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` node, the letter alone does. |
-| `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
-| `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
+<!-- end generated -->
+
+### Every type: behaviour
+<!-- generated: behaviour -->
+| Key | Meaning |
+|---|---|
 | `repeat` | `{ "for": "card", "in": "state.cards", "index": "i", "key": "{{card.id}}" }`: one node per list item. With `key`, a node follows its item when the list is reordered (keeping focus and scroll). |
 | `when` | Build the node only if the value is truthy. |
 | `let` | `{ "on": "{{tag == state.filter}}" }`: named values for the node and its children, evaluated in order. |

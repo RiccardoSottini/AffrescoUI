@@ -14,7 +14,12 @@ namespace affresco::detail {
 
 namespace {
 
-std::uint64_t lastGeometryId = 0; ///< The last PanelGeometry::id given (main thread only).
+/// @brief A new PanelGeometry id, never given before (main thread only).
+/// @return The id.
+std::uint64_t nextGeometryId() noexcept {
+	static std::uint64_t last = 0; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables): the counter itself
+	return ++last;
+}
 
 } // namespace
 
@@ -58,7 +63,7 @@ bool GeometryCache::needsVisit(const Panel& panel) const noexcept {
 void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip) {
 	if(!panel.geometry_) {
 		panel.geometry_ = std::make_unique<PanelGeometry>();
-		panel.geometry_->id = ++lastGeometryId;
+		panel.geometry_->id = nextGeometryId();
 	}
 	PanelGeometry& geometry = *panel.geometry_;
 	const std::uint64_t changesBefore = changes_;
