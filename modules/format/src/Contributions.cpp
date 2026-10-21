@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <array>
 #include <tuple>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace affresco::format {
@@ -146,6 +148,9 @@ json commandsOf(Engine& engine) {
 
 /// Menus open submenus at most this deep, so a menu that contains itself ends.
 constexpr int maxMenuDepth = 8;
+/// The menus resolve to at most this many items in all: items that open their own menu again would otherwise multiply
+/// at every level.
+constexpr std::size_t maxMenuItems = 10000;
 
 /// @brief Tells whether a menu item's "when" holds.
 /// @param engine The runtime.
@@ -161,21 +166,35 @@ bool shown(Engine& engine, const json& when, const std::string& where) {
 	}
 }
 
+/// What the menus resolve from, and how many items they may still resolve to.
+struct MenuSources {
+	const json& menus;                                     ///< The "menus" section.
+	std::unordered_map<std::string, const json*> commands; ///< The `commands` variable's commands, by name.
+	std::size_t left = maxMenuItems;                       ///< Items still allowed, submenus' included.
+	bool full = false;                                     ///< Whether an item was left out (reported once).
+};
+
 /// @brief One menu of the `menus` variable: its items that pass their "when", by group, order and key, with a
 /// separator between groups, and what their commands say.
 /// @param engine The runtime.
-/// @param menus The "menus" section.
+/// @param sources The "menus" section, the commands, and the items still allowed.
 /// @param name The menu.
-/// @param commands The `commands` variable, or nullptr.
 /// @param depth How deep in submenus.
 /// @return The items: `{ name, title, icon, enabled, key, keyLabel, group, separator, submenu, run, with }`.
-json menuOf(Engine& engine, const json& menus, const std::string& name, const json* commands, int depth) {
+json menuOf(Engine& engine, MenuSources& sources, const std::string& name, int depth) {
 	json items = json::array();
+	const json& menus = sources.menus;
 	if(depth > maxMenuDepth || !menus.contains(name) || !menus[name].is_object()) return items;
 	json kept = json::array();
 	for(const auto& [key, item] : menus[name].items()) {
 		if(!item.is_object()) continue;
 		if(item.contains("when") && !shown(engine, item["when"], "menus." + name + "." + key + ".when")) continue;
+		if(sources.left == 0) {
+			if(!std::exchange(sources.full, true))
+				engine.report("menus: more than " + std::to_string(maxMenuItems) + " items in all; the rest are left out");
+			break;
+		}
+		--sources.left;
 		json entry = {{"name", key},        {"title", item.value("title", key)}, {"icon", item.value("icon", json())},
 		              {"enabled", true},    {"key", nullptr},                   {"keyLabel", nullptr},
 		              {"group", item.value("group", "")}, {"separator", false}, {"order", item.value("order", 0.0)}};
@@ -183,20 +202,23 @@ json menuOf(Engine& engine, const json& menus, const std::string& name, const js
 			entry["run"] = item["run"];
 			if(item.contains("with")) entry["with"] = item["with"];
 		}
-		if(const auto command = item.find("run"); command != item.end() && command->is_string() && commands)
-			for(const json& c : *commands)
-				if(c["name"] == *command) {
-					if(!item.contains("title")) entry["title"] = c["title"];
-					if(!item.contains("icon")) entry["icon"] = c["icon"];
-					entry["enabled"] = c["enabled"];
-					entry["key"] = c["key"];
-					entry["keyLabel"] = c["keyLabel"];
-					break;
-				}
+		if(const auto run = item.find("run"); run != item.end() && run->is_string())
+			if(const auto command = sources.commands.find(run->get<std::string>()); command != sources.commands.end()) {
+				const json& c = *command->second;
+				if(!item.contains("title")) entry["title"] = c["title"];
+				if(!item.contains("icon")) entry["icon"] = c["icon"];
+				entry["enabled"] = c["enabled"];
+				entry["key"] = c["key"];
+				entry["keyLabel"] = c["keyLabel"];
+			}
 		if(const auto submenu = item.find("submenu"); submenu != item.end() && submenu->is_string())
-			entry["submenu"] = menuOf(engine, menus, submenu->get<std::string>(), commands, depth + 1);
+			entry["submenu"] = *submenu;
 		kept.push_back(std::move(entry));
 	}
+	// Submenus once this menu's own items are counted, so the budget keeps the items nearest the top
+	for(json& entry : kept)
+		if(const auto submenu = entry.find("submenu"); submenu != entry.end())
+			*submenu = menuOf(engine, sources, submenu->get<std::string>(), depth + 1);
 	std::stable_sort(kept.begin(), kept.end(), [](const json& a, const json& b) {
 		return std::tuple(a["group"].get_ref<const std::string&>(), a["order"].get<double>(),
 		                  a["name"].get_ref<const std::string&>()) <
@@ -219,9 +241,12 @@ json menusOf(Engine& engine) {
 	const json& document = engine.versions.document();
 	json resolved = json::object();
 	if(!document.contains("menus") || !document["menus"].is_object()) return resolved;
-	const json* commands = engine.document.variable("commands");
-	for(const auto& [name, menu] : document["menus"].items())
-		resolved[name] = menuOf(engine, document["menus"], name, commands, 0);
+	MenuSources sources{document["menus"], {}};
+	if(const json* commands = engine.document.variable("commands"))
+		for(const json& command : *commands)
+			if(const auto name = command.find("name"); name != command.end() && name->is_string())
+				sources.commands.try_emplace(name->get<std::string>(), &command); // the first of a name, as before
+	for(const auto& [name, menu] : document["menus"].items()) resolved[name] = menuOf(engine, sources, name, 0);
 	return resolved;
 }
 

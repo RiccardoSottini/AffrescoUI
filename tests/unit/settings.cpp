@@ -97,6 +97,15 @@ bool anyHas(const std::vector<std::string>& lines, const std::string& text) {
 	return std::ranges::any_of(lines, [&](const std::string& line) { return line.contains(text); });
 }
 
+/// @brief The items of a resolved menu, its submenus' included.
+/// @param menu The menu.
+/// @return How many.
+std::size_t itemsIn(const json& menu) {
+	std::size_t total = 0;
+	for(const json& entry : menu) total += 1 + (entry.contains("submenu") ? itemsIn(entry["submenu"]) : 0);
+	return total;
+}
+
 } // namespace
 
 TEST_CASE("format: the menus variable sorts by group and order, puts separators between groups, and hides by when") {
@@ -203,6 +212,20 @@ TEST_CASE("format: a bad menus section is refused when the screen loads") {
 	CHECK_THROWS((void)affresco::Screen::fromString(document(R"({ "file": { "x": { "submenu": "nope" } } })")));
 	CHECK_THROWS((void)affresco::Screen::fromString(document(R"({ "file": { "x": { "run": "add", "order": "1" } } })")));
 	CHECK_THROWS((void)affresco::Screen::fromString(document(R"({ "file": { "x": { "run": "add", "colour": 1 } } })")));
+}
+
+TEST_CASE("format: a menu that opens itself many times over resolves within a budget of items") {
+	// 20 items, each opening the menu again, 8 levels deep: 20^9 items without a budget
+	std::string items;
+	for(int i = 0; i < 20; ++i) items += (i > 0 ? ",\"i" : "\"i") + std::to_string(i) + R"(": { "submenu": "m" })";
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document(R"({ "m": { )" + items + " } }"));
+	screen.build(*window);
+	run(screen, "look");
+	const json menu = state(screen)["seen"]["menus"]["m"];
+	CHECK(menu.size() == 20);
+	CHECK(itemsIn(menu) <= 10000);
 }
 
 TEST_CASE("format: the checker knows the settings' types, and finds writes to unknown settings") {
