@@ -76,7 +76,9 @@ std::optional<bool> runOutsideStep(const Running& s) {
 
 	if(step.contains("call")) return call(s);
 	if(step.contains("cancel")) {
-		s.steps.engine().calls.cancel(string(step["cancel"], where + ".cancel"));
+		const std::string name = string(step["cancel"], where + ".cancel");
+		s.steps.engine().calls.cancel(name);
+		(void)s.steps.engine().serviceCalls.cancel(name); // a service call's "id"
 		return true;
 	}
 	if(step.contains("emit")) {

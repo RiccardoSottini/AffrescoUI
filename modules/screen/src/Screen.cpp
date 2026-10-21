@@ -1,6 +1,6 @@
 /// @file
 /// @brief affresco::Screen, the composition root: puts the format's rules, the repository, the runtime and the peers
-/// together, and adds includes, declared channels and the "persist" state file.
+/// together with the services, and adds includes, declared channels and the "persist" state file.
 
 #include "affresco/Screen.hpp"
 #include "OffscreenImages.hpp"
@@ -10,6 +10,7 @@
 #include "affresco/core/Log.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/net/RemotePeers.hpp"
 #include "affresco/vcs/Repository.hpp"
 
 #include <algorithm>
@@ -18,6 +19,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string_view>
@@ -50,15 +52,42 @@ struct DeclaredChannel {
 
 /// @brief The modules and the peers.
 ///
-/// Declaration order is construction order: rules, then the repository that uses them, then the runtime and the
-/// peers that use the repository (destroyed the other way round; servers stop before their peers go).
+/// Declaration order is construction order: the services, the rules, then the repository that uses them, then the
+/// runtime and the peers that use the repository (destroyed the other way round; servers stop before their peers go,
+/// and the runtime lets go of the services before they end).
+/// @brief The executor of the Screen's network: it forwards to the Screen's current executor, which the host may set
+/// after the network is made. Threads: post() from any, set() from the main thread.
+class RelayExecutor final : public Executor {
+public:
+	/// @brief Forwards a task to the current executor, or drops it if there is none.
+	/// @param task The task.
+	void post(std::function<void()> task) override {
+		const std::scoped_lock lock(mutex_);
+		if(target_) target_->post(std::move(task));
+	}
+	/// @brief Sets the executor tasks go to.
+	/// @param target The executor, or nullptr.
+	void set(Executor* target) noexcept {
+		const std::scoped_lock lock(mutex_);
+		target_ = target;
+	}
+
+private:
+	std::mutex mutex_;          ///< Guards target_.
+	Executor* target_ = nullptr; ///< See set().
+};
+
 struct Screen::Impl {
+	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
+	RelayExecutor relay;                                         ///< The network's executor.
+	std::unique_ptr<net::Client> network;                        ///< See Screen::network(); outlives the runtime.
 	format::Rules rules;                                         ///< The format's rules.
 	vcs::Repository repository;                                  ///< Document, state, history, review.
 	format::Runtime runtime;                                     ///< Panels and actions.
 	detail::OffscreenImages images{repository, runtime};         ///< Pictures for peers ("render").
 	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
+	std::vector<std::unique_ptr<net::PeerServer>> peerServers;   ///< From listenWebSocket().
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
 	std::shared_ptr<bool> alive = std::make_shared<bool>(true);  ///< Guards removals still queued after destruction.
 
@@ -91,6 +120,8 @@ struct Screen::Impl {
 			}
 		});
 		runtime.onUpdated.connect([this] { save(); });
+		rules.setServices(&services);
+		runtime.setServices(&services);
 
 		socketDirectory = Screen::defaultSocketDirectory();
 	}
@@ -104,6 +135,7 @@ struct Screen::Impl {
 	~Impl() {
 		*alive = false;
 		servers.clear();
+		peerServers.clear();
 		if(Window* window = runtime.window()) // the reconnect timers point at the screen
 			for(const auto& [name, channel] : channels)
 				if(channel.retry) window->cancelTimer(channel.retry);
@@ -293,6 +325,20 @@ struct Screen::Impl {
 		});
 		peers.push_back(std::move(peer));
 		return *peers.back();
+	}
+
+	/// @brief Adds a peer whose channel the screen owns, and removes it once its channel closes.
+	/// @param mainThread Runs the removal after the signal that says so has finished.
+	/// @param connection The channel.
+	/// @param name The name it is authored as.
+	void adopt(Executor& mainThread, std::unique_ptr<Channel> connection, std::string name) {
+		Channel& channel = *connection;
+		Peer& peer = add(channel, std::move(connection), std::move(name));
+		channel.onClosed.connect([this, &mainThread, peer = &peer] {
+			mainThread.post([this, peer, guard = alive] {
+				if(*guard) remove(peer);
+			});
+		});
 	}
 
 	/// @brief Removes a peer that went away.
@@ -524,6 +570,8 @@ void Screen::setSocketDirectory(std::filesystem::path directory) { impl_->socket
 void Screen::startChannels(Executor& executor) {
 	Impl& impl = *impl_;
 	impl.executor = &executor;
+	impl.services.setExecutor(&executor);
+	impl.relay.set(&executor);
 	const json& document = impl.repository.document();
 	if(!document.contains("channels")) return;
 	for(const auto& [name, spec] : document["channels"].items()) {
@@ -580,7 +628,22 @@ void Screen::onAsyncCall(std::string name, AsyncCall call) {
 	                           });
 }
 
-void Screen::setExecutor(Executor* executor) noexcept { impl_->runtime.setExecutor(executor); }
+void Screen::setExecutor(Executor* executor) noexcept {
+	impl_->runtime.setExecutor(executor);
+	impl_->services.setExecutor(executor);
+	impl_->relay.set(executor);
+}
+
+services::ServiceRegistry& Screen::services() noexcept { return impl_->services; }
+
+net::Client& Screen::network() {
+	Impl& impl = *impl_;
+	if(!impl.network) {
+		impl.network = std::make_unique<net::Client>(impl.relay);
+		impl.runtime.setNetwork(impl.network.get());
+	}
+	return *impl.network;
+}
 
 void Screen::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->runtime.setModel(std::move(name), std::move(model));
@@ -728,15 +791,22 @@ void Screen::listen(Executor& executor, const std::filesystem::path& path, std::
 	Impl* impl = impl_.get();
 	impl->servers.push_back(std::make_unique<channel::SocketServer>(
 	    executor, path, [impl, &executor, author = std::move(author)](std::unique_ptr<Channel> connection) {
-		    Channel& channel = *connection;
-		    Peer& peer = impl->add(channel, std::move(connection), author);
-		    // Gone: removed after the signal that says so has finished
-		    channel.onClosed.connect([impl, &executor, peer = &peer] {
-			    executor.post([impl, peer, alive = impl->alive] {
-				    if(*alive) impl->remove(peer);
-			    });
-		    });
+		    impl->adopt(executor, std::move(connection), author);
 	    }));
+}
+
+std::uint16_t Screen::listenWebSocket(Executor& executor, std::string_view address,
+                                      std::shared_ptr<net::TokenVerifier> verifier, net::PeerServerOptions options) {
+	Impl* impl = impl_.get();
+	auto server = std::make_unique<net::PeerServer>(
+	    executor, address, std::move(verifier),
+	    [impl, &executor](std::unique_ptr<Channel> connection, std::string author) {
+		    impl->adopt(executor, std::move(connection), std::move(author));
+	    },
+	    std::move(options));
+	const std::uint16_t port = server->port();
+	impl->peerServers.push_back(std::move(server));
+	return port;
 }
 
 void Screen::setMode(Mode mode) { impl_->repository.setMode(mode); }

@@ -4,6 +4,7 @@
 
 #include "Checker.hpp"
 #include "SectionRegistry.hpp"
+#include "ServiceRules.hpp"
 #include "Limits.hpp"
 #include "StateTypes.hpp"
 
@@ -21,7 +22,8 @@ namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "endPreview", "restore", "revert",
-                                             "undo",   "patch",  "call",    "send",       "connect"};
+                                             "undo",   "patch",  "call",    "send",       "connect",
+                                             "respond"};
 
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;
@@ -435,8 +437,11 @@ void Rules::checkChange(const json& before, const json& after) const {
 	if(controlsIn(before) != controlsIn(after))
 		fail("revision",
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
-		     "restore, revert, undo, patch, call, send or connect steps, nor run an action that has them, a "
+		     "restore, revert, undo, patch, call, send, connect or respond steps, nor run an action that has them, "
+		     "a "
 		     "native action or a computed one");
+
+	checkServiceUses(before, after, services_);
 
 	// What a revision refers to must exist, so a typo is rejected before a reviewer sees it. Findings that were there
 	// before don't block it: the revision didn't bring them. (Most screens have none: then one check is enough.)
@@ -466,5 +471,9 @@ std::vector<std::string> Rules::findings(const json& document, const json& state
 }
 
 void Rules::addNativeAction(std::string name) { nativeActions_.insert(std::move(name)); }
+
+std::vector<std::string> Rules::reviewLines(const json& before, const json& after) const {
+	return serviceReviewLines(before, after, services_);
+}
 
 } // namespace affresco::format

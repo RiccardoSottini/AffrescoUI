@@ -44,6 +44,9 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A revision's size is checked first** (`DocumentRules::checkRevision`), before any operation is applied.
 - **Rules are judged by a change's effect** (the document before and after), never by the paths its patch happens to
   use: deny beats ask beats allow, and what no rule allows asks.
+- **Some changes are always reviewed:** after the deny rules, a change the document rules list in
+  `DocumentRules::reviewLines` (a new step that writes files or runs a program) becomes a proposal, whatever the allow
+  rules, grants or mode say; the reason lists them. The app's own changes and merges aren't reviewed again.
 - **An author never approves its own change,** and an approval names the head the reviewer saw: if the branch moved
   since, the approval is refused.
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
