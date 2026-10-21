@@ -150,8 +150,10 @@ TEST_CASE("format: a slow call's progress and partial results arrive coalesced, 
 	CHECK(stateAt(screen, "/busy") == true);
 
 	gate.open.set_value();
-	REQUIRE(executor.waitForTask());
-	executor.drain();
+	while(stateAt(screen, "/busy") == true) { // the last progress and the result arrive in one delivery or two
+		REQUIRE(executor.waitForTask());
+		executor.drain();
+	}
 	CHECK(stateAt(screen, "/done") == 1.0);
 	CHECK(stateAt(screen, "/out") == json{{"n", 3}});
 	CHECK(stateAt(screen, "/ran") == 3);
