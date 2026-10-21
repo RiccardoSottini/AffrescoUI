@@ -104,6 +104,135 @@
 				{ "expect": { "node": "#textarea-placeholder", "nth": 0, "text": "ada@example.com" } },
 				{ "expect": { "node": "#textarea-placeholder", "nth": 1, "text": "" } }
 			]
+		},
+		{
+			"name": "enter-signs-in",
+			"note": "Enter anywhere in the card signs in, like the button",
+			"steps": [
+				{ "click": "#email" },
+				{ "type": "ada@example.com" },
+				{ "click": "#password" },
+				{ "type": "correct horse" },
+				{ "key": "enter" },
+				{ "expect": { "node": "#label-you-re-in", "exists": true } }
+			]
+		},
+		{
+			"name": "switch-the-theme",
+			"note": "The moon button and Cmd+J switch between the light and the dark tokens",
+			"steps": [
+				{ "click": "#themeToggle" },
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "key": "mod+j" },
+				{ "expect": { "state": "theme", "is": "light" } }
+			]
+		},
+		{
+			"name": "show-and-hide-the-password",
+			"note": "The password shows as dots until the eye is pressed",
+			"steps": [
+				{ "click": "#password" },
+				{ "type": "abc" },
+				{ "expect": { "node": "#field-dots", "nth": 1, "text": "•••" } },
+				{ "click": "#field-eye" },
+				{ "expect": { "state": "showPassword", "is": true } },
+				{ "expect": { "node": "#field-dots", "nth": 1, "text": "" } },
+				{ "click": "#field-eye" },
+				{ "expect": { "node": "#field-dots", "nth": 1, "text": "•••" } }
+			]
+		},
+		{
+			"name": "the-focused-field-is-marked",
+			"note": "Focusing a field remembers which one, for its accent border",
+			"steps": [
+				{ "click": "#email" },
+				{ "expect": { "state": "focus", "is": "email" } },
+				{ "click": "#password" },
+				{ "expect": { "state": "focus", "is": "password" } }
+			]
+		},
+		{
+			"name": "remember-me",
+			"note": "Remember me is on by default; the box or its text turns it off, and the signed-in card says so",
+			"steps": [
+				{ "expect": { "state": "remember", "is": true } },
+				{ "click": "#remember" },
+				{ "expect": { "state": "remember", "is": false } },
+				{ "click": "#label-remember" },
+				{ "click": "#label-remember" },
+				{ "click": "#email" },
+				{ "type": "ada@example.com" },
+				{ "click": "#password" },
+				{ "type": "correct horse" },
+				{ "click": "#signIn" },
+				{ "expect": { "node": "#label-remembered", "text": "You will be signed out when you close the app" } }
+			]
+		},
+		{
+			"name": "reset-the-password",
+			"note": "Forgot password? asks for the email (prefilled), checks it and says the link was sent",
+			"steps": [
+				{ "click": "#email" },
+				{ "type": "ada@example" },
+				{ "click": "#forgot" },
+				{ "wait": 50 },
+				{ "expect": { "state": "forgot.open", "is": true } },
+				{ "expect": { "state": "forgot.email", "is": "ada@example" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "forgot.error", "is": "Enter the email of your account" } },
+				{ "expect": { "node": "#forgotError", "exists": true } },
+				{ "type": ".com" },
+				{ "expect": { "state": "forgot.error", "is": "" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "forgot.open", "is": false } },
+				{ "expect": { "state": "toast.message", "is": "We sent a reset link to ada@example.com" } },
+				{ "wait": 4100 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		},
+		{
+			"name": "cancel-the-reset",
+			"note": "Escape closes the reset dialog and sends nothing",
+			"steps": [
+				{ "click": "#forgot" },
+				{ "wait": 50 },
+				{ "key": "escape" },
+				{ "expect": { "state": "forgot.open", "is": false } },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		},
+		{
+			"name": "password-strength",
+			"note": "The meter grows with the length, a capital and a digit",
+			"steps": [
+				{ "click": "#toCreate" },
+				{ "expect": { "node": "#strength-name", "text": "Use 8 or more characters, a capital and a digit" } },
+				{ "click": "#checked-field-form-3" },
+				{ "type": "abc" },
+				{ "expect": { "node": "#strength-name", "text": "Weak password" } },
+				{ "type": "defgh" },
+				{ "expect": { "node": "#strength-name", "text": "Fair password" } },
+				{ "type": "A" },
+				{ "expect": { "node": "#strength-name", "text": "Good password" } },
+				{ "type": "1" },
+				{ "expect": { "node": "#strength-name", "text": "Strong password" } }
+			]
+		},
+		{
+			"name": "welcome-after-creating",
+			"note": "A new account is greeted by name in a toast and an initial",
+			"steps": [
+				{ "click": "#toCreate" },
+				{ "click": "#checked-field-form" },
+				{ "type": "jon snow" },
+				{ "click": "#checked-field-form-2" },
+				{ "type": "jon@example.com" },
+				{ "click": "#checked-field-form-3" },
+				{ "type": "a long password" },
+				{ "key": "enter" },
+				{ "expect": { "node": "#avatar", "text": "J" } },
+				{ "expect": { "state": "toast.message", "is": "Welcome, jon snow" } }
+			]
 		}
 	]
 }
