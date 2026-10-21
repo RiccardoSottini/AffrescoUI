@@ -1,0 +1,42 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "A cached subtree (\"cache\": true), for the rendering check: a square group of rounded, bordered cards with text, drawn from a texture of its own (opaque, so it is drawn as it would be without the cache, pixel for pixel), next to a panel that isn't cached and moves over it on hover.",
+
+	"window": { "title": "Cached subtree", "width": 480, "height": 240 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 }
+	},
+
+	"colors": { "background": "#f8fafc", "card": "#ffffff", "frame": "#cbd5e1", "text": "#0f172a", "accent": "#7c3aed" },
+
+	"styles": {
+		"card": { "type": "label", "width": 130, "height": 56, "padding": 10, "color": "@card", "textColor": "@text",
+			"radius": 10, "borderWidth": 1, "borderColor": "@frame" }
+	},
+
+	"state": { "picked": "" },
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{
+				"type": "row", "id": "group", "x": 20, "y": 20, "width": 440, "height": 96, "gap": 12,
+				"color": "#e2e8f0", "cache": true,
+				"children": [
+					{ "id": "first", "style": "card", "text": "Cached" },
+					{ "id": "second", "style": "card", "text": "{{state.picked == '' ? 'One texture' : state.picked}}" },
+					{ "id": "third", "style": "card", "text": "One quad", "textColor": "@accent" }
+				]
+			},
+			{ "type": "label", "id": "pick", "x": 20, "y": 140, "width": 200, "height": 36, "padding": 8, "radius": 8,
+				"color": "@accent", "textColor": "#ffffff", "text": "Change the text inside",
+				"onClick": { "set": "state.picked", "to": "Drawn again" } },
+			{ "id": "mover", "x": 380, "y": 150, "width": 60, "height": 60, "radius": 30, "color": "#f97316",
+				"hover": { "y": 90 } }
+		]
+	}
+}

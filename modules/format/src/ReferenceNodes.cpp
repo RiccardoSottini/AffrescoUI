@@ -116,7 +116,8 @@ constexpr KeyReference nodeTable[] = {
     {"visible", "flag", "`false` hides the node and its children.", "look"},
     {"cache", "flag",
 	 "`true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them "
-	 "changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same. "
+	 "changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a "
+	 "pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). "
 	 "Default: `false`.",
 	 "look"},
     {"cursor", R"json({"anyOf": [{"enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"]},
