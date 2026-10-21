@@ -210,7 +210,7 @@ constexpr KeyReference nodeTable[] = {
 	 "areas.",
 	 "label"},
     {"bind", R"json({"type": "string",
-		"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider)"})json",
+		"description": "A state path kept in sync both ways (textarea, editor, toggle, checkbox, slider, split, tabs, list, tree)"})json",
 	 "A state path holding the text (lines joined by `\"\\n\"`), kept in sync both ways. Without it, `text` sets the "
 	 "text.",
 	 "editor"},
@@ -264,13 +264,19 @@ constexpr KeyReference nodeTable[] = {
 	 "spread on its own, and sits at the start of its line unless aligned.",
 	 "stack"},
     {"columns",
-	 R"json({"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]",
+	 R"json({"description": "grid: a number of equal columns, or a list of tracks, e.g. [200, \"1fr\", \"minmax(100, 2fr)\"]; table: the columns: an id (also the title), or { id, title, width }",
 		"anyOf": [{"type": "integer", "minimum": 1, "maximum": 1000}, {"type": "array", "minItems": 1,
-		"maxItems": 1000, "items": {"$ref": "#/$defs/v1/track"}}]})json",
+		"maxItems": 1000, "items": {"$ref": "#/$defs/v1/track"}}, {"type": "array", "maxItems": 256,
+		"items": {"anyOf": [{"type": "string"}, {"type": "object", "required": ["id"],
+		"properties": {"id": {"type": ["string", "number"]}, "title": {"type": ["string", "number"]},
+		"width": {"type": "number", "minimum": 24, "maximum": 10000}}}]}}, {"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "A number of equal columns (default `2`), or a list of tracks: pixels (`200`), a percentage of the grid "
 	 "(`\"25%\"`), a share of the room left (`\"1fr\"`), `\"auto\"` (as wide as its widest child) or `\"minmax(100, "
 	 "1fr)\"`. `\"1fr\"` is `minmax(0, 1fr)`, so equal fractions stay equal whatever their content; write "
-	 "`\"minmax(auto, 1fr)\"` to keep a track as wide as its content. At most 1,000.",
+	 "`\"minmax(auto, 1fr)\"` to keep a track as wide as its content. At most 1,000. On a `table`: the columns, left "
+	 "to right: a string (its id and title), or `{ \"id\", \"title\", \"width\" }` (pixels, default 120, at least "
+	 "24). Column i shows each item's cell i. Dragging a header's right edge resizes it and runs `onColumnResize`; "
+	 "keep the width in state there to keep it over a change of columns.",
 	 "grid"},
     {"rows", R"json({"description": "grid: the rows' tracks; rows past them are as tall as their tallest child",
 		"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/v1/track"}})json",
@@ -308,13 +314,98 @@ constexpr KeyReference nodeTable[] = {
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},
+    {"direction", "",
+	 "`\"row\"` (the default: panes side by side, vertical sashes) or `\"column\"` (one above the other).", "split"},
+    {"value", R"json({"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
+		"anyOf": [{"type": "number"}, {"type": "string"}, {"type": "array", "maxItems": 100000},
+		{"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The panes' sizes in pixels, in order (`bind` keeps them in a state path). The last pane takes what is left; "
+	 "missing sizes share it equally. Moving a sash runs `onChange` with the new sizes.",
+	 "split"},
+    {"defaultSizes", R"json({"type": "array", "maxItems": 1000, "items": {"type": "number", "minimum": 0},
+		"description": "split: the sizes a double click on a sash (or Home) goes back to"})json",
+	 "The sizes a double click on a sash (or Home on the focused split) goes back to; left out, equal panes.", "split"},
+    {"minSize", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"type": "array", "maxItems": 1000,
+		"items": {"type": "number", "minimum": 0}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "split: the smallest size of every pane, or of each in order"})json",
+	 "The smallest size of every pane (a number), or of each in order (a list; its last one is used for the rest).",
+	 "split"},
+    {"sashSize",
+	 R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 64}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Pixels between two panes (default 4); the pointer finds a thin sash a little either side.", "split"},
+    {"sashColor", "color", "The sash (default transparent) and the sash being dragged or chosen by keyboard.", "split"},
+    {"sashActiveColor", "color", "", "split"},
+    {"tabs", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"anyOf": [{"type": "string"},
+		{"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}, "label": {"type": "string"},
+		"marker": {"type": "boolean"}, "closable": {"type": "boolean"}}}]}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"})json",
+	 "The tabs, in order (or a binding such as `\"{{state.open}}\"`): a string (its id and label), or `{ \"id\", "
+	 "\"label\", \"marker\", \"closable\" }`. "
+	 "`marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most "
+	 "10,000; the strip scrolls sideways when they don't fit.",
+	 "tabs"},
+    {"value", "", "The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`.", "tabs"},
+    {"textColor", "", "The labels' colour (default muted), the active tab's, its background and its line.", "tabs"},
+    {"activeTextColor", "color", "", "tabs"},
+    {"activeBackground", "color", "", "tabs"},
+    {"accentColor", "color", "", "tabs"},
+    {"items", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"anyOf": [{"type": "string"},
+		{"type": "number"}, {"type": "object", "required": ["id"], "properties": {"id": {"type": ["string", "number"]},
+		"label": {"type": ["string", "number"]}, "expandable": {"type": "boolean"}, "children": {"type": "array"},
+		"cells": {"type": "array", "minItems": 1, "maxItems": 256,
+		"items": {"type": ["string", "number", "boolean", "null"]}}}}]}},
+		{"$ref": "#/$defs/v1/dynamic"}],
+		"description": "list, tree, table: the rows: an id, or { id, label, children (tree), expandable (tree), cells (table) }"})json",
+	 "The rows, in order (or a binding such as `\"{{state.files}}\"`): a string (its id and label), or `{ \"id\", "
+	 "\"label\" }`; in a `tree`, also `\"children\"` (a list of items) and `\"expandable\"` (a closed node whose "
+	 "children aren't loaded yet: `onExpand` can load them); in a `table`, `\"cells\"`: the texts of the row's "
+	 "columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as "
+	 "fast as through ten. At most 1,000,000 items, nested at most 256 deep.",
+	 "list"},
+    {"expanded", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"type": ["string", "number"]}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "tree: the ids of the open nodes"})json",
+	 "On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there "
+	 "to keep them over a rebuild.",
+	 "list"},
+    {"stickyRows", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 16}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"})json",
+	 "On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root "
+	 "first (default 0, at most 16). A click on a pinned folder moves the cursor to it.",
+	 "list"},
+    {"sort", R"json({"anyOf": [{"type": "null"}, {"type": "object", "required": ["column"],
+		"properties": {"column": {"type": ["string", "number"]}, "descending": {"type": "boolean"}}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "table: the order: { column, descending }, or null"})json",
+	 "On a `table`: the rows' order, `{ \"column\": id, \"descending\": false }` (or null for the items' order). A "
+	 "click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before "
+	 "text, equal cells in the items' order.",
+	 "list"},
+    {"selection", R"json({"anyOf": [{"enum": ["none", "single", "multiple"]}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "list, tree: none, single (default) or multiple"})json",
+	 "`\"single\"` (the default), `\"multiple\"` (Shift adds a range, Cmd or Ctrl one row) or `\"none\"`.", "list"},
+    {"value", "",
+	 "The selected id, or with `\"multiple\"` the list of them (`bind` keeps it in a state path); a change runs "
+	 "`onChange`.",
+	 "list"},
+    {"rowHeight", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 1000}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "list, tree: each row's height in pixels (default 24)"})json",
+	 "Each row's height in pixels (default 24).", "list"},
+    {"font", "", "The rows' font and colours: their text, the selected rows' text and background, and the accent "
+	 "(the keyboard cursor, the drop line, a tree's guides).",
+	 "list"},
+    {"textColor", "", "", "list"},
+    {"selectedTextColor", "color", "", "list"},
+    {"selectedBackground", "color", "", "list"},
+    {"accentColor", "", "", "list"},
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
     {"onPress", "handler", "Left button down, up.", "events"},
     {"onRelease", "handler", "", "events"},
     {"onDrag", "handler", "The pointer moves while pressed: `event.dx`, `event.dy` since the press.", "events"},
-    {"onDrop", "handler", "A dragged node was dropped here: `event.data`.", "events"},
+    {"onDrop", "handler",
+	 "A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or "
+	 "`tree`, `event.index`, `id` and `place`: `\"before\"`, `\"inside\"` or `\"after\"` that row).",
+	 "events"},
     {"onHover", "handler", "The pointer enters or leaves the node (or a child).", "events"},
     {"onLeave", "handler", "", "events"},
     {"onFocus", "handler", "Keyboard focus.", "events"},
@@ -326,11 +417,16 @@ constexpr KeyReference nodeTable[] = {
     {"onSubmit", "handler", "Enter in a text area: `event.text`.", "events"},
     {"onShow", "handler", "The node was built, or removed (by `when`, `repeat` or a revision).", "events"},
     {"onHide", "handler", "", "events"},
+    {"onClose", "handler", "A tab's close button or Delete: `event.id`.", "events"},
+    {"onMove", "handler", "A tab dragged along its strip: `event.id`, `from`, `to`.", "events"},
+    {"onExpand", "handler", "A tree row opened or closed: `event.id`, `expanded`.", "events"},
+    {"onOpen", "handler", "Enter or a double click on a tree, list or table row: `event.id`.", "events"},
+    {"onSort", "handler", "A table header clicked: `event.column`, `descending`.", "events"},
+    {"onColumnResize", "handler", "A table column's edge dragged and let go: `event.column`, `width`.", "events"},
     {"slot", R"json({"const": true, "description": "In a component: where the use's children go"})json", "", ""},
     {"placeholder", R"json({"description": "Text, or a {{binding}}"})json", "", ""},
     {"placeholderColor", "color", "", ""},
     {"checked", "flag", "", ""},
-    {"value", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json", "", ""},
 };
 
 } // namespace

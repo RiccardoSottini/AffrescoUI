@@ -94,7 +94,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -210,7 +210,7 @@ after row. A child is as wide as its cell and keeps its own height at the top of
 <!-- generated: grid -->
 | Key | Meaning |
 |---|---|
-| `columns` | A number of equal columns (default `2`), or a list of tracks: pixels (`200`), a percentage of the grid (`"25%"`), a share of the room left (`"1fr"`), `"auto"` (as wide as its widest child) or `"minmax(100, 1fr)"`. `"1fr"` is `minmax(0, 1fr)`, so equal fractions stay equal whatever their content; write `"minmax(auto, 1fr)"` to keep a track as wide as its content. At most 1,000. |
+| `columns` | A number of equal columns (default `2`), or a list of tracks: pixels (`200`), a percentage of the grid (`"25%"`), a share of the room left (`"1fr"`), `"auto"` (as wide as its widest child) or `"minmax(100, 1fr)"`. `"1fr"` is `minmax(0, 1fr)`, so equal fractions stay equal whatever their content; write `"minmax(auto, 1fr)"` to keep a track as wide as its content. At most 1,000. On a `table`: the columns, left to right: a string (its id and title), or `{ "id", "title", "width" }` (pixels, default 120, at least 24). Column i shows each item's cell i. Dragging a header's right edge resizes it and runs `onColumnResize`; keep the width in state there to keep it over a change of columns. |
 | `rows` | Tracks for the rows, as `columns`. Rows past them, and every row without `rows`, are as tall as their tallest child. |
 | `gap`, `rowGap`, `columnGap` | Pixels between cells; `rowGap` and `columnGap` over `gap`. |
 | `justifyItems` | Where children sit across their cells: `stretch` (default), `start`, `center` or `end`. |
@@ -247,6 +247,81 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 ```
 
 Small images (up to 256 pixels a side) share textures, so a list of thumbnails draws in one batch with its text.
+
+### `split`
+Its children are panes laid side by side (or one above the other), with a sash between each two: drag a sash to
+resize, double-click it to go back to the default sizes. With the split focused, the arrow keys move the chosen sash
+by 8 pixels (32 with Shift), Page Up and Page Down choose another, Home resets. A pane never gets smaller than its
+`minSize`; the last pane takes what is left.
+
+<!-- generated: split -->
+| Key | Meaning |
+|---|---|
+| `direction` | `"row"` (the default: panes side by side, vertical sashes) or `"column"` (one above the other). |
+| `value` | The panes' sizes in pixels, in order (`bind` keeps them in a state path). The last pane takes what is left; missing sizes share it equally. Moving a sash runs `onChange` with the new sizes. |
+| `defaultSizes` | The sizes a double click on a sash (or Home on the focused split) goes back to; left out, equal panes. |
+| `minSize` | The smallest size of every pane (a number), or of each in order (a list; its last one is used for the rest). |
+| `sashSize` | Pixels between two panes (default 4); the pointer finds a thin sash a little either side. |
+| `sashColor`, `sashActiveColor` | The sash (default transparent) and the sash being dragged or chosen by keyboard. |
+<!-- end generated -->
+
+```json
+{ "type": "split", "id": "workbench", "bind": "state.layout.sizes", "minSize": [160, 240], "defaultSizes": [240],
+  "children": [ { "type": "panel", "id": "side" }, { "type": "panel", "id": "editors" } ] }
+```
+
+### `tabs`
+A strip of tabs, one of them active. The tabs come from the node (`tabs`, usually bound to state), and the strip
+reports what the user does, so the state stays the one source: picking a tab changes `value` (and `onChange`), the
+close button or Delete runs `onClose`, and dragging a tab along the strip runs `onMove` (`event.from`, `event.to`,
+counted without the tab). The arrow keys, Home and End pick tabs; the strip scrolls with the wheel when they don't fit.
+With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: that strip's `onDrop` gets
+`event.data` (`{ "id", "index" }`) and `event.index`, the place it goes, shown by a line while dragging.
+
+<!-- generated: tabs -->
+| Key | Meaning |
+|---|---|
+| `tabs` | The tabs, in order (or a binding such as `"{{state.open}}"`): a string (its id and label), or `{ "id", "label", "marker", "closable" }`. `marker` shows a dot (e.g. unsaved changes) where the close button goes; `closable` defaults to true. At most 10,000; the strip scrolls sideways when they don't fit. |
+| `value` | The active tab's id (`bind` keeps it in a state path); picking a tab runs `onChange`. |
+| `textColor`, `activeTextColor`, `activeBackground`, `accentColor` | The labels' colour (default muted), the active tab's, its background and its line. |
+<!-- end generated -->
+
+```json
+{ "type": "tabs", "id": "editor-tabs", "height": 32, "tabs": "{{state.open}}", "bind": "state.active",
+  "onClose": [ { "set": "state.open", "to": "{{filter(state.open, it.id != event.id)}}" } ] }
+```
+
+### `list`, `tree` and `table`
+Rows of items, one or more of them selected, drawn only where they are in view: a list of a million items scrolls
+and selects as fast as one of ten. The items come from the node (`items`, usually bound to state) and the selection
+goes back to it (`value`, `bind`, `onChange`). A click selects a row, Shift a range, Cmd or Ctrl one more; the arrow
+keys, Page Up and Page Down, Home and End move the selection, and typing a row's first letters finds it. Enter or a
+double click runs `onOpen`. A `tree` nests its items' `children` with indent guides: a click on the chevron, or Right
+and Left, open and close a node (`onExpand`), and Left goes to the parent. With `"drag": {}` on the node, rows drag
+(`event.data` is `{ "id", "ids" }`: the row, and every selected one if it is selected) and drop onto any `list` or
+`tree`, whose `onDrop` gets the row and the place (a line between rows, or an outline around a tree's node). With
+`stickyRows`, a tree pins the open folders of the top row while their children scroll by. A `table` shows each item's
+`cells` under its `columns`, with a header: a click on a title sorts by it (`sort`, `onSort`), and dragging a title's
+right edge resizes the column (`onColumnResize`). When the items change after the view has scrolled, the row at the
+top stays in place.
+
+<!-- generated: list -->
+| Key | Meaning |
+|---|---|
+| `items` | The rows, in order (or a binding such as `"{{state.files}}"`): a string (its id and label), or `{ "id", "label" }`; in a `tree`, also `"children"` (a list of items) and `"expandable"` (a closed node whose children aren't loaded yet: `onExpand` can load them); in a `table`, `"cells"`: the texts of the row's columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as fast as through ten. At most 1,000,000 items, nested at most 256 deep. |
+| `expanded` | On a `tree`: the ids of the open nodes. Opening or closing one runs `onExpand`; keep the ids in state there to keep them over a rebuild. |
+| `stickyRows` | On a `tree`: how many open folders stay pinned at the top while their children scroll by, nearest the root first (default 0, at most 16). A click on a pinned folder moves the cursor to it. |
+| `sort` | On a `table`: the rows' order, `{ "column": id, "descending": false }` (or null for the items' order). A click on a header sorts by its column, ascending then descending, and runs `onSort`: numbers by value before text, equal cells in the items' order. |
+| `selection` | `"single"` (the default), `"multiple"` (Shift adds a range, Cmd or Ctrl one row) or `"none"`. |
+| `value` | The selected id, or with `"multiple"` the list of them (`bind` keeps it in a state path); a change runs `onChange`. |
+| `rowHeight` | Each row's height in pixels (default 24). |
+| `font`, `textColor`, `selectedTextColor`, `selectedBackground`, `accentColor` | The rows' font and colours: their text, the selected rows' text and background, and the accent (the keyboard cursor, the drop line, a tree's guides). |
+<!-- end generated -->
+
+```json
+{ "type": "tree", "id": "explorer", "items": "{{state.files}}", "expanded": "{{state.open}}", "bind": "state.chosen",
+  "onExpand": [ { "set": "state.open", "to": "{{event.expanded ? concat(state.open, [event.id]) : filter(state.open, it != event.id)}}" } ] }
+```
 
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
@@ -357,7 +432,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
-| `onDrop` | A dragged node was dropped here: `event.data`. |
+| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |
@@ -365,6 +440,12 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onChange` | A bound or value control changed: `event.value`. |
 | `onSubmit` | Enter in a text area: `event.text`. |
 | `onShow`, `onHide` | The node was built, or removed (by `when`, `repeat` or a revision). |
+| `onClose` | A tab's close button or Delete: `event.id`. |
+| `onMove` | A tab dragged along its strip: `event.id`, `from`, `to`. |
+| `onExpand` | A tree row opened or closed: `event.id`, `expanded`. |
+| `onOpen` | Enter or a double click on a tree, list or table row: `event.id`. |
+| `onSort` | A table header clicked: `event.column`, `descending`. |
+| `onColumnResize` | A table column's edge dragged and let go: `event.column`, `width`. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it

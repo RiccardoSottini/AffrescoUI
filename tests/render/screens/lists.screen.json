@@ -1,0 +1,49 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "A tree and a list, for the rendering check: a file tree with one folder open (indent guides, chevrons) beside a list that selects several rows. The items, the open folders and both selections live in state; opening and closing are handled in JSON.",
+
+	"window": { "title": "Trees and lists", "width": 480, "height": 320 },
+
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+
+	"colors": { "background": "#f8fafc", "sidebar": "#e2e8f0", "text": "#0f172a", "selected": "#ddd6fe",
+		"accent": "#7c3aed" },
+
+	"state": {
+		"files": [
+			{ "id": "src", "children": [
+				{ "id": "views", "children": ["ListView.cpp", "TreeView.cpp", "RowWindow.cpp"] },
+				"main.cpp",
+				{ "id": "assets", "expandable": true }
+			] },
+			{ "id": "tests", "children": ["lists.cpp", "split_tabs.cpp"] },
+			"README.md",
+			"LICENSE"
+		],
+		"open": ["src"],
+		"file": "main.cpp",
+		"people": ["Ada", "Alan", "Barbara", "Edsger", "Grace", "Ken", "Linus", "Margaret", "Niklaus", "Tony"],
+		"picked": ["Grace"],
+		"opened": ""
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "type": "tree", "id": "explorer", "width": 200, "height": "100%", "color": "@sidebar",
+				"items": "{{state.files}}", "expanded": "{{state.open}}", "bind": "state.file",
+				"textColor": "@text", "selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent",
+				"onExpand": [{ "set": "state.open",
+					"to": "{{event.expanded ? concat(state.open, [event.id]) : filter(state.open, it != event.id)}}" }],
+				"onOpen": [{ "set": "state.opened", "to": "{{event.id}}" }] },
+			{ "type": "list", "id": "people", "x": 212, "y": 12, "width": 256, "height": 264, "items": "{{state.people}}",
+				"selection": "multiple", "bind": "state.picked", "rowHeight": 26,
+				"textColor": "@text", "selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent" },
+			{ "type": "label", "id": "status", "x": 212, "y": 286, "width": 256, "height": 24, "textColor": "@text",
+				"text": "{{'Opened: ' + state.opened + '  Picked: ' + length(state.picked)}}" }
+		]
+	}
+}

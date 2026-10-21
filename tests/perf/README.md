@@ -79,6 +79,10 @@ as the OpenGL driver's, aren't counted.
 | `frame/<cards>` | Laying out and drawing a full frame of the Kanban template with 14 or 400 cards (`Window::invalidate()`: every panel laid out, recorded and drawn again). This is the main thread's CPU time; the GPU's work isn't counted |
 | `frame/blink/400` | On the 400-card board, the text field's caret appears or disappears (its focus changes, as a blink would), then a frame: only that field is recorded and drawn again. The main thread's CPU time, presenting the frame included |
 | `frame/blink/400/drawn` | The same, without presenting the frame (`detail::renderWithoutPresenting`): what the frame costs the library, the windowing system's own part left out. Roadmap item 7.8 asks for 0.1 ms or less |
+| `views/tree-expand-100k` | A folder of 100,000 items opened or closed in a tree (each run does both): its rows rebuilt, none drawn |
+| `views/list-scroll-100k` | A list of 100,000 rows scrolled to a new place, then a frame: only the rows in view are drawn |
+| `views/table-sort-100k` | A table of 100,000 rows sorted by a column of numbers, descending or ascending (each run does both) |
+| `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

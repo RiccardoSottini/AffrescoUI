@@ -117,8 +117,9 @@ private:
 	/// @param panel The panel.
 	/// @param event The event.
 	void mouseMove(Panel& panel, const MouseMoveEvent& event);
-	/// @brief Updates the drop target under the pointer during a drag.
-	void dragOver();
+	/// @brief Updates the drop target under the pointer during a drag, and a widget target's drop indicator.
+	/// @param at The pointer.
+	void dragOver(Vec2 at);
 	/// @brief Runs shortcuts ("keys") and "onKey" for a key pressed on a focused panel.
 	/// @param panel The panel.
 	/// @param event The event.

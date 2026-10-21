@@ -119,4 +119,16 @@ inline std::u32string fromUtf8(std::string_view text) {
 	return out;
 }
 
+/// @brief Decodes UTF-8 into a string, reusing its storage (see fromUtf8()).
+/// @param out Gets the code points.
+/// @param text UTF-8 text.
+inline void decodeInto(std::u32string& out, std::string_view text) {
+	out.clear();
+	while(!text.empty()) {
+		const Decoded decoded = decodeUtf8(text);
+		out.push_back(decoded.codepoint);
+		text.remove_prefix(decoded.length);
+	}
+}
+
 } // namespace affresco::detail

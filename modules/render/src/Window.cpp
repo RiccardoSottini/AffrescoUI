@@ -405,7 +405,7 @@ void Window::routeScroll(const ScrollEvent& event) {
 	if(Panel* target = panelAt(event.position)) {
 		target->scrollEvent(event);
 		for(Panel* panel = target; panel; panel = panel->parent_)
-			if(panel->isScrollable() && panel->scrollBy({-event.offset.x * scrollSpeed, -event.offset.y * scrollSpeed}))
+			if(panel->scrollContent({-event.offset.x * scrollSpeed, -event.offset.y * scrollSpeed}))
 				break;
 	}
 	onScroll(event);

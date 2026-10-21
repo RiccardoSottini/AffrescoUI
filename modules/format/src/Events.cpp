@@ -14,6 +14,20 @@
 
 namespace affresco::format {
 
+namespace {
+
+/// @brief The drag hooks of a panel's widget, if it has them.
+/// @param record The panel's record, or nullptr.
+/// @return Its hooks, or nullptr.
+const DragHooks* dragHooks(const Record* record) {
+	if(!record) return nullptr;
+	for(const auto& set : record->sets)
+		if(set && (set->drag.data || set->drag.dropAt)) return &set->drag;
+	return nullptr;
+}
+
+} // namespace
+
 /* Connections */
 
 void Events::connect(Window& window) {
@@ -65,6 +79,12 @@ void Events::hookUp(Panel& panel, Record& adopted) {
 			break;
 		}
 	}
+	for(const auto& set : adopted.sets) {
+		if(!set || !set->events.listen) continue;
+		hooks.events = set->events.listen(
+		    panel, [this, &panel](std::string_view handler, const json& event) { fire(panel, handler, event); });
+		break;
+	}
 	hooks.caret = hookCaret(panel);
 }
 
@@ -105,6 +125,11 @@ void Events::unhook(Panel& panel, const Record& record) {
 			set->value.stopListening(panel, hooks.value);
 			break;
 		}
+	}
+	for(const auto& set : record.sets) {
+		if(!set || !set->events.stopListening) continue;
+		set->events.stopListening(panel, hooks.events);
+		break;
 	}
 	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) editor->onCaretMoved.disconnect(hooks.caret);
 }
@@ -193,7 +218,7 @@ void Events::fire(Panel& panel, std::string_view handler, const json& event) {
 
 json Events::pointerEvent(std::string_view type, const Panel& panel, Vec2 position) {
 	const Rect& f = panel.frame();
-	return {{"type", std::string(type)}, {"x", position.x},     {"y", position.y},       {"left", position.x - f.left},
+	return {{"type", std::string(type)}, {"x", position.x},    {"y", position.y},     {"left", position.x - f.left},
 	        {"top", position.y - f.top}, {"width", f.width()}, {"height", f.height()}};
 }
 
@@ -254,12 +279,18 @@ void Events::pressed(Panel& panel, Vec2 at) {
 
 void Events::dropped(const Press& ended, Vec2 at) {
 	setFlag(ended.source, &Record::dragging, false);
-	if(engine_.reconciler.recordOf(ended.over)) {
-		setFlag(ended.over, &Record::dragOver, false);
-		json drop = pointerEvent("drop", *ended.over, at);
-		drop["data"] = ended.data;
-		fire(*ended.over, "onDrop", drop);
+	const Record* target = engine_.reconciler.recordOf(ended.over);
+	if(!target) return;
+	setFlag(ended.over, &Record::dragOver, false);
+	json drop = pointerEvent("drop", *ended.over, at);
+	if(const DragHooks* hooks = dragHooks(target); hooks && hooks->dropAt) {
+		const bool own = hooks->ownDrops && ended.over == ended.source; // e.g. a tab strip reorders itself
+		if(!own) drop.update(hooks->dropAt(*ended.over, &at));
+		hooks->dropAt(*ended.over, nullptr);
+		if(own) return;
 	}
+	drop["data"] = ended.data;
+	fire(*ended.over, "onDrop", drop);
 }
 
 void Events::released(Panel& panel, Vec2 at) {
@@ -302,30 +333,44 @@ void Events::mouseMove(Panel& panel, const MouseMoveEvent& event) {
 		try {
 			const DocumentContext::BudgetScope budget(engine_.document); // the data is evaluated only now
 			Record& source = *engine_.reconciler.recordOf(press_.source);
-			press_.data = engine_.document.evaluate(source.drag.value("data", json()), *source.locals, json::object(),
-			                                        source.path + ".drag");
-			press_.dragging = true;
-			source.dragging = true;
-			engine_.properties.refresh(*press_.source, source);
+			const DragHooks* hooks = dragHooks(&source);
+			if(source.drag.contains("data") || !hooks || !hooks->data)
+				press_.data = engine_.document.evaluate(source.drag.value("data", json()), *source.locals,
+				                                        json::object(), source.path + ".drag");
+			else // the widget says what is under the press, e.g. a tab
+				press_.data = hooks->data(*press_.source, press_.position);
+			if(press_.data.is_null() && hooks && hooks->data) {
+				press_.source = nullptr; // nothing to drag there
+			} else {
+				press_.dragging = true;
+				source.dragging = true;
+				engine_.properties.refresh(*press_.source, source);
+			}
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());
 			press_.source = nullptr;
 		}
 	}
-	if(press_.dragging && engine_.window) dragOver();
+	if(press_.dragging && engine_.window) dragOver(at);
 
 	bubble(panel, "onDrag", {{"type", "drag"}, {"dx", at.x - press_.position.x}, {"dy", at.y - press_.position.y}},
 	       &at);
 }
 
-void Events::dragOver() {
+void Events::dragOver(Vec2 at) {
 	Panel* over = nullptr;
 	for(Panel* p = engine_.window->hoveredPanel(); p; p = p->parent())
 		if(const Record* r = engine_.reconciler.recordOf(p); r && r->handlers.contains("onDrop") && !r->disabled) {
 			over = p;
 			break;
 		}
+	// A widget target shows where the drop would go (one that handles drops on itself already does)
+	const DragHooks* hooks = dragHooks(engine_.reconciler.recordOf(over));
+	if(hooks && hooks->dropAt && !(hooks->ownDrops && over == press_.source))
+		static_cast<void>(hooks->dropAt(*over, &at));
 	if(over == press_.over) return;
+	if(const DragHooks* left = dragHooks(engine_.reconciler.recordOf(press_.over)); left && left->dropAt)
+		static_cast<void>(left->dropAt(*press_.over, nullptr));
 	setFlag(press_.over, &Record::dragOver, false);
 	press_.over = over;
 	setFlag(over, &Record::dragOver, true);
@@ -337,8 +382,9 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	if(event.action == affresco::Action::Release) return;
 
 	// Enter in a text area submits
-	if(auto* textArea = dynamic_cast<TextArea*>(&panel);
-	   textArea && (event.key == Key::Enter || event.key == Key::KeypadEnter) && event.action == affresco::Action::Press)
+	if(auto* textArea = dynamic_cast<TextArea*>(&panel); textArea &&
+	                                                     (event.key == Key::Enter || event.key == Key::KeypadEnter) &&
+	                                                     event.action == affresco::Action::Press)
 		fire(panel, "onSubmit", {{"type", "submit"}, {"text", textArea->text()}});
 
 	// Shortcuts on the focused panel or its ancestors

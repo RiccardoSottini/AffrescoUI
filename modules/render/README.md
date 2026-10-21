@@ -23,6 +23,12 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `TextArea.hpp` | `TextArea`: a single-line input |
 | `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
+| `Split.hpp` | `Split`: panes along a row or a column with sashes between them; sizes within minimums, the last pane taking the rest; dragged, reset by a double click or Home, moved by the arrow keys (PageUp and PageDown pick a sash); `onSizesChanged` |
+| `Tabs.hpp` | `Tabs`: a strip of `Tab`s, one active; it scrolls when they overflow, closes (a button or Delete), reorders by dragging (`onMoved`), shows where a tab dragged from another strip would go (`insertionAt`, `showDropIndicator`), and moves with the arrow keys, Home and End |
+| `RowWindow.hpp` | `RowWindow`: which rows of a long list are in view and where each starts, for one shared virtualisation; fixed heights in O(1), measured ones in O(log n) |
+| `ListView.hpp` | `ListView`: rows of a `ItemModel` (`ItemList`, or an application's own model), drawing only those in view; single or multiple selection kept by id across new items, arrow keys, pages, type-to-find, `onOpened`, a drop line or outline (`dropTargetAt`); once scrolled, the top row stays in place when items are added above it |
+| `TreeView.hpp` | `TreeView`: a `ListView` over a pre-order tree, showing only the open nodes' rows, with indent guides and chevrons; Right and Left open, close and walk; `onExpandedChanged`; the open folders of the top row pinned as it scrolls (`setStickyRows`) |
+| `TableView.hpp` | `TableView`: a `ListView` of rows of cells under a header; a header click sorts (numbers before text, stable, again to reverse: `onSortChanged`), a header edge drag resizes a column (`onColumnResized`); the order and widths given replace the user's only when they change |
 | `Font.hpp` | `Font`: a font and its fallbacks at one size; `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
 | `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images); `CornerRadii`, `Shadow` |
@@ -154,6 +160,11 @@ src/
   ImageView.cpp            showing an image, fitted
   TextEditor.cpp           the multi-line editor
   Controls.cpp             Toggle and Slider
+  Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
+  RowWindow.cpp            the rows in view: fixed heights, or measured ones in a Fenwick tree
+  ListView.cpp, TreeView.cpp  virtualised rows: selection, keys, type-to-find, drops, anchoring; a tree's open
+                           nodes and its pinned folders
+  TableView.cpp            a table's header, sorting and column widths
   Font.cpp                 the font: loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas
   FontCache.cpp            the bounded font cache, and the system's fallback fonts
   text/                    FontFace (one file at one size, in FreeType and HarfBuzz), GlyphAtlas (coverage and
