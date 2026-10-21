@@ -127,6 +127,14 @@ constexpr KeyReference sectionTable[] = {
 		"note": {"type": "string"}, "reconnect": {"anyOf": [{"type": "boolean"}, {"type": "number"},
 		{"type": "object", "properties": {"after": {"type": "number"}}}]}}}})json",
 	 "Programs the screen talks to (see Channels). A capability: revisions can't change it.", "sections"},
+    {"services", R"json({"type": "object", "maxProperties": 64,
+		"description": "Services the screen uses (RFC 0002), each {\"provider\": ...}. Revisions can't change it.",
+		"additionalProperties": {"type": "object", "required": ["provider"],
+		"properties": {"provider": {"type": "string"}}}})json",
+	 "`{\"files\": {\"provider\": \"fs\", \"root\": \"workspace\"}}`: services that `invoke` and `subscribe` "
+	 "steps talk to, read by the application's providers (`jsonrpc`, `process`, `fs`); their status is the `services` "
+	 "variable. A capability: revisions can't change it.",
+	 "sections"},
     {"persist", R"json({"type": "array", "items": {"type": "string", "pattern": "^state\\."},
 		"description": "State paths kept on disk. Revisions can't change it."})json",
 	 "`[\"state.habits\", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it.",
@@ -169,6 +177,20 @@ constexpr KeyReference stepTable[] = {
 	 "steps"},
     {"cancel", "", R"(`{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more)",
 	 "steps"},
+    {"invoke", "",
+	 "`{ \"invoke\": \"files.read\", \"with\": {\"path\": \"a.txt\"}, \"into\": \"state.text\" }`: a method of "
+	 "a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with "
+	 "the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's "
+	 "events go to `append` (the last `keep`) or run `onEvent` with `events`",
+	 "steps"},
+    {"subscribe", "",
+	 "`{ \"subscribe\": \"build.output\", \"append\": \"state.log\", \"keep\": 500, \"id\": \"build\" }`: a "
+	 "stream of a declared service until `cancel` or its node goes; `do` runs with `events`",
+	 "steps"},
+    {"respond", "",
+	 "`{ \"respond\": \"{{state.answer}}\" }` or `{ \"respond\": null, \"error\": \"no\" }`: answers the "
+	 "service request that ran the action `service:method` (its `request`); a control step",
+	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},
@@ -209,6 +231,11 @@ constexpr KeyReference stepTable[] = {
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
+    {"append", "", "", ""},
+    {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "",
+	 ""},
+    {"id", "", "", ""},
+    {"error", "", "", ""},
     {"data", "", "", ""},
     {"message", "", "", ""},
     {"ms", "", "", ""},
@@ -219,6 +246,8 @@ constexpr KeyReference stepTable[] = {
     {"else", "steps", "", ""},
     {"do", "steps", "", ""},
     {"onError", "steps", "", ""},
+    {"onEvent", "steps", "", ""},
+    {"onDone", "steps", "", ""},
 };
 
 /// The shared values: "$defs/v1" entries the other schemas refer to.

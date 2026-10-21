@@ -374,6 +374,22 @@
 							}
 						}
 					},
+					"services": {
+						"type": "object",
+						"maxProperties": 64,
+						"description": "Services the screen uses (RFC 0002), each {\"provider\": ...}. Revisions can't change it.",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"provider"
+							],
+							"properties": {
+								"provider": {
+									"type": "string"
+								}
+							}
+						}
+					},
 					"persist": {
 						"type": "array",
 						"items": {
@@ -1800,7 +1816,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -1817,6 +1833,9 @@
 					"send": {},
 					"connect": {},
 					"patch": {},
+					"invoke": {},
+					"subscribe": {},
+					"respond": {},
 					"accept": {},
 					"reject": {},
 					"preview": {},
@@ -1866,6 +1885,27 @@
 					"timeout": {},
 					"data": {},
 					"message": {},
+					"append": {},
+					"keep": {
+						"anyOf": [
+							{
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 10000
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"onEvent": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"id": {},
+					"onDone": {
+						"$ref": "#/$defs/v1/steps"
+					},
+					"error": {},
 					"head": {},
 					"reason": {},
 					"ms": {},

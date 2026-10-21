@@ -81,6 +81,16 @@ public:
 	/// @throws DocumentError If it is too large.
 	virtual void checkRevision([[maybe_unused]] const json& patch) const {}
 
+	/// @brief What a change does that a person must always review, whoever makes it and whatever the rules allow (e.g.
+	/// a new step that writes files). Version control turns any line into a proposal. The default has none.
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
+	/// @return One line for each such use, e.g. "uses files.write (writes files in 'workspace')".
+	[[nodiscard]] virtual std::vector<std::string> reviewLines([[maybe_unused]] const json& before,
+	                                                           [[maybe_unused]] const json& after) const {
+		return {};
+	}
+
 	/// @brief Gives ids to the nodes a revision puts somewhere without one, before the change is applied, so that the
 	/// commit, the history and every diff show them. The default gives none (a format without nodes).
 	/// @param document The document as it is before the operation, with the live state as its "state".

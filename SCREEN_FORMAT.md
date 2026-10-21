@@ -78,6 +78,7 @@ Every part of the format follows these, and so should every extension:
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
 | `channels` | Programs the screen talks to (see Channels). A capability: revisions can't change it. |
+| `services` | `{"files": {"provider": "fs", "root": "workspace"}}`: services that `invoke` and `subscribe` steps talk to, read by the application's providers (`jsonrpc`, `process`, `fs`); their status is the `services` variable. A capability: revisions can't change it. |
 | `persist` | `["state.habits", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it. |
 | `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu). |
 | `permissions` | Who may change the running screen (see [Version control](VERSION_CONTROL.md)). Revisions can't change it. |
@@ -625,6 +626,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed, and `with` too (`"{{item.with}}"`, an object or null) |
 | `call` | `{ "call": "pickFile", "with": {...}, "into": "state.file", "onError": [...] }`: a native function (`Screen::onCall`); `error` in `onError`, `result` in `then`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: `"loading": "state.busy"` is true while it runs, `"progress": "state.done"` goes from 0 to 1, partial results stream into `into`, `"timeout": 5000` ends it with the error `timeout`, `then` runs with `result` |
 | `cancel` | `{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more |
+| `invoke` | `{ "invoke": "files.read", "with": {"path": "a.txt"}, "into": "state.text" }`: a method of a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's events go to `append` (the last `keep`) or run `onEvent` with `events` |
+| `subscribe` | `{ "subscribe": "build.output", "append": "state.log", "keep": 500, "id": "build" }`: a stream of a declared service until `cancel` or its node goes; `do` runs with `events` |
+| `respond` | `{ "respond": "{{state.answer}}" }` or `{ "respond": null, "error": "no" }`: answers the service request that ran the action `service:method` (its `request`); a control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |

@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
@@ -31,6 +31,9 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   had deferred, then previews the proposal with the runtime's handlers suspended, draws offscreen and puts the old
   preview back, within one call and without presenting a frame. Events the runtime emits meanwhile aren't sent, and
   no onShow, onHide or watch step runs.
+- **Services are the host's grants:** `services()` is the screen's `services::ServiceRegistry`. The host grants
+  folders (`addRoot`) and programs (`allowProcess`) and may add providers before building; the file's `services`
+  section can only name them, and its services start at their first use. They stop when the screen is destroyed.
 - **Data stays with the user:** the history and `persist` state live under `defaultDataDirectory()`
   (`$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui`), and sockets under `defaultSocketDirectory()`.
 - **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks, native menu bar and

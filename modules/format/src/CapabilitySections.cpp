@@ -1,6 +1,6 @@
 /// @file
-/// @brief The sections that grant capabilities, which revisions can never change: "channels", "persist" and
-/// "permissions".
+/// @brief The sections that grant capabilities, which revisions can never change: "channels", "services", "persist"
+/// and "permissions".
 
 #include "SectionRegistry.hpp"
 
@@ -23,6 +23,34 @@ void checkChannels(const json& value, const std::string& name) {
 		for(const auto& [key, item] : definition.items())
 			if(key != "socket" && key != "reconnect" && key != "note")
 				expect::fail(std::format("{}.{}", at, key), "unknown property (expected socket or reconnect)");
+	}
+}
+
+/// @brief Fails if a value holds an expression anywhere: a capability's configuration is literal.
+/// @param value The value.
+/// @param at Its place.
+void checkLiteral(const json& value, const std::string& at) {
+	if(value.is_string() && value.get_ref<const std::string&>().contains("{{"))
+		expect::fail(at, "a service's configuration is literal: no {{ }}");
+	if(value.is_object())
+		for(const auto& [key, item] : value.items()) checkLiteral(item, at + "." + key);
+	if(value.is_array())
+		for(std::size_t i = 0; i < value.size(); ++i) checkLiteral(value[i], at + "[" + std::to_string(i) + "]");
+}
+
+/// @brief "services": each a provider's name and its configuration, literal. The host's services check the rest
+/// when the screen loads (Services::load), within what it grants.
+/// @param value The value.
+/// @param name "services".
+void checkServices(const json& value, const std::string& name) {
+	for(const auto& [service, definition] : expect::object(value, name).items()) {
+		const std::string at = std::format("{}.{}", name, service);
+		if(service.empty() || service.contains('.') || service.contains(':'))
+			expect::fail(at, "a service's name has no \".\" or \":\"");
+		expect::object(definition, at);
+		if(!definition.contains("provider") || !definition["provider"].is_string())
+			expect::fail(at, "a service needs a \"provider\", e.g. \"jsonrpc\", \"process\" or \"fs\"");
+		checkLiteral(definition, at);
 	}
 }
 
@@ -61,6 +89,8 @@ void checkPermissions(const json& value, const std::string& name) {
 } // namespace
 
 SectionType channelsSection() { return {.name = "channels", .validate = checkChannels, .capability = true}; }
+
+SectionType servicesSection() { return {.name = "services", .validate = checkServices, .capability = true}; }
 
 SectionType persistSection() { return {.name = "persist", .validate = checkPersist, .capability = true}; }
 

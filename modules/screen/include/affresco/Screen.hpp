@@ -16,6 +16,7 @@
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
+#include "affresco/services/ServiceRegistry.hpp"
 
 #include <concepts>
 #include <filesystem>
@@ -160,10 +161,16 @@ public:
 	/// @param call The function; called on a worker thread, so it must not touch panels or the Screen.
 	void onAsyncCall(std::string name, AsyncCall call);
 
-	/// @brief Sets where the results of slow calls are posted, for a window the Screen didn't create (createWindow()
-	/// uses the Application).
-	/// @param executor The executor (outlives the Screen), or nullptr to run them at once.
+	/// @brief Sets where the results of slow calls and services are posted, for a window the Screen didn't create
+	/// (createWindow() uses the Application).
+	/// @param executor The executor (outlives the Screen), or nullptr to run calls at once and start no service.
 	void setExecutor(Executor* executor) noexcept;
+
+	/// @brief The services the file's "services" section may use (RFC 0002): the host grants folders
+	/// (`services().addRoot("workspace", path)`) and programs (`allowProcess`), and may add providers; a declaration
+	/// outside the grants is refused. Services start at their first use, once there is an executor.
+	/// @return The registry, owned by the Screen.
+	[[nodiscard]] services::ServiceRegistry& services() noexcept;
 
 	/// @brief Registers a data model the screen shows with `"repeat": {"in": "models.<name>"}`: rows the application
 	/// owns, read one at a time; a change of a row updates only what reads it. Agents see its count, shape and a sample

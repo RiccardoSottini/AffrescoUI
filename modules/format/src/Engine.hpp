@@ -28,6 +28,7 @@
 #include "Reconciler.hpp"
 #include "Scheduler.hpp"
 #include "SectionRegistry.hpp"
+#include "ServiceCalls.hpp"
 #include "StepRegistry.hpp"
 #include "Steps.hpp"
 #include "TypeRegistry.hpp"
@@ -80,6 +81,7 @@ struct Engine : VersionObserver {
 	Events events;            ///< Input.
 	Steps runner;             ///< Actions.
 	Models models;            ///< The application's data models (their changes reach the others).
+	ServiceCalls serviceCalls; ///< Service calls and subscriptions (RFC 0002).
 	AsyncCalls calls;         ///< Slow native calls (last: destroyed first, joining their workers).
 
 	/* VersionObserver */

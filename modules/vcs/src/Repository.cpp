@@ -386,7 +386,13 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 			return {Kind::Deny, "permission denied: '" + author + "' may not change " +
 			                        (rule.pattern.empty() ? std::string("this screen") : rule.pattern) + " (rule \"" +
 			                        rule.text + "\")"};
-	if(!reviewed || !permissions.configured) return {Kind::Allow, {}};
+	if(!reviewed) return {Kind::Allow, {}};
+	if(const std::vector<std::string> lines = rules_.reviewLines(before, after); !lines.empty()) {
+		std::string reason = "always reviewed:";
+		for(std::size_t i = 0; i < lines.size(); ++i) reason += (i ? "; " : " ") + lines[i];
+		return {Kind::Ask, reason, true};
+	}
+	if(!permissions.configured) return {Kind::Allow, {}};
 
 	for(const PermissionRule& rule : permissions.ask)
 		if(detail::authorMatches(rule.author, author) && detail::changes(rules_, before, after, rule.pattern))

@@ -93,6 +93,7 @@ endif()
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core
 #   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
+#   services services: folders, programs and JSON-RPC servers a screen calls         core
 #   affrescoui  affresco::Screen, which puts them together                         all of the above
 #   automation  scenarios: scripted checks a screen ships with, played headless     affrescoui
 #
@@ -108,7 +109,7 @@ function(affrescoui_module name)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
-foreach(module core render format vcs channel net screen automation)
+foreach(module core render format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
 

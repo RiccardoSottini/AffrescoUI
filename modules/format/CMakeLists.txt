@@ -30,6 +30,8 @@ affrescoui_module(format
 	src/DocumentContext.cpp
 	src/ItemIndex.cpp
 	src/AsyncCalls.cpp
+	src/ServiceCalls.cpp
+	src/ServiceRules.cpp
 	src/Models.cpp
 	src/Reads.cpp
 	src/Binding.cpp
@@ -67,6 +69,7 @@ affrescoui_module(format
 	src/NavigationSteps.cpp
 	src/TimeSteps.cpp
 	src/OtherSteps.cpp
+	src/ServiceSteps.cpp
 	src/Checker.cpp
 	src/CheckerNodes.cpp
 	src/CheckerValues.cpp

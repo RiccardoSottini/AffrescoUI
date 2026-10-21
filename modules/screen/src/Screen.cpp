@@ -1,6 +1,6 @@
 /// @file
 /// @brief affresco::Screen, the composition root: puts the format's rules, the repository, the runtime and the peers
-/// together, and adds includes, declared channels and the "persist" state file.
+/// together with the services, and adds includes, declared channels and the "persist" state file.
 
 #include "affresco/Screen.hpp"
 #include "OffscreenImages.hpp"
@@ -50,9 +50,11 @@ struct DeclaredChannel {
 
 /// @brief The modules and the peers.
 ///
-/// Declaration order is construction order: rules, then the repository that uses them, then the runtime and the
-/// peers that use the repository (destroyed the other way round; servers stop before their peers go).
+/// Declaration order is construction order: the services, the rules, then the repository that uses them, then the
+/// runtime and the peers that use the repository (destroyed the other way round; servers stop before their peers go,
+/// and the runtime lets go of the services before they end).
 struct Screen::Impl {
+	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
 	format::Rules rules;                                         ///< The format's rules.
 	vcs::Repository repository;                                  ///< Document, state, history, review.
 	format::Runtime runtime;                                     ///< Panels and actions.
@@ -91,6 +93,8 @@ struct Screen::Impl {
 			}
 		});
 		runtime.onUpdated.connect([this] { save(); });
+		rules.setServices(&services);
+		runtime.setServices(&services);
 
 		socketDirectory = Screen::defaultSocketDirectory();
 	}
@@ -524,6 +528,7 @@ void Screen::setSocketDirectory(std::filesystem::path directory) { impl_->socket
 void Screen::startChannels(Executor& executor) {
 	Impl& impl = *impl_;
 	impl.executor = &executor;
+	impl.services.setExecutor(&executor);
 	const json& document = impl.repository.document();
 	if(!document.contains("channels")) return;
 	for(const auto& [name, spec] : document["channels"].items()) {
@@ -580,7 +585,12 @@ void Screen::onAsyncCall(std::string name, AsyncCall call) {
 	                           });
 }
 
-void Screen::setExecutor(Executor* executor) noexcept { impl_->runtime.setExecutor(executor); }
+void Screen::setExecutor(Executor* executor) noexcept {
+	impl_->runtime.setExecutor(executor);
+	impl_->services.setExecutor(executor);
+}
+
+services::ServiceRegistry& Screen::services() noexcept { return impl_->services; }
 
 void Screen::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->runtime.setModel(std::move(name), std::move(model));

@@ -23,6 +23,7 @@ Runtime::~Runtime() {
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
 	impl_->calls.cancelAll();      // and what slow calls return would reach it
+	impl_->serviceCalls.cancelAll(); // and so would what services return
 }
 
 void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
@@ -64,6 +65,7 @@ Window& Runtime::createWindow(Application& app) {
 
 	impl_->document.images().setExecutor(&app); // decoded files arrive through the event loop from now on
 	impl_->calls.setExecutor(&app);             // and so do the results of slow calls
+	impl_->serviceCalls.setExecutor(&app);      // and of services
 	build(window);
 	return window;
 }
@@ -81,6 +83,7 @@ void Runtime::waitForImages() { impl_->document.images().finishPending(); }
 void Runtime::build(Window& window) {
 	Engine& engine = *impl_;
 	engine.window = &window;
+	engine.serviceCalls.load(); // the grants are in place by now
 	engine.reconciler.reconcile();
 	engine.events.connect(window);
 
@@ -111,7 +114,16 @@ void Runtime::onAsyncCall(std::string name, AsyncCall call) {
 	impl_->asyncCalls.insert_or_assign(std::move(name), std::move(call));
 }
 
-void Runtime::setExecutor(Executor* executor) noexcept { impl_->calls.setExecutor(executor); }
+void Runtime::setExecutor(Executor* executor) noexcept {
+	impl_->calls.setExecutor(executor);
+	impl_->serviceCalls.setExecutor(executor);
+}
+
+void Runtime::setServices(services::Services* services) {
+	impl_->serviceCalls.setServices(services);
+	impl_->document.globalsChanged(); // the "services" variable
+	impl_->reconciler.requestReconcile();
+}
 
 void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->models.set(std::move(name), std::move(model));

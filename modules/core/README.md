@@ -17,10 +17,11 @@ headers come with nlohmann/json, which only the modules that use documents link.
 | `CallProgress.hpp` | `CallProgress`: what a slow native call on a worker thread reads (`cancelled`) and reports (`progress`, `partial`); thread-safe |
 | `Channel.hpp` | `Channel`: a two-way stream of one-line messages; `onMessage`, `onClosed`; `maxMessageBytes` (64 MiB) |
 | `Json.hpp` | `json`, `DocumentError`, `parseUntrusted` (nesting limit `maxNesting` = 256), `toText`, the `expect::` readers |
-| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied), `PermissionRule`, `Permissions` |
+| `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied, and `reviewLines`, what a change does that always needs a reviewer), `PermissionRule`, `Permissions` |
 | `VersionControl.hpp` | `VersionControl` and `VersionObserver`; `RevisionResult`, `CommitInfo`, `ProposalInfo`, `Grant`, `Approval`, `Decision`, `Mode`; their protocol JSON |
 | `ScreenImages.hpp` | `ScreenImages::render`: a picture of the screen or of a proposal (`ImageRequest`, `Image`) |
 | `Network.hpp` | `network::Network` (`allow`, `check`, `start`, `connect`): what the `net` module offers to the others; `Request`, `Response`, `Failure`, `StreamEvent`, `Handlers`, `Transfer`, `WebSocket`, `SocketHandlers` |
+| `Services.hpp` | `services::Services` (`load`, `method`, `invoke`, `subscribe`, `status`, `onStatus`, `onRequest`): what the `services` module offers to the others; `Call` (one call or subscription: `arguments`, `stopToken`, `progress`, `event`, `finish`, `fail`), `MethodSpec`, `Effect`, `RequestHandler` |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
 
 ## Invariants

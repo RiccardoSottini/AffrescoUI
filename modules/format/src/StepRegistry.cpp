@@ -43,6 +43,7 @@ void registerBuiltInSteps(StepRegistry& registry) {
 	registerStateSteps(registry);
 	registerFlowSteps(registry);
 	registerOutsideSteps(registry);
+	registerServiceSteps(registry);
 	registerReviewSteps(registry);
 	registerNavigationSteps(registry);
 	registerTimeSteps(registry);

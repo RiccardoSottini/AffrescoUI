@@ -27,14 +27,14 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
 	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
 	 "navigate", "dismiss", "after",    "debounce", "animate",  "copy",       "log",     "stop",
-	 "note"});
+	 "note",     "invoke",  "subscribe", "respond"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
     std::to_array<std::string_view>({"set", "push", "remove", "toggle", "increment", "animate"});
 
 /// Step keys that hold steps, checked after the step's values.
-constexpr auto nestedSteps = std::to_array<std::string_view>({"then", "else", "do", "onError"});
+constexpr auto nestedSteps = std::to_array<std::string_view>({"then", "else", "do", "onError", "onDone", "onEvent"});
 
 /// @brief Reads a name given as text, with a default.
 /// @param object An object.
@@ -478,7 +478,7 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
 		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, reject, "
-		       "preview, endPreview, restore, revert or undo");
+		       "preview, endPreview, restore, revert, undo, invoke, subscribe or respond");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);
@@ -503,8 +503,11 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
-		if(key == "onError") layer.vars["error"] = single;                          // a native call's error message
+		const bool service = step.contains("invoke") || step.contains("subscribe");
+		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
 		if(key == "then" && step.contains("call")) layer.vars["result"] = anything; // and its result
+		if(key == "onDone") layer.vars["result"] = anything;                       // a service call's result
+		if(key == "onEvent" || (key == "do" && service)) layer.vars["event"] = anything; // what it streams
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}
 }

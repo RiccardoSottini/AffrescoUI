@@ -16,7 +16,8 @@ add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOU
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
-	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src ${affrescoui_forge_dir})
+	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src
+	${PROJECT_SOURCE_DIR}/modules/services/src ${affrescoui_forge_dir})
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
@@ -27,7 +28,8 @@ set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
 target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 # The checker's tests read the shipped templates, which must have no findings
 target_compile_definitions(affrescoui_unit_tests PRIVATE
-	AFFRESCOUI_SCREENS_DIRECTORY="${PROJECT_SOURCE_DIR}/examples/assets/screens")
+	AFFRESCOUI_SCREENS_DIRECTORY="${PROJECT_SOURCE_DIR}/examples/assets/screens"
+	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes") # services.cpp starts the JSON-RPC prototype
 add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 # Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers, review

@@ -14,7 +14,8 @@
 - image:      the rendering check's PNG, JPEG and SVG files (binary seeds);
 - path:       every path data of the templates, the rendering check's screens and the charts, with drawing bytes;
 - scenarios:  every scenarios file, the templates' and the rendering check's;
-- png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data).
+- png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
+- frames:     Content-Length frames and lines, as a service process writes them.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -356,6 +357,14 @@ def websocket_seeds():
     return [b"\x02" + hello, b"\x03" + masked, b"\x08" + fragments, b"\x04" + close, b"\x02\x81\x7f" + bytes(8)]
 
 
+def frames_seeds():
+    """Content-Length frames (even first byte) and lines (odd first byte), cut into pieces of a few sizes."""
+    body = '{"jsonrpc":"2.0","id":1,"result":{}}'
+    return ["\x06Content-Length: %d\r\n\r\n%s" % (len(body), body),
+            "\x02content-length: 2\r\nContent-Type: x\r\n\r\n{}Content-Length: 0\r\n\r\n",
+            "\x07" + body + "\n{}\r\n", "\x04Content-Length: 999\r\n\r\n"]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -402,6 +411,7 @@ def dictionaries():
             "http_response": ["HTTP/1.1 ", "HTTP/2 ", "\r\n", "\r\n\r\n", ": ", "Content-Length", "Retry-After",
                               "Location", "Upgrade", "websocket", "Connection", "Sec-WebSocket-Accept"],
             "sse": ["data:", "data: ", "event:", "id:", "retry:", ":", "\n", "\r\n", "\r", "\n\n"],
+            "frames": ["Content-Length: ", "content-length:", "\r\n", "\r\n\r\n", "\n", '"jsonrpc":"2.0"'],
             "websocket": ["\x81", "\x01", "\x80", "\x88", "\x89", "\x8a", "\x7e", "\x7f", "\x03\xe8"],
             "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"]}
 
@@ -458,6 +468,7 @@ def main():
     write(out, "http_response", http_response_seeds(), words["http_response"])
     write(out, "sse", sse_seeds(), words["sse"])
     write(out, "websocket", websocket_seeds(), words["websocket"])
+    write(out, "frames", frames_seeds(), words["frames"])
 
 
 if __name__ == "__main__":

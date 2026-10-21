@@ -13,9 +13,9 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 
 | Header | Offers |
 |---|---|
-| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds) and `pathHint` (hints for paths that find nothing); `findings` (the checker's findings as text); `addNativeAction` |
+| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing) and `reviewLines` (the service steps a change adds, which always need a reviewer); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
@@ -41,7 +41,7 @@ Each subsystem's header says its role, its invariants and its callers:
 | Registry | Registers | From |
 |---|---|---|
 | `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
-| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
+| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
 The type registry belongs to each runtime, since applications add to it; the built-in steps and sections never
@@ -129,6 +129,18 @@ theme, and a name can't be both a colour and a token.
   or `setExecutor`), and it carries the latest values. At most 64 calls run at once. A call ended (cancelled, timed
   out, or its runtime destroyed) changes nothing more; destroying the runtime waits for the functions running, so
   they should check `cancelled()`. Without an executor the call runs at once (`tests/unit/async.cpp`).
+- **Services** (8.5a, RFC 0002). `setServices` gives the runtime a `services::Services` (the `services` module's
+  `ServiceRegistry`, through `Screen::services()`), which loads the `services` section once the window is built.
+  `{"invoke": "svc.method", "with": ..., "into": "state.x"}` calls a method: `loading`, `progress`, `timeout` (ms),
+  `id` (so `{"cancel": id}` stops it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`);
+  a method that streams appends each event to `into` (`append`, `keep` at most 10,000) and runs `onEvent` with
+  `event`. `{"subscribe": "svc.stream", "do": [...]}` runs `do` with each `event` until cancelled. A request a service
+  sends runs the action `<service>:<method>` with its params and `request`, whose `respond` step answers it (within
+  30 s; at most 256 wait). The `services` variable is each service's status. At most
+  1,024 calls run and 256 subscriptions are open per screen; results come back through the `Executor`, and a call
+  ended changes nothing more (`src/ServiceCalls.*`, `tests/unit/services.cpp`). A revision can't change the section,
+  may use only the declared services' revisable methods (`checkServiceUses`), and a step it adds that writes or runs
+  something is always reviewed (`reviewLines`, `src/ServiceRules.*`).
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
@@ -221,6 +233,8 @@ src/
   ItemIndex.*              the children of a long list by the item of the state they read
   Models.*                 the application's data models, their rows' places and their outline for agents
   AsyncCalls.*             slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
+  ServiceCalls.*           invoke, subscribe and respond: calls to the services, their results and events in the state
+  ServiceRules.*           what revisions may do with services: declared ones only, and reviewed when they write or run
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,

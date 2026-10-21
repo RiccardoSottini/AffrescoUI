@@ -134,5 +134,8 @@ void registerTimeSteps(StepRegistry& registry);
 /// @brief copy, log, stop, note (OtherSteps.cpp).
 /// @param registry The registry.
 void registerOtherSteps(StepRegistry& registry);
+/// @brief Registers the service steps: invoke, subscribe, respond (ServiceSteps.cpp).
+/// @param registry The registry.
+void registerServiceSteps(StepRegistry& registry);
 
 } // namespace affresco::format

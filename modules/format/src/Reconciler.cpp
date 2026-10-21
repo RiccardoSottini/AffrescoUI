@@ -281,6 +281,7 @@ void Reconciler::forgetSubtree(const Panel& panel) {
 				                                             record->path + ".onHide"));
 		}
 		engine_.events.forget(panel);
+		engine_.serviceCalls.forgetSender(panel);
 		records_.erase(&panel);
 	}
 	for(const auto& child : panel.children()) forgetSubtree(*child);

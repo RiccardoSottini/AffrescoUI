@@ -118,6 +118,7 @@ screens, actions, and the live state.
 - `permissions`, the rules themselves;
 - `channels`, the programs the screen talks to;
 - `persist`, what the screen writes to disk;
+- `services`, the local programs and folders the screen uses (and the host has granted);
 - **control steps**: `accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo` and `patch` (which
   control changes), and `call`, `send` and `connect` (which reach outside the screen). A revision can't add, remove,
   alter or move one to another trigger (a handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could
@@ -131,6 +132,11 @@ screens, actions, and the live state.
   `run`. A use of the document's own component (which wins over a built-in of the same name) is scanned with its
   defaults and literal parameters in place: `{"use": "go", "with": {"act": "approve"}}` is refused when `go` runs
   `"{{act}}"` and `approve` holds a control step, as is one expanded through more than 64 nested uses.
+  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`.
+- **service steps out of bounds**: `respond` is a control step. An `invoke` or `subscribe` a revision adds must name
+  a declared service and a method of it the provider lets revisions use, by a fixed name; and when the method writes
+  or runs something it is always reviewed: the change becomes a proposal whatever the allow rules, grants or mode
+  say, and a person must approve it.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
@@ -313,6 +319,11 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Redirects a request follows | 5, within its origin only |
 | Retries of a request | 5, GET only, after a network error, 429, 502, 503 or 504; a server's `Retry-After` up to an hour |
 | TLS | 1.2 or later; the certificate and the host name are always verified (no option turns it off) |
+| What a service program writes (`services`: a JSON-RPC frame or line) | Headers 8 KiB, a body or a line 8 MiB; a larger one stops the service. An error message from it is cut to 1,000 bytes |
+| A JSON-RPC service | 256 calls waiting for an answer, 256 subscriptions, 16 MiB waiting to be written to it |
+| A `process` service | 16 runs at once; its input 1 MiB; a line of its output 64 KiB (a longer one arrives in pieces) |
+| An `fs` service | 16 calls at once; a file read or written 8 MiB, UTF-8 text only; a listing 10,000 entries; paths that resolve inside its folder only |
+| Service calls of one screen (`invoke`, `subscribe`, `respond`) | 1,024 calls running, 256 subscriptions, 256 requests from services waiting for `respond`; a call's `keep` and the events it queues 10,000 |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
@@ -356,6 +367,10 @@ approves.
 
 These are not protected today. They are stated plainly so that you can decide what to expose.
 
+- **Services aren't sandboxed.** A program the host allows (`allowProcess`) runs with the user's rights, and a
+  JSON-RPC service may do whatever its program does once started; `fs` keeps paths inside its folder, but a program
+  writing to that folder at the same time could swap a folder for a link between the check and the use. Grant only
+  programs and folders you trust the screen with.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`.

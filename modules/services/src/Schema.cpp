@@ -1,0 +1,114 @@
+/// @file
+/// @brief checkSchema(): types, enums, objects, lists, lengths and ranges.
+
+#include "affresco/services/Schema.hpp"
+
+#include <algorithm>
+
+namespace affresco::services {
+
+namespace {
+
+/// @brief Whether a value has a type JSON Schema names.
+/// @param value The value.
+/// @param type The name.
+/// @return Whether it does ("integer" takes whole numbers only; "number" takes any number).
+bool hasType(const json& value, const std::string& type) {
+	if(type == "object") return value.is_object();
+	if(type == "array") return value.is_array();
+	if(type == "string") return value.is_string();
+	if(type == "boolean") return value.is_boolean();
+	if(type == "null") return value.is_null();
+	if(type == "number") return value.is_number();
+	if(type == "integer")
+		return value.is_number_integer() || (value.is_number_float() && value.get<double>() == static_cast<double>(
+		                                                                    static_cast<long long>(value.get<double>())));
+	return true;
+}
+
+/// @brief Checks `type` and `enum`.
+/// @param schema The schema.
+/// @param value The value.
+/// @param path Its place.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> checkKind(const json& schema, const json& value, const std::string& path) {
+	if(const auto type = schema.find("type"); type != schema.end()) {
+		const json types = type->is_array() ? *type : json::array({*type});
+		const bool matches =
+		    std::ranges::any_of(types, [&](const json& name) { return name.is_string() && hasType(value, name); });
+		if(!matches) return path + ": must be " + (type->is_string() ? "a value of type " + type->get<std::string>() : "one of the types " + type->dump());
+	}
+	if(const auto choices = schema.find("enum"); choices != schema.end() && choices->is_array())
+		if(std::ranges::find(*choices, value) == choices->end()) return path + ": must be one of " + choices->dump();
+	return std::nullopt;
+}
+
+/// @brief Checks the bounds: lengths of text, ranges of numbers, sizes of lists.
+/// @param schema The schema.
+/// @param value The value.
+/// @param path Its place.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> checkBounds(const json& schema, const json& value, const std::string& path) {
+	const auto bound = [&](const char* key) -> std::optional<double> {
+		const auto it = schema.find(key);
+		return it != schema.end() && it->is_number() ? std::optional(it->get<double>()) : std::nullopt;
+	};
+	if(value.is_string()) {
+		const auto size = static_cast<double>(value.get_ref<const std::string&>().size());
+		if(const auto most = bound("maxLength"); most && size > *most)
+			return path + ": at most " + std::to_string(static_cast<long long>(*most)) + " bytes";
+		if(const auto least = bound("minLength"); least && size < *least)
+			return path + ": at least " + std::to_string(static_cast<long long>(*least)) + " bytes";
+	}
+	if(value.is_number()) {
+		const double number = value.get<double>();
+		if(const auto most = bound("maximum"); most && number > *most) return path + ": at most " + json(*most).dump();
+		if(const auto least = bound("minimum"); least && number < *least) return path + ": at least " + json(*least).dump();
+	}
+	if(value.is_array())
+		if(const auto most = bound("maxItems"); most && static_cast<double>(value.size()) > *most)
+			return path + ": at most " + std::to_string(static_cast<long long>(*most)) + " items";
+	return std::nullopt;
+}
+
+/// @brief Checks an object's members: `required`, `properties`, `additionalProperties`.
+/// @param schema The schema.
+/// @param value The object.
+/// @param path Its place.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> checkMembers(const json& schema, const json& value, const std::string& path) {
+	if(const auto required = schema.find("required"); required != schema.end() && required->is_array())
+		for(const json& name : *required)
+			if(name.is_string() && !value.contains(name.get<std::string>()))
+				return path + ": needs \"" + name.get<std::string>() + "\"";
+	const auto properties = schema.find("properties");
+	const auto additional = schema.find("additionalProperties");
+	for(const auto& [key, member] : value.items()) {
+		const std::string place = path + "." + key;
+		if(properties != schema.end() && properties->is_object() && properties->contains(key)) {
+			if(auto problem = checkSchema((*properties)[key], member, place)) return problem;
+		} else if(additional != schema.end()) {
+			if(additional->is_boolean() && !additional->get<bool>()) return place + ": unknown key";
+			if(additional->is_object())
+				if(auto problem = checkSchema(*additional, member, place)) return problem;
+		}
+	}
+	return std::nullopt;
+}
+
+} // namespace
+
+std::optional<std::string> checkSchema(const json& schema, const json& value, const std::string& path) {
+	if(!schema.is_object()) return std::nullopt;
+	if(auto problem = checkKind(schema, value, path)) return problem;
+	if(auto problem = checkBounds(schema, value, path)) return problem;
+	if(value.is_object()) return checkMembers(schema, value, path);
+	if(value.is_array())
+		if(const auto items = schema.find("items"); items != schema.end())
+			for(std::size_t index = 0; index < value.size(); ++index)
+				if(auto problem = checkSchema(*items, value[index], path + "[" + std::to_string(index) + "]"))
+					return problem;
+	return std::nullopt;
+}
+
+} // namespace affresco::services
