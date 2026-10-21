@@ -13,7 +13,7 @@
 
 namespace affresco {
 
-void TextEditor::colorLine(std::u32string_view, int&, std::vector<Color>& colors) const {
+void TextEditor::colorLine(std::u32string_view /*line*/, int& /*state*/, std::vector<Color>& colors) const {
 	std::ranges::fill(colors, textColor_);
 }
 

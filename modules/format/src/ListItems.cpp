@@ -30,7 +30,7 @@ ListItem readItem(const json& value, const Level& level, std::size_t index) {
 		std::string id = text(value);
 		return ListItem{id, {std::move(id)}};
 	}
-	if(!value.is_object()) fail(place(), "expected an item: text, or {\"id\", \"label\"}");
+	if(!value.is_object()) fail(place(), R"(expected an item: text, or {"id", "label"})");
 	const auto id = value.find("id");
 	if(id == value.end() || !(id->is_string() || id->is_number())) fail(place() + ".id", "an item needs an id");
 	ListItem item{text(*id), {}};

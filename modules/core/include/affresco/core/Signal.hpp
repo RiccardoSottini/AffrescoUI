@@ -39,7 +39,7 @@ public:
 			connected_.erase(waiting); // connected during this emission: never ran
 			return true;
 		}
-		auto it = std::ranges::find(slots_, id, &Entry::id);
+		const auto it = std::ranges::find(slots_, id, &Entry::id);
 		if(it == slots_.end() || !it->live) return false;
 
 		if(emitting_ > 0) {

@@ -115,7 +115,8 @@ private:
 		for(std::size_t index = 0; index + 1 < spans_.size(); ++index) {
 			const float atTop = spans_[index].topX - spans_[index + 1].topX;
 			const float atBottom = spans_[index].bottomX - spans_[index + 1].bottomX;
-			if(!((atTop < 0.0f && atBottom > 0.0f) || (atTop > 0.0f && atBottom < 0.0f))) continue;
+			const bool crosses = (atTop < 0.0f && atBottom > 0.0f) || (atTop > 0.0f && atBottom < 0.0f);
+			if(!crosses) continue;
 			const float y = top + (bottom - top) * atTop / (atTop - atBottom);
 			if(y > top + least && y < bottom - least) first = std::min(first, y);
 		}

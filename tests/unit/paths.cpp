@@ -245,7 +245,7 @@ TEST_CASE("render: SVG icons decode as images, within the limits") {
 	CHECK(pixels[right + 2] > 100); // blue over red, half
 	CHECK(pixels[right] > 100);
 
-	constexpr std::string_view deep = "<svg width=\"4\" height=\"4\">";
+	constexpr std::string_view deep = R"(<svg width="4" height="4">)";
 	std::string nested(deep);
 	for(int level = 0; level < 100; ++level) nested += "<g>";
 	const std::span<const std::uint8_t> deepData(reinterpret_cast<const std::uint8_t*>(nested.data()), nested.size());

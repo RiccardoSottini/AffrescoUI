@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <ranges>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -473,7 +474,7 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 // What the subtree has is gathered from the children as they are laid out. A change made during the pass to a panel
 // already laid out stays marked, for the next pass
 void Panel::layoutChildren() {
-	auto pass = [this] {
+	const auto pass = [this] {
 		const Rect origin{frame_.left - scroll_.x, frame_.top - scroll_.y, frame_.right - scroll_.x,
 		                  frame_.bottom - scroll_.y};
 		bool below = false, anchors = targetEdges_ != 0, overlays = false;
@@ -506,9 +507,9 @@ void Panel::layoutChildren() {
 Panel* Panel::hitTest(Vec2 point) noexcept {
 	if(!shown_ || !bounds_.contains(point)) return nullptr;
 
-	for(auto it = children_.rbegin(); it != children_.rend(); ++it) {
-		if((*it)->overlay_) continue; // hit-tested by the window, above everything
-		if(Panel* hit = (*it)->hitTest(point)) return hit;
+	for(const auto& child : std::views::reverse(children_)) {
+		if(child->overlay_) continue; // hit-tested by the window, above everything
+		if(Panel* hit = child->hitTest(point)) return hit;
 	}
 
 	return this;

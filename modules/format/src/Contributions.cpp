@@ -44,7 +44,7 @@ json contextOf(Engine& engine) {
 	json path = json::array();
 	std::vector<Panel*> chain; // the focused panel's ancestors, the root first
 	for(Panel* p = focused; p; p = p->parent()) chain.insert(chain.begin(), p);
-	for(Panel* p : chain) {
+	for(const Panel* p : chain) {
 		if(!p->id().empty()) path.push_back(p->id());
 		const Record* record = engine.reconciler.recordOf(p);
 		if(!record || !record->context.is_object()) continue;
@@ -357,7 +357,8 @@ void checkMenus(const json& section, const std::string& name) {
 				if(std::ranges::find(keys, property) == keys.end())
 					expect::fail(at, "unknown key '" + property + "' (a menu item has run, with, submenu, group, order, "
 					                 "when, title, icon)");
-			if(!item.contains("run") && !item.contains("submenu")) expect::fail(at, "a menu item needs \"run\" or \"submenu\"");
+			if(!item.contains("run") && !item.contains("submenu"))
+				expect::fail(at, R"(a menu item needs "run" or "submenu")");
 			if(item.contains("submenu") && !section.contains(expect::string(item["submenu"], at + ".submenu")))
 				expect::fail(at + ".submenu", "there is no menu '" + item["submenu"].get<std::string>() + "' in \"menus\"");
 			if(item.contains("order") && !item["order"].is_number()) expect::fail(at + ".order", "expected a number");

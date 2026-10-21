@@ -24,7 +24,7 @@ namespace {
 /// @param model The model.
 std::vector<std::string> linesOf(const TextModel& model) {
 	std::vector<std::string> out;
-	std::string all = model.text();
+	const std::string all = model.text();
 	std::size_t start = 0;
 	for(std::size_t feed = all.find('\n'); feed != std::string::npos; feed = all.find('\n', start)) {
 		out.push_back(all.substr(start, feed - start));

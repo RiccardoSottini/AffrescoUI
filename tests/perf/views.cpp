@@ -59,14 +59,14 @@ std::shared_ptr<const ItemList> manyRows() {
 /// @brief Adds the table workloads: a sort by numbers reversed and back, and a scroll drawn each time.
 /// @param workloads Where they go.
 void addTableWorkloads(std::vector<Workload>& workloads) {
-	auto tableView = std::make_shared<HeadlessView>();
+	const auto tableView = std::make_shared<HeadlessView>();
 	auto& table = tableView->window->root().add<TableView>();
 	table.setSize(px(800), px(600));
 	table.setModel(manyRows());
 	table.setColumns({{"name", "Name"}, {"size", "Size"}});
 	table.setSort({"size", false});
 	tableView->window->render();
-	auto next = std::make_shared<std::size_t>(0);
+	const auto next = std::make_shared<std::size_t>(0);
 
 	workloads.push_back({.name = "views/table-sort-100k", .runs = 11, .operations = 2, .step = [tableView, &table] {
 		                     table.setSort({"size", true});
@@ -82,19 +82,19 @@ void addTableWorkloads(std::vector<Workload>& workloads) {
 
 } // namespace
 
-std::vector<Workload> viewWorkloads(Context&) {
-	auto treeView = std::make_shared<HeadlessView>();
+std::vector<Workload> viewWorkloads(Context& /*context*/) {
+	const auto treeView = std::make_shared<HeadlessView>();
 	auto& tree = treeView->window->root().add<TreeView>();
 	tree.setSize(px(800), px(600));
 	tree.setModel(manyItems(true));
 	treeView->window->render();
 
-	auto listView = std::make_shared<HeadlessView>();
+	const auto listView = std::make_shared<HeadlessView>();
 	auto& list = listView->window->root().add<ListView>();
 	list.setSize(px(800), px(600));
 	list.setModel(manyItems(false));
 	listView->window->render();
-	auto next = std::make_shared<std::size_t>(0);
+	const auto next = std::make_shared<std::size_t>(0);
 
 	std::vector<Workload> workloads;
 	workloads.push_back({.name = "views/tree-expand-100k", .runs = 21, .operations = 2, .step = [treeView, &tree] {

@@ -258,7 +258,7 @@ void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeSty
 			stroker.run(points, contour.closed && points.size() > 2);
 			continue;
 		}
-		VectorPath::Contour trimmed{{points.begin(), points.end()}, contour.closed};
+		const VectorPath::Contour trimmed{{points.begin(), points.end()}, contour.closed};
 		for(const std::vector<Vec2>& dash : dashesOf(trimmed, pattern)) {
 			std::vector<Vec2> run;
 			for(const Vec2 point : dash)

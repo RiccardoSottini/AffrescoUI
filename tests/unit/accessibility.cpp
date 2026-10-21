@@ -122,7 +122,7 @@ TEST_CASE("accessibility: window.reducedMotion makes animations instant") {
 			{ "id": "motion", "type": "label", "text": "{{window.reducedMotion ? 'reduced' : 'full'}}" }
 		] }
 	})json");
-	auto text = [&] { return dynamic_cast<affresco::Label*>(built.screen.find("motion"))->text(); };
+	const auto text = [&] { return dynamic_cast<affresco::Label*>(built.screen.find("motion"))->text(); };
 	CHECK(text() == "full");
 
 	built.window->routeDisplay({1.0f, affresco::ColorScheme::Light, true});

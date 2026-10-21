@@ -27,7 +27,7 @@ bool WorkerPool::run(std::function<void()> task) {
 void WorkerPool::work(const std::stop_token& stop) {
 	std::unique_lock lock(mutex_);
 	while(wake_.wait(lock, stop, [this] { return !queue_.empty(); })) {
-		std::function<void()> task = std::move(queue_.front());
+		const std::function<void()> task = std::move(queue_.front());
 		queue_.pop_front();
 		lock.unlock();
 		task();

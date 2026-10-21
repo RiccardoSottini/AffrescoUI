@@ -118,8 +118,8 @@ void ReadSet::collapse() {
 	if(paths.size() <= maxReadPaths) return;
 	std::string_view place = paths.front();
 	for(const std::string& path : paths) place = common(place, path);
-	std::string kept(place); // a view into paths: copied before they go
-	paths.assign(1, std::move(kept));
+	const std::string kept(place); // a view into paths: copied before they go
+	paths.assign(1, kept);
 }
 
 bool ReadSet::touchedBy(const StateChanges& changes) const noexcept {
