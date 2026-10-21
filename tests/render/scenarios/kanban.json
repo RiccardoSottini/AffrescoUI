@@ -8,9 +8,9 @@
 			"screen": "kanban.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
-				{ "move": [283, 278] },
+				{ "move": [200, 274] },
 				{ "expect": { "image": "button-hover" } },
-				{ "click": [283, 278] },
+				{ "click": [200, 274] },
 				{ "expect": { "image": "card-moved" } },
 				{ "click": "#filter", "nth": 1 },
 				{ "expect": { "image": "filter-bug" } },
@@ -34,11 +34,51 @@
 			"screen": "kanban.screen.json",
 			"steps": [
 				{ "press": "#card" },
-				{ "move": [600, 300] },
-				{ "move": [790, 300] },
+				{ "move": [400, 300] },
+				{ "move": [560, 300] },
 				{ "expect": { "image": "dragging" } },
-				{ "release": [790, 300] },
+				{ "release": [560, 300] },
 				{ "expect": { "image": "dropped" } }
+			]
+		},
+		{
+			"name": "kanban-details",
+			"screen": "kanban.screen.json",
+			"steps": [
+				{ "click": "#cardTitle", "nth": 2 },
+				{ "expect": { "image": "card-selected" } },
+				{ "click": "#detailMore" },
+				{ "wait": 50 },
+				{ "expect": { "image": "card-menu" } },
+				{ "key": "escape" },
+				{ "key": "mod+e" },
+				{ "wait": 50 },
+				{ "expect": { "image": "edit-dialog" } },
+				{ "type": " again" },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "expect": { "image": "toast" } }
+			]
+		},
+		{
+			"name": "kanban-views",
+			"screen": "kanban.screen.json",
+			"steps": [
+				{ "click": "#viewTable" },
+				{ "expect": { "image": "table" } },
+				{ "key": "mod+p" },
+				{ "wait": 50 },
+				{ "type": "crash" },
+				{ "wait": 50 },
+				{ "expect": { "image": "go-to-card" } },
+				{ "key": "escape" },
+				{ "click": [277, 32], "note": "the Website board" },
+				{ "click": "#viewBoard" },
+				{ "key": "mod+j" },
+				{ "expect": { "image": "dark-board" } },
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "expect": { "image": "command-palette" } }
 			]
 		},
 		{
