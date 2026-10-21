@@ -194,6 +194,11 @@ void Split::keyEvent(const KeyEvent& event) {
 	Panel::keyEvent(event);
 }
 
+void Split::focusEvent(bool focused) {
+	invalidatePaint();
+	Panel::focusEvent(focused);
+}
+
 void Split::paint(Painter& painter) const {
 	Panel::paint(painter);
 	const Rect& f = frame();

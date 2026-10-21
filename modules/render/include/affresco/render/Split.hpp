@@ -65,6 +65,9 @@ protected:
 	void mouseButtonEvent(const MouseButtonEvent& event) override;
 	void mouseMoveEvent(const MouseMoveEvent& event) override;
 	void keyEvent(const KeyEvent& event) override;
+	/// @brief Repaints: the active sash shows only while the split has the focus.
+	/// @param focused Whether it gained the focus.
+	void focusEvent(bool focused) override;
 	void paint(Painter& painter) const override;
 
 private:
