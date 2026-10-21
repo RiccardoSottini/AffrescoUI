@@ -283,7 +283,8 @@ bool TextModel::undo(bool redo, TextPosition& caret, TextPosition& anchor) {
 	Step step = std::move(from.back());
 	from.pop_back();
 
-	// Each operation is replaced by its opposite, last first; the opposite step keeps the text it removes
+	// Each operation is replaced by its opposite, last first; the opposite step keeps the text it removes, in the order
+	// its operations were applied, as every step does
 	Step opposite{{}, caret, anchor, sizeof(Step)};
 	replaying_ = true;
 	for(auto operation = step.operations.rbegin(); operation != step.operations.rend(); ++operation) {
@@ -295,7 +296,6 @@ bool TextModel::undo(bool redo, TextPosition& caret, TextPosition& anchor) {
 		opposite.operations.push_back({operation->offset, std::move(removed), operation->removed.size()});
 	}
 	replaying_ = false;
-	std::ranges::reverse(opposite.operations);
 	caret = step.caret;
 	anchor = step.anchor;
 	to.push_back(std::move(opposite));

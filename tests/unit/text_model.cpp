@@ -141,6 +141,23 @@ TEST_CASE("text model: undo and redo replay operations, restoring the caret") {
 	CHECK(model.undoSteps() == 0);
 }
 
+TEST_CASE("text model: a step of several edits redoes them in the order they were made") {
+	TextModel model;
+	model.beginStep(false, {0, 0}, {0, 0});
+	model.insert({0, 0}, "a");
+	model.insert({0, 0}, "b"); // not typing on: a second operation in the step
+	model.endStep();
+	CHECK(model.text() == "ba");
+
+	TextPosition caret{0, 0}, anchor{0, 0};
+	CHECK(model.undo(false, caret, anchor));
+	CHECK(model.text().empty());
+	CHECK(model.undo(true, caret, anchor));
+	CHECK(model.text() == "ba");
+	CHECK(model.undo(false, caret, anchor));
+	CHECK(model.text().empty());
+}
+
 TEST_CASE("text model: change events give the range replaced") {
 	TextModel model;
 	model.assign("one\ntwo\nthree");
