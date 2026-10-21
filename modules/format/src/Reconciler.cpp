@@ -3,6 +3,7 @@
 
 #include "Reconciler.hpp"
 #include "Engine.hpp"
+#include "Contributions.hpp"
 
 #include <algorithm>
 
@@ -320,6 +321,7 @@ void Reconciler::update(bool full) {
 	syncedScreen_ = context.screen();
 
 	if(!engine_.handlersSuspended) watch(root);
+	showMenuBar(engine_);
 	engine_.owner.onUpdated();
 }
 

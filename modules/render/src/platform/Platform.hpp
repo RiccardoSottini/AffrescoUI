@@ -4,15 +4,19 @@
 /// @brief platform::Platform and platform::NativeWindow: what the render module asks of the windowing system (GLFW
 /// today), so that Window and Application never call it themselves and a Window can run without one (headless).
 
+#include "affresco/render/Events.hpp"
 #include "affresco/render/Input.hpp"
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace affresco {
 
 class Window;
+struct MenuItem;
 
 namespace platform {
 
@@ -83,8 +87,18 @@ public:
 	virtual void wake() = 0;
 	/// @brief The windowing system's own handle (a GLFWwindow*), for Window::nativeHandle().
 	[[nodiscard]] virtual void* handle() const noexcept = 0;
+	/// @brief Pixels per window unit on the window's display now.
+	[[nodiscard]] virtual float contentScale() const = 0;
+	/// @brief Shows a native menu bar for this window, replacing the one shown; choosing an item calls chosen().
+	/// @param menus The menus; empty removes the bar.
+	/// @return false where native menus aren't supported.
+	virtual bool setMenuBar(const std::vector<MenuItem>& menus) = 0;
 
 protected:
+	/// @brief The native window a window owns.
+	/// @param window A window with a native one.
+	/// @return It.
+	static NativeWindow& of(Window& window);
 	/// @brief Tells a window it was resized.
 	/// @param window The window.
 	/// @param width In window units.
@@ -97,6 +111,18 @@ protected:
 	/// next frame draws everything, but the layout, in window units, doesn't change for it.
 	/// @param window The window.
 	static void framebufferResized(Window& window);
+	/// @brief Tells a window it moved to a display of another scale.
+	/// @param window The window.
+	/// @param scale Pixels per window unit.
+	static void displayChanged(Window& window, float scale);
+	/// @brief Delivers files dropped from the OS.
+	/// @param window The window.
+	/// @param event The files and where.
+	static void dropped(Window& window, const DropEvent& event);
+	/// @brief Runs a native menu item the user chose.
+	/// @param window The window.
+	/// @param run What the item does.
+	static void chosen(Window& window, std::function<void()> run);
 };
 
 /// @brief The windowing system: starts it, opens windows, and waits for their events. One at a time, owned by the
@@ -126,6 +152,9 @@ public:
 
 	/// @brief Wakes waitEvents() up. Safe to call from any thread.
 	virtual void wake() = 0;
+
+	/// @brief Whether the system shows light or dark windows now (Light where it can't be read).
+	[[nodiscard]] virtual ColorScheme colorScheme() const = 0;
 };
 
 /// @brief Starts GLFW.

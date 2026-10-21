@@ -28,18 +28,31 @@ constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
 
 } // namespace
 
+platform::NativeWindow& platform::NativeWindow::of(Window& window) { return *window.native_; }
+
 void platform::NativeWindow::resized(Window& window, int width, int height) { window.resized(width, height); }
 
 void platform::NativeWindow::refresh(Window& window) { window.refresh(); }
 
 void platform::NativeWindow::framebufferResized(Window& window) { window.requestFrame(); }
 
+void platform::NativeWindow::displayChanged(Window& window, float scale) {
+	window.routeDisplay({scale, window.colorScheme()});
+}
+
+void platform::NativeWindow::dropped(Window& window, const DropEvent& event) { window.routeDrop(event); }
+
+void platform::NativeWindow::chosen(Window& window, std::function<void()> run) { window.runChosen(std::move(run)); }
+
 Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<detail::Renderer> renderer,
                const Clock& clock, std::string title, int width, int height)
     : native_(std::move(native)), renderer_(std::move(renderer)), clock_(&clock), title_(std::move(title)),
       width_(width), height_(height) {
 	root_.attachTo(this);
-	if(native_) native_->connect(*this);
+	if(native_) {
+		scale_ = native_->contentScale();
+		native_->connect(*this);
+	}
 }
 
 Window::~Window() {
@@ -83,6 +96,14 @@ void Window::setVisible(bool visible) {
 }
 
 bool Window::shouldClose() const { return native_ && native_->shouldClose(); }
+
+/* Desktop */
+
+bool Window::setMenuBar(std::vector<MenuItem> menus) {
+	menus_ = std::move(menus);
+	nativeMenuBar_ = native_ && native_->setMenuBar(menus_);
+	return nativeMenuBar_;
+}
 
 void Window::resized(int width, int height) {
 	width_ = width;
@@ -416,6 +437,35 @@ void Window::routeScroll(const ScrollEvent& event) {
 void Window::routeCursorEnter(bool entered) {
 	if(!entered) setHovered(nullptr);
 	onCursorEnter(CursorEnterEvent{entered});
+}
+
+void Window::routeDrop(const DropEvent& event) {
+	++routing_;
+	cursor_ = event.position;
+	setHovered(panelAt(event.position));
+	onDrop(event);
+
+	if(--routing_ == 0) runDeferred();
+}
+
+void Window::routeDisplay(const DisplayEvent& event) {
+	if(event.scale == scale_ && event.colorScheme == colorScheme_) return;
+	if(event.scale != scale_) {
+		scale_ = event.scale;
+		damageAll_ = true; // the glyphs and edges land on other pixels
+		requestFrame();
+	}
+	colorScheme_ = event.colorScheme;
+	onDisplay(event);
+	runDeferred();
+}
+
+void Window::runChosen(std::function<void()> run) {
+	if(!run) return;
+	++routing_;
+	run();
+
+	if(--routing_ == 0) runDeferred();
 }
 
 void Window::forget(const Panel& panel) noexcept {

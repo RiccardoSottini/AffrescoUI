@@ -225,7 +225,67 @@ json menusOf(Engine& engine) {
 	return resolved;
 }
 
+/// @brief A native menu item from a resolved one (menuOf()); choosing it runs its action, like the drawn menus do.
+/// @param engine The runtime.
+/// @param entry The resolved item.
+/// @return The item.
+MenuItem nativeItem(Engine& engine, const json& entry) {
+	MenuItem item;
+	item.separator = entry.value("separator", false);
+	if(item.separator) return item;
+	if(const auto title = entry.find("title"); title != entry.end() && title->is_string()) item.title = *title;
+	if(const auto label = entry.find("keyLabel"); label != entry.end() && label->is_string()) item.keyLabel = *label;
+	item.enabled = entry.value("enabled", true);
+	if(const auto submenu = entry.find("submenu"); submenu != entry.end() && submenu->is_array())
+		for(const json& child : *submenu) item.submenu.push_back(nativeItem(engine, child));
+	if(const auto run = entry.find("run"); run != entry.end()) {
+		json step = {{"run", *run}};
+		if(const auto with = entry.find("with"); with != entry.end() && !with->is_null()) step["with"] = *with;
+		item.run = [&engine, step = std::move(step)] {
+			if(engine.window)
+				engine.runner.handle(json::array({step}), engine.window->root(), {{"type", "menu"}}, *noVariables(),
+				                     "window.menuBar");
+		};
+	}
+	return item;
+}
+
 } // namespace
+
+void showMenuBar(Engine& engine) {
+	Window* window = engine.window;
+	const json& document = engine.versions.document();
+	if(!window) return;
+	try {
+		json bar = json::array();
+		if(document.contains("window") && document["window"].is_object() && document["window"].contains("menuBar")) {
+			const json& menuBar = document["window"]["menuBar"];
+			if(!menuBar.is_array()) expect::fail("window.menuBar", "expected a list of menus");
+			const json* menus = engine.document.variable("menus");
+			for(std::size_t i = 0; i < menuBar.size(); ++i) {
+				const std::string at = "window.menuBar[" + std::to_string(i) + "]";
+				const json& top = expect::object(menuBar[i], at);
+				const std::string& name = expect::string(top.contains("menu") ? top["menu"] : json(), at + ".menu");
+				if(!menus || !menus->contains(name)) expect::fail(at + ".menu", "there is no menu '" + name + "' in \"menus\"");
+				bar.push_back({{"title", top.contains("title") ? expect::string(top["title"], at + ".title") : name},
+				               {"submenu", (*menus)[name]}});
+			}
+		}
+		if(bar == engine.menuBar) return;
+		std::vector<MenuItem> items;
+		for(const json& entry : bar) items.push_back(nativeItem(engine, entry));
+		engine.menuBar = std::move(bar);
+		window->setMenuBar(std::move(items));
+	} catch(const DocumentError& error) {
+		engine.report(error.what());
+	}
+}
+
+void hideMenuBar(Engine& engine) {
+	if(!engine.window || engine.menuBar.empty()) return;
+	engine.menuBar = json::array();
+	engine.window->setMenuBar({});
+}
 
 void checkMenus(const json& section, const std::string& name) {
 	static constexpr std::array keys = {"run", "with", "submenu", "group", "order", "when", "title", "icon"};

@@ -50,7 +50,8 @@ Window& Runtime::createWindow(Application& app) {
 	const json settings = document.contains("window") ? object(document["window"], "window") : json::object();
 
 	for(const auto& [key, value] : settings.items()) {
-		if(key != "title" && key != "width" && key != "height" && key != "minWidth" && key != "minHeight")
+		if(key != "title" && key != "width" && key != "height" && key != "minWidth" && key != "minHeight" &&
+		   key != "menuBar")
 			fail("window." + key, "unknown property");
 	}
 

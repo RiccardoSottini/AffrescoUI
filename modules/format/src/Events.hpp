@@ -219,7 +219,7 @@ private:
 	FocusLater focusLater_; ///< The focus change scheduled by focusLater().
 	/// @brief The connections connect() made to the window's signals (0: none).
 	struct {
-		Connection resized = 0, key = 0, button = 0; ///< onResize, onKey, onMouseButton.
+		Connection resized = 0, key = 0, button = 0, display = 0, drop = 0; ///< onResize, onKey, onMouseButton, ...
 	} windowHooks_;
 };
 

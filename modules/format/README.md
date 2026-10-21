@@ -225,7 +225,8 @@ src/
                            stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
   Events.*                 input; Shortcuts.* names keys, chords and shortcuts
   Contributions.*          commands, keybindings and menus: what is one, enablement, the context, the commands,
-                           keybindings and menus variables (built when read, DocumentContext::addVariable)
+                           keybindings and menus variables (built when read, DocumentContext::addVariable), and
+                           the window's native menu bar (window.menuBar, shown after each update when it changed)
   Settings.*               the settings section: defaults, checked writes to settings.x, the settings and
                            settingsList variables
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups

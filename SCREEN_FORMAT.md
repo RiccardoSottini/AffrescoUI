@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
-| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
+| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS: the bar at the top of the screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own). |
 | `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits: `"padding": "@space.m"`, `"radius": "@radius.card"`, `"color": "@color.surface"`, and a font's `"size": "@type.body"`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it. |
@@ -444,7 +444,7 @@ are the matched `[start, end]` character spans, `parts` the text cut into `{ tex
 `fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
 the best first (an empty query keeps the order), at most `limit` of them.
 
-**Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`); `theme`;
+**Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar` is shown natively); `theme`;
 `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
@@ -503,7 +503,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
-| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row). |
+| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |
@@ -569,6 +569,17 @@ The `menus` variable gives each menu as a list ready for the `menu` and `menuBar
 then order, then key, a `{ "separator": true }` between groups, items whose `when` is false left out. An item that runs
 a command takes its title, icon, `enabled` and `key`/`keyLabel` from the command, and a submenu is a nested `submenu`
 list. Extensions add items to a menu by key, so a key is the item's identity.
+
+**The native menu bar:** `"window": { "menuBar": [{ "menu": "file", "title": "File" }] }` shows those menus in the
+system's menu bar, kept up to date as the `menus` variable changes; choosing an item runs it like the drawn menus.
+macOS shows them at the top of the screen (after the app's own menu; shortcuts are shown by the drawn menus only, and
+run through the keybindings), Windows in the window with their key labels. Elsewhere there is no native bar:
+`window.nativeMenuBar` is false, so a screen can draw its own with `"when": "!window.nativeMenuBar"`.
+
+**The desktop:** files dropped on the window from the OS reach the node under the pointer with `onDrop` (or its
+nearest ancestor with one) as `event.files`, their paths. `window.colorScheme` follows the system's light or dark mode
+(macOS and Windows; `"light"` elsewhere) and `window.scale` the display the window is on; both update while the app
+runs. Several windows are several screens, one per window.
 
 **Settings:** `settings` maps a key such as `"editor.fontSize"` to a schema (the subset of Typed state) with a
 required `default`, and `title` and `description` for people. Values the user changed are stored flat in

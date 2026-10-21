@@ -33,7 +33,7 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   no onShow, onHide or watch step runs.
 - **Data stays with the user:** the history and `persist` state live under `defaultDataDirectory()`
   (`$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui`), and sockets under `defaultSocketDirectory()`.
-- **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks and
+- **The window must outlive the `Screen`.** A screen destroyed first takes back its timers, deferred tasks, native menu bar and
   signal connections, so the window can go on receiving input (its panels stay, inert).
 
 ## Threads

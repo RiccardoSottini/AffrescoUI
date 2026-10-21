@@ -21,8 +21,14 @@ constexpr KeyReference sectionTable[] = {
     {"note", R"json({"type": "string"})json", "A comment.", "sections"},
     {"window", R"json({"type": "object", "additionalProperties": false, "properties": {"title": {"type": "string"},
 		"width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1},
-		"minWidth": {"type": "integer", "minimum": 0}, "minHeight": {"type": "integer", "minimum": 0}}})json",
-	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers).", "sections"},
+		"minWidth": {"type": "integer", "minimum": 0}, "minHeight": {"type": "integer", "minimum": 0},
+		"menuBar": {"type": "array", "description": "The native menu bar: menus of the menus section",
+		"items": {"type": "object", "required": ["menu"], "additionalProperties": false,
+		"properties": {"menu": {"type": "string"}, "title": {"type": "string"}}}}}})json",
+	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of "
+	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS: the bar at the top of the "
+	 "screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own).",
+	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",
 		"additionalProperties": {"type": "object", "required": ["file", "size"],

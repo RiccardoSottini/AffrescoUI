@@ -73,6 +73,9 @@ public:
 	void post(std::function<void()> task) override;
 
 private:
+	/// @brief Tells every window the system's colour scheme, if it changed.
+	void followColorScheme();
+
 	// Declaration order matters: the windows go before the windowing system
 	std::unique_ptr<platform::Platform> platform_; ///< The windowing system.
 	SteadyClock steadyClock_;                      ///< The clock, unless the options gave another.

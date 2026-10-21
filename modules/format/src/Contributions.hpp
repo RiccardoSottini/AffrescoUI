@@ -57,4 +57,13 @@ void checkMenus(const json& section, const std::string& name);
 /// @param engine The runtime; outlives the variables.
 void addContributionVariables(Engine& engine);
 
+/// @brief Shows the window's native menu bar ("window.menuBar": menus of "menus", resolved like the `menus` variable),
+/// if it changed since the last call. Errors are reported, and leave the bar as it was.
+/// @param engine The runtime.
+void showMenuBar(Engine& engine);
+
+/// @brief Removes the window's native menu bar, whose items call into the runtime.
+/// @param engine The runtime.
+void hideMenuBar(Engine& engine);
+
 } // namespace affresco::format

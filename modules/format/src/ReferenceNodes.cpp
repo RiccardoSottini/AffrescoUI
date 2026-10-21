@@ -472,7 +472,8 @@ constexpr KeyReference nodeTable[] = {
     {"onDrag", "handler", "The pointer moves while pressed: `event.dx`, `event.dy` since the press.", "events"},
     {"onDrop", "handler",
 	 "A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or "
-	 "`tree`, `event.index`, `id` and `place`: `\"before\"`, `\"inside\"` or `\"after\"` that row).",
+	 "`tree`, `event.index`, `id` and `place`: `\"before\"`, `\"inside\"` or `\"after\"` that row); or files from the "
+	 "OS: `event.files` (their paths).",
 	 "events"},
     {"onHover", "handler", "The pointer enters or leaves the node (or a child).", "events"},
     {"onLeave", "handler", "", "events"},

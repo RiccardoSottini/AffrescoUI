@@ -93,7 +93,9 @@ Window& Application::createWindow(std::string title, int width, int height) {
 	// Window's constructor is private: only the Application creates windows
 	windows_.push_back(std::unique_ptr<Window>(
 	    new Window(std::move(native), std::move(renderer), *clock_, std::move(title), width, height)));
-	return *windows_.back();
+	Window& window = *windows_.back();
+	window.routeDisplay({window.contentScale(), platform_->colorScheme()});
+	return window;
 }
 
 int Application::run() {
@@ -111,12 +113,19 @@ int Application::run() {
 		std::optional<double> wait = secondsToNextTimer(windows_);
 		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - clock_->seconds()));
 		platform_->waitEvents(wait);
+		followColorScheme();
 		runPostedTasks();
 	}
 	running_ = false;
 
 	if(!screenshot) return EXIT_SUCCESS;
 	return saveScreenshots(windows_, *screenshot) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+void Application::followColorScheme() {
+	const ColorScheme scheme = platform_->colorScheme();
+	for(const auto& window : windows_)
+		if(window->colorScheme() != scheme) window->routeDisplay({window->contentScale(), scheme});
 }
 
 void Application::post(std::function<void()> task) {

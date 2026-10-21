@@ -35,6 +35,17 @@ struct Frame;
 struct WindowFactory;
 } // namespace detail
 
+/// @brief An entry of a window's menu bar (Window::setMenuBar()): a menu, a command, or a separator.
+struct MenuItem {
+	std::string title;             ///< What it shows.
+	std::string keyLabel;          ///< Its shortcut as shown (e.g. "Ctrl+S"), or empty. Only shown: the window's own
+	                               ///< key handling runs shortcuts, so they never run twice.
+	bool enabled = true;           ///< false greys it out.
+	bool separator = false;        ///< A line between groups; the other fields are ignored.
+	std::vector<MenuItem> submenu; ///< Its items, for a menu (the top level holds menus).
+	std::function<void()> run;     ///< What choosing it does, for a command.
+};
+
 /// @brief A root Panel filling a window: routes input to its panels, keeps the focus, hover and mouse capture, runs
 /// timers and deferred tasks, lays the tree out, and draws only when something changed. Created by Application.
 ///
@@ -89,6 +100,23 @@ public:
 	/// @brief Whether the user asked to close the window.
 	[[nodiscard]] bool shouldClose() const;
 
+	/* Desktop */
+
+	/// @brief Pixels per window unit on the window's display (2 on most HiDPI screens; 1 when headless).
+	[[nodiscard]] float contentScale() const noexcept { return scale_; }
+	/// @brief Whether the system shows light or dark windows (Light when headless, or where it can't be read).
+	[[nodiscard]] ColorScheme colorScheme() const noexcept { return colorScheme_; }
+
+	/// @brief Sets the window's native menu bar (the screen's top on macOS, the window's top on Windows).
+	/// @param menus The menus, each with its items; empty removes the bar.
+	/// @return Whether the OS shows it: false when headless or where native menus aren't supported, and an app then
+	/// draws a menu bar of its own.
+	bool setMenuBar(std::vector<MenuItem> menus);
+	/// @brief The menus last given to setMenuBar(), shown natively or not.
+	[[nodiscard]] const std::vector<MenuItem>& menuBar() const noexcept { return menus_; }
+	/// @brief Whether the OS shows the menu bar (see setMenuBar()).
+	[[nodiscard]] bool nativeMenuBar() const noexcept { return nativeMenuBar_; }
+
 	/* Content */
 
 	/// @brief The root panel, which always fills the window.
@@ -141,6 +169,8 @@ public:
 	Signal<const ScrollEvent&> onScroll;           ///< Every scroll.
 	Signal<const CursorEnterEvent&> onCursorEnter; ///< The pointer entered or left.
 	Signal<const ResizeEvent&> onResize;           ///< The window was resized.
+	Signal<const DropEvent&> onDrop;               ///< Files were dropped from the OS.
+	Signal<const DisplayEvent&> onDisplay;         ///< The display's scale or the system's colour scheme changed.
 
 	/* Input routing: keyboard to the focused panel; mouse to the panel under the pointer, or to the panel that
 	   received the button press until it is released (mouse capture, so drags work outside the panel). Deferred
@@ -164,6 +194,13 @@ public:
 	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
 	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
+	/// @brief Delivers files dropped from the OS: the pointer moves where they were dropped, then onDrop.
+	/// @param event The event.
+	void routeDrop(const DropEvent& event);
+	/// @brief Takes a new display scale or colour scheme: a new scale draws everything again. Then onDisplay, if
+	/// either changed.
+	/// @param event The scale and scheme now.
+	void routeDisplay(const DisplayEvent& event);
 	/// @brief Whether an input event is being delivered: what runs now runs because of the user's input, not a timer
 	/// or a deferred task.
 	/// @return true while one of the route methods runs.
@@ -278,6 +315,9 @@ private:
 	void restartTooltip();
 	/// @brief Runs the timers that are due.
 	void runTimers();
+	/// @brief Runs a menu item the user chose in the native menu bar, as input.
+	/// @param run What it does (a copy is run: it may replace the menu bar).
+	void runChosen(std::function<void()> run);
 	/// @brief Drops the focus, hover and capture pointers to a panel being destroyed.
 	/// @param panel The panel.
 	void forget(const Panel& panel) noexcept;
@@ -292,6 +332,10 @@ private:
 	const Clock* clock_;                             ///< See clock(); never null.
 	std::string clipboard_;                          ///< A headless window's clipboard.
 	bool visible_ = true;                            ///< Whether a headless window counts as shown.
+	float scale_ = 1.0f;                             ///< See contentScale().
+	ColorScheme colorScheme_ = ColorScheme::Light;   ///< See colorScheme().
+	std::vector<MenuItem> menus_;                    ///< See menuBar().
+	bool nativeMenuBar_ = false;                     ///< See nativeMenuBar().
 
 	std::string title_;                ///< See title().
 	int width_ = 0, height_ = 0;       ///< Size, in window units.

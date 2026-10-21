@@ -14,7 +14,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | Header | Offers |
 |---|---|
 | `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
-| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
+| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale and the system's colour scheme (`contentScale`, `colorScheme`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture) |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
@@ -76,7 +76,9 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   minimum wins), then the aspect ratio; percentages refer to the
   parent; a panel is clipped to its parent, and a panel clipped to nothing is not shown. Overlays are laid out, drawn
   and hit-tested after the whole tree, unclipped.
-- **Every OpenGL call is in `src/gl/`, and every GLFW call in `src/platform/GlfwPlatform.cpp`.** `Window.cpp` and
+- **Every OpenGL call is in `src/gl/`, and every GLFW call in `src/platform/GlfwPlatform.cpp`** (and what GLFW
+  doesn't do, the colour scheme and native menu bars, in `src/platform/Desktop*`: Cocoa on macOS, Win32 on Windows;
+  elsewhere the scheme is light and there is no native bar, so `setMenuBar` returns false). `Window.cpp` and
   `Application.cpp` call neither: the OS window is a `platform::NativeWindow` (`src/platform/Platform.hpp`), and
   drawing a `detail::Renderer` (`src/Renderer.hpp`), whose OpenGL implementation (`gl/OpenGlRenderer.cpp`) uses
   `gl::QuadRenderer`: batched quads replayed from the panels' records, one draw call per texture switch, clipping on
@@ -168,7 +170,8 @@ src/
   Window.cpp               input routing, focus, hover, capture, tooltips, timers, deferred tasks, frames
   Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
   Renderer.hpp             detail::Renderer, what a window draws with
-  platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call)
+  platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call), Desktop.hpp
+                           and DesktopMac.mm, DesktopWin32.cpp, DesktopOther.cpp (colour scheme, menu bar per OS)
   Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
   Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid

@@ -152,7 +152,12 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 		Globals& g = globalsCache_.emplace();
 		const VersionControl& versions = engine_.versions;
 		const Window* window = engine_.window;
-		g.window = window ? json{{"width", window->width()}, {"height", window->height()}} : json::object();
+		g.window = window ? json{{"width", window->width()},
+		                         {"height", window->height()},
+		                         {"scale", window->contentScale()},
+		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
+		                         {"nativeMenuBar", window->nativeMenuBar()}}
+		                  : json::object();
 		g.revision = toJson(versions.head());
 
 		json list = json::array();

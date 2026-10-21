@@ -44,6 +44,15 @@ void Events::connect(Window& window) {
 		}
 		keyResolved_ = false;
 	});
+	// The display's scale or the system's colour scheme changed: bindings can use them
+	windowHooks_.display =
+	    window.onDisplay.connect([this](const DisplayEvent&) { engine_.reconciler.requestReconcile(); });
+	// Files dropped from the OS: the node under the pointer with "onDrop" (or an ancestor) gets their paths
+	windowHooks_.drop = window.onDrop.connect([this](const DropEvent& event) {
+		if(!engine_.window) return;
+		Panel* over = engine_.window->panelAt(event.position);
+		if(over) bubble(*over, "onDrop", {{"type", "drop"}, {"files", event.paths}}, &event.position);
+	});
 	// A press outside an open overlay that closes on it
 	windowHooks_.button = window.onMouseButton.connect([this](const MouseButtonEvent& event) {
 		if(event.action == affresco::Action::Press) dismissOverlays(&event.position);
@@ -160,6 +169,9 @@ void Events::disconnectAll() {
 	window->onResize.disconnect(windowHooks_.resized);
 	window->onKey.disconnect(windowHooks_.key);
 	window->onMouseButton.disconnect(windowHooks_.button);
+	window->onDisplay.disconnect(windowHooks_.display);
+	window->onDrop.disconnect(windowHooks_.drop);
+	hideMenuBar(engine_);
 	std::vector<Panel*> pending{&window->root()};
 	while(!pending.empty()) {
 		Panel* panel = pending.back();
