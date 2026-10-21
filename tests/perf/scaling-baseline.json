@@ -1,0 +1,398 @@
+{
+  "areas": {
+    "update": {
+      "n": "Kanban cards",
+      "target": "O(1)"
+    },
+    "layout": {
+      "n": "Kanban cards",
+      "target": "O(n)"
+    },
+    "frame": {
+      "n": "Kanban cards",
+      "target": "O(n)"
+    },
+    "frame/damage": {
+      "n": "Kanban cards",
+      "target": "O(1)"
+    },
+    "load": {
+      "n": "Kanban cards",
+      "target": "O(n)"
+    },
+    "build": {
+      "n": "Kanban cards",
+      "target": "O(n)"
+    },
+    "revision": {
+      "n": "Kanban cards",
+      "target": "O(1)"
+    },
+    "checker": {
+      "n": "Kanban cards",
+      "target": "O(n)"
+    },
+    "history/commit": {
+      "n": "commits in the history",
+      "target": "O(1)"
+    },
+    "history/restore": {
+      "n": "commits in the history",
+      "target": "O(1)"
+    },
+    "history/revert": {
+      "n": "commits in the history",
+      "target": "O(1)"
+    },
+    "history/diff": {
+      "n": "commits in the history",
+      "target": "O(1)"
+    },
+    "history/blame": {
+      "n": "commits in the history",
+      "target": "O(n)"
+    },
+    "history/load": {
+      "n": "commits in the history",
+      "target": "O(n)"
+    },
+    "expressions/list": {
+      "n": "list items",
+      "target": "O(n)"
+    },
+    "expressions/sort": {
+      "n": "list items",
+      "target": "O(n log n)"
+    },
+    "text/measure": {
+      "n": "characters",
+      "target": "O(n)"
+    },
+    "text/wrap": {
+      "n": "characters",
+      "target": "O(n)"
+    },
+    "text/shape": {
+      "n": "characters",
+      "target": "O(n)"
+    },
+    "adversarial/line": {
+      "n": "characters in one word",
+      "target": "O(n)"
+    },
+    "adversarial/fonts": {
+      "n": "characters alternating fonts",
+      "target": "O(n)"
+    },
+    "adversarial/deep": {
+      "n": "nesting depth",
+      "target": "O(n)"
+    },
+    "adversarial/siblings": {
+      "n": "siblings",
+      "target": "O(n)"
+    },
+    "adversarial/keys": {
+      "n": "state keys",
+      "target": "O(1)"
+    },
+    "editor/insert": {
+      "n": "lines",
+      "target": "O(1)"
+    },
+    "editor/delete": {
+      "n": "lines",
+      "target": "O(1)"
+    },
+    "editor/caret": {
+      "n": "lines",
+      "target": "O(1)"
+    },
+    "peer": {
+      "n": "strings in the message",
+      "target": "O(n)"
+    },
+    "agent/outline": {
+      "n": "nodes",
+      "target": "O(n)"
+    },
+    "agent/find": {
+      "n": "nodes",
+      "target": "O(n)"
+    },
+    "agent/reread": {
+      "n": "nodes",
+      "target": "O(1)"
+    },
+    "tokens/document": {
+      "n": "nodes",
+      "target": "O(n)"
+    }
+  },
+  "exponents": {
+    "small": {
+      "adversarial/deep": {
+        "instructions": 0.77,
+        "allocations": 0.72,
+        "retained": 0.81
+      },
+      "adversarial/fonts": {
+        "instructions": 1.01,
+        "allocations": 0.1,
+        "retained": 0.97
+      },
+      "adversarial/keys": {
+        "instructions": 0.0,
+        "allocations": 0.0
+      },
+      "adversarial/line": {
+        "instructions": 0.5,
+        "allocations": 0.56
+      },
+      "adversarial/siblings": {
+        "instructions": 0.97,
+        "allocations": 0.96,
+        "retained": 0.97
+      },
+      "agent/find": {},
+      "agent/outline": {
+        "tokens": 1.0
+      },
+      "agent/reread": {
+        "tokens": 0.0
+      },
+      "build": {
+        "instructions": 0.72,
+        "allocations": 0.69,
+        "retained": 0.81
+      },
+      "checker": {
+        "instructions": 0.36,
+        "allocations": 0.16
+      },
+      "editor/caret": {
+        "instructions": 1.16
+      },
+      "editor/delete": {
+        "instructions": 1.07,
+        "allocations": 0.98,
+        "retained": 1.01
+      },
+      "editor/insert": {
+        "instructions": 1.04,
+        "allocations": 0.91,
+        "retained": 0.01
+      },
+      "expressions/list": {
+        "instructions": 1.0,
+        "allocations": 0.11
+      },
+      "expressions/sort": {
+        "instructions": 1.07,
+        "allocations": -0.0
+      },
+      "frame": {
+        "allocations": 0.01
+      },
+      "frame/damage": {
+        "allocations": 0.0
+      },
+      "history/blame": {
+        "instructions": 0.97,
+        "allocations": 0.99
+      },
+      "history/commit": {
+        "instructions": -0.0,
+        "allocations": 0.0,
+        "retained": 0.03
+      },
+      "history/diff": {
+        "instructions": 0.0,
+        "allocations": 0.0
+      },
+      "history/load": {
+        "instructions": 0.87,
+        "allocations": 0.83
+      },
+      "history/restore": {
+        "instructions": 0.0,
+        "allocations": 0.0
+      },
+      "history/revert": {
+        "instructions": -0.09,
+        "allocations": 0.0
+      },
+      "layout": {
+        "instructions": 0.9,
+        "allocations": -0.0
+      },
+      "load": {
+        "instructions": 0.47,
+        "allocations": 0.62,
+        "retained": 0.52
+      },
+      "peer": {
+        "instructions": 0.96,
+        "allocations": 0.96,
+        "retained": 1.01
+      },
+      "revision": {
+        "instructions": 0.59,
+        "allocations": 0.59,
+        "retained": 0.0
+      },
+      "text/measure": {
+        "instructions": 0.4
+      },
+      "text/shape": {
+        "instructions": 0.83,
+        "allocations": 0.1,
+        "retained": 0.97
+      },
+      "text/wrap": {
+        "instructions": 0.97,
+        "allocations": 0.56
+      },
+      "tokens/document": {
+        "tokens": 1.0
+      },
+      "update": {
+        "instructions": 0.88,
+        "allocations": 0.83,
+        "retained": 0.0
+      }
+    },
+    "large": {
+      "adversarial/deep": {
+        "instructions": 0.77,
+        "allocations": 0.72,
+        "retained": 0.81
+      },
+      "adversarial/fonts": {
+        "instructions": 1.01,
+        "allocations": 0.11,
+        "retained": 0.98
+      },
+      "adversarial/keys": {
+        "instructions": 0.0,
+        "allocations": 0.0
+      },
+      "adversarial/line": {
+        "instructions": 0.72,
+        "allocations": 0.44
+      },
+      "adversarial/siblings": {
+        "instructions": 0.98,
+        "allocations": 0.97,
+        "retained": 0.98
+      },
+      "agent/find": {},
+      "agent/outline": {
+        "tokens": 1.03
+      },
+      "agent/reread": {
+        "tokens": 0.0
+      },
+      "build": {
+        "instructions": 0.81,
+        "allocations": 0.79,
+        "retained": 0.87
+      },
+      "checker": {
+        "instructions": 0.52,
+        "allocations": 0.29
+      },
+      "editor/caret": {
+        "instructions": 1.09
+      },
+      "editor/delete": {
+        "instructions": 1.04,
+        "allocations": 0.98,
+        "retained": 1.01
+      },
+      "editor/insert": {
+        "instructions": 1.03,
+        "allocations": 0.94,
+        "retained": 0.1
+      },
+      "expressions/list": {
+        "instructions": 1.0,
+        "allocations": 0.1
+      },
+      "expressions/sort": {
+        "instructions": 1.07,
+        "allocations": 0.0
+      },
+      "frame": {
+        "allocations": 0.01
+      },
+      "frame/damage": {
+        "allocations": 0.0
+      },
+      "history/blame": {
+        "instructions": 0.98,
+        "allocations": 1.0
+      },
+      "history/commit": {
+        "instructions": -0.0,
+        "allocations": 0.0,
+        "retained": 0.0
+      },
+      "history/diff": {
+        "instructions": 0.0,
+        "allocations": 0.0
+      },
+      "history/load": {
+        "instructions": 0.91,
+        "allocations": 0.89
+      },
+      "history/restore": {
+        "instructions": 0.0,
+        "allocations": 0.0
+      },
+      "history/revert": {
+        "instructions": -0.04,
+        "allocations": 0.0
+      },
+      "layout": {
+        "instructions": 0.93,
+        "allocations": 0.0
+      },
+      "load": {
+        "instructions": 0.61,
+        "allocations": 0.73,
+        "retained": 0.65
+      },
+      "peer": {
+        "instructions": 0.97,
+        "allocations": 0.98,
+        "retained": 1.01
+      },
+      "revision": {
+        "instructions": 0.71,
+        "allocations": 0.71,
+        "retained": -0.0
+      },
+      "text/measure": {
+        "instructions": 0.67
+      },
+      "text/shape": {
+        "instructions": 0.88,
+        "allocations": 0.11,
+        "retained": 0.98
+      },
+      "text/wrap": {
+        "instructions": 0.98,
+        "allocations": 0.48
+      },
+      "tokens/document": {
+        "tokens": 1.01
+      },
+      "update": {
+        "instructions": 0.92,
+        "allocations": 0.88,
+        "retained": 0.0
+      }
+    }
+  }
+}

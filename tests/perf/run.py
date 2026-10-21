@@ -24,7 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 def bench_arguments(args):
     """The options passed through to affrescoui_bench."""
     passed = []
-    for name in ("only", "skip", "runs"):
+    for name in ("only", "skip", "runs", "scaling"):
         value = getattr(args, name)
         if value is not None:
             passed += ["--" + name, str(value)]
@@ -79,6 +79,7 @@ def main():
     parser.add_argument("--only", help="workloads whose names start with one of these (comma-separated)")
     parser.add_argument("--skip", help="leave out the workloads whose names start with one of these")
     parser.add_argument("--runs", type=int, help="measured runs for every workload, instead of each one's own")
+    parser.add_argument("--scaling", choices=("small", "large"), help="the scaling workloads instead (scaling.py)")
     parser.add_argument("--callgrind", action="store_true", help="count instructions with callgrind")
     parser.add_argument("--out", help="write the results here instead of to stdout")
     args = parser.parse_args()

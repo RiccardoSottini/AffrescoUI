@@ -79,8 +79,8 @@ jobs:
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
       - name: Command-line tool and MCP queries # tools/affrescoui/check.py, mcp/test_affrescoui_mcp.py
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
-      - name: The templates' scenarios # affrescoui test, headless: what each template does (SCREEN_FORMAT.md, "Scenarios")
-        run: build/affrescoui test examples/assets/screens/*.scenarios.json
+      - name: The scenarios # affrescoui test, headless: what each template does, and where the rendering check's screens put each node
+        run: build/affrescoui test examples/assets/screens/*.scenarios.json tests/render/screens/*.scenarios.json
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
       - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)

@@ -1,7 +1,11 @@
 /// @file
 /// @brief affrescoui_bench: runs the workloads and prints one JSON object per workload (tests/perf/README.md).
 ///
-/// Usage: affrescoui_bench [--only a,b] [--skip a,b] [--runs n] [--callgrind] [--screens dir] [--edits dir]
+/// Usage: affrescoui_bench [--only a,b] [--skip a,b] [--runs n] [--callgrind] [--scaling small|large]
+///                         [--screens dir] [--edits dir]
+///
+/// With --scaling, it runs the scaling workloads instead ("scaling/<area>/<n>", at sizes that double: 5 of them, or
+/// 7 with large), from which scaling.py fits how each area's cost grows with n.
 ///
 /// Each workload runs once to warm up, then a number of measured runs; the value is the median. With --callgrind
 /// (under `valgrind --tool=callgrind --instr-atstart=no`), each workload has one measured run, the only code
@@ -71,6 +75,7 @@ struct Options {
 	std::vector<std::string> skip; ///< Leave out the workloads whose names start with one of these.
 	int runs = 0;                  ///< Measured runs for every workload, instead of each one's own (0: its own).
 	bool callgrind = false;        ///< One counted run per workload, for callgrind.
+	std::string scaling;           ///< "small" or "large": the scaling workloads at those sizes; empty: the others.
 	std::filesystem::path screens = AFFRESCOUI_EXAMPLES_ASSETS "/screens"; ///< The template screens.
 	std::filesystem::path edits = AFFRESCOUI_PERF_DIR "/edits";            ///< The canonical agent edits.
 };
@@ -105,6 +110,7 @@ Options parseOptions(const std::vector<std::string_view>& arguments) {
 		else if(argument == "--runs") options.runs = std::stoi(std::string(value));
 		else if(argument == "--screens") options.screens = value;
 		else if(argument == "--edits") options.edits = value;
+		else if(argument == "--scaling" && (value == "small" || value == "large")) options.scaling = value;
 		else throw std::invalid_argument("unknown argument " + std::string(argument));
 	}
 	return options;
@@ -223,8 +229,12 @@ affresco::json measure(const Workload& workload, const Options& options) {
 /// @param context What the groups share.
 /// @return EXIT_SUCCESS, or EXIT_FAILURE if a workload failed.
 int runAll(const Options& options, affresco::bench::Context& context) {
-	std::vector<affresco::bench::Group> groups = affresco::bench::engineGroups();
-	std::ranges::move(affresco::bench::screenGroups(), std::back_inserter(groups));
+	const bool large = options.scaling == "large";
+	std::vector<affresco::bench::Group> groups =
+	    options.scaling.empty() ? affresco::bench::engineGroups() : affresco::bench::scalingEngineGroups(large);
+	std::ranges::move(options.scaling.empty() ? affresco::bench::screenGroups()
+	                                          : affresco::bench::scalingScreenGroups(large),
+	                  std::back_inserter(groups));
 
 	int status = EXIT_SUCCESS;
 	const auto fail = [&status](const std::string& where, const std::exception& error) {
@@ -268,8 +278,8 @@ int main(int argc, char** argv) {
 		std::_Exit(status);
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_bench: " << error.what() << '\n'
-		          << "usage: affrescoui_bench [--only a,b] [--skip a,b] [--runs n] [--callgrind] [--screens dir] "
-		             "[--edits dir]\n";
+		          << "usage: affrescoui_bench [--only a,b] [--skip a,b] [--runs n] [--callgrind] "
+		             "[--scaling small|large] [--screens dir] [--edits dir]\n";
 		return 2;
 	}
 }
