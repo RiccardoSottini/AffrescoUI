@@ -336,7 +336,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -357,6 +357,7 @@
 									"list",
 									"tree",
 									"table",
+									"path",
 									"outlet"
 								]
 							},
@@ -1133,7 +1134,7 @@
 					},
 					"file": {
 						"type": "string",
-						"description": "image: a PNG or JPEG file, relative to the screen file and inside its folder (or one the host allows)"
+						"description": "image: a PNG, JPEG or SVG file, relative to the screen file and inside its folder (or one the host allows)"
 					},
 					"source": {
 						"type": "string",
@@ -1152,7 +1153,7 @@
 								"$ref": "#/$defs/v1/dynamic"
 							}
 						],
-						"description": "image: contain (default), cover or fill, like CSS object-fit"
+						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
 					},
 					"value": {
 						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
@@ -1421,6 +1422,102 @@
 					"selectedBackground": {
 						"$ref": "#/$defs/v1/color"
 					},
+					"d": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "path: SVG path data (M L H V C S Q T A Z, absolute and relative)"
+					},
+					"viewBox": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "path: the area of the data fitted to the node, \"x y width height\""
+					},
+					"fillColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"fillRule": {
+						"anyOf": [
+							{
+								"enum": [
+									"nonzero",
+									"evenodd"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "path: which points are inside, nonzero (default) or evenodd"
+					},
+					"stroke": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"strokeWidth": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"strokeJoin": {
+						"anyOf": [
+							{
+								"enum": [
+									"miter",
+									"round",
+									"bevel"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"strokeCap": {
+						"anyOf": [
+							{
+								"enum": [
+									"butt",
+									"round",
+									"square"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"strokeDash": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 64,
+								"items": {
+									"type": "number",
+									"minimum": 0
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -1529,6 +1626,7 @@
 									"list",
 									"tree",
 									"table",
+									"path",
 									"outlet"
 								]
 							}
