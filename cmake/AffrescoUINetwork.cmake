@@ -17,6 +17,12 @@ option(AFFRESCOUI_SYSTEM_CURL "Use the system's libcurl instead of building the 
 set(AFFRESCOUI_CURL_VERSION 8.22.0)
 if(AFFRESCOUI_SYSTEM_CURL)
 	find_package(CURL 7.85 REQUIRED) # CURLOPT_PROTOCOLS_STR
+	# The SDK's own include directory must not become an -isystem path: it puts the C headers ahead of libc++'s.
+	get_target_property(affrescoui_curl_includes CURL::libcurl INTERFACE_INCLUDE_DIRECTORIES)
+	if(affrescoui_curl_includes)
+		list(FILTER affrescoui_curl_includes EXCLUDE REGEX "\\.sdk/usr/include$")
+		set_target_properties(CURL::libcurl PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${affrescoui_curl_includes}")
+	endif()
 else()
 	block(SCOPE_FOR VARIABLES) # curl's options stay curl's
 		set(BUILD_SHARED_LIBS OFF)
