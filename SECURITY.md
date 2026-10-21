@@ -303,7 +303,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Tabs a strip reads, panes a split reads | 10,000 tabs and 1,000 panes (more are ignored); a split's sizes 0 to 1,000,000 pixels |
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |
 | Slow calls (`Screen::onAsyncCall`) running or waiting for a worker at once | 64; more end with an error (`onError`) |
-| A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign, 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
+| A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign (a contour scaled past 10^12 on screen isn't drawn), 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in

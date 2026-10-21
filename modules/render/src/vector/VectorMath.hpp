@@ -36,13 +36,17 @@ namespace affresco::vector {
 	return size > 1.0e-12f ? times(a, 1.0f / size) : Vec2{};
 }
 
-/// @brief Tells whether every point of contours is finite: a scale past the float range makes them infinite or NaN,
-/// which have no shape and whose lengths never run out.
+/// @brief Tells whether every point of contours is finite and within 1e12 of the origin: a scale past the float range
+/// makes them infinite or NaN, which have no shape and whose lengths never run out, and the products of points past
+/// 1e12 (an arc's radius scaled up to reach its end, a tiny view box) overflow into vertices that aren't finite.
 /// @param contours The contours.
 [[nodiscard]] inline bool finite(std::span<const VectorPath::Contour> contours) noexcept {
+	constexpr float reach = 1.0e12f; // far past any screen, and its square far below the float range
 	for(const VectorPath::Contour& contour : contours)
 		for(const Vec2 point : contour.points)
-			if(!std::isfinite(point.x) || !std::isfinite(point.y)) return false;
+			if(!std::isfinite(point.x) || !std::isfinite(point.y) || std::abs(point.x) > reach ||
+			   std::abs(point.y) > reach)
+				return false;
 	return true;
 }
 

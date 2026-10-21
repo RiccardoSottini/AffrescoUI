@@ -11,6 +11,8 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -223,6 +225,30 @@ TEST_CASE("render: a path scaled past the float range draws nothing, and its das
 		affresco::appendFill(contours, FillRule::nonZero, fill, 1.0f);
 		CHECK(stroke.empty());
 		CHECK(fill.empty());
+	}
+}
+
+TEST_CASE("render: an arc and a path scaled far past the screen give finite meshes") {
+	// The arc's radii are scaled up to reach its end (SVG F.6.6): a radius of 1e-30 makes the other about 5e29
+	StrokeStyle style;
+	style.width = 1.5f;
+	style.join = affresco::LineJoin::round;
+	style.cap = affresco::LineCap::round;
+	style.dash = {3.0f, 0.5f, 0.0f};
+	const auto finite = [](const std::vector<MeshVertex>& mesh) {
+		return std::ranges::all_of(mesh, [](const MeshVertex& vertex) {
+			return std::isfinite(vertex.position.x) && std::isfinite(vertex.position.y) && vertex.coverage >= 0.0f &&
+			       vertex.coverage <= 1.0f;
+		});
+	};
+	for(const std::vector<VectorPath::Contour>& contours :
+	    {VectorPath::parse("M0 0 A 1e-30 1 30 0 0 1 1").flatten({{0.01f, 0.01f}, {3.0f, 5.0f}}),
+	     VectorPath::parse("M0 0 L1e6 0 L1e6 1").flatten({{1e30f, 1e30f}, {0.0f, 0.0f}})}) {
+		std::vector<MeshVertex> stroke, fill;
+		affresco::appendStroke(contours, style, stroke);
+		affresco::appendFill(contours, FillRule::evenOdd, fill);
+		CHECK(finite(stroke));
+		CHECK(finite(fill));
 	}
 }
 
