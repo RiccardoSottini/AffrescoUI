@@ -69,6 +69,7 @@ enum class ColorScheme { Light, Dark };
 struct DisplayEvent {
 	float scale = 1.0f;                           ///< Pixels per window unit.
 	ColorScheme colorScheme = ColorScheme::Light; ///< The system's colour scheme.
+	bool reducedMotion = false;                   ///< The system asks for less motion (an accessibility setting).
 };
 
 } // namespace affresco

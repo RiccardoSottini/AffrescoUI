@@ -24,10 +24,17 @@ constexpr KeyReference sectionTable[] = {
 		"minWidth": {"type": "integer", "minimum": 0}, "minHeight": {"type": "integer", "minimum": 0},
 		"menuBar": {"type": "array", "description": "The native menu bar: menus of the menus section",
 		"items": {"type": "object", "required": ["menu"], "additionalProperties": false,
-		"properties": {"menu": {"type": "string"}, "title": {"type": "string"}}}}}})json",
+		"properties": {"menu": {"type": "string"}, "title": {"type": "string"}}}},
+		"focusRing": {"description": "The ring around the node the keyboard focused: a colour, or its look, or false",
+		"anyOf": [{"type": "string"}, {"const": false}, {"type": "object", "additionalProperties": false,
+		"properties": {"color": {"type": "string"}, "width": {"type": "number", "minimum": 0},
+		"offset": {"type": "number", "minimum": 0}}}]}}})json",
 	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of "
 	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS: the bar at the top of the "
-	 "screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own).",
+	 "screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); "
+	 "`focusRing`: a ring drawn above everything around the node the keyboard focused (Tab, the arrows; not a click), "
+	 "following its corners: a colour, or `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the defaults), "
+	 "or `false` (the default: none).",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",

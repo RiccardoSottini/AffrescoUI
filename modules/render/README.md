@@ -14,7 +14,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | Header | Offers |
 |---|---|
 | `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
-| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale and the system's colour scheme (`contentScale`, `colorScheme`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
+| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale, the system's colour scheme and its reduced-motion setting (`contentScale`, `colorScheme`, `reducedMotion`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); a focus ring drawn around the focused panel only after the keyboard moved the focus (`setFocusRing`, `FocusRing`, `focusVisible`); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
+| `Accessibility.hpp` | What a panel is to a person or a screen reader: `accessibleRole` (the panel's own, or one from its kind: a button, a checkbox, a textbox, text), `accessibleName` (its label, else its text or the text inside it, else its tooltip), `accessibilityTree` (`AccessibleNode`: shown panels with a role, in tree order), `findByRole`. The roles and names are set on a `Panel` (`setAccessibleRole`, `setAccessibleLabel`, `setAccessibleDescription`); the OS backend comes later |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture) |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
@@ -77,8 +78,9 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   parent; a panel is clipped to its parent, and a panel clipped to nothing is not shown. Overlays are laid out, drawn
   and hit-tested after the whole tree, unclipped.
 - **Every OpenGL call is in `src/gl/`, and every GLFW call in `src/platform/GlfwPlatform.cpp`** (and what GLFW
-  doesn't do, the colour scheme and native menu bars, in `src/platform/Desktop*`: Cocoa on macOS, Win32 on Windows;
-  elsewhere the scheme is light and there is no native bar, so `setMenuBar` returns false). `Window.cpp` and
+  doesn't do, the colour scheme, reduced motion and native menu bars, in `src/platform/Desktop*`: Cocoa on macOS,
+  Win32 on Windows; elsewhere the scheme is light, motion is full and there is no native bar, so `setMenuBar` returns
+  false). `Window.cpp` and
   `Application.cpp` call neither: the OS window is a `platform::NativeWindow` (`src/platform/Platform.hpp`), and
   drawing a `detail::Renderer` (`src/Renderer.hpp`), whose OpenGL implementation (`gl/OpenGlRenderer.cpp`) uses
   `gl::QuadRenderer`: batched quads replayed from the panels' records, one draw call per texture switch, clipping on
@@ -167,7 +169,9 @@ captures `this` in one must cancel its timers in its destructor.
 include/affresco/render/   the public headers above
 src/
   Application.cpp          the platform, the windows, the event loop, posted tasks
-  Window.cpp               input routing, focus, hover, capture, tooltips, timers, deferred tasks, frames
+  Window.cpp               input routing, focus, the focus ring, hover, capture, tooltips, timers, deferred tasks,
+                           frames
+  Accessibility.cpp        roles, accessible names, the tree, finding by role
   Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
   Renderer.hpp             detail::Renderer, what a window draws with
   platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call), Desktop.hpp

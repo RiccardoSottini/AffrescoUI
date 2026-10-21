@@ -103,8 +103,23 @@ private:
 
 /// @brief Checks a node expectation: whether it exists, its text, or a property.
 /// @param root Where to look: the window's root panel.
-/// @param expect {"node": "#id", "nth", "exists" | "text" | "property" + "is"}.
+/// @param expect {"node": "#id" or { "role", "name"? }, "nth", "exists" | "text" | "property" + "is"}.
 /// @return The problem, or an empty string if it holds.
 [[nodiscard]] std::string checkNode(Panel& root, const json& expect);
+
+/// @brief Finds the n-th node a target names: "#id" (shown only, or any), or { "role", "name"? } (shown only: hidden
+/// nodes aren't in the accessibility tree).
+/// @param root Where to look.
+/// @param target "#id" or { "role", "name"? }, as the file was checked.
+/// @param nth How many matches to skip.
+/// @param shownOnly For "#id": whether hidden nodes are skipped.
+/// @return The node, or nullptr.
+[[nodiscard]] Panel* findTarget(Panel& root, const json& target, long long nth, bool shownOnly);
+
+/// @brief How a problem names a target.
+/// @param target "#id" or { "role", "name"? }.
+/// @param nth Its "nth".
+/// @return "#title", "#card (nth 2)", "button 'Save'".
+[[nodiscard]] std::string targetName(const json& target, long long nth);
 
 } // namespace affresco::automation::detail

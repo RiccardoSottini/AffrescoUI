@@ -4,6 +4,7 @@
 #include "Reconciler.hpp"
 #include "Engine.hpp"
 #include "Contributions.hpp"
+#include "PropertyValues.hpp"
 
 #include <algorithm>
 
@@ -31,6 +32,35 @@ bool sameScope(const Scope* a, const Scope* b) {
 		if(a->vars != b->vars) return false;
 	}
 	return a == b;
+}
+
+/// @brief Gives the window the ring of "window.focusRing" (a colour, { "color", "width", "offset" }, or false), if it
+/// changed. Errors are reported, and leave the ring as it was.
+/// @param engine The runtime, with a window.
+void showFocusRing(Engine& engine) {
+	if(!engine.window) return;
+	const json& document = engine.versions.document();
+	std::optional<FocusRing> ring;
+	try {
+		if(document.contains("window") && document["window"].is_object() && document["window"].contains("focusRing")) {
+			const json& value = document["window"]["focusRing"];
+			const std::string at = "window.focusRing";
+			if(value.is_object()) {
+				ring.emplace();
+				for(const auto& [key, item] : value.items()) {
+					if(key == "color") ring->color = engine.document.color(item, at + ".color");
+					else if(key == "width") ring->width = pixels(item, at + ".width");
+					else if(key == "offset") ring->offset = pixels(item, at + ".offset");
+					else fail(at + "." + key, "unknown property");
+				}
+			} else if(!(value.is_boolean() && !value.get<bool>()))
+				ring = FocusRing{.color = engine.document.color(value, at)};
+		}
+	} catch(const DocumentError& error) {
+		engine.report(error.what());
+		return;
+	}
+	if(ring != engine.window->focusRing()) engine.window->setFocusRing(ring);
 }
 
 } // namespace
@@ -322,6 +352,7 @@ void Reconciler::update(bool full) {
 
 	if(!engine_.handlersSuspended) watch(root);
 	showMenuBar(engine_);
+	showFocusRing(engine_);
 	engine_.owner.onUpdated();
 }
 

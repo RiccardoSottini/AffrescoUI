@@ -96,6 +96,34 @@
 										}
 									}
 								}
+							},
+							"focusRing": {
+								"description": "The ring around the node the keyboard focused: a colour, or its look, or false",
+								"anyOf": [
+									{
+										"type": "string"
+									},
+									{
+										"const": false
+									},
+									{
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"color": {
+												"type": "string"
+											},
+											"width": {
+												"type": "number",
+												"minimum": 0
+											},
+											"offset": {
+												"type": "number",
+												"minimum": 0
+											}
+										}
+									}
+								]
 							}
 						}
 					},
@@ -724,6 +752,15 @@
 					},
 					"focusable": {
 						"$ref": "#/$defs/v1/flag"
+					},
+					"role": {
+						"description": "A role, or a {{binding}}"
+					},
+					"label": {
+						"description": "Text, or a {{binding}}"
+					},
+					"description": {
+						"description": "Text, or a {{binding}}"
 					},
 					"tabIndex": {
 						"anyOf": [

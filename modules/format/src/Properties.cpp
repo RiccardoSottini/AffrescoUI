@@ -255,6 +255,9 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setGrow(0.0f);
 	resetLayoutItem(panel);
 	panel.setTooltip({});
+	panel.setAccessibleRole({});
+	panel.setAccessibleLabel({});
+	panel.setAccessibleDescription({});
 	panel.clearOverlay();
 
 	if(auto* label = dynamic_cast<Label*>(&panel)) {
@@ -319,6 +322,8 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	applySets(panel, record, look);
 	transitionLook(panel, record, look, shown);
 	finish(panel, look);
+	if(panel.accessibleRole().empty() && record.focusable && record.handlers.contains("onClick"))
+		panel.setAccessibleRole("button"); // what it is to a person, and to scenarios looking for it by role
 }
 
 void Properties::finish(Panel& panel, const Look& look) {
@@ -369,6 +374,15 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 		break;
 	case Slot::Tooltip:
 		panel.setTooltip(text(value));
+		break;
+	case Slot::Role:
+		panel.setAccessibleRole(text(value));
+		break;
+	case Slot::Label:
+		panel.setAccessibleLabel(text(value));
+		break;
+	case Slot::Description:
+		panel.setAccessibleDescription(text(value));
 		break;
 	case Slot::Disabled:
 		record.disabled = boolean(value, at);

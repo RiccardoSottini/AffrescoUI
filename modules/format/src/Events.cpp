@@ -172,6 +172,7 @@ void Events::disconnectAll() {
 	window->onDisplay.disconnect(windowHooks_.display);
 	window->onDrop.disconnect(windowHooks_.drop);
 	hideMenuBar(engine_);
+	window->setFocusRing(std::nullopt);
 	std::vector<Panel*> pending{&window->root()};
 	while(!pending.empty()) {
 		Panel* panel = pending.back();

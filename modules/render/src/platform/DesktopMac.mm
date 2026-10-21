@@ -138,11 +138,18 @@ ColorScheme colorScheme() {
 	}
 }
 
+bool reducedMotion() { return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceMotion; }
+
 void watchColorScheme() {
 	[NSDistributedNotificationCenter.defaultCenter addObserverForName:@"AppleInterfaceThemeChangedNotification"
 	                                                           object:nil
 	                                                            queue:NSOperationQueue.mainQueue
 	                                                       usingBlock:^(NSNotification*) { glfwPostEmptyEvent(); }];
+	[NSWorkspace.sharedWorkspace.notificationCenter
+	    addObserverForName:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
+	                object:nil
+	                 queue:NSOperationQueue.mainQueue
+	            usingBlock:^(NSNotification*) { glfwPostEmptyEvent(); }];
 }
 
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {

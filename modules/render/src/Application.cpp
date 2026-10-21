@@ -94,7 +94,7 @@ Window& Application::createWindow(std::string title, int width, int height) {
 	windows_.push_back(std::unique_ptr<Window>(
 	    new Window(std::move(native), std::move(renderer), *clock_, std::move(title), width, height)));
 	Window& window = *windows_.back();
-	window.routeDisplay({window.contentScale(), platform_->colorScheme()});
+	window.routeDisplay({window.contentScale(), platform_->colorScheme(), platform_->reducedMotion()});
 	return window;
 }
 
@@ -113,7 +113,7 @@ int Application::run() {
 		std::optional<double> wait = secondsToNextTimer(windows_);
 		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - clock_->seconds()));
 		platform_->waitEvents(wait);
-		followColorScheme();
+		followSystem();
 		runPostedTasks();
 	}
 	running_ = false;
@@ -122,10 +122,12 @@ int Application::run() {
 	return saveScreenshots(windows_, *screenshot) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-void Application::followColorScheme() {
+void Application::followSystem() {
 	const ColorScheme scheme = platform_->colorScheme();
+	const bool reduced = platform_->reducedMotion();
 	for(const auto& window : windows_)
-		if(window->colorScheme() != scheme) window->routeDisplay({window->contentScale(), scheme});
+		if(window->colorScheme() != scheme || window->reducedMotion() != reduced)
+			window->routeDisplay({window->contentScale(), scheme, reduced});
 }
 
 void Application::post(std::function<void()> task) {

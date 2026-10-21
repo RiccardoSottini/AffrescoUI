@@ -2,6 +2,7 @@
 # (cmake/AffrescoUIText.cmake). Images: stb_image (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
+	src/Accessibility.cpp
 	src/Application.cpp
 	src/Bitmap.cpp
 	src/ImageCache.cpp

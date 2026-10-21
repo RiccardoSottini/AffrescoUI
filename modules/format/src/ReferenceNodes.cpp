@@ -146,6 +146,18 @@ constexpr KeyReference nodeTable[] = {
     {"focusable", "flag",
 	 "`true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable).",
 	 "look"},
+    {"role", R"json({"description": "A role, or a {{binding}}"})json",
+	 "What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, "
+	 "`list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for "
+	 "labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an "
+	 "`onClick`; other nodes have none and are skipped in the accessibility tree.",
+	 "look"},
+    {"label", R"json({"description": "Text, or a {{binding}}"})json",
+	 "The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an "
+	 "input's or a slider's text is its value, not its name).",
+	 "look"},
+    {"description", R"json({"description": "Text, or a {{binding}}"})json",
+	 "A longer accessible description, read after the name.", "look"},
     {"tabIndex", R"json({"anyOf": [{"type": "integer", "minimum": -1}, {"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out.",
 	 "look"},

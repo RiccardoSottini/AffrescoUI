@@ -42,6 +42,10 @@ enum class Slot : std::uint8_t {
 	TabIndex,   ///< "tabIndex".
 	Arrows,     ///< "arrows".
 	Mnemonic,   ///< "mnemonic".
+	/* Every panel's accessibility */
+	Role,        ///< "role".
+	Label,       ///< "label".
+	Description, ///< "description".
 	/* Every panel's shape */
 	Radius,      ///< "radius".
 	BorderWidth, ///< "borderWidth".

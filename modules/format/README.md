@@ -227,10 +227,13 @@ src/
   Contributions.*          commands, keybindings and menus: what is one, enablement, the context, the commands,
                            keybindings and menus variables (built when read, DocumentContext::addVariable), and
                            the window's native menu bar (window.menuBar, shown after each update when it changed)
+                           (Reconciler.cpp shows window.focusRing the same way; role, label and description are
+                           properties, in Properties.cpp)
   Settings.*               the settings section: defaults, checked writes to settings.x, the settings and
                            settingsList variables
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
-  Scheduler.*              timers, animations, debounces, transitions, deferred tasks
+  Scheduler.*              timers, animations, debounces, transitions, deferred tasks (instant when
+                           window.reducedMotion)
   Catalog.*                the catalog, from the registries
   Reference*.*             the JSON Schema and SCREEN_FORMAT.md's tables, from the registries and each key's entry
                            (ReferenceNodes.cpp, ReferenceSections.cpp); `affrescoui schema` writes them

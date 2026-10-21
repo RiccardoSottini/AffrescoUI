@@ -223,6 +223,7 @@ public:
 	void wake() override { glfwPostEmptyEvent(); }
 
 	[[nodiscard]] ColorScheme colorScheme() const override { return desktop::colorScheme(); }
+	[[nodiscard]] bool reducedMotion() const override { return desktop::reducedMotion(); }
 
 private:
 	bool hiddenWindows_; ///< Windows open hidden (ApplicationOptions::hiddenWindows).

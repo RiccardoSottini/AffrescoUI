@@ -142,6 +142,11 @@ ColorScheme colorScheme() {
 	return status == ERROR_SUCCESS && light == 0 ? ColorScheme::Dark : ColorScheme::Light;
 }
 
+bool reducedMotion() {
+	BOOL animations = TRUE;
+	return SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0) && !animations;
+}
+
 void watchColorScheme() {} // WM_SETTINGCHANGE reaches the window and wakes the event loop, which reads it again
 
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {

@@ -19,18 +19,6 @@ namespace affresco::automation::detail {
 
 namespace {
 
-/// @brief Finds the n-th shown panel with an id, in tree order.
-/// @param panel Where to search.
-/// @param id The id.
-/// @param n How many matches to skip; counts down.
-/// @return The panel, or nullptr.
-Panel* findShown(Panel& panel, std::string_view id, int& n) {
-	if(panel.isShown() && panel.id() == id && n-- == 0) return &panel;
-	for(const auto& child : panel.children())
-		if(Panel* found = findShown(*child, id, n)) return found;
-	return nullptr;
-}
-
 /// @brief The name a step's kind: the key that says what it does.
 /// @param step The step.
 /// @return The kind, or "note" for a step that is only a comment.
@@ -181,10 +169,11 @@ Vec2 Player::pointOf(const json& target, int nth) {
 	if(target.is_array()) return {target[0].get<float>(), target[1].get<float>()};
 
 	static_cast<void>(stage_.window.panelAt({})); // lays out, so the bounds are current
-	const std::string id = target.get<std::string>().substr(1);
-	int skip = nth;
-	const Panel* panel = findShown(stage_.window.root(), id, skip);
-	if(!panel) throw StepError("no shown node '#" + id + "'" + (nth ? " (nth " + std::to_string(nth) + ")" : ""));
+	const Panel* panel = findTarget(stage_.window.root(), target, nth, true);
+	if(!panel)
+		throw StepError("no shown node " + (target.is_string() ? "'" + target.get<std::string>() + "'" +
+		                                                             (nth ? " (nth " + std::to_string(nth) + ")" : "")
+		                                                       : targetName(target, nth)));
 	const Rect& bounds = panel->bounds();
 	return {(bounds.left + bounds.right) / 2.0f, (bounds.top + bounds.bottom) / 2.0f};
 }

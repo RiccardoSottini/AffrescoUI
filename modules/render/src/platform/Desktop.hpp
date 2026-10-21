@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief What GLFW doesn't do, per OS: the system's colour scheme and a window's native menu bar. Each OS has its
+/// @brief What GLFW doesn't do, per OS: the system's colour scheme and motion setting, and a window's native menu bar. Each OS has its
 /// own file (DesktopMac.mm, DesktopWin32.cpp, DesktopOther.cpp); only the GLFW platform uses them.
 
 #include "affresco/render/Events.hpp"
@@ -22,7 +22,12 @@ namespace platform::desktop {
 /// @return Light where it can't be read.
 [[nodiscard]] ColorScheme colorScheme();
 
-/// @brief Makes a change of the colour scheme wake the event loop (glfwPostEmptyEvent()), where the OS announces it.
+/// @brief Whether the system asks for less motion now (macOS "Reduce motion", Windows "Animation effects" off).
+/// @return false where it can't be read.
+[[nodiscard]] bool reducedMotion();
+
+/// @brief Makes a change of the colour scheme or of the motion setting wake the event loop (glfwPostEmptyEvent()),
+/// where the OS announces it.
 /// Called once, after GLFW started.
 void watchColorScheme();
 

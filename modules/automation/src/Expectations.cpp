@@ -5,6 +5,7 @@
 #include "Player.hpp"
 
 #include <affresco/Screen.hpp>
+#include <affresco/render/Accessibility.hpp>
 #include <affresco/render/Controls.hpp>
 #include <affresco/render/Label.hpp>
 #include <affresco/render/TextEditor.hpp>
@@ -54,15 +55,16 @@ std::optional<json> follow(const json& value, const std::vector<std::string>& se
 	return *at;
 }
 
-/// @brief Finds the n-th panel with an id, shown or not, in tree order.
+/// @brief Finds the n-th panel with an id in tree order.
 /// @param panel Where to search.
 /// @param id The id.
 /// @param n How many matches to skip; counts down.
+/// @param shownOnly Whether hidden panels are skipped.
 /// @return The panel, or nullptr.
-Panel* findAny(Panel& panel, std::string_view id, long long& n) {
-	if(panel.id() == id && n-- == 0) return &panel;
+Panel* findById(Panel& panel, std::string_view id, long long& n, bool shownOnly) {
+	if((!shownOnly || panel.isShown()) && panel.id() == id && n-- == 0) return &panel;
 	for(const auto& child : panel.children())
-		if(Panel* found = findAny(*child, id, n)) return found;
+		if(Panel* found = findById(*child, id, n, shownOnly)) return found;
 	return nullptr;
 }
 
@@ -89,7 +91,7 @@ using Reader = json (*)(const Panel&);
 
 /// @brief The properties every panel has. Positions and sizes are the panel's whole area in window units, before
 /// clipping, from the last layout.
-constexpr std::array<std::pair<std::string_view, Reader>, 14> everyPanel = {{
+constexpr std::array<std::pair<std::string_view, Reader>, 17> everyPanel = {{
     {"color", [](const Panel& panel) { return json(panel.color().toHex()); }},
     {"borderColor", [](const Panel& panel) { return json(panel.borderColor().toHex()); }},
     {"borderWidth", [](const Panel& panel) { return json(panel.borderWidth()); }},
@@ -104,6 +106,9 @@ constexpr std::array<std::pair<std::string_view, Reader>, 14> everyPanel = {{
     {"height", [](const Panel& panel) { return json(panel.frame().height()); }},
     {"scrollX", [](const Panel& panel) { return json(panel.scrollOffset().x); }},
     {"scrollY", [](const Panel& panel) { return json(panel.scrollOffset().y); }},
+    {"role", [](const Panel& panel) { return json(accessibleRole(panel)); }},
+    {"name", [](const Panel& panel) { return json(accessibleName(panel)); }},
+    {"description", [](const Panel& panel) { return json(panel.accessibleDescription()); }},
 }};
 
 /// @brief Reads a property that every panel has, or that its kind of panel has.
@@ -139,6 +144,19 @@ bool matches(const json& actual, const json& expected) {
 
 } // namespace
 
+Panel* findTarget(Panel& root, const json& target, long long nth, bool shownOnly) {
+	if(target.is_string()) return findById(root, std::string_view(target.get_ref<const std::string&>()).substr(1), nth,
+	                                       shownOnly);
+	const std::vector<Panel*> found = findByRole(root, target["role"].get<std::string>(), target.value("name", ""));
+	return nth < static_cast<long long>(found.size()) ? found[static_cast<std::size_t>(nth)] : nullptr;
+}
+
+std::string targetName(const json& target, long long nth) {
+	std::string name = target.is_string() ? target.get<std::string>() : target["role"].get<std::string>();
+	if(target.is_object() && target.contains("name")) name += " '" + target["name"].get<std::string>() + "'";
+	return name + (nth ? " (nth " + std::to_string(nth) + ")" : "");
+}
+
 std::string checkState(const Screen& screen, const json& expect) {
 	const std::string path = expect["state"].get<std::string>();
 	const std::optional<std::vector<std::string>> segments = parseStatePath(path); // checked when the file was read
@@ -150,11 +168,9 @@ std::string checkState(const Screen& screen, const json& expect) {
 }
 
 std::string checkNode(Panel& root, const json& expect) {
-	const std::string node = expect["node"].get<std::string>();
 	const long long nth = expect.value("nth", 0LL);
-	long long skip = nth;
-	const Panel* panel = findAny(root, std::string_view(node).substr(1), skip);
-	const std::string name = node + (nth ? " (nth " + std::to_string(nth) + ")" : "");
+	const Panel* panel = findTarget(root, expect["node"], nth, false);
+	const std::string name = targetName(expect["node"], nth);
 
 	if(expect.contains("exists")) {
 		const bool wanted = expect["exists"].get<bool>();

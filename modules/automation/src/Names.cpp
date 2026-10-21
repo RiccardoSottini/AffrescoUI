@@ -37,9 +37,10 @@ constexpr std::array<std::pair<std::string_view, int>, 5> modifiers = {{
 }};
 
 /// @brief The properties `expect` reads from a node.
-constexpr std::array<std::string_view, 18> properties = {
+constexpr std::array<std::string_view, 21> properties = {
     "text",  "textColor", "color",   "borderColor", "borderWidth", "shown", "visible", "focused", "hovered",
-    "tooltip", "checked", "value", "x",           "y",           "width", "height", "scrollX", "scrollY"};
+    "tooltip", "checked", "value", "x",           "y",           "width", "height", "scrollX", "scrollY",
+    "role",  "name",      "description"};
 
 /// @brief Reads a key without modifiers.
 /// @param name "enter", "a", "7", "f5".

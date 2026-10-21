@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
-| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS: the bar at the top of the screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own). |
+| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS: the bar at the top of the screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: a ring drawn above everything around the node the keyboard focused (Tab, the arrows; not a click), following its corners: a colour, or `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (the default: none). |
 | `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits: `"padding": "@space.m"`, `"radius": "@radius.card"`, `"color": "@color.surface"`, and a font's `"size": "@type.body"`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it. |
@@ -130,6 +130,9 @@ parent, later siblings on top of earlier ones.
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
 | `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
 | `focusable` | `true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable). |
+| `role` | What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, `list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an `onClick`; other nodes have none and are skipped in the accessibility tree. |
+| `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
+| `description` | A longer accessible description, read after the name. |
 | `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
 | `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
 | `mnemonic` | A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` node, the letter alone does. |
@@ -795,15 +798,17 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "expect": ... }` | Checks something (below) |
 | `{ "capture": "name" }` | Saves a picture as `<scenario>-<name>.png` (`affrescoui test --out`) |
 
-A target is `"#id"`, the centre of the first shown node with that id (`"nth": 2` picks the third), or `[x, y]` in
-window units. Expectations:
+A target is `"#id"`, the centre of the first shown node with that id (`"nth": 2` picks the third),
+`{ "role": "button", "name": "Save" }`, the first shown node with that role and accessible name (`name` is optional;
+see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in window units. Expectations:
 
 | Expectation | Holds when |
 |---|---|
 | `{ "state": "cards[0].title", "is": "Plan" }` | The live state has that value there (a path as expressions write it, without `state.`; `.length` counts a list or a text) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY` (positions and sizes in window units, within 0.01) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description` (positions and sizes in window units, within 0.01; `name` is the accessible name) |
+| `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 
 A failed expectation is reported and the scenario goes on; a step that can't be played (no such node, a refused

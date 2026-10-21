@@ -155,6 +155,8 @@ public:
 
 	/// @brief Whether the system shows light or dark windows now (Light where it can't be read).
 	[[nodiscard]] virtual ColorScheme colorScheme() const = 0;
+	/// @brief Whether the system asks for less motion now (false where it can't be read).
+	[[nodiscard]] virtual bool reducedMotion() const = 0;
 };
 
 /// @brief Starts GLFW.
