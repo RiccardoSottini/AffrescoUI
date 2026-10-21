@@ -47,7 +47,8 @@ constexpr KeyReference sectionTable[] = {
 	 "collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs "
 	 "(kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji "
 	 "too, from colour (COLR) fonts. `\"fallback\": [\"symbols\"]` names other fonts, asked in order for a character "
-	 "this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A "
+	 "this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`: on "
+	 "macOS, key labels in menus use ⌘ ⇧ ⌥ ⌃, which many text fonts lack (JetBrains Mono has them). A "
 	 "right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right.",
 	 "sections"},
     {"colors", R"json({"type": "object",
