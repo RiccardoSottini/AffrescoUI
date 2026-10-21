@@ -16,7 +16,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
 | `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
-| `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks |
+| `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture) |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
 | `Layout.hpp` | The values of flexible and grid layout: `Justify`, `CrossAlign`, `Track` (pixels, percent, fractions, content, minmax), `GridCell` |
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
@@ -109,6 +109,11 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   that repeats their edges, larger ones get a texture of their own, and both are freed the first frame after their
   `Bitmap` is gone (a page once no image on it is alive). An image is a colour quad bound where a font's colour page
   would be, next to the batch's coverage page, so text, icons and the small images of one page draw in one call.
+- **A cached subtree is one quad.** A panel with `setCached(true)` has its subtree drawn into a texture of its own
+  (`gl/SubtreeTextures`, a framebuffer object per subtree, premultiplied RGBA, within a budget of 64 Mi texels), then
+  drawn as one colour quad of it every frame. It is drawn into it again only when a panel in it was recorded again or
+  marked, or when its area changes; a subtree over the budget is drawn directly. Textures not used in a full frame
+  are freed. Screenshots draw from scratch, without the cache.
 - **Icons are glyphs.** `Font::codepointNamed` finds a glyph by its PostScript name in the font and its fallbacks;
   with an icon font (Lucide) as a fallback of the text font, a label's icon comes from the text's own atlas.
 - **Rich text is runs.** A label's `TextRun`s each name their font (a bold, italic or larger variant), colour, link
@@ -204,7 +209,8 @@ src/
   detail/ShelfPacker.hpp   shelf packing, shared by the glyph atlas and the image pages
   gl/                      everything OpenGL: Context (state, read-back, canvases, scissored regions), GlObjects
                            (RAII names), Shader, QuadRenderer (replays records into batches and draws them),
-                           ImageTextures (image pages and textures), OpenGlRenderer (the Renderer: canvases with
+                           QuadRendererCache (cached subtrees), SubtreeTextures (their textures and
+                           framebuffers), ImageTextures (image pages and textures), OpenGlRenderer (the Renderer: canvases with
                            their damage, a full frame as the fallback)
 CMakeLists.txt             the affrescoui_render target and its sources
 ```

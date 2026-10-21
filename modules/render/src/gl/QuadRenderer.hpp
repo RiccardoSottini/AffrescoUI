@@ -8,6 +8,7 @@
 #include "RetainedGeometry.hpp"
 #include "gl/GlObjects.hpp"
 #include "gl/ImageTextures.hpp"
+#include "gl/SubtreeTextures.hpp"
 
 #include "affresco/render/Font.hpp"
 
@@ -46,8 +47,8 @@ namespace affresco::gl {
 /// same goes for colour glyphs. Which of them a frame has is known for the whole frame, even one drawn in a region.
 ///
 /// Images (an image step of a record) are colour quads too: their texture (an image page, or the image's own) is bound
-/// where a font's colour page would be, next to the batch's coverage page, so text, rectangles and images from one image
-/// page share a batch. Their texels are premultiplied, as colour glyphs' are.
+/// where a font's colour page would be, next to the batch's coverage page, so text, rectangles and images from one
+/// image page share a batch. Their texels are premultiplied, as colour glyphs' are.
 ///
 /// The textures of a font's atlas pages are kept while the font lives, and freed by the first frame after it is gone;
 /// so are an image's (ImageTextures).
@@ -121,6 +122,28 @@ private:
 	/// record. Hidden subtrees, and subtrees wholly outside the region, are left out.
 	/// @param panel The subtree's root.
 	void replayTree(const Panel& panel);
+	/// @brief Replays a shown panel's record and its children's, as replayTree() does once it has checked them.
+	/// @param panel The subtree's root.
+	/// @param record Its record.
+	void replayContent(const Panel& panel, const detail::PaintRecord& record);
+	/// @brief Adds a cached subtree as one quad of its texture, drawing the subtree into it first if it changed.
+	/// @param panel The subtree's root, shown and cached.
+	/// @param geometry Its geometry.
+	/// @return false if it has no texture (over the budget): the caller draws it directly.
+	bool replayCached(const Panel& panel, const detail::PanelGeometry& geometry);
+	/// @brief Draws a subtree into its texture, in a pass of its own: the frame's quads and batches so far are set
+	/// aside, then put back.
+	/// @param panel The subtree's root.
+	/// @param geometry Its geometry.
+	/// @param entry Its texture.
+	/// @param area Where it is in the framebuffer.
+	void renderCached(const Panel& panel, const detail::PanelGeometry& geometry, SubtreeTextures::Entry& entry,
+	                  const SubtreeArea& area);
+	/// @brief Submits the quads of a pass into a subtree's texture, then gives the frame's framebuffer back.
+	/// @param geometry The subtree's geometry: which shaders it needs.
+	/// @param entry Its texture.
+	/// @param area Where it is in the framebuffer.
+	void submitInto(const detail::PanelGeometry& geometry, SubtreeTextures::Entry& entry, const SubtreeArea& area);
 	/// @brief Records a panel afresh, replays it and its children the same way (drawFromScratch()).
 	/// @param panel The subtree's root.
 	/// @param outerClip What clips it: its parent's bounds, or the window.
@@ -204,6 +227,7 @@ private:
 	std::unordered_map<std::uint64_t, FontTextures> fontTextures_; ///< By Font::id().
 	detail::GeometryCache cache_;                                  ///< The panels' geometry, frame after frame.
 	ImageTextures images_;                                         ///< The images drawn.
+	SubtreeTextures subtrees_;                                     ///< The cached subtrees' textures.
 
 	// Per frame, reused so steady-state frames don't allocate
 	std::vector<detail::Vertex> vertices_;    ///< 4 per quad.
@@ -214,6 +238,17 @@ private:
 	bool scratchShapes_ = false;              ///< drawFromScratch() recorded a shape.
 	bool scratchColor_ = false;               ///< drawFromScratch() recorded a colour glyph.
 	std::size_t drawCalls_ = 0;               ///< See drawCalls().
+	/// @brief The quads and batches of a frame set aside while a cached subtree is drawn into its texture.
+	struct Pass {
+		std::vector<detail::Vertex> vertices; ///< Its quads.
+		std::vector<Batch> batches;           ///< Its batches.
+	};
+	std::deque<Pass> passes_;   ///< By depth of cached subtrees inside cached subtrees (deque: they stay put).
+	std::size_t passDepth_ = 0; ///< The passes set aside now.
+	int framebufferWidth_ = 0;  ///< The frame's framebuffer width, in pixels.
+	int framebufferHeight_ = 0; ///< The frame's framebuffer height, in pixels.
+	int frameWidth_ = 0;        ///< The frame's width, in window units.
+	int frameHeight_ = 0;       ///< The frame's height, in window units.
 	/// The paint generation of whole frames drawn by draw(root, ...), counted from the top so it never meets a
 	/// window's.
 	std::uint64_t ownGeneration_ = std::uint64_t{1} << 63;

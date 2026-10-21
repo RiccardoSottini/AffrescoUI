@@ -213,10 +213,17 @@ void QuadRenderer::startFrame() {
 
 void QuadRenderer::draw(const detail::Frame& frame, const std::optional<Rect>& region, bool shapes, bool color) {
 	startFrame();
+	std::array<GLint, 4> viewport{};
+	glGetIntegerv(GL_VIEWPORT, viewport.data());
+	framebufferWidth_ = viewport[2];
+	framebufferHeight_ = viewport[3];
+	frameWidth_ = frame.width;
+	frameHeight_ = frame.height;
 	region_ = region;
 	replayTree(frame.root);
 	for(const Panel* overlay : frame.overlays) replayTree(*overlay);
 	if(frame.tooltip) replayTree(*frame.tooltip);
+	if(!region_) subtrees_.collect(); // a region's frame may have skipped cached subtrees that are still there
 	region_.reset();
 	submit(frame.width, frame.height, shapes, color);
 }
@@ -291,8 +298,11 @@ void QuadRenderer::replayTree(const Panel& panel) {
 	const detail::PanelGeometry* geometry = panel.geometry_.get();
 	if(!geometry || !geometry->recorded) return;
 	if(region_ && !detail::overlaps(*region_, detail::reachOf(panel.bounds(), geometry->record))) return;
+	if(geometry->cached && replayCached(panel, *geometry)) return;
+	replayContent(panel, geometry->record);
+}
 
-	const detail::PaintRecord& record = geometry->record;
+void QuadRenderer::replayContent(const Panel& panel, const detail::PaintRecord& record) {
 	replay(record, 0, record.overStart);
 	for(const auto& child : panel.children())
 		if(!child->isOverlay()) replayTree(*child); // overlays are drawn after the whole tree

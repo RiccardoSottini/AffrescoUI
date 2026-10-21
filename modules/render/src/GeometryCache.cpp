@@ -12,6 +12,12 @@
 
 namespace affresco::detail {
 
+namespace {
+
+std::uint64_t lastGeometryId = 0; ///< The last PanelGeometry::id given (main thread only).
+
+} // namespace
+
 Rect reachOf(const Rect& bounds, const PaintRecord& record) noexcept {
 	return record.extent ? unite(bounds, *record.extent) : bounds;
 }
@@ -33,7 +39,7 @@ Refreshed GeometryCache::refresh(const Frame& frame) {
 	const auto gather = [&result](const Panel& panel) {
 		if(const PanelGeometry* geometry = panel.geometry_.get()) {
 			result.shapes = result.shapes || geometry->subtreeShapes;
-			result.color = result.color || geometry->subtreeColor;
+			result.color = result.color || geometry->subtreeColor || geometry->cached;
 		}
 	};
 	gather(frame.root);
@@ -50,14 +56,22 @@ bool GeometryCache::needsVisit(const Panel& panel) const noexcept {
 }
 
 void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip) {
-	if(!panel.geometry_) panel.geometry_ = std::make_unique<PanelGeometry>();
+	if(!panel.geometry_) {
+		panel.geometry_ = std::make_unique<PanelGeometry>();
+		panel.geometry_->id = ++lastGeometryId;
+	}
 	PanelGeometry& geometry = *panel.geometry_;
+	const std::uint64_t changesBefore = changes_;
+	const bool marked = panel.paintStale_ || panel.paintBelow_;
 	if(all_ || panel.paintStale_ || panel.layoutPass_ > lastPass_ || !geometry.recorded)
 		refreshPanel(panel, outerClip, geometry);
 
 	// A hidden panel draws no child: it was damage where it reached, which holds its children
 	geometry.subtreeShapes = geometry.subtreeColor = false;
 	if(panel.shown_) refreshChildren(panel, geometry);
+	// A cached subtree is drawn again into its texture when anything in it was recorded again or marked
+	if(panel.cached_ && (all_ || marked || changes_ != changesBefore)) ++geometry.subtreeVersion;
+	geometry.cached = panel.shown_ && panel.cached_;
 	panel.paintStale_ = panel.paintBelow_ = false;
 }
 
@@ -68,7 +82,7 @@ void GeometryCache::refreshChildren(Panel& panel, PanelGeometry& geometry) {
 		if(needsVisit(*child)) refreshTree(*child, panel.bounds_);
 		if(const PanelGeometry* below = child->geometry_.get()) {
 			shapes = shapes || below->subtreeShapes;
-			color = color || below->subtreeColor;
+			color = color || below->subtreeColor || below->cached; // a cached child is a colour quad
 		}
 	}
 	geometry.subtreeShapes = shapes;
@@ -80,6 +94,7 @@ void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeome
 	                   panel.contentMin_, panel.contentMax_, frameGeneration_};
 	if(panel.shown_ && geometry.recorded && !panel.paintStale_ && geometry.key == key) return; // nothing changed
 
+	++changes_;
 	if(geometry.recorded) addTo(damage_, reachOf(geometry.key.bounds, geometry.record));
 	geometry.record.clear();
 	geometry.recorded = false;

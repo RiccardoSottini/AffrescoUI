@@ -612,6 +612,9 @@
 					"visible": {
 						"$ref": "#/$defs/v1/flag"
 					},
+					"cache": {
+						"$ref": "#/$defs/v1/flag"
+					},
 					"cursor": {
 						"anyOf": [
 							{

@@ -246,6 +246,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setCornerRadii({});
 	panel.setBorder(0.0f, colors::black);
 	panel.setShadow({});
+	panel.setCached(false);
 	panel.setCursor(record.defaultCursor);
 	panel.setGrow(0.0f);
 	resetLayoutItem(panel);
@@ -415,6 +416,9 @@ bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const
 		break; // set last, as it may transition
 	case Slot::Shadow:
 		panel.setShadow(engine_.document.shadow(value, at));
+		break;
+	case Slot::Cache:
+		panel.setCached(boolean(value, at));
 		break;
 	default:
 		return false;

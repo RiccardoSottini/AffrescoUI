@@ -318,6 +318,11 @@ public:
 	void setShadow(const Shadow& shadow);
 	/// @brief The shadow.
 	[[nodiscard]] const Shadow& shadow() const noexcept { return shadow_; }
+	/// @brief Keeps the subtree's drawing in a texture, drawn as one quad until something in it changes.
+	/// @param cached true to cache it (worth it for a large subtree that rarely changes).
+	void setCached(bool cached) { setLook(cached_, cached); }
+	/// @brief The flag set by setCached().
+	[[nodiscard]] bool isCached() const noexcept { return cached_; }
 
 	/// @brief Shows or hides the panel and its subtree.
 	/// @param visible false to hide it from drawing, hit-testing and stacks.
@@ -615,6 +620,7 @@ private:
 	Color borderColor_ = colors::black;                   ///< See borderColor().
 	Shadow shadow_;                                       ///< See shadow().
 	bool visible_ = true;                                 ///< See setVisible().
+	bool cached_ = false;                                 ///< See setCached().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
 	std::string tooltip_;                                 ///< See tooltip().
 

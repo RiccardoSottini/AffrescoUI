@@ -49,6 +49,8 @@ affrescoui_module(render
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp
 	src/gl/QuadRenderer.cpp
+	src/gl/QuadRendererCache.cpp
+	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
 	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include

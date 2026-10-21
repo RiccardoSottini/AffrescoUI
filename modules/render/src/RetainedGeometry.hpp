@@ -98,11 +98,14 @@ struct PaintKey {
 
 /// @brief What a panel keeps of its drawing, owned by the panel; the renderer fills it.
 struct PanelGeometry {
-	PaintRecord record;         ///< What it drew.
-	PaintKey key;               ///< What that depended on.
-	bool recorded = false;      ///< record and key hold a drawing (the panel was shown when last refreshed).
-	bool subtreeShapes = false; ///< It or a descendant (not an overlay) is shown and has shapes.
-	bool subtreeColor = false;  ///< It or a descendant (not an overlay) is shown and uses colour pages.
+	PaintRecord record;               ///< What it drew.
+	PaintKey key;                     ///< What that depended on.
+	bool recorded = false;            ///< record and key hold a drawing (the panel was shown when last refreshed).
+	bool subtreeShapes = false;       ///< It or a descendant (not an overlay) is shown and has shapes.
+	bool subtreeColor = false;        ///< It or a descendant (not an overlay) is shown and uses colour pages.
+	bool cached = false;              ///< It is shown and cached (Panel::setCached()): drawn as one colour quad.
+	std::uint64_t id = 0;             ///< Unique among geometries: names its subtree's texture.
+	std::uint64_t subtreeVersion = 0; ///< For a cached panel: changes when its subtree's drawing may have.
 };
 
 /// @brief Whether two rectangles overlap (touching edges don't).

@@ -84,9 +84,20 @@ struct TextureTraits {
 	static void destroy(GLuint id) noexcept { glDeleteTextures(1, &id); }
 };
 
+/// @brief Framebuffer object lifetime.
+struct FramebufferTraits {
+	static GLuint create() {
+		GLuint id = 0;
+		glGenFramebuffers(1, &id);
+		return id;
+	}
+	static void destroy(GLuint id) noexcept { glDeleteFramebuffers(1, &id); }
+};
+
 using Buffer = Object<BufferTraits>;           ///< An owned buffer.
 using VertexArray = Object<VertexArrayTraits>; ///< An owned vertex array.
 using Program = Object<ProgramTraits>;         ///< An owned shader program.
 using Texture = Object<TextureTraits>;         ///< An owned texture.
+using Framebuffer = Object<FramebufferTraits>; ///< An owned framebuffer object.
 
 } // namespace affresco::gl

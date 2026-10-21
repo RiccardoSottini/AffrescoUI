@@ -114,6 +114,11 @@ constexpr KeyReference nodeTable[] = {
 	 "the parent, like the node itself.",
 	 "look"},
     {"visible", "flag", "`false` hides the node and its children.", "look"},
+    {"cache", "flag",
+	 "`true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them "
+	 "changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same. "
+	 "Default: `false`.",
+	 "look"},
     {"cursor", R"json({"anyOf": [{"enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"]},
 		{"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "`arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`.", "look"},
