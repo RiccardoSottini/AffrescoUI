@@ -41,6 +41,13 @@ def translation_units(build, root, sources):
     return sorted(units)
 
 
+def unbuilt(paths, units):
+    """The .cpp files among `paths` that aren't among the build's translation `units`, sorted: the ones this platform
+    doesn't build. Headers are kept, since clang-tidy reads them through the files that include them."""
+    units = set(units)
+    return sorted(path for path in paths if path.endswith(".cpp") and path not in units)
+
+
 def relative(path, root):
     """A path relative to root, with forward slashes, or None if it is outside root."""
     path = os.path.relpath(os.path.realpath(path), os.path.realpath(root))
