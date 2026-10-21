@@ -60,6 +60,17 @@ TEST_CASE("format: a revision may run actions that change only the screen") {
 	CHECK(allowed(withNode(json::parse(R"({"type": "panel", "onClick": "refresh"})"))));
 	CHECK(allowed(withNode(json::parse(R"({"type": "panel", "every": {"ms": 100, "do": [{"run": "refresh"}]}})"))));
 	CHECK(allowed(withNode(json::parse(R"({"type": "panel", "keys": {"ctrl+r": "refresh"}})"))));
+	CHECK(allowed(withNode(
+	    json::parse(R"({"type": "panel", "keys": {"ctrl+r": {"when": "{{state.p > 0}}", "do": "refresh"}}})"))));
+	CHECK(allowed(withNode(json::parse(R"({"type": "panel", "keys": {"ctrl+k ctrl+r": [{"do": "refresh"}]}})"))));
+}
+
+TEST_CASE("format: a revision may not bind a key or a command to an action that controls changes") {
+	CHECK_FALSE(allowed(withNode(json::parse(R"({"type": "panel", "keys": {"ctrl+s": {"do": "save"}}})"))));
+	CHECK_FALSE(allowed(withNode(json::parse(R"({"type": "panel", "keys": {"ctrl+a": [{"do": "approve"}]}})"))));
+	json command = screenWithActions();
+	command["actions"]["saveCommand"] = {{"title", "Save"}, {"do", "save"}};
+	CHECK_FALSE(allowed(command));
 }
 
 // Before, checkChange looked for the control steps themselves, so a revision could run the ones the screen already

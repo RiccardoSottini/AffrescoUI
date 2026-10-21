@@ -1,0 +1,23 @@
+{
+	"format": "affrescoui-screen",
+	"version": 1,
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": {
+		"quickPick": { "open": true }, "opened": null, "ran": null,
+		"files": [{ "title": "main.cpp", "detail": "src" }, { "title": "Makefile" }, { "title": "README.md" },
+		          { "title": "mouse.cpp", "detail": "src/input" }, { "title": "menu.json", "detail": "assets" }]
+	},
+	"actions": {
+		"open": [{ "set": "state.opened", "to": "{{item.title}}" }],
+		"save": [{ "set": "state.ran", "to": "save" }]
+	},
+	"root": {
+		"id": "root", "color": "#1e1e1e",
+		"children": [
+			{ "id": "pick", "use": "quickPick", "with": { "providers": [
+				{ "items": "{{state.files}}", "run": "open", "placeholder": "Go to file" },
+				{ "prefix": ">", "items": [{ "title": "Save", "run": "save" }], "placeholder": "Run a command" }
+			] } }
+		]
+	}
+}

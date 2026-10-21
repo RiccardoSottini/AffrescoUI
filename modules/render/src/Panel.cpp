@@ -320,6 +320,12 @@ void Panel::clearOverlay() {
 
 void Panel::setTooltip(std::string text) { tooltip_ = std::move(text); }
 
+void Panel::setAccessibleRole(std::string role) { role_ = std::move(role); }
+
+void Panel::setAccessibleLabel(std::string label) { accessibleLabel_ = std::move(label); }
+
+void Panel::setAccessibleDescription(std::string description) { description_ = std::move(description); }
+
 /* Appearance */
 
 void Panel::setColor(Color color) { setLook(color_, color); }

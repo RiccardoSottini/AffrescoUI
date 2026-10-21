@@ -31,14 +31,26 @@ void onlyKeys(const json& value, std::initializer_list<std::string_view> allowed
 			fail(place.empty() ? key : std::format("{}.{}", place, key), "unknown key here");
 }
 
-/// @brief Checks a target: [x, y] in window units, or "#id".
+/// @brief Checks a node found by what it is to a person: { "role", "name"? }.
+/// @param target The object.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkByRole(const json& target, const std::string& place) {
+	onlyKeys(target, {"role", "name"}, place);
+	if(!target.contains("role") || !target["role"].is_string() || target["role"].get<std::string>().empty())
+		fail(place + ".role", R"(expected a role: "button", "checkbox", "textbox", ...)");
+	if(target.contains("name") && !target["name"].is_string()) fail(place + ".name", "expected a string");
+}
+
+/// @brief Checks a target: [x, y] in window units, "#id", or { "role", "name"? }.
 /// @param target The target.
 /// @param place Its place.
-/// @throws DocumentError If it is neither.
+/// @throws DocumentError If it is none of them.
 void checkTarget(const json& target, const std::string& place) {
 	if(target.is_array() && target.size() == 2 && target[0].is_number() && target[1].is_number()) return;
 	if(target.is_string() && target.get<std::string>().size() > 1 && target.get<std::string>().front() == '#') return;
-	fail(place, R"(expected [x, y] in window units, or "#id")");
+	if(target.is_object()) return checkByRole(target, place);
+	fail(place, R"(expected [x, y] in window units, "#id", or {"role": ..., "name": ...})");
 }
 
 /// @brief Checks "nth", the match a "#id" picks among several (0, the first, by default).
@@ -66,9 +78,11 @@ void checkFileName(const json& value, const std::string& place) {
 /// @throws DocumentError If it is malformed.
 void checkNodeExpectation(const json& expect, const std::string& place) {
 	onlyKeys(expect, {"node", "nth", "exists", "text", "property", "is", "note"}, place);
-	if(!expect["node"].is_string() || expect["node"].get<std::string>().size() < 2 ||
-	   expect["node"].get<std::string>().front() != '#')
-		fail(place + ".node", R"(expected "#id")");
+	if(expect["node"].is_object())
+		checkByRole(expect["node"], place + ".node");
+	else if(!expect["node"].is_string() || expect["node"].get<std::string>().size() < 2 ||
+	        expect["node"].get<std::string>().front() != '#')
+		fail(place + ".node", R"(expected "#id", or {"role": ..., "name": ...})");
 	checkNth(expect, place);
 	const int what = static_cast<int>(expect.contains("exists")) + static_cast<int>(expect.contains("text")) +
 	                 static_cast<int>(expect.contains("property"));

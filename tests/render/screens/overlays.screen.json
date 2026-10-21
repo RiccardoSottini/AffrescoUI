@@ -1,0 +1,33 @@
+{
+	"format": "affrescoui-screen",
+	"version": 1,
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "n": 0, "last": "", "bar": {}, "dialog": false, "toast": true, "answer": "" },
+	"actions": {
+		"add": [{ "increment": "state.n", "by": 1 }, { "set": "state.last", "to": "{{what}}" }],
+		"answer": [{ "set": "state.answer", "to": "{{what}}" }]
+	},
+	"root": {
+		"id": "root", "color": "#1e1e1e",
+		"children": [{ "type": "column", "fill": true, "children": [
+			{ "use": "menuBar", "id": "bar", "width": "100%",
+				"with": { "open": "state.bar", "menus": [
+				{ "name": "file", "title": "File", "items": [
+					{ "title": "New", "keyLabel": "Ctrl+N", "run": "add", "with": { "what": "new" } },
+					{ "separator": true },
+					{ "title": "Recent", "submenu": [{ "title": "One", "run": "add", "with": { "what": "one" } }] },
+					{ "title": "Off", "enabled": false }
+				] },
+				{ "name": "edit", "title": "Edit", "items": [{ "title": "Undo" }] }
+			] } },
+			{ "id": "ask", "width": "100%", "height": 40, "color": "#333333",
+			  "onClick": { "set": "state.dialog", "to": true } },
+			{ "use": "dialog", "with": { "open": "state.dialog", "title": "Save changes?",
+				"message": "Your edits are not saved.",
+				"buttons": [{ "title": "Save", "run": "answer", "with": { "what": "save" } },
+				            { "title": "Cancel", "run": "answer", "with": { "what": "cancel" } }] } },
+			{ "use": "toast", "with": { "open": "state.toast", "message": "Indexing", "progress": 0.4,
+				"actions": [{ "title": "Stop", "run": "answer", "with": { "what": "stop" } }] } }
+		] }]
+	}
+}

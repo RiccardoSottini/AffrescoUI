@@ -2,6 +2,8 @@
 /// @brief format::Engine: the runtime's composition root.
 
 #include "Engine.hpp"
+#include "Contributions.hpp"
+#include "Settings.hpp"
 
 #include "affresco/core/Log.hpp"
 
@@ -15,6 +17,8 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
       events(*this), runner(*this), models(*this), calls(*this) {
 	registerBuiltInTypes(types);
+	addContributionVariables(*this);
+	addSettingsVariables(*this);
 }
 
 void Engine::documentChanged() {

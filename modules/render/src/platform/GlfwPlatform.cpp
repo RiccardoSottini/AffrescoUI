@@ -1,7 +1,9 @@
 /// @file
-/// @brief The GLFW platform: windows with an OpenGL 4.1 core context, their input, cursors and clipboard, and the
-/// event loop's waiting. The only file of the render module that calls GLFW.
+/// @brief The GLFW platform: windows with an OpenGL 4.1 core context, their input, cursors, clipboard, dropped files
+/// and display scale, and the event loop's waiting. What GLFW doesn't do (the colour scheme, native menu bars) comes
+/// from platform/Desktop.hpp; besides those files, the only one of the render module that calls GLFW.
 
+#include "platform/Desktop.hpp"
 #include "platform/Platform.hpp"
 
 #include "affresco/core/Log.hpp"
@@ -11,8 +13,11 @@
 
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace affresco::platform {
 
@@ -33,8 +38,9 @@ public:
 		glfwSwapInterval(1); // vsync: never render faster than the display
 	}
 
-	/// @brief Destroys the cursors and the window.
+	/// @brief Destroys the menu bar, the cursors and the window.
 	~GlfwWindow() override {
+		menuBar_.reset();
 		for(GLFWcursor* cursor : cursors_)
 			if(cursor) glfwDestroyCursor(cursor);
 		glfwDestroyWindow(handle_);
@@ -80,6 +86,12 @@ public:
 	}
 	void wake() override { glfwPostEmptyEvent(); }
 	[[nodiscard]] void* handle() const noexcept override { return handle_; }
+	[[nodiscard]] float contentScale() const override {
+		float x = 1.0f, y = 1.0f;
+		glfwGetWindowContentScale(handle_, &x, &y);
+		return x;
+	}
+	bool setMenuBar(const std::vector<MenuItem>& menus) override;
 
 private:
 	/// @brief The Window a GLFW window delivers its events to.
@@ -88,11 +100,15 @@ private:
 	static Window& owner(GLFWwindow* window) { return *static_cast<Window*>(glfwGetWindowUserPointer(window)); }
 
 	GLFWwindow* handle_;                   ///< The window and its context; destroyed with this object.
+	Window* window_ = nullptr;             ///< The Window it was connected to.
+	std::unique_ptr<desktop::MenuBar> menuBar_; ///< Its native menu bar, created on first use.
+	bool noMenuBar_ = false;                ///< Native menus aren't supported here.
 	std::array<GLFWcursor*, 5> cursors_{}; ///< Standard cursors, created on first use (indexed by Cursor).
 };
 
 // GLFW's callbacks are converted to typed events and routed immediately
 void GlfwWindow::connect(Window& window) {
+	window_ = &window;
 	glfwSetWindowUserPointer(handle_, &window);
 
 	// Size changes only mark the window dirty; the main loop or the refresh callback draws once.
@@ -126,6 +142,33 @@ void GlfwWindow::connect(Window& window) {
 	});
 	glfwSetCursorEnterCallback(
 	    handle_, [](GLFWwindow* native, int entered) { owner(native).routeCursorEnter(entered == GLFW_TRUE); });
+
+	glfwSetDropCallback(handle_, [](GLFWwindow* native, int count, const char** paths) {
+		double x = 0.0, y = 0.0;
+		glfwGetCursorPos(native, &x, &y);
+		DropEvent event{std::vector<std::string>(paths, paths + count), {static_cast<float>(x), static_cast<float>(y)}};
+		dropped(owner(native), event);
+	});
+	glfwSetWindowContentScaleCallback(handle_,
+	                                  [](GLFWwindow* native, float x, float) { displayChanged(owner(native), x); });
+	glfwSetWindowFocusCallback(handle_, [](GLFWwindow* native, int focused) {
+		auto* self = static_cast<GlfwWindow*>(&of(owner(native)));
+		if(focused == GLFW_TRUE && self->menuBar_) self->menuBar_->activate(); // macOS: the bar is the app's
+	});
+}
+
+bool GlfwWindow::setMenuBar(const std::vector<MenuItem>& menus) {
+	if(noMenuBar_ || !window_) return false;
+	if(!menuBar_) {
+		Window* window = window_;
+		menuBar_ = desktop::createMenuBar(handle_, [window](std::function<void()> run) { chosen(*window, std::move(run)); });
+		if(!menuBar_) {
+			noMenuBar_ = true;
+			return false;
+		}
+	}
+	menuBar_->show(menus);
+	return true;
 }
 
 void GlfwWindow::setCursor(Cursor cursor) {
@@ -152,6 +195,7 @@ public:
 			log(LogLevel::Error, "AffrescoUI: GLFW error " + std::to_string(code) + ": " + description);
 		});
 		if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
+		desktop::watchColorScheme();
 	}
 	/// @brief Stops GLFW; every window must be gone.
 	~GlfwPlatform() override { glfwTerminate(); }
@@ -177,6 +221,9 @@ public:
 	}
 
 	void wake() override { glfwPostEmptyEvent(); }
+
+	[[nodiscard]] ColorScheme colorScheme() const override { return desktop::colorScheme(); }
+	[[nodiscard]] bool reducedMotion() const override { return desktop::reducedMotion(); }
 
 private:
 	bool hiddenWindows_; ///< Windows open hidden (ApplicationOptions::hiddenWindows).

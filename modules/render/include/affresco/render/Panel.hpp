@@ -288,6 +288,24 @@ public:
 	/// @brief The tooltip text; empty if none.
 	[[nodiscard]] const std::string& tooltip() const noexcept { return tooltip_; }
 
+	/* Accessibility: what assistive tools and tests read (affresco/render/Accessibility.hpp) */
+
+	/// @brief Sets the role (ARIA's names: "button", "checkbox", "textbox", "dialog", ...).
+	/// @param role The role; empty for the one the widget implies (accessibleRole() of a Label is "text", ...).
+	void setAccessibleRole(std::string role);
+	/// @brief The role setAccessibleRole() gave; empty if none.
+	[[nodiscard]] const std::string& accessibleRole() const noexcept { return role_; }
+	/// @brief Sets the accessible name, in place of the one taken from its text.
+	/// @param label The name; empty for the text.
+	void setAccessibleLabel(std::string label);
+	/// @brief The name setAccessibleLabel() gave; empty if none.
+	[[nodiscard]] const std::string& accessibleLabel() const noexcept { return accessibleLabel_; }
+	/// @brief Sets a longer description, read after the name.
+	/// @param description The description.
+	void setAccessibleDescription(std::string description);
+	/// @brief The description; empty if none.
+	[[nodiscard]] const std::string& accessibleDescription() const noexcept { return description_; }
+
 	/* Appearance */
 
 	/// @brief Sets the background colour that paint() fills with.
@@ -623,6 +641,9 @@ private:
 	bool cached_ = false;                                 ///< See setCached().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
 	std::string tooltip_;                                 ///< See tooltip().
+	std::string role_;                                    ///< See accessibleRole().
+	std::string accessibleLabel_;                         ///< See accessibleLabel().
+	std::string description_;                             ///< See accessibleDescription().
 
 	bool scrollX_ = false, scrollY_ = false; ///< See setScrollable().
 	Vec2 scroll_;                            ///< See scrollOffset().

@@ -55,6 +55,13 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"disabled", ValueKind::Boolean},
 	                  {"scroll"},
 	                  {"overlay"},
+	                  {"focusable", ValueKind::Boolean},
+	                  {"tabIndex", ValueKind::Number},
+	                  {"arrows", ValueKind::Text},
+	                  {"mnemonic", ValueKind::Text},
+	                  {"role", ValueKind::Text},
+	                  {"label", ValueKind::Text},
+	                  {"description", ValueKind::Text},
 	                  {"transition"},
 	                  {"hover"},
 	                  {"pressed"},
@@ -69,6 +76,7 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"keys"},
 	                  {"every"},
 	                  {"drag"},
+	                  {"context"},
 	                  {"locked", ValueKind::Boolean},
 	                  {"note", ValueKind::Text}});
 }

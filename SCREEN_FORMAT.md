@@ -59,7 +59,7 @@ Every part of the format follows these, and so should every extension:
 | `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
-| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers). |
+| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS: the bar at the top of the screen; Windows: in the window; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: a ring drawn above everything around the node the keyboard focused (Tab, the arrows; not a click), following its corners: a colour, or `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (the default: none). |
 | `fonts` | `name → { "file", "size", "fallback" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped as each script needs (kerning, ligatures, marks, Arabic joining, Indic conjuncts), and shows any character the font has; colour emoji too, from colour (COLR) fonts. `"fallback": ["symbols"]` names other fonts, asked in order for a character this one lacks; their glyphs are drawn at this font's em size. A character none of them has shows as `?`. A right-to-left run (Arabic, Hebrew) reads right to left; the runs of a line follow each other left to right. |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits: `"padding": "@space.m"`, `"radius": "@radius.card"`, `"color": "@color.surface"`, and a font's `"size": "@type.body"`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it. |
@@ -72,8 +72,10 @@ Every part of the format follows these, and so should every extension:
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `computed` | `name → expression`: values derived from the state, read as `computed.name` (see Values). |
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
-| `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels. |
+| `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
 | `keys` | Screen-wide shortcuts: `"mod+k" → handler` (see Events). |
+| `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
+| `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
 | `channels` | Programs the screen talks to (see Channels). A capability: revisions can't change it. |
 | `persist` | `["state.habits", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it. |
@@ -126,7 +128,14 @@ parent, later siblings on top of earlier ones.
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
 | `scroll` | `"vertical"`, `"horizontal"`, `"both"` or `"none"`: the wheel or trackpad scrolls the children; a thin bar shows where. |
-| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. |
+| `overlay` | `{ "anchor": "#id", "placement": "below", "open": "state.menuOpen", "dismiss": "outside" }`: drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, `above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in the window). `open` is a state path (or a value); with `"dismiss": "outside"`, a click outside it or Escape sets it to false. `"modal": true` traps the focus inside while it is open (Tab cycles in it, the first focusable node inside gets the focus) and gives it back when it closes. |
+| `focusable` | `true`: Tab reaches the node, and Enter or Space on it runs its `onClick` (text inputs are always focusable). |
+| `role` | What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, `list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an `onClick`; other nodes have none and are skipped in the accessibility tree. |
+| `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
+| `description` | A longer accessible description, read after the name. |
+| `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
+| `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
+| `mnemonic` | A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` node, the letter alone does. |
 | `hover`, `focused`, `dragging`, `dragOver`, `pressed` | Properties shown in that state (later ones win: pressed over drag over over dragging over focused over hover). Any visual property: `{ "color", "textColor", "borderColor", "shadow", "style", ... }`. A node counts as hovered and pressed while one of its children is. |
 | `transition` | `{ "color": 150, "textColor": 150, "borderColor": 150 }`: changes of these colours animate over that many milliseconds. |
 | `repeat` | `{ "for": "card", "in": "state.cards", "index": "i", "key": "{{card.id}}" }`: one node per list item. With `key`, a node follows its item when the list is reordered (keeping focus and scroll). |
@@ -136,6 +145,7 @@ parent, later siblings on top of earlier ones.
 | `check` | `{ "rule": "{{len(value) >= 3}}", "message": "Too short", "value": ... }`: `value` defaults to the node's bound value; gives the node and its children `valid` and `error`. |
 | `every` | `{ "ms": 1000, "do": steps }`: runs while the node exists. |
 | `drag` | `{ "data": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`. |
+| `context` | `{ "editorFocus": true }`: keys added to the `context` variable while the node or a child has the focus (an inner node wins); `when` clauses read them. |
 | `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`. |
 | `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
 | `note` | A comment. |
@@ -374,6 +384,32 @@ variables of the node and its children. A child `{ "slot": true }` in the compon
 `children`. Changing a component changes every use: one edit restyles a whole list. Nodes built inside each other
 (components and outlets included) nest at most 256 deep, so a component or a screen inside itself is an error.
 
+**Built-in components** need no definition (a screen's own component of the same name wins). They are written in the
+format, take their colours as parameters, and keep their open state where `open` says (a state path):
+- `menu` (below its parent), `submenu` (to its right) and `contextMenu` (where `x`, `y` say): `items` of
+  `{ "title", "keyLabel", "mnemonic", "enabled", "separator", "submenu", "run", "with" }`. The arrows, Home, End and
+  the items' first letters move and choose; Enter or a click runs the item's action and closes the menus; a click
+  outside or Escape closes them. A submenu's state is `open + 'Sub'`, one key per item (`.m0`, `.m1`, ...).
+- `menuBar`: `menus` of `{ "name", "title", "items" }`; Alt with a menu's first letter opens it, and `open` is an
+  object with one flag per menu name.
+- `dialog`: a modal `title`, `message` and `buttons` (`{ "title", "run", "with" }`) over a backdrop; the focus is
+  trapped in it, Enter chooses the focused button (the first one), Alt with a letter a button, Escape cancels. Its
+  `children` go between the message and the buttons.
+- `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
+- `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
+- `settingsPage`: the document's settings with a search field (see Menus and settings).
+- `quickPick`: a search field over `providers` of `{ "prefix", "items", "key", "placeholder", "run" }` (the one whose
+  `prefix` starts the query, else the one without), matched with `fuzzySort` on each item's `key` (`title`) and the
+  matching letters highlighted. Its state is `state[name]` (`name` is `quickPick`): `open`, `query`, `index`, `top`
+  and `recent` (the default provider's last `recentLimit` choices, shown first). Only the visible `rows` are built;
+  the arrows move, Enter or a click runs the item's `run` (with its `with`), or else the provider's `run` with the
+  item as `item`. Open it with `{ "set": "state.quickPick.open", "to": true }`, and a prefix with `query`.
+
+```json
+{ "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
+  "buttons": [{ "title": "Save", "run": "save" }, { "title": "Cancel" }] } }
+```
+
 ## Values, expressions and state
 
 Wherever a value is expected it can be computed:
@@ -399,15 +435,19 @@ Wherever a value is expected it can be computed:
   `len(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
-  `time(milliseconds, 'ddd D MMM HH:mm')`;
+  `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 
 Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
 are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
+`fuzzy` matches the query's characters in order, in any case, and gives null or `{ score, ranges, parts }`: `ranges`
+are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
+`fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
+the best first (an empty query keeps the order), at most `limit` of them.
 
-**Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`); `theme`;
+**Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar` is shown natively); `theme`;
 `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
@@ -466,7 +506,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click. |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
-| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row). |
+| `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |
 | `onHover`, `onLeave` | The pointer enters or leaves the node (or a child). |
 | `onFocus`, `onBlur` | Keyboard focus. |
 | `onScroll` | `event.dx`, `event.dy`. |
@@ -490,6 +530,71 @@ has no handler, its nearest ancestor with one. A row with `onClick` needs no inv
 `"cmd+shift+p"`, `"escape"`, `"up"`, `"f5"`. `mod` is Cmd on macOS, Ctrl elsewhere. While a text area is focused, keys
 without Cmd, Ctrl or Alt go to the text (Escape still works).
 
+### Commands and keybindings
+
+**Commands:** an action may be an object that describes itself: `{ "title": "Save", "category": "File", "icon":
+"save", "enablement": "{{state.dirty}}", "description": "...", "do": "write" }`. `do` is an action name or steps. An
+object with both step keys and command keys is an error. `enablement` is checked only when a key, a menu or a palette
+runs the command; a `run` step and the application's code ignore it.
+
+**Chords and bindings:** a key may be a chord of up to 4 presses separated by spaces: `"mod+k mod+s"`. A key's value
+is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 } }` (`with` gives the steps local
+variables), or a list of bindings, where the first that applies runs.
+
+**Resolution:** one walk per press.
+1. A focused text area keeps plain keys, except Escape and the keys of the focused node and its ancestors.
+2. During a chord, a press that doesn't continue it ends it and is dropped; Escape ends it.
+3. The scopes go from the focused node to the root, then to the document's `keys`.
+4. A binding is skipped when its `when` is false or its command is disabled.
+5. A press that starts a chord waits for the next one.
+6. If nothing matched, `onKey` bubbles.
+
+**Variables:**
+- `context`: `focus` (the focused node's id), `focusPath` (the ids from the root), `textInputFocus`, `overlay` (one is
+  open), `chord` (the presses so far, or null), `platform` (`"mac"`, `"windows"` or `"linux"`), and the keys of the
+  node `context` of the focused node and its ancestors (an inner node wins).
+- `commands`: `{ name, title, category, icon, description, enabled, key, keyLabel }`, sorted by category, then title.
+- `keybindings`: `{ key, keyLabel, command, title, when, scope }`, the document's first (`"screen"`), then by node
+  (`"#id"`) and key.
+
+The checker reports a key bound twice in a scope with the same `when`, a single press that a chord starting with it
+shadows, an unknown action in `do`, and a `when` it can't read.
+
+### Menus and settings
+
+**Menus:** `menus` names menus, each a map of keyed items. An item runs an action (`"run"`, with `"with"`) or opens
+another menu (`"submenu"`), and may have a `group`, an `order` within it, a `when`, a `title` and an `icon`:
+```json
+"menus": { "file": { "save": { "run": "save", "group": "2_save" },
+                     "new": { "run": "add", "title": "New", "group": "1_new", "order": 1 } } }
+```
+The `menus` variable gives each menu as a list ready for the `menu` and `menuBar` components: items sorted by group,
+then order, then key, a `{ "separator": true }` between groups, items whose `when` is false left out. An item that runs
+a command takes its title, icon, `enabled` and `key`/`keyLabel` from the command, and a submenu is a nested `submenu`
+list. Extensions add items to a menu by key, so a key is the item's identity.
+
+**The native menu bar:** `"window": { "menuBar": [{ "menu": "file", "title": "File" }] }` shows those menus in the
+system's menu bar, kept up to date as the `menus` variable changes; choosing an item runs it like the drawn menus.
+macOS shows them at the top of the screen (after the app's own menu; shortcuts are shown by the drawn menus only, and
+run through the keybindings), Windows in the window with their key labels. Elsewhere there is no native bar:
+`window.nativeMenuBar` is false, so a screen can draw its own with `"when": "!window.nativeMenuBar"`.
+
+**The desktop:** files dropped on the window from the OS reach the node under the pointer with `onDrop` (or its
+nearest ancestor with one) as `event.files`, their paths. `window.colorScheme` follows the system's light or dark mode
+(macOS and Windows; `"light"` elsewhere) and `window.scale` the display the window is on; both update while the app
+runs. Several windows are several screens, one per window.
+
+**Settings:** `settings` maps a key such as `"editor.fontSize"` to a schema (the subset of Typed state) with a
+required `default`, and `title` and `description` for people. Values the user changed are stored flat in
+`state.settings` (`{ "editor.fontSize": 18 }`), so the defaults stay in the document. The variables:
+- `settings`: every value, nested by the dots (`settings.editor.fontSize`), the default where unchanged;
+- `settingsList`: `{ key, title, description, type, value, default, modified, enum, minimum, maximum }` by key.
+
+Steps write `settings.editor.fontSize` (`set`, `toggle`, `bind`, ...); a value that doesn't match the schema is an
+error and isn't stored. `remove` resets a setting to its default. The checker knows the settings' types and reports
+writes to unknown settings. The built-in `settingsPage` component lists them with a search field (`search`, a
+state path for its text in `query`), a control per type and a "Reset" on modified ones.
+
 ## Actions
 
 An action is a list of steps. Each step is an object whose first key says what it does:
@@ -505,7 +610,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `if` | `{ "if": "{{len(state.draft) == 0}}", "then": [...], "else": [...] }` |
 | `forEach` | `{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }` |
 | `while` | `{ "while": "{{state.n < 10}}", "do": [...] }` (at most 10,000 iterations) |
-| `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed |
+| `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed, and `with` too (`"{{item.with}}"`, an object or null) |
 | `call` | `{ "call": "pickFile", "with": {...}, "into": "state.file", "onError": [...] }`: a native function (`Screen::onCall`); `error` in `onError`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: `"loading": "state.busy"` is true while it runs, `"progress": "state.done"` goes from 0 to 1, partial results stream into `into`, `"timeout": 5000` ends it with the error `timeout`, `then` runs with `result` |
 | `cancel` | `{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
@@ -514,6 +619,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }`, `{ "scrollTo": "#row7" }` (after the update) |
+| `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
@@ -692,15 +798,17 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "expect": ... }` | Checks something (below) |
 | `{ "capture": "name" }` | Saves a picture as `<scenario>-<name>.png` (`affrescoui test --out`) |
 
-A target is `"#id"`, the centre of the first shown node with that id (`"nth": 2` picks the third), or `[x, y]` in
-window units. Expectations:
+A target is `"#id"`, the centre of the first shown node with that id (`"nth": 2` picks the third),
+`{ "role": "button", "name": "Save" }`, the first shown node with that role and accessible name (`name` is optional;
+see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in window units. Expectations:
 
 | Expectation | Holds when |
 |---|---|
 | `{ "state": "cards[0].title", "is": "Plan" }` | The live state has that value there (a path as expressions write it, without `state.`; `.length` counts a list or a text) |
 | `{ "node": "#menu", "exists": false }` | A node with that id was built (or not), shown or not |
 | `{ "node": "#title", "text": "Done" }` | Its text: a label's, a text area's or an editor's |
-| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY` (positions and sizes in window units, within 0.01) |
+| `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description` (positions and sizes in window units, within 0.01; `name` is the accessible name) |
+| `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
 
 A failed expectation is reported and the scenario goes on; a step that can't be played (no such node, a refused

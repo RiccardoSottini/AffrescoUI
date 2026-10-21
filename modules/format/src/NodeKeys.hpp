@@ -56,7 +56,7 @@ inline constexpr std::array<std::string_view, 5> stateBlocks = {"hover", "focuse
 /// @return true for children, repeat, when, let, handlers, ...
 inline bool structural(const std::string& key) {
 	return key == "children" || key == "repeat" || key == "when" || key == "let" || key == "check" || key == "use" ||
-	       key == "with" || key == "bind" || key == "caret" || key == "keys" || key == "every" || key == "drag" ||
+	       key == "with" || key == "bind" || key == "caret" || key == "keys" || key == "every" || key == "drag" || key == "context" ||
 	       key == "note" || key == "slot" || handlerKey(key);
 }
 

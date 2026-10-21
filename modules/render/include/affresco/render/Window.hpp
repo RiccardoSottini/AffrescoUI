@@ -35,6 +35,27 @@ struct Frame;
 struct WindowFactory;
 } // namespace detail
 
+/// @brief An entry of a window's menu bar (Window::setMenuBar()): a menu, a command, or a separator.
+struct MenuItem {
+	std::string title;             ///< What it shows.
+	std::string keyLabel;          ///< Its shortcut as shown (e.g. "Ctrl+S"), or empty. Only shown: the window's own
+	                               ///< key handling runs shortcuts, so they never run twice.
+	bool enabled = true;           ///< false greys it out.
+	bool separator = false;        ///< A line between groups; the other fields are ignored.
+	std::vector<MenuItem> submenu; ///< Its items, for a menu (the top level holds menus).
+	std::function<void()> run;     ///< What choosing it does, for a command.
+};
+
+/// @brief The ring a window draws around the focused panel when the keyboard moved the focus there (Window::setFocusRing()).
+struct FocusRing {
+	Color color = Color::hex(0x2563EB); ///< Its colour.
+	float width = 2.0f;                 ///< How thick it is, in pixels.
+	float offset = 2.0f;                ///< The gap between it and the panel, in pixels.
+
+	/// @brief Whether two rings look the same.
+	bool operator==(const FocusRing&) const = default;
+};
+
 /// @brief A root Panel filling a window: routes input to its panels, keeps the focus, hover and mouse capture, runs
 /// timers and deferred tasks, lays the tree out, and draws only when something changed. Created by Application.
 ///
@@ -89,6 +110,26 @@ public:
 	/// @brief Whether the user asked to close the window.
 	[[nodiscard]] bool shouldClose() const;
 
+	/* Desktop */
+
+	/// @brief Pixels per window unit on the window's display (2 on most HiDPI screens; 1 when headless).
+	[[nodiscard]] float contentScale() const noexcept { return scale_; }
+	/// @brief Whether the system shows light or dark windows (Light when headless, or where it can't be read).
+	[[nodiscard]] ColorScheme colorScheme() const noexcept { return colorScheme_; }
+	/// @brief Whether the system asks for less motion (false when headless, or where it can't be read): animations
+	/// should then end at once.
+	[[nodiscard]] bool reducedMotion() const noexcept { return reducedMotion_; }
+
+	/// @brief Sets the window's native menu bar (the screen's top on macOS, the window's top on Windows).
+	/// @param menus The menus, each with its items; empty removes the bar.
+	/// @return Whether the OS shows it: false when headless or where native menus aren't supported, and an app then
+	/// draws a menu bar of its own.
+	bool setMenuBar(std::vector<MenuItem> menus);
+	/// @brief The menus last given to setMenuBar(), shown natively or not.
+	[[nodiscard]] const std::vector<MenuItem>& menuBar() const noexcept { return menus_; }
+	/// @brief Whether the OS shows the menu bar (see setMenuBar()).
+	[[nodiscard]] bool nativeMenuBar() const noexcept { return nativeMenuBar_; }
+
 	/* Content */
 
 	/// @brief The root panel, which always fills the window.
@@ -107,6 +148,15 @@ public:
 	/// @brief Moves the keyboard focus (a left click also does).
 	/// @param panel The panel, or nullptr.
 	void setFocus(Panel* panel);
+	/// @brief Whether the focus is visible: the keyboard moved it to the focused panel, rather than a click or the
+	/// app (like CSS :focus-visible).
+	[[nodiscard]] bool focusVisible() const noexcept { return focused_ && focusVisible_; }
+	/// @brief Draws a ring around the focused panel, above everything, while the focus is visible (focusVisible()).
+	/// It follows the panel's corners and isn't hit: clicks reach what is under it.
+	/// @param ring The ring, or std::nullopt (the default) for none.
+	void setFocusRing(std::optional<FocusRing> ring);
+	/// @brief The ring setFocusRing() gave, or std::nullopt.
+	[[nodiscard]] const std::optional<FocusRing>& focusRing() const noexcept { return focusRing_; }
 
 	/// @brief Finds the panel at a point, laying out first if needed.
 	/// @param point In window units.
@@ -141,6 +191,8 @@ public:
 	Signal<const ScrollEvent&> onScroll;           ///< Every scroll.
 	Signal<const CursorEnterEvent&> onCursorEnter; ///< The pointer entered or left.
 	Signal<const ResizeEvent&> onResize;           ///< The window was resized.
+	Signal<const DropEvent&> onDrop;               ///< Files were dropped from the OS.
+	Signal<const DisplayEvent&> onDisplay;         ///< The display's scale, the system's colour scheme or its motion setting changed.
 
 	/* Input routing: keyboard to the focused panel; mouse to the panel under the pointer, or to the panel that
 	   received the button press until it is released (mouse capture, so drags work outside the panel). Deferred
@@ -164,6 +216,13 @@ public:
 	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
 	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
+	/// @brief Delivers files dropped from the OS: the pointer moves where they were dropped, then onDrop.
+	/// @param event The event.
+	void routeDrop(const DropEvent& event);
+	/// @brief Takes a new display scale, colour scheme or motion setting: a new scale draws everything again. Then
+	/// onDisplay, if one changed.
+	/// @param event The scale, scheme and motion setting now.
+	void routeDisplay(const DisplayEvent& event);
 	/// @brief Whether an input event is being delivered: what runs now runs because of the user's input, not a timer
 	/// or a deferred task.
 	/// @return true while one of the route methods runs.
@@ -270,6 +329,8 @@ private:
 	/// @brief Lays out the overlays inside a subtree (after the tree), collecting them in drawing order.
 	/// @param panel The subtree.
 	void layoutOverlays(Panel& panel);
+	/// @brief Lays out the focus ring around the focused panel, and lists what is drawn above the tree (drawn_).
+	void layoutFocusRing();
 	/// @brief Lays out one overlay next to its anchor.
 	/// @param overlay The overlay.
 	/// @param parent Its parent: the anchor when it names none.
@@ -278,6 +339,9 @@ private:
 	void restartTooltip();
 	/// @brief Runs the timers that are due.
 	void runTimers();
+	/// @brief Runs a menu item the user chose in the native menu bar, as input.
+	/// @param run What it does (a copy is run: it may replace the menu bar).
+	void runChosen(std::function<void()> run);
 	/// @brief Drops the focus, hover and capture pointers to a panel being destroyed.
 	/// @param panel The panel.
 	void forget(const Panel& panel) noexcept;
@@ -292,6 +356,11 @@ private:
 	const Clock* clock_;                             ///< See clock(); never null.
 	std::string clipboard_;                          ///< A headless window's clipboard.
 	bool visible_ = true;                            ///< Whether a headless window counts as shown.
+	float scale_ = 1.0f;                             ///< See contentScale().
+	ColorScheme colorScheme_ = ColorScheme::Light;   ///< See colorScheme().
+	bool reducedMotion_ = false;                     ///< See reducedMotion().
+	std::vector<MenuItem> menus_;                    ///< See menuBar().
+	bool nativeMenuBar_ = false;                     ///< See nativeMenuBar().
 
 	std::string title_;                ///< See title().
 	int width_ = 0, height_ = 0;       ///< Size, in window units.
@@ -328,6 +397,11 @@ private:
 	std::uint64_t nextTimerId_ = 1;           ///< The next timer's id.
 
 	std::vector<Panel*> overlays_;   ///< Overlays shown in the last layout, in drawing order.
+	std::vector<Panel*> drawn_;      ///< What is drawn above the tree: the overlays, then the focus ring if shown.
+	std::optional<FocusRing> focusRing_; ///< See focusRing().
+	std::unique_ptr<Panel> ring_;        ///< The focus ring's panel, created on first use.
+	bool keyInput_ = false;              ///< The latest input was a key, not a mouse press.
+	bool focusVisible_ = false;          ///< See focusVisible().
 	std::unique_ptr<Label> tooltip_; ///< The tooltip, created on first use.
 	bool tooltipShown_ = false;      ///< The tooltip is on screen.
 	std::uint64_t tooltipTimer_ = 0; ///< The delay before showing it, if running.

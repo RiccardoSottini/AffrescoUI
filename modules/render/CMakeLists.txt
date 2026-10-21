@@ -2,6 +2,7 @@
 # (cmake/AffrescoUIText.cmake). Images: stb_image (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
+	src/Accessibility.cpp
 	src/Application.cpp
 	src/Bitmap.cpp
 	src/ImageCache.cpp
@@ -57,6 +58,17 @@ target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR
 	${stb_image_SOURCE_DIR})
 target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw freetype affrescoui_harfbuzz)
 target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
+# What GLFW doesn't do (the colour scheme, native menu bars), per OS: Cocoa on macOS, Win32 on Windows, none elsewhere
+if(APPLE)
+	target_sources(affrescoui_render PRIVATE src/platform/DesktopMac.mm)
+	set_source_files_properties(src/platform/DesktopMac.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+	target_link_libraries(affrescoui_render PRIVATE "-framework Cocoa")
+elseif(WIN32)
+	target_sources(affrescoui_render PRIVATE src/platform/DesktopWin32.cpp)
+	target_link_libraries(affrescoui_render PRIVATE user32 advapi32)
+else()
+	target_sources(affrescoui_render PRIVATE src/platform/DesktopOther.cpp)
+endif()
 # stb_image's JPEG decoder lets signed integers overflow on crafted input (found by the image fuzz target): wrapping
 # is what it expects, so the one file that compiles it wraps, and the sanitizers don't stop there
 if(NOT MSVC)

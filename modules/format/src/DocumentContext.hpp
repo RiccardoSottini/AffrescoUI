@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -69,7 +70,21 @@ public:
 	[[nodiscard]] json evaluate(const json& value, const Scope& locals, const json& event,
 	                            const std::string& where) const;
 	/// @brief Drops the cached globals (history, proposals, preview, window size or screen changed).
-	void globalsChanged() const { globalsCache_.reset(); }
+	void globalsChanged() const {
+		globalsCache_.reset();
+		++variablesEpoch_;
+	}
+	/// @brief Adds a screen-wide variable built when first read and cached until the state, the globals or
+	/// contextChanged() change (`context`, `commands`, `menus`, ...).
+	/// @param name Its name.
+	/// @param build Builds its value; it may evaluate the document's values, but not read itself.
+	void addVariable(std::string name, std::function<json()> build);
+	/// @brief Drops the built variables (the focus or a chord in progress changed what `context` holds).
+	void contextChanged() const noexcept { ++variablesEpoch_; }
+	/// @brief A variable addVariable() added, built if it is stale.
+	/// @param name Its name.
+	/// @return Its value, valid until it is stale; null if there is no such variable, or it is being built.
+	[[nodiscard]] const json* variable(std::string_view name) const;
 	/// @brief Records that the state changed in a way no place describes: computed values are stale and every value
 	/// is evaluated again at the next update.
 	void markStateChanged() noexcept {
@@ -287,6 +302,13 @@ private:
 	NodeLookup computedLookup_;                     ///< computed(), for expressions.
 	NodeLookup nodeLookup_;                         ///< node(), for expressions.
 	NodeLookup modelLookup_;                        ///< Models::at(), for expressions.
+	VariableLookup variableLookup_;                 ///< variable(), for expressions.
+	std::map<std::string, std::function<json()>, std::less<>> builders_; ///< See addVariable().
+	mutable std::map<std::string, json, std::less<>> built_;             ///< Variables built since they were stale.
+	mutable std::vector<std::string> building_;                          ///< Variables being built (finds circles).
+	mutable std::uint64_t variablesEpoch_ = 0;    ///< Counts what makes built variables stale.
+	mutable std::uint64_t builtEpoch_ = ~0ull;    ///< The epoch built_ belongs to.
+	mutable std::uint64_t builtStateVersion_ = 0; ///< The state version built_ belongs to.
 };
 
 } // namespace affresco::format

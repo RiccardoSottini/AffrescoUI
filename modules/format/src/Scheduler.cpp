@@ -117,7 +117,8 @@ void Scheduler::transitionColor(Panel& panel, Record& record, const char* proper
 	Tween& tween = tweenOf(record, property);
 	const double ms = record.transition.contains(property) ? record.transition[property].get<double>() : 0.0;
 
-	if(!window || ms <= 0.0 || shown == target || !record.shown || engine_.handlersSuspended) {
+	if(!window || ms <= 0.0 || shown == target || !record.shown || engine_.handlersSuspended ||
+	   window->reducedMotion()) {
 		if(tween.timer && window) window->cancelTimer(std::exchange(tween.timer, 0));
 		setColorOf(panel, property, target);
 		return;

@@ -3,6 +3,8 @@
 
 #include "Steps.hpp"
 #include "Engine.hpp"
+#include "Contributions.hpp"
+#include "Settings.hpp"
 
 #include <algorithm>
 
@@ -15,8 +17,13 @@ json Running::value(const json& v, const std::string& at) const {
 }
 
 json::json_pointer Running::target(const char* key) const {
-	return format::statePointer(string(step[key], where + "." + key), steps.engine().document.context(locals, event),
-	                            where + "." + key);
+	const std::string at = where + "." + key;
+	const Context context = steps.engine().document.context(locals, event);
+	// A computed place, e.g. {"toggle": "{{open}}"} in a component given "state.menuOpen"
+	const std::string path = isDynamic(step[key]) ? string(value(step[key], at), at) : string(step[key], at);
+	// "settings.editor.fontSize" writes the flat value in state.settings, checked by runStateStep()
+	if(auto setting = settingPointer(steps.engine().versions.document(), path, at)) return std::move(*setting);
+	return format::statePointer(path, context, at);
 }
 
 json Running::list(const json& source, const std::string& at) const {
@@ -63,8 +70,13 @@ std::function<void()> Steps::later(json steps, Panel& sender, json event, Shared
 void Steps::runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
                      const std::string& where) {
 	const json& document = engine_.versions.document();
-	if(document.contains("actions") && document["actions"].contains(name)) {
+	const bool declared = document.contains("actions") && document["actions"].contains(name);
+	if(declared && isCommand(document["actions"][name]) && document["actions"][name].contains("do")) {
+		const json run = document["actions"][name]["do"]; // a command runs its "do": steps, or another action's name
+		runSteps(run.is_string() ? json{{"run", run}} : run, sender, event, locals, "actions." + name + ".do");
+	} else if(declared && !isCommand(document["actions"][name])) {
 		const json steps = document["actions"][name]; // a copy: the steps may revise the document
+		checkCommand(steps, "actions." + name);
 		runSteps(steps, sender, event, locals, "actions." + name);
 	} else if(const auto it = engine_.nativeActions.find(name); it != engine_.nativeActions.end()) {
 		it->second(sender);

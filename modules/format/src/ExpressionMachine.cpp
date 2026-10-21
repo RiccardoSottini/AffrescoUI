@@ -323,7 +323,7 @@ std::optional<Value> Machine::variable(Root root, std::string_view name, const P
 	if(root == Root::Nodes && context_.nodes) return std::nullopt;
 	fail(place, "unknown variable '" + std::string(name) +
 	                "' (state, event, window, revision, proposals, history, preview, mode, computed, theme, screen, "
-	                "nodes, or a name given by repeat, forEach, let, with or a component's params)");
+	                "nodes, context, commands, keybindings, or a name given by repeat, forEach, let, with or a component's params)");
 }
 
 std::optional<Value> Machine::namedVariable(std::string_view name) const {
@@ -345,6 +345,8 @@ std::optional<Value> Machine::namedVariable(std::string_view name) const {
 	}
 	if(const auto global = context_.globals.find(name); global != context_.globals.end())
 		return Value::fromJson(*global);
+	if(context_.variables)
+		if(const json* built = (*context_.variables)(name)) return Value::fromJson(*built);
 	return std::nullopt;
 }
 

@@ -122,6 +122,38 @@ std::vector<Workload> expressionWorkloads(Context& /*context*/) {
 	return single(std::move(workload));
 }
 
+/// @brief How many paths "fuzzy" filters in one step.
+constexpr int fuzzyCount = 100000;
+
+/// @brief fuzzyCount path-like texts, as a large project's file list.
+/// @return The state, with the texts at `files`.
+json fuzzyFiles() {
+	static constexpr std::array<const char*, 6> folders{"src", "include/app", "modules/core", "tests/unit", "docs",
+	                                                    "examples/assets"};
+	static constexpr std::array<const char*, 6> names{"main", "window", "panel", "layout", "render", "screen"};
+	static constexpr std::array<const char*, 4> extensions{".cpp", ".hpp", ".json", ".md"};
+	json files = json::array();
+	for(std::size_t i = 0; i < static_cast<std::size_t>(fuzzyCount); ++i)
+		files.push_back(std::string(folders[i % folders.size()]) + "/" + names[(i / 7) % names.size()] +
+		                std::to_string(i) + extensions[(i / 3) % extensions.size()]);
+	return {{"files", std::move(files)}};
+}
+
+/// @brief "fuzzy/100000": a quick pick's filter, fuzzySort over fuzzyCount paths, keeping the best 50.
+/// @return The workload.
+std::vector<Workload> fuzzyWorkloads(Context& /*context*/) {
+	auto inputs = std::make_shared<ExpressionInputs>();
+	inputs->state = fuzzyFiles();
+	const auto query = std::make_shared<const json>("{{fuzzySort(state.files, 'srcwin12', null, 50)}}");
+	Workload workload{.name = "fuzzy/100000", .unit = "ms", .runs = 9};
+	workload.step = [inputs, query] {
+		const format::Context context{inputs->state, inputs->window, inputs->revision,
+		                              inputs->event, inputs->locals, inputs->globals};
+		if(format::evaluate(*query, context, "bench").empty()) throw std::logic_error("fuzzy: nothing matched");
+	};
+	return single(std::move(workload));
+}
+
 /// @brief How many commits "commits" makes in one step.
 constexpr int commitCount = 1000;
 
@@ -211,6 +243,7 @@ std::vector<Workload> textWorkloads(const Context& context) {
 
 std::vector<Group> engineGroups() {
 	return {{"expressions", expressionWorkloads},
+	        {"fuzzy", fuzzyWorkloads},
 	        {"commits", commitWorkloads},
 	        {"text", textWorkloads},
 	        {"history", historyWorkloads},
