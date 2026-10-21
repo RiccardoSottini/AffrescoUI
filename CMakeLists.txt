@@ -147,6 +147,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 	find_package(Python3 COMPONENTS Interpreter)
 	if(Python3_FOUND)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
+		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
+		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/game-launcher/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()
 endif()
 
