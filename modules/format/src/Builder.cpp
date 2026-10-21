@@ -263,6 +263,37 @@ json Builder::repeated(const CompiledRepeat& repeat, const Scope& locals, const 
 	return list;
 }
 
+// A list that lies in the state, or a data model's rows, is read for its shape only: its items read what they read
+// inside it, so a change inside one item updates what reads it and leaves the list alone (Reads.hpp, shapeKey)
+json Builder::listOf(const CompiledRepeat& repeat, const Scope& locals, const std::string& at,
+                     std::optional<std::string>& place) const {
+	ReadSet* const outer = engine_.document.reads();
+	const std::string* path = repeat.path ? &repeat.path->get_ref<const std::string&>() : nullptr;
+	if(const std::optional<std::string_view> name = path ? modelName(*path) : std::nullopt) {
+		const DataModel* model = engine_.models.find(*name);
+		if(!model)
+			fail(at + ".repeat.in", "no data model '" + std::string(*name) + "' (the application registers them; it has " +
+			                            engine_.models.names() + ")");
+		place = Models::placeOf(*name);
+		if(outer) outer->addPath(*place + "/" + std::string(shapeKey));
+		json rows = json::array();
+		for(std::size_t k = 0, count = model->size(); k < count; ++k) rows.push_back(model->row(k));
+		return rows;
+	}
+	ReadSet listReads;
+	json list;
+	{
+		const DocumentContext::ReadScope scope(engine_.document, outer ? &listReads : nullptr);
+		list = repeated(repeat, locals, at);
+	}
+	if(path && list.is_array() && repeat.item != repeat.index) place = placeOf(*path, locals);
+	if(outer) {
+		if(place) outer->addPath(*place + "/" + std::string(shapeKey));
+		else outer->add(listReads);
+	}
+	return list;
+}
+
 void Builder::instances(const CompiledRef& node, const SharedScope& locals, const std::string& at,
                         std::vector<Item>& items) const {
 	const auto add = [&](SharedScope scope, std::string where, json itemKey) {
@@ -280,22 +311,8 @@ void Builder::instances(const CompiledRef& node, const SharedScope& locals, cons
 	const std::optional<CompiledRepeat>& compiled = node->repeat;
 	if(!compiled) reportRepeat(node->own["repeat"], at);
 	const CompiledRepeat& repeat = *compiled;
-	// A list that lies in the state is read for its shape only: its items read what they read inside it, so a change
-	// inside one item updates what reads it and leaves the list alone (Reads.hpp, shapeKey)
-	ReadSet* const outer = engine_.document.reads();
-	ReadSet listReads;
-	json list;
-	{
-		const DocumentContext::ReadScope scope(engine_.document, outer ? &listReads : nullptr);
-		list = repeated(repeat, *locals, at);
-	}
-	const bool placed = repeat.path && list.is_array() && repeat.item != repeat.index;
-	const std::optional<std::string> place =
-	    placed ? placeOf(repeat.path->get_ref<const std::string&>(), *locals) : std::nullopt;
-	if(outer) {
-		if(place) outer->addPath(*place + "/" + std::string(shapeKey));
-		else outer->add(listReads);
-	}
+	std::optional<std::string> place;
+	const json list = listOf(repeat, *locals, at, place);
 	for(std::size_t k = 0; k < list.size(); ++k) { // a null list has none
 		SharedScope scope = place ? extend(locals, {{repeat.item, list[k]}, {repeat.index, k}}, repeat.item,
 		                                   *place + "/" + std::to_string(k))

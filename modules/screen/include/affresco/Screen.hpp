@@ -4,6 +4,7 @@
 /// @brief Screen: a live UI described in the AffrescoUI Screen Format, with all the modules put together.
 
 #include "affresco/core/Channel.hpp"
+#include "affresco/core/DataModel.hpp"
 #include "affresco/core/Executor.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
@@ -147,6 +148,14 @@ public:
 	/// @param name The function's name.
 	/// @param call The function.
 	void onCall(std::string name, Call call);
+
+	/// @brief Registers a data model the screen shows with `"repeat": {"in": "models.<name>"}`: rows the application
+	/// owns, read one at a time; a change of a row updates only what reads it. Agents see its count, shape and a sample
+	/// in the catalog, never every row.
+	/// @param name Its name: letters, digits and "_", not starting with a digit.
+	/// @param model The model (e.g. a ListModel), or nullptr to remove it.
+	/// @throws std::invalid_argument If the name isn't one.
+	void setModel(std::string name, std::shared_ptr<DataModel> model);
 
 	/// @brief Sets what happens with actions nobody handles (default: a message on stderr).
 	/// @param fallback The handler.

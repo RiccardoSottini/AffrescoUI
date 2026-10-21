@@ -61,7 +61,8 @@ Color hexColor(const json& hex, const std::string& at) {
 DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
     : engine_(engine), baseDirectory_(std::move(baseDirectory)),
       computedLookup_([this](std::string_view name) { return computed(name); }),
-      nodeLookup_([this](std::string_view id) { return node(id); }) {
+      nodeLookup_([this](std::string_view id) { return node(id); }),
+      modelLookup_([this](std::string_view place) { return engine_.models.at(place); }) {
 	if(!baseDirectory_.empty()) images_.allowDirectory(baseDirectory_);
 }
 
@@ -151,7 +152,7 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 Context DocumentContext::context(const Scope& locals, const json& event) const {
 	const Globals& g = globals();
 	return Context{engine_.versions.state(), g.window, g.revision, event, locals, g.other, &nodeLookup_,
-	               &computedLookup_, budget_, reads_};
+	               &computedLookup_, budget_, reads_, &modelLookup_};
 }
 
 /* The work budget */

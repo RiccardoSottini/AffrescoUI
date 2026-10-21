@@ -3,6 +3,7 @@
 /// @file
 /// @brief format::Runtime: brings a screen document to life with the rendering engine.
 
+#include "affresco/core/DataModel.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
@@ -98,6 +99,13 @@ public:
 	/// @param name The function's name.
 	/// @param call The function.
 	void onCall(std::string name, Call call);
+
+	/// @brief Registers a data model the document shows with `"repeat": {"in": "models.<name>"}`: its rows are read
+	/// one at a time, and a change of a row updates only what reads that row. Agents see its count, shape and a sample.
+	/// @param name Its name: letters, digits and "_", not starting with a digit.
+	/// @param model The model, or nullptr to remove it.
+	/// @throws std::invalid_argument If the name isn't one.
+	void setModel(std::string name, std::shared_ptr<DataModel> model);
 
 	/// @brief Sets what happens with actions nobody handles (default: a message on stderr).
 	/// @param fallback The handler.

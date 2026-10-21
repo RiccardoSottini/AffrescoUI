@@ -104,6 +104,10 @@ void Runtime::onCall(std::string name, Call call) {
 	impl_->nativeCalls.insert_or_assign(std::move(name), std::move(call));
 }
 
+void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
+	impl_->models.set(std::move(name), std::move(model));
+}
+
 void Runtime::onUnhandledAction(UnhandledAction fallback) { impl_->unhandled = std::move(fallback); }
 
 void Runtime::runAction(std::string_view name, Panel& sender, const json& event) {

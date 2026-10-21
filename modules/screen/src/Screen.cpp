@@ -559,6 +559,10 @@ void Screen::onCall(std::string name, Call call) {
 	});
 }
 
+void Screen::setModel(std::string name, std::shared_ptr<DataModel> model) {
+	impl_->runtime.setModel(std::move(name), std::move(model));
+}
+
 void Screen::build(Window& window) {
 	impl_->warnOfFindings();
 	impl_->runtime.build(window);

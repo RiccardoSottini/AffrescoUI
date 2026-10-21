@@ -116,6 +116,7 @@ struct Context {
 	const NodeLookup* computed = nullptr; ///< For `computed.<name>`, evaluated when read (none: from globals).
 	WorkBudget* budget = nullptr;         ///< What the event or update may still do (none: unlimited, for tools).
 	ReadSet* reads = nullptr;             ///< Gets the places of the state read, for fine-grained updates (or none).
+	const NodeLookup* models = nullptr;   ///< A data model's row by its place, "/~m/files/3" (Models.hpp), or none.
 };
 
 /// @brief Evaluates templates, expressions and operators, recursing into objects and arrays.

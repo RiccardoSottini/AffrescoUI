@@ -78,7 +78,8 @@ json catalog(const Engine& engine) {
 	        {"sections", sections},
 	        {"customTypes", customTypes},
 	        {"nativeActions", names(engine.nativeActions)},
-	        {"nativeCalls", names(engine.nativeCalls)}};
+	        {"nativeCalls", names(engine.nativeCalls)},
+	        {"models", engine.models.outline()}};
 }
 
 } // namespace affresco::format

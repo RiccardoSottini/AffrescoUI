@@ -3,6 +3,7 @@
 /// behaviour (handlers, steps, actions run with their callers' variables).
 
 #include "CheckerImpl.hpp"
+#include "Models.hpp"
 
 #include <format>
 
@@ -268,10 +269,14 @@ void Checker::walkRepeat(const Prepared& node, Scope& scope) {
 	if(!repeat.is_object()) return;
 	const std::string at = node.where("repeat");
 	Shape list = anything;
-	if(const auto source = repeat.find("in"); source != repeat.end()) // a path, or any value
+	const auto source = repeat.find("in");
+	if(source != repeat.end() && source->is_string() && modelName(source->get_ref<const std::string&>())) {
+		// a data model's rows: the application gives them, so their shape is known only while it runs
+	} else if(source != repeat.end()) { // a path, or any value
 		list = source->is_string() && !isDynamic(*source)
 		           ? shapeOfExpression(source->get_ref<const std::string&>(), *scope.parent, at + ".in")
 		           : shapeOf(*source, *scope.parent, at + ".in");
+	}
 	scope.vars[nameOr(repeat, "for", "item")] = itemOf(list);
 	scope.vars[nameOr(repeat, "index", "index")] = single;
 	if(const auto key = repeat.find("key"); key != repeat.end()) read(*key, scope, at + ".key");

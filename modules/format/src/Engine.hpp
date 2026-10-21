@@ -22,6 +22,7 @@
 #include "Builder.hpp"
 #include "DocumentContext.hpp"
 #include "Events.hpp"
+#include "Models.hpp"
 #include "Properties.hpp"
 #include "Reconciler.hpp"
 #include "Scheduler.hpp"
@@ -75,6 +76,7 @@ struct Engine : VersionObserver {
 	Reconciler reconciler;    ///< Records; updates.
 	Events events;            ///< Input.
 	Steps runner;             ///< Actions.
+	Models models;            ///< The application's data models (last: their changes reach the others).
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

@@ -82,6 +82,10 @@ public:
 		changes_.add(pointer.to_string());
 		++stateVersion_;
 	}
+	/// @brief Records that a place outside the state changed, a data model's rows (Models.hpp): the next update
+	/// evaluates again only the values that read it. Computed values never read there, so they stay.
+	/// @param place The place, "/~m/<name>/<row>".
+	void markPlaceChanged(std::string place) { changes_.add(std::move(place)); }
 	/// @brief Whether the state changed, or an update was requested, since the last update began (takeChanges()).
 	[[nodiscard]] bool stateChanged() const noexcept { return !changes_.empty(); }
 	/// @brief What changed since the last update began, as an update begins: the state is then up to date with the
@@ -257,6 +261,7 @@ private:
 	mutable std::vector<std::string> computing_;    ///< Computed values being evaluated (finds circles).
 	NodeLookup computedLookup_;                     ///< computed(), for expressions.
 	NodeLookup nodeLookup_;                         ///< node(), for expressions.
+	NodeLookup modelLookup_;                        ///< Models::at(), for expressions.
 };
 
 } // namespace affresco::format

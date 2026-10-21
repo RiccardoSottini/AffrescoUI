@@ -111,6 +111,15 @@ private:
 	/// @return The list, or null to build nothing.
 	/// @throws DocumentError If it isn't a list.
 	[[nodiscard]] json repeated(const CompiledRepeat& repeat, const Scope& locals, const std::string& at) const;
+	/// @brief The list a "repeat" goes over, a data model's rows or repeated(), and records what it read.
+	/// @param repeat The node's "repeat", compiled.
+	/// @param locals The variables.
+	/// @param at The node's place, for errors.
+	/// @param place Gets where the list lies, if its items lie in the state or in a model.
+	/// @return The list, or null to build nothing.
+	/// @throws DocumentError If it isn't a list, or names no registered model.
+	[[nodiscard]] json listOf(const CompiledRepeat& repeat, const Scope& locals, const std::string& at,
+	                          std::optional<std::string>& place) const;
 	/// @brief Adds the instances of one child: one, or one per item of its "repeat".
 	/// @param node The child, compiled.
 	/// @param locals The parent's variables.

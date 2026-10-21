@@ -13,7 +13,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		      "AffrescoUI screen: no handler for action '" + action + "' (from '" + sender.id() + "')");
       }),
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
-      events(*this), runner(*this) {
+      events(*this), runner(*this), models(*this) {
 	registerBuiltInTypes(types);
 }
 

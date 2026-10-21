@@ -4,6 +4,7 @@
 #include "ExpressionMachine.hpp"
 
 #include "ExpressionParser.hpp"
+#include "Models.hpp"
 #include "Reads.hpp"
 
 #include <algorithm>
@@ -335,8 +336,11 @@ std::optional<Value> Machine::namedVariable(std::string_view name) const {
 		if(local == scope->vars.end()) continue;
 		// While an update records reads, a repeat's item is read where it lies now: an update that changes only
 		// inside it keeps the scope, and its copy, built before
-		if(context_.reads && scope->fromState == name)
+		if(context_.reads && scope->fromState == name) {
+			if(context_.models && scope->origin.starts_with(modelPlaces)) // a data model's row
+				if(json row = (*context_.models)(scope->origin); !row.is_null()) return Value::ownJson(std::move(row));
 			if(const json* live = lying(context_.state, scope->origin)) return Value::fromJson(*live);
+		}
 		return Value::fromJson(*local);
 	}
 	if(const auto global = context_.globals.find(name); global != context_.globals.end())

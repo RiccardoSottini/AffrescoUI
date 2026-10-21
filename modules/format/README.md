@@ -15,7 +15,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 |---|---|
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds) and `pathHint` (hints for paths that find nothing); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
@@ -102,6 +102,14 @@ general: a settings page can describe its settings with it.
   by item (`ItemIndex`) instead of visiting every child. A revision, a resize, a new theme or screen, and a change no
   place describes update everything. A subtree's reads may say more than it reads, never less: an update that
   visits only part of the panels gives the panels a full build gives (`tests/unit/updates.cpp`).
+- **Data models** (4.3). `setModel(name, model)` registers rows the application owns (`DataModel`), which
+  `"repeat": {"in": "models.<name>"}` goes over (`src/Models.*`). Their rows lie at `/~m/<name>/<row>` among the
+  places values read (`~m` is no JSON Pointer key, so it is never one of the state), and an item's bindings read its
+  row there, live. A changed row marks its own place, so an update applies again only what reads it; an insertion, a
+  removal, a reset or many rows at once mark the whole model, so the repeats over it build again. The catalog's
+  `models` gives agents each model's count, the shape of a row and one sample row, never every row; the checker
+  accepts any `models.<name>` (models exist only while the application runs), and building fails, naming the models
+  there are, when the name is none of them (`tests/unit/models.cpp`).
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
@@ -184,6 +192,7 @@ src/
   Reconciler.*             records, building and reconciling panels; updates of only what reads a change
   Reads.*                  what values read and what changed in the state, and when they meet
   ItemIndex.*              the children of a long list by the item of the state they read
+  Models.*                 the application's data models, their rows' places and their outline for agents
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
