@@ -390,6 +390,143 @@
 							}
 						}
 					},
+					"connections": {
+						"type": "object",
+						"maxProperties": 64,
+						"description": "Servers the screen talks to over HTTP or WebSocket (RFC 0003), and what it may ask them. Revisions can't change it.",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"url"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"url": {
+									"type": "string"
+								},
+								"auth": {
+									"type": [
+										"object",
+										"string"
+									]
+								},
+								"headers": {
+									"type": "object",
+									"additionalProperties": {
+										"type": "string"
+									}
+								},
+								"timeout": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 600000
+								},
+								"retry": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"times": {
+											"type": "integer",
+											"minimum": 0,
+											"maximum": 5
+										},
+										"after": {
+											"type": "integer",
+											"minimum": 1,
+											"maximum": 60000
+										}
+									}
+								},
+								"reconnect": {
+									"anyOf": [
+										{
+											"type": "boolean"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"after": {
+													"type": "integer"
+												}
+											}
+										}
+									]
+								},
+								"operations": {
+									"type": "object",
+									"maxProperties": 256,
+									"additionalProperties": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"method": {
+												"enum": [
+													"GET",
+													"HEAD",
+													"POST",
+													"PUT",
+													"PATCH",
+													"DELETE"
+												]
+											},
+											"path": {
+												"type": "string"
+											},
+											"query": {
+												"type": "object"
+											},
+											"body": {},
+											"form": {
+												"type": "boolean"
+											},
+											"headers": {
+												"type": "object",
+												"additionalProperties": {
+													"type": "string"
+												}
+											},
+											"effect": {
+												"enum": [
+													"read",
+													"write"
+												]
+											},
+											"stream": {
+												"enum": [
+													"events",
+													"lines"
+												]
+											},
+											"result": {
+												"type": "string"
+											},
+											"timeout": {
+												"type": "integer",
+												"minimum": 1,
+												"maximum": 600000
+											},
+											"mock": {
+												"type": "object",
+												"properties": {
+													"status": {
+														"type": "integer"
+													},
+													"body": {}
+												}
+											}
+										}
+									}
+								},
+								"messages": {
+									"type": "object",
+									"maxProperties": 256
+								},
+								"note": {
+									"type": "string"
+								}
+							}
+						}
+					},
 					"persist": {
 						"type": "array",
 						"items": {
@@ -1816,7 +1953,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -1834,6 +1971,7 @@
 					"connect": {},
 					"patch": {},
 					"invoke": {},
+					"request": {},
 					"subscribe": {},
 					"respond": {},
 					"accept": {},

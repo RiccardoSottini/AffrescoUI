@@ -15,7 +15,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		      "AffrescoUI screen: no handler for action '" + action + "' (from '" + sender.id() + "')");
       }),
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
-      events(*this), runner(*this), models(*this), serviceCalls(*this),
+      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this),
       calls(*this) {
 	registerBuiltInTypes(types);
 	addContributionVariables(*this);
@@ -23,13 +23,18 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 	document.addVariable("services", [this] { // {name: {state, error, restarts}} (RFC 0002)
 		return serviceCalls.services() ? serviceCalls.services()->status() : json::object();
 	});
+	document.addVariable("connections", [this] { return connections.status(); }); // {name: {online, pending, ...}}
+	connections.onStatus([this] {
+		document.globalsChanged(); // the "connections" variable
+		reconciler.requestReconcile();
+	});
 }
 
 void Engine::documentChanged() {
 	builder.forgetVersion(); // what was compiled belongs to the version before
 	document.readDerived();
 	document.bumpStateVersion(); // a revision may change the state too
-	serviceCalls.load();         // a restore may change the services
+	serviceCalls.load();         // a restore may change the services or the connections
 	reconciler.reconcile();
 }
 

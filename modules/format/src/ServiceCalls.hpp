@@ -1,8 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief format::ServiceCalls: the "invoke" and "subscribe" steps (RFC 0002), their results, events and progress
-/// delivered into the state on the main thread, and the requests services send the screen ("respond").
+/// @brief format::ServiceCalls: the "invoke", "request" and "subscribe" steps (RFC 0002, 0003), their results, events
+/// and progress delivered into the state on the main thread, and the requests services send the screen ("respond").
 
 #include "affresco/core/Executor.hpp"
 #include "affresco/core/Services.hpp"
@@ -25,8 +25,8 @@ struct Engine;
 /// @brief The service calls and subscriptions of a runtime, and the requests its services are waiting on.
 ///
 /// A step starts a call through a backend found by the name before its first dot: the screen's Services (setServices())
-/// for a declared service. Everything the call reports arrives through the Executor, coalesced per frame: progress,
-/// events (appended to a list, or run through "onEvent"/"do" one batch at a time), then the result ("into", "onDone")
+/// for a declared service ("invoke"), its Connections for a declared connection ("request"; "subscribe" to either).
+/// Everything the call reports arrives through the Executor, coalesced per frame: progress, events (appended to a list, or run through "onEvent"/"do" one batch at a time), then the result ("into", "onDone")
 /// or the error ("onError", or reported). Invariants: at most maxRunning calls and maxSubscriptions subscriptions at
 /// once; a call with an "id" cancels the running one with the same id; once ended (finished, failed, cancelled, timed
 /// out, its node removed, cancelAll()) a call changes nothing more, whatever its service still delivers. Main thread
@@ -65,7 +65,7 @@ public:
 	/// service refused is reported.
 	void load();
 
-	/// @brief Starts an "invoke" or "subscribe" step.
+	/// @brief Starts an "invoke", "request" or "subscribe" step.
 	/// @param s The step.
 	/// @param stream true for "subscribe".
 	/// @return Whether to keep going (always true: the call is asynchronous).
@@ -95,6 +95,7 @@ private:
 		std::string name;                           ///< "service.method".
 		std::string id;                             ///< "id", or empty.
 		bool stream = false;                        ///< A subscription.
+		bool connection = false;                    ///< Through the screen's connections, not its services.
 		std::optional<json::json_pointer> into;     ///< "into".
 		std::optional<json::json_pointer> append;   ///< "append".
 		std::size_t keep = defaultKeep;             ///< "keep".
@@ -116,7 +117,8 @@ private:
 		std::string method;          ///< The method it asks for.
 	};
 
-	/// @brief Reads a step into a Pending.
+	/// @brief Reads a step into a Pending: "invoke" names a service, "request" a connection, and "subscribe" a
+	/// connection if the screen declares one by that name, else a service.
 	/// @param s The step.
 	/// @param stream true for "subscribe".
 	/// @return The call, its job not made yet.
@@ -129,8 +131,9 @@ private:
 	/// @param number The call's number (in pending_).
 	/// @param name "service.method".
 	/// @param stream true for "subscribe".
+	/// @param connection Whether it goes through the connections.
 	/// @param job Its job.
-	void launch(std::uint64_t number, const std::string& name, bool stream, Job& job);
+	void launch(std::uint64_t number, const std::string& name, bool stream, bool connection, Job& job);
 	/// @brief Applies a batch of events: appended, kept as the latest, or run through the call's steps.
 	/// @param call The call's number (running).
 	/// @param events The events, oldest first.

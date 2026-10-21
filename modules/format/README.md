@@ -15,7 +15,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 |---|---|
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing) and `reviewLines` (the service steps a change adds, which always need a reviewer); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
@@ -141,6 +141,17 @@ theme, and a name can't be both a colour and a token.
   ended changes nothing more (`src/ServiceCalls.*`, `tests/unit/services.cpp`). A revision can't change the section,
   may use only the declared services' revisable methods (`checkServiceUses`), and a step it adds that writes or runs
   something is always reviewed (`reviewLines`, `src/ServiceRules.*`).
+- **Connections** (8.6b, RFC 0003). `setNetwork` gives the runtime a `network::Network` (the `net` module's
+  `Client`, through `Screen::network()`). The `connections` section declares servers and their operations (method,
+  `path` with `{name}` segments, `query`, `body`, `headers`, `effect`, `stream`, `result`, `timeout`, `mock`), or a
+  WebSocket's `messages`. `{"request": "api.getItem", "with": {...}, "into": "state.item"}` takes the keys of
+  `invoke`; its `error` is `{code, message, status, body}`. `subscribe` reaches a connection when one has the name,
+  else a service. A WebSocket runs the actions `<name>:open`, `<name>:<type>`, `<name>:error` and `<name>:closed`;
+  the `connections` variable is each one's `{online, pending, state, error}`. At most 64 connections, 256
+  operations each, 50 requests a second each. The section is a capability: a revision uses declared operations
+  only (`checkServiceUses`), and one that writes is reviewed. While a proposal is previewed, only a read without a
+  `mock` reaches the server (`src/ConnectionSpec.*`, `src/Connections.*`, `tests/unit/connections.cpp`). The `auth`
+  key is accepted and not used yet (sign-in comes later).
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
@@ -235,6 +246,8 @@ src/
   AsyncCalls.*             slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
   ServiceCalls.*           invoke, subscribe and respond: calls to the services, their results and events in the state
   ServiceRules.*           what revisions may do with services: declared ones only, and reviewed when they write or run
+  ConnectionSpec.*         the "connections" section, read and checked: connections, operations, messages
+  Connections.*            request and subscribe on connections: requests built from declarations, WebSockets, previews
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,

@@ -125,6 +125,12 @@ void Runtime::setServices(services::Services* services) {
 	impl_->reconciler.requestReconcile();
 }
 
+void Runtime::setNetwork(network::Network* network) {
+	impl_->connections.setNetwork(network);
+	impl_->document.globalsChanged(); // the "connections" variable
+	impl_->reconciler.requestReconcile();
+}
+
 void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->models.set(std::move(name), std::move(model));
 }

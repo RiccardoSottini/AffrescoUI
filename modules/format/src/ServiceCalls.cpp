@@ -6,6 +6,7 @@
 #include "Engine.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <deque>
 #include <functional>
 #include <iterator>
@@ -136,8 +137,11 @@ void ServiceCalls::setServices(services::Services* services) {
 }
 
 void ServiceCalls::load() {
-	if(!services_ || !engine_.window) return; // build() loads them first, once the host granted what they use
+	if(!engine_.window) return; // build() loads them first, once the host granted what they use
 	const json& document = engine_.versions.document();
+	for(const std::string& refused : engine_.connections.load(document.value("connections", json())))
+		engine_.report("AffrescoUI screen: connections: " + refused); // nothing when the section didn't change
+	if(!services_) return;
 	const json section = document.contains("services") ? document["services"] : json();
 	if(loaded_ && *loaded_ == section) return;
 	loaded_ = section;
@@ -147,7 +151,7 @@ void ServiceCalls::load() {
 
 ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
 	const json& step = s.step;
-	const char* key = stream ? "subscribe" : "invoke";
+	const char* key = stream ? "subscribe" : step.contains("request") ? "request" : "invoke";
 	const std::string at = s.where + "." + key;
 	const std::string name = string(step[key], at);
 	const std::size_t dot = name.find('.');
@@ -156,6 +160,7 @@ ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
 	Pending call;
 	call.name = name;
 	call.stream = stream;
+	call.connection = !std::strcmp(key, "request") || (stream && engine_.connections.declares(name.substr(0, dot)));
 	if(step.contains("id")) call.id = string(s.value("id"), s.where + ".id");
 	if(step.contains("into")) call.into = s.target("into");
 	if(step.contains("append")) call.append = s.target("append");
@@ -180,7 +185,7 @@ ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
 bool ServiceCalls::start(const Running& s, bool stream) {
 	Pending call = read(s, stream);
 	const json arguments = s.step.contains("with") ? s.value("with") : json::object();
-	double timeout = defaultTimeout;
+	double timeout = call.connection ? maxTimeout : defaultTimeout; // a connection times its requests out itself
 	if(!stream && s.step.contains("timeout")) timeout = std::clamp(s.milliseconds("timeout"), 1.0, maxTimeout);
 	if(!call.id.empty()) cancel(call.id); // the newer call wins
 	const std::size_t subscriptions =
@@ -192,9 +197,10 @@ bool ServiceCalls::start(const Running& s, bool stream) {
 	call.job = job;
 	if(call.loading) write(*call.loading, true, call.where + ".loading");
 	const std::string name = call.name;
+	const bool connection = call.connection;
 	pending_.emplace(number, std::move(call));
 	if(full) job->fail("busy", stream ? "too many subscriptions (at most 256)" : "too many calls running (at most 1024)", nullptr);
-	else launch(number, name, stream, *job);
+	else launch(number, name, stream, connection, *job);
 	if(!stream && engine_.window)
 		engine_.scheduler.once(timeout, [this, number, alive = std::weak_ptr<bool>(alive_)] {
 			if(alive.lock()) failCall(number, errorOf("timeout", "the call took too long"));
@@ -204,19 +210,24 @@ bool ServiceCalls::start(const Running& s, bool stream) {
 	return true;
 }
 
-void ServiceCalls::launch(std::uint64_t number, const std::string& name, bool stream, Job& job) {
+void ServiceCalls::launch(std::uint64_t number, const std::string& name, bool stream, bool connection, Job& job) {
 	const std::size_t dot = name.find('.');
 	const std::string service = name.substr(0, dot), method = name.substr(dot + 1);
-	const services::MethodSpec* spec = services_ ? services_->method(service, method) : nullptr;
+	services::Services* backend = connection ? &engine_.connections : services_;
+	const services::MethodSpec* spec = backend ? backend->method(service, method) : nullptr;
+	if(!spec && connection)
+		return job.fail("notFound", "no operation '" + name + "' (see the \"connections\" section)", nullptr);
+	if(!spec && engine_.connections.declares(service))
+		return job.fail("wrong", "'" + service + "' is a connection: use request", nullptr);
 	if(!spec) return job.fail("notFound", "no service method '" + name + "' (see the \"services\" section)", nullptr);
+	const char* call = connection ? "' is a call: use request" : "' is a call: use invoke";
 	if(spec->streams != stream && spec->name != "*") // "*": a method the service doesn't list, either kind
-		return job.fail("wrong", "'" + name + (stream ? "' is a call: use invoke" : "' is a stream: use subscribe"),
-		                nullptr);
-	if(spec->effect != services::Effect::Read && engine_.versions.previewing())
+		return job.fail("wrong", "'" + name + (stream ? call : "' is a stream: use subscribe"), nullptr);
+	if(!connection && spec->effect != services::Effect::Read && engine_.versions.previewing()) // connections mock
 		return job.fail("preview", "while a proposal is previewed, a service only reads", nullptr);
 	const std::shared_ptr<Job> shared = pending_.at(number).job;
 	const std::optional<std::string> error =
-	    stream ? services_->subscribe(service, method, shared) : services_->invoke(service, method, shared);
+	    stream ? backend->subscribe(service, method, shared) : backend->invoke(service, method, shared);
 	if(error) job.fail("refused", *error, nullptr);
 }
 
@@ -319,11 +330,16 @@ void ServiceCalls::failCall(std::uint64_t call, json error) {
 }
 
 void ServiceCalls::failed(const Pending& call, const json& error) {
+	json flat; // a connection's error, RFC 0003: {code, message, status, body}
+	if(call.connection && error["data"].is_object())
+		flat = {{"code", error["code"]}, {"message", error["message"]}, {"status", error["data"].value("status", json())},
+		        {"body", error["data"].value("body", json())}};
+	const json& shown = flat.is_null() ? error : flat;
 	if(call.onError.is_null()) {
-		const std::string& message = error["message"].get_ref<const std::string&>();
+		const std::string& message = shown["message"].get_ref<const std::string&>();
 		engine_.report(call.where + ": " + call.name + ": " + message);
 	} else {
-		runSteps(call, call.onError, "error", error, call.where + ".onError");
+		runSteps(call, call.onError, "error", shown, call.where + ".onError");
 	}
 }
 

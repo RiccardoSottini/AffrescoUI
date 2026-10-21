@@ -27,7 +27,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
 	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
 	 "navigate", "dismiss", "after",    "debounce", "animate",  "copy",       "log",     "stop",
-	 "note",     "invoke",  "subscribe", "respond"});
+	 "note",     "invoke",  "request",   "subscribe", "respond"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -503,7 +503,7 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
-		const bool service = step.contains("invoke") || step.contains("subscribe");
+		const bool service = step.contains("invoke") || step.contains("request") || step.contains("subscribe");
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
 		if(key == "then" && step.contains("call")) layer.vars["result"] = anything; // and its result
 		if(key == "onDone") layer.vars["result"] = anything;                       // a service call's result

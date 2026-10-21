@@ -59,4 +59,5 @@ its worker; a `Transfer` or `WebSocket` may outlive it, and then does nothing.
 ## Extension points
 
 - **Another transport** (a test double, a mock for previews): implement `network::Network`. The format only sees the
-  interface.
+  interface: `format::Runtime::setNetwork` takes any, and `Screen::network()` gives a screen's `connections` a
+  `Client`.

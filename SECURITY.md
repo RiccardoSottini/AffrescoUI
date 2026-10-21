@@ -199,6 +199,17 @@ A host can register native code that documents use:
 
 Whatever a native function or action does, it does with the host's full rights. Version control can't see inside it.
 
+### Connections a screen declares
+
+A screen's `connections` section names servers and the operations the screen may ask them (RFC 0003). It is a
+capability, like `services`: a revision can't change it, and may add `request` and `subscribe` steps only for
+operations it declares, written out (a computed name is refused). A step a revision adds that writes or runs
+(`effect` other than `read`) is always reviewed. The host allows each origin first (`Screen::network().allow`); until
+then every request is refused. A document never holds a credential: the headers that carry one are refused, and an
+`auth` key is accepted for sign-in, which is not implemented yet. While a proposal is previewed, only a read without
+a `mock` reaches a server; any other operation answers from its mock, or fails with `preview`, so a preview has no
+side effects.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
@@ -324,6 +335,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A `process` service | 16 runs at once; its input 1 MiB; a line of its output 64 KiB (a longer one arrives in pieces) |
 | An `fs` service | 16 calls at once; a file read or written 8 MiB, UTF-8 text only; a listing 10,000 entries; paths that resolve inside its folder only |
 | Service calls of one screen (`invoke`, `subscribe`, `respond`) | 1,024 calls running, 256 subscriptions, 256 requests from services waiting for `respond`; a call's `keep` and the events it queues 10,000 |
+| A screen's `connections` | 64 connections, 256 operations and messages each; a `timeout` of 10 minutes at most (30 s by default), `retry.times` 5 at most |
+| Requests one connection starts (`request`, `subscribe`) | 50 a second; more fail with `refused`. Each also has the `net` module's limits above |
+| Headers a connection or an operation declares | Names that are HTTP tokens of 64 bytes at most; never `Authorization`, `Proxy-Authorization`, `Cookie`, `Host`, `Content-Length` or `Transfer-Encoding` (credentials come from sign-in, never from the document) |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in

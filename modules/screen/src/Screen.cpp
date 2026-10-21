@@ -18,6 +18,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string_view>
@@ -53,8 +54,32 @@ struct DeclaredChannel {
 /// Declaration order is construction order: the services, the rules, then the repository that uses them, then the
 /// runtime and the peers that use the repository (destroyed the other way round; servers stop before their peers go,
 /// and the runtime lets go of the services before they end).
+/// @brief The executor of the Screen's network: it forwards to the Screen's current executor, which the host may set
+/// after the network is made. Threads: post() from any, set() from the main thread.
+class RelayExecutor final : public Executor {
+public:
+	/// @brief Forwards a task to the current executor, or drops it if there is none.
+	/// @param task The task.
+	void post(std::function<void()> task) override {
+		const std::scoped_lock lock(mutex_);
+		if(target_) target_->post(std::move(task));
+	}
+	/// @brief Sets the executor tasks go to.
+	/// @param target The executor, or nullptr.
+	void set(Executor* target) noexcept {
+		const std::scoped_lock lock(mutex_);
+		target_ = target;
+	}
+
+private:
+	std::mutex mutex_;          ///< Guards target_.
+	Executor* target_ = nullptr; ///< See set().
+};
+
 struct Screen::Impl {
 	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
+	RelayExecutor relay;                                         ///< The network's executor.
+	std::unique_ptr<net::Client> network;                        ///< See Screen::network(); outlives the runtime.
 	format::Rules rules;                                         ///< The format's rules.
 	vcs::Repository repository;                                  ///< Document, state, history, review.
 	format::Runtime runtime;                                     ///< Panels and actions.
@@ -529,6 +554,7 @@ void Screen::startChannels(Executor& executor) {
 	Impl& impl = *impl_;
 	impl.executor = &executor;
 	impl.services.setExecutor(&executor);
+	impl.relay.set(&executor);
 	const json& document = impl.repository.document();
 	if(!document.contains("channels")) return;
 	for(const auto& [name, spec] : document["channels"].items()) {
@@ -588,9 +614,19 @@ void Screen::onAsyncCall(std::string name, AsyncCall call) {
 void Screen::setExecutor(Executor* executor) noexcept {
 	impl_->runtime.setExecutor(executor);
 	impl_->services.setExecutor(executor);
+	impl_->relay.set(executor);
 }
 
 services::ServiceRegistry& Screen::services() noexcept { return impl_->services; }
+
+net::Client& Screen::network() {
+	Impl& impl = *impl_;
+	if(!impl.network) {
+		impl.network = std::make_unique<net::Client>(impl.relay);
+		impl.runtime.setNetwork(impl.network.get());
+	}
+	return *impl.network;
+}
 
 void Screen::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->runtime.setModel(std::move(name), std::move(model));

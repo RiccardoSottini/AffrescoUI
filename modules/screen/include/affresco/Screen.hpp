@@ -10,6 +10,7 @@
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
+#include "affresco/net/Client.hpp"
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
@@ -171,6 +172,13 @@ public:
 	/// outside the grants is refused. Services start at their first use, once there is an executor.
 	/// @return The registry, owned by the Screen.
 	[[nodiscard]] services::ServiceRegistry& services() noexcept;
+
+	/// @brief The network the file's "connections" section uses (RFC 0003), made at the first call: until then, and
+	/// for every origin the host doesn't allow (`network().allow("https://api.example.com")`), each connection is
+	/// refused. Its handlers run through the executor (setExecutor() or startChannels()); with none, its results are
+	/// dropped.
+	/// @return The network, owned by the Screen.
+	[[nodiscard]] net::Client& network();
 
 	/// @brief Registers a data model the screen shows with `"repeat": {"in": "models.<name>"}`: rows the application
 	/// owns, read one at a time; a change of a row updates only what reads it. Agents see its count, shape and a sample

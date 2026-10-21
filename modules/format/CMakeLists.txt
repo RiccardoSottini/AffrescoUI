@@ -31,6 +31,8 @@ affrescoui_module(format
 	src/ItemIndex.cpp
 	src/AsyncCalls.cpp
 	src/ServiceCalls.cpp
+	src/ConnectionSpec.cpp
+	src/Connections.cpp
 	src/ServiceRules.cpp
 	src/Models.cpp
 	src/Reads.cpp
