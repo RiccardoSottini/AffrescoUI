@@ -64,8 +64,8 @@ constexpr KeyReference sectionTable[] = {
 	 "`name → value`: a number (spacing, a radius, a type size), a colour (`\"#rrggbb\"`, `\"transparent\"`), an alias "
 	 "(`\"@other\"`, of a token or of `colors`), or per theme `{ \"light\": ..., \"dark\": ... }` of those. Used as "
 	 "`\"@name\"` wherever a number or a colour fits: `\"padding\": \"@space.m\"`, `\"radius\": \"@radius.card\"`, "
-	 "`\"color\": \"@color.surface\"`, and a font's `\"size\": \"@type.body\"`. Names may hold dots by convention "
-	 "(`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at "
+	 "`\"color\": \"@color.surface\"`, a font's `\"size\": \"@type.body\"`, and the members of `anchors`, `radius` "
+	 "and `shadow`. Names may hold dots by convention (`space.m`). Switched by `theme` like `colors`; a name in both `colors` and `tokens` is an error. Aliases go at "
 	 "most 16 deep; at most 4096 tokens and 32 themes. One edit to a token restyles every node that uses it.",
 	 "sections"},
     {"theme", R"json({"description": "Which color variant is shown, e.g. \"{{state.theme}}\""})json",

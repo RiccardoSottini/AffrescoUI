@@ -331,6 +331,18 @@ const json& DocumentContext::resolveToken(const json& value, json& scratch) cons
 	return scratch;
 }
 
+const json& DocumentContext::resolveMemberTokens(const json& value, json& scratch) const {
+	bool copied = false;
+	for(const auto& [key, member] : value.items()) {
+		json number;
+		const json& resolved = resolveToken(member, number);
+		if(&resolved == &member) continue;
+		if(!std::exchange(copied, true)) scratch = value;
+		scratch[key] = std::move(number);
+	}
+	return copied ? scratch : value;
+}
+
 // Like CSS box-shadow: "x" and "y" move it and "blur" softens it
 Shadow DocumentContext::shadow(const json& value, const std::string& path) const {
 	Shadow result{.color = colors::black.withAlpha(0.25f)};
