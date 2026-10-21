@@ -5,6 +5,7 @@
 /// globals, the cached "computed" values and the screen an outlet shows.
 
 #include "NodeKeys.hpp"
+#include "Reads.hpp"
 
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
@@ -19,6 +20,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::format {
@@ -67,19 +69,55 @@ public:
 	                            const std::string& where) const;
 	/// @brief Drops the cached globals (history, proposals, preview, window size or screen changed).
 	void globalsChanged() const { globalsCache_.reset(); }
-	/// @brief Records that the state changed: computed values are stale and an update is due.
+	/// @brief Records that the state changed in a way no place describes: computed values are stale and every value
+	/// is evaluated again at the next update.
 	void markStateChanged() noexcept {
-		stateChanged_ = true;
+		changes_.addAll();
 		++stateVersion_;
 	}
-	/// @brief Whether the state changed since the last update began (clearStateChanged()).
-	[[nodiscard]] bool stateChanged() const noexcept { return stateChanged_; }
-	/// @brief Marks the state as up to date with the panels, as an update begins.
-	void clearStateChanged() noexcept { stateChanged_ = false; }
-	/// @brief Marks an update as due, without staling computed values.
-	void requestUpdate() noexcept { stateChanged_ = true; }
+	/// @brief Records that one place of the state changed: computed values are stale, and the next update evaluates
+	/// again only the values that read it.
+	/// @param pointer The place.
+	void markStateChanged(const json::json_pointer& pointer) {
+		changes_.add(pointer.to_string());
+		++stateVersion_;
+	}
+	/// @brief Whether the state changed, or an update was requested, since the last update began (takeChanges()).
+	[[nodiscard]] bool stateChanged() const noexcept { return !changes_.empty(); }
+	/// @brief What changed since the last update began, as an update begins: the state is then up to date with the
+	/// panels.
+	/// @return The changes.
+	[[nodiscard]] StateChanges takeChanges() noexcept { return std::exchange(changes_, {}); }
+	/// @brief Marks a full update as due (every value evaluated again), without staling computed values.
+	void requestUpdate() noexcept { changes_.addAll(); }
 	/// @brief Makes computed values stale (a revision may change the state too).
 	void bumpStateVersion() noexcept { ++stateVersion_; }
+
+	/* What values read */
+
+	/// @brief Records the places of the state read by every value evaluated while it lives (Reads.hpp), so a later
+	/// update evaluates them again only when one of those places changed. Nested scopes collect into their own set.
+	class ReadScope {
+	public:
+		/// @brief Starts collecting.
+		/// @param context The context; outlives the scope.
+		/// @param into Where the places go (nullptr: nowhere, until the scope ends).
+		ReadScope(const DocumentContext& context, ReadSet* into) noexcept
+		    : context_(context), outer_(std::exchange(context.reads_, into)) {}
+		/// @brief Gives the collecting back to the enclosing scope.
+		~ReadScope() { context_.reads_ = outer_; }
+		ReadScope(const ReadScope&) = delete;
+		ReadScope& operator=(const ReadScope&) = delete;
+		ReadScope(ReadScope&&) = delete;
+		ReadScope& operator=(ReadScope&&) = delete;
+
+	private:
+		const DocumentContext& context_; ///< The context.
+		ReadSet* outer_;                 ///< The enclosing scope's set, or nullptr.
+	};
+	/// @brief Where the running ReadScope collects.
+	/// @return The set, or nullptr.
+	[[nodiscard]] ReadSet* reads() const noexcept { return reads_; }
 
 	/* The work budget */
 
@@ -209,11 +247,13 @@ private:
 
 	std::uint64_t appearance_ = 1;                  ///< See appearance().
 	WorkBudget* budget_ = nullptr;                  ///< The running event's or update's budget (BudgetScope), if any.
-	bool stateChanged_ = false;                     ///< See stateChanged().
+	StateChanges changes_;                          ///< See takeChanges().
+	mutable ReadSet* reads_ = nullptr;              ///< Where the running ReadScope collects, if any.
 	std::uint64_t stateVersion_ = 0;                ///< Counts state changes (computed values are cached per version).
 	mutable std::optional<Globals> globalsCache_;   ///< See globals().
 	mutable json computedValues_ = json::object();  ///< "computed" values read since the state last changed.
 	mutable std::uint64_t computedVersion_ = ~0ull; ///< The state version computedValues_ belong to.
+	mutable std::map<std::string, ReadSet, std::less<>> computedReads_; ///< What each computed value read.
 	mutable std::vector<std::string> computing_;    ///< Computed values being evaluated (finds circles).
 	NodeLookup computedLookup_;                     ///< computed(), for expressions.
 	NodeLookup nodeLookup_;                         ///< node(), for expressions.

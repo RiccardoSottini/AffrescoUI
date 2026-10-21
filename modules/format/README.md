@@ -93,6 +93,15 @@ general: a settings page can describe its settings with it.
   typing, scroll and drags survive. If a version can't be built, the runtime refuses it and version control rolls
   it back.
 - **State changes during one event become one update,** run once the event has been delivered.
+- **Cost follows the change** (4.1). Each record keeps what its values, its list of children and its subtree read
+  (`ReadSet`, `src/Reads.hpp`: JSON Pointers, a key read as any key `~*` when there are too many, and `~#` for a
+  repeat's reading of a list's shape only). A state step records the places it wrote (`StateChanges`); the update
+  after it visits only the records whose subtree reads one, applies again the values that do and builds again the
+  lists of children that do. A repeat over a place of the state gives each item that place (`Scope::origin`), so its
+  bindings read `/items/5/title`, not the whole list. A long list (64 children or more) looks the changed places up
+  by item (`ItemIndex`) instead of visiting every child. A revision, a resize, a new theme or screen, and a change no
+  place describes update everything. A subtree's reads may say more than it reads, never less: an update that
+  visits only part of the panels gives the panels a full build gives (`tests/unit/updates.cpp`).
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
@@ -172,7 +181,9 @@ src/
   Binding.*                a value compiled once: templates split, operators lowered
   StateTypes.*             typed state: the stateTypes subset of JSON Schema, matching values, describing types
   CheckerTypes.cpp         the checker's typed-state checks
-  Reconciler.*             records, building and reconciling panels
+  Reconciler.*             records, building and reconciling panels; updates of only what reads a change
+  Reads.*                  what values read and what changed in the state, and when they meet
+  ItemIndex.*              the children of a long list by the item of the state they read
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,

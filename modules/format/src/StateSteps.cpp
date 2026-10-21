@@ -13,14 +13,15 @@ namespace {
 /// @brief "remove": a state path, or an item of a list at "at".
 /// @param s The step.
 /// @param state The state.
-void removeFrom(const Running& s, json& state) {
+/// @return The place changed.
+json::json_pointer removeFrom(const Running& s, json& state) {
 	const json::json_pointer pointer = s.target("remove");
 	if(!s.step.contains("at")) {
-		if(!findInState(state, pointer)) return;
+		if(!findInState(state, pointer)) return pointer;
 		json& holder = statePlace(state, pointer.parent_pointer(), s.where);
 		if(!holder.is_object()) fail(s.where, R"(to remove an item of a list, name the list and the item's "at")");
 		holder.erase(pointer.back());
-		return;
+		return pointer;
 	}
 	json& array = statePlace(state, pointer, s.where);
 	const json at = s.value("at");
@@ -28,6 +29,7 @@ void removeFrom(const Running& s, json& state) {
 	   static_cast<std::size_t>(at.get<std::int64_t>()) >= array.size())
 		fail(s.where, "nothing to remove at " + at.dump());
 	array.erase(static_cast<std::size_t>(at.get<std::int64_t>()));
+	return pointer; // the items after it move: the whole list changed
 }
 
 /// @brief Tells whether two integers add up to one: integers stay integers, unless their sum doesn't fit (an
@@ -43,7 +45,8 @@ bool fitsSum(std::int64_t a, std::int64_t b) noexcept {
 /// @brief "increment": adds "by" (1 by default) to a number in the state.
 /// @param s The step.
 /// @param state The state.
-void increment(const Running& s, json& state) {
+/// @return The place changed.
+json::json_pointer increment(const Running& s, json& state) {
 	const json::json_pointer pointer = s.target("increment");
 	const json by = s.value(s.step.value("by", json(1)), s.where + ".by");
 	const json* found = findInState(state, pointer);
@@ -53,6 +56,7 @@ void increment(const Running& s, json& state) {
 	                      fitsSum(current.get<std::int64_t>(), by.get<std::int64_t>());
 	statePlace(state, pointer, s.where) = integers ? json(current.get<std::int64_t>() + by.get<std::int64_t>())
 	                                               : json(current.get<double>() + by.get<double>());
+	return pointer;
 }
 
 /// @brief Runs a state step.
@@ -64,15 +68,16 @@ std::optional<bool> runStateStep(const Running& s) {
 	Engine& engine = s.steps.engine();
 	json& state = engine.versions.state();
 
+	json::json_pointer pointer; // the place changed
 	if(step.contains("set")) {
 		if(!step.contains("to")) fail(where, R"("set" needs "to")");
-		const json::json_pointer pointer = s.target("set");
+		pointer = s.target("set");
 		json value = s.value("to");
 		expect::shallowEnough(value, pointerDepth(pointer), where + ".to");
 		engine.document.spendBytes(value, where + ".to");
 		statePlace(state, pointer, where) = std::move(value);
 	} else if(step.contains("push")) {
-		const json::json_pointer pointer = s.target("push");
+		pointer = s.target("push");
 		json& array = statePlace(state, pointer, where);
 		if(array.is_null()) array = json::array();
 		if(!array.is_array()) fail(where + ".push", "is not a list");
@@ -81,18 +86,18 @@ std::optional<bool> runStateStep(const Running& s) {
 		engine.document.spendBytes(value, where + ".value");
 		array.push_back(std::move(value));
 	} else if(step.contains("remove")) {
-		removeFrom(s, state);
+		pointer = removeFrom(s, state);
 	} else if(step.contains("toggle")) {
-		const json::json_pointer pointer = s.target("toggle");
+		pointer = s.target("toggle");
 		const json* found = findInState(state, pointer);
 		const bool on = found && format::truthy(*found);
 		statePlace(state, pointer, where) = !on;
 	} else if(step.contains("increment")) {
-		increment(s, state);
+		pointer = increment(s, state);
 	} else {
 		return std::nullopt;
 	}
-	engine.document.markStateChanged();
+	engine.document.markStateChanged(pointer);
 	return true;
 }
 

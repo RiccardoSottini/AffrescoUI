@@ -166,9 +166,9 @@ void Checker::walkNode(const json& node, const std::string& place, const Scope& 
 
 void Checker::walkPrepared(Prepared& node, const Scope& scope, const Slot* slot, bool child) {
 	applyStyles(node, 0);
-	Scope repeated{&scope, nullptr, json()}; // variables start as null, which costs nothing until one is added
+	Scope repeated{&scope, nullptr, json(), {}, {}}; // variables start as null, which costs nothing until one is added
 	if(child && node.value("repeat")) walkRepeat(node, repeated);
-	Scope layer{&repeated, nullptr, json()};
+	Scope layer{&repeated, nullptr, json(), {}, {}};
 	walkLayer(node, layer);
 	walkProperties(node, layer);
 
@@ -455,7 +455,7 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 	for(const std::string_view key : nestedSteps) {
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
-		Scope layer{&scope, nullptr, json()};
+		Scope layer{&scope, nullptr, json(), {}, {}};
 		if(key == "onError") layer.vars["error"] = single; // a native call's error message
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}
@@ -476,7 +476,7 @@ void Checker::walkWrite(std::string_view kind, const json& step, const Scope& sc
 
 void Checker::walkRun(const json& step, const Scope& scope, const std::string& place) {
 	// "with": the action's own variables, evaluated where the step is
-	Scope layer{&scope, nullptr, json()};
+	Scope layer{&scope, nullptr, json(), {}, {}};
 	if(const auto with = step.find("with"); with != step.end() && with->is_object())
 		for(const auto& [name, value] : with->items())
 			layer.vars[name] = shapeOf(value, scope, std::format("{}.with.{}", place, name));
@@ -490,7 +490,7 @@ void Checker::walkForEach(const json& step, const Scope& scope, const std::strin
 	const Shape list = source.is_string() && !isDynamic(source)
 	                       ? shapeOfPath(source.get_ref<const std::string&>(), scope, place + ".forEach")
 	                       : shapeOf(source, scope, place + ".forEach");
-	Scope layer{&scope, nullptr, json()};
+	Scope layer{&scope, nullptr, json(), {}, {}};
 	layer.vars[nameOr(step, "as", "item")] = itemOf(list);
 	layer.vars[nameOr(step, "index", "index")] = single;
 	if(const auto steps = step.find("do"); steps != step.end()) walkSteps(*steps, layer, place + ".do");

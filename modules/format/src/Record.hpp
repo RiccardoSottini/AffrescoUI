@@ -5,7 +5,9 @@
 /// the limits its subsystems share.
 
 #include "CompiledNode.hpp"
+#include "ItemIndex.hpp"
 #include "NodeKeys.hpp"
+#include "Reads.hpp"
 #include "TypeRegistry.hpp"
 
 #include "affresco/core/Signal.hpp"
@@ -44,6 +46,10 @@ struct Record {
 	CompiledRef node;                     ///< The compiled node last applied (what refresh() re-applies).
 	std::vector<json> values;             ///< Its values last applied: CompiledProperty::evaluated places them.
 	std::uint64_t appearance = 0;         ///< DocumentContext::appearance() when it was last applied.
+	ReadSet valueReads;                   ///< What its values read when last applied.
+	ReadSet expandReads;                  ///< What building its children's list read (repeat, when, with, ...).
+	ReadSet subtreeReads;                 ///< What it, its children's list and the panels below read (or more).
+	ItemIndex items;                      ///< Its children by the item they read, when there are many.
 	json handlers = json::object();       ///< "onClick" and the others: an action name or steps each.
 	json keys;                            ///< Shortcuts: "cmd+k" -> handler (null: none).
 	json drag;                            ///< "drag", unevaluated (data is read when a drag starts).

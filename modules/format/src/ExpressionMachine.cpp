@@ -4,10 +4,12 @@
 #include "ExpressionMachine.hpp"
 
 #include "ExpressionParser.hpp"
+#include "Reads.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <ranges>
 #include <utility>
 
@@ -30,6 +32,33 @@ PathKey keyOf(const Value& value) noexcept {
 	if(value.isText()) return {PathKey::Kind::Name, value.text(), 0};
 	if(value.isInteger()) return {PathKey::Kind::Index, {}, value.integer()};
 	return {};
+}
+
+/// @brief The value at a place of the state.
+/// @param state The state.
+/// @param pointer The place, as a JSON Pointer.
+/// @return The value, or nullptr if there is none.
+const json* lying(const json& state, std::string_view pointer) {
+	const json* current = &state;
+	while(!pointer.empty()) {
+		pointer.remove_prefix(1); // the '/'
+		const std::size_t end = std::min(pointer.find('/'), pointer.size());
+		std::string key(pointer.substr(0, end));
+		pointer.remove_prefix(end);
+		for(std::size_t at = key.find('~'); at != std::string::npos; at = key.find('~', at + 1))
+			key.replace(at, 2, key[at + 1] == '1' ? "/" : "~");
+		if(current->is_array()) {
+			std::size_t index = 0;
+			const auto [last, error] = std::from_chars(key.data(), key.data() + key.size(), index);
+			if(error != std::errc() || last != key.data() + key.size() || index >= current->size()) return nullptr;
+			current = &(*current)[index];
+		} else if(const auto it = current->find(key); it != current->end()) {
+			current = &*it;
+		} else {
+			return nullptr;
+		}
+	}
+	return current;
 }
 
 /// @brief Follows keys from a value.
@@ -196,6 +225,7 @@ Value Machine::runFor(const Node& node, const Place& place, const Value& item, s
 Value Machine::call(const Node& node, const Place& place) {
 	const Place at(place, node.label);
 	const Function* function = node.function;
+	if(function && function->changes && context_.reads) context_.reads->always = true; // the clock
 	if(function && function->decide) {
 		if(node.children.size() < function->fewest || node.children.size() > function->most)
 			fail(at, std::string(function->shape));
@@ -241,12 +271,34 @@ Value Machine::get(const Node& node, const Place& place) {
 }
 
 Value Machine::walk(Root root, std::string_view name, std::span<const PathKey> keys, const Place& place) const {
+	if(context_.reads) noteRead(root, name, keys);
 	if(std::optional<Value> start = variable(root, name, place)) return follow(std::move(*start), keys);
 	// computed.<name>: evaluated now; nodes.<id>: a built panel's geometry
 	if(keys.empty() || keys.front().kind != PathKey::Kind::Name)
 		fail(place, "expected " + std::string(name) + ".<name>");
 	const NodeLookup& read = *(root == Root::Computed ? context_.computed : context_.nodes);
 	return follow(Value::ownJson(read(keys.front().name)), keys.subspan(1));
+}
+
+void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey> keys) const {
+	if(root == Root::Nodes) { // a panel's geometry: no state change announces it
+		context_.reads->always = true;
+		return;
+	}
+	std::string pointer;
+	if(root == Root::Named) { // a repeat's item lying in the state reads it there; other variables never change
+		const std::string* origin = context_.locals.originOf(name);
+		if(!origin || (item_ && (name == "it" || name == "index"))) return;
+		pointer = *origin;
+	} else if(root != Root::State) {
+		return;
+	}
+	for(const PathKey& key : keys) { // up to the first key that leads nowhere: what is read lies inside
+		if(key.kind == PathKey::Kind::Name) appendKey(pointer, key.name);
+		else if(key.kind == PathKey::Kind::Index) appendKey(pointer, std::to_string(key.index));
+		else break;
+	}
+	context_.reads->addPath(pointer);
 }
 
 std::optional<Value> Machine::variable(Root root, std::string_view name, const Place& place) const {
@@ -278,7 +330,15 @@ std::optional<Value> Machine::namedVariable(std::string_view name) const {
 		if(name == "it") return item_->value;
 		if(name == "index") return Value::fromInteger(static_cast<std::int64_t>(item_->index));
 	}
-	if(const json* local = context_.locals.find(name)) return Value::fromJson(*local);
+	for(const Scope* scope = &context_.locals; scope; scope = scope->parent) {
+		const auto local = scope->vars.find(name);
+		if(local == scope->vars.end()) continue;
+		// While an update records reads, a repeat's item is read where it lies now: an update that changes only
+		// inside it keeps the scope, and its copy, built before
+		if(context_.reads && scope->fromState == name)
+			if(const json* live = lying(context_.state, scope->origin)) return Value::fromJson(*live);
+		return Value::fromJson(*local);
+	}
 	if(const auto global = context_.globals.find(name); global != context_.globals.end())
 		return Value::fromJson(*global);
 	return std::nullopt;

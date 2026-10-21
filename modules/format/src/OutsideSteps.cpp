@@ -26,13 +26,13 @@ bool call(const Running& s) {
 				const json::json_pointer pointer = s.target("into");
 				expect::shallowEnough(result, pointerDepth(pointer), where + ".into");
 				statePlace(engine.versions.state(), pointer, where + ".into") = std::move(result);
-				engine.document.markStateChanged();
+				engine.document.markStateChanged(pointer);
 			}
 		} catch(const DocumentError&) {
 			throw;
 		} catch(const std::exception& error) {
 			if(!step.contains("onError")) fail(where + ".call", name + ": " + error.what());
-			const Scope scope{&s.locals, nullptr, {{"error", error.what()}}};
+			const Scope scope{&s.locals, nullptr, {{"error", error.what()}}, {}, {}};
 			return s.run(step["onError"], scope, where + ".onError");
 		}
 	} else if(const auto it = engine.nativeActions.find(name); it != engine.nativeActions.end()) {

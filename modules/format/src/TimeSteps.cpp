@@ -39,7 +39,7 @@ void animate(const Running& s) {
 	const double from = current && current->is_number() ? current->get<double>() : 0.0;
 	if(!engine.window || ms <= 0.0) {
 		statePlace(engine.versions.state(), pointer, s.where) = to;
-		engine.document.markStateChanged();
+		engine.document.markStateChanged(pointer);
 		return;
 	}
 	engine.scheduler.animate(pointer, from, to, ms, easing, s.where);

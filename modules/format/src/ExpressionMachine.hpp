@@ -292,6 +292,11 @@ private:
 	/// @return The value, or null if it doesn't exist.
 	/// @throws DocumentError If the variable is unknown.
 	[[nodiscard]] Value walk(Root root, std::string_view name, std::span<const PathKey> keys, const Place& place) const;
+	/// @brief Records what a path reads, for fine-grained updates: its place in the state, or that it reads a panel.
+	/// @param root The path's variable.
+	/// @param name Its name (a repeat's item reads where it lies in the state).
+	/// @param keys Its keys.
+	void noteRead(Root root, std::string_view name, std::span<const PathKey> keys) const;
 
 	const Context& context_;     ///< What paths can see.
 	const Item* item_ = nullptr; ///< The innermost list function's item, if one is running.

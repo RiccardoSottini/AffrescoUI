@@ -151,7 +151,7 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 Context DocumentContext::context(const Scope& locals, const json& event) const {
 	const Globals& g = globals();
 	return Context{engine_.versions.state(), g.window, g.revision, event, locals, g.other, &nodeLookup_,
-	               &computedLookup_, budget_};
+	               &computedLookup_, budget_, reads_};
 }
 
 /* The work budget */
@@ -196,16 +196,22 @@ json DocumentContext::computed(std::string_view name) const {
 		fail("computed", "no computed value '" + key + "'");
 	if(computedVersion_ != stateVersion_) {
 		computedValues_ = json::object();
+		computedReads_.clear();
 		computedVersion_ = stateVersion_;
 	}
-	if(computedValues_.contains(key)) return computedValues_[key];
+	if(computedValues_.contains(key)) {
+		if(reads_) reads_->add(computedReads_[key]); // what reads it reads what it read
+		return computedValues_[key];
+	}
 	if(std::ranges::find(computing_, key) != computing_.end())
 		fail("computed." + key, "computed values refer to each other in a circle");
 	if(computing_.size() >= maxComputedDepth)
 		fail("computed." + key, "computed values read each other too deeply (more than 32 levels)");
 	computing_.push_back(key);
 	json value;
+	ReadSet read;
 	try {
+		const ReadScope scope(*this, &read);
 		const json none = json::object();
 		value = format::evaluate(document["computed"][key], context(*noVariables(), none), "computed." + key);
 	} catch(...) {
@@ -213,7 +219,9 @@ json DocumentContext::computed(std::string_view name) const {
 		throw;
 	}
 	computing_.pop_back();
+	if(reads_) reads_->add(read);
 	computedValues_[key] = value;
+	computedReads_[key] = std::move(read);
 	return value;
 }
 
