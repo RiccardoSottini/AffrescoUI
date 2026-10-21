@@ -286,9 +286,11 @@ TEST_CASE("channel: a SocketServer refuses and logs a connection its peer check 
 		CHECK_FALSE(client->isOpen());
 		refuse = false;
 	}
-	// The client can see its end close before the server's thread has logged (on Windows), so wait for both
-	const std::string refused = "AffrescoUI: refused a connection to " + (folder.path / "s").string() +
-	                            ": the program on the other end runs as another user";
+	// The client can see its end close before the server's thread has logged (on Windows), so wait for both. The log
+	// doubles backslashes, which a Windows path has
+	const std::string refused = affresco::detail::escapeControls("AffrescoUI: refused a connection to " +
+	                                                             (folder.path / "s").string() +
+	                                                             ": the program on the other end runs as another user");
 	CHECK(executor.runUntil([&] { return std::ranges::count(log.messages(), refused) == 2; }));
 	CHECK(accepted.empty());
 }
