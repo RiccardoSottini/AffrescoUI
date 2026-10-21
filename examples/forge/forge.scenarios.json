@@ -1,0 +1,118 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "What Forge does, checked headless, with tests/render/forge/folder open: affrescoui_render_runner forge.scenarios.json",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-index-the-folder",
+			"note": "On load, the open folder is indexed: hidden entries and node_modules are skipped, folders come first in the tree, and the icon theme dresses the items",
+			"steps": [
+				{ "expect": { "state": "folder.files.length", "is": 2 } },
+				{ "expect": { "state": "folder.files[0].id", "is": "README.md" } },
+				{ "expect": { "state": "folder.files[1].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "folder.truncated", "is": false } },
+				{ "expect": { "state": "folder.tree[0].id", "is": "src/" } },
+				{ "expect": { "state": "folder.tree[0].icon", "is": "folder" } },
+				{ "expect": { "state": "folder.tree[0].children[0].icon", "is": "file-code" } },
+				{ "expect": { "node": "#explorer", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-toggle-the-layout",
+			"note": "mod+B hides the side bar, mod+J the panel, and the chord mod+K Z enters zen mode, which hides the title and status bars",
+			"steps": [
+				{ "key": "mod+b" },
+				{ "expect": { "state": "layout.sidebar", "is": false } },
+				{ "key": "mod+j" },
+				{ "expect": { "state": "layout.panel", "is": false } },
+				{ "key": "mod+k" },
+				{ "key": "z" },
+				{ "expect": { "state": "layout.zen", "is": true } },
+				{ "action": "toggleZen" },
+				{ "action": "toggleSidebar" },
+				{ "expect": { "state": "layout.zen", "is": false } },
+				{ "expect": { "state": "layout.sidebar", "is": true } }
+			]
+		},
+		{
+			"name": "forge-open-and-close-a-file",
+			"note": "Opening a file from the explorer reads it, gives it a language and a tab; mod+W closes it",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "state": "docs.length", "is": 1 } },
+				{ "expect": { "state": "docs[0].language", "is": "C++" } },
+				{ "expect": { "state": "groups[0].active", "is": "src/main.cpp" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/" }, "note": "a folder opens nothing" },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 1 } },
+				{ "action": "closeEditor" },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 0 } },
+				{ "expect": { "state": "groups[0].active", "is": null } }
+			]
+		},
+		{
+			"name": "forge-split-the-editor",
+			"note": "Split Editor opens the active editor in a second group, and closing it there removes the group",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "splitEditor" },
+				{ "expect": { "state": "groups.length", "is": 2 } },
+				{ "expect": { "state": "activeGroup", "is": 1 } },
+				{ "expect": { "state": "groups[1].active", "is": "README.md" } },
+				{ "action": "closeEditor" },
+				{ "expect": { "state": "groups.length", "is": 1 } }
+			]
+		},
+		{
+			"name": "forge-open-the-palette",
+			"note": "mod+shift+P opens the palette on commands, mod+P on files, mod+G on lines",
+			"steps": [
+				{ "key": "mod+shift+p" },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "expect": { "state": "quickPick.query", "is": ">" } },
+				{ "key": "mod+p" },
+				{ "expect": { "state": "quickPick.query", "is": "" } },
+				{ "key": "mod+g" },
+				{ "expect": { "state": "quickPick.query", "is": ":" } }
+			]
+		},
+		{
+			"name": "forge-generated-pages",
+			"note": "The settings and keyboard shortcuts pages open as editor tabs",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "expect": { "state": "groups[0].active", "is": "forge:settings" } },
+				{ "action": "openKeybindings" },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 2 } },
+				{ "expect": { "state": "docs[1].kind", "is": "keybindings" } }
+			]
+		},
+		{
+			"name": "forge-problems-and-output",
+			"note": "Scan for Problems lists nothing in a clean folder and logs it to Output; Focus Problems shows the panel",
+			"steps": [
+				{ "action": "togglePanel" },
+				{ "action": "showProblems" },
+				{ "expect": { "state": "layout.panel", "is": true } },
+				{ "expect": { "state": "panelTab", "is": "problems" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "scanProblems" },
+				{ "expect": { "state": "problems.length", "is": 0 } },
+				{ "expect": { "state": "output.length", "is": 1 } }
+			]
+		},
+		{
+			"name": "forge-reindex-with-progress",
+			"note": "Reindex shows a progress toast that closes on its own, and logs the count to Output",
+			"steps": [
+				{ "action": "toggleIcons" },
+				{ "expect": { "state": "toast.progress", "is": 1 } },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "expect": { "state": "output[0].text", "is": "Indexed 2 files" } },
+				{ "wait": 2000 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		}
+	]
+}
