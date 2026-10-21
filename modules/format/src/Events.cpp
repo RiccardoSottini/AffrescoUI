@@ -28,6 +28,22 @@ const DragHooks* dragHooks(const Record* record) {
 	return nullptr;
 }
 
+/// @brief Runs a key handler's short form ("ctrl+s": "save"), unless it names a disabled command: then the key falls
+/// through, as it does past a disabled binding.
+/// @param engine The runtime.
+/// @param handler The handler.
+/// @param owner The panel it runs on.
+/// @param event The key event.
+/// @param locals The local variables.
+/// @param where Its place in the document.
+/// @return true if it ran.
+bool runShortForm(Engine& engine, const json& handler, Panel& owner, const json& event, const Scope& locals,
+                  const std::string& where) {
+	if(handler.is_string() && !commandEnabled(engine, handler.get<std::string>())) return false;
+	engine.runner.handle(handler, owner, event, locals, where);
+	return true;
+}
+
 } // namespace
 
 /* Connections */
@@ -274,10 +290,7 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 bool Events::runBinding(const json& handler, Panel& owner, const Scope& locals, const std::string& press,
                         const std::string& where) {
 	const json event = {{"type", "key"}, {"key", press}};
-	if(!isBinding(handler) && !isBindingList(handler)) {
-		engine_.runner.handle(handler, owner, event, locals, where);
-		return true;
-	}
+	if(!isBinding(handler) && !isBindingList(handler)) return runShortForm(engine_, handler, owner, event, locals, where);
 	const json bindings = isBindingList(handler) ? handler : json::array({handler});
 	for(std::size_t i = 0; i < bindings.size(); ++i) {
 		const json& binding = bindings[i];
@@ -562,7 +575,8 @@ std::vector<Panel*> Events::focusables(Panel& scope, bool list) {
 		});
 		positive.insert(after, panel);
 	};
-	const auto visit = [&](this const auto& self, Panel& panel) -> void {
+	// The lambda takes itself to recurse: GCC 13 has no explicit object parameter ("this auto")
+	const auto visit = [&](const auto& self, Panel& panel) -> void {
 		if(!panel.isShown()) return;
 		const Record* record = engine_.reconciler.recordOf(&panel);
 		if(record && record->disabled) return;
@@ -578,9 +592,9 @@ std::vector<Panel*> Events::focusables(Panel& scope, bool list) {
 		}
 		const bool input = dynamic_cast<const TextArea*>(&panel) || dynamic_cast<const TextEditor*>(&panel);
 		if(record && &panel != &scope && record->tabIndex >= 0 && (record->focusable || input)) add(&panel, *record);
-		for(const auto& child : panel.children()) self(*child);
+		for(const auto& child : panel.children()) self(self, *child);
 	};
-	visit(scope);
+	visit(visit, scope);
 	positive.insert(positive.end(), result.begin(), result.end());
 	return positive;
 }
@@ -632,16 +646,16 @@ bool Events::navigate(Panel* from, const KeyEvent& event) {
 	};
 	if(letter && mods.alt() && !mods.super() && !mods.control()) { // anywhere in it, lists too
 		Panel& scope = modalScope();
-		const auto find = [&](this const auto& self, Panel& panel) -> Panel* {
+		const auto find = [&](const auto& self, Panel& panel) -> Panel* { // takes itself to recurse, as visit does
 			const Record* record = engine_.reconciler.recordOf(&panel);
 			if(!panel.isShown() || (record && record->disabled) || (record && &panel != &scope && record->modal))
 				return nullptr;
 			if(record && &panel != &scope && record->mnemonic == letter) return &panel;
 			for(const auto& child : panel.children())
-				if(Panel* found = self(*child)) return found;
+				if(Panel* found = self(self, *child)) return found;
 			return nullptr;
 		};
-		Panel* found = find(scope);
+		Panel* found = find(find, scope);
 		return found && keyClick(*found);
 	}
 

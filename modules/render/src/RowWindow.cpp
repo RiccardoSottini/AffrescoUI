@@ -50,8 +50,12 @@ float RowWindow::offsetOf(std::size_t row) const noexcept {
 
 std::size_t RowWindow::rowAt(float offset) const noexcept {
 	if(count_ == 0) return 0;
-	if(offset <= 0.0f) return 0;
-	if(tree_.empty()) return std::min(static_cast<std::size_t>(offset / rowHeight_), count_ - 1);
+	if(!(offset > 0.0f)) return 0; // NaN too
+	if(tree_.empty()) {
+		// Compared before the cast: a list as tall as 1e30 puts the row past size_t's range, where the cast is undefined
+		const float row = offset / rowHeight_;
+		return row < static_cast<float>(count_ - 1) ? static_cast<std::size_t>(row) : count_ - 1;
+	}
 	// Descend the tree for the last prefix whose sum is at most the offset
 	std::size_t position = 0;
 	float remaining = offset;

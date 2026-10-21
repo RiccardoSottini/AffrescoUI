@@ -185,6 +185,28 @@ TEST_CASE("format: a slow call past its timeout ends with the error 'timeout', a
 	CHECK(stateAt(screen, "/ran") == 0);
 }
 
+TEST_CASE("format: a slow call that ends before its timeout leaves no timer behind") {
+	FakeExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(calls);
+	screen.onAsyncCall("slow", [](const std::string& arguments, CallProgress&) { return arguments; });
+	screen.setExecutor(&executor);
+	screen.build(*window);
+	window->render();
+	REQUIRE_FALSE(window->secondsToNextTimer());
+
+	for(int call = 0; call < 3; ++call) {
+		screen.runAction("start", window->root());
+		CHECK(window->secondsToNextTimer()); // its timeout
+		REQUIRE(executor.waitForTask());
+		executor.drain();
+		CHECK(stateAt(screen, "/ran") == 2);
+		CHECK_FALSE(window->secondsToNextTimer()); // a call per event left a timer each, every frame looking at them
+	}
+	CHECK(stateAt(screen, "/error") == "");
+}
+
 TEST_CASE("format: a cancel step stops a slow call: the function sees it, and the screen keeps its state") {
 	FakeExecutor executor;
 	const ManualClock clock;

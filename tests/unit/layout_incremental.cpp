@@ -99,6 +99,29 @@ TEST_CASE("layout: a change lays out its own column again, not the column next t
 	CHECK(rightCards[0]->arranged == 1);
 }
 
+TEST_CASE("layout: a change below a child doesn't arrange the children again; a change to a child does") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	Counted& outer = window->root().add<Counted>();
+	outer.setSize(px(400), px(300));
+	Panel& child = outer.add<Panel>();
+	child.setSize(px(200), px(100));
+	Panel& grandchild = child.add<Panel>();
+	grandchild.setSize(px(50), px(50));
+	window->render();
+	outer.arranged = 0;
+
+	grandchild.setHeight(px(60)); // the child measures as it did: its place stays
+	window->render();
+	CHECK(outer.arranged == 0);
+	CHECK(grandchild.frame() == Rect{0, 0, 50, 60});
+
+	child.setHeight(px(120));
+	window->render();
+	CHECK(outer.arranged == 1);
+	CHECK(child.frame() == Rect{0, 0, 200, 120});
+}
+
 TEST_CASE("layout: a measured size is measured again only once its panel changes") {
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(400, 100, clock);

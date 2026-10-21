@@ -34,7 +34,9 @@ struct ReadSet;
 struct Scope {
 	const Scope* parent = nullptr;     ///< The enclosing scope, or nullptr.
 	std::shared_ptr<const Scope> keep; ///< Keeps the parent alive when it is shared (null for a scope on the stack).
-	json vars = json::object();        ///< This scope's own variables.
+	/// This scope's own variables. Mutable for one writer: the reconciler refreshes a repeat's item in place when the
+	/// state it was copied from changes (Reconciler::refreshItems), for panels that share the scope as const.
+	mutable json vars = json::object();
 	std::string fromState;             ///< A variable whose value lies in the state (a repeat's item), or empty.
 	std::string origin;                ///< Where in the state it lies, as a JSON Pointer.
 

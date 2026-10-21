@@ -6,6 +6,7 @@
 #include "Engine.hpp"
 #include "Reads.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <stdexcept>
 
@@ -21,9 +22,9 @@ constexpr std::size_t rowsMarkedOneByOne = 16;
 /// @return true if it can.
 bool isModelName(std::string_view name) noexcept {
 	if(name.empty() || (name.front() >= '0' && name.front() <= '9')) return false;
-	for(const char c : name)
-		if(!(c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) return false;
-	return true;
+	return std::ranges::all_of(name, [](char c) {
+		return c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+	});
 }
 
 /// @brief The type of each key of a row, for agents.

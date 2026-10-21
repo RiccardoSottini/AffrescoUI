@@ -11,8 +11,11 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -99,7 +102,8 @@ TEST_CASE("render: path data parses every command, absolute and relative") {
 TEST_CASE("render: broken path data is refused, naming the place") {
 	CHECK(refusal("L10 10").find("must start with M") != std::string::npos);
 	CHECK(refusal("M0 0 L10").find("expected a number at character") != std::string::npos);
-	CHECK(refusal("M0 0 X5 5").find("expected a command") != std::string::npos);
+	CHECK(refusal("M0 0 X5 5").find("unknown command 'X'") != std::string::npos);
+	CHECK(refusal("M0 0 L5 5 Z 1 1").find("expected a command") != std::string::npos); // Z takes no numbers
 	CHECK_FALSE(refusal("M1e9 0").empty()); // past the largest coordinate
 	VectorPath::Limits small;
 	small.commands = 4;
@@ -123,7 +127,7 @@ TEST_CASE("render: flattening keeps curves within the tolerance and the points w
 	CHECK(scaled.front().points.back() == affresco::Vec2{205.0f, 5.0f});
 
 	std::string many = "M0 0";
-	for(int index = 0; index < 4000; ++index) many += " c0 1e5 1e5 1e5 1e5 0";
+	for(int index = 0; index < 3000; ++index) many += " c0 1e5 1e5 1e5 1e5 0"; // within the 64 KiB limit
 	std::size_t points = 0;
 	for(const VectorPath::Contour& contour : VectorPath::parse(many).flatten({}, 0.001f))
 		points += contour.points.size();
@@ -183,6 +187,79 @@ TEST_CASE("render: strokes have their width, joins, caps and dashes") {
 	CHECK(coverageAt(bevel, {54.0f, -4.0f}) == 0.0f);
 }
 
+TEST_CASE("render: fills and strokes stop at the quad limit, drawing whole pieces") {
+	// Two combs whose teeth cross at every height: each piece of a band is a trapezoid a tooth
+	std::string combs = "M0 0";
+	for(int tooth = 0; tooth < 2000; ++tooth) combs += " l1 10 l1-10";
+	combs += " Z M0.5 0";
+	for(int tooth = 0; tooth < 2000; ++tooth) combs += " l1.01 7 l1.01-7";
+	combs += " Z";
+	std::vector<MeshVertex> fill;
+	affresco::appendFill(contoursOf(combs), FillRule::evenOdd, fill, 0.0f);
+	CHECK(fill.size() / 4 <= affresco::meshQuadLimit);
+
+	// A long square stroked with short round-capped dashes and dots: circles, far more than the limit
+	StrokeStyle style;
+	style.width = 3.5f;
+	style.join = affresco::LineJoin::round;
+	style.cap = affresco::LineCap::round;
+	style.dash = {3.0f, 0.5f, 0.0f}; // odd, so repeated: dashes of no length between, each a dot
+	std::vector<MeshVertex> stroke;
+	affresco::appendStroke(contoursOf("M0 0 H20000 V20000 H0 Z"), style, stroke);
+	CHECK(stroke.size() / 4 <= affresco::meshQuadLimit);
+	CHECK(stroke.size() / 4 > affresco::meshQuadLimit - 200); // drawn in part, up to the limit
+}
+
+TEST_CASE("render: a path scaled past the float range draws nothing, and its dashes end") {
+	// A huge scale (a tiny view box) turns the points infinite, and the line between two of them NaN long
+	const VectorPath path = VectorPath::parse("M0 0 L1e6 0 L1e6 1");
+	const affresco::PathTransform huge{{1e33f, 1e33f}, {0.0f, 0.0f}};
+	StrokeStyle style;
+	style.width = 2.0f;
+	style.dash = {4.0f, 4.0f};
+	const float infinity = std::numeric_limits<float>::infinity();
+	for(const std::vector<VectorPath::Contour>& contours :
+	    {path.flatten(huge), std::vector<VectorPath::Contour>{{{{0.0f, 0.0f}, {infinity, 0.0f}, {infinity, 1.0f}}, false}}}) {
+		std::vector<MeshVertex> stroke, fill;
+		affresco::appendStroke(contours, style, stroke, 1.0f); // returns
+		affresco::appendFill(contours, FillRule::nonZero, fill, 1.0f);
+		CHECK(stroke.empty());
+		CHECK(fill.empty());
+	}
+}
+
+TEST_CASE("render: an arc and a path scaled far past the screen give finite meshes") {
+	// The arc's radii are scaled up to reach its end (SVG F.6.6): a radius of 1e-30 makes the other about 5e29
+	StrokeStyle style;
+	style.width = 1.5f;
+	style.join = affresco::LineJoin::round;
+	style.cap = affresco::LineCap::round;
+	style.dash = {3.0f, 0.5f, 0.0f};
+	const auto finite = [](const std::vector<MeshVertex>& mesh) {
+		return std::ranges::all_of(mesh, [](const MeshVertex& vertex) {
+			return std::isfinite(vertex.position.x) && std::isfinite(vertex.position.y) && vertex.coverage >= 0.0f &&
+			       vertex.coverage <= 1.0f;
+		});
+	};
+	for(const std::vector<VectorPath::Contour>& contours :
+	    {VectorPath::parse("M0 0 A 1e-30 1 30 0 0 1 1").flatten({{0.01f, 0.01f}, {3.0f, 5.0f}}),
+	     VectorPath::parse("M0 0 L1e6 0 L1e6 1").flatten({{1e30f, 1e30f}, {0.0f, 0.0f}})}) {
+		std::vector<MeshVertex> stroke, fill;
+		affresco::appendStroke(contours, style, stroke);
+		affresco::appendFill(contours, FillRule::evenOdd, fill);
+		CHECK(finite(stroke));
+		CHECK(finite(fill));
+	}
+}
+
+TEST_CASE("render: a curve scaled near the float range flattens into at most 64 lines") {
+	// Finite points, but a bend whose step count is past int's range (a view box a billionth of a unit wide)
+	const VectorPath path = VectorPath::parse("M0 0 C1e6 0 0 1e6 1e6 1e6");
+	const std::vector<VectorPath::Contour> contours = path.flatten({{1e12f, 1e12f}, {0.0f, 0.0f}});
+	REQUIRE(contours.size() == 1);
+	CHECK(contours[0].points.size() == 65);
+}
+
 TEST_CASE("render: SVG icons decode as images, within the limits") {
 	constexpr std::string_view icon = R"svg(<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 24 16">
@@ -196,13 +273,13 @@ TEST_CASE("render: SVG icons decode as images, within the limits") {
 	CHECK(bitmap->width() == 24); // twice its size, for crisp icons
 	CHECK(bitmap->height() == 16);
 	const auto pixels = bitmap->pixels();
-	const std::size_t left = (8 * 24 + 4) * 4, right = (8 * 24 + 20) * 4;
+	const std::size_t left = (std::size_t{8} * 24 + 4) * 4, right = (std::size_t{8} * 24 + 20) * 4;
 	CHECK(pixels[left] == 255);
 	CHECK(pixels[left + 3] == 255);
 	CHECK(pixels[right + 2] > 100); // blue over red, half
 	CHECK(pixels[right] > 100);
 
-	constexpr std::string_view deep = "<svg width=\"4\" height=\"4\">";
+	constexpr std::string_view deep = R"(<svg width="4" height="4">)";
 	std::string nested(deep);
 	for(int level = 0; level < 100; ++level) nested += "<g>";
 	const std::span<const std::uint8_t> deepData(reinterpret_cast<const std::uint8_t*>(nested.data()), nested.size());

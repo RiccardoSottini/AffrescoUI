@@ -1,0 +1,24 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "cache",
+			"screen": "cache.screen.json",
+			"note": "A cached subtree is drawn as it would be without the cache: each picture with \"cache\": true is compared with the same picture once a revision turns it off; the text inside changes (the texture is drawn again), and a panel that isn't cached moves over it",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": "#pick" },
+				{ "expect": { "state": "picked", "is": "Drawn again" } },
+				{ "expect": { "image": "changed" } },
+				{ "move": "#mover" },
+				{ "expect": { "image": "covered" } },
+				{ "revision": { "message": "No cache", "set": { "#group/cache": false } } },
+				{ "expect": { "image": "covered" } },
+				{ "move": [20, 220] },
+				{ "expect": { "image": "changed" } }
+			]
+		}
+	]
+}

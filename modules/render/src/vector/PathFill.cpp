@@ -42,7 +42,7 @@ struct Span {
 }
 
 /// @brief Calls @p visit with each edge of each contour (each closed): its two ends.
-template <typename Visit> void forEachEdge(std::span<const VectorPath::Contour> contours, Visit&& visit) {
+template <typename Visit> void forEachEdge(std::span<const VectorPath::Contour> contours, const Visit& visit) {
 	for(const VectorPath::Contour& contour : contours)
 		for(std::size_t index = 0; index < contour.points.size(); ++index)
 			visit(contour.points[index], contour.points[(index + 1) % contour.points.size()]);
@@ -64,7 +64,7 @@ public:
 		});
 		std::ranges::sort(edges_, {}, [](const Edge& edge) { return edge.top.y; });
 		std::ranges::sort(heights_);
-		heights_.erase(std::unique(heights_.begin(), heights_.end()), heights_.end());
+		heights_.erase(std::ranges::unique(heights_).begin(), heights_.end());
 	}
 
 	/// @brief Fills every band.
@@ -115,7 +115,8 @@ private:
 		for(std::size_t index = 0; index + 1 < spans_.size(); ++index) {
 			const float atTop = spans_[index].topX - spans_[index + 1].topX;
 			const float atBottom = spans_[index].bottomX - spans_[index + 1].bottomX;
-			if(!((atTop < 0.0f && atBottom > 0.0f) || (atTop > 0.0f && atBottom < 0.0f))) continue;
+			const bool crosses = (atTop < 0.0f && atBottom > 0.0f) || (atTop > 0.0f && atBottom < 0.0f);
+			if(!crosses) continue;
 			const float y = top + (bottom - top) * atTop / (atTop - atBottom);
 			if(y > top + least && y < bottom - least) first = std::min(first, y);
 		}
@@ -131,9 +132,11 @@ private:
 			winding += span.direction;
 			const bool inside = isInside(winding, rule_);
 			if(!wasInside && inside) left = &span;
-			else if(wasInside && !inside && left != nullptr)
+			else if(wasInside && !inside && left != nullptr) {
+				if(vector::meshIsFull(mesh_, meshQuadLimit)) return;
 				vector::pushQuad(mesh_, {MeshVertex{{left->topX, top}}, MeshVertex{{span.topX, top}},
 				                         MeshVertex{{span.bottomX, bottom}}, MeshVertex{{left->bottomX, bottom}}});
+			}
 		}
 	}
 
@@ -196,7 +199,8 @@ void appendFringe(const VectorPath::Contour& contour, float outwardSign, float f
 		const float squared = std::max(vector::dot(average, average), 0.25f);
 		return plus(contour.points[index], times(average, feather / squared));
 	};
-	Vec2 firstCorner = corner(0), previousCorner = firstCorner;
+	const Vec2 firstCorner = corner(0);
+	Vec2 previousCorner = firstCorner;
 	for(std::size_t index = 0; index < count && !vector::meshIsFull(mesh, meshQuadLimit); ++index) {
 		const std::size_t next = (index + 1) % count;
 		const Vec2 nextCorner = next == 0 ? firstCorner : corner(next);
@@ -210,6 +214,7 @@ void appendFringe(const VectorPath::Contour& contour, float outwardSign, float f
 
 void appendFill(std::span<const VectorPath::Contour> contours, FillRule rule, std::vector<MeshVertex>& mesh,
                 float feather) {
+	if(!vector::finite(contours)) return;
 	Trapezoids trapezoids(contours, rule, mesh);
 	trapezoids.run();
 	if(!(feather > 0.0f)) return;

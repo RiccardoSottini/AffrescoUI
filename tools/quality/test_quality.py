@@ -103,6 +103,10 @@ class TidyTest(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertEqual(failures, [("modules/A.cpp", "clang-tidy exited with status -11")])
 
+    def test_a_source_the_platform_does_not_build_is_not_given_to_clang_tidy(self):
+        changed = ["modules/r/src/Win32.cpp", "modules/r/src/Desktop.hpp", "modules/r/src/Other.cpp"]
+        self.assertEqual(tidy.unbuilt(changed, ["modules/r/src/Other.cpp"]), ["modules/r/src/Win32.cpp"])
+
     def test_counts_are_sorted_most_first(self):
         findings = [{"module": "vcs"}, {"module": "format"}, {"module": "format"}]
         self.assertEqual(list(tidy.counts(findings, "module").items()), [("format", 2), ("vcs", 1)])

@@ -115,6 +115,7 @@ private:
 		json event;                                 ///< The event.
 		SharedScope locals;                         ///< Variables.
 		std::string where;                          ///< The step's place.
+		std::uint64_t timeout = 0;                  ///< Its "timeout" timer (Scheduler::once()), or 0 for none.
 	};
 
 	/// @brief Applies what a job reported since the last time (main thread, through the Executor).

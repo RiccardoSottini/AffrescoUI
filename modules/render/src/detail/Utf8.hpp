@@ -13,7 +13,7 @@ namespace affresco::detail {
 /// @param out The string.
 /// @param cp The code point; invalid ones become U+FFFD.
 inline void appendUtf8(std::string& out, char32_t cp) {
-	auto byte = [&](char32_t value) { out.push_back(static_cast<char>(value)); };
+	const auto byte = [&](char32_t value) { out.push_back(static_cast<char>(value)); };
 
 	if(cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) cp = 0xFFFD; // not encodable: replacement character
 
@@ -40,7 +40,7 @@ inline void appendUtf8(std::string& out, char32_t cp) {
 inline std::string toUtf8(std::u32string_view text) {
 	std::string out;
 	out.reserve(text.size());
-	for(char32_t cp : text) appendUtf8(out, cp);
+	for(const char32_t cp : text) appendUtf8(out, cp);
 	return out;
 }
 

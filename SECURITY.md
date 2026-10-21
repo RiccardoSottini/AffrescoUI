@@ -124,7 +124,13 @@ screens, actions, and the live state.
   hide an "accept" inside a button and approve itself, or give the screen new access to the outside world.
 - **ways to run a control step**: a revision can't add a `run`, a handler or a `do` that names an action holding
   control steps (found through the actions it runs in turn), an action the document doesn't define (the
-  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`.
+  application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`. Nor can it add a
+  use of a component that runs the actions its parameters name with computed parameters: the built-in `menu`,
+  `submenu`, `contextMenu`, `menuBar`, `dialog` and `toast` fed their items, buttons or actions from the state, a
+  `quickPick` at all (its recent items are kept in the state), or the document's own component holding a computed
+  `run`. A use of the document's own component (which wins over a built-in of the same name) is scanned with its
+  defaults and literal parameters in place: `{"use": "go", "with": {"act": "approve"}}` is refused when `go` runs
+  `"{{act}}"` and `approve` holds a control step, as is one expanded through more than 64 nested uses.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
@@ -290,10 +296,27 @@ Input from peers, revisions and change sets is limited so that one message can't
 | The state: the document's own, and the live state after a revision (unless it was already larger) | 32 MiB as JSON |
 | A scenarios file (`affrescoui test`, `run_scenarios`; an agent can write one) | 1,000 scenarios, 10,000 steps each, 100,000 bytes a `type`, a `wait` of 10 minutes of the scenario's clock and 1,000,000 timer runs in one, 100 moves a `drag`, a `resize` side of 16,384; names of letters, digits, `-`, `_` and `.` (they become file names) |
 | A golden image read by an image expectation | An 8-bit RGB or RGBA PNG, not interlaced, of 32 Mi pixels at most; anything else is refused |
+| Design tokens (`tokens`) | 4,096 tokens, 32 themes, aliases 16 deep (a circle is an error); more is refused |
+| Sizes and styles of fonts one document derives (rich text runs) | 32 |
+| One label's rich text (`runs`) | 256 runs, 64 Ki code points in all, 2,048 bytes a link |
+| Items a list, a tree or a table reads | 1,000,000 items, trees 256 deep, 256 cells an item, 256 columns of 10,000 pixels at most, 16 sticky folders |
+| Tabs a strip reads, panes a split reads | 10,000 tabs and 1,000 panes (more are ignored); a split's sizes 0 to 1,000,000 pixels |
+| A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |
+| Slow calls (`Screen::onAsyncCall`) running or waiting for a worker at once | 64; more end with an error (`onError`) |
+| A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign (a contour scaled past 10^12 on screen isn't drawn), 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
-proportion to its text, however many keys an object has, unless its keys are chosen to collide (Known gaps).
+proportion to its text, however many keys an object has, unless its keys are chosen to collide (Known gaps). A
+document's `settings` section is checked the same way, at load and after every revision: a setting that is also a
+group of settings (`editor` and `editor.fontSize`) is found in one pass over the keys, so a 32 MiB document of small
+settings takes a fraction of a second, not minutes.
+
+A document's numbers are floats of any size, and a size, an index or a step count computed from one is clamped before
+it becomes an integer, since a float past the integer's range makes the conversion undefined behaviour. A `tabIndex`
+of `1e30` is the last in the tab order, a list `1e30` pixels tall pages to its last row, and a curve under a view box
+a millionth of a pixel wide is drawn with at most 64 lines a bend. A call's `timeout` is cancelled when the call ends
+first, so many short calls with long timeouts leave no timers behind.
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
 controls (U+0080 to U+009F) `\u0080` to `\u009f`, and a backslash `\\`. So text from a peer or a document can't forge
@@ -368,7 +391,9 @@ These are not protected today. They are stated plainly so that you can decide wh
   every change of theirs is reviewed).
 - **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
   it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
-  should deny agents the `/state` paths those steps read.
+  should deny agents the `/state` paths those steps read. The same holds for a menu, dialog, toast or quick pick the
+  screen already feeds from the state: a revision can change the items it runs (a quick pick keeps its recent items
+  in `/state/<name>/recent`), so deny agents those paths when the screen has actions that control changes.
 - **A revision can add a `copy` step.** `copy` puts text on the system clipboard, and it isn't a control step: an
   allowed revision can make a button, or a timer, copy text the user didn't choose, which they may then paste into a
   terminal. A proposal being previewed runs its timers too, so this can happen before anyone accepts it. Review

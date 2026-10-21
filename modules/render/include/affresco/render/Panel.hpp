@@ -596,13 +596,15 @@ private:
 		std::uint64_t generation = 0; ///< The window's measure generation (Window::invalidate() starts a new one).
 	};
 
-	/// @brief Whether a layout pass can leave this panel and its subtree as they are.
+	/// @brief Whether this panel itself and what a layout pass gives it are as they were: its frame and how it arranges
+	/// its children stay, and only the panels below that changed need laying out (none: the pass leaves the subtree
+	/// as it is).
 	/// @param origin See layout().
 	/// @param clip See layout().
 	/// @param parentSize See layout().
 	/// @param parentShown See layout().
-	/// @return true if nothing they depend on changed.
-	[[nodiscard]] bool canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize,
+	/// @return true if so.
+	[[nodiscard]] bool hasSameInputs(const Rect& origin, const Rect& clip, Vec2 parentSize,
 	                                 bool parentShown) const noexcept;
 
 	/// @brief Takes ownership of a new last child.
@@ -655,7 +657,7 @@ private:
 
 	std::uint64_t layoutPass_ = 0;         ///< The window's layout pass this panel was last laid out in.
 	std::uint64_t skippedPass_ = 0;        ///< The window's layout pass that last skipped this panel and its subtree.
-	LayoutInputs laidOut_;                 ///< What the last pass gave it, once laid out (see canSkipLayout()).
+	LayoutInputs laidOut_;                 ///< What the last pass gave it, once laid out (see hasSameInputs()).
 	std::optional<MeasuredSize> measured_; ///< See measuredSize(); nullopt once something changed.
 	bool layoutDirty_ = true;              ///< Its own properties changed since it was last laid out.
 	bool layoutBelow_ = false;             ///< A descendant's layoutDirty_ is set.

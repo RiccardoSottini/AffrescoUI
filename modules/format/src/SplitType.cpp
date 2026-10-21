@@ -56,7 +56,7 @@ void applySplit(Panel& panel, const json& values, const PropertyReader& reader, 
 	};
 	const std::string direction =
 	    values.contains("direction") ? string(values["direction"], path + ".direction") : "row";
-	if(direction != "row" && direction != "column") fail(path + ".direction", "expected \"row\" or \"column\"");
+	if(direction != "row" && direction != "column") fail(path + ".direction", R"(expected "row" or "column")");
 	split->setDirection(direction == "row" ? Split::Direction::Row : Split::Direction::Column);
 	split->setDefaultSizes(listOr("defaultSizes"));
 	split->setMinimumSizes(listOr("minSize"));
@@ -107,7 +107,7 @@ void stopListeningToSplit(Panel& panel, Connection connection) {
 } // namespace
 
 void registerSplitType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},  {"value", ValueKind::Any},
 	                   {"direction", ValueKind::Text},  {"defaultSizes", ValueKind::Any},
 	                   {"minSize", ValueKind::Any},     {"sashSize", ValueKind::Number},

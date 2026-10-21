@@ -24,7 +24,7 @@ namespace {
 /// @param model The model.
 std::vector<std::string> linesOf(const TextModel& model) {
 	std::vector<std::string> out;
-	std::string all = model.text();
+	const std::string all = model.text();
 	std::size_t start = 0;
 	for(std::size_t feed = all.find('\n'); feed != std::string::npos; feed = all.find('\n', start)) {
 		out.push_back(all.substr(start, feed - start));
@@ -139,6 +139,23 @@ TEST_CASE("text model: undo and redo replay operations, restoring the caret") {
 
 	model.insert({0, 0}, "x"); // an edit outside a step: the history no longer matches
 	CHECK(model.undoSteps() == 0);
+}
+
+TEST_CASE("text model: a step of several edits redoes them in the order they were made") {
+	TextModel model;
+	model.beginStep(false, {0, 0}, {0, 0});
+	model.insert({0, 0}, "a");
+	model.insert({0, 0}, "b"); // not typing on: a second operation in the step
+	model.endStep();
+	CHECK(model.text() == "ba");
+
+	TextPosition caret{0, 0}, anchor{0, 0};
+	CHECK(model.undo(false, caret, anchor));
+	CHECK(model.text().empty());
+	CHECK(model.undo(true, caret, anchor));
+	CHECK(model.text() == "ba");
+	CHECK(model.undo(false, caret, anchor));
+	CHECK(model.text().empty());
 }
 
 TEST_CASE("text model: change events give the range replaced") {

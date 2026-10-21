@@ -3,6 +3,7 @@
 /// font size from a token, one edit restyling every node that uses a token, and the errors (unknown, circular, mixed,
 /// a name in both "colors" and "tokens").
 
+#include "Checker.hpp"
 #include "Headless.hpp"
 
 #include <affresco/affresco.hpp>
@@ -89,7 +90,32 @@ TEST_CASE("tokens: numbers, colours, aliases and type sizes are read as @name") 
 	CHECK(panel<affresco::Label>(screen, "a").color() == *affresco::Color::parseHex("#6366f1"));
 	CHECK(panel<affresco::Panel>(screen, "page").color() == *affresco::Color::parseHex("#ffffff"));
 	REQUIRE(panel<affresco::Label>(screen, "a").font());
-	CHECK(panel<affresco::Label>(screen, "a").font()->lineHeight() > 20.0f);
+	// A size spans the ascender to the descender, and Roboto has no line gap: the line is the token's 20
+	CHECK(panel<affresco::Label>(screen, "a").font()->lineHeight() == doctest::Approx(20.0f));
+}
+
+TEST_CASE("tokens: anchors, radius and shadow read number tokens in their members, as the checker allows") {
+	json document = tokenScreen();
+	document["root"]["children"].push_back({{"id", "box"},
+	                                        {"width", 10},
+	                                        {"height", 10},
+	                                        {"anchors", {{"right", "@space.m"}, {"bottom", "@space.s"}}},
+	                                        {"radius", {{"topLeft", "@space.m"}}},
+	                                        {"shadow", {{"x", "@space.s"}, {"blur", "@space.m"}}}});
+	const auto found = affresco::format::check(document, document["state"], {});
+	CHECK((found && found->empty()));
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document.dump(), {});
+	screen.build(*window);
+	window->render();
+
+	const affresco::Panel& box = panel<affresco::Panel>(screen, "box");
+	CHECK(box.frame().right == 296.0f);
+	CHECK(box.frame().bottom == 196.0f);
+	CHECK(box.cornerRadii().topLeft == 4.0f);
+	CHECK(box.shadow().offset.x == 4.0f);
+	CHECK(box.shadow().blur == 4.0f);
 }
 
 TEST_CASE("tokens: the theme switches them, and one edit restyles every node that uses one") {
