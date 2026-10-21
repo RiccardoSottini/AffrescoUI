@@ -38,6 +38,51 @@ Rect intersect(const Rect& rect, const Rect& clip) noexcept {
 	        std::min(rect.bottom, clip.bottom)};
 }
 
+/// @brief A mesh's quad clipped to a rectangle: a convex polygon (4 corners cut by 4 edges is at most 8; the room
+/// past that keeps a quad that isn't convex in bounds).
+struct MeshPolygon {
+	std::array<MeshVertex, 12> corners{}; ///< Its corners, in order around it.
+	std::size_t count = 0;                ///< How many there are.
+
+	/// @brief Adds a corner, unless it is full.
+	void add(const MeshVertex& corner) noexcept {
+		if(count < corners.size()) corners[count++] = corner;
+	}
+};
+
+/// @brief Cuts a polygon along a line, keeping the side where @p distance isn't negative (Sutherland-Hodgman).
+/// @param polygon The polygon.
+/// @param distance How far a point is inside the line.
+/// @return What is kept, with the coverage interpolated at the new corners.
+template <typename Distance> MeshPolygon cut(const MeshPolygon& polygon, Distance distance) {
+	MeshPolygon kept;
+	for(std::size_t index = 0; index < polygon.count; ++index) {
+		const MeshVertex& from = polygon.corners[index];
+		const MeshVertex& to = polygon.corners[(index + 1) % polygon.count];
+		const float start = distance(from.position), end = distance(to.position);
+		if(start >= 0.0f) kept.add(from);
+		if((start < 0.0f) == (end < 0.0f)) continue;
+		const float along = start / (start - end);
+		kept.add({{from.position.x + (to.position.x - from.position.x) * along,
+		           from.position.y + (to.position.y - from.position.y) * along},
+		          from.coverage + (to.coverage - from.coverage) * along});
+	}
+	return kept;
+}
+
+/// @brief Clips a mesh's quad to a rectangle.
+/// @param corners The quad.
+/// @param clip The rectangle.
+/// @return What is inside it.
+MeshPolygon clipQuad(const std::array<MeshVertex, 4>& corners, const Rect& clip) {
+	MeshPolygon polygon;
+	for(const MeshVertex& corner : corners) polygon.add(corner);
+	polygon = cut(polygon, [&](Vec2 point) { return point.x - clip.left; });
+	polygon = cut(polygon, [&](Vec2 point) { return clip.right - point.x; });
+	polygon = cut(polygon, [&](Vec2 point) { return point.y - clip.top; });
+	return cut(polygon, [&](Vec2 point) { return clip.bottom - point.y; });
+}
+
 } // namespace
 
 // Consecutive fills (rectangles and shapes alike) are one step: they replay the same way
@@ -53,7 +98,7 @@ void PaintRecorder::beginStep(PaintStep step, const Font* font, std::uint32_t pa
 void PaintRecorder::addQuad(const std::array<Vertex, 4>& corners) {
 	record_.vertices.insert(record_.vertices.end(), corners.begin(), corners.end());
 	++record_.ops.back().quads;
-	addTo(record_.extent, {corners[0].x, corners[0].y, corners[2].x, corners[2].y});
+	addTo(record_.extent, boundsOf(corners));
 }
 
 void PaintRecorder::fillRect(const Rect& rect, Color color) {
@@ -80,6 +125,44 @@ void PaintRecorder::drawText(const Font& font, std::u32string_view text, Vec2 or
 		const PaintOp& last = record_.ops.back();
 		if(last.step != PaintStep::glyphs || last.page != glyph.page) beginStep(PaintStep::glyphs, &font, glyph.page);
 		pushQuad(quad, glyph.uv, color);
+	}
+}
+
+// Each quad on its own: inside the panel as it is, across its edge clipped and drawn as a fan of quads
+void PaintRecorder::fillMesh(std::span<const MeshVertex> quads, Vec2 offset, Color color) {
+	if(color.toBytes()[3] == 0) return;
+	beginStep(PaintStep::fill);
+	for(std::size_t first = 0; first + verticesPerQuad <= quads.size(); first += verticesPerQuad) {
+		std::array<MeshVertex, 4> corners{};
+		for(std::size_t index = 0; index < corners.size(); ++index) {
+			const MeshVertex& corner = quads[first + index];
+			corners[index] = {{corner.position.x + offset.x, corner.position.y + offset.y}, corner.coverage};
+		}
+		pushMeshQuad(corners, color);
+	}
+}
+
+void PaintRecorder::pushMeshQuad(const std::array<MeshVertex, 4>& corners, Color color) {
+	const auto [cr, cg, cb, ca] = color.toBytes();
+	const auto vertex = [&](const MeshVertex& corner) {
+		const auto alpha = static_cast<std::uint8_t>(std::lround(std::clamp(corner.coverage, 0.0f, 1.0f) * ca));
+		return Vertex{corner.position.x, corner.position.y, 0, 0, cr, cg, cb, alpha, 0.0f, 0.0f, 0, 0, 0, 0};
+	};
+	const auto add = [&](const MeshVertex& a, const MeshVertex& b, const MeshVertex& c, const MeshVertex& d) {
+		const std::array<Vertex, 4> quad{vertex(a), vertex(b), vertex(c), vertex(d)};
+		if(quad[0].a != 0 || quad[1].a != 0 || quad[2].a != 0 || quad[3].a != 0) addQuad(quad);
+	};
+
+	Rect bounds{corners[0].position.x, corners[0].position.y, corners[0].position.x, corners[0].position.y};
+	for(const MeshVertex& corner : corners)
+		bounds = unite(bounds, {corner.position.x, corner.position.y, corner.position.x, corner.position.y});
+	if(!overlaps(bounds, clip_)) return; // also drops NaN
+	if(intersect(bounds, clip_) == bounds) return add(corners[0], corners[1], corners[2], corners[3]);
+
+	const MeshPolygon polygon = clipQuad(corners, clip_);
+	for(std::size_t index = 1; index + 1 < polygon.count; index += 2) {
+		const std::size_t last = std::min(index + 2, polygon.count - 1);
+		add(polygon.corners[0], polygon.corners[index], polygon.corners[index + 1], polygon.corners[last]);
 	}
 }
 

@@ -1,0 +1,26 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "paths",
+			"screen": "paths.screen.json",
+			"note": "Vector paths: the first frame, then new chart values and a dashed, bevelled outline set by a revision",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{
+					"revision": {
+						"message": "New sales figures and a dashed outline",
+						"set": {
+							"/state/sales": [5, 2, 8, 6, 12, 4, 9, 10],
+							"#joins/strokeJoin": "bevel",
+							"#joins/strokeDash": [6, 4]
+						}
+					}
+				},
+				{ "expect": { "image": "changed" } }
+			]
+		}
+	]
+}

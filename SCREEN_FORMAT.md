@@ -95,7 +95,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -241,7 +241,7 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 <!-- generated: image -->
 | Key | Meaning |
 |---|---|
-| `file` | A PNG or JPEG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
+| `file` | A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or decoded shows nothing (and is logged). |
 | `source` | Instead of `file`: an image the host names (`Screen::setImage("chart", …)`), e.g. a picture it made; the node shows each new one the host sets. |
 | `fit` | `"contain"` (the default: all of it, as large as fits, centred), `"cover"` (the whole node, the image's edges cut off) or `"fill"` (stretched), like CSS `object-fit`. |
 <!-- end generated -->
@@ -326,6 +326,35 @@ top stays in place.
 { "type": "tree", "id": "explorer", "items": "{{state.files}}", "expanded": "{{state.open}}", "bind": "state.chosen",
   "onExpand": [ { "set": "state.open", "to": "{{event.expanded ? concat(state.open, [event.id]) : filter(state.open, it != event.id)}}" } ] }
 ```
+
+### `path`
+A vector shape from SVG path data, filled and stroked, fitted to the node (like an icon or a chart line). It is
+drawn anti-aliased in the same batch as the panels and text around it, and its meshes are built again only when its
+data or its size changes.
+
+<!-- generated: path -->
+| Key | Meaning |
+|---|---|
+| `d` | SVG path data: `M L H V C S Q T A Z`, upper case absolute and lower case relative, e.g. `"M 0 0 L 10 0 L 5 8 Z"`. At most 64 KiB and 16,384 commands, coordinates within a million: a revision with data that can't be read is refused, naming the place of the problem. |
+| `viewBox` | The area of the data's coordinates fitted to the node, `"x y width height"` like SVG's. Without it the data is in the node's own pixels, from its top-left corner. |
+| `fit` | How the view box fills the node: `"contain"` (the default), `"cover"` or `"fill"`, as for images. |
+| `fillColor` | The inside's colour; without it the path isn't filled. |
+| `fillRule` | Which points are inside: `"nonzero"` (the default) or `"evenodd"` (a shape inside another is a hole). |
+| `stroke` | The outline's colour; without it there is no outline. |
+| `strokeWidth` | The outline's width (default 1), in the view box's units (pixels when stretched by `"fill"`). |
+| `strokeJoin` | Corners: `"miter"` (the default, bevelled past 4 widths), `"round"` or `"bevel"`. |
+| `strokeCap` | Ends: `"butt"` (the default), `"round"` or `"square"`. |
+| `strokeDash` | Dash and gap lengths, repeated, e.g. `[6, 3]` (at most 64); without it the outline is solid. |
+<!-- end generated -->
+
+```json
+{ "type": "path", "id": "check", "d": "M 4 12 L 9 17 L 20 6", "viewBox": "0 0 24 24", "width": 24, "height": 24,
+  "stroke": "@accent", "strokeWidth": 2.5, "strokeCap": "round", "strokeJoin": "round" }
+```
+
+An `image` can also show an SVG file (`.svg`, at most 1 MiB): paths and basic shapes with solid fills and strokes,
+rasterised at twice the size it declares. Gradients, text, masks, filters and rotations aren't drawn.
+`examples/assets/components/charts.json` has line, bar and area charts built on `path`, to `include`.
 
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.

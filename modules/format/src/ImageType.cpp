@@ -50,7 +50,7 @@ void registerImageType(TypeRegistry& registry) {
 	set->apply = applyImage; // when the values change: a new file is asked for once
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const ImageView*>(&panel) != nullptr; };
 
-	registry.add({"image", "A PNG or JPEG file, or an image the host names, fitted to the node",
+	registry.add({"image", "A PNG, JPEG or SVG file, or an image the host names, fitted to the node",
 	              [] { return std::make_unique<ImageView>(); }, set, false});
 }
 

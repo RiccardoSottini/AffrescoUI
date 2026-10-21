@@ -315,8 +315,8 @@ constexpr KeyReference nodeTable[] = {
     {"max", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json", "", "control"},
     {"step", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json", "", "control"},
     {"file", R"json({"type": "string",
-		"description": "image: a PNG or JPEG file, relative to the screen file and inside its folder (or one the host allows)"})json",
-	 "A PNG or JPEG file, relative to the screen file. It must be inside the screen file's folder (or the folders "
+		"description": "image: a PNG, JPEG or SVG file, relative to the screen file and inside its folder (or one the host allows)"})json",
+	 "A PNG, JPEG or SVG file, relative to the screen file. It must be inside the screen file's folder (or the folders "
 	 "inside it), or a folder the host allows (`Screen::allowImageDirectory`): a revision naming any other file is "
 	 "refused. At most 64 MiB, 8,192 pixels a side and 4,096 × 4,096 pixels in all. A file that can't be read or "
 	 "decoded shows nothing (and is logged).",
@@ -327,7 +327,7 @@ constexpr KeyReference nodeTable[] = {
 	 "shows each new one the host sets.",
 	 "image"},
     {"fit", R"json({"anyOf": [{"enum": ["contain", "cover", "fill"]}, {"$ref": "#/$defs/v1/dynamic"}],
-		"description": "image: contain (default), cover or fill, like CSS object-fit"})json",
+		"description": "image and path: contain (default), cover or fill, like CSS object-fit"})json",
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},
@@ -413,6 +413,33 @@ constexpr KeyReference nodeTable[] = {
     {"selectedTextColor", "color", "", "list"},
     {"selectedBackground", "color", "", "list"},
     {"accentColor", "", "", "list"},
+    {"d", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "path: SVG path data (M L H V C S Q T A Z, absolute and relative)"})json",
+	 "SVG path data: `M L H V C S Q T A Z`, upper case absolute and lower case relative, e.g. `\"M 0 0 L 10 0 L 5 8 "
+	 "Z\"`. At most 64 KiB and 16,384 commands, coordinates within a million: a revision with data that can't be read "
+	 "is refused, naming the place of the problem.",
+	 "path"},
+    {"viewBox", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "path: the area of the data fitted to the node, \"x y width height\""})json",
+	 "The area of the data's coordinates fitted to the node, `\"x y width height\"` like SVG's. Without it the data is "
+	 "in the node's own pixels, from its top-left corner.",
+	 "path"},
+    {"fit", "", "How the view box fills the node: `\"contain\"` (the default), `\"cover\"` or `\"fill\"`, as for images.",
+	 "path"},
+    {"fillColor", "color", "The inside's colour; without it the path isn't filled.", "path"},
+    {"fillRule", R"json({"anyOf": [{"enum": ["nonzero", "evenodd"]}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "path: which points are inside, nonzero (default) or evenodd"})json",
+	 "Which points are inside: `\"nonzero\"` (the default) or `\"evenodd\"` (a shape inside another is a hole).", "path"},
+    {"stroke", "color", "The outline's colour; without it there is no outline.", "path"},
+    {"strokeWidth", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The outline's width (default 1), in the view box's units (pixels when stretched by `\"fill\"`).", "path"},
+    {"strokeJoin", R"json({"anyOf": [{"enum": ["miter", "round", "bevel"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Corners: `\"miter\"` (the default, bevelled past 4 widths), `\"round\"` or `\"bevel\"`.", "path"},
+    {"strokeCap", R"json({"anyOf": [{"enum": ["butt", "round", "square"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Ends: `\"butt\"` (the default), `\"round\"` or `\"square\"`.", "path"},
+    {"strokeDash", R"json({"anyOf": [{"type": "array", "maxItems": 64, "items": {"type": "number", "minimum": 0}},
+		{"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Dash and gap lengths, repeated, e.g. `[6, 3]` (at most 64); without it the outline is solid.", "path"},
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},

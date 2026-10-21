@@ -15,7 +15,8 @@ namespace affresco {
 /// @brief An image: premultiplied RGBA pixels, 8 bits a channel, top row first. Immutable once made, so it can be made
 /// on one thread and shown on another, and shared by every view that shows it.
 ///
-/// Images come from files and from the bytes of PNG and JPEG files (decoded with stb_image), or from pixels an
+/// Images come from files and from the bytes of PNG and JPEG files (decoded with stb_image) and SVG icons
+/// (rasterised at twice their size), or from pixels an
 /// application makes (Screen::setImage). Both are input: a file a revision names or bytes a peer sends can be
 /// anything, so decoding is bounded by Limits, checked before any pixel is decoded. Each window uploads an image to
 /// its own GPU context the first time it draws it, and frees it the first frame after the image is gone.
@@ -28,13 +29,13 @@ public:
 		std::size_t pixels = std::size_t{1} << 24;     ///< The most pixels (64 MiB decoded): 4096 by 4096.
 	};
 
-	/// @brief Decodes a PNG or JPEG file.
+	/// @brief Decodes a PNG, JPEG or SVG file.
 	/// @param file A regular file of at most Limits::fileBytes.
 	/// @param limits What the image may be.
 	/// @return The image.
 	/// @throws std::runtime_error If the file can't be read, is too large, or isn't an image within the limits.
 	[[nodiscard]] static std::shared_ptr<const Bitmap> load(const std::filesystem::path& file, const Limits& limits);
-	/// @brief Decodes the bytes of a PNG or JPEG file.
+	/// @brief Decodes the bytes of a PNG, JPEG or SVG file.
 	/// @param bytes The bytes.
 	/// @param limits What the image may be.
 	/// @return The image.

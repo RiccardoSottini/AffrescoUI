@@ -33,6 +33,14 @@ affrescoui_module(render
 	src/Headless.cpp
 	src/GeometryCache.cpp
 	src/PaintRecorder.cpp
+	src/PathView.cpp
+	src/vector/VectorPath.cpp
+	src/vector/PathFill.cpp
+	src/vector/PathStroke.cpp
+	src/vector/Svg.cpp
+	src/vector/SvgStyle.cpp
+	src/vector/SvgXml.cpp
+	src/vector/MeshRasterizer.cpp
 	src/platform/GlfwPlatform.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp

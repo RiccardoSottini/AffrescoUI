@@ -48,6 +48,7 @@ target_include_directories(affrescoui_fuzz_actions PRIVATE ${PROJECT_SOURCE_DIR}
 affrescoui_fuzzer(lookups affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_lookups PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # LookupSpans.hpp
 affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+affrescoui_fuzzer(path affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(scenarios affrescoui::automation)
 affrescoui_fuzzer(png affrescoui::automation)
 target_include_directories(affrescoui_fuzz_png PRIVATE ${PROJECT_SOURCE_DIR}/modules/automation/src) # PngReader.hpp

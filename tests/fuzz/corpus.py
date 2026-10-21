@@ -11,7 +11,8 @@
 - cli:        the templates and the rendering check's screens as written, and nodes without ids;
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
 - lookups:    the GSUB and GPOS tables of the examples' fonts and the rendering check's (binary seeds);
-- image:      the rendering check's PNG and JPEG files (binary seeds);
+- image:      the rendering check's PNG, JPEG and SVG files (binary seeds);
+- path:       every path data of the templates, the rendering check's screens and the charts, with drawing bytes;
 - scenarios:  every scenarios file, the templates' and the rendering check's;
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data).
 
@@ -279,7 +280,21 @@ def lookups_seeds():
 def image_seeds():
     """The images of the rendering check's screens."""
     folder = ROOT / "tests/render/screens/images"
-    return [path.read_bytes() for path in sorted(folder.glob("*.png")) + sorted(folder.glob("*.jpg"))]
+    return [path.read_bytes() for path in sorted(folder.glob("*.png")) + sorted(folder.glob("*.jpg")) +
+            sorted(folder.glob("*.svg"))]
+
+
+def path_seeds():
+    """Path data as the path target reads it: a drawing byte (rule, join, cap, dash, scale), then the data. Every "d"
+    of the templates, the rendering check's screens and the charts, and a few that push the limits."""
+    files = sorted(SCREENS.glob("*.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
+    files.append(ROOT / "examples" / "assets" / "components" / "charts.json")
+    data = [value["d"] for path in files for value in walk(json.loads(path.read_text(encoding="utf-8")))
+            if isinstance(value, dict) and isinstance(value.get("d"), str) and "{{" not in value["d"]]
+    data += ["M0 0 L10 0 L5 8 Z", "M0 0h10v10h-10z m2 2 h6 v6 h-6 z", "M10 80 C 30 10, 70 10, 90 80 S 150 150 180 80",
+             "M10 80 Q 52.5 10, 95 80 T 180 80", "M20 50 A 30 30 0 1 1 80 50 a30 20 45 0 0-60 0", "M0 0" + " l1 1" * 4000,
+             "M-1e6 -1e6 L1e6 1e6 L-1e6 1e6 Z", "M0 0 A 1e-30 1e-30 0 0 0 1 1", "M.5.5.5.5l-.5-.5e1"]
+    return [chr(style) + text for text in dict.fromkeys(data) for style in (0x00, 0x2b, 0x5e, 0xd1)]
 
 
 def scenario_seeds():
@@ -345,7 +360,8 @@ def dictionaries():
                                                  "\"stretch\"", "\"16/9\"", "\"none\"", "\"row\"", "\"grid\"",
                                                  "\"column\"", "1e38"],
             "lookups": [chr(0) + chr(value) for value in range(10)],  # big-endian 0..9
-            "image": ["IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
+            "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
+            "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs}
 
 
@@ -394,6 +410,7 @@ def main():
     write(out, "layout", layout_seeds(), words["layout"])
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
+    write(out, "path", path_seeds(), words["path"])
     write(out, "scenarios", scenario_seeds(), words["scenarios"])
     write(out, "png", png_seeds(), words["png"])
 

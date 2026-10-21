@@ -32,10 +32,12 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `TableView.hpp` | `TableView`: a `ListView` of rows of cells under a header; a header click sorts (numbers before text, stable, again to reverse: `onSortChanged`), a header edge drag resizes a column (`onColumnResized`); the order and widths given replace the user's only when they change |
 | `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
-| `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images); `CornerRadii`, `Shadow` |
-| `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG, stb_image) and `fromPixels`, within `Bitmap::Limits` |
+| `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images, meshes of anti-aliased quads with `fillMesh`); `CornerRadii`, `Shadow`, `MeshVertex` |
+| `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG with stb_image, SVG icons rasterised at twice their size) and `fromPixels`, within `Bitmap::Limits` |
 | `ImageCache.hpp` | `ImageCache`: files decoded on a worker thread and delivered on the main one (through an `Executor`), only from allowed folders, kept within a bound; images the host names; `Request`s that cancel when destroyed |
 | `ImageView.hpp` | `ImageView`: a panel showing a bitmap, a file or a named image, with `ImageFit` (`contain`, `cover`, `fill`) |
+| `VectorPath.hpp` | `VectorPath`: SVG path data parsed within `VectorPath::Limits` (or built with `moveTo`, `lineTo`, `cubicTo`, `close`) and flattened; `appendFill` (`FillRule`) and `appendStroke` (`StrokeStyle`: width, `LineJoin`, `LineCap`, dashes), the meshes that draw it, within `meshQuadLimit` and `meshWorkLimit` |
+| `PathView.hpp` | `PathView`: a panel drawing a path, filled and stroked, fitted to it through a view box with `ImageFit`; its meshes are built again only when the path, the style or the size changes |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
 
@@ -161,9 +163,14 @@ src/
                            (placement in cells, track sizing): pure functions
   Label.cpp, TextArea.cpp  text (and its icon, runs, links and selection) and a single-line input
   RichText.cpp             TextLayout: runs into lines, hit testing, carets
-  Bitmap.cpp               decoding PNG and JPEG (stb_image compiled here), within limits
+  Bitmap.cpp               decoding PNG and JPEG (stb_image compiled here), within limits; SVG goes to vector/
   ImageCache.cpp           the worker, the deliveries, the allowed folders, the bound
   ImageView.cpp            showing an image, fitted
+  PathView.cpp             showing a vector path, fitted
+  vector/                  VectorPath.cpp (parsing, flattening), PathFill.cpp (scanline trapezoids by the fill
+                           rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
+                           MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
+                           SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
   TextEditor.cpp           the multi-line editor
   Controls.cpp             Toggle and Slider
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs

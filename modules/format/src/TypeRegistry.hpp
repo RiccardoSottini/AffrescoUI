@@ -269,5 +269,8 @@ void registerIconProperty(TypeRegistry& registry);
 /// @brief Registers "runs", "selectable" and "selectionColor", properties of labels (RunsProperty.cpp).
 /// @param registry The registry.
 void registerRichTextProperties(TypeRegistry& registry);
+/// @brief Registers "path" (PathType.cpp).
+/// @param registry The registry.
+void registerPathType(TypeRegistry& registry);
 
 } // namespace affresco::format

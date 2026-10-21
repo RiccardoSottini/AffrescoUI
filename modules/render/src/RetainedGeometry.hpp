@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace affresco {
@@ -119,6 +120,15 @@ constexpr bool overlaps(const Rect& a, const Rect& b) noexcept {
 constexpr Rect unite(const Rect& a, const Rect& b) noexcept {
 	return {a.left < b.left ? a.left : b.left, a.top < b.top ? a.top : b.top, a.right > b.right ? a.right : b.right,
 	        a.bottom > b.bottom ? a.bottom : b.bottom};
+}
+
+/// @brief The smallest rectangle holding a quad's vertices (a mesh's quads are any convex shape, not rectangles).
+/// @param corners Its vertices.
+/// @return Their bounds.
+constexpr Rect boundsOf(std::span<const Vertex> corners) noexcept {
+	Rect bounds{corners[0].x, corners[0].y, corners[0].x, corners[0].y};
+	for(const Vertex& corner : corners.subspan(1)) bounds = unite(bounds, {corner.x, corner.y, corner.x, corner.y});
+	return bounds;
 }
 
 /// @brief Adds a rectangle to a damage region, kept as one rectangle.

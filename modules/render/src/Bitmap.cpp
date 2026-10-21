@@ -1,8 +1,10 @@
 /// @file
-/// @brief Bitmap: decoding PNG and JPEG with stb_image (compiled here, PNG and JPEG only, no file access of its own),
+/// @brief Bitmap: decoding SVG icons (vector/Svg.hpp), and PNG and JPEG with stb_image (compiled here, PNG and JPEG only, no file access of its own),
 /// within limits checked before any pixel is decoded.
 
 #include "affresco/render/Bitmap.hpp"
+
+#include "vector/Svg.hpp"
 
 #include <cstdlib>
 
@@ -151,6 +153,7 @@ std::shared_ptr<const Bitmap> Bitmap::load(const std::filesystem::path& file, co
 std::shared_ptr<const Bitmap> Bitmap::decode(std::span<const std::uint8_t> bytes, const Limits& limits) {
 	if(bytes.size() > limits.fileBytes || bytes.size() > static_cast<std::size_t>(INT_MAX))
 		throw std::runtime_error("AffrescoUI: image larger than allowed");
+	if(vector::looksLikeSvg(bytes)) return vector::rasterizeSvg(bytes, limits);
 	const auto length = static_cast<int>(bytes.size());
 	if(emptyFirstImageData(bytes)) throw std::runtime_error("AffrescoUI: broken image (an empty first IDAT chunk)");
 

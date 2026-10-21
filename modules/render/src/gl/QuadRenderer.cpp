@@ -361,7 +361,7 @@ void QuadRenderer::addQuads(const detail::PaintRecord& record, const detail::Pai
 	for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
 		const auto corners =
 		    std::span(record.vertices).subspan(quad * detail::verticesPerQuad, detail::verticesPerQuad);
-		if(region_ && !detail::overlaps(*region_, {corners[0].x, corners[0].y, corners[2].x, corners[2].y})) continue;
+		if(region_ && !detail::overlaps(*region_, detail::boundsOf(corners))) continue;
 		for(detail::Vertex vertex : corners) {
 			if(white) {
 				vertex.u = u;

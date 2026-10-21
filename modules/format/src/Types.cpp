@@ -158,6 +158,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerListTypes(registry);
 	registerIconProperty(registry);
 	registerRichTextProperties(registry);
+	registerPathType(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {
