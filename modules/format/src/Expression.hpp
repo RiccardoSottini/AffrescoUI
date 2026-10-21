@@ -27,12 +27,16 @@
 
 namespace affresco::format {
 
+struct ReadSet;
+
 /// @brief Variables in scope: its own, then its parent's, and so on. Panels built inside a repeat share their parent's
 /// scope instead of copying it: a card's scope points at its column's, which holds the column once.
 struct Scope {
 	const Scope* parent = nullptr;     ///< The enclosing scope, or nullptr.
 	std::shared_ptr<const Scope> keep; ///< Keeps the parent alive when it is shared (null for a scope on the stack).
 	json vars = json::object();        ///< This scope's own variables.
+	std::string fromState;             ///< A variable whose value lies in the state (a repeat's item), or empty.
+	std::string origin;                ///< Where in the state it lies, as a JSON Pointer.
 
 	/// @brief Finds a variable here or in an enclosing scope (the innermost wins).
 	/// @param name The variable.
@@ -40,6 +44,15 @@ struct Scope {
 	[[nodiscard]] const json* find(std::string_view name) const {
 		for(const Scope* scope = this; scope; scope = scope->parent)
 			if(const auto it = scope->vars.find(name); it != scope->vars.end()) return &*it;
+		return nullptr;
+	}
+	/// @brief Where in the state a variable's value lies, if it is a repeat's item over a list of the state: the
+	/// scope that defines it decides (the innermost).
+	/// @param name The variable.
+	/// @return The place, as a JSON Pointer, or nullptr.
+	[[nodiscard]] const std::string* originOf(std::string_view name) const {
+		for(const Scope* scope = this; scope; scope = scope->parent)
+			if(scope->vars.contains(name)) return scope->fromState == name ? &scope->origin : nullptr;
 		return nullptr;
 	}
 };
@@ -56,6 +69,22 @@ using SharedScope = std::shared_ptr<const Scope>;
 	scope->parent = parent.get();
 	scope->keep = std::move(parent);
 	scope->vars = std::move(vars);
+	return scope;
+}
+
+/// @brief A shared scope with a repeat's variables on top of another, its item lying in the state.
+/// @param parent The enclosing scope.
+/// @param vars The new variables.
+/// @param fromState The item's variable.
+/// @param origin Where the item lies in the state, as a JSON Pointer.
+/// @return The scope.
+[[nodiscard]] inline SharedScope extend(SharedScope parent, json vars, std::string fromState, std::string origin) {
+	auto scope = std::make_shared<Scope>();
+	scope->parent = parent.get();
+	scope->keep = std::move(parent);
+	scope->vars = std::move(vars);
+	scope->fromState = std::move(fromState);
+	scope->origin = std::move(origin);
 	return scope;
 }
 
@@ -86,6 +115,8 @@ struct Context {
 	const NodeLookup* nodes = nullptr;    ///< For the `nodes` variable (none: it is unknown).
 	const NodeLookup* computed = nullptr; ///< For `computed.<name>`, evaluated when read (none: from globals).
 	WorkBudget* budget = nullptr;         ///< What the event or update may still do (none: unlimited, for tools).
+	ReadSet* reads = nullptr;             ///< Gets the places of the state read, for fine-grained updates (or none).
+	const NodeLookup* models = nullptr;   ///< A data model's row by its place, "/~m/files/3" (Models.hpp), or none.
 };
 
 /// @brief Evaluates templates, expressions and operators, recursing into objects and arrays.

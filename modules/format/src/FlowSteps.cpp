@@ -20,7 +20,7 @@ bool forEach(const Running& s) {
 	const std::string indexName = step.contains("index") ? string(step["index"], where + ".index") : "index";
 	for(std::size_t i = 0; i < items.size(); ++i) {
 		s.steps.engine().document.spendStep(where + ".forEach"); // an item is a step, even with nothing to "do"
-		const Scope scope{&s.locals, nullptr, {{name, items[i]}, {indexName, i}}};
+		const Scope scope{&s.locals, nullptr, {{name, items[i]}, {indexName, i}}, {}, {}};
 		if(!s.run(step.value("do", json::array()), scope, where + ".do")) return false;
 	}
 	return true;
@@ -30,7 +30,7 @@ bool forEach(const Running& s) {
 /// @param s The step.
 void runAction(const Running& s) {
 	// "with": the action's own variables, e.g. {"run": "moveCard", "with": {"to": "{{c + 1}}"}}
-	Scope scope{&s.locals, nullptr, json::object()};
+	Scope scope{&s.locals, nullptr, json::object(), {}, {}};
 	if(s.step.contains("with"))
 		for(const auto& [name, v] : object(s.step["with"], s.where + ".with").items())
 			scope.vars[name] = s.value(v, s.where + ".with." + name);

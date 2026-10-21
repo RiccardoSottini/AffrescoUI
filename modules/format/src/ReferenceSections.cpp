@@ -119,7 +119,11 @@ constexpr KeyReference stepTable[] = {
 	 "steps"},
     {"call", "",
 	 "`{ \"call\": \"pickFile\", \"with\": {...}, \"into\": \"state.file\", \"onError\": [...] }`: a native function "
-	 "(`Screen::onCall`); `error` in `onError`",
+	 "(`Screen::onCall`); `error` in `onError`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: "
+	 "`\"loading\": \"state.busy\"` is true while it runs, `\"progress\": \"state.done\"` goes from 0 to 1, partial "
+	 "results stream into `into`, `\"timeout\": 5000` ends it with the error `timeout`, `then` runs with `result`",
+	 "steps"},
+    {"cancel", "", "`{ \"cancel\": \"search\" }`: stop the running slow calls of a function; they change nothing more",
 	 "steps"},
     {"emit", "", "`{ \"emit\": \"saved\", \"data\": {...} }`: an event for every connected peer", "steps"},
     {"send", "", "`{ \"send\": \"host\", \"data\": {...} }`: a message on a declared channel", "steps"},

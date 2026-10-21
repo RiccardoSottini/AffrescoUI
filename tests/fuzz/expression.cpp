@@ -28,7 +28,7 @@ void evaluate(const json& value) {
 	static const json globals = {{"mode", "default"},        {"proposals", json::array()},
 	                             {"history", json::array()}, {"theme", {{"name", "light"}}},
 	                             {"screen", "main"},         {"preview", nullptr}};
-	static const affresco::format::Scope locals{nullptr, nullptr, {{"card", {{"title", "x"}, {"points", 3}}}}};
+	static const affresco::format::Scope locals{nullptr, nullptr, {{"card", {{"title", "x"}, {"points", 3}}}}, {}, {}};
 	static const affresco::format::NodeLookup nodes = [](std::string_view id) {
 		return id == "board" ? json{{"x", 0}, {"y", 0}, {"width", 800}, {"height", 600}, {"visible", true}} : json();
 	};

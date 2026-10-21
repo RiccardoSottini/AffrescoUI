@@ -19,9 +19,11 @@
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/format/Runtime.hpp"
 
+#include "AsyncCalls.hpp"
 #include "Builder.hpp"
 #include "DocumentContext.hpp"
 #include "Events.hpp"
+#include "Models.hpp"
 #include "Properties.hpp"
 #include "Reconciler.hpp"
 #include "Scheduler.hpp"
@@ -64,6 +66,7 @@ struct Engine : VersionObserver {
 
 	std::map<std::string, Runtime::Action, std::less<>> nativeActions; ///< Native actions.
 	std::map<std::string, Runtime::Call, std::less<>> nativeCalls;     ///< Native functions for "call" with results.
+	std::map<std::string, Runtime::AsyncCall, std::less<>> asyncCalls; ///< Slow native functions, on workers.
 	Runtime::UnhandledAction unhandled;                                ///< Actions nobody handles.
 	bool placeholderTypes = false;                                     ///< Unknown types become plain panels.
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
@@ -75,6 +78,8 @@ struct Engine : VersionObserver {
 	Reconciler reconciler;    ///< Records; updates.
 	Events events;            ///< Input.
 	Steps runner;             ///< Actions.
+	Models models;            ///< The application's data models (their changes reach the others).
+	AsyncCalls calls;         ///< Slow native calls (last: destroyed first, joining their workers).
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.

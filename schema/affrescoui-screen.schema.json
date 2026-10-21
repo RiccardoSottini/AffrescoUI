@@ -688,7 +688,7 @@
 								"type": "string"
 							},
 							"in": {
-								"description": "A path like \"state.items\", or any value"
+								"description": "A path like \"state.items\", a data model of the application like \"models.files\", or any value"
 							},
 							"index": {
 								"type": "string"
@@ -1138,7 +1138,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError), emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), focus, scrollTo, navigate, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -1150,6 +1150,7 @@
 					"while": {},
 					"run": {},
 					"call": {},
+					"cancel": {},
 					"emit": {},
 					"send": {},
 					"connect": {},
@@ -1195,6 +1196,9 @@
 					"onError": {
 						"$ref": "#/$defs/v1/steps"
 					},
+					"loading": {},
+					"progress": {},
+					"timeout": {},
 					"data": {},
 					"message": {},
 					"head": {},

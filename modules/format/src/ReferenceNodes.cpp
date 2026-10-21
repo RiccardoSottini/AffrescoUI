@@ -153,7 +153,7 @@ constexpr KeyReference nodeTable[] = {
 	 "look"},
     {"repeat", R"json({"type": "object", "required": ["in"], "additionalProperties": false,
 		"description": "One node per list item", "properties": {"for": {"type": "string"},
-		"in": {"description": "A path like \"state.items\", or any value"},
+		"in": {"description": "A path like \"state.items\", a data model of the application like \"models.files\", or any value"},
 		"index": {"type": "string"},
 		"key": {"description": "Identifies an item when the list is reordered"}}})json",
 	 "`{ \"for\": \"card\", \"in\": \"state.cards\", \"index\": \"i\", \"key\": \"{{card.id}}\" }`: one node per list "

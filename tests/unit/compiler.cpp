@@ -135,7 +135,7 @@ TEST_CASE("compiler: a repeat, a dynamic style, and the keys that make a node ap
 TEST_CASE("compiler: a binding gives what evaluate() gives, with the same errors at the same places") {
 	const json state = {{"count", 3}, {"items", {1, 2, 3}}};
 	const json empty = json::object();
-	const Scope locals{nullptr, nullptr, {{"name", "Ada"}}};
+	const Scope locals{nullptr, nullptr, {{"name", "Ada"}}, {}, {}};
 	const Context context{state, empty, empty, empty, locals, empty};
 
 	const std::vector<json> values = {

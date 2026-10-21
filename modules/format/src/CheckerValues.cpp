@@ -279,7 +279,7 @@ Shape Checker::shapeOfItems(const std::string& name, const json& raw, const Scop
 	}
 	Shape list = shapeOf(raw[0], scope, place); // not const: returned, so moved
 	const Shape item = itemOf(list);
-	const Scope each{&scope, nullptr, {{"it", item}, {"index", single}}};
+	const Scope each{&scope, nullptr, {{"it", item}, {"index", single}}, {}, {}};
 	const Shape result = raw.size() > 1 ? shapeOf(raw[1], each, place) : item;
 	for(std::size_t i = 2; i < raw.size(); ++i) read(raw[i], scope, place); // "desc"
 	if(name == "$filter" || name == "$sort") return list;
