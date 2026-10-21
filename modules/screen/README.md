@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
@@ -53,7 +53,9 @@ Main thread only. Channels deliver messages through the `Executor` given to `lis
 ## Extension points
 
 Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `onAction`, `onCall`,
-`onUnhandledAction`, `onEvent`. Plus the peers: `connect(channel, author)` for a channel you made, and
+`onUnhandledAction`, `onEvent`; `setModel` for a `DataModel` the screen shows with `"in": "models.<name>"`; and
+`onAsyncCall` for a slow function run on a worker thread (with `setExecutor` for a window the Screen didn't create;
+destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and
 `listen(executor, path, author)` for a socket that accepts any number of them. `registerType` goes through the
 runtime's type registry (`modules/format/README.md`).
 

@@ -390,7 +390,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `forEach` | `{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }` |
 | `while` | `{ "while": "{{state.n < 10}}", "do": [...] }` (at most 10,000 iterations) |
 | `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed |
-| `call` | `{ "call": "pickFile", "with": {...}, "into": "state.file", "onError": [...] }`: a native function (`Screen::onCall`); `error` in `onError` |
+| `call` | `{ "call": "pickFile", "with": {...}, "into": "state.file", "onError": [...] }`: a native function (`Screen::onCall`); `error` in `onError`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: `"loading": "state.busy"` is true while it runs, `"progress": "state.done"` goes from 0 to 1, partial results stream into `into`, `"timeout": 5000` ends it with the error `timeout`, `then` runs with `result` |
+| `cancel` | `{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |

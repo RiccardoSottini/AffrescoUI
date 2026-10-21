@@ -63,7 +63,7 @@ Value time(const Call& call) { return Value::fromText(formatTime(call.number(0),
 
 /// The table.
 constexpr auto table = std::to_array<Function>({
-    {.name = "now", .arguments = "", .about = "Milliseconds since 1970 (UTC)", .apply = now},
+    {.name = "now", .arguments = "", .about = "Milliseconds since 1970 (UTC)", .apply = now, .changes = true},
     {.name = "time",
 	 .arguments = "milliseconds, 'ddd D MMM HH:mm'",
 	 .about = "The local time as text: YYYY, MM, MMM, DD, D, ddd, HH, mm, ss",

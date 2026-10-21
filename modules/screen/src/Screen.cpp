@@ -559,6 +559,20 @@ void Screen::onCall(std::string name, Call call) {
 	});
 }
 
+void Screen::onAsyncCall(std::string name, AsyncCall call) {
+	impl_->runtime.onAsyncCall(std::move(name),
+	                           [call = std::move(call)](const json& arguments, CallProgress& progress) {
+		                           const std::string result = call(arguments.dump(), progress);
+		                           return result.empty() ? json() : json::parse(result);
+	                           });
+}
+
+void Screen::setExecutor(Executor* executor) noexcept { impl_->runtime.setExecutor(executor); }
+
+void Screen::setModel(std::string name, std::shared_ptr<DataModel> model) {
+	impl_->runtime.setModel(std::move(name), std::move(model));
+}
+
 void Screen::build(Window& window) {
 	impl_->warnOfFindings();
 	impl_->runtime.build(window);

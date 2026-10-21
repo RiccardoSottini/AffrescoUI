@@ -47,7 +47,7 @@ void Steps::handle(const json& handler, Panel& sender, const json& event, const 
 	} catch(const json::exception& error) { // a JSON error a step didn't turn into a DocumentError: never into the loop
 		engine_.report(where + ": " + error.what());
 	}
-	if(engine_.document.stateChanged()) engine_.reconciler.requestReconcile();
+	if(engine_.document.stateChanged()) engine_.reconciler.requestStateUpdate();
 }
 
 std::function<void()> Steps::later(json steps, Panel& sender, json event, SharedScope locals, std::string where) {

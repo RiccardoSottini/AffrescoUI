@@ -88,8 +88,8 @@ void Scheduler::animate(const json::json_pointer& pointer, double from, const js
 			engine_.report(error.what());
 			return;
 		}
-		engine_.document.markStateChanged();
-		engine_.reconciler.requestReconcile();
+		engine_.document.markStateChanged(pointer);
+		engine_.reconciler.requestStateUpdate();
 		if(progress < 1.0) animations_[key] = rearm(frameMs);
 		else animations_.erase(key);
 	});

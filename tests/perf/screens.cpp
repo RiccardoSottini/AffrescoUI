@@ -175,8 +175,47 @@ void renameBoard(const LoadedScreen& loaded, bool& renamed) {
 	layOut(loaded.window);
 }
 
+/// @brief A screen of 50,000 panels: a keyed list of 25,000 rows, each a row and a label showing its item's value,
+/// with a "touch" action that changes one item's value.
+/// @return The document.
+json fiftyThousandPanels() {
+	json items = json::array();
+	for(int i = 0; i < 25'000; ++i) items.push_back({{"id", i}, {"v", i}});
+	json document = json::parse(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"actions": { "touch": [{ "set": "state.items[event.i].v", "to": "{{event.v}}" }] },
+		"root": { "type": "panel", "children": [{ "type": "column", "children": [
+			{ "type": "row", "repeat": { "for": "item", "in": "state.items", "key": "{{item.id}}" }, "children": [
+				{ "type": "label", "text": "{{item.v}}" }
+			] }
+		] }] }
+	})json");
+	document["state"]["items"] = std::move(items);
+	return document;
+}
+
+/// @brief "update/panels-50000": one changed value on a screen of 50,000 panels (fiftyThousandPanels()), its update
+/// and layout; "update/panels-50000-without-layout": the update alone. The update visits only what reads the changed
+/// value.
+/// @param context The context.
+/// @param layout Whether the window is laid out after the update.
+/// @return The workload.
+Workload fiftyThousandPanelsWorkload(Context& context, bool layout) {
+	const LoadedScreen loaded = context.load(fiftyThousandPanels(), context.screens());
+	const auto run = std::make_shared<int>(0);
+	Workload workload{.name = layout ? "update/panels-50000" : "update/panels-50000-without-layout", .runs = 15};
+	workload.step = [loaded, run, layout] {
+		++*run;
+		const json event = {{"i", (*run * 7919) % 25'000}, {"v", -*run}};
+		loaded.screen.runAction("touch", loaded.window.root(), event.dump());
+		runQueuedUpdates(loaded.window);
+		if(layout) layOut(loaded.window);
+	};
+	return workload;
+}
+
 /// @brief "update/<cards>": one state change on the Kanban template (renaming the board), its reconciliation and
-/// layout.
+/// layout; and the two "update/panels-50000" workloads.
 /// @param context The context.
 /// @return One workload per card count.
 std::vector<Workload> updateWorkloads(Context& context) {
@@ -190,6 +229,8 @@ std::vector<Workload> updateWorkloads(Context& context) {
 		workload.step = [loaded, renamed] { renameBoard(loaded, *renamed); };
 		workloads.push_back(std::move(workload));
 	}
+	workloads.push_back(fiftyThousandPanelsWorkload(context, true));
+	workloads.push_back(fiftyThousandPanelsWorkload(context, false));
 	return workloads;
 }
 

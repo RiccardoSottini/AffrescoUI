@@ -81,8 +81,8 @@ Connection Events::hookCaret(Panel& panel) {
 			    format::statePointer(*record->caret, engine_.document.context(*record->locals, json::object()), where);
 			statePlace(engine_.versions.state(), pointer, where) = {
 			    {"line", caret.line + 1}, {"column", caret.column + 1}, {"selected", editor->selectedLength()}};
-			engine_.document.markStateChanged();
-			engine_.reconciler.requestReconcile();
+			engine_.document.markStateChanged(pointer);
+			engine_.reconciler.requestStateUpdate();
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());
 		}
@@ -143,8 +143,8 @@ void Events::valueChanged(Panel& panel, const json& value) {
 			const json::json_pointer pointer =
 			    format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()), where);
 			statePlace(engine_.versions.state(), pointer, where) = value;
-			engine_.document.markStateChanged();
-			engine_.reconciler.requestReconcile();
+			engine_.document.markStateChanged(pointer);
+			engine_.reconciler.requestStateUpdate();
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());
 		}
@@ -375,6 +375,7 @@ bool Events::clickKeepsOpen(const Panel& panel, const Record& record, Vec2 posit
 void Events::dismissOverlays(const Vec2* position) {
 	const DocumentContext::BudgetScope budget(engine_.document); // one for all the overlays' paths
 	bool closed = false;
+	std::vector<json::json_pointer> changed; // marked after the loop: no record is touched while it runs
 	for(auto& [panel, record] : engine_.reconciler.records()) {
 		if(!record.dismissOutside || !record.overlayOpen || !panel->isShown()) continue;
 		if(position && clickKeepsOpen(*panel, record, *position)) continue;
@@ -383,14 +384,15 @@ void Events::dismissOverlays(const Vec2* position) {
 			const json::json_pointer pointer = format::statePointer(
 			    *record.overlayOpen, engine_.document.context(*record.locals, json::object()), where);
 			statePlace(engine_.versions.state(), pointer, where) = false;
+			changed.push_back(pointer);
 			closed = true;
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());
 		}
 	}
 	if(closed) {
-		engine_.document.markStateChanged();
-		engine_.reconciler.requestReconcile();
+		for(const json::json_pointer& pointer : changed) engine_.document.markStateChanged(pointer);
+		engine_.reconciler.requestStateUpdate();
 	}
 }
 

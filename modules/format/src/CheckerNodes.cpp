@@ -3,6 +3,7 @@
 /// behaviour (handlers, steps, actions run with their callers' variables).
 
 #include "CheckerImpl.hpp"
+#include "Models.hpp"
 
 #include <format>
 
@@ -19,10 +20,10 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",     "push",     "remove",  "toggle", "increment",  "if",    "forEach",  "while",
-	 "run",     "call",     "emit",    "send",   "connect",    "patch", "accept",   "reject",
-	 "preview", "restore",  "revert",  "undo",   "endPreview", "focus", "scrollTo", "navigate",
-	 "after",   "debounce", "animate", "copy",   "log",        "stop",  "note"});
+    {"set",      "push",    "remove",   "toggle",  "increment", "if",         "forEach", "while",
+	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
+	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
+	 "navigate", "after",   "debounce", "animate", "copy",      "log",        "stop",    "note"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -109,10 +110,12 @@ bool mayReferTo(const std::string& key, const json& value) {
 /// @brief Tells whether a step's key is what the step writes, or where: those are read by walkWrite().
 /// @param kind The step.
 /// @param key A key of it.
-/// @return true for the target of a state step, "to" of set, "value" of push and "into" of call.
+/// @return true for the target of a state step, "to" of set, "value" of push and "into", "loading" and
+/// "progress" of call.
 bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
-	       (kind == "push" && key == "value") || (kind == "call" && key == "into");
+	       (kind == "push" && key == "value") ||
+	       (kind == "call" && (key == "into" || key == "loading" || key == "progress"));
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -166,9 +169,9 @@ void Checker::walkNode(const json& node, const std::string& place, const Scope& 
 
 void Checker::walkPrepared(Prepared& node, const Scope& scope, const Slot* slot, bool child) {
 	applyStyles(node, 0);
-	Scope repeated{&scope, nullptr, json()}; // variables start as null, which costs nothing until one is added
+	Scope repeated{&scope, nullptr, json(), {}, {}}; // variables start as null, which costs nothing until one is added
 	if(child && node.value("repeat")) walkRepeat(node, repeated);
-	Scope layer{&repeated, nullptr, json()};
+	Scope layer{&repeated, nullptr, json(), {}, {}};
 	walkLayer(node, layer);
 	walkProperties(node, layer);
 
@@ -268,10 +271,14 @@ void Checker::walkRepeat(const Prepared& node, Scope& scope) {
 	if(!repeat.is_object()) return;
 	const std::string at = node.where("repeat");
 	Shape list = anything;
-	if(const auto source = repeat.find("in"); source != repeat.end()) // a path, or any value
+	const auto source = repeat.find("in");
+	if(source != repeat.end() && source->is_string() && modelName(source->get_ref<const std::string&>())) {
+		// a data model's rows: the application gives them, so their shape is known only while it runs
+	} else if(source != repeat.end()) { // a path, or any value
 		list = source->is_string() && !isDynamic(*source)
 		           ? shapeOfExpression(source->get_ref<const std::string&>(), *scope.parent, at + ".in")
 		           : shapeOf(*source, *scope.parent, at + ".in");
+	}
 	scope.vars[nameOr(repeat, "for", "item")] = itemOf(list);
 	scope.vars[nameOr(repeat, "index", "index")] = single;
 	if(const auto key = repeat.find("key"); key != repeat.end()) read(*key, scope, at + ".key");
@@ -455,8 +462,9 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 	for(const std::string_view key : nestedSteps) {
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
-		Scope layer{&scope, nullptr, json()};
-		if(key == "onError") layer.vars["error"] = single; // a native call's error message
+		Scope layer{&scope, nullptr, json(), {}, {}};
+		if(key == "onError") layer.vars["error"] = single;                          // a native call's error message
+		if(key == "then" && step.contains("call")) layer.vars["result"] = anything; // and its result
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}
 }
@@ -471,12 +479,16 @@ void Checker::walkWrite(std::string_view kind, const json& step, const Scope& sc
 	else if(kind == "push") write(step[key], valueOf("value"), Change::push, scope, place + "." + key);
 	else if(kind == "remove") write(step[key], anything, Change::none, scope, place + "." + key);
 	else if(among(stateSteps, kind)) write(step[key], single, Change::set, scope, place + "." + key); // numbers, flags
-	else if(kind == "call" && step.contains("into")) write(step["into"], anything, Change::set, scope, place + ".into");
+	else if(kind == "call")
+		for(const char* name : {"into", "loading", "progress"})
+			if(step.contains(name))
+				write(step[name], std::string_view(name) == "into" ? anything : single, Change::set, scope,
+				      place + "." + name);
 }
 
 void Checker::walkRun(const json& step, const Scope& scope, const std::string& place) {
 	// "with": the action's own variables, evaluated where the step is
-	Scope layer{&scope, nullptr, json()};
+	Scope layer{&scope, nullptr, json(), {}, {}};
 	if(const auto with = step.find("with"); with != step.end() && with->is_object())
 		for(const auto& [name, value] : with->items())
 			layer.vars[name] = shapeOf(value, scope, std::format("{}.with.{}", place, name));
@@ -490,7 +502,7 @@ void Checker::walkForEach(const json& step, const Scope& scope, const std::strin
 	const Shape list = source.is_string() && !isDynamic(source)
 	                       ? shapeOfPath(source.get_ref<const std::string&>(), scope, place + ".forEach")
 	                       : shapeOf(source, scope, place + ".forEach");
-	Scope layer{&scope, nullptr, json()};
+	Scope layer{&scope, nullptr, json(), {}, {}};
 	layer.vars[nameOr(step, "as", "item")] = itemOf(list);
 	layer.vars[nameOr(step, "index", "index")] = single;
 	if(const auto steps = step.find("do"); steps != step.end()) walkSteps(*steps, layer, place + ".do");

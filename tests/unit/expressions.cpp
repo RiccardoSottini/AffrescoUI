@@ -71,7 +71,7 @@ json evaluate(const json& value) {
 	static const json revision = 3, event = {{"x", 10}, {"key", "Enter"}};
 	static const json globals = {{"mode", "default"}, {"theme", {{"name", "light"}}}, {"proposals", json::array()}};
 	static const affresco::format::Scope locals{
-	    nullptr, nullptr, {{"card", {{"title", "x"}, {"points", 3}}}, {"it", "outer"}}};
+	    nullptr, nullptr, {{"card", {{"title", "x"}, {"points", 3}}}, {"it", "outer"}}, {}, {}};
 	static const affresco::format::NodeLookup nodes = nodeGeometry, computed = computedValue;
 	const affresco::format::Context context{state, window, revision, event, locals, globals, &nodes, &computed};
 	return affresco::format::evaluate(value, context, "test");

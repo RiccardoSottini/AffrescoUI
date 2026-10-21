@@ -1,5 +1,5 @@
 /// @file
-/// @brief The steps that reach the application, peers and the document: call, emit, send, connect, patch.
+/// @brief The steps that reach the application, peers and the document: call, cancel, emit, send, connect, patch.
 
 #include "Engine.hpp"
 
@@ -18,6 +18,8 @@ bool call(const Running& s) {
 	const std::string& where = s.where;
 	Engine& engine = s.steps.engine();
 	const std::string name = string(step["call"], where + ".call");
+	if(const auto slow = engine.asyncCalls.find(name); slow != engine.asyncCalls.end())
+		return engine.calls.start(s, name, slow->second);
 	if(const auto native = engine.nativeCalls.find(name); native != engine.nativeCalls.end()) {
 		const json arguments = step.contains("with") ? s.value("with") : json::object();
 		try {
@@ -26,13 +28,13 @@ bool call(const Running& s) {
 				const json::json_pointer pointer = s.target("into");
 				expect::shallowEnough(result, pointerDepth(pointer), where + ".into");
 				statePlace(engine.versions.state(), pointer, where + ".into") = std::move(result);
-				engine.document.markStateChanged();
+				engine.document.markStateChanged(pointer);
 			}
 		} catch(const DocumentError&) {
 			throw;
 		} catch(const std::exception& error) {
 			if(!step.contains("onError")) fail(where + ".call", name + ": " + error.what());
-			const Scope scope{&s.locals, nullptr, {{"error", error.what()}}};
+			const Scope scope{&s.locals, nullptr, {{"error", error.what()}}, {}, {}};
 			return s.run(step["onError"], scope, where + ".onError");
 		}
 	} else if(const auto it = engine.nativeActions.find(name); it != engine.nativeActions.end()) {
@@ -68,6 +70,10 @@ std::optional<bool> runOutsideStep(const Running& s) {
 	Runtime& owner = s.steps.engine().owner;
 
 	if(step.contains("call")) return call(s);
+	if(step.contains("cancel")) {
+		s.steps.engine().calls.cancel(string(step["cancel"], where + ".cancel"));
+		return true;
+	}
 	if(step.contains("emit")) {
 		const json message = {{"type", "event"},
 		                      {"name", string(step["emit"], where + ".emit")},
@@ -91,7 +97,8 @@ std::optional<bool> runOutsideStep(const Running& s) {
 
 void registerOutsideSteps(StepRegistry& registry) {
 	registry.add({"outside",
-	              {{"call", {"with", "into", "onError"}, true},
+	              {{"call", {"with", "into", "onError", "then", "loading", "progress", "timeout"}, true},
+	               {"cancel", {}},
 	               {"emit", {"data"}},
 	               {"send", {"data"}, true},
 	               {"connect", {}, true},

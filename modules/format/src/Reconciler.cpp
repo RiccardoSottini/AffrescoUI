@@ -4,6 +4,8 @@
 #include "Reconciler.hpp"
 #include "Engine.hpp"
 
+#include <algorithm>
+
 namespace affresco::format {
 
 namespace {
@@ -16,6 +18,18 @@ namespace {
 const std::string& typeOf(const CompiledNode& node, const std::string& path) {
 	if(!node.typeIsText) static_cast<void>(string(node.own["type"], path + ".type"));
 	return node.type;
+}
+
+/// @brief Whether two scopes hold the same variables with the same values, all the way out.
+/// @param a A scope.
+/// @param b Another.
+/// @return true if every variable reads the same in both.
+bool sameScope(const Scope* a, const Scope* b) {
+	for(; a && b; a = a->parent, b = b->parent) {
+		if(a == b) return true;
+		if(a->vars != b->vars) return false;
+	}
+	return a == b;
 }
 
 } // namespace
@@ -57,7 +71,7 @@ std::optional<std::vector<Item>> Reconciler::childrenOf(const CompiledNode& node
 	return std::vector<Item>{};
 }
 
-std::pair<Panel*, bool> Reconciler::place(Panel& panel, std::size_t index, const Item& item, const std::string& type) {
+Panel* Reconciler::reusable(Panel& panel, std::size_t index, const Item& item, const std::string& type) {
 	// A keyed item finds its panel wherever it is now, so it keeps its focus, scroll and drag when lists reorder
 	if(!item.key.is_null()) {
 		for(std::size_t j = index; j < panel.children().size(); ++j) {
@@ -71,43 +85,134 @@ std::pair<Panel*, bool> Reconciler::place(Panel& panel, std::size_t index, const
 
 	// Reuse the panel already in this place if it has the same type (and key): it keeps focus, hover and drag
 	if(index < panel.children().size()) {
-		Panel& existing = *panel.children()[index];
-		const Record* r = recordOf(&existing);
-		if(r && r->type == type && r->key == item.key) return {&existing, false};
-		forgetSubtree(existing);
-		return {&panel.replaceChild(index, create(type, item.path)), true};
+		const Record* r = recordOf(panel.children()[index].get());
+		if(r && r->type == type && r->key == item.key) return panel.children()[index].get();
 	}
-	return {&panel.addChild(create(type, item.path)), true};
+	return nullptr;
+}
+
+Panel& Reconciler::make(Panel& panel, std::size_t index, const Item& item, const std::string& type) {
+	if(index < panel.children().size()) {
+		forgetSubtree(*panel.children()[index]);
+		return panel.replaceChild(index, create(type, item.path));
+	}
+	return panel.addChild(create(type, item.path));
+}
+
+std::vector<json> Reconciler::valuesOf(const Item& item, ReadSet& reads) const {
+	const DocumentContext::ReadScope scope(engine_.document, &reads);
+	return engine_.builder.values(*item.node, *item.locals, item.path);
+}
+
+void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std::vector<json> values, ReadSet reads,
+                             bool created) {
+	const bool isRoot = engine_.window && &panel == &engine_.window->root();
+	{
+		const DocumentContext::ReadScope scope(engine_.document, &reads); // the bound value, and what behaviour reads
+		engine_.properties.apply(panel, record, item.node, std::move(values), item.path, isRoot, created);
+	}
+	if(item.node->alwaysApply) reads.always = true; // its behaviour reads more than its values
+	record.valueReads = std::move(reads);
+}
+
+void Reconciler::gatherReads(const Panel& panel, Record& record) const {
+	record.subtreeReads = record.valueReads;
+	record.subtreeReads.add(record.expandReads);
+	const auto& children = panel.children();
+	if(record.managed >= ItemIndex::minChildren)
+		record.items.start(children.size());
+	else
+		record.items.drop();
+	for(std::size_t i = record.firstManaged; i < record.firstManaged + record.managed && i < children.size(); ++i) {
+		const auto it = records_.find(children[i].get());
+		if(it == records_.end()) continue;
+		record.subtreeReads.add(it->second.subtreeReads);
+		record.items.add(i, it->second.locals.get(), it->second.subtreeReads);
+	}
+}
+
+bool Reconciler::updateKept(Panel& kept, const Item& item, const StateChanges& changes, int depth) {
+	Record& record = records_.at(&kept);
+	if(record.node != item.node || record.path != item.path || !sameScope(record.locals.get(), item.locals.get()))
+		return false; // other values may be read: built again
+	updatePanel(kept, record, changes, depth);
+	return true;
+}
+
+void Reconciler::updatePanel(Panel& panel, Record& record, const StateChanges& changes, int depth) {
+	if(!record.subtreeReads.touchedBy(changes)) return;
+	if(record.valueReads.touchedBy(changes)) {
+		const Item own{record.node, record.locals, record.path, nullptr};
+		ReadSet reads;
+		std::vector<json> values = valuesOf(own, reads);
+		applyValues(panel, record, own, std::move(values), std::move(reads), false);
+		record.subtreeReads.add(record.valueReads);
+	}
+	updateChildren(panel, record, changes, depth);
+}
+
+void Reconciler::reconcileChild(Panel& panel, std::size_t index, Item& item, int depth, const StateChanges* changes) {
+	const std::string& type = typeOf(*item.node, item.path);
+	Panel* kept = reusable(panel, index, item, type);
+	if(kept && changes && updateKept(*kept, item, *changes, depth)) return;
+
+	ReadSet reads;
+	std::vector<json> values = valuesOf(item, reads); // before a panel is made: an error leaves none half built
+	const bool created = !kept;
+	Panel& child = created ? make(panel, index, item, type) : *kept;
+	Record& childRecord = created ? adopt(child, type) : records_.at(&child);
+	childRecord.locals = std::move(item.locals);
+	childRecord.key = std::move(item.key);
+	applyValues(child, childRecord, item, std::move(values), std::move(reads), created);
+	reconcileChildren(*item.node, child, childRecord, item.path, depth); // other variables: everything below
+	if(created && !engine_.handlersSuspended && childRecord.handlers.contains("onShow"))
+		engine_.scheduler.defer(engine_.runner.later(childRecord.handlers["onShow"], child, {{"type", "show"}},
+		                                             childRecord.locals, childRecord.path + ".onShow"));
 }
 
 void Reconciler::reconcileChildren(const CompiledNode& node, Panel& panel, Record& record, const std::string& path,
-                                   int depth) {
+                                   int depth, const StateChanges* changes) {
 	if(depth >= maxNodeDepth)
 		fail(path, "nodes nested too deeply (more than " + std::to_string(maxNodeDepth) +
 		               " levels: a component or a screen inside itself?)");
-	std::optional<std::vector<Item>> items = childrenOf(node, record, path);
-	if(!items) return;
-
-	std::size_t index = record.firstManaged;
-	for(Item& item : *items) {
-		std::vector<json> values = engine_.builder.values(*item.node, *item.locals, item.path);
-		const std::string& type = typeOf(*item.node, item.path);
-		const auto [child, created] = place(panel, index, item, type);
-
-		Record& childRecord = created ? adopt(*child, type) : records_.at(child);
-		childRecord.locals = std::move(item.locals);
-		childRecord.key = std::move(item.key);
-		engine_.properties.apply(*child, childRecord, item.node, std::move(values), item.path, false, created);
-		reconcileChildren(*item.node, *child, childRecord, item.path, depth + 1);
-		if(created && !engine_.handlersSuspended && childRecord.handlers.contains("onShow"))
-			engine_.scheduler.defer(engine_.runner.later(childRecord.handlers["onShow"], *child, {{"type", "show"}},
-			                                             childRecord.locals, childRecord.path + ".onShow"));
-		++index;
+	record.expandReads.clear();
+	std::optional<std::vector<Item>> items;
+	{
+		const DocumentContext::ReadScope scope(engine_.document, &record.expandReads);
+		items = childrenOf(node, record, path);
 	}
+	if(items) {
+		std::size_t index = record.firstManaged;
+		for(Item& item : *items) reconcileChild(panel, index++, item, depth + 1, changes);
+		for(std::size_t i = index; i < panel.children().size(); ++i) forgetSubtree(*panel.children()[i]);
+		panel.removeChildren(index);
+		record.managed = index - record.firstManaged;
+	}
+	gatherReads(panel, record);
+}
 
-	for(std::size_t i = index; i < panel.children().size(); ++i) forgetSubtree(*panel.children()[i]);
-	panel.removeChildren(index);
-	record.managed = index - record.firstManaged;
+void Reconciler::updateChildren(Panel& panel, Record& record, const StateChanges& changes, int depth) {
+	if(record.expandReads.touchedBy(changes)) { // the list of children may differ: built again, keeping what it can
+		reconcileChildren(*record.node, panel, record, record.path, depth, &changes);
+		return;
+	}
+	const auto& children = panel.children();
+	const std::size_t end = std::min(record.firstManaged + record.managed, children.size());
+	const auto visit = [&](std::size_t i) {
+		Panel& child = *children[i];
+		Record* childRecord = recordOf(&child);
+		if(!childRecord || !childRecord->subtreeReads.touchedBy(changes)) return;
+		updatePanel(child, *childRecord, changes, depth + 1);
+		record.subtreeReads.add(childRecord->subtreeReads); // what it reads now: a set that only grows stays right
+		if(!record.items.keeps(childRecord->locals.get(), childRecord->subtreeReads)) record.items.drop();
+	};
+	if(const auto chosen = record.items.visits(changes, children.size())) {
+		for(const std::size_t i : *chosen)
+			if(i >= record.firstManaged && i < end) visit(i);
+		return;
+	}
+	for(std::size_t i = record.firstManaged; i < end; ++i)
+		visit(i);
 }
 
 void Reconciler::forgetSubtree(const Panel& panel) {
@@ -125,14 +230,48 @@ void Reconciler::forgetSubtree(const Panel& panel) {
 	for(const auto& child : panel.children()) forgetSubtree(*child);
 }
 
-// Brings the UI in line with the document and the state
-void Reconciler::reconcile() {
+bool Reconciler::canUpdatePart(const StateChanges& changes) const {
+	const DocumentContext& context = engine_.document;
+	return synced_ && !changes.all && context.appearance() == syncedAppearance_ &&
+	       context.screen() == syncedScreen_ && !rootScopeReads_.touchedBy(changes);
+}
+
+void Reconciler::updateRoot(Panel& root, Record& record, const StateChanges* changes) {
+	if(changes) { // the root's node and variables are the same: only what reads the changes
+		if(record.valueReads.touchedBy(*changes)) {
+			const Item item{record.node, record.locals, "root", nullptr};
+			ReadSet reads;
+			std::vector<json> values = valuesOf(item, reads);
+			applyValues(root, record, item, std::move(values), std::move(reads), false);
+			record.subtreeReads.add(record.valueReads);
+		}
+		updateChildren(root, record, *changes, 0);
+		return;
+	}
+	SharedScope scope = noVariables();
+	rootScopeReads_.clear();
+	CompiledRef node;
+	{
+		const DocumentContext::ReadScope reading(engine_.document, &rootScopeReads_);
+		node = engine_.builder.scoped(engine_.builder.compiled(engine_.versions.document()["root"], "root"), scope,
+		                              "root");
+	}
+	const Item item{node, scope, "root", nullptr};
+	record.locals = std::move(scope);
+	ReadSet reads;
+	std::vector<json> values = valuesOf(item, reads);
+	applyValues(root, record, item, std::move(values), std::move(reads), false);
+	reconcileChildren(*node, root, record, "root");
+}
+
+// Brings the UI in line with the document and the state: everything, or only what reads the state changed
+void Reconciler::update(bool full) {
 	Window* window = engine_.window;
 	if(!window) return;
 	reconcileQueued_ = false;
 	DocumentContext& context = engine_.document;
 	const DocumentContext::BudgetScope budget(context); // an update has its own, unless an event runs it
-	context.clearStateChanged();
+	const StateChanges changes = context.takeChanges();
 	const json& document = engine_.versions.document();
 
 	// The screen an outlet shows: the first one, unless navigation chose another that still exists
@@ -148,12 +287,12 @@ void Reconciler::reconcile() {
 	if(!records_.contains(&root)) adopt(root, "root");
 	Record& record = records_.at(&root);
 
-	SharedScope scope = noVariables();
-	const CompiledRef node = engine_.builder.scoped(engine_.builder.compiled(document["root"], "root"), scope, "root");
-	record.locals = std::move(scope);
-	engine_.properties.apply(root, record, node, engine_.builder.values(*node, *record.locals, "root"), "root", true,
-	                         false);
-	reconcileChildren(*node, root, record, "root");
+	const bool part = !full && canUpdatePart(changes);
+	synced_ = false; // until the update ends without an error
+	updateRoot(root, record, part ? &changes : nullptr);
+	synced_ = true;
+	syncedAppearance_ = context.appearance();
+	syncedScreen_ = context.screen();
 
 	if(!engine_.handlersSuspended) watch(root);
 	engine_.owner.onUpdated();
@@ -175,33 +314,42 @@ void Reconciler::watch(Panel& root) {
 	}
 }
 
-// Updates are batched: many state changes during one event become one reconcile, after the event is delivered
-void Reconciler::requestReconcile() {
-	engine_.document.requestUpdate();
+// Updates are batched: many state changes during one event become one update, after the event is delivered
+void Reconciler::queue() {
 	if(reconcileQueued_ || !engine_.window) return;
 	reconcileQueued_ = true;
 	engine_.scheduler.defer([this] {
 		if(!reconcileQueued_) return;
 		try {
-			reconcile();
+			update(false);
 		} catch(const DocumentError& error) {
 			engine_.report(error.what());
 		}
 	});
 }
 
+void Reconciler::requestReconcile() {
+	engine_.document.requestUpdate();
+	queue();
+}
+
+void Reconciler::requestStateUpdate() { queue(); }
+
 // A template built outside reconciliation (Runtime::instantiate)
 Panel& Reconciler::buildDetached(const json& node, Panel& parent, const std::string& path) {
 	SharedScope scope = noVariables();
 	const CompiledRef scopedNode = engine_.builder.scoped(engine_.builder.compiled(node, path), scope, path);
-	std::vector<json> values = engine_.builder.values(*scopedNode, *scope, path);
+	Item item{scopedNode, scope, path, nullptr};
+	ReadSet reads;
+	std::vector<json> values = valuesOf(item, reads);
 	const std::string& type = typeOf(*scopedNode, path);
 
 	Panel& panel = parent.addChild(create(type, path));
 	Record& record = adopt(panel, type);
 	record.locals = std::move(scope);
-	engine_.properties.apply(panel, record, scopedNode, std::move(values), path, false, true);
+	applyValues(panel, record, item, std::move(values), std::move(reads), true);
 	reconcileChildren(*scopedNode, panel, record, path);
+	synced_ = false; // its parent's reads don't include it: the next update visits everything
 	return panel;
 }
 
