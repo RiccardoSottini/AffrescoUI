@@ -297,7 +297,10 @@ Input from peers, revisions and change sets is limited so that one message can't
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
-proportion to its text, however many keys an object has, unless its keys are chosen to collide (Known gaps).
+proportion to its text, however many keys an object has, unless its keys are chosen to collide (Known gaps). A
+document's `settings` section is checked the same way, at load and after every revision: a setting that is also a
+group of settings (`editor` and `editor.fontSize`) is found in one pass over the keys, so a 32 MiB document of small
+settings takes a fraction of a second, not minutes.
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
 controls (U+0080 to U+009F) `\u0080` to `\u009f`, and a backslash `\\`. So text from a peer or a document can't forge

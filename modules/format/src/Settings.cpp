@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <format>
+#include <string_view>
+#include <unordered_map>
 
 namespace affresco::format {
 
@@ -72,7 +74,13 @@ json settingsListOf(Engine& engine) {
 } // namespace
 
 void checkSettings(const json& section, const std::string& name) {
-	for(const auto& [key, type] : expect::object(section, name).items()) {
+	const json& settings = expect::object(section, name);
+	// Each group a key is in ("editor" for "editor.fontSize"), with the first key in it: one pass, not one per setting
+	std::unordered_map<std::string_view, std::string_view> firstInGroup;
+	for(const auto& [key, unused] : settings.items())
+		for(auto dot = key.find('.'); dot != std::string::npos; dot = key.find('.', dot + 1))
+			firstInGroup.try_emplace(std::string_view(key).substr(0, dot), key);
+	for(const auto& [key, type] : settings.items()) {
 		const std::string at = std::format("{}.{}", name, key);
 		if(key.empty() || key.front() == '.' || key.back() == '.' || key.find("..") != std::string::npos)
 			expect::fail(at, "a setting's key is names joined by dots, e.g. \"editor.fontSize\"");
@@ -80,9 +88,8 @@ void checkSettings(const json& section, const std::string& name) {
 		if(!type.contains("default")) expect::fail(at, "a setting needs a \"default\"");
 		if(const auto problem = typeMismatch(type["default"], type, at + ".default"))
 			expect::fail(problem->place, problem->problem);
-		for(const auto& [other, unused] : section.items())
-			if(other.starts_with(key + "."))
-				expect::fail(at, "'" + key + "' is a setting and a group of settings ('" + other + "')");
+		if(const auto inside = firstInGroup.find(key); inside != firstInGroup.end())
+			expect::fail(at, "'" + key + "' is a setting and a group of settings ('" + std::string(inside->second) + "')");
 	}
 }
 

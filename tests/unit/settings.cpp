@@ -11,6 +11,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -205,6 +206,21 @@ TEST_CASE("format: a bad settings section is refused when the screen loads") {
 	CHECK_THROWS(load(R"({ "a": { "type": "number", "default": "x" } })"));           // not its type
 	CHECK_THROWS(load(R"({ "a": { "type": "number", "default": 1 }, "a.b": { "type": "number", "default": 1 } })"));
 	CHECK_THROWS(load(R"({ "a..b": { "type": "number", "default": 1 } })"));
+	// A setting and a group of the same name clash whatever comes between them
+	CHECK_THROWS(load(R"({ "a": { "type": "number", "default": 1 }, "a-b": { "type": "number", "default": 1 },
+	                       "a.b": { "type": "number", "default": 1 } })"));
+	CHECK_NOTHROW(load(R"({ "a": { "type": "number", "default": 1 }, "ab.c": { "type": "number", "default": 1 } })"));
+}
+
+TEST_CASE("format: a settings section of many settings is checked in a time that grows with its size") {
+	json screen = json::parse(document("{}"));
+	json& settings = screen["settings"];
+	for(int i = 0; i < 50000; ++i)
+		settings["group" + std::to_string(i % 100) + ".setting" + std::to_string(i)] = {{"type", "number"}, {"default", 1}};
+	const auto start = std::chrono::steady_clock::now();
+	CHECK_NOTHROW((void)affresco::Screen::fromString(screen.dump()));
+	const std::chrono::duration<double> took = std::chrono::steady_clock::now() - start;
+	CHECK(took.count() < 5.0); // seconds; before, each setting looked at every other: 50,000 took over 10 s
 }
 
 TEST_CASE("format: a bad menus section is refused when the screen loads") {
