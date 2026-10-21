@@ -11,6 +11,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -118,6 +119,47 @@ struct Group {
 /// @param context The context.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> historyWorkloads(const Context& context);
+
+/* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
+
+/// @brief The sizes an area is measured at: 5 that double from the smallest, 7 at night.
+/// @param smallest The first size.
+/// @param large The nightly run's sizes.
+/// @return The sizes, smallest first.
+[[nodiscard]] inline std::vector<int> scalingSizes(int smallest, bool large) {
+	std::vector<int> sizes;
+	for(int i = 0, size = smallest; i < (large ? 7 : 5); ++i, size *= 2) sizes.push_back(size);
+	return sizes;
+}
+
+/// @brief A scaling workload's name.
+/// @param area The area, e.g. "update" or "text/shape".
+/// @param size n.
+/// @return "scaling/<area>/<n>".
+[[nodiscard]] inline std::string scalingName(std::string_view area, int size) {
+	return "scaling/" + std::string(area) + "/" + std::to_string(size);
+}
+
+/// @brief One workload per size.
+/// @param sizes The sizes.
+/// @param create Makes the workload of one size.
+/// @return The workloads, in the order of the sizes.
+template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::vector<int>& sizes, Create create) {
+	std::vector<Workload> workloads;
+	workloads.reserve(sizes.size());
+	for(const int size : sizes) workloads.push_back(create(size));
+	return workloads;
+}
+
+/// @brief The scaling groups that need a window: the Kanban template by its cards, and adversarial screens.
+/// @param large The nightly run's sizes.
+/// @return The groups.
+[[nodiscard]] std::vector<Group> scalingScreenGroups(bool large);
+
+/// @brief The scaling groups that need no window: the checker, history, expressions, text, the editor and peers.
+/// @param large The nightly run's sizes.
+/// @return The groups.
+[[nodiscard]] std::vector<Group> scalingEngineGroups(bool large);
 
 /// @brief Reads a whole file.
 /// @param path The file.

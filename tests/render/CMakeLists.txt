@@ -14,8 +14,10 @@ if(Python3_FOUND)
 endif()
 
 # The templates' own scenarios (examples/assets/screens/*.scenarios.json): what each template does, checked headless,
-# without a window or golden images
-file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/examples/assets/screens/*.scenarios.json)
+# without a window or golden images; and the rendering check's screens' (screens/*.scenarios.json): where layout,
+# images, icons and partial redraws put each node, held while they get faster
+file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/examples/assets/screens/*.scenarios.json
+	${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	add_test(NAME scenarios COMMAND affrescoui_render_runner ${AFFRESCOUI_TEMPLATE_SCENARIOS})
 endif()

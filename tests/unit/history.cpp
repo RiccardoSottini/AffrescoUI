@@ -628,13 +628,18 @@ TEST_CASE("vcs: every file of a history is readable by its owner only") {
 	REQUIRE(repository.openHistory(history).memoryOnly.empty());
 	fill(repository);
 
+	// Windows keeps who may read a file in its ACL: std::filesystem's permissions only show the read-only flag there
+#ifndef _WIN32
 	using std::filesystem::perms;
 	CHECK((std::filesystem::status(history).permissions() & perms::all) == perms::owner_all);
+#endif
 	int files = 0;
 	for(const auto& entry : std::filesystem::recursive_directory_iterator(history)) {
 		if(!entry.is_regular_file()) continue;
 		CAPTURE(entry.path().string());
+#ifndef _WIN32
 		CHECK((entry.status().permissions() & (perms::group_all | perms::others_all)) == perms::none);
+#endif
 		++files;
 	}
 	CHECK(files >= 4); // the lock, the refs and the objects

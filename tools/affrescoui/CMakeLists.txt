@@ -32,11 +32,17 @@ if(AFFRESCOUI_INSTALL)
 endif()
 
 if(AFFRESCOUI_BUILD_TESTS)
-	# Every command on every template (check.py here); `render` needs a window, so a display or Xvfb
+	# Every command on every template (check.py here); `render` needs a window, so a display or Xvfb (on Windows,
+	# whose CI runners have no OpenGL 4.1, it isn't checked). The programs are in the folder of the build's
+	# configuration (Release/ with Visual Studio's generator).
 	find_package(Python3 COMPONENTS Interpreter)
 	if(Python3_FOUND)
+		set(headless "")
+		if(WIN32)
+			set(headless --headless) # not a generator expression: elsewhere it would pass an empty argument
+		endif()
 		add_test(NAME cli COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/check.py
-			--build ${PROJECT_BINARY_DIR})
+			--build $<TARGET_FILE_DIR:affrescoui_cli> ${headless})
 	endif()
 	# The schema and SCREEN_FORMAT.md's tables are generated from the registries: fails if they are out of date
 	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json

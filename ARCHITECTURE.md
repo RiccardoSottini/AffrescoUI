@@ -212,6 +212,16 @@ one script, each character from the first font of a `fonts` fallback list that h
 pages in the same batch as the text, and shaped text cached by line and by word. A screen's fonts live in a bounded
 `FontCache`, which drops the least recently used fonts nothing holds.
 
+## Scaling
+
+Large apps such as IDEs and creative tools have documents, histories, texts and lists many times the size of the
+templates, so what matters is how a cost grows with n, not its value at one size. Each area has its n and a target
+class in `tests/perf/scaling-baseline.json`: work that touches one thing (a state change, a damage frame, a commit, a
+key in the editor, a re-read after one commit) should be O(1); work over the whole of something (a full layout,
+loading, the checker, blame, text, an outline) O(n); a sort O(n log n). `tests/perf/scaling.py` measures each area at
+sizes that double, fits the exponent, and CI fails when one rises more than 0.15 above the recorded baseline
+(`tests/perf/README.md`, "Scaling"). The areas that miss their target today are listed in each run's summary.
+
 ## The build
 
 The root `CMakeLists.txt` holds the options, the pinned dependencies (GLFW, nlohmann/json, and FreeType and HarfBuzz

@@ -2,6 +2,7 @@
 # from the corpus earlier nights grew, which this run keeps for the next one and for pull requests (the sanitizer job
 # of ci.yml reads it, never writes it). An input that crashes, leaks, hangs or runs out of memory fails the job; it
 # is uploaded as the "fuzz-found" artifact, under its target's name, and tests/fuzz/README.md says how to replay it.
+# And the scaling workloads at their large sizes (tests/perf/README.md, "Scaling").
 name: Nightly
 
 on:
@@ -64,3 +65,42 @@ jobs:
         with:
           path: fuzz-corpus
           key: fuzz-corpus-${{ github.run_id }}
+
+  # How each area's cost grows with its n (tests/perf/README.md, "Scaling") at the large sizes, 7 that double, which
+  # take too long for every pull request: fails when an exponent is more than 0.15 above the large baseline's
+  scaling:
+    name: Scaling (nightly)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1" # Mesa's llvmpipe, under Xvfb
+      MESA_GL_VERSION_OVERRIDE: "4.1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: valgrind xvfb xauth libgl1-mesa-dri python3-venv
+          cache: linux-gcc-release-benchmarks
+      - name: Install tiktoken # as ci.yml's benchmarks do: its own environment, each file checked against its hash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --require-hashes -r tests/perf/requirements.txt
+      - name: Build the benchmark
+        run: |
+          cmake -S . -B build-perf -G Ninja -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_BENCHMARKS=ON \
+            -DAFFRESCOUI_BUILD_TESTS=OFF -DAFFRESCOUI_BUILD_EXAMPLES=OFF -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build-perf --target affrescoui_bench
+      - name: Measure the large sizes
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" "$RUNNER_TEMP/venv/bin/python3" tests/perf/scaling.py \
+            --build build-perf --size large --callgrind --out "$RUNNER_TEMP/scaling/large.json" \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - name: Upload the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scaling-large
+          path: ${{ runner.temp }}/scaling/
+          if-no-files-found: ignore
