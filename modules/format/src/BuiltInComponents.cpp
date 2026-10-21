@@ -159,6 +159,48 @@ constexpr std::string_view others = R"({
 		]
 	}
 },
+"settingsPage": {
+	"params": { "query": "state.settingsQuery", "search": "", "color": "#1e1e1e", "textColor": "#cccccc",
+	            "dimColor": "#8b8b8b", "accent": "#0e639c", "field": "#3c3c3c" },
+	"node": {
+		"type": "column", "color": "{{color}}", "gap": 12,
+		"children": [
+			{ "type": "textarea", "bind": "{{query}}", "placeholder": "Search settings", "height": 28, "width": "100%",
+			  "color": "{{field}}", "textColor": "{{textColor}}", "placeholderColor": "{{dimColor}}", "padding": 6 },
+			{ "type": "column", "grow": 1, "width": "100%", "scroll": "vertical", "gap": 4,
+			  "children": [{
+				"repeat": { "for": "s", "in": "{{filter(settingsList, contains(lower(it.title + ' ' + it.key + ' ' + it.description), lower(search)))}}" },
+				"width": "100%", "height": 56, "color": "{{color}}",
+				"children": [
+					{ "when": "{{s.modified}}", "anchors": { "left": 0, "top": 6, "bottom": 6 }, "width": 2,
+					  "color": "{{accent}}" },
+					{ "type": "label", "text": "{{s.title}}", "textColor": "{{textColor}}",
+					  "anchors": { "left": 12, "top": 6 }, "fitText": true },
+					{ "type": "label", "text": "{{s.description}}", "textColor": "{{dimColor}}",
+					  "anchors": { "left": 12, "right": 220, "top": 28 } },
+					{ "when": "{{s.type == 'boolean'}}", "type": "checkbox", "bind": "{{'settings.' + s.key}}",
+					  "anchors": { "right": 40, "top": 16 }, "width": 18, "height": 18 },
+					{ "when": "{{s.type != 'boolean' && s.minimum != null && s.maximum != null}}", "type": "slider",
+					  "bind": "{{'settings.' + s.key}}", "min": "{{s.minimum ?? 0}}", "max": "{{s.maximum ?? 1}}",
+					  "step": "{{s.type == 'integer' ? 1 : 0}}", "anchors": { "right": 40, "top": 18 }, "width": 160,
+					  "height": 20 },
+					{ "when": "{{s.type == 'string'}}", "type": "textarea", "bind": "{{'settings.' + s.key}}",
+					  "anchors": { "right": 40, "top": 14 }, "width": 160, "height": 24, "color": "{{field}}",
+					  "textColor": "{{textColor}}", "padding": 4 },
+					{ "when": "{{s.type != 'boolean' && s.type != 'string' && (s.minimum == null || s.maximum == null)}}",
+					  "type": "textarea", "text": "{{text(s.value)}}", "anchors": { "right": 40, "top": 14 },
+					  "width": 160, "height": 24, "color": "{{field}}", "textColor": "{{textColor}}", "padding": 4,
+					  "onChange": { "if": "{{number(event.value) != null}}",
+					                "then": [{ "set": "{{'settings.' + s.key}}", "to": "{{number(event.value)}}" }] } },
+					{ "when": "{{s.modified}}", "type": "label", "text": "Reset", "textColor": "{{dimColor}}", "cursor": "hand",
+					  "anchors": { "right": 12, "top": 16 }, "fitText": true,
+					  "onClick": { "remove": "{{'settings.' + s.key}}" } }
+				]
+			  }]
+			}
+		]
+	}
+},
 "hoverCard": {
 	"params": { "open": "state.hoverCard", "title": "", "text": "", "width": 260, "height": 72,
 	            "placement": "below", "color": "#252526", "textColor": "#cccccc", "dimColor": "#a0a0a0" },

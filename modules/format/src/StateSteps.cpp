@@ -2,6 +2,7 @@
 /// @brief The state steps: set, push, remove, toggle, increment.
 
 #include "Engine.hpp"
+#include "Settings.hpp"
 
 #include <cstdint>
 #include <limits>
@@ -59,6 +60,26 @@ json::json_pointer increment(const Running& s, json& state) {
 	return pointer;
 }
 
+/// @brief Checks the settings a step changed (a "settings.x" write lands in state.settings), and puts them back if
+/// one doesn't match its type.
+/// @param engine The runtime.
+/// @param before state.settings before the step.
+/// @param where The step's place.
+/// @throws DocumentError If a changed setting's new value doesn't match its type.
+void checkSettingsWritten(Engine& engine, const json& before, const std::string& where) {
+	json& state = engine.versions.state();
+	const json after = state.contains("settings") ? state["settings"] : json::object();
+	if(after == before) return;
+	try {
+		if(!after.is_object()) expect::fail(where, "state.settings holds the settings' values by key");
+		for(const auto& [key, value] : after.items())
+			if(!before.contains(key) || before[key] != value) checkSettingValue(engine.versions.document(), key, &value, where);
+	} catch(const DocumentError&) {
+		state["settings"] = before;
+		throw;
+	}
+}
+
 /// @brief Runs a state step.
 /// @param s The step.
 /// @return std::nullopt if it isn't one, else true.
@@ -67,6 +88,8 @@ std::optional<bool> runStateStep(const Running& s) {
 	const std::string& where = s.where;
 	Engine& engine = s.steps.engine();
 	json& state = engine.versions.state();
+	const bool settings = engine.versions.document().contains("settings");
+	const json before = settings && state.contains("settings") ? state["settings"] : json::object();
 
 	json::json_pointer pointer; // the place changed
 	if(step.contains("set")) {
@@ -97,6 +120,7 @@ std::optional<bool> runStateStep(const Running& s) {
 	} else {
 		return std::nullopt;
 	}
+	if(settings) checkSettingsWritten(engine, before, where);
 	engine.document.markStateChanged(pointer);
 	return true;
 }

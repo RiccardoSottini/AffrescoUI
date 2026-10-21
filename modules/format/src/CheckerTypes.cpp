@@ -47,10 +47,24 @@ std::string widgetName(std::string_view type) {
 	return std::string(type == "editor" || type == "textarea" ? "an " : "a ") + std::string(type);
 }
 
+/// @brief The setting a path names: "settings.editor.fontSize" → "editor.fontSize".
+/// @param keys The path's keys, the variable first.
+/// @return The setting's key, or std::nullopt if the path isn't under "settings" or has an index.
+std::optional<std::string> settingOf(const std::vector<PathKey>& keys) {
+	if(keys.size() < 2 || keys.front().name != "settings") return std::nullopt;
+	std::string key;
+	for(std::size_t i = 1; i < keys.size(); ++i) {
+		if(!keys[i].name.is_string()) return std::nullopt;
+		key += (i > 1 ? "." : "") + keys[i].name.get<std::string>();
+	}
+	return key;
+}
+
 /// @brief The state key a path starts with, for a type's place.
 /// @param keys The path's keys, "state" first.
 /// @return "stateTypes.<key>".
 std::string typePlace(const std::vector<PathKey>& keys) {
+	if(const auto setting = settingOf(keys)) return "settings." + *setting;
 	return "stateTypes." + (keys.size() > 1 && keys[1].name.is_string() ? keys[1].name.get<std::string>() : "");
 }
 
@@ -117,6 +131,12 @@ void Checker::learnTypes() {
 }
 
 const json* Checker::typeOf(const std::vector<PathKey>& keys) const {
+	if(const auto setting = settingOf(keys)) {
+		const auto settings = document_.find("settings");
+		if(settings == document_.end() || !settings->is_object()) return nullptr;
+		const auto it = settings->find(*setting);
+		return it == settings->end() ? nullptr : &*it;
+	}
 	if(!types_ || keys.size() < 2 || keys.front().name != "state" || !keys[1].name.is_string()) return nullptr;
 	const auto it = types_->find(keys[1].name.get_ref<const std::string&>());
 	const json* type = it == types_->end() ? nullptr : &*it;
@@ -166,7 +186,7 @@ Kinds Checker::kindsOfChoice(std::string_view name, const json& raw) const {
 
 void Checker::checkWrite(std::string_view kind, const json& step, const std::string& place) {
 	const json& target = step[std::string(kind)];
-	if(!types_ || !target.is_string() || isDynamic(target)) return;
+	if(!target.is_string() || isDynamic(target)) return; // typeOf() knows "stateTypes" and "settings"
 	const std::optional<std::vector<PathKey>> parsed = parsePath(target.get_ref<const std::string&>(), place);
 	if(!parsed) return;
 	const std::vector<PathKey>& keys = *parsed;
@@ -200,7 +220,7 @@ void Checker::expectKinds(const json& type, Kinds kinds, const std::vector<PathK
 }
 
 void Checker::checkBind(const Prepared& node, const json& target, const std::string& place) {
-	if(!types_ || !target.is_string() || isDynamic(target)) return;
+	if(!target.is_string() || isDynamic(target)) return;
 	const json* typeName = node.value("type");
 	const std::string type = typeName && typeName->is_string() ? typeName->get<std::string>() : "panel";
 	const Kinds kinds = writtenByWidget(type);

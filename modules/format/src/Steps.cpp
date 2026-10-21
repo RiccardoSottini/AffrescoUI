@@ -4,6 +4,7 @@
 #include "Steps.hpp"
 #include "Engine.hpp"
 #include "Contributions.hpp"
+#include "Settings.hpp"
 
 #include <algorithm>
 
@@ -20,6 +21,8 @@ json::json_pointer Running::target(const char* key) const {
 	const Context context = steps.engine().document.context(locals, event);
 	// A computed place, e.g. {"toggle": "{{open}}"} in a component given "state.menuOpen"
 	const std::string path = isDynamic(step[key]) ? string(value(step[key], at), at) : string(step[key], at);
+	// "settings.editor.fontSize" writes the flat value in state.settings, checked by runStateStep()
+	if(auto setting = settingPointer(steps.engine().versions.document(), path, at)) return std::move(*setting);
 	return format::statePointer(path, context, at);
 }
 

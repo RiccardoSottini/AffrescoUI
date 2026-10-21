@@ -16,7 +16,7 @@ namespace {
 /// "window", "revision" and "event" can't be hidden by a local; the others can.
 constexpr auto fixedVariables = std::to_array<std::string_view>({"window", "revision", "event"});
 constexpr auto screenVariables =
-    std::to_array<std::string_view>({"nodes", "proposals", "history", "preview", "mode", "theme", "screen", "context", "commands", "keybindings"});
+    std::to_array<std::string_view>({"nodes", "proposals", "history", "preview", "mode", "theme", "screen", "context", "commands", "keybindings", "menus", "settings", "settingsList"});
 
 /// List functions whose second argument sees each item as `it` (Expression.cpp, applyToItems()).
 constexpr auto itemOperators =
@@ -451,6 +451,14 @@ void Checker::write(const json& target, const Shape& value, Change change, const
 	if(!keys) return;
 	for(const PathKey& key : *keys)
 		if(!key.expression.is_null()) read(key.expression, scope, place);
+	if(keys->front().name == "settings" && document_.contains("settings")) { // a setting: runStateStep() writes it
+		std::string key;
+		for(std::size_t i = 1; i < keys->size(); ++i)
+			key += (i > 1 ? "." : "") + ((*keys)[i].name.is_string() ? (*keys)[i].name.get<std::string>() : "[...]");
+		if(!document_["settings"].contains(key))
+			report(place, "there is no setting '" + key + "' in \"settings\"");
+		return;
+	}
 	if(keys->front().name != "state") {
 		report(place, "can only change values under 'state', not '" + target.get<std::string>() + "'");
 		return;

@@ -46,7 +46,14 @@ void checkCommand(const json& action, const std::string& where);
 /// @return true if it is enabled; false if its "enablement" fails (which is reported).
 [[nodiscard]] bool commandEnabled(Engine& engine, std::string_view name);
 
-/// @brief Adds the `context`, `commands` and `keybindings` variables to an engine's document.
+/// @brief Checks the "menus" section: `"<menu>": { "<item>": { run, with, submenu, group, order, when, title, icon } }`,
+/// a "submenu" naming another menu.
+/// @param section The section.
+/// @param name "menus".
+/// @throws DocumentError If an item is malformed.
+void checkMenus(const json& section, const std::string& name);
+
+/// @brief Adds the `context`, `commands`, `keybindings` and `menus` variables to an engine's document.
 /// @param engine The runtime; outlives the variables.
 void addContributionVariables(Engine& engine);
 

@@ -44,6 +44,22 @@
 				{ "expect": { "state": "answer", "is": "save" } },
 				{ "expect": { "state": "dialog", "is": false } }
 			]
+		},
+		{
+			"name": "menus-and-settings",
+			"screen": "settings.screen.json",
+			"steps": [
+				{ "wait": 50 },
+				{ "expect": { "image": "settings-page" } },
+				{ "key": "mod+b" },
+				{ "wait": 50 },
+				{ "expect": { "image": "settings-modified" } },
+				{ "key": "alt+f" },
+				{ "wait": 50 },
+				{ "expect": { "image": "file-menu" } },
+				{ "key": "enter" },
+				{ "expect": { "state": "n", "is": 1 } }
+			]
 		}
 	]
 }

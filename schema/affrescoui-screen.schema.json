@@ -211,6 +211,53 @@
 						},
 						"description": "Screen-wide shortcuts: \"mod+k\" -> handler"
 					},
+					"menus": {
+						"type": "object",
+						"description": "menu -> item key -> item, listed by the menus variable",
+						"additionalProperties": {
+							"type": "object",
+							"additionalProperties": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"run": {
+										"type": "string"
+									},
+									"submenu": {
+										"type": "string"
+									},
+									"title": {
+										"type": "string"
+									},
+									"icon": {
+										"type": "string"
+									},
+									"group": {
+										"type": "string"
+									},
+									"order": {
+										"type": "number"
+									},
+									"when": {
+										"type": "string"
+									},
+									"with": {
+										"type": "object"
+									}
+								}
+							}
+						}
+					},
+					"settings": {
+						"type": "object",
+						"description": "\"group.name\" -> a schema with a required default",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"default"
+							]
+						}
+					},
 					"onLoad": {
 						"$ref": "#/$defs/v1/handler"
 					},

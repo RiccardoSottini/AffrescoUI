@@ -208,7 +208,8 @@ src/
   DocumentContext.*        colours, fonts, theme, globals, computed values, the screen shown
   DesignTokens.*           the "tokens" section: aliases, per-theme values, colour and number tables
   Builder.*                use, repeat, with, let, check, styles, when; the compiled nodes of a version
-  BuiltInComponents.*      menus, the menu bar, dialogs, toasts and hover cards, written in the format
+  BuiltInComponents.*      menus, the menu bar, dialogs, toasts, hover cards and the settings page, written in the
+                           format
   CompiledNode.*           a node compiled: slots, bindings, scoping keys
   Binding.*                a value compiled once: templates split, operators lowered
   StateTypes.*             typed state: the stateTypes subset of JSON Schema, matching values, describing types
@@ -223,8 +224,10 @@ src/
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
                            stacks and grids (justify, alignItems, the gaps, rows, justifyItems), grid tracks
   Events.*                 input; Shortcuts.* names keys, chords and shortcuts
-  Contributions.*          commands and keybindings: what is one, enablement, the context, commands and
-                           keybindings variables (built when read, DocumentContext::addVariable)
+  Contributions.*          commands, keybindings and menus: what is one, enablement, the context, the commands,
+                           keybindings and menus variables (built when read, DocumentContext::addVariable)
+  Settings.*               the settings section: defaults, checked writes to settings.x, the settings and
+                           settingsList variables
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
   Scheduler.*              timers, animations, debounces, transitions, deferred tasks
   Catalog.*                the catalog, from the registries

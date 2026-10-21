@@ -55,6 +55,7 @@ affrescoui_module(format
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp
+	src/Settings.cpp
 	src/Scheduler.cpp
 	src/Steps.cpp
 	src/StepRegistry.cpp

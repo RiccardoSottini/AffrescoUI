@@ -4,6 +4,7 @@
 #include "Events.hpp"
 #include "Engine.hpp"
 #include "Contributions.hpp"
+#include "Settings.hpp"
 #include "Shortcuts.hpp"
 
 #include "affresco/render/TextEditor.hpp"
@@ -186,8 +187,13 @@ void Events::valueChanged(Panel& panel, const json& value) {
 		try {
 			const DocumentContext::BudgetScope budget(engine_.document);
 			const std::string where = record->path + ".bind";
+			const json& document = engine_.versions.document();
+			const std::optional<json::json_pointer> setting = settingPointer(document, *record->bind, where);
+			if(setting) checkSettingValue(document, setting->back(), &value, where); // "bind": "settings.x"
 			const json::json_pointer pointer =
-			    format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()), where);
+			    setting ? *setting
+			            : format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()),
+			                                   where);
 			statePlace(engine_.versions.state(), pointer, where) = value;
 			engine_.document.markStateChanged(pointer);
 			engine_.reconciler.requestStateUpdate();

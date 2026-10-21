@@ -74,6 +74,8 @@ Every part of the format follows these, and so should every extension:
 | `watch` | `"state.path" → handler`: runs after an update in which that value changed (`event.value`, `event.previous`). |
 | `actions` | `name → steps`, run by handlers, `run` steps, shortcuts and channels; or a command `{ "title", "category", "icon", "enablement", "description", "do" }`, listed by the `commands` variable (see Commands and keybindings). |
 | `keys` | Screen-wide shortcuts: `"mod+k" → handler` (see Events). |
+| `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
+| `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
 | `channels` | Programs the screen talks to (see Channels). A capability: revisions can't change it. |
 | `persist` | `["state.habits", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it. |
@@ -392,6 +394,7 @@ format, take their colours as parameters, and keep their open state where `open`
   `children` go between the message and the buttons.
 - `toast`: a `message` in the bottom right corner, a `progress` bar (0 to 1, or null) and `actions`.
 - `hoverCard`: shows a card with `title` and `text` while the pointer is over its `children`.
+- `settingsPage`: the document's settings with a search field (see Menus and settings).
 
 ```json
 { "use": "dialog", "with": { "open": "state.confirm", "title": "Save changes?",
@@ -543,6 +546,30 @@ variables), or a list of bindings, where the first that applies runs.
 
 The checker reports a key bound twice in a scope with the same `when`, a single press that a chord starting with it
 shadows, an unknown action in `do`, and a `when` it can't read.
+
+### Menus and settings
+
+**Menus:** `menus` names menus, each a map of keyed items. An item runs an action (`"run"`, with `"with"`) or opens
+another menu (`"submenu"`), and may have a `group`, an `order` within it, a `when`, a `title` and an `icon`:
+```json
+"menus": { "file": { "save": { "run": "save", "group": "2_save" },
+                     "new": { "run": "add", "title": "New", "group": "1_new", "order": 1 } } }
+```
+The `menus` variable gives each menu as a list ready for the `menu` and `menuBar` components: items sorted by group,
+then order, then key, a `{ "separator": true }` between groups, items whose `when` is false left out. An item that runs
+a command takes its title, icon, `enabled` and `key`/`keyLabel` from the command, and a submenu is a nested `submenu`
+list. Extensions add items to a menu by key, so a key is the item's identity.
+
+**Settings:** `settings` maps a key such as `"editor.fontSize"` to a schema (the subset of Typed state) with a
+required `default`, and `title` and `description` for people. Values the user changed are stored flat in
+`state.settings` (`{ "editor.fontSize": 18 }`), so the defaults stay in the document. The variables:
+- `settings`: every value, nested by the dots (`settings.editor.fontSize`), the default where unchanged;
+- `settingsList`: `{ key, title, description, type, value, default, modified, enum, minimum, maximum }` by key.
+
+Steps write `settings.editor.fontSize` (`set`, `toggle`, `bind`, ...); a value that doesn't match the schema is an
+error and isn't stored. `remove` resets a setting to its default. The checker knows the settings' types and reports
+writes to unknown settings. The built-in `settingsPage` component lists them with a search field (`search`, a
+state path for its text in `query`), a control per type and a "Reset" on modified ones.
 
 ## Actions
 
