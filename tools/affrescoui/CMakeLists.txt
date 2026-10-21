@@ -37,8 +37,12 @@ if(AFFRESCOUI_BUILD_TESTS)
 	# configuration (Release/ with Visual Studio's generator).
 	find_package(Python3 COMPONENTS Interpreter)
 	if(Python3_FOUND)
+		set(headless "")
+		if(WIN32)
+			set(headless --headless) # not a generator expression: elsewhere it would pass an empty argument
+		endif()
 		add_test(NAME cli COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/check.py
-			--build $<TARGET_FILE_DIR:affrescoui_cli> $<$<PLATFORM_ID:Windows>:--headless>)
+			--build $<TARGET_FILE_DIR:affrescoui_cli> ${headless})
 	endif()
 	# The schema and SCREEN_FORMAT.md's tables are generated from the registries: fails if they are out of date
 	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json

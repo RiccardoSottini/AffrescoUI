@@ -66,7 +66,8 @@ constexpr auto keywords = std::to_array<std::string_view>(
 /// @param name The name.
 /// @return It, or nullptr.
 const TypeName* typeNamed(std::string_view name) noexcept {
-	const auto it = std::ranges::find(typeNames, name, &TypeName::name); // not a pointer with MSVC's library
+	// Named, not auto: the iterator is a pointer with libstdc++ and libc++, but not with MSVC's library
+	const decltype(typeNames)::const_iterator it = std::ranges::find(typeNames, name, &TypeName::name);
 	return it == typeNames.end() ? nullptr : &*it;
 }
 

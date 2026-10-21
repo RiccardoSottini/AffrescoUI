@@ -146,6 +146,7 @@ struct Group {
 /// @return The workloads, in the order of the sizes.
 template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::vector<int>& sizes, Create create) {
 	std::vector<Workload> workloads;
+	workloads.reserve(sizes.size());
 	for(const int size : sizes) workloads.push_back(create(size));
 	return workloads;
 }

@@ -395,7 +395,7 @@ struct EditorWindow {
 
 	/// @brief Presses and releases a key.
 	/// @param key The key.
-	void press(Key key) {
+	void press(Key key) const {
 		window->routeKey({key, 0, Action::Press, Mods{}});
 		window->routeKey({key, 0, Action::Release, Mods{}});
 	}
