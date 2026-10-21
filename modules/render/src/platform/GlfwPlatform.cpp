@@ -1,7 +1,7 @@
 /// @file
 /// @brief The GLFW platform: windows with an OpenGL 4.1 core context, their input, cursors, clipboard, dropped files
-/// and display scale, and the event loop's waiting. What GLFW doesn't do (the colour scheme, native menu bars) comes
-/// from platform/Desktop.hpp; besides those files, the only one of the render module that calls GLFW.
+/// and display scale, and the event loop's waiting. What GLFW doesn't do (the colour scheme, native menu bars, file
+/// dialogs) comes from platform/Desktop.hpp; besides those files, the only one of the render module that calls GLFW.
 
 #include "platform/Desktop.hpp"
 #include "platform/Platform.hpp"
@@ -92,6 +92,10 @@ public:
 		return x;
 	}
 	bool setMenuBar(const std::vector<MenuItem>& menus) override;
+	[[nodiscard]] bool fileDialogs() const override { return desktop::fileDialogs(); }
+	[[nodiscard]] std::vector<std::string> chooseFiles(const FileDialog& dialog) override {
+		return desktop::chooseFiles(handle_, dialog);
+	}
 
 private:
 	/// @brief The Window a GLFW window delivers its events to.

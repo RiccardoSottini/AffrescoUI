@@ -370,7 +370,18 @@ void ListView::paintOverlay(Painter& painter, const Font& font) const {
 
 void ListView::paintRow(Painter& painter, const Font& font, std::size_t row, const Rect& area, Color color) const {
 	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
-	painter.drawText(font, shownText(row, 0), {area.left + padding(), baseline}, color);
+	const Vec2 origin{area.left + padding(), baseline};
+	const float shift = paintIcon(painter, font, model_->item(itemAt(row)), origin, color);
+	painter.drawText(font, shownText(row, 0), {origin.x + shift, baseline}, color);
+}
+
+float ListView::paintIcon(Painter& painter, const Font& font, const ListItem& item, Vec2 origin, Color color) const {
+	if(item.icon.empty()) return 0.0f;
+	const char32_t glyph = font.codepointNamed(item.icon);
+	if(glyph == 0) return 0.0f;
+	const std::u32string_view shown(&glyph, 1);
+	painter.drawText(font, shown, origin, item.iconColor.value_or(color));
+	return std::round(font.measure(shown) + font.measure(U" "));
 }
 
 void ListView::paintOverRows(Painter& painter) const {

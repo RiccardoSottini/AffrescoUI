@@ -406,12 +406,14 @@ constexpr KeyReference nodeTable[] = {
     {"items", R"json({"anyOf": [{"type": "array", "maxItems": 1000000, "items": {"anyOf": [{"type": "string"},
 		{"type": "number"}, {"type": "object", "required": ["id"], "properties": {"id": {"type": ["string", "number"]},
 		"label": {"type": ["string", "number"]}, "expandable": {"type": "boolean"}, "children": {"type": "array"},
+		"icon": {"type": "string"}, "iconColor": {"type": ["string", "null"]},
 		"cells": {"type": "array", "minItems": 1, "maxItems": 256,
 		"items": {"type": ["string", "number", "boolean", "null"]}}}}]}},
 		{"$ref": "#/$defs/v1/dynamic"}],
-		"description": "list, tree, table: the rows: an id, or { id, label, children (tree), expandable (tree), cells (table) }"})json",
+		"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, children (tree), expandable (tree), cells (table) }"})json",
 	 "The rows, in order (or a binding such as `\"{{state.files}}\"`): a string (its id and label), or `{ \"id\", "
-	 "\"label\" }`; in a `tree`, also `\"children\"` (a list of items) and `\"expandable\"` (a closed node whose "
+	 "\"label\", \"icon\", \"iconColor\" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or "
+	 "the text's); in a `tree`, also `\"children\"` (a list of items) and `\"expandable\"` (a closed node whose "
 	 "children aren't loaded yet: `onExpand` can load them); in a `table`, `\"cells\"`: the texts of the row's "
 	 "columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as "
 	 "fast as through ten. At most 1,000,000 items, nested at most 256 deep.",

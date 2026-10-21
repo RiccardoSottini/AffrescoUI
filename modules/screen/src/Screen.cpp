@@ -354,8 +354,18 @@ json readInclude(const std::filesystem::path& path) {
 	return part;
 }
 
+/// @brief Merges two objects key by key: `part`'s entries come first and `document`'s win.
+/// @param document The including file's object, which receives the merge.
+/// @param part The included file's.
+void mergeObject(json& document, const json& part) {
+	json merged = part;
+	merged.update(document);
+	document = std::move(merged);
+}
+
 /// @brief Merges one included file into a screen: each of its sections comes first and the screen's entries win;
-/// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped.
+/// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped. Menus
+/// merge one level deeper, menu by menu, so several files can add items to the same menu.
 /// @param document The screen.
 /// @param part The included file, its own includes already merged.
 void mergeInclude(json& document, const json& part) {
@@ -366,9 +376,12 @@ void mergeInclude(json& document, const json& part) {
 		} else if(!document.contains(key)) {
 			document[key] = value;
 		} else if(value.is_object() && document[key].is_object()) {
-			json merged = value;
-			merged.update(document[key]);
-			document[key] = std::move(merged);
+			json& section = document[key];
+			if(key == "menus")
+				for(const auto& [menu, items] : value.items())
+					if(items.is_object() && section.contains(menu) && section[menu].is_object())
+						mergeObject(section[menu], items);
+			mergeObject(section, value);
 		}
 	}
 }

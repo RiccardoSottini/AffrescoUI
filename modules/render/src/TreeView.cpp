@@ -155,7 +155,9 @@ void TreeView::paintItem(Painter& painter, const Font& font, std::size_t item, s
 	const float left = chevronLeft(item, area.left);
 	if(entry.expandable) paintChevron(painter, left, middle, isExpanded(item), color);
 	const float baseline = std::round(area.top + (area.height() - font.lineHeight()) / 2.0f + font.ascent());
-	painter.drawText(font, label, {left + chevronSize + chevronGap, baseline}, color);
+	const Vec2 origin{left + chevronSize + chevronGap, baseline};
+	const float shift = paintIcon(painter, font, entry, origin, color);
+	painter.drawText(font, label, {origin.x + shift, baseline}, color);
 }
 
 void TreeView::paintChevron(Painter& painter, float left, float middle, bool open, Color color) {

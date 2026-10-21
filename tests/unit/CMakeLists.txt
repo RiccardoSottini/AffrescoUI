@@ -7,12 +7,16 @@ FetchContent_MakeAvailable(doctest)
 
 # Unit tests for the modules that need no window
 file(GLOB affrescoui_unit_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp)
+# forge.cpp tests the demo IDE's plain C++ (examples/forge), which needs no window
+set(affrescoui_forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
+add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp
+	${affrescoui_forge_dir}/features/palette/FileIndex.cpp ${affrescoui_forge_dir}/features/themes/ThemeImport.cpp
+	${affrescoui_forge_dir}/features/themes/IconTheme.cpp)
 # Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp, Png.hpp and automation's Internal.hpp and PngReader.hpp stay private
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
-	${PROJECT_SOURCE_DIR}/modules/automation/src)
+	${PROJECT_SOURCE_DIR}/modules/automation/src ${affrescoui_forge_dir})
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")

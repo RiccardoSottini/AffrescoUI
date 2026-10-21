@@ -53,6 +53,11 @@ public:
 	/// @brief Restores the default syntax colours.
 	void resetTokenColors();
 
+	/// @brief Moves the caret to the start of a line and scrolls to it, once per request (a "go to line" command).
+	/// @param line The line, from 1; past the last line, the last.
+	/// @param request Which request this is: the same one again does nothing, so reapplied properties don't move it.
+	void goToLine(std::size_t line, long long request);
+
 protected:
 	/// @brief The editor's shortcuts (runShortcut()) and Backspace in an empty pair, then TextEditor's keys.
 	/// @param event The key event.
@@ -139,6 +144,7 @@ private:
 	[[nodiscard]] std::vector<Token> tokenize(std::u32string_view line, bool& inComment) const;
 
 	Language language_ = Language::Plain;        ///< See setLanguage().
+	long long goToRequest_ = 0;                  ///< The last request goToLine() carried out.
 	std::array<affresco::Color, 7> tokenColors_; ///< Indexed by Token (Plain unused).
 };
 
