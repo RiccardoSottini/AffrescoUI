@@ -16,7 +16,7 @@ add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOU
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
-	${PROJECT_SOURCE_DIR}/modules/automation/src ${affrescoui_forge_dir})
+	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src ${affrescoui_forge_dir})
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")

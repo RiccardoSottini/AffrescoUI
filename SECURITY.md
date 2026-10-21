@@ -304,6 +304,15 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |
 | Slow calls (`Screen::onAsyncCall`) running or waiting for a worker at once | 64; more end with an error (`onError`) |
 | A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign (a contour scaled past 10^12 on screen isn't drawn), 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
+| A response body, a server-sent event or line of a stream, or a WebSocket message the `net` module receives (`Request::maxBodyBytes`) | 8 MiB by default; a larger one fails with `tooLarge` (a WebSocket is closed with 1009) |
+| A response's headers, or a WebSocket handshake's answer | 64 KiB and 256 lines |
+| Headers a request adds (`checkHeaders`) | 100, 64 KiB in all; no line breaks or NUL, none the transport sets |
+| A URL the `net` module reaches | 8,192 bytes; https and wss to an allowed origin, http and ws to the loopback only; no user info |
+| Requests in flight to one origin, and started and not finished in all | 6 (more wait), 256 (more fail with `refused`) |
+| Bytes a WebSocket holds unsent, and events or messages posted to the main thread and not yet handled | 16 MiB (`send` refuses more), 4,096 (more fail with `tooLarge`) |
+| Redirects a request follows | 5, within its origin only |
+| Retries of a request | 5, GET only, after a network error, 429, 502, 503 or 504; a server's `Retry-After` up to an hour |
+| TLS | 1.2 or later; the certificate and the host name are always verified (no option turns it off) |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in

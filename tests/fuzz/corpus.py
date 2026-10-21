@@ -333,6 +333,29 @@ def png_seeds():
             png(1, 1, [0], level=1)]
 
 
+def http_response_seeds():
+    """Response heads: statuses, headers, a WebSocket handshake, Retry-After values."""
+    return ["HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n",
+            "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+            "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n",
+            "HTTP/2 503 Busy\nRetry-After: 3\n\n", "HTTP/1.0 302 Found\r\nLocation: /next\r\n\r\n", "120", "Name:  value "]
+
+
+def sse_seeds():
+    """Event streams and line streams (the first byte picks where chunks are cut)."""
+    return ["\x03data: one\n\n", "\x01: comment\r\nevent: update\r\nid: 7\r\ndata: {\"n\":1}\r\n\r\n",
+            "\x05data: a\rdata: b\r\rretry: 10\n\n", "\x02{\"a\":1}\n{\"b\":2}\r\n\n{\"c\":3}"]
+
+
+def websocket_seeds():
+    """Frames to a client (unmasked, even first byte) and to a server (masked, odd first byte)."""
+    hello = b"\x81\x05hello"
+    masked = b"\x81\x85\x01\x02\x03\x04" + bytes(byte ^ (1, 2, 3, 4)[index % 4] for index, byte in enumerate(b"hello"))
+    fragments = b"\x01\x02he\x89\x01p\x80\x03llo"
+    close = b"\x88\x05\x03\xe9bye"
+    return [b"\x02" + hello, b"\x03" + masked, b"\x08" + fragments, b"\x04" + close, b"\x02\x81\x7f" + bytes(8)]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -376,6 +399,10 @@ def dictionaries():
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
             "scenarios": scenarios, "png": pngs,
+            "http_response": ["HTTP/1.1 ", "HTTP/2 ", "\r\n", "\r\n\r\n", ": ", "Content-Length", "Retry-After",
+                              "Location", "Upgrade", "websocket", "Connection", "Sec-WebSocket-Accept"],
+            "sse": ["data:", "data: ", "event:", "id:", "retry:", ":", "\n", "\r\n", "\r", "\n\n"],
+            "websocket": ["\x81", "\x01", "\x80", "\x88", "\x89", "\x8a", "\x7e", "\x7f", "\x03\xe8"],
             "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"]}
 
 
@@ -428,6 +455,9 @@ def main():
     write(out, "text_model", text_model_seeds(), words["text_model"])
     write(out, "scenarios", scenario_seeds(), words["scenarios"])
     write(out, "png", png_seeds(), words["png"])
+    write(out, "http_response", http_response_seeds(), words["http_response"])
+    write(out, "sse", sse_seeds(), words["sse"])
+    write(out, "websocket", websocket_seeds(), words["websocket"])
 
 
 if __name__ == "__main__":

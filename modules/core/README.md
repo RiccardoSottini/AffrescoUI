@@ -20,6 +20,7 @@ headers come with nlohmann/json, which only the modules that use documents link.
 | `DocumentRules.hpp` | `DocumentRules` (validate, find a node, read permissions, `checkChange`; and, with default bodies, `nameNodes`, ids for the nodes a revision adds, `pathHint`, a hint for a path that finds nothing, and `checkRevision`, a revision's size checked before it is applied), `PermissionRule`, `Permissions` |
 | `VersionControl.hpp` | `VersionControl` and `VersionObserver`; `RevisionResult`, `CommitInfo`, `ProposalInfo`, `Grant`, `Approval`, `Decision`, `Mode`; their protocol JSON |
 | `ScreenImages.hpp` | `ScreenImages::render`: a picture of the screen or of a proposal (`ImageRequest`, `Image`) |
+| `Network.hpp` | `network::Network` (`allow`, `check`, `start`, `connect`): what the `net` module offers to the others; `Request`, `Response`, `Failure`, `StreamEvent`, `Handlers`, `Transfer`, `WebSocket`, `SocketHandlers` |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
 
 ## Invariants

@@ -53,3 +53,9 @@ affrescoui_fuzzer(text_model affrescoui::render nlohmann_json::nlohmann_json) # 
 affrescoui_fuzzer(scenarios affrescoui::automation)
 affrescoui_fuzzer(png affrescoui::automation)
 target_include_directories(affrescoui_fuzz_png PRIVATE ${PROJECT_SOURCE_DIR}/modules/automation/src) # PngReader.hpp
+affrescoui_fuzzer(http_response affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_http_response PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # Http.hpp
+affrescoui_fuzzer(sse affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_sse PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # Streams.hpp
+affrescoui_fuzzer(websocket affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_websocket PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # WebSocketFrames.hpp
