@@ -213,6 +213,7 @@ void TextModel::replace(std::size_t offset, std::size_t length, std::string_view
 	if(length == 0 && utf8.empty()) return;
 	TextChange change{.from = positionOf(offset),
 	                  .oldEnd = positionOf(offset + length),
+	                  .newEnd = {},
 	                  .offset = offset,
 	                  .removed = length,
 	                  .inserted = utf8.size()};
