@@ -16,11 +16,10 @@
 
 <br/>
 
-<img src=".github/media/kanban-after.png" width="860" alt="The Flow Kanban board with tabs, a split and a cards-per-column chart, rendered natively by AffrescoUI after an AI agent added a Blocked column while it ran">
+<img src=".github/media/kanban.png" width="860" alt="The Flow Kanban board with tabs, a split and a details panel, rendered natively by AffrescoUI from a live JSON document">
 
-<sub>A native C++ / OpenGL Kanban board. Claude Code proposed a new <b>Blocked</b> column over the agent socket: new
-data and a five-column layout in one revision. It was reviewed and accepted while the app kept running, and it can
-be undone.</sub>
+<sub>A native C++ / OpenGL Kanban board whose whole UI is a live JSON document. People and AI agents change it while it
+runs, and every change can be reviewed and undone.</sub>
 
 </div>
 
@@ -31,13 +30,6 @@ differently.** The whole UI (layout, state and behaviour) is a **live JSON docum
 keeps running. People, scripts and AI agents send it **revisions**. The engine checks each one against the screen's
 permissions, can show you a **live preview**, and applies it **in place in milliseconds**, while the app keeps
 running. Your typing, focus and drags survive.
-
-<table>
-<tr>
-<td width="50%" align="center"><img src=".github/media/kanban.png" alt="The Flow Kanban board at revision 0, with tabs, a split and a details panel"><br/><sub><b>Revision 0</b>: the template as shipped</sub></td>
-<td width="50%" align="center"><img src=".github/media/kanban-after.png" alt="The Flow Kanban board at revision 1, with a Blocked column added by an agent"><br/><sub><b>Revision 1</b>: <code>agent/claude-code</code> added a Blocked column</sub></td>
-</tr>
-</table>
 
 ## A new kind of application
 
