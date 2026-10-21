@@ -402,7 +402,11 @@ void Panel::followAspectRatio(AnchoredEdges horizontal, AnchoredEdges vertical, 
 // A subtree whose inputs are the same and where nothing changed keeps the frames it has. A panel never laid out is
 // dirty, so laidOut_ is read only once it holds a pass's inputs
 bool Panel::canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) const noexcept {
-	if(layoutDirty_ || layoutBelow_ || anchorsBelow_ || !window_ || window_->layoutAll_) return false;
+	return !layoutBelow_ && hasSameInputs(origin, clip, parentSize, parentShown);
+}
+
+bool Panel::hasSameInputs(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown) const noexcept {
+	if(layoutDirty_ || anchorsBelow_ || !window_ || window_->layoutAll_) return false;
 	return laidOut_.origin == origin && laidOut_.clip == clip && laidOut_.parentSize == parentSize &&
 	       laidOut_.parentShown == parentShown && laidOut_.arrangedWidth == arrangedWidth_ &&
 	       laidOut_.arrangedHeight == arrangedHeight_;
@@ -421,12 +425,16 @@ void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool p
 		skippedPass_ = window_->layoutPass_;
 		return;
 	}
+	// Only panels below the children changed: the children measure as they did (a measured size is kept until the
+	// panel itself changes), so they stay where arrange() put them
+	const bool arranged = hasSameInputs(origin, clip, parentSize, parentShown) &&
+	                      std::ranges::none_of(children_, [](const auto& child) { return child->layoutDirty_; });
 	laidOut_ = {origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
 
 	prepareLayout();
 	if(window_) layoutPass_ = window_->layoutPass_;
 	placeFrame(origin, clip, parentSize, parentShown);
-	arrange();
+	if(!arranged) arrange();
 	layoutChildren();
 	layoutDirty_ = false;
 }

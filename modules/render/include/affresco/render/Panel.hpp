@@ -605,6 +605,16 @@ private:
 	[[nodiscard]] bool canSkipLayout(const Rect& origin, const Rect& clip, Vec2 parentSize,
 	                                 bool parentShown) const noexcept;
 
+	/// @brief Whether this panel itself and what a layout pass gives it are as they were: its frame and how it arranges
+	/// its children stay, and only the panels below that changed need laying out.
+	/// @param origin See layout().
+	/// @param clip See layout().
+	/// @param parentSize See layout().
+	/// @param parentShown See layout().
+	/// @return true if so.
+	[[nodiscard]] bool hasSameInputs(const Rect& origin, const Rect& clip, Vec2 parentSize,
+	                                 bool parentShown) const noexcept;
+
 	/// @brief Takes ownership of a new last child.
 	/// @param child The child.
 	void adopt(std::unique_ptr<Panel> child);
