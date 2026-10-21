@@ -2,17 +2,19 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 1,
-	"note": "Tempo: a music player. Playback runs on a timer; drag the bar to seek. Space plays or pauses, arrows skip and set the volume.",
+	"note": "Tempo: a music player. Playlists and a library of 3,000 songs in a table, a queue with a waveform beside them, Cmd+P to find a song and Cmd+Shift+P for every command. Space plays or pauses, the arrows skip and set the volume.",
 
 	"window": { "title": "Tempo: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
 	"fonts": {
-		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15 },
-		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12 },
-		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17 },
+		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
+		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons"] },
+		"large": { "file": "../fonts/Roboto-Regular.ttf", "size": 32 },
 		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 44 },
-		"cover": { "file": "../fonts/Roboto-Regular.ttf", "size": 64 },
-		"brand": { "file": "../fonts/Roboto-Regular.ttf", "size": 24 }
+		"brand": { "file": "../fonts/Roboto-Regular.ttf", "size": 24 },
+		"icons": { "file": "../fonts/Lucide.ttf", "size": 18 },
+		"iconsSmall": { "file": "../fonts/Lucide.ttf", "size": 13 }
 	},
 
 	"colors": {
@@ -28,8 +30,11 @@
 		"border": "#241e2f",
 		"accent": "#fb7185",
 		"accentHover": "#fda4af",
+		"accentSoft": "#3b1f2b",
 		"button": "#241e2f",
-		"buttonHover": "#30283d"
+		"buttonHover": "#30283d",
+		"menu": "#1d1828",
+		"field": "#100d17"
 	},
 
 	"permissions": {
@@ -40,18 +45,23 @@
 	},
 
 	"state": {
+		"page": "playlist",
 		"current": 0,
 		"playingList": 0,
 		"playingTrack": 2,
 		"isPlaying": true,
 		"elapsed": 84,
 		"volume": 70,
-		"menu": ["Home", "Search", "Library"],
+		"queueOpen": true,
+		"sizes": [736],
+		"menu": [
+			{ "id": "library", "label": "Library", "icon": "library" },
+			{ "id": "search", "label": "Search", "icon": "search" }
+		],
 		"playlists": [
 			{
 				"name": "Late Night Code",
-				"initials": "LN",
-				"color": "#7c3aed",
+				"cover": "images/cover-late-night.svg",
 				"description": "Low-key beats for long sessions. Updated every Friday.",
 				"length": "38 min",
 				"tracks": [
@@ -68,8 +78,7 @@
 			},
 			{
 				"name": "Morning Run",
-				"initials": "MR",
-				"color": "#ea580c",
+				"cover": "images/cover-morning-run.svg",
 				"description": "Fast, bright and loud. 160 bpm and up.",
 				"length": "24 min",
 				"tracks": [
@@ -81,8 +90,7 @@
 			},
 			{
 				"name": "Sunday Jazz",
-				"initials": "SJ",
-				"color": "#0d9488",
+				"cover": "images/cover-sunday-jazz.svg",
 				"description": "Slow standards and new takes on old tunes.",
 				"length": "51 min",
 				"tracks": [
@@ -93,8 +101,7 @@
 			},
 			{
 				"name": "Focus",
-				"initials": "FO",
-				"color": "#2563eb",
+				"cover": "images/cover-focus.svg",
 				"description": "Ambient textures without words.",
 				"length": "1 h 12 min",
 				"tracks": [
@@ -102,41 +109,85 @@
 					{ "title": "Flow State", "artist": "Quiet Rooms", "album": "Hours", "time": "9:45" }
 				]
 			}
-		]
+		],
+		"words": {
+			"adjectives": ["Silver", "Quiet", "Electric", "Paper", "Golden", "Hollow", "Velvet", "Neon", "Distant", "Broken", "Gentle", "Midnight", "Crystal", "Wild", "Slow", "Bright"],
+			"nouns": ["Rivers", "Signals", "Gardens", "Engines", "Harbours", "Lanterns", "Mirrors", "Satellites", "Islands", "Letters", "Horizons", "Echoes", "Windows", "Machines", "Shadows", "Bridges", "Comets", "Forests", "Parades", "Tides"],
+			"artists": ["The Shaders", "Nora Vale", "Kerning Club", "Idle Loop", "Halfway", "Mira Sol", "Ada Quartet", "Leo Marsh Trio", "Quiet Rooms", "Pixel Choir", "North Arcade", "Low Orbit"],
+			"albums": ["Core Profile", "Redraw", "Baseline", "Zero Percent", "Pace", "Stride", "Standards", "Avenue", "Hours", "Night Shift", "Vectors", "Long Weekend", "Blueprints", "Static", "Open Air", "Afterglow", "Field Notes", "Overture"],
+			"versions": ["Live", "Remix", "Demo", "Edit", "Acoustic", "Reprise", "Mono", "Dub", "Take 2"]
+		},
+		"library": [],
+		"libraryInfo": { "name": "All songs", "cover": "images/cover-library.svg" },
+		"librarySort": null,
+		"libraryPick": null,
+		"quickPick": { "open": false, "query": "" }
 	},
 
 	"stateTypes": {
+		"page": {"type": "string", "enum": ["playlist", "library"]},
 		"current": {"type": "number"},
 		"playingList": {"type": "number"},
 		"playingTrack": {"type": "number"},
 		"isPlaying": {"type": "boolean"},
 		"elapsed": {"type": "number"},
 		"volume": {"type": "number", "minimum": 0, "maximum": 100},
-		"menu": {"type": "array", "items": {"type": "string"}},
-		"playlists": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "initials": {"type": "string"}, "color": {"type": "string"}, "description": {"type": "string"}, "length": {"type": "string"}, "tracks": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "artist": {"type": "string"}, "album": {"type": "string"}, "time": {"type": "string"}}}}}}}
+		"queueOpen": {"type": "boolean"},
+		"sizes": {"type": "array", "items": {"type": "number"}},
+		"menu": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "icon": {"type": "string"}}}},
+		"playlists": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "cover": {"type": "string"}, "description": {"type": "string"}, "length": {"type": "string"}, "tracks": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "artist": {"type": "string"}, "album": {"type": "string"}, "time": {"type": "string"}}}}}}},
+		"words": {"type": "object"},
+		"library": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "cells": {"type": "array"}}}},
+		"libraryInfo": {"type": "object", "properties": {"name": {"type": "string"}, "cover": {"type": "string"}}},
+		"librarySort": {"type": ["object", "null"]},
+		"libraryPick": {"type": ["string", "null"]},
+		"quickPick": {"type": "object", "properties": {"open": {"type": "boolean"}, "query": {"type": "string"}}}
 	},
 
 	"computed": {
 		"list": "{{state.playlists[state.current]}}",
-		"playing": "{{state.playlists[state.playingList]}}",
-		"track": "{{computed.playing.tracks[state.playingTrack]}}",
+		"playing": "{{state.playingList < 0 ? state.libraryInfo : state.playlists[state.playingList]}}",
+		"track": "{{state.playingList < 0 ? { title: state.library[state.playingTrack].cells[1], artist: state.library[state.playingTrack].cells[2], album: state.library[state.playingTrack].cells[3], time: state.library[state.playingTrack].cells[4] } : computed.playing.tracks[state.playingTrack]}}",
+		"trackCount": "{{state.playingList < 0 ? len(state.library) : len(computed.playing.tracks)}}",
 		"duration": "{{number(split(computed.track.time, ':')[0]) * 60 + number(split(computed.track.time, ':')[1])}}",
-		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}"
+		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}",
+		"upNext": "{{state.playingList < 0 ? map(slice(state.library, state.playingTrack + 1, state.playingTrack + 31), { id: text(state.playingTrack + 1 + index), label: it.cells[1] + '  ·  ' + it.cells[2] }) : map(slice(computed.playing.tracks, state.playingTrack + 1), { id: text(state.playingTrack + 1 + index), label: it.title + '  ·  ' + it.artist })}}",
+		"picks": "{{state.quickPick.open ? map(state.library, { title: it.cells[1], detail: it.cells[2] + ' · ' + it.cells[3], track: index }) : []}}",
+		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.key ? join(map(split(it.key, '+'), it == 'mod' ? 'Cmd' : upper(slice(it, 0, 1)) + slice(it, 1)), '+') : it.category, run: it.name })}}",
+		"wave": "{{map(range(64), 3 + (index * index * (len(computed.track.title) + state.playingTrack) + index * 7) % 21)}}",
+		"played": "{{clamp(floor(64 * state.elapsed / max(computed.duration, 1)), 0, 64)}}",
+		"wavePlayed": "{{join(map(slice(computed.wave, 0, computed.played), 'M ' + (index * 2 + 1) + ' ' + (28 - it) + ' V ' + (28 + it)), ' ') || 'M -40 -40'}}",
+		"waveLeft": "{{join(map(slice(computed.wave, computed.played), 'M ' + ((computed.played + index) * 2 + 1) + ' ' + (28 - it) + ' V ' + (28 + it)), ' ') || 'M -40 -40'}}",
+		"meter": "{{join(map(range(8), 'M ' + (2 + index * 4) + ' 20 V ' + (20 - (state.isPlaying ? 3 + (index * 7 + state.elapsed * (index + 3)) % 15 : 2))), ' ')}}"
 	},
 
 	"styles": {
 		"caption": { "type": "label", "font": "small", "textColor": "@muted", "fitText": true },
 		"control": {
 			"type": "label",
-			"font": "heading",
-			"height": 36,
+			"text": "",
+			"height": 32,
+			"radius": 16,
 			"align": "center",
-			"color": "@button",
+			"color": "@bar",
 			"hover": { "color": "@buttonHover" },
 			"textColor": "@text",
 			"cursor": "hand"
 		},
-		"cover": { "type": "label", "align": "center", "textColor": "#ffffff" }
+		"playButton": {
+			"type": "label",
+			"icon": "play",
+			"text": "  Play",
+			"font": "heading",
+			"width": 112,
+			"height": 32,
+			"radius": 16,
+			"align": "center",
+			"color": "@accent",
+			"hover": { "color": "@accentHover" },
+			"textColor": "#1a0b10",
+			"cursor": "hand"
+		}
 	},
 
 	"actions": {
@@ -148,7 +199,7 @@
 			{ "set": "state.isPlaying", "to": true }
 		],
 		"next": [
-			{ "if": "{{state.playingTrack + 1 >= len(computed.playing.tracks)}}", "then": [{ "set": "state.isPlaying", "to": false }, { "set": "state.elapsed", "to": 0 }, { "stop": true }] },
+			{ "if": "{{state.playingTrack + 1 >= computed.trackCount}}", "then": [{ "set": "state.isPlaying", "to": false }, { "set": "state.elapsed", "to": 0 }, { "stop": true }] },
 			{ "run": "play", "with": { "list": "{{state.playingList}}", "track": "{{state.playingTrack + 1}}" } }
 		],
 		"previous": [
@@ -158,16 +209,58 @@
 			{ "if": "{{!state.isPlaying}}", "then": [{ "stop": true }] },
 			{ "increment": "state.elapsed" },
 			{ "if": "{{state.elapsed >= computed.duration}}", "then": [{ "run": "next" }] }
-		]
+		],
+		"playFromLibrary": [
+			{ "note": "A library row opened: its id is the song's place in the library" },
+			{ "run": "play", "with": { "list": -1, "track": "{{number(event.id ?? event.value)}}" } }
+		],
+		"playFromPick": [
+			{ "note": "with: item, a quick pick row" },
+			{ "set": "state.page", "to": "library" },
+			{ "set": "state.libraryPick", "to": "{{text(item.track)}}" },
+			{ "run": "play", "with": { "list": -1, "track": "{{item.track}}" } }
+		],
+		"openList": [
+			{ "note": "with: list" },
+			{ "set": "state.current", "to": "{{list}}" },
+			{ "set": "state.page", "to": "playlist" }
+		],
+		"buildLibrary": [
+			{ "note": "Makes the library's 3,000 songs once, from the word lists, as table rows" },
+			{
+				"set": "state.library",
+				"to": "{{map(range(3000), { id: text(index), cells: [index + 1, state.words.adjectives[index % 16] + ' ' + state.words.nouns[floor(index / 16) % 20] + (index < 320 ? '' : ' (' + state.words.versions[floor(index / 320) - 1] + ')'), state.words.artists[(index * 7) % 12], state.words.albums[floor(index / 5) % 18], floor((150 + (index * 37) % 210) / 60) + ':' + pad((150 + (index * 37) % 210) % 60, 2)] })}}"
+			}
+		],
+		"playPause": { "title": "Play or pause", "category": "Playback", "icon": "play", "do": [{ "toggle": "state.isPlaying" }] },
+		"nextCommand": { "title": "Next song", "category": "Playback", "icon": "skip-forward", "do": [{ "run": "next" }] },
+		"previousCommand": { "title": "Previous song", "category": "Playback", "icon": "skip-back", "do": [{ "run": "previous" }] },
+		"volumeUp": { "title": "Volume up", "category": "Playback", "icon": "volume-2", "enablement": "{{state.volume < 100}}",
+			"do": [{ "set": "state.volume", "to": "{{min(state.volume + 10, 100)}}" }] },
+		"volumeDown": { "title": "Volume down", "category": "Playback", "icon": "volume-1", "enablement": "{{state.volume > 0}}",
+			"do": [{ "set": "state.volume", "to": "{{max(state.volume - 10, 0)}}" }] },
+		"searchCommand": { "title": "Find a song…", "category": "Go", "icon": "search",
+			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
+		"commandPalette": { "title": "Show all commands", "category": "Go", "icon": "command",
+			"do": [{ "set": "state.quickPick.query", "to": ">" }, { "set": "state.quickPick.open", "to": true }] },
+		"showLibrary": { "title": "Show the library", "category": "View", "icon": "library", "do": [{ "set": "state.page", "to": "library" }] },
+		"toggleQueue": { "title": "Show or hide the queue", "category": "View", "icon": "list-music", "do": [{ "toggle": "state.queueOpen" }] },
+		"playLibrary": { "title": "Play the library", "category": "Playback", "icon": "disc-3", "do": [{ "run": "play", "with": { "list": -1, "track": 0 } }] }
 	},
 
 	"keys": {
-		"space": { "toggle": "state.isPlaying" },
-		"right": "next",
-		"left": "previous",
-		"up": { "set": "state.volume", "to": "{{min(state.volume + 10, 100)}}" },
-		"down": { "set": "state.volume", "to": "{{max(state.volume - 10, 0)}}" }
+		"space": "playPause",
+		"right": "nextCommand",
+		"left": "previousCommand",
+		"up": "volumeUp",
+		"down": "volumeDown",
+		"mod+p": "searchCommand",
+		"mod+shift+p": "commandPalette",
+		"mod+l": "showLibrary",
+		"mod+u": "toggleQueue"
 	},
+
+	"onLoad": "buildLibrary",
 
 	"root": {
 		"id": "panel-root",
@@ -186,47 +279,53 @@
 						"id": "menu",
 						"type": "stack",
 						"anchors": { "left": 12, "right": 12, "top": 100 },
-						"height": 140,
+						"height": 84,
 						"gap": 2,
 						"children": [
 							{
 								"id": "label-menu",
 								"repeat": { "for": "item", "in": "state.menu" },
+								"let": { "on": "{{item.id == 'library' && state.page == 'library'}}" },
 								"type": "label",
-								"text": "{{item}}",
+								"icon": "{{item.icon}}",
+								"text": "    {{item.label}}",
 								"anchors": { "left": 0, "right": 0 },
 								"height": 40,
 								"padding": 16,
+								"radius": 8,
 								"align": { "horizontal": "start", "vertical": "center" },
-								"color": "@sidebar",
+								"color": "{{on ? '@surface' : '@sidebar'}}",
 								"hover": { "color": "@surface" },
-								"textColor": "{{item == 'Library' ? '@text' : '@muted'}}",
-								"cursor": "hand"
+								"textColor": "{{on ? '@text' : '@muted'}}",
+								"cursor": "hand",
+								"tooltip": "{{item.id == 'search' ? 'Find a song (Cmd+P)' : 'Every song (Cmd+L)'}}",
+								"onClick": { "if": "{{item.id == 'search'}}", "then": [{ "run": "searchCommand" }], "else": [{ "run": "showLibrary" }] }
 							}
 						]
 					},
-					{ "id": "label-playlists", "style": "caption", "text": "PLAYLISTS", "anchors": { "left": 28, "top": 252 } },
+					{ "id": "label-playlists", "style": "caption", "text": "PLAYLISTS", "anchors": { "left": 28, "top": 204 } },
 					{
 						"id": "playlists",
 						"type": "stack",
-						"anchors": { "left": 12, "right": 12, "top": 276, "bottom": 12 },
+						"anchors": { "left": 12, "right": 12, "top": 228, "bottom": 12 },
 						"gap": 4,
 						"scroll": "vertical",
 						"children": [
 							{
 								"id": "playlist",
 								"repeat": { "for": "list", "in": "state.playlists" },
-								"let": { "open": "{{index == state.current}}" },
+								"let": { "open": "{{state.page == 'playlist' && index == state.current}}" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 56,
+								"radius": 8,
 								"color": "{{open ? '@surface' : '@sidebar'}}",
 								"hover": { "color": "@surface" },
 								"cursor": "hand",
-								"onClick": { "set": "state.current", "to": "{{index}}" },
+								"onClick": { "run": "openList", "with": { "list": "{{index}}" } },
 								"onDoubleClick": { "run": "play", "with": { "list": "{{index}}", "track": 0 } },
 								"tooltip": "Double-click to play",
 								"children": [
-									{ "id": "label-list-initials", "style": "cover", "text": "{{list.initials}}", "font": "small", "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40, "color": "{{list.color}}" },
+									{ "id": "image-list-cover", "type": "image", "file": "{{list.cover}}", "fit": "cover", "radius": 4, "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40 },
 									{ "id": "label-list-name", "type": "label", "text": "{{list.name}}", "textColor": "@text", "anchors": { "left": 62, "top": 10 }, "fitText": true },
 									{ "id": "label-plural-list-tracks", "style": "caption", "text": "{{plural(len(list.tracks), 'song')}}", "anchors": { "left": 62, "top": 31 } },
 									{
@@ -235,6 +334,7 @@
 										"anchors": { "right": 14, "top": 25 },
 										"width": 6,
 										"height": 6,
+										"radius": 3,
 										"color": "@accent"
 									}
 								]
@@ -245,81 +345,172 @@
 			},
 			{
 				"id": "main",
+				"type": "split",
 				"anchors": { "left": 240, "right": 0, "top": 0, "bottom": 96 },
-				"color": "transparent",
+				"bind": "state.sizes",
+				"defaultSizes": [736],
+				"minSize": [480, 240],
+				"sashSize": 4,
+				"sashColor": "@border",
+				"sashActiveColor": "@accent",
 				"children": [
 					{
-						"id": "header",
-						"anchors": { "left": 0, "right": 0, "top": 0 },
-						"height": 264,
-						"color": "@surface",
-						"children": [
-							{ "id": "cover", "style": "cover", "text": "{{computed.list.initials}}", "font": "cover", "anchors": { "left": 40, "top": 40 }, "width": 184, "height": 184, "color": "{{computed.list.color}}" },
-							{ "id": "label-playlist", "style": "caption", "text": "PLAYLIST", "anchors": { "left": 256, "top": 74 } },
-							{ "id": "listName", "type": "label", "text": "{{computed.list.name}}", "font": "title", "textColor": "@text", "anchors": { "left": 252, "top": 92 }, "fitText": true },
-							{ "id": "listDescription", "type": "label", "text": "{{computed.list.description}}", "textColor": "@muted", "anchors": { "left": 256, "top": 152 }, "fitText": true },
-							{
-								"id": "label-plural-list-tracks-2",
-								"style": "caption",
-								"text": "{{plural(len(computed.list.tracks), 'song')}}  ·  {{computed.list.length}}",
-								"textColor": "@text",
-								"anchors": { "left": 256, "top": 178 }
-							},
-							{
-								"id": "playButton",
-								"type": "label",
-								"text": "Play",
-								"font": "heading",
-								"anchors": { "left": 256, "top": 196 },
-								"width": 112,
-								"height": 28,
-								"align": "center",
-								"color": "@accent",
-								"hover": { "color": "@accentHover" },
-								"textColor": "#1a0b10",
-								"cursor": "hand",
-								"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": 0 } }
-							}
-						]
-					},
-					{
-						"id": "columns",
-						"anchors": { "left": 40, "right": 40, "top": 284 },
-						"height": 28,
+						"id": "content",
 						"color": "transparent",
 						"children": [
-							{ "id": "label-caption", "style": "caption", "text": "#", "anchors": { "left": 12, "top": 6 } },
-							{ "id": "label-title", "style": "caption", "text": "TITLE", "anchors": { "left": 52, "top": 6 } },
-							{ "id": "label-album", "style": "caption", "text": "ALBUM", "x": "55%", "y": 6 },
-							{ "id": "label-time", "style": "caption", "text": "TIME", "anchors": { "right": 16, "top": 6 } },
-							{ "id": "panel-columns", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@border" }
+							{
+								"id": "playlistView",
+								"when": "{{state.page == 'playlist'}}",
+								"fill": true,
+								"color": "transparent",
+								"children": [
+									{
+										"id": "header",
+										"anchors": { "left": 0, "right": 0, "top": 0 },
+										"height": 264,
+										"color": "@surface",
+										"children": [
+											{ "id": "cover", "type": "image", "file": "{{computed.list.cover}}", "fit": "cover", "radius": 6, "anchors": { "left": 40, "top": 40 }, "width": 184, "height": 184 },
+											{ "id": "label-playlist", "style": "caption", "text": "PLAYLIST", "anchors": { "left": 256, "top": 74 } },
+											{ "id": "listName", "type": "label", "text": "{{computed.list.name}}", "font": "title", "textColor": "@text", "anchors": { "left": 252, "top": 92 }, "fitText": true },
+											{ "id": "listDescription", "type": "label", "text": "{{computed.list.description}}", "textColor": "@muted", "anchors": { "left": 256, "top": 152 }, "fitText": true },
+											{
+												"id": "label-plural-list-tracks-2",
+												"style": "caption",
+												"text": "{{plural(len(computed.list.tracks), 'song')}}  ·  {{computed.list.length}}",
+												"textColor": "@text",
+												"anchors": { "left": 256, "top": 178 }
+											},
+											{
+												"id": "playButton",
+												"style": "playButton",
+												"anchors": { "left": 256, "top": 196 },
+												"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": 0 } }
+											}
+										]
+									},
+									{
+										"id": "columns",
+										"anchors": { "left": 40, "right": 40, "top": 284 },
+										"height": 28,
+										"color": "transparent",
+										"children": [
+											{ "id": "label-caption", "style": "caption", "text": "#", "anchors": { "left": 12, "top": 6 } },
+											{ "id": "label-title", "style": "caption", "text": "TITLE", "anchors": { "left": 52, "top": 6 } },
+											{ "id": "label-album", "style": "caption", "text": "ALBUM", "x": "55%", "y": 6 },
+											{ "id": "label-time", "style": "caption", "text": "TIME", "anchors": { "right": 16, "top": 6 } },
+											{ "id": "panel-columns", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@border" }
+										]
+									},
+									{
+										"id": "tracks",
+										"type": "stack",
+										"anchors": { "left": 40, "right": 40, "top": 320, "bottom": 8 },
+										"gap": 2,
+										"scroll": "vertical",
+										"children": [
+											{
+												"id": "track",
+												"repeat": { "for": "track", "in": "computed.list.tracks", "index": "t" },
+												"let": { "playing": "{{state.current == state.playingList && t == state.playingTrack}}" },
+												"anchors": { "left": 0, "right": 0 },
+												"height": 40,
+												"radius": 6,
+												"color": "{{playing ? '@playingRow' : 'transparent'}}",
+												"hover": { "color": "{{playing ? '@playingRow' : '@rowHover'}}" },
+												"cursor": "hand",
+												"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": "{{t}}" } },
+												"children": [
+													{ "id": "label-t-1", "type": "label", "icon": "{{playing && state.isPlaying ? 'audio-lines' : ''}}", "text": "{{playing && state.isPlaying ? '' : t + 1}}", "textColor": "{{playing ? '@accent' : '@muted'}}", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 30, "align": { "horizontal": "start", "vertical": "center" } },
+													{ "id": "label-track-title", "type": "label", "text": "{{track.title}}", "textColor": "{{playing ? '@accent' : '@text'}}", "anchors": { "left": 52, "top": 3 }, "fitText": true },
+													{ "id": "label-track-artist", "style": "caption", "text": "{{track.artist}}", "anchors": { "left": 52, "top": 22 } },
+													{ "id": "label-track-album", "type": "label", "text": "{{track.album}}", "textColor": "@muted", "x": "55%", "y": 11, "fitText": true },
+													{ "id": "label-track-time", "type": "label", "text": "{{track.time}}", "textColor": "@muted", "anchors": { "right": 16, "top": 11 }, "fitText": true }
+												]
+											}
+										]
+									}
+								]
+							},
+							{
+								"id": "libraryView",
+								"when": "{{state.page == 'library'}}",
+								"fill": true,
+								"color": "transparent",
+								"children": [
+									{
+										"id": "libraryHeader",
+										"anchors": { "left": 0, "right": 0, "top": 0 },
+										"height": 132,
+										"color": "@surface",
+										"children": [
+											{ "id": "libraryCover", "type": "image", "file": "{{state.libraryInfo.cover}}", "fit": "cover", "radius": 6, "anchors": { "left": 32, "top": 24 }, "width": 84, "height": 84 },
+											{ "id": "label-library", "style": "caption", "text": "LIBRARY", "anchors": { "left": 140, "top": 28 } },
+											{ "id": "libraryName", "type": "label", "text": "{{state.libraryInfo.name}}", "font": "large", "textColor": "@text", "anchors": { "left": 138, "top": 44 }, "fitText": true },
+											{ "id": "libraryCount", "style": "caption", "text": "{{plural(len(state.library), 'song')}}  ·  find one with Cmd+P", "anchors": { "left": 140, "top": 88 } },
+											{
+												"id": "playLibraryButton",
+												"style": "playButton",
+												"anchors": { "right": 32, "top": 50 },
+												"onClick": "playLibrary"
+											}
+										]
+									},
+									{
+										"id": "libraryTable",
+										"type": "table",
+										"anchors": { "left": 24, "right": 24, "top": 148, "bottom": 8 },
+										"color": "transparent",
+										"rowHeight": 30,
+										"items": "{{state.library}}",
+										"columns": [
+											{ "id": "number", "title": "#", "width": 60 },
+											{ "id": "title", "title": "Title", "width": 230 },
+											{ "id": "artist", "title": "Artist", "width": 150 },
+											{ "id": "album", "title": "Album", "width": 170 },
+											{ "id": "time", "title": "Time", "width": 64 }
+										],
+										"sort": "{{state.librarySort}}",
+										"bind": "state.libraryPick",
+										"textColor": "@text",
+										"selectedTextColor": "@text",
+										"selectedBackground": "@accentSoft",
+										"accentColor": "@accent",
+										"onOpen": "playFromLibrary",
+										"onSort": { "set": "state.librarySort", "to": { "column": "{{event.column}}", "descending": "{{event.descending}}" } }
+									}
+								]
+							}
 						]
 					},
 					{
-						"id": "tracks",
-						"type": "stack",
-						"anchors": { "left": 40, "right": 40, "top": 320, "bottom": 8 },
-						"gap": 2,
-						"scroll": "vertical",
+						"id": "queuePane",
+						"when": "{{state.queueOpen}}",
+						"color": "@surface",
 						"children": [
+							{ "id": "label-now-playing", "style": "caption", "text": "NOW PLAYING", "anchors": { "left": 20, "top": 22 } },
+							{ "id": "queueCover", "type": "image", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 6, "anchors": { "left": 20, "top": 48 }, "width": 96, "height": 96 },
+							{ "id": "queueFrom", "style": "caption", "text": "from {{computed.playing.name}}", "anchors": { "left": 132, "top": 54 } },
+							{ "id": "queueTitle", "type": "label", "text": "{{computed.track.title}}", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 160 }, "fitText": true },
+							{ "id": "queueArtist", "type": "label", "text": "{{computed.track.artist}}  ·  {{computed.track.album}}", "textColor": "@muted", "anchors": { "left": 20, "top": 184 }, "fitText": true },
+							{ "id": "wavePlayed", "type": "path", "d": "{{computed.wavePlayed}}", "viewBox": "0 0 128 56", "fit": "fill", "anchors": { "left": 20, "right": 20, "top": 216 }, "height": 48, "stroke": "@accent", "strokeWidth": 2.5, "strokeCap": "round" },
+							{ "id": "waveLeft", "type": "path", "d": "{{computed.waveLeft}}", "viewBox": "0 0 128 56", "fit": "fill", "anchors": { "left": 20, "right": 20, "top": 216 }, "height": 48, "stroke": "@faint", "strokeWidth": 2.5, "strokeCap": "round" },
+							{ "id": "queueTime", "style": "caption", "text": "{{computed.elapsedText}} / {{computed.track.time}}", "anchors": { "left": 20, "top": 270 } },
+							{ "id": "label-up-next", "style": "caption", "text": "UP NEXT", "anchors": { "left": 20, "top": 304 } },
 							{
-								"id": "track",
-								"repeat": { "for": "track", "in": "computed.list.tracks", "index": "t" },
-								"let": { "playing": "{{state.current == state.playingList && t == state.playingTrack}}" },
-								"anchors": { "left": 0, "right": 0 },
-								"height": 40,
-								"color": "{{playing ? '@playingRow' : 'transparent'}}",
-								"hover": { "color": "{{playing ? '@playingRow' : '@rowHover'}}" },
-								"cursor": "hand",
-								"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": "{{t}}" } },
-								"children": [
-									{ "id": "label-t-1", "type": "label", "text": "{{t + 1}}", "textColor": "@muted", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "width": 30, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "label-track-title", "type": "label", "text": "{{track.title}}", "textColor": "{{playing ? '@accent' : '@text'}}", "anchors": { "left": 52, "top": 3 }, "fitText": true },
-									{ "id": "label-track-artist", "style": "caption", "text": "{{track.artist}}", "anchors": { "left": 52, "top": 22 } },
-									{ "id": "label-track-album", "type": "label", "text": "{{track.album}}", "textColor": "@muted", "x": "55%", "y": 11, "fitText": true },
-									{ "id": "label-track-time", "type": "label", "text": "{{track.time}}", "textColor": "@muted", "anchors": { "right": 16, "top": 11 }, "fitText": true }
-								]
-							}
+								"id": "queue",
+								"type": "list",
+								"anchors": { "left": 8, "right": 8, "top": 326, "bottom": 8 },
+								"color": "transparent",
+								"rowHeight": 36,
+								"items": "{{computed.upNext}}",
+								"textColor": "@muted",
+								"selectedTextColor": "@text",
+								"selectedBackground": "@rowHover",
+								"accentColor": "@accent",
+								"onChange": { "run": "play", "with": { "list": "{{state.playingList}}", "track": "{{number(event.value)}}" } }
+							},
+							{ "id": "queueEmpty", "when": "{{len(computed.upNext) == 0}}", "style": "caption", "text": "Nothing after this song", "anchors": { "left": 20, "top": 330 } }
 						]
 					}
 				]
@@ -331,7 +522,7 @@
 				"color": "@bar",
 				"children": [
 					{ "id": "panel-player", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
-					{ "id": "label-playing-initials", "style": "cover", "text": "{{computed.playing.initials}}", "font": "small", "anchors": { "left": 16, "top": 12 }, "width": 40, "height": 40, "color": "{{computed.playing.color}}" },
+					{ "id": "playingCover", "type": "image", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 4, "anchors": { "left": 16, "top": 12 }, "width": 40, "height": 40 },
 					{ "id": "nowPlaying", "type": "label", "text": "{{computed.track.title}}", "textColor": "@text", "anchors": { "left": 68, "top": 13 }, "fitText": true },
 					{ "id": "label-track-artist-2", "style": "caption", "text": "{{computed.track.artist}}", "anchors": { "left": 68, "top": 35 } },
 					{
@@ -340,20 +531,22 @@
 						"height": 40,
 						"color": "transparent",
 						"children": [
-							{ "id": "label-previous", "style": "control", "text": "«", "anchors": { "left": "20%", "right": "64%", "top": 8 }, "height": 28, "tooltip": "Previous (←)", "onClick": "previous" },
+							{ "id": "label-previous", "style": "control", "icon": "skip-back", "anchors": { "left": "22%", "top": 5 }, "width": 32, "tooltip": "Previous (←)", "onClick": "previous" },
 							{
 								"id": "playPause",
 								"style": "control",
-								"text": "{{state.isPlaying ? '||' : '>'}}",
-								"anchors": { "left": "38%", "right": "38%", "top": 6 },
-								"height": 32,
-								"color": "@accent",
+								"icon": "{{state.isPlaying ? 'pause' : 'play'}}",
+								"anchors": { "left": "{{floor(window.width * 0.15) - 17}}", "top": 4 },
+								"width": 34,
+								"height": 34,
+								"radius": 17,
+								"color": "@text",
 								"hover": { "color": "@accentHover" },
 								"textColor": "#1a0b10",
 								"tooltip": "Play or pause (Space)",
-								"onClick": { "toggle": "state.isPlaying" }
+								"onClick": "playPause"
 							},
-							{ "id": "label-next", "style": "control", "text": "»", "anchors": { "left": "64%", "right": "20%", "top": 8 }, "height": 28, "tooltip": "Next (→)", "onClick": "next" }
+							{ "id": "label-next", "style": "control", "icon": "skip-forward", "anchors": { "right": "22%", "top": 5 }, "width": 32, "tooltip": "Next (→)", "onClick": "next" }
 						]
 					},
 					{
@@ -372,7 +565,25 @@
 					},
 					{ "id": "elapsed", "style": "caption", "text": "{{computed.elapsedText}}", "x": "25.5%", "y": 41 },
 					{ "id": "label-track-time-2", "style": "caption", "text": "{{computed.track.time}}", "x": "71%", "y": 41 },
-					{ "id": "label-volume", "style": "caption", "text": "Volume", "anchors": { "right": 136, "top": 25 } },
+					{ "id": "levelMeter", "type": "path", "d": "{{computed.meter}}", "viewBox": "0 0 32 20", "fit": "fill", "anchors": { "right": 208, "top": 22 }, "width": 32, "height": 20, "stroke": "@accent", "strokeWidth": 2, "tooltip": "Level" },
+					{
+						"id": "queueButton",
+						"type": "label",
+						"icon": "list-music",
+						"text": "",
+						"anchors": { "right": 156, "top": 16 },
+						"width": 32,
+						"height": 32,
+						"radius": 8,
+						"align": "center",
+						"color": "{{state.queueOpen ? '@button' : '@bar'}}",
+						"hover": { "color": "@buttonHover" },
+						"textColor": "{{state.queueOpen ? '@accent' : '@muted'}}",
+						"cursor": "hand",
+						"tooltip": "Queue (Cmd+U)",
+						"onClick": "toggleQueue"
+					},
+					{ "id": "label-volume", "type": "label", "icon": "volume-2", "text": "", "textColor": "@muted", "anchors": { "right": 128, "top": 20 }, "width": 22, "height": 24, "align": "center" },
 					{
 						"id": "volume",
 						"type": "slider",
@@ -415,6 +626,23 @@
 						"align": { "horizontal": "end", "vertical": "center" }
 					}
 				]
+			},
+			{
+				"id": "quickPick",
+				"when": "{{state.quickPick.open}}",
+				"use": "quickPick",
+				"with": {
+					"color": "@menu",
+					"textColor": "@text",
+					"dimColor": "@muted",
+					"accent": "@accent",
+					"highlight": "@accentSoft",
+					"field": "@field",
+					"providers": [
+						{ "items": "{{computed.picks}}", "run": "playFromPick", "placeholder": "Find a song by its title" },
+						{ "prefix": ">", "items": "{{computed.palette}}", "placeholder": "Run a command" }
+					]
+				}
 			}
 		]
 	}
