@@ -26,6 +26,10 @@ constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "end
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;
 
+/// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
+/// control step.
+constexpr std::size_t maxExpansions = 64;
+
 /// @brief Whether a key's string value names an action to run: an event handler ("onClick"), "do", "onLoad", "run".
 /// @param key The key.
 /// @return true if it does.
@@ -61,6 +65,23 @@ bool computes(const json& value) {
 	return false;
 }
 
+/// @brief Puts a component's parameters in place of the strings that only name one ("{{label}}"), as using it does.
+/// @param value The component's node, or a value in it.
+/// @param parameters The parameters: the component's defaults, then the use's "with".
+void substitute(json& value, const json& parameters) {
+	if(value.is_structured()) {
+		for(json& item : value) substitute(item, parameters);
+		return;
+	}
+	if(!value.is_string()) return;
+	std::string_view name = value.get_ref<const std::string&>();
+	if(name.size() < 4 || !name.starts_with("{{") || !name.ends_with("}}")) return;
+	name = name.substr(2, name.size() - 4);
+	name.remove_prefix(std::min(name.find_first_not_of(" \t"), name.size()));
+	name.remove_suffix(name.size() - std::min(name.find_last_not_of(" \t") + 1, name.size()));
+	if(const auto it = parameters.find(std::string(name)); it != parameters.end()) value = *it;
+}
+
 /// @brief Where a scan is in the document: what its strings mean.
 enum class Part {
 	Values,   ///< "state": values, never run.
@@ -79,8 +100,10 @@ public:
 	/// @param actions The document's "actions" (an object, or null).
 	/// @param control Those of them that may run control steps.
 	/// @param runners The components that run the actions their parameters name.
-	ControlScan(const json& actions, const std::set<std::string>& control, const std::set<std::string>& runners)
-	    : actions_(actions), control_(control), runners_(runners) {}
+	/// @param components The document's own "components" (an object, or null).
+	ControlScan(const json& actions, const std::set<std::string>& control, const std::set<std::string>& runners,
+	            const json& components)
+	    : actions_(actions), control_(control), runners_(runners), components_(components) {}
 
 	/// @brief Whether running a target may run a control step: a computed one, an action the document doesn't have
 	/// (a native action, which is the application's code), or one in the control set.
@@ -102,7 +125,8 @@ public:
 			if(std::ranges::any_of(controlSteps,
 			                       [&](std::string_view key) { return value.contains(std::string(key)); }))
 				found.push_back(trigger + ": " + value.dump());
-			if(runsComputed(value)) found.push_back(trigger + ": use " + value["use"].dump() + " with computed parameters");
+			if(runsControl(value))
+				found.push_back(trigger + ": use " + value["use"].dump() + " with parameters that may control");
 			for(const auto& [key, item] : value.items()) member(key, item, trigger, part, found);
 		} else if(value.is_array()) {
 			for(const json& item : value) walk(item, trigger, part == Part::Values ? Part::Values : Part::Steps, found);
@@ -128,15 +152,25 @@ public:
 
 private:
 	/// @brief Whether a node uses a component that runs the actions its parameters name, with parameters that may
-	/// name any action: computed ones (from the state, say), in the parameter that names them for a built-in, or any
-	/// for the quick pick. Literal parameters are scanned as the node's own members.
+	/// name an action that controls: for a built-in, computed ones (from the state, say) in the parameter that names
+	/// them, or any for the quick pick; for the document's own component, which wins over a built-in of its name, see
+	/// expandsToControl. Literal parameters are also scanned as the node's own members.
 	/// @param node The node.
 	/// @return true if it does.
-	[[nodiscard]] bool runsComputed(const json& node) const {
+	[[nodiscard]] bool runsControl(const json& node) const {
 		const auto use = node.find("use");
-		if(use == node.end() || !use->is_string() || !runners_.contains(use->get_ref<const std::string&>())) return false;
+		if(use == node.end() || !use->is_string()) return false;
+		const auto& used = use->get_ref<const std::string&>();
+		if(!runners_.contains(used)) return false;
 		const auto with = node.find("with");
 		const json& parameters = with != node.end() ? *with : json();
+		if(const auto own = components_.find(used); own != components_.end()) {
+			if(depth_ == 0) expansions_ = maxExpansions; // each use outside a component has its own budget
+			++depth_;
+			const bool controls = expandsToControl(*own, parameters);
+			--depth_;
+			return controls;
+		}
 		for(const auto& [name, parameter] : runningBuiltIns) {
 			if(*use != name) continue;
 			if(parameter.empty()) return true;
@@ -146,9 +180,35 @@ private:
 		return computes(parameters);
 	}
 
+	/// @brief Whether a use of the document's own component may run a control step: its parameters compute anything,
+	/// or the component's node, with its defaults and the use's literal parameters in place of the strings that name
+	/// them, holds a way to run one (a parameter naming an action that controls, say). Past maxExpansions nested
+	/// uses, it may.
+	/// @param component The component.
+	/// @param with The use's "with".
+	/// @return true if it may.
+	[[nodiscard]] bool expandsToControl(const json& component, const json& with) const {
+		if(computes(with) || !component.is_object() || expansions_ == 0) return true;
+		--expansions_;
+		const auto node = component.find("node");
+		if(node == component.end()) return false;
+		json parameters = json::object();
+		if(const auto defaults = component.find("params"); defaults != component.end() && defaults->is_object())
+			parameters = *defaults;
+		if(with.is_object()) parameters.update(with);
+		json value = *node;
+		substitute(value, parameters);
+		std::vector<std::string> found;
+		walk(value, "use", Part::Steps, found);
+		return !found.empty();
+	}
+
 	const json& actions_;                  ///< The document's actions.
 	const std::set<std::string>& control_; ///< Those that may run control steps.
 	const std::set<std::string>& runners_; ///< The components that run the actions their parameters name.
+	const json& components_;               ///< The document's own components.
+	mutable std::size_t depth_ = 0;        ///< How many uses of the document's components are being expanded.
+	mutable std::size_t expansions_ = 0;   ///< How many more the use being scanned may be expanded through.
 };
 
 /// @brief The components that run the actions their parameters name: the built-in ones, and the document's own that
@@ -164,7 +224,7 @@ std::set<std::string> runningComponents(const json& doc, const std::set<std::str
 	const auto actions = doc.find("actions");
 	for(bool grew = true; grew;) { // until no component joins: a chain of uses takes one round per link
 		grew = false;
-		const ControlScan scan(actions != doc.end() ? *actions : none, control, runners);
+		const ControlScan scan(actions != doc.end() ? *actions : none, control, runners, *components);
 		for(const auto& [name, component] : components->items()) {
 			if(runners.contains(name)) continue;
 			std::vector<std::string> found;
@@ -185,9 +245,10 @@ std::set<std::string> controlActions(const json& doc) {
 	std::set<std::string> control;
 	if(!doc.contains("actions") || !doc["actions"].is_object()) return control;
 	const json& actions = doc["actions"];
+	static const json none; // actions use no component
 	for(bool grew = true; grew;) { // until no action joins: a chain of runs takes one round per link
 		grew = false;
-		const ControlScan scan(actions, control, runningBuiltInNames());
+		const ControlScan scan(actions, control, runningBuiltInNames(), none);
 		for(const auto& [name, steps] : actions.items()) {
 			if(control.contains(name)) continue;
 			std::vector<std::string> found;
@@ -210,7 +271,8 @@ std::vector<std::string> controlsIn(const json& doc) {
 	static const json none; // both branches are references: the scan keeps one
 	const std::set<std::string> control = controlActions(doc);
 	const std::set<std::string> runners = runningComponents(doc, control);
-	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners);
+	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
+	                       doc.contains("components") ? doc["components"] : none);
 	for(const auto& [key, value] : doc.items()) {
 		if(key == "actions" && value.is_object()) {
 			for(const auto& [name, steps] : value.items()) scan.walk(steps, "actions." + name, Part::Steps, found);

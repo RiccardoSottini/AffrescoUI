@@ -128,7 +128,9 @@ screens, actions, and the live state.
   use of a component that runs the actions its parameters name with computed parameters: the built-in `menu`,
   `submenu`, `contextMenu`, `menuBar`, `dialog` and `toast` fed their items, buttons or actions from the state, a
   `quickPick` at all (its recent items are kept in the state), or the document's own component holding a computed
-  `run`.
+  `run`. A use of the document's own component (which wins over a built-in of the same name) is scanned with its
+  defaults and literal parameters in place: `{"use": "go", "with": {"act": "approve"}}` is refused when `go` runs
+  `"{{act}}"` and `approve` holds a control step, as is one expanded through more than 64 nested uses.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.

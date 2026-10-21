@@ -155,3 +155,43 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 	after["root"]["children"][0]["children"][0]["with"]["act"] = "refresh"; // a literal one is scanned as it is
 	CHECK_NOTHROW(rules.checkChange(before, after));
 }
+
+TEST_CASE("format: a revision may not add a use of the document's own component whose literal parameters or "
+          "defaults name an action that may control") {
+	json before = screenWithActions();
+	before["components"] = json::parse(R"({
+		"go": {"params": {"act": "refresh"}, "node": {"type": "panel", "onClick": [{"run": "{{ act }}"}]}},
+		"goApprove": {"params": {"act": "approve"}, "node": {"type": "panel", "onClick": "{{act}}"}},
+		"outer": {"params": {"what": "refresh"}, "node": {"type": "panel", "children": [
+			{"use": "go", "with": {"act": "{{what}}"}}]}},
+		"menu": {"params": {"act": "refresh"}, "node": {"type": "panel", "onClick": [{"run": "{{act}}"}]}},
+		"self": {"params": {"act": "refresh"}, "node": {"type": "panel", "onClick": "{{act}}", "children": [
+			{"use": "self", "with": {"act": "refresh"}}]}}})");
+	const auto added = [&](const char* node) {
+		json after = before;
+		after["root"]["children"][0]["children"] = json::array({json::parse(node)});
+		try {
+			affresco::format::Rules().checkChange(before, after);
+			return false;
+		} catch(const affresco::DocumentError& error) {
+			CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
+			return true;
+		}
+	};
+	for(const char* node : {
+	        R"({"use": "go", "with": {"act": "approve"}})",       // an action holding a control step
+	        R"({"use": "go", "with": {"act": "save"}})",          // one holding a call
+	        R"({"use": "go", "with": {"act": "openFile"}})",      // a native action
+	        R"({"use": "goApprove"})",                            // the default names it
+	        R"({"use": "outer", "with": {"what": "approve"}})",   // through a component inside
+	        R"({"use": "menu", "with": {"act": "approve"}})",     // the screen's own "menu" wins over the built-in
+	        R"({"use": "self"})", // expanded without end: past the budget, it may
+	    }) {
+		CAPTURE(node);
+		CHECK(added(node));
+	}
+	CHECK_FALSE(added(R"({"use": "go", "with": {"act": "refresh"}})"));
+	CHECK_FALSE(added(R"({"use": "go"})"));
+	CHECK_FALSE(added(R"({"use": "outer"})"));
+	CHECK_FALSE(added(R"({"use": "goApprove", "with": {"act": "refresh"}})"));
+}
