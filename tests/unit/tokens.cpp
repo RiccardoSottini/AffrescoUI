@@ -89,7 +89,8 @@ TEST_CASE("tokens: numbers, colours, aliases and type sizes are read as @name") 
 	CHECK(panel<affresco::Label>(screen, "a").color() == *affresco::Color::parseHex("#6366f1"));
 	CHECK(panel<affresco::Panel>(screen, "page").color() == *affresco::Color::parseHex("#ffffff"));
 	REQUIRE(panel<affresco::Label>(screen, "a").font());
-	CHECK(panel<affresco::Label>(screen, "a").font()->lineHeight() > 20.0f);
+	// A size spans the ascender to the descender, and Roboto has no line gap: the line is the token's 20
+	CHECK(panel<affresco::Label>(screen, "a").font()->lineHeight() == doctest::Approx(20.0f));
 }
 
 TEST_CASE("tokens: the theme switches them, and one edit restyles every node that uses one") {
