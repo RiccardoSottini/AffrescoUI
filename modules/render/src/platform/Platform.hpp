@@ -17,6 +17,7 @@ namespace affresco {
 
 class Window;
 struct MenuItem;
+struct FileDialog;
 
 namespace platform {
 
@@ -93,6 +94,12 @@ public:
 	/// @param menus The menus; empty removes the bar.
 	/// @return false where native menus aren't supported.
 	virtual bool setMenuBar(const std::vector<MenuItem>& menus) = 0;
+	/// @brief Whether it can show file dialogs.
+	[[nodiscard]] virtual bool fileDialogs() const = 0;
+	/// @brief Shows a file dialog over the window and waits for the user.
+	/// @param dialog What it asks for.
+	/// @return The paths chosen; none if cancelled, or where there are no file dialogs.
+	[[nodiscard]] virtual std::vector<std::string> chooseFiles(const FileDialog& dialog) = 0;
 
 protected:
 	/// @brief The native window a window owns.

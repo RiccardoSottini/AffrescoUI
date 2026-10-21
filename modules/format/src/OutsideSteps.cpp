@@ -22,12 +22,13 @@ bool call(const Running& s) {
 		return engine.calls.start(s, name, slow->second);
 	if(const auto native = engine.nativeCalls.find(name); native != engine.nativeCalls.end()) {
 		const json arguments = step.contains("with") ? s.value("with") : json::object();
+		json result;
 		try {
-			json result = native->second(arguments);
+			result = native->second(arguments);
 			if(step.contains("into")) {
 				const json::json_pointer pointer = s.target("into");
 				expect::shallowEnough(result, pointerDepth(pointer), where + ".into");
-				statePlace(engine.versions.state(), pointer, where + ".into") = std::move(result);
+				statePlace(engine.versions.state(), pointer, where + ".into") = result;
 				engine.document.markStateChanged(pointer);
 			}
 		} catch(const DocumentError&) {
@@ -36,6 +37,10 @@ bool call(const Running& s) {
 			if(!step.contains("onError")) fail(where + ".call", name + ": " + error.what());
 			const Scope scope{&s.locals, nullptr, {{"error", error.what()}}, {}, {}};
 			return s.run(step["onError"], scope, where + ".onError");
+		}
+		if(step.contains("then")) {
+			const Scope scope{&s.locals, nullptr, {{"result", std::move(result)}}, {}, {}};
+			return s.run(step["then"], scope, where + ".then");
 		}
 	} else if(const auto it = engine.nativeActions.find(name); it != engine.nativeActions.end()) {
 		it->second(s.sender);
