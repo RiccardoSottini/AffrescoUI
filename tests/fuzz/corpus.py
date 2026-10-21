@@ -297,6 +297,19 @@ def path_seeds():
     return [chr(style) + text for text in dict.fromkeys(data) for style in (0x00, 0x2b, 0x5e, 0xd1)]
 
 
+def text_model_seeds():
+    """Edit commands as the text_model target reads them: 0 insert (line, column, length, bytes), 1 erase (two
+    positions), 2 undo, 3 redo, 4 insert outside a step; bit 3 of an insert merges it with the step before."""
+    def insert(line, column, text, command=0):
+        data = text.encode("utf-8") if isinstance(text, str) else text
+        return bytes([command, line, column, len(data)]) + data
+    typing = b"".join(insert(0, column, letter, 8) for column, letter in enumerate("hello"))
+    lines = insert(0, 0, "one\ntwo\nthree\n") + insert(1, 2, "caf\u00e9 \u20ac")
+    return [typing, typing + b"\x02\x02\x03", lines + bytes([1, 0, 1, 2, 2]) + b"\x02\x03",
+            lines + insert(0, 3, b"\xff\xc3(\xed\xa0\x80") + insert(9, 99, "\n\n", 4) + b"\x02",
+            b"".join(insert(index % 3, index, "ab\n") for index in range(40)) + bytes([1, 3, 0, 30, 5]) + b"\x02" * 8]
+
+
 def scenario_seeds():
     """Every scenarios file: the templates' own and the rendering check's, as they are."""
     paths = sorted(SCREENS.glob("*.scenarios.json")) + sorted((ROOT / "tests" / "render" / "scenarios").glob("*.json"))
@@ -362,7 +375,8 @@ def dictionaries():
             "lookups": [chr(0) + chr(value) for value in range(10)],  # big-endian 0..9
             "path": list("MmLlHhVvCcSsQqTtAaZz") + [" ", ",", "-", ".", "e-", "1e6", "0 0 1 1"],
             "image": ["<svg", "viewBox=", "<path d=", "fill=", "stroke=", "transform=", "<g>", "</g>", "IHDR", "IDAT", "IEND", "PLTE", "tRNS", "gAMA", "PNG\r\n", "JFIF", "Exif"],
-            "scenarios": scenarios, "png": pngs}
+            "scenarios": scenarios, "png": pngs,
+            "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"]}
 
 
 def dictionary_entry(word):
@@ -411,6 +425,7 @@ def main():
     write(out, "lookups", lookups_seeds(), words["lookups"])
     write(out, "image", image_seeds(), words["image"])
     write(out, "path", path_seeds(), words["path"])
+    write(out, "text_model", text_model_seeds(), words["text_model"])
     write(out, "scenarios", scenario_seeds(), words["scenarios"])
     write(out, "png", png_seeds(), words["png"])
 

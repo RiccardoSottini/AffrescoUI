@@ -5,8 +5,8 @@
 
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
+#include "affresco/render/TextModel.hpp"
 
-#include <compare>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -22,20 +22,14 @@ namespace affresco {
 /// Alt+arrows jump words, Cmd+arrows go to line or document ends; Shift extends the selection. Typing replaces the
 /// selection; Enter keeps the line's indentation; Tab and Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. Draws optional
 /// line numbers in a gutter, highlights the caret's line and scrolls with the wheel. Tabs become spaces; the caret
-/// doesn't blink, so an idle editor costs nothing.
+/// doesn't blink, so an idle editor costs nothing. The text is a TextModel, so a file of any size opens and edits fast:
+/// only the lines drawn are decoded and coloured.
 ///
 /// Applications extend it by subclassing: colorLine() colours the text (e.g. syntax), and the event hooks can add
 /// commands with the protected editing API (beginEdit(), the text operations, endEdit()), which keeps undo working.
 class TextEditor : public Panel {
 public:
-	/// @brief A place in the text: a line and a code point within it, both from 0.
-	struct Position {
-		std::size_t line = 0;   ///< The line.
-		std::size_t column = 0; ///< Code points before it on the line.
-
-		/// @brief Ordered as in the text: by line, then by column.
-		constexpr auto operator<=>(const Position&) const noexcept = default;
-	};
+	using Position = TextPosition; ///< A place in the text: a line and a code point within it, both from 0.
 
 	static constexpr std::size_t tabSize = 4; ///< Spaces per indentation level.
 
@@ -46,8 +40,10 @@ public:
 	/// the line still exists; the undo history is kept, so an outside change can be undone like a typed one.
 	/// @param utf8 UTF-8 text, lines separated by "\n" ("\r\n" too); tabs become spaces.
 	void setText(std::string_view utf8);
-	/// @brief The text, as UTF-8 with "\n" between lines.
-	[[nodiscard]] const std::string& text() const noexcept { return utf8_; }
+	/// @brief The text, as UTF-8 with "\n" between lines (a copy: model() reads it without one).
+	[[nodiscard]] std::string text() const { return model_.text(); }
+	/// @brief The text model: its lines, ranges and size, read without copying the text.
+	[[nodiscard]] const TextModel& model() const noexcept { return model_; }
 
 	/// @brief Sets the font.
 	/// @param font The font, or nullptr for the window's default.
@@ -87,8 +83,8 @@ public:
 	[[nodiscard]] Position anchor() const noexcept { return anchor_; }
 	/// @brief How many code points are selected (line breaks count as one).
 	[[nodiscard]] std::size_t selectedLength() const;
-	/// @brief The text, one element per line (at least one).
-	[[nodiscard]] const std::vector<std::u32string>& lines() const noexcept { return lines_; }
+	/// @brief The text, one element per line (at least one), decoded when read.
+	[[nodiscard]] const TextLines& lines() const noexcept { return lines_; }
 
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
@@ -110,22 +106,26 @@ protected:
 	void arrange() override;
 	void paint(Painter& painter) const override;
 
-	/// @brief Colours one line; called for each drawn line, top to bottom, starting from the first line of the text.
-	/// The default gives every code point textColor().
+	/// @brief Colours one line; called for each drawn line, top to bottom. The state each line starts with is kept, so
+	/// lines above the drawn ones are coloured once, and again only after an edit above them or recolor(). The default
+	/// gives every code point textColor().
 	/// @param line The text of the line.
 	/// @param state Carried from one line to the next (e.g. "inside a block comment"); 0 at the first line.
 	/// @param colors One colour per code point, to fill (already sized to the line).
 	virtual void colorLine(std::u32string_view line, int& state, std::vector<Color>& colors) const;
+
+	/// @brief Colours every line again: call it when colorLine() would give other results (e.g. a new language).
+	void recolor();
 
 	/// @brief Enter: replaces the selection with a new line that keeps the indentation. Subclasses may override it.
 	virtual void newLine();
 
 	/* Editing API for subclasses: call beginEdit(), change the text, set the selection, then endEdit() */
 
-	/// @brief Remembers the text before an edit, so it can be undone.
+	/// @brief Starts an undo step, keeping the caret and selection to restore.
 	/// @param kind The edit; consecutive typing (or deleting) is one undo step.
 	void beginEdit(Edit kind);
-	/// @brief Finishes an edit: updates the UTF-8 copy, reveals the caret, fires the signals.
+	/// @brief Finishes an edit: ends the undo step, reveals the caret, fires the signals.
 	void endEdit();
 	/// @brief The text between two positions.
 	/// @param from The start.
@@ -160,22 +160,23 @@ protected:
 	[[nodiscard]] std::pair<std::size_t, std::size_t> selectedLines() const noexcept;
 	/// @brief Leading spaces of a line.
 	/// @param line The line.
-	[[nodiscard]] std::size_t indentOf(std::size_t line) const noexcept;
+	[[nodiscard]] std::size_t indentOf(std::size_t line) const;
 	/// @brief Indents (or outdents) the selected lines by one level, as one edit.
 	/// @param outdent true to remove a level.
 	void indentLines(bool outdent);
 
 private:
-	/// @brief The text, caret and selection, for undo and redo.
-	struct Snapshot {
-		std::vector<std::u32string> lines; ///< The text.
-		Position caret;                    ///< The caret.
-		Position anchor;                   ///< The selection's other end.
-		std::size_t bytes = 0;             ///< What it keeps in memory, roughly, for the bound on undo.
-	};
+	static constexpr float textPadding = 6.0f;    ///< Space above the first line, in pixels.
+	static constexpr float scrollBarWidth = 4.0f; ///< Thickness of the scroll bar, in pixels.
+	static constexpr std::size_t exactWidth = 4096; ///< Up to this many lines, the widest is measured, not estimated.
 
-	/// @brief Adds the text as it is now as an undo step, dropping the oldest past 500 steps or 256 MiB in all.
-	void remember();
+	/// @brief Keeps the colouring states and the widest line in step with an edit.
+	/// @param change The edit.
+	void textChanged(const TextChange& change);
+	/// @brief The widest line, in pixels: measured for up to exactWidth lines, else estimated from the longest line's
+	/// bytes, then grown by the lines edited since.
+	/// @param font The font.
+	[[nodiscard]] float widestLine(const Font& font) const;
 
 	/// @brief The height of one line, in pixels.
 	[[nodiscard]] float lineHeight() const noexcept;
@@ -184,26 +185,26 @@ private:
 	/// @brief Where a column starts on a line, relative to the start of the text.
 	/// @param line The line.
 	/// @param column The column.
-	[[nodiscard]] float columnX(std::size_t line, std::size_t column) const noexcept;
+	[[nodiscard]] float columnX(std::size_t line, std::size_t column) const;
 	/// @brief The column nearest to an x position on a line.
 	/// @param line The line.
 	/// @param x Relative to the start of the text.
-	[[nodiscard]] std::size_t columnAt(std::size_t line, float x) const noexcept;
+	[[nodiscard]] std::size_t columnAt(std::size_t line, float x) const;
 	/// @brief The text position under a point.
 	/// @param point In window units.
-	[[nodiscard]] Position positionAt(Vec2 point) const noexcept;
+	[[nodiscard]] Position positionAt(Vec2 point) const;
 	/// @brief How many whole lines fit in the panel.
 	[[nodiscard]] std::size_t visibleLines() const noexcept;
 	/// @brief Keeps the scroll offset inside the content.
-	void clampScroll() noexcept;
+	void clampScroll();
 	/// @brief Scrolls so the caret is visible.
-	void revealCaret() noexcept;
+	void revealCaret();
 	/// @brief The position one code point, or one word, to the left or right.
 	/// @param from Where to start.
 	/// @param forward true for right.
 	/// @param word true to jump a word.
-	[[nodiscard]] Position step(Position from, bool forward, bool word) const noexcept;
-	/// @brief Swaps the text with the last undo (or redo) snapshot.
+	[[nodiscard]] Position step(Position from, bool forward, bool word) const;
+	/// @brief Undoes (or redoes) the newest step.
 	/// @param redo true to redo.
 	void undo(bool redo);
 	/// @brief Cmd+C or Cmd+X: copies the selection to the clipboard.
@@ -254,8 +255,8 @@ private:
 	/// @param layout The frame's layout.
 	void paintCaretAndScrollBar(Painter& painter, const Layout& layout) const;
 
-	std::vector<std::u32string> lines_{std::u32string()}; ///< See lines().
-	std::string utf8_;                                    ///< See text().
+	TextModel model_;                                     ///< The text.
+	TextLines lines_{model_};                             ///< See lines().
 	Position caret_;                                      ///< Where typing happens.
 	Position anchor_;                                     ///< The selection's other end (== caret_: none).
 	float preferredX_ = -1.0f;                            ///< The x vertical moves aim for (< 0: the caret's).
@@ -265,9 +266,10 @@ private:
 	Position lastClickAt_;                                ///< Where it happened.
 	int clicks_ = 0;                                      ///< Presses in a row at one place (1, 2 or 3).
 
-	std::vector<Snapshot> undo_;  ///< Older texts, newest last.
-	std::vector<Snapshot> redo_;  ///< Undone texts, newest last.
-	Edit lastEdit_ = Edit::Other; ///< The edit that made the newest undo snapshot (Other: start a new step).
+	Edit lastEdit_ = Edit::Other; ///< The edit that made the newest undo step (Other: start a new step).
+	mutable std::vector<int> states_{0}; ///< The colouring state each line starts with, for the lines coloured so far.
+	mutable float widest_ = -1.0f;       ///< See widestLine(); < 0: to work out.
+	mutable const Font* widestFont_ = nullptr; ///< The font widest_ was measured with.
 
 	std::shared_ptr<const Font> font_; ///< nullptr: the window's default.
 	bool lineNumbers_ = false;         ///< See setLineNumbers().

@@ -22,7 +22,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
 | `RichText.hpp` | `TextRun` (a part of a text with its own font, colour, link or inline icon) and `TextLayout` (runs broken into lines across styles, hit testing, carets) |
 | `TextArea.hpp` | `TextArea`: a single-line input |
-| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses |
+| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`) |
+| `TextModel.hpp` | `TextModel`: UTF-8 text of any size as a piece tree, with a line index (`line`, `offsetOf`, `positionOf`), O(log n) edits, undo as operations (`beginStep`, `endStep`, `undo`) and `onChanged` (`TextChange`); `TextLines`, its lines decoded and kept for reading again |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
 | `Split.hpp` | `Split`: panes along a row or a column with sashes between them; sizes within minimums, the last pane taking the rest; dragged, reset by a double click or Home, moved by the arrow keys (PageUp and PageDown pick a sash); `onSizesChanged` |
 | `Tabs.hpp` | `Tabs`: a strip of `Tab`s, one active; it scrolls when they overflow, closes (a button or Delete), reorders by dragging (`onMoved`), shows where a tab dragged from another strip would go (`insertionAt`, `showDropIndicator`), and moves with the arrow keys, Home and End |
@@ -117,7 +118,13 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 - **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages hold at most 64 MiB in all (colour pages
   count four bytes a texel), so text naming many characters can't exhaust memory; past that, characters draw as `?`.
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
-  32 fonts and 128 MiB that nothing uses. A `TextEditor` keeps 500 undo steps, and at most 256 MiB of them.
+  32 fonts and 128 MiB that nothing uses. A `TextModel` (a `TextEditor`'s text) keeps 500 undo steps, and at most
+  256 MiB of removed text in them; invalid UTF-8 becomes U+FFFD as it comes in.
+- **Large texts:** a `TextModel` copies a file once into buffers that are only appended to, and keeps pieces of them
+  in a treap with the bytes and line feeds under each node, so an edit or finding a line costs O(log n). A 50 MB
+  text opens in under a second, an edit takes under 50 µs, and memory stays under 1.5 times the text
+  (`tests/unit/text_model.cpp`). The editor decodes and colours only the visible lines (the colouring state of each
+  line above them is kept), and past 4,096 lines estimates its width from the longest line.
 
 ## Threads
 
@@ -171,7 +178,9 @@ src/
                            rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
                            MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
                            SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
-  TextEditor.cpp           the multi-line editor
+  TextEditor.cpp           the multi-line editor: input, selection, scrolling, undo through its model
+  TextEditorPaint.cpp      its drawing: visible lines in runs of one colour, selection, gutter, caret
+  TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   Controls.cpp             Toggle and Slider
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
   RowWindow.cpp            the rows in view: fixed heights, or measured ones in a Fenwick tree
@@ -184,7 +193,8 @@ src/
                            colour pages), ShapedTextCache (LRU by text), FontData.hpp (what a Font holds),
                            Shaping.cpp (runs, HarfBuzz, clusters into advances and carets), PlainText (words laid
                            out without shaping), LookupSpans (how far GSUB and GPOS lookups reach, read with every
-                           offset checked), FontInspector.hpp (what tests see of a font)
+                           offset checked), FontInspector.hpp (what tests see of a font), PieceTree (the text model's
+                           treap of pieces over append-only buffers, with line feeds counted)
   Color.cpp                hex colours
   detail/Utf8.hpp          UTF-8 decoding, shared by the text code
   detail/Ppm.hpp           PPM screenshots

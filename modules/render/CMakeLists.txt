@@ -7,6 +7,9 @@ affrescoui_module(render
 	src/ImageCache.cpp
 	src/ImageView.cpp
 	src/TextEditor.cpp
+	src/TextEditorPaint.cpp
+	src/TextModel.cpp
+	src/text/PieceTree.cpp
 	src/Color.cpp
 	src/Controls.cpp
 	src/Split.cpp
