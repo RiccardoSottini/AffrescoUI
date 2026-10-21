@@ -13,7 +13,25 @@
 				{ "click": "#newHabit" },
 				{ "type": "Drink water" },
 				{ "key": "enter" },
-				{ "expect": { "image": "habit-added" } }
+				{ "expect": { "image": "habit-added" } },
+				{ "key": "mod+shift+n" },
+				{ "wait": 50 },
+				{ "type": "Stretch" },
+				{ "click": "#swatch", "nth": 3 },
+				{ "expect": { "image": "new-habit-dialog" } },
+				{ "key": "escape" },
+				{ "click": "#deleteHabit", "nth": 1 },
+				{ "wait": 50 },
+				{ "expect": { "image": "delete-dialog" } },
+				{ "key": "escape" },
+				{ "key": "mod+j" },
+				{ "expect": { "image": "dark" } },
+				{ "key": "mod+2" },
+				{ "expect": { "image": "history" } },
+				{ "key": "mod+3" },
+				{ "expect": { "image": "notes" } },
+				{ "click": [181, 239] },
+				{ "expect": { "image": "notes-filtered" } }
 			]
 		}
 	]

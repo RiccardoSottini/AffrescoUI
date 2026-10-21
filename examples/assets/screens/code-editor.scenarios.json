@@ -2,105 +2,158 @@
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 1,
-	"note": "What the Code editor template (Forge) does, checked headless: affrescoui test code-editor.scenarios.json",
+	"note": "What the Code editor template (Bottega) does, checked headless: affrescoui test code-editor.scenarios.json",
 	"screen": "code-editor.screen.json",
 	"scenarios": [
 		{
-			"name": "open-a-file-from-the-explorer",
-			"note": "Clicking a file in the explorer opens it in a new tab and makes it the active one",
+			"name": "open-files-from-the-tree",
+			"note": "A file row of the explorer tree opens the file in a new tab; a folder row opens or closes the folder",
 			"steps": [
-				{ "click": "#entry", "nth": 3 },
+				{ "click": [130, 183], "note": "src / Station.cpp" },
 				{ "expect": { "state": "active", "is": 2 } },
-				{ "expect": { "state": "tabs", "is": [0, 1, 2] } },
-				{ "expect": { "node": "#tab", "nth": 2, "text": "Board.cpp" } },
-				{ "expect": { "node": "#breadcrumbs", "text": "src / Board.cpp" } },
-				{ "click": "#entry", "nth": 0, "note": "a folder opens nothing" },
-				{ "expect": { "state": "tabs.length", "is": 3 } },
-				{ "click": "#tab", "nth": 0 },
-				{ "expect": { "state": "active", "is": 0 } },
-				{ "expect": { "node": "#breadcrumbs", "text": "src / main.cpp" } }
+				{ "expect": { "state": "tabs", "is": [0, 1, 3, 2] } },
+				{ "expect": { "node": "#breadcrumbs", "text": "weather-station  /  src  /  Station.cpp" } },
+				{ "expect": { "node": "#windowTitle", "text": "Station.cpp  —  weather-station  —  Bottega" } },
+				{ "click": [130, 313], "note": "README.md, at the root" },
+				{ "expect": { "state": "active", "is": 6 } },
+				{ "expect": { "node": "#breadcrumbs", "text": "weather-station  /  README.md" } },
+				{ "click": [100, 235], "note": "the screens folder" },
+				{ "expect": { "state": "expanded", "is": ["d:src"] } },
+				{ "expect": { "state": "tabs.length", "is": 5 } }
 			]
 		},
 		{
-			"name": "edit-and-save",
-			"note": "Typing in the editor marks the file unsaved with a dot on its tab, and Cmd+S saves it",
+			"name": "unsaved-tab-asks-before-closing",
+			"note": "Typing marks the file unsaved; Cmd+W asks first, and Don't save closes it and drops the change",
 			"steps": [
 				{ "click": "#editor" },
-				{ "key": "mod+a" },
-				{ "type": "int main() {}" },
-				{ "expect": { "state": "files[0].text", "is": "int main() {}" } },
-				{ "expect": { "state": "files[0].dirty", "is": true } },
-				{ "expect": { "node": "#panel-files-tab", "exists": true } },
-				{ "expect": { "node": "#statusSize", "text": "Ln 1, Col 14  ·  Spaces: 4  ·  UTF-8  ·  C++" } },
-				{ "key": "mod+s" },
-				{ "expect": { "state": "files[0].dirty", "is": false } },
-				{ "expect": { "node": "#panel-files-tab", "exists": false } }
-			]
-		},
-		{
-			"name": "undo-an-edit",
-			"note": "Cmd+Z in the editor brings back the text that typing replaced",
-			"steps": [
-				{ "click": "#editor" },
-				{ "key": "mod+a" },
 				{ "type": "x" },
-				{ "expect": { "node": "#editor", "text": "x" } },
-				{ "expect": { "state": "files[0].text.length", "is": 1 } },
-				{ "key": "mod+z" },
-				{ "expect": { "state": "files[0].text.length", "is": 547, "note": "main.cpp as it was" } }
-			]
-		},
-		{
-			"name": "close-tabs",
-			"note": "Cmd+W closes the active tab and the next one takes its place; with no tab left the welcome text shows",
-			"steps": [
+				{ "expect": { "state": "files[0].dirty", "is": true } },
 				{ "key": "mod+w" },
-				{ "expect": { "state": "tabs", "is": [1] } },
+				{ "wait": 50 },
+				{ "expect": { "state": "closing.open", "is": true } },
+				{ "expect": { "state": "tabs", "is": [0, 1, 3], "note": "nothing closed yet" } },
+				{ "click": [696, 447], "note": "Don't save" },
+				{ "expect": { "state": "closing.open", "is": false } },
+				{ "expect": { "state": "tabs", "is": [1, 3] } },
 				{ "expect": { "state": "active", "is": 1 } },
-				{ "expect": { "node": "#breadcrumbs", "text": "src / Board.hpp" } },
-				{ "click": "#label-files-tab-dirty", "note": "the × on the last tab" },
-				{ "expect": { "state": "tabs", "is": [] } },
-				{ "expect": { "node": "#welcome", "exists": true } },
-				{ "expect": { "node": "#editor", "exists": false } },
-				{ "expect": { "node": "#statusSize", "text": "No file" } }
+				{ "expect": { "state": "files[0].dirty", "is": false } },
+				{ "expect": { "state": "files[0].text.length", "is": 437, "note": "main.cpp as it was saved" } }
 			]
 		},
 		{
-			"name": "open-a-file-from-the-palette",
-			"note": "Cmd+P opens the palette, typing filters the files by name, and Enter opens the first match",
+			"name": "save-from-the-close-dialog",
+			"note": "Save in the close dialog keeps the change, then closes the tab",
 			"steps": [
-				{ "key": "mod+p" },
-				{ "wait": 0, "note": "the focus lands on the next frame" },
-				{ "expect": { "state": "palette", "is": true } },
-				{ "expect": { "node": "#paletteInput", "property": "focused", "is": true } },
-				{ "type": "read" },
-				{ "expect": { "node": "#label-files-f-name", "text": "README.md" } },
-				{ "expect": { "node": "#panel-f", "nth": 1, "exists": false } },
-				{ "key": "enter" },
-				{ "expect": { "state": "palette", "is": false } },
-				{ "expect": { "state": "active", "is": 5 } },
-				{ "expect": { "node": "#tab", "nth": 2, "text": "README.md" } }
+				{ "click": "#editor" },
+				{ "type": "x" },
+				{ "key": "mod+w" },
+				{ "wait": 50 },
+				{ "click": [600, 447], "note": "Save" },
+				{ "expect": { "state": "tabs", "is": [1, 3] } },
+				{ "expect": { "state": "files[0].dirty", "is": false } },
+				{ "expect": { "state": "files[0].saved.length", "is": 438 } }
 			]
 		},
 		{
-			"name": "palette-with-no-match",
-			"note": "A query that matches no file says so, and Enter opens nothing",
+			"name": "saving-updates-the-problems",
+			"note": "The problems come from the saved files: fixing the FIXME and saving leaves no error",
+			"steps": [
+				{ "expect": { "state": "problems.length", "is": 8 } },
+				{ "expect": { "node": "#statusProblems", "text": "1 error, 7 warnings" } },
+				{ "click": [130, 183] },
+				{ "click": "#editor" },
+				{ "key": "mod+a" },
+				{ "type": "#include \"Station.hpp\"" },
+				{ "expect": { "state": "problems.length", "is": 8, "note": "not saved yet" } },
+				{ "key": "mod+s" },
+				{ "expect": { "state": "problems.length", "is": 7 } },
+				{ "expect": { "node": "#statusProblems", "text": "0 errors, 7 warnings" } }
+			]
+		},
+		{
+			"name": "a-large-file",
+			"note": "Calibration.cpp is generated on load: 5,000 lines, with a TODO every 1,000 lines",
+			"steps": [
+				{ "click": [537, 48], "note": "the Calibration.cpp tab" },
+				{ "expect": { "state": "active", "is": 3 } },
+				{ "expect": { "state": "problems[2].id", "is": "3:508" } },
+				{ "expect": { "state": "problems[6].id", "is": "3:4508" } },
+				{ "click": "#editor" },
+				{ "key": "mod+down" },
+				{ "expect": { "state": "caret.line", "is": 5000 } },
+				{ "expect": { "node": "#statusSize", "text": "Ln 5000, Col 2  ·  Spaces: 4  ·  UTF-8  ·  C++" } }
+			]
+		},
+		{
+			"name": "a-problem-opens-its-file",
+			"note": "Choosing a row of the problems table opens the file it is in",
+			"steps": [
+				{ "click": [500, 641], "note": "the FIXME in Station.cpp" },
+				{ "expect": { "state": "problemPick", "is": "2:6" } },
+				{ "expect": { "state": "active", "is": 2 } },
+				{ "expect": { "state": "tabs", "is": [0, 1, 3, 2] } }
+			]
+		},
+		{
+			"name": "quick-open",
+			"note": "Cmd+P lists every file; typing filters them and Enter opens the first match",
 			"steps": [
 				{ "key": "mod+p" },
-				{ "wait": 0 },
-				{ "type": "zzz" },
-				{ "expect": { "node": "#label-no-file-matches", "text": "No file matches 'zzz'" } },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "type": "readme" },
+				{ "wait": 50 },
 				{ "key": "enter" },
-				{ "expect": { "state": "palette", "is": true } },
-				{ "expect": { "state": "tabs.length", "is": 2 } }
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "active", "is": 6 } },
+				{ "expect": { "state": "tabs", "is": [0, 1, 3, 6] } }
+			]
+		},
+		{
+			"name": "command-palette",
+			"note": "Cmd+Shift+P lists every command; running one hides the explorer, and another shows the about dialog",
+			"steps": [
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.query", "is": ">" } },
+				{ "type": "explorer" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "sidebarOpen", "is": false } },
+				{ "expect": { "node": "#explorer", "exists": false } },
+				{ "key": "mod+b" },
+				{ "expect": { "node": "#explorer", "exists": true } },
+				{ "key": "mod+shift+p" },
+				{ "wait": 50 },
+				{ "type": "about" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "aboutOpen", "is": true } }
+			]
+		},
+		{
+			"name": "menus",
+			"note": "The menu bar opens a menu of commands; New file adds an unsaved file and opens it",
+			"steps": [
+				{ "click": [22, 14], "note": "File" },
+				{ "wait": 50 },
+				{ "expect": { "state": "menuBar.file", "is": true } },
+				{ "key": "enter", "note": "the first item: New file" },
+				{ "expect": { "state": "menuBar.file", "is": false } },
+				{ "expect": { "state": "files.length", "is": 8 } },
+				{ "expect": { "state": "active", "is": 7 } },
+				{ "expect": { "state": "files[7].name", "is": "Untitled-1.md" } },
+				{ "expect": { "state": "files[7].dirty", "is": true } }
 			]
 		},
 		{
 			"name": "run-terminal-commands",
-			"note": "Cmd+J focuses the terminal; help prints the commands, an unknown one says so, and clear empties it",
+			"note": "Cmd+J shows and focuses the terminal; help prints the commands, an unknown one says so, and clear empties it",
 			"steps": [
 				{ "key": "mod+j" },
 				{ "wait": 0 },
+				{ "expect": { "state": "panelTab", "is": "terminal" } },
 				{ "type": "help" },
 				{ "key": "enter" },
 				{ "expect": { "state": "terminal.length", "is": 6 } },
@@ -112,6 +165,18 @@
 				{ "type": "clear" },
 				{ "key": "enter" },
 				{ "expect": { "state": "terminal", "is": [] } }
+			]
+		},
+		{
+			"name": "undo-an-edit",
+			"note": "Cmd+Z in the editor brings back the text that typing replaced",
+			"steps": [
+				{ "click": "#editor" },
+				{ "key": "mod+a" },
+				{ "type": "x" },
+				{ "expect": { "state": "files[0].text.length", "is": 1 } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "files[0].text.length", "is": 437, "note": "main.cpp as it was" } }
 			]
 		}
 	]

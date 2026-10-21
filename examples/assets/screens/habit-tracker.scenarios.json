@@ -86,6 +86,140 @@
 				{ "expect": { "state": "weeks[0][0]", "is": 0 } },
 				{ "expect": { "node": "#label-stat-value", "nth": 3, "text": "318", "note": "the 320 check-ins, less the 2 of that day" } }
 			]
+		},
+		{
+			"name": "switch-pages",
+			"note": "The tabs and Cmd+1, Cmd+2, Cmd+3 switch between Today, History and Notes",
+			"steps": [
+				{ "click": [275, 50], "note": "History" },
+				{ "expect": { "state": "tab", "is": "history" } },
+				{ "expect": { "node": "#historyTable", "exists": true } },
+				{ "expect": { "node": "#habits", "exists": false } },
+				{ "key": "mod+3" },
+				{ "expect": { "state": "tab", "is": "notes" } },
+				{ "expect": { "node": "#notesList", "exists": true } },
+				{ "key": "mod+1" },
+				{ "expect": { "state": "tab", "is": "today" } }
+			]
+		},
+		{
+			"name": "switch-the-theme",
+			"note": "The moon button and Cmd+J switch between the light and the dark tokens",
+			"steps": [
+				{ "click": [1236, 46] },
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "key": "mod+j" },
+				{ "expect": { "state": "theme", "is": "light" } }
+			]
+		},
+		{
+			"name": "sort-and-pick-the-history",
+			"note": "The history table lists 137 days; a title sorts it, a row is picked",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "expect": { "node": "#historySummary", "text": "137 days  ·  47% on average  ·  click a title to sort" } },
+				{ "click": [100, 236], "note": "the second row: yesterday" },
+				{ "expect": { "state": "historyPick", "is": "1" } },
+				{ "click": [1100, 174], "note": "the Score title" },
+				{ "expect": { "state": "historySort.column", "is": "score" } },
+				{ "key": "mod+1" },
+				{ "key": "mod+2" },
+				{ "expect": { "state": "historySort.column", "is": "score", "note": "kept across pages" } },
+				{ "click": [1100, 174], "note": "Score again" },
+				{ "expect": { "state": "historySort.descending", "is": true } },
+				{ "expect": { "state": "historyPick", "is": "1", "note": "the pick stays on its day" } }
+			]
+		},
+		{
+			"name": "filter-notes-by-habit",
+			"note": "A habit's name in a note is a link: it shows only that habit's notes, and Show all clears it",
+			"steps": [
+				{ "key": "mod+3" },
+				{ "click": [181, 239], "note": "Run or walk 5 km, in the second note" },
+				{ "expect": { "state": "noteFilter", "is": "Run or walk 5 km" } },
+				{ "expect": { "node": "#noteFilter", "text": "Only the notes about Run or walk 5 km" } },
+				{ "expect": { "node": "#note", "nth": 1, "exists": false } },
+				{ "click": "#showAll" },
+				{ "expect": { "state": "noteFilter", "is": "" } },
+				{ "expect": { "node": "#note", "nth": 5, "exists": true } }
+			]
+		},
+		{
+			"name": "add-a-note",
+			"note": "A note goes to the habit in the filter, or to the first habit, and shows at the top",
+			"steps": [
+				{ "key": "mod+3" },
+				{ "click": "#newNote" },
+				{ "type": "Ran in the park" },
+				{ "key": "enter" },
+				{ "expect": { "state": "notes.length", "is": 7 } },
+				{ "expect": { "state": "notes[6].habit", "is": "Read 20 pages" } },
+				{ "expect": { "state": "notes[6].date", "is": "Thu 15 Oct" } },
+				{ "expect": { "state": "newNote", "is": "" } },
+				{ "click": [181, 295], "note": "Run or walk 5 km, now in the third note" },
+				{ "click": "#newNote" },
+				{ "type": "Hills" },
+				{ "key": "enter" },
+				{ "expect": { "state": "notes[7].habit", "is": "Run or walk 5 km" } }
+			]
+		},
+		{
+			"name": "new-habit-dialog",
+			"note": "Cmd+Shift+N asks for a name and a colour; Add saves it and says so in a toast",
+			"steps": [
+				{ "key": "mod+shift+n" },
+				{ "wait": 50 },
+				{ "expect": { "state": "draft.open", "is": true } },
+				{ "type": "Stretch" },
+				{ "click": "#swatch", "nth": 3 },
+				{ "expect": { "state": "draft.color", "is": "#db2777" } },
+				{ "click": [696, 490], "note": "Add" },
+				{ "expect": { "state": "draft.open", "is": false } },
+				{ "expect": { "state": "habits.length", "is": 6 } },
+				{ "expect": { "state": "habits[5].color", "is": "#db2777" } },
+				{ "expect": { "state": "toast.message", "is": "Added Stretch" } },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "wait": 4100 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		},
+		{
+			"name": "new-habit-needs-a-name",
+			"note": "Add with a blank name keeps the dialog open and adds nothing",
+			"steps": [
+				{ "click": "#newHabitButton" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "draft.open", "is": true } },
+				{ "expect": { "state": "habits.length", "is": 5 } }
+			]
+		},
+		{
+			"name": "delete-a-habit",
+			"note": "The bin asks first (without ticking the row); Delete removes the habit",
+			"steps": [
+				{ "click": "#deleteHabit", "nth": 1 },
+				{ "wait": 50 },
+				{ "expect": { "state": "deleting.open", "is": true } },
+				{ "expect": { "state": "deleting.name", "is": "Run or walk 5 km" } },
+				{ "expect": { "state": "habits[1].done", "is": true, "note": "the row's own click did not run" } },
+				{ "click": [696, 452], "note": "Delete" },
+				{ "expect": { "state": "deleting.open", "is": false } },
+				{ "expect": { "state": "habits.length", "is": 4 } },
+				{ "expect": { "state": "habits[1].name", "is": "Practise C++ for an hour" } },
+				{ "expect": { "state": "toast.message", "is": "Deleted Run or walk 5 km" } }
+			]
+		},
+		{
+			"name": "cancel-a-delete",
+			"note": "Escape closes the delete dialog and keeps the habit",
+			"steps": [
+				{ "click": "#deleteHabit", "nth": 0 },
+				{ "wait": 50 },
+				{ "key": "escape" },
+				{ "expect": { "state": "deleting.open", "is": false } },
+				{ "expect": { "state": "habits.length", "is": 5 } }
+			]
 		}
 	]
 }

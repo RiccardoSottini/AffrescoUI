@@ -17,7 +17,23 @@
 				{ "release": [912, 768] },
 				{ "expect": { "image": "volume-dragged" } },
 				{ "scroll": "#tracks", "dy": -4 },
-				{ "expect": { "image": "tracks-scrolled" } }
+				{ "expect": { "image": "tracks-scrolled" } },
+				{ "click": "#label-menu", "nth": 0 },
+				{ "click": [400, 237] },
+				{ "key": "enter" },
+				{ "expect": { "image": "library" } },
+				{ "scroll": "#libraryTable", "dy": -20 },
+				{ "expect": { "image": "library-scrolled" } },
+				{ "key": "mod+p" },
+				{ "wait": 100 },
+				{ "type": "silver" },
+				{ "expect": { "image": "quick-pick" } },
+				{ "key": "escape" },
+				{ "key": "mod+shift+p" },
+				{ "expect": { "image": "command-palette" } },
+				{ "key": "escape" },
+				{ "key": "mod+u" },
+				{ "expect": { "image": "queue-hidden" } }
 			]
 		}
 	]
