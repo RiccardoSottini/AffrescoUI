@@ -189,8 +189,7 @@ void Reconciler::refreshItems(const Scope& locals, const StateChanges& changes) 
 		else if(const json* lying = findInState(engine_.versions.state(), json::json_pointer(scope->origin)))
 			value = *lying;
 		if(value.is_null()) continue; // gone: the list that shows it is built again
-		// A scope that holds an item is made by extend() as make_shared<Scope>(), so the object itself isn't const
-		const_cast<Scope*>(scope)->vars[scope->fromState] = std::move(value);
+		scope->vars[scope->fromState] = std::move(value); // vars is mutable for this refresh
 	}
 }
 
