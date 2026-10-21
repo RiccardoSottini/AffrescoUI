@@ -226,6 +226,14 @@ TEST_CASE("render: a path scaled past the float range draws nothing, and its das
 	}
 }
 
+TEST_CASE("render: a curve scaled near the float range flattens into at most 64 lines") {
+	// Finite points, but a bend whose step count is past int's range (a view box a billionth of a unit wide)
+	const VectorPath path = VectorPath::parse("M0 0 C1e6 0 0 1e6 1e6 1e6");
+	const std::vector<VectorPath::Contour> contours = path.flatten({{1e12f, 1e12f}, {0.0f, 0.0f}});
+	REQUIRE(contours.size() == 1);
+	CHECK(contours[0].points.size() == 65);
+}
+
 TEST_CASE("render: SVG icons decode as images, within the limits") {
 	constexpr std::string_view icon = R"svg(<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 24 16">

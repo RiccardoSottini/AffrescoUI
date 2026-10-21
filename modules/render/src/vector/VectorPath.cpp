@@ -86,7 +86,8 @@ public:
 		const Vec2 bendEnd = plus(minus(first, times(second, 2.0f)), end);
 		const float bend = std::max(vector::length(bendStart), vector::length(bendEnd));
 		const float wanted = std::ceil(std::sqrt(0.75f * bend / std::max(tolerance, 0.01f)));
-		const int steps = std::isfinite(wanted) ? std::clamp(static_cast<int>(wanted), 1, 64) : 1;
+		// Clamped before the cast: a tiny view box makes the bend huge, and past int's range the cast is undefined
+		const int steps = std::isfinite(wanted) ? static_cast<int>(std::clamp(wanted, 1.0f, 64.0f)) : 1;
 		for(int step = 1; step <= steps; ++step) {
 			const float t = static_cast<float>(step) / static_cast<float>(steps), u = 1.0f - t;
 			const float a = u * u * u, b = 3.0f * u * u * t, c = 3.0f * u * t * t, d = t * t * t;
