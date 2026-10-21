@@ -25,7 +25,7 @@ namespace {
 json evaluate(const std::string& text, const json& state = json::object()) {
 	static const json window = {{"width", 800}, {"height", 600}};
 	static const json revision = 1, event = json::object(), globals = json::object();
-	static const affresco::format::Scope locals{nullptr, nullptr, json::object()};
+	static const affresco::format::Scope locals{nullptr, nullptr, json::object(), {}, {}};
 	const affresco::format::Context context{state, window, revision, event, locals, globals};
 	return affresco::format::evaluate(text, context, "test");
 }

@@ -288,7 +288,7 @@ bool Events::runBinding(const json& handler, Panel& owner, const Scope& locals, 
 				continue;
 			const json& run = binding["do"];
 			if(run.is_string() && !commandEnabled(engine_, run.get<std::string>())) continue;
-			Scope scope{&locals, nullptr, json::object()};
+			Scope scope{&locals, nullptr, json::object(), {}, {}};
 			if(binding.contains("with") && binding["with"].is_object())
 				for(const auto& [key, value] : binding["with"].items())
 					scope.vars[key] = engine_.document.evaluate(value, locals, event, at + ".with." + key);

@@ -446,7 +446,7 @@ void Checker::walkKeys(const json& keys, const Scope& scope, const std::string& 
 				report(here, "the key '" + key + "' is bound twice in this scope with the same \"when\"",
 				       "give one of them a different \"when\", or remove it");
 			if(binding.contains("when")) read(binding["when"], scope, here + ".when");
-			Scope inner{&scope, nullptr, json()};
+			Scope inner{&scope, nullptr, json(), {}, {}};
 			if(binding.contains("with") && binding["with"].is_object())
 				for(const auto& [name, value] : binding["with"].items()) {
 					read(value, scope, here + ".with." + name);
