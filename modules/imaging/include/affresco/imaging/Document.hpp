@@ -203,6 +203,8 @@ public:
 	/// @brief Undoes or redoes until a place in the history (0 before the first step).
 	/// @param position The place.
 	void goTo(std::size_t position);
+	/// @brief Forgets every step: a document just opened starts with none.
+	void clearHistory() noexcept { history_.clear(); }
 
 private:
 	/// @brief The open pixel step.

@@ -101,3 +101,4 @@ affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 # The image editor's inputs (examples/tempera): ICC profiles and project files
 affrescoui_fuzzer(icc affrescoui::imaging)
+affrescoui_fuzzer(tempera_project affrescoui::imaging)
