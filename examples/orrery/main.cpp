@@ -158,10 +158,10 @@ void drawThumbnails(affresco::Screen& screen, const std::filesystem::path& file)
 /// @param screen The screen.
 void registerScene(affresco::Screen& screen) {
 	using namespace affresco::scene3d;
-	auto assets = std::make_shared<Assets>();
+	const auto assets = std::make_shared<Assets>();
 	assets->setMesh("sphere", makeSphere(48, 24));
 	assets->setMesh("orbit", makeTorus(1.0f, 0.006f, 128, 6));
-	auto probe = std::make_shared<ViewportProbe>();
+	const auto probe = std::make_shared<ViewportProbe>();
 	screen.registerSurface("scene", [assets, probe] { return makeSceneRenderer(assets, probe); }, {true});
 	screen.onCall("orrery.scene", [](const std::string&) { return std::string("true"); });
 }

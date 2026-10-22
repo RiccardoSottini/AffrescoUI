@@ -77,7 +77,7 @@ std::vector<std::string> clicked(std::vector<std::string> selection, const std::
 /// @brief The node under a click: the viewport's id pass if it saw this click, else a ray through the meshes.
 /// @param model The store and the probe. @param with The arguments (`x`, `y`, `shift`).
 /// @return `{ selection, node }`.
-json pick(Model& model, const json& with) {
+json pick(Model& model, const json& with) { // NOLINT(misc-const-correctness): it takes the probe's pick
 	const ViewCall call = readView(with);
 	std::string node;
 	bool shift = with.value("shift", false);

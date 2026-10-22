@@ -74,7 +74,7 @@ json addNode(const Model& model, const json& with) {
 		if(mesh && !mesh->bounds.empty()) node.transform.translation.y = -mesh->bounds.min.y;
 		Material material;
 		material.id = scene.freshId("material");
-		if(material.id == node.id) material.id += "m";
+		if(material.id == node.id) material.id += 'm';
 		material.name = node.name;
 		material.baseColor = {0.8f, 0.8f, 0.8f, 1.0f};
 		node.material = material.id;
@@ -116,11 +116,10 @@ json removeNodes(const json& with) {
 			if(!clip.is_object() || !clip.contains("tracks") || !clip["tracks"].is_array()) continue;
 			json& tracks = clip["tracks"];
 			const auto before = tracks.size();
-			tracks.erase(std::remove_if(tracks.begin(), tracks.end(),
-			                            [&](const json& track) {
-				                            return track.is_object() && removed.contains(textIn(track, "node"));
-			                            }),
-			             tracks.end());
+			const auto [first, last] = std::ranges::remove_if(tracks, [&](const json& track) {
+				return track.is_object() && removed.contains(textIn(track, "node"));
+			});
+			tracks.erase(first, last);
 			changed = changed || tracks.size() != before;
 		}
 		if(changed) patch.push_back({{"op", "add"}, {"path", std::string(animationsPath)}, {"value", std::move(kept)}});

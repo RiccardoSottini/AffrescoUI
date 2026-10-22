@@ -67,6 +67,7 @@ void main() {
 /// @throws std::runtime_error With the log, if it doesn't compile.
 GLuint compile(GLenum kind, std::string_view prelude, const char* body) {
 	const GLuint shader = glCreateShader(kind);
+	// NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): its length goes with it, in lengths
 	const std::array<const GLchar*, 2> parts{prelude.data(), body};
 	const std::array<GLint, 2> lengths{static_cast<GLint>(prelude.size()), -1};
 	glShaderSource(shader, 2, parts.data(), lengths.data());

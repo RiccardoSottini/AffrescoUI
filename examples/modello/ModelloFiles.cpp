@@ -76,8 +76,10 @@ json listFiles(const Model& model) {
 	json files = json::array();
 	listFolder(model.samples, "samples", files);
 	listFolder(model.data / "imports", "imports", files);
-	std::sort(files.begin(), files.end(),
-	          [](const json& a, const json& b) { return a["name"].get<std::string>() < b["name"].get<std::string>(); });
+	// NOLINTNEXTLINE(modernize-use-ranges): a json array's iterators aren't a range std::ranges::sort takes
+	std::sort(files.begin(), files.end(), [](const json& a, const json& b) {
+		return a["name"].get<std::string>() < b["name"].get<std::string>();
+	});
 	return {{"files", std::move(files)}};
 }
 
@@ -99,7 +101,7 @@ std::string freshPrefix(const Scene& scene, const json& imports) {
 
 /// @brief Loads a file's meshes and textures into the store. @param model The store. @param entry `{ source, file,
 /// prefix }`. @return What it held.
-GltfImport loadInto(Model& model, const json& entry) {
+GltfImport loadInto(Model& model, const json& entry) { // NOLINT(misc-const-correctness): it fills the store
 	GltfImport loaded = loadGltfFile(importable(model, textIn(entry, "source"), textIn(entry, "file")), GltfLimits{},
 	                                 textIn(entry, "prefix"));
 	model.assets->merge(loaded.assets);

@@ -45,6 +45,7 @@ ViewCall readView(const json& with) {
 	return call;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a number, which it always reads
 float numberIn(const json& with, std::string_view key, float fallback) noexcept {
 	if(!with.is_object()) return fallback;
 	const auto found = with.find(key);
