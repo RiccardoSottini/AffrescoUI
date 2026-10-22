@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -221,24 +222,91 @@ bool variableName(std::string_view name) {
 	       std::ranges::all_of(name, [&word](char c) { return word(c) || (c >= '0' && c <= '9'); });
 }
 
+/// @brief Reads a file of a folder's `.vscode`, comments allowed.
+/// @param root The open folder, or empty.
+/// @param name The file's name, such as `launch.json`.
+/// @return Its JSON, or null when there is no folder or no file.
+/// @throws std::runtime_error If the file isn't JSON or is too large.
+json folderSettingsFile(const fs::path& root, const std::string& name) {
+	if(root.empty()) return nullptr;
+	const fs::path file = root / ".vscode" / name;
+	std::error_code error;
+	if(!fs::is_regular_file(file, error)) return nullptr;
+	if(fs::file_size(file, error) > largestLaunchFile || error)
+		throw std::runtime_error(".vscode/" + name + " is too large");
+	std::ifstream in(file, std::ios::binary);
+	const std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+	try {
+		return affresco::parseUntrusted(plainJson(text));
+	} catch(const std::exception&) {
+		throw std::runtime_error(".vscode/" + name + " isn't JSON");
+	}
+}
+
+/// @brief A word of a task with `${workspaceFolder}` made `.` (its terminal starts in the folder).
+/// @param value The word.
+/// @return It, or nullopt if it isn't plain text or names another variable.
+std::optional<std::string> taskWord(const json& value) {
+	if(!value.is_string() || !plainWord(value.get_ref<const std::string&>())) return std::nullopt;
+	std::string word = value.get<std::string>();
+	constexpr std::string_view folderVariable = "${workspaceFolder}";
+	for(std::size_t at = word.find(folderVariable); at != std::string::npos; at = word.find(folderVariable, at + 1))
+		word.replace(at, folderVariable.size(), ".");
+	if(word.find("${") != std::string::npos) return std::nullopt;
+	return word;
+}
+
+/// @brief The group a task is in: `build`, `test` or "".
+/// @param task The task.
+/// @return The group.
+std::string taskGroup(const json& task) {
+	const auto it = task.find("group");
+	if(it == task.end()) return "";
+	const json& kind = it->is_object() ? it->value("kind", json()) : *it;
+	return kind == "build" || kind == "test" ? kind.get<std::string>() : "";
+}
+
+/// @brief The line a task's terminal runs.
+/// @param task The task.
+/// @param command Its command, its variables replaced.
+/// @return The line, or nullopt if an argument isn't plain text or the line is too long.
+std::optional<std::string> taskLine(const json& task, const std::string& command) {
+	// a shell task's command is a line for the shell; a process task's is one program
+	std::string line = task.value("type", json("shell")) == "shell" ? command : shellWord(command);
+	if(const auto args = task.find("args"); args != task.end()) {
+		if(!args->is_array() || args->size() > mostWords) return std::nullopt;
+		for(const json& arg : *args) {
+			const std::optional<std::string> word = taskWord(arg);
+			if(!word) return std::nullopt;
+			line += " " + shellWord(*word);
+		}
+	}
+	if(line.size() > longestLine) return std::nullopt;
+	return line;
+}
+
+/// @brief One task of a tasks.json, in the subset Forge runs: `label`, `type` (`shell` or `process`), `command`,
+/// `args` and `group`.
+/// @param task The task.
+/// @return `{ "label", "line", "group" }`, or null if Forge can't run it.
+json taskFor(const json& task) {
+	if(!task.is_object() || !task.contains("command")) return nullptr;
+	const json type = task.value("type", json("shell"));
+	if(type != "shell" && type != "process") return nullptr;
+	const std::optional<std::string> command = taskWord(task["command"]);
+	if(!command || command->empty()) return nullptr;
+	const std::optional<std::string> line = taskLine(task, *command);
+	if(!line) return nullptr;
+	const json label = task.value("label", json());
+	const bool named = label.is_string() && plainWord(label.get_ref<const std::string&>()) && label != "";
+	return {{"label", named ? label.get<std::string>() : *command}, {"line", *line}, {"group", taskGroup(task)}};
+}
+
 } // namespace
 
 json launchConfigurations(const fs::path& root) {
 	json result = {{"configurations", json::array()}, {"skipped", 0}};
-	if(root.empty()) return result;
-	const fs::path file = root / ".vscode" / "launch.json";
-	std::error_code error;
-	if(!fs::is_regular_file(file, error)) return result;
-	if(fs::file_size(file, error) > largestLaunchFile || error)
-		throw std::runtime_error(".vscode/launch.json is too large");
-	std::ifstream in(file, std::ios::binary);
-	const std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-	json launch;
-	try {
-		launch = affresco::parseUntrusted(plainJson(text));
-	} catch(const std::exception&) {
-		throw std::runtime_error(".vscode/launch.json isn't JSON");
-	}
+	const json launch = folderSettingsFile(root, "launch.json");
 	if(!launch.is_object() || !launch.contains("configurations") || !launch["configurations"].is_array())
 		return result;
 	int skipped = 0;
@@ -246,6 +314,20 @@ json launchConfigurations(const fs::path& root) {
 		json known = result["configurations"].size() < mostConfigurations ? configurationFor(configuration) : nullptr;
 		if(known.is_null()) ++skipped;
 		else result["configurations"].push_back(std::move(known));
+	}
+	result["skipped"] = skipped;
+	return result;
+}
+
+json taskList(const fs::path& root) {
+	json result = {{"tasks", json::array()}, {"skipped", 0}};
+	const json file = folderSettingsFile(root, "tasks.json");
+	if(!file.is_object() || !file.contains("tasks") || !file["tasks"].is_array()) return result;
+	int skipped = 0;
+	for(const json& task : file["tasks"]) {
+		json known = result["tasks"].size() < mostConfigurations ? taskFor(task) : nullptr;
+		if(known.is_null()) ++skipped;
+		else result["tasks"].push_back(std::move(known));
 	}
 	result["skipped"] = skipped;
 	return result;
@@ -278,6 +360,7 @@ void registerDebug(affresco::Screen& screen, std::shared_ptr<Workspace> workspac
 	screen.services().addRoot("debug", folder);
 	screen.onCall("forge.debug.launchConfigurations",
 	              [workspace](const std::string&) { return launchConfigurations(workspace->root).dump(); });
+	screen.onCall("forge.tasks.list", [workspace](const std::string&) { return taskList(workspace->root).dump(); });
 	screen.onCall("forge.debug.commandLine", [folder](const std::string& arguments) {
 		const json request = affresco::parseUntrusted(arguments);
 		if(!request.is_object()) throw std::runtime_error("the adapter's request is not an object");

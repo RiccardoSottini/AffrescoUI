@@ -6,6 +6,61 @@
 	"screen": "forge.screen.json",
 	"scenarios": [
 		{
+			"name": "terminal-run-task-reads-no-tasks",
+			"note": "Run Task reads the folder's .vscode/tasks.json; the test folder has none, so nothing opens",
+			"steps": [
+				{ "action": "runTask" },
+				{ "expect": { "state": "tasks.items.length", "is": 0 } },
+				{ "expect": { "state": "tasks.error", "is": "" } },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "terminals.list.length", "is": 0 } }
+			]
+		},
+		{
+			"name": "terminal-tasks-from-a-file",
+			"note": "What forge.tasks.list reads becomes the picker's items, each with its command line as its detail",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 } },
+				{ "expect": { "state": "tasks.items.length", "is": 2 } },
+				{ "expect": { "state": "tasks.items[0].title", "is": "build" } },
+				{ "expect": { "state": "tasks.items[1].detail", "is": "'ctest' '--output-on-failure'" } },
+				{ "expect": { "state": "tasks.skipped", "is": 1 } }
+			]
+		},
+		{
+			"name": "terminal-run-picked-task",
+			"note": "A picked task runs in a new terminal named after it, and becomes the one Rerun Last Task runs",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 } },
+				{ "action": "taskRunEvent", "event": { "title": "test", "line": "ctest" } },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "terminals.list[0].label", "is": "Task - test" } },
+				{ "expect": { "state": "tasks.last", "is": "test" } },
+				{ "expect": { "state": "panelTab", "is": "terminal" } },
+				{ "action": "rerunLastTask" },
+				{ "expect": { "state": "terminals.list.length", "is": 2 } },
+				{ "expect": { "state": "terminals.list[1].label", "is": "Task - test" } }
+			]
+		},
+		{
+			"name": "terminal-build-task-runs-the-only-one",
+			"note": "With one build task, Run Build Task runs it without a picker",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "found": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 }, "then": "build" } },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "terminals.list[0].label", "is": "Task - build" } }
+			]
+		},
+		{
+			"name": "terminal-run-task-opens-the-picker",
+			"note": "Run Task with tasks opens the quick pick on its task provider",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "found": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 }, "then": "pick" } },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "expect": { "state": "quickPick.query", "is": "task " } }
+			]
+		},
+		{
 			"name": "terminal-hidden-until-one-opens",
 			"note": "No terminal at start: the panel has no Terminal tab and no terminal node",
 			"steps": [

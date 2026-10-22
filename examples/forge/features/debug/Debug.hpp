@@ -25,6 +25,15 @@ namespace forge {
 /// @throws std::runtime_error If the file isn't JSON or is too large.
 [[nodiscard]] affresco::json launchConfigurations(const std::filesystem::path& root);
 
+/// @brief Reads the tasks of a folder's `.vscode/tasks.json`, in the subset Forge runs: `label`, `type` (`shell` or
+/// `process`), `command`, `args` and `group` (`build` or `test`, or `{ "kind" }`). `${workspaceFolder}` becomes `.`;
+/// a task with another variable is skipped. Comments are allowed.
+/// @param root The open folder, or empty.
+/// @return `{ "tasks": [{ "label", "line", "group" }], "skipped" }`, where `line` is what the task's terminal runs
+/// (a process task's program and every argument single-quoted); no tasks when there is no folder or no file.
+/// @throws std::runtime_error If the file isn't JSON or is too large.
+[[nodiscard]] affresco::json taskList(const std::filesystem::path& root);
+
 /// @brief The line a POSIX shell runs for an adapter's `runInTerminal` request: `cd '<cwd>' && exec env 'K=V'...
 /// '<argument>'...`, every word single-quoted.
 /// @param root The folder the debugger runs in; `cwd` must be inside it (empty: the folder itself).
@@ -40,6 +49,7 @@ namespace forge {
 ///   - the root `debug`: the open folder, or the current folder if none is open (a program an adapter asks to run in
 ///     a terminal runs in the terminal's shell, under its grant);
 ///   - `forge.debug.launchConfigurations`: launchConfigurations() of the open folder;
+///   - `forge.tasks.list`: taskList() of the open folder;
 ///   - `forge.debug.commandLine` `{ "cwd", "args", "env" }`: `{ "line" }`, terminalCommandLine() in the root `debug`.
 /// @param screen The screen.
 /// @param workspace The open folder.
