@@ -63,6 +63,8 @@ struct ImageCache::State : std::enable_shared_from_this<ImageCache::State> {
 	/// @brief What the worker made of a file: the image, or why there is none.
 	using Result = std::variant<std::shared_ptr<const Bitmap>, std::string>;
 
+	/// @brief Starts empty, with no worker.
+	/// @param bounds The bounds.
 	explicit State(Limits bounds) : limits(bounds) {}
 
 	Limits limits;                                                           ///< The bounds.

@@ -1,3 +1,7 @@
+/// @file
+/// @brief gl::QuadRenderer: its shaders, the frame drawn from the retained geometry (all of it, or only a damaged
+/// region), the panels' clips, and the batches of quads with their textures.
+
 #include "gl/QuadRenderer.hpp"
 #include "paint/PaintRecorder.hpp"
 #include "gl/Shader.hpp"

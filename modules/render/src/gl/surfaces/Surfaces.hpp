@@ -47,6 +47,7 @@ struct Target {
 class Surfaces {
 public:
 	Surfaces() = default;
+	/// @brief Releases every surface, in the window's context.
 	~Surfaces();
 	Surfaces(const Surfaces&) = delete;
 	Surfaces& operator=(const Surfaces&) = delete;

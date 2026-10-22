@@ -19,11 +19,17 @@ public:
 	/// @brief Takes ownership of a name.
 	/// @param id The name (0: nothing).
 	explicit Object(GLuint id) noexcept : id_(id) {}
+	/// @brief Deletes the object, if any.
 	~Object() { reset(); }
 
 	Object(const Object&) = delete;
 	Object& operator=(const Object&) = delete;
+	/// @brief Takes another owner's name.
+	/// @param other The other owner: it owns nothing after.
 	Object(Object&& other) noexcept : id_(std::exchange(other.id_, 0)) {}
+	/// @brief Deletes this owner's object, then takes another owner's name.
+	/// @param other The other owner: it owns nothing after.
+	/// @return This owner.
 	Object& operator=(Object&& other) noexcept {
 		if(this != &other) {
 			reset();

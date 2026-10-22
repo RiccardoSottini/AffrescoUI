@@ -1,3 +1,6 @@
+/// @file
+/// @brief Color: read from and written as hex, and as 8-bit channels.
+
 #include "affresco/render/Color.hpp"
 
 #include <algorithm>
