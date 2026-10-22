@@ -354,6 +354,84 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 	CHECK((found && found->size() == 1));
 }
 
+namespace {
+
+/// Keys in each wide object, and items in each long list, of the tests below: enough that looking through those
+/// before each one costs seconds.
+constexpr int wideCount = 100000;
+
+/// @brief Writes an item many times, each with its number in place of every `$`.
+/// @param item JSON text with `$` in it.
+/// @param count How many.
+/// @param open Written before the first: "{" or "[".
+/// @param close Written after the last: "}" or "]".
+/// @return The text.
+std::string repeated(const std::string& item, int count, char open, char close) {
+	std::string text(1, open);
+	for(int i = 0; i < count; ++i) {
+		std::string one = item;
+		for(std::size_t at = one.find('$'); at != std::string::npos; at = one.find('$', at))
+			one.replace(at, 1, std::to_string(i));
+		text += (i ? "," : "") + one;
+	}
+	return text + close;
+}
+
+/// @brief One object of wideCount keys, at its place in a document.
+struct Wide {
+	const char* pointer; ///< Its place, as a JSON pointer.
+	const char* entry;   ///< Each key and its value, `"<key>", <value>`, `$` its number.
+};
+
+/// @brief A row of a table: a wide document.
+struct WideCase {
+	const char* what;          ///< What the row shows.
+	std::string sections;      ///< The screen's sections, without "version", with null where an object goes.
+	std::vector<Wide> objects; ///< The objects.
+};
+
+/// @brief Checks wide documents, which must be checked (not too large) and have no findings.
+/// @param cases The table.
+void checkWide(const std::vector<WideCase>& cases) {
+	for(const WideCase& row : cases) {
+		CAPTURE(row.what);
+		json document = screen(row.sections);
+		for(const Wide& wide : row.objects) { // read as text, a JSON object would find each key among those before it
+			json& object = document[json::json_pointer(wide.pointer)] = json::object();
+			for(json& entry : json::parse(repeated(std::string("[") + wide.entry + "]", wideCount, '[', ']')))
+				object.get_ref<json::object_t&>().emplace_back(entry[0].get<std::string>(), std::move(entry[1]));
+		}
+		const auto found = affresco::format::check(document, document.value("state", json::object()));
+		REQUIRE(found);
+		CHECK(found->empty());
+	}
+}
+
+/// The screen's root, for documents whose sections are what is checked.
+const std::string panel = R"("root": {"type": "panel", "id": "main"})";
+
+} // namespace
+
+// The shape of an object, of what a list's items hold or of what the state's types let it hold was built a key at a
+// time, each found among those before it: a hundred thousand keys took from seconds to a minute to check
+TEST_CASE("checker: the shapes of wide values are built at the cost of their size" * doctest::timeout(5)) {
+	checkWide({
+	    {"items of many keys",
+		 R"("state": {"rows": [null, null]}, )" + panel,
+		 {{"/state/rows/0", R"("k$", $)"}, {"/state/rows/1", R"("j$", $)"}}},
+	    {"items of one key each",
+		 R"("state": {"rows": )" + repeated(R"({"k$": 1})", wideCount, '[', ']') + "}, " + panel,
+		 {}},
+	    {"state types",
+		 R"("state": {}, "stateTypes": null, )" + panel,
+		 {{"/stateTypes", R"("k$", {"type": "number"})"}}},
+	    {"an object set onto another",
+		 R"("state": {"o": null}, "actions": {"go": [{"set": "state.o", "to": null}]}, )" + panel,
+		 {{"/state/o", R"("k$", $)"}, {"/actions/go/0/to", R"("k$", [$])"}}},
+	    {"$object", R"("root": {"type": "text", "text": {"$object": null}})", {{"/root/text/$object", R"("k$", $)"}}},
+	});
+}
+
 // Before, every finding compared its name with every name there is: 8,000 typos against a state of 8,000 keys took
 // 5.8 seconds to refuse, and a revision may hold far more of both
 TEST_CASE("checker: only the first findings of a pass get a hint, each against the first thousand names") {

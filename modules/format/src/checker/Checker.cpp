@@ -10,6 +10,8 @@
 
 #include <algorithm>
 #include <iterator>
+#include <span>
+#include <unordered_map>
 
 namespace affresco::format {
 
@@ -21,6 +23,29 @@ namespace checker {
 
 /* Shapes */
 
+namespace {
+
+/// Keys an object has before the checker finds them by name rather than one after another (as an ordered object does).
+constexpr std::size_t indexedEntries = 16;
+
+/// @brief Merges the keys of many into an object, finding each by name: an ordered object would look for each key
+/// among all those before it.
+/// @param into An object's shape.
+/// @param other Another's.
+void mergeWide(Shape& into, const Shape& other) {
+	Shape::object_t& fields = into.get_ref<Shape::object_t&>();
+	fields.reserve(fields.size() + other.size()); // the names the index views stay where they are
+	std::unordered_map<std::string_view, Shape*> shapes;
+	for(auto& [key, shape] : fields) shapes.emplace(key, &shape);
+	for(const auto& [key, shape] : other.items()) {
+		const auto it = shapes.find(key);
+		if(it == shapes.end()) fields.emplace_back(key, shape); // other's keys are all different
+		else mergeInto(*it->second, shape);
+	}
+}
+
+} // namespace
+
 void mergeInto(Shape& into, const Shape& other) {
 	if(into.is_null()) return;
 	if(other.is_null() || into.type() != other.type()) {
@@ -29,6 +54,8 @@ void mergeInto(Shape& into, const Shape& other) {
 		if(other.empty()) return;
 		if(into.empty()) into = other;
 		else mergeInto(into[0], other[0]);
+	} else if(into.is_object() && other.size() >= indexedEntries) {
+		mergeWide(into, other);
 	} else if(into.is_object()) {
 		for(const auto& [key, shape] : other.items()) {
 			const auto it = into.find(key);
@@ -50,54 +77,67 @@ void addItem(Shape& list, const Shape& item) {
 
 namespace {
 
-/// @brief Tells whether a value from the state is of the kind a shape describes.
-/// @param shape The shape.
+/// @brief The kinds of value from the state that a shape tells apart.
+enum class DataKind {
+	unknown, ///< null, or an empty object (most likely a map, filled later)
+	object,  ///< An object with keys.
+	list,    ///< A list.
+	single   ///< Text, a number or a boolean.
+};
+
+/// @brief Tells what kind of value a value from the state is.
 /// @param data The value.
-/// @return true for a non-empty object and an object shape, a list and a list shape, a single value and its shape.
-bool sameKind(const Shape& shape, const json& data) {
-	if(data.is_object()) return !data.empty() && shape.is_object();
-	if(data.is_array()) return shape.is_array();
-	return !data.is_null() && shape.is_boolean();
+/// @return Its kind.
+DataKind kindOfData(const json& data) {
+	if(data.is_object()) return data.empty() ? DataKind::unknown : DataKind::object;
+	if(data.is_array()) return DataKind::list;
+	return data.is_null() ? DataKind::unknown : DataKind::single;
 }
 
-/// @brief Merges what a value from the state holds into a shape, in place: a list of thousands of items costs no
-/// copies.
-/// @param shape The shape so far.
-/// @param data The value.
-void absorb(Shape& shape, const json& data) {
-	if(shape.is_null()) return;
-	if(!sameKind(shape, data)) {
-		shape = anything;
-	} else if(data.is_object()) {
-		for(const auto& [key, value] : data.items()) {
-			const auto it = shape.find(key);
-			if(it == shape.end()) shape[key] = shapeOfData(value);
-			else absorb(*it, value);
-		}
-	} else if(data.is_array()) {
-		for(const json& item : data) {
-			if(shape.empty()) shape.push_back(shapeOfData(item));
-			else absorb(shape[0], item);
-			if(shape[0].is_null()) break; // nothing more can be known
-		}
+/// @brief Describes what a place in the state may hold from the values it holds: one value, the items of a list, or
+/// the values a key has in those items. Each value is looked at once: merging items one after another into a shape
+/// would look for each of their keys among all the keys so far.
+/// @param values The values, in order (at least one).
+/// @return Their shape: anything if one is null or an empty object, or they are of different kinds.
+Shape shapeOfValues(std::span<const json* const> values) {
+	const DataKind kind = kindOfData(*values.front());
+	if(kind == DataKind::unknown ||
+	   std::ranges::any_of(values, [&](const json* value) { return kindOfData(*value) != kind; }))
+		return anything;
+	if(kind == DataKind::single) return single;
+	if(kind == DataKind::list) {
+		std::vector<const json*> items;
+		for(const json* value : values)
+			for(const json& item : *value) items.push_back(&item);
+		return items.empty() ? Shape::array() : Shape::array({shapeOfValues(items)});
 	}
+	Shape shape = Shape::object();
+	Shape::object_t& fields = shape.get_ref<Shape::object_t&>();
+	if(values.size() == 1) { // its keys are all different: each goes at the end, without looking for it
+		for(const auto& [key, value] : values.front()->items()) {
+			const json* const one = &value;
+			fields.emplace_back(key, shapeOfValues({&one, 1}));
+		}
+		return shape;
+	}
+	// Each key's values, the keys in the order they first come (the views name keys in the values, which stay)
+	std::vector<std::pair<std::string_view, std::vector<const json*>>> keys;
+	std::unordered_map<std::string_view, std::size_t> positions;
+	for(const json* object : values)
+		for(const auto& [key, value] : object->items()) {
+			const auto [it, added] = positions.try_emplace(key, keys.size());
+			if(added) keys.emplace_back(key, std::vector<const json*>());
+			keys[it->second].second.push_back(&value);
+		}
+	for(const auto& [key, inside] : keys) fields.emplace_back(key, shapeOfValues(inside));
+	return shape;
 }
 
 } // namespace
 
 Shape shapeOfData(const json& data) {
-	if(data.is_array()) {
-		Shape items = Shape::array();
-		absorb(items, data);
-		return items;
-	}
-	if(data.is_object()) {
-		if(data.empty()) return anything; // most likely a map, filled later
-		Shape fields = Shape::object();
-		for(const auto& [key, value] : data.items()) fields[key] = shapeOfData(value);
-		return fields;
-	}
-	return data.is_null() ? anything : single;
+	const json* const one = &data;
+	return shapeOfValues({&one, 1});
 }
 
 const Shape& itemOf(const Shape& list) { return list.is_array() && !list.empty() ? list[0] : anything; }
@@ -193,7 +233,8 @@ std::string describe(const json& tree) {
 Checker::Checker(const json& document, const json& state, const std::set<std::string, std::less<>>& nativeActions)
     : document_(document), nativeActions_(nativeActions), state_(Shape::object()) {
 	if(state.is_object())
-		for(const auto& [key, value] : state.items()) state_[key] = shapeOfData(value);
+		for(const auto& [key, value] : state.items()) // as in shapeOfData()
+			state_.get_ref<Shape::object_t&>().emplace_back(key, shapeOfData(value));
 	learnTypes();
 }
 

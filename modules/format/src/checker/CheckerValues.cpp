@@ -101,9 +101,14 @@ bool itemsAppeared(const Shape& before, const Shape& after) {
 	if(before.is_array() && after.is_array())
 		return before.empty() ? !after.empty() : !after.empty() && itemsAppeared(before[0], after[0]);
 	if(!before.is_object() || !after.is_object()) return false;
+	const Shape::object_t& fields = after.get_ref<const Shape::object_t&>();
+	auto next = fields.begin();
 	return std::ranges::any_of(before.items(), [&](const auto& field) {
-		const auto it = after.find(field.key());
-		return it != after.end() && itemsAppeared(field.value(), *it);
+		// after has before's keys first, in the same order (mergeInto() keeps them, adding others at the end)
+		const auto it = next != fields.end() && next->first == field.key() ? next : fields.find(field.key());
+		if(it == fields.end()) return false;
+		next = std::next(it);
+		return itemsAppeared(field.value(), it->second);
 	});
 }
 
@@ -170,8 +175,8 @@ Shape Checker::shapeOf(const json& value, const Scope& scope, const std::string&
 		if(isOperator(value)) return shapeOfOperator(value.begin().key(), value.begin().value(), scope, place);
 		if(value.empty()) return anything;
 		Shape fields = Shape::object();
-		for(const auto& [key, item] : value.items())
-			fields[key] = shapeOf(item, scope, std::format("{}.{}", place, key));
+		for(const auto& [key, item] : value.items()) // all different: each goes at the end, without looking
+			fields.get_ref<Shape::object_t&>().emplace_back(key, shapeOf(item, scope, std::format("{}.{}", place, key)));
 		return fields;
 	}
 	if(value.is_array()) {
@@ -241,7 +246,8 @@ Shape Checker::shapeOfOperator(const std::string& name, const json& raw, const S
 	if(name == "$object") {
 		if(!raw.is_object() || raw.empty()) return anything;
 		Shape fields = Shape::object();
-		for(const auto& [key, value] : raw.items()) fields[key] = shapeOf(value, scope, place);
+		for(const auto& [key, value] : raw.items()) // all different: each goes at the end, without looking
+			fields.get_ref<Shape::object_t&>().emplace_back(key, shapeOf(value, scope, place));
 		return fields;
 	}
 	if(among(choiceOperators, name)) return shapeOfChoice(name, raw, scope, place);

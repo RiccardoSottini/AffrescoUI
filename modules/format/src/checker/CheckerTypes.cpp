@@ -116,7 +116,8 @@ Shape shapeOfType(const json& type, int depth) {
 	if(properties == type.end() || !properties->is_object() || (others != type.end() && *others != false))
 		return anything;
 	Shape fields = Shape::object();
-	for(const auto& [key, inside] : properties->items()) fields[key] = shapeOfType(inside, depth + 1);
+	for(const auto& [key, inside] : properties->items()) // all different: each goes at the end, without looking
+		fields.get_ref<Shape::object_t&>().emplace_back(key, shapeOfType(inside, depth + 1));
 	return fields;
 }
 
@@ -124,11 +125,10 @@ void Checker::learnTypes() {
 	const auto types = document_.find("stateTypes");
 	if(types == document_.end() || !types->is_object()) return;
 	types_ = &*types;
-	for(const auto& [key, type] : types->items()) {
-		const Shape declared = shapeOfType(type, 0);
-		if(const auto it = state_.find(key); it != state_.end()) mergeInto(*it, declared);
-		else state_[key] = declared;
-	}
+	Shape declared = Shape::object();
+	for(const auto& [key, type] : types->items())
+		declared.get_ref<Shape::object_t&>().emplace_back(key, shapeOfType(type, 0));
+	mergeInto(state_, declared); // what the state holds and what its types let it hold
 }
 
 const json* Checker::typeOf(const std::vector<PathKey>& keys) const {
