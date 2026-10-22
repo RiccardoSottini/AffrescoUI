@@ -350,6 +350,22 @@ TEST_CASE("search: a long line's preview is the part around the match, cut at co
 	CHECK(bad.files[0].matches[0].text == "(not UTF-8 text)");
 }
 
+// Found by fuzzing (tests/fuzz, find_pattern, under ASan): a lookbehind of variable length over text that isn't
+// UTF-8 read past the subject, in the matcher of the PCRE2 version this pinned before
+TEST_CASE("search: a lookbehind of variable length stays inside text that isn't UTF-8") {
+	for(const char* text : {"(?<=s?)", "(?<*s?)"}) {
+		const affresco::TextPattern pattern = compiled(text, {.regex = true});
+		for(const std::string_view subject :
+		    {std::string_view("\xff"), std::string_view("\xc3"), std::string_view("a\xff")})
+			for(std::size_t start = 0; start <= subject.size(); ++start) {
+				const affresco::PatternFind found = pattern.find(subject, start);
+				REQUIRE(found.match);
+				CHECK(found.match->offset >= start);
+				CHECK(found.match->offset + found.match->length <= subject.size());
+			}
+	}
+}
+
 TEST_CASE("search: replaceAll replaces plain text, groups and empty matches, within its caps") {
 	services::Replaced replaced;
 	CHECK_FALSE(services::replaceAll("a.b.a", compiled("a"), "x", replaced));
