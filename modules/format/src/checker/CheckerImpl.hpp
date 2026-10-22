@@ -202,6 +202,12 @@ private:
 	/// @param scope The variables.
 	/// @param place Where it is.
 	void walkKeys(const json& keys, const Scope& scope, const std::string& place);
+	/// @brief Checks one key binding `{when, do, with}`: its "when" and "with" read in the scope, its "do" with the
+	/// "with" names in scope too.
+	/// @param binding The binding.
+	/// @param scope The variables.
+	/// @param place Where it is.
+	void walkKeyBinding(const json& binding, const Scope& scope, const std::string& place);
 	/// @brief Checks a list of steps, or one step.
 	/// @param steps The steps.
 	/// @param scope The variables.

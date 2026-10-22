@@ -23,11 +23,10 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",      "push",    "remove",   "toggle",  "increment", "if",         "forEach", "while",
-	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
-	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
-	 "navigate", "dismiss", "after",    "debounce", "animate",  "copy",       "log",     "stop",
-	 "note",     "invoke",  "request",   "subscribe", "respond", "signIn",   "signOut"});
+    {"set",    "push",       "remove", "toggle",   "increment", "if",        "forEach", "while",    "run",     "call",
+	 "cancel", "emit",       "send",   "connect",  "patch",     "accept",    "reject",  "preview",  "restore", "revert",
+	 "undo",   "endPreview", "focus",  "scrollTo", "navigate",  "dismiss",   "after",   "debounce", "animate", "copy",
+	 "log",    "stop",       "note",   "invoke",   "request",   "subscribe", "respond", "signIn",   "signOut"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -427,7 +426,7 @@ void Checker::walkHandler(const json& handler, const Scope& scope, const std::st
 
 void Checker::walkKeys(const json& keys, const Scope& scope, const std::string& place) {
 	std::set<std::pair<std::string, std::string>> seen; // (key, "when") pairs
-	std::set<std::string> firstPresses;                  // the first press of each chord
+	std::set<std::string> firstPresses;                 // the first press of each chord
 	for(const auto& [written, handler] : keys.items()) {
 		const std::string key = normalizeChord(written);
 		const std::string at = std::format("{}.{}", place, written);
@@ -437,28 +436,32 @@ void Checker::walkKeys(const json& keys, const Scope& scope, const std::string& 
 			walkHandler(handler, scope, at);
 			continue;
 		}
-		const json bindings = isBindingList(handler) ? handler : json::array({handler});
-		for(std::size_t i = 0; i < bindings.size(); ++i) {
-			const json& binding = bindings[i];
-			const std::string here = isBindingList(handler) ? at + "[" + std::to_string(i) + "]" : at;
+		const bool list = isBindingList(handler);
+		for(std::size_t i = 0; i < (list ? handler.size() : 1); ++i) {
+			const json& binding = list ? handler[i] : handler;
+			const std::string here = list ? at + "[" + std::to_string(i) + "]" : at;
 			const std::string when = binding.contains("when") ? binding["when"].dump() : "";
 			if(!seen.emplace(key, when).second)
 				report(here, "the key '" + key + "' is bound twice in this scope with the same \"when\"",
 				       "give one of them a different \"when\", or remove it");
-			if(binding.contains("when")) read(binding["when"], scope, here + ".when");
-			Scope inner{&scope, nullptr, json(), {}, {}};
-			if(binding.contains("with") && binding["with"].is_object())
-				for(const auto& [name, value] : binding["with"].items()) {
-					read(value, scope, here + ".with." + name);
-					inner.vars[name] = anything;
-				}
-			walkHandler(binding["do"], inner, here + ".do");
+			walkKeyBinding(binding, scope, here);
 		}
 	}
 	for(const auto& [key, when] : seen)
 		if(firstPresses.contains(key))
 			report(std::format("{}.{}", place, key), "the key '" + key + "' is shadowed by a chord that starts with it",
 			       "a press of it waits for the chord's next press: bind another key");
+}
+
+void Checker::walkKeyBinding(const json& binding, const Scope& scope, const std::string& place) {
+	if(binding.contains("when")) read(binding["when"], scope, place + ".when");
+	Scope inner{&scope, nullptr, json(), {}, {}};
+	if(binding.contains("with") && binding["with"].is_object())
+		for(const auto& [name, value] : binding["with"].items()) {
+			read(value, scope, place + ".with." + name);
+			inner.vars[name] = anything;
+		}
+	walkHandler(binding["do"], inner, place + ".do");
 }
 
 void Checker::walkSteps(const json& steps, const Scope& scope, const std::string& place) {
@@ -477,7 +480,8 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 	if(!kind) {
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
-		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, reject, "
+		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, "
+		       "reject, "
 		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut");
 		return;
 	}
@@ -506,8 +510,8 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		const bool service = step.contains("invoke") || step.contains("request") || step.contains("subscribe") ||
 		                     step.contains("signIn"); // a sign-in's error is {code, message} too
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
-		if(key == "then" && step.contains("call")) layer.vars["result"] = anything; // and its result
-		if(key == "onDone") layer.vars["result"] = anything;                       // a service call's result
+		if(key == "then" && step.contains("call")) layer.vars["result"] = anything;      // and its result
+		if(key == "onDone") layer.vars["result"] = anything;                             // a service call's result
 		if(key == "onEvent" || (key == "do" && service)) layer.vars["event"] = anything; // what it streams
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}
