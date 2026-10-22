@@ -179,6 +179,8 @@ TEST_CASE("contributions: a part is listed only from a manifest whose needs chec
 	CHECK(throwsWith([] { (void)format::partOf(json()); }, "manifest"));
 	CHECK(throwsWith([] { (void)format::partOf(json::parse(R"({"name": "a", "needs": {"pages": "list"}})")); },
 	                 "manifest.needs.pages"));
+	CHECK(throwsWith([] { (void)format::partOf(json::parse(R"({"name": {"a": 1}})")); }, "manifest.name"));
+	CHECK(format::partOf(json::parse(R"({"name": "a", "provides": {"views": "dock"}})"))["views"].empty());
 }
 
 TEST_CASE("contributions: needs are named and typed") {
@@ -319,6 +321,13 @@ TEST_CASE("contributions: a failing proof names each unmet need and why") {
 	CHECK(reasons[0].contains("not proven"));
 	CHECK(reasons[1].contains("unmet need pages"));
 	CHECK_NOTHROW(format::checkProofRecord(proven.proof, "proof"));
+}
+
+TEST_CASE("contributions: a proof of a manifest or adapter whose names aren't text fails, without throwing") {
+	json noted = adapter();
+	noted["note"] = json::object();
+	CHECK(prove(noted).proof["adapter"]["note"] == "");
+	CHECK(prove(json::array()).proof["passed"] == false);
 }
 
 TEST_CASE("contributions: proof records read back are bounded") {

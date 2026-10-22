@@ -249,13 +249,15 @@ std::set<std::string, std::less<>> grantedActions(const json& document) {
 json partOf(const json& manifest) {
 	expect::object(manifest, "manifest");
 	if(const auto needs = manifest.find("needs"); needs != manifest.end()) checkNeeds(*needs, "manifest.needs");
+	for(const char* key : {"name", "release", "title"}) optionalText(manifest, key, "manifest");
 	json part = {{"name", manifest.value("name", "")},
 	             {"release", manifest.value("release", "")},
 	             {"title", manifest.value("title", "")},
 	             {"needs", manifest.value("needs", json::object())}};
 	json views = json::array();
-	if(manifest.contains("provides") && manifest["provides"].contains("views"))
-		for(const auto& [point, nodes] : manifest["provides"]["views"].items()) views.push_back(point);
+	const json provides = manifest.value("provides", json());
+	if(provides.contains("views") && provides["views"].is_object())
+		for(const auto& [point, nodes] : provides["views"].items()) views.push_back(point);
 	part["views"] = std::move(views);
 	return part;
 }
