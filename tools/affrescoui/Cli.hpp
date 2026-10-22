@@ -148,4 +148,9 @@ Exit importChanges(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit generateSchema(std::span<const std::string_view> args);
 
+/// @brief `sign`: signs a feature's manifest or a catalogue's index, or makes a signing key.
+/// @param args The arguments.
+/// @return How it ended.
+Exit signFile(std::span<const std::string_view> args);
+
 } // namespace affresco::cli

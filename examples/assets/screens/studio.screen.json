@@ -2,6 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 1,
+	"include": ["studio-features.json"],
 	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file. Ask and direct changes on the left; on the right, tabs for the review queue (a list of proposals and the chosen one's details), the history of main, and the approval rules. Cmd+1, 2 and 3 switch the tabs, Cmd+J light and dark, Cmd+Z undoes.",
 	"window": {
 		"title": "AffrescoUI Studio",
@@ -1937,6 +1938,10 @@
 						]
 					}
 				]
+			},
+			{
+				"id": "featuresDialog",
+				"use": "featuresDialog"
 			},
 			{
 				"id": "rejectDialog",

@@ -18,6 +18,7 @@
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
+#include "affresco/format/Features.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
 #include <concepts>
@@ -173,6 +174,11 @@ public:
 	/// outside the grants is refused. Services start at their first use, once there is an executor.
 	/// @return The registry, owned by the Screen.
 	[[nodiscard]] services::ServiceRegistry& services() noexcept;
+
+	/// @brief The catalogues and publishers the `features` service installs from (RFC 0004): nothing is trusted
+	/// until the host says so (`features().trustPublisher("ed25519:...")`, then `addCatalog(index)`).
+	/// @return Them, owned by the Screen.
+	[[nodiscard]] format::Features& features() noexcept;
 
 	/// @brief The network the file's "connections" section uses (RFC 0003), made at the first call: until then, and
 	/// for every origin the host doesn't allow (`network().allow("https://api.example.com")`), each connection is

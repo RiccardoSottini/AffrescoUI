@@ -3,6 +3,7 @@
 /// together with the services, and adds includes, declared channels and the "persist" state file.
 
 #include "affresco/Screen.hpp"
+#include "FeaturesService.hpp"
 #include "OffscreenImages.hpp"
 
 #include "affresco/channel/Session.hpp"
@@ -78,6 +79,7 @@ private:
 };
 
 struct Screen::Impl {
+	format::Features features;                                   ///< Catalogues and publishers (RFC 0004); outlives the rest.
 	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
 	RelayExecutor relay;                                         ///< The network's executor.
 	std::unique_ptr<net::Client> network;                        ///< See Screen::network(); outlives the runtime.
@@ -122,6 +124,7 @@ struct Screen::Impl {
 		runtime.onUpdated.connect([this] { save(); });
 		rules.setServices(&services);
 		runtime.setServices(&services);
+		services.add(detail::makeFeaturesProvider(features, repository, alive));
 
 		socketDirectory = Screen::defaultSocketDirectory();
 	}
@@ -635,6 +638,8 @@ void Screen::setExecutor(Executor* executor) noexcept {
 }
 
 services::ServiceRegistry& Screen::services() noexcept { return impl_->services; }
+
+format::Features& Screen::features() noexcept { return impl_->features; }
 
 net::Client& Screen::network() {
 	Impl& impl = *impl_;

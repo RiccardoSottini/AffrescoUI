@@ -67,6 +67,9 @@ include(cmake/AffrescoUIText.cmake)
 # libcurl with the platform's TLS: the network module (RFC 0003, decision D3)
 include(cmake/AffrescoUINetwork.cmake)
 
+# Monocypher: the Ed25519 signatures of features and catalogues (RFC 0004, decision D12)
+include(cmake/AffrescoUISignatures.cmake)
+
 # The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
 # of lucide-static 1.48.0 (examples/assets/fonts/README.md)
 file(SHA256 ${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts/Lucide.ttf AFFRESCOUI_LUCIDE_SHA256)

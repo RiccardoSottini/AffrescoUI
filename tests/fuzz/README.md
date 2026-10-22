@@ -28,6 +28,9 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `peer_handshake` | A remote peer's opening on the server side (`net/src/PeerHandshake.hpp`): an upgrade request, or a first message; the first byte picks which | A refusal has a known status and a reason without the token, an accepted request has a key, and a token is never empty or over 8 KiB |
 | `websocket` | WebSocket frames, cut into pieces, to the frame reader (`net/src/WebSocketFrames.hpp`) as a client (unmasked) or a server (masked) reads them; the first byte picks the side | A message is UTF-8 within the 256-byte limit, control payloads are at most 125 bytes, an error carries a close code and nothing is read after it |
 | `frames` | What a service process writes (`services/src/Framing.hpp`), cut into pieces: Content-Length frames or lines; the first byte picks the framing and the piece size | Every body is within the 64-byte limit, a line holds no line feed, and a refused stream stays refused with no body after |
+| `feature_manifest` | A feature's manifest (RFC 0004), to `checkManifest` (`format/src/FeatureManifest.hpp`), and if it passes, its record composed into the Kanban template | Refused with `json::parse_error` or `DocumentError`; a manifest that passes composes into a screen or problems |
+| `catalog_index` | A catalogue's index, signed at start-up by a trusted key made then, to `readCatalog` (`format/src/FeatureCatalog.hpp`) | An index or a `DocumentError`; releases newest first and once each, keys well formed, URLs inside the folder |
+| `signature` | Any text, to the signature parsers (`format/src/FeatureSignatures.hpp`): base64url, public keys, digests, key files, canonical JSON, verifying | Fixed-length parsing gives that length or nothing and writes back as the same text; canonical JSON is its own canonical form; verifying gives the named key or a `DocumentError` |
 
 ## Running them
 

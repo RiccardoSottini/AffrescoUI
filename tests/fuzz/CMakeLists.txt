@@ -63,3 +63,10 @@ affrescoui_fuzzer(peer_handshake affrescoui::net nlohmann_json::nlohmann_json) #
 target_include_directories(affrescoui_fuzz_peer_handshake PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # PeerHandshake.hpp
 affrescoui_fuzzer(frames affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_frames PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # Framing.hpp
+# Feature packages and catalogues (RFC 0004): FeatureManifest.hpp, FeatureCatalog.hpp and FeatureSignatures.hpp
+affrescoui_fuzzer(feature_manifest affrescoui::format)
+target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+affrescoui_fuzzer(catalog_index affrescoui::format)
+target_include_directories(affrescoui_fuzz_catalog_index PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+affrescoui_fuzzer(signature affrescoui::format)
+target_include_directories(affrescoui_fuzz_signature PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)

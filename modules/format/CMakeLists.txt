@@ -80,5 +80,10 @@ affrescoui_module(format
 	src/RulesNodes.cpp
 	src/FeatureManifest.cpp
 	src/Composition.cpp
-	src/ComposedVersions.cpp)
+	src/ComposedVersions.cpp
+	src/FeatureSignatures.cpp
+	src/FeatureCatalog.cpp
+	src/Features.cpp
+	${AFFRESCOUI_MONOCYPHER_SOURCES})
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
+target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_MONOCYPHER_DIR} ${AFFRESCOUI_MONOCYPHER_DIR}/optional)
