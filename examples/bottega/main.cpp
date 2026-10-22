@@ -61,7 +61,7 @@ void installSorter(affresco::Screen& screen, const std::string& adapter) {
 	const format::ProvenComposition proven = format::proveComposition(
 	    inputs, [](const json&, const json&) { return std::vector<format::ScenarioOutcome>{}; });
 	for(const std::string& line : format::proofReasons(proven.proof)) std::cout << "  " << line << '\n';
-	if(proven.proof.value("passed", false) != true) return;
+	if(!proven.proof.value("passed", false)) return;
 	const affresco::RevisionResult result = screen.submitRevision(
 	    affresco::vcs::compositionRevision("slideSorter", proven.record, "features", inputs.host).dump());
 	if(!result.error.empty()) std::cerr << "install: " << result.error << '\n';
@@ -130,8 +130,8 @@ int runCommand(std::span<const std::string_view> args) {
 /// @param argv The command, or the scenario files; none: bottega.scenarios.json.
 /// @return 0 on success, 1 for failures or problems, 2 for a usage error, 3 when something can't be read.
 int main(int argc, char** argv) {
-	const std::vector<std::string_view> args(argv + 1, argv + argc);
 	try {
+		const std::vector<std::string_view> args(argv + 1, argv + argc);
 		if(!args.empty() && (args.front() == "check" || args.front() == "contributions")) return runCommand(args);
 		std::string document;
 		auto first = args.begin();
