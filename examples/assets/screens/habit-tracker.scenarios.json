@@ -103,7 +103,7 @@
 			]
 		},
 		{
-			"name": "switch-the-theme",
+			"name": "habit-tracker-switch-the-theme",
 			"note": "The moon button and Cmd+J switch between the light and the dark tokens",
 			"steps": [
 				{ "click": [1236, 46] },

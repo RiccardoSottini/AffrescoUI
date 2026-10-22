@@ -550,7 +550,8 @@ TEST_CASE("vcs: reverting a commit undoes what it changed in the live state too"
 TEST_CASE("vcs: the revision fuzzer's input that found it: a value copied in the state and moved into the document") {
 	std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/kanban.screen.json");
 	REQUIRE(file);
-	const json kanban = json::parse(file);
+	json kanban = json::parse(file);
+	kanban.erase("include"); // a Repository does not merge included files; this test needs none
 	const affresco::format::Rules rules;
 	Repository repository(rules, kanban);
 	const json document = repository.document(), state = repository.state();

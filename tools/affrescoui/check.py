@@ -77,7 +77,7 @@ def render_scenarios():
 
 CHANGES = {"format": "affrescoui-changes", "version": 1, "name": "cli-check",
            "revisions": [{"author": "cli-check", "message": "A colour for the tool's check",
-                          "patch": [{"op": "add", "path": "/colors/cliCheck", "value": "#123456"}]}]}
+                          "patch": [{"op": "add", "path": "/tokens/color.cliCheck", "value": "#123456"}]}]}
 
 
 class Checker:

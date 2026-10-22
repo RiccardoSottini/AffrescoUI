@@ -87,7 +87,7 @@
 			]
 		},
 		{
-			"name": "switch-the-theme",
+			"name": "smart-home-switch-the-theme",
 			"note": "The theme switch and Cmd+T flip between the dark and the light theme",
 			"steps": [
 				{ "click": "#toggle-theme-switch" },

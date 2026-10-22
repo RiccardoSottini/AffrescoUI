@@ -202,7 +202,7 @@
 			]
 		},
 		{
-			"name": "command-palette",
+			"name": "kanban-command-palette",
 			"note": "Cmd+Shift+P lists the commands; running Switch light and dark changes the theme",
 			"steps": [
 				{ "key": "mod+shift+p" },

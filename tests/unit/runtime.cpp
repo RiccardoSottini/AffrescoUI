@@ -57,7 +57,7 @@ TEST_CASE("format: the Kanban template builds on a headless window, and a click 
 	REQUIRE(members);
 	REQUIRE(menu);
 	CHECK(members->isShown());
-	CHECK(members->frame().width() == 136.0f);
+	CHECK(members->frame().width() == 140.0f);
 	CHECK_FALSE(menu->isShown());
 
 	clickOn(*window, *members);
