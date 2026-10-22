@@ -6,6 +6,7 @@
 /// registerCodeEditor().
 
 #include <affresco/affresco.hpp>
+#include <affresco/format/SyntaxHighlighter.hpp>
 
 #include <array>
 #include <cstddef>
@@ -79,6 +80,11 @@ public:
 	/// @param handler Gets "up", "down", "pageUp", "pageDown", "enter", "tab" or "escape" and returns true if it took
 	/// the key; empty: no popup.
 	void setPopupKeys(std::function<bool(std::string_view key)> handler) { popupKeys_ = std::move(handler); }
+
+	/// @brief Paints runs over the grammar's colours (e.g. a language server's semantic tokens), until the language
+	/// changes; nothing without a grammar. See affresco::format::SyntaxHighlighter::setOverlay().
+	/// @param runs The runs; their styles are the grammar's ("type", "keyword", "string", ...).
+	void setOverlay(std::vector<affresco::format::SyntaxHighlighter::Overlay> runs);
 
 	/// @brief The user typed a code point (its UTF-8), or deleted with Backspace or Delete (""), just now.
 	affresco::Signal<const std::string&> onTyped;
@@ -193,7 +199,8 @@ using BufferLookup = std::function<std::shared_ptr<affresco::TextModel>(std::str
 /// window point below its box, top its top); "onType" one run after each typed code point or deletion (event
 /// `{ "text", "line", "column", "word", "x", "y", "top" }`, at the caret); "popup": true gives the popup keys to
 /// "onPopupKey" (event `{ "key" }`, see CodeEditor::setPopupKeys()); "insert" (`{ "text", "before", "request" }`) is
-/// CodeEditor::insertAtCaret().
+/// CodeEditor::insertAtCaret(); "tokens" (`[{ "line", "column", "length", "style" }]`, from 0, as "decorations") is
+/// CodeEditor::setOverlay(), set again only when the list changes.
 /// @param screen The screen, before it is built; it must not move afterwards (the type reads its colours).
 /// @param buffers Finds the text for "buffer" (empty: "buffer" is ignored); registering again replaces it.
 void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers = {});

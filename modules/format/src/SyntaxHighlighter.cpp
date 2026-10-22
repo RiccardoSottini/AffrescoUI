@@ -52,6 +52,8 @@ struct SyntaxHighlighter::State {
 	bool followed = false;                                   ///< The text is small enough to follow.
 	std::string chunk;                                       ///< What the reader gave last.
 	std::vector<std::size_t> starts;                         ///< One line's byte offsets, by code point, reused.
+	std::map<std::size_t, std::vector<Overlay>> overlay;     ///< See setOverlay(), by line.
+	std::map<std::string, std::optional<Color>, std::less<>> overlayColors; ///< The overlay's styles, resolved.
 
 	/// @brief Reads the text for the engine: up to blockRows lines from a byte.
 	/// @param model The text.
@@ -98,6 +100,36 @@ struct SyntaxHighlighter::State {
 		}
 		return colors[style];
 	}
+
+	/// @brief An overlay style's colour: the palette's, or its parent's.
+	/// @param style The style.
+	const std::optional<Color>& overlayColor(const std::string& style) {
+		const auto found = overlayColors.find(style);
+		if(found != overlayColors.end()) return found->second;
+		std::optional<Color> color;
+		for(std::string_view name = style; palette && !name.empty() && !color;) {
+			color = palette(name);
+			const std::size_t dot = name.rfind('.');
+			name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
+		}
+		return overlayColors.emplace(style, color).first->second;
+	}
+
+	/// @brief Moves the overlay with an edit: the runs on the lines it touched go, those after move.
+	/// @param change The edit.
+	void moveOverlay(const TextChange& change) {
+		if(overlay.empty()) return;
+		std::map<std::size_t, std::vector<Overlay>> moved;
+		for(auto& [line, runs] : overlay) {
+			if(line < change.from.line) moved.emplace(line, std::move(runs));
+			else if(line > change.oldEnd.line) {
+				const std::size_t to = line - change.oldEnd.line + change.newEnd.line;
+				for(Overlay& run : runs) run.line = to;
+				moved.emplace(to, std::move(runs));
+			}
+		}
+		overlay = std::move(moved);
+	}
 };
 
 SyntaxHighlighter::SyntaxHighlighter(std::unique_ptr<State> state) : state_(std::move(state)) {}
@@ -122,8 +154,17 @@ const std::vector<std::string>& SyntaxHighlighter::styles() const noexcept { ret
 
 void SyntaxHighlighter::setPalette(Palette palette) {
 	state_->palette = std::move(palette);
+	state_->overlayColors.clear();
 	state_->colors.clear();
 	state_->resolved.clear();
+}
+
+void SyntaxHighlighter::setOverlay(std::vector<Overlay> runs) {
+	State& s = *state_;
+	s.overlay.clear();
+	if(runs.size() > maxOverlays) runs.resize(maxOverlays);
+	for(Overlay& run : runs)
+		if(run.length > 0) s.overlay[run.line].push_back(std::move(run));
 }
 
 void SyntaxHighlighter::setOwner(const void* owner) noexcept { state_->owner = owner; }
@@ -134,6 +175,7 @@ void SyntaxHighlighter::reset(const TextModel& model) {
 	State& s = *state_;
 	s.document = SyntaxDocument::create(s.language);
 	s.spans.clear();
+	s.overlay.clear();
 	s.needsParse = true;
 	s.followed = model.size() <= largestFollowed;
 	s.lineBytes.resize(model.lineCount());
@@ -142,6 +184,7 @@ void SyntaxHighlighter::reset(const TextModel& model) {
 
 void SyntaxHighlighter::changed(const TextModel& model, const TextChange& change) {
 	State& s = *state_;
+	s.moveOverlay(change);
 	if(!s.followed || model.size() > largestFollowed || change.oldEnd.line >= s.lineBytes.size()) return reset(model);
 	// Where the edit ended before it: the bytes from the start of its first line, over the lines it replaced
 	const std::size_t lineStart = model.offsetOf({change.from.line, 0});
@@ -216,6 +259,15 @@ void SyntaxHighlighter::colorLine(const TextModel& model, std::size_t line, std:
 		std::fill(colors.begin() + static_cast<std::ptrdiff_t>(std::min(from, colors.size())),
 		          colors.begin() + static_cast<std::ptrdiff_t>(std::min(to, colors.size())), *color);
 	}
+	// The overlay, over the grammar
+	if(const auto runs = s.overlay.find(line); runs != s.overlay.end())
+		for(const Overlay& run : runs->second) {
+			const std::optional<Color>& color = s.overlayColor(run.style);
+			if(!color || run.column >= colors.size()) continue;
+			const std::size_t to = std::min(colors.size(), run.column + run.length);
+			std::fill(colors.begin() + static_cast<std::ptrdiff_t>(run.column),
+			          colors.begin() + static_cast<std::ptrdiff_t>(to), *color);
+		}
 }
 
 bool SyntaxHighlighter::foldable(const TextModel& model, std::size_t line, std::optional<FoldRange>& range) {

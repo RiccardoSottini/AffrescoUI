@@ -741,6 +741,13 @@ void CodeEditor::insertAtCaret(std::u32string_view text, std::size_t before, lon
 	endEdit();
 }
 
+void CodeEditor::setOverlay(std::vector<affresco::format::SyntaxHighlighter::Overlay> runs) {
+	auto* grammar = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(!grammar) return;
+	grammar->setOverlay(std::move(runs));
+	recolor();
+}
+
 std::u32string CodeEditor::wordBeforeCaret() const {
 	const Position at = caret();
 	const std::u32string& text = lines()[at.line];
@@ -757,6 +764,7 @@ namespace {
 struct ScreenCodeEditor : CodeEditor {
 	std::string hoverAction; ///< "onHover".
 	std::string typeAction;  ///< "onType".
+	affresco::json tokens = affresco::json::array(); ///< The "tokens" last given.
 };
 
 /// @brief The event of a place in the text, for "onHover" and "onType": its line and column from 1, and its box.
@@ -795,7 +803,7 @@ void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers) {
 		    });
 		    return editor;
 	    },
-	    {"language", "syntax", "goTo", "buffer", "onHover", "onType", "popup", "onPopupKey", "insert"},
+	    {"language", "syntax", "goTo", "buffer", "onHover", "onType", "popup", "onPopupKey", "insert", "tokens"},
 	    [&screen, buffers = std::move(buffers)](affresco::Panel& panel, const std::string& propertiesJson) {
 		    auto& editor = dynamic_cast<ScreenCodeEditor&>(panel); // the factory above made it
 		    const affresco::json properties = affresco::json::parse(propertiesJson);
@@ -823,6 +831,19 @@ void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers) {
 				    editor.setModel(std::move(text));
 		    editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "");
 		    editor.resetTokenColors();
+		    // "tokens": runs over the grammar's colours, given again only when they change (edits move them meanwhile)
+		    if(affresco::json tokens = properties.value("tokens", affresco::json::array()); tokens != editor.tokens) {
+			    std::vector<affresco::format::SyntaxHighlighter::Overlay> runs;
+			    for(const affresco::json& run : tokens.is_array() ? tokens : affresco::json::array()) {
+				    if(!run.is_object() || !run.value("style", affresco::json()).is_string()) continue;
+				    const auto whole = [&run](const char* key) {
+					    return static_cast<std::size_t>(std::max(0.0, run.value(key, 0.0)));
+				    };
+				    runs.push_back({whole("line"), whole("column"), whole("length"), run["style"].get<std::string>()});
+			    }
+			    editor.tokens = std::move(tokens);
+			    editor.setOverlay(std::move(runs));
+		    }
 		    // "goTo": { "line": 12, "request": 3 } moves the caret, once per request (Forge's go to line)
 		    if(const auto goTo = properties.find("goTo"); goTo != properties.end() && goTo->is_object())
 			    editor.goToLine(static_cast<std::size_t>(std::max(0.0, goTo->value("line", 1.0))),
