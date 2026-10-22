@@ -87,6 +87,17 @@ private:
 	};
 	class Frame;
 
+	/// @brief A panel's entry, emptied first when it was made for another panel or another surface.
+	/// @param state The panel's surface.
+	/// @return The entry.
+	Entry& entryFor(const std::shared_ptr<detail::SurfaceState>& state);
+	/// @brief Makes the surface if needed and draws it into its framebuffer, at this size; disables it on a failure.
+	/// @param entry The entry.
+	/// @param state Its state.
+	/// @param width The width, in pixels.
+	/// @param height The height, in pixels.
+	/// @return Whether it drew.
+	static bool draw(Entry& entry, detail::SurfaceState& state, int width, int height);
 	/// @brief Makes or resizes an entry's framebuffer.
 	/// @param entry The entry.
 	/// @param state Its state.

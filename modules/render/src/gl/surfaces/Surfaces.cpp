@@ -123,16 +123,28 @@ GLuint Surfaces::place(const std::shared_ptr<detail::SurfaceState>& shared) {
 	const int width = pixels(state.size.x, state.scale), height = pixels(state.size.y, state.scale);
 	if(width == 0 || height == 0) return 0;
 
-	Entry& entry = entries_[&state];
-	if(entry.state.lock() != shared || entry.surface != state.surface) { // a new panel, or another surface
+	Entry& entry = entryFor(shared);
+	const bool resized = entry.color.width != width || entry.color.height != height || entry.scale != state.scale;
+	if(entry.instance && !resized && entry.version == state.version) return entry.color.texture.id();
+	if(!draw(entry, state, width, height)) return 0;
+	entry.version = state.version;
+	entry.scale = state.scale;
+	state.input.clear();
+	return entry.color.texture.id();
+}
+
+Surfaces::Entry& Surfaces::entryFor(const std::shared_ptr<detail::SurfaceState>& shared) {
+	Entry& entry = entries_[shared.get()];
+	if(entry.state.lock() != shared || entry.surface != shared->surface) { // a new panel, or another surface
 		release(entry);
 		entry = Entry{};
 		entry.state = shared;
-		entry.surface = state.surface;
+		entry.surface = shared->surface;
 	}
-	const bool resized = entry.color.width != width || entry.color.height != height || entry.scale != state.scale;
-	if(entry.instance && !resized && entry.version == state.version) return entry.color.texture.id();
+	return entry;
+}
 
+bool Surfaces::draw(Entry& entry, detail::SurfaceState& state, int width, int height) {
 	try {
 		if(!entry.instance) entry.instance = state.factory();
 		if(!entry.instance) throw std::runtime_error("its factory made no surface");
@@ -140,16 +152,13 @@ GLuint Surfaces::place(const std::shared_ptr<detail::SurfaceState>& shared) {
 		if(fit(entry, state, width, height)) entry.prepared = false;
 		if(!render(entry, state)) {
 			fail(entry, state, "an OpenGL error");
-			return 0;
+			return false;
 		}
 	} catch(const std::exception& error) {
 		fail(entry, state, error.what());
-		return 0;
+		return false;
 	}
-	entry.version = state.version;
-	entry.scale = state.scale;
-	state.input.clear();
-	return entry.color.texture.id();
+	return true;
 }
 
 void Surfaces::collect() {
