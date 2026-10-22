@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 
 namespace affresco::imaging {
@@ -164,7 +165,10 @@ std::vector<TileKey> Image::writtenTiles() const {
 
 std::size_t Image::memoryBytes() const noexcept {
 	std::size_t bytes = cachedBytes_;
-	for(const auto& [key, written] : written_) bytes += written.tile ? written.tile->memoryBytes() : 0;
+	// A tile shared by several places (a filled mask, a duplicate) counts once
+	std::unordered_set<const Tile*> counted;
+	for(const auto& [key, written] : written_)
+		if(written.tile && counted.insert(written.tile.get()).second) bytes += written.tile->memoryBytes();
 	return bytes;
 }
 

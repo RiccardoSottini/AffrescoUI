@@ -58,6 +58,14 @@ std::vector<TileChange> TileRecorder::finish(const std::function<const Image*(st
 	return changes;
 }
 
+bool History::amendLast(std::string_view name, std::shared_ptr<const void> structureAfter) noexcept {
+	if(steps_.empty() || position_ != steps_.size()) return false;
+	HistoryStep& last = steps_.back();
+	if(last.name != name || !last.tiles.empty() || !last.structureAfter) return false;
+	last.structureAfter = std::move(structureAfter);
+	return true;
+}
+
 void History::push(HistoryStep step) {
 	while(steps_.size() > position_) {
 		bytes_ -= steps_.back().memoryBytes();

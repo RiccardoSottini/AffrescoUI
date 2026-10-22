@@ -11,6 +11,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -97,6 +98,12 @@ public:
 	[[nodiscard]] std::size_t dropped() const noexcept { return dropped_; }
 	/// @brief The memory its steps hold.
 	[[nodiscard]] std::size_t memoryBytes() const noexcept { return bytes_; }
+	/// @brief Replaces the structure after the newest step, when it is the step undone next and changes no tiles (a
+	/// slider dragged: one step, not one per move).
+	/// @param name The step's name, which must match.
+	/// @param structureAfter The new structure after.
+	/// @return Whether it was replaced.
+	bool amendLast(std::string_view name, std::shared_ptr<const void> structureAfter) noexcept;
 	/// @brief Forgets every step.
 	void clear() noexcept;
 

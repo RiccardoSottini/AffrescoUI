@@ -111,6 +111,11 @@ struct Pixel {
 /// @return value / 255.
 [[nodiscard]] constexpr float unitFromByte(std::uint8_t value) noexcept { return static_cast<float>(value) / 255.0f; }
 
+/// @brief A float clamped to 0 to 1 (NaN becomes 0).
+/// @param value The float.
+/// @return It, clamped.
+[[nodiscard]] constexpr float clamped(float value) noexcept { return value > 0.0f ? std::min(value, 1.0f) : 0.0f; }
+
 /// @brief A pixel with each channel clamped to 0 to 1 (NaN becomes 0).
 /// @param pixel The pixel.
 /// @return It, clamped.
