@@ -38,6 +38,10 @@ private:
 	/// @param line The line.
 	/// @return false if the event grew past the limit.
 	bool line(std::string_view line);
+	/// @brief Takes one field of the event being read: "data", "event" or "id" (others are ignored).
+	/// @param name The field's name.
+	/// @param value Its value.
+	void field(std::string_view name, std::string_view value);
 
 	std::size_t maxEventBytes_;    ///< See the constructor.
 	EventSink sink_;               ///< Receives each event.

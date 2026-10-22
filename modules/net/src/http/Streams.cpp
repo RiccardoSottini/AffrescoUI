@@ -40,13 +40,17 @@ bool EventStreamParser::line(std::string_view text) {
 	const auto field = text.substr(0, colon);
 	std::string_view value = colon == std::string_view::npos ? std::string_view{} : text.substr(colon + 1);
 	if(value.starts_with(' ')) value.remove_prefix(1);
-	if(field == "data") {
+	this->field(field, value);
+	return event_.data.size() + event_.type.size() + event_.id.size() <= maxEventBytes_;
+}
+
+void EventStreamParser::field(std::string_view name, std::string_view value) {
+	if(name == "data") {
 		if(hasData_) event_.data += '\n';
 		event_.data += value;
 		hasData_ = true;
-	} else if(field == "event") event_.type = value.empty() ? "message" : std::string(value);
-	else if(field == "id" && value.find('\0') == std::string_view::npos) event_.id = value;
-	return event_.data.size() + event_.type.size() + event_.id.size() <= maxEventBytes_;
+	} else if(name == "event") event_.type = value.empty() ? "message" : std::string(value);
+	else if(name == "id" && value.find('\0') == std::string_view::npos) event_.id = value;
 }
 
 LineStreamParser::LineStreamParser(std::size_t maxLineBytes, EventSink sink)
