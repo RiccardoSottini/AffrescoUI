@@ -21,11 +21,18 @@ std::array<float, 4> keyValue(const Track& track, std::size_t key, std::size_t p
 	return value;
 }
 
-/// @brief Cubic Hermite interpolation, as glTF's CUBICSPLINE. @param a The first key's value. @param outA Its
-/// out-tangent. @param b The second key's value. @param inB Its in-tangent. @param span The time between the keys.
-/// @param t From 0 to 1. @return The value.
-std::array<float, 4> hermite(const std::array<float, 4>& a, const std::array<float, 4>& outA,
-                             const std::array<float, 4>& b, const std::array<float, 4>& inB, float span, float t) {
+/// @brief The two keys a cubic segment runs between, each with the tangent on the segment's side.
+struct Segment {
+	std::array<float, 4> a;    ///< The first key's value.
+	std::array<float, 4> outA; ///< Its out-tangent.
+	std::array<float, 4> b;    ///< The second key's value.
+	std::array<float, 4> inB;  ///< Its in-tangent.
+};
+
+/// @brief Cubic Hermite interpolation, as glTF's CUBICSPLINE. @param segment The keys. @param span The time between
+/// the keys. @param t From 0 to 1. @return The value.
+std::array<float, 4> hermite(const Segment& segment, float span, float t) {
+	const auto& [a, outA, b, inB] = segment;
 	const float t2 = t * t, t3 = t2 * t;
 	std::array<float, 4> value{};
 	for(std::size_t i = 0; i < 4; ++i)
@@ -98,7 +105,7 @@ std::optional<std::array<float, 4>> Track::sample(float time) const {
 	std::array<float, 4> value{};
 	if(interpolation == Interpolation::Step) value = a;
 	else if(interpolation == Interpolation::Cubic)
-		value = hermite(a, keyValue(*this, previous, 2), b, keyValue(*this, next, 0), span, t);
+		value = hermite({a, keyValue(*this, previous, 2), b, keyValue(*this, next, 0)}, span, t);
 	else if(path == TrackPath::Rotation) {
 		const Quat q = slerp(asQuat(a), asQuat(b), t);
 		value = {q.x, q.y, q.z, q.w};
