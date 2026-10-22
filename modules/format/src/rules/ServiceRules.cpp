@@ -90,34 +90,51 @@ void checkOperation(const ConnectionMap& connections, const std::string& name, s
 		                    name.substr(dot + 1) + "\"");
 }
 
+/// @brief Refuses a service step's name unless it is "service.method", written out.
+/// @param name The name.
+/// @param dot Where its first dot is.
+/// @throws DocumentError If it isn't.
+void checkUseName(const std::string& name, std::size_t dot) {
+	if(name.contains("{{") || dot == std::string::npos || dot == 0 || dot + 1 == name.size())
+		throw DocumentError("revision: permission denied: a service step names its service and method, written "
+		                    "out (\"files.read\"), not \"" +
+		                    name + "\"");
+}
+
+/// @brief Refuses a use of a service's method the screen doesn't declare, or one the host doesn't let revisions add.
+/// @param declared The screen's "services" after the revision.
+/// @param services The host's services, or nullptr (then the method is checked again when it runs).
+/// @param name "service.method".
+/// @param dot Where its dot is.
+/// @throws DocumentError If it is refused.
+void checkMethod(const json& declared, const services::Services* services, const std::string& name, std::size_t dot) {
+	const std::string service = name.substr(0, dot), method = name.substr(dot + 1);
+	if(!declared.is_object() || !declared.contains(service))
+		throw DocumentError("revision: \"" + name + "\" uses the service \"" + service +
+		                    "\", which the screen doesn't declare");
+	if(!services) return;
+	const services::MethodSpec* spec = services->method(service, method);
+	if(!spec) throw DocumentError("revision: the service \"" + service + "\" has no method \"" + method + "\"");
+	if(!spec->revisable)
+		throw DocumentError("revision: permission denied: revisions can't add uses of \"" + name + "\"");
+}
+
 } // namespace
 
 void checkServiceUses(const json& before, const json& after, const services::Services* services) {
-	const json declared = after.is_object() && after.contains("services") ? after["services"] : json::object();
+	static const json none = json::object();
+	const json& declared = after.is_object() && after.contains("services") ? after["services"] : none;
 	const ConnectionMap connections = connectionsIn(after);
 	for(const auto& [step, name] : addedUses(before, after) | std::views::transform(split)) {
 		const std::size_t dot = name.find('.');
-		if(name.contains("{{") || dot == std::string::npos || dot == 0 || dot + 1 == name.size())
-			throw DocumentError("revision: permission denied: a service step names its service and method, written "
-			                    "out (\"files.read\"), not \"" + name + "\"");
-		const std::string service = name.substr(0, dot), method = name.substr(dot + 1);
-		if(step == "request" || (step == "subscribe" && connections.contains(service))) {
+		checkUseName(name, dot);
+		if(step == "request" || (step == "subscribe" && connections.contains(name.substr(0, dot))))
 			checkOperation(connections, name, dot);
-			continue;
-		}
-		if(!declared.is_object() || !declared.contains(service))
-			throw DocumentError("revision: \"" + name + "\" uses the service \"" + service +
-			                    "\", which the screen doesn't declare");
-		if(!services) continue; // checked again when it runs
-		const services::MethodSpec* spec = services->method(service, method);
-		if(!spec) throw DocumentError("revision: the service \"" + service + "\" has no method \"" + method + "\"");
-		if(!spec->revisable)
-			throw DocumentError("revision: permission denied: revisions can't add uses of \"" + name + "\"");
+		else checkMethod(declared, services, name, dot);
 	}
 }
 
-std::vector<std::string> serviceReviewLines(const json& before, const json& after,
-                                            const services::Services* services) {
+std::vector<std::string> serviceReviewLines(const json& before, const json& after, const services::Services* services) {
 	std::vector<std::string> lines;
 	const ConnectionMap connections = connectionsIn(after);
 	for(const auto& [step, name] : addedUses(before, after) | std::views::transform(split)) {
