@@ -63,6 +63,10 @@ private:
 	/// @param connection The request's connection.
 	/// @return Whether it was the redirect (the thread then ends).
 	bool answer(tcp::Connection& connection);
+	/// @brief Ends the sign-in with the redirect's code, or with the provider's refusal, and answers the browser.
+	/// @param connection The redirect's connection.
+	/// @param query Its query, whose state was checked.
+	void takeCode(tcp::Connection& connection, std::string_view query);
 	/// @brief Hands the outcome to the main thread, once.
 	/// @param code The code, or nullopt.
 	/// @param error Why not, or empty.

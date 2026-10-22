@@ -29,6 +29,31 @@ std::string page(std::string_view status, std::string_view message) {
 	       "\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n" + body;
 }
 
+/// @brief Reads a request's head, within the size and time a request may take.
+/// @param connection The request's connection.
+/// @param head Receives the bytes read, the head and maybe more.
+/// @return Whether the whole head came.
+bool readHead(tcp::Connection& connection, std::string& head) {
+	const auto deadline = std::chrono::steady_clock::now() + requestTimeout;
+	while(!head.contains("\r\n\r\n")) {
+		const auto left =
+		    std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+		if(head.size() > maxRequestBytes || left.count() <= 0 || connection.receive(head, left) != tcp::Received::Data)
+			return false;
+	}
+	return true;
+}
+
+/// @brief A GET request's target: "/callback?state=...".
+/// @param head The request's head.
+/// @return It, or empty if the request isn't a GET.
+std::string_view requestTarget(std::string_view head) {
+	const std::string_view line = head.substr(0, head.find("\r\n"));
+	const std::size_t space = line.find(' ', 4);
+	if(!line.starts_with("GET ") || space == std::string_view::npos) return {};
+	return line.substr(4, space - 4);
+}
+
 } // namespace
 
 std::unique_ptr<LoopbackRedirect> LoopbackRedirect::open(Executor& executor, std::string state, Received received,
@@ -73,17 +98,8 @@ void LoopbackRedirect::serve() {
 
 bool LoopbackRedirect::answer(tcp::Connection& connection) {
 	std::string head;
-	const auto deadline = std::chrono::steady_clock::now() + requestTimeout;
-	while(!head.contains("\r\n\r\n")) {
-		const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
-		if(head.size() > maxRequestBytes || left.count() <= 0 || connection.receive(head, left) != tcp::Received::Data)
-			return false;
-	}
-	const std::string_view line = std::string_view(head).substr(0, head.find("\r\n"));
-	const std::size_t space = line.find(' ', 4);
-	const std::string_view target = line.starts_with("GET ") && space != std::string_view::npos
-	                                    ? line.substr(4, space - 4)
-	                                    : std::string_view();
+	if(!readHead(connection, head)) return false;
+	const std::string_view target = requestTarget(head);
 	const std::string_view path = target.substr(0, target.find('?'));
 	if(path != callbackPath) {
 		static_cast<void>(connection.send(page("404 Not Found", "Not found."), requestTimeout));
@@ -97,18 +113,22 @@ bool LoopbackRedirect::answer(tcp::Connection& connection) {
 		static_cast<void>(connection.send(page("400 Bad Request", "This sign-in isn't the one started."), requestTimeout));
 		return false;
 	}
+	takeCode(connection, query);
+	return true;
+}
+
+void LoopbackRedirect::takeCode(tcp::Connection& connection, std::string_view query) {
 	const auto code = oauth::queryField(query, "code");
 	if(!code || code->empty() || code->size() > oauth::maxTokenBytes) {
 		static_cast<void>(connection.send(page("400 Bad Request", "The sign-in was refused."), requestTimeout));
 		const auto why = oauth::queryField(query, "error");
 		deliver(std::nullopt, "the provider refused the sign-in" + (why && why->size() <= 64 ? " (" + *why + ")" : ""));
-		return true;
+		return;
 	}
 	static_cast<void>(
 	    connection.send(page("200 OK", "Signed in. You can close this window and go back to the application."),
 	                    requestTimeout));
 	deliver(code, {});
-	return true;
 }
 
 void LoopbackRedirect::deliver(std::optional<std::string> code, std::string error) {
