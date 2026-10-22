@@ -17,9 +17,11 @@ namespace affresco::vcs {
 /// @param name The feature.
 /// @param record Its record, with "bindings" and a passed "proof".
 /// @param author Who submits it: "features".
-/// @return `{ "author", "message", "set": { "/features/<name>": record } }`.
+/// @param host The host document: a host with no "features" section gets one with the record.
+/// @return `{ "author", "message", "set": { "/features/<name>": record } }`, or `"/features": { name: record }`.
 /// @throws DocumentError If the record has no passed proof of that feature.
-[[nodiscard]] json compositionRevision(const std::string& name, const json& record, std::string_view author);
+[[nodiscard]] json compositionRevision(const std::string& name, const json& record, std::string_view author,
+                                       const json& host);
 
 /// @brief One line on what a commit's proof says, for history and review: "proof: slideSorter 1.0.0 from
 /// app:sinopia, passed, 5 needs bound, 3 scenarios".

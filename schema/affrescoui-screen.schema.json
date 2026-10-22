@@ -804,6 +804,39 @@
 							"type": "string"
 						}
 					},
+					"points": {
+						"type": "object",
+						"description": "Contribution points another app's features may fill",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"slot"
+							],
+							"properties": {
+								"slot": {
+									"enum": [
+										"dock",
+										"panel",
+										"menu",
+										"toolbar"
+									]
+								},
+								"receives": {
+									"type": "array",
+									"maxItems": 32,
+									"items": {
+										"type": "string"
+									}
+								},
+								"description": {
+									"type": "string"
+								},
+								"note": {
+									"type": "string"
+								}
+							}
+						}
+					},
 					"root": {
 						"$ref": "#/$defs/v2/node",
 						"description": "The window's root panel: it always fills the window"

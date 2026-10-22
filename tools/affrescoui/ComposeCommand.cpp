@@ -211,7 +211,7 @@ Exit checkComposition(std::span<const std::string_view> args, const std::functio
 	const bool passed = proven.proof.value("passed", false) == true;
 	if(const std::optional<std::string> revision = arguments.value("--revision"); revision && passed)
 		writeFile(*revision,
-		          vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, "features").dump(1, '\t'));
+		          vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, "features", inputs.host).dump(1, '\t'));
 	if(arguments.flag("--json")) std::cout << proven.proof.dump() << '\n';
 	else
 		for(const std::string& line : format::proofReasons(proven.proof)) std::cout << line << '\n';

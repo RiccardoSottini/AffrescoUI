@@ -98,7 +98,7 @@ private:
 			for(const std::string& line : format::proofReasons(proven.proof)) unproven_ += line + "\n";
 			return nullptr;
 		}
-		return vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, author);
+		return vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, author, document);
 	}
 
 	const format::Features& features_; ///< See the constructor.

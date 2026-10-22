@@ -8,14 +8,15 @@
 
 namespace affresco::vcs {
 
-json compositionRevision(const std::string& name, const json& record, std::string_view author) {
+json compositionRevision(const std::string& name, const json& record, std::string_view author, const json& host) {
 	const json proof = record.is_object() ? record.value("proof", json()) : json();
 	if(!proof.is_object() || proof.value("passed", false) != true || proof.value("feature", "") != name)
 		throw DocumentError(std::format("features.{}: only a passed proof of this feature can be installed", name));
+	const bool section = host.contains("features") && host["features"].is_object();
 	return {{"author", author},
 	        {"message", std::format("Install {} from {} ({})", name, proof.value("source", "another app"),
 	                                proofLine(record))},
-	        {"set", {{"/features/" + name, record}}}};
+	        {"set", section ? json{{"/features/" + name, record}} : json{{"/features", json{{name, record}}}}}};
 }
 
 std::string proofLine(const json& record) {

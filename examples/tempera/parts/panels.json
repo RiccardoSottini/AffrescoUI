@@ -64,7 +64,7 @@
 
 		"temperaPanels": {
 			"node": {
-				"type": "column", "id": "panels", "role": "complementary", "label": "Panels", "width": 270, "height": "100%",
+				"type": "column", "id": "panels", "point": "panels.dock", "role": "complementary", "label": "Panels", "width": 270, "height": "100%",
 				"color": "@panel", "borderWidth": 1, "borderColor": "@border",
 				"children": [
 					{ "use": "temperaTab", "with": { "slot": "top", "tabs": [
