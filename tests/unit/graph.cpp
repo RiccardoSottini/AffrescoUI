@@ -376,3 +376,29 @@ TEST_CASE("render: a drag that would close a cycle is refused unless cycles are 
 	REQUIRE(fixture.events.size() == 1);
 	CHECK(fixture.events[0].link == GraphLink{"loop", "out", "mix", "b"});
 }
+
+TEST_CASE("render: a link to an unknown node, or a model changed mid-drag, never reads past the ports") {
+	GraphFixture fixture;
+	GraphModel ghost = material();
+	ghost.links = {{"ghost", "out", "mix", "a"}, {"tex", "gone", "mix", "b"}}; // the format allows both
+	fixture.view->setModel(ghost);
+	fixture.window->render();
+	fixture.drag(fixture.port(2, 0, false), {300.0f, 340.0f}); // picked up as unlinked
+	fixture.drag(fixture.port(2, 1, false), fixture.port(3, 0, false));
+	for(const GraphEvent& event : fixture.events) CHECK(event.kind != GraphEvent::Kind::Connect);
+
+	// A peer removes the port a drag started from: the drag is dropped, nothing is connected
+	fixture.view->setModel(material());
+	fixture.events.clear();
+	const Vec2 from = fixture.port(2, 0, true), to = fixture.port(3, 0, false);
+	fixture.window->routeMouseButton({MouseButton::Left, Action::Press, {}, from});
+	fixture.window->routeMouseMove({(from.x + to.x) * 0.5f, from.y});
+	GraphModel fewer = material();
+	fewer.nodes[2].outputs.clear();
+	fixture.view->setModel(fewer);
+	fixture.window->render();
+	fixture.window->routeMouseMove(to);
+	fixture.window->routeMouseButton({MouseButton::Left, Action::Release, {}, to});
+	fixture.window->render();
+	CHECK(fixture.events.empty());
+}

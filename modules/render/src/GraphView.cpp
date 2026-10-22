@@ -223,6 +223,11 @@ void GraphView::setModel(GraphModel model) {
 	}
 	if(model == model_) return;
 	model_ = std::move(model);
+	// A link being drawn names ports by index, which a peer's change may have moved or removed
+	linkStart_ = {};
+	keyLink_ = false;
+	replacing_ = model_.links.size();
+	if(drag_ == Drag::Link) drag_ = Drag::None;
 	byId_ = sortedById(model_);
 	cycleKey_.reset();
 	refreshSelected();
@@ -535,8 +540,13 @@ void GraphView::mouseButtonEvent(const MouseButtonEvent& event) {
 			linkStart_ = port;
 			if(link < model_.links.size()) {
 				// Picking up a linked input: the link now hangs from its output
+				// (a link whose output isn't in the graph, which the format allows, is picked up as unlinked)
 				const std::size_t from = nodeIndex(model_.links[link].from);
-				linkStart_ = {from, portIndex(model_.nodes[from].outputs, model_.links[link].output), true, true};
+				const std::size_t output =
+				    from < model_.nodes.size() ? portIndex(model_.nodes[from].outputs, model_.links[link].output) : 0;
+				if(from < model_.nodes.size() && output < model_.nodes[from].outputs.size())
+					linkStart_ = {from, output, true, true};
+				else replacing_ = model_.links.size();
 			}
 			keyNode_ = port.node;
 		} else if(const std::size_t node = nodeAt(point); node < model_.nodes.size()) {
