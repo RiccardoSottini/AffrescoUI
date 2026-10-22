@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <format>
 
 namespace affresco::format {
 
@@ -53,7 +54,7 @@ void showFocusRing(Engine& engine) {
 					if(key == "color") ring->color = engine.document.color(item, at + ".color");
 					else if(key == "width") ring->width = pixels(item, at + ".width");
 					else if(key == "offset") ring->offset = pixels(item, at + ".offset");
-					else fail(at + "." + key, "unknown property");
+					else fail(std::format("{}.{}", at, key), "unknown property");
 				}
 			} else if(!value.is_boolean() || value.get<bool>())
 				ring = FocusRing{.color = engine.document.color(value, at)};
@@ -161,10 +162,8 @@ void Reconciler::gatherReads(const Panel& panel, Record& record) const {
 		break;
 	}
 	const auto& children = panel.children();
-	if(record.managed >= ItemIndex::minChildren)
-		record.items.start(children.size());
-	else
-		record.items.drop();
+	if(record.managed >= ItemIndex::minChildren) record.items.start(children.size());
+	else record.items.drop();
 	for(std::size_t i = record.firstManaged; i < record.firstManaged + record.managed && i < children.size(); ++i) {
 		const auto it = records_.find(children[i].get());
 		if(it == records_.end()) continue;
@@ -189,11 +188,10 @@ void Reconciler::refreshItems(const Scope& locals, const StateChanges& changes) 
 		   std::ranges::none_of(changes.paths, [&](const std::string& path) { return overlaps(scope->origin, path); }))
 			continue;
 		json value;
-		if(scope->origin.starts_with(modelPlaces))
-			value = engine_.models.at(scope->origin);
+		if(scope->origin.starts_with(modelPlaces)) value = engine_.models.at(scope->origin);
 		else if(const json* lying = findInState(engine_.versions.state(), json::json_pointer(scope->origin)))
 			value = *lying;
-		if(value.is_null()) continue; // gone: the list that shows it is built again
+		if(value.is_null()) continue;                     // gone: the list that shows it is built again
 		scope->vars[scope->fromState] = std::move(value); // vars is mutable for this refresh
 	}
 }
@@ -271,8 +269,7 @@ void Reconciler::updateChildren(Panel& panel, Record& record, const StateChanges
 			if(i >= record.firstManaged && i < end) visit(i);
 		return;
 	}
-	for(std::size_t i = record.firstManaged; i < end; ++i)
-		visit(i);
+	for(std::size_t i = record.firstManaged; i < end; ++i) visit(i);
 }
 
 void Reconciler::forgetSubtree(const Panel& panel) {
@@ -293,8 +290,8 @@ void Reconciler::forgetSubtree(const Panel& panel) {
 
 bool Reconciler::canUpdatePart(const StateChanges& changes) const {
 	const DocumentContext& context = engine_.document;
-	return synced_ && !changes.all && context.appearance() == syncedAppearance_ &&
-	       context.screen() == syncedScreen_ && !rootScopeReads_.touchedBy(changes);
+	return synced_ && !changes.all && context.appearance() == syncedAppearance_ && context.screen() == syncedScreen_ &&
+	       !rootScopeReads_.touchedBy(changes);
 }
 
 void Reconciler::updateRoot(Panel& root, Record& record, const StateChanges* changes) {

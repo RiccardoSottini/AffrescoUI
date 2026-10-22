@@ -8,6 +8,8 @@
 
 namespace affresco::format {
 
+namespace {
+
 /// @brief The document's version control as the engine sees it, a base so it is made before the engine.
 struct ComposedHolder {
 	/// @brief Wraps the document's version control.
@@ -16,7 +18,10 @@ struct ComposedHolder {
 	ComposedVersions composed; ///< The document with its features merged in (Composition.hpp).
 };
 
+} // namespace
+
 /// @brief The runtime's private parts: the engine, out of the public header.
+// NOLINTNEXTLINE(misc-multiple-inheritance): base-from-member, the holder is built before the engine that uses it
 struct Runtime::Impl final : ComposedHolder, Engine {
 	/// @brief Builds the engine on the composed document.
 	/// @param runtime The runtime.

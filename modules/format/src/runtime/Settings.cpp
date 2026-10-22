@@ -67,6 +67,7 @@ json settingsListOf(Engine& engine) {
 		                {"minimum", type.value("minimum", json())},
 		                {"maximum", type.value("maximum", json())}});
 	}
+	// NOLINTNEXTLINE(modernize-use-ranges): a json array isn't a sortable range
 	std::sort(list.begin(), list.end(), [](const json& a, const json& b) { return a["key"] < b["key"]; });
 	return list;
 }
@@ -82,14 +83,15 @@ void checkSettings(const json& section, const std::string& name) {
 			firstInGroup.try_emplace(std::string_view(key).substr(0, dot), key);
 	for(const auto& [key, type] : settings.items()) {
 		const std::string at = std::format("{}.{}", name, key);
-		if(key.empty() || key.front() == '.' || key.back() == '.' || key.find("..") != std::string::npos)
+		if(key.empty() || key.front() == '.' || key.back() == '.' || key.contains(".."))
 			expect::fail(at, "a setting's key is names joined by dots, e.g. \"editor.fontSize\"");
 		checkType(type, at);
 		if(!type.contains("default")) expect::fail(at, "a setting needs a \"default\"");
 		if(const auto problem = typeMismatch(type["default"], type, at + ".default"))
 			expect::fail(problem->place, problem->problem);
 		if(const auto inside = firstInGroup.find(key); inside != firstInGroup.end())
-			expect::fail(at, "'" + key + "' is a setting and a group of settings ('" + std::string(inside->second) + "')");
+			expect::fail(at,
+			             "'" + key + "' is a setting and a group of settings ('" + std::string(inside->second) + "')");
 	}
 }
 

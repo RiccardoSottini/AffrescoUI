@@ -104,7 +104,7 @@ std::tuple<std::uint64_t, std::uint64_t, std::int64_t, std::int64_t> readCount(c
 Usage::~Usage() {
 	try {
 		save();
-	} catch(...) { // a destructor doesn't throw; save() logs what it can't write
+	} catch(...) { // NOLINT(bugprone-empty-catch): a destructor doesn't throw; save() logs what it can't write
 	}
 }
 

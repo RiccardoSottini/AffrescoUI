@@ -8,6 +8,7 @@
 #include "affresco/core/Log.hpp"
 
 #include <algorithm>
+#include <array>
 #include <string_view>
 
 namespace affresco::format {
@@ -18,8 +19,7 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		      "AffrescoUI screen: no handler for action '" + action + "' (from '" + sender.id() + "')");
       }),
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
-      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this),
-      calls(*this) {
+      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this), calls(*this) {
 	registerBuiltInTypes(types);
 	addContributionVariables(*this);
 	addSettingsVariables(*this);
@@ -55,12 +55,11 @@ void Engine::report(const std::string& message) {
 }
 
 void Engine::reportRefused(const std::string& message) {
-	static constexpr std::string_view chosenByTheHost[] = {"the host allows", "the host gives this screen no network",
-	                                                       "isn't a host this app may connect to"};
+	static constexpr std::array<std::string_view, 3> chosenByTheHost{
+	    "the host allows", "the host gives this screen no network", "isn't a host this app may connect to"};
 	if(std::ranges::any_of(chosenByTheHost, [&](std::string_view part) { return message.contains(part); }))
 		log(LogLevel::Info, message);
-	else
-		report(message);
+	else report(message);
 }
 
 double Engine::now() const noexcept { return window ? window->clock().seconds() : SteadyClock().seconds(); }

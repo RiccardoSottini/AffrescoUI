@@ -12,6 +12,7 @@ namespace {
 /// @brief Takes the next key off a JSON Pointer.
 /// @param pointer The pointer, "/key..."; loses its first key.
 /// @return The key.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr starts at 0, so it doesn't throw
 std::string_view nextKey(std::string_view& pointer) noexcept {
 	pointer.remove_prefix(1);
 	const std::size_t end = std::min(pointer.find('/'), pointer.size());
@@ -53,6 +54,7 @@ std::string merged(std::string_view a, std::string_view b) {
 /// @param a A place.
 /// @param b Another.
 /// @return The longest place that contains both ("" when they share no key).
+// NOLINTNEXTLINE(bugprone-exception-escape): substr starts at 0, so it doesn't throw
 std::string_view common(std::string_view a, std::string_view b) noexcept {
 	const auto [end, ignored] = std::ranges::mismatch(a, b);
 	const std::string_view same = a.substr(0, static_cast<std::size_t>(end - a.begin()));
@@ -64,7 +66,7 @@ std::string_view common(std::string_view a, std::string_view b) noexcept {
 } // namespace
 
 bool contains(std::string_view outer, std::string_view inner, bool both) noexcept {
-	if(outer.find('~') == std::string_view::npos && inner.find('~') == std::string_view::npos)
+	if(!outer.contains('~') && !inner.contains('~'))
 		return inner.starts_with(outer) && (inner.size() == outer.size() || inner[outer.size()] == '/');
 	while(!outer.empty()) {
 		if(inner.empty()) return false;
@@ -114,7 +116,8 @@ bool ReadSet::generaliseOnce() {
 }
 
 void ReadSet::collapse() {
-	while(paths.size() > maxReadPaths && generaliseOnce()) {}
+	while(paths.size() > maxReadPaths && generaliseOnce()) {
+	}
 	if(paths.size() <= maxReadPaths) return;
 	std::string_view place = paths.front();
 	for(const std::string& path : paths) place = common(place, path);

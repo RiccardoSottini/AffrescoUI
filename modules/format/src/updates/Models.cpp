@@ -39,6 +39,7 @@ json shapeOf(const json& row) {
 
 } // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape): every substr starts inside the path, so none throws
 std::optional<std::string_view> modelName(std::string_view path) noexcept {
 	if(path.starts_with("{{") && path.ends_with("}}") && path.size() >= 4) path = path.substr(2, path.size() - 4);
 	constexpr std::string_view prefix = "models.";
@@ -87,6 +88,7 @@ json Models::at(std::string_view place) const {
 	place.remove_prefix(nameEnd + 1);
 	const std::size_t rowEnd = std::min(place.find('/'), place.size());
 	std::size_t row = 0;
+	// NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): the end is given, inside the place
 	const auto [last, error] = std::from_chars(place.data(), place.data() + rowEnd, row);
 	if(error != std::errc() || last != place.data() + rowEnd || row >= model->size()) return nullptr;
 	json value = model->row(row);

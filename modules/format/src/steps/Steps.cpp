@@ -27,7 +27,7 @@ json::json_pointer Running::target(const char* key) const {
 }
 
 json Running::list(const json& source, const std::string& at) const {
-	if(source.is_string() && source.get<std::string>().find("{{") == std::string::npos)
+	if(source.is_string() && !source.get_ref<const std::string&>().contains("{{"))
 		return format::lookup(source.get<std::string>(), steps.engine().document.context(locals, event), at);
 	return value(source, at);
 }
@@ -118,9 +118,10 @@ bool Steps::runStep(const json& step, Panel& sender, const json& event, const Sc
 	if(const std::optional<bool> keepGoing = engine_.steps->run(Running{*this, step, sender, event, locals, where}))
 		return *keepGoing;
 
-	fail(where, "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
-	            "send, connect, patch, focus, scrollTo, navigate, after, debounce, animate, copy, log, stop, note, "
-	            "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut)");
+	fail(where,
+	     "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
+	     "send, connect, patch, focus, scrollTo, navigate, after, debounce, animate, copy, log, stop, note, "
+	     "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut)");
 }
 
 // While a proposal is previewed its document runs, timers and all: a control step then runs only from the user's own

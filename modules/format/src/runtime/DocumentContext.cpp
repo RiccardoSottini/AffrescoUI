@@ -324,12 +324,14 @@ std::optional<float> DocumentContext::numberToken(std::string_view name) const {
 	return it->second.in(theme_);
 }
 
+// NOLINTBEGIN(bugprone-return-const-ref-from-parameter): callers pass the document's values
 const json& DocumentContext::resolveToken(const json& value, json& scratch) const {
 	if(!value.is_string()) return value;
 	const auto& text = value.get_ref<const std::string&>();
 	if(!text.starts_with('@')) return value;
 	const auto number = numberToken(std::string_view(text).substr(1));
 	if(!number) return value;
+	// NOLINTEND(bugprone-return-const-ref-from-parameter)
 	scratch = *number;
 	return scratch;
 }

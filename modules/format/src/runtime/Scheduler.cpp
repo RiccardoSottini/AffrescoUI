@@ -60,6 +60,7 @@ void Scheduler::cancelOnce(std::uint64_t id) {
 void Scheduler::debounce(const std::string& key, double delayMs, std::function<void()> task) {
 	Window& window = *engine_.window;
 	if(const auto it = debounces_.find(key); it != debounces_.end()) window.cancelTimer(it->second);
+	// NOLINTNEXTLINE(bugprone-exception-escape): only copying the captures can throw, if memory runs out
 	debounces_[key] = window.setTimer(delayMs, [this, key, task = std::move(task)] {
 		debounces_.erase(key);
 		task();
@@ -67,7 +68,7 @@ void Scheduler::debounce(const std::string& key, double delayMs, std::function<v
 }
 
 std::uint64_t Scheduler::repeating(double delayMs, std::function<void(const Rearm&)> tick) {
-	auto task = std::make_shared<std::function<void()>>();
+	const auto task = std::make_shared<std::function<void()>>();
 	*task = [this, tick = std::move(tick), weak = std::weak_ptr(task)] {
 		const Rearm rearm = [this, &weak](double ms) {
 			return engine_.window->setTimer(ms, [self = weak.lock()] { (*self)(); });
@@ -82,6 +83,7 @@ void Scheduler::animate(const json::json_pointer& pointer, double from, const js
                         std::string where) {
 	const std::string key = pointer.to_string();
 	if(const auto it = animations_.find(key); it != animations_.end()) engine_.window->cancelTimer(it->second);
+	// NOLINTNEXTLINE(bugprone-exception-escape): only copying the captures can throw, if memory runs out
 	animations_[key] = repeating(frameMs, [this, pointer, key, from, to, ms, easing = std::move(easing),
 	                                       where = std::move(where), start = engine_.now()](const Rearm& rearm) {
 		const double progress = std::min((engine_.now() - start) * 1000.0 / ms, 1.0);
