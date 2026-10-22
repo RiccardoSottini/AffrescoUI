@@ -141,15 +141,15 @@ struct Embedding::Impl {
 		window->render();
 	}
 
-	platform::EmbeddedPlatform platform;                   ///< Opens the native window.
-	platform::EmbeddedWindow* embedded = nullptr;          ///< The native window, owned by the Window.
-	std::unique_ptr<platform::NativeWindow> native;        ///< Until the Window takes it.
-	detail::Renderer* rendererOf = nullptr;                ///< The window's renderer, owned by the Window.
-	std::unique_ptr<Window> window;                        ///< The window.
-	std::optional<gl::EmbeddedTarget> target;             ///< Its frames; after the window, which loads OpenGL.
-	std::mutex mutex;                                      ///< Guards posted.
-	std::vector<std::function<void()>> posted;             ///< Tasks posted from any thread.
-	std::vector<std::function<void()>> running;            ///< The tasks being run.
+	platform::EmbeddedPlatform platform;            ///< Opens the native window.
+	platform::EmbeddedWindow* embedded = nullptr;   ///< The native window, owned by the Window.
+	std::unique_ptr<platform::NativeWindow> native; ///< Until the Window takes it.
+	detail::Renderer* rendererOf = nullptr;         ///< The window's renderer, owned by the Window.
+	std::unique_ptr<Window> window;                 ///< The window.
+	std::optional<gl::EmbeddedTarget> target;       ///< Its frames; after the window, which loads OpenGL.
+	std::mutex mutex;                               ///< Guards posted.
+	std::vector<std::function<void()>> posted;      ///< Tasks posted from any thread.
+	std::vector<std::function<void()>> running;     ///< The tasks being run.
 };
 
 namespace {

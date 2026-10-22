@@ -1,7 +1,8 @@
 /// @file
 /// @brief The GLFW platform: windows with an OpenGL 4.1 core or OpenGL ES 3.0 context (AFFRESCOUI_GL_BACKEND), their
-/// input, cursors, clipboard, dropped files and display scale, and the event loop's waiting. What GLFW doesn't do (the colour scheme, native menu bars, file
-/// dialogs) comes from platform/Desktop.hpp; besides those files, the only one of the render module that calls GLFW.
+/// input, cursors, clipboard, dropped files and display scale, and the event loop's waiting. What GLFW doesn't do (the
+/// colour scheme, native menu bars, file dialogs) comes from platform/Desktop.hpp; besides those files, the only one of
+/// the render module that calls GLFW.
 
 #include "platform/Desktop.hpp"
 #include "platform/Platform.hpp"
@@ -70,7 +71,8 @@ public:
 	/// @throws std::runtime_error If the window or its context can't be created.
 	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing = nullptr)
 	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, sharing)) {
-		if(!handle_) throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
+		if(!handle_)
+			throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
 		glfwSwapInterval(1); // vsync: never render faster than the display
 #ifdef __EMSCRIPTEN__

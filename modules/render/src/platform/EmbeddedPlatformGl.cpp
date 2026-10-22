@@ -142,7 +142,8 @@ SavedState::~SavedState() {
 EmbeddedTarget::EmbeddedTarget()
     : texture_(Texture::create()), framebuffer_(Framebuffer::create()),
       program_(linkProgram(std::string(shaderPrelude(ShaderStage::vertex)) + compositeVertex,
-                           std::string(shaderPrelude(ShaderStage::fragment)) + compositeFragment)), vertexArray_(VertexArray::create()) {
+	                       std::string(shaderPrelude(ShaderStage::fragment)) + compositeFragment)),
+      vertexArray_(VertexArray::create()) {
 	glUseProgram(program_.id());
 	glUniform1i(glGetUniformLocation(program_.id(), "picture"), 0);
 }
