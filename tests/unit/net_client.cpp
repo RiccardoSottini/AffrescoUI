@@ -283,3 +283,29 @@ TEST_CASE("net client: a server that stops reading can't make a WebSocket hold m
 	done = true;
 	socket.reset();
 }
+
+TEST_CASE("net client: a close without a code is answered with one without a code, and is a normal end") {
+	std::string answer;
+	std::atomic<bool> answered{false};
+	LocalServer server([&](tcp::Connection& connection) {
+		if(!upgrade(connection)) return;
+		CHECK(connection.send(encodeFrame(Opcode::Close, ""), std::chrono::seconds{5}));
+		std::string bytes;
+		while(bytes.size() < 6) // a masked frame's header and key
+			if(connection.receive(bytes, std::chrono::seconds{5}) != tcp::Received::Data) return;
+		answer = bytes;
+		answered = true;
+	});
+	ThreadExecutor executor;
+	auto client = clientFor(executor, server);
+	std::optional<std::optional<network::Failure>> closed;
+	auto socket = client->connect(server.origin("ws") + "/", {},
+	                              {{}, {}, [&](std::optional<network::Failure> failure) { closed = std::move(failure); }});
+	REQUIRE(executor.runUntil([&] { return closed.has_value(); }));
+	CHECK_FALSE(*closed); // before, the client reported "The server closed the connection (1005)."
+	REQUIRE(executor.runUntil([&] { return answered.load(); }));
+	// Before, the client sent 1005 back, which RFC 6455 section 7.4.1 forbids on the wire
+	CHECK(static_cast<std::uint8_t>(answer[0]) == 0x88); // FIN, close
+	CHECK(static_cast<std::uint8_t>(answer[1]) == 0x80); // masked, no payload
+	CHECK(answer.size() == 6);
+}

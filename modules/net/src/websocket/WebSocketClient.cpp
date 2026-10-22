@@ -150,7 +150,7 @@ private:
 	/// @return Whether it was passed.
 	bool deliver(std::string& message);
 	/// @brief Answers the server's close frame and notes why the connection ended.
-	/// @param code The server's close code, 0 if it gave none.
+	/// @param code The server's close code, noCloseCode if it gave none.
 	/// @param end Receives a failure unless the close was normal.
 	void answerClose(std::uint16_t code, std::optional<network::Failure>& end);
 	/// @brief The upgrade request.
@@ -343,9 +343,10 @@ bool ClientSocket::deliver(std::string& message) {
 }
 
 void ClientSocket::answerClose(std::uint16_t code, std::optional<network::Failure>& end) {
-	output_ += encodeFrame(Opcode::Close, code == 0 ? std::string{} : closePayload(code, ""), mask());
+	// 1005 stands for "no code" and may not be sent (RFC 6455 section 7.4.1): echo the empty close as it came
+	output_ += encodeFrame(Opcode::Close, code == noCloseCode ? std::string{} : closePayload(code, ""), mask());
 	static_cast<void>(sendAll(output_, Clock::now() + closeTimeout));
-	if(code != 0 && code != 1000)
+	if(code != noCloseCode && code != 1000)
 		end = network::Failure{"network", "The server closed the connection (" + std::to_string(code) + ").", 0, {}};
 }
 

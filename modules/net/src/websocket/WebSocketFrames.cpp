@@ -250,7 +250,7 @@ FrameEvent FrameReader::closeFrame(std::string_view payload) {
 	const std::uint16_t code = payload.size() >= 2
 	                               ? static_cast<std::uint16_t>((static_cast<std::uint8_t>(payload[0]) << 8) |
 	                                                            static_cast<std::uint8_t>(payload[1]))
-	                               : std::uint16_t{1005};
+	                               : noCloseCode;
 	std::string reason(payload.size() > 2 ? payload.substr(2) : std::string_view{});
 	if(!isUtf8(reason)) return fail(1007, "a close reason that isn't UTF-8");
 	failed_ = true; // nothing is read after a close

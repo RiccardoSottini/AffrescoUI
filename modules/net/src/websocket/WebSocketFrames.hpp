@@ -46,6 +46,10 @@ enum class Opcode : std::uint8_t {
 [[nodiscard]] std::string encodeFrame(Opcode opcode, std::string_view payload,
                                       std::optional<std::array<std::uint8_t, 4>> mask = std::nullopt);
 
+/// @brief The code a FrameReader gives a close frame that carries none: RFC 6455 section 7.4.1 reserves it for that, so
+/// it is never sent.
+inline constexpr std::uint16_t noCloseCode = 1005;
+
 /// @brief The close frame's payload: a status code, then a reason (cut to fit 125 bytes).
 /// @param code E.g. 1000 (normal), 1008 (policy), 1009 (too large).
 /// @param reason Why, for people.
@@ -101,7 +105,7 @@ private:
 	/// @param payload Its payload, unmasked.
 	/// @return An event, or nullopt for a fragment that doesn't end its message.
 	std::optional<FrameEvent> frame(Opcode opcode, bool final, std::string payload);
-	/// @brief Handles a close frame: the peer's code (1005 if none) and its reason, after which nothing is read.
+	/// @brief Handles a close frame: the peer's code (noCloseCode if none) and its reason, after which nothing is read.
 	/// @param payload Its payload, unmasked.
 	/// @return The close event, or an error for a payload of one byte or a reason that isn't UTF-8.
 	FrameEvent closeFrame(std::string_view payload);
