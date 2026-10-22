@@ -1,0 +1,456 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Forge's workbench, checked headless on tests/render/forge/folder: panels, notifications, pickers, tabs and groups, keys and chords, and the side bar's views. affrescoui_render_runner workbench.scenarios.json",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-workbench-about",
+			"note": "About Forge opens its dialog",
+			"steps": [
+				{
+					"action": "about"
+				},
+				{
+					"expect": {
+						"state": "about",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-output",
+			"note": "Focus Output shows the panel on Output; Clear Output empties it",
+			"steps": [
+				{
+					"action": "togglePanel"
+				},
+				{
+					"action": "showOutput"
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "panelTab",
+						"is": "output"
+					}
+				},
+				{
+					"action": "clearOutput"
+				},
+				{
+					"expect": {
+						"state": "output",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-output-keys",
+			"note": "mod+Shift+U focuses Output and mod+Shift+M Problems",
+			"steps": [
+				{
+					"key": "mod+shift+u"
+				},
+				{
+					"expect": {
+						"state": "panelTab",
+						"is": "output"
+					}
+				},
+				{
+					"key": "mod+shift+m"
+				},
+				{
+					"expect": {
+						"state": "panelTab",
+						"is": "problems"
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-quick-open",
+			"note": "Go to File opens the picker with an empty query",
+			"steps": [
+				{
+					"action": "quickOpen"
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-pick-theme",
+			"note": "Color Theme opens the picker on the themes",
+			"steps": [
+				{
+					"action": "pickTheme"
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": "theme "
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-open-twice",
+			"note": "Opening an open file shows its tab again, without a second copy",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-two-tabs",
+			"note": "Two files are two tabs; closing the active one activates the other",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[1].language",
+						"is": "Markdown"
+					}
+				},
+				{
+					"key": "mod+w"
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-zen-twice",
+			"note": "The zen chord a second time restores the bars",
+			"steps": [
+				{
+					"key": "mod+k"
+				},
+				{
+					"key": "z"
+				},
+				{
+					"expect": {
+						"state": "layout.zen",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+k"
+				},
+				{
+					"key": "z"
+				},
+				{
+					"expect": {
+						"state": "layout.zen",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-explorer-again",
+			"note": "Showing the shown explorer hides the side bar, and again shows it",
+			"steps": [
+				{
+					"action": "showExplorer"
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": false
+					}
+				},
+				{
+					"action": "showExplorer"
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "explorer"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-keybindings-chord",
+			"note": "The chord mod+K mod+S opens the keyboard shortcuts page",
+			"steps": [
+				{
+					"key": "mod+k"
+				},
+				{
+					"key": "mod+s"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-views-and-files",
+			"note": "The side bar's view and the open editors are independent: a file stays open across views",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "showFeatures"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "features"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"action": "showExplorer"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "explorer"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-go-to-line-pick",
+			"note": "Go to Line opens the picker on ':', and Show All Commands on '>'",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "goToLinePick"
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": ":"
+					}
+				},
+				{
+					"action": "showCommands"
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": ">"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-notifications",
+			"note": "Show Notifications shows the panel on them; Clear All Notifications empties the list and closes the toast",
+			"steps": [
+				{
+					"action": "reindex"
+				},
+				{
+					"action": "showNotifications"
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "panelTab",
+						"is": "notifications"
+					}
+				},
+				{
+					"action": "clearNotifications"
+				},
+				{
+					"expect": {
+						"state": "notifications",
+						"is": []
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-close-nothing",
+			"note": "Closing with no editor open changes nothing",
+			"steps": [
+				{
+					"action": "closeEditor"
+				},
+				{
+					"expect": {
+						"state": "groups.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-workbench-split-and-close",
+			"note": "A split group closes with its last tab, and the first group keeps the file",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "splitEditor"
+				},
+				{
+					"expect": {
+						"state": "groups.length",
+						"is": 2
+					}
+				},
+				{
+					"key": "mod+w"
+				},
+				{
+					"expect": {
+						"state": "groups.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				}
+			]
+		}
+	]
+}

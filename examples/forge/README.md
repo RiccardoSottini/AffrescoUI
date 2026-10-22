@@ -28,6 +28,8 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `search` | Find in Files (`mod+shift+f`): an editor page that searches the open folder with the services' search engine (`Search.*`) as you submit, plain, whole word, case-sensitive or a regular expression, with include and exclude globs and the `.gitignore` files followed; the matches stream into a tree by file, a match opens at its line, and Replace All writes every file after a confirm, skipping those with unsaved edits and reloading the open ones |
 | `explorer` | The side bar's tree, kept current by the file watcher (`Explorer.*`, a `DirectoryModel`), with new file and folder, rename, delete (after a confirm dialog), copy and paste, move by drag and drop, and reveal of the active file, from its context menu, the File menu and the palette |
 | `terminal` | The panel's Terminal tab: up to 8 shells as tabs (`Terminal.*`, a VT terminal on libvterm in `TerminalModel.*`, on the `pty` provider), with bounded scrollback, the pty resized with the node, and no title or clipboard writes unless allowed; New Terminal is `mod+shift+t` |
+| `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly in C++ (`GitStatus.*`, `LineDiff.*`) |
+| `agent` | The agent pane (Cmd+Alt+I): a request in plain words goes to the connected agents, and their change comes back as a proposal, reviewed here with its changes, evidence (screenshots, scenario results) and a live preview, then accepted or rejected; and Bottega, the Features view (Cmd+Shift+X): the host's catalogue, install, enable and disable |
 
 The shell has four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
 - `forge.index`: the open folder as a tree and a flat file list, with file icons.
@@ -40,6 +42,19 @@ The editor feature adds `forge.open`, `forge.save`, `forge.saveAll`, `forge.reve
 old one, then renames it over it.
 
 A native's arguments never name a path outside the open folder.
+
+Source control runs git through the `process` service, not a native (`features/scm/Scm.cpp`). The host grants one
+program and Forge's own commands only (`GitArguments.*`): status, add and restore with paths after `--`, `commit -F -`
+(the message goes to git's input), the branch list, `switch` to a checked branch name, and `show HEAD:<path>`. Each run
+is given as an array, without a shell, against the open folder's repository (`--git-dir`, `--work-tree`). Its output is
+bounded and parsed by `forge.scm.parseStatus`, `forge.scm.parseBranches` and `forge.scm.diff`.
+
+The agent pane talks to the agents through Forge's own host: a channel to `studio.sock` in Forge's socket folder
+(`--socket`), relayed by the host to the peers on `agent.sock`. Agents hold `ask` permission there, so what one changes
+is a proposal: the pane never applies it, and accepting it names the head the person reviewed, so a proposal that
+changed since is refused. A reply, a proposal's changes and the catalogue are bounded before they are kept. Enabling or
+disabling a feature is a revision on `/features/<name>/enabled` (a name holding `/` or `~` is dropped), so it is
+reviewable and can be undone; installing one is the host's `features` service, which grants what a feature may do.
 
 ## Contribution points
 

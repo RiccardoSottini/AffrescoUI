@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Counts the tokens of what agents read and write: per template, the minified document (the first get_screen read),
-its outline (get_screen with outline=true) and the canonical edits in tests/perf/edits (submit_revision's
-arguments); and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
+"""Counts the tokens of what agents read and write: per template and for Forge (its features merged in), the minified
+document (the first get_screen read), its outline (get_screen with outline=true) and the canonical edits in
+tests/perf/edits (submit_revision's arguments); and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
 
     pip install --require-hashes -r tests/perf/requirements.txt
     python3 tests/perf/tokens.py              # JSON lines
@@ -87,6 +87,41 @@ def reread(mcp, document, edit):
     return changes
 
 
+def with_includes(document, folder, depth=0):
+    """A screen with its "include" files merged in, as the host merges them: each section of an included file comes
+    first and the including file's entries win; its root and window are kept. Enough for counting Forge."""
+    if depth > 8:
+        raise ValueError("includes nest too deeply")
+    merged = {key: value for key, value in document.items() if key != "include"}
+    for include in document.get("include", []):
+        with open(os.path.join(folder, include), encoding="utf-8") as file:
+            part = with_includes(json.load(file), os.path.dirname(os.path.join(folder, include)), depth + 1)
+        for section, entries in part.items():
+            if section in ("root", "window", "format", "version", "$schema"):
+                continue
+            if isinstance(entries, dict) and isinstance(merged.get(section, {}), dict):
+                own = merged.get(section, {})
+                if section == "menus":  # menu by menu, so several features add to one
+                    merged[section] = {menu: {**items, **own.get(menu, {})} for menu, items in entries.items()}
+                    merged[section].update({menu: items for menu, items in own.items() if menu not in entries})
+                else:
+                    merged[section] = {**entries, **own}
+            elif section not in merged:
+                merged[section] = entries
+    return merged
+
+
+def screens(root):
+    """The documents agents read, as (name, document): every template, then Forge with its features merged in."""
+    for path in sorted(glob.glob(os.path.join(root, "examples", "assets", "screens", "*" + SUFFIX))):
+        with open(path, encoding="utf-8") as screen:
+            yield os.path.basename(path)[:-len(SUFFIX)], json.load(screen)
+    forge = os.path.join(root, "examples", "forge", "forge" + SUFFIX)
+    if os.path.exists(forge):  # a root from before Forge has none
+        with open(forge, encoding="utf-8") as screen:
+            yield "forge", with_includes(json.load(screen), os.path.dirname(forge))
+
+
 def counts(root, edits, encoding):
     """Every count, as (name, tokens), in a fixed order."""
     mcp = load_mcp(root)
@@ -99,10 +134,7 @@ def counts(root, edits, encoding):
     yield "tokens/format-guide", tokens(text)
     if hasattr(mcp, "format_guide"):  # what get_format_guide gives without a topic (servers that have topics)
         yield "tokens/format-guide/contents", tokens(mcp.format_guide(text))
-    for path in sorted(glob.glob(os.path.join(root, "examples", "assets", "screens", "*" + SUFFIX))):
-        name = os.path.basename(path)[:-len(SUFFIX)]
-        with open(path, encoding="utf-8") as screen:
-            document = json.load(screen)
+    for name, document in screens(root):
         yield f"tokens/{name}/document", tokens(mcp.compact(document))
         yield f"tokens/{name}/outline", tokens(mcp.outline(document))
         if "depth" in inspect.signature(mcp.outline).parameters:

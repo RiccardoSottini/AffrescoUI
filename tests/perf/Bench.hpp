@@ -107,8 +107,8 @@ struct Group {
 	GroupFactory create; ///< Creates them (the setup, such as windows, happens here).
 };
 
-/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp), and editor
-/// (editor.cpp).
+/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp), editor (editor.cpp)
+/// and forge (forge.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> screenGroups();
 
@@ -121,6 +121,12 @@ struct Group {
 /// @param context The context.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> historyWorkloads(const Context& context);
+
+/// @brief The "forge" group's workloads (forge.cpp): Forge, the demo IDE, opened, typed into, its tabs switched, a file
+/// searched for and its command palette run.
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> forgeWorkloads(Context& context);
 
 /// @brief The "views" group's workloads (views.cpp): a tree's 100,000-item folder opened then closed (two operations),
 /// and a 100,000-row list scrolled to a new place and drawn, on headless windows.

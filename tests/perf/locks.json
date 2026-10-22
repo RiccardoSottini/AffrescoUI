@@ -1,5 +1,5 @@
 {
-	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400;, editor/type-100k 3.4 of editor/type-1k, editor/scroll-1m 1.0 of editor/scroll-10k, buffers/edit-1m 1.3 of buffers/edit-10k, search/capped 0.23 of search/word; the limits leave room for runners and callgrind.",
+	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400;, editor/type-100k 3.4 of editor/type-1k, editor/scroll-1m 1.0 of editor/scroll-10k, buffers/edit-1m 1.3 of buffers/edit-10k, search/capped 0.23 of search/word; forge/type 0.036, forge/switch-tab 0.037 and forge/palette 0.071 of forge/open; the limits leave room for runners and callgrind.",
 	"locks": [
 		{
 			"name": "layout/5000/change",
@@ -48,6 +48,24 @@
 			"of": "search/word",
 			"atMost": 0.6,
 			"why": "a search that reaches its cap stops walking and reading the folder at once"
+		},
+		{
+			"name": "forge/type",
+			"of": "forge/open",
+			"atMost": 0.15,
+			"why": "a character typed into Forge's editor updates what reads that file, not the workbench"
+		},
+		{
+			"name": "forge/switch-tab",
+			"of": "forge/open",
+			"atMost": 0.15,
+			"why": "switching Forge's tab rebuilds one editor group, not the workbench"
+		},
+		{
+			"name": "forge/palette",
+			"of": "forge/open",
+			"atMost": 0.3,
+			"why": "opening and filtering Forge's command palette builds the palette alone"
 		}
 	]
 }

@@ -4,6 +4,7 @@
 #include "Forge.hpp"
 
 #include "features/palette/FileIndex.hpp"
+#include "features/scm/Scm.hpp"
 #include "features/themes/IconTheme.hpp"
 #include "features/themes/ThemeImport.hpp"
 
@@ -63,6 +64,7 @@ std::string readTheme(const std::filesystem::path& path) {
 } // namespace
 
 void registerNatives(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
+	registerScm(screen, workspace); // features/scm
 	screen.onCall("forge.index", [workspace](const std::string& arguments) {
 		return indexWithIcons(workspace->root, arguments).dump();
 	});

@@ -128,6 +128,15 @@ if(AFFRESCOUI_INSTALL)
 	include(cmake/AffrescoUIInstall.cmake)
 endif()
 
+# Forge's natives, which the benchmark builds too (without the examples)
+set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
+	examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
+	examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitStatus.cpp
+	examples/forge/features/scm/GitArguments.cpp examples/forge/features/scm/LineDiff.cpp
+	examples/forge/features/accounts/Accounts.cpp examples/forge/features/editor/Buffers.cpp
+	examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
+	examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
+	examples/forge/features/terminal/TerminalModel.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
 	foreach(example host studio)
@@ -141,12 +150,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	endforeach()
 	target_link_libraries(affrescoui_host PRIVATE affrescoui::automation) # a proposal's evidence plays its scenarios
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
-	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
-		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-		examples/forge/features/accounts/Accounts.cpp examples/forge/features/editor/Buffers.cpp
-		examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
-		examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
-		examples/forge/features/terminal/TerminalModel.cpp)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
@@ -191,14 +194,15 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
 		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/CodeEditor.cpp tests/perf/buffers.cpp
-		examples/forge/features/editor/Buffers.cpp examples/forge/features/palette/FileIndex.cpp tests/perf/search.cpp)
+		tests/perf/search.cpp tests/perf/forge.cpp ${AFFRESCOUI_FORGE_SOURCES})
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples examples/forge modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
-	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets"
-		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf")
+		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf"
+		AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/forge/folder")
 	set_target_properties(affrescoui_bench PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_bench PRIVATE ${AFFRESCOUI_WARNINGS})
 endif()

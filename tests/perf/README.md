@@ -86,6 +86,9 @@ as the OpenGL driver's, aren't counted.
 | `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
 | `editor/type-1k`, `editor/type-100k` | A key typed (a letter, then a backspace, in turn) in the middle of a file of 1,000 or 100,000 lines, then a frame drawn without presenting it, in a hidden window: 200 operations per run, each timed. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over 8 ms fails (roadmap item 8.4b) |
 | `editor/scroll-10k`, `editor/scroll-1m` | A file of 10,000 or 1,000,000 lines scrolled to a new place, then a frame drawn without presenting it. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over a 120 Hz frame (8.3 ms) fails |
+| `forge/open` | Forge (`examples/forge`), the demo IDE, parsed with its features, built with its natives, its folder (`tests/render/forge/folder`) indexed, and laid out (`forge.cpp`) |
+| `forge/type`, `forge/switch-tab` | In Forge with two files open, a character typed into the first one, or the other tab shown; the update and the layout |
+| `forge/search`, `forge/palette` | Forge's quick open filtered by a file name; its command palette opened, then filtered |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 
