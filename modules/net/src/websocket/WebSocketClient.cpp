@@ -312,7 +312,11 @@ bool ClientSocket::handle(FrameEvent event, std::optional<network::Failure>& end
 		if(deliver(event.data)) return true;
 		event = {FrameEvent::Kind::Error, "Messages arrive faster than they are handled.", 1008};
 		break;
-	case FrameEvent::Kind::Ping: output_ += encodeFrame(Opcode::Pong, event.data, mask()); return true;
+	case FrameEvent::Kind::Ping:
+		// A server that pings without reading would grow the output; RFC 6455 section 5.5.3 lets an endpoint skip
+		// pongs it hasn't been able to send
+		if(output_.size() < options_.maxSendQueueBytes) output_ += encodeFrame(Opcode::Pong, event.data, mask());
+		return true;
 	case FrameEvent::Kind::Pong: return true;
 	case FrameEvent::Kind::Close:
 		answerClose(event.code, end);
