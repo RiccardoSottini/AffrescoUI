@@ -214,6 +214,51 @@ void describeCommand(json& entry, const json& item, const std::unordered_map<std
 	entry["keyLabel"] = c["keyLabel"];
 }
 
+/// @brief A menu's item as the `menus` variable shows it, before its submenu is resolved.
+/// @param key The item's name.
+/// @param item Its declaration.
+/// @param commands The `commands` variable's commands, by name.
+/// @return `{ name, title, icon, enabled, key, keyLabel, group, separator, order, run, with, submenu }`.
+json menuEntry(const std::string& key, const json& item, const std::unordered_map<std::string, const json*>& commands) {
+	json entry = {{"name", key},
+	              {"title", item.value("title", key)},
+	              {"icon", item.value("icon", json())},
+	              {"enabled", true},
+	              {"key", nullptr},
+	              {"keyLabel", nullptr},
+	              {"group", item.value("group", "")},
+	              {"separator", false},
+	              {"order", item.value("order", 0.0)}};
+	if(item.contains("run")) {
+		entry["run"] = item["run"];
+		if(item.contains("with")) entry["with"] = item["with"];
+	}
+	describeCommand(entry, item, commands);
+	if(const auto submenu = item.find("submenu"); submenu != item.end() && submenu->is_string())
+		entry["submenu"] = *submenu;
+	return entry;
+}
+
+/// @brief Orders a menu's items by group, order and name, and puts a separator between groups.
+/// @param kept The items, each with its "order", which it drops.
+/// @return The menu.
+json grouped(json kept) {
+	std::stable_sort(kept.begin(), kept.end(), [](const json& a, const json& b) {
+		return std::tuple(a["group"].get_ref<const std::string&>(), a["order"].get<double>(),
+		                  a["name"].get_ref<const std::string&>()) <
+		       std::tuple(b["group"].get_ref<const std::string&>(), b["order"].get<double>(),
+		                  b["name"].get_ref<const std::string&>());
+	});
+	json items = json::array();
+	for(json& entry : kept) {
+		if(!items.empty() && items.back()["group"] != entry["group"])
+			items.push_back({{"separator", true}, {"group", entry["group"]}});
+		entry.erase("order");
+		items.push_back(std::move(entry));
+	}
+	return items;
+}
+
 /// @brief One menu of the `menus` variable: its items that pass their "when", by group, order and key, with a
 /// separator between groups, and what their commands say.
 /// @param engine The runtime.
@@ -222,43 +267,20 @@ void describeCommand(json& entry, const json& item, const std::unordered_map<std
 /// @param depth How deep in submenus.
 /// @return The items: `{ name, title, icon, enabled, key, keyLabel, group, separator, submenu, run, with }`.
 json menuOf(Engine& engine, MenuSources& sources, const std::string& name, int depth) {
-	json items = json::array();
 	const json& menus = sources.menus;
-	if(depth > maxMenuDepth || !menus.contains(name) || !menus[name].is_object()) return items;
+	if(depth > maxMenuDepth || !menus.contains(name) || !menus[name].is_object()) return json::array();
 	json kept = json::array();
 	for(const auto& [key, item] : menus[name].items()) {
 		if(!item.is_object()) continue;
 		if(item.contains("when") && !shown(engine, item["when"], "menus." + name + "." + key + ".when")) continue;
 		if(!take(engine, sources.budget, "menus")) break;
-		json entry = {{"name", key},        {"title", item.value("title", key)}, {"icon", item.value("icon", json())},
-		              {"enabled", true},    {"key", nullptr},                   {"keyLabel", nullptr},
-		              {"group", item.value("group", "")}, {"separator", false}, {"order", item.value("order", 0.0)}};
-		if(item.contains("run")) {
-			entry["run"] = item["run"];
-			if(item.contains("with")) entry["with"] = item["with"];
-		}
-		describeCommand(entry, item, sources.commands);
-		if(const auto submenu = item.find("submenu"); submenu != item.end() && submenu->is_string())
-			entry["submenu"] = *submenu;
-		kept.push_back(std::move(entry));
+		kept.push_back(menuEntry(key, item, sources.commands));
 	}
 	// Submenus once this menu's own items are counted, so the budget keeps the items nearest the top
 	for(json& entry : kept)
 		if(const auto submenu = entry.find("submenu"); submenu != entry.end())
 			*submenu = menuOf(engine, sources, submenu->get<std::string>(), depth + 1);
-	std::stable_sort(kept.begin(), kept.end(), [](const json& a, const json& b) {
-		return std::tuple(a["group"].get_ref<const std::string&>(), a["order"].get<double>(),
-		                  a["name"].get_ref<const std::string&>()) <
-		       std::tuple(b["group"].get_ref<const std::string&>(), b["order"].get<double>(),
-		                  b["name"].get_ref<const std::string&>());
-	});
-	for(json& entry : kept) {
-		if(!items.empty() && items.back()["group"] != entry["group"])
-			items.push_back({{"separator", true}, {"group", entry["group"]}});
-		entry.erase("order");
-		items.push_back(std::move(entry));
-	}
-	return items;
+	return grouped(std::move(kept));
 }
 
 /// @brief The `menus` variable: each menu of "menus", resolved (menuOf()).

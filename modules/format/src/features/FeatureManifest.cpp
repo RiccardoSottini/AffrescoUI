@@ -322,6 +322,26 @@ void optionalText(const json& object, const char* key, const std::string& place)
 	if(const auto value = object.find(key); value != object.end()) expect::string(*value, place + "." + key);
 }
 
+/// @brief Checks what names a manifest: its format, version, name, release and texts.
+/// @param manifest The manifest, an object.
+/// @param place Its place.
+/// @throws DocumentError If one of them is missing or wrong.
+void checkManifestIdentity(const json& manifest, const std::string& place) {
+	if(manifest.value("format", json()) != manifestFormat)
+		fail(place + ".format", std::format("expected \"{}\"", manifestFormat));
+	if(const json version = manifest.value("version", json()); version != 1 && version != formatVersion)
+		fail(place + ".version", "expected 1 or 2");
+	if(!manifest.contains("name") || !manifest["name"].is_string() ||
+	   !validFeatureName(manifest["name"].get_ref<const std::string&>()))
+		fail(place + ".name", "must be one camelCase word, starting with a lower-case letter");
+	if(!manifest.contains("release") || !manifest["release"].is_string() ||
+	   !parseRelease(manifest["release"].get_ref<const std::string&>()))
+		fail(place + ".release", "expected a release like 1.2.3");
+	if(!manifest.contains("title")) fail(place, "missing \"title\"");
+	for(const char* key : {"title", "description", "license", "publisher", "homepage", "note"})
+		optionalText(manifest, key, place);
+}
+
 } // namespace
 
 std::optional<Release> parseRelease(std::string_view text) {
@@ -381,19 +401,7 @@ void checkManifest(const json& manifest, const std::string& place) {
 	expect::object(manifest, place);
 	checkLimits(manifest, place);
 	knownKeys(manifest, manifestKeys, place);
-	if(manifest.value("format", json()) != manifestFormat)
-		fail(place + ".format", std::format("expected \"{}\"", manifestFormat));
-	if(const json version = manifest.value("version", json()); version != 1 && version != formatVersion)
-		fail(place + ".version", "expected 1 or 2");
-	if(!manifest.contains("name") || !manifest["name"].is_string() ||
-	   !validFeatureName(manifest["name"].get_ref<const std::string&>()))
-		fail(place + ".name", "must be one camelCase word, starting with a lower-case letter");
-	if(!manifest.contains("release") || !manifest["release"].is_string() ||
-	   !parseRelease(manifest["release"].get_ref<const std::string&>()))
-		fail(place + ".release", "expected a release like 1.2.3");
-	if(!manifest.contains("title")) fail(place, "missing \"title\"");
-	for(const char* key : {"title", "description", "license", "publisher", "homepage", "note"})
-		optionalText(manifest, key, place);
+	checkManifestIdentity(manifest, place);
 	if(const auto needs = manifest.find("requires"); needs != manifest.end())
 		checkRequires(*needs, place + ".requires");
 	if(const auto needs = manifest.find("needs"); needs != manifest.end()) checkNeeds(*needs, place + ".needs");

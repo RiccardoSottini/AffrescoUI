@@ -72,6 +72,15 @@ void knownKeys(const json& value, const std::array<std::string_view, N>& keys, c
 		if(!among(keys, key)) fail(place + "." + key, "unknown key");
 }
 
+/// @brief Whether a value is the name of a field's type.
+/// @param type The value.
+/// @return Whether it is "string", "number", "integer", "boolean", "array", "object", "null" or "image".
+bool fieldType(const json& type) { return type.is_string() && among(fieldTypes, type.get_ref<const std::string&>()); }
+
+/// @brief The error for a value that isn't the name of a field's type.
+constexpr const char* expectedFieldType =
+    "expected a type: string, number, integer, boolean, array, object, null or image";
+
 /// @brief Checks `{ "<name>": <type> }`: an item's fields or an action's arguments.
 /// @param fields The object.
 /// @param place Its place.
@@ -81,9 +90,7 @@ void checkFields(const json& fields, const std::string& place) {
 	if(fields.size() > maxFields) fail(place, std::format("more than {} fields", maxFields));
 	for(const auto& [field, type] : fields.items()) {
 		if(!identifier(field)) fail(place + "." + field, "must be an identifier");
-		if(!type.is_string() || !among(fieldTypes, type.get_ref<const std::string&>()))
-			fail(place + "." + field,
-			     "expected a type: string, number, integer, boolean, array, object, null or image");
+		if(!fieldType(type)) fail(place + "." + field, expectedFieldType);
 	}
 }
 
@@ -96,12 +103,12 @@ void optionalText(const json& object, const char* key, const std::string& place)
 	if(const auto value = object.find(key); value != object.end()) expect::string(*value, place + "." + key);
 }
 
-/// @brief Checks the parts of a need its kind gives meaning to.
+/// @brief Checks what a slot need or a capability need points at: its "slot" or its "capability".
 /// @param need The need.
 /// @param kind Its kind.
 /// @param place Its place.
 /// @throws DocumentError If one is missing, or there for another kind.
-void checkNeedParts(const json& need, const std::string& kind, const std::string& place) {
+void checkNeedTarget(const json& need, const std::string& kind, const std::string& place) {
 	if(kind == "slot") {
 		if(!need.contains("slot") || !need["slot"].is_string() || !among(pointSlots, need["slot"].get<std::string>()))
 			fail(place + ".slot", "expected a slot: dock, panel, menu or toolbar");
@@ -111,14 +118,22 @@ void checkNeedParts(const json& need, const std::string& kind, const std::string
 		if(!capability.starts_with("services.") && !capability.starts_with("connections."))
 			fail(place + ".capability", "expected \"services.<name>\" or \"connections.<name>\"");
 	} else if(need.contains("capability")) fail(place + ".capability", "only a capability need has one");
+}
+
+/// @brief Checks the parts of a need its kind gives meaning to.
+/// @param need The need.
+/// @param kind Its kind.
+/// @param place Its place.
+/// @throws DocumentError If one is missing, or there for another kind.
+void checkNeedParts(const json& need, const std::string& kind, const std::string& place) {
+	checkNeedTarget(need, kind, place);
 	if(const auto item = need.find("item"); item != need.end()) checkFields(*item, place + ".item");
 	if(const auto arguments = need.find("arguments"); arguments != need.end()) {
 		if(kind != "action") fail(place + ".arguments", "only an action need has arguments");
 		checkFields(*arguments, place + ".arguments");
 	}
-	if(const auto type = need.find("type"); type != need.end())
-		if(!type->is_string() || !among(fieldTypes, type->get_ref<const std::string&>()))
-			fail(place + ".type", "expected a type: string, number, integer, boolean, array, object, null or image");
+	if(const auto type = need.find("type"); type != need.end() && !fieldType(*type))
+		fail(place + ".type", expectedFieldType);
 }
 
 /// @brief An export's contract, compactly: kind, type, item and arguments.

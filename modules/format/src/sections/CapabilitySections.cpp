@@ -77,6 +77,20 @@ bool isDuration(const std::string& text) {
 	       std::ranges::all_of(text.substr(0, text.size() - 1), [](char c) { return c >= '0' && c <= '9'; });
 }
 
+/// @brief "permissions.review.owners": the authors who must approve a change under each path.
+/// @param value The value.
+/// @param at "permissions.review.owners".
+void checkOwners(const json& value, const std::string& at) {
+	for(const auto& [pattern, owners] : expect::object(value, at).items()) {
+		const std::string where = at + "." + pattern;
+		if(!parsePermissionRule("*(" + pattern + ")"))
+			expect::fail(where, "expected a JSON Pointer or \"#id\" path, e.g. \"#board\"");
+		if(!owners.is_array() || owners.empty()) expect::fail(where, "expected a list of author names");
+		for(std::size_t i = 0; i < owners.size(); ++i)
+			(void)expect::string(owners[i], where + "[" + std::to_string(i) + "]");
+	}
+}
+
 /// @brief "permissions.review": the review policy (VERSION_CONTROL.md, "Review policies").
 /// @param value The value.
 /// @param name "permissions.review".
@@ -89,14 +103,7 @@ void checkReview(const json& value, const std::string& name) {
 		} else if(key == "grantsLast") {
 			if(!isDuration(expect::string(item, at))) expect::fail(at, "expected a duration, e.g. \"8h\" or \"7d\"");
 		} else if(key == "owners") {
-			for(const auto& [pattern, owners] : expect::object(item, at).items()) {
-				const std::string where = at + "." + pattern;
-				if(!parsePermissionRule("*(" + pattern + ")"))
-					expect::fail(where, "expected a JSON Pointer or \"#id\" path, e.g. \"#board\"");
-				if(!owners.is_array() || owners.empty()) expect::fail(where, "expected a list of author names");
-				for(std::size_t i = 0; i < owners.size(); ++i)
-					(void)expect::string(owners[i], where + "[" + std::to_string(i) + "]");
-			}
+			checkOwners(item, at);
 		} else expect::fail(at, "unknown property (expected approvals, behaviourApprovals, owners or grantsLast)");
 	}
 }
@@ -110,28 +117,44 @@ void checkPolicyAuthor(const json& item, const std::string& at) {
 		expect::fail(at + ".author", "expected an author, a channel, \"*\" or \"role:<name>\", e.g. \"agent\"");
 }
 
+/// @brief One budget of "permissions.budgets".
+/// @param budget The budget.
+/// @param at Its place.
+void checkBudget(const json& budget, const std::string& at) {
+	bool limited = false;
+	for(const auto& [key, item] : expect::object(budget, at).items()) {
+		const std::string where = std::format("{}.{}", at, key);
+		if(key == "added" || key == "removed" || key == "changed") {
+			if(!item.is_number_integer() || item.get<long long>() < 0 || item.get<long long>() > 100000)
+				expect::fail(where, "expected a number of nodes from 0 to 100000");
+			limited = true;
+		} else if(key == "over") {
+			if(item != "ask" && item != "deny") expect::fail(where, "expected \"ask\" or \"deny\"");
+		} else if(key != "author")
+			expect::fail(where, "unknown property (expected author, added, removed, changed or over)");
+	}
+	checkPolicyAuthor(budget, at);
+	if(!limited) expect::fail(at, "expected at least one of added, removed or changed");
+}
+
 /// @brief "permissions.budgets": the most nodes an author adds, removes and changes in one revision
 /// (VERSION_CONTROL.md, "Budgets").
 /// @param value The value.
 /// @param name "permissions.budgets".
 void checkBudgets(const json& value, const std::string& name) {
 	if(!value.is_array() || value.size() > 64) expect::fail(name, "expected a list of at most 64 budgets");
-	for(std::size_t i = 0; i < value.size(); ++i) {
-		const std::string at = name + "[" + std::to_string(i) + "]";
-		bool limited = false;
-		for(const auto& [key, item] : expect::object(value[i], at).items()) {
-			const std::string where = std::format("{}.{}", at, key);
-			if(key == "added" || key == "removed" || key == "changed") {
-				if(!item.is_number_integer() || item.get<long long>() < 0 || item.get<long long>() > 100000)
-					expect::fail(where, "expected a number of nodes from 0 to 100000");
-				limited = true;
-			} else if(key == "over") {
-				if(item != "ask" && item != "deny") expect::fail(where, "expected \"ask\" or \"deny\"");
-			} else if(key != "author")
-				expect::fail(where, "unknown property (expected author, added, removed, changed or over)");
-		}
-		checkPolicyAuthor(value[i], at);
-		if(!limited) expect::fail(at, "expected at least one of added, removed or changed");
+	for(std::size_t i = 0; i < value.size(); ++i) checkBudget(value[i], name + "[" + std::to_string(i) + "]");
+}
+
+/// @brief The paths of a data rule's "read", "write" or "never".
+/// @param paths The value.
+/// @param where Its place.
+void checkDataPaths(const json& paths, const std::string& where) {
+	if(!paths.is_array() || paths.size() > 64) expect::fail(where, "expected a list of at most 64 paths");
+	for(std::size_t j = 0; j < paths.size(); ++j) {
+		const std::string path = expect::string(paths[j], where + "[" + std::to_string(j) + "]");
+		if(!path.starts_with('/') || path.size() > 256 || !parsePermissionRule("*(" + path + ")"))
+			expect::fail(where + "[" + std::to_string(j) + "]", "expected a JSON Pointer, e.g. \"/state/cards\"");
 	}
 }
 
@@ -147,15 +170,25 @@ void checkDataRules(const json& value, const std::string& name) {
 			if(key == "author") continue;
 			if(key != "read" && key != "write" && key != "never")
 				expect::fail(where, "unknown property (expected author, read, write or never)");
-			if(!paths.is_array() || paths.size() > 64) expect::fail(where, "expected a list of at most 64 paths");
-			for(std::size_t j = 0; j < paths.size(); ++j) {
-				const std::string path = expect::string(paths[j], where + "[" + std::to_string(j) + "]");
-				if(!path.starts_with('/') || path.size() > 256 || !parsePermissionRule("*(" + path + ")"))
-					expect::fail(where + "[" + std::to_string(j) + "]",
-					             "expected a JSON Pointer, e.g. \"/state/cards\"");
-			}
+			checkDataPaths(paths, where);
 		}
 		checkPolicyAuthor(value[i], at);
+	}
+}
+
+/// @brief "permissions.allow", "ask", "deny" or "reviewers": a list of rules, or of author names.
+/// @param key Which.
+/// @param list The value.
+/// @param at Its place.
+void checkRuleList(const std::string& key, const json& list, const std::string& at) {
+	if(!list.is_array())
+		expect::fail(at, key == "reviewers" ? "expected a list of author names" : "expected a list of rules");
+	for(std::size_t i = 0; i < list.size(); ++i) {
+		const std::string item = expect::string(list[i], at + "[" + std::to_string(i) + "]");
+		if(key != "reviewers" && !parsePermissionRule(item))
+			expect::fail(at + "[" + std::to_string(i) + "]",
+			             "expected \"author\" or \"author(pattern)\", the pattern a JSON Pointer or \"#id\" path, "
+			             "e.g. \"agent(#board)\"");
 	}
 }
 
@@ -171,15 +204,7 @@ void checkPermissions(const json& value, const std::string& name) {
 		}
 		if(key != "allow" && key != "ask" && key != "deny" && key != "reviewers")
 			expect::fail(at, "unknown property (expected allow, ask, deny, reviewers, review, budgets or data)");
-		if(!list.is_array())
-			expect::fail(at, key == "reviewers" ? "expected a list of author names" : "expected a list of rules");
-		for(std::size_t i = 0; i < list.size(); ++i) {
-			const std::string item = expect::string(list[i], at + "[" + std::to_string(i) + "]");
-			if(key != "reviewers" && !parsePermissionRule(item))
-				expect::fail(at + "[" + std::to_string(i) + "]",
-				             "expected \"author\" or \"author(pattern)\", the pattern a JSON Pointer or \"#id\" path, "
-				             "e.g. \"agent(#board)\"");
-		}
+		checkRuleList(key, list, at);
 	}
 }
 

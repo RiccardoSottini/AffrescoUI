@@ -227,26 +227,30 @@ void targetProblems(const std::string& name, const std::string& text, const json
 	else if(std::string why = runWhy(name, text, needs); !why.empty()) problems.push_back(place + ": " + why);
 }
 
+/// @brief What an isolation walk checks against, and where its problems go.
+struct IsolationWalk {
+	const std::string& name;            ///< The feature.
+	const json& needs;                  ///< Its needs.
+	std::vector<std::string>& problems; ///< Receives each problem, at most maxProofReasons.
+};
+
 /// @brief Walks what a feature provides for isolation problems.
-/// @param name The feature.
+/// @param walk The feature, its needs and the problems.
 /// @param value The value.
-/// @param needs Its needs.
 /// @param place Its place.
-/// @param problems Receives each problem, at most maxProofReasons.
 /// @param depth How deep the walk is.
-void walkIsolation(const std::string& name, const json& value, const json& needs, const std::string& place,
-                   std::vector<std::string>& problems, int depth = 0) {
-	if(depth > maxNesting || problems.size() >= maxProofReasons) return;
-	if(value.is_string()) return textProblems(name, value.get<std::string>(), needs, place, problems);
+void walkIsolation(const IsolationWalk& walk, const json& value, const std::string& place, int depth = 0) {
+	if(depth > maxNesting || walk.problems.size() >= maxProofReasons) return;
+	if(value.is_string()) return textProblems(walk.name, value.get<std::string>(), walk.needs, place, walk.problems);
 	if(value.is_array())
 		for(std::size_t index = 0; index < value.size(); ++index)
-			walkIsolation(name, value[index], needs, std::format("{}[{}]", place, index), problems, depth + 1);
+			walkIsolation(walk, value[index], std::format("{}[{}]", place, index), depth + 1);
 	if(!value.is_object()) return;
 	for(const auto& [key, item] : value.items()) {
 		const std::string at = place + "." + key;
 		if(item.is_string() && namesAction(key, place))
-			targetProblems(name, item.get<std::string>(), needs, at, problems);
-		else walkIsolation(name, item, needs, at, problems, depth + 1);
+			targetProblems(walk.name, item.get<std::string>(), walk.needs, at, walk.problems);
+		else walkIsolation(walk, item, at, depth + 1);
 	}
 }
 
@@ -294,7 +298,7 @@ void scenarioStep(json& proof, const ProvenComposition& proven, const json& mani
 
 std::vector<std::string> isolationProblems(const std::string& name, const json& provides, const json& needs) {
 	std::vector<std::string> problems;
-	walkIsolation(name, provides, needs, "provides", problems);
+	walkIsolation({name, needs, problems}, provides, "provides");
 	return problems;
 }
 

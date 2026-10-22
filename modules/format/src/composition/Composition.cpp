@@ -429,21 +429,36 @@ private:
 			for(const json entries = provides.value(section, json::object());
 			    const auto& [key, value] : entries.items())
 				screen_[section][name + "." + key] = value;
+		mergeKeys(name, provides);
+		mergeMenus(name, provides);
+		for(const json entries = provides.value("views", json::object()); const auto& [point, nodes] : entries.items())
+			for(const auto& [id, node] : nodes.items()) mergeView(point, id, node);
+		for(const json entries = provides.value("exports", json::object()); const auto& [key, entry] : entries.items())
+			exports_[name + "." + key] = entry;
+		merged_.emplace(name, record["release"].get<std::string>());
+	}
+
+	/// @brief Merges a feature's key bindings, and notes it as their owner.
+	/// @param name The feature.
+	/// @param provides What it provides.
+	void mergeKeys(const std::string& name, const json& provides) {
 		for(const json entries = provides.value("keys", json::object()); const auto& [key, handler] : entries.items()) {
 			screen_["keys"][key] = handler;
 			keyOwners_.emplace(key, std::format("feature '{}'", name));
 		}
+	}
+
+	/// @brief Merges a feature's menu items, each named "<feature>.<item>"; an item without "run" or "submenu" runs
+	/// the feature's action of its name.
+	/// @param name The feature.
+	/// @param provides What it provides.
+	void mergeMenus(const std::string& name, const json& provides) {
 		for(const json entries = provides.value("menus", json::object()); const auto& [menu, items] : entries.items())
 			for(const auto& [item, entry] : (items.contains("items") ? items["items"] : items).items()) {
 				json merged = entry;
 				if(!merged.contains("run") && !merged.contains("submenu")) merged["run"] = name + "." + item;
 				screen_["menus"][menu][name + "." + item] = std::move(merged);
 			}
-		for(const json entries = provides.value("views", json::object()); const auto& [point, nodes] : entries.items())
-			for(const auto& [id, node] : nodes.items()) mergeView(point, id, node);
-		for(const json entries = provides.value("exports", json::object()); const auto& [key, entry] : entries.items())
-			exports_[name + "." + key] = entry;
-		merged_.emplace(name, record["release"].get<std::string>());
 	}
 
 	/// @brief Merges a feature's computed values as one object, `computed.<name>.<key>`.
