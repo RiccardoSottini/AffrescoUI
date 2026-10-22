@@ -5,6 +5,7 @@
 /// retries, and its operations (HTTP) or messages (WebSocket). Shared by the section's check, the Connections backend
 /// and the revision rules, so all three read a declaration the same way.
 
+#include "affresco/core/Identity.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Network.hpp"
 #include "affresco/core/Services.hpp"
@@ -56,13 +57,15 @@ struct ConnectionSpec {
 	int retryAfter = 500;                  ///< The first wait before a retry, in milliseconds.
 	int reconnect = 0;                     ///< WebSocket: the wait before connecting again after a drop (0: never).
 	std::map<std::string, Operation, std::less<>> operations; ///< Its operations or messages, by name.
+	std::optional<identity::Provider> provider; ///< Its own sign-in ("auth" as an object), or none.
+	std::string authName; ///< The sign-in its requests carry: its own name, another connection's, or empty.
 };
 
 /// @brief The connections of a section.
 using ConnectionMap = std::map<std::string, ConnectionSpec, std::less<>>;
 
 /// @brief Reads a "connections" section. Every value that leaves the machine (a URL, a header) is literal, every
-/// number is bounded, and no header may carry a credential: sign-in sets those (`auth`, accepted as declared).
+/// number is bounded, and no header may carry a credential: sign-in sets those (`auth`, ConnectionAuth.hpp).
 /// @param section The section (null: none).
 /// @param at Its place, for errors ("connections").
 /// @return The connections.

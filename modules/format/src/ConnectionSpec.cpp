@@ -2,6 +2,7 @@
 /// @brief The "connections" section read and checked (ConnectionSpec.hpp).
 
 #include "ConnectionSpec.hpp"
+#include "ConnectionAuth.hpp"
 #include "SectionRegistry.hpp"
 
 #include <algorithm>
@@ -215,6 +216,8 @@ ConnectionSpec readConnection(const json& definition, const std::string& name, c
 	readUrl(definition["url"], connection, at + ".url");
 	if(definition.contains("auth") && !definition["auth"].is_object() && !definition["auth"].is_string())
 		expect::fail(at + ".auth", "how to sign in, or the name of the connection whose sign-in it shares");
+	if(definition.contains("auth") && definition["auth"].is_object())
+		connection.provider = readProvider(definition["auth"], at + ".auth");
 	if(definition.contains("headers")) connection.headers = readHeaders(definition["headers"], at + ".headers");
 	if(definition.contains("timeout"))
 		connection.timeout = bounded(definition["timeout"], 1, maxConnectionTimeout, at + ".timeout");
@@ -262,6 +265,7 @@ ConnectionMap parseConnections(const json& section, const std::string& at) {
 		checkName(name, place);
 		connections.emplace(name, readConnection(definition, name, place));
 	}
+	linkSignIns(connections, section, at);
 	return connections;
 }
 

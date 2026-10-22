@@ -6,6 +6,5 @@ affrescoui_module(vcs
 	src/RepositoryDocuments.cpp
 	src/Deltas.cpp
 	src/HistoryStore.cpp
-	src/Permissions.cpp
-	src/Sha256.cpp)
+	src/Permissions.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)

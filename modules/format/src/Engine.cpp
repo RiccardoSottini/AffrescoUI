@@ -24,6 +24,9 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		return serviceCalls.services() ? serviceCalls.services()->status() : json::object();
 	});
 	document.addVariable("connections", [this] { return connections.status(); }); // {name: {online, pending, ...}}
+	document.addVariable("auth", [this] { // {name: {state, account, expires, ...}}: never a token
+		return identity ? identity->status() : json::object();
+	});
 	connections.onStatus([this] {
 		document.globalsChanged(); // the "connections" variable
 		reconciler.requestReconcile();

@@ -27,7 +27,7 @@ constexpr auto stepNames = std::to_array<std::string_view>(
 	 "run",      "call",    "cancel",   "emit",    "send",      "connect",    "patch",   "accept",
 	 "reject",   "preview", "restore",  "revert",  "undo",      "endPreview", "focus",   "scrollTo",
 	 "navigate", "dismiss", "after",    "debounce", "animate",  "copy",       "log",     "stop",
-	 "note",     "invoke",  "request",   "subscribe", "respond"});
+	 "note",     "invoke",  "request",   "subscribe", "respond", "signIn",   "signOut"});
 
 /// Steps that change the state at the path their key names.
 constexpr auto stateSteps =
@@ -478,7 +478,7 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
 		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, reject, "
-		       "preview, endPreview, restore, revert, undo, invoke, subscribe or respond");
+		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn or signOut");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);
@@ -503,7 +503,8 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		const auto steps = step.find(key);
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
-		const bool service = step.contains("invoke") || step.contains("request") || step.contains("subscribe");
+		const bool service = step.contains("invoke") || step.contains("request") || step.contains("subscribe") ||
+		                     step.contains("signIn"); // a sign-in's error is {code, message} too
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
 		if(key == "then" && step.contains("call")) layer.vars["result"] = anything; // and its result
 		if(key == "onDone") layer.vars["result"] = anything;                       // a service call's result

@@ -3,6 +3,7 @@
 /// answered from mocks.
 
 #include "Connections.hpp"
+#include "ConnectionAuth.hpp"
 
 #include "Engine.hpp"
 #include "Expression.hpp"
@@ -190,8 +191,30 @@ std::vector<std::string> Connections::load(const json& section) {
 		Live& placed = connections_.emplace(name, std::move(live)).first->second;
 		if(placed.spec.socket && placed.state != "refused") open(placed);
 	}
+	declareSignIns();
 	changed();
 	return refused;
+}
+
+void Connections::declareSignIns() {
+	if(!engine_.identity) return;
+	ConnectionMap specs;
+	for(const auto& [name, live] : connections_) specs.emplace(name, live.spec);
+	engine_.identity->declare(declaredProviders(specs));
+}
+
+void Connections::authChanged() {
+	for(auto& [name, live] : connections_) {
+		if(!live.spec.socket || live.spec.authName.empty() || live.state == "refused") continue;
+		const bool signedIn = engine_.identity && engine_.identity->bearer(live.spec.authName);
+		if(signedIn && live.state == "signedOut") open(live);
+		else if(!signedIn && live.socket) {
+			retire(std::move(live.socket));
+			live.state = "signedOut";
+			live.error = "not signed in to '" + live.spec.authName + "'";
+			changed();
+		}
+	}
 }
 
 const services::MethodSpec* Connections::method(std::string_view service, std::string_view name) const {
@@ -246,6 +269,10 @@ std::optional<std::string> Connections::start(std::string_view service, std::str
 		call->fail("wrong", error.what(), nullptr);
 		return std::nullopt;
 	}
+	if(const auto signedOut = authorize(live.spec, engine_.identity, request.headers)) {
+		call->fail("signedOut", *signedOut, nullptr);
+		return std::nullopt;
+	}
 	const std::uint64_t number = next_++;
 	Running& running = running_[number];
 	running.call = call;
@@ -296,6 +323,9 @@ network::Handlers Connections::handlers(std::uint64_t number, const std::optiona
 		if(const auto at = connections_.find(it->second.connection); at != connections_.end()) {
 			at->second.online = failure.code == "status";
 			at->second.error = failure.message;
+			// a refused token: the sign-in refreshes once, else signs out
+			if(failure.status == 401 && engine_.identity && !at->second.spec.authName.empty())
+				engine_.identity->refused(at->second.spec.authName);
 		}
 		it->second.call->fail(failure.code, failure.message,
 		                      {{"status", failure.status}, {"body", parseBody(failure.body)}});
@@ -375,6 +405,13 @@ void Connections::end(std::uint64_t number) {
 }
 
 void Connections::open(Live& live) {
+	network::Headers headers = live.spec.headers;
+	if(const auto signedOut = authorize(live.spec, engine_.identity, headers)) {
+		live.state = "signedOut"; // opened by authChanged() once signed in
+		live.error = *signedOut;
+		changed();
+		return;
+	}
 	live.state = "connecting";
 	const std::string name = live.spec.name;
 	const std::uint64_t generation = generation_;
@@ -406,7 +443,7 @@ void Connections::open(Live& live) {
 	events.closed = [this, alive, name, generation](std::optional<network::Failure> failure) {
 		if(alive.lock() && find(name, generation)) closed(name, failure);
 	};
-	live.socket = network_->connect(live.spec.url, live.spec.headers, std::move(events));
+	live.socket = network_->connect(live.spec.url, std::move(headers), std::move(events));
 	changed();
 }
 

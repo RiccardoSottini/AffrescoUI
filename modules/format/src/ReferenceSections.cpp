@@ -133,7 +133,11 @@ constexpr KeyReference sectionTable[] = {
     {"connections", R"json({"type": "object", "maxProperties": 64,
 		"description": "Servers the screen talks to over HTTP or WebSocket (RFC 0003), and what it may ask them. Revisions can't change it.",
 		"additionalProperties": {"type": "object", "required": ["url"], "additionalProperties": false,
-		"properties": {"url": {"type": "string"}, "auth": {"type": ["object", "string"]},
+		"properties": {"url": {"type": "string"}, "auth": {"anyOf": [{"type": "string"},
+		{"type": "object", "required": ["tokenUrl", "clientId"], "additionalProperties": false, "properties": {
+		"flow": {"enum": ["browser", "device"]}, "signInUrl": {"type": "string"}, "deviceUrl": {"type": "string"},
+		"tokenUrl": {"type": "string"}, "clientId": {"type": "string"}, "issuer": {"type": "string"},
+		"scopes": {"type": "array", "maxItems": 32, "items": {"type": "string"}}, "note": {"type": "string"}}}]},
 		"headers": {"type": "object", "additionalProperties": {"type": "string"}},
 		"timeout": {"type": "integer", "minimum": 1, "maximum": 600000},
 		"retry": {"type": "object", "additionalProperties": false, "properties": {"times": {"type": "integer",
@@ -152,8 +156,10 @@ constexpr KeyReference sectionTable[] = {
 	 "declared operation (method, `path` with `{name}` segments from `with`, `query`, `body`, `headers`, `effect`, "
 	 "`stream`, `result`, `timeout`, `mock`); a `ws://`/`wss://` connection has `messages` and runs the actions "
 	 "`name:open`, `name:<type>`, `name:error`, `name:closed`. The host allows the origins (`network.allow`). "
-	 "`connections.<name>` is `{online, pending, state, error}`. A capability: revisions use its operations, never "
-	 "add them.",
+	 "`connections.<name>` is `{online, pending, state, error}`. `auth` signs its requests in: an object declares an "
+	 "OAuth 2 provider (`flow` `browser` or `device`, `signInUrl` or `deviceUrl`, `tokenUrl`, `clientId`, `scopes`), "
+	 "a string names another connection's; the `signIn` step signs in, the host adds the token, and `auth.<name>` is "
+	 "`{state, account, expires, error}`, never a token. A capability: revisions use its operations, never add them.",
 	 "sections"},
     {"persist", R"json({"type": "array", "items": {"type": "string", "pattern": "^state\\."},
 		"description": "State paths kept on disk. Revisions can't change it."})json",
@@ -217,6 +223,13 @@ constexpr KeyReference stepTable[] = {
 	 "`{ \"respond\": \"{{state.answer}}\" }` or `{ \"respond\": null, \"error\": \"no\" }`: answers the "
 	 "service request that ran the action `service:method` (its `request`); a control step",
 	 "steps"},
+    {"signIn", "",
+	 "`{ \"signIn\": \"api\", \"onDone\": [...], \"onError\": [...] }`: signs in to the provider a connection's "
+	 "`auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The "
+	 "token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and "
+	 "`error` in `onError` is `{code, message}`. A control step",
+	 "steps"},
+    {"signOut", "", R"(`{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step)", "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
     {"connect", "", R"(`{ "connect": "host" }`: connect a declared channel now)", "steps"},

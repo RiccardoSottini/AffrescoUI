@@ -12,6 +12,7 @@
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/net/Client.hpp"
 #include "affresco/net/RemotePeers.hpp"
+#include "affresco/net/SignIn.hpp"
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
@@ -180,6 +181,12 @@ public:
 	/// dropped.
 	/// @return The network, owned by the Screen.
 	[[nodiscard]] net::Client& network();
+
+	/// @brief Sets how the connections' "auth" signs in (net::SignInOptions): where refresh tokens are kept and how
+	/// the browser opens. Without a call, network() signs in with tokens kept in memory, for this run only; an
+	/// application passes `net::systemSecretStore("<its name>")` to stay signed in. Signing in again starts over.
+	/// @param options The options.
+	void setSignInOptions(net::SignInOptions options);
 
 	/// @brief Registers a data model the screen shows with `"repeat": {"in": "models.<name>"}`: rows the application
 	/// owns, read one at a time; a change of a row updates only what reads it. Agents see its count, shape and a sample

@@ -91,7 +91,7 @@ src/
   HistoryStore.hpp / .cpp   the history folder: the lock, atomic writes, bounded reads, packs
   Permissions.hpp / .cpp    how a rule sees a change: by its effect on the paths it covers
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
-  Sha256.hpp / .cpp         SHA-256
+  Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)
 CMakeLists.txt              the affrescoui_vcs target and its sources
 ```
 
