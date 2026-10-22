@@ -56,6 +56,67 @@ int styleIndex(std::string_view style) noexcept {
 	return -1;
 }
 
+/// @brief Writes a date field of a pattern: the year, the month, the day or the weekday.
+/// @param out Where.
+/// @param letter The letter.
+/// @param count How many times it is repeated.
+/// @param time The time's fields.
+/// @param locale The locale.
+/// @return true if the letter is a date field.
+bool appendDateField(std::string& out, char letter, std::size_t count, const std::tm& time, const LocaleData& locale) {
+	switch(letter) {
+	case 'y':
+		out += count == 2 ? padded((time.tm_year + 1900) % 100, 2) : padded(time.tm_year + 1900, count);
+		return true;
+	case 'M':
+	case 'L':
+		if(count >= 4) out += locale.months[static_cast<std::size_t>(time.tm_mon) % 12];
+		else if(count == 3) out += locale.shortMonths[static_cast<std::size_t>(time.tm_mon) % 12];
+		else out += padded(time.tm_mon + 1, count);
+		return true;
+	case 'd':
+		out += padded(time.tm_mday, count);
+		return true;
+	case 'E':
+	case 'c':
+		out += (count >= 4 ? locale.days : locale.shortDays)[static_cast<std::size_t>(time.tm_wday) % 7];
+		return true;
+	default:
+		return false;
+	}
+}
+
+/// @brief Writes an hour field of a pattern: the hour on a 12 or 24 hour clock, or the period (AM or PM).
+/// @param out Where.
+/// @param letter The letter.
+/// @param count How many times it is repeated.
+/// @param hour The hour, 0 to 23.
+/// @param locale The locale.
+/// @return true if the letter is an hour field.
+bool appendHourField(std::string& out, char letter, std::size_t count, int hour, const LocaleData& locale) {
+	switch(letter) {
+	case 'a':
+	case 'b':
+	case 'B':
+		out += hour < 12 ? locale.am : locale.pm;
+		return true;
+	case 'h':
+		out += padded(hour % 12 == 0 ? 12 : hour % 12, count);
+		return true;
+	case 'H':
+		out += padded(hour, count);
+		return true;
+	case 'k':
+		out += padded(hour == 0 ? 24 : hour, count);
+		return true;
+	case 'K':
+		out += padded(hour % 12, count);
+		return true;
+	default:
+		return false;
+	}
+}
+
 /// @brief Writes one field of a pattern: a run of the same letter.
 /// @param out Where.
 /// @param letter The letter.
@@ -64,41 +125,9 @@ int styleIndex(std::string_view style) noexcept {
 /// @param locale The locale.
 void appendField(std::string& out, char letter, std::size_t count, const Moment& moment, const LocaleData& locale) {
 	const std::tm& time = moment.fields;
-	const int hour = time.tm_hour;
+	if(appendDateField(out, letter, count, time, locale) || appendHourField(out, letter, count, time.tm_hour, locale))
+		return;
 	switch(letter) {
-	case 'y':
-		out += count == 2 ? padded((time.tm_year + 1900) % 100, 2) : padded(time.tm_year + 1900, count);
-		break;
-	case 'M':
-	case 'L':
-		if(count >= 4) out += locale.months[static_cast<std::size_t>(time.tm_mon) % 12];
-		else if(count == 3) out += locale.shortMonths[static_cast<std::size_t>(time.tm_mon) % 12];
-		else out += padded(time.tm_mon + 1, count);
-		break;
-	case 'd':
-		out += padded(time.tm_mday, count);
-		break;
-	case 'E':
-	case 'c':
-		out += (count >= 4 ? locale.days : locale.shortDays)[static_cast<std::size_t>(time.tm_wday) % 7];
-		break;
-	case 'a':
-	case 'b':
-	case 'B':
-		out += hour < 12 ? locale.am : locale.pm;
-		break;
-	case 'h':
-		out += padded(hour % 12 == 0 ? 12 : hour % 12, count);
-		break;
-	case 'H':
-		out += padded(hour, count);
-		break;
-	case 'k':
-		out += padded(hour == 0 ? 24 : hour, count);
-		break;
-	case 'K':
-		out += padded(hour % 12, count);
-		break;
 	case 'm':
 		out += padded(time.tm_min, count);
 		break;
