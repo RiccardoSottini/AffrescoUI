@@ -25,6 +25,25 @@ constexpr int largestSize = affresco::Embedding::maximumSize;
 /// @brief The most names options.native_actions may list.
 constexpr std::size_t maximumNativeActions = 4096;
 
+/// @brief Checks the options' mode.
+/// @param mode The mode, as the host gave it.
+/// @throws Failure If it isn't an afr_mode.
+void checkMode(afr_mode mode) {
+	if(const int value = fromC(mode);
+	   value != AFR_MODE_WINDOW && value != AFR_MODE_HEADLESS && value != AFR_MODE_EMBEDDED)
+		throw Failure{AFR_ERROR_ARGUMENT, "options.mode is not an afr_mode"};
+}
+
+/// @brief Checks the options' window size and scale.
+/// @param options The options.
+/// @throws Failure If one is out of range.
+void checkArea(const afr_options& options) {
+	if(options.width < 0 || options.height < 0 || options.width > largestSize || options.height > largestSize)
+		throw Failure{AFR_ERROR_ARGUMENT, "options.width and options.height must be 0 to 16384"};
+	if(!std::isfinite(options.scale) || options.scale < 0.25f || options.scale > 16.0f)
+		throw Failure{AFR_ERROR_ARGUMENT, "options.scale must be 0.25 to 16"};
+}
+
 /// @brief Reads the host's options, of this version or an older one (a smaller size), checking each.
 /// @param given The host's, or NULL.
 /// @return The options.
@@ -37,13 +56,8 @@ afr_options readOptions(const afr_options* given) {
 		throw Failure{AFR_ERROR_ARGUMENT, "options.size is not one this library knows (use afr_options_init())"};
 	std::memcpy(&options, given, given->size);
 	options.size = sizeof(afr_options);
-	if(const int mode = fromC(options.mode);
-	   mode != AFR_MODE_WINDOW && mode != AFR_MODE_HEADLESS && mode != AFR_MODE_EMBEDDED)
-		throw Failure{AFR_ERROR_ARGUMENT, "options.mode is not an afr_mode"};
-	if(options.width < 0 || options.height < 0 || options.width > largestSize || options.height > largestSize)
-		throw Failure{AFR_ERROR_ARGUMENT, "options.width and options.height must be 0 to 16384"};
-	if(!std::isfinite(options.scale) || options.scale < 0.25f || options.scale > 16.0f)
-		throw Failure{AFR_ERROR_ARGUMENT, "options.scale must be 0.25 to 16"};
+	checkMode(options.mode);
+	checkArea(options);
 	if(options.mode == AFR_MODE_EMBEDDED && options.gl_loader == nullptr)
 		throw Failure{AFR_ERROR_ARGUMENT, "options.gl_loader is required to embed"};
 	return options;

@@ -52,24 +52,39 @@ void requireFinite(double value, const char* what) {
 	if(!std::isfinite(value)) throw Failure{AFR_ERROR_ARGUMENT, std::string(what) + " is not a finite number"};
 }
 
+/// @brief How many continuation bytes follow a UTF-8 lead byte.
+/// @param lead The byte, 0x80 or more.
+/// @return 1 to 3, or 0 for a byte no well-formed sequence starts with: a continuation byte, C0, C1, or F5 and up.
+int continuationBytes(unsigned char lead) noexcept {
+	if(lead > 0xF4) return 0;
+	return lead >= 0xF0 ? 3 : lead >= 0xE0 ? 2 : lead >= 0xC2 ? 1 : 0;
+}
+
+/// @brief Whether a decoded value is a Unicode scalar value in its shortest form.
+/// @param value The value.
+/// @param extra The continuation bytes it took: 1 to 3.
+/// @return False for an overlong form, a surrogate, or a value past U+10FFFF.
+bool isShortestScalar(char32_t value, int extra) noexcept {
+	const char32_t smallest = extra == 1 ? 0x80 : extra == 2 ? 0x800 : 0x10000;
+	return value >= smallest && value <= 0x10FFFF && (value < 0xD800 || value > 0xDFFF);
+}
+
 /// @brief Decodes one UTF-8 code point, rejecting overlong forms, surrogates and values past U+10FFFF.
 /// @param text The text.
-/// @param at Where it starts; moved past it.
+/// @param at Where it starts, before the end; moved past it.
 /// @return The code point, or 0xFFFFFFFF if it is malformed.
 char32_t decode(std::string_view text, std::size_t& at) noexcept {
 	const auto lead = static_cast<unsigned char>(text[at++]);
 	if(lead < 0x80) return lead;
-	const int extra = lead >= 0xF0 ? 3 : lead >= 0xE0 ? 2 : lead >= 0xC2 ? 1 : 0;
-	if(extra == 0 || lead > 0xF4 || at + static_cast<std::size_t>(extra) > text.size()) return 0xFFFFFFFF;
+	const int extra = continuationBytes(lead);
+	if(extra == 0 || at + static_cast<std::size_t>(extra) > text.size()) return 0xFFFFFFFF;
 	char32_t value = lead & (0x3F >> extra);
 	for(int i = 0; i < extra; ++i) {
 		const auto next = static_cast<unsigned char>(text[at++]);
 		if((next & 0xC0) != 0x80) return 0xFFFFFFFF;
 		value = (value << 6) | (next & 0x3F);
 	}
-	const char32_t smallest = extra == 1 ? 0x80 : extra == 2 ? 0x800 : 0x10000;
-	if(value < smallest || value > 0x10FFFF || (value >= 0xD800 && value <= 0xDFFF)) return 0xFFFFFFFF;
-	return value;
+	return isShortestScalar(value, extra) ? value : 0xFFFFFFFF;
 }
 
 /// @brief Draws a headless or window screen from scratch, and widens its RGB to opaque RGBA.
