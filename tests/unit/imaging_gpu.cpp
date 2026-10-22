@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <limits>
 #include <map>
 #include <optional>
 #include <stdexcept>
@@ -237,6 +238,7 @@ TEST_CASE("imaging canvas: the view maps both ways and the zoom picks the mip le
 	CHECK(canvasLevel(0.3, 8) == 2);
 	CHECK(canvasLevel(1.0 / 1024.0, 8) == 7);
 	CHECK(canvasLevel(0.5, 1) == 0);
+	CHECK(canvasLevel(std::numeric_limits<double>::denorm_min(), 8) == 7);
 }
 
 TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {

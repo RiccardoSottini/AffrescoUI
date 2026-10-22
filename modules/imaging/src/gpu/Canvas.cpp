@@ -246,8 +246,9 @@ std::array<double, 2> CanvasView::toSurface(double documentX, double documentY) 
 
 int canvasLevel(double zoom, int levels) noexcept {
 	if(!(zoom < 1.0) || zoom <= 0.0) return 0;
-	const int level = static_cast<int>(std::ceil(std::log2(1.0 / zoom) - 1e-9));
-	return std::clamp(level, 0, std::max(levels - 1, 0));
+	// Clamped before the cast: a zoom near zero puts the level past any int
+	const double level = std::ceil(std::log2(1.0 / zoom) - 1e-9);
+	return static_cast<int>(std::clamp(level, 0.0, static_cast<double>(std::max(levels - 1, 0))));
 }
 
 void CanvasModel::setDocument(std::unique_ptr<Document> document) {
