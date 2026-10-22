@@ -2,8 +2,8 @@
 /// @brief Fuzzes migrate and migratePatch (format/Migrate.hpp): a version 1 file is untrusted input, read by the
 /// loader and by `affrescoui migrate`.
 ///
-/// Any text is refused with json::parse_error, or migrates without another error; a second migration changes nothing,
-/// and a document it changed declares the current version.
+/// Any text is refused with json::parse_error or DocumentError, or migrates without another error; a second migration
+/// changes nothing, and a document it changed declares the current version.
 
 #include "Fuzz.hpp"
 
@@ -26,6 +26,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		document = affresco::parseUntrusted(affresco::fuzz::text(data, size));
 	} catch(const json::parse_error&) {
 		return 0;
+	} catch(const affresco::DocumentError&) {
+		return 0; // too deep, or a number no double holds
 	}
 	json patch = document;
 	json migrated = document;
