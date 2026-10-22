@@ -1,5 +1,5 @@
 /// @file
-/// @brief The syntax engine (affresco/services/Syntax.hpp, modules/services/src/Syntax*): each grammar's highlights,
+/// @brief The syntax engine (affresco/services/Syntax.hpp, modules/services/src/syntax/): each grammar's highlights,
 /// folds and brackets; a text kept in step with its edits, highlighted as a fresh parse would and changed only where
 /// the edits reach; its limits; and the `syntax` provider.
 

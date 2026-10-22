@@ -3,7 +3,7 @@
 /// Origin allowlist, the caps, the loopback default, and connectPeer() against a PeerServer.
 
 #include "NetServer.hpp"
-#include "WebSocketFrames.hpp"
+#include "websocket/WebSocketFrames.hpp"
 
 #include <affresco/net/RemotePeers.hpp>
 

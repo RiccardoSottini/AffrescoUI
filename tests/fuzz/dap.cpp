@@ -1,11 +1,11 @@
 /// @file
-/// @brief Fuzzes what a debug adapter writes (modules/services/src/DapProtocol.hpp): one message body, read, then
+/// @brief Fuzzes what a debug adapter writes (modules/services/src/dap/DapProtocol.hpp): one message body, read, then
 /// bounded and placed as the `dap` service gives it to a screen; and the same bytes as a request's arguments.
 ///
 /// A message is read or refused with a reason; what a screen gets is UTF-8, its lists within their limits, and every
 /// source it names says whether it is inside the folder.
 
-#include "../../modules/services/src/DapProtocol.hpp" // by its path: clang-tidy reads this file without its include folders
+#include "../../modules/services/src/dap/DapProtocol.hpp" // by its path: clang-tidy reads this file without its include folders
 #include "Fuzz.hpp"
 
 #include <cstddef>

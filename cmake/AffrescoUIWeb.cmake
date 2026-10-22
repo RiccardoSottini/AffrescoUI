@@ -4,7 +4,7 @@
 #
 # - Windows, input and the WebGL2 context: GLFW's Emscripten port (contrib.glfw3, the GLFW 3.4 API on a canvas, with
 #   the page's devicePixelRatio and clipboard), which emcc fetches and builds itself. The backend is always gles3.
-# - The network: the browser's fetch and WebSocket (modules/net/src/*Web.cpp), not libcurl. What needs a socket of its
+# - The network: the browser's fetch and WebSocket (modules/net/src/*/*Web.cpp), not libcurl. What needs a socket of its
 #   own (a peer server, a loopback redirect) fails as it would on a machine that can't listen.
 # - One thread: the browser build has no -pthread (no SharedArrayBuffer, so no cross-origin isolation for the page to
 #   ask for). What a desktop build does on worker threads runs on the main one, or reports itself missing.
@@ -37,15 +37,16 @@ add_library(CURL::libcurl INTERFACE IMPORTED)
 # allowlist) over the browser's fetch (WorkerWeb.cpp) and WebSocket (WebSocketWeb.cpp), and the page's own window for
 # a sign-in (OAuthBrowserWeb.cpp). src/Web/curl/curl.h names
 # libcurl's types for the headers that mention them; nothing calls libcurl.
-set(AFFRESCOUI_WEB_NET_CURL_SOURCES src/Curl.cpp src/Worker.cpp src/WebSocketClient.cpp src/OAuthBrowser.cpp)
+set(AFFRESCOUI_WEB_NET_CURL_SOURCES src/http/Curl.cpp src/http/Worker.cpp src/websocket/WebSocketClient.cpp
+	src/oauth/OAuthBrowser.cpp)
 
 # Gives the net module the browser's network in place of libcurl.
 # target: affrescoui_net.
 function(affrescoui_web_net target)
 	get_target_property(sources ${target} SOURCES)
 	list(REMOVE_ITEM sources ${AFFRESCOUI_WEB_NET_CURL_SOURCES})
-	set_property(TARGET ${target} PROPERTY SOURCES ${sources} src/WorkerWeb.cpp src/WebSocketWeb.cpp
-		src/OAuthBrowserWeb.cpp)
+	set_property(TARGET ${target} PROPERTY SOURCES ${sources} src/http/WorkerWeb.cpp
+		src/websocket/WebSocketWeb.cpp src/oauth/OAuthBrowserWeb.cpp)
 	target_include_directories(${target} PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src/Web)
 endfunction()
 

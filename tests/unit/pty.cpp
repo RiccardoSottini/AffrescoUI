@@ -3,7 +3,7 @@
 /// program hears, an interrupt it traps, and output split mid-character kept as valid text.
 
 #include "Providers.hpp"
-#include "Pty.hpp"
+#include "process/Pty.hpp"
 
 #include <doctest/doctest.h>
 

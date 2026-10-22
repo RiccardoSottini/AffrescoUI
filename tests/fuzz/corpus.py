@@ -530,7 +530,7 @@ def adapters_seeds():
 
 
 def dap_seeds():
-    """Message bodies a debug adapter writes (modules/services/src/DapProtocol.hpp): responses, events and the reverse
+    """Message bodies a debug adapter writes (modules/services/src/dap/DapProtocol.hpp): responses, events and the reverse
     requests, with sources inside and outside the fuzz target's folder (/work)."""
     frame = {"id": 1, "name": "main", "line": 3, "column": 1, "source": {"name": "a.c", "path": "/work/a.c"}}
     return [compact({"seq": 1, "type": "response", "request_seq": 1, "success": True, "command": "stackTrace",

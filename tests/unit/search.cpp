@@ -1,11 +1,11 @@
 /// @file
-/// @brief The search engine and provider (affresco/services/Search.hpp, modules/services/src/Search*): globs and
+/// @brief The search engine and provider (affresco/services/Search.hpp, modules/services/src/search/): globs and
 /// .gitignore rules, a folder searched on several threads within its caps, cancelled, matches replaced, and a screen
 /// that finds through the `search` service then writes a replaced file through `fs`; and Forge's Search view natives
 /// (examples/forge/features/search), which search and replace in the open folder.
 
 #include "Headless.hpp"
-#include "SearchGlob.hpp"
+#include "search/SearchGlob.hpp"
 #include "features/search/Search.hpp"
 
 #include <affresco/affresco.hpp>

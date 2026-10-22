@@ -3,7 +3,7 @@
 /// limits, server-sent events, cancellation and WebSocket connections.
 
 #include "NetServer.hpp"
-#include "WebSocketFrames.hpp"
+#include "websocket/WebSocketFrames.hpp"
 
 #include <affresco/net/Client.hpp>
 

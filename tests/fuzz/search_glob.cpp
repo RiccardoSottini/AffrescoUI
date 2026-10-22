@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes the search service's globs (services/src/SearchGlob.hpp): a screen's "include" and "exclude" lists and
+/// @brief Fuzzes the search service's globs (services/src/search/SearchGlob.hpp): a screen's "include" and "exclude" lists and
 /// the `.gitignore` files of a searched folder come from peers and from anywhere on disk, so a list must compile or
 /// fail, and matching must stay within its limits.
 ///
@@ -9,7 +9,7 @@
 
 #include "Fuzz.hpp"
 
-#include "SearchGlob.hpp"
+#include "search/SearchGlob.hpp"
 
 #include <algorithm>
 #include <cstddef>

@@ -1,12 +1,12 @@
 /// @file
-/// @brief Fuzzes the WebSocket frame reader (modules/net/src/WebSocketFrames.hpp): the bytes a server sends a client,
+/// @brief Fuzzes the WebSocket frame reader (modules/net/src/websocket/WebSocketFrames.hpp): the bytes a server sends a client,
 /// and the bytes a remote peer sends the host, cut into pieces at any place.
 ///
 /// The first byte picks the side (bit 0: the server side, which expects masked frames) and where the bytes are cut;
 /// the rest is the bytes. A message is valid UTF-8 within the limit, control payloads are at most 125 bytes, an error
 /// carries a close code, and after an error nothing more is read.
 
-#include "../../modules/net/src/WebSocketFrames.hpp" // by its path: clang-tidy reads this file without its include folders
+#include "../../modules/net/src/websocket/WebSocketFrames.hpp" // by its path: clang-tidy reads this file without its include folders
 #include "Fuzz.hpp"
 
 #include <algorithm>

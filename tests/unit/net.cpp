@@ -2,9 +2,9 @@
 /// @brief Unit tests of the network module's parsers: URLs and the origin allowlist, HTTP headers, server-sent events,
 /// lines, and WebSocket frames.
 
-#include "Http.hpp"
-#include "Streams.hpp"
-#include "WebSocketFrames.hpp"
+#include "http/Http.hpp"
+#include "http/Streams.hpp"
+#include "websocket/WebSocketFrames.hpp"
 
 #include <affresco/net/Client.hpp>
 #include <affresco/net/Url.hpp>

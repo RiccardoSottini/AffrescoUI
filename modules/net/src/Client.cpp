@@ -4,11 +4,11 @@
 
 #include "affresco/net/Client.hpp"
 
-#include "Curl.hpp"
-#include "Delivery.hpp"
-#include "Http.hpp"
-#include "WebSocketClient.hpp"
-#include "Worker.hpp"
+#include "http/Curl.hpp"
+#include "http/Delivery.hpp"
+#include "http/Http.hpp"
+#include "websocket/WebSocketClient.hpp"
+#include "http/Worker.hpp"
 
 #include <algorithm>
 #include <array>

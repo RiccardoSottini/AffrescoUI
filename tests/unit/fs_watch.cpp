@@ -3,7 +3,7 @@
 /// the `watch` provider's stream, confined to its root.
 
 #include "Providers.hpp"
-#include "Watcher.hpp"
+#include "files/Watcher.hpp"
 
 #include <affresco/services/DirectoryModel.hpp>
 
