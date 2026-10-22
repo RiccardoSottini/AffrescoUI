@@ -2,6 +2,7 @@
 affrescoui_module(channel
 	# transports: the bytes in and out (local sockets, child processes, stdio) and the line framing they share
 	src/transports/Channels.cpp
+	src/transports/SocketPlatform.cpp
 	src/transports/Sockets.cpp
 	# session: the live protocol a peer speaks over a channel
 	src/session/Session.cpp)
