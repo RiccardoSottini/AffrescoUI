@@ -15,6 +15,7 @@ Winsock on Windows).
 |---|---|
 | `Client.hpp` | `Client` (the `Network`: `allow`, `check`, `start`, `connect`), `ClientOptions` (proxy, extra certificate authorities, the concurrency limits) and `checkHeaders` |
 | `RemotePeers.hpp` | `TokenVerifier` (checks a token, names the author), `PeerServer` and `PeerServerOptions` (origins, caps, timeouts), `connectPeer` (a `Channel` to a server, with a token) |
+| `SignIn.hpp` | `SignIn`, the `identity::Identity` of a host: OAuth 2 / OpenID Connect for public clients (authorization code with PKCE and a loopback redirect, device flow, refresh); `SignInOptions` (the `SecretStore`, how the browser opens), `systemSecretStore` (Keychain, Credential Manager, Secret Service), `openInBrowser` |
 | `Url.hpp` | `Url` and `parseUrl` (http, https, ws and wss only; no user info), `isLoopback`, `OriginAllowlist` (exact origins and `*.` subdomains), `encodeSegment` |
 
 The request, response and handler types are `core`'s (`affresco/core/Network.hpp`), so modules that only send
@@ -43,6 +44,12 @@ requests depend on the interface, not on this module.
   (`maxPeers`, and the per-address connection rate). Anything else is refused with a reason and logged without the
   token. The server listens on the loopback unless `allowRemote` is set, and has no TLS of its own (a proxy in front
   does it: `examples/deploy/Caddyfile`). Limits: `SECURITY.md`.
+- **Tokens stay in `SignIn`.** Its `status()` holds a state, an account, an expiry and, during the device flow, the
+  code to type; never a token. The refresh token goes to the `SecretStore` (in memory unless the application passes
+  `systemSecretStore`), and logs name the provider, never a value. The browser flow sends a PKCE S256 challenge, a
+  `state` and a `nonce`, and listens on 127.0.0.1 on a random port for one answer to the exact redirect path; the
+  `state` and the `nonce` are compared in constant time. Answers are bounded (64 KiB) and time out. A 401 refreshes
+  once; a refused refresh signs out and erases the stored token. No client secret: these are public clients.
 - **Cancelling is final:** after `Transfer::cancel` (or the `Transfer` being destroyed) no handler is called.
 
 ## Threads
@@ -57,6 +64,9 @@ A `PeerServer` has a thread that accepts connections, and each connection a thre
 it. The verifier runs on the reading thread (so it must be thread-safe); the `Connected` callback, `onMessage` and
 `onClosed` run on the main thread. Destroying the server stops accepting and closes the connections still opening;
 peers already handed over belong to their owner.
+
+Sign-in's requests go through the same `Network` and post to the `Executor`; its loopback listener has a thread
+that waits for one connection. `signIn`'s `done` and `onStatus` run on the main thread.
 
 ## Errors
 
@@ -75,6 +85,8 @@ peers already handed over belong to their owner.
 
 - **How tokens are checked:** derive from `TokenVerifier`. It returns the author for a good token (e.g. `agent/ci`),
   and must compare secrets in constant time.
+
+- **Where secrets are kept:** derive from `SecretStore` (`core`) and pass it in `SignInOptions::store`.
 
 - **Another transport** (a test double, a mock for previews): implement `network::Network`. The format only sees the
   interface: `format::Runtime::setNetwork` takes any, and `Screen::network()` gives a screen's `connections` a

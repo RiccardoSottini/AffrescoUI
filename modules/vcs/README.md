@@ -13,6 +13,8 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | Header | Offers |
 |---|---|
 | `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
+| `Leases.hpp` | `Leases`: a part of a document (an `#id` or a pointer) one person holds for a while, bounded; `LeasedRules`: a document's rules plus a deny rule for everyone else per running lease |
+| `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
 `core/DocumentRules.hpp`.
@@ -91,7 +93,7 @@ src/
   HistoryStore.hpp / .cpp   the history folder: the lock, atomic writes, bounded reads, packs
   Permissions.hpp / .cpp    how a rule sees a change: by its effect on the paths it covers
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
-  Sha256.hpp / .cpp         SHA-256
+  Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)
 CMakeLists.txt              the affrescoui_vcs target and its sources
 ```
 

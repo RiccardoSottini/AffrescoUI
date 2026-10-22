@@ -23,7 +23,7 @@ namespace {
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "endPreview", "restore", "revert",
                                              "undo",   "patch",  "call",    "send",       "connect",
-                                             "respond"};
+                                             "respond", "signIn", "signOut"};
 
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;

@@ -31,6 +31,7 @@ affrescoui_module(format
 	src/ItemIndex.cpp
 	src/AsyncCalls.cpp
 	src/ServiceCalls.cpp
+	src/ConnectionAuth.cpp
 	src/ConnectionSpec.cpp
 	src/Connections.cpp
 	src/ServiceRules.cpp
@@ -71,6 +72,7 @@ affrescoui_module(format
 	src/NavigationSteps.cpp
 	src/TimeSteps.cpp
 	src/OtherSteps.cpp
+	src/AuthSteps.cpp
 	src/ServiceSteps.cpp
 	src/Checker.cpp
 	src/CheckerNodes.cpp

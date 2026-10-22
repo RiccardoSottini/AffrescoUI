@@ -6,6 +6,7 @@
 #include "affresco/core/CallProgress.hpp"
 #include "affresco/core/DataModel.hpp"
 #include "affresco/core/Executor.hpp"
+#include "affresco/core/Identity.hpp"
 #include "affresco/core/Network.hpp"
 #include "affresco/core/Services.hpp"
 #include "affresco/core/Json.hpp"
@@ -132,6 +133,11 @@ public:
 	/// @param network The network (outlives the runtime, or is replaced first), or nullptr: every connection is
 	/// refused.
 	void setNetwork(network::Network* network);
+	/// @brief Sets the sign-in the connections' "auth" use (net::SignIn): it is told the providers the document
+	/// declares, adds the bearer token to their requests, and shows its states as the "auth" variable.
+	/// @param identity The sign-in (outlives the runtime, or is replaced first), or nullptr: no connection with "auth"
+	/// is signed in.
+	void setIdentity(identity::Identity* identity);
 
 	/// @brief Registers a data model the document shows with `"repeat": {"in": "models.<name>"}`: its rows are read
 	/// one at a time, and a change of a row updates only what reads that row. Agents see its count, shape and a sample.

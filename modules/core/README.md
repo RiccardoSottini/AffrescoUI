@@ -22,6 +22,9 @@ headers come with nlohmann/json, which only the modules that use documents link.
 | `ScreenImages.hpp` | `ScreenImages::render`: a picture of the screen or of a proposal (`ImageRequest`, `Image`) |
 | `Network.hpp` | `network::Network` (`allow`, `check`, `start`, `connect`): what the `net` module offers to the others; `Request`, `Response`, `Failure`, `StreamEvent`, `Handlers`, `Transfer`, `WebSocket`, `SocketHandlers` |
 | `Services.hpp` | `services::Services` (`load`, `method`, `invoke`, `subscribe`, `status`, `onStatus`, `onRequest`): what the `services` module offers to the others; `Call` (one call or subscription: `arguments`, `stopToken`, `progress`, `event`, `finish`, `fail`), `MethodSpec`, `Effect`, `RequestHandler` |
+| `Identity.hpp` | `identity::Identity` (`declare`, `signIn`, `signOut`, `bearer`, `refused`, `status`, `onStatus`): sign-in as the format sees it, never a token in `status`; `identity::Provider` |
+| `SecretStore.hpp` | `SecretStore` (`read`, `write`, `erase`, `name`; thread-safe) and `MemorySecretStore`, one kept in memory for tests |
+| `Sha256.hpp` | `sha256::digest`, `sha256::hex`: SHA-256, header-only (version control's object names, the server's token hashes) |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
 
 ## Invariants
@@ -74,8 +77,11 @@ include/affresco/core/
   Executor.hpp        run work on the main thread
   CallProgress.hpp    a slow call's cancellation, progress and partial results
   Json.hpp            json, DocumentError, parseUntrusted, toText, expect::
+  Identity.hpp        Identity: sign-in for the format, and Provider
   Log.hpp             levels, the sink, log()
   ScreenImages.hpp    pictures of the screen for peers
+  SecretStore.hpp     SecretStore and MemorySecretStore
+  Sha256.hpp          SHA-256
   Signal.hpp          Signal and Connection
   VersionControl.hpp  VersionControl, VersionObserver and their value types
 CMakeLists.txt        the affrescoui_core INTERFACE target

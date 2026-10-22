@@ -24,6 +24,7 @@ Runtime::~Runtime() {
 	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
 	impl_->calls.cancelAll();      // and what slow calls return would reach it
 	impl_->serviceCalls.cancelAll(); // and so would what services return
+	if(impl_->identity) impl_->identity->onStatus(nullptr); // and so would a sign-in
 }
 
 void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
@@ -128,6 +129,20 @@ void Runtime::setServices(services::Services* services) {
 void Runtime::setNetwork(network::Network* network) {
 	impl_->connections.setNetwork(network);
 	impl_->document.globalsChanged(); // the "connections" variable
+	impl_->reconciler.requestReconcile();
+}
+
+void Runtime::setIdentity(identity::Identity* identity) {
+	if(impl_->identity) impl_->identity->onStatus(nullptr);
+	impl_->identity = identity;
+	if(identity)
+		identity->onStatus([engine = impl_.get()] {
+			engine->document.globalsChanged(); // the "auth" variable
+			engine->connections.authChanged();
+			engine->reconciler.requestReconcile();
+		});
+	impl_->connections.declareSignIns();
+	impl_->document.globalsChanged();
 	impl_->reconciler.requestReconcile();
 }
 

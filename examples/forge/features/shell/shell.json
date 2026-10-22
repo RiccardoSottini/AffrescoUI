@@ -271,6 +271,7 @@
 					{ "type": "label", "id": "status-theme", "icon": "palette", "padding": 6, "fitText": true, "cursor": "hand",
 					  "text": "{{find(state.themes, it.id == state.theme).name ?? state.theme}}", "textColor": "@color.statusText",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "pickTheme" } },
+					{ "use": "forgeAccountsStatus" },
 					{ "type": "label", "id": "status-notifications", "icon": "bell", "padding": 6, "fitText": true, "cursor": "hand",
 					  "text": "{{len(state.notifications) > 0 ? text(len(state.notifications)) : ''}}",
 					  "textColor": "@color.statusText", "tooltip": "Notifications", "hover": { "color": "@color.hover" },

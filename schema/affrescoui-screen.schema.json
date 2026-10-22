@@ -405,9 +405,51 @@
 									"type": "string"
 								},
 								"auth": {
-									"type": [
-										"object",
-										"string"
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "object",
+											"required": [
+												"tokenUrl",
+												"clientId"
+											],
+											"additionalProperties": false,
+											"properties": {
+												"flow": {
+													"enum": [
+														"browser",
+														"device"
+													]
+												},
+												"signInUrl": {
+													"type": "string"
+												},
+												"deviceUrl": {
+													"type": "string"
+												},
+												"tokenUrl": {
+													"type": "string"
+												},
+												"clientId": {
+													"type": "string"
+												},
+												"issuer": {
+													"type": "string"
+												},
+												"scopes": {
+													"type": "array",
+													"maxItems": 32,
+													"items": {
+														"type": "string"
+													}
+												},
+												"note": {
+													"type": "string"
+												}
+											}
+										}
 									]
 								},
 								"headers": {
@@ -1953,7 +1995,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, focus, scrollTo, navigate, dismiss, after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note; review: accept(+head), reject(+reason), preview, endPreview, restore, revert, undo",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -1974,6 +2016,8 @@
 					"request": {},
 					"subscribe": {},
 					"respond": {},
+					"signIn": {},
+					"signOut": {},
 					"accept": {},
 					"reject": {},
 					"preview": {},

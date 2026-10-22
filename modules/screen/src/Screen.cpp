@@ -81,6 +81,7 @@ struct Screen::Impl {
 	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
 	RelayExecutor relay;                                         ///< The network's executor.
 	std::unique_ptr<net::Client> network;                        ///< See Screen::network(); outlives the runtime.
+	std::unique_ptr<net::SignIn> signIn;                         ///< The connections' "auth"; outlives the runtime.
 	format::Rules rules;                                         ///< The format's rules.
 	vcs::Repository repository;                                  ///< Document, state, history, review.
 	format::Runtime runtime;                                     ///< Panels and actions.
@@ -641,8 +642,18 @@ net::Client& Screen::network() {
 	if(!impl.network) {
 		impl.network = std::make_unique<net::Client>(impl.relay);
 		impl.runtime.setNetwork(impl.network.get());
+		impl.signIn = std::make_unique<net::SignIn>(impl.relay, *impl.network);
+		impl.runtime.setIdentity(impl.signIn.get());
 	}
 	return *impl.network;
+}
+
+void Screen::setSignInOptions(net::SignInOptions options) {
+	Impl& impl = *impl_;
+	static_cast<void>(network());
+	impl.runtime.setIdentity(nullptr); // the old one is gone before the new one declares
+	impl.signIn = std::make_unique<net::SignIn>(impl.relay, *impl.network, std::move(options));
+	impl.runtime.setIdentity(impl.signIn.get());
 }
 
 void Screen::setModel(std::string name, std::shared_ptr<DataModel> model) {

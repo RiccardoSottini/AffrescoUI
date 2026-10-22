@@ -224,10 +224,42 @@ A screen's `connections` section names servers and the operations the screen may
 capability, like `services`: a revision can't change it, and may add `request` and `subscribe` steps only for
 operations it declares, written out (a computed name is refused). A step a revision adds that writes or runs
 (`effect` other than `read`) is always reviewed. The host allows each origin first (`Screen::network().allow`); until
-then every request is refused. A document never holds a credential: the headers that carry one are refused, and an
-`auth` key is accepted for sign-in, which is not implemented yet. While a proposal is previewed, only a read without
+then every request is refused. A document never holds a credential: the headers that carry one are refused, and sign-in
+sets them (next section). While a proposal is previewed, only a read without
 a `mock` reaches a server; any other operation answers from its mock, or fails with `preview`, so a preview has no
 side effects.
+
+### Sign-in
+
+A connection's `auth` declares an OAuth 2 / OpenID Connect provider for a public client (no client secret: none is
+ever in a document or in this repository), or names another connection's. The host signs in when the person runs a
+`signIn` step: the authorization code with PKCE (S256) and a redirect to a listener bound to 127.0.0.1 on a random
+port, matched exactly and closed after one answer; or the device flow. The `state` and the OpenID `nonce` are
+checked, and compared in constant time; every answer from the provider is bounded in size and time. The tokens stay
+in the host's `SignIn` object, and the refresh token in its `SecretStore` (the Keychain, the Credential Manager or the
+Secret Service when the application passes `net::systemSecretStore`; in memory by default). The host adds the
+`Authorization` header to each request of a connection that signs in, after the document's headers, which can't
+carry one. What a document sees is `auth.<name>`: a state, an account and an expiry, never a token, so a token
+reaches no document, state, history, log or screenshot (`tests/unit/auth.cpp` signs in through a mock provider and
+looks for every token it issued in all of them). A 401 refreshes once; a refused refresh signs out and erases the
+stored token. `signIn` and `signOut` are control steps: a revision can't add or move them, nor change a provider, and
+they don't run while a proposal is previewed. The id token is read for its claims (account, expiry) from the token
+endpoint over TLS, not verified as a signature: it decides what is shown, never what is allowed.
+
+### The document server
+
+`affrescoui_server` (examples/server) accepts no peer without a token: its `TokenFile` keeps each token's SHA-256 and
+a name, so the file reveals no token; a token is 256 bits from the system's random source, shown once when added, and
+checked by hashing it and comparing it with every entry in constant time. It listens on the loopback unless told
+otherwise, and is meant to sit behind a proxy that terminates TLS (examples/deploy). The token's name is the author
+of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
+that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
+document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,
+never used to decide anything. Leases, presence entries and the server's messages are all bounded (examples/server). With `--userinfo` it also admits OAuth access
+tokens: each is checked at the provider's https userinfo endpoint, and only the subjects of the people file the
+operator writes get in, by the name that file gives them; a token that worked is remembered by its hash for five
+minutes (a revoked token keeps working that long at most), a refused one isn't, and each question is bounded in time
+and size. The server never keeps, logs or forwards a token anywhere but to that endpoint.
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
@@ -405,6 +437,11 @@ approves.
 ## Known gaps
 
 These are not protected today. They are stated plainly so that you can decide what to expose.
+
+- **A signed-in token is as safe as the process.** Anything running in the host process can read the tokens in
+  memory, and anything the person runs can ask their secret store for the refresh token (the system may ask them
+  first). The browser flow's listener accepts the first answer that carries the right `state`: another program of the
+  same user that learns the authorization URL could race it, though PKCE keeps the code useless without the verifier.
 
 - **Services aren't sandboxed.** A program the host allows (`allowProcess`) runs with the user's rights, and a
   JSON-RPC service may do whatever its program does once started; `fs` keeps paths inside its folder, but a program
