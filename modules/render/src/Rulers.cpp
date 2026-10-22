@@ -71,7 +71,9 @@ void rulerTicks(double worldStart, float zoom, float length, std::vector<RulerTi
 	const double leading = step / std::pow(10.0, std::floor(std::log10(step)));
 	const int minors = std::abs(leading - 2.0) < 0.5 ? 4 : 5;
 	const double minor = step / minors;
-	auto index = static_cast<long long>(std::floor(worldStart / minor));
+	const double first = std::floor(worldStart / minor);
+	if(!(std::abs(first) < 1e15)) return; // too far out for whole ticks
+	auto index = static_cast<long long>(first);
 	for(std::size_t count = 0; count < maximumTicks; ++count, ++index) {
 		const double world = static_cast<double>(index) * minor;
 		const auto screen = static_cast<float>((world - worldStart) * zoom);

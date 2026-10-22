@@ -4,6 +4,7 @@
 
 #include "GeometryCache.hpp"
 #include "Headless.hpp"
+#include "Rulers.hpp"
 #include "SpatialIndex.hpp"
 
 #include <affresco/render/CanvasView.hpp>
@@ -215,4 +216,14 @@ TEST_CASE("canvas: a grid far from the origin ends, and a guide taken away mid-d
 	test.window->routeMouseMove({300.0f, 5.0f});
 	test.button(Action::Release, {300.0f, 5.0f});
 	CHECK(test.canvas.guides().horizontal.empty());
+}
+
+TEST_CASE("canvas: a ruler too far out for whole ticks has none") {
+	std::vector<affresco::RulerTick> ticks;
+	affresco::rulerTicks(0.0, 1.0f, 200.0f, ticks);
+	CHECK_FALSE(ticks.empty());
+	affresco::rulerTicks(1e30, 1.0f, 200.0f, ticks);
+	CHECK(ticks.empty());
+	affresco::rulerTicks(-1e30, 1.0f, 200.0f, ticks);
+	CHECK(ticks.empty());
 }
