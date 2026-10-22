@@ -37,3 +37,30 @@ compressed (no zlib), which keeps the writer simple at the cost of larger files.
 ## Threads
 
 Main thread, as the panels it reads. A document is used by one thread at a time.
+
+## Errors
+
+`addPage`, `finish` and `save` throw `std::runtime_error`: past a `PdfLimits` cap (the message names it), for a page
+size outside 1 to 14,400 points, after `finish`, or for a file that can't be written.
+
+`save` writes the path the application gives it and replaces a file there: no screen chooses it, so confining it (to a
+folder the user picked, say) is the application's.
+
+## Extension points
+
+- **Another vector format:** derive from `render`'s `Painter`, as `PdfPainter` does, and walk the panel tree as
+  `PdfDocument::addPage` does.
+- **Compression:** streams are written by `PdfObjects`; a filter (`/FlateDecode`) would go there, with its dependency.
+
+## Files
+
+```
+include/affresco/export/PdfDocument.hpp   the public API
+src/
+  PdfDocument.cpp          pages drawn by walking panel trees through a PdfPainter, then the file's structure
+  PdfPainter.hpp, .cpp     Painter calls as PDF drawing operators
+  PdfShapes.hpp, .cpp      numbers, strings and paths in PDF syntax
+  PdfResources.hpp, .cpp   images, transparency states, the shared resource dictionary
+  PdfFonts.hpp, .cpp       font files subset with HarfBuzz and embedded as CID fonts, with ToUnicode maps
+  PdfObjects.hpp, .cpp     numbered objects written in order, the cross-reference table
+```

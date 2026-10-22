@@ -89,3 +89,47 @@ stops its programs and joins its threads.
 
 - **Another provider** (a database, a device): implement `Provider` (its name, configuration schema and methods) and
   `Service`, and `add` it to the registry.
+
+- **Another file-watching backend:** implement `Watcher`'s platform part in a `files/Watcher<Platform>.cpp`, as
+  inotify, FSEvents and ReadDirectoryChangesW do, and pick it in `CMakeLists.txt`.
+- **Another syntax language:** fetch its grammar in `cmake/AffrescoUISyntax.cmake`, put its queries in
+  `syntax/queries/`, and list it in `src/syntax/SyntaxLanguages.cpp`.
+
+## Files
+
+```
+include/affresco/services/   the public API (above)
+src/
+  Providers.hpp        the general providers' factories, worker threads, paths kept under a root, the UTF-8 check
+  Common.cpp           what they share: Tasks, underRoot(), isUtf8(), EitherStop
+  Registry.cpp         ServiceRegistry: providers, grants, declarations checked, lazy start and restart
+  Schema.cpp           checkSchema(): the subset of JSON Schema a provider's configuration is checked with
+  rpc/                 the `jsonrpc` provider and its framing
+    Framing.hpp, .cpp    Content-Length and line framing, every frame bounded
+    JsonRpc.cpp          calls by id, notifications as streams, cancellation, requests answered by `respond`
+  process/             programs started without a shell
+    Process.hpp, .cpp    ChildProcess: posix_spawn in a process group, or CreateProcessW in a job object
+    ProcessProvider.cpp  the `process` provider: one run per call, its lines streamed
+    Pty.hpp, .cpp        PseudoTerminal: forkpty, or a pseudo console on Windows
+    PtyProvider.cpp      the `pty` provider: sessions, typing, resizing, signals
+  files/               folders the host grants
+    FileProvider.cpp     the `fs` provider: read, write (through a file beside it) and list
+    Watcher.hpp, .cpp    globs and debouncing, shared by the backends
+    WatcherMac.cpp, WatcherLinux.cpp, WatcherWindows.cpp, WatcherWeb.cpp
+                         FSEvents, inotify, ReadDirectoryChangesW, and none in the browser
+    WatchProvider.cpp    the `watch` provider: debounced batches as a stream
+    DirectoryModel.cpp   DirectoryModel: listing and rescans on a worker, rows changed on the main thread
+  search/              the `search` provider and its engine
+    SearchEngine.cpp     one thread walks the folder, several match its files
+    SearchGlob.hpp, .cpp include and exclude globs, .gitignore rules
+    SearchProvider.hpp, .cpp
+  syntax/              the `syntax` provider and its engine (tree-sitter)
+    Syntax.cpp           SyntaxDocument: parses, highlights, folds, brackets, each bounded
+    SyntaxLanguages.hpp, .cpp  the built-in grammars and queries, compiled once
+    SyntaxProvider.cpp   the provider: one parse per call, on worker threads
+  dap/                 the `dap` provider
+    Dap.cpp              a debug adapter the host granted, over Content-Length frames
+    DapProtocol.hpp, .cpp  its messages, checked and bounded
+    DapTransport.hpp, .cpp a granted program's pipes, or a loopback TCP connection
+syntax/queries/        the highlight and fold queries of each language
+```
