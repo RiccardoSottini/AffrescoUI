@@ -100,8 +100,9 @@ std::vector<VectorPath::Contour> ShapePanel::contours(Vec2 size) const {
 	return path().flatten({scale, {-box->left * scale.x, -box->top * scale.y}});
 }
 
-void ShapePanel::buildGradient(const std::vector<VectorPath::Contour>& outline, Vec2 size) const {
-	const float radians = gradient_->angle * std::numbers::pi_v<float> / 180.0f;
+void ShapePanel::buildGradient(const ShapeGradient& gradient, const std::vector<VectorPath::Contour>& outline,
+                               Vec2 size) const {
+	const float radians = gradient.angle * std::numbers::pi_v<float> / 180.0f;
 	const Vec2 normal{std::cos(radians), std::sin(radians)};
 	// The gradient spans the frame's corners along its direction
 	float low = 0.0f;
@@ -121,14 +122,27 @@ void ShapePanel::buildGradient(const std::vector<VectorPath::Contour>& outline, 
 		if(clipped.empty()) break;
 		std::vector<MeshVertex> mesh;
 		appendFill(clipped, fillRule(), mesh);
-		fills_.emplace_back(Color::mix(gradient_->from, gradient_->to, t), std::move(mesh));
+		fills_.emplace_back(Color::mix(gradient.from, gradient.to, t), std::move(mesh));
+	}
+}
+
+bool ShapePanel::isBuiltFor(Vec2 size) const {
+	return builtFor_ == size && builtFill_ == fillColor() && builtStroke_ == strokeColor() &&
+	       builtStyle_ == strokeStyle() && builtPath_ == path();
+}
+
+void ShapePanel::buildFill(const std::vector<VectorPath::Contour>& outline, Vec2 size) const {
+	if(isOpenShape(kind_)) return; // a line or an arrow has nothing inside
+	if(shadow_ && shadow_->color.a > 0.0f) appendFill(outline, fillRule(), shadowMesh_, 1.0f + shadow_->blur);
+	if(gradient_) buildGradient(*gradient_, outline, size);
+	else if(fillColor().a > 0.0f) {
+		fills_.emplace_back(fillColor(), std::vector<MeshVertex>{});
+		appendFill(outline, fillRule(), fills_.back().second);
 	}
 }
 
 void ShapePanel::build(Vec2 size) const {
-	if(builtFor_ == size && builtFill_ == fillColor() && builtStroke_ == strokeColor() &&
-	   builtStyle_ == strokeStyle() && builtPath_ == path())
-		return;
+	if(isBuiltFor(size)) return;
 	builtFor_ = size;
 	builtFill_ = fillColor();
 	builtStroke_ = strokeColor();
@@ -138,13 +152,7 @@ void ShapePanel::build(Vec2 size) const {
 	fills_.clear();
 	strokeMesh_.clear();
 	const std::vector<VectorPath::Contour> outline = contours(size);
-	const bool open = isOpenShape(kind_);
-	if(shadow_ && shadow_->color.a > 0.0f && !open) appendFill(outline, fillRule(), shadowMesh_, 1.0f + shadow_->blur);
-	if(gradient_ && !open) buildGradient(outline, size);
-	else if(fillColor().a > 0.0f && !open) {
-		fills_.emplace_back(fillColor(), std::vector<MeshVertex>{});
-		appendFill(outline, fillRule(), fills_.back().second);
-	}
+	buildFill(outline, size);
 	if(strokeColor().a > 0.0f && strokeStyle().width > 0.0f) appendStroke(outline, strokeStyle(), strokeMesh_);
 }
 
@@ -153,7 +161,7 @@ void ShapePanel::paint(affresco::Painter& painter) const {
 	const affresco::Rect& box = frame();
 	build({box.width(), box.height()});
 	const Vec2 corner{box.left, box.top};
-	if(!shadowMesh_.empty())
+	if(shadow_ && !shadowMesh_.empty()) // its mesh is built only with a shadow
 		painter.fillMesh(shadowMesh_, {corner.x + shadow_->offset.x, corner.y + shadow_->offset.y}, shadow_->color);
 	for(const auto& [color, mesh] : fills_)
 		if(!mesh.empty()) painter.fillMesh(mesh, corner, color);
