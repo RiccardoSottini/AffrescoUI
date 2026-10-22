@@ -69,26 +69,41 @@ std::string whole(double bound) {
 	                                                  : json(bound).dump();
 }
 
+/// @brief Checks a text's length against maxLength and minLength.
+/// @param schema The schema.
+/// @param text The text.
+/// @param path Its place.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> checkLength(const json& schema, const std::string& text, const std::string& path) {
+	const auto size = static_cast<double>(text.size());
+	if(const auto most = bound(schema, "maxLength"); most && size > *most)
+		return path + ": at most " + whole(*most) + " bytes";
+	if(const auto least = bound(schema, "minLength"); least && size < *least)
+		return path + ": at least " + whole(*least) + " bytes";
+	return std::nullopt;
+}
+
+/// @brief Checks a number against maximum and minimum.
+/// @param schema The schema.
+/// @param number The number.
+/// @param path Its place.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> checkRange(const json& schema, double number, const std::string& path) {
+	if(const auto most = bound(schema, "maximum"); most && number > *most)
+		return path + ": at most " + json(*most).dump();
+	if(const auto least = bound(schema, "minimum"); least && number < *least)
+		return path + ": at least " + json(*least).dump();
+	return std::nullopt;
+}
+
 /// @brief Checks the bounds: lengths of text, ranges of numbers, sizes of lists.
 /// @param schema The schema.
 /// @param value The value.
 /// @param path Its place.
 /// @return What is wrong, or std::nullopt.
 std::optional<std::string> checkBounds(const json& schema, const json& value, const std::string& path) {
-	if(value.is_string()) {
-		const auto size = static_cast<double>(value.get_ref<const std::string&>().size());
-		if(const auto most = bound(schema, "maxLength"); most && size > *most)
-			return path + ": at most " + whole(*most) + " bytes";
-		if(const auto least = bound(schema, "minLength"); least && size < *least)
-			return path + ": at least " + whole(*least) + " bytes";
-	}
-	if(value.is_number()) {
-		const double number = value.get<double>();
-		if(const auto most = bound(schema, "maximum"); most && number > *most)
-			return path + ": at most " + json(*most).dump();
-		if(const auto least = bound(schema, "minimum"); least && number < *least)
-			return path + ": at least " + json(*least).dump();
-	}
+	if(value.is_string()) return checkLength(schema, value.get_ref<const std::string&>(), path);
+	if(value.is_number()) return checkRange(schema, value.get<double>(), path);
 	if(const auto most = bound(schema, "maxItems");
 	   most && value.is_array() && static_cast<double>(value.size()) > *most)
 		return path + ": at most " + whole(*most) + " items";
