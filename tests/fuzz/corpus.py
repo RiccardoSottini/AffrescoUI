@@ -498,6 +498,45 @@ def history_seeds():
             "\x01" + compact({**commit, "snapshot": True})]
 
 
+def adapters_seeds():
+    """Documents in another format (SCREEN_FORMAT.md, "Other formats"): the A2UI stream and Adaptive Card the rendering
+    check converts, and small ones."""
+    screens = ROOT / "tests/render/screens"
+    card = {"type": "AdaptiveCard", "version": "1.5", "body": [{"type": "TextBlock", "text": "Hi ${name}"},
+            {"type": "Input.Text", "id": "name"}], "actions": [{"type": "Action.Submit", "title": "Send"}]}
+    update = {"surfaceUpdate": {"surfaceId": "s", "components": [{"id": "root", "component": {"Text": {
+              "text": {"literalString": "Hi"}}}}]}}
+    return [(screens / "a2ui.jsonl").read_text(encoding="utf-8"), (screens / "adaptive-card.json").read_text(
+            encoding="utf-8"), compact(card), compact(update) + "\n" + compact({"beginRendering": {
+            "surfaceId": "s", "root": "root"}}), compact({**card, "body": [{"type": "Container", "items": []}]})]
+
+
+def dap_seeds():
+    """Message bodies a debug adapter writes (modules/services/src/DapProtocol.hpp): responses, events and the reverse
+    requests, with sources inside and outside the fuzz target's folder (/work)."""
+    frame = {"id": 1, "name": "main", "line": 3, "column": 1, "source": {"name": "a.c", "path": "/work/a.c"}}
+    return [compact({"seq": 1, "type": "response", "request_seq": 1, "success": True, "command": "stackTrace",
+                     "body": {"stackFrames": [frame, {**frame, "source": {"path": "/elsewhere/b.c"}}]}}),
+            compact({"seq": 2, "type": "response", "request_seq": 2, "success": False, "command": "evaluate",
+                     "message": "no such variable"}),
+            compact({"seq": 3, "type": "event", "event": "output", "body": {"category": "stdout", "output": "hi\n"}}),
+            compact({"seq": 4, "type": "event", "event": "stopped", "body": {"reason": "breakpoint", "threadId": 1}}),
+            compact({"seq": 5, "type": "request", "command": "runInTerminal", "arguments": {"cwd": "/work",
+                     "args": ["./a.out", "--flag"]}}),
+            compact({"seq": 6, "type": "response", "request_seq": 3, "success": True, "command": "variables",
+                     "body": {"variables": [{"name": "x", "value": "1", "variablesReference": 0}]}})]
+
+
+def syntax_seeds():
+    """Texts for the syntax engine (tests/fuzz/syntax.cpp): the first byte picks the language, then the text, a zero
+    byte and edits of five bytes each."""
+    texts = ["int main() { return (1 + 2) * 3; }\n", "def f(x):\n    return [x, {'a': 1}]\n",
+             '{"a": [1, 2, {"b": null}]}\n', "# Title\n\n- item `code`\n", "const f = (a) => { return `x${a}`; };\n",
+             "template <class T> struct S { T t; };\n/* open"]
+    edit = "\x00\x00\x05\x01\x02x\x00\x10\x00\x01("
+    return [chr(language) + text + edit for language, text in enumerate(texts)] + [chr(index) for index in range(8)]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -640,6 +679,11 @@ def main():
                           ("git_output", git_output_seeds()), ("vscode_theme", vscode_theme_seeds()),
                           ("history", history_seeds())]:
         write(out, target, seeds, words[target])
+    write(out, "adapters", adapters_seeds(), words["json"] + ["surfaceUpdate", "beginRendering", "dataModelUpdate",
+          "literalString", "explicitList", "AdaptiveCard", "TextBlock", "Input.Text", "Action.Submit", "${"])
+    write(out, "dap", dap_seeds(), words["json"] + ["response", "event", "request", "request_seq", "success",
+          "command", "body", "source", "path", "/work/", "../", "stackFrames", "variables", "runInTerminal"])
+    write(out, "syntax", syntax_seeds(), ["(", ")", "{", "}", "[", "]", "\"", "'", "`", "/*", "*/", "//", "#", "\n"])
 
 
 if __name__ == "__main__":
