@@ -311,6 +311,9 @@ other end can run those actions with any data. Revisions can't change `channels`
 sender's author. A request is how a person asks an agent for a change, so an agent should treat it as instructions
 from the channel `from` starts with (`studio` in `studio/riccardo`), and nothing more: the part after the slash is
 the sender's own claim. Any peer can send one.
+A `repair` message is the exception: the host interprets it (see VERSION_CONTROL.md, "Self-repairing change sets").
+The agent's revision is authored by its channel, checked against the change set's proof, and always opened as a
+proposal, so a repair never skips review or the permission rules; only a reviewer retries a change set that gave up.
 
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
@@ -417,6 +420,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Design tokens (`tokens`) | 4,096 tokens, 32 themes, aliases 16 deep (a circle is an error); more is refused |
 | Sizes and styles of fonts one document derives (rich text runs) | 32 |
 | One label's rich text (`runs`) | 256 runs, 64 Ki code points in all, 2,048 bytes a link |
+| Self-repairing change sets (`ChangeSetRepairs`) | 64 installed per screen; a request in words of 4,096 bytes; 3 repairs per change set before it gives up; one repair at a time |
 | Items a list, a tree or a table reads | 1,000,000 items, trees 256 deep, 256 cells an item, 256 columns of 10,000 pixels at most, 16 sticky folders |
 | Tabs a strip reads, panes a split reads | 10,000 tabs and 1,000 panes (more are ignored); a split's sizes 0 to 1,000,000 pixels |
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |

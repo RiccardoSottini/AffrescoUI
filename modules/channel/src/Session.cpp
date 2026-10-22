@@ -125,7 +125,7 @@ void Session::handle(const std::string& line) {
 	const Incoming in{m, typeOf(m), m.value("id", json()), authorOf(m)};
 
 	try {
-		if(in.type == "request" || in.type == "reply") {
+		if(in.type == "request" || in.type == "reply" || in.type == "repair") {
 			json relayed = m;
 			relayed["from"] = in.author;
 			onRelay(relayed);

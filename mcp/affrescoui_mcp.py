@@ -609,6 +609,13 @@ TOOLS = [
                     "have submitted the revisions for a request.",
      "inputSchema": object_schema({"request_id": {"type": "string"}, "text": {"type": "string"}},
                                   ["request_id", "text"])},
+    {"name": "answer_repair",
+     "description": "Answer a repair request (a wait_for_request result with kind \"repair\": a change set that no "
+                    "longer applies, or whose scenarios fail, on the new template). Give the change set's request "
+                    "redone on the new base as one JSON Patch; it always becomes a proposal for a reviewer, and the "
+                    "scenarios in repair.proof must pass on it.",
+     "inputSchema": object_schema({"request_id": {"type": "string"}, "patch": {"type": "array"},
+                                   "message": {"type": "string"}}, ["request_id", "patch", "message"])},
     {"name": "get_screen",
      "description": "The running screen: its document (AffrescoUI Screen Format, with the live state as its \"state\" "
                     "and its permission rules), current revision and head commit, open proposals, the mode, the "
@@ -829,6 +836,8 @@ class Server:
     def on_request(self, message):
         request = {"request_id": str(message.get("id") or f"r{len(self.requests) + 1}"),
                    "from": str(message.get("from") or "unknown"), "text": str(message.get("text", ""))}
+        if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
+            request["kind"], request["repair"] = "repair", message.get("repair")
         with self.arrived:
             self.requests[request["request_id"]] = request
             self.arrived.notify_all()
@@ -967,6 +976,16 @@ class Server:
                 self.requests.pop(request_id, None)
                 self.delivered.discard(request_id)
             return "sent to the Studio", False
+        if name == "answer_repair":
+            request_id = str(args.get("request_id", ""))
+            reply = host.request({"type": "repair", "request": request_id,
+                                  "revision": {"message": args.get("message", ""), "patch": args.get("patch", [])}})
+            with self.arrived:
+                self.requests.pop(request_id, None)
+                self.delivered.discard(request_id)
+            if reply.get("type") != "proposed":
+                return f"refused, nothing changed: {reply.get('message') or reply.get('error')}", True
+            return describe(reply), False
         if name == "get_screen":
             return self.get_screen(args)
         if name == "get_catalog":

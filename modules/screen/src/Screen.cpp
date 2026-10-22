@@ -12,6 +12,7 @@
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
 #include "affresco/net/RemotePeers.hpp"
+#include "affresco/vcs/ChangeSetRepair.hpp"
 #include "affresco/vcs/Repository.hpp"
 
 #include <algorithm>
@@ -86,6 +87,7 @@ struct Screen::Impl {
 	std::unique_ptr<net::SignIn> signIn;                         ///< The connections' "auth"; outlives the runtime.
 	format::Rules rules;                                         ///< The format's rules.
 	vcs::Repository repository;                                  ///< Document, state, history, review.
+	vcs::ChangeSetRepairs repairs{repository, "screen"};         ///< Installed change sets and their repairs.
 	format::Runtime runtime;                                     ///< Panels and actions.
 	detail::OffscreenImages images{repository, runtime};         ///< Pictures for peers ("render").
 	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
@@ -123,6 +125,7 @@ struct Screen::Impl {
 			}
 		});
 		runtime.onUpdated.connect([this] { save(); });
+		repairs.onMessage.connect([this](const json& message) { broadcast(message); });
 		rules.setServices(&services);
 		runtime.setServices(&services);
 		services.add(detail::makeFeaturesProvider(features, repository, alive));
@@ -318,6 +321,8 @@ struct Screen::Impl {
 
 		// A request in plain words from one peer (e.g. the user's client) is for the others (e.g. an AI agent)
 		peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {
+			if(message.value("type", std::string()) == "repair")
+				return repairs.handle(message, [sender](const json& answer) { sender->session->send(answer); });
 			if(peers.size() < 2) {
 				sender->session->send({{"type", "error"},
 				                       {"message", "nobody else is connected to receive this " +
@@ -327,6 +332,7 @@ struct Screen::Impl {
 			}
 			broadcast(message, sender);
 		});
+		if(const std::optional<json> open = repairs.openRequest()) peer->session->send(*open);
 		peers.push_back(std::move(peer));
 		return *peers.back();
 	}
@@ -521,6 +527,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
+	screen.impl_->repairs.setTemplateName(path.filename().string());
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
@@ -807,6 +814,29 @@ bool Screen::importChanges(std::string_view changesJson, std::string* error) {
 	const auto changes = parseJson(changesJson, "changes", error);
 	return changes && succeeded(impl_->repository.importChanges(*changes), error);
 }
+
+std::string Screen::installChanges(std::string_view changesJson, std::string* error) {
+	const auto changes = parseJson(changesJson, "changes", error);
+	if(!changes) return {};
+	try {
+		return std::string(vcs::toString(impl_->repairs.install(*changes)));
+	} catch(const DocumentError& failure) {
+		if(error) *error = failure.what();
+		return {};
+	}
+}
+
+void Screen::setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check) {
+	if(!check) return impl_->repairs.setProofCheck({});
+	impl_->repairs.setProofCheck(
+	    [check = std::move(check)](const json& document, const json& proof) -> std::optional<std::string> {
+		    std::string failed = check(document.dump(), proof.dump());
+		    if(failed.empty()) return std::nullopt;
+		    return failed;
+	    });
+}
+
+std::string Screen::repairs() const { return impl_->repairs.status().dump(); }
 
 bool Screen::hasImported(std::string_view changesJson) const {
 	const auto changes = parseJson(changesJson, "changes", nullptr);

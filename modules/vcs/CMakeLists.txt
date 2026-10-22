@@ -10,5 +10,6 @@ affrescoui_module(vcs
 	src/HistoryStore.cpp
 	src/Permissions.cpp
 	src/Leases.cpp
-	src/Presence.cpp)
+	src/Presence.cpp
+	src/ChangeSetRepair.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)

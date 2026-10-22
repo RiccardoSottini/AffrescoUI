@@ -39,6 +39,8 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
 - **A peer is held to `PeerLimits`** (8 MiB a message, refused unparsed; 100 messages a second; 120 changes a
   minute, and as many pictures; see the rates above), and one that reads slower than the app writes to it is
   disconnected once 64 MiB wait for it.
+- **`repair` is relayed to the host only:** `onRelay` gives it to the screen, which answers the sender (see
+  `vcs::ChangeSetRepairs`); it never reaches the other peers as it is.
 - **`request` and `reply` aren't interpreted:** they come out of `onRelay`, stamped with `from`, for whoever connects
   peers to each other (`affresco::Screen` passes them to the other peers).
 - **Closing a `ProcessChannel` ends the child and everything it started** (a process group on POSIX, a job object on

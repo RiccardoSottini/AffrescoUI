@@ -368,6 +368,20 @@ public:
 	/// @param changesJson A change set from exportChanges().
 	/// @return true if it was; false for one that wasn't, or isn't valid JSON.
 	[[nodiscard]] bool hasImported(std::string_view changesJson) const;
+	/// @brief Installs a change set that may carry its request, base and proof (VERSION_CONTROL.md, "Self-repairing
+	/// change sets"): applied if its patch applies and its proof passes, otherwise left off, marked "needsRepair", and
+	/// a repair asked of the peers (a "request" of kind "repair"), which only a reviewer lands.
+	/// @param changesJson A change set from exportChanges() (with its signature, if any, already checked).
+	/// @param error Receives the error, if it is malformed (may be nullptr).
+	/// @return "applied", "needsRepair", "repairing", "repaired" or "gaveUp"; empty on an error.
+	std::string installChanges(std::string_view changesJson, std::string* error = nullptr);
+	/// @brief Sets how installChanges() checks a change set's proof: given the document it makes (with its state) and
+	/// the proof, as JSON text, returns why it fails, or "". affrescoui_host plays the proof's scenarios.
+	/// @param check The check, or an empty function (then a change set with a proof needs repair).
+	void setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check);
+	/// @brief Where the installed change sets stand.
+	/// @return `{"type": "repairs", "changeSets": [{name, status, reason, attempts, proposal, request, repairedFrom}]}`.
+	[[nodiscard]] std::string repairs() const;
 
 	/// @brief The current document, as JSON text.
 	[[nodiscard]] std::string documentJson() const;

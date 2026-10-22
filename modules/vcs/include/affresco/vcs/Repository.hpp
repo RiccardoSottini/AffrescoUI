@@ -81,6 +81,12 @@ public:
 
 	/* Changes */
 	RevisionResult submit(const json& revision) override;
+	/// @brief Submits a revision that only a reviewer may land: it opens a proposal even where the rules would apply it
+	/// (deny rules still refuse it). A change set's repair goes this way (VERSION_CONTROL.md, "Self-repairing change
+	/// sets").
+	/// @param revision The revision, as for submit(); it can't push to a proposal.
+	/// @return Proposed or rejected, never applied.
+	RevisionResult propose(const json& revision);
 	std::optional<std::string> commit(const json& revision) override;
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
@@ -115,8 +121,27 @@ public:
 	/// @param changes The change set.
 	/// @return true if it was.
 	[[nodiscard]] bool hasImported(const json& changes) const;
+	/// @brief What the screen would be after importChanges(), without committing or changing anything: how a change
+	/// set's proof is checked before it is applied.
+	/// @param changes The change set.
+	/// @return The document with the live state in "state", as the permission rules see it.
+	/// @throws DocumentError If the change set is malformed, or a revision doesn't apply or is refused (named).
+	[[nodiscard]] json tryChanges(const json& changes) const;
+	/// @brief Records a change set as applied without applying it (see hasImported()): a repaired change set, whose
+	/// revision is already on main as the merged repair.
+	/// @param changes The change set.
+	void recordImported(const json& changes);
 
 private:
+	/// @brief submit() and propose().
+	/// @param revision The revision.
+	/// @param alwaysReview true for propose(): open a proposal even where the rules allow the change.
+	/// @return What happened.
+	RevisionResult submitRevision(const json& revision, bool alwaysReview);
+	/// @brief Checks a change set's envelope: its format, version and list of revisions.
+	/// @param changes The change set.
+	/// @throws DocumentError If it isn't one this version reads.
+	static void checkChanges(const json& changes);
 	/// @brief A commit object. It keeps how its document differs from its first parent's, not the document: every
 	/// snapshotInterval-th commit along first parents (and revision 0) also keeps the whole document, and any other is
 	/// rebuilt from the nearest one (documentOf()), so the history grows with the changes, not with the document.
