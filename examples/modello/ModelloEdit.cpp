@@ -1,6 +1,6 @@
 /// @file
 /// @brief Modello's editing natives (ModelloInternal.hpp): adding, removing and duplicating nodes, material graph
-/// nodes and checks, the timeline's tracks and keys, and the viewport's statistics. Each edit returns a JSON patch on
+/// nodes and checks, the outliner's rows, the timeline's tracks and keys, and the viewport's statistics. Each edit returns a JSON patch on
 /// `computed.scene` or `computed.animations`, which the screen applies as a revision.
 
 #include "ModelloInternal.hpp"
@@ -10,6 +10,7 @@
 #include <affresco/scene3d/SceneJson.hpp>
 
 #include <algorithm>
+#include <map>
 #include <set>
 
 namespace modello::detail {
@@ -273,6 +274,57 @@ json moveKey(const json& with) {
 	return {{"patch", animationsPatch(clips)}};
 }
 
+/// @brief The deepest the outliner nests, as a `tree` allows.
+constexpr std::size_t maxOutlineDepth = 256;
+
+/// @brief A node's icon in the outliner. @param node It. @return A Lucide name.
+const char* outlineIcon(const Node& node) noexcept {
+	if(node.light) return "lightbulb";
+	if(node.camera) return "video";
+	return node.mesh.empty() ? "move-3d" : "box";
+}
+
+/// @brief A node's row and, below it, its children's. @param scene The scene. @param children The children's
+/// indices by parent id. @param index The node. @param depth How deep it is. @return The `tree` item.
+json outlineItem(const Scene& scene, const std::multimap<std::string, std::size_t, std::less<>>& children,
+                 std::size_t index, std::size_t depth) {
+	const Node& node = scene.nodes[index];
+	json item = {{"id", node.id}, {"label", node.name.empty() ? node.id : node.name}, {"icon", outlineIcon(node)}};
+	if(!node.visible) item["iconColor"] = "#808080";
+	json rows = json::array();
+	const auto [first, last] = children.equal_range(node.id);
+	for(auto child = first; child != last && depth + 1 < maxOutlineDepth; ++child)
+		rows.push_back(outlineItem(scene, children, child->second, depth + 1));
+	if(!rows.empty()) item["children"] = std::move(rows);
+	return item;
+}
+
+/// @brief Whether a node hangs under another: its parents exist and lead to a root without a cycle.
+/// @param scene The scene. @param node It. @return true if it does.
+bool hasParent(const Scene& scene, const Node& node) {
+	const Node* at = &node;
+	for(std::size_t steps = 0; at && !at->parent.empty(); ++steps) {
+		if(steps >= scene.nodes.size()) return false;
+		at = scene.node(at->parent);
+	}
+	return at != nullptr && !node.parent.empty();
+}
+
+/// @brief The outliner's rows: the scene's nodes under their parents, in the scene's order.
+/// @param with The arguments (`scene`). @return `{ items }`; a node whose parent is missing or in a cycle is a root.
+json outline(const json& with) {
+	const Scene scene = sceneFromJson(with.value("scene", json::object()));
+	std::multimap<std::string, std::size_t, std::less<>> children;
+	std::vector<std::size_t> roots;
+	for(std::size_t i = 0; i < scene.nodes.size(); ++i) {
+		if(hasParent(scene, scene.nodes[i])) children.emplace(scene.nodes[i].parent, i);
+		else roots.push_back(i);
+	}
+	json items = json::array();
+	for(const std::size_t root : roots) items.push_back(outlineItem(scene, children, root, 0));
+	return {{"items", std::move(items)}};
+}
+
 /// @brief What the viewport drew last. @param model The probe and the store. @return The counts.
 json viewportStats(const Model& model) {
 	const RenderStats& stats = model.probe->stats;
@@ -295,6 +347,7 @@ void registerEditNatives(affresco::Screen& screen, const std::shared_ptr<Model>&
 	define(screen, "modello.tracks", timelineTracks);
 	define(screen, "modello.setKey", keyNode);
 	define(screen, "modello.moveKey", moveKey);
+	define(screen, "modello.outline", outline);
 	define(screen, "modello.stats", [model](const json&) { return viewportStats(*model); });
 }
 
