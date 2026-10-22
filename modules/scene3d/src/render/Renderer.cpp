@@ -95,6 +95,57 @@ void setFaces(const DrawItem& item) noexcept {
 	glFrontFace(determinant3(item.world) < 0.0f ? GL_CW : GL_CCW);
 }
 
+/// @brief Reads the frame's scene, at the settings' time, and its materials' graphs.
+/// @param view The frame, whose settings are read. @param params The frame's parameters (its animations).
+/// @param scene The scene's JSON, which the graphs point into.
+void readScene(FrameView& view, const json& params, const json& scene) {
+	const auto animations = params.find("animations");
+	view.scene = sceneAtTime(scene, animations != params.end() ? *animations : json(), view.settings.time);
+	const auto materials = scene.find("materials");
+	if(materials == scene.end() || !materials->is_array()) return;
+	for(const json& material : *materials)
+		if(material.is_object() && material.value("id", json()).is_string() && material.contains("graph"))
+			view.graphs.emplace(material["id"].get<std::string>(), &material["graph"]);
+}
+
+/// @brief Makes a draw item of every visible mesh node with a mesh in the store, in scene order, and their bounds.
+/// @param view The frame, with its scene, worlds and eye. @param assets The store.
+void collectItems(FrameView& view, const Assets& assets) {
+	const std::set<std::string, std::less<>> selected(view.settings.selection.begin(), view.settings.selection.end());
+	const std::string active = view.settings.selection.empty() ? std::string() : view.settings.selection.back();
+	for(const Node& node : view.scene.nodes) {
+		const auto world = view.worlds.find(node.id);
+		if(node.mesh.empty() || world == view.worlds.end() || !world->second.second) continue;
+		auto data = assets.mesh(node.mesh);
+		if(!data || data->indices.empty()) continue;
+		DrawItem item{&node, view.scene.material(node.material), world->second.first, data,
+		              data->bounds.transformed(world->second.first)};
+		item.index = static_cast<std::uint32_t>(view.items.size() + 1);
+		item.selected = selected.contains(node.id);
+		item.active = node.id == active;
+		item.blended = item.material != nullptr && item.material->alphaMode == AlphaMode::Blend;
+		item.distance = length(item.bounds.center() - view.eye);
+		view.bounds.extend(item.bounds);
+		view.items.push_back(std::move(item));
+	}
+}
+
+/// @brief Culls the items to the camera's frustum and orders the rest: the opaque in scene order, then the blended
+/// far first, so that they blend over what is behind them.
+/// @param view The frame, with its items and view-projection.
+void orderInView(FrameView& view) {
+	const Frustum frustum = Frustum::fromMatrix(view.viewProjection);
+	for(std::size_t i = 0; i < view.items.size(); ++i)
+		if(frustum.intersects(view.items[i].bounds)) view.inView.push_back(i);
+		else ++view.culled;
+	std::stable_sort(view.inView.begin(), view.inView.end(), [&](std::size_t a, std::size_t b) {
+		const DrawItem& first = view.items[a];
+		const DrawItem& second = view.items[b];
+		if(first.blended != second.blended) return !first.blended;
+		return first.blended && first.distance > second.distance;
+	});
+}
+
 } // namespace
 
 void setMatrix(int location, const Mat4& matrix) noexcept {
@@ -154,15 +205,7 @@ FrameView SceneRenderer::makeView(const SurfaceFrame& frame) const {
 	FrameView view;
 	const json& params = frame.params();
 	view.settings = viewportSettingsFromJson(params);
-	const auto scene = params.find("scene");
-	const auto animations = params.find("animations");
-	if(scene != params.end()) {
-		view.scene = sceneAtTime(*scene, animations != params.end() ? *animations : json(), view.settings.time);
-		if(const auto materials = scene->find("materials"); materials != scene->end() && materials->is_array())
-			for(const json& material : *materials)
-				if(material.is_object() && material.value("id", json()).is_string() && material.contains("graph"))
-					view.graphs.emplace(material["id"].get<std::string>(), &material["graph"]);
-	}
+	if(const auto scene = params.find("scene"); scene != params.end()) readScene(view, params, *scene);
 	view.worlds = view.scene.worldMatrices();
 	view.width = std::max(frame.width, 1);
 	view.height = std::max(frame.height, 1);
@@ -170,33 +213,8 @@ FrameView SceneRenderer::makeView(const SurfaceFrame& frame) const {
 	view.viewProjection =
 	    view.settings.camera.viewProjection(static_cast<float>(view.width) / static_cast<float>(view.height));
 	view.eye = view.settings.camera.eye();
-	const std::set<std::string, std::less<>> selected(view.settings.selection.begin(), view.settings.selection.end());
-	const std::string active = view.settings.selection.empty() ? std::string() : view.settings.selection.back();
-	for(const Node& node : view.scene.nodes) {
-		const auto world = view.worlds.find(node.id);
-		if(node.mesh.empty() || world == view.worlds.end() || !world->second.second) continue;
-		auto data = assets_->mesh(node.mesh);
-		if(!data || data->indices.empty()) continue;
-		DrawItem item{&node, view.scene.material(node.material), world->second.first, data,
-		              data->bounds.transformed(world->second.first)};
-		item.index = static_cast<std::uint32_t>(view.items.size() + 1);
-		item.selected = selected.contains(node.id);
-		item.active = node.id == active;
-		item.blended = item.material != nullptr && item.material->alphaMode == AlphaMode::Blend;
-		item.distance = length(item.bounds.center() - view.eye);
-		view.bounds.extend(item.bounds);
-		view.items.push_back(std::move(item));
-	}
-	const Frustum frustum = Frustum::fromMatrix(view.viewProjection);
-	for(std::size_t i = 0; i < view.items.size(); ++i)
-		if(frustum.intersects(view.items[i].bounds)) view.inView.push_back(i);
-		else ++view.culled;
-	std::stable_sort(view.inView.begin(), view.inView.end(), [&](std::size_t a, std::size_t b) {
-		const DrawItem& first = view.items[a];
-		const DrawItem& second = view.items[b];
-		if(first.blended != second.blended) return !first.blended;
-		return first.blended && first.distance > second.distance;
-	});
+	collectItems(view, *assets_);
+	orderInView(view);
 	return view;
 }
 
