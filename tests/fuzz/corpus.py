@@ -18,6 +18,7 @@
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
+- composition: Sinopia's slide sorter with Bottega's adapters, good and broken, and Tempera's points and exports.
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
 - token_file: a document server's token file, with comments and blank lines;
@@ -431,6 +432,16 @@ def feature_seeds():
             + sorted(forge.glob("catalog/**/*.json"))]
 
 
+def composition_seeds():
+    """The slide sorter's manifest with each of Bottega's adapters, and Tempera's points and exports (examples/bottega)."""
+    examples = ROOT / "examples"
+    manifest = json.loads((examples / "sinopia" / "features" / "slide-sorter" / "feature.json").read_text(encoding="utf-8"))
+    tempera = json.loads((examples / "tempera" / "tempera.screen.json").read_text(encoding="utf-8"))
+    host = {part: tempera[part] for part in ("points", "exports") if part in tempera}
+    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "bottega").glob("*.adapter.json"))]
+    return [compact({"manifest": manifest, "adapter": adapter, **host}) for adapter in [None] + adapters]
+
+
 def base64url(data):
     """Bytes as base64url without padding, as in a JSON Web Token."""
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
@@ -684,6 +695,8 @@ def main():
     write(out, "migrate", migrations, words["json"] + ["from", "justify", "align", "len(", "length(", "requires"])
     write(out, "catalog_index", feature_seeds(), words["json"] + features)
     write(out, "signature", feature_seeds() + ["ed25519-secret:", "-_8AEA"], words["json"] + features)
+    write(out, "composition", composition_seeds(), words["json"] + features + ["needs", "bindings", "adapter", "dock",
+          "affrescoui-adapter", "affrescoui-proof", "list", "action", "image", "{{", "}}"])
     for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),
                           ("git_output", git_output_seeds()), ("vscode_theme", vscode_theme_seeds()),
                           ("history", history_seeds())]:
