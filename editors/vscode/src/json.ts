@@ -60,6 +60,15 @@ const simpleEscapes: Record<string, string> = { '"': '"', '\\': '\\', '/': '/', 
  * each value doesn't copy the rest of the text. */
 const word = /^(?:true|false|null|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)/;
 
+/**
+ * Tells whether a character is white space between values: JSON's, and a byte order mark.
+ * @param c the character's code
+ * @return true if it is
+ */
+function isSpace(c: number): boolean {
+	return c === 0x20 || c === 0x0a || c === 0x0d || c === 0x09 || c === 0xfeff;
+}
+
 /** Reads one JSON text, keeping where it is in it. */
 class Parser {
 	/** Where it is in the text. */
@@ -85,7 +94,7 @@ class Parser {
 		const text = this.text;
 		for (;;) {
 			const c = text.charCodeAt(this.at);
-			if (c === 0x20 || c === 0x0a || c === 0x0d || c === 0x09 || c === 0xfeff) {
+			if (isSpace(c)) {
 				this.at++;
 			} else if (c === 0x2f && text[this.at + 1] === '/') {
 				const line = text.indexOf('\n', this.at);

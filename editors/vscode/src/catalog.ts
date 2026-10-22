@@ -99,14 +99,23 @@ export function describeKey(doc: Doc, offset: number, defs: Definitions): { mark
 		text = describe(defs.node?.properties?.[key.key], defs);
 		if (text) return { markdown: `**Node property \`${key.key}\`**: ${text}`, ...range };
 	}
+	const markdown = describeStep(owner, key.key, defs);
+	return markdown === undefined ? undefined : { markdown, ...range };
+}
+
+/**
+ * Describes a key of a step: the step's own, its first, or one of its arguments.
+ * @param owner the object the key is in
+ * @param key   the key
+ * @param defs  the schema's definitions
+ * @return Markdown, or undefined when the object isn't a step or the key isn't one of its
+ */
+function describeStep(owner: JsonNode, key: string, defs: Definitions): string | undefined {
 	const steps = defs.step;
-	if (owner.kind === 'object' && steps?.properties && steps.description) {
-		const first = owner.members[0]?.key;
-		if (first !== undefined && first in steps.properties && key.key in steps.properties) {
-			const entry = stepEntry(steps.description, first);
-			if (key.key === first) return { markdown: `**Step** \`${entry}\`: the keys in brackets are its arguments.`, ...range };
-			return { markdown: `**Argument of the \`${first}\` step** (\`${entry}\`).`, ...range };
-		}
-	}
-	return undefined;
+	if (owner.kind !== 'object' || !steps?.properties || !steps.description) return undefined;
+	const first = owner.members[0]?.key;
+	if (first === undefined || !(first in steps.properties) || !(key in steps.properties)) return undefined;
+	const entry = stepEntry(steps.description, first);
+	if (key === first) return `**Step** \`${entry}\`: the keys in brackets are its arguments.`;
+	return `**Argument of the \`${first}\` step** (\`${entry}\`).`;
 }
