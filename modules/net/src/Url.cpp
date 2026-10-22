@@ -102,6 +102,21 @@ std::string percentEncode(std::string_view value) {
 	return encoded;
 }
 
+/// @brief Whether a URL has a byte no URL may: a control, a space or a backslash (which some readers take for a slash).
+/// @param text The URL.
+bool hasForbiddenByte(std::string_view text) {
+	return std::ranges::any_of(text,
+	                           [](char c) { return static_cast<unsigned char>(c) <= 0x20 || c == 0x7f || c == '\\'; });
+}
+
+/// @brief The request target of a URL: its path and query, without the fragment, "/" if empty.
+/// @param target What follows the authority.
+std::string requestTarget(std::string_view target) {
+	if(const auto fragment = target.find('#'); fragment != std::string_view::npos) target = target.substr(0, fragment);
+	if(target.empty()) return "/";
+	return target.starts_with('?') ? "/" + std::string(target) : std::string(target);
+}
+
 } // namespace
 
 std::string Url::origin() const { return scheme + "://" + authority(); }
@@ -114,8 +129,7 @@ std::string Url::authority() const {
 
 std::optional<Url> parseUrl(std::string_view text) {
 	if(text.size() > 8192) return std::nullopt;
-	if(std::ranges::any_of(text, [](char c) { return static_cast<unsigned char>(c) <= 0x20 || c == 0x7f || c == '\\'; }))
-		return std::nullopt;
+	if(hasForbiddenByte(text)) return std::nullopt;
 	const auto separator = text.find("://");
 	if(separator == std::string_view::npos) return std::nullopt;
 	Url url;
@@ -126,9 +140,7 @@ std::optional<Url> parseUrl(std::string_view text) {
 	const auto authority = rest.substr(0, end);
 	if(authority.empty() || authority.find('@') != std::string_view::npos || !parseAuthority(authority, url))
 		return std::nullopt;
-	std::string_view target = end == std::string_view::npos ? std::string_view{} : rest.substr(end);
-	if(const auto fragment = target.find('#'); fragment != std::string_view::npos) target = target.substr(0, fragment);
-	url.target = target.empty() ? "/" : (target.starts_with('?') ? "/" + std::string(target) : std::string(target));
+	url.target = requestTarget(end == std::string_view::npos ? std::string_view{} : rest.substr(end));
 	return url;
 }
 
