@@ -13,6 +13,10 @@ affrescoui_module(scene3d
 	src/GltfLoad.cpp
 	src/GltfConvert.cpp
 	src/GltfExport.cpp
+	src/Camera.cpp
+	src/Picking.cpp
+	src/Gizmo.cpp
+	src/MaterialGraph.cpp
 	src/Cgltf.cpp)
 set_source_files_properties(src/Cgltf.cpp PROPERTIES COMPILE_OPTIONS $<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w> SKIP_LINTING ON)
 target_include_directories(affrescoui_scene3d SYSTEM PRIVATE ${cgltf_SOURCE_DIR})
