@@ -76,6 +76,13 @@ void reset(Font::ShapedText& shaped, std::size_t length) {
 	shaped.width = 0.0f;
 }
 
+/// @brief The level of a strong or neutral run: left to right is raised to 2 in a right-to-left line (I1, I2).
+/// @param rightToLeft Whether the run goes right to left.
+/// @param base Whether the line does.
+std::uint8_t levelOf(bool rightToLeft, bool base) noexcept {
+	return static_cast<std::uint8_t>(rightToLeft ? 1 : base ? 2 : 0);
+}
+
 } // namespace
 
 const Font::ShapedText& Font::Data::shape(std::u32string_view text) {
@@ -258,39 +265,54 @@ void Font::Data::splitNumbers(std::u32string_view text) {
 	runs = std::move(split);
 }
 
-void Font::Data::resolveDirections() noexcept {
-	const auto strong = [](const Run& run) { return isOwnScript(run.script) && !run.number; };
-	const auto rightToLeftScript = [](const Run& run) {
-		return hb_script_get_horizontal_direction(run.script) == HB_DIRECTION_RTL;
-	};
-	const auto found = std::ranges::find_if(runs, strong);
-	const bool base = found != runs.end() && rightToLeftScript(*found); // P2, P3
-	const auto levelOf = [base](bool rightToLeft) { return static_cast<std::uint8_t>(rightToLeft ? 1 : base ? 2 : 0); };
+bool Font::Data::Run::isStrong() const noexcept {
+	return isOwnScript(script) && !number;
+}
 
-	// Strong runs and numbers first: rightToLeft holds which way each pulls the neutrals beside it (N1)
+bool Font::Data::Run::hasRightToLeftScript() const noexcept {
+	return hb_script_get_horizontal_direction(script) == HB_DIRECTION_RTL;
+}
+
+bool Font::Data::lineIsRightToLeft() const noexcept {
+	const auto found = std::ranges::find_if(runs, &Run::isStrong);
+	return found != runs.end() && found->hasRightToLeftScript();
+}
+
+void Font::Data::resolveStrongRuns(bool base) noexcept {
 	bool lastStrong = base;
 	for(Run& run : runs) {
-		if(strong(run)) {
-			run.rightToLeft = lastStrong = rightToLeftScript(run);
-			run.level = levelOf(run.rightToLeft);
+		if(run.isStrong()) {
+			run.rightToLeft = lastStrong = run.hasRightToLeftScript();
+			run.level = levelOf(run.rightToLeft, base);
 		} else if(run.number) {
 			run.rightToLeft = lastStrong; // W7: after a left-to-right run, a number is left to right
 			run.level = static_cast<std::uint8_t>(!base && !lastStrong ? 0 : 2);
 		}
 	}
-	// A neutral run takes the direction of the runs on both sides when they agree. Neutral runs in a row share both
-	// sides, so each is visited once: a text that alternates faces can make one run per character
+}
+
+void Font::Data::resolveNeutralRuns(bool base) noexcept {
+	// Neutral runs in a row share both sides, so each is visited once: a text that alternates faces can make one run
+	// per character
+	const auto neutral = [](const Run& run) { return !run.isStrong() && !run.number; };
 	bool before = base;
 	for(std::size_t i = 0; i < runs.size();) {
-		if(strong(runs[i]) || runs[i].number) {
+		if(!neutral(runs[i])) {
 			before = runs[i++].rightToLeft;
 			continue;
 		}
 		std::size_t after = i;
-		while(after < runs.size() && !strong(runs[after]) && !runs[after].number) ++after;
+		while(after < runs.size() && neutral(runs[after])) ++after;
 		const bool rightToLeft = before == (after < runs.size() ? runs[after].rightToLeft : base) ? before : base;
-		for(; i < after; ++i) runs[i].level = levelOf(rightToLeft);
+		for(; i < after; ++i) runs[i].level = levelOf(rightToLeft, base);
 	}
+}
+
+void Font::Data::resolveDirections() noexcept {
+	// Strong runs and numbers first: their rightToLeft is then the way each pulls the neutral runs beside it (N1)
+	const bool base = lineIsRightToLeft(); // P2, P3
+	resolveStrongRuns(base);
+	resolveNeutralRuns(base);
 	for(Run& run : runs) run.rightToLeft = run.level % 2 == 1;
 }
 

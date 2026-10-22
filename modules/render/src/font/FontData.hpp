@@ -31,6 +31,11 @@ struct Font::Data {
 		bool rightToLeft = false;              ///< Whether it is laid out right to left.
 		bool number = false;                   ///< Digits and the separators between them: always left to right.
 		std::uint8_t level = 0;                ///< Its bidirectional level: odd is right to left (UAX #9).
+
+		/// @brief Whether it sets the direction of the neutral runs beside it: a script of its own, and no number.
+		[[nodiscard]] bool isStrong() const noexcept;
+		/// @brief Whether its script is written right to left.
+		[[nodiscard]] bool hasRightToLeftScript() const noexcept;
 	};
 
 	/// @brief Glyphs of one cluster, together: what carets and widths are spread over.
@@ -141,6 +146,15 @@ struct Font::Data {
 	/// script of its own (spaces, punctuation) goes the way of the strong runs on both sides when they agree, else the
 	/// line's way (N1, N2).
 	void resolveDirections() noexcept;
+	/// @brief Whether the line goes right to left: the way of its first strong run, else left to right (P2, P3).
+	[[nodiscard]] bool lineIsRightToLeft() const noexcept;
+	/// @brief Gives the strong runs and the numbers their level and the way each pulls the neutral runs beside it.
+	/// @param base Whether the line goes right to left.
+	void resolveStrongRuns(bool base) noexcept;
+	/// @brief Gives the neutral runs their level, after resolveStrongRuns(): the way of the runs on both sides when they
+	/// agree, else the line's (N1, N2).
+	/// @param base Whether the line goes right to left.
+	void resolveNeutralRuns(bool base) noexcept;
 	/// @brief Splits the runs of a text that has right-to-left runs where numbers and spaces start and end.
 	/// @param text The text the runs cover.
 	void splitNumbers(std::u32string_view text);
