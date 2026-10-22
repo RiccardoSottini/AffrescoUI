@@ -473,7 +473,13 @@ void Checker::write(const json& target, const Shape& value, Change change, const
 		report(place, "can only change values under 'state', not '" + target.get<std::string>() + "'");
 		return;
 	}
-	learnt_ = std::max(learnt_, assign(state_, *keys, 1, value, change));
+	// The runtime writes no place, and no value, that would make the state nest deeper than maxDocumentNesting: then
+	// the checker learns nothing, or that anything may be there (which also keeps the shapes' recursion short).
+	const std::size_t levels = keys->size() - 1;
+	if(levels > static_cast<std::size_t>(maxDocumentNesting)) return;
+	const bool tooDeep =
+	    levels + static_cast<std::size_t>(nestingDepth(value)) > static_cast<std::size_t>(maxDocumentNesting);
+	learnt_ = std::max(learnt_, assign(state_, *keys, 1, tooDeep ? anything : value, change));
 }
 
 } // namespace affresco::format::checker

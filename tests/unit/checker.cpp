@@ -448,6 +448,25 @@ TEST_CASE("checker: the shapes of wide values are built at the cost of their siz
 	});
 }
 
+// A path deeper than the runtime writes overflowed the stack (the checker followed it a level at a time), and so did a
+// step that puts what a place holds inside itself, once for each such step
+TEST_CASE("checker: a place too deep for the state is not followed" * doctest::timeout(5)) {
+	const auto writing = [](int levels) {
+		std::string path = "state";
+		for(int i = 0; i < levels; ++i) path += ".a";
+		return lines(screen(R"("state": {}, "actions": {"go": [{"set": ")" + path +
+		                    R"(", "to": 1}, {"set": "state.b", "to": "{{state.a}}"}]}, "root": {"type": "panel"})"));
+	};
+	CHECK(writing(200).empty()); // the deepest place the runtime writes
+	const std::vector<std::string> unwritten = {"actions.go[1].to: 'state.a' doesn't exist (did you mean 'state.b'?)"};
+	CHECK(writing(201) == unwritten); // the runtime refuses it, so it writes nothing
+	CHECK(writing(100000) == unwritten);
+
+	const std::string wraps = repeated(R"({"set": "state.a", "to": {"x": "{{state.a}}"}})", 20000, '[', ']');
+	CHECK(
+	    lines(screen(R"("state": {"a": 1}, "actions": {"go": )" + wraps + R"(}, "root": {"type": "panel"})")).empty());
+}
+
 // Before, every finding compared its name with every name there is: 8,000 typos against a state of 8,000 keys took
 // 5.8 seconds to refuse, and a revision may hold far more of both
 TEST_CASE("checker: only the first findings of a pass get a hint, each against the first thousand names") {
