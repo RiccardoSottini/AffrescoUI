@@ -41,6 +41,33 @@ float lineLength(std::span<const Work> work, float gap) noexcept {
 	return total;
 }
 
+/// @brief The grow factors of a line's children that still flex.
+/// @param items The line's children.
+/// @param work Their sizes.
+/// @return Their sum.
+float growShares(std::span<const FlexItem> items, std::span<const Work> work) noexcept {
+	float shares = 0.0f;
+	for(std::size_t i = 0; i < items.size(); ++i)
+		if(!work[i].frozen) shares += items[i].grow;
+	return shares;
+}
+
+/// @brief Freezes at their maximum the children that their share of the spare room would take past it.
+/// @param items The line's children.
+/// @param work Their sizes.
+/// @param spare The room left over.
+/// @param shares The grow factors of the children that still flex.
+/// @return Whether any was frozen: the others then share what is left, from their hypothetical sizes again.
+bool freezeAtMaximum(std::span<const FlexItem> items, std::span<Work> work, float spare, float shares) noexcept {
+	bool reachedBound = false;
+	for(std::size_t i = 0; i < items.size(); ++i) {
+		if(work[i].frozen || work[i].length + spare * items[i].grow / shares <= items[i].maxMain) continue;
+		work[i] = {items[i].maxMain, true, true};
+		reachedBound = true;
+	}
+	return reachedBound;
+}
+
 /// @brief Shares the room left over on a line among its growing children, freezing those that reach their maximum.
 /// @param items The line's children.
 /// @param work Their sizes, hypothetical on entry.
@@ -51,19 +78,11 @@ bool growLine(std::span<const FlexItem> items, std::span<Work> work, float room,
 	for(std::size_t i = 0; i < items.size(); ++i) work[i].frozen = items[i].grow <= 0.0f;
 	for(;;) {
 		const float total = lineLength(work, gap);
-		float shares = 0.0f;
-		for(std::size_t i = 0; i < items.size(); ++i)
-			if(!work[i].frozen) shares += items[i].grow;
+		const float shares = growShares(items, work);
 		if(shares <= 0.0f || room <= total) return false;
 
 		const float spare = room - total;
-		bool reachedBound = false;
-		for(std::size_t i = 0; i < items.size(); ++i) {
-			if(work[i].frozen || work[i].length + spare * items[i].grow / shares <= items[i].maxMain) continue;
-			work[i] = {items[i].maxMain, true, true};
-			reachedBound = true;
-		}
-		if(reachedBound) continue; // the others share what is left, from their hypothetical sizes again
+		if(freezeAtMaximum(items, work, spare, shares)) continue;
 		for(std::size_t i = 0; i < items.size(); ++i) {
 			if(work[i].frozen) continue;
 			work[i].length += spare * items[i].grow / shares;
@@ -71,6 +90,35 @@ bool growLine(std::span<const FlexItem> items, std::span<Work> work, float room,
 		}
 		return true;
 	}
+}
+
+/// @brief The shrink factors times the sizes of a line's children that still flex.
+/// @param items The line's children.
+/// @param work Their sizes.
+/// @return Their sum.
+float shrinkShares(std::span<const FlexItem> items, std::span<const Work> work) noexcept {
+	float scaled = 0.0f;
+	for(std::size_t i = 0; i < items.size(); ++i)
+		if(!work[i].frozen) scaled += items[i].shrink * work[i].length;
+	return scaled;
+}
+
+/// @brief Freezes at their minimum the children that their share of the overflow would take below it.
+/// @param items The line's children.
+/// @param work Their sizes.
+/// @param overflow How far the line is over the room.
+/// @param scaled The shrink factors times the sizes of the children that still flex.
+/// @return Whether any was frozen: the others then share what is left, from their hypothetical sizes again.
+bool freezeAtMinimum(std::span<const FlexItem> items, std::span<Work> work, float overflow, float scaled) noexcept {
+	bool reachedBound = false;
+	for(std::size_t i = 0; i < items.size(); ++i) {
+		if(work[i].frozen) continue;
+		const float target = work[i].length - overflow * items[i].shrink * work[i].length / scaled;
+		if(target >= items[i].minMain) continue;
+		work[i] = {items[i].minMain, true, true};
+		reachedBound = true;
+	}
+	return reachedBound;
 }
 
 /// @brief Takes a line's overflow from its shrinking children, in proportion to shrink times size, freezing those
@@ -84,21 +132,11 @@ bool shrinkLine(std::span<const FlexItem> items, std::span<Work> work, float roo
 	for(std::size_t i = 0; i < items.size(); ++i) work[i].frozen = items[i].shrink <= 0.0f || work[i].length <= 0.0f;
 	for(;;) {
 		const float total = lineLength(work, gap);
-		float scaled = 0.0f;
-		for(std::size_t i = 0; i < items.size(); ++i)
-			if(!work[i].frozen) scaled += items[i].shrink * work[i].length;
+		const float scaled = shrinkShares(items, work);
 		if(scaled <= 0.0f || total <= room) return false;
 
 		const float overflow = total - room;
-		bool reachedBound = false;
-		for(std::size_t i = 0; i < items.size(); ++i) {
-			if(work[i].frozen) continue;
-			const float target = work[i].length - overflow * items[i].shrink * work[i].length / scaled;
-			if(target >= items[i].minMain) continue;
-			work[i] = {items[i].minMain, true, true};
-			reachedBound = true;
-		}
-		if(reachedBound) continue;
+		if(freezeAtMinimum(items, work, overflow, scaled)) continue;
 		for(std::size_t i = 0; i < items.size(); ++i) {
 			if(work[i].frozen) continue;
 			work[i].length -= overflow * items[i].shrink * work[i].length / scaled;
@@ -173,6 +211,34 @@ void placeAcross(std::span<const FlexItem> items, std::span<FlexPlacement> place
 	}
 }
 
+/// @brief Grows or shrinks a line's children to fill the container, if they flex that way.
+/// @param options The container.
+/// @param items The line's children.
+/// @param work Their hypothetical sizes; flexed.
+/// @return The line's length afterwards, gaps included.
+float flexLine(const FlexOptions& options, std::span<const FlexItem> items, std::span<Work> work) {
+	const float room = options.main;
+	const float before = lineLength(work, options.gap);
+	const bool grows = std::ranges::any_of(items, [](const FlexItem& item) { return item.grow > 0.0f; });
+	const bool shrinks = std::ranges::any_of(items, [](const FlexItem& item) { return item.shrink > 0.0f; });
+	const bool filled = before < room ? grows && growLine(items, work, room, options.gap)
+	                                  : before > room && shrinks && shrinkLine(items, work, room, options.gap);
+	return filled ? room : lineLength(work, options.gap);
+}
+
+/// @brief Places a line's children from the container's end back, so that an overflow is cut at the start.
+/// @param work Their sizes.
+/// @param placements Their placements.
+/// @param gap The gap.
+void placeFromEnd(std::span<const Work> work, std::span<FlexPlacement> placements, float gap) noexcept {
+	float offset = 0.0f;
+	for(std::size_t i = work.size(); i-- > 0;) {
+		placements[i].main = offset;
+		placements[i].fromEnd = true;
+		offset += work[i].length + gap;
+	}
+}
+
 /// @brief Lays one line out along the direction: flexing, then spreading.
 /// @param options The container.
 /// @param items The line's children.
@@ -180,27 +246,15 @@ void placeAcross(std::span<const FlexItem> items, std::span<FlexPlacement> place
 /// @param placements Their placements.
 void placeAlong(const FlexOptions& options, std::span<const FlexItem> items, std::span<Work> work,
                 std::span<FlexPlacement> placements) {
-	const float room = options.main;
-	const float before = lineLength(work, options.gap);
-	const bool grows = std::ranges::any_of(items, [](const FlexItem& item) { return item.grow > 0.0f; });
-	const bool shrinks = std::ranges::any_of(items, [](const FlexItem& item) { return item.shrink > 0.0f; });
-	const bool filled = before < room ? grows && growLine(items, work, room, options.gap)
-	                                  : before > room && shrinks && shrinkLine(items, work, room, options.gap);
-	const float total = filled ? room : lineLength(work, options.gap);
-
+	const float total = flexLine(options, items, work);
 	for(std::size_t i = 0; i < items.size(); ++i)
 		if(work[i].flexed || items[i].sized) placements[i].mainSize = work[i].length;
 
-	if(options.justify == Justify::End && !options.wrap) { // from the end back, so an overflow is cut at the start
-		float offset = 0.0f;
-		for(std::size_t i = items.size(); i-- > 0;) {
-			placements[i].main = offset;
-			placements[i].fromEnd = true;
-			offset += work[i].length + options.gap;
-		}
+	if(options.justify == Justify::End && !options.wrap) {
+		placeFromEnd(work, placements, options.gap);
 		return;
 	}
-	const auto [start, extra] = spread(options.justify, room - total, items.size());
+	const auto [start, extra] = spread(options.justify, options.main - total, items.size());
 	float offset = start;
 	for(std::size_t i = 0; i < items.size(); ++i) {
 		placements[i].main = offset;
