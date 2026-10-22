@@ -50,7 +50,7 @@ struct Link {
 	/// @return false if the link is closed or the outbox is full.
 	bool send(const json& message) {
 		std::string bytes = frameMessage(framing, message.dump());
-		const std::lock_guard lock(mutex);
+		const std::scoped_lock lock(mutex);
 		if(closed || outboxBytes + bytes.size() > largestOutbox) return false;
 		outboxBytes += bytes.size();
 		outbox.push_back(std::move(bytes));
@@ -100,7 +100,7 @@ public:
 	~JsonRpcService() override {
 		std::map<std::int64_t, Waiting> waiting;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			link_->closed = true;
 			waiting.swap(link_->waiting);
 			link_->streams.clear();
@@ -126,7 +126,7 @@ public:
 		}
 		std::int64_t id = 0;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			if(link_->closed) return "the service ended";
 			if(link_->waiting.size() >= mostWaiting) return "the service is busy (256 calls waiting)";
 			id = link_->nextId++;
@@ -135,7 +135,7 @@ public:
 		json message = {{"jsonrpc", "2.0"}, {"id", id}, {"method", method.name}};
 		if(!call->arguments().is_null()) message["params"] = call->arguments();
 		if(!link_->send(message)) {
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			link_->waiting.erase(id);
 			return "the service is busy (its input is full)";
 		}
@@ -144,7 +144,7 @@ public:
 	}
 
 	std::optional<std::string> subscribe(const std::string& stream, std::shared_ptr<Call> call) override {
-		const std::lock_guard lock(link_->mutex);
+		const std::scoped_lock lock(link_->mutex);
 		if(link_->closed) return "the service ended";
 		std::erase_if(link_->streams, [](const auto& entry) { return entry.second->stopToken().stop_requested(); });
 		if(link_->streams.size() >= mostSubscriptions) return "the service has 256 subscriptions already";
@@ -163,7 +163,7 @@ private:
 			if(!link) return;
 			std::optional<Waiting> forgotten;
 			{
-				const std::lock_guard lock(link->mutex);
+				const std::scoped_lock lock(link->mutex);
 				const auto found = link->waiting.find(id);
 				if(found == link->waiting.end()) return;
 				forgotten = std::move(found->second);
@@ -171,7 +171,7 @@ private:
 			}
 			(void)link->send({{"jsonrpc", "2.0"}, {"method", "$/cancelRequest"}, {"params", {{"id", id}}}});
 		});
-		const std::lock_guard lock(link_->mutex);
+		const std::scoped_lock lock(link_->mutex);
 		if(const auto found = link_->waiting.find(id); found != link_->waiting.end())
 			found->second.watch = std::move(callback);
 		// else it was answered or stopped already, and the callback ends here
@@ -239,7 +239,7 @@ private:
 		if(!id.is_number_integer()) return; // not one of ours
 		std::optional<Waiting> answered;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			const auto found = link_->waiting.find(id.get<std::int64_t>());
 			if(found == link_->waiting.end()) return; // cancelled, or never sent
 			answered = std::move(found->second);
@@ -265,7 +265,7 @@ private:
 		std::vector<std::shared_ptr<Call>> to;
 		std::shared_ptr<Call> call;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			if(named.is_number_integer())
 				if(const auto found = link_->waiting.find(named.get<std::int64_t>()); found != link_->waiting.end())
 					call = found->second.call;
@@ -295,7 +295,7 @@ private:
 		std::map<std::int64_t, Waiting> waiting;
 		std::multimap<std::string, std::shared_ptr<Call>, std::less<>> streams;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			if(link_->closed) return;
 			link_->closed = true;
 			waiting.swap(link_->waiting);

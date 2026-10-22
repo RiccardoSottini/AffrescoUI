@@ -72,13 +72,13 @@ void require(const void* pointer, std::string_view what) {
 }
 
 void TaskQueue::post(std::function<void()> task) {
-	const std::lock_guard lock(mutex_);
+	const std::scoped_lock lock(mutex_);
 	tasks_.push_back(std::move(task));
 }
 
 void TaskQueue::run() {
 	{
-		const std::lock_guard lock(mutex_);
+		const std::scoped_lock lock(mutex_);
 		running_.swap(tasks_);
 	}
 	runTasks(running_); // emptied even if one throws: a failed step doesn't run them again

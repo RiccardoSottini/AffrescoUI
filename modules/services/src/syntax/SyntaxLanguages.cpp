@@ -222,7 +222,7 @@ const Grammar* grammar(std::string_view name) {
 	const auto& all = entries();
 	const auto entry = std::ranges::find(all, name, &Entry::name);
 	if(entry == all.end()) return nullptr;
-	const std::lock_guard lock(mutex);
+	const std::scoped_lock lock(mutex);
 	std::unique_ptr<Grammar>& slot = built[static_cast<std::size_t>(entry - all.begin())];
 	if(!slot) slot = build(*entry);
 	return slot.get();

@@ -89,7 +89,7 @@ public:
 		if(acceptor_.joinable()) acceptor_.join();
 		std::unordered_map<PeerConnection*, std::unique_ptr<PeerConnection>> pending;
 		{
-			std::lock_guard lock(mutex_);
+			const std::scoped_lock lock(mutex_);
 			pending.swap(pending_);
 		}
 	}
@@ -117,7 +117,7 @@ private:
 				continue;
 			}
 			++*shared_->open;
-			std::lock_guard lock(mutex_); // before the reader can report, so its report finds it
+			const std::scoped_lock lock(mutex_); // before the reader can report, so its report finds it
 			auto peer = std::make_unique<PeerConnection>(
 			    shared_, std::move(connection),
 			    [weak = weak_from_this()](PeerConnection& opened, std::optional<std::string> author) {
@@ -164,7 +164,7 @@ private:
 	void finish(PeerConnection* connection, std::optional<std::string> author) {
 		std::unique_ptr<PeerConnection> owned;
 		{
-			std::lock_guard lock(mutex_);
+			const std::scoped_lock lock(mutex_);
 			const auto found = pending_.find(connection);
 			if(found == pending_.end()) return;
 			owned = std::move(found->second);

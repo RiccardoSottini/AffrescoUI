@@ -33,7 +33,7 @@ PeerConnection::PeerConnection(std::shared_ptr<const Shared> shared, std::unique
 PeerConnection::~PeerConnection() {
 	*alive_ = false;
 	{
-		std::lock_guard lock(mutex_);
+		const std::scoped_lock lock(mutex_);
 		stopping_ = true;
 	}
 	wake_.notify_all();
@@ -176,7 +176,7 @@ bool PeerConnection::handle(FrameEvent event) {
 void PeerConnection::queue(std::string bytes, bool last) {
 	bool overflow = false;
 	{
-		std::lock_guard lock(mutex_);
+		const std::scoped_lock lock(mutex_);
 		if(finishing_ || stopping_) return;
 		if(queuedBytes_ + bytes.size() > shared_->options.maxQueuedBytes) {
 			overflow = true;

@@ -73,7 +73,7 @@ struct Link {
 	/// @param message The message.
 	/// @return As sendLocked().
 	std::int64_t send(json message) {
-		const std::lock_guard lock(mutex);
+		const std::scoped_lock lock(mutex);
 		return sendLocked(std::move(message));
 	}
 };
@@ -96,7 +96,7 @@ public:
 	~DapService() override {
 		std::map<std::int64_t, Waiting> waiting;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			link_->closed = true;
 			waiting.swap(link_->waiting);
 			link_->streams.clear();
@@ -118,7 +118,7 @@ public:
 		if(auto problem = dap::prepareArguments(method.name, arguments, context_.grant.root)) return problem;
 		std::int64_t seq = 0;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			if(link_->closed) return "the debug session ended";
 			if(link_->waiting.size() >= mostWaiting) return "the debug adapter is busy (256 requests waiting)";
 			seq = link_->sendLocked(dap::requestMessage(0, method.name, arguments));
@@ -131,7 +131,7 @@ public:
 	}
 
 	std::optional<std::string> subscribe(const std::string& stream, std::shared_ptr<Call> call) override {
-		const std::lock_guard lock(link_->mutex);
+		const std::scoped_lock lock(link_->mutex);
 		if(link_->closed) return "the debug session ended";
 		std::erase_if(link_->streams, [](const auto& entry) { return entry.second->stopToken().stop_requested(); });
 		if(link_->streams.size() >= mostSubscriptions) return "the service has 256 subscriptions already";
@@ -149,14 +149,14 @@ private:
 			const std::shared_ptr<Link> link = weak.lock();
 			if(!link) return;
 			std::optional<Waiting> forgotten;
-			const std::lock_guard lock(link->mutex);
+			const std::scoped_lock lock(link->mutex);
 			const auto found = link->waiting.find(seq);
 			if(found == link->waiting.end()) return;
 			forgotten = std::move(found->second); // its callback, this one, ends after the lock is released
 			link->waiting.erase(found);
 			if(link->supportsCancel) (void)link->sendLocked(dap::requestMessage(0, "cancel", {{"requestId", seq}}));
 		});
-		const std::lock_guard lock(link_->mutex);
+		const std::scoped_lock lock(link_->mutex);
 		if(const auto found = link_->waiting.find(seq); found != link_->waiting.end())
 			found->second.watch = std::move(callback);
 		// else it was answered or stopped already, and the callback ends here
@@ -215,7 +215,7 @@ private:
 		}
 		bool expected = false;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			expected = link_->ending.has_value();
 		}
 		if(expected) return close({});
@@ -241,7 +241,7 @@ private:
 	void answer(dap::Response response) {
 		std::optional<Waiting> answered;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			const auto found = link_->waiting.find(response.requestSeq);
 			if(found == link_->waiting.end()) return; // cancelled, timed out, or never sent
 			answered = std::move(found->second);
@@ -279,7 +279,7 @@ private:
 		std::vector<std::shared_ptr<Call>> named;
 		std::vector<std::shared_ptr<Call>> all;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			const auto [first, last] = link_->streams.equal_range(name);
 			for(auto entry = first; entry != last; ++entry) named.push_back(entry->second);
 			const auto [from, to] = link_->streams.equal_range(std::string_view("events"));
@@ -315,7 +315,7 @@ private:
 		std::map<std::int64_t, Waiting> waiting;
 		std::multimap<std::string, std::shared_ptr<Call>, std::less<>> streams;
 		{
-			const std::lock_guard lock(link_->mutex);
+			const std::scoped_lock lock(link_->mutex);
 			if(link_->closed) return;
 			link_->closed = true;
 			waiting.swap(link_->waiting);

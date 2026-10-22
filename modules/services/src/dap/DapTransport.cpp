@@ -98,7 +98,7 @@ public:
 	}
 	void closeInput() noexcept override { (void)::shutdown(socket_, SHUT_WR); }
 	int end() noexcept override {
-		const std::lock_guard lock(mutex_);
+		const std::scoped_lock lock(mutex_);
 		if(!ended_) (void)::shutdown(socket_, SHUT_RDWR); // a blocked recv returns 0
 		ended_ = true;
 		return -1;
