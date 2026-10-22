@@ -188,7 +188,6 @@
 					{
 						"type": "column",
 						"id": "status-accounts-peers",
-						"padding": 6,
 						"color": "@color.sideBar",
 						"borderWidth": 1,
 						"borderColor": "@color.border",
