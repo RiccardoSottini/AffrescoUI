@@ -26,11 +26,12 @@ struct Engine;
 ///
 /// A step starts a call through a backend found by the name before its first dot: the screen's Services (setServices())
 /// for a declared service ("invoke"), its Connections for a declared connection ("request"; "subscribe" to either).
-/// Everything the call reports arrives through the Executor, coalesced per frame: progress, events (appended to a list, or run through "onEvent"/"do" one batch at a time), then the result ("into", "onDone")
-/// or the error ("onError", or reported). Invariants: at most maxRunning calls and maxSubscriptions subscriptions at
-/// once; a call with an "id" cancels the running one with the same id; once ended (finished, failed, cancelled, timed
-/// out, its node removed, cancelAll()) a call changes nothing more, whatever its service still delivers. Main thread
-/// only, except what services reach through the jobs.
+/// Everything the call reports arrives through the Executor, coalesced per frame: progress, events (appended to a list,
+/// or run through "onEvent"/"do" one batch at a time), then the result ("into", "onDone") or the error ("onError", or
+/// reported). Invariants: at most maxRunning calls and maxSubscriptions subscriptions at once; a call with an "id"
+/// cancels the running one with the same id; once ended (finished, failed, cancelled, timed out, its node removed,
+/// cancelAll()) a call changes nothing more, whatever its service still delivers. Main thread only, except what
+/// services reach through the jobs.
 class ServiceCalls {
 public:
 	static constexpr std::size_t maxRunning = 1024;      ///< Calls running at once, per screen.
@@ -134,6 +135,10 @@ private:
 	/// @param connection Whether it goes through the connections.
 	/// @param job Its job.
 	void launch(std::uint64_t number, const std::string& name, bool stream, bool connection, Job& job);
+	/// @brief Tells whether a new call would be one too many: maxRunning calls, or maxSubscriptions subscriptions.
+	/// @param stream true for a subscription.
+	/// @return true if it would.
+	[[nodiscard]] bool busy(bool stream) const;
 	/// @brief Applies a batch of events: appended, kept as the latest, or run through the call's steps.
 	/// @param call The call's number (running).
 	/// @param events The events, oldest first.

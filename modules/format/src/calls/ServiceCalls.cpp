@@ -29,6 +29,62 @@ json errorOf(std::string code, std::string message, json data = nullptr) {
 	return {{"code", std::move(code)}, {"message", std::move(message)}, {"data", std::move(data)}};
 }
 
+/// @brief Checks the name a service step calls: a service and its method, written out.
+/// @param name The name.
+/// @param at Its place, for the error.
+void checkMethodName(const std::string& name, const std::string& at) {
+	const std::size_t dot = name.find('.');
+	if(name.contains("{{") || dot == std::string::npos || dot == 0 || dot + 1 == name.size())
+		fail(at, "names a service and its method, written out: \"files.read\"");
+}
+
+/// @brief Reads a service step's "keep": how many of the latest events "into" keeps.
+/// @param s The step.
+/// @return 1 to ServiceCalls::maxKeep.
+std::size_t keepOf(const Running& s) {
+	const json keep = s.value("keep");
+	const auto most = static_cast<long long>(ServiceCalls::maxKeep);
+	if(!keep.is_number_integer() || keep.get<long long>() < 1 || keep.get<long long>() > most)
+		fail(s.where + ".keep", "a whole number from 1 to 10000");
+	return keep.get<std::size_t>();
+}
+
+/// @brief How long a call may run before it fails with "timeout".
+/// @param s The step.
+/// @param stream true for a subscription, which runs until it is cancelled.
+/// @param connection Whether it goes through a connection, which times its requests out itself.
+/// @return Milliseconds.
+double timeoutOf(const Running& s, bool stream, bool connection) {
+	if(!stream && s.step.contains("timeout"))
+		return std::clamp(s.milliseconds("timeout"), 1.0, ServiceCalls::maxTimeout);
+	return connection ? ServiceCalls::maxTimeout : ServiceCalls::defaultTimeout;
+}
+
+/// @brief Why a call's method can't be found.
+/// @param name "service.method".
+/// @param service The service.
+/// @param connection Whether it goes through the connections.
+/// @param declared Whether the screen declares a connection by the service's name.
+/// @return The error's code and message.
+std::pair<std::string, std::string> missingMethod(const std::string& name, const std::string& service, bool connection,
+                                                  bool declared) {
+	if(connection) return {"notFound", "no operation '" + name + "' (see the \"connections\" section)"};
+	if(declared) return {"wrong", "'" + service + "' is a connection: use request"};
+	return {"notFound", "no service method '" + name + "' (see the \"services\" section)"};
+}
+
+/// @brief Why a method can't be called this way: a stream invoked, or a call subscribed to.
+/// @param spec The method.
+/// @param name "service.method".
+/// @param stream true for "subscribe".
+/// @param connection Whether it goes through the connections.
+/// @return The message, or "" if it can.
+std::string wrongKind(const services::MethodSpec& spec, const std::string& name, bool stream, bool connection) {
+	if(spec.streams == stream || spec.name == "*") return ""; // "*": a method the service doesn't list, either kind
+	if(stream) return "'" + name + (connection ? "' is a call: use request" : "' is a call: use invoke");
+	return "'" + name + "' is a stream: use subscribe";
+}
+
 } // namespace
 
 /* ServiceCalls::Job */
@@ -72,14 +128,14 @@ struct ServiceCalls::Job final : services::Call {
 	/// @brief Tells the service to stop; nothing it reports afterwards is kept.
 	void stop() noexcept { stop_.request_stop(); }
 
-	const std::uint64_t id;           ///< Its call.
-	std::mutex mutex;                 ///< Guards what follows.
-	std::optional<json> progressed;   ///< The latest progress not delivered yet.
-	std::deque<json> events;          ///< The events not delivered yet, oldest first.
-	std::optional<json> result;       ///< The result, once finished without an error.
-	std::optional<json> error;        ///< The error, once finished with one.
-	bool finished = false;            ///< Whether the service ended it.
-	bool posted = false;              ///< Whether a delivery waits on the Executor.
+	const std::uint64_t id;         ///< Its call.
+	std::mutex mutex;               ///< Guards what follows.
+	std::optional<json> progressed; ///< The latest progress not delivered yet.
+	std::deque<json> events;        ///< The events not delivered yet, oldest first.
+	std::optional<json> result;     ///< The result, once finished without an error.
+	std::optional<json> error;      ///< The error, once finished with one.
+	bool finished = false;          ///< Whether the service ended it.
+	bool posted = false;            ///< Whether a delivery waits on the Executor.
 
 private:
 	/// @brief Records something new, and posts a delivery unless one waits already; nothing once stopped or ended.
@@ -155,26 +211,22 @@ ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
 	const char* key = stream ? "subscribe" : step.contains("request") ? "request" : "invoke";
 	const std::string at = s.where + "." + key;
 	const std::string name = string(step[key], at);
-	const std::size_t dot = name.find('.');
-	if(name.contains("{{") || dot == std::string::npos || dot == 0 || dot + 1 == name.size())
-		fail(at, "names a service and its method, written out: \"files.read\"");
+	checkMethodName(name, at);
 	Pending call;
 	call.name = name;
 	call.stream = stream;
-	call.connection = !std::strcmp(key, "request") || (stream && engine_.connections.declares(name.substr(0, dot)));
+	call.connection =
+	    !std::strcmp(key, "request") || (stream && engine_.connections.declares(name.substr(0, name.find('.'))));
 	if(step.contains("id")) call.id = string(s.value("id"), s.where + ".id");
 	if(step.contains("into")) call.into = s.target("into");
 	if(step.contains("append")) call.append = s.target("append");
-	if(step.contains("keep")) {
-		const json keep = s.value("keep");
-		if(!keep.is_number_integer() || keep.get<long long>() < 1 || keep.get<long long>() > static_cast<long long>(maxKeep))
-			fail(s.where + ".keep", "a whole number from 1 to 10000");
-		call.keep = keep.get<std::size_t>();
+	if(step.contains("keep")) call.keep = keepOf(s);
+	if(!stream) {
+		if(step.contains("loading")) call.loading = s.target("loading");
+		if(step.contains("progress")) call.progress = s.target("progress");
+		call.onDone = step.value("onDone", json());
 	}
-	if(!stream && step.contains("loading")) call.loading = s.target("loading");
-	if(!stream && step.contains("progress")) call.progress = s.target("progress");
 	call.onEvent = step.value(stream ? "do" : "onEvent", json());
-	if(!stream) call.onDone = step.value("onDone", json());
 	call.onError = step.value("onError", json());
 	call.sender = &s.sender;
 	call.event = s.event;
@@ -186,12 +238,9 @@ ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
 bool ServiceCalls::start(const Running& s, bool stream) {
 	Pending call = read(s, stream);
 	const json arguments = s.step.contains("with") ? s.value("with") : json::object();
-	double timeout = call.connection ? maxTimeout : defaultTimeout; // a connection times its requests out itself
-	if(!stream && s.step.contains("timeout")) timeout = std::clamp(s.milliseconds("timeout"), 1.0, maxTimeout);
+	const double timeout = timeoutOf(s, stream, call.connection);
 	if(!call.id.empty()) cancel(call.id); // the newer call wins
-	const std::size_t subscriptions =
-	    static_cast<std::size_t>(std::ranges::count_if(pending_, [](const auto& entry) { return entry.second.stream; }));
-	const bool full = pending_.size() >= maxRunning || (stream && subscriptions >= maxSubscriptions);
+	const bool full = busy(stream);
 
 	const std::uint64_t number = next_++;
 	const auto job = std::make_shared<Job>(number, arguments, executor_, this, alive_);
@@ -200,7 +249,9 @@ bool ServiceCalls::start(const Running& s, bool stream) {
 	const std::string name = call.name;
 	const bool connection = call.connection;
 	pending_.emplace(number, std::move(call));
-	if(full) job->fail("busy", stream ? "too many subscriptions (at most 256)" : "too many calls running (at most 1024)", nullptr);
+	if(full)
+		job->fail("busy", stream ? "too many subscriptions (at most 256)" : "too many calls running (at most 1024)",
+		          nullptr);
 	else launch(number, name, stream, connection, *job);
 	if(!stream && engine_.window)
 		engine_.scheduler.once(timeout, [this, number, alive = std::weak_ptr<bool>(alive_)] {
@@ -216,20 +267,24 @@ void ServiceCalls::launch(std::uint64_t number, const std::string& name, bool st
 	const std::string service = name.substr(0, dot), method = name.substr(dot + 1);
 	services::Services* backend = connection ? &engine_.connections : services_;
 	const services::MethodSpec* spec = backend ? backend->method(service, method) : nullptr;
-	if(!spec && connection)
-		return job.fail("notFound", "no operation '" + name + "' (see the \"connections\" section)", nullptr);
-	if(!spec && engine_.connections.declares(service))
-		return job.fail("wrong", "'" + service + "' is a connection: use request", nullptr);
-	if(!spec) return job.fail("notFound", "no service method '" + name + "' (see the \"services\" section)", nullptr);
-	const char* call = connection ? "' is a call: use request" : "' is a call: use invoke";
-	if(spec->streams != stream && spec->name != "*") // "*": a method the service doesn't list, either kind
-		return job.fail("wrong", "'" + name + (stream ? call : "' is a stream: use subscribe"), nullptr);
+	if(!spec) {
+		auto [code, message] = missingMethod(name, service, connection, engine_.connections.declares(service));
+		return job.fail(std::move(code), std::move(message), nullptr);
+	}
+	if(std::string wrong = wrongKind(*spec, name, stream, connection); !wrong.empty())
+		return job.fail("wrong", std::move(wrong), nullptr);
 	if(!connection && spec->effect != services::Effect::Read && engine_.versions.previewing()) // connections mock
 		return job.fail("preview", "while a proposal is previewed, a service only reads", nullptr);
 	const std::shared_ptr<Job> shared = pending_.at(number).job;
 	const std::optional<std::string> error =
 	    stream ? backend->subscribe(service, method, shared) : backend->invoke(service, method, shared);
 	if(error) job.fail("refused", *error, nullptr);
+}
+
+bool ServiceCalls::busy(bool stream) const {
+	if(pending_.size() >= maxRunning) return true;
+	const auto subscriptions = std::ranges::count_if(pending_, [](const auto& entry) { return entry.second.stream; });
+	return stream && static_cast<std::size_t>(subscriptions) >= maxSubscriptions;
 }
 
 bool ServiceCalls::cancel(const std::string& id) {
@@ -281,8 +336,11 @@ void ServiceCalls::deliver(std::uint64_t call) {
 		finished = job->finished;
 		job->posted = false;
 	}
-	if(progressed && it->second.progress) write(*it->second.progress, std::move(*progressed), it->second.where + ".progress");
-	if(!events.empty()) deliverEvents(call, std::vector<json>(std::make_move_iterator(events.begin()), std::make_move_iterator(events.end())));
+	if(progressed && it->second.progress)
+		write(*it->second.progress, std::move(*progressed), it->second.where + ".progress");
+	if(!events.empty())
+		deliverEvents(
+		    call, std::vector<json>(std::make_move_iterator(events.begin()), std::make_move_iterator(events.end())));
 	const auto still = pending_.find(call); // the steps may have cancelled it
 	if(finished && still != pending_.end()) {
 		const Pending ended = finish(still);
@@ -333,7 +391,9 @@ void ServiceCalls::failCall(std::uint64_t call, json error) {
 void ServiceCalls::failed(const Pending& call, const json& error) {
 	json flat; // a connection's error, RFC 0003: {code, message, status, body}
 	if(call.connection && error["data"].is_object())
-		flat = {{"code", error["code"]}, {"message", error["message"]}, {"status", error["data"].value("status", json())},
+		flat = {{"code", error["code"]},
+		        {"message", error["message"]},
+		        {"status", error["data"].value("status", json())},
 		        {"body", error["data"].value("body", json())}};
 	const json& shown = flat.is_null() ? error : flat;
 	if(call.onError.is_null()) {
@@ -368,7 +428,7 @@ void ServiceCalls::runSteps(const Pending& call, const json& steps, const char* 
 	Window* window = engine_.window;
 	Panel* sender = engine_.reconciler.recordOf(call.sender) ? const_cast<Panel*>(call.sender) : nullptr;
 	if(!sender && window) sender = &window->root();
-	if(!sender) return; // nothing built: no panel to run them from
+	if(!sender) return;                             // nothing built: no panel to run them from
 	const json handler = steps, event = call.event; // the steps may end the call they come from
 	const std::string place = where;
 	const auto scope = std::make_shared<const Scope>(
@@ -387,7 +447,8 @@ void ServiceCalls::request(const std::string& service, const std::string& method
 	engine_.scheduler.once(requestTimeout, [this, number, alive = std::weak_ptr<bool>(alive_)] {
 		if(alive.lock()) refuseRequest(number, "the screen didn't respond in 30 s");
 	});
-	const Scope scope{nullptr, nullptr, {{"request", {{"service", service}, {"method", method}, {"id", number}}}}, {}, {}};
+	const Scope scope{
+	    nullptr, nullptr, {{"request", {{"service", service}, {"method", method}, {"id", number}}}}, {}, {}};
 	engine_.runner.handle(json(action), engine_.window->root(), params, scope, "services." + service + ".request");
 	flush();
 }
