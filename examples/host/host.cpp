@@ -10,7 +10,7 @@
 //   agent.sock    an AI agent's MCP server (mcp/affrescoui_mcp.py): author "agent", whose changes wait for review
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
 // The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
-// and a plugin is applied once: the history remembers it. Default screen:
+// and a plugin is applied once: the history remembers it.
 // --usage counts how the screen is used (VERSION_CONTROL.md, "Usage"), on this device and only once the person agreed,
 // asked once on the terminal. Default screen:
 // the Kanban board template (examples/flow); the other templates have a folder each in examples (examples/README.md).
@@ -65,7 +65,7 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 	    file.parent_path() /
 	    (name.substr(0, name.size() - std::string_view(".screen.json").size()) + ".scenarios.json");
 	if(!std::filesystem::exists(scenarios)) return;
-	screen.setScenarioCheck([scenarios](const std::string& document) {
+	screen.setScenarioCheck([scenarios = scenarios](const std::string& document) {
 		namespace automation = affresco::automation;
 		affresco::json results = affresco::json::array();
 		try {

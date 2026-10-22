@@ -75,7 +75,7 @@ json statusForView(std::string_view output) {
 /// @brief The host's rule for git's runs: checkGitArguments(), and the open folder's repository only.
 /// @param workspace The open folder.
 /// @return The shaper.
-affresco::services::ProcessShaper gitRule(std::shared_ptr<Workspace> workspace) {
+affresco::services::ProcessShaper gitRule(const std::shared_ptr<Workspace>& workspace) {
 	return [workspace](affresco::services::ProcessRun& run) -> std::optional<std::string> {
 		if(workspace->root.empty()) return "no folder is open";
 		if(std::optional<std::string> refused = checkGitArguments(run.arguments)) return refused;
@@ -115,7 +115,7 @@ std::vector<std::string> gitOptions() {
 	        "core.quotePath=false", "--no-optional-locks", "--literal-pathspecs"};
 }
 
-void registerScm(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
+void registerScm(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
 	if(const std::filesystem::path git = findGit(); !git.empty())
 		screen.services().allowProcess("git", git, gitOptions(), std::nullopt, gitRule(workspace));
 	screen.onCall("forge.scm.parseStatus", [](const std::string& arguments) {

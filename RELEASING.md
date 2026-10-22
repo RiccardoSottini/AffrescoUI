@@ -36,8 +36,8 @@ themselves), `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md` and a short `README.t
 ## Every release
 
 1. Pick the version (semantic: `0.2.0`) and write it in the three places `tools/release/check_version.py` reads:
-   `CMakeLists.txt` (`project(AffrescoUI VERSION ...)`), `mcp/pyproject.toml` (`version`) and `mcp/affrescoui_mcp.py`
-   (`serverInfo`). Check: `python3 tools/release/check_version.py`.
+   `CMakeLists.txt` (`project(AffrescoUI VERSION ...)`), `mcp/pyproject.toml` (`version`) and
+   `mcp/affrescoui_mcp/server.py` (`serverInfo`). Check: `python3 tools/release/check_version.py`.
 2. Update `CHANGELOG.md` and the README if needed, merge to `master`, and wait for CI to be green.
 3. Tag and push:
    ```sh

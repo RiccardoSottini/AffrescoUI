@@ -112,6 +112,21 @@ nodes to change; `get_format_guide` with the `topic` it needs. Measured with `te
 outline is 316 to 584 tokens for the templates (a full read 1,548 to 4,197), an outline to depth 2 is 87 to 305, a
 re-read after a commit about 20, and the guide's contents 583 (the whole guide 9,221).
 
+## Code
+
+`affrescoui_mcp.py` is what clients run from a checkout; the server is the package next to it, `affrescoui_mcp/`
+(also what the `affrescoui-mcp` wheel installs), one concern per module:
+
+| Module | What it does |
+|---|---|
+| `server.py` | The MCP side: JSON-RPC over stdio, each tool call answered from the host or the `affrescoui` tool |
+| `host.py` | The host side: where it listens (the socket folder, checked like the host checks it), the connection, the messages it sends |
+| `tools.py` | The tools, prompt and instructions the server offers, as clients and the website's reference read them |
+| `document.py` | A screen document read the way an agent needs it: compact JSON, changes since a read, outline, one node, search, JSON Patch |
+| `guide.py` | `SCREEN_FORMAT.md` one topic at a time |
+| `replies.py` | What the agent is told of the host's replies and of messages the server can't use |
+| `repository.py` | Where the guide and the `affrescoui` tool are found |
+
 **Queries are tested** without a host: `python3 mcp/test_affrescoui_mcp.py` (ctest `mcp`).
 
 There are no tools to accept or reject proposals, set the mode or revoke grants: only reviewers (the Studio, as the

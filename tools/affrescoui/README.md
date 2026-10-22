@@ -46,6 +46,20 @@ When the tool is built with the examples (the default), it knows their applicati
 | 2 | The command line is wrong: an unknown command or option, a missing file or value. |
 | 3 | It couldn't be done: a file can't be read or written, no window could be opened, the history is damaged or in use. |
 
+## Source
+
+| File | What it holds |
+|---|---|
+| `main.cpp` | The command line: picks the command and prints `help` |
+| `Cli.*` | What the commands share: exit codes, arguments, reading and writing files |
+| `commands/` | One file per command, or per pair of commands that share their work: `check`, `fmt` and `ids`, `export` and `import`, `import --from`, `migrate`, `policy test`, `schema`, `sign`, `test`, `run` and `render` |
+| `ComposeCommand.cpp` | `contributions` and `check --compose` |
+| `JsonText.*` | JSON as AffrescoUI files are written (`fmt`) |
+| `Schema.*` | The JSON Schema check (`check`, `schema`) |
+| `Embed.cmake` | Embeds a file (the schema) in the tool as a function |
+
+`Cli.cpp` and `ComposeCommand.cpp` stay beside `main.cpp`: Bottega's build compiles them by path.
+
 ## Tests
 
 `check.py` here (ctest `cli`) runs every command on every template: `check` passes, `fmt --check` passes after

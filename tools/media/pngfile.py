@@ -31,6 +31,51 @@ def chunks(data):
         position += 12 + length
 
 
+def unfilter_sub(row, above):
+    """Undoes the Sub filter: each byte adds the one of the pixel on its left."""
+    for i in range(3, len(row)):
+        row[i] = (row[i] + row[i - 3]) & 0xFF
+    return row
+
+
+def unfilter_up(row, above):
+    """Undoes the Up filter: each byte adds the one above it."""
+    return bytearray((a + b) & 0xFF for a, b in zip(row, above))
+
+
+def unfilter_average(row, above):
+    """Undoes the Average filter: each byte adds the mean of the ones on its left and above it."""
+    for i in range(len(row)):
+        row[i] = (row[i] + ((row[i - 3] if i >= 3 else 0) + above[i]) // 2) & 0xFF
+    return row
+
+
+def paeth(a, b, c):
+    """The Paeth predictor: of left (a), above (b) and above left (c), the one closest to a + b - c."""
+    p = a + b - c
+    pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+    return a if pa <= pb and pa <= pc else b if pb <= pc else c
+
+
+def unfilter_paeth(row, above):
+    """Undoes the Paeth filter: each byte adds the Paeth prediction from its neighbours on the left and above."""
+    for i in range(len(row)):
+        left, corner = (row[i - 3], above[i - 3]) if i >= 3 else (0, 0)
+        row[i] = (row[i] + paeth(left, above[i], corner)) & 0xFF
+    return row
+
+
+# The filters by the byte before each row (PNG specification, 9.2): each turns a filtered row back into pixels, given
+# the row above it already unfiltered
+FILTERS = {
+    0: lambda row, above: row,
+    1: unfilter_sub,
+    2: unfilter_up,
+    3: unfilter_average,
+    4: unfilter_paeth,
+}
+
+
 def unfilter(filtered, width, height):
     """The pixels of a filtered 8-bit RGB image (3 bytes a pixel, one filter byte before each row)."""
     stride = width * 3
@@ -41,22 +86,9 @@ def unfilter(filtered, width, height):
     for y in range(height):
         start = y * (stride + 1)
         kind, row = filtered[start], bytearray(filtered[start + 1 : start + 1 + stride])
-        if kind == 1:  # Sub
-            for i in range(3, stride):
-                row[i] = (row[i] + row[i - 3]) & 0xFF
-        elif kind == 2:  # Up
-            row = bytearray((a + b) & 0xFF for a, b in zip(row, above))
-        elif kind == 3:  # Average
-            for i in range(stride):
-                row[i] = (row[i] + ((row[i - 3] if i >= 3 else 0) + above[i]) // 2) & 0xFF
-        elif kind == 4:  # Paeth
-            for i in range(stride):
-                a, b, c = (row[i - 3] if i >= 3 else 0), above[i], (above[i - 3] if i >= 3 else 0)
-                p = a + b - c
-                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
-                row[i] = (row[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 0xFF
-        elif kind != 0:
+        if kind not in FILTERS:
             raise PngError(f"row {y} has the unknown filter {kind}")
+        row = FILTERS[kind](row, above)
         pixels[y * stride : (y + 1) * stride] = row
         above = row
     return bytes(pixels)

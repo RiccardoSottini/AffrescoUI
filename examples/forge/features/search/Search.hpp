@@ -54,6 +54,6 @@ affresco::json replaceInFolder(const std::filesystem::path& root, const affresco
 ///   - `forge.replace`: replaceInFolder() in the open folder.
 /// @param screen The screen, before it is built.
 /// @param workspace The open folder.
-void registerSearch(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);
+void registerSearch(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace);
 
 } // namespace forge

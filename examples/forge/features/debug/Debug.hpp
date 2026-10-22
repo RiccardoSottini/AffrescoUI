@@ -54,6 +54,6 @@ namespace forge {
 /// @param screen The screen.
 /// @param workspace The open folder.
 /// @param grantAdapters Whether to grant the adapters found on PATH; the scenarios grant none, so none starts.
-void registerDebug(affresco::Screen& screen, std::shared_ptr<Workspace> workspace, bool grantAdapters = true);
+void registerDebug(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace, bool grantAdapters = true);
 
 } // namespace forge

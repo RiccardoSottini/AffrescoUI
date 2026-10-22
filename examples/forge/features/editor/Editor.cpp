@@ -48,7 +48,7 @@ std::string answer(const Buffers& buffers, const std::string& id, const std::opt
 void tellDocument(affresco::Screen& screen, const std::weak_ptr<Buffers>& buffers, const std::string& id) {
 	const affresco::Panel* root = screen.find("root");
 	if(!root) return;
-	const auto run = [&screen, buffers, id] {
+	const auto run = [&screen, buffers, id = id] {
 		const std::shared_ptr<Buffers> alive = buffers.lock(); // gone with the screen
 		affresco::Panel* sender = alive ? screen.find("root") : nullptr;
 		if(!sender) return;
@@ -61,7 +61,7 @@ void tellDocument(affresco::Screen& screen, const std::weak_ptr<Buffers>& buffer
 
 } // namespace
 
-std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
+std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
 	const auto buffers = std::make_shared<Buffers>();
 	examples::registerCodeEditor(screen, [weak = std::weak_ptr<Buffers>(buffers)](std::string_view id) {
 		const std::shared_ptr<Buffers> alive = weak.lock();

@@ -24,6 +24,24 @@ bool exactly(const std::vector<std::string>& arguments, const std::array<std::st
 	return std::equal(arguments.begin(), arguments.end(), words.begin(), words.end());
 }
 
+/// @brief Whether arguments start with some words.
+/// @param arguments The arguments.
+/// @param words The words.
+/// @return Whether they do.
+template <std::size_t Count>
+bool startsWith(const std::vector<std::string>& arguments, const std::array<std::string_view, Count>& words) {
+	return arguments.size() >= Count && std::equal(words.begin(), words.end(), arguments.begin());
+}
+
+/// @brief Whether arguments are one of the commands Forge runs that take nothing from the screen.
+/// @param arguments The arguments.
+/// @return Whether they are `status`, `commit` or `for-each-ref`, as checkGitArguments() lists them.
+bool isFixedCommand(const std::vector<std::string>& arguments) {
+	return exactly<5>(arguments, {"status", "--porcelain=v2", "-z", "--branch", "--untracked-files=all"}) ||
+	       exactly<3>(arguments, {"commit", "-F", "-"}) ||
+	       exactly<3>(arguments, {"for-each-ref", "--format=%(HEAD)%00%(refname:short)", "refs/heads/"});
+}
+
 /// @brief Checks `VERB [OPTION] -- PATH...`: the words, then 1 to mostPaths folder paths.
 /// @param arguments The arguments.
 /// @param before The words before the paths, `--` last.
@@ -36,26 +54,53 @@ std::optional<std::string> checkPaths(const std::vector<std::string>& arguments,
 	return std::nullopt;
 }
 
+/// @brief Checks `switch NAME` and `switch -c NAME`.
+/// @param arguments The arguments, `switch` first.
+/// @return Why they are refused, or std::nullopt.
+std::optional<std::string> checkSwitch(const std::vector<std::string>& arguments) {
+	const bool create = arguments.size() == 3 && arguments[1] == "-c";
+	if((arguments.size() == 2 || create) && isBranchName(arguments.back())) return std::nullopt;
+	return "not a branch name Forge switches to";
+}
+
+/// @brief Whether arguments are `show --no-textconv HEAD:PATH`, PATH inside the folder.
+/// @param arguments The arguments.
+/// @return Whether they are.
+bool isShowOfHead(const std::vector<std::string>& arguments) {
+	if(arguments.size() != 3 || !startsWith<2>(arguments, {"show", "--no-textconv"})) return false;
+	const std::string_view object = arguments[2];
+	return object.starts_with("HEAD:") && isFolderPath(object.substr(5));
+}
+
+/// @brief Whether a character can be in a branch name Forge makes.
+/// @param c The character.
+/// @return true for ASCII letters and digits, and `._/-`.
+bool isBranchCharacter(char c) noexcept {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '_' ||
+	       c == '/' || c == '-';
+}
+
+/// @brief Whether a name breaks git's rules on where '.', '/' and '-' may go in a ref name.
+/// @param name The name, not empty.
+/// @return Whether it does.
+bool breaksRefRules(std::string_view name) noexcept {
+	if(name.front() == '-' || name.front() == '/' || name.front() == '.' || name.back() == '/' || name.back() == '.')
+		return true;
+	return name.contains("..") || name.contains("//") || name.contains("/.") || name.ends_with(".lock") ||
+	       name.contains(".lock/");
+}
+
 } // namespace
 
 bool isBranchName(std::string_view name) noexcept {
 	if(name.empty() || name.size() > longestBranchName || name == "HEAD" || name == "@") return false;
-	if(name.front() == '-' || name.front() == '/' || name.back() == '/' || name.back() == '.') return false;
-	if(name.contains("..") || name.contains("//") ||
-	   name.contains("/.") || name.front() == '.')
-		return false;
-	if(name.size() >= 5 && name.substr(name.size() - 5) == ".lock") return false;
-	if(name.contains(".lock/")) return false;
-	return std::all_of(name.begin(), name.end(), [](char c) {
-		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '_' ||
-		       c == '/' || c == '-';
-	});
+	return !breaksRefRules(name) && std::ranges::all_of(name, isBranchCharacter);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): start never passes the end, so substr() doesn't throw
 bool isFolderPath(std::string_view path) noexcept {
 	if(path.empty() || path.size() > longestPath || path.front() == '/') return false;
-	if(std::any_of(path.begin(), path.end(),
-	               [](char c) { return static_cast<unsigned char>(c) < 0x20 || c == 0x7f || c == '\\'; }))
+	if(std::ranges::any_of(path, [](char c) { return static_cast<unsigned char>(c) < 0x20 || c == 0x7f || c == '\\'; }))
 		return false;
 	if(path.size() >= 2 && path[1] == ':') return false; // a drive, on Windows
 	for(std::size_t start = 0; start <= path.size();) { // no ".." step
@@ -68,29 +113,10 @@ bool isFolderPath(std::string_view path) noexcept {
 
 std::optional<std::string> checkGitArguments(const std::vector<std::string>& arguments) {
 	if(arguments.empty()) return "no git command";
-	const std::string& verb = arguments.front();
-	if(verb == "status") {
-		if(exactly<5>(arguments, {"status", "--porcelain=v2", "-z", "--branch", "--untracked-files=all"}))
-			return std::nullopt;
-	} else if(verb == "add") {
-		if(arguments.size() > 1 && arguments[1] == "--") return checkPaths(arguments, 2);
-	} else if(verb == "restore") {
-		if(arguments.size() > 2 && arguments[1] == "--staged" && arguments[2] == "--") return checkPaths(arguments, 3);
-	} else if(verb == "commit") {
-		if(exactly<3>(arguments, {"commit", "-F", "-"})) return std::nullopt;
-	} else if(verb == "for-each-ref") {
-		if(exactly<3>(arguments, {"for-each-ref", "--format=%(HEAD)%00%(refname:short)", "refs/heads/"}))
-			return std::nullopt;
-	} else if(verb == "switch") {
-		const bool create = arguments.size() == 3 && arguments[1] == "-c";
-		if((arguments.size() == 2 || create) && isBranchName(arguments.back())) return std::nullopt;
-		return "not a branch name Forge switches to";
-	} else if(verb == "show") {
-		const std::string_view object = arguments.size() == 3 ? std::string_view(arguments[2]) : std::string_view();
-		if(arguments.size() == 3 && arguments[1] == "--no-textconv" && object.starts_with("HEAD:") &&
-		   isFolderPath(object.substr(5)))
-			return std::nullopt;
-	}
+	if(isFixedCommand(arguments) || isShowOfHead(arguments)) return std::nullopt;
+	if(startsWith<2>(arguments, {"add", "--"})) return checkPaths(arguments, 2);
+	if(startsWith<3>(arguments, {"restore", "--staged", "--"})) return checkPaths(arguments, 3);
+	if(arguments.front() == "switch") return checkSwitch(arguments);
 	return "Forge doesn't run this git command";
 }
 

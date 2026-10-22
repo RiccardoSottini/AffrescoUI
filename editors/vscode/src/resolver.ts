@@ -52,6 +52,13 @@ const tokenPattern = /^@([A-Za-z_][\w.-]*)$/;
 /** A node id at the start of a string: "#id" or "#id/property". */
 const idPattern = /^#([A-Za-z0-9_][\w-]*)/;
 
+/** The keys whose string value names something, when it is a name, and what it names. */
+const namingKeys = new Map<string, SymbolKind>([
+	['use', 'component'],
+	['style', 'style'],
+	['navigate', 'screen'],
+]);
+
 /**
  * Parses a document, keeping it even when its text isn't JSON.
  * @param uri  where it is
@@ -83,22 +90,62 @@ function handlerKey(key: string): boolean {
  */
 export function symbolsInString(text: string, node: JsonScalar): Sym[] {
 	if (node.kind !== 'string' || typeof node.value !== 'string') return [];
-	const value = node.value;
-	const key = memberOf(node)?.key;
-	const inner = node.start + 1;
-	const whole = (kind: SymbolKind): Sym[] => [{ kind, name: value, start: inner, end: node.end - 1 }];
-	const path = pathOf(node);
+	const kind = wholeKind(node, node.value);
+	if (kind) return [{ kind, name: node.value, start: node.start + 1, end: node.end - 1 }];
+	return symbolsWithin(text, node, node.value);
+}
 
-	if (path[0] === 'include' && (path.length === 1 || (path.length === 2 && typeof path[1] === 'number'))) {
-		return whole('include');
-	}
-	const name = /^[A-Za-z_][\w.-]*$/.test(value);
-	if (key === 'use' && name) return whole('component');
-	if (key === 'style' && name) return whole('style');
-	if (key === 'navigate' && name) return whole('screen');
-	if (key === 'id' && node.parent?.kind === 'object' && path.length > 1) return whole('node');
-	if (key !== undefined && handlerKey(key) && name) return whole('action');
-	if (path[0] === 'keys' && path.length === 2) return whole('action');
+/**
+ * Tells whether a path is an include: "include" itself, or an item of it.
+ * @param path the path of a value
+ * @return true if it is
+ */
+function isInclude(path: (string | number)[]): boolean {
+	return path[0] === 'include' && (path.length === 1 || (path.length === 2 && typeof path[1] === 'number'));
+}
+
+/**
+ * Tells what a string names as a whole, from where it is: an include, a component, a style, a screen, a node's id or
+ * an action.
+ * @param node  a string value
+ * @param value its text
+ * @return the kind of name, or undefined when the string isn't a name as a whole
+ */
+function wholeKind(node: JsonScalar, value: string): SymbolKind | undefined {
+	const key = memberOf(node)?.key;
+	const path = pathOf(node);
+	if (isInclude(path)) return 'include';
+	const kind = key === undefined ? undefined : keyKind(key, /^[A-Za-z_][\w.-]*$/.test(value), node, path);
+	if (kind) return kind;
+	if (path[0] === 'keys' && path.length === 2) return 'action';
+	return undefined;
+}
+
+/**
+ * Tells what a string names from the key it is the value of.
+ * @param key  the key
+ * @param name whether the string is a name
+ * @param node the string value
+ * @param path its path
+ * @return the kind of name, or undefined
+ */
+function keyKind(key: string, name: boolean, node: JsonScalar, path: (string | number)[]): SymbolKind | undefined {
+	const named = namingKeys.get(key);
+	if (named && name) return named;
+	if (key === 'id' && node.parent?.kind === 'object' && path.length > 1) return 'node';
+	if (handlerKey(key) && name) return 'action';
+	return undefined;
+}
+
+/**
+ * Lists the names written inside a string: a token, a node id, or state and computed paths.
+ * @param text  the document's text
+ * @param node  a string value in it
+ * @param value its decoded text
+ * @return the names, in order
+ */
+function symbolsWithin(text: string, node: JsonScalar, value: string): Sym[] {
+	const inner = node.start + 1;
 	const token = tokenPattern.exec(value);
 	if (token) return [{ kind: 'token', name: token[1], start: inner + 1, end: node.end - 1 }];
 	const id = idPattern.exec(value);
@@ -162,32 +209,62 @@ export function definitions(docs: Doc[], sym: Pick<Sym, 'kind' | 'name'>): Place
 	const found: Place[] = [];
 	for (const doc of docs) {
 		if (doc.root?.kind !== 'object') continue;
-		if (sym.kind === 'node') {
-			walk(doc.root, (node) => {
-				const id = member(node, 'id');
-				if (id && id.value.kind === 'string' && id.value.value === sym.name && pathOf(node).length > 0) {
-					found.push({ uri: doc.uri, start: id.value.start + 1, end: id.value.end - 1 });
-				}
-			});
-		} else if (sym.kind === 'state') {
-			let node: JsonNode | undefined = member(doc.root, 'state')?.value;
-			let deepest: Place | undefined;
-			for (const step of sym.name.split('.')) {
-				const m = member(node, step);
-				if (!m) break;
-				deepest = { uri: doc.uri, start: m.keyStart + 1, end: m.keyEnd - 1 };
-				node = m.value;
-			}
-			if (deepest) found.push(deepest);
-		} else {
-			const name = sym.kind === 'computed' ? sym.name.split('.')[0] : sym.name;
-			for (const section of sections[sym.kind] ?? []) {
-				const m = member(member(doc.root, section)?.value, name);
-				if (m) found.push({ uri: doc.uri, start: m.keyStart + 1, end: m.keyEnd - 1 });
-			}
-		}
+		if (sym.kind === 'node') nodeDefinitions(doc, doc.root, sym.name, found);
+		else if (sym.kind === 'state') stateDefinition(doc, doc.root, sym.name, found);
+		else sectionDefinitions(doc, doc.root, sym, found);
 	}
 	return found;
+}
+
+/**
+ * Finds the nodes of a document that have an id: the "id" values, the root's own excepted.
+ * @param doc   the document
+ * @param root  its value
+ * @param name  the id
+ * @param found where the places go
+ */
+function nodeDefinitions(doc: Doc, root: JsonNode, name: string, found: Place[]): void {
+	walk(root, (node) => {
+		const id = member(node, 'id');
+		if (id && id.value.kind === 'string' && id.value.value === name && pathOf(node).length > 0) {
+			found.push({ uri: doc.uri, start: id.value.start + 1, end: id.value.end - 1 });
+		}
+	});
+}
+
+/**
+ * Finds a state path in a document's "state": the deepest key of it that exists.
+ * @param doc   the document
+ * @param root  its value
+ * @param name  the path, e.g. "form.name"
+ * @param found where the place goes
+ */
+function stateDefinition(doc: Doc, root: JsonNode, name: string, found: Place[]): void {
+	let node: JsonNode | undefined = member(root, 'state')?.value;
+	let deepest: Place | undefined;
+	for (const step of name.split('.')) {
+		const m = member(node, step);
+		if (!m) break;
+		deepest = { uri: doc.uri, start: m.keyStart + 1, end: m.keyEnd - 1 };
+		node = m.value;
+	}
+	if (deepest) found.push(deepest);
+}
+
+/**
+ * Finds a name among the keys of the screen sections its kind is defined in. A computed path is found by its first
+ * step.
+ * @param doc   the document
+ * @param root  its value
+ * @param sym   the name
+ * @param found where the places go
+ */
+function sectionDefinitions(doc: Doc, root: JsonNode, sym: Pick<Sym, 'kind' | 'name'>, found: Place[]): void {
+	const name = sym.kind === 'computed' ? sym.name.split('.')[0] : sym.name;
+	for (const section of sections[sym.kind] ?? []) {
+		const m = member(member(root, section)?.value, name);
+		if (m) found.push({ uri: doc.uri, start: m.keyStart + 1, end: m.keyEnd - 1 });
+	}
 }
 
 /**

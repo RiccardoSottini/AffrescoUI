@@ -58,47 +58,63 @@ private:
 		++at_;
 	}
 
+	/// @brief Moves past a value that is neither a string, an object nor an array: a number, true, false or null.
+	void scalar() {
+		while(at_ < text_.size() && !std::isspace(static_cast<unsigned char>(text_[at_])) && text_[at_] != ',' &&
+		      text_[at_] != '}' && text_[at_] != ']')
+			++at_;
+	}
+
+	/// @brief Reads an object member's key and the ':' after it.
+	/// @param pointer The object's pointer.
+	/// @param member Where the key's span goes.
+	/// @return The member's pointer: the key escaped as JSON Pointer asks ('~' as "~0", '/' as "~1").
+	std::string key(const std::string& pointer, Span& member) {
+		member.keyStart = at_;
+		string();
+		member.keyEnd = at_;
+		std::string at = pointer + "/";
+		for(const char c :
+		    parseUntrusted(text_.substr(member.keyStart, member.keyEnd - member.keyStart)).get<std::string>())
+			at += c == '~' ? std::string("~0") : c == '/' ? std::string("~1") : std::string(1, c);
+		skip();
+		++at_; // ':'
+		skip();
+		return at;
+	}
+
+	/// @brief Reads an object's members or an array's items, its '{' or '[' first, recording each one's span.
+	/// @param pointer Its pointer.
+	/// @param object Whether it is an object.
+	void members(const std::string& pointer, bool object) {
+		++at_;
+		skip();
+		std::size_t previousEnd = std::string::npos;
+		for(std::size_t n = 0; at_ < text_.size() && text_[at_] != '}' && text_[at_] != ']'; ++n) {
+			Span member;
+			const std::string at = object ? key(pointer, member) : pointer + "/" + std::to_string(n);
+			member.previousEnd = previousEnd;
+			value(at, member);
+			previousEnd = spans_[at].end;
+			skip();
+			if(at_ < text_.size() && text_[at_] == ',') ++at_;
+			skip();
+		}
+		++at_;
+	}
+
 	/// @brief Reads a value and records its span.
 	/// @param pointer Its pointer.
 	/// @param span Its key, if it is a member.
 	void value(const std::string& pointer, Span span) {
 		span.start = at_;
 		const char first = at_ < text_.size() ? text_[at_] : '\0';
-		if(first == '{' || first == '[') {
-			++at_;
-			skip();
-			std::size_t previousEnd = std::string::npos;
-			for(std::size_t n = 0; at_ < text_.size() && text_[at_] != '}' && text_[at_] != ']'; ++n) {
-				Span member;
-				std::string at = pointer + "/";
-				if(first == '{') {
-					member.keyStart = at_;
-					string();
-					member.keyEnd = at_;
-					for(const char c : parseUntrusted(text_.substr(member.keyStart, member.keyEnd - member.keyStart))
-					                       .get<std::string>())
-						at += c == '~' ? std::string("~0") : c == '/' ? std::string("~1") : std::string(1, c);
-					skip();
-					++at_; // ':'
-					skip();
-				} else {
-					at += std::to_string(n);
-				}
-				member.previousEnd = previousEnd;
-				value(at, member);
-				previousEnd = spans_[at].end;
-				skip();
-				if(at_ < text_.size() && text_[at_] == ',') ++at_;
-				skip();
-			}
-			++at_;
-		} else if(first == '"') {
+		if(first == '{' || first == '[')
+			members(pointer, first == '{');
+		else if(first == '"')
 			string();
-		} else {
-			while(at_ < text_.size() && !std::isspace(static_cast<unsigned char>(text_[at_])) && text_[at_] != ',' &&
-			      text_[at_] != '}' && text_[at_] != ']')
-				++at_;
-		}
+		else
+			scalar();
 		span.end = at_;
 		spans_[pointer] = span;
 	}
@@ -115,6 +131,21 @@ struct Edit {
 	std::string text;  ///< What takes their place.
 };
 
+/// @brief The edit that removes a member: with the comma after it and the space up to the next member, or else with
+/// the comma before it.
+/// @param text The text.
+/// @param span The member's span.
+/// @return The edit.
+Edit removal(const std::string& text, const Span& span) {
+	std::size_t next = span.end;
+	while(next < text.size() && std::isspace(static_cast<unsigned char>(text[next]))) ++next;
+	if(next < text.size() && text[next] == ',') {
+		for(++next; next < text.size() && std::isspace(static_cast<unsigned char>(text[next]));) ++next;
+		return {span.keyStart, next, ""};
+	}
+	return {span.previousEnd == std::string::npos ? span.keyStart : span.previousEnd, span.end, ""};
+}
+
 /// @brief Writes a migration's rewrites into the text it was read from.
 /// @param text The text.
 /// @param rewrites What the migration changed, with pointers into the document as the text has it.
@@ -130,18 +161,7 @@ std::string spliced(const std::string& text, const std::vector<format::Rewrite>&
 		switch(rewrite.kind) {
 		case format::Rewrite::Kind::Rename: edits.push_back({span.keyStart, span.keyEnd, json(rewrite.key).dump()}); break;
 		case format::Rewrite::Kind::Replace: edits.push_back({span.start, span.end, rewrite.value.dump()}); break;
-		case format::Rewrite::Kind::Remove: {
-			// With the comma after it and the space up to the next member, or else with the comma before it
-			std::size_t next = span.end;
-			while(next < text.size() && std::isspace(static_cast<unsigned char>(text[next]))) ++next;
-			if(next < text.size() && text[next] == ',') {
-				for(++next; next < text.size() && std::isspace(static_cast<unsigned char>(text[next]));) ++next;
-				edits.push_back({span.keyStart, next, ""});
-			} else {
-				edits.push_back({span.previousEnd == std::string::npos ? span.keyStart : span.previousEnd, span.end, ""});
-			}
-			break;
-		}
+		case format::Rewrite::Kind::Remove: edits.push_back(removal(text, span)); break;
 		}
 	}
 	std::ranges::sort(edits, std::greater<>{}, &Edit::start); // from the end, so the offsets before stay right

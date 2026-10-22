@@ -7,6 +7,7 @@
 #include <charconv>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace forge {
@@ -62,7 +63,7 @@ std::vector<std::string_view> fields(std::string_view record, std::size_t count)
 /// @param allowed The set.
 /// @return Whether it is.
 bool only(std::string_view field, std::string_view allowed) noexcept {
-	return std::all_of(field.begin(), field.end(), [allowed](char c) { return allowed.contains(c); });
+	return std::ranges::all_of(field, [allowed](char c) { return allowed.contains(c); });
 }
 
 /// @brief Checks a field: a length and a set of characters.
@@ -73,7 +74,7 @@ bool only(std::string_view field, std::string_view allowed) noexcept {
 /// @throws std::runtime_error If it isn't.
 void expect(std::string_view field, std::initializer_list<std::size_t> sizes, std::string_view allowed,
             const char* name) {
-	if(std::find(sizes.begin(), sizes.end(), field.size()) == sizes.end() || !only(field, allowed))
+	if(std::ranges::find(sizes, field.size()) == sizes.end() || !only(field, allowed))
 		malformed(std::string("a bad ") + name);
 }
 
@@ -95,7 +96,7 @@ std::string checkedPath(std::string_view path, const GitLimits& limits) {
 /// @param index The X letter (the index against HEAD).
 /// @param worktree The Y letter (the working tree against the index).
 /// @return The kind (GitStatus.hpp).
-std::string kindOf(char index, char worktree) {
+std::string_view kindOf(char index, char worktree) {
 	const char letter = index != '.' ? index : worktree;
 	switch(letter) {
 	case 'A': return "added";
@@ -147,7 +148,7 @@ json changedEntry(std::string_view record, bool renamed, std::string_view origin
 	}
 	if(parts[0][0] == 'U' || parts[0][1] == 'U') malformed("an unmerged path in an ordinary entry");
 	return fileEntry(checkedPath(parts.back(), limits), renamed ? checkedPath(original, limits) : std::string(),
-	                 parts[0], kindOf(parts[0][0], parts[0][1]));
+	                 parts[0], std::string(kindOf(parts[0][0], parts[0][1])));
 }
 
 /// @brief Reads an unmerged (`u`) entry.
