@@ -100,9 +100,9 @@ target_sources(affrescoui_render PRIVATE src/lists/ListView.cpp src/lists/RowWin
 	src/lists/TreeView.cpp)
 # The code editor, its text model and the diff view
 target_sources(affrescoui_render PRIVATE src/editor/DiffView.cpp src/editor/TextEditor.cpp
-	src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorMinimap.cpp
-	src/editor/TextEditorPaint.cpp src/editor/TextEditorPaintView.cpp src/editor/TextEditorView.cpp
-	src/editor/TextModel.cpp)
+	src/editor/TextEditorCursors.cpp src/editor/TextEditorFind.cpp src/editor/TextEditorInput.cpp
+	src/editor/TextEditorMinimap.cpp src/editor/TextEditorPaint.cpp src/editor/TextEditorPaintView.cpp
+	src/editor/TextEditorView.cpp src/editor/TextModel.cpp)
 # The colour picker, the curves and the gradient editors
 target_sources(affrescoui_render PRIVATE src/creative/ColorPicker.cpp src/creative/ColorPickerPaint.cpp
 	src/creative/CurvesEditor.cpp src/creative/GradientEditor.cpp)

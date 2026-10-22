@@ -75,6 +75,28 @@ std::optional<std::size_t> bracketNear(const std::u32string& text, std::size_t c
 	return std::nullopt;
 }
 
+/// @brief Where the next search on a line starts after a match: past it (or one byte past an empty one), on a code
+/// point's first byte.
+/// @param subject The line, in UTF-8.
+/// @param match The match.
+/// @return The byte; past the end (subject.size() + 1) after an empty match at the end.
+std::size_t afterMatch(std::string_view subject, const PatternMatch& match) noexcept {
+	std::size_t byte = match.offset + std::max<std::size_t>(match.length, 1);
+	while(byte < subject.size() && (static_cast<unsigned char>(subject[byte]) & 0xC0) == 0x80) ++byte;
+	return byte;
+}
+
+/// @brief The column of the code point a bracket scan stepped over, onto a position.
+/// @param line The position's line.
+/// @param column The position's column.
+/// @param forward Whether the scan goes forward.
+/// @return The column, or std::nullopt if it stepped over a line break.
+std::optional<std::size_t> steppedOver(const std::u32string& line, std::size_t column, bool forward) noexcept {
+	if(forward && column == 0) return std::nullopt;
+	const std::size_t at = forward ? column - 1 : column;
+	return at < line.size() ? std::optional(at) : std::nullopt;
+}
+
 } // namespace
 
 std::optional<std::string> TextEditor::setFind(std::string_view text, PatternOptions options) {
@@ -234,14 +256,12 @@ std::size_t TextEditor::replaceAll(std::string_view replacement) {
 			if(!found.match) break;
 			const PatternMatch m = *found.match;
 			const std::size_t column = codepoints(subject_, 0, m.offset);
+			const std::size_t length = codepoints(subject_, m.offset, m.offset + m.length);
 			const std::optional<std::string> text = find_.expand(subject_, m, replacement);
 			if(!text) return 0;
-			if(m.length > 0 && inScope(line, column, codepoints(subject_, m.offset, m.offset + m.length)))
-				replacements.push_back({{line, column},
-				                        {line, column + codepoints(subject_, m.offset, m.offset + m.length)},
-				                        detail::fromUtf8(*text)});
-			byte = m.offset + std::max<std::size_t>(m.length, 1);
-			while(byte < subject_.size() && (static_cast<unsigned char>(subject_[byte]) & 0xC0) == 0x80) ++byte;
+			if(m.length > 0 && inScope(line, column, length))
+				replacements.push_back({{line, column}, {line, column + length}, detail::fromUtf8(*text)});
+			byte = afterMatch(subject_, m);
 			if(byte > subject_.size()) break;
 		}
 	}
@@ -274,13 +294,11 @@ std::optional<std::pair<TextEditor::Position, TextEditor::Position>> TextEditor:
 		const Position next = step(p, opens, false);
 		if(next == p) return std::nullopt;
 		p = next;
-		const std::u32string& line = lines_[p.line];
-		const std::size_t column = opens ? p.column - (p.column > 0 ? 1 : 0) : p.column;
-		if(opens && p.column == 0) continue; // stepped over a line break
-		if(column >= line.size()) continue;
-		const char32_t c = line[column];
+		const std::optional<std::size_t> column = steppedOver(lines_[p.line], p.column, opens);
+		if(!column) continue;
+		const char32_t c = lines_[p.line][*column];
 		if(c == self) ++depth;
-		else if(c == other && depth-- == 0) return std::pair{at, Position{p.line, column}};
+		else if(c == other && depth-- == 0) return std::pair{at, Position{p.line, *column}};
 	}
 	return std::nullopt;
 }

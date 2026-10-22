@@ -22,10 +22,41 @@ constexpr std::size_t maxFoldScan = 100'000;    ///< Lines foldable() reads afte
 /// @brief A line number after an edit: lines before it stay, lines after it move, lines it replaced go to its start.
 /// @param line The line.
 /// @param change The edit.
+/// @return The line it is now.
 std::size_t movedLine(std::size_t line, const TextChange& change) noexcept {
 	if(line <= change.from.line) return line;
 	if(line > change.oldEnd.line) return line - change.oldEnd.line + change.newEnd.line;
 	return change.from.line;
+}
+
+/// @brief Where a line goes after an edit, for the decorations and folds.
+/// @param line The line.
+/// @param change The edit.
+/// @param beforeLine Whether it inserted lines at the start of a line: that line moves down with what follows.
+/// @return The line it is now.
+std::size_t shiftedLine(std::size_t line, const TextChange& change, bool beforeLine) noexcept {
+	return beforeLine && line >= change.from.line ? line + change.newEnd.line - change.from.line
+	                                              : movedLine(line, change);
+}
+
+/// @brief Moves a fold after an edit. It stays if the edit is wholly inside what it hides, or wholly before or after
+/// it.
+/// @param fold The fold; moved if it stays.
+/// @param change The edit.
+/// @param beforeLine Whether it inserted lines at the start of a line.
+/// @return true if it goes.
+bool shiftFold(FoldRange& fold, const TextChange& change, bool beforeLine) noexcept {
+	if(fold.endLine < change.from.line) return false;
+	if(fold.line > change.oldEnd.line || (beforeLine && fold.line >= change.from.line)) {
+		fold.line = shiftedLine(fold.line, change, beforeLine);
+		fold.endLine = shiftedLine(fold.endLine, change, beforeLine);
+		return false;
+	}
+	if(fold.line < change.from.line && change.oldEnd.line <= fold.endLine) {
+		fold.endLine = fold.endLine - change.oldEnd.line + change.newEnd.line;
+		return fold.endLine <= fold.line;
+	}
+	return true;
 }
 
 } // namespace
@@ -304,28 +335,11 @@ void TextEditor::shiftView(const TextChange& change) {
 	if(sameLines || (folds_.empty() && decorations_.empty())) return;
 	// Lines inserted at the start of a line go before it: that line moves down with what follows
 	const bool beforeLine = change.from.column == 0 && change.oldEnd == change.from;
-	const auto moved = [&change, beforeLine](std::size_t line) {
-		return beforeLine && line >= change.from.line ? line + change.newEnd.line - change.from.line
-		                                              : movedLine(line, change);
-	};
 	for(EditorDecoration& d : decorations_) {
-		d.line = moved(d.line);
-		d.endLine = std::max(moved(d.endLine), d.line);
+		d.line = shiftedLine(d.line, change, beforeLine);
+		d.endLine = std::max(shiftedLine(d.endLine, change, beforeLine), d.line);
 	}
-	// A fold stays if the edit is wholly inside what it hides, or wholly before or after it
-	std::erase_if(folds_, [&](FoldRange& f) {
-		if(f.endLine < change.from.line) return false;
-		if(f.line > change.oldEnd.line || (beforeLine && f.line >= change.from.line)) {
-			f.line = moved(f.line);
-			f.endLine = moved(f.endLine);
-			return false;
-		}
-		if(f.line < change.from.line && change.oldEnd.line <= f.endLine) {
-			f.endLine = f.endLine - change.oldEnd.line + change.newEnd.line;
-			return f.endLine <= f.line;
-		}
-		return true;
-	});
+	std::erase_if(folds_, [&](FoldRange& f) { return shiftFold(f, change, beforeLine); });
 }
 
 /* View colours */
@@ -367,7 +381,8 @@ std::optional<Rect> TextEditor::rectAt(Position at) const {
 	// The next code point's start, unless the line ends (or wraps) here
 	float width = lh / 2.0f;
 	if(at.column < lines_[at.line].size())
-		if(const Position next{at.line, at.column + 1}; rowOf(next) == rowOf(at)) width = std::max(xOnRow(next) - x, 1.0f);
+		if(const Position next{at.line, at.column + 1}; rowOf(next) == rowOf(at))
+			width = std::max(xOnRow(next) - x, 1.0f);
 	const Rect box{textLeft + x, top, textLeft + x + width, top + lh};
 	const Rect& shown = frame();
 	if(box.right <= shown.left + gutterWidth() || box.left >= shown.right || box.bottom <= shown.top ||
