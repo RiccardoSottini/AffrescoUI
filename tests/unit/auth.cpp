@@ -14,11 +14,13 @@
 
 #include <doctest/doctest.h>
 
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <variant>
 #include <vector>
 
 using affresco::json;
@@ -288,4 +290,24 @@ TEST_CASE("auth: a provider's declaration is checked") {
 		CHECK_THROWS(static_cast<void>(affresco::Screen::fromString(screen(bad))));
 	}
 	CHECK_THROWS(static_cast<void>(affresco::Screen::fromString(screen("other")))); // no such connection
+}
+
+TEST_CASE("auth: a provider's lifetimes and intervals are clamped, however large a number it sends") {
+	namespace oauth = affresco::net::oauth;
+	const auto now = std::chrono::system_clock::now();
+	const auto tokens = oauth::readTokens(R"({"access_token":"a","token_type":"Bearer","expires_in":1e300})",
+	                                      affresco::identity::Provider{}, {}, now);
+	REQUIRE(std::holds_alternative<oauth::Tokens>(tokens));
+	CHECK(std::get<oauth::Tokens>(tokens).expires == now + std::chrono::seconds(oauth::maxLifetime));
+	const auto early = oauth::readTokens(R"({"access_token":"a","token_type":"Bearer","expires_in":-1e300})",
+	                                     affresco::identity::Provider{}, {}, now);
+	REQUIRE(std::holds_alternative<oauth::Tokens>(early));
+	CHECK(std::get<oauth::Tokens>(early).expires == now + std::chrono::seconds(1));
+
+	const auto codes = oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"https://example.test/device","interval":1e300,)"
+	    R"("expires_in":-1e300})");
+	REQUIRE(std::holds_alternative<oauth::DeviceCodes>(codes));
+	CHECK(std::get<oauth::DeviceCodes>(codes).interval == std::chrono::seconds(60));
+	CHECK(std::get<oauth::DeviceCodes>(codes).lifetime == std::chrono::seconds(10));
 }
