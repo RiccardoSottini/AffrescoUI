@@ -214,6 +214,7 @@ void QuadRenderer::startFrame(const detail::Frame& frame) {
 	framebufferHeight_ = viewport[3];
 	frameWidth_ = frame.width;
 	frameHeight_ = frame.height;
+	pixelScale_ = frameWidth_ > 0 ? static_cast<float>(framebufferWidth_) / static_cast<float>(frameWidth_) : 1.0f;
 	vertices_.clear();
 	batches_.clear();
 	drawCalls_ = 0;
@@ -416,8 +417,7 @@ void QuadRenderer::replay(const detail::PaintRecord& record, std::size_t first, 
 		}
 		case PaintStep::surface: { // drawn into its framebuffer first if it changed; nothing if it failed
 			// At this frame's pixels per unit, which a picture at another scale doesn't share with the display
-			op.surface->state()->scale =
-			    frameWidth_ > 0 ? static_cast<float>(framebufferWidth_) / static_cast<float>(frameWidth_) : 1.0f;
+			op.surface->state()->scale = pixelScale_;
 			const GLuint texture = surfaces_.place(op.surface->state());
 			if(texture == 0) break;
 			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});

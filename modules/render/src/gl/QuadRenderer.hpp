@@ -269,6 +269,7 @@ private:
 	int framebufferHeight_ = 0; ///< The frame's framebuffer height, in pixels.
 	int frameWidth_ = 0;        ///< The frame's width, in window units.
 	int frameHeight_ = 0;       ///< The frame's height, in window units.
+	float pixelScale_ = 1.0f;   ///< The frame's framebuffer pixels per window unit.
 	/// The paint generation of whole frames drawn by draw(root, ...), counted from the top so it never meets a
 	/// window's.
 	std::uint64_t ownGeneration_ = std::uint64_t{1} << 63;
