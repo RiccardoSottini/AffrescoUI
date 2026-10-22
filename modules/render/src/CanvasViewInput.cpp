@@ -131,10 +131,15 @@ void CanvasView::moved(const MouseMoveEvent& event) {
 	switch(gesture_) {
 	case Gesture::none:
 		return;
-	case Gesture::pan:
-		camera_ = pressedCamera_.pannedBy({event.position.x - pressedAt_.x, event.position.y - pressedAt_.y});
+	case Gesture::pan: { // reported as it goes, so that a state bound to the camera follows the drag
+		const Camera2D panned =
+		    pressedCamera_.pannedBy({event.position.x - pressedAt_.x, event.position.y - pressedAt_.y});
+		if(panned == camera_) return;
+		camera_ = panned;
 		invalidate();
+		onViewChanged();
 		return;
+	}
 	case Gesture::marquee:
 		invalidatePaint();
 		return;
@@ -161,6 +166,7 @@ void CanvasView::moved(const MouseMoveEvent& event) {
 			axis[static_cast<std::size_t>(guideIndex_)] = at;
 		}
 		invalidatePaint();
+		if(guideIndex_ >= 0) onViewChanged();
 		return;
 	}
 	}
@@ -210,7 +216,7 @@ void CanvasView::finish() {
 	internals_->lines = {};
 	invalidate();
 	if(gesture == Gesture::pan) {
-		if(!(camera_ == pressedCamera_)) onViewChanged();
+		// reported as it moved
 	} else if(gesture == Gesture::marquee) {
 		const Rect marquee = canvas::spanning(pressedAt_, pointer_);
 		const bool click = marquee.width() < canvas::clickPixels && marquee.height() < canvas::clickPixels;
