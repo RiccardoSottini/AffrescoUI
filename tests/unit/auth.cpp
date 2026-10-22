@@ -200,21 +200,26 @@ TEST_CASE("auth: the browser flow signs in with PKCE through a loopback redirect
 	CHECK(shown.auth()["expires"].is_null());
 }
 
-TEST_CASE("auth: a redirect with another state is refused, and the sign-in fails") {
+TEST_CASE("auth: a redirect with another state is refused, and the sign-in started still completes") {
 	MockIdentity identity;
 	Shown shown(identity, authScreen(identity, "browser"), std::make_shared<affresco::MemorySecretStore>());
 	shown.screen->runAction("login", shown.window->root());
 	REQUIRE(shown.executor.runUntil([&shown] { return !shown.opened.empty(); }));
-	std::string url = shown.opened[0];
-	const std::size_t state = url.find("&state=") + 7;
-	url[state] = url[state] == 'A' ? 'B' : 'A'; // an attacker's state
+	const std::string url = shown.opened[0];
+	std::string forged = url;
+	const std::size_t state = forged.find("&state=") + 7;
+	forged[state] = forged[state] == 'A' ? 'B' : 'A'; // an attacker's state
+	// Any program on this machine can reach the loopback listener: a forged redirect must not end the sign-in
+	CHECK(MockIdentity::browse(forged).starts_with("HTTP/1.1 400"));
+	shown.executor.runFor(std::chrono::milliseconds(50));
+	CHECK(stateAt(*shown.screen, "/failed").is_null());
+	CHECK(stateAt(*shown.screen, "/me").is_null());
 	std::string page;
 	std::jthread browser([&page, url] { page = MockIdentity::browse(url); });
-	REQUIRE(shown.executor.runUntil([&shown] { return !stateAt(*shown.screen, "/failed").is_null(); }));
+	REQUIRE(shown.executor.runUntil([&shown] { return !stateAt(*shown.screen, "/me").is_null(); }));
 	browser.join();
-	CHECK(page.starts_with("HTTP/1.1 400"));
-	CHECK(stateAt(*shown.screen, "/me").is_null());
-	CHECK(shown.auth()["state"] != "signedIn");
+	CHECK(page.starts_with("HTTP/1.1 200"));
+	CHECK(shown.auth()["state"] == "signedIn");
 }
 
 TEST_CASE("auth: a request that needs a sign-in fails with signedOut, and sends nothing") {
