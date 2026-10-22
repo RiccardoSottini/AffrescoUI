@@ -14,6 +14,11 @@ namespace affresco::vcs::detail {
 /// @return UTC, ISO 8601.
 [[nodiscard]] std::string utcNow();
 
+/// @brief A time from now.
+/// @param seconds How far ahead.
+/// @return UTC, ISO 8601.
+[[nodiscard]] std::string utcAfter(long long seconds);
+
 /// @brief A revision's author.
 /// @param revision The revision.
 /// @return "author", or "unknown".

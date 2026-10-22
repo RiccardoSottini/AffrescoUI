@@ -5,6 +5,7 @@
 
 #include "affresco/core/Portable.hpp"
 
+#include <array>
 #include <ctime>
 
 namespace affresco::vcs::detail {
@@ -47,13 +48,13 @@ void appendEdits(json& patch, const json& revision) {
 
 } // namespace
 
-/// @brief The current time.
-/// @return UTC, ISO 8601.
-std::string utcNow() {
-	const std::tm now = utcTime(std::time(nullptr));
-	char buffer[32];
-	std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &now);
-	return buffer;
+std::string utcNow() { return utcAfter(0); }
+
+std::string utcAfter(long long seconds) {
+	const std::tm then = utcTime(std::time(nullptr) + static_cast<std::time_t>(seconds));
+	std::array<char, 32> buffer{};
+	std::strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%SZ", &then);
+	return buffer.data();
 }
 
 /// @brief A revision's author.

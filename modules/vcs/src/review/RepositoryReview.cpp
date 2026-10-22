@@ -9,12 +9,10 @@
 #include "review/Merge.hpp"
 #include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
-
-#include "affresco/core/Portable.hpp"
+#include "revisions/Revisions.hpp"
 
 #include <algorithm>
 #include <charconv>
-#include <ctime>
 #include <limits>
 
 namespace affresco::vcs {
@@ -23,16 +21,6 @@ namespace {
 
 /// Longest a grant may last: a year.
 constexpr long long maxGrantSeconds = 366LL * 24 * 3600;
-
-/// @brief A time from now.
-/// @param seconds How far ahead.
-/// @return UTC, ISO 8601.
-std::string utcAfter(long long seconds) {
-	const std::tm then = utcTime(std::time(nullptr) + static_cast<std::time_t>(seconds));
-	char buffer[32];
-	std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &then);
-	return buffer;
-}
 
 /// @brief Reads a duration: a whole number and a unit, "30m", "8h" or "7d".
 /// @param text The duration.
@@ -119,7 +107,7 @@ void Repository::squash(Proposal& proposal, const json& merged) {
 	Commit commit;
 	commit.author = commit.committer = proposal.author;
 	commit.message = "Rebase onto " + describe(mainHead());
-	commit.time = utcAfter(0);
+	commit.time = detail::utcNow();
 	commit.patch = std::move(patch);
 	replay(proposal, {std::move(commit)});
 	proposal.approvals.clear(); // what it does now is the merge, which nobody reviewed
@@ -206,12 +194,12 @@ std::string Repository::grantsExpire(const Approval& approval) const {
 	const std::optional<long long> asked = secondsOf(approval.duration);
 	const std::optional<long long> longest = secondsOf(rules_.permissions(mainDocument()).review.grantsLast);
 	if(!asked && !longest) return {};
-	return utcAfter(std::min(asked.value_or(std::numeric_limits<long long>::max()),
-	                         longest.value_or(std::numeric_limits<long long>::max())));
+	return detail::utcAfter(std::min(asked.value_or(std::numeric_limits<long long>::max()),
+	                                 longest.value_or(std::numeric_limits<long long>::max())));
 }
 
 // ISO 8601 times in UTC sort as text
-bool Repository::expired(const Grant& grant) { return !grant.expires.empty() && grant.expires <= utcAfter(0); }
+bool Repository::expired(const Grant& grant) { return !grant.expires.empty() && grant.expires <= detail::utcNow(); }
 
 std::vector<Grant> Repository::grants() const {
 	std::vector<Grant> active;
