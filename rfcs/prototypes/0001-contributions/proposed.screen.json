@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "RFC 0001 prototype in the proposed syntax (it doesn't load today). The same app as today.screen.json: the commands, keys, menus and settings are declared once, and the palette, the menu, the keybinding editor and the settings page read the variables the RFC adds (commands, menus, keybindings, settingsList).",
 	"window": {
 		"title": "Contributions (proposed)",
@@ -203,7 +203,7 @@
 						},
 						"width": 220,
 						"height": 26,
-						"from": "end",
+						"justify": "end",
 						"children": [
 							{
 								"id": "label-setting-choice",
@@ -624,7 +624,7 @@
 						"bind": "state.query",
 						"onSubmit": [
 							{
-								"if": "{{len(computed.paletteItems) > 0}}",
+								"if": "{{length(computed.paletteItems) > 0}}",
 								"then": [
 									{
 										"set": "state.palette",

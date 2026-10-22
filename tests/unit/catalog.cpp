@@ -46,7 +46,7 @@ json wordCount() {
 json app() {
 	return json::parse(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"tokens": { "color.statusText": "#ffffff" },
 		"state": { "text": "one two three" },
 		"exports": { "editor.text": { "type": "string", "value": "{{state.text}}" } },
@@ -77,7 +77,7 @@ struct Catalog {
 		folder = std::filesystem::temp_directory_path() / ("affrescoui-catalog-" + std::to_string(random()));
 		std::filesystem::create_directories(folder);
 		index = {{"format", "affrescoui-catalog"},
-		         {"version", 1},
+		         {"version", 2},
 		         {"name", "test"},
 		         {"publishers", json::object()},
 		         {"features", json::object()}};

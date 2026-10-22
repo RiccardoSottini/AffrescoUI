@@ -7,7 +7,7 @@ import { pngSize } from '../png';
 import { makeDoc } from '../resolver';
 
 const text = `{
-  "format": "affrescoui/screen", "version": 1,
+  "format": "affrescoui/screen", "version": 2,
   "fonts": { "default": "Missing.ttf" },
   "state": { "count": 0 },
   "root": { "type": "column", "children": [

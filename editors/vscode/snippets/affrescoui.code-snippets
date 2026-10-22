@@ -5,7 +5,7 @@
 		"body": [
 			"{",
 			"\t\"format\": \"affrescoui-screen\",",
-			"\t\"version\": 1,",
+			"\t\"version\": 2,",
 			"\t\"window\": { \"title\": \"${1:App}\", \"width\": ${2:640}, \"height\": ${3:400} },",
 			"\t\"state\": {},",
 			"\t\"root\": {",
@@ -87,7 +87,7 @@
 		"body": [
 			"{",
 			"\t\"format\": \"affrescoui-scenarios\",",
-			"\t\"version\": 1,",
+			"\t\"version\": 2,",
 			"\t\"screen\": \"${1:app.screen.json}\",",
 			"\t\"scenarios\": [",
 			"\t\t{ \"name\": \"${2:starts}\", \"steps\": [",
@@ -103,7 +103,7 @@
 		"body": [
 			"{",
 			"\t\"format\": \"affrescoui-feature\",",
-			"\t\"version\": 1,",
+			"\t\"version\": 2,",
 			"\t\"name\": \"${1:myFeature}\",",
 			"\t\"release\": \"${2:0.1.0}\",",
 			"\t\"title\": \"${3:My feature}\",",

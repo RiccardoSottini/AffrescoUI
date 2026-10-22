@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal type in Terminal.cpp, on the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell.",
 
 	"state": {
@@ -14,7 +14,7 @@
 
 	"actions": {
 		"terminalNew": { "title": "New Terminal", "category": "Terminal", "icon": "terminal",
-			"enablement": "{{len(state.terminals.list) < 8}}",
+			"enablement": "{{length(state.terminals.list) < 8}}",
 			"do": [
 				{ "push": "state.terminals.list", "value": "{{ {id: 't' + state.terminals.next, label: 'Terminal ' + state.terminals.next, closable: true} }}" },
 				{ "set": "state.terminals.active", "to": "{{'t' + state.terminals.next}}" },
@@ -26,8 +26,8 @@
 			{ "call": "forge.terminal.close", "with": { "id": "{{id}}" } },
 			{ "set": "state.terminals.list", "to": "{{filter(state.terminals.list, it.id != id)}}" },
 			{ "if": "{{state.terminals.active == id}}",
-			  "then": [{ "set": "state.terminals.active", "to": "{{len(state.terminals.list) > 0 ? state.terminals.list[0].id : ''}}" }] },
-			{ "if": "{{len(state.terminals.list) == 0 && state.panelTab == 'terminal'}}",
+			  "then": [{ "set": "state.terminals.active", "to": "{{length(state.terminals.list) > 0 ? state.terminals.list[0].id : ''}}" }] },
+			{ "if": "{{length(state.terminals.list) == 0 && state.panelTab == 'terminal'}}",
 			  "then": [{ "set": "state.panelTab", "to": "output" }] }
 		],
 		"terminalKill": { "title": "Kill the Active Terminal", "category": "Terminal", "icon": "trash-2",
@@ -35,7 +35,7 @@
 			"do": [{ "run": "terminalClose", "with": { "id": "{{state.terminals.active}}" } }] },
 		"showTerminal": { "title": "Focus Terminal", "category": "View", "icon": "terminal",
 			"do": [
-				{ "if": "{{len(state.terminals.list) == 0}}",
+				{ "if": "{{length(state.terminals.list) == 0}}",
 				  "then": [{ "run": "terminalNew" }],
 				  "else": [{ "set": "state.layout.panel", "to": true }, { "set": "state.panelTab", "to": "terminal" }] }
 			] },

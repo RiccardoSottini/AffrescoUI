@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Shaped text, for the rendering check: Arabic joining (each run in its own direction, runs left to right), Devanagari conjuncts, Chinese, Japanese and Korean from fallback fonts chosen by coverage, colour emoji (sequences and flags too), Latin ligatures and kerning, combining marks, code ligatures in a monospace editor. The fonts in ../fonts are subsets holding only these characters.",
 
 	"window": { "title": "Scripts", "width": 760, "height": 560 },

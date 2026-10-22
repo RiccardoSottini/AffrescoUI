@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 
 	"note": "Bottega: a code editor. A menu bar, an explorer tree, editor tabs with unsaved dots (closing an unsaved one asks first), a generated 5,000-line file, quick open (Cmd+P), every command in a palette (Cmd+Shift+P), the TODO and FIXME lines as problems (updated on save), and a terminal. Edit like in VS Code: selection, undo, Cmd+/ comments, Alt+arrows move lines.",
 
@@ -144,11 +144,11 @@
 	"computed": {
 		"file": "{{state.active >= 0 ? state.files[state.active] : null}}",
 		"path": "{{computed.file ? (computed.file.folder ? computed.file.folder + '  /  ' : '') + computed.file.name : ''}}",
-		"tree": "{{concat([{ id: 'd:src', label: 'src', children: map(filter(range(len(state.files)), state.files[it].folder == 'src'), { id: 'f' + it, label: state.files[it].name }) }, { id: 'd:screens', label: 'screens', children: map(filter(range(len(state.files)), state.files[it].folder == 'screens'), { id: 'f' + it, label: state.files[it].name }) }], map(filter(range(len(state.files)), state.files[it].folder == ''), { id: 'f' + it, label: state.files[it].name }))}}",
+		"tree": "{{concat([{ id: 'd:src', label: 'src', children: map(filter(range(length(state.files)), state.files[it].folder == 'src'), { id: 'f' + it, label: state.files[it].name }) }, { id: 'd:screens', label: 'screens', children: map(filter(range(length(state.files)), state.files[it].folder == 'screens'), { id: 'f' + it, label: state.files[it].name }) }], map(filter(range(length(state.files)), state.files[it].folder == ''), { id: 'f' + it, label: state.files[it].name }))}}",
 		"tabItems": "{{map(state.tabs, { id: text(it), label: state.files[it].name, marker: state.files[it].dirty })}}",
-		"errors": "{{len(filter(state.problems, it.cells[0] == 'Error'))}}",
-		"warnings": "{{len(filter(state.problems, it.cells[0] == 'Warning'))}}",
-		"picks": "{{map(range(len(state.files)), { title: state.files[it].name, detail: state.files[it].folder || state.project, file: it })}}",
+		"errors": "{{length(filter(state.problems, it.cells[0] == 'Error'))}}",
+		"warnings": "{{length(filter(state.problems, it.cells[0] == 'Warning'))}}",
+		"picks": "{{map(range(length(state.files)), { title: state.files[it].name, detail: state.files[it].folder || state.project, file: it })}}",
 		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.keyLabel || it.category, run: it.name })}}"
 	},
 
@@ -216,20 +216,20 @@
 				"set": "state.files[3].text",
 				"to": "{{join(map(range(5000), index == 0 ? '// Calibration tables for the station sensors (generated, 5,000 lines)' : index % 25 == 0 ? '' : index % 25 == 1 ? 'double sensor' + floor(index / 25) + '(double raw) {' : index % 25 == 23 ? '    return raw;' : index % 25 == 24 ? '}' : index % 1000 == 507 ? '    // TODO: recalibrate sensor ' + floor(index / 25) + ' after the winter readings' : '    raw += ' + (index * 37) % 1000 + ' / 1000.0;'), '\\n')}}"
 			},
-			{ "forEach": "{{range(len(state.files))}}", "as": "f", "do": [{ "set": "state.files[f].saved", "to": "{{state.files[f].text}}" }] },
+			{ "forEach": "{{range(length(state.files))}}", "as": "f", "do": [{ "set": "state.files[f].saved", "to": "{{state.files[f].text}}" }] },
 			{ "run": "findProblems" }
 		],
 		"findProblems": [
 			{ "note": "Every line with TODO (a warning) or FIXME (an error) in the saved files, as rows of the problems table" },
 			{ "set": "state.problems", "to": [] },
 			{
-				"forEach": "{{range(len(state.files))}}",
+				"forEach": "{{range(length(state.files))}}",
 				"as": "f",
 				"do": [
 					{ "set": "state.scan", "to": "{{split(state.files[f].saved ?? state.files[f].text, '\\n')}}" },
 					{
 						"set": "state.problems",
-						"to": "{{concat(state.problems, map(filter(range(len(state.scan)), contains(state.scan[it], 'TODO') || contains(state.scan[it], 'FIXME')), { id: f + ':' + (it + 1), cells: [contains(state.scan[it], 'FIXME') ? 'Error' : 'Warning', state.files[f].name, it + 1, slice(state.scan[it], indexOf(state.scan[it], contains(state.scan[it], 'FIXME') ? 'FIXME' : 'TODO'))] }))}}"
+						"to": "{{concat(state.problems, map(filter(range(length(state.scan)), contains(state.scan[it], 'TODO') || contains(state.scan[it], 'FIXME')), { id: f + ':' + (it + 1), cells: [contains(state.scan[it], 'FIXME') ? 'Error' : 'Warning', state.files[f].name, it + 1, slice(state.scan[it], indexOf(state.scan[it], contains(state.scan[it], 'FIXME') ? 'FIXME' : 'TODO'))] }))}}"
 					}
 				]
 			},
@@ -251,7 +251,7 @@
 			{ "remove": "state.tabs", "at": "{{indexOf(state.tabs, file)}}" },
 			{
 				"if": "{{!contains(state.tabs, state.active)}}",
-				"then": [{ "set": "state.active", "to": "{{len(state.tabs) ? state.tabs[min(len(state.tabs) - 1, max(0, indexOf(state.tabs, state.active)))] : -1}}" }]
+				"then": [{ "set": "state.active", "to": "{{length(state.tabs) ? state.tabs[min(length(state.tabs) - 1, max(0, indexOf(state.tabs, state.active)))] : -1}}" }]
 			}
 		],
 		"saveFile": [
@@ -287,7 +287,7 @@
 			{ "run": "open", "with": { "file": "{{item.file}}" } }
 		],
 		"runCommand": [
-			{ "if": "{{len(trim(state.command)) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{length(trim(state.command)) == 0}}", "then": [{ "stop": true }] },
 			{ "push": "state.terminal", "value": { "t": "$ {{state.command}}", "c": "prompt" } },
 			{
 				"if": "{{state.command == 'clear'}}",
@@ -311,8 +311,8 @@
 		],
 		"newFile": { "title": "New file", "category": "File", "icon": "file-plus",
 			"do": [
-				{ "push": "state.files", "value": { "name": "Untitled-{{len(state.files) - 6}}.md", "folder": "", "language": "Markdown", "dirty": true, "text": "", "saved": "" } },
-				{ "run": "open", "with": { "file": "{{len(state.files) - 1}}" } }
+				{ "push": "state.files", "value": { "name": "Untitled-{{length(state.files) - 6}}.md", "folder": "", "language": "Markdown", "dirty": true, "text": "", "saved": "" } },
+				{ "run": "open", "with": { "file": "{{length(state.files) - 1}}" } }
 			] },
 		"quickOpen": { "title": "Go to file…", "category": "Go", "icon": "search",
 			"do": [{ "set": "state.quickPick.query", "to": "" }, { "set": "state.quickPick.open", "to": true }] },
@@ -322,15 +322,15 @@
 			"do": [{ "run": "saveFile", "with": { "file": "{{state.active}}" } }, { "run": "findProblems" }] },
 		"saveAll": { "title": "Save all", "category": "File", "icon": "save",
 			"do": [
-				{ "forEach": "{{range(len(state.files))}}", "as": "f", "do": [{ "run": "saveFile", "with": { "file": "{{f}}" } }] },
+				{ "forEach": "{{range(length(state.files))}}", "as": "f", "do": [{ "run": "saveFile", "with": { "file": "{{f}}" } }] },
 				{ "run": "findProblems" }
 			] },
 		"closeTab": { "title": "Close the tab", "category": "File", "icon": "x", "enablement": "{{state.active >= 0}}",
 			"do": [{ "run": "close", "with": { "file": "{{state.active}}" } }] },
-		"nextTab": { "title": "Next tab", "category": "Go", "icon": "chevron-right", "enablement": "{{len(state.tabs) > 1}}",
-			"do": [{ "set": "state.active", "to": "{{state.tabs[(indexOf(state.tabs, state.active) + 1) % len(state.tabs)]}}" }] },
-		"previousTab": { "title": "Previous tab", "category": "Go", "icon": "chevron-left", "enablement": "{{len(state.tabs) > 1}}",
-			"do": [{ "set": "state.active", "to": "{{state.tabs[(indexOf(state.tabs, state.active) + len(state.tabs) - 1) % len(state.tabs)]}}" }] },
+		"nextTab": { "title": "Next tab", "category": "Go", "icon": "chevron-right", "enablement": "{{length(state.tabs) > 1}}",
+			"do": [{ "set": "state.active", "to": "{{state.tabs[(indexOf(state.tabs, state.active) + 1) % length(state.tabs)]}}" }] },
+		"previousTab": { "title": "Previous tab", "category": "Go", "icon": "chevron-left", "enablement": "{{length(state.tabs) > 1}}",
+			"do": [{ "set": "state.active", "to": "{{state.tabs[(indexOf(state.tabs, state.active) + length(state.tabs) - 1) % length(state.tabs)]}}" }] },
 		"toggleSidebar": { "title": "Show or hide the explorer", "category": "View", "icon": "panel-left",
 			"do": [{ "toggle": "state.sidebarOpen" }] },
 		"togglePanel": { "title": "Show or hide the panel", "category": "View", "icon": "panel-bottom",
@@ -569,7 +569,7 @@
 										"anchors": { "left": 12, "right": 48, "top": 0 },
 										"height": 34,
 										"tabs": [
-											{ "id": "problems", "label": "{{'Problems  ' + len(state.problems)}}", "closable": false },
+											{ "id": "problems", "label": "{{'Problems  ' + length(state.problems)}}", "closable": false },
 											{ "id": "terminal", "label": "Terminal", "closable": false }
 										],
 										"value": "{{state.panelTab}}",
@@ -620,7 +620,7 @@
 									},
 									{
 										"id": "noProblems",
-										"when": "{{state.panelTab == 'problems' && len(state.problems) == 0}}",
+										"when": "{{state.panelTab == 'problems' && length(state.problems) == 0}}",
 										"style": "caption",
 										"text": "No problems: no TODO or FIXME left in the saved files.",
 										"anchors": { "left": 24, "top": 80 }
@@ -636,7 +636,7 @@
 												"type": "stack",
 												"anchors": { "left": 20, "right": 20, "top": 6, "bottom": 44 },
 												"gap": 0,
-												"from": "end",
+												"justify": "end",
 												"scroll": "vertical",
 												"children": [
 													{

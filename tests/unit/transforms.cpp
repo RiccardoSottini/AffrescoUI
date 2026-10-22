@@ -193,7 +193,7 @@ TEST_CASE("transforms: the format's keys set the transform, and removing them cl
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 400, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"root": { "id": "root", "children": [
 			{ "id": "card", "x": 100, "y": 100, "width": 100, "height": 50, "rotate": 90,
 			  "transformOrigin": "topLeft" },
@@ -215,7 +215,7 @@ TEST_CASE("transforms: the format's keys set the transform, and removing them cl
 	CHECK(tag->screenBounds() == Rect{10.0f, 305.0f, 90.0f, 325.0f});
 
 	CHECK_THROWS_AS(affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"root": { "id": "root", "children": [{ "id": "a", "scale": [1, 2, 3] }] }
 	})json").build(*window), affresco::DocumentError);
 }

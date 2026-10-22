@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's Search view: an editor page (Find in Files, mod+shift+f) that searches the open folder through the natives of Search.cpp (forge.search, slow and cancellable, its results streamed into state.search.result), shows the matches as a tree by file, opens a match at its line, and replaces every match after a confirm through forge.replace. Files with unsaved edits are skipped, and the open ones that changed are read again.",
 
 	"state": {
@@ -138,8 +138,8 @@
 					{
 						"run": "notify",
 						"with": {
-							"severity": "{{len(result.failed) > 0 || len(result.skipped) > 0 ? 'warning' : 'info'}}",
-							"message": "{{'Replaced ' + plural(result.replaced, 'match', 'matches') + ' in ' + plural(len(result.changed), 'file') + (len(result.skipped) > 0 ? ', skipped ' + plural(len(result.skipped), 'unsaved file') : '') + (len(result.failed) > 0 ? ', ' + plural(len(result.failed), 'file') + ' failed' : '')}}"
+							"severity": "{{length(result.failed) > 0 || length(result.skipped) > 0 ? 'warning' : 'info'}}",
+							"message": "{{'Replaced ' + plural(result.replaced, 'match', 'matches') + ' in ' + plural(length(result.changed), 'file') + (length(result.skipped) > 0 ? ', skipped ' + plural(length(result.skipped), 'unsaved file') : '') + (length(result.failed) > 0 ? ', ' + plural(length(result.failed), 'file') + ' failed' : '')}}"
 						}
 					},
 					{ "run": "runSearch" }

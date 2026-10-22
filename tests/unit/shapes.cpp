@@ -21,7 +21,7 @@ namespace {
 /// @brief A screen with one node, "card", that has every shape property.
 constexpr std::string_view cardScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"state": { "on": false },
 	"root": { "type": "panel", "children": [
 		{ "id": "card", "width": 100, "height": 60,

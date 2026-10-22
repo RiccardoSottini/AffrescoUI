@@ -20,7 +20,7 @@ namespace {
 
 /// @brief A screen with a slider, a checkbox, a field, a tree item that expands, a tab, a toast and a disabled button.
 constexpr const char* statesScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": { "volume": 4, "dark": false, "name": "Ada", "open": false, "saved": 0 },
 	"root": { "id": "root", "children": [{ "id": "form", "type": "column", "fill": true, "children": [
 		{ "id": "volume", "type": "slider", "bind": "state.volume", "min": 0, "max": 10, "step": 1,
@@ -120,7 +120,7 @@ TEST_CASE("accessibility: isOpen, selected, disabled and live come from the scre
 	CHECK(save.state.disabled);
 	CHECK(save.actions == 0); // a disabled button can't be pressed
 
-	CHECK_THROWS(affresco::Screen::fromString(R"json({"format": "affrescoui-screen", "version": 1,
+	CHECK_THROWS(affresco::Screen::fromString(R"json({"format": "affrescoui-screen", "version": 2,
 		"root": { "id": "root", "live": "loud" }})json")
 	                 .build(*built.window));
 }

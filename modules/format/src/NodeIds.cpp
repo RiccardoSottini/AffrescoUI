@@ -19,7 +19,7 @@ constexpr std::size_t maxWords = 3;
 constexpr std::size_t maxWordLength = 16;
 
 /// Words that say nothing about a node: the roots of expressions and the commonest functions.
-constexpr std::array<std::string_view, 9> noiseWords = {"state", "computed", "item",  "index", "len",
+constexpr std::array<std::string_view, 9> noiseWords = {"state", "computed", "item",  "index", "length",
                                                         "trim",  "upper",    "lower", "event"};
 
 /// Styles naming styles that the namer follows to find a node's type, as the runtime allows.

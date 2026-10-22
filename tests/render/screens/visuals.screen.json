@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Images and icons, for the rendering check: one PNG with each fit (contain, cover, fill), the same picture as a JPEG, a small image with transparency (packed into a shared page), a large one (a texture of its own), and labels with Lucide icons, from a fallback of the text font and from a font of their own.",
 
 	"window": { "title": "Images and icons", "width": 560, "height": 400 },

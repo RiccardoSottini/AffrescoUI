@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "RFC 0003 in the proposed syntax (it doesn't load today): an app that signs in with OpenID Connect, lists and saves projects through declared operations, and hears changes live over a WebSocket. No token is ever in this document or its state: auth.api says who is signed in, nothing more.",
 	"window": { "title": "Network (proposed)", "width": 900, "height": 600 },
 	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
@@ -71,7 +71,7 @@
 				"type": "row",
 				"anchors": { "left": 0, "right": 0, "top": 0 },
 				"height": 44,
-				"from": "end",
+				"justify": "end",
 				"gap": 8,
 				"color": "#0f172a",
 				"children": [

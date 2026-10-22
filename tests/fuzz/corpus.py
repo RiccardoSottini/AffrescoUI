@@ -241,7 +241,7 @@ def cli_seeds():
     """Screen files as written (tabs, blank lines, members on one line), and nodes without ids for `ids` to name."""
     files = sorted(SCREENS.glob("*.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
     seeds = [path.read_text(encoding="utf-8") for path in files]
-    seeds.append('{\n\t"format": "affrescoui-screen",\n\n\t"version": 1,\n\t"root": { "children": [{ "type": "label", '
+    seeds.append('{\n\t"format": "affrescoui-screen",\n\n\t"version": 2,\n\t"root": { "children": [{ "type": "label", '
                  '"text": "{{state.title}}" }, {\n\t\t"type": "row", "children": [] }] }\n}\n')
     return seeds
 
@@ -634,6 +634,8 @@ def main():
     features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
                 "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
+    migrations = [path.read_text(encoding="utf-8") for path in sorted((ROOT / "tests" / "migrate").glob("*/*.json"))]
+    write(out, "migrate", migrations, words["json"] + ["from", "justify", "align", "len(", "length(", "requires"])
     write(out, "catalog_index", feature_seeds(), words["json"] + features)
     write(out, "signature", feature_seeds() + ["ed25519-secret:", "-_8AEA"], words["json"] + features)
     for target, seeds in [("url", url_seeds()), ("oauth", oauth_seeds()), ("token_file", token_file_seeds()),

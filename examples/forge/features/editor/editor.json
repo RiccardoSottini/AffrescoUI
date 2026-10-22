@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's editor: each open file's text is a native buffer (Editor.cpp, never in this state), shown by the editors of every group with \"buffer\": id. A click in the explorer opens a preview tab, which the next preview replaces; a double click, an edit or Keep Editor pins it. A dirty file's tab has a marker; Save, Save All and Revert File write or read it through forge.save, forge.saveAll and forge.revert. Included before the shell, so its openPath, closeTab, scanProblems and forgeEditors replace the shell's and the panels'.",
 
 	"actions": {
@@ -97,12 +97,12 @@
 				"then": [
 					{
 						"set": "state.groups[gi].active",
-						"to": "{{len(state.groups[gi].tabs) > 0 ? state.groups[gi].tabs[0].id : null}}"
+						"to": "{{length(state.groups[gi].tabs) > 0 ? state.groups[gi].tabs[0].id : null}}"
 					}
 				]
 			},
 			{
-				"if": "{{len(state.groups[gi].tabs) == 0 && len(state.groups) > 1}}",
+				"if": "{{length(state.groups[gi].tabs) == 0 && length(state.groups) > 1}}",
 				"then": [
 					{ "remove": "state.groups", "at": "{{gi}}" },
 					{ "set": "state.activeGroup", "to": 0 },
@@ -136,7 +136,7 @@
 			"title": "Save All",
 			"category": "File",
 			"icon": "save-all",
-			"enablement": "{{len(computed.dirtyIds) > 0}}",
+			"enablement": "{{length(computed.dirtyIds) > 0}}",
 			"do": [
 				{
 					"call": "forge.saveAll",
@@ -185,7 +185,7 @@
 			"description": "List the TODO and FIXME lines of the open files in Problems.",
 			"do": [
 				{ "call": "forge.todos", "into": "state.problems" },
-				{ "run": "log", "with": { "text": "{{'Problems: ' + plural(len(state.problems), 'item')}}" } }
+				{ "run": "log", "with": { "text": "{{'Problems: ' + plural(length(state.problems), 'item')}}" } }
 			]
 		}
 	},
@@ -193,7 +193,7 @@
 	"watch": {
 		"state.explorer.selected": [
 			{
-				"if": "{{!empty(event.value) && slice(event.value, len(event.value) - 1) != '/'}}",
+				"if": "{{!empty(event.value) && slice(event.value, length(event.value) - 1) != '/'}}",
 				"then": [
 					{
 						"run": "openPreview",

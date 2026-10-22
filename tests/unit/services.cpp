@@ -76,7 +76,7 @@ json stateAt(const affresco::Screen& screen, const char* pointer) {
 /// granted folder.
 constexpr const char* serviceScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"services": {
 		"proto": { "provider": "jsonrpc", "process": "proto" },
 		"files": { "provider": "fs", "root": "work", "readOnly": true }
@@ -210,7 +210,7 @@ TEST_CASE("services: revisions use declared, revisable methods only; writes are 
 	rules.setServices(&registry);
 	affresco::vcs::Repository repository(
 	    rules, {{"format", "affrescoui-screen"},
-	            {"version", 1},
+	            {"version", 2},
 	            {"services", section},
 	            {"state", {{"text", ""}}},
 	            {"actions", json::object()},

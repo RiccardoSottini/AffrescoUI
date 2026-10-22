@@ -49,7 +49,7 @@ json authScreen(const MockIdentity& identity, const std::string& flow) {
 	const json me = {{"request", "api.me"}, {"into", "state.me"},
 	                 {"onError", json::array({{{"set", "state.error"}, {"to", "{{error.code}}"}}})}};
 	return {{"format", "affrescoui-screen"},
-	        {"version", 1},
+	        {"version", 2},
 	        {"connections",
 	         {{"api",
 	           {{"url", identity.origin() + "/api"}, {"auth", identity.provider(flow)},
@@ -271,7 +271,7 @@ TEST_CASE("auth: revisions can't add a sign-in, nor change a provider") {
 TEST_CASE("auth: a provider's declaration is checked") {
 	const auto screen = [](const json& auth) {
 		return json{{"format", "affrescoui-screen"},
-		            {"version", 1},
+		            {"version", 2},
 		            {"connections", {{"api", {{"url", "https://api.example.com"}, {"auth", auth}}}}},
 		            {"root", {{"type", "label"}}}}
 		    .dump();

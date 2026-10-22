@@ -126,7 +126,7 @@ Workload loadWorkload(const json& document) {
 		vcs::Repository writer(*rules, document);
 		writer.openHistory(directory);
 		const json changes = {
-		    {"format", "affrescoui-changes"}, {"version", 1}, {"name", "renames"}, {"revisions", revisions}};
+		    {"format", "affrescoui-changes"}, {"version", 2}, {"name", "renames"}, {"revisions", revisions}};
 		if(const auto error = writer.importChanges(changes)) throw std::runtime_error("history/load: " + *error);
 	} // releases the folder's lock
 	const auto screen = std::make_shared<const json>(document);

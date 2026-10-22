@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's agent pane and Bottega, the Features view. A request in plain words goes to the connected agents through the host's request/reply relay, on a channel to Forge's own studio.sock (as the Studio does); an agent's change comes back as a proposal, never applied by this pane: it is reviewed here (its changes, its evidence: screenshots and scenario results, a live preview) and accepted at the head the person reviewed, or rejected. Bottega lists the host's feature catalogue (the features service: catalog, install), and switches an installed feature on or off with a revision on /features/<name> (RFC 0004), so each is reviewable and can be undone. What a peer sends is bounded before it is kept.",
 
 	"channels": {
@@ -21,7 +21,7 @@
 	},
 
 	"computed": {
-		"agentCurrent": "{{len(proposals) == 0 ? null : find(proposals, text(it.id) == state.agent.selected) ?? proposals[0]}}",
+		"agentCurrent": "{{length(proposals) == 0 ? null : find(proposals, text(it.id) == state.agent.selected) ?? proposals[0]}}",
 		"agentEvidence": "{{computed.agentCurrent == null ? null : computed.agentCurrent.evidence}}",
 		"agentLogRows": "{{map(state.agent.log, {id: text(index), label: it.text, icon: it.kind == 'you' ? 'user' : it.kind == 'agent' ? 'bot' : it.kind == 'error' ? 'circle-x' : it.kind == 'review' ? 'git-pull-request' : 'info', iconColor: it.kind == 'error' ? '#f85149' : it.kind == 'agent' ? '#0078d4' : '#8b949e'})}}",
 		"agentProposalRows": "{{map(proposals, {id: text(it.id), label: '#' + it.id + '  ' + it.message + '  · ' + it.author, icon: it.id == preview ? 'eye' : 'git-pull-request'})}}",
@@ -38,8 +38,8 @@
 			"do": [{ "run": "forgeShowView", "with": { "view": "features" } }, { "run": "featuresRefresh" }] },
 		"agentLog": [
 			{ "push": "state.agent.log", "value": "{{ {kind: kind, text: slice(text(message), 0, 4000)} }}" },
-			{ "if": "{{len(state.agent.log) > 200}}",
-			  "then": [{ "set": "state.agent.log", "to": "{{slice(state.agent.log, len(state.agent.log) - 200)}}" }] }
+			{ "if": "{{length(state.agent.log) > 200}}",
+			  "then": [{ "set": "state.agent.log", "to": "{{slice(state.agent.log, length(state.agent.log) - 200)}}" }] }
 		],
 		"agentAsk": { "title": "Ask the Agent", "category": "Agent", "icon": "send",
 			"description": "Send the request to the connected agents; what they change comes back as a proposal to review.",
@@ -67,10 +67,10 @@
 		],
 		"forgeAgent:error": [{ "run": "agentLog", "with": { "kind": "error", "message": "{{event.message ?? 'The request was not sent'}}" } }],
 		"forgeAgent:review": [
-			{ "if": "{{len(event.proposals ?? []) > state.agent.seen}}",
+			{ "if": "{{length(event.proposals ?? []) > state.agent.seen}}",
 			  "then": [{ "run": "agentLog", "with": { "kind": "review",
-				"message": "{{'Proposal #' + text(event.proposals[len(event.proposals) - 1].id) + ' from ' + text(event.proposals[len(event.proposals) - 1].author) + ' is waiting for review'}}" } }] },
-			{ "set": "state.agent.seen", "to": "{{len(event.proposals ?? [])}}" }
+				"message": "{{'Proposal #' + text(event.proposals[length(event.proposals) - 1].id) + ' from ' + text(event.proposals[length(event.proposals) - 1].author) + ' is waiting for review'}}" } }] },
+			{ "set": "state.agent.seen", "to": "{{length(event.proposals ?? [])}}" }
 		],
 		"agentPreview": { "title": "Preview Proposal", "category": "Agent", "icon": "eye",
 			"description": "Show the chosen proposal live, as accepting it would, until the preview ends.",
@@ -107,7 +107,7 @@
 			"do": [
 				{ "forEach": "{{filter([computed.agentCurrent], it != null)}}", "as": "proposal", "do": [
 					{ "set": "state.docs", "to": "{{filter(state.docs, it.id != 'proposal:' + proposal.id)}}" },
-					{ "push": "state.docs", "value": "{{ {id: 'proposal:' + proposal.id, label: 'Proposal #' + proposal.id, kind: 'diff', text: '', dirty: false, language: '', diff: {path: '#' + proposal.id + '  ' + proposal.message, added: len(computed.agentChangeRows), removed: 0, truncated: len(proposal.changes ?? []) > 200, items: computed.agentChangeRows}} }}" },
+					{ "push": "state.docs", "value": "{{ {id: 'proposal:' + proposal.id, label: 'Proposal #' + proposal.id, kind: 'diff', text: '', dirty: false, language: '', diff: {path: '#' + proposal.id + '  ' + proposal.message, added: length(computed.agentChangeRows), removed: 0, truncated: length(proposal.changes ?? []) > 200, items: computed.agentChangeRows}} }}" },
 					{ "run": "showTab", "with": { "id": "{{'proposal:' + proposal.id}}", "label": "{{'Proposal #' + proposal.id}}" } }
 				] }
 			] },
@@ -191,11 +191,11 @@
 						{ "use": "forgeAgentButton", "with": { "id": "agent-ask", "text": "Ask", "icon": "send", "action": "agentAsk",
 							"on": "{{!empty(trim(state.agent.draft))}}" } }
 					  ] },
-					{ "type": "label", "id": "agent-review-title", "text": "{{'REVIEW  ' + len(proposals)}}", "textColor": "@color.muted",
+					{ "type": "label", "id": "agent-review-title", "text": "{{'REVIEW  ' + length(proposals)}}", "textColor": "@color.muted",
 					  "width": "100%", "height": 22, "padding": 8 },
-					{ "type": "label", "id": "agent-review-empty", "when": "{{len(proposals) == 0}}", "wrap": true, "width": "100%",
+					{ "type": "label", "id": "agent-review-empty", "when": "{{length(proposals) == 0}}", "wrap": true, "width": "100%",
 					  "padding": 8, "textColor": "@color.muted", "text": "No proposals to review. An agent's change waits here." },
-					{ "type": "list", "id": "agent-proposals", "when": "{{len(proposals) > 0}}", "width": "100%", "grow": 1,
+					{ "type": "list", "id": "agent-proposals", "when": "{{length(proposals) > 0}}", "width": "100%", "grow": 1,
 					  "items": "{{computed.agentProposalRows}}", "bind": "state.agent.selected", "rowHeight": 22,
 					  "color": "@color.sideBar", "textColor": "@color.text", "selectedTextColor": "@color.text",
 					  "selectedBackground": "@color.selection", "accentColor": "@color.accent",
@@ -229,7 +229,7 @@
 						{ "type": "image", "id": "agent-evidence-after", "source": "{{computed.agentEvidence.after}}", "grow": 1,
 						  "height": "100%", "fit": "contain", "label": "After" }
 					  ] },
-					{ "type": "list", "id": "agent-scenarios", "when": "{{len(computed.agentScenarioRows) > 0}}", "width": "100%",
+					{ "type": "list", "id": "agent-scenarios", "when": "{{length(computed.agentScenarioRows) > 0}}", "width": "100%",
 					  "height": 88, "items": "{{computed.agentScenarioRows}}", "selection": "none", "rowHeight": 22,
 					  "color": "@color.sideBar", "textColor": "@color.text", "accentColor": "@color.accent" },
 					{ "type": "row", "id": "agent-decide", "width": "100%", "gap": 4,
@@ -261,7 +261,7 @@
 					  "placeholder": "Search the catalogue" },
 					{ "type": "label", "id": "features-error", "when": "{{!empty(state.features.error)}}", "icon": "circle-x", "wrap": true,
 					  "width": "100%", "padding": 8, "textColor": "@color.text", "text": "{{state.features.error}}" },
-					{ "type": "label", "id": "features-empty", "when": "{{len(state.features.catalog) == 0 && empty(state.features.error)}}",
+					{ "type": "label", "id": "features-empty", "when": "{{length(state.features.catalog) == 0 && empty(state.features.error)}}",
 					  "wrap": true, "width": "100%", "padding": 8, "textColor": "@color.muted",
 					  "text": "The host's catalogue lists no features." },
 					{ "type": "list", "id": "features-list", "width": "100%", "grow": 1, "items": "{{computed.featureRows}}",

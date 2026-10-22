@@ -33,7 +33,7 @@ namespace {
 
 /// @brief A screen with a secret in its state, shown by a bound label.
 constexpr const char* secretScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": { "password": "hunter2", "count": 0 },
 	"root": { "id": "root", "type": "panel", "children": [
 		{ "id": "secret", "type": "label", "text": "{{state.password}}", "width": 200, "height": 40,

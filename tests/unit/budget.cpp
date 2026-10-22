@@ -52,7 +52,7 @@ struct Built {
 	explicit Built(const char* actions, const char* root = "[]")
 	    : window(createHeadlessWindow(400, 300, clock)),
 	      screen(std::make_unique<affresco::Screen>(affresco::Screen::fromString(
-	          std::string(R"({"version": 1, "state": {"count": 0, "text": "ab"}, "actions": )") + actions +
+	          std::string(R"({"version": 2, "state": {"count": 0, "text": "ab"}, "actions": )") + actions +
 	          R"(, "root": {"id": "root", "children": )" + root + "}}"))) {
 		screen->build(*window);
 	}
@@ -168,7 +168,7 @@ TEST_CASE("limits: a revision, a document and a state have sizes they can't pass
 	CHECK_THROWS_WITH_AS(rules.checkRevision(large), doctest::Contains("16 MiB"), affresco::DocumentError);
 	CHECK_NOTHROW(rules.checkRevision(json::array({{{"op", "add"}, {"path", "/state/x"}, {"value", 1}}})));
 
-	json document = {{"version", 1}, {"root", {{"id", "root"}}}, {"state", json::object()}};
+	json document = {{"version", 2}, {"root", {{"id", "root"}}}, {"state", json::object()}};
 	CHECK_NOTHROW(rules.validate(document));
 	document["note"] = std::string(maxDocumentBytes, 'a');
 	CHECK_THROWS_WITH_AS(rules.validate(document), doctest::Contains("larger than 32 MiB"), affresco::DocumentError);
@@ -177,7 +177,7 @@ TEST_CASE("limits: a revision, a document and a state have sizes they can't pass
 	CHECK_THROWS_WITH_AS(rules.validate(document), doctest::Contains("state: larger than 32 MiB"),
 	                     affresco::DocumentError);
 
-	const json before = {{"version", 1}, {"root", {{"id", "root"}}}, {"state", {{"big", ""}}}};
+	const json before = {{"version", 2}, {"root", {{"id", "root"}}}, {"state", {{"big", ""}}}};
 	json after = before;
 	after["state"]["big"] = std::string(maxStateBytes, 'a');
 	CHECK_THROWS_WITH_AS(rules.checkChange(before, after), doctest::Contains("the state would be larger"),

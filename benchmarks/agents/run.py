@@ -235,7 +235,7 @@ def play(affrescoui, task, document, folder, name):
     scenarios = os.path.join(folder, name + ".scenarios.json")
     played = os.path.join(folder, name + ".screen.json")
     with open(scenarios, "w", encoding="utf-8") as file:
-        json.dump({"format": "affrescoui-scenarios", "version": 1, "screens": os.path.dirname(screen),
+        json.dump({"format": "affrescoui-scenarios", "version": 2, "screens": os.path.dirname(screen),
                    "screen": os.path.basename(screen), "scenarios": task["scenarios"]}, file)
     with open(played, "w", encoding="utf-8") as file:
         json.dump(document, file)

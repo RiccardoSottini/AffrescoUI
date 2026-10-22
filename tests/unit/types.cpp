@@ -32,7 +32,7 @@ std::string mismatchOf(const char* value, const char* type) {
 /// @param extra More sections, as JSON text after a comma, or "".
 /// @return The document.
 json typedScreen(const char* state, const char* types, const std::string& extra = "") {
-	return json::parse(std::string(R"({"version": 1, "state": )") + state + R"(, "stateTypes": )" + types + extra +
+	return json::parse(std::string(R"({"version": 2, "state": )") + state + R"(, "stateTypes": )" + types + extra +
 	                   R"(, "root": {"id": "root"}})");
 }
 
@@ -159,7 +159,7 @@ TEST_CASE("types: the checker finds writes, bindings and comparisons that don't 
 	screen["root"]["children"] = json::parse(R"([
 		{"id": "volume", "type": "slider", "bind": "state.name"},
 		{"id": "shown", "type": "label", "text": "{{state.filter == 'bugs' ? state.user.last : state.user.frst}}"},
-		{"id": "ready", "type": "label", "text": "{{len(state.later)}}", "when": "{{state.filter != 'all'}}"},
+		{"id": "ready", "type": "label", "text": "{{length(state.later)}}", "when": "{{state.filter != 'all'}}"},
 		{"id": "go", "onClick": ["pick", "flip", "bump", "fill", "copy", "fine"]}
 	])");
 	screen["root"]["children"][3]["onClick"] = json::parse(

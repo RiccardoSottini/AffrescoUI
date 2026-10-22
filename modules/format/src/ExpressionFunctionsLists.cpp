@@ -9,7 +9,7 @@
 namespace affresco::format::detail {
 namespace {
 
-/// @brief `len(x)`: a text's bytes, a list's items, an object's fields; 0 for null.
+/// @brief `length(x)`: a text's bytes, a list's items, an object's fields; 0 for null.
 /// @param call [x].
 /// @return The length.
 Value length(const Call& call) {
@@ -183,8 +183,7 @@ constexpr auto table = std::to_array<Function>({
 	 .arguments = "value",
 	 .about = "A text's bytes, a list's items, an object's fields; 0 for null",
 	 .takes = Takes::One,
-	 .apply = length,
-	 .alias = "len"},
+	 .apply = length},
     {.name = "concat",
 	 .arguments = "a, b, ...",
 	 .about = "Lists joined into one, or else texts joined",

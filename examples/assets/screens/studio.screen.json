@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"include": ["studio-features.json", "studio-repairs.json"],
 	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file. Ask and direct changes on the left; on the right, tabs for the review queue (a list of proposals and the chosen one's details), the history of main, and the approval rules. Cmd+1, 2 and 3 switch the tabs, Cmd+J light and dark, Cmd+Z undoes.",
 	"window": {
@@ -361,11 +361,11 @@
 		}
 	},
 	"computed": {
-		"current": "{{find(state.proposals, it.id == state.selected) ?? (len(state.proposals) > 0 ? state.proposals[0] : null)}}",
+		"current": "{{find(state.proposals, it.id == state.selected) ?? (length(state.proposals) > 0 ? state.proposals[0] : null)}}",
 		"evidence": "{{state.evidence != null && computed.current != null && state.evidence.proposal == computed.current.id ? state.evidence : null}}",
 		"diffs": "{{computed.evidence == null ? [] : map(computed.evidence.texts, {type: 'diff', node: it.node, original: it.original, modified: it.modified, mode: 'split', language: it.language})}}",
-		"entry": "{{find(state.history, it.number == state.historyPick) ?? (len(state.history) > 0 ? state.history[len(state.history) - 1] : null)}}",
-		"tabs": "{{concat([{id: 'review', label: len(state.proposals) > 0 ? 'Review (' + len(state.proposals) + ')' : 'Review', closable: false}, {id: 'history', label: 'History', closable: false}, {id: 'rules', label: len(state.grants) > 0 ? 'Rules (' + len(state.grants) + ')' : 'Rules', closable: false}], empty(state.coordination.peers) ? [] : [{id: 'agents', label: 'Agents (' + len(state.coordination.peers) + ')', closable: false}])}}"
+		"entry": "{{find(state.history, it.number == state.historyPick) ?? (length(state.history) > 0 ? state.history[length(state.history) - 1] : null)}}",
+		"tabs": "{{concat([{id: 'review', label: length(state.proposals) > 0 ? 'Review (' + length(state.proposals) + ')' : 'Review', closable: false}, {id: 'history', label: 'History', closable: false}, {id: 'rules', label: length(state.grants) > 0 ? 'Rules (' + length(state.grants) + ')' : 'Rules', closable: false}], empty(state.coordination.peers) ? [] : [{id: 'agents', label: 'Agents (' + length(state.coordination.peers) + ')', closable: false}])}}"
 	},
 	"styles": {
 		"card": {
@@ -473,7 +473,7 @@
 	"actions": {
 		"ask": [
 			{
-				"if": "{{len(trim(state.draft)) == 0}}",
+				"if": "{{length(trim(state.draft)) == 0}}",
 				"then": [
 					{
 						"stop": true
@@ -484,7 +484,7 @@
 				"send": "host",
 				"data": {
 					"type": "request",
-					"id": "request-{{len(state.log)}}",
+					"id": "request-{{length(state.log)}}",
 					"text": "{{state.draft}}"
 				}
 			},
@@ -505,7 +505,7 @@
 				"note": "A JSON Patch [...] or compact edits {\"set\": {...}}, as typed"
 			},
 			{
-				"if": "{{len(trim(state.patch)) == 0}}",
+				"if": "{{length(trim(state.patch)) == 0}}",
 				"then": [
 					{
 						"stop": true
@@ -830,12 +830,12 @@
 		],
 		"host:review": [
 			{
-				"if": "{{len(event.proposals) > len(state.proposals)}}",
+				"if": "{{length(event.proposals) > length(state.proposals)}}",
 				"then": [
 					{
 						"run": "notify",
 						"with": {
-							"message": "New proposal #{{event.proposals[len(event.proposals) - 1].id}} from {{event.proposals[len(event.proposals) - 1].author}}"
+							"message": "New proposal #{{event.proposals[length(event.proposals) - 1].id}} from {{event.proposals[length(event.proposals) - 1].author}}"
 						}
 					}
 				]
@@ -1335,7 +1335,7 @@
 									},
 									{
 										"id": "label-clear-log",
-										"when": "{{len(state.log) > 0}}",
+										"when": "{{length(state.log) > 0}}",
 										"style": "smallButton",
 										"text": "Clear",
 										"anchors": {
@@ -1351,7 +1351,7 @@
 									},
 									{
 										"id": "logEmpty",
-										"when": "{{len(state.log) == 0}}",
+										"when": "{{length(state.log) == 0}}",
 										"style": "empty",
 										"text": "Requests, replies, commits and reviews show here.",
 										"anchors": {
@@ -1390,7 +1390,7 @@
 												"textColor": "{{state.logColors[entry.kind] ?? '@color.logSystem'}}"
 											}
 										],
-										"from": "end",
+										"justify": "end",
 										"scroll": "vertical"
 									}
 								]
@@ -1455,7 +1455,7 @@
 										"children": [
 											{
 												"id": "reviewEmpty",
-												"when": "{{len(state.proposals) == 0}}",
+												"when": "{{length(state.proposals) == 0}}",
 												"anchors": {
 													"left": 20,
 													"right": 20,
@@ -1509,14 +1509,14 @@
 											},
 											{
 												"id": "proposals",
-												"when": "{{len(state.proposals) > 0}}",
+												"when": "{{length(state.proposals) > 0}}",
 												"type": "list",
 												"anchors": {
 													"left": 12,
 													"right": 12,
 													"top": 0
 												},
-												"height": "{{min(8 + 44 * len(state.proposals), 184)}}",
+												"height": "{{min(8 + 44 * length(state.proposals), 184)}}",
 												"color": "transparent",
 												"rowHeight": 44,
 												"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '◉  ' : '') + '#' + it.id + '  ' + it.message + '   ·   ' + it.author})}}",
@@ -1541,7 +1541,7 @@
 												"anchors": {
 													"left": 20,
 													"right": 20,
-													"top": "{{min(8 + 44 * len(state.proposals), 184) + 12}}",
+													"top": "{{min(8 + 44 * length(state.proposals), 184) + 12}}",
 													"bottom": 20
 												},
 												"color": "{{computed.current.id == state.previewing ? '@color.accentSoft' : '@color.cardRaised'}}",
@@ -2023,7 +2023,7 @@
 											{
 												"id": "label-history",
 												"style": "caption",
-												"text": "{{plural(len(state.history), 'commit')}} on main, newest first",
+												"text": "{{plural(length(state.history), 'commit')}} on main, newest first",
 												"anchors": {
 													"left": 20,
 													"top": 8
@@ -2253,7 +2253,7 @@
 											{
 												"id": "label-grants-help",
 												"style": "caption",
-												"text": "{{len(state.grants) == 0 ? 'No rules yet: Always allow on a proposal adds one.' : 'Changes these rules match apply without asking.'}}",
+												"text": "{{length(state.grants) == 0 ? 'No rules yet: Always allow on a proposal adds one.' : 'Changes these rules match apply without asking.'}}",
 												"anchors": {
 													"left": 20,
 													"top": 154
@@ -2407,7 +2407,7 @@
 											{
 												"id": "label-usage",
 												"style": "caption",
-												"text": "Usage: {{len(state.usage.actions)}} actions, {{len(state.usage.screens)}} screens, {{len(state.usage.untouched)}} controls never used",
+												"text": "Usage: {{length(state.usage.actions)}} actions, {{length(state.usage.screens)}} screens, {{length(state.usage.untouched)}} controls never used",
 												"anchors": {
 													"right": 252,
 													"top": 12

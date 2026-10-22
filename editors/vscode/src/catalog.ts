@@ -24,7 +24,7 @@ export type Definitions = Record<string, Schema>;
  * @return its version 1 definitions, or an empty set when it has none
  */
 export function definitionsOf(schema: unknown): Definitions {
-	return ((schema as { $defs?: { v1?: Definitions } })?.$defs?.v1 ?? {}) as Definitions;
+	return ((schema as { $defs?: { v2?: Definitions } })?.$defs?.v2 ?? {}) as Definitions;
 }
 
 /**
@@ -37,7 +37,7 @@ export function definitionsOf(schema: unknown): Definitions {
 function describe(schema: Schema | undefined, defs: Definitions, depth = 0): string {
 	if (!schema || depth > 8) return '';
 	if (schema.description) return schema.description;
-	if (schema.$ref?.startsWith('#/$defs/v1/')) return describe(defs[schema.$ref.slice('#/$defs/v1/'.length)], defs, depth + 1);
+	if (schema.$ref?.startsWith('#/$defs/v2/')) return describe(defs[schema.$ref.slice('#/$defs/v2/'.length)], defs, depth + 1);
 	for (const option of [...(schema.anyOf ?? []), ...(schema.oneOf ?? [])]) {
 		const text = describe(option, defs, depth + 1);
 		if (text) return text;

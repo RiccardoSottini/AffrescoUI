@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"window": { "title": "To do", "width": 400, "height": 320 },
 	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
 	"state": { "draft": "", "items": [{ "title": "Read the format" }, { "title": "Write a screen" }] },

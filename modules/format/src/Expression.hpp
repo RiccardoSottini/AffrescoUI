@@ -220,7 +220,7 @@ inline constexpr std::size_t maxListGap = 10000;
 [[nodiscard]] json functionCatalog();
 
 /// @brief The format guide's list of functions, as SCREEN_FORMAT.md has it (from the function registry).
-/// @return Markdown lines: "- functions: `len(value)`, ...", then the list functions.
+/// @return Markdown lines: "- functions: `length(value)`, ...", then the list functions.
 [[nodiscard]] std::string functionGuide();
 
 } // namespace affresco::format

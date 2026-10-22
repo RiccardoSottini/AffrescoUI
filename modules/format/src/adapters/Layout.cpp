@@ -119,7 +119,7 @@ json Output::root(Built body) const {
 
 json Output::screen(Built body, std::string_view title, const std::string& note) const {
 	json document = {{"format", "affrescoui-screen"},
-	                 {"version", 1},
+	                 {"version", 2},
 	                 {"note", note},
 	                 {"window",
 	                  {{"title", options_.title.empty() ? std::string(title) : options_.title},

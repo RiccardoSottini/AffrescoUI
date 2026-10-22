@@ -202,7 +202,7 @@ std::shared_ptr<const TemporaryFolder> writeHistory(const json& document, int co
 	const format::Rules rules;
 	vcs::Repository writer(rules, document);
 	writer.openHistory(folder->path() / "kanban.history");
-	const json changes = {{"format", "affrescoui-changes"}, {"version", 1}, {"name", "renames"}, {"revisions", revisions}};
+	const json changes = {{"format", "affrescoui-changes"}, {"version", 2}, {"name", "renames"}, {"revisions", revisions}};
 	if(const auto error = writer.importChanges(changes)) throw std::runtime_error("history/load: " + *error);
 	return folder; // the writer goes first, releasing the folder's lock
 }
@@ -453,7 +453,7 @@ struct Peer {
 
 	/// @brief Connects the peer as "studio", who may change anything.
 	Peer()
-	    : history(rules, json::parse(R"({"format": "affrescoui-screen", "version": 1, "state": {"items": []},
+	    : history(rules, json::parse(R"({"format": "affrescoui-screen", "version": 2, "state": {"items": []},
 	          "permissions": {"allow": ["studio"]}, "root": {"type": "panel", "id": "main"}})")),
 	      session(channel, history, "studio", {}, nullptr,
 	              channel::PeerLimits{.messagesPerSecond = 1e9, .messageBurst = 1e9, .revisionsPerMinute = 1e9,

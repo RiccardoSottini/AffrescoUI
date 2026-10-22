@@ -45,7 +45,7 @@ json state(const affresco::Screen& screen) { return json::parse(screen.stateJson
 
 /// @brief A screen with a quick pick over files (the default provider) and commands (after ">").
 constexpr const char* pickScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": { "quickPick": { "open": true }, "opened": null, "ran": null,
 	           "files": [{ "title": "main.cpp", "detail": "src" }, { "title": "Makefile" },
 	                     { "title": "README.md" }, { "title": "mouse.cpp" }] },
@@ -86,7 +86,7 @@ TEST_CASE("format: fuzzySort keeps the matches, the best first, on a key, up to 
 	const json sorted = evaluate("{{map(fuzzySort(state.files, 'main', 'name'), it.item.name)}}", files);
 	CHECK(sorted == json::parse(R"(["main.cpp", "src/main.cpp"])")); // a prefix first, then the shorter
 	CHECK(evaluate("{{map(fuzzySort(state.files, '', 'name'), it.index)}}", files) == json::parse("[0, 1, 2, 3]"));
-	CHECK(evaluate("{{len(fuzzySort(state.files, 'm', 'name', 1))}}", files) == 1);
+	CHECK(evaluate("{{length(fuzzySort(state.files, 'm', 'name', 1))}}", files) == 1);
 	CHECK(evaluate("{{fuzzySort(['beta', 'alpha'], 'a')[0].item}}") == "alpha"); // texts: the item itself
 	CHECK(evaluate("{{fuzzySort(null, 'a')}}") == json::array());
 	CHECK_THROWS_AS((void)evaluate("{{fuzzySort(3, 'a')}}"), affresco::DocumentError);

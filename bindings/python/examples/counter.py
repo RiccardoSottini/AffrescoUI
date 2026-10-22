@@ -10,7 +10,7 @@ from affrescoui import Screen
 
 DOCUMENT = {
     "format": "affrescoui-screen",
-    "version": 1,
+    "version": 2,
     "window": {"title": "Counter", "width": 240, "height": 80},
     "state": {"count": 0, "label": ""},
     "root": {"id": "root", "children": [

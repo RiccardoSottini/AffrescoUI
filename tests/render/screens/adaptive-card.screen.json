@@ -1,6 +1,6 @@
 {
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Converted from Adaptive Cards 1.6",
 	"window": { "title": "Adaptive Card", "width": 480, "height": 640 },
 	"colors": {

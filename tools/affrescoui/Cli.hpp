@@ -154,6 +154,11 @@ Exit importChanges(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit importFile(std::span<const std::string_view> args);
 
+/// @brief `migrate`: rewrites version 1 files as version 2, keeping everything else as written.
+/// @param args The arguments.
+/// @return How it ended.
+Exit migrateFiles(std::span<const std::string_view> args);
+
 /// @brief `schema`: the format's JSON Schema and SCREEN_FORMAT.md's tables, generated from the registries.
 /// @param args The arguments.
 /// @return How it ended.

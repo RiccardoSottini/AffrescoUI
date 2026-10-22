@@ -151,7 +151,7 @@ private:
 /// through `fs`.
 constexpr const char* searchScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"services": {
 		"search": { "provider": "search", "root": "work" },
 		"files": { "provider": "fs", "root": "work" }

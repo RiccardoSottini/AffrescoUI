@@ -35,7 +35,7 @@ json package(const std::string& folder) {
 json app() {
 	return json::parse(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"tokens": { "color.statusText": "#ffffff", "color.text": "#000000", "color.muted": "#808080" },
 		"state": { "text": "one two three", "files": [{ "id": "a.cpp", "name": "a.cpp", "text": "// TODO: x" }] },
 		"exports": {

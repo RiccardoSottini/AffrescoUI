@@ -145,7 +145,7 @@ def describe(schema, defs):
     if schema.get("description"):
         return schema["description"]
     ref = schema.get("$ref", "")
-    if ref.startswith("#/$defs/v1/"):
+    if ref.startswith("#/$defs/v2/"):
         name = ref.rsplit("/", 1)[1]
         text = describe(defs.get(name, {}), defs)
         return text or f"A {name}"
@@ -192,7 +192,7 @@ def catalog(schema):
 
     @param schema  the output of `affrescoui schema`
     """
-    defs = schema["$defs"]["v1"]
+    defs = schema["$defs"]["v2"]
     screen = defs["screen"]["properties"]
     node = defs["node"]["properties"]
     parts = [

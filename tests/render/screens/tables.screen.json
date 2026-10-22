@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "A table and a tree with sticky folders, for the rendering check: a file table sorted by a header click and with a column dragged wider, beside a tree whose open folders stay pinned at the top as it scrolls. What the user did lives in state.",
 
 	"window": { "title": "Tables", "width": 480, "height": 320 },

@@ -142,7 +142,7 @@ TEST_CASE("compiler: a binding gives what evaluate() gives, with the same errors
 	    json(7),
 	    json("plain"),
 	    json("{{state.count * 2}}"),
-	    json("Hello {{name}}, {{len(state.items)}} items"),
+	    json("Hello {{name}}, {{length(state.items)}} items"),
 	    json::parse(R"({"$add": ["{{state.count}}", 1]})"),
 	    json::parse(R"({"left": 4, "right": "{{state.count}}", "list": ["{{name}}", 2]})"),
 	    json::parse(R"([1, {"a": "{{name}}"}])"),
@@ -164,7 +164,7 @@ TEST_CASE("compiler: a binding gives what evaluate() gives, with the same errors
 
 TEST_CASE("compiler: an unchanged panel is left alone, and applied again when its values or the theme change") {
 	Built built(json::parse(R"({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": {"count": 0, "dark": false},
 		"colors": {"surface": {"light": "#ffffff", "dark": "#000000"}},
 		"theme": "{{state.dark ? 'dark' : 'light'}}",
@@ -190,7 +190,7 @@ TEST_CASE("compiler: an unchanged panel is left alone, and applied again when it
 
 TEST_CASE("compiler: a revision compiles the new version, and the panels follow it") {
 	Built built(json::parse(R"({
-		"format": "affrescoui-screen", "version": 1, "state": {"title": "Tasks"},
+		"format": "affrescoui-screen", "version": 2, "state": {"title": "Tasks"},
 		"root": {"id": "root", "children": [
 			{"id": "title", "type": "label", "text": "{{state.title}}", "width": 80, "height": 20}
 		]}
@@ -212,7 +212,7 @@ TEST_CASE("compiler: a property that fails to apply fails again at the next upda
 	});
 	{
 		const Built built(json::parse(R"({
-			"format": "affrescoui-screen", "version": 1, "state": {"color": "#ff0000", "count": 0},
+			"format": "affrescoui-screen", "version": 2, "state": {"color": "#ff0000", "count": 0},
 			"actions": {"spoil": [{"set": "state.color", "to": "#zz0000"}], "count": [{"increment": "state.count"}]},
 			"root": {"id": "root", "children": [{"id": "box", "width": 10, "height": 10, "color": "{{state.color}}"}]}
 		})"));

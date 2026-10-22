@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "A graph, for the rendering check: a small material graph (UV, a texture, a tint and a roughness into a multiply and a material) with ports coloured by kind, two nodes with a body and a minimap. The nodes and links live in state; connecting, disconnecting, moving and deleting are handled in JSON.",
 
 	"window": { "title": "Material graph", "width": 640, "height": 400 },

@@ -65,7 +65,7 @@ private:
 /// "stop" cancels it.
 constexpr const char* calls = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"state": { "out": null, "busy": false, "done": 0, "error": "", "ran": 0 },
 	"actions": {
 		"start": [{ "call": "slow", "with": { "n": 2 }, "into": "state.out", "loading": "state.busy",

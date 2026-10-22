@@ -34,7 +34,7 @@ std::string text(affresco::Screen& screen, const std::string& id) {
 
 /// @brief A screen with a drop target, labels showing the window's variables, and a native menu bar.
 constexpr const char* desktopScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"window": { "menuBar": [{ "menu": "file", "title": "File" }, { "menu": "edit" }] },
 	"state": { "files": null, "ran": null },
 	"actions": {

@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "GPU surfaces: native drawing the host registered (examples/surfaces/Surfaces.cpp), placed and transformed like any node. A shader, a depth-tested cube to drag, and a two-pass blur whose radius the slider sets.",
 
 	"window": { "title": "Surfaces", "width": 820, "height": 380 },

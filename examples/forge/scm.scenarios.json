@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's source control, checked headless: git's output is given as events (scmApplyStatus, scmApplyBranches, scmCompare), so no repository is needed; tests/unit/forge_scm.cpp runs a real one. affrescoui_render_runner scm.scenarios.json",
 	"screen": "forge.screen.json",
 	"scenarios": [

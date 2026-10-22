@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "A tree and a list, for the rendering check: a file tree with one folder open (indent guides, chevrons) beside a list that selects several rows. The items, the open folders and both selections live in state; opening and closing are handled in JSON.",
 
 	"window": { "title": "Trees and lists", "width": 480, "height": 320 },

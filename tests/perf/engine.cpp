@@ -45,7 +45,7 @@ std::vector<json> expressionTable() {
 	                       "{{state.items[5]}}",
 	                       "{{state['my-list']}}",
 	                       "{{state[\"my-list\"][1]}}",
-	                       "{{len(state['my-list'])}}",
+	                       "{{length(state['my-list'])}}",
 	                       "{{window.width / 2}}",
 	                       "{{mode}}",
 	                       "Clicked {{state.count}} times",

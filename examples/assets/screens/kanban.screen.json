@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Flow: a kanban board. Boards are tabs; the board, or a table of every card, shares a split with the chosen card's details. Drag a card to another column, use « and », or right-click it for its menu; double-click it to edit it. Cmd+P goes to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+J switches light and dark, Escape clears the filters.",
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
@@ -180,9 +180,9 @@
 	},
 
 	"computed": {
-		"lastColumn": "{{len(state.columns) - 1}}",
+		"lastColumn": "{{length(state.columns) - 1}}",
 		"card": "{{state.selected == null ? null : state.columns[state.selected.c].cards[state.selected.i]}}",
-		"counts": "{{map(state.columns, len(it.cards))}}",
+		"counts": "{{map(state.columns, length(it.cards))}}",
 		"allCards": "{{parseJson('[' + join(filter(map(state.columns, slice(join(split(json(map(it.cards, { at: index, points: it.points, tag: it.tag, title: it.title, who: it.who })), '{\"at\":'), '{\"c\":' + index + ',\"at\":'), 1, -1)), it != ''), ',') + ']')}}",
 		"rows": "{{map(computed.allCards, { id: it.c + '-' + it.at, cells: [it.title, state.columns[it.c].name, it.tag, it.who, it.points] })}}",
 		"picks": "{{map(computed.allCards, { title: it.title, detail: state.columns[it.c].name + ' · ' + it.who, c: it.c, at: it.at })}}",
@@ -269,7 +269,7 @@
 
 	"actions": {
 		"addCard": [
-			{ "if": "{{len(trim(state.newCard)) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{length(trim(state.newCard)) == 0}}", "then": [{ "stop": true }] },
 			{
 				"push": "state.columns[0].cards",
 				"value": {
@@ -287,7 +287,7 @@
 			{ "if": "{{from == to || to < 0 || to > computed.lastColumn}}", "then": [{ "stop": true }] },
 			{ "push": "state.columns[to].cards", "value": "{{state.columns[from].cards[at]}}" },
 			{ "remove": "state.columns[from].cards", "at": "{{at}}" },
-			{ "set": "state.selected", "to": { "c": "{{to}}", "i": "{{len(state.columns[to].cards) - 1}}" } }
+			{ "set": "state.selected", "to": { "c": "{{to}}", "i": "{{length(state.columns[to].cards) - 1}}" } }
 		],
 		"notify": [
 			{ "note": "with: message. A toast in the corner for a few seconds" },
@@ -325,7 +325,7 @@
 			{ "set": "state.selected", "to": null }
 		],
 		"saveCard": [
-			{ "if": "{{computed.card == null || len(trim(state.edit.title)) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{computed.card == null || length(trim(state.edit.title)) == 0}}", "then": [{ "stop": true }] },
 			{ "set": "state.columns[state.selected.c].cards[state.selected.i].title", "to": "{{trim(state.edit.title)}}" },
 			{ "set": "state.edit.open", "to": false },
 			{ "run": "notify", "with": { "message": "Card renamed" } }
@@ -443,7 +443,7 @@
 								"overlay": { "placement": "below-end", "open": "state.membersOpen", "dismiss": "outside" },
 								"y": 8,
 								"width": 240,
-								"height": "{{len(state.members) * 40 + 56}}",
+								"height": "{{length(state.members) * 40 + 56}}",
 								"radius": "@radius.card",
 								"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
 								"color": "@color.menu",
@@ -453,7 +453,7 @@
 										"id": "column-member-menu",
 										"type": "column",
 										"anchors": { "left": 8, "right": 8, "top": 36 },
-										"height": "{{len(state.members) * 40 + 12}}",
+										"height": "{{length(state.members) * 40 + 12}}",
 										"children": [
 											{
 												"id": "panel-member",
@@ -592,7 +592,7 @@
 													{
 														"id": "columnCount",
 														"style": "badge",
-														"text": "{{len(column.cards)}}",
+														"text": "{{length(column.cards)}}",
 														"anchors": { "right": 12, "top": 16 },
 														"width": 28,
 														"height": 22,
@@ -728,7 +728,7 @@
 												"font": "small",
 												"align": { "horizontal": "center", "vertical": "start" },
 												"textColor": "@color.muted",
-												"text": "{{column.name}}: {{len(column.cards)}}"
+												"text": "{{column.name}}: {{length(column.cards)}}"
 											}
 										]
 									},

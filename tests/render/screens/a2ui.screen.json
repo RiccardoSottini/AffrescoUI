@@ -1,6 +1,6 @@
 {
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Converted from A2UI 0.8",
 	"window": { "title": "A2UI", "width": 480, "height": 640 },
 	"colors": {

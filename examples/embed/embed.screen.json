@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"window": { "title": "Embedded", "width": 320, "height": 160 },
 	"fonts": { "default": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 14 } },
 	"state": { "speed": 1, "paused": false },

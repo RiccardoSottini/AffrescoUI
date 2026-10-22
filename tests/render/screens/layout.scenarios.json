@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "Where flexible and grid layout put each node, checked headless (ctest scenarios): the numbers the rendering check's layout pictures show, held so a faster layout pass can't move them.",
 	"screen": "layout.screen.json",
 	"scenarios": [

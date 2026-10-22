@@ -32,7 +32,7 @@ namespace {
 json teamScreen() {
 	return json::parse(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "count": 0 },
 		"permissions": { "allow": ["ada", "rev"], "reviewers": ["rev"] },
 		"root": { "type": "panel", "id": "main", "children": [

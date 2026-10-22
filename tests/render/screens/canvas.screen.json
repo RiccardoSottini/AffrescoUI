@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "An infinite canvas, for the rendering check: a small whiteboard of cards (items from state, drawn by the canvas), an image and paths (children), with rulers and a grid. The scenario marquee-selects, resizes a card with snapping, drags a guide from a ruler, pans and zooms at the pointer.",
 
 	"window": { "title": "Canvas", "width": 640, "height": 420 },

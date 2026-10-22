@@ -93,7 +93,7 @@ json stateAt(const affresco::Screen& screen, const char* pointer) {
 /// @brief A screen that drives a debug session step by step, one action per request.
 constexpr const char* debugScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"services": { "dbg": { "provider": "dap", "process": "adapter", "root": "work", "timeout": 1500 } },
 	"state": { "caps": null, "launched": false, "stops": [], "output": [], "terminal": null, "bps": null,
 	           "stack": null, "page": null, "value": "", "error": "", "code": "", "ended": "" },

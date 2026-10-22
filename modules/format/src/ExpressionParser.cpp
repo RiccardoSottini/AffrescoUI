@@ -4,6 +4,7 @@
 #include "ExpressionParser.hpp"
 
 #include "ExpressionFunctions.hpp"
+#include "affresco/format/Migrate.hpp"
 
 #include <cctype>
 #include <charconv>
@@ -342,7 +343,7 @@ private:
 		return result;
 	}
 
-	/// @brief A function call, after its '(': `len(x)` is `{"$length": x}`, `max(a, b)` is `{"$max": [a, b]}` (the
+	/// @brief A function call, after its '(': `length(x)` is `{"$length": x}`, `max(a, b)` is `{"$max": [a, b]}` (the
 	/// registry, ExpressionFunctions.hpp, says which takes one value).
 	/// @param function Its name.
 	/// @return The node.
@@ -354,7 +355,10 @@ private:
 			expect(")");
 		}
 		const Function* found = findFunction(function);
-		if(!found) error("unknown function '" + function + "'");
+		if(!found) {
+			const std::string removed = removedFunctionHint(function);
+			error("unknown function '" + function + "'" + (removed.empty() ? "" : " (" + removed + ")"));
+		}
 		const std::string name = "$" + std::string(found->name);
 		if(found->takes == Takes::One) {
 			if(arguments.size() != 1) error("'" + function + "' takes one argument");

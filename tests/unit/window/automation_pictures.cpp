@@ -44,9 +44,9 @@ private:
 /// @param folder Where.
 /// @return The scenarios file.
 automation::ScenarioFile write(const Folder& folder) {
-	std::ofstream(folder.path() / "box.screen.json") << R"({"version": 1, "window": {"width": 64, "height": 48},
+	std::ofstream(folder.path() / "box.screen.json") << R"({"version": 2, "window": {"width": 64, "height": 48},
 		"root": {"id": "root", "color": "#336699", "children": [{"id": "box", "color": "#ffffff", "width": 16, "height": 16}]}})";
-	return automation::ScenarioFile::parse(R"({"version": 1, "screen": "box.screen.json", "scenarios": [
+	return automation::ScenarioFile::parse(R"({"version": 2, "screen": "box.screen.json", "scenarios": [
 		{"name": "box", "steps": [
 			{"expect": {"image": "first"}},
 			{"revision": {"message": "Red", "set": {"#box/color": "#ff0000"}}},

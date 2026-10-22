@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Transforms, for the rendering check: a card turned with its text and rounded border (and a button on it, clicked through its transform), a list scaled up and clipped by its parent, skewed text, and a turned panel that clips a child larger than itself (the stencil).",
 
 	"window": { "title": "Transforms", "width": 560, "height": 320 },

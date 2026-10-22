@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's shell: the title bar with a command centre, the activity bar, the explorer side bar, editor groups with tabs, the panel and the status bar. The layout (what is shown, the sash positions) is in state.layout, kept by persist; zen mode hides everything but the editors. Other features contribute commands, menus, keys, settings, tokens and components (examples/forge/README.md).",
 
 	"state": {
@@ -57,7 +57,7 @@
 				] }] }
 		],
 		"openExplorerItem": [
-			{ "if": "{{!empty(event.id) && slice(event.id, len(event.id) - 1) != '/'}}",
+			{ "if": "{{!empty(event.id) && slice(event.id, length(event.id) - 1) != '/'}}",
 			  "then": [{ "run": "openPath", "with": { "path": "{{event.id}}", "label": "{{reverse(split(event.id, '/'))[0]}}" } }] }
 		],
 		"showTab": [
@@ -73,8 +73,8 @@
 		"closeTab": [
 			{ "set": "state.groups[gi].tabs", "to": "{{filter(state.groups[gi].tabs, it.id != id)}}" },
 			{ "if": "{{state.groups[gi].active == id}}",
-			  "then": [{ "set": "state.groups[gi].active", "to": "{{len(state.groups[gi].tabs) > 0 ? state.groups[gi].tabs[0].id : null}}" }] },
-			{ "if": "{{len(state.groups[gi].tabs) == 0 && len(state.groups) > 1}}",
+			  "then": [{ "set": "state.groups[gi].active", "to": "{{length(state.groups[gi].tabs) > 0 ? state.groups[gi].tabs[0].id : null}}" }] },
+			{ "if": "{{length(state.groups[gi].tabs) == 0 && length(state.groups) > 1}}",
 			  "then": [{ "remove": "state.groups", "at": "{{gi}}" }, { "set": "state.activeGroup", "to": 0 },
 			           { "set": "state.layout.groupSizes", "to": [] }] }
 		],
@@ -83,10 +83,10 @@
 			"do": [{ "run": "closeTab", "with": { "gi": "{{state.activeGroup}}", "id": "{{state.groups[state.activeGroup].active}}" } }] },
 		"splitEditor": { "title": "Split Editor", "category": "View", "icon": "columns-2",
 			"description": "Open the active editor beside the current one (two groups at most).",
-			"enablement": "{{len(state.groups) < 2 && !empty(state.groups[state.activeGroup].active)}}",
+			"enablement": "{{length(state.groups) < 2 && !empty(state.groups[state.activeGroup].active)}}",
 			"do": [
 				{ "push": "state.groups", "value": "{{ {tabs: filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active), active: state.groups[state.activeGroup].active} }}" },
-				{ "set": "state.activeGroup", "to": "{{len(state.groups) - 1}}" }
+				{ "set": "state.activeGroup", "to": "{{length(state.groups) - 1}}" }
 			] },
 		"about": { "title": "About Forge", "category": "Help", "icon": "info", "do": [{ "set": "state.about", "to": true }] }
 	},
@@ -301,7 +301,7 @@
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "pickTheme" } },
 					{ "use": "forgeAccountsStatus" },
 					{ "type": "label", "id": "status-notifications", "role": "button", "label": "Notifications", "icon": "bell", "padding": 6, "fitText": true, "cursor": "hand",
-					  "text": "{{len(state.notifications) > 0 ? text(len(state.notifications)) : ''}}",
+					  "text": "{{length(state.notifications) > 0 ? text(length(state.notifications)) : ''}}",
 					  "textColor": "@color.statusText", "tooltip": "Notifications", "hover": { "color": "@color.hover" },
 					  "onClick": { "run": "showNotifications" } }
 				]

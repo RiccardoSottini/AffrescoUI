@@ -10,9 +10,10 @@
 	"properties": {
 		"version": {
 			"enum": [
-				1
+				1,
+				2
 			],
-			"description": "Format version. This library reads: 1"
+			"description": "Format version. This library reads: 1 (by migrating it), 2"
 		}
 	},
 	"allOf": [
@@ -30,12 +31,33 @@
 			"then": {
 				"$ref": "#/$defs/v1/screen"
 			}
+		},
+		{
+			"if": {
+				"properties": {
+					"version": {
+						"const": 2
+					}
+				},
+				"required": [
+					"version"
+				]
+			},
+			"then": {
+				"$ref": "#/$defs/v2/screen"
+			}
 		}
 	],
 	"$defs": {
 		"v1": {
 			"screen": {
-				"description": "Version 1 of the format",
+				"description": "Version 1 of the format: read by migrating it to version 2 (`affrescoui migrate`), which this schema then checks",
+				"type": "object"
+			}
+		},
+		"v2": {
+			"screen": {
+				"description": "Version 2 of the format",
 				"type": "object",
 				"required": [
 					"version",
@@ -50,7 +72,7 @@
 						"const": "affrescoui-screen"
 					},
 					"version": {
-						"const": 1
+						"const": 2
 					},
 					"note": {
 						"type": "string"
@@ -148,7 +170,7 @@
 											"exclusiveMinimum": 0
 										},
 										{
-											"$ref": "#/$defs/v1/tokenName"
+											"$ref": "#/$defs/v2/tokenName"
 										}
 									]
 								},
@@ -169,13 +191,13 @@
 						"additionalProperties": {
 							"anyOf": [
 								{
-									"$ref": "#/$defs/v1/hexColor"
+									"$ref": "#/$defs/v2/hexColor"
 								},
 								{
 									"type": "object",
 									"minProperties": 1,
 									"additionalProperties": {
-										"$ref": "#/$defs/v1/hexColor"
+										"$ref": "#/$defs/v2/hexColor"
 									}
 								}
 							]
@@ -191,13 +213,13 @@
 						"additionalProperties": {
 							"anyOf": [
 								{
-									"$ref": "#/$defs/v1/tokenValue"
+									"$ref": "#/$defs/v2/tokenValue"
 								},
 								{
 									"type": "object",
 									"minProperties": 1,
 									"additionalProperties": {
-										"$ref": "#/$defs/v1/tokenValue"
+										"$ref": "#/$defs/v2/tokenValue"
 									}
 								}
 							]
@@ -209,7 +231,7 @@
 					"styles": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/node"
+							"$ref": "#/$defs/v2/node"
 						}
 					},
 					"components": {
@@ -225,7 +247,7 @@
 									"type": "object"
 								},
 								"node": {
-									"$ref": "#/$defs/v1/node"
+									"$ref": "#/$defs/v2/node"
 								},
 								"note": {
 									"type": "string"
@@ -236,14 +258,14 @@
 					"templates": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/node"
+							"$ref": "#/$defs/v2/node"
 						}
 					},
 					"screens": {
 						"type": "object",
 						"description": "Screens an \"outlet\" shows; {\"navigate\": name} switches",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/node"
+							"$ref": "#/$defs/v2/node"
 						}
 					},
 					"state": {
@@ -253,7 +275,7 @@
 						"type": "object",
 						"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/stateType"
+							"$ref": "#/$defs/v2/stateType"
 						}
 					},
 					"computed": {
@@ -263,7 +285,7 @@
 					"watch": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/handler"
+							"$ref": "#/$defs/v2/handler"
 						},
 						"description": "\"state.path\" -> handler, run when it changed"
 					},
@@ -272,10 +294,10 @@
 						"additionalProperties": {
 							"anyOf": [
 								{
-									"$ref": "#/$defs/v1/steps"
+									"$ref": "#/$defs/v2/steps"
 								},
 								{
-									"$ref": "#/$defs/v1/command"
+									"$ref": "#/$defs/v2/command"
 								}
 							]
 						}
@@ -283,7 +305,7 @@
 					"keys": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/keyHandler"
+							"$ref": "#/$defs/v2/keyHandler"
 						},
 						"description": "Screen-wide shortcuts: \"mod+k\" -> handler"
 					},
@@ -356,7 +378,7 @@
 						}
 					},
 					"onLoad": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"channels": {
 						"type": "object",
@@ -619,19 +641,19 @@
 							"allow": {
 								"type": "array",
 								"items": {
-									"$ref": "#/$defs/v1/permissionRule"
+									"$ref": "#/$defs/v2/permissionRule"
 								}
 							},
 							"ask": {
 								"type": "array",
 								"items": {
-									"$ref": "#/$defs/v1/permissionRule"
+									"$ref": "#/$defs/v2/permissionRule"
 								}
 							},
 							"deny": {
 								"type": "array",
 								"items": {
-									"$ref": "#/$defs/v1/permissionRule"
+									"$ref": "#/$defs/v2/permissionRule"
 								}
 							},
 							"reviewers": {
@@ -783,7 +805,7 @@
 						}
 					},
 					"root": {
-						"$ref": "#/$defs/v1/node",
+						"$ref": "#/$defs/v2/node",
 						"description": "The window's root panel: it always fills the window"
 					}
 				}
@@ -793,7 +815,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -823,8 +845,7 @@
 									"canvas",
 									"graph",
 									"timeline",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							},
 							{
@@ -852,26 +873,26 @@
 					"children": {
 						"type": "array",
 						"items": {
-							"$ref": "#/$defs/v1/node"
+							"$ref": "#/$defs/v2/node"
 						}
 					},
 					"x": {
-						"$ref": "#/$defs/v1/length"
+						"$ref": "#/$defs/v2/length"
 					},
 					"y": {
-						"$ref": "#/$defs/v1/length"
+						"$ref": "#/$defs/v2/length"
 					},
 					"width": {
-						"$ref": "#/$defs/v1/length"
+						"$ref": "#/$defs/v2/length"
 					},
 					"height": {
-						"$ref": "#/$defs/v1/length"
+						"$ref": "#/$defs/v2/length"
 					},
 					"minWidth": {
-						"$ref": "#/$defs/v1/length"
+						"$ref": "#/$defs/v2/length"
 					},
 					"minHeight": {
-						"$ref": "#/$defs/v1/length"
+						"$ref": "#/$defs/v2/length"
 					},
 					"maxWidth": {
 						"description": "The largest width (the minimum wins); \"none\" for no maximum",
@@ -880,7 +901,7 @@
 								"const": "none"
 							},
 							{
-								"$ref": "#/$defs/v1/length"
+								"$ref": "#/$defs/v2/length"
 							}
 						]
 					},
@@ -891,7 +912,7 @@
 								"const": "none"
 							},
 							{
-								"$ref": "#/$defs/v1/length"
+								"$ref": "#/$defs/v2/length"
 							}
 						]
 					},
@@ -907,7 +928,7 @@
 								"pattern": "^[0-9]+(\\.[0-9]+)? */ *[0-9]+(\\.[0-9]+)?$"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -916,16 +937,16 @@
 						"additionalProperties": false,
 						"properties": {
 							"top": {
-								"$ref": "#/$defs/v1/edge"
+								"$ref": "#/$defs/v2/edge"
 							},
 							"bottom": {
-								"$ref": "#/$defs/v1/edge"
+								"$ref": "#/$defs/v2/edge"
 							},
 							"left": {
-								"$ref": "#/$defs/v1/edge"
+								"$ref": "#/$defs/v2/edge"
 							},
 							"right": {
-								"$ref": "#/$defs/v1/edge"
+								"$ref": "#/$defs/v2/edge"
 							}
 						}
 					},
@@ -935,7 +956,7 @@
 								"const": true
 							},
 							{
-								"$ref": "#/$defs/v1/length"
+								"$ref": "#/$defs/v2/length"
 							}
 						],
 						"description": "Anchor all four edges, this far in"
@@ -946,7 +967,7 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -958,7 +979,7 @@
 								"minimum": 0
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -969,13 +990,13 @@
 								"const": "auto"
 							},
 							{
-								"$ref": "#/$defs/v1/length"
+								"$ref": "#/$defs/v2/length"
 							}
 						]
 					},
 					"alignSelf": {
 						"description": "In a row, column or grid: where it sits across, over the container's alignItems",
-						"$ref": "#/$defs/v1/crossAlign"
+						"$ref": "#/$defs/v2/crossAlign"
 					},
 					"cell": {
 						"description": "In a grid: its first column and row (from 1) and how many it spans; left out, the next free cell",
@@ -1016,34 +1037,34 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
 					"color": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"radius": {
 						"description": "Rounds the corners: one radius for all four, or one per corner (left out: square)",
 						"anyOf": [
 							{
-								"$ref": "#/$defs/v1/pixels"
+								"$ref": "#/$defs/v2/pixels"
 							},
 							{
 								"type": "object",
 								"additionalProperties": false,
 								"properties": {
 									"topLeft": {
-										"$ref": "#/$defs/v1/pixels"
+										"$ref": "#/$defs/v2/pixels"
 									},
 									"topRight": {
-										"$ref": "#/$defs/v1/pixels"
+										"$ref": "#/$defs/v2/pixels"
 									},
 									"bottomRight": {
-										"$ref": "#/$defs/v1/pixels"
+										"$ref": "#/$defs/v2/pixels"
 									},
 									"bottomLeft": {
-										"$ref": "#/$defs/v1/pixels"
+										"$ref": "#/$defs/v2/pixels"
 									}
 								}
 							}
@@ -1051,11 +1072,11 @@
 					},
 					"borderWidth": {
 						"description": "A border inside the node's edges; it doesn't change the layout",
-						"$ref": "#/$defs/v1/pixels"
+						"$ref": "#/$defs/v2/pixels"
 					},
 					"borderColor": {
 						"description": "Default: black",
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"shadow": {
 						"type": "object",
@@ -1068,7 +1089,7 @@
 										"type": "number"
 									},
 									{
-										"$ref": "#/$defs/v1/dynamic"
+										"$ref": "#/$defs/v2/dynamic"
 									}
 								]
 							},
@@ -1078,25 +1099,25 @@
 										"type": "number"
 									},
 									{
-										"$ref": "#/$defs/v1/dynamic"
+										"$ref": "#/$defs/v2/dynamic"
 									}
 								]
 							},
 							"blur": {
 								"description": "A Gaussian blur with a standard deviation of blur / 2",
-								"$ref": "#/$defs/v1/pixels"
+								"$ref": "#/$defs/v2/pixels"
 							},
 							"color": {
 								"description": "Default: #00000040",
-								"$ref": "#/$defs/v1/color"
+								"$ref": "#/$defs/v2/color"
 							}
 						}
 					},
 					"visible": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"cache": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"rotate": {
 						"anyOf": [
@@ -1104,7 +1125,7 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"
@@ -1123,7 +1144,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "Draws the node scaled, one factor or [x, y], about transformOrigin"
@@ -1139,7 +1160,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "Draws the node skewed, [x, y] in degrees, as CSS skew()"
@@ -1155,7 +1176,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "Draws the node moved by [x, y] pixels after layout"
@@ -1184,7 +1205,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "The point rotate, scale and skew turn about: center, an edge or a corner, or [x%, y%]"
@@ -1201,7 +1222,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1209,7 +1230,7 @@
 						"description": "Text, or a {{binding}}"
 					},
 					"disabled": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"scroll": {
 						"anyOf": [
@@ -1225,7 +1246,7 @@
 								"type": "boolean"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1256,12 +1277,12 @@
 								"const": "outside"
 							},
 							"modal": {
-								"$ref": "#/$defs/v1/flag"
+								"$ref": "#/$defs/v2/flag"
 							}
 						}
 					},
 					"focusable": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"role": {
 						"description": "A role, or a {{binding}}"
@@ -1273,10 +1294,10 @@
 						"description": "Text, or a {{binding}}"
 					},
 					"isOpen": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"selected": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"live": {
 						"anyOf": [
@@ -1288,7 +1309,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1299,7 +1320,7 @@
 								"minimum": -1
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1313,7 +1334,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1321,19 +1342,19 @@
 						"description": "One letter, or a {{binding}}"
 					},
 					"hover": {
-						"$ref": "#/$defs/v1/stateBlock"
+						"$ref": "#/$defs/v2/stateBlock"
 					},
 					"focused": {
-						"$ref": "#/$defs/v1/stateBlock"
+						"$ref": "#/$defs/v2/stateBlock"
 					},
 					"dragging": {
-						"$ref": "#/$defs/v1/stateBlock"
+						"$ref": "#/$defs/v2/stateBlock"
 					},
 					"dragOver": {
-						"$ref": "#/$defs/v1/stateBlock"
+						"$ref": "#/$defs/v2/stateBlock"
 					},
 					"pressed": {
-						"$ref": "#/$defs/v1/stateBlock"
+						"$ref": "#/$defs/v2/stateBlock"
 					},
 					"transition": {
 						"type": "object",
@@ -1415,12 +1436,12 @@
 										"type": "number"
 									},
 									{
-										"$ref": "#/$defs/v1/dynamic"
+										"$ref": "#/$defs/v2/dynamic"
 									}
 								]
 							},
 							"do": {
-								"$ref": "#/$defs/v1/handler"
+								"$ref": "#/$defs/v2/handler"
 							}
 						}
 					},
@@ -1438,7 +1459,7 @@
 					"keys": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/keyHandler"
+							"$ref": "#/$defs/v2/keyHandler"
 						},
 						"description": "Shortcuts while focused: \"mod+k\" -> handler"
 					},
@@ -1453,7 +1474,7 @@
 						"description": "Text, or a {{binding}}"
 					},
 					"textColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"font": {
 						"type": "string"
@@ -1464,24 +1485,24 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
 					"align": {
 						"oneOf": [
 							{
-								"$ref": "#/$defs/v1/align"
+								"$ref": "#/$defs/v2/align"
 							},
 							{
 								"type": "object",
 								"additionalProperties": false,
 								"properties": {
 									"horizontal": {
-										"$ref": "#/$defs/v1/align"
+										"$ref": "#/$defs/v2/align"
 									},
 									"vertical": {
-										"$ref": "#/$defs/v1/align"
+										"$ref": "#/$defs/v2/align"
 									}
 								}
 							}
@@ -1489,7 +1510,7 @@
 						"description": "label: text alignment; stack: v1 name of \"from\""
 					},
 					"wrap": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"fitText": {
 						"oneOf": [
@@ -1516,7 +1537,7 @@
 						"description": "label: an icon before the text, by its glyph name in the label's font or its fallbacks (e.g. Lucide's \"search\")"
 					},
 					"mirror": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"runs": {
 						"type": "array",
@@ -1551,7 +1572,7 @@
 											"type": "boolean"
 										},
 										"color": {
-											"$ref": "#/$defs/v1/color"
+											"$ref": "#/$defs/v2/color"
 										},
 										"link": {
 											"type": "string",
@@ -1564,10 +1585,10 @@
 						"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"
 					},
 					"selectable": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"selectionColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"bind": {
 						"type": "string",
@@ -1582,22 +1603,22 @@
 						"description": "editor: show line numbers in a gutter"
 					},
 					"lineNumberColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"activeLineNumberColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"lineColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"caretColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"autofocus": {
 						"type": "boolean"
 					},
 					"onChange": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"folds": {
 						"type": "array",
@@ -1649,7 +1670,7 @@
 									]
 								},
 								"color": {
-									"$ref": "#/$defs/v1/color"
+									"$ref": "#/$defs/v2/color"
 								},
 								"icon": {
 									"type": "string"
@@ -1679,22 +1700,22 @@
 						}
 					},
 					"brackets": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"indentGuides": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"readOnly": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"guideColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"matchColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"bracketColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"original": {
 						"type": "string",
@@ -1715,7 +1736,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "diff: split (default) or inline; colorPicker: square (default) or wheel"
@@ -1725,10 +1746,10 @@
 						"description": "diff: a language id for the application's editors (e.g. cpp)"
 					},
 					"deletedColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"insertedColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"gap": {
 						"anyOf": [
@@ -1736,7 +1757,7 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1748,7 +1769,7 @@
 								"minimum": 0
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1760,12 +1781,12 @@
 								"minimum": 0
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
 					"justify": {
-						"description": "row, column, stack: how the children are spread along it (from is the older name of the first three)",
+						"description": "row, column, stack: how the children are spread along it",
 						"anyOf": [
 							{
 								"enum": [
@@ -1778,16 +1799,13 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
-					"from": {
-						"$ref": "#/$defs/v1/align"
-					},
 					"alignItems": {
 						"description": "row, column, stack: where children sit across (left out: their own anchors); grid: down their cells (default start)",
-						"$ref": "#/$defs/v1/crossAlign"
+						"$ref": "#/$defs/v2/crossAlign"
 					},
 					"direction": {
 						"anyOf": [
@@ -1798,7 +1816,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1815,7 +1833,7 @@
 								"minItems": 1,
 								"maxItems": 1000,
 								"items": {
-									"$ref": "#/$defs/v1/track"
+									"$ref": "#/$defs/v2/track"
 								}
 							},
 							{
@@ -1855,7 +1873,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1864,21 +1882,21 @@
 						"type": "array",
 						"maxItems": 1000,
 						"items": {
-							"$ref": "#/$defs/v1/track"
+							"$ref": "#/$defs/v2/track"
 						}
 					},
 					"justifyItems": {
 						"description": "grid: where children sit across their cells (default stretch)",
-						"$ref": "#/$defs/v1/crossAlign"
+						"$ref": "#/$defs/v2/crossAlign"
 					},
 					"trackColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"activeColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"knobColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"min": {
 						"anyOf": [
@@ -1886,7 +1904,7 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1896,7 +1914,7 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1906,7 +1924,7 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -1928,7 +1946,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
@@ -1939,7 +1957,7 @@
 								"type": "string"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "surface: the name of a GPU surface the host registered (Screen::registerSurface)"
@@ -1950,13 +1968,13 @@
 								"type": "object"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "surface: what the surface draws, an object it reads (e.g. a colour, a speed)"
 					},
 					"continuous": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"value": {
 						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids; colorPicker: a colour; gradient: { kind, angle, stops }; curves: { points }",
@@ -1975,7 +1993,7 @@
 								"type": "object"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2003,7 +2021,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "split: the smallest size of every pane, or of each in order"
@@ -2016,15 +2034,15 @@
 								"maximum": 64
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
 					"sashColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"sashActiveColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"tabs": {
 						"anyOf": [
@@ -2060,19 +2078,19 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"
 					},
 					"activeTextColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"activeBackground": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"accentColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"items": {
 						"anyOf": [
@@ -2139,7 +2157,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, children (tree), expandable (tree), cells (table) }"
@@ -2157,7 +2175,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "tree: the ids of the open nodes"
@@ -2170,7 +2188,7 @@
 								"maximum": 16
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "tree: how many open folders stay pinned at the top while their rows scroll (default 0)"
@@ -2198,7 +2216,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "table: the order: { column, descending }, or null"
@@ -2213,7 +2231,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "list, tree: none, single (default) or multiple"
@@ -2226,16 +2244,16 @@
 								"maximum": 1000
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "list, tree: each row's height in pixels (default 24)"
 					},
 					"selectedTextColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"selectedBackground": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"d": {
 						"anyOf": [
@@ -2243,7 +2261,7 @@
 								"type": "string"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "path: SVG path data (M L H V C S Q T A Z, absolute and relative)"
@@ -2254,13 +2272,13 @@
 								"type": "string"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "path: the area of the data fitted to the node, \"x y width height\""
 					},
 					"fillColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"fillRule": {
 						"anyOf": [
@@ -2271,13 +2289,13 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "path: which points are inside, nonzero (default) or evenodd"
 					},
 					"stroke": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"strokeWidth": {
 						"anyOf": [
@@ -2286,7 +2304,7 @@
 								"minimum": 0
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2300,7 +2318,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2314,7 +2332,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2329,15 +2347,15 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
 					"alpha": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"fields": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"swatches": {
 						"anyOf": [
@@ -2349,7 +2367,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "colorPicker: colours or @tokens to pick from"
@@ -2364,13 +2382,13 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "curves: monotone (default), linear or bezier"
 					},
 					"channels": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"histogram": {
 						"anyOf": [
@@ -2385,7 +2403,7 @@
 								"type": "null"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "curves: counts drawn behind the curve"
@@ -2443,7 +2461,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "canvas: the camera { x, y, zoom }, the selected ids and the guides { vertical, horizontal }"
@@ -2475,7 +2493,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "canvas: levels of detail: below a zoom, the child use stands in for the child for"
@@ -2488,15 +2506,15 @@
 								"maximum": 1000000
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
 					"snap": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"rulers": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"nodes": {
 						"anyOf": [
@@ -2511,7 +2529,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "graph: the nodes, { id, title, x, y, width, bodyHeight, inputs, outputs }"
@@ -2532,13 +2550,13 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "graph: the links, { from, output, to, input }"
 					},
 					"cycles": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"kindColors": {
 						"anyOf": [
@@ -2546,23 +2564,23 @@
 								"type": "object",
 								"maxProperties": 64,
 								"additionalProperties": {
-									"$ref": "#/$defs/v1/color"
+									"$ref": "#/$defs/v2/color"
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "graph: each port kind's colour"
 					},
 					"nodeColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"headerColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"minimap": {
-						"$ref": "#/$defs/v1/flag"
+						"$ref": "#/$defs/v2/flag"
 					},
 					"zoom": {
 						"anyOf": [
@@ -2572,7 +2590,7 @@
 								"maximum": 4
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "graph: window units per graph unit, 0.1 to 4 (default 1)"
@@ -2588,7 +2606,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2605,7 +2623,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "timeline: the tracks, { id, label, keyframes, clips, tracks, expanded, muted, locked }"
@@ -2618,7 +2636,7 @@
 								"maximum": 1000000
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "timeline: its length in seconds"
@@ -2631,7 +2649,7 @@
 								"maximum": 1000
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2642,7 +2660,7 @@
 								"minimum": 0
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "timeline: the playhead, in seconds"
@@ -2657,7 +2675,7 @@
 								]
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2673,7 +2691,7 @@
 								}
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2684,7 +2702,7 @@
 								"maxItems": 1000
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2694,7 +2712,7 @@
 								"type": "number"
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2706,7 +2724,7 @@
 								"maximum": 2000
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
@@ -2718,114 +2736,114 @@
 								"maximum": 400
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
 					},
 					"clipColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"onClick": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onDoubleClick": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onContextMenu": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onPress": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onRelease": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onDrag": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onDrop": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onHover": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onLeave": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onFocus": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onBlur": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onScroll": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onKey": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onSubmit": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onLink": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onShow": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onHide": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onClose": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onMove": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onExpand": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onOpen": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onSort": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onColumnResize": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onTransform": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onConnect": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onDisconnect": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onLinkDrop": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onSelect": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onDelete": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onScrub": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onKeyframeMove": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onClipChange": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onGutterClick": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"onWordHover": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"slot": {
 						"const": true,
@@ -2835,14 +2853,11 @@
 						"description": "Text, or a {{binding}}"
 					},
 					"placeholderColor": {
-						"$ref": "#/$defs/v1/color"
+						"$ref": "#/$defs/v2/color"
 					},
 					"checked": {
-						"$ref": "#/$defs/v1/flag"
-					},
-					"syntax": {},
-					"goTo": {},
-					"buffer": {}
+						"$ref": "#/$defs/v2/flag"
+					}
 				},
 				"if": {
 					"required": [
@@ -2878,8 +2893,7 @@
 									"canvas",
 									"graph",
 									"timeline",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							}
 						}
@@ -2947,20 +2961,20 @@
 					"at": {},
 					"by": {},
 					"then": {
-						"$ref": "#/$defs/v1/steps"
+						"$ref": "#/$defs/v2/steps"
 					},
 					"else": {
-						"$ref": "#/$defs/v1/steps"
+						"$ref": "#/$defs/v2/steps"
 					},
 					"as": {},
 					"index": {},
 					"do": {
-						"$ref": "#/$defs/v1/steps"
+						"$ref": "#/$defs/v2/steps"
 					},
 					"with": {},
 					"into": {},
 					"onError": {
-						"$ref": "#/$defs/v1/steps"
+						"$ref": "#/$defs/v2/steps"
 					},
 					"loading": {},
 					"progress": {},
@@ -2981,11 +2995,11 @@
 						]
 					},
 					"onEvent": {
-						"$ref": "#/$defs/v1/steps"
+						"$ref": "#/$defs/v2/steps"
 					},
 					"id": {},
 					"onDone": {
-						"$ref": "#/$defs/v1/steps"
+						"$ref": "#/$defs/v2/steps"
 					},
 					"error": {},
 					"head": {},
@@ -3103,13 +3117,13 @@
 					"type": {
 						"oneOf": [
 							{
-								"$ref": "#/$defs/v1/stateTypeName"
+								"$ref": "#/$defs/v2/stateTypeName"
 							},
 							{
 								"type": "array",
 								"minItems": 1,
 								"items": {
-									"$ref": "#/$defs/v1/stateTypeName"
+									"$ref": "#/$defs/v2/stateTypeName"
 								}
 							}
 						]
@@ -3122,7 +3136,7 @@
 					"properties": {
 						"type": "object",
 						"additionalProperties": {
-							"$ref": "#/$defs/v1/stateType"
+							"$ref": "#/$defs/v2/stateType"
 						}
 					},
 					"required": {
@@ -3132,10 +3146,10 @@
 						}
 					},
 					"additionalProperties": {
-						"$ref": "#/$defs/v1/stateType"
+						"$ref": "#/$defs/v2/stateType"
 					},
 					"items": {
-						"$ref": "#/$defs/v1/stateType"
+						"$ref": "#/$defs/v2/stateType"
 					},
 					"minimum": {
 						"type": "number"
@@ -3193,7 +3207,7 @@
 						"pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z_][A-Za-z0-9_.-]*|transparent)$"
 					},
 					{
-						"$ref": "#/$defs/v1/dynamic"
+						"$ref": "#/$defs/v2/dynamic"
 					}
 				]
 			},
@@ -3208,7 +3222,7 @@
 						"pattern": "^-?[0-9]+(\\.[0-9]+)?(px|%)?$"
 					},
 					{
-						"$ref": "#/$defs/v1/dynamic"
+						"$ref": "#/$defs/v2/dynamic"
 					}
 				]
 			},
@@ -3216,7 +3230,7 @@
 				"description": "A length from the parent's edge, or another node's edge: \"#header.bottom + 8\"",
 				"anyOf": [
 					{
-						"$ref": "#/$defs/v1/length"
+						"$ref": "#/$defs/v2/length"
 					},
 					{
 						"type": "string",
@@ -3234,7 +3248,7 @@
 						]
 					},
 					{
-						"$ref": "#/$defs/v1/dynamic"
+						"$ref": "#/$defs/v2/dynamic"
 					}
 				]
 			},
@@ -3249,7 +3263,7 @@
 						]
 					},
 					{
-						"$ref": "#/$defs/v1/dynamic"
+						"$ref": "#/$defs/v2/dynamic"
 					}
 				]
 			},
@@ -3265,7 +3279,7 @@
 						"pattern": "^(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?|minmax\\( *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *, *(auto|[0-9]+(\\.[0-9]+)?(px|%|fr)?) *\\))$"
 					},
 					{
-						"$ref": "#/$defs/v1/dynamic"
+						"$ref": "#/$defs/v2/dynamic"
 					}
 				]
 			},
@@ -3281,10 +3295,10 @@
 						"pattern": "\\{\\{.*\\}\\}"
 					},
 					{
-						"$ref": "#/$defs/v1/expression"
+						"$ref": "#/$defs/v2/expression"
 					},
 					{
-						"$ref": "#/$defs/v1/tokenName"
+						"$ref": "#/$defs/v2/tokenName"
 					}
 				]
 			},
@@ -3299,13 +3313,13 @@
 						"type": "number"
 					},
 					{
-						"$ref": "#/$defs/v1/hexColor"
+						"$ref": "#/$defs/v2/hexColor"
 					},
 					{
 						"const": "transparent"
 					},
 					{
-						"$ref": "#/$defs/v1/tokenName"
+						"$ref": "#/$defs/v2/tokenName"
 					}
 				]
 			},
@@ -3317,7 +3331,7 @@
 						"minimum": 0
 					},
 					{
-						"$ref": "#/$defs/v1/dynamic"
+						"$ref": "#/$defs/v2/dynamic"
 					}
 				]
 			},
@@ -3327,7 +3341,7 @@
 						"type": "boolean"
 					},
 					{
-						"$ref": "#/$defs/v1/dynamic"
+						"$ref": "#/$defs/v2/dynamic"
 					}
 				]
 			},
@@ -3338,7 +3352,7 @@
 						"type": "string"
 					},
 					{
-						"$ref": "#/$defs/v1/steps"
+						"$ref": "#/$defs/v2/steps"
 					}
 				]
 			},
@@ -3361,7 +3375,7 @@
 						"type": "string"
 					},
 					"do": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					}
 				}
 			},
@@ -3375,7 +3389,7 @@
 				"properties": {
 					"when": {},
 					"do": {
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					"with": {
 						"type": "object"
@@ -3386,16 +3400,16 @@
 				"description": "A handler, a binding, or bindings (the first that applies runs)",
 				"anyOf": [
 					{
-						"$ref": "#/$defs/v1/handler"
+						"$ref": "#/$defs/v2/handler"
 					},
 					{
-						"$ref": "#/$defs/v1/binding"
+						"$ref": "#/$defs/v2/binding"
 					},
 					{
 						"type": "array",
 						"minItems": 1,
 						"items": {
-							"$ref": "#/$defs/v1/binding"
+							"$ref": "#/$defs/v2/binding"
 						}
 					}
 				]
@@ -3403,12 +3417,12 @@
 			"steps": {
 				"anyOf": [
 					{
-						"$ref": "#/$defs/v1/step"
+						"$ref": "#/$defs/v2/step"
 					},
 					{
 						"type": "array",
 						"items": {
-							"$ref": "#/$defs/v1/step"
+							"$ref": "#/$defs/v2/step"
 						}
 					}
 				]

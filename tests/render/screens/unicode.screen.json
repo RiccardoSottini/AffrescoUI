@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Text beyond Latin-1, for the rendering check: accents, Greek and Cyrillic from Roboto, symbols Roboto lacks from its fallback (JetBrains Mono), '?' for a character neither has, wrapping, and an editor whose caret and selection move by code point.",
 
 	"window": { "title": "Unicode text", "width": 720, "height": 480 },

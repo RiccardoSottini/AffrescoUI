@@ -6,6 +6,7 @@
 #include "Engine.hpp"
 #include "PropertyValues.hpp"
 #include "Shortcuts.hpp"
+#include "affresco/format/Migrate.hpp"
 
 #include "affresco/render/TextEditor.hpp"
 
@@ -331,7 +332,8 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 		if((slot == Slot::Layout && layoutProperty(panel, key, value, at)) || widgetProperty(look, slot, value, at) ||
 		   registeredProperty(record, key, value, look))
 			continue;
-		fail(at, "unknown property '" + std::string(key) + "' for this type");
+		const std::string removed = removedKeyHint(look.stack ? "stack" : "", key);
+		fail(at, "unknown property '" + std::string(key) + "' for this type" + (removed.empty() ? "" : " (" + removed + ")"));
 	}
 
 	applySets(panel, record, look);
@@ -546,7 +548,6 @@ bool Properties::textProperty(Look& look, Slot slot, const json& value, const st
 // Rows and columns
 bool Properties::stackProperty(Stack& stack, Slot slot, const json& value, const std::string& at) {
 	if(slot == Slot::Gap) stack.setGap(number(value, at));
-	else if(slot == Slot::From || slot == Slot::Align) stack.setAlignment(align(value, at)); // "align": v1 name
 	else if(slot == Slot::Direction) {
 		const std::string direction = string(value, at);
 		if(direction != "row" && direction != "column") fail(at, "expected \"row\" or \"column\"");

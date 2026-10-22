@@ -19,7 +19,7 @@ namespace {
 json screenWithCapabilities() {
 	return json::parse(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "habits": [], "theme": "dark" },
 		"channels": { "host": { "socket": "host.sock", "reconnect": 1000, "note": "the app's backend" } },
 		"persist": ["state.habits"],

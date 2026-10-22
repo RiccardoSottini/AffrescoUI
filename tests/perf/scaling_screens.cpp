@@ -179,7 +179,7 @@ std::vector<Workload> revisionWorkloads(Context& context, bool large) {
 /// @param state The state.
 /// @return The document.
 json screenOf(json root, json state = json::object()) {
-	return {{"format", "affrescoui-screen"}, {"version", 1}, {"state", std::move(state)}, {"root", std::move(root)}};
+	return {{"format", "affrescoui-screen"}, {"version", 2}, {"state", std::move(state)}, {"root", std::move(root)}};
 }
 
 /// @brief Panels nested n deep around a label: two JSON levels per panel, so 96 stays under the parser's limit.

@@ -9,7 +9,7 @@ import { Doc, definitions, includesOf, makeDoc, positionAt, references, symbolAt
 /** A screen using every kind of name the resolver knows. */
 const screen = `{
   // comments and trailing commas are accepted
-  "format": "affrescoui/screen", "version": 1,
+  "format": "affrescoui/screen", "version": 2,
   "include": ["parts/styles.json"],
   "tokens": { "gap": 8 },
   "colors": { "accent": "#3366ff" },
@@ -126,9 +126,9 @@ test('offsets convert to lines and characters', () => {
 test('hovers describe sections, node properties and steps from the catalog', () => {
 	const defs = definitionsOf({
 		$defs: {
-			v1: {
+			v2: {
 				screen: { properties: { tokens: { description: 'Named values.' } } },
-				node: { properties: { spacing: { $ref: '#/$defs/v1/length' }, text: { anyOf: [{ description: 'Text shown.' }] } } },
+				node: { properties: { spacing: { $ref: '#/$defs/v2/length' }, text: { anyOf: [{ description: 'Text shown.' }] } } },
 				length: { description: 'A length in points.' },
 				step: { description: 'One of: set(+to), push(+value).', properties: { set: {}, to: {}, push: {}, value: {} } },
 			},

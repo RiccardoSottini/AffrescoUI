@@ -9,7 +9,7 @@
 	"properties": {
 		"$schema": { "type": "string" },
 		"format": { "const": "affrescoui-scenarios" },
-		"version": { "const": 1 },
+		"version": { "enum": [1, 2], "description": "2. A file of version 1 is read by migrating it (affrescoui migrate rewrites it)." },
 		"note": { "type": "string" },
 		"screen": { "type": "string", "description": "The screen file every scenario plays on, unless it names its own." },
 		"screens": { "type": "string", "description": "The folder screens are in, relative to this file (default: its own)." },

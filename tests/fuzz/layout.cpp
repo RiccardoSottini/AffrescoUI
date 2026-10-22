@@ -63,7 +63,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	}
 	if(!node.is_object()) return 0;
 	const affresco::json document = {
-	    {"format", "affrescoui-screen"}, {"version", 1}, {"root", {{"children", affresco::json::array({node})}}}};
+	    {"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"children", affresco::json::array({node})}}}};
 
 	const affresco::detail::ManualClock clock;
 	const auto window = affresco::detail::createHeadlessWindow(640, 480, clock);

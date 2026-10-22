@@ -22,7 +22,7 @@ namespace {
 /// @brief A board: nested keyed and unkeyed repeats, "when", "let", a computed value, and values read whole.
 constexpr const char* board = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"state": {
 		"count": 0, "flag": false, "filter": "",
 		"columns": [
@@ -45,7 +45,7 @@ constexpr const char* board = R"json({
 		{ "type": "label", "id": "count", "text": "{{state.count}} / {{computed.twice}}" },
 		{ "type": "label", "id": "flag", "when": "{{state.flag}}", "text": "on" },
 		{ "type": "column", "repeat": { "for": "column", "in": "state.columns", "index": "c" }, "gap": 2, "children": [
-			{ "type": "label", "text": "{{column.name}} ({{len(column.cards)}})" },
+			{ "type": "label", "text": "{{column.name}} ({{length(column.cards)}})" },
 			{ "type": "column", "let": { "shown": "{{state.filter}}" }, "children": [
 				{ "type": "row", "repeat": { "for": "card", "in": "column.cards", "key": "{{card.id}}" },
 				  "when": "{{shown == '' || card.title == shown}}", "children": [

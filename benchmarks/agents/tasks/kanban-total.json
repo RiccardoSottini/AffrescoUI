@@ -45,7 +45,7 @@
 				"#topBar/children/-": {
 					"id": "totalCards",
 					"type": "label",
-					"text": "{{sum(state.columns, len(it.cards))}} cards",
+					"text": "{{sum(state.columns, length(it.cards))}} cards",
 					"textColor": "@color.topText",
 					"anchors": {
 						"left": 132,

@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "GPU surfaces, for the rendering check: a depth-tested cube turned and clipped by its parent, a shader surface turned and scaled, a two-pass blur, and a surface that fails (a GL error) between two labels. The runner registers the example surfaces at a fixed time.",
 
 	"window": { "title": "Surfaces", "width": 560, "height": 320 },

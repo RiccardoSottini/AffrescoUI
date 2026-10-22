@@ -35,7 +35,7 @@ json imageScreen() {
 	const std::string roboto = (fonts() / "Roboto-Regular.ttf").string(), lucide = (fonts() / "Lucide.ttf").string();
 	return {
 	    {"format", "affrescoui-screen"},
-	    {"version", 1},
+	    {"version", 2},
 	    {"fonts",
 		 {{"default", {{"file", roboto}, {"size", 16}, {"fallback", {"icons"}}}},
 		  {"icons", {{"file", lucide}, {"size", 16}}}}},

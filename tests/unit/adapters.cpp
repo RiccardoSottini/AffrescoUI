@@ -101,7 +101,7 @@ TEST_CASE("adapters: a screen loads either format, and A2UI's later updates are 
 	CHECK(adapters::detect(json::parse(R"([{"dataModelUpdate": {}}])")) == adapters::SourceFormat::A2ui);
 	CHECK(adapters::detect(json::parse(R"({"format": "affrescoui-screen"})")) == adapters::SourceFormat::Screen);
 	CHECK(adapters::detect(json::array()) == adapters::SourceFormat::Screen);
-	CHECK_FALSE(adapters::convertForeign(R"({"format": "affrescoui-screen", "version": 1})").has_value());
+	CHECK_FALSE(adapters::convertForeign(R"({"format": "affrescoui-screen", "version": 2})").has_value());
 }
 
 TEST_CASE("adapters: what has no equivalent is a visible placeholder and a warning; text is never evaluated") {

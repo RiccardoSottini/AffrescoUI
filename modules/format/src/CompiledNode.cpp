@@ -73,7 +73,6 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"placeholder", Slot::Placeholder},
     {"placeholderColor", Slot::PlaceholderColor},
     {"gap", Slot::Gap},
-    {"from", Slot::From},
     {"direction", Slot::Direction},
     {"columns", Slot::Columns},
     {"type", Slot::Value},
