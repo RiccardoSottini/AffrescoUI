@@ -169,6 +169,7 @@ void Window::routeDisplay(const DisplayEvent& event) {
 	runDeferred();
 }
 
+// NOLINTNEXTLINE(performance-unnecessary-value-param): the header's signature, kept as it is
 void Window::runChosen(std::function<void()> run) {
 	if(!run) return;
 	++routing_;

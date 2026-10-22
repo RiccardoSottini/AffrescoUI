@@ -22,15 +22,15 @@ using graph::onShown;
 using graph::overlaps;
 using graph::portIndex;
 using graph::portOf;
-using graph::operator+;
-using graph::operator-;
+using graph::operator+; // NOLINT(misc-unused-using-decls): the point arithmetic below uses it
+using graph::operator-; // NOLINT(misc-unused-using-decls): the point arithmetic below uses it
 
 namespace {
 
 /// @brief Where a link being drawn starts when a port is pressed, and the link it replaces.
 struct LinkStart {
-	KeyPort port;          ///< The port it hangs from.
-	std::size_t replacing; ///< The link picked up, or the model's link count for a new one.
+	KeyPort port;              ///< The port it hangs from.
+	std::size_t replacing = 0; ///< The link picked up, or the model's link count for a new one.
 };
 
 /// @brief Where pressing a port starts a link: a linked input picks its link up, which then hangs from its output
@@ -96,9 +96,9 @@ struct KeyCommand {
 struct KeyState {
 	const GraphModel& model;           ///< The model; it has a node.
 	const std::vector<bool>& selected; ///< Which nodes are selected.
-	std::size_t keyNode;               ///< The node the keyboard is on, in the model.
-	std::size_t keyPort;               ///< The port's place on it.
-	bool keyLink;                      ///< Whether the keyboard is drawing a link.
+	std::size_t keyNode = 0;           ///< The node the keyboard is on, in the model.
+	std::size_t keyPort = 0;           ///< The port's place on it.
+	bool keyLink = false;              ///< Whether the keyboard is drawing a link.
 	GraphCamera camera;                ///< The camera.
 	Vec2 size;                         ///< The view's size.
 };
@@ -234,6 +234,7 @@ KeyCommand keyCommand(const KeyEvent& event, const KeyState& state, const KeyPor
 /// @return The camera, or none if the corner is on screen.
 std::optional<GraphCamera> revealing(GraphCamera camera, const Rect& box, Vec2 size) noexcept {
 	const Vec2 at = camera.toView({box.left, box.top});
+	// NOLINTNEXTLINE(readability-simplify-boolean-expr): negated, a corner that is not a number stays on screen
 	if(!(at.x < 0.0f || at.y < 0.0f || at.x > size.x || at.y > size.y)) return std::nullopt;
 	camera.pan = {size.x * 0.5f - (box.left + box.width() * 0.5f) * camera.zoom,
 	              size.y * 0.5f - (box.top + box.height() * 0.5f) * camera.zoom};

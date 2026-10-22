@@ -30,7 +30,7 @@ using graph::overlaps;
 using graph::portIndex;
 using graph::portOf;
 using graph::portRadius;
-using graph::operator+;
+using graph::operator+; // NOLINT(misc-unused-using-decls): the point arithmetic below uses it
 
 namespace {
 
@@ -99,10 +99,12 @@ const std::string& linkKind(const GraphModel& model, const LinkEnds& ends) noexc
 void paintGrid(Painter& painter, const Rect& frame, Vec2 size, const GraphCamera& camera, Color line) {
 	const float spacing = gridStep * camera.zoom;
 	if(spacing < 8.0f) return;
+	// NOLINTBEGIN(bugprone-float-loop-counter): grid lines at float steps; counting them would move the pixels
 	for(float x = std::fmod(camera.pan.x, spacing) + (camera.pan.x < 0.0f ? spacing : 0.0f); x < size.x; x += spacing)
 		painter.fillRect({frame.left + x, frame.top, frame.left + x + 1.0f, frame.bottom}, line);
 	for(float y = std::fmod(camera.pan.y, spacing) + (camera.pan.y < 0.0f ? spacing : 0.0f); y < size.y; y += spacing)
 		painter.fillRect({frame.left, frame.top + y, frame.right, frame.top + y + 1.0f}, line);
+	// NOLINTEND(bugprone-float-loop-counter)
 }
 
 /// @brief How nodes are drawn this frame.
@@ -299,8 +301,9 @@ void GraphView::paintOver(Painter& painter) const {
 		                          : KeyPort{};
 		const Vec2 end = keyed.valid ? camera_.toView(portPoint(keyed.node, keyed.port, keyed.output)) : pointer_;
 		std::vector<MeshVertex> quads;
-		const VectorPath path =
-		    linkStart_.output ? linkPath(start, end, camera_.zoom) : linkPath(end, start, camera_.zoom);
+		// A link always runs from its output to its input, whichever end the pointer holds
+		const Vec2 output = linkStart_.output ? start : end, input = linkStart_.output ? end : start;
+		const VectorPath path = linkPath(output, input, camera_.zoom);
 		appendStroke(path.flatten({}, 0.25f), StrokeStyle{.width = linkWidth, .cap = LineCap::round}, quads);
 		const GraphPort& port = portOf(model_.nodes[linkStart_.node],
 		                               {linkStart_.node, linkStart_.port, linkStart_.output, linkStart_.valid});
