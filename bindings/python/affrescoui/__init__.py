@@ -16,6 +16,7 @@ from __future__ import annotations
 import ctypes
 import json
 import struct
+import threading
 import zlib
 from collections.abc import Callable
 from pathlib import Path
@@ -191,6 +192,7 @@ class Screen:
         self.state = State(self)
         self._keep: list[Any] = []  # ctypes callbacks the library holds: alive as long as the screen
         self._event_handlers: list[Callable[[dict], None]] = []
+        self._closing = threading.RLock()  # post() may come from any thread: it never meets a screen being destroyed
 
     @classmethod
     def from_file(cls, path: str | Path, mode: str = "headless", **options: Any) -> Screen:
@@ -238,10 +240,11 @@ class Screen:
 
     def close(self) -> None:
         """Closes the screen; closing again does nothing."""
-        if self._pointer:
-            _native.library().afr_screen_destroy(self._pointer)
-            self._pointer = None
-            self._keep.clear()
+        with self._closing:
+            if self._pointer:
+                _native.library().afr_screen_destroy(self._pointer)
+                self._pointer = None
+                self._keep.clear()
 
     def __enter__(self) -> Screen:
         """@return The screen."""
@@ -347,11 +350,15 @@ class Screen:
             try:
                 _guarded(task)
             finally:
-                self._keep.remove(holder[0])
+                with self._closing:
+                    if holder[0] in self._keep:  # (the task may have closed the screen)
+                        self._keep.remove(holder[0])
         native = _native.TASK(callback)
         holder.append(native)
-        self._keep.append(native)
-        _check(_native.library().afr_screen_post(self._handle(), native, None))
+        with self._closing:
+            handle = self._handle()
+            self._keep.append(native)
+            _check(_native.library().afr_screen_post(handle, native, None))
 
     def run(self) -> None:
         """Window: shows the window and runs until it is closed or quit()."""

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import struct
+import threading
 import zlib
 
 import pytest
@@ -77,6 +78,32 @@ def test_actions_events_calls(screen):
     assert any("clicked" in json.dumps(event) for event in events)
     assert screen.state["result"] == 42
     assert screen.state["failed"] is True
+
+
+def test_post_from_threads_while_closing(sockets):
+    """Posting from other threads while the screen closes either queues the task or raises ValueError, never crashes."""
+    screen = Screen.from_string(DOCUMENT, socket_directory=sockets)
+    errors = []
+
+    def poster():
+        for _ in range(200):
+            try:
+                screen.post(lambda: None)
+            except ValueError:
+                return
+            except Exception as error:  # noqa: BLE001 — collected and checked below
+                errors.append(error)
+                return
+    threads = [threading.Thread(target=poster) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    screen.step(1)
+    screen.close()
+    for thread in threads:
+        thread.join()
+    assert errors == []
+    with pytest.raises(ValueError):
+        screen.post(lambda: None)
 
 
 def test_post_and_input(screen):
