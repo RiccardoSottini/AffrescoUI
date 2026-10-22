@@ -80,6 +80,8 @@ public:
 	/// "connecting", "open", "closed" or "refused".
 	/// @return It.
 	[[nodiscard]] json status() const override;
+	/// @brief Sets what runs, on the main thread, after a connection's state changes.
+	/// @param callback The callback, or empty.
 	void onStatus(std::function<void()> callback) override { onStatus_ = std::move(callback); }
 	/// @brief Connections send no requests to answer: the handler is ignored.
 	void onRequest(services::RequestHandler /*handler*/) override {}

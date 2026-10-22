@@ -34,7 +34,7 @@ int sextet(char c) noexcept {
 }
 
 /// @brief Writes a string as RFC 8785 does: only `"`, `\` and the control characters are escaped, the short forms
-/// where JSON has them, else `\u00xx` in lower case.
+/// where JSON has them, else `\\u00xx` in lower case.
 /// @param text The string (valid UTF-8: the parser checked it).
 /// @param out Receives it, quoted.
 void writeString(const std::string& text, std::string& out) {

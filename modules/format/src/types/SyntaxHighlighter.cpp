@@ -172,6 +172,8 @@ void SyntaxHighlighter::setOwner(const void* owner) noexcept { state_->owner = o
 
 const void* SyntaxHighlighter::owner() const noexcept { return state_->owner; }
 
+/// @brief EditorHighlighter::reset(): a new parse of the whole text, on the next use, and each line measured.
+/// @param model The text.
 void SyntaxHighlighter::reset(const TextModel& model) {
 	State& s = *state_;
 	s.document = SyntaxDocument::create(s.language);
@@ -183,6 +185,9 @@ void SyntaxHighlighter::reset(const TextModel& model) {
 	for(std::size_t line = 0; s.followed && line < model.lineCount(); ++line) s.lineBytes[line] = bytesOf(model, line);
 }
 
+/// @brief EditorHighlighter::changed(): tells the parser the edit, so the next parse is incremental.
+/// @param model The text, after it.
+/// @param change The edit.
 void SyntaxHighlighter::changed(const TextModel& model, const TextChange& change) {
 	State& s = *state_;
 	s.moveOverlay(change);
@@ -227,6 +232,11 @@ void SyntaxHighlighter::changed(const TextModel& model, const TextChange& change
 	s.needsParse = true;
 }
 
+/// @brief EditorHighlighter::colorLine(): paints each capture with its theme token's colour, then the overlay.
+/// @param model The text.
+/// @param line The line.
+/// @param text Its code points.
+/// @param colors One per code point, painted over.
 void SyntaxHighlighter::colorLine(const TextModel& model, std::size_t line, std::u32string_view text,
                                   std::vector<Color>& colors) {
 	State& s = *state_;
@@ -271,6 +281,11 @@ void SyntaxHighlighter::colorLine(const TextModel& model, std::size_t line, std:
 		}
 }
 
+/// @brief EditorHighlighter::foldable(): the grammar's fold that starts on the line.
+/// @param model The text.
+/// @param line The line.
+/// @param range Gets it, or nothing.
+/// @return false while the text is too big to follow or unparsed, to fold by indentation.
 bool SyntaxHighlighter::foldable(const TextModel& model, std::size_t line, std::optional<FoldRange>& range) {
 	State& s = *state_;
 	if(!s.followed) return false;
@@ -281,6 +296,11 @@ bool SyntaxHighlighter::foldable(const TextModel& model, std::size_t line, std::
 	return true;
 }
 
+/// @brief EditorHighlighter::matchingBracket(): the bracket the grammar pairs with one.
+/// @param model The text.
+/// @param at The bracket.
+/// @param other Gets its pair, or nothing.
+/// @return false to pair by counting: the text too big to follow or unparsed, or a bracket no query pairs.
 bool SyntaxHighlighter::matchingBracket(const TextModel& model, TextPosition at, std::optional<TextPosition>& other) {
 	State& s = *state_;
 	if(!s.followed) return false;

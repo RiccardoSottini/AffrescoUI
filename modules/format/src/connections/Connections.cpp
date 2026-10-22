@@ -239,6 +239,10 @@ void Connections::authChanged() {
 	}
 }
 
+/// @brief services::Services::method(): a connection's method, as its declaration gives it.
+/// @param service The connection's name.
+/// @param name The method's name.
+/// @return The method, or nullptr for an unknown connection or method.
 const services::MethodSpec* Connections::method(std::string_view service, std::string_view name) const {
 	const auto live = connections_.find(service);
 	if(live == connections_.end()) return nullptr;
@@ -246,11 +250,21 @@ const services::MethodSpec* Connections::method(std::string_view service, std::s
 	return found == live->second.methods.end() ? nullptr : &found->second;
 }
 
+/// @brief services::Services::invoke(): starts a request on a connection.
+/// @param service The connection's name.
+/// @param name The method's name.
+/// @param call Where the result goes.
+/// @return Why it can't start, or std::nullopt.
 std::optional<std::string> Connections::invoke(std::string_view service, std::string_view name,
                                                std::shared_ptr<services::Call> call) {
 	return start(service, name, call, false);
 }
 
+/// @brief services::Services::subscribe(): listens to a connection's stream.
+/// @param service The connection's name.
+/// @param name The stream's name.
+/// @param call Where its messages go.
+/// @return Why it can't start, or std::nullopt.
 std::optional<std::string> Connections::subscribe(std::string_view service, std::string_view name,
                                                   std::shared_ptr<services::Call> call) {
 	return start(service, name, call, true);
