@@ -1,0 +1,262 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's workbench extras (features/workbench), checked headless on tests/render/forge/folder: the secondary side bar and its Outline, moving editors between groups, the breadcrumbs, the recently opened files, the minimap setting, the settings and keys as JSON, and the diff's side by side and inline views. affrescoui_render_runner layout.scenarios.json",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-layout-secondary-side-bar",
+			"note": "Cmd+Alt+B shows the secondary side bar at the right and hides it again",
+			"steps": [
+				{ "key": "mod+alt+b" },
+				{ "expect": { "state": "layout.secondary", "is": true } },
+				{ "expect": { "node": "#secondary-side-bar", "exists": true } },
+				{ "key": "mod+alt+b" },
+				{ "expect": { "state": "layout.secondary", "is": false } },
+				{ "expect": { "node": "#secondary-side-bar", "exists": false } }
+			]
+		},
+		{
+			"name": "forge-layout-secondary-hidden-in-zen",
+			"note": "Zen mode hides the secondary side bar, without forgetting it",
+			"steps": [
+				{ "action": "toggleSecondarySidebar" },
+				{ "action": "toggleZen" },
+				{ "expect": { "node": "#secondary-side-bar", "exists": false } },
+				{ "expect": { "state": "layout.secondary", "is": true } }
+			]
+		},
+		{
+			"name": "forge-layout-outline-empty",
+			"note": "With no file open the Outline says there is nothing to outline",
+			"steps": [
+				{ "action": "toggleSecondarySidebar" },
+				{ "expect": { "state": "outline", "is": [] } },
+				{ "expect": { "node": "#outline-empty", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-layout-outline-of-code",
+			"note": "The Outline lists a C++ file's functions, from forge.outline",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "toggleSecondarySidebar" },
+				{ "expect": { "state": "outline.length", "is": 1 } },
+				{ "expect": { "state": "outline[0].label", "is": "int main()" } },
+				{ "expect": { "state": "outline[0].line", "is": 3 } },
+				{ "expect": { "node": "#outline", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-layout-outline-of-markdown",
+			"note": "A Markdown file's Outline is its headings",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "toggleSecondarySidebar" },
+				{ "expect": { "state": "outline[0].label", "is": "A small project" } },
+				{ "expect": { "state": "outline[0].depth", "is": 0 } }
+			]
+		},
+		{
+			"name": "forge-layout-outline-goes-to-line",
+			"note": "Picking an Outline entry moves the caret to its line",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "toggleSecondarySidebar" },
+				{ "action": "outlinePicked", "event": { "value": "3" } },
+				{ "expect": { "state": "goTo.line", "is": 3 } }
+			]
+		},
+		{
+			"name": "forge-layout-outline-follows-tab",
+			"note": "Showing another file refreshes the Outline",
+			"steps": [
+				{ "action": "toggleSecondarySidebar" },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "state": "outline[0].label", "is": "int main()" } },
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "expect": { "state": "outline[0].label", "is": "A small project" } }
+			]
+		},
+		{
+			"name": "forge-layout-move-editor-next-group",
+			"note": "Move Editor into Next Group splits and moves the active editor there, leaving the others",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "key": "mod+ctrl+right" },
+				{ "expect": { "state": "groups.length", "is": 2 } },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 1 } },
+				{ "expect": { "state": "groups[0].tabs[0].id", "is": "README.md" } },
+				{ "expect": { "state": "groups[1].tabs[0].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "groups[1].active", "is": "src/main.cpp" } },
+				{ "expect": { "state": "activeGroup", "is": 1 } }
+			]
+		},
+		{
+			"name": "forge-layout-move-editor-back",
+			"note": "Moving the only editor of the second group back closes that group",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "moveEditorToNextGroup" },
+				{ "key": "mod+ctrl+left" },
+				{ "expect": { "state": "groups.length", "is": 1 } },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 2 } },
+				{ "expect": { "state": "groups[0].active", "is": "src/main.cpp" } },
+				{ "expect": { "state": "activeGroup", "is": 0 } }
+			]
+		},
+		{
+			"name": "forge-layout-move-editor-into-existing-group",
+			"note": "With two groups, the editor moves into the next one at its end, without a third group",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "moveEditorToNextGroup" },
+				{ "action": "focusFirstGroup" },
+				{ "action": "moveEditorToNextGroup" },
+				{ "expect": { "state": "groups.length", "is": 1 } },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 2 } },
+				{ "expect": { "state": "groups[0].tabs[1].id", "is": "README.md" } }
+			]
+		},
+		{
+			"name": "forge-layout-breadcrumbs",
+			"note": "The breadcrumbs show the file's folders and name, and the symbol at the caret",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "node": "#breadcrumbs", "exists": true } },
+				{ "expect": { "node": { "role": "button", "name": "src" }, "exists": true } },
+				{ "expect": { "node": { "role": "button", "name": "main.cpp" }, "exists": true } }
+			]
+		},
+		{
+			"name": "forge-layout-breadcrumbs-toggle",
+			"note": "Toggle Breadcrumbs hides them; pages other than files never have them",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "toggleBreadcrumbs" },
+				{ "expect": { "node": "#breadcrumbs", "exists": false } },
+				{ "action": "toggleBreadcrumbs" },
+				{ "action": "openSettings" },
+				{ "expect": { "node": "#breadcrumbs", "exists": false } }
+			]
+		},
+		{
+			"name": "forge-layout-breadcrumb-reveals-folder",
+			"note": "Pressing a folder in the breadcrumbs shows it in the explorer",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "toggleSidebar" },
+				{ "wait": 50 },
+				{ "click": { "role": "button", "name": "src" } },
+				{ "expect": { "state": "sideView", "is": "explorer" } },
+				{ "expect": { "state": "layout.sidebar", "is": true } },
+				{ "expect": { "state": "explorer.expanded", "is": ["src/"] } }
+			]
+		},
+		{
+			"name": "forge-layout-recent-files",
+			"note": "Opened files are remembered most recent first, once each",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "expect": { "state": "quickPick.recent.length", "is": 2 } },
+				{ "expect": { "state": "quickPick.recent[0].id", "is": "README.md" } },
+				{ "expect": { "state": "quickPick.recent[1].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "quickPick.recent[1].detail", "is": "src" } }
+			]
+		},
+		{
+			"name": "forge-layout-recent-open-and-clear",
+			"note": "Open Recent (Ctrl+R) opens Go to File; Clear Recently Opened forgets them",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "key": "ctrl+r" },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "expect": { "state": "quickPick.query", "is": "" } },
+				{ "key": "escape" },
+				{ "action": "clearRecent" },
+				{ "expect": { "state": "quickPick.recent", "is": [] } }
+			]
+		},
+		{
+			"name": "forge-layout-minimap-setting",
+			"note": "Toggle Minimap writes the editor.minimap.enabled setting",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "toggleMinimap" },
+				{ "expect": { "state": "settings", "is": { "editor.minimap.enabled": true } } },
+				{ "expect": { "node": "#editor", "exists": true } },
+				{ "action": "toggleMinimap" },
+				{ "expect": { "state": "settings", "is": { "editor.minimap.enabled": false } } }
+			]
+		},
+		{
+			"name": "forge-layout-settings-json-opens",
+			"note": "Open Settings (JSON) shows the changed settings as JSON in an editor",
+			"steps": [
+				{ "action": "toggleWordWrap" },
+				{ "action": "openSettingsJson" },
+				{ "expect": { "state": "docs[0].kind", "is": "settingsJson" } },
+				{ "expect": { "state": "settingsJson", "is": "{\"editor.wordWrap\":true}" } },
+				{ "expect": { "node": "#settings-json", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-layout-settings-json-applies",
+			"note": "Apply takes the edited JSON as the settings",
+			"steps": [
+				{ "action": "openSettingsJson" },
+				{ "wait": 50 },
+				{ "click": "#settings-json" },
+				{ "key": "mod+a" },
+				{ "type": "{\"editor.lineNumbers\": false}" },
+				{ "action": "applySettingsJson" },
+				{ "expect": { "state": "settingsJsonError", "is": "" } },
+				{ "expect": { "state": "settings", "is": { "editor.lineNumbers": false } } }
+			]
+		},
+		{
+			"name": "forge-layout-settings-json-rejects",
+			"note": "Text that isn't a JSON object leaves the settings as they were and says why",
+			"steps": [
+				{ "action": "toggleWordWrap" },
+				{ "action": "openSettingsJson" },
+				{ "wait": 50 },
+				{ "click": "#settings-json" },
+				{ "key": "mod+a" },
+				{ "type": "nope" },
+				{ "action": "applySettingsJson" },
+				{ "expect": { "state": "settings", "is": { "editor.wordWrap": true } } },
+				{ "expect": { "node": "#settings-json-error", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-layout-keybindings-json",
+			"note": "Open Keyboard Shortcuts (JSON) lists the keys, read-only",
+			"steps": [
+				{ "action": "openKeybindingsJson" },
+				{ "expect": { "state": "docs[0].kind", "is": "keybindingsJson" } },
+				{ "expect": { "node": "#keybindings-json", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-layout-diff-inline",
+			"note": "A change compares side by side; Toggle Inline View switches the diff to one column and back",
+			"steps": [
+				{ "action": "scmCompare", "event": { "path": "src/main.cpp", "original": "a\nb\n", "modified": "a\nB\nc\n" } },
+				{ "expect": { "state": "docs[0].diff.original", "is": "a\nb\n" } },
+				{ "expect": { "state": "docs[0].diff.modified", "is": "a\nB\nc\n" } },
+				{ "expect": { "node": "#diff-view", "exists": true } },
+				{ "expect": { "node": { "role": "button", "name": "Toggle Inline View" }, "exists": true } },
+				{ "action": "toggleDiffInline" },
+				{ "expect": { "state": "settings", "is": { "diffEditor.renderSideBySide": false } } },
+				{ "expect": { "node": "#diff-view", "exists": true } }
+			]
+		}
+	]
+}

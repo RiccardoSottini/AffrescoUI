@@ -5,7 +5,7 @@
 	"note": "Forge's shell: the title bar with a command centre, the activity bar, the explorer side bar, editor groups with tabs, the panel and the status bar. The layout (what is shown, the sash positions) is in state.layout, kept by persist; zen mode hides everything but the editors. Other features contribute commands, menus, keys, settings, tokens and components (examples/forge/README.md).",
 
 	"state": {
-		"layout": { "sidebar": true, "panel": true, "zen": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
+		"layout": { "sidebar": true, "panel": true, "zen": false, "secondary": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
 		"folder": { "root": "", "files": [], "tree": [], "truncated": false },
 		"explorer": { "expanded": [], "selected": null },
 		"docs": [],

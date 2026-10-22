@@ -225,3 +225,23 @@ TEST_CASE("forge editor: TODO and FIXME lines, trimmed, cut and capped") {
 	CHECK(todos[1]["severity"] == "warning");
 	CHECK(todos[1]["message"].get<std::string>().size() == 120);
 }
+
+TEST_CASE("forge editor: the outline of code and of Markdown") {
+	const TempFolder folder;
+	folder.write("a.cpp", "namespace a {\n\nclass B {\n\tvoid c() {\n\t\tif(x) {\n\t\t}\n\t}\n};\n// d {\n}\n");
+	folder.write("r.md", "# Title\ntext\n## Part\n#not\n");
+	forge::Buffers buffers;
+	REQUIRE_FALSE(buffers.open(folder.path, "a.cpp"));
+	REQUIRE_FALSE(buffers.open(folder.path, "r.md"));
+	const affresco::json code = buffers.outline("a.cpp");
+	REQUIRE(code.size() == 3); // the if two levels in and the comment are left out
+	CHECK(code[0]["label"] == "namespace a");
+	CHECK(code[1]["line"] == 3);
+	CHECK(code[2]["label"] == "void c()");
+	CHECK(code[2]["depth"] == 1);
+	const affresco::json headings = buffers.outline("r.md");
+	REQUIRE(headings.size() == 2);
+	CHECK(headings[1]["label"] == "Part");
+	CHECK(headings[1]["depth"] == 1);
+	CHECK(buffers.outline("closed.cpp").empty());
+}

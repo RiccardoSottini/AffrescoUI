@@ -66,7 +66,8 @@
 					}
 				]
 			},
-			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" }
+			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" },
+			{ "run": "rememberRecent", "with": { "id": "{{id}}", "label": "{{label}}" } }
 		],
 		"replacePreview": [
 			{
@@ -244,7 +245,15 @@
 								"activeBackground": "@color.tabActive",
 								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
 								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id)}))}}",
-								"onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } }
+								"onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } },
+								"drag": {},
+								"onDrop": { "run": "moveTabToGroup", "with": { "id": "{{event.data.id}}", "to": "{{gi}}", "at": "{{event.index}}" } },
+								"onMove": { "run": "reorderTab", "with": { "gi": "{{gi}}", "from": "{{event.from}}", "to": "{{event.to}}" } }
+							},
+							{
+								"when": "{{settings.breadcrumbs.enabled && some(state.docs, it.id == g.active && it.kind == 'file')}}",
+								"use": "forgeBreadcrumbs",
+								"with": { "path": "{{g.active}}" }
 							},
 							{
 								"when": "{{empty(g.active) && gi == 0 && settings.workbench.startupEditor == 'welcome'}}",
@@ -278,6 +287,7 @@
 										"goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, column: state.goTo.column ?? 1, request: state.goTo.request} : null}}",
 										"caret": "state.caret",
 										"wrap": "{{settings.editor.wordWrap}}",
+										"minimap": "{{settings.editor.minimap.enabled}}",
 										"brackets": "{{settings.editor.bracketMatching}}",
 										"indentGuides": "{{settings.editor.guides.indentation}}",
 										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
@@ -311,6 +321,8 @@
 									},
 									{ "when": "{{state.docs[d].kind == 'settings'}}", "use": "forgeSettingsPage" },
 									{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" },
+									{ "when": "{{state.docs[d].kind == 'settingsJson'}}", "use": "forgeSettingsJsonPage" },
+									{ "when": "{{state.docs[d].kind == 'keybindingsJson'}}", "use": "forgeKeybindingsJsonPage" },
 									{ "when": "{{state.docs[d].kind == 'search'}}", "use": "forgeSearchPage" },
 									{ "when": "{{state.docs[d].kind == 'diff'}}", "use": "forgeDiffEditor", "with": { "d": "{{d}}" } },
 									{ "when": "{{state.docs[d].kind == 'debugSource'}}", "use": "forgeDebugSource", "with": { "doc": "{{state.docs[d]}}" } }
