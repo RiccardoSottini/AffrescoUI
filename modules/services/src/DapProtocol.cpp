@@ -135,7 +135,7 @@ Message readResponse(const json& message) {
 
 std::string textOf(const json& value, std::string_view fallback) {
 	if(!value.is_string()) return std::string(fallback);
-	std::string text = cut(value.get<std::string>(), longestText);
+	const std::string text = cut(value.get<std::string>(), longestText);
 	return isUtf8(text) ? text : std::string(fallback);
 }
 

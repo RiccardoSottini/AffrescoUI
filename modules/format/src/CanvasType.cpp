@@ -112,7 +112,8 @@ void applyItems(CanvasView& canvas, const json& values, const PropertyReader& re
 		const std::shared_ptr<const Font> base =
 		    values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr;
 		for(const float size : textSizes)
-			if(auto font = reader.fontVariant(base.get(), size, FontStyle{}, path + ".font")) fonts.push_back(font);
+			if(const auto font = reader.fontVariant(base.get(), size, FontStyle{}, path + ".font"))
+				fonts.push_back(font);
 	}
 	canvas.setTextFonts(std::move(fonts));
 	canvas.setModel(std::make_shared<DocumentItems>(std::move(items)));
@@ -269,7 +270,7 @@ void stopListeningToCanvasEvents(Panel& panel, const EventConnections& connectio
 } // namespace
 
 void registerCanvasType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath}, {"view", ValueKind::Any},    {"items", ValueKind::Any},
 	                   {"lod", ValueKind::Any},        {"grid", ValueKind::Number}, {"snap", ValueKind::Boolean},
 	                   {"rulers", ValueKind::Boolean}, {"font", ValueKind::Font},   {"accentColor", ValueKind::Color}};

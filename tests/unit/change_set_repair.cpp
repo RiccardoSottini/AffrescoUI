@@ -79,7 +79,7 @@ std::filesystem::path screens() { return AFFRESCOUI_SCREENS_DIRECTORY; }
 /// @param path Its path.
 /// @return Its document.
 json readJson(const std::filesystem::path& path) {
-	std::ifstream in(path);
+	const std::ifstream in(path);
 	std::stringstream text;
 	text << in.rdbuf();
 	return json::parse(text.str());
@@ -275,7 +275,7 @@ TEST_CASE("change set repair: the template changes, the fake agent repairs it, t
 }
 
 TEST_CASE("change set repair: a change set whose scenarios fail is left off, with the reason") {
-	affresco::format::Rules rules;
+	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository{rules, kanban([](json& document) {
 		document["state"]["columns"].push_back({{"name", "Archived"}, {"color", "#64748b"}, {"cards", json::array()}});
 	})};

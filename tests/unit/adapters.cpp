@@ -54,7 +54,7 @@ json card(json body) { return {{"type", "AdaptiveCard"}, {"version", "1.6"}, {"b
 /// @return Whether one does.
 bool warned(const adapters::Converted& converted, const std::string& text) {
 	for(const std::string& warning : converted.warnings)
-		if(warning.find(text) != std::string::npos) return true;
+		if(warning.contains(text)) return true;
 	return false;
 }
 

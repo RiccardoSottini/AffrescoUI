@@ -85,16 +85,16 @@ TEST_CASE("accessibility: macOS reads a window's tree through NSAccessibility") 
 	window.render();
 
 	NSView* view = glfwGetCocoaView(window.nativeHandle());
-	id root = windowElement(view);
+	const id root = windowElement(view);
 	if(!root || [[root accessibilityChildren] count] != 5u) dump(view, 0);
 	REQUIRE([[root accessibilityChildren] count] == 5u);
 	CHECK(NSEqualSizes([root accessibilityFrame].size, NSMakeSize(400, 300)));
 
-	id title = childNamed(root, @"Settings");
-	id button = childNamed(root, @"Save");
-	id toggle = childNamed(root, @"Dark mode");
-	id slider = childNamed(root, @"Volume");
-	id field = childNamed(root, @"Name");
+	const id title = childNamed(root, @"Settings");
+	const id button = childNamed(root, @"Save");
+	const id toggle = childNamed(root, @"Dark mode");
+	const id slider = childNamed(root, @"Volume");
+	const id field = childNamed(root, @"Name");
 	REQUIRE((title && button && toggle && slider && field));
 	CHECK(text([title accessibilityRole]) == "AXStaticText");
 	CHECK(text([button accessibilityRole]) == "AXButton");

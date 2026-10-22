@@ -90,7 +90,7 @@ void CanvasView::begin(Vec2 position, bool shift) {
 		grabSelection();
 		return;
 	}
-	if(std::string id = itemAt(position); !id.empty()) {
+	if(const std::string id = itemAt(position); !id.empty()) {
 		if(shift || !isSelected(id)) {
 			std::vector<std::string> ids = shift ? selection_ : std::vector<std::string>{};
 			if(const auto found = std::ranges::find(ids, id); found != ids.end()) ids.erase(found);

@@ -240,7 +240,7 @@ void SyntaxHighlighter::colorLine(const TextModel& model, std::size_t line, std:
 		std::vector<services::SyntaxSpan> runs;
 		s.document->highlight(s.reader(model), row, last, runs);
 		for(std::uint32_t r = row; r <= last; ++r) s.spans.try_emplace(r);
-		for(services::SyntaxSpan& run : runs) s.spans[run.row].push_back(run);
+		for(const services::SyntaxSpan& run : runs) s.spans[run.row].push_back(run);
 		found = s.spans.find(row);
 	}
 	// Bytes to code points

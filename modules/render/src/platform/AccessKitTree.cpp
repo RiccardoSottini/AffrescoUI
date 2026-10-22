@@ -178,7 +178,7 @@ void AccessKitTree::refresh() {
 	else
 		for(auto& child : tree.children) root.children.push_back(flatten(child, table));
 	table.insert_or_assign(windowId, std::move(root));
-	Panel* focused = window_->focusedPanel();
+	const Panel* focused = window_->focusedPanel();
 	const std::uint64_t focus = focused && table.contains(accessibleId(*focused)) ? accessibleId(*focused) : windowId;
 	const std::scoped_lock lock(mutex_);
 	nodes_ = std::move(table);

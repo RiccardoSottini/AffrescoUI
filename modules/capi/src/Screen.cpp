@@ -124,7 +124,7 @@ afr_status finish(std::unique_ptr<afr_screen> handle, const afr_options& options
 			if(name.empty()) throw Failure{AFR_ERROR_ARGUMENT, "options.native_actions has an empty name"};
 			handle->screen->onAction(std::string(name), [](affresco::Panel&) {});
 		}
-	afr_screen* self = handle.get();
+	const afr_screen* self = handle.get();
 	handle->screen->onEvent([self](const std::string& eventJson) {
 		if(self->onEvent != nullptr) self->onEvent(self->onEventUser, eventJson.c_str());
 	});
@@ -279,7 +279,7 @@ afr_status afr_screen_on_action(afr_screen* screen, const char* name, afr_action
 	return guarded([&] {
 		afr_screen& handle = checked(screen);
 		if(callback == nullptr) throw Failure{AFR_ERROR_ARGUMENT, "callback is NULL"};
-		std::string action(checkedString(name, "name", 256));
+		const std::string action(checkedString(name, "name", 256));
 		handle.screen->onAction(action, [callback, user, action](affresco::Panel& sender) {
 			callback(user, action.c_str(), sender.id().c_str());
 		});

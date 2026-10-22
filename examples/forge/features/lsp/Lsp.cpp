@@ -190,14 +190,14 @@ public:
 		if(!kind) throw std::runtime_error("no request kind '" + kindName + "'");
 		const json server = lsp::serverFor(textArgument(with, "language", 64));
 		if(server.is_null()) return {{"pending", false}};
-		Request request{*kind,
-		                textArgument(with, "id", 4096),
-		                server["languageId"].get<std::string>(),
-		                positionArgument(with, "line") - 1,
-		                positionArgument(with, "column") - 1,
-		                with.is_object() && with.contains("request") ? with["request"] : json(0),
-		                textArgument(with, "newName", longestName),
-		                textArgument(with, "query", longestName)};
+		const Request request{*kind,
+		                      textArgument(with, "id", 4096),
+		                      server["languageId"].get<std::string>(),
+		                      positionArgument(with, "line") - 1,
+		                      positionArgument(with, "column") - 1,
+		                      with.is_object() && with.contains("request") ? with["request"] : json(0),
+		                      textArgument(with, "newName", longestName),
+		                      textArgument(with, "query", longestName)};
 		if(request.id.empty() && kind->name != "workspaceSymbols") throw std::runtime_error("expected { \"id\": file }");
 		if(kind->name == "rename" && request.newName.empty()) throw std::runtime_error("expected a newName");
 		if(workspace_->root.empty()) {

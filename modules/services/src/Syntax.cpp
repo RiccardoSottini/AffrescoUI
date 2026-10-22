@@ -210,7 +210,7 @@ SyntaxParse SyntaxDocument::parse(const SyntaxReader& read, std::size_t size, st
 	Input input{&read, size};
 	const std::uint32_t budget = state.tree ? state.limits.editMilliseconds : state.limits.parseMilliseconds;
 	Clock::time_point deadline = Clock::now() + std::chrono::milliseconds(budget);
-	TSParseOptions options{&deadline, pastDeadline};
+	const TSParseOptions options{&deadline, pastDeadline};
 	TSTree* next = ts_parser_parse_with_options(state.parser, state.tree,
 	                                            {&input, readInput, TSInputEncodingUTF8, nullptr}, options);
 	if(!next) {

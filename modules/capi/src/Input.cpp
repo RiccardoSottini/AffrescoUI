@@ -75,7 +75,7 @@ char32_t decode(std::string_view text, std::size_t& at) noexcept {
 /// @param handle The screen.
 /// @param scale Whole pixels per window unit.
 /// @return RGBA, top row first.
-std::vector<std::uint8_t> windowPixels(afr_screen& handle, int scale) {
+std::vector<std::uint8_t> windowPixels(const afr_screen& handle, int scale) {
 	const std::vector<std::uint8_t> rgb = affresco::detail::drawFromScratch(*handle.window, scale);
 	std::vector<std::uint8_t> rgba(rgb.size() / 3 * 4);
 	for(std::size_t from = 0, to = 0; from + 2 < rgb.size(); from += 3, to += 4) {

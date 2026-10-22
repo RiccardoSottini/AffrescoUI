@@ -52,7 +52,7 @@ void readTokens(std::string_view body, bool issuer) {
 		if(at != std::string_view::npos) {
 			const std::string_view rest = body.substr(at + 16);
 			const std::string_view token = rest.substr(0, rest.find('"'));
-			if(token.size() >= 12 && error.find(token) != std::string::npos)
+			if(token.size() >= 12 && error.contains(token))
 				affresco::fuzz::broken("an error never quotes the access token");
 		}
 	}

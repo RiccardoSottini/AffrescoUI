@@ -57,7 +57,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		if(response->success) given = dap::boundResponse(response->command, std::move(response->body), root);
 	} else if(auto* event = std::get_if<dap::Event>(&message)) {
 		given = dap::boundEvent(event->event, std::move(event->body), root);
-	} else if(auto* request = std::get_if<dap::Request>(&message)) {
+	} else if(const auto* request = std::get_if<dap::Request>(&message)) {
 		affresco::json arguments = request->arguments;
 		(void)dap::prepareArguments(request->command, arguments, root);
 		(void)dap::responseMessage(1, *request, std::nullopt, "not supported").dump();

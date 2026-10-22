@@ -191,7 +191,7 @@ TEST_CASE("canvas: a click selects, a marquee selects what it meets, and a drag 
 }
 
 TEST_CASE("canvas: dragging from the top ruler makes a horizontal guide, and back onto it removes it") {
-	CanvasWindow test(gridItems(4));
+	const CanvasWindow test(gridItems(4));
 	test.drag({300.0f, 10.0f}, {300.0f, 200.5f});
 	REQUIRE(test.canvas.guides().horizontal.size() == 1);
 	CHECK(test.canvas.guides().horizontal[0] == doctest::Approx(200.0f).epsilon(0.01));

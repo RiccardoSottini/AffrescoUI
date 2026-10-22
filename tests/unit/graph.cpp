@@ -279,7 +279,7 @@ TEST_CASE("render: dragging a header moves the selection; the keyboard selects, 
 }
 
 TEST_CASE("render: a marquee selects the nodes it touches") {
-	GraphFixture fixture;
+	const GraphFixture fixture;
 	const GraphCamera& camera = fixture.view->camera();
 	fixture.drag(camera.toView({160.0f, 260.0f}), camera.toView({60.0f, 150.0f})); // from empty space over tint
 	CHECK(fixture.view->selection() == std::vector<std::string>{"tint"});

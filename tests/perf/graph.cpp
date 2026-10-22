@@ -61,7 +61,7 @@ GraphModel manyNodes() {
 
 } // namespace
 
-std::vector<Workload> graphWorkloads(Context& context) {
+std::vector<Workload> graphWorkloads(const Context& context) {
 	const auto headless = std::make_shared<HeadlessGraph>();
 	auto& view = headless->window->root().add<RecordedGraph>();
 	view.setSize(px(1280), px(800));
