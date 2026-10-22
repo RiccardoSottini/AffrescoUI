@@ -105,7 +105,7 @@ private:
 		json onEvent;                               ///< "onEvent" or "do" steps, or null.
 		json onDone;                                ///< "onDone" steps, or null.
 		json onError;                               ///< "onError" steps, or null.
-		const Panel* sender = nullptr;              ///< The panel it comes from, or nullptr for the document.
+		Panel* sender = nullptr;                    ///< The panel it comes from, or nullptr for the document.
 		json event;                                 ///< The event it was started by.
 		SharedScope locals;                         ///< Variables.
 		std::string where;                          ///< The step's place.
@@ -146,7 +146,7 @@ private:
 	/// @brief Ends a call with an error and runs its "onError" (or reports it).
 	/// @param call The call's number.
 	/// @param error {code, message, data}.
-	void failCall(std::uint64_t call, json error);
+	void failCall(std::uint64_t call, const json& error);
 	/// @brief Runs an ended call's "onError", or reports its error.
 	/// @param call The call.
 	/// @param error {code, message, data}.

@@ -165,6 +165,7 @@ private:
 
 /* ServiceCalls */
 
+// NOLINTNEXTLINE(bugprone-exception-escape): cancelAll() only throws if memory runs out or a service's responder throws
 ServiceCalls::~ServiceCalls() {
 	cancelAll();
 	setServices(nullptr);
@@ -284,7 +285,7 @@ void ServiceCalls::launch(std::uint64_t number, const std::string& name, bool st
 bool ServiceCalls::busy(bool stream) const {
 	if(pending_.size() >= maxRunning) return true;
 	const auto subscriptions = std::ranges::count_if(pending_, [](const auto& entry) { return entry.second.stream; });
-	return stream && static_cast<std::size_t>(subscriptions) >= maxSubscriptions;
+	return stream && std::cmp_greater_equal(subscriptions, maxSubscriptions);
 }
 
 bool ServiceCalls::cancel(const std::string& id) {
@@ -346,7 +347,7 @@ void ServiceCalls::deliver(std::uint64_t call) {
 		const Pending ended = finish(still);
 		if(job->error) {
 			failed(ended, *job->error);
-		} else {
+		} else if(job->result) {
 			if(ended.into && !ended.stream) write(*ended.into, *job->result, ended.where + ".into");
 			if(!ended.onDone.is_null()) runSteps(ended, ended.onDone, "result", *job->result, ended.where + ".onDone");
 		}
@@ -362,7 +363,7 @@ void ServiceCalls::deliverEvents(std::uint64_t call, std::vector<json> events) {
 			if(!list.is_array()) list = json::array();
 			for(json& event : events) {
 				expect::shallowEnough(event, pointerDepth(*running.append) + 1, running.where + ".append");
-				list.push_back(event);
+				list.push_back(std::move(event));
 			}
 			if(list.size() > running.keep)
 				list.erase(list.begin(), list.begin() + static_cast<std::ptrdiff_t>(list.size() - running.keep));
@@ -381,7 +382,7 @@ void ServiceCalls::deliverEvents(std::uint64_t call, std::vector<json> events) {
 	}
 }
 
-void ServiceCalls::failCall(std::uint64_t call, json error) {
+void ServiceCalls::failCall(std::uint64_t call, const json& error) {
 	const auto it = pending_.find(call);
 	if(it == pending_.end()) return;
 	failed(finish(it), error);
@@ -426,11 +427,12 @@ void ServiceCalls::write(const json::json_pointer& pointer, json value, const st
 void ServiceCalls::runSteps(const Pending& call, const json& steps, const char* variable, json value,
                             const std::string& where) {
 	Window* window = engine_.window;
-	Panel* sender = engine_.reconciler.recordOf(call.sender) ? const_cast<Panel*>(call.sender) : nullptr;
+	Panel* sender = engine_.reconciler.recordOf(call.sender) ? call.sender : nullptr;
 	if(!sender && window) sender = &window->root();
-	if(!sender) return;                             // nothing built: no panel to run them from
-	const json handler = steps, event = call.event; // the steps may end the call they come from
-	const std::string place = where;
+	if(!sender) return; // nothing built: no panel to run them from
+	// Copies on purpose: the steps may end the call they come from, and with it these
+	const json handler = steps, event = call.event; // NOLINT(performance-unnecessary-copy-initialization)
+	const std::string place = where;                // NOLINT(performance-unnecessary-copy-initialization)
 	const auto scope = std::make_shared<const Scope>(
 	    Scope{call.locals.get(), call.locals, json{{variable, std::move(value)}}, {}, {}});
 	engine_.runner.handle(handler, *sender, event, *scope, place);

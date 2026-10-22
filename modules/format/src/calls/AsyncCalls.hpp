@@ -111,7 +111,7 @@ private:
 		std::optional<json::json_pointer> progress; ///< "progress".
 		json then;                                  ///< "then" steps, or null.
 		json onError;                               ///< "onError" steps, or null.
-		const Panel* sender = nullptr;              ///< The panel it comes from (may be gone).
+		Panel* sender = nullptr;                    ///< The panel it comes from (may be gone).
 		json event;                                 ///< The event.
 		SharedScope locals;                         ///< Variables.
 		std::string where;                          ///< The step's place.

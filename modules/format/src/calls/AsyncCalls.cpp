@@ -108,6 +108,7 @@ private:
 
 /* AsyncCalls */
 
+// NOLINTNEXTLINE(bugprone-exception-escape): cancelAll() only throws if memory runs out, which ends the program anyway
 AsyncCalls::~AsyncCalls() { cancelAll(); }
 
 bool AsyncCalls::start(const Running& s, const std::string& name, const Runtime::AsyncCall& function) {
@@ -135,6 +136,7 @@ bool AsyncCalls::start(const Running& s, const std::string& name, const Runtime:
 	call.job = job;
 	if(call.loading) write(*call.loading, true, s.where + ".loading");
 	pending_.emplace(id, std::move(call));
+	// NOLINTNEXTLINE(bugprone-exception-escape): only copying the captures can throw, if memory runs out
 	const auto body = [job, function, arguments] {
 		try {
 			job->succeed(function(arguments, *job));
@@ -195,7 +197,7 @@ void AsyncCalls::deliver(std::uint64_t id) {
 		if(job.error) {
 			if(call.onError.is_null()) engine_.report(call.where + ".call: " + call.name + ": " + *job.error);
 			else runSteps(call, call.onError, "error", *job.error, call.where + ".onError");
-		} else {
+		} else if(job.result) {
 			if(call.into) write(*call.into, *job.result, call.where + ".into");
 			if(!call.then.is_null()) runSteps(call, call.then, "result", *job.result, call.where + ".then");
 		}
@@ -234,7 +236,7 @@ void AsyncCalls::write(const json::json_pointer& pointer, json value, const std:
 void AsyncCalls::runSteps(const Pending& call, const json& steps, const char* variable, json value,
                           const std::string& where) {
 	Window* window = engine_.window;
-	Panel* sender = engine_.reconciler.recordOf(call.sender) ? const_cast<Panel*>(call.sender) : nullptr;
+	Panel* sender = engine_.reconciler.recordOf(call.sender) ? call.sender : nullptr;
 	if(!sender && window) sender = &window->root();
 	if(!sender) return; // nothing built: no panel to run them from
 	const auto scope = std::make_shared<const Scope>(
