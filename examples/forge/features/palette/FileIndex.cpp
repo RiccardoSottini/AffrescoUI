@@ -69,12 +69,26 @@ affresco::json treeItems(const Folder& folder, const std::string& prefix) {
 	return items;
 }
 
+/// @brief Whether the walk indexes the entry it is at as a file; it doesn't descend into a folder it skips.
+/// @param entry The walk, at the entry.
+/// @param limits The limits, for the depth.
+/// @param error Set when the entry can't be read.
+/// @return True for a regular file that isn't a link, isn't skipped, and isn't too deep.
+bool indexedFile(fs::recursive_directory_iterator& entry, const IndexLimits& limits, std::error_code& error) {
+	const bool folder = entry->is_directory(error) && !entry->is_symlink(error);
+	if(skipped(entry->path().filename().string(), folder) || entry.depth() >= limits.depth) {
+		if(folder) entry.disable_recursion_pending();
+		return false;
+	}
+	return !folder && entry->is_regular_file(error) && !entry->is_symlink(error);
+}
+
 } // namespace
 
 affresco::json indexFolder(const fs::path& root, const IndexLimits& limits) {
 	std::error_code error;
 	if(!fs::is_directory(root, error)) throw std::runtime_error("not a folder that can be read");
-	auto walk = fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied, error);
+	const auto walk = fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied, error);
 	if(error) throw std::runtime_error("the folder can't be read: " + error.message());
 
 	affresco::json files = affresco::json::array();
@@ -82,22 +96,17 @@ affresco::json indexFolder(const fs::path& root, const IndexLimits& limits) {
 	bool truncated = false;
 	for(auto entry = fs::begin(walk); entry != fs::end(walk); entry.increment(error)) {
 		if(error) break;
-		const bool folder = entry->is_directory(error) && !entry->is_symlink(error);
-		const std::string name = entry->path().filename().string();
-		if(skipped(name, folder) || entry.depth() >= limits.depth) {
-			if(folder) entry.disable_recursion_pending();
-			continue;
-		}
-		if(folder || !entry->is_regular_file(error) || entry->is_symlink(error)) continue;
+		if(!indexedFile(entry, limits, error)) continue;
 		if(files.size() >= limits.files) {
 			truncated = true;
 			break;
 		}
 		const std::string id = entry->path().lexically_relative(root).generic_string();
 		const std::string parent = fs::path(id).parent_path().generic_string();
-		files.push_back({{"id", id}, {"title", name}, {"detail", parent}});
+		files.push_back({{"id", id}, {"title", entry->path().filename().string()}, {"detail", parent}});
 		addToTree(tree, id);
 	}
+	// NOLINTNEXTLINE(modernize-use-ranges): json's iterators don't model the ranges concepts
 	std::sort(files.begin(), files.end(), [](const affresco::json& a, const affresco::json& b) { return a["id"] < b["id"]; });
 	return {{"root", root.filename().string()},
 	        {"files", std::move(files)},

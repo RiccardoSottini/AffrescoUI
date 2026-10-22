@@ -29,7 +29,7 @@ struct Workspace {
 ///     cancel.
 /// @param screen The screen.
 /// @param workspace The open folder, which the functions read and change.
-void registerNatives(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);
+void registerNatives(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace);
 
 /// @brief The public key of the example catalogue's publisher (catalog/, README.md). Its private half was discarded
 /// once the catalogue was signed, so nothing more can be signed with it.
