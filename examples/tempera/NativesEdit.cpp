@@ -24,7 +24,7 @@ constexpr std::size_t mostPoints = 4096;
 /// @param fallback When it is none of them.
 [[nodiscard]] imaging::SelectionMode modeOf(std::string_view name, imaging::SelectionMode fallback) noexcept {
 	constexpr std::array<std::string_view, 4> names{"replace", "add", "subtract", "intersect"};
-	const auto found = std::find(names.begin(), names.end(), name);
+	const auto* const found = std::ranges::find(names, name);
 	return found == names.end() ? fallback : static_cast<imaging::SelectionMode>(found - names.begin());
 }
 
@@ -39,11 +39,40 @@ constexpr std::size_t mostPoints = 4096;
 	        static_cast<float>(withinReach(numberOf(*found, "y", 0.0)))};
 }
 
-/// @brief Selects by a shape, a wand click or a colour range; or all, none, the inverse.
+/// @brief The coverage of a polygon argument, its points at most the limits' polygonPoints.
 /// @param session The session.
+/// @param arguments points: [{x, y}].
+/// @throws affresco::DocumentError If there is no list of points, or too long a one.
+[[nodiscard]] imaging::Coverage polygonOf(const Session& session, const json& arguments) {
+	const auto found = arguments.find("points");
+	if(found == arguments.end() || !found->is_array() || found->size() > session.limits.polygonPoints)
+		throw affresco::DocumentError("A polygon needs a list of points");
+	std::vector<imaging::Point> points;
+	points.reserve(found->size());
+	for(const json& point : *found)
+		points.push_back({static_cast<float>(withinReach(numberOf(point, "x", 0.0))),
+		                  static_cast<float>(withinReach(numberOf(point, "y", 0.0)))});
+	const imaging::Document& document = session.canvas->document();
+	return imaging::polygonCoverage(document.width(), document.height(), points, session.limits);
+}
+
+/// @brief The coverage of a colour range argument.
+/// @param session The session; its foreground is the colour when none is given.
+/// @param arguments color, fuzziness (0 to 255), allLayers.
+/// @throws affresco::DocumentError If the colour isn't one.
+[[nodiscard]] imaging::Coverage colourRangeOf(const Session& session, const json& arguments) {
+	const auto colour = colorOf(textOf(arguments, "color", hexOf(session.settings.foreground)));
+	if(!colour) throw affresco::DocumentError("Not a colour");
+	const int fuzziness = std::clamp(wholeOf(arguments, "fuzziness", 40), 0, 255);
+	return imaging::colorRangeCoverage(session.canvas->document(), *colour, fuzziness,
+	                                   flagOf(arguments, "allLayers", false));
+}
+
+/// @brief Selects by a shape, a wand click or a colour range; or all, none, the inverse.
+/// @param document The session's document, whose selection changes.
+/// @param session The session, read for its settings and limits.
 /// @param arguments kind, mode, and the shape's from and to, points, x and y, color and fuzziness.
-void select(Session& session, const json& arguments) {
-	imaging::Document& document = session.canvas->document();
+void select(imaging::Document& document, const Session& session, const json& arguments) {
 	const std::string kind = textOf(arguments, "kind");
 	const auto mode = modeOf(textOf(arguments, "mode"), session.settings.mode);
 	const int width = document.width(), height = document.height();
@@ -58,30 +87,13 @@ void select(Session& session, const json& arguments) {
 		                           : imaging::ellipseCoverage(width, height, from, to),
 		                       mode);
 	}
-	if(kind == "polygon") {
-		const auto found = arguments.find("points");
-		if(found == arguments.end() || !found->is_array() || found->size() > session.limits.polygonPoints)
-			throw affresco::DocumentError("A polygon needs a list of points");
-		std::vector<imaging::Point> points;
-		for(const json& point : *found)
-			points.push_back({static_cast<float>(withinReach(numberOf(point, "x", 0.0))),
-			                  static_cast<float>(withinReach(numberOf(point, "y", 0.0)))});
-		return imaging::select(document, "Polygonal Lasso",
-		                       imaging::polygonCoverage(width, height, points, session.limits), mode);
-	}
-	if(kind == "wand") {
-		const int x = wholeOf(arguments, "x", 0), y = wholeOf(arguments, "y", 0);
-		return imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, session.settings.sample),
+	if(kind == "polygon") return imaging::select(document, "Polygonal Lasso", polygonOf(session, arguments), mode);
+	if(kind == "wand")
+		return imaging::select(document, "Magic Wand",
+		                       imaging::wandCoverage(document, wholeOf(arguments, "x", 0), wholeOf(arguments, "y", 0),
+		                                             session.settings.sample),
 		                       mode);
-	}
-	if(kind == "colorRange") {
-		const auto colour = colorOf(textOf(arguments, "color", hexOf(session.settings.foreground)));
-		if(!colour) throw affresco::DocumentError("Not a colour");
-		const int fuzziness = std::clamp(wholeOf(arguments, "fuzziness", 40), 0, 255);
-		return imaging::select(
-		    document, "Color Range",
-		    imaging::colorRangeCoverage(document, *colour, fuzziness, flagOf(arguments, "allLayers", false)), mode);
-	}
+	if(kind == "colorRange") return imaging::select(document, "Color Range", colourRangeOf(session, arguments), mode);
 	throw affresco::DocumentError("Unknown selection " + kind);
 }
 
@@ -102,8 +114,7 @@ void select(Session& session, const json& arguments) {
 		    {std::clamp(static_cast<float>(numberOf(stop, "at", numberOf(stop, "position", 0.0))), 0.0f, 1.0f),
 			 *colour});
 	}
-	std::stable_sort(gradient.stops.begin(), gradient.stops.end(),
-	                 [](const auto& left, const auto& right) { return left.position < right.position; });
+	std::ranges::stable_sort(gradient.stops, {}, &imaging::GradientStop::position);
 	return gradient;
 }
 
@@ -114,8 +125,7 @@ void setBrush(Session& session, const json& arguments) {
 	imaging::BrushTip& tip = session.settings.tip;
 	if(const std::string preset = textOf(arguments, "preset"); !preset.empty()) {
 		const auto presets = imaging::brushPresets();
-		const auto found = std::find_if(presets.begin(), presets.end(),
-		                                [&](const auto& candidate) { return candidate.name == preset; });
+		const auto found = std::ranges::find(presets, preset, &imaging::BrushPreset::name);
 		if(found == presets.end()) throw affresco::DocumentError("Unknown brush " + preset);
 		tip = found->tip;
 	}
@@ -143,14 +153,13 @@ void setSampling(Session& session, const json& arguments) {
 	    static_cast<float>(numberOf(arguments, "fillOpacity", settings.opacity * 100.0) / 100.0), 0.0f, 1.0f);
 	if(const std::string shape = textOf(arguments, "shape"); !shape.empty()) {
 		const auto names = imaging::gradientShapeNames();
-		const auto found = std::find(names.begin(), names.end(), shape);
+		const auto found = std::ranges::find(names, shape);
 		if(found == names.end()) throw affresco::DocumentError("Unknown gradient shape " + shape);
 		settings.shape = static_cast<imaging::GradientShape>(found - names.begin());
 	}
 	if(const std::string preset = textOf(arguments, "gradientPreset"); !preset.empty()) {
 		const auto presets = imaging::gradientPresets();
-		const auto found = std::find_if(presets.begin(), presets.end(),
-		                                [&](const auto& candidate) { return candidate.name == preset; });
+		const auto found = std::ranges::find(presets, preset, &imaging::GradientPreset::name);
 		if(found == presets.end()) settings.gradient.reset();
 		else settings.gradient = found->gradient;
 	}
@@ -313,7 +322,7 @@ void registerEditing(affresco::Screen& screen, const std::shared_ptr<Session>& s
 	const std::weak_ptr<Session> weak = session;
 	addNative(screen, "tempera.select", weak, [](Session& self, const json& arguments) {
 		settle(self);
-		select(self, arguments);
+		select(self.canvas->document(), self, arguments);
 	});
 	addNative(screen, "tempera.setTool", weak, [](Session& self, const json& arguments) {
 		const auto tool = toolOf(textOf(arguments, "tool"));

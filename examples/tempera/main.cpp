@@ -98,11 +98,10 @@ int run(const Options& options) {
 /// @param argc The number of arguments.
 /// @param argv The arguments.
 /// @return 0 when the window closed, 1 on an error, 2 for a wrong command line.
-int main(int argc, char** argv) {
-	const auto options = parseArguments(argc, argv);
-	if(!options) return 2;
+int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
-		return run(*options);
+		const auto options = parseArguments(argc, argv);
+		return options ? run(*options) : 2;
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_tempera: " << error.what() << '\n';
 		return 1;

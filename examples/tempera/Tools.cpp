@@ -142,12 +142,11 @@ bool pickColour(Session& session, Point at) {
 }
 
 /// @brief Selects with the magic wand from the pixel clicked.
-/// @param session The session.
+/// @param document The document.
+/// @param settings The tool settings: the sampling and the selection mode.
 /// @param at Where, in document pixels.
 /// @return Whether it was on the document, so the selection changed.
-bool clickWand(Session& session, Point at) {
-	imaging::Document& document = session.canvas->document();
-	const ToolSettings& settings = session.settings;
+bool clickWand(imaging::Document& document, const ToolSettings& settings, Point at) {
 	const int x = static_cast<int>(std::floor(at.x)), y = static_cast<int>(std::floor(at.y));
 	if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) return false;
 	imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, settings.sample), settings.mode);
@@ -179,7 +178,7 @@ bool pressTool(Session& session, Point at) {
 	case Tool::polygon:
 		return addCorner(session, at);
 	case Tool::wand:
-		return clickWand(session, at);
+		return clickWand(session.canvas->document(), session.settings, at);
 	case Tool::fill:
 		clickFill(session, at);
 		return true;
@@ -222,12 +221,11 @@ bool dragTool(Session& session, const imaging::CanvasPointer& event) {
 }
 
 /// @brief A marquee's selection, or none for a click without a drag.
-/// @param session The session.
-/// @param at Where the button went up.
-void selectShape(Session& session, Point at) {
-	imaging::Document& document = session.canvas->document();
-	const Point from = session.press.start;
-	const ToolSettings& settings = session.settings;
+/// @param document The document.
+/// @param settings The tool settings: the marquee's shape and the selection mode.
+/// @param from Where the button went down.
+/// @param at Where it went up.
+void selectShape(imaging::Document& document, const ToolSettings& settings, Point from, Point at) {
 	if(std::abs(at.x - from.x) < 1.0f && std::abs(at.y - from.y) < 1.0f) {
 		if(settings.mode == imaging::SelectionMode::replace) imaging::deselect(document);
 		return;
@@ -292,7 +290,7 @@ bool releaseTool(Session& session, Point at) {
 		return true;
 	case Tool::marquee:
 	case Tool::ellipse:
-		selectShape(session, at);
+		selectShape(session.canvas->document(), session.settings, from, at);
 		return true;
 	case Tool::lasso:
 		closeLasso(session);
@@ -450,7 +448,8 @@ void moveActiveLayer(imaging::Document& document, int dx, int dy) {
 	try {
 		for(const auto& [place, tile] : before) document.replaceTile(target, place.first, place.second, nullptr);
 		for(const auto& [place, tile] : before)
-			copyPlaced(*tile, {place.first * imaging::tileSize + dx, place.second * imaging::tileSize + dy, columns, rows},
+			copyPlaced(*tile,
+			           {place.first * imaging::tileSize + dx, place.second * imaging::tileSize + dy, columns, rows},
 			           destinationOf);
 	} catch(...) {
 		document.cancel();

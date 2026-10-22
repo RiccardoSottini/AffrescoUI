@@ -34,7 +34,7 @@ std::filesystem::path temperaDirectory() { return AFFRESCOUI_TEMPERA_DIRECTORY; 
 /// @return Its text.
 /// @throws affresco::DocumentError If it can't be read.
 std::string readText(const std::filesystem::path& path) {
-	std::ifstream in(path, std::ios::binary);
+	const std::ifstream in(path, std::ios::binary);
 	if(!in) throw affresco::DocumentError("can't read " + path.string());
 	std::ostringstream text;
 	text << in.rdbuf();
