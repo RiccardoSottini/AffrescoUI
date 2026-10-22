@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <stop_token>
+#include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
@@ -27,6 +28,15 @@ namespace affresco::services {
 [[nodiscard]] std::unique_ptr<Provider> makeJsonRpcProvider();
 /// @brief The `watch` provider: a granted folder; what changes under it is streamed, debounced.
 [[nodiscard]] std::unique_ptr<Provider> makeWatchProvider();
+/// @brief The `pty` provider: a granted program on a terminal of its own; its output is streamed, what is typed sent.
+[[nodiscard]] std::unique_ptr<Provider> makePtyProvider();
+
+/// @brief Takes the text from terminal output that arrives in pieces (a split sequence waits for the next piece;
+/// bytes that aren't UTF-8 become U+FFFD).
+/// @param carry Bytes left from the piece before; on return, the incomplete sequence at this one's end.
+/// @param bytes The piece.
+/// @return The text, valid UTF-8.
+[[nodiscard]] std::string takeTerminalText(std::string& carry, std::string_view bytes);
 
 /// @brief Worker threads, at most a few at once, all stopped and joined when it ends. Main thread only.
 class Tasks {

@@ -236,6 +236,11 @@ to it, and symbolic links are listed but never followed or watched, so nothing o
 send is bounded: at most 1,000 paths a batch (more becomes one `rescan`), one batch per debounce interval (20 ms at
 least), 100,000 watched folders, 200,000 rows, 4 subscriptions per service. Ignore globs only narrow what is reported.
 
+The `pty` provider starts only a program the host allowed (`allowProcess`, as for `process`), from an argument vector:
+a shell runs only if the host allows a shell as the program. The terminal's output reaches the screen as text, and
+it is bounded: 8 terminals per service, 64 KiB a write and 1 MiB waiting, 16 KiB an event and 4 MiB a second. Escape
+sequences in that text are the terminal widget's to interpret; the provider acts on none of them.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it

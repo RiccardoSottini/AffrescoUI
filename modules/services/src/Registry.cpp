@@ -83,6 +83,7 @@ ServiceRegistry::ServiceRegistry() {
 	add(makeProcessProvider());
 	add(makeJsonRpcProvider());
 	add(makeWatchProvider());
+	add(makePtyProvider());
 }
 
 ServiceRegistry::~ServiceRegistry() { entries_.clear(); }
