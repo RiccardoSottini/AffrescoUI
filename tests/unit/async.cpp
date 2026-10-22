@@ -278,6 +278,22 @@ TEST_CASE("format: a slow call that throws runs onError with its message") {
 	CHECK(stateAt(screen, "/busy") == false);
 }
 
+// On a worker thread, what isn't a std::exception went past the call and ended the program
+TEST_CASE("format: a slow call that throws something else, on a worker, runs onError too") {
+	FakeExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(calls);
+	screen.onAsyncCall("slow", [](const std::string&, CallProgress&) -> std::string { throw 42; });
+	screen.setExecutor(&executor);
+	screen.build(*window);
+	screen.runAction("start", window->root());
+	REQUIRE(executor.waitForTask());
+	executor.drain();
+	CHECK(stateAt(screen, "/error") == "an unknown error");
+	CHECK(stateAt(screen, "/busy") == false);
+}
+
 TEST_CASE("format: at most 64 slow calls run at once; one more ends with an error") {
 	FakeExecutor executor;
 	const ManualClock clock;

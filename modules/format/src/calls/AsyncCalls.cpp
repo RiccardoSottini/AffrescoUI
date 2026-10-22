@@ -142,6 +142,8 @@ bool AsyncCalls::start(const Running& s, const std::string& name, const Runtime:
 			job->succeed(function(arguments, *job));
 		} catch(const std::exception& error) { // never across threads: the reason is delivered
 			job->failed(error.what());
+		} catch(...) { // an application's function may throw anything; on a worker, it would end the program
+			job->failed("an unknown error");
 		}
 	};
 	if(!executor_) {
