@@ -228,6 +228,11 @@ if(AFFRESCOUI_BUILD_TESTS)
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/game-launcher/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()
+	if(AFFRESCOUI_BUILD_EXAMPLES)
+		# Sinopia's scenarios, headless: editing, the sorter, exporting and presenting (examples/sinopia/README.md)
+		add_test(NAME sinopia COMMAND affrescoui_sinopia --check
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia/sinopia.scenarios.json)
+	endif()
 endif()
 
 if(AFFRESCOUI_BUILD_TOOLS)

@@ -181,7 +181,9 @@ void registerNatives(affresco::Screen& screen, const std::shared_ptr<Session>& s
 		const json with = argumentsOf(arguments);
 		const Deck deck = readDeck(with.contains("deck") ? with["deck"] : json(), session->limits);
 		const std::string name = fileName(with.value("name", deck.title)) + ".sinopia.json";
-		std::ofstream output(session->folder / "decks" / name, std::ios::binary);
+		const std::filesystem::path folder = session->saveFolder.empty() ? session->folder / "decks" : session->saveFolder;
+		std::filesystem::create_directories(folder);
+		std::ofstream output(folder / name, std::ios::binary);
 		output << writeDeck(deck).dump(1, '\t') << '\n';
 		if(!output) throw std::runtime_error("Sinopia: " + name + " could not be written");
 		return json({{"file", name}}).dump();

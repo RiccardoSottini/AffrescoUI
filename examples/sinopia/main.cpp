@@ -73,6 +73,7 @@ int check(const std::filesystem::path& file) {
 		auto session = std::make_shared<sinopia::Session>();
 		session->folder = folder;
 		session->exportFolder = std::filesystem::temp_directory_path() / "affrescoui-sinopia-check";
+		session->saveFolder = session->exportFolder; // never into the source tree
 		prepare(screen, session);
 	};
 	const automation::Report report = automation::run(scenarios, options);

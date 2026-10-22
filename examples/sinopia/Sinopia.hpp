@@ -21,6 +21,7 @@ namespace sinopia {
 struct Session {
 	std::filesystem::path folder;         ///< The screen's folder: decks are read from its `decks` folder.
 	std::filesystem::path exportFolder;   ///< Where exports are written.
+	std::filesystem::path saveFolder;     ///< Where `sinopia.save` writes decks; empty: the `decks` folder.
 	affresco::Application* app = nullptr; ///< Opens the audience window; null in scenarios.
 	affresco::Screen* screen = nullptr;   ///< The workspace.
 	affresco::Window* window = nullptr;   ///< The workspace's window; null until it is made.
