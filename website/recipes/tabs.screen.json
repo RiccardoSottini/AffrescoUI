@@ -1,0 +1,22 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Tabs", "width": 480, "height": 240 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": {
+		"open": [{ "id": "main", "label": "main.cpp" }, { "id": "notes", "label": "notes.md", "marker": true },
+		         { "id": "todo", "label": "todo.txt" }],
+		"active": "main"
+	},
+	"root": {
+		"color": "#ffffff",
+		"children": [
+			{ "type": "tabs", "id": "editor-tabs", "width": "100%", "height": 36, "tabs": "{{state.open}}",
+			  "bind": "state.active", "accentColor": "#6366f1",
+			  "onClose": [{ "set": "state.open", "to": "{{filter(state.open, it.id != event.id)}}" }] },
+			{ "type": "label", "id": "content", "x": 16, "y": 52, "width": 448, "height": 28, "textColor": "#0f172a",
+			  "text": "{{empty(state.open) ? 'No tabs open' : 'Showing ' + state.active}}" }
+		]
+	}
+}

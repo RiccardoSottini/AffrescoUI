@@ -1,0 +1,20 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Watch", "width": 360, "height": 200 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "volume": 40, "log": [] },
+	"watch": {
+		"state.volume": [{ "push": "state.log", "value": "{{event.previous}} → {{event.value}}" }]
+	},
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "slider", "id": "volume", "x": 24, "y": 24, "width": 312, "height": 24, "step": 10,
+			  "bind": "state.volume", "activeColor": "#6366f1", "trackColor": "#e2e8f0", "knobColor": "#ffffff" },
+			{ "type": "label", "id": "last", "x": 24, "y": 64, "width": 312, "height": 28, "textColor": "#0f172a",
+			  "text": "Changes: {{join(slice(reverse(state.log), 0, 3), ', ')}}" }
+		]
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Validation", "width": 380, "height": 220 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "email": "", "sent": false },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "id": "field", "x": 24, "y": 24, "width": 332, "height": 72,
+			  "check": { "value": "{{state.email}}", "rule": "{{contains(value, '@')}}", "message": "Enter an email address" },
+			  "children": [
+				{ "type": "textarea", "id": "email", "width": "100%", "height": 40, "padding": 10, "radius": 8,
+				  "color": "#ffffff", "borderWidth": 1, "borderColor": "{{valid ? '#cbd5e1' : '#dc2626'}}",
+				  "textColor": "#0f172a", "placeholder": "you@example.com", "bind": "state.email" },
+				{ "type": "label", "id": "email-error", "y": 46, "width": "100%", "height": 20, "textColor": "#dc2626",
+				  "when": "{{!valid && !empty(state.email)}}", "text": "{{error}}" }
+			  ] },
+			{ "type": "label", "id": "send", "x": 24, "y": 108, "width": 120, "height": 40, "align": "center", "radius": 8,
+			  "color": "{{contains(state.email, '@') ? '#6366f1' : '#a5b4fc'}}", "textColor": "#ffffff",
+			  "role": "button", "text": "Send",
+			  "onClick": [{ "if": "{{contains(state.email, '@')}}", "then": [{ "set": "state.sent", "to": true }] }] },
+			{ "type": "label", "id": "sent", "x": 24, "y": 160, "width": 332, "height": 24, "textColor": "#16a34a",
+			  "when": "{{state.sent}}", "text": "Sent." }
+		]
+	}
+}

@@ -11,6 +11,8 @@ compiler and flags, kept warm by a compile cache (ccache) shared across runs.
 | [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand | `Fuzz (nightly)`, `Scaling (nightly)` |
 | [`bindings.yml`](bindings.yml) | Pull requests that change the code, pushes to `master` | `C API and Python`: the C11 test of every `afr_` function (Xvfb), the Python binding's tests against `libaffresco`, a frame of each mode of `examples/embed` |
 | [`release.yml`](release.yml) | A `v*` tag ([RELEASING.md](../../RELEASING.md)) | The release builds |
+| [`site.yml`](site.yml) | Pull requests that change the site or what it is generated from, every push to `master`, and on demand | `Site`: builds the documentation site strictly ([`website/README.md`](../../website/README.md)) and uploads it (artifact `site`); no deploy |
+| [`vscode.yml`](vscode.yml) | Pull requests that change `editors/vscode/` or the schemas, every push to `master`, and on demand | `VS Code extension`: the extension's unit tests and its `.vsix` package ([`editors/vscode/README.md`](../../editors/vscode/README.md), artifact `vscode-extension`); no publish |
 
 CodeQL's analyses (`Analyze (actions)`, `Analyze (c-cpp)`, `Analyze (python)`) come from the repository's CodeQL
 default setup, a setting, not a workflow here.
@@ -50,6 +52,8 @@ on the same runner. A fuzz input that fails is uploaded under its target's name 
 | Rendering check | `python3 tests/render/check.py` (never `--update` unless the pictures should change) |
 | Package check | `python3 tests/package/check.py` |
 | API reference | `doxygen Doxyfile` |
+| Documentation site | `website/build.sh` ([`website/README.md`](../../website/README.md)) |
+| VS Code extension | `cd editors/vscode && npm ci && npm test && npm run package` |
 | Quality gate | `tools/quality/run.sh gate origin/master` ([`tools/quality/README.md`](../../tools/quality/README.md)) |
 | Sanitizers and fuzzing | `CC=clang CXX=clang++ cmake -S . -B build-fuzz -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAFFRESCOUI_BUILD_FUZZERS=ON`, build, `ctest --test-dir build-fuzz`, then `.github/workflows/fuzz.sh build-fuzz 60` ([`tests/fuzz/README.md`](../../tests/fuzz/README.md) for macOS) |
 | Benchmarks | [`tests/perf/README.md`](../../tests/perf/README.md) |

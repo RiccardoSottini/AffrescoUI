@@ -1,0 +1,6 @@
+{
+	"colors": { "surface": "#f8fafc", "text": "#0f172a", "accent": "#6366f1" },
+	"styles": {
+		"title": { "type": "label", "height": 32, "textColor": "@text", "anchors": { "left": 0, "right": 0 } }
+	}
+}

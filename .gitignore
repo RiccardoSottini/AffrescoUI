@@ -36,3 +36,7 @@ __pycache__/
 tests/render/golden/
 tests/render/golden-gles3/
 dist/
+
+# The VS Code extension's installed devDependencies and its package
+node_modules/
+*.vsix

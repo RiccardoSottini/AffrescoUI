@@ -1,0 +1,18 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "List", "width": 400, "height": 300 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "people": ["Ada", "Alan", "Barbara", "Edsger", "Grace", "Ken", "Margaret"], "picked": ["Grace"] },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "list", "id": "people", "x": 16, "y": 16, "width": 200, "height": 268, "items": "{{state.people}}",
+			  "selection": "multiple", "bind": "state.picked", "rowHeight": 28, "textColor": "#0f172a",
+			  "selectedTextColor": "#0f172a", "selectedBackground": "#ddd6fe", "accentColor": "#7c3aed" },
+			{ "type": "label", "id": "picked", "x": 232, "y": 16, "width": 152, "height": 268, "wrap": true,
+			  "textColor": "#0f172a", "text": "Picked: {{join(state.picked, ', ')}}" }
+		]
+	}
+}

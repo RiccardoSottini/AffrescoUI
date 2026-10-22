@@ -1,0 +1,25 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Context menu", "width": 420, "height": 280 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "menu": false, "at": { "x": 0, "y": 0 }, "last": "nothing" },
+	"actions": { "choose": [{ "set": "state.last", "to": "{{what}}" }] },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "label", "id": "target", "x": 24, "y": 24, "width": 372, "height": 120, "align": "center",
+			  "radius": 10, "color": "#e2e8f0", "textColor": "#0f172a",
+			  "text": "Right-click here (last: {{state.last}})",
+			  "onContextMenu": [{ "set": "state.at", "to": { "x": "{{event.x}}", "y": "{{event.y}}" } },
+			                    { "set": "state.menu", "to": true }] },
+			{ "use": "contextMenu", "id": "menu", "with": { "open": "state.menu", "x": "{{state.at.x}}",
+			  "y": "{{state.at.y}}", "items": [
+				{ "title": "Copy", "keyLabel": "Ctrl+C", "run": "choose", "with": { "what": "copy" } },
+				{ "separator": true },
+				{ "title": "Rename", "run": "choose", "with": { "what": "rename" } }
+			] } }
+		]
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Service", "width": 420, "height": 200 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "text": "", "busy": false, "error": "" },
+	"services": { "files": { "provider": "fs", "root": "workspace" } },
+	"actions": {
+		"open": [{ "invoke": "files.read", "with": { "path": "notes.txt" }, "into": "state.text", "loading": "state.busy",
+		           "timeout": 5000, "onError": [{ "set": "state.error", "to": "{{error.message}}" }] }]
+	},
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "label", "id": "open", "x": 24, "y": 24, "width": 160, "height": 40, "align": "center", "radius": 8,
+			  "color": "#6366f1", "textColor": "#ffffff", "cursor": "hand", "role": "button", "text": "Open notes.txt",
+			  "onClick": "open" },
+			{ "type": "label", "id": "text", "x": 24, "y": 80, "width": 372, "height": 96, "wrap": true,
+			  "textColor": "#0f172a", "text": "{{state.busy ? 'Reading…' : state.error || state.text}}" }
+		]
+	}
+}
