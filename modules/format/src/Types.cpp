@@ -168,6 +168,9 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerIconProperty(registry);
 	registerRichTextProperties(registry);
 	registerPathType(registry);
+	registerColorPickerType(registry);
+	registerGradientType(registry);
+	registerCurvesType(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

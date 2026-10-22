@@ -1,0 +1,39 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Creative controls, for the rendering check: a colour picker with swatches, a gradient whose colour halfway along fills a preview panel, and tone curves over a histogram whose output at 0.5 sets a bar's width. The scenario drags in the square, types a hex value, adds and moves a stop, and moves a curve point.",
+
+	"window": { "title": "Creative controls", "width": 640, "height": 400 },
+
+	"state": {
+		"color": "#e11d48ff",
+		"gradient": { "kind": "linear", "angle": 90,
+		              "stops": [{ "at": 0, "color": "#0ea5e9ff" }, { "at": 1, "color": "#f97316ff" }] },
+		"curve": { "points": [[0, 0], [1, 1]] },
+		"histogram": [2, 5, 9, 14, 20, 26, 30, 28, 24, 21, 19, 22, 27, 25, 18, 11, 7, 4, 2, 1]
+	},
+
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 13 } },
+
+	"colors": { "background": "#f8fafc", "frame": "#e2e8f0", "accent": "#7c3aed", "ink": "#0f172a" },
+
+	"root": {
+		"id": "page",
+		"color": "@background",
+		"children": [
+			{ "type": "colorPicker", "id": "picker", "x": 20, "y": 20, "width": 220, "height": 340, "focusable": true,
+			  "label": "Fill colour", "bind": "state.color", "textColor": "@ink", "accentColor": "@accent",
+			  "swatches": ["@accent", "@ink", "#22c55e", "#eab308", "#ffffff80"] },
+			{ "type": "gradient", "id": "gradient", "x": 260, "y": 20, "width": 200, "height": 160, "focusable": true,
+			  "label": "Background gradient", "bind": "state.gradient", "accentColor": "@accent" },
+			{ "id": "gradient-preview", "x": 260, "y": 200, "width": 200, "height": 40, "borderColor": "@frame",
+			  "borderWidth": 1, "color": "{{gradientColor(state.gradient, 0.5)}}" },
+			{ "type": "curves", "id": "curves", "x": 480, "y": 20, "width": 140, "height": 170, "focusable": true,
+			  "channels": true, "label": "Tone curve", "bind": "state.curve", "histogram": "{{state.histogram}}",
+			  "textColor": "@ink", "accentColor": "@accent" },
+			{ "id": "curve-output", "x": 480, "y": 210, "height": 12, "color": "@accent",
+			  "width": "{{curve(state.curve, 0.5) * 140}}" }
+		]
+	}
+}

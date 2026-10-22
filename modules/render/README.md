@@ -26,6 +26,10 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`) |
 | `TextModel.hpp` | `TextModel`: UTF-8 text of any size as a piece tree, with a line index (`line`, `offsetOf`, `positionOf`), O(log n) edits, undo as operations (`beginStep`, `endStep`, `undo`) and `onChanged` (`TextChange`); `TextLines`, its lines decoded and kept for reading again |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
+| `ColorSpaces.hpp` | `color::` conversions between sRGB, linear sRGB, HSV, HSL, OKLab and OKLCH, and gamut mapping into sRGB |
+| `ColorPicker.hpp` | `ColorPicker`: a saturation-value square and hue strip, or a wheel and value strip; an alpha strip; hex, RGB, HSL, HSV and OKLCH fields; swatches and recent colours (at most 32 and 8); an eyedropper limited to the window; arrows act in the part Tab is on |
+| `GradientEditor.hpp` | `GradientEditor`: a linear or radial `Gradient` (at most 32 stops) edited on a bar, each stop's colour in a `ColorPicker` popover; `sampleGradient`, `gradientPosition` |
+| `CurvesEditor.hpp` | `CurvesEditor`: tone curves for RGB, R, G and B (at most 32 points each) over an optional histogram; `evaluateCurve` (monotone, linear or Bézier) |
 | `Split.hpp` | `Split`: panes along a row or a column with sashes between them; sizes within minimums, the last pane taking the rest; dragged, reset by a double click or Home, moved by the arrow keys (PageUp and PageDown pick a sash); `onSizesChanged` |
 | `Tabs.hpp` | `Tabs`: a strip of `Tab`s, one active; it scrolls when they overflow, closes (a button or Delete), reorders by dragging (`onMoved`), shows where a tab dragged from another strip would go (`insertionAt`, `showDropIndicator`), and moves with the arrow keys, Home and End |
 | `RowWindow.hpp` | `RowWindow`: which rows of a long list are in view and where each starts, for one shared virtualisation; fixed heights in O(1), measured ones in O(log n) |
@@ -199,6 +203,10 @@ src/
   TextEditorPaint.cpp      its drawing: visible lines in runs of one colour, selection, gutter, caret
   TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   Controls.cpp             Toggle and Slider
+  ColorSpaces.cpp          the colour-space maths
+  ColorPicker*.cpp         the picker: input, fields and swatches; its drawing (ColorPickerPaint.cpp)
+  GradientEditor.cpp       the gradient maths and editor; CurvesEditor.cpp the curve maths and editor
+  CreativePixels.hpp       their CPU bitmaps (each a cached slot, at most 256 px a side) and drawing helpers
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
   RowWindow.cpp            the rows in view: fixed heights, or measured ones in a Fenwick tree
   ListView.cpp, TreeView.cpp  virtualised rows: selection, keys, type-to-find, drops, anchoring; a tree's open

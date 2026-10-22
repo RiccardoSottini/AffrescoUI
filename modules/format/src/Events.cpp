@@ -7,6 +7,7 @@
 #include "Settings.hpp"
 #include "Shortcuts.hpp"
 
+#include "affresco/render/ColorPicker.hpp"
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
@@ -617,6 +618,8 @@ bool Events::navigate(Panel* from, const KeyEvent& event) {
 	const bool plain = !mods.super() && !mods.control() && !mods.alt();
 	Window& window = *engine_.window;
 
+	// a colour picker that took Tab moved to its next part, and keeps the focus
+	if(event.key == Key::Tab && !keyResolved_ && dynamic_cast<const ColorPicker*>(from)) return false;
 	// Tab and Shift+Tab, in the open modal overlay if any (a code editor keeps Tab for indenting)
 	if(event.key == Key::Tab && plain && !dynamic_cast<const TextEditor*>(from)) {
 		const std::vector<Panel*> order = focusables(modalScope(), false);

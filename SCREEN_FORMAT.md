@@ -102,7 +102,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -260,6 +260,53 @@ shows a value and `onChange` (`event.value`) reacts. A control keeps its own cli
 | `activeColor` | The filled or on part. |
 | `knobColor` | The knob (or the inside of the checkbox). |
 | `min`, `max`, `step` | Slider range (default 0 to 100) and snapping. |
+<!-- end generated -->
+
+### `colorPicker`, `gradient`, `curves`
+Creative controls, bound like `slider`: `bind` keeps the value in a state path; without it, `value` shows one and
+`onChange` (`event.value`) reacts. They keep their own clicks, work from the keyboard alone (with `"focusable": true`)
+and draw from cached bitmaps.
+
+`colorPicker`: a saturation-value square and a hue strip, or a hue wheel and a value strip (`mode`), an alpha strip,
+fields for hex, RGB, HSL, HSV and OKLCH, swatches and the last colours picked. The arrows move the marker of the part
+the keyboard is on, Tab goes to the next part, typing in a field and Enter applies it. Pressing on the preview and
+letting go elsewhere in the window picks the colour there (an eyedropper limited to the window).
+
+<!-- generated: colorPicker -->
+| Key | Meaning |
+|---|---|
+| `value` | The colour, `"#rrggbbaa"` (`bind` keeps it in a state path); picking one runs `onChange` with it. |
+| `mode` | `"square"` (the default: saturation across, value down, a hue strip) or `"wheel"` (hue around, saturation out, a value strip). |
+| `alpha` | Whether the alpha strip shows (default true); hidden, the colour is opaque. |
+| `fields` | Whether the typed fields show (default true): hex, RGB, HSL, HSV and OKLCH. |
+| `swatches` | Colours to pick from: hex colours or design tokens (`"@accent"`), at most 32. The last 8 colours picked follow them. |
+| `textColor`, `accentColor` | The fields' text and the accent of the part the keyboard is on. |
+<!-- end generated -->
+
+`gradient`: colour stops on a bar over a preview. Click the bar to add a stop, drag one to move it (off the bar to
+remove it), click one to edit its colour in a picker. Keys: Left and Right select a stop, Shift with the arrows moves
+it, Insert or `=` adds one, Delete removes it, Enter edits its colour (Escape closes), K switches linear and radial,
+`[` and `]` turn the angle.
+
+<!-- generated: gradient -->
+| Key | Meaning |
+|---|---|
+| `value` | `{ "kind": "linear" or "radial", "angle": 90, "stops": [{ "at": 0, "color": "#000000ff" }] }`: the angle in degrees (0 up, 90 right, as in CSS), the stops' positions 0 to 1, at most 32 stops. `bind` keeps it in a state path; a change runs `onChange` with it. `gradientColor(value, at)` gives its colour at a position. |
+| `accentColor` | The selected stop's outline, and the accent of the colour popover. |
+<!-- end generated -->
+
+`curves`: control points on a 0 to 1 square, over an optional histogram. Click to add a point, drag one to move it
+(out of the square to remove it). Keys: Left and Right select a point, Shift+Left and Shift+Right move it across, Up
+and Down move it (Shift for larger steps), Insert or `=` adds one, Delete removes it, C switches the channel.
+
+<!-- generated: curves -->
+| Key | Meaning |
+|---|---|
+| `value` | `{ "points": [[0, 0], [1, 1]] }`: the control points, 0 to 1, at most 32; with `channels`, also `"red"`, `"green"` and `"blue"` lists. `bind` keeps it in a state path; a change runs `onChange` with it. `curve(value, x)` gives the curve's output at `x`. |
+| `interpolation` | `"monotone"` (the default: smooth through the points, never overshooting), `"linear"` or `"bezier"` (the points as a Bézier curve's control polygon). |
+| `channels` | Whether the RGB, R, G and B tabs show (default false: the RGB curve only). |
+| `histogram` | Counts from dark to light drawn behind the curve, e.g. `"{{state.histogram}}"`; at most 1,024. |
+| `accentColor` | The selected point and tab. |
 <!-- end generated -->
 
 ### `image`
@@ -452,7 +499,8 @@ Wherever a value is expected it can be computed:
   `len(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
-  `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`;
+  `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
+  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
