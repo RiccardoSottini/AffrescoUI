@@ -139,6 +139,24 @@ TEST_CASE("forge: files are read only inside the open folder") {
 	CHECK_THROWS_AS(forge::readInFolder(folder.path, "notes/a.txt", 2), std::runtime_error);
 }
 
+#ifndef _WIN32
+TEST_CASE("forge: a write in the folder never follows a link planted at a temporary name") {
+	const TempFolder folder, outside;
+	folder.write("main.cpp", "old");
+	outside.write("victim.txt", "keep");
+	// The fixed name the language server's edits once went through, and a link in place of the file itself
+	std::filesystem::create_symlink(outside.path / "victim.txt", folder.path / "main.cpp.forge-edit");
+	CHECK_FALSE(forge::writeInFolder(folder.path / "main.cpp", "new"));
+	CHECK(forge::readInFolder(folder.path, "main.cpp") == "new");
+	CHECK(forge::readInFolder(outside.path, "victim.txt") == "keep");
+
+	std::filesystem::create_symlink(outside.path / "victim.txt", folder.path / "linked.cpp");
+	CHECK_FALSE(forge::writeInFolder(folder.path / "linked.cpp", "replaced"));
+	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "linked.cpp")); // the link is replaced, not written through
+	CHECK(forge::readInFolder(outside.path, "victim.txt") == "keep");
+}
+#endif
+
 TEST_CASE("forge: the icon theme dresses tree items by name, then extension, then kind") {
 	json items = json::parse(R"([
 		{ "id": "src/", "label": "src", "children": [{ "id": "src/main.cpp", "label": "main.cpp" }] },
