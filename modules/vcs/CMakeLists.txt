@@ -15,5 +15,6 @@ affrescoui_module(vcs
 	src/Roles.cpp
 	src/Policy.cpp
 	src/PolicyRepository.cpp
-	src/ChangeSetRepair.cpp)
+	src/ChangeSetRepair.cpp
+	src/CompositionProofRevision.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)

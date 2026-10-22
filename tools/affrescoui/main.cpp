@@ -20,10 +20,17 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 12> list = {{
+	static constexpr std::array<Command, 13> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
 		 "Show a screen and let peers change it, like affrescoui_host", runScreen},
-	    {"check", "<file> [--json]", "Check a screen: the schema, the format's rules and the checker", checkScreen},
+	    {"check",
+	     "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
+	     "[--document FILE] [--revision out.json] [--json]",
+	     "Check a screen: the schema, the format's rules and the checker; --compose proves a feature from another app "
+	     "fits it",
+	     checkScreen},
+	    {"contributions", "<file> [--json]",
+	     "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
 	    {"test", "<scenarios.json>... [--json] [--only NAME] [--goldens DIR] [--update] [--out DIR] [--document FILE]",
 		 "Play a screen's scenarios and report what failed", testScreen},
 	    {"policy", "test <file.policy.json>... [--json]",
