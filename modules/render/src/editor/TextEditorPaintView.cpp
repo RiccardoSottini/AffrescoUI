@@ -17,11 +17,31 @@ namespace {
 /// @param line The row's line.
 /// @param start The row's first column.
 /// @param end One past its last.
+/// @return Its first column on the row and the column after its last; empty if it is not on the row.
 std::pair<std::size_t, std::size_t> decorationColumns(const EditorDecoration& d, std::size_t line, std::size_t start,
                                                       std::size_t end) noexcept {
 	const std::size_t from = line == d.line ? std::max(d.column, start) : start;
 	const std::size_t to = line == d.endLine ? std::min(d.endColumn, end) : end;
 	return {from, to};
+}
+
+/// @brief The columns of a span of one line (a match, a bracket) on one of its rows.
+/// @param column The span's first column.
+/// @param length Its code points.
+/// @param start The row's first column.
+/// @param end One past its last.
+/// @return Its first column on the row and the column after its last; empty if it is not on the row.
+std::pair<std::size_t, std::size_t> spanColumns(std::size_t column, std::size_t length, std::size_t start,
+                                                std::size_t end) noexcept {
+	return {std::max(column, start), std::min(column + length, end)};
+}
+
+/// @brief Whether a decoration is drawn under the text and reaches the visible lines.
+/// @param d The decoration.
+/// @param firstLine The first visible line.
+/// @return true if it is.
+bool backgroundFrom(const EditorDecoration& d, std::size_t firstLine) noexcept {
+	return d.kind == EditorDecoration::Kind::Background && d.endLine >= firstLine;
 }
 
 } // namespace
@@ -42,7 +62,7 @@ void TextEditor::paintUnder(Painter& painter, const Font& /*font*/, const Layout
 	                                              &EditorDecoration::line);
 	for(auto it = visible; it != decorations_.end() && it->line <= lastLine; ++it) {
 		const EditorDecoration& d = *it;
-		if(d.kind != EditorDecoration::Kind::Background || d.endLine < firstLine) continue;
+		if(!backgroundFrom(d, firstLine)) continue;
 		const bool wholeLines = d.column == 0 && d.endColumn == SIZE_MAX;
 		forRowsOf(layout, d.line, d.endLine, [&](std::size_t row, RowSpan span) {
 			const float top = lineTop(layout, row);
@@ -57,15 +77,15 @@ void TextEditor::paintUnder(Painter& painter, const Font& /*font*/, const Layout
 	findVisibleMatches(firstLine, lastLine + 1);
 	for(const VisibleMatch& m : visibleMatches_)
 		forRowsOf(layout, m.line, m.line, [&](std::size_t row, RowSpan span) {
-			const std::size_t from = std::max(m.column, span.start), to = std::min(m.column + m.length, span.end);
+			const auto [from, to] = spanColumns(m.column, m.length, span.start, span.end);
 			if(from < to) paintColumns(painter, layout, span, row, {from, to}, matchColor_);
 		});
 
 	if(const auto brackets = matchingBrackets())
 		for(const Position p : {brackets->first, brackets->second})
 			forRowsOf(layout, p.line, p.line, [&](std::size_t row, RowSpan span) {
-				if(p.column >= span.start && p.column < span.end)
-					paintColumns(painter, layout, span, row, {p.column, p.column + 1}, bracketColor_);
+				const auto [from, to] = spanColumns(p.column, 1, span.start, span.end);
+				if(from < to) paintColumns(painter, layout, span, row, {from, to}, bracketColor_);
 			});
 }
 

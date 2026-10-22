@@ -8,8 +8,102 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <tuple>
+#include <utility>
 
 namespace affresco {
+namespace {
+
+/// @brief Where the colouring of the visible lines starts, and the state it carries from line to line.
+struct ColorCursor {
+	std::size_t line = 0; ///< The line coloured next.
+	int state = 0;        ///< The state it starts with.
+};
+
+/// @brief Where the colouring starts: at the first visible line with a highlighter, which keeps its own state, or else
+/// at the last line whose state is known (an open block comment may come from above the visible lines).
+/// @param states The state each line starts with, for the lines coloured so far; seeded with the first line's.
+/// @param firstLine The first visible line.
+/// @param highlighted Whether a highlighter colours the lines.
+/// @return The line and its state.
+ColorCursor colorStart(std::vector<int>& states, std::size_t firstLine, bool highlighted) {
+	if(states.empty()) states.push_back(0);
+	if(highlighted) return {firstLine, states[0]};
+	const std::size_t line = std::min(states.size() - 1, firstLine);
+	return {line, states[line]};
+}
+
+/// @brief Steps the colouring past a line: over the folded lines after it, when a highlighter colours the lines or
+/// when the state they end with is known, or else into them.
+/// @param at The line just coloured and its state; moved on.
+/// @param next The next line shown after it.
+/// @param highlighted Whether a highlighter colours the lines.
+/// @param states The state each line starts with, for the lines coloured so far.
+void colorStep(ColorCursor& at, std::size_t next, bool highlighted, const std::vector<int>& states) noexcept {
+	++at.line;
+	if(next <= at.line) return;
+	if(highlighted) at.line = next;
+	else if(next < states.size()) at = {next, states[next]};
+}
+
+/// @brief Splits a row into runs of one colour, each placed where the whole line's shaping puts it (so the caret
+/// matches): left to right, a run starts where the one before it ends; otherwise (bidirectional text) at its leftmost
+/// caret.
+/// @param colors The line's colours.
+/// @param shaped The line's shaping, with an advance and a caret for every code point of the row.
+/// @param columns The row's first column and the column after its last.
+/// @param wrapped Whether lines wrap: a row's x is then from its first caret.
+/// @param runs Cleared, then filled with each run's end, x and width.
+void colorRuns(const std::vector<Color>& colors, const Font::ShapedText& shaped,
+               std::pair<std::size_t, std::size_t> columns, bool wrapped,
+               std::vector<std::tuple<std::size_t, float, float>>& runs) {
+	const bool leftToRight = std::ranges::is_sorted(shaped.carets);
+	const float origin = wrapped ? shaped.carets[columns.first] : 0.0f;
+	runs.clear();
+	float pen = 0.0f;
+	for(std::size_t start = columns.first; start < columns.second;) {
+		std::size_t end = start + 1;
+		while(end < columns.second && colors[end] == colors[start]) ++end;
+		float width = 0.0f, left = shaped.carets[start];
+		for(std::size_t i = start; i < end; ++i) {
+			width += shaped.advances[i];
+			left = std::min(left, shaped.carets[i + 1]);
+		}
+		runs.emplace_back(end, leftToRight ? pen : left - origin, width);
+		pen += width;
+		start = end;
+	}
+}
+
+/// @brief Where a gutter decoration goes on its line, in window units.
+struct MarkPlace {
+	float left = 0.0f;     ///< The gutter's left edge.
+	float baseline = 0.0f; ///< The line's text baseline, for an icon.
+	float middle = 0.0f;   ///< The line's middle, for a dot.
+};
+
+/// @brief Draws a gutter decoration: its icon, or else a dot.
+/// @param painter The painter.
+/// @param font The editor's font.
+/// @param mark The decoration.
+/// @param at Where it goes.
+void paintGutterMark(Painter& painter, const Font& font, const EditorDecoration& mark, const MarkPlace& at) {
+	if(mark.icon != 0)
+		return painter.drawText(font, std::u32string_view(&mark.icon, 1), {at.left + 2.0f, at.baseline}, mark.color);
+	painter.fillRoundedRect({at.left + 3.0f, at.middle - 3.0f, at.left + 9.0f, at.middle + 3.0f},
+	                        CornerRadii::all(3.0f), mark.color);
+}
+
+/// @brief Whether a row is among those drawn.
+/// @param row The row.
+/// @param first The first row drawn.
+/// @param last The row after the last one drawn.
+/// @return true if it is.
+constexpr bool drawnRow(std::size_t row, std::size_t first, std::size_t last) noexcept {
+	return row >= first && row < last;
+}
+
+} // namespace
 
 void TextEditor::colorLine(std::u32string_view /*line*/, int& /*state*/, std::vector<Color>& colors) const {
 	std::ranges::fill(colors, textColor_);
@@ -33,42 +127,32 @@ void TextEditor::paint(Painter& painter) const {
 	if(layout.first >= layout.last) return paintGutter(painter, *f, layout);
 	const std::size_t firstLine = rowSpan(layout.first).line, lastLine = rowSpan(layout.last - 1).line + 1;
 
-	if(const std::size_t caretRow = rowOf(caret_);
-	   !hasSelection() && caretRow >= layout.first && caretRow < layout.last) {
+	if(const std::size_t caretRow = rowOf(caret_); !hasSelection() && drawnRow(caretRow, layout.first, layout.last)) {
 		const float top = lineTop(layout, caretRow);
 		painter.fillRect({box.left, top, box.right, top + lh}, lineColor_);
 	}
 	paintUnder(painter, *f, layout);
 
-	// The colouring state (e.g. an open block comment) may come from above the visible lines: each line's is kept, so
-	// they are coloured from the last one known (folded lines whose state is known are skipped); a highlighter keeps
-	// its own and colours only the lines drawn
-	if(states_.empty()) states_.push_back(0);
-	std::size_t line = highlighter_ ? firstLine : std::min(states_.size() - 1, firstLine);
-	int state = states_[highlighter_ ? 0 : line];
-	while(line < lastLine) {
-		const std::u32string& text = lines_[line];
-		if(highlighter_) {
+	// Each line's colouring state is kept, so the lines are coloured from the last one known (folded lines whose state
+	// is known are skipped); a highlighter keeps its own and colours only the lines drawn
+	const bool highlighted = highlighter_ != nullptr;
+	for(ColorCursor at = colorStart(states_, firstLine, highlighted); at.line < lastLine;) {
+		const std::u32string& text = lines_[at.line];
+		if(highlighted) {
 			colors_.assign(text.size(), textColor_);
-			highlighter_->colorLine(*model_, line, text, colors_);
+			highlighter_->colorLine(*model_, at.line, text, colors_);
 		} else {
 			colors_.resize(text.size());
-			colorLine(text, state, colors_);
-			if(line + 1 == states_.size()) states_.push_back(state);
+			colorLine(text, at.state, colors_);
+			if(at.line + 1 == states_.size()) states_.push_back(at.state);
 		}
-		if(line >= firstLine && !hidden(line))
-			for(std::size_t row = std::max(rowOf({line, 0}), layout.first); row < layout.last; ++row) {
+		if(at.line >= firstLine && !hidden(at.line))
+			for(std::size_t row = std::max(rowOf({at.line, 0}), layout.first); row < layout.last; ++row) {
 				const RowSpan span = rowSpan(row);
-				if(span.line != line) break;
+				if(span.line != at.line) break;
 				paintLine(painter, *f, layout, span, row);
 			}
-		const std::size_t next = nextShown(line);
-		++line;
-		if(next > line && highlighter_) line = next;
-		else if(next > line && next < states_.size()) {
-			line = next;
-			state = states_[next];
-		}
+		colorStep(at, nextShown(at.line), highlighted, states_);
 	}
 
 	paintAbove(painter, *f, layout);
@@ -94,27 +178,11 @@ void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& lay
 	for(auto it = reaches; it != cursors_.end() && std::min(it->anchor, it->caret).line <= span.line; ++it)
 		paintSelection(painter, font, layout, span, row, std::minmax(it->anchor, it->caret));
 
-	// Runs of one colour, each shaped on its own, where the whole line's shaping puts them (so the caret matches).
-	// Their places are read first: drawing a run shapes it, which may drop the line's shaping from the cache
+	// Runs of one colour, each shaped on its own. Their places are read first: drawing a run shapes it, which may drop
+	// the line's shaping from the cache
 	const Font::ShapedText& shaped = font.shape(text);
 	if(shaped.advances.size() < text.size() || shaped.carets.size() <= span.end) return; // out of memory
-	// Left to right, a run starts where the one before it ends; otherwise (bidirectional text) at its leftmost caret
-	const bool leftToRight = std::ranges::is_sorted(shaped.carets);
-	const float origin = wrap_ ? shaped.carets[span.start] : 0.0f;
-	runs_.clear();
-	float pen = 0.0f;
-	for(std::size_t start = span.start; start < span.end;) {
-		std::size_t end = start + 1;
-		while(end < span.end && colors_[end] == colors_[start]) ++end;
-		float width = 0.0f, left = shaped.carets[start];
-		for(std::size_t i = start; i < end; ++i) {
-			width += shaped.advances[i];
-			left = std::min(left, shaped.carets[i + 1]);
-		}
-		runs_.push_back({end, leftToRight ? pen : left - origin, width});
-		pen += width;
-		start = end;
-	}
+	colorRuns(colors_, shaped, {span.start, span.end}, wrap_, runs_);
 	std::size_t start = span.start;
 	for(const auto& [end, x, width] : runs_) {
 		const float left = layout.textLeft + x;
@@ -206,14 +274,7 @@ void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& l
 	for(auto it = from; it != decorations_.end() && rowOf({it->line, 0}) < layout.last; ++it) {
 		if(it->kind != EditorDecoration::Kind::Gutter || hidden(it->line)) continue;
 		const float top = lineTop(layout, rowOf({it->line, 0}));
-		if(it->icon != 0) {
-			painter.drawText(font, std::u32string_view(&it->icon, 1), {box.left + 2.0f, top + layout.baseline},
-			                 it->color);
-			continue;
-		}
-		const float middle = top + layout.lineHeight / 2.0f;
-		painter.fillRoundedRect({box.left + 3.0f, middle - 3.0f, box.left + 9.0f, middle + 3.0f},
-		                        CornerRadii::all(3.0f), it->color);
+		paintGutterMark(painter, font, *it, {box.left, top + layout.baseline, top + layout.lineHeight / 2.0f});
 	}
 }
 

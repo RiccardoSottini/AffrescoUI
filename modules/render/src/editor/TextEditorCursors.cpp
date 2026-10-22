@@ -6,6 +6,7 @@
 #include "affresco/render/Window.hpp"
 
 #include "detail/Utf8.hpp"
+#include "editor/TextEditorShared.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -14,6 +15,9 @@
 
 namespace affresco {
 
+using editor::commandHeld;
+using editor::wordHeld;
+
 namespace {
 
 constexpr std::size_t maxInlineLength = 256;       ///< Code points of a decoration's inline text kept, at most.
@@ -21,11 +25,36 @@ constexpr std::size_t maxOccurrenceScan = 100'000; ///< Lines Cmd+D reads for th
 
 /// @brief A selection's start.
 /// @param s The selection.
+/// @return Its anchor or its caret, whichever comes first.
 TextPosition startOf(const EditorSelection& s) noexcept { return std::min(s.anchor, s.caret); }
 
 /// @brief A selection's end.
 /// @param s The selection.
+/// @return Its anchor or its caret, whichever comes last.
 TextPosition endOf(const EditorSelection& s) noexcept { return std::max(s.anchor, s.caret); }
+
+/// @brief What a key with the command modifier does to the view.
+enum class ViewCommand {
+	None,           ///< Nothing: the key goes on to the other handlers.
+	Find,           ///< G: the next match (with Shift, the previous one).
+	NextOccurrence, ///< D: a cursor at the next occurrence of the selection.
+	CursorRow,      ///< Alt+Up or Alt+Down: a cursor on the row above or below.
+	Fold,           ///< Alt+[ folds the caret's block, Alt+] unfolds it.
+};
+
+/// @brief Reads a key held with the command modifier as a view command.
+/// @param event The key.
+/// @return The command, or None.
+ViewCommand viewCommandOf(const KeyEvent& event) noexcept {
+	const Mods m = event.mods;
+	const Key key = event.key;
+	if(key == Key::G && !m.alt()) return ViewCommand::Find;
+	if(key == Key::D && !m.shift() && !m.alt()) return ViewCommand::NextOccurrence;
+	if(!m.alt()) return ViewCommand::None;
+	if(key == Key::Up || key == Key::Down) return ViewCommand::CursorRow;
+	if(key == Key::LeftBracket || key == Key::RightBracket) return ViewCommand::Fold;
+	return ViewCommand::None;
+}
 
 } // namespace
 
@@ -141,49 +170,45 @@ void TextEditor::moveCursors(const std::function<EditorSelection(EditorSelection
 /* Keys */
 
 bool TextEditor::viewKey(const KeyEvent& event) {
-	const Mods m = event.mods;
-	const bool command = m.super() || m.control();
 	if(event.key == Key::Escape && !cursors_.empty()) {
 		clearCursors();
 		return true;
 	}
-	return command && commandViewKey(event);
+	return commandHeld(event.mods) && commandViewKey(event);
 }
 
 bool TextEditor::commandViewKey(const KeyEvent& event) {
-	const Mods m = event.mods;
 	if(event.key == Key::A) clearCursors(); // then selects everything as usual
-	if(event.key == Key::G && !m.alt()) {
-		findNext(m.shift());
+	switch(viewCommandOf(event)) {
+	case ViewCommand::Find:
+		findNext(event.mods.shift());
 		return true;
-	}
-	if(event.key == Key::D && !m.shift() && !m.alt()) {
+	case ViewCommand::NextOccurrence:
 		selectNextOccurrence();
 		return true;
-	}
-	if(m.alt() && (event.key == Key::Up || event.key == Key::Down)) {
+	case ViewCommand::CursorRow:
 		addCursorRow(event.key == Key::Down);
 		return true;
-	}
-	if(m.alt() && (event.key == Key::LeftBracket || event.key == Key::RightBracket)) {
+	case ViewCommand::Fold:
 		if(event.key == Key::LeftBracket) fold(caret_.line);
 		else unfold(caret_.line);
 		return true;
+	case ViewCommand::None:
+		return false;
 	}
 	return false;
 }
 
 bool TextEditor::cursorsKey(const KeyEvent& event) {
 	if(cursors_.empty()) return false;
-	const bool command = event.mods.super() || event.mods.control();
-	if(command && event.key != Key::V) return false;
+	if(commandHeld(event.mods) && event.key != Key::V) return false;
 	if(const auto moved = cursorsMoveKey(event)) return *moved;
 	return editable() && cursorsEditKey(event);
 }
 
 std::optional<bool> TextEditor::cursorsMoveKey(const KeyEvent& event) {
 	const Mods m = event.mods;
-	const bool word = m.alt() || (m.control() && !m.super());
+	const bool word = wordHeld(m);
 	const bool shift = m.shift();
 	const auto moveEach = [&](auto to) {
 		moveCursors([&](EditorSelection s) {
@@ -216,7 +241,7 @@ std::optional<bool> TextEditor::cursorsMoveKey(const KeyEvent& event) {
 
 bool TextEditor::cursorsEditKey(const KeyEvent& event) {
 	const Mods m = event.mods;
-	const bool word = m.alt() || (m.control() && !m.super());
+	const bool word = wordHeld(m);
 	switch(event.key) {
 	case Key::Enter:
 	case Key::KeypadEnter:
