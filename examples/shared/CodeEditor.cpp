@@ -579,8 +579,10 @@ void applyPopup(affresco::Screen& screen, ScreenCodeEditor& editor, const affres
 /// @param properties The node's properties.
 void applyInsert(ScreenCodeEditor& editor, const affresco::json& properties) {
 	const auto insert = properties.find("insert");
-	if(insert == properties.end() || !insert->is_object() || !(*insert)["text"].is_string()) return;
-	editor.insertAtCaret(affresco::codepointsOf((*insert)["text"].get<std::string>()),
+	if(insert == properties.end() || !insert->is_object()) return;
+	const auto text = insert->find("text"); // not operator[]: on a const object, a missing key is undefined behaviour
+	if(text == insert->end() || !text->is_string()) return;
+	editor.insertAtCaret(affresco::codepointsOf(text->get<std::string>()),
 	                     static_cast<std::size_t>(std::max(0.0, insert->value("before", 0.0))),
 	                     static_cast<long long>(insert->value("request", 0.0)));
 }

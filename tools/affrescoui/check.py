@@ -10,7 +10,8 @@
 - export and import: a change set goes into a screen's history on disk once, and comes back out of it;
 - the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3);
 - a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
-- render connects to no channel the screen declares, even by an absolute path.
+- render connects to no channel the screen declares, even by an absolute path;
+- render draws a code editor whose "insert" has no "text".
 
     python3 tools/affrescoui/check.py [--build DIR] [--headless]
 
@@ -167,6 +168,16 @@ class Checker:
             self.expect(True, "")
         listener.close()
 
+    def insert_without_text(self):
+        """A code editor whose "insert" has no "text": render draws it and inserts nothing (it used to read the missing
+        key through a const operator[], which is undefined behaviour and aborted a debug build)."""
+        path = os.path.join(self.scratch, "insert.screen.json")
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-screen", "version": 2, "window": {"width": 200, "height": 100},
+                       "root": {"id": "root", "children": [{"type": "code", "id": "code", "width": 200, "height": 100,
+                                                            "insert": {"before": 1}}]}}, file)
+        self.run("render", path, "-o", os.path.join(self.scratch, "insert.png"))
+
     def long_pattern_input(self):
         """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex
         overflowed the stack on it), so check reports it as too long to check instead of crashing."""
@@ -232,6 +243,7 @@ def main():
         checker.long_pattern_input()
         if not headless:
             checker.render_reaches_nobody()
+            checker.insert_without_text()
             large = os.path.join(scratch, "large.png")  # 9000 x 2 = 18,000 pixels: refused before it allocates
             checker.run("render", templates[0], "-o", large, "--size", "9000x100", "--scale", "2", expect=3)
             checker.expect(not os.path.exists(large), "render: a frame too large to draw left a file")
