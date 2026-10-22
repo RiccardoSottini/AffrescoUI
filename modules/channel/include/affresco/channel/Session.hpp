@@ -47,6 +47,12 @@ public:
 	void send(const json& message);
 	/// @brief The name this peer is authored as.
 	[[nodiscard]] const std::string& author() const noexcept { return author_; }
+	/// @brief The usage summaries (VERSION_CONTROL.md, "Usage"): given whether to clear them first, the summary, or
+	/// std::nullopt while they are off.
+	using UsageSummary = std::function<std::optional<json>(bool clear)>;
+	/// @brief Answers "getUsage" and "clearUsage" from a reviewer (by default they are off).
+	/// @param summary The summaries; must not outlive what it reads.
+	void setUsage(UsageSummary summary) { usage_ = std::move(summary); }
 
 	Signal<const json&> onRelay; ///< A "request" or "reply" for other peers, with "from" set.
 
@@ -140,6 +146,7 @@ private:
 	TokenBucket pictureRate_; ///< Pictures ("render"), at the rate of changes: each draws the whole screen.
 	bool limited_ = false;                                                ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
+	UsageSummary usage_; ///< For "getUsage" and "clearUsage" (empty: off).
 };
 
 } // namespace affresco::channel

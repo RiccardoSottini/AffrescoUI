@@ -2,7 +2,7 @@
 /// @brief affrescoui_host: shows a screen file and lets other programs change it while it runs.
 //
 //   affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--auto-accept]
-//               [--plugin changes.json ...]
+//               [--plugin changes.json ...] [--usage]
 //
 // The window only renders: it has no idea where changes come from. Programs connect over two local sockets in DIR
 // (default $AFFRESCOUI_SOCKET_DIR, else /tmp/affrescoui-<uid>, or %LOCALAPPDATA%\affrescoui\sockets on Windows):
@@ -11,6 +11,8 @@
 // What each author may do is up to the screen's "permissions"; --auto-accept is --mode acceptEdits, for this run only.
 // The screen's history and "persist" state are kept in --data DIR (default $AFFRESCOUI_DATA_DIR, else ~/.affrescoui),
 // and a plugin is applied once: the history remembers it. Default screen:
+// --usage counts how the screen is used (VERSION_CONTROL.md, "Usage"), on this device and only once the person agreed,
+// asked once on the terminal. Default screen:
 // the Kanban board template; the other templates are in assets/screens (smart-home, music-player, code-editor,
 // habit-tracker).
 
@@ -30,6 +32,12 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace {
 
@@ -124,6 +132,7 @@ struct Options {
 	/// For this run only: without --mode, the one a reviewer last chose, which the screen's history keeps.
 	std::optional<affresco::Mode> mode;
 	std::vector<std::string> plugins; ///< The change sets to apply, in order.
+	bool usage = false;               ///< Count usage summaries, with the person's consent (off by default).
 };
 
 /// @brief Reads one argument of the command line.
@@ -134,6 +143,10 @@ struct Options {
 int readArgument(Options& options, std::string_view arg, const char* value) {
 	if(arg == "--auto-accept") {
 		options.mode = affresco::Mode::AcceptEdits;
+		return 1;
+	}
+	if(arg == "--usage") {
+		options.usage = true;
 		return 1;
 	}
 	if(!arg.starts_with("--")) {
@@ -159,12 +172,32 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		const int taken = readArgument(options, argv[i], i + 1 < argc ? argv[i + 1] : nullptr);
 		if(taken == 0) {
 			std::cerr << "usage: affrescoui_host [file.screen.json] [--socket DIR] [--data DIR] "
-			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json]\n";
+			             "[--mode default|acceptEdits|plan] [--auto-accept] [--plugin changes.json] [--usage]\n";
 			return std::nullopt;
 		}
 		i += taken;
 	}
 	return options;
+}
+
+/// @brief Switches usage summaries on with --usage, asking the person once, on the terminal, the first time: without a
+/// terminal to ask on, or without a "yes", nothing is counted.
+/// @param screen The screen.
+void enableUsage(affresco::Screen& screen) {
+#ifdef _WIN32
+	const bool terminal = _isatty(_fileno(stdin)) != 0;
+#else
+	const bool terminal = isatty(STDIN_FILENO) != 0;
+#endif
+	if(!screen.usageConsented() && terminal) {
+		std::cerr << "affrescoui_host: count how this screen is used (which controls run and fail, which screens are "
+		             "visited; ids, counts and times only, kept on this device for 30 days)? [y/N] ";
+		std::string answer;
+		std::getline(std::cin, answer);
+		if(answer == "y" || answer == "yes") screen.giveUsageConsent();
+	}
+	screen.setUsageEnabled(true);
+	if(!screen.usageConsented()) std::cerr << "affrescoui_host: usage summaries stay off: no consent\n";
 }
 
 /// @brief Shows the screen and lets peers change it, until the window closes.
@@ -181,6 +214,7 @@ int run(const Options& options) {
 	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
 	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 	if(options.mode) screen.setModeForThisRun(*options.mode);
+	if(options.usage && !screenshotOnly) enableUsage(screen);
 	screen.createWindow(app);
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, screenFile(options.file));

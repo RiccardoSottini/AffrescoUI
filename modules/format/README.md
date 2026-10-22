@@ -16,6 +16,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing), `reviewLines` (the service steps a change adds, which always need a reviewer) and `behaviourLines` (what a change does to behaviour, for review policies and evidence); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
 | `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`) |
+| `Usage.hpp` | `Usage` (`Runtime::usage`): usage summaries, off by default: `setEnabled` with the person's `giveConsent`, `ran`, `visited`, `summary`, `clear`; only ids, counts and times, bounded |
 | `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
@@ -218,7 +219,7 @@ and shows what it decoded.
 ## Files
 
 ```
-include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp, Features.hpp
+include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp, Features.hpp, Usage.hpp
 src/
   Features.cpp             features (RFC 0004): trusted publishers, catalogues, the install and upgrade revisions
   Composition.*            the enabled features merged into the screen the runtime builds, with RFC 0004's checks
@@ -275,6 +276,8 @@ src/
                            properties, in Properties.cpp)
   Settings.*               the settings section: defaults, checked writes to settings.x, the settings and
                            settingsList variables
+  Usage.cpp                usage summaries (Usage.hpp): counts per node id and action and per screen, the controls
+                           never used, bounded, over 30 days, in a file beside the "persist" state
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
   Scheduler.*              timers, animations, debounces, transitions, deferred tasks (instant when
                            window.reducedMotion)

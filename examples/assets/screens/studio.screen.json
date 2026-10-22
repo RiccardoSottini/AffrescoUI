@@ -241,7 +241,8 @@
 			"leases": [],
 			"roles": {}
 		},
-		"roleDraft": ""
+		"roleDraft": "",
+		"usage": null
 	},
 	"stateTypes": {
 		"theme": {
@@ -354,6 +355,9 @@
 		},
 		"roleDraft": {
 			"type": "string"
+		},
+		"usage": {
+			"type": ["object", "null"]
 		}
 	},
 	"computed": {
@@ -953,6 +957,12 @@
 					"kind": "error",
 					"text": "{{event.proposal != null ? 'Proposal #' + event.proposal + ' rejected: ' + event.error : 'Rejected: ' + event.error}}"
 				}
+			}
+		],
+		"host:usage": [
+			{
+				"set": "state.usage",
+				"to": "{{event.usage}}"
 			}
 		],
 		"host:reply": [
@@ -2355,6 +2365,55 @@
 													"left": 20,
 													"top": 36
 												}
+											},
+											{
+												"id": "label-get-usage",
+												"style": "smallButton",
+												"text": "Usage summary",
+												"anchors": {
+													"right": 132,
+													"top": 6
+												},
+												"width": 104,
+												"when": "{{state.canReview}}",
+												"onClick": [
+													{
+														"send": "host",
+														"data": {
+															"type": "getUsage"
+														}
+													}
+												]
+											},
+											{
+												"id": "label-clear-usage",
+												"style": "smallButton",
+												"text": "Clear usage",
+												"anchors": {
+													"right": 20,
+													"top": 6
+												},
+												"width": 104,
+												"when": "{{state.canReview}}",
+												"onClick": [
+													{
+														"send": "host",
+														"data": {
+															"type": "clearUsage"
+														}
+													}
+												]
+											},
+											{
+												"id": "label-usage",
+												"style": "caption",
+												"text": "Usage: {{len(state.usage.actions)}} actions, {{len(state.usage.screens)}} screens, {{len(state.usage.untouched)}} controls never used",
+												"anchors": {
+													"right": 252,
+													"top": 12
+												},
+												"fitText": true,
+												"when": "{{state.usage != null && state.canReview}}"
 											},
 											{
 												"id": "roleDraft",

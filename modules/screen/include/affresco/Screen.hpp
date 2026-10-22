@@ -256,6 +256,26 @@ public:
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
 
+	/* Usage summaries (VERSION_CONTROL.md, "Usage"): off by default; only node ids, action names, counts and times */
+	/// @brief Sets the file the usage summaries and the person's consent are kept in, and loads it (default:
+	/// `<data folder>/<screen file name>.usage.json`, beside the "persist" state).
+	/// @param file The file.
+	void setUsageFile(std::filesystem::path file);
+	/// @brief The host's setting: usage summaries count only while it is on and the person consented.
+	/// @param on Whether the setting is on.
+	void setUsageEnabled(bool on);
+	/// @brief Whether the person consented to usage summaries on this device, once.
+	/// @return true if so.
+	[[nodiscard]] bool usageConsented() const;
+	/// @brief Records the person's consent (the host asks once, then never again).
+	void giveUsageConsent();
+	/// @brief The usage summaries, as JSON text: actions run and failed per node and action, screens visited, and the
+	/// controls never touched.
+	/// @return The summary.
+	[[nodiscard]] std::string usageJson();
+	/// @brief Forgets the usage counts (the consent stays).
+	void clearUsage();
+
 	/// @brief Runs an action as if a panel triggered it.
 	/// @param name The action (from the file, else native).
 	/// @param sender The panel it comes from.

@@ -282,7 +282,21 @@
 				{ "expect": { "node": "#label-lease", "text": "/state/columns/0: agent/ada, 240 s left" } },
 				{ "expect": { "node": "#label-end-lease", "exists": false } },
 				{ "expect": { "node": "#label-set-role", "exists": false } },
-				{ "expect": { "node": "#roleDraft", "exists": false } }
+				{ "expect": { "node": "#roleDraft", "exists": false } },
+				{ "expect": { "node": "#label-get-usage", "exists": false } }
+			]
+		},
+		{
+			"name": "agents-show-usage-summaries",
+			"note": "A reviewer asks the host for its usage summaries (counts only) and sees them; the host answers only while they are on",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "studio/ann", "canReview": true, "mode": "default" } },
+				{ "action": "host:review", "event": { "proposals": [], "previewing": null, "mode": "default", "grants": [], "revision": 4, "coordination": { "peers": [{ "author": "studio", "role": "", "leases": [] }], "leases": [], "roles": {} } } },
+				{ "key": "mod+4" },
+				{ "expect": { "node": "#label-get-usage", "exists": true } },
+				{ "expect": { "node": "#label-usage", "exists": false } },
+				{ "action": "host:usage", "event": { "type": "usage", "usage": { "enabled": true, "consented": true, "since": 1760000000, "retentionSeconds": 2592000, "actions": [{ "node": "addCard", "action": "onClick", "runs": 3, "errors": 0, "first": 1760000100, "last": 1760000200 }], "screens": [], "untouched": ["search", "clear"] } } },
+				{ "expect": { "node": "#label-usage", "text": "Usage: 1 actions, 0 screens, 2 controls never used" } }
 			]
 		}
 	]

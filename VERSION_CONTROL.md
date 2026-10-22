@@ -210,6 +210,21 @@ Several agents at once claim the parts they work on, so one doesn't undo another
   where a reviewer ends a lease or gives a role; the MCP server has `lease_part`, `renew_lease` and `release_part`.
 - At most 256 peers and 256 leases, 16 per holder; targets are at most 256 bytes, holder names 64.
 
+### Usage
+Usage summaries say which controls people use, so whoever improves a screen can see what runs, what fails and what
+nobody touches. They are **off by default**: `affrescoui_host --usage` switches them on, and the host asks the person
+once, on the terminal, whether to count (without a terminal or a "yes", nothing is counted; the answer is kept).
+
+- Counted per node id and action (`onClick`, `onClick:addCard`): runs and errors, the first and last time; the screens
+  navigated to; and, when asked, the controls (nodes with an id and a handler or a `bind`) never used.
+- **Never content:** ids as the document writes them, action and screen names, counts and times. No text, values,
+  state or pictures. Kept only on the device, in `<data folder>/<screen>.usage.json` beside the "persist" state; counts
+  not made for 30 days are dropped.
+- Bounded: 1,024 node and action pairs, 64 screens, names of 1 to 64 printable bytes, counts up to 10^9.
+- **Only a reviewer reads them,** and only while they are on: `getUsage` answers `{ "type": "usage", "usage": {...} }`,
+  `clearUsage` forgets the counts (the consent stays). An agent can't read them, nor grant itself that. The Studio's
+  Agents tab shows them and clears them; the MCP server has `get_usage`.
+
 ## Modes
 A reviewer sets how much they are asked, like Claude Code's permission modes (`affrescoui_host --mode`, the Studio's
 switch, or `setMode` over the live protocol):

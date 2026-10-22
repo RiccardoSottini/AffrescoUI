@@ -12,6 +12,7 @@
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
+#include "affresco/format/Usage.hpp"
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
@@ -256,6 +257,7 @@ public:
 	Signal<const std::string&, const json&> onSend; ///< "send" steps: a channel's name and the message.
 	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
 	Signal<> onUpdated;                             ///< The panels were brought in line with the document and state.
+	Usage usage; ///< Usage summaries (VERSION_CONTROL.md, "Usage"): off until the host switches them on, with consent.
 
 private:
 	struct Impl;

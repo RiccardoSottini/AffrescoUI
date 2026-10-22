@@ -759,12 +759,24 @@ COORDINATION_TOOLS = [
     {"name": "release_part",
      "description": "End a lease you hold, as soon as you are done with that part.",
      "inputSchema": object_schema({"target": {"type": "string"}}, ["target"])},
+    {"name": "get_usage",
+     "description": "The screen's usage summaries (VERSION_CONTROL.md, \"Usage\"): per node id and action, how often "
+                    "it ran and failed; the screens visited; the controls never used, over the last 30 days. Only "
+                    "ids, counts and times. Refused unless the host switched them on with the person's consent and "
+                    "your connection may review.",
+     "inputSchema": object_schema(),
+     "annotations": {"readOnlyHint": True}},
 ]
 TOOLS += COORDINATION_TOOLS
 
 
 def coordination_tool(host, client, name, args):
-    """Runs a lease tool; None if `name` is none of them."""
+    """Runs a lease tool or get_usage; None if `name` is none of them."""
+    if name == "get_usage":
+        reply = host.request({"type": "getUsage"})
+        if reply.get("type") == "usage":
+            return compact(reply.get("usage")), False
+        return f"refused: {reply.get('error')}", True
     if name not in ("lease_part", "renew_lease", "release_part"):
         return None
     message = {"type": "release" if name == "release_part" else "lease", "author": client,

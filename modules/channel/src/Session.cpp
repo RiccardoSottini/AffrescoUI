@@ -86,6 +86,25 @@ std::optional<json> coordinate(VersionControl& versions, const void* connection,
 	return error ? refused(*error) : json{{"type", "done"}};
 }
 
+/// @brief Answers "getUsage" and "clearUsage" (VERSION_CONTROL.md, "Usage"): for a reviewer only, while the host
+/// has them on.
+/// @param usage The summaries (may be empty: off).
+/// @param versions The document's version control.
+/// @param channel The session's channel: who may review.
+/// @param type The message's type.
+/// @return The answer, without its "id", or std::nullopt if it is neither.
+std::optional<json> usageAnswer(const Session::UsageSummary& usage, const VersionControl& versions,
+                                const std::string& channel, const std::string& type) {
+	if(type != "getUsage" && type != "clearUsage") return std::nullopt;
+	if(!versions.mayReview(channel))
+		return json{{"type", "rejected"}, {"error", "permission denied: only a reviewer reads usage summaries"}};
+	const std::optional<json> summary = usage ? usage(type == "clearUsage") : std::nullopt;
+	if(!summary)
+		return json{{"type", "rejected"},
+		            {"error", "usage summaries are off: the host switches them on, with the person's consent"}};
+	return json{{"type", "usage"}, {"usage", *summary}};
+}
+
 } // namespace
 
 Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog,
@@ -144,7 +163,9 @@ Session::~Session() {
 
 // Error texts can quote what the peer sent, bytes that aren't UTF-8 included (a parse error shows the bytes it read),
 // and dump() throws on those by default: they are replaced with U+FFFD instead, so answering never fails
-void Session::send(const json& message) { channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace)); }
+void Session::send(const json& message) {
+	channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace));
+}
 
 // Open proposals, the one being previewed, the mode and the "don't ask again" grants
 json Session::reviewState() const {
@@ -182,7 +203,8 @@ void Session::handle(const std::string& line) {
 			onRelay(relayed);
 		} else if(showsWhole(in.type) && versions_.readable(author_)) {
 			expect::fail(in.type, "permission denied: the data rules let '" + author_ + "' read only some paths");
-		} else if(const auto answer = coordinate(versions_, this, author_, in.author, in.type, m)) {
+		} else if(auto answer = coordinate(versions_, this, author_, in.author, in.type, m);
+		          answer || (answer = usageAnswer(usage_, versions_, author_, in.type))) {
 			json reply = *answer;
 			reply["revision"] = versions_.head().number;
 			reply["id"] = in.id;
@@ -388,9 +410,10 @@ bool Session::handleQuery(const Incoming& in) {
 		send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", in.id}});
 	} else if(in.type == "diff") {
 		// A proposal against main's head, or any two commits (default: the previous one against HEAD)
-		const json patch = m.contains("proposal")
-		                       ? versions_.proposalDiff(expect::integer(m["proposal"], "diff.proposal"))
-		                       : versions_.diff(m.value("from", json("HEAD~1")), m.value("to", json("HEAD")));
+		const json patch =
+		    m.contains("proposal")
+		        ? versions_.proposalDiff(expect::integer(m["proposal"], "diff.proposal"))
+		        : versions_.diff(m.value("from", json("HEAD~1")), m.value("to", json("HEAD")));
 		send({{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", in.id}});
 	} else if(in.type == "exportChanges") {
 		send({{"type", "changes"},
