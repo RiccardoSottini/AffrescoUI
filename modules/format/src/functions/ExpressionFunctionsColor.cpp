@@ -21,9 +21,9 @@ Value curve(const Call& call) {
 	normalizeCurve(points);
 	CurveInterpolation interpolation = CurveInterpolation::Monotone;
 	if(call.size() > 2) {
-		if(!call[2].isText()) call.fail("expected \"monotone\", \"linear\" or \"bezier\"");
+		if(!call[2].isText()) call.fail(R"(expected "monotone", "linear" or "bezier")");
 		const auto named = curveInterpolationFromName(call[2].text());
-		if(!named) call.fail("expected \"monotone\", \"linear\" or \"bezier\"");
+		if(!named) call.fail(R"(expected "monotone", "linear" or "bezier")");
 		interpolation = *named;
 	}
 	return Value::fromNumber(evaluateCurve(points, interpolation, call.number(1)));

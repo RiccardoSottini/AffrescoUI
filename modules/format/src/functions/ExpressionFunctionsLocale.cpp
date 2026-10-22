@@ -39,7 +39,7 @@ int decimalsArgument(const Call& call, std::size_t index, int fallback) {
 /// @return The style or pattern.
 std::string styleAndZone(const Call& call, std::string_view style, bool& universal) {
 	const std::string zone = call.size() > 2 ? call[2].toText() : "local";
-	if(zone != "utc" && zone != "local") call.fail("the zone is \"utc\" or \"local\"");
+	if(zone != "utc" && zone != "local") call.fail(R"(the zone is "utc" or "local")");
 	universal = zone == "utc";
 	return call.size() > 1 && !call[1].isNull() ? call[1].toText() : std::string(style);
 }
@@ -111,7 +111,7 @@ Value formatRelativeValue(const Call& call) {
 Value formatListValue(const Call& call) {
 	if(!call[0].isList()) call.fail("expected a list");
 	const std::string kind = call.size() > 1 ? call[1].toText() : "and";
-	if(kind != "and" && kind != "or") call.fail("the kind is \"and\" or \"or\"");
+	if(kind != "and" && kind != "or") call.fail(R"(the kind is "and" or "or")");
 	std::vector<std::string> items;
 	items.reserve(call[0].size());
 	for(std::size_t i = 0; i < call[0].size(); ++i) items.push_back(call[0].item(i).toText());

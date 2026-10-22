@@ -10,6 +10,7 @@
 #include <cmath>
 #include <format>
 #include <optional>
+#include <ranges>
 #include <utility>
 
 namespace affresco::format {
@@ -55,6 +56,7 @@ private:
 
 	/// @brief Reads a name, keyword or selector: letters, digits, '_', '-', '.', '=' and ':'.
 	/// @return It ("" if none).
+	// NOLINTNEXTLINE(bugprone-exception-escape): the word starts inside the text, so substr doesn't throw
 	std::string_view word() noexcept {
 		skipSpaces();
 		const std::size_t start = at_;
@@ -277,9 +279,9 @@ private:
 		if(!plural) return selector.find_first_of("=:") == std::string_view::npos;
 		detail::Plural unused{};
 		if(detail::pluralFromName(selector, unused)) return true;
-		const std::string_view digits = selector.substr(1);
-		return selector.front() == '=' && !digits.empty() &&
-		       std::ranges::all_of(digits, [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; });
+		return selector.size() > 1 && selector.front() == '=' &&
+		       std::ranges::all_of(selector | std::views::drop(1),
+		                           [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; });
 	}
 
 	/// @brief The branch a value chooses: an exact "=N", then its plural category, else "other".
@@ -301,7 +303,7 @@ private:
 			return match != branches.end() ? match : find("other");
 		}
 		if(!numeric) return find("other");
-		const double whole = value->number();
+		const double whole = value->number(); // NOLINT(bugprone-unchecked-optional-access): numeric means a value
 		if(std::trunc(whole) == whole && std::fabs(whole) < 1e15)
 			if(const auto exact = find(std::format("={}", static_cast<long long>(std::fabs(whole))));
 			   exact != branches.end() && whole >= 0)

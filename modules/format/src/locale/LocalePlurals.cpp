@@ -56,6 +56,7 @@ public:
 	/// @brief Skips spaces, then tells whether the next text is a word or symbol, and consumes it if so.
 	/// @param word "and", "=", "..".
 	/// @return Whether it was.
+	// NOLINTNEXTLINE(bugprone-exception-escape): at_ stays inside the text, so substr doesn't throw
 	[[nodiscard]] bool take(std::string_view word) noexcept {
 		skipSpaces();
 		if(!text_.substr(at_).starts_with(word)) return false;
@@ -172,6 +173,7 @@ std::string normalizeTag(std::string_view tag) {
 	return result;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): substr starts at 0, so it doesn't throw
 const LocaleData& findLocale(std::string_view tag) noexcept {
 	const std::span<const LocaleData> all = localeData();
 	const std::size_t end = tag.find_first_of("-_.@");

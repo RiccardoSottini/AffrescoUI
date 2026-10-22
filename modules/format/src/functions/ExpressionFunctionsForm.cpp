@@ -3,6 +3,7 @@
 
 #include "ExpressionFunctions.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 
@@ -78,12 +79,10 @@ Value passwordStrength(const Call& call) {
 /// @param extra Characters allowed besides letters, digits and bytes beyond ASCII.
 /// @return true when it is not empty and every character is allowed.
 [[nodiscard]] bool madeOf(std::string_view part, std::string_view extra) noexcept {
-	if(part.empty()) return false;
-	for(const char c : part) {
+	return !part.empty() && std::ranges::all_of(part, [extra](char c) {
 		const auto byte = static_cast<unsigned char>(c);
-		if(std::isalnum(byte) == 0 && byte < 0x80U && extra.find(c) == std::string_view::npos) return false;
-	}
-	return true;
+		return std::isalnum(byte) != 0 || byte >= 0x80U || extra.contains(c);
+	});
 }
 
 /// @brief `isEmail(text)`: whether the text has the shape of an email address.
@@ -98,8 +97,8 @@ Value isEmail(const Call& call) {
 	const std::string_view domain = std::string_view(text).substr(at + 1);
 	const std::size_t dot = domain.rfind('.');
 	const bool shaped = madeOf(name, ".!#$%&'*+/=?^_`{|}~-") && madeOf(domain, ".-") && dot != std::string_view::npos &&
-	                    dot > 0 && domain.size() - dot > 2 && domain.find("..") == std::string_view::npos &&
-	                    name.front() != '.' && name.back() != '.';
+	                    dot > 0 && domain.size() - dot > 2 && !domain.contains("..") && name.front() != '.' &&
+	                    name.back() != '.';
 	return Value::fromBoolean(shaped);
 }
 

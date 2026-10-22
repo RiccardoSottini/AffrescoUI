@@ -46,8 +46,7 @@ template <typename Char> constexpr Char lowered(Char c) noexcept {
 /// @return true for a space and the usual separators of names and paths.
 template <typename Char> constexpr bool separates(Char c) noexcept {
 	constexpr std::string_view separators = " \t/\\_-.:,;()[]{}'\"";
-	return static_cast<std::make_unsigned_t<Char>>(c) < 0x80u &&
-	       separators.contains(static_cast<char>(c));
+	return static_cast<std::make_unsigned_t<Char>>(c) < 0x80u && separators.contains(static_cast<char>(c));
 }
 
 /// @brief The bonus for a match at a position: the start of a word or a camelCase hump.
@@ -74,11 +73,13 @@ std::optional<int> match(std::basic_string_view<Char> query, std::basic_string_v
 	if(query.empty()) return 0;
 	// The leftmost match: where its last character ends
 	std::size_t found = 0, end = 0;
-	for(std::size_t i = 0; i < text.size(); ++i)
-		if(lowered(text[i]) == query[found] && ++found == query.size()) {
+	for(std::size_t i = 0; i < text.size(); ++i) {
+		if(lowered(text[i]) != query[found]) continue;
+		if(++found == query.size()) {
 			end = i + 1;
 			break;
 		}
+	}
 	if(found < query.size()) return std::nullopt;
 	// Tightened backwards: the latest start that still matches up to that end
 	std::size_t start = end;
@@ -131,8 +132,8 @@ class Query {
 public:
 	/// @brief Prepares a query.
 	/// @param text The query as written.
-	explicit Query(std::string_view text) {
-		ascii_ = std::ranges::all_of(text, [](char c) { return static_cast<unsigned char>(c) < 0x80; });
+	explicit Query(std::string_view text)
+	    : ascii_(std::ranges::all_of(text, [](char c) { return static_cast<unsigned char>(c) < 0x80; })) {
 		if(ascii_) std::ranges::transform(text, std::back_inserter(bytes_), [](char c) { return lowered(c); });
 		else characters_ = decode(text, true).characters;
 	}
@@ -262,8 +263,8 @@ Value fuzzySort(const Call& call) {
 	for(std::size_t i = 0; i < limit; ++i) {
 		const Candidate& candidate = candidates[i];
 		Value item = list.item(candidate.index);
-		const Value text = *textOf(item, key);
-		(void)query(text.text(), positions); // matched again, for the kept ones only
+		const Value text = *textOf(item, key); // NOLINT(bugprone-unchecked-optional-access): candidates have a text
+		(void)query(text.text(), positions);   // matched again, for the kept ones only
 		auto [ranges, parts] = describe(text.text(), positions);
 		results.push_back(
 		    Value::fromObject({{"item", std::move(item)},

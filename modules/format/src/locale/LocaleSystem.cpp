@@ -10,25 +10,25 @@
 
 #include <array>
 
-#if defined(__APPLE__)
+#ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
-#elif defined(_WIN32)
+#elif defined(_WIN32) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 #include <windows.h>
 #endif
 
 namespace affresco::format {
 
 std::string systemLocale() {
-#if defined(__APPLE__)
+#ifdef __APPLE__
 	std::array<char, 64> name{};
 	if(CFLocaleRef locale = CFLocaleCopyCurrent()) {
-		const auto identifier = static_cast<CFStringRef>(CFLocaleGetValue(locale, kCFLocaleIdentifier));
+		const CFStringRef identifier = static_cast<CFStringRef>(CFLocaleGetValue(locale, kCFLocaleIdentifier));
 		const bool read = identifier && CFStringGetCString(identifier, name.data(), static_cast<CFIndex>(name.size()),
 		                                                   kCFStringEncodingUTF8);
 		CFRelease(locale);
 		if(read) return detail::normalizeTag(name.data());
 	}
-#elif defined(_WIN32)
+#elif defined(_WIN32) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 	std::array<wchar_t, LOCALE_NAME_MAX_LENGTH> name{};
 	if(GetUserDefaultLocaleName(name.data(), static_cast<int>(name.size())) > 0) {
 		std::string tag;

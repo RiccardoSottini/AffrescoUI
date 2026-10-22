@@ -66,7 +66,7 @@ void appendAffix(std::string& out, std::string_view affix, const LocaleData& loc
 	for(std::size_t i = 0; i < affix.size(); ++i) {
 		const char character = affix[i];
 		if(character == '\'') quoted = !quoted;
-		else if(quoted) out += character;
+		else if(quoted) out += character; // NOLINT(bugprone-branch-clone): kept apart, so a quoted '%' stays literal
 		else if(character == '%') out += locale.percentSign;
 		else if(character == '-') out += locale.minusSign;
 		else if(affix.substr(i).starts_with(sign)) {
