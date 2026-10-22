@@ -22,14 +22,12 @@ namespace affresco::imaging::kernels {
 void gaussianBlur(std::vector<float>& region, int side, float sigma, std::vector<float>& scratch);
 
 /// @brief The motion blur of a region's centre tile.
-/// @param region side × side RGBA floats.
-/// @param side The region's side.
+/// @param region side × side RGBA floats, where side is tileSize + 2 × halo.
 /// @param halo The region's halo.
 /// @param angle The direction, degrees anticlockwise from across.
 /// @param distance The length of the smear.
 /// @param out tileSize × tileSize RGBA floats.
-void motionBlur(const std::vector<float>& region, int side, int halo, float angle, float distance,
-                std::vector<float>& out);
+void motionBlur(const std::vector<float>& region, int halo, float angle, float distance, std::vector<float>& out);
 
 /// @brief A random number from -1 to 1 for a pixel's channel, the same every time for the same arguments.
 /// @param seed The seed.

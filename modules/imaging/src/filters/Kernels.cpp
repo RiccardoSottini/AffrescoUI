@@ -14,15 +14,20 @@ namespace affresco::imaging::kernels {
 
 namespace {
 
-/// @brief One box blur along rows (step 4, stride side × 4) or columns (step side × 4, stride 4).
+/// @brief How a pass walks a region, in floats: rows (step 4, stride side × 4) or columns (step side × 4, stride 4).
+struct Walk {
+	std::size_t step;   ///< From one pixel to the next along a line.
+	std::size_t stride; ///< From one line to the next.
+};
+
+/// @brief One box blur along rows or columns.
 /// @param data The region.
 /// @param side Its side.
 /// @param radius The box's radius.
-/// @param step From one pixel to the next along a line.
-/// @param stride From one line to the next.
+/// @param walk Along rows or columns.
 /// @param line Scratch for one line.
-void boxPass(std::vector<float>& data, int side, int radius, std::size_t step, std::size_t stride,
-             std::vector<float>& line) {
+void boxPass(std::vector<float>& data, int side, int radius, Walk walk, std::vector<float>& line) {
+	const auto [step, stride] = walk;
 	const float scale = 1.0f / static_cast<float>(2 * radius + 1);
 	line.resize(static_cast<std::size_t>(side) * 4);
 	for(std::size_t lineIndex = 0; lineIndex < static_cast<std::size_t>(side); ++lineIndex) {
@@ -85,13 +90,13 @@ std::array<int, 3> gaussianBoxes(float sigma) noexcept {
 void gaussianBlur(std::vector<float>& region, int side, float sigma, std::vector<float>& scratch) {
 	const auto across = std::size_t{4}, down = static_cast<std::size_t>(side) * 4;
 	for(const int radius : gaussianBoxes(sigma))
-		if(radius > 0) boxPass(region, side, radius, across, down, scratch);
+		if(radius > 0) boxPass(region, side, radius, {across, down}, scratch);
 	for(const int radius : gaussianBoxes(sigma))
-		if(radius > 0) boxPass(region, side, radius, down, across, scratch);
+		if(radius > 0) boxPass(region, side, radius, {down, across}, scratch);
 }
 
-void motionBlur(const std::vector<float>& region, int side, int halo, float angle, float distance,
-                std::vector<float>& out) {
+void motionBlur(const std::vector<float>& region, int halo, float angle, float distance, std::vector<float>& out) {
+	const int side = tileSize + 2 * halo;
 	out.assign(tilePixels * 4, 0.0f);
 	const float radians = angle * std::numbers::pi_v<float> / 180.0f;
 	const float stepX = std::cos(radians), stepY = -std::sin(radians);

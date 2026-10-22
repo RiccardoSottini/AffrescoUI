@@ -157,7 +157,7 @@ void FilterRun::filterTile(int column, int row) {
 	};
 	copyCentre(before_);
 	if(filter_.kind == FilterKind::motionBlur) {
-		kernels::motionBlur(region_, side, halo_, filter_.angle, filter_.distance, after_);
+		kernels::motionBlur(region_, halo_, filter_.angle, filter_.distance, after_);
 		return;
 	}
 	if(filter_.kind == FilterKind::addNoise) {
