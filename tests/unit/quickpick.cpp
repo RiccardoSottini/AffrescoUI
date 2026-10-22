@@ -74,8 +74,10 @@ TEST_CASE("format: fuzzy matches the query's characters in order and gives the r
 	CHECK(evaluate("{{fuzzy('MAIN', 'main.cpp')}}").is_object()); // any case
 	CHECK(evaluate("{{fuzzy('pcm', 'main.cpp')}}").is_null());    // out of order
 	CHECK(evaluate("{{fuzzy('', 'abc').score}}") == 0);
-	CHECK(evaluate("{{fuzzy('é', 'café').ranges}}") == json::parse("[[3, 4]]")); // characters, not bytes
+	CHECK(evaluate("{{fuzzy('é', 'café').ranges}}") == json::parse("[[3, 4]]"));          // characters, not bytes
 	CHECK(evaluate("{{fuzzy('ab', 'xaxb').score < fuzzy('ab', 'xabx').score}}") == true); // together is better
+	// A separator starts a word, in ASCII texts too, wherever char is signed (a regression)
+	CHECK(evaluate("{{fuzzy('ab', 'xa-b').score > fuzzy('ab', 'xacb').score}}") == true);
 }
 
 TEST_CASE("format: fuzzySort keeps the matches, the best first, on a key, up to a limit") {
