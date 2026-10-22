@@ -73,6 +73,7 @@ std::size_t TextEditor::rowCount() const noexcept { return rows_ ? rows_->total(
 
 std::optional<FoldRange> TextEditor::foldable(std::size_t line) const {
 	if(line + 1 >= lines_.size()) return std::nullopt;
+	if(std::optional<FoldRange> range; highlighter_ && highlighter_->foldable(*model_, line, range)) return range;
 	const std::size_t indent = indentOf(line);
 	if(indent == lines_[line].size()) return std::nullopt; // a blank line folds nothing
 	std::size_t end = line;

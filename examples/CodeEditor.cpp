@@ -1,8 +1,10 @@
 /// @file
-/// @brief CodeEditor: syntax colours for C++, JSON, CMake and Markdown, and the commands of common code editors, on
+/// @brief CodeEditor: syntax colours (tree-sitter grammars, and CMake's own tokens), and the commands of common code editors, on
 /// the library's TextEditor; registerCodeEditor() adds it to a screen as the "code" type.
 
 #include "CodeEditor.hpp"
+
+#include <affresco/format/SyntaxHighlighter.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -349,19 +351,51 @@ CodeEditor::CodeEditor() { resetTokenColors(); }
 void CodeEditor::setLanguage(std::string_view name) {
 	std::string lower(name);
 	std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-	const Language language = lower == "c++" || lower == "cpp" || lower == "c" ? Language::Cpp
-	                          : lower == "json"                                ? Language::Json
-	                          : lower == "cmake"                               ? Language::CMake
-	                          : lower == "markdown" || lower == "md"           ? Language::Markdown
-	                                                                           : Language::Plain;
-	if(language == language_) return;
+	// A grammar colours (and folds) where one exists; the language still picks the comment marker
+	const std::string grammar = affresco::format::SyntaxHighlighter::canonical(lower);
+	const Language language = grammar == "c" || grammar == "cpp" || grammar == "javascript" || grammar == "typescript"
+	                              ? Language::Cpp
+	                          : grammar == "json"     ? Language::Json
+	                          : grammar == "python"   ? Language::Python
+	                          : grammar == "markdown" ? Language::Markdown
+	                          : lower == "cmake"      ? Language::CMake
+	                                                  : Language::Plain;
+	auto* current = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(language == language_ && (current ? current->language() : std::string()) == grammar) return;
 	language_ = language;
+	if(grammar.empty()) setHighlighter(nullptr);
+	else {
+		setHighlighter(affresco::format::SyntaxHighlighter::create(grammar));
+		refreshPalette();
+	}
 	recolor();
 }
 
 void CodeEditor::setTokenColor(Token token, Color color) {
 	tokenColors_[static_cast<std::size_t>(token)] = color;
+	refreshPalette();
 	recolor();
+}
+
+void CodeEditor::refreshPalette() {
+	auto* grammar = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(!grammar) return;
+	// The grammar's styles (a style without a token takes its parent's, e.g. "type.builtin" is "type")
+	static constexpr std::array<std::pair<std::string_view, Token>, 10> tokens = {{{"keyword", Token::Keyword},
+	                                                                               {"constant.builtin", Token::Keyword},
+	                                                                               {"type", Token::Type},
+	                                                                               {"constructor", Token::Type},
+	                                                                               {"string", Token::String},
+	                                                                               {"text.literal", Token::String},
+	                                                                               {"number", Token::Number},
+	                                                                               {"comment", Token::Comment},
+	                                                                               {"text.title", Token::Heading},
+	                                                                               {"punctuation.special", Token::Heading}}};
+	grammar->setPalette([colors = tokenColors_](std::string_view style) -> std::optional<Color> {
+		const auto found = std::ranges::find(tokens, style, &std::pair<std::string_view, Token>::first);
+		if(found == tokens.end()) return std::nullopt;
+		return colors[static_cast<std::size_t>(found->second)];
+	});
 }
 
 void CodeEditor::resetTokenColors() {
@@ -372,6 +406,7 @@ void CodeEditor::resetTokenColors() {
 	                Color::hex(0xb5cea8),
 	                Color::hex(0x6f8f6b),
 	                Color::hex(0x7aa7ff)};
+	refreshPalette();
 	recolor();
 }
 
@@ -409,8 +444,9 @@ void CodeEditor::newLine() {
 
 // Comment out unless every non-blank line already is; the markers line up at the smallest indentation
 void CodeEditor::toggleComment() {
-	if(language_ != Language::Cpp && language_ != Language::CMake) return; // no line comments in JSON or Markdown
-	const std::u32string_view marker = language_ == Language::CMake ? U"# " : U"// ";
+	if(language_ == Language::Plain || language_ == Language::Json || language_ == Language::Markdown)
+		return; // no line comments in JSON or Markdown
+	const std::u32string_view marker = language_ == Language::CMake || language_ == Language::Python ? U"# " : U"// ";
 	const auto [first, last] = selectedLines();
 	const std::optional<std::size_t> column = commentColumn(first, last);
 	if(!column) return;
@@ -628,6 +664,7 @@ std::vector<CodeEditor::Token> CodeEditor::tokenize(std::u32string_view line, bo
 	std::vector<Token> tokens(line.size(), Token::Plain);
 	switch(language_) {
 	case Language::Plain:
+	case Language::Python: // coloured by its grammar
 		break;
 	case Language::Cpp:
 		markCpp(line, tokens, inComment);

@@ -59,6 +59,7 @@ void TextEditor::setModel(std::shared_ptr<TextModel> model) {
 	folds_.clear();
 	lastEdit_ = Edit::Other;
 	states_.assign(1, 0);
+	if(highlighter_) highlighter_->reset(*model_);
 	widest_ = -1.0f;
 	scroll_ = {};
 	rebuildRows();
@@ -205,6 +206,7 @@ std::size_t TextEditor::columnAt(std::size_t line, float x) const {
 
 void TextEditor::textChanged(const TextChange& change) {
 	if(states_.size() > change.from.line + 1) states_.resize(change.from.line + 1);
+	if(highlighter_) highlighter_->changed(*model_, change);
 	// Another editor's edit of a shared model (or an outside one) moves the text under this caret
 	if(!editing_) {
 		caret_ = shifted(caret_, change);
@@ -324,6 +326,12 @@ void TextEditor::endEdit() {
 void TextEditor::recolor() {
 	states_.clear();
 	invalidate();
+}
+
+void TextEditor::setHighlighter(std::unique_ptr<EditorHighlighter> highlighter) {
+	highlighter_ = std::move(highlighter);
+	if(highlighter_) highlighter_->reset(*model_);
+	recolor();
 }
 
 void TextEditor::moveCaret(Position to, bool extend, bool keepX) {

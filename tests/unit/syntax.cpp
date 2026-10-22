@@ -3,12 +3,14 @@
 /// folds and brackets; a text kept in step with its edits, highlighted as a fresh parse would and changed only where
 /// the edits reach; its limits; and the `syntax` provider.
 
+#include <affresco/format/SyntaxHighlighter.hpp>
 #include <affresco/services/Syntax.hpp>
 
 #include <doctest/doctest.h>
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <random>
 #include <string>
 #include <string_view>
@@ -408,6 +410,64 @@ TEST_SUITE("syntax") {
 		std::vector<SyntaxSpan> spans;
 		CHECK(document->highlight(byLine, 0, whole.rows() - 1, spans));
 		CHECK(sameSpans(spans, whole.spans()));
+	}
+
+	TEST_CASE("the editor's highlighter, after edits of its model, colours as a fresh one would") {
+		using affresco::format::SyntaxHighlighter;
+		const SyntaxHighlighter::Palette palette = [](std::string_view style) -> std::optional<affresco::Color> {
+			return affresco::Color::hex(static_cast<std::uint32_t>(std::hash<std::string_view>{}(style) & 0xFFFFFF));
+		};
+		const auto colorsOf = [](SyntaxHighlighter& highlighter, const affresco::TextModel& model) {
+			std::vector<std::vector<affresco::Color>> all;
+			std::u32string line;
+			for(std::size_t i = 0; i < model.lineCount(); ++i) {
+				model.line(i, line);
+				std::vector<affresco::Color> colors(line.size(), affresco::Color{});
+				highlighter.colorLine(model, i, line, colors);
+				all.push_back(std::move(colors));
+			}
+			return all;
+		};
+		affresco::TextModel model;
+		model.assign(cppSample + "// caf\u00e9 \u2192 \U0001F600\nint z = 1;\n");
+		const auto highlighter = SyntaxHighlighter::create("c++");
+		REQUIRE(highlighter);
+		CHECK(highlighter->language() == "cpp");
+		highlighter->setPalette(palette);
+		highlighter->reset(model);
+		const affresco::Connection connection =
+		    model.onChanged.connect([&](const affresco::TextChange& change) { highlighter->changed(model, change); });
+		const std::vector<std::string_view> pieces = {"x", "\"", "{", "}", "\n", "/*", "*/", "1", "if", "\u00e9\n\u2192", "'"};
+		std::mt19937 random(5);
+		for(int round = 0; round < 50; ++round) {
+			CAPTURE(round);
+			const std::size_t line = random() % model.lineCount();
+			const affresco::TextPosition at{line, random() % (model.lineLength(line) + 1)};
+			if(random() % 3 == 0) {
+				const std::size_t to = std::min(model.lineCount() - 1, line + random() % 2);
+				model.erase(at, std::max(at, affresco::TextPosition{to, std::min(model.lineLength(to), at.column + 2)}));
+			} else model.insert(at, pieces[random() % pieces.size()]);
+			const auto fresh = SyntaxHighlighter::create("cpp");
+			fresh->setPalette(palette);
+			fresh->reset(model);
+			CHECK(colorsOf(*highlighter, model) == colorsOf(*fresh, model));
+		}
+		model.onChanged.disconnect(connection);
+		// Folds and brackets come from the grammar
+		affresco::TextModel braces;
+		braces.assign("int f() {\n  return (1 + 2);\n}\n");
+		highlighter->reset(braces);
+		std::optional<affresco::FoldRange> range;
+		CHECK(highlighter->foldable(braces, 0, range));
+		REQUIRE(range);
+		CHECK(range->endLine == 1); // the closing brace stays shown
+		std::optional<affresco::TextPosition> other;
+		CHECK(highlighter->matchingBracket(braces, {0, 8}, other));
+		CHECK(other == affresco::TextPosition{2, 0});
+		CHECK(highlighter->matchingBracket(braces, {1, 15}, other));
+		CHECK(other == affresco::TextPosition{1, 9});
+		CHECK_FALSE(SyntaxHighlighter::create("cobol"));
+		CHECK(SyntaxHighlighter::languageFor("src/main.ts") == "typescript");
 	}
 
 } // TEST_SUITE

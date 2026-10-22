@@ -41,15 +41,21 @@ void TextEditor::paint(Painter& painter) const {
 	paintUnder(painter, *f, layout);
 
 	// The colouring state (e.g. an open block comment) may come from above the visible lines: each line's is kept, so
-	// they are coloured from the last one known (folded lines whose state is known are skipped)
+	// they are coloured from the last one known (folded lines whose state is known are skipped); a highlighter keeps
+	// its own and colours only the lines drawn
 	if(states_.empty()) states_.push_back(0);
-	std::size_t line = std::min(states_.size() - 1, firstLine);
-	int state = states_[line];
+	std::size_t line = highlighter_ ? firstLine : std::min(states_.size() - 1, firstLine);
+	int state = states_[highlighter_ ? 0 : line];
 	while(line < lastLine) {
 		const std::u32string& text = lines_[line];
-		colors_.resize(text.size());
-		colorLine(text, state, colors_);
-		if(line + 1 == states_.size()) states_.push_back(state);
+		if(highlighter_) {
+			colors_.assign(text.size(), textColor_);
+			highlighter_->colorLine(*model_, line, text, colors_);
+		} else {
+			colors_.resize(text.size());
+			colorLine(text, state, colors_);
+			if(line + 1 == states_.size()) states_.push_back(state);
+		}
 		if(line >= firstLine && !hidden(line))
 			for(std::size_t row = std::max(rowOf({line, 0}), layout.first); row < layout.last; ++row) {
 				const RowSpan span = rowSpan(row);
@@ -58,7 +64,8 @@ void TextEditor::paint(Painter& painter) const {
 			}
 		const std::size_t next = nextShown(line);
 		++line;
-		if(next > line && next < states_.size()) {
+		if(next > line && highlighter_) line = next;
+		else if(next > line && next < states_.size()) {
 			line = next;
 			state = states_[next];
 		}

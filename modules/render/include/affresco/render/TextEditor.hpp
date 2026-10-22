@@ -27,6 +27,45 @@ namespace detail {
 class ViewRows;
 } // namespace detail
 
+/// @brief Colours, folds and pairs brackets for an editor from a model of its text (e.g. a parser that follows the
+/// edits), instead of TextEditor::colorLine() and the indentation; see TextEditor::setHighlighter().
+class EditorHighlighter {
+public:
+	virtual ~EditorHighlighter() = default;
+	/// @brief Starts over with a model: the editor's at installation, and each model setModel() gives.
+	/// @param model The text.
+	virtual void reset(const TextModel& model) = 0;
+	/// @brief Follows an edit of the model, just made.
+	/// @param model The text, after it.
+	/// @param change The edit.
+	virtual void changed(const TextModel& model, const TextChange& change) = 0;
+	/// @brief Colours one drawn line.
+	/// @param model The text.
+	/// @param line The line.
+	/// @param text Its code points.
+	/// @param colors One per code point, given the text colour, to paint over.
+	virtual void colorLine(const TextModel& model, std::size_t line, std::u32string_view text,
+	                       std::vector<Color>& colors) = 0;
+	/// @brief The range a line folds.
+	/// @param model The text.
+	/// @param line The line.
+	/// @param range Gets it, or nothing when the line folds nothing.
+	/// @return false to fold by indentation instead (the default).
+	virtual bool foldable(const TextModel& model, std::size_t line, std::optional<FoldRange>& range) {
+		(void)model, (void)line, (void)range;
+		return false;
+	}
+	/// @brief The bracket that pairs with one.
+	/// @param model The text.
+	/// @param at The bracket.
+	/// @param other Gets its pair, or nothing when it has none.
+	/// @return false to pair by counting brackets instead (the default).
+	virtual bool matchingBracket(const TextModel& model, TextPosition at, std::optional<TextPosition>& other) {
+		(void)model, (void)at, (void)other;
+		return false;
+	}
+};
+
 /// @brief A multi-line text editor, with the usual keys (Cmd on macOS, Ctrl elsewhere).
 ///
 /// Click to place the caret, drag to select (double click: a word, triple: a line). Arrows, Home/End, Page Up/Down;
@@ -258,6 +297,16 @@ protected:
 
 	/// @brief Colours every line again: call it when colorLine() would give other results (e.g. a new language).
 	void recolor();
+
+public:
+	/// @brief Colours, folds and pairs brackets with a highlighter (e.g. a grammar's), in place of colorLine() and
+	/// the indentation.
+	/// @param highlighter It; nullptr for none.
+	void setHighlighter(std::unique_ptr<EditorHighlighter> highlighter);
+	/// @brief The highlighter, or nullptr.
+	[[nodiscard]] EditorHighlighter* highlighter() const noexcept { return highlighter_.get(); }
+
+protected:
 
 	/// @brief Gives the gutter's label of a line (by default its number, from 1).
 	/// @param line The line.
@@ -622,6 +671,7 @@ private:
 
 	Edit lastEdit_ = Edit::Other;        ///< The edit that made the newest undo step (Other: start a new step).
 	mutable std::vector<int> states_{0}; ///< The colouring state each line starts with, for the lines coloured so far.
+	std::unique_ptr<EditorHighlighter> highlighter_; ///< See setHighlighter().
 	mutable float widest_ = -1.0f;       ///< See widestLine(); < 0: to work out.
 	mutable const Font* widestFont_ = nullptr; ///< The font widest_ was measured with.
 	mutable std::vector<Color> colors_;        ///< One line's colours, reused from frame to frame.

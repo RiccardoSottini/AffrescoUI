@@ -7,10 +7,12 @@
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
+#include "affresco/format/SyntaxHighlighter.hpp"
 #include "affresco/render/TextEditor.hpp"
 
 #include <array>
 #include <cstddef>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -109,6 +111,54 @@ void applyFind(TextEditor& editor, const json& values, const std::string& path) 
 	static_cast<void>(editor.setFind(find.contains("text") ? text(find["text"]) : std::string(), options));
 }
 
+/// @brief Sets an editor's grammar: a highlighter for the language "grammar" names (or a file name's), its styles in
+/// the colours "@syntax.<style>" gives (or its parent style's), or none. Only a highlighter this key installed is
+/// replaced or removed: a subclass may install its own.
+/// @param editor The editor.
+/// @param values The node's values.
+/// @param reader Reads colours.
+/// @param path The node's place, for errors.
+void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& reader, const std::string& path) {
+	static const char tag = 0; // what marks the highlighters this key installs
+	auto* current = dynamic_cast<SyntaxHighlighter*>(editor.highlighter());
+	const bool ours = current && current->owner() == &tag;
+	std::string language;
+	if(values.contains("grammar")) {
+		const std::string given = string(values["grammar"], path + ".grammar");
+		language = SyntaxHighlighter::canonical(given);
+		if(language.empty()) language = SyntaxHighlighter::languageFor(given);
+	}
+	if(language.empty()) {
+		if(ours) editor.setHighlighter(nullptr);
+		return;
+	}
+	if(editor.highlighter() && !ours) return;
+	if(!ours || current->language() != language) {
+		auto made = SyntaxHighlighter::create(language);
+		made->setOwner(&tag);
+		current = made.get();
+		editor.setHighlighter(std::move(made));
+	}
+	// Resolved now, in the current theme: the reader lives only through this update
+	std::map<std::string, Color, std::less<>> palette;
+	for(const std::string& style : current->styles())
+		for(std::string_view name = style; !name.empty();) {
+			if(palette.contains(name)) break;
+			try {
+				palette.emplace(name, reader.color("@syntax." + std::string(name), path + ".grammar"));
+				break;
+			} catch(const DocumentError&) {
+				// no such token: the parent style's, if any
+			}
+			const std::size_t dot = name.rfind('.');
+			name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
+		}
+	current->setPalette([palette = std::move(palette)](std::string_view style) -> std::optional<Color> {
+		const auto found = palette.find(style);
+		return found == palette.end() ? std::nullopt : std::optional(found->second);
+	});
+}
+
 /// @brief Sets an editor's view: wrap, folds, decorations, find, brackets, indentGuides and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
@@ -165,6 +215,7 @@ void applyEditor(Panel& panel, const json& values, const PropertyReader& reader,
 			if(key == name) (editor->*setter)(reader.color(value, at));
 	}
 	applyView(*editor, values, reader, path);
+	applyGrammar(*editor, values, reader, path);
 }
 
 /// @brief Shows an editor's text: its bound value always, else "text" when it changed (so typing isn't overwritten
@@ -217,7 +268,8 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"decorations", ValueKind::Any},       {"find", ValueKind::Any},
 	                   {"brackets", ValueKind::Boolean},      {"indentGuides", ValueKind::Boolean},
 	                   {"readOnly", ValueKind::Boolean},      {"guideColor", ValueKind::Color},
-	                   {"matchColor", ValueKind::Color},      {"bracketColor", ValueKind::Color}};
+	                   {"matchColor", ValueKind::Color},      {"bracketColor", ValueKind::Color},
+	                   {"grammar", ValueKind::Text}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };

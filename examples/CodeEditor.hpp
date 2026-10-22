@@ -20,7 +20,9 @@ namespace examples {
 
 /// @brief A TextEditor for code: syntax colours and the commands of common code editors.
 ///
-/// On top of TextEditor: colours C++, JSON, CMake and Markdown; Enter adds a level after `{`, `[`, `(` or `:` and puts
+/// On top of TextEditor: colours C, C++, JSON, Python, JavaScript, TypeScript and Markdown with their tree-sitter
+/// grammars (affresco/format/SyntaxHighlighter.hpp), which also give the folds and bracket pairs, and CMake by its
+/// own tokens; Enter adds a level after `{`, `[`, `(` or `:` and puts
 /// a closing bracket on its own line; brackets and quotes close themselves (typing the closer steps over it, Backspace
 /// deletes an empty pair, a selection gets wrapped); Cmd+/ toggles line comments; Alt+Up/Down moves lines; Cmd+Shift+K
 /// deletes lines; Cmd+[ and Cmd+] indent; without a selection, Cmd+C and Cmd+X take the whole line.
@@ -38,13 +40,14 @@ public:
 	};
 
 	/// @brief The languages it colours.
-	enum class Language { Plain, Cpp, Json, CMake, Markdown };
+	enum class Language { Plain, Cpp, Json, CMake, Markdown, Python };
 
 	/// @brief An editor with default syntax colours and no language.
 	CodeEditor();
 
 	/// @brief Sets which syntax to colour.
-	/// @param name "c++" (or "cpp", "c"), "json", "cmake", "markdown" (or "md"); anything else is plain. Any case.
+	/// @param name "c++" (or "cpp", "c"), "json", "cmake", "markdown" (or "md"), "python" (or "py"), "javascript" (or
+	/// "js"), "typescript" (or "ts"); anything else is plain. Any case.
 	void setLanguage(std::string_view name);
 
 	/// @brief Sets the colour of one kind of text.
@@ -144,6 +147,8 @@ private:
 	/// @param line The line.
 	/// @param inComment In: whether a block comment is open at its start; out: at its end.
 	[[nodiscard]] std::vector<Token> tokenize(std::u32string_view line, bool& inComment) const;
+	/// @brief Gives the grammar's highlighter the token colours again (its styles map to tokens).
+	void refreshPalette();
 
 	Language language_ = Language::Plain;        ///< See setLanguage().
 	long long goToRequest_ = 0;                  ///< The last request goToLine() carried out.

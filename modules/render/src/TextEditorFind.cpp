@@ -223,6 +223,8 @@ std::optional<std::pair<TextEditor::Position, TextEditor::Position>> TextEditor:
 	const auto bracket = bracketNear(text, caret_.column);
 	if(!bracket) return std::nullopt;
 	const Position at{caret_.line, *bracket};
+	if(std::optional<Position> paired; highlighter_ && highlighter_->matchingBracket(*model_, at, paired))
+		return paired ? std::optional(std::pair{at, *paired}) : std::nullopt;
 	const char32_t self = text[at.column];
 	const auto [other, opens] = pairOf(self);
 	std::size_t depth = 0, scanned = 0;
