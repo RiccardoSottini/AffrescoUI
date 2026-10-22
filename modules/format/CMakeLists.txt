@@ -45,6 +45,7 @@ affrescoui_module(format
 	src/BuiltInComponents.cpp
 	src/Reconciler.cpp
 	src/Properties.cpp
+	src/AccessibilityProperties.cpp
 	src/PropertyValues.cpp
 	src/LayoutProperties.cpp
 	src/TypeRegistry.cpp

@@ -272,7 +272,8 @@ src/
                            keybindings and menus variables (built when read, DocumentContext::addVariable), and
                            the window's native menu bar (window.menuBar, shown after each update when it changed)
                            (Reconciler.cpp shows window.focusRing the same way; role, label and description are
-                           properties, in Properties.cpp)
+                           properties, in Properties.cpp; isOpen, selected and live in
+                           AccessibilityProperties.cpp)
   Settings.*               the settings section: defaults, checked writes to settings.x, the settings and
                            settingsList variables
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups

@@ -93,6 +93,9 @@ endif()
 # PCRE2 and affresco::TextPattern: the regular expressions of the editor's find and the search service
 include(cmake/AffrescoUIRegex.cmake)
 
+# AccessKit: the accessibility tree of each window, for screen readers (decision D8)
+include(cmake/AffrescoUIAccessibility.cmake)
+
 # The library is a set of modules, each its own target. They depend on each other only as shown here; anything
 # crossing a module boundary goes through the interfaces in core (ARCHITECTURE.md). Each module lists its sources in
 # modules/<name>/CMakeLists.txt, so a new file touches only its own module's list.

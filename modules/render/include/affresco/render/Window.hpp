@@ -29,6 +29,7 @@ class Label;
 
 namespace platform {
 class NativeWindow;
+class AccessibilityAdapter;
 }
 namespace detail {
 class Renderer;
@@ -410,6 +411,7 @@ private:
 	// Declaration order matters: the renderer must be destroyed before the OS window (and its GL context)
 	std::unique_ptr<platform::NativeWindow> native_; ///< OS window and OpenGL context; nullptr when headless.
 	std::unique_ptr<detail::Renderer> renderer_;     ///< Draws the tree; nullptr when headless.
+	std::unique_ptr<platform::AccessibilityAdapter> accessibility_; ///< Shows the tree to screen readers, or nullptr.
 	const Clock* clock_;                             ///< See clock(); never null.
 	std::string clipboard_;                          ///< A headless window's clipboard.
 	bool visible_ = true;                            ///< Whether a headless window counts as shown.

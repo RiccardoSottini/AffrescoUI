@@ -121,13 +121,13 @@
 	"components": {
 		"forgeTitleBar": {
 			"node": {
-				"type": "row", "id": "title-bar", "width": "100%", "height": 34, "color": "@color.titleBar", "alignItems": "center",
+				"type": "row", "id": "title-bar", "role": "banner", "label": "Title Bar", "width": "100%", "height": 34, "color": "@color.titleBar", "alignItems": "center",
 				"borderWidth": 1, "borderColor": "@color.border",
 				"children": [
 					{ "when": "{{!window.nativeMenuBar}}", "use": "menuBar", "id": "menu-bar", "width": 330,
 					  "with": { "open": "state.menuBar", "menus": "{{[{name: 'file', title: 'File', items: menus.file}, {name: 'view', title: 'View', items: menus.view}, {name: 'go', title: 'Go', items: menus.go}, {name: 'preferences', title: 'Preferences', items: menus.preferences}, {name: 'help', title: 'Help', items: menus.help}]}}" } },
 					{ "id": "title-left", "grow": 1 },
-					{ "type": "row", "id": "command-centre", "width": 420, "height": 24, "color": "@color.input", "radius": 6,
+					{ "type": "row", "id": "command-centre", "role": "button", "label": "Search Files", "width": 420, "height": 24, "color": "@color.input", "radius": 6,
 					  "borderWidth": 1, "borderColor": "@color.border", "alignItems": "center", "gap": 6,
 					  "cursor": "hand", "tooltip": "Search files (> for commands, : for a line)", "hover": { "borderColor": "@color.accent" },
 					  "onClick": { "run": "quickOpen" },
@@ -138,13 +138,13 @@
 						  "grow": 1, "height": 22, "align": "center" }
 					  ] },
 					{ "id": "title-right", "grow": 1 },
-					{ "type": "label", "id": "title-sidebar", "icon": "panel-left", "padding": 6, "fitText": true, "cursor": "hand",
+					{ "type": "label", "id": "title-sidebar", "role": "button", "icon": "panel-left", "padding": 6, "fitText": true, "cursor": "hand",
 					  "textColor": "{{state.layout.sidebar ? '@color.text' : '@color.muted'}}", "tooltip": "Toggle Primary Side Bar",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "toggleSidebar" } },
-					{ "type": "label", "id": "title-panel", "icon": "panel-bottom", "padding": 6, "fitText": true, "cursor": "hand",
+					{ "type": "label", "id": "title-panel", "role": "button", "icon": "panel-bottom", "padding": 6, "fitText": true, "cursor": "hand",
 					  "textColor": "{{state.layout.panel ? '@color.text' : '@color.muted'}}", "tooltip": "Toggle Panel",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "togglePanel" } },
-					{ "type": "label", "id": "title-split", "icon": "columns-2", "padding": 6, "fitText": true, "cursor": "hand",
+					{ "type": "label", "id": "title-split", "role": "button", "icon": "columns-2", "padding": 6, "fitText": true, "cursor": "hand",
 					  "textColor": "@color.muted", "tooltip": "Split Editor", "hover": { "color": "@color.hover" },
 					  "onClick": { "run": "splitEditor" } }
 				]
@@ -152,33 +152,37 @@
 		},
 		"forgeActivityBar": {
 			"node": {
-				"type": "column", "id": "activity-bar", "width": 48, "height": "100%", "color": "@color.activityBar",
+				"type": "column", "id": "activity-bar", "role": "tablist", "label": "Activity Bar", "width": 48, "height": "100%", "color": "@color.activityBar",
 				"alignItems": "center",
 				"children": [
-					{ "type": "label", "id": "activity-explorer", "icon": "files", "font": "iconsLarge", "width": 48, "height": 48,
+					{ "type": "label", "id": "activity-explorer", "role": "tab", "label": "Explorer",
+					  "selected": "{{state.layout.sidebar && state.sideView == 'explorer'}}", "icon": "files", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Explorer (Cmd+B)",
 					  "textColor": "{{state.layout.sidebar && state.sideView == 'explorer' ? '@color.text' : '@color.muted'}}",
 					  "onClick": { "run": "showExplorer" } },
-					{ "type": "label", "id": "activity-search", "icon": "search", "font": "iconsLarge", "width": 48, "height": 48,
+					{ "type": "label", "id": "activity-search", "role": "button", "label": "Go to File", "icon": "search", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Go to File (Cmd+P)", "textColor": "@color.muted",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "quickOpen" } },
-					{ "type": "label", "id": "activity-problems", "icon": "alert-triangle", "font": "iconsLarge", "width": 48,
+					{ "type": "label", "id": "activity-problems", "role": "button", "label": "Problems", "icon": "alert-triangle", "font": "iconsLarge", "width": 48,
 					  "height": 48, "align": "center", "cursor": "hand", "tooltip": "Problems", "textColor": "@color.muted",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showProblems" } },
-					{ "type": "label", "id": "activity-scm", "icon": "git-branch", "font": "iconsLarge", "width": 48, "height": 48,
+					{ "type": "label", "id": "activity-scm", "role": "tab", "label": "Source Control",
+					  "selected": "{{state.layout.sidebar && state.sideView == 'scm'}}", "icon": "git-branch", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Source Control (Cmd+Shift+G)",
 					  "textColor": "{{state.layout.sidebar && state.sideView == 'scm' ? '@color.text' : '@color.muted'}}",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showSourceControl" } },
-					{ "type": "label", "id": "activity-agent", "icon": "bot", "font": "iconsLarge", "width": 48, "height": 48,
+					{ "type": "label", "id": "activity-agent", "role": "tab", "label": "Agent",
+					  "selected": "{{state.layout.sidebar && state.sideView == 'agent'}}", "icon": "bot", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Agent (Cmd+Alt+I)",
 					  "textColor": "{{state.layout.sidebar && state.sideView == 'agent' ? '@color.text' : '@color.muted'}}",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showAgent" } },
-					{ "type": "label", "id": "activity-features", "icon": "blocks", "font": "iconsLarge", "width": 48, "height": 48,
+					{ "type": "label", "id": "activity-features", "role": "tab", "label": "Features",
+					  "selected": "{{state.layout.sidebar && state.sideView == 'features'}}", "icon": "blocks", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Features (Cmd+Shift+X)",
 					  "textColor": "{{state.layout.sidebar && state.sideView == 'features' ? '@color.text' : '@color.muted'}}",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showFeatures" } },
 					{ "id": "activity-gap", "grow": 1 },
-					{ "type": "label", "id": "activity-settings", "icon": "settings", "font": "iconsLarge", "width": 48, "height": 48,
+					{ "type": "label", "id": "activity-settings", "role": "button", "label": "Settings", "icon": "settings", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Settings (Cmd+,)", "textColor": "@color.muted",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "openSettings" } }
 				]
@@ -186,7 +190,7 @@
 		},
 		"forgeSideBar": {
 			"node": {
-				"type": "column", "id": "side-bar", "point": "sidebar.views", "color": "@color.sideBar",
+				"type": "column", "id": "side-bar", "role": "complementary", "label": "Primary Side Bar", "point": "sidebar.views", "color": "@color.sideBar",
 				"children": [
 					{ "when": "{{state.sideView == 'scm'}}", "use": "forgeScmView" },
 					{ "when": "{{state.sideView == 'agent'}}", "use": "forgeAgentView" },
@@ -236,13 +240,13 @@
 		},
 		"forgeEditors": {
 			"node": {
-				"type": "split", "id": "editor-groups", "bind": "state.layout.groupSizes", "minSize": 160, "sashSize": 4,
+				"type": "split", "id": "editor-groups", "role": "main", "label": "Editors", "bind": "state.layout.groupSizes", "minSize": 160, "sashSize": 4,
 				"sashColor": "@color.border", "sashActiveColor": "@color.accent",
 				"children": [
 					{ "type": "column", "id": "group", "repeat": { "for": "g", "in": "state.groups", "index": "gi" },
 					  "color": "@color.editor", "onClick": { "set": "state.activeGroup", "to": "{{gi}}" },
 					  "children": [
-						{ "type": "tabs", "id": "group-tabs", "width": "100%", "height": 35, "bind": "state.groups[gi].active",
+						{ "type": "tabs", "id": "group-tabs", "role": "tablist", "label": "Open Editors", "width": "100%", "height": 35, "bind": "state.groups[gi].active",
 						  "color": "@color.tabs", "textColor": "@color.muted", "activeTextColor": "@color.text",
 						  "activeBackground": "@color.tabActive", "accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
 						  "tabs": "{{map(g.tabs, merge(it, {marker: contains(computed.dirtyIds, it.id)}))}}",
@@ -251,7 +255,7 @@
 						{ "type": "column", "id": "group-body", "repeat": { "for": "d", "in": "{{filter([indexOf(computed.docIds, g.active)], it >= 0)}}", "key": "{{d}}" },
 						  "width": "100%", "grow": 1,
 						  "children": [
-							{ "when": "{{state.docs[d].kind == 'file'}}", "id": "editor", "type": "code", "font": "code",
+							{ "when": "{{state.docs[d].kind == 'file'}}", "id": "editor", "type": "code", "font": "code", "label": "{{state.docs[d].label}}",
 							  "width": "100%", "grow": 1, "bind": "state.docs[d].text", "language": "{{state.docs[d].language}}",
 							  "lineNumbers": "{{settings.editor.lineNumbers}}",
 							  "goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, request: state.goTo.request} : null}}",
@@ -271,26 +275,26 @@
 		},
 		"forgeStatusBar": {
 			"node": {
-				"type": "row", "id": "status-bar", "point": "statusBar.right", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
+				"type": "row", "id": "status-bar", "role": "status", "label": "Status Bar", "point": "statusBar.right", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
 				"borderWidth": 1, "borderColor": "@color.border", "gap": 4,
 				"children": [
 					{ "type": "label", "id": "status-folder", "icon": "folder", "text": "{{computed.folderName}}", "padding": 6,
 					  "fitText": true, "textColor": "@color.statusText" },
-					{ "type": "label", "id": "status-errors", "icon": "circle-x", "padding": 6, "fitText": true, "cursor": "hand",
+					{ "type": "label", "id": "status-errors", "role": "button", "label": "{{plural(computed.errors, 'error')}}", "icon": "circle-x", "padding": 6, "fitText": true, "cursor": "hand",
 					  "text": "{{text(computed.errors)}}", "textColor": "@color.statusText", "tooltip": "Problems",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "showProblems" } },
-					{ "type": "label", "id": "status-warnings", "icon": "alert-triangle", "padding": 6, "fitText": true,
+					{ "type": "label", "id": "status-warnings", "role": "button", "label": "{{plural(computed.warnings, 'warning')}}", "icon": "alert-triangle", "padding": 6, "fitText": true,
 					  "cursor": "hand", "text": "{{text(computed.warnings)}}", "textColor": "@color.statusText", "tooltip": "Problems",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "showProblems" } },
 					{ "id": "status-gap", "grow": 1 },
 					{ "type": "label", "id": "status-language", "when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
 					  "text": "{{computed.activeDoc.language || 'Plain Text'}}", "padding": 6, "fitText": true,
 					  "textColor": "@color.statusText" },
-					{ "type": "label", "id": "status-theme", "icon": "palette", "padding": 6, "fitText": true, "cursor": "hand",
+					{ "type": "label", "id": "status-theme", "role": "button", "label": "Color Theme", "icon": "palette", "padding": 6, "fitText": true, "cursor": "hand",
 					  "text": "{{find(state.themes, it.id == state.theme).name ?? state.theme}}", "textColor": "@color.statusText",
 					  "hover": { "color": "@color.hover" }, "onClick": { "run": "pickTheme" } },
 					{ "use": "forgeAccountsStatus" },
-					{ "type": "label", "id": "status-notifications", "icon": "bell", "padding": 6, "fitText": true, "cursor": "hand",
+					{ "type": "label", "id": "status-notifications", "role": "button", "label": "Notifications", "icon": "bell", "padding": 6, "fitText": true, "cursor": "hand",
 					  "text": "{{len(state.notifications) > 0 ? text(len(state.notifications)) : ''}}",
 					  "textColor": "@color.statusText", "tooltip": "Notifications", "hover": { "color": "@color.hover" },
 					  "onClick": { "run": "showNotifications" } }

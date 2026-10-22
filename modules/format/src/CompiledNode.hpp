@@ -46,6 +46,9 @@ enum class Slot : std::uint8_t {
 	Role,        ///< "role".
 	Label,       ///< "label".
 	Description, ///< "description".
+	Open,        ///< "isOpen": expanded, to assistive technologies.
+	Selected,    ///< "selected".
+	Live,        ///< "live".
 	/* Every panel's shape */
 	Radius,      ///< "radius".
 	BorderWidth, ///< "borderWidth".

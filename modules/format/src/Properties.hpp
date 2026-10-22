@@ -262,4 +262,13 @@ private:
 	Engine& engine_; ///< The runtime.
 };
 
+/// @brief Applies a state every node may give assistive technologies: "expanded", "selected" or "live"
+/// (AccessibilityProperties.cpp).
+/// @param panel The panel.
+/// @param slot The property.
+/// @param value Its value.
+/// @param at Its place, for errors.
+/// @return false if it isn't one of these.
+bool accessibleStateProperty(Panel& panel, Slot slot, const json& value, const std::string& at);
+
 } // namespace affresco::format

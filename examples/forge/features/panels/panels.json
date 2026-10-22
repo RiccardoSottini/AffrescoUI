@@ -85,29 +85,29 @@
 	"components": {
 		"forgePanel": {
 			"node": {
-				"type": "column", "id": "panel", "color": "@color.panel", "borderWidth": 1, "borderColor": "@color.border",
+				"type": "column", "id": "panel", "role": "region", "label": "Panel", "color": "@color.panel", "borderWidth": 1, "borderColor": "@color.border",
 				"children": [
 					{ "type": "row", "id": "panel-head", "width": "100%", "height": 32, "alignItems": "center",
 					  "children": [
-						{ "type": "tabs", "id": "panel-tabs", "width": 420, "height": 32, "bind": "state.panelTab",
+						{ "type": "tabs", "id": "panel-tabs", "role": "tablist", "label": "Panel Views", "width": 420, "height": 32, "bind": "state.panelTab",
 						  "color": "@color.panel", "textColor": "@color.muted", "activeTextColor": "@color.text",
 						  "activeBackground": "@color.panel", "accentColor": "@color.accent",
 						  "tabs": "{{concat([{id: 'problems', label: 'Problems' + (len(state.problems) > 0 ? ' ' + len(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'notifications', label: 'Notifications', closable: false}], len(state.terminals.list) > 0 ? [{id: 'terminal', label: 'Terminal', closable: false}] : [])}}" },
 						{ "id": "panel-gap", "grow": 1 },
-						{ "type": "label", "id": "panel-close", "icon": "x", "textColor": "@color.muted", "padding": 8,
+						{ "type": "label", "id": "panel-close", "role": "button", "icon": "x", "textColor": "@color.muted", "padding": 8,
 						  "fitText": true, "cursor": "hand", "tooltip": "Close Panel", "hover": { "color": "@color.hover" },
 						  "onClick": { "run": "togglePanel" } }
 					  ] },
-					{ "when": "{{state.panelTab == 'problems'}}", "type": "table", "id": "problems", "width": "100%", "grow": 1,
+					{ "when": "{{state.panelTab == 'problems'}}", "type": "table", "id": "problems", "label": "Problems", "width": "100%", "grow": 1,
 					  "items": "{{computed.problemRows}}", "rowHeight": 22, "color": "@color.panel",
 					  "textColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
 					  "columns": [{ "id": "message", "title": "Message", "width": 420 }, { "id": "file", "title": "File", "width": 160 },
 					              { "id": "line", "title": "Line", "width": 60 }],
 					  "onOpen": { "run": "goToProblem" } },
-					{ "when": "{{state.panelTab == 'output'}}", "type": "list", "id": "output", "width": "100%", "grow": 1,
+					{ "when": "{{state.panelTab == 'output'}}", "type": "list", "id": "output", "role": "log", "label": "Output", "width": "100%", "grow": 1,
 					  "items": "{{computed.outputRows}}", "rowHeight": 20, "font": "code", "color": "@color.panel",
 					  "textColor": "@color.text", "selectedBackground": "@color.selection" },
-					{ "when": "{{state.panelTab == 'notifications'}}", "type": "list", "id": "notifications", "width": "100%",
+					{ "when": "{{state.panelTab == 'notifications'}}", "type": "list", "id": "notifications", "label": "Notifications", "width": "100%",
 					  "grow": 1, "items": "{{computed.notificationRows}}", "rowHeight": 22, "color": "@color.panel",
 					  "textColor": "@color.text", "selectedBackground": "@color.selection" },
 					{ "when": "{{state.panelTab == 'terminal'}}", "use": "forgeTerminal" }

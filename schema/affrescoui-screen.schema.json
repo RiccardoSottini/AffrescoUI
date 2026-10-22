@@ -1060,6 +1060,26 @@
 					"description": {
 						"description": "Text, or a {{binding}}"
 					},
+					"isOpen": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"selected": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"live": {
+						"anyOf": [
+							{
+								"enum": [
+									"off",
+									"polite",
+									"assertive"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
 					"tabIndex": {
 						"anyOf": [
 							{
@@ -2059,20 +2079,6 @@
 								"$ref": "#/$defs/v1/dynamic"
 							}
 						]
-					},
-					"mode": {
-						"anyOf": [
-							{
-								"enum": [
-									"square",
-									"wheel"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "colorPicker: square (default) or wheel"
 					},
 					"alpha": {
 						"$ref": "#/$defs/v1/flag"

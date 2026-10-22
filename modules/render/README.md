@@ -15,7 +15,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 |---|---|
 | `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
 | `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale, the system's colour scheme and its reduced-motion setting (`contentScale`, `colorScheme`, `reducedMotion`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); a focus ring drawn around the focused panel only after the keyboard moved the focus (`setFocusRing`, `FocusRing`, `focusVisible`; on by default in screens); the OS's file dialogs (`chooseFiles`, `FileDialog`, `FileFilter`; `setFileDialogHandler` answers them instead, for tests and automation); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot`; for the inspector, `frameStatistics` (`FrameStatistics.hpp`: frames drawn, the last one's time and draw calls) and `setInspection`, a layer drawn above everything and never hit |
-| `Accessibility.hpp` | What a panel is to a person or a screen reader: `accessibleRole` (the panel's own, or one from its kind: a button, a checkbox, a textbox, text), `accessibleName` (its label, else its text or the text inside it, else its tooltip), `accessibilityTree` (`AccessibleNode`: shown panels with a role, in tree order), `findByRole`. The roles and names are set on a `Panel` (`setAccessibleRole`, `setAccessibleLabel`, `setAccessibleDescription`); the OS backend comes later |
+| `Accessibility.hpp` | What a panel is to a person or a screen reader: `accessibleRole` (the panel's own, or one from its kind: a button, a checkbox, a textbox, text), `accessibleName` (its label, else its text or the text inside it, else its tooltip), `accessibilityTree` (`AccessibleNode`: shown panels with a role, in tree order), `findByRole`; each element's value (text, a slider's `AccessibleRange`, a checkbox's state, a field's selection), states (`AccessibleState`: expanded, selected, disabled, a live region), the actions it allows, bounds and an id that lasts (`accessibleId`, `findByAccessibleId`), and `performAccessibleAction`. The roles and names are set on a `Panel` (`setAccessibleRole`, `setAccessibleLabel`, `setAccessibleDescription`, `setAccessibleState`); each window hands the tree to the platform after the frames that change it (`ACCESSIBILITY.md`) |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture) |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
@@ -187,12 +187,15 @@ src/
   Application.cpp          the platform, the windows, the event loop, posted tasks
   Window.cpp               input routing, focus, the focus ring, hover, capture, tooltips, timers, deferred tasks,
                            frames
-  Accessibility.cpp        roles, accessible names, the tree, finding by role
+  Accessibility.cpp        roles, accessible names, the tree, values, states, actions, finding by role or id
   Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
   Renderer.hpp             detail::Renderer, what a window draws with
   platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call), Desktop.hpp
                            and DesktopMac.mm, DesktopWin32.cpp, DesktopOther.cpp (colour scheme, menu bar per OS),
-                           FileDialogs.cpp (the OS's file dialogs, through nativefiledialog-extended)
+                           FileDialogs.cpp (the OS's file dialogs, through nativefiledialog-extended),
+                           Accessibility.hpp (the adapter a window owns) with AccessKitTree (the tree as AccessKit
+                           updates, only the changed elements) and AccessibilityMac.mm, AccessibilityWindows.cpp,
+                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF)
   Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
   Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid

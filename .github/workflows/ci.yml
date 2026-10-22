@@ -67,7 +67,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
-          packages: xvfb xauth libgl1-mesa-dri doxygen clang-18 clang-tidy-18 llvm-18 python3-venv
+          packages: xvfb xauth libgl1-mesa-dri doxygen clang-18 clang-tidy-18 llvm-18 python3-venv at-spi2-core libatspi2.0-dev
           cache: linux-gcc
       - name: Build
         run: |
@@ -77,6 +77,13 @@ jobs:
         run: ctest --test-dir build -R unit --output-on-failure
       - name: Window tests # pictures drawn with OpenGL, under Xvfb (the rest of a window runs headless, in unit)
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
+      - name: Accessibility through AT-SPI # ACCESSIBILITY.md: the tree read as Orca reads it, on a bus of its own
+        run: >
+          xvfb-run -a -s "-screen 0 1920x1080x24" dbus-run-session -- sh -c
+          '/usr/libexec/at-spi-bus-launcher --launch-immediately & sleep 2;
+          dbus-send --session --print-reply --dest=org.a11y.Bus /org/a11y/bus org.freedesktop.DBus.Properties.Set
+          string:org.a11y.Status string:IsEnabled variant:boolean:true;
+          AFFRESCOUI_ATSPI=1 build/affrescoui_window_tests -tc="accessibility*"'
       - name: Command-line tool and MCP queries # tools/affrescoui/check.py, mcp/test_affrescoui_mcp.py
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
       - name: The scenarios # affrescoui test, headless: what each template does, and where the rendering check's screens put each node

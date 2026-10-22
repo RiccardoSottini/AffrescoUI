@@ -159,6 +159,16 @@ constexpr KeyReference nodeTable[] = {
 	 "access"},
     {"description", R"json({"description": "Text, or a {{binding}}"})json",
 	 "A longer accessible description, read after the name.", "access"},
+    {"isOpen", "flag",
+	 "Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it "
+	 "out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click).",
+	 "access"},
+    {"selected", "flag", "Whether the node is selected (a tab, a list item); leave it out for one that can't be.",
+	 "access"},
+    {"live", R"json({"anyOf": [{"enum": ["off", "polite", "assertive"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a "
+	 "toast), `assertive` at once (an error). Default: `off`.",
+	 "access"},
     {"tabIndex", R"json({"anyOf": [{"type": "integer", "minimum": -1}, {"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out.",
 	 "access"},

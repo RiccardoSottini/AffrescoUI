@@ -188,7 +188,7 @@ constexpr std::string_view others = R"({
 		"overlay": { "placement": "window", "open": "{{open}}", "dismiss": "outside", "modal": true },
 		"fill": true, "color": "{{backdrop}}",
 		"children": [{
-			"overlay": { "placement": "center", "open": "{{open}}" },
+			"overlay": { "placement": "center", "open": "{{open}}" }, "role": "dialog", "label": "{{title}}",
 			"width": "{{width}}", "height": "{{height}}", "color": "{{color}}", "radius": 6,
 			"borderWidth": 1, "borderColor": "#454545",
 			"children": [
@@ -221,6 +221,7 @@ constexpr std::string_view others = R"({
 		"overlay": { "placement": "window", "open": "{{open}}" },
 		"anchors": { "right": 16, "bottom": 16 }, "width": "{{width}}", "height": "{{progress == null ? 64 : 72}}",
 		"color": "{{color}}", "radius": 6, "borderWidth": 1, "borderColor": "#454545", "arrows": "horizontal",
+		"role": "status", "live": "polite",
 		"children": [
 			{ "type": "label", "text": "{{message}}", "textColor": "{{textColor}}", "anchors": { "left": 14, "top": 10 },
 			  "fitText": true },

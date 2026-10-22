@@ -61,6 +61,12 @@ public:
 	void setValue(double value);
 	/// @brief The value.
 	[[nodiscard]] double value() const noexcept { return value_; }
+	/// @brief The value at the left end.
+	[[nodiscard]] double minimum() const noexcept { return minimum_; }
+	/// @brief The value at the right end.
+	[[nodiscard]] double maximum() const noexcept { return maximum_; }
+	/// @brief The step values snap to; 0 for none.
+	[[nodiscard]] double step() const noexcept { return step_; }
 
 	/// @brief Sets the range and the step.
 	/// @param minimum The value at the left end.

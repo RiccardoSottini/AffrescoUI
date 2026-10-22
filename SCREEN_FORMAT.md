@@ -146,10 +146,20 @@ parent, later siblings on top of earlier ones.
 | `role` | What the node is to assistive tools and to scenarios (ARIA's names: `button`, `checkbox`, `textbox`, `dialog`, `list`, `listitem`, `menu`, `menuitem`, `tab`, ...). Default: `textbox` for inputs and editors, `text` for labels, `checkbox` for toggles, `slider` for sliders, `img` for images, `button` for a focusable node with an `onClick`; other nodes have none and are skipped in the accessibility tree. |
 | `label` | The node's accessible name. Default: its text, else the texts of the labels inside it, else its `tooltip` (an input's or a slider's text is its value, not its name). |
 | `description` | A longer accessible description, read after the name. |
+| `isOpen` | Whether the node is expanded (a tree item, a disclosure, a menu button: `expanded` to assistive tools); leave it out for one that doesn't expand. Screen readers say it, and offer to expand or collapse it (a click). |
+| `selected` | Whether the node is selected (a tab, a list item); leave it out for one that can't be. |
+| `live` | A live region: changes to its text are read without moving the focus, `polite` when the person is idle (a toast), `assertive` at once (an error). Default: `off`. |
 | `tabIndex` | The tab order: positive ones first, in increasing order, then the others in tree order; `-1` leaves it out. |
 | `arrows` | The arrow keys, Home and End move the focus between the focusable nodes inside (a list, a menu, a toolbar), wrapping; Tab moves past them in one step. A letter key clicks the node inside whose `mnemonic` it is. |
 | `mnemonic` | A letter: Alt with it clicks the node (the first one, in the open modal overlay if any); inside an `arrows` node, the letter alone does. |
 <!-- end generated -->
+
+The window hands these to the platform's accessibility API (VoiceOver, Narrator, Orca; see `ACCESSIBILITY.md`): every
+node with a role becomes an element with its name, description, value (a slider's number and range, a toggle's
+checked state, a text field's text, caret and selection), states (`isOpen`, `selected`, `disabled`) and bounds in
+screen points. Assistive tools can press a node (its `onClick`), step a slider, expand or collapse an `isOpen` node,
+and move the focus; the action runs on the UI thread in the next frame. Changes go out after the frame that shows them,
+only for the elements that changed.
 
 ### Every type: behaviour
 <!-- generated: behaviour -->

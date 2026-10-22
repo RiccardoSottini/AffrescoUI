@@ -297,6 +297,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	}
 
 	record.disabled = false;
+	panel.setAccessibleState({});
 	record.transition = json::object();
 	record.overlayOpen.reset();
 	record.dismissOutside = false;
@@ -323,7 +324,8 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
 		const json& value = withTokens(engine_.document, slot, *pointer, token);
 		at.assign(record.path).append(".").append(key);
-		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look))
+		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look) ||
+		   accessibleStateProperty(panel, slot, value, at))
 			continue;
 		if(isRoot) fail(at, "not allowed on the root, which always fills the window");
 		if((slot == Slot::Layout && layoutProperty(panel, key, value, at)) || widgetProperty(look, slot, value, at) ||
@@ -399,6 +401,7 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 		break;
 	case Slot::Disabled:
 		record.disabled = boolean(value, at);
+		panel.setAccessibleState(withDisabled(panel.accessibleState(), record.disabled));
 		break;
 	case Slot::Transition:
 		record.transition = transition(value, at);

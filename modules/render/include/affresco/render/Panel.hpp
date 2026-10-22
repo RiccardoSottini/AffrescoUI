@@ -56,6 +56,32 @@ enum class Placement {
 	Window,   ///< In the window, placed by its own x, y and anchors, as if the window were its parent.
 };
 
+/// @brief How an assistive technology announces changes to a panel's text (ARIA's aria-live).
+enum class LiveRegion : std::uint8_t {
+	Off,       ///< Not announced.
+	Polite,    ///< Announced when the person is idle (a toast).
+	Assertive, ///< Announced at once (an error).
+};
+
+/// @brief The states an assistive technology reads beside a panel's role and name (affresco/render/Accessibility.hpp).
+struct AccessibleState {
+	std::optional<bool> expanded; ///< Expanded or collapsed (a tree item, a disclosure); empty if it doesn't expand.
+	std::optional<bool> selected; ///< Selected or not (a tab, a list item); empty if it can't be selected.
+	bool disabled = false;        ///< It takes no input.
+	LiveRegion live = LiveRegion::Off; ///< How changes to its text are announced.
+
+	bool operator==(const AccessibleState&) const = default;
+};
+
+/// @brief A copy of a state, disabled or not.
+/// @param state The state.
+/// @param disabled Whether it takes no input.
+/// @return The copy.
+[[nodiscard]] constexpr AccessibleState withDisabled(AccessibleState state, bool disabled) noexcept {
+	state.disabled = disabled;
+	return state;
+}
+
 /// @brief A rectangle in the UI tree. Owns its children; positions and sizes are relative to the parent.
 ///
 /// Layout rules, per axis (vertical shown):
@@ -305,6 +331,15 @@ public:
 	void setAccessibleDescription(std::string description);
 	/// @brief The description; empty if none.
 	[[nodiscard]] const std::string& accessibleDescription() const noexcept { return description_; }
+	/// @brief Sets the states read beside the role and the name.
+	/// @param state Expanded, selected, disabled and live.
+	void setAccessibleState(const AccessibleState& state) {
+		if(state_ == state) return;
+		state_ = state;
+		invalidatePaint(); // the next frame sends it to assistive technologies
+	}
+	/// @brief The states setAccessibleState() gave.
+	[[nodiscard]] const AccessibleState& accessibleState() const noexcept { return state_; }
 
 	/* Appearance */
 
@@ -646,6 +681,7 @@ private:
 	std::string role_;                                    ///< See accessibleRole().
 	std::string accessibleLabel_;                         ///< See accessibleLabel().
 	std::string description_;                             ///< See accessibleDescription().
+	AccessibleState state_;                               ///< See accessibleState().
 
 	bool scrollX_ = false, scrollY_ = false; ///< See setScrollable().
 	Vec2 scroll_;                            ///< See scrollOffset().
