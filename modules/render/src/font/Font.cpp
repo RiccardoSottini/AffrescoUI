@@ -157,14 +157,15 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
 	Data& data = *font->data_;
 	data.library = detail::startFreeType();
 	data.faces.reserve(1 + fallbacks.size() + optional.size());
+	using Size = detail::FontFace::Size;
 	using SizeOf = detail::FontFace::SizeOf;
-	data.faces.emplace_back(data.library.get(), files.read(path), pixelHeight, SizeOf::height, path, style);
+	data.faces.emplace_back(data.library.get(), files.read(path), Size{pixelHeight, SizeOf::height}, path, style);
 	const float em = data.faces.front().emPixels(); // fallbacks get the font's em, so their text looks as large
 	for(const std::filesystem::path& fallback : fallbacks)
-		data.faces.emplace_back(data.library.get(), files.read(fallback), em, SizeOf::em, fallback, style);
+		data.faces.emplace_back(data.library.get(), files.read(fallback), Size{em, SizeOf::em}, fallback, style);
 	for(const std::filesystem::path& extra : optional) {
 		try {
-			data.faces.emplace_back(data.library.get(), files.read(extra), em, SizeOf::em, extra, style);
+			data.faces.emplace_back(data.library.get(), files.read(extra), Size{em, SizeOf::em}, extra, style);
 		} catch(const std::runtime_error& error) {
 			log(LogLevel::Warning, std::string("AffrescoUI: skipping a system font: ") + error.what());
 		}

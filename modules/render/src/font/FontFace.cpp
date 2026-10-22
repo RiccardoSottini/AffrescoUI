@@ -80,9 +80,15 @@ std::size_t FontFiles::bytes() const noexcept {
 	return total;
 }
 
-FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, float size, SizeOf sizeOf,
+FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, Size size,
                    const std::filesystem::path& path, FontStyle style)
     : file_(std::move(file)), style_(style) {
+	openOutlines(library, path);
+	setSize(size, path);
+	openShaper(path);
+}
+
+void FontFace::openOutlines(FT_Library library, const std::filesystem::path& path) {
 	const std::vector<unsigned char>& bytes = file_->bytes;
 	FT_Face face = nullptr;
 	if(bytes.empty() || FT_New_Memory_Face(library, bytes.data(), static_cast<FT_Long>(bytes.size()), 0, &face) != 0)
@@ -90,19 +96,26 @@ FontFace::FontFace(FT_Library library, std::shared_ptr<const FontFile> file, flo
 	face_.reset(face);
 	if(!FT_IS_SCALABLE(face))
 		throw unusable(path, "no outlines; bitmap colour fonts such as CBDT emoji aren't supported yet");
+}
 
+void FontFace::setSize(Size size, const std::filesystem::path& path) {
 	// A font's height spans its ascender to its descender, as stb_truetype's did, so sizes stay what they were
-	const auto units = static_cast<float>(sizeOf == SizeOf::em ? face->units_per_EM : face->ascender - face->descender);
-	if(!(units > 0.0f) || !(size > 0.0f) || !std::isfinite(size)) throw unusable(path, "no height");
-	if(size > largestSize) // checked before any conversion to an integer: 1e30 doesn't fit one
+	FT_Face face = face_.get();
+	const auto units =
+	    static_cast<float>(size.of == SizeOf::em ? face->units_per_EM : face->ascender - face->descender);
+	if(!(units > 0.0f) || !(size.pixels > 0.0f) || !std::isfinite(size.pixels)) throw unusable(path, "no height");
+	if(size.pixels > largestSize) // checked before any conversion to an integer: 1e30 doesn't fit one
 		throw unusable(path, "larger than " + std::to_string(static_cast<int>(largestSize)) + " pixels");
-	scale_ = size / units;
-	FT_Size_RequestRec request{sizeOf == SizeOf::em ? FT_SIZE_REQUEST_TYPE_NOMINAL : FT_SIZE_REQUEST_TYPE_REAL_DIM, 0,
-	                           std::lround(size * 64.0f), 0, 0};
-	if(FT_Request_Size(face, &request) != 0) throw unusable(path, "it has no size " + std::to_string(size));
+	scale_ = size.pixels / units;
+	FT_Size_RequestRec request{size.of == SizeOf::em ? FT_SIZE_REQUEST_TYPE_NOMINAL : FT_SIZE_REQUEST_TYPE_REAL_DIM, 0,
+	                           std::lround(size.pixels * 64.0f), 0, 0};
+	if(FT_Request_Size(face, &request) != 0) throw unusable(path, "it has no size " + std::to_string(size.pixels));
 	color_ = FT_HAS_COLOR(face);
+}
 
+void FontFace::openShaper(const std::filesystem::path& path) {
 	// HarfBuzz reads the same bytes; positions are in font units, its default scale
+	const std::vector<unsigned char>& bytes = file_->bytes;
 	const std::unique_ptr<hb_blob_t, HarfBuzzDeleter> blob(hb_blob_create(reinterpret_cast<const char*>(bytes.data()),
 	                                                                      static_cast<unsigned>(bytes.size()),
 	                                                                      HB_MEMORY_MODE_READONLY, nullptr, nullptr));
