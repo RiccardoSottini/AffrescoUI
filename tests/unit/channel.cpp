@@ -244,7 +244,7 @@ TEST_CASE("channel: the shared line framing drops CRs when asked, and ends the s
 			return static_cast<std::ptrdiff_t>(n);
 		};
 		std::atomic<bool> running = true;
-		affresco::channel::detail::readLines(read, executor, channel, std::make_shared<bool>(true), &running,
+		affresco::channel::detail::readLines(read, {executor, channel, std::make_shared<bool>(true)}, &running,
 		                                     dropCarriageReturns);
 		CHECK_FALSE(running);
 		CHECK(executor.runUntil([&] { return closed; }));

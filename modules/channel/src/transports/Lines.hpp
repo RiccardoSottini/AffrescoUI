@@ -34,6 +34,13 @@ concept ChunkReader = std::invocable<Read&, char*, std::size_t>;
 template <typename Write>
 concept ChunkWriter = std::invocable<Write&, const char*, std::size_t>;
 
+/// @brief Where the lines read go: posted to a channel's signals on the main thread, while the channel lives.
+struct Delivery {
+	Executor& executor;          ///< Delivers on the main thread.
+	Channel& channel;            ///< The channel whose signals fire.
+	std::shared_ptr<bool> alive; ///< Cleared when the channel is destroyed; queued deliveries then do nothing.
+};
+
 /// @brief Tells whether a line, ended or not, fits in maxMessageBytes; logs the one that doesn't.
 /// @param length Its length in bytes.
 /// @return true if it fits.
@@ -51,12 +58,9 @@ inline bool fitsInMessage(std::size_t length) {
 /// @param buffer What was read and not yet delivered; keeps the line that hasn't ended.
 /// @param searched How many bytes at its start were searched for a line break before (they have none).
 /// @param dropCarriageReturns Whether a line ending in "\r\n" loses its '\r'.
-/// @param executor Delivers on the main thread.
-/// @param channel The channel whose signals fire.
-/// @param alive Cleared when the channel is destroyed; queued deliveries then do nothing.
+/// @param to Where the lines go.
 /// @return false once a line is longer than maxMessageBytes: the stream must end.
-inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCarriageReturns, Executor& executor,
-                         Channel& channel, const std::shared_ptr<bool>& alive) {
+inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCarriageReturns, const Delivery& to) {
 	std::size_t start = 0;
 	bool fits = true;
 	for(std::size_t end; fits && (end = buffer.find('\n', std::max(start, searched))) != std::string::npos;
@@ -65,7 +69,7 @@ inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCar
 		if(dropCarriageReturns && length > 0 && buffer[end - 1] == '\r') --length;
 		fits = fitsInMessage(length);
 		if(fits && length > 0)
-			executor.post([&channel, alive, line = buffer.substr(start, length)] {
+			to.executor.post([&channel = to.channel, alive = to.alive, line = buffer.substr(start, length)] {
 				if(*alive) channel.onMessage(line);
 			});
 	}
@@ -78,15 +82,12 @@ inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCar
 /// A line that grows past maxMessageBytes ends the stream too. Each byte is searched for a line break once, so a
 /// long line costs time in proportion to its length.
 /// @param read Reads the next chunk of the stream (see ChunkReader).
-/// @param executor Delivers on the main thread.
-/// @param channel The channel whose signals fire.
-/// @param alive Cleared when the channel is destroyed; queued deliveries then do nothing.
+/// @param to Where the lines go.
 /// @param running Set to false when the stream ends (may be nullptr).
 /// @param dropCarriageReturns Whether a line ending in "\r\n" loses its '\r' (a Windows console's and cmd.exe's
 /// line breaks).
 template <ChunkReader Read>
-void readLines(Read read, Executor& executor, Channel& channel, const std::shared_ptr<bool>& alive,
-               std::atomic<bool>* running, bool dropCarriageReturns = false) {
+void readLines(Read read, const Delivery& to, std::atomic<bool>* running, bool dropCarriageReturns = false) {
 	std::string buffer;
 	char chunk[4096];
 	for(bool open = true; open;) {
@@ -94,11 +95,11 @@ void readLines(Read read, Executor& executor, Channel& channel, const std::share
 		if(n <= 0) break;
 		const std::size_t searched = buffer.size(); // the bytes before have no line break
 		buffer.append(chunk, static_cast<std::size_t>(n));
-		open = deliverLines(buffer, searched, dropCarriageReturns, executor, channel, alive);
+		open = deliverLines(buffer, searched, dropCarriageReturns, to);
 	}
 
 	if(running) *running = false;
-	executor.post([&channel, alive] {
+	to.executor.post([&channel = to.channel, alive = to.alive] {
 		if(*alive) channel.onClosed();
 	});
 }
@@ -147,14 +148,10 @@ inline std::ptrdiff_t writeDescriptor(int fd, const char* data, std::size_t size
 
 /// @brief Reads @p fd until it closes, posting each line to the channel's onMessage, then onClosed.
 /// @param fd The descriptor to read.
-/// @param executor Delivers on the main thread.
-/// @param channel The channel whose signals fire.
-/// @param alive Cleared when the channel is destroyed; queued deliveries then do nothing.
+/// @param to Where the lines go.
 /// @param running Set to false when the stream ends (may be nullptr).
-inline void readLines(int fd, Executor& executor, Channel& channel, std::shared_ptr<bool> alive,
-                      std::atomic<bool>* running) {
-	readLines([fd](char* data, std::size_t size) { return readDescriptor(fd, data, size); }, executor, channel,
-	          std::move(alive), running);
+inline void readLines(int fd, const Delivery& to, std::atomic<bool>* running) {
+	readLines([fd](char* data, std::size_t size) { return readDescriptor(fd, data, size); }, to, running);
 }
 
 /// @brief Writes a message followed by a line break.

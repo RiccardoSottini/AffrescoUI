@@ -148,19 +148,16 @@ HANDLE startShell(const std::wstring& shell, std::wstring commandLine, HANDLE jo
 /// @brief Reads @p input until it closes, posting each line to the channel's onMessage, then onClosed. The framing
 /// is the one every channel shares (detail::readLines): a line past maxMessageBytes ends the stream.
 /// @param input The handle to read.
-/// @param executor Delivers on the main thread.
-/// @param channel The channel whose signals fire.
-/// @param alive Cleared when the channel is destroyed; queued deliveries then do nothing.
+/// @param to Where the lines go.
 /// @param running Set to false when the stream ends (may be nullptr).
-void readLines(HANDLE input, Executor& executor, Channel& channel, std::shared_ptr<bool> alive,
-               std::atomic<bool>* running) {
+void readLines(HANDLE input, const detail::Delivery& to, std::atomic<bool>* running) {
 	const auto read = [input](char* data, std::size_t size) -> std::ptrdiff_t {
 		DWORD count = 0;
 		if(!ReadFile(input, data, static_cast<DWORD>(size), &count, nullptr)) return -1; // also when the writer closed
 		return static_cast<std::ptrdiff_t>(count);
 	};
 	// The console and cmd.exe end lines with CRLF
-	detail::readLines(read, executor, channel, std::move(alive), running, true);
+	detail::readLines(read, to, running, true);
 }
 
 /// @brief Writes a message followed by a line break.
@@ -373,7 +370,7 @@ namespace affresco::channel {
 ProcessChannel::ProcessChannel(Executor& executor, const std::string& command)
     : executor_(executor), process_(std::make_unique<Process>(command)), running_(true) {
 	try {
-		reader_ = std::thread([this] { readLines(process_->fromChild, executor_, *this, alive_, &running_); });
+		reader_ = std::thread([this] { readLines(process_->fromChild, {executor_, *this, alive_}, &running_); });
 	} catch(...) {
 		process_->end(); // the destructor doesn't run when a constructor throws, and ~Process alone leaves it running
 		throw;
@@ -394,7 +391,7 @@ StdioChannel::StdioChannel(Executor& executor) {
 	ignoreBrokenPipes();
 	// Detached: a read of stdin can't be interrupted, and the thread ends with the process anyway
 	std::thread([this, &executor, alive = alive_] {
-		readLines(standardInput(), executor, *this, alive, nullptr);
+		readLines(standardInput(), {executor, *this, alive}, nullptr);
 	}).detach();
 }
 

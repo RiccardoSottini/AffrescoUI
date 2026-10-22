@@ -493,7 +493,7 @@ SocketChannel::SocketChannel(Executor& executor, SocketHandle socket, std::size_
 	ignoreBrokenPipes(socket_);
 	reader_ = std::thread([this, &executor] {
 		const auto read = [this](char* data, std::size_t size) { return receive(socket_, data, size); };
-		detail::readLines(read, executor, *this, alive_, &open_);
+		detail::readLines(read, {executor, *this, alive_}, &open_);
 	});
 	writer_ = std::thread([this] { writeQueued(); });
 }
