@@ -106,6 +106,10 @@ TEST_CASE("sinopia: slides are 800 wide, and pages fit in 800 by 600") {
 	CHECK(sinopia::slideSize(readDeck(json::parse(R"({"size": "a4"})"))) == std::pair{424.0f, 600.0f});
 	CHECK(sinopia::slideSize(readDeck(json::parse(R"({"size": "custom", "page": {"w": 1000, "h": 250}})"))) ==
 	      std::pair{800.0f, 200.0f});
+	// A size's own page wins, but the deck's is checked all the same
+	CHECK(readDeck(json::parse(R"({"size": "a4", "page": {"w": 1000, "h": 250}})")).page == std::pair{595.0f, 842.0f});
+	CHECK_THROWS_AS((void)readDeck(json::parse(R"({"size": "16:9", "page": {"w": "wide"}})")), std::runtime_error);
+	CHECK_THROWS_AS((void)readDeck(json::parse(R"({"size": "4:3", "page": []})")), std::runtime_error);
 }
 
 TEST_CASE("sinopia: text that doesn't fit shrinks, or overflows when autofit is off") {

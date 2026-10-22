@@ -126,6 +126,38 @@ private:
 	/// @param where Where it is.
 	/// @return It.
 	[[nodiscard]] Master master(const json& value, const std::string& where);
+	/// @brief The id of an item of a list (a master, a section, a slide): unique among the list's items, a scope of
+	/// its own apart from the objects' ids.
+	/// @param item The item's JSON.
+	/// @param prefix What a made-up id starts with.
+	/// @param where Where the item is.
+	/// @param taken The ids the list's items have taken so far; the item's is added.
+	/// @return It.
+	[[nodiscard]] std::string itemId(const json& item, std::string_view prefix, const std::string& where,
+	                                 std::set<std::string>& taken);
+	/// @brief Reads the deck's page size: its own for a custom size, the size's for the others (its own is checked
+	/// for them too).
+	/// @param value The deck's JSON.
+	/// @param size The deck's size.
+	/// @return The width and height, in points.
+	[[nodiscard]] static std::pair<float, float> page(const json& value, std::string_view size);
+	/// @brief Reads the deck's theme, whose tokens the colours read after it may name ("@name").
+	/// @param value The deck's JSON.
+	/// @param deck Where it goes.
+	void theme(const json& value, Deck& deck);
+	/// @brief Reads the masters or the layouts.
+	/// @param value The deck's JSON.
+	/// @param key "masters" or "layouts".
+	/// @return They.
+	[[nodiscard]] std::vector<Master> masters(const json& value, const char* key);
+	/// @brief Reads the sections.
+	/// @param value The deck's JSON.
+	/// @return They.
+	[[nodiscard]] std::vector<Section> sections(const json& value);
+	/// @brief Reads the slides.
+	/// @param value The deck's JSON.
+	/// @return They.
+	[[nodiscard]] std::vector<Slide> slides(const json& value);
 
 	const DeckLimits& limits_;            ///< What the deck may hold.
 	std::set<std::string> ids_;           ///< Ids taken in the current scope.
@@ -325,18 +357,26 @@ Master Reader::master(const json& value, const std::string& where) {
 	return master;
 }
 
-Deck Reader::deck(const json& value) {
-	if(!value.is_object()) fail("deck", "not an object");
-	Deck deck;
-	deck.title = text(value, "title", "Untitled", 256, "deck");
-	deck.size = word(value, "size", sizeKinds, "deck");
-	const json& page = nested(value, "page", "deck");
-	deck.page = {number(page, "w", 960.0f, 72.0f, 14400.0f, "deck.page"),
-	             number(page, "h", 540.0f, 72.0f, 14400.0f, "deck.page")};
-	if(deck.size == "16:9") deck.page = {960.0f, 540.0f};
-	else if(deck.size == "4:3") deck.page = {960.0f, 720.0f};
-	else if(deck.size == "a4") deck.page = {595.0f, 842.0f};
-	else if(deck.size == "letter") deck.page = {612.0f, 792.0f};
+std::string Reader::itemId(const json& item, std::string_view prefix, const std::string& where,
+                           std::set<std::string>& taken) {
+	ids_ = std::move(taken);
+	std::string id = uniqueId(text(item, "id", {}, limits_.idBytes, where), prefix);
+	taken = std::move(ids_);
+	return id;
+}
+
+std::pair<float, float> Reader::page(const json& value, std::string_view size) {
+	const json& page = nested(value, "page", "deck"); // read (and checked) whatever the size
+	const std::pair<float, float> custom{number(page, "w", 960.0f, 72.0f, 14400.0f, "deck.page"),
+	                                     number(page, "h", 540.0f, 72.0f, 14400.0f, "deck.page")};
+	if(size == "16:9") return {960.0f, 540.0f};
+	if(size == "4:3") return {960.0f, 720.0f};
+	if(size == "a4") return {595.0f, 842.0f};
+	if(size == "letter") return {612.0f, 792.0f};
+	return custom;
+}
+
+void Reader::theme(const json& value, Deck& deck) {
 	const json& theme = nested(value, "theme", "deck");
 	if(theme.size() > limits_.tokens) fail("deck.theme", "more than " + std::to_string(limits_.tokens) + " tokens");
 	for(const auto& [name, token] : theme.items()) {
@@ -344,38 +384,56 @@ Deck Reader::deck(const json& value) {
 		deck.theme.emplace_back(name, text(theme, name.c_str(), {}, limits_.idBytes, "deck.theme"));
 		tokenNames_.push_back(name);
 	}
-	const auto readMasters = [&](const char* key, std::vector<Master>& into) {
-		const json& items = list(value, key, "deck", limits_.masters);
-		std::set<std::string> taken;
-		for(std::size_t i = 0; i < items.size(); ++i) {
-			const std::string at = std::string("deck.") + key + "[" + std::to_string(i) + "]";
-			into.push_back(master(items[i], at));
-			ids_ = std::move(taken);
-			into.back().id = uniqueId(text(items[i], "id", {}, limits_.idBytes, at), key);
-			taken = std::move(ids_);
-		}
-	};
-	readMasters("masters", deck.masters);
-	readMasters("layouts", deck.layouts);
+}
+
+std::vector<Master> Reader::masters(const json& value, const char* key) {
+	std::vector<Master> read;
 	std::set<std::string> taken;
-	const json& sections = list(value, "sections", "deck", limits_.sections);
-	for(std::size_t i = 0; i < sections.size(); ++i) {
+	const json& items = list(value, key, "deck", limits_.masters);
+	for(std::size_t i = 0; i < items.size(); ++i) {
+		const std::string at = std::string("deck.") + key + "[" + std::to_string(i) + "]";
+		read.push_back(master(items[i], at));
+		read.back().id = itemId(items[i], key, at, taken);
+	}
+	return read;
+}
+
+std::vector<Section> Reader::sections(const json& value) {
+	std::vector<Section> read;
+	std::set<std::string> taken;
+	const json& items = list(value, "sections", "deck", limits_.sections);
+	for(std::size_t i = 0; i < items.size(); ++i) {
 		const std::string at = "deck.sections[" + std::to_string(i) + "]";
-		if(!sections[i].is_object()) fail(at, "not an object");
-		ids_ = std::move(taken);
-		deck.sections.push_back({uniqueId(text(sections[i], "id", {}, limits_.idBytes, at), "section"),
-		                         text(sections[i], "title", {}, 256, at)});
-		taken = std::move(ids_);
+		if(!items[i].is_object()) fail(at, "not an object");
+		std::string id = itemId(items[i], "section", at, taken);
+		read.push_back({std::move(id), text(items[i], "title", {}, 256, at)});
 	}
-	taken.clear();
-	const json& slides = list(value, "slides", "deck", limits_.slides);
-	for(std::size_t i = 0; i < slides.size(); ++i) {
+	return read;
+}
+
+std::vector<Slide> Reader::slides(const json& value) {
+	std::vector<Slide> read;
+	std::set<std::string> taken;
+	const json& items = list(value, "slides", "deck", limits_.slides);
+	for(std::size_t i = 0; i < items.size(); ++i) {
 		const std::string at = "deck.slides[" + std::to_string(i) + "]";
-		deck.slides.push_back(slide(slides[i], at));
-		ids_ = std::move(taken);
-		deck.slides.back().id = uniqueId(text(slides[i], "id", {}, limits_.idBytes, at), "slide");
-		taken = std::move(ids_);
+		read.push_back(slide(items[i], at));
+		read.back().id = itemId(items[i], "slide", at, taken);
 	}
+	return read;
+}
+
+Deck Reader::deck(const json& value) {
+	if(!value.is_object()) fail("deck", "not an object");
+	Deck deck;
+	deck.title = text(value, "title", "Untitled", 256, "deck");
+	deck.size = word(value, "size", sizeKinds, "deck");
+	deck.page = page(value, deck.size);
+	theme(value, deck); // before anything with a colour
+	deck.masters = masters(value, "masters");
+	deck.layouts = masters(value, "layouts");
+	deck.sections = sections(value);
+	deck.slides = slides(value);
 	return deck;
 }
 
@@ -491,12 +549,13 @@ std::pair<float, float> slideSize(const Deck& deck) noexcept {
 	return {std::round(width * scale), std::round(height * scale)};
 }
 
-void fitText(SlideObject& object) noexcept {
-	object.fit = 1.0f;
-	object.overflow = false;
-	if(object.kind == "group" || object.kind == "line" || object.kind == "path" || object.kind == "image") return;
-	// Lines of the text: its own breaks, and wraps where a line is wider than the frame
-	std::vector<std::pair<std::size_t, float>> lines{{0, object.textSize}}; // characters and the tallest size
+namespace {
+
+/// @brief A text frame's lines: its own breaks (wraps are left to linesHeight()).
+/// @param object The text frame.
+/// @return Each line's characters and its tallest size.
+[[nodiscard]] std::vector<std::pair<std::size_t, float>> textLines(const SlideObject& object) {
+	std::vector<std::pair<std::size_t, float>> lines{{0, object.textSize}};
 	const auto add = [&lines](std::string_view text, float size) {
 		for(const char c : text) {
 			if(c == '\n') lines.emplace_back(0, size);
@@ -506,19 +565,37 @@ void fitText(SlideObject& object) noexcept {
 	};
 	if(object.runs.empty()) add(object.text, object.textSize);
 	for(const TextRun& run : object.runs) add(run.text, run.size > 0.0f ? run.size : object.textSize);
+	return lines;
+}
+
+/// @brief How tall lines are at a scale, each wrapped where it is wider than the frame.
+/// @param lines The lines, as textLines() gives them.
+/// @param frameWidth The frame's width.
+/// @param scale The scale.
+/// @return The height.
+[[nodiscard]] float linesHeight(std::span<const std::pair<std::size_t, float>> lines, float frameWidth,
+                                float scale) noexcept {
+	float height = 0.0f;
+	for(const auto& [characters, size] : lines) {
+		const float width = static_cast<float>(characters) * size * scale * 0.5f;
+		height += std::max(1.0f, std::ceil(width / std::max(1.0f, frameWidth - 8.0f))) * size * scale * 1.2f;
+	}
+	return height;
+}
+
+} // namespace
+
+void fitText(SlideObject& object) {
+	object.fit = 1.0f;
+	object.overflow = false;
+	if(object.kind == "group" || object.kind == "line" || object.kind == "path" || object.kind == "image") return;
+	const std::vector<std::pair<std::size_t, float>> lines = textLines(object);
 	if(lines.size() == 1 && lines.front().first == 0) return;
-	const auto heightAt = [&lines, &object](float scale) {
-		float height = 0.0f;
-		for(const auto& [characters, size] : lines) {
-			const float width = static_cast<float>(characters) * size * scale * 0.5f;
-			height += std::max(1.0f, std::ceil(width / std::max(1.0f, object.w - 8.0f))) * size * scale * 1.2f;
-		}
-		return height;
-	};
 	const float room = std::max(1.0f, object.h - 8.0f);
 	if(object.autofit)
-		while(object.fit > 0.25f && heightAt(object.fit) > room) object.fit = std::max(0.25f, object.fit - 0.05f);
-	object.overflow = heightAt(object.fit) > room;
+		while(object.fit > 0.25f && linesHeight(lines, object.w, object.fit) > room)
+			object.fit = std::max(0.25f, object.fit - 0.05f);
+	object.overflow = linesHeight(lines, object.w, object.fit) > room;
 }
 
 Slide slideFromLayout(const Deck& deck, const std::string& layout, std::string id) {

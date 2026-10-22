@@ -189,7 +189,7 @@ struct Deck {
 /// @brief Works out a text frame's autofit: the scale its text is drawn at to fit, and whether it overflows. An
 /// estimate from the length of its lines (a character is about half its size wide).
 /// @param object The object; its `fit` and `overflow` are set.
-void fitText(SlideObject& object) noexcept;
+void fitText(SlideObject& object); // allocates, so it may throw
 
 /// @brief A new slide made from a layout: its placeholders copied, with fresh ids.
 /// @param deck The deck.
