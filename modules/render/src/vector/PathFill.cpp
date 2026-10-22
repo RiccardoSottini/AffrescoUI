@@ -4,6 +4,7 @@
 
 #include "affresco/render/VectorPath.hpp"
 
+#include "PathFill.hpp"
 #include "VectorMath.hpp"
 
 #include <algorithm>
@@ -55,8 +56,10 @@ public:
 	/// @param contours The contours.
 	/// @param rule The fill rule.
 	/// @param mesh Where the quads go.
-	Trapezoids(std::span<const VectorPath::Contour> contours, FillRule rule, std::vector<MeshVertex>& mesh)
-	    : rule_(rule), mesh_(mesh) {
+	/// @param workLimit The most edge visits.
+	Trapezoids(std::span<const VectorPath::Contour> contours, FillRule rule, std::vector<MeshVertex>& mesh,
+	           std::size_t workLimit)
+	    : rule_(rule), mesh_(mesh), workLimit_(workLimit) {
 		forEachEdge(contours, [&](Vec2 from, Vec2 to) {
 			if(from.y < to.y) edges_.push_back({from, to, 1});
 			else if(from.y > to.y) edges_.push_back({to, from, -1});
@@ -68,15 +71,17 @@ public:
 	}
 
 	/// @brief Fills every band.
-	void run() {
+	/// @return The edge visits made.
+	std::size_t run() {
 		std::size_t entering = 0;
 		for(std::size_t band = 0; band + 1 < heights_.size(); ++band) {
 			const float top = heights_[band], bottom = heights_[band + 1];
 			std::erase_if(active_, [&](const Edge& edge) { return edge.bottom.y <= top; });
 			for(; entering < edges_.size() && edges_[entering].top.y <= top; ++entering)
 				active_.push_back(edges_[entering]);
-			if(!fillBand(top, bottom)) return;
+			if(!fillBand(top, bottom)) break;
 		}
+		return work_;
 	}
 
 private:
@@ -85,7 +90,7 @@ private:
 	bool fillBand(float top, float bottom) {
 		while(top < bottom) {
 			work_ += active_.size();
-			if(work_ > meshWorkLimit || vector::meshIsFull(mesh_, meshQuadLimit)) return false;
+			if(work_ > workLimit_ || vector::meshIsFull(mesh_, meshQuadLimit)) return false;
 			float pieceBottom = bottom;
 			while(true) { // spans by their middle; the first crossing of neighbours ends the piece
 				spansAt(top, pieceBottom);
@@ -93,7 +98,7 @@ private:
 				if(crossing >= pieceBottom) break;
 				pieceBottom = crossing;
 				work_ += spans_.size();
-				if(work_ > meshWorkLimit) return false;
+				if(work_ > workLimit_) return false;
 			}
 			emit(top, pieceBottom);
 			top = pieceBottom;
@@ -145,6 +150,7 @@ private:
 	std::vector<float> heights_;    ///< Every point's height, once each, in order.
 	std::vector<Edge> active_;      ///< The edges across the current band.
 	std::vector<Span> spans_;       ///< The active edges across the current piece of band.
+	std::size_t workLimit_;         ///< The most edge visits.
 	std::size_t work_ = 0;          ///< Edge visits so far.
 };
 
@@ -213,21 +219,26 @@ void appendFringe(const VectorPath::Contour& contour, float outwardSign, float f
 
 } // namespace
 
-void appendFill(std::span<const VectorPath::Contour> contours, FillRule rule, std::vector<MeshVertex>& mesh,
-                float feather) {
-	if(!vector::finite(contours)) return;
-	Trapezoids trapezoids(contours, rule, mesh);
-	trapezoids.run();
-	if(!(feather > 0.0f)) return;
+std::size_t vector::appendFill(std::span<const VectorPath::Contour> contours, FillRule rule,
+                               std::vector<MeshVertex>& mesh, float feather, std::size_t workLimit) {
+	if(!vector::finite(contours)) return 0;
+	const std::size_t insideWork = Trapezoids(contours, rule, mesh, workLimit).run();
+	if(!(feather > 0.0f)) return insideWork;
 	// Finding each contour's inside costs a pass over every edge: within the work limit, then no more fringes
 	std::size_t edgeCount = 0, work = 0;
 	for(const VectorPath::Contour& contour : contours) edgeCount += contour.points.size();
 	for(const VectorPath::Contour& contour : contours) {
 		if(contour.points.size() < 3) continue;
 		work += edgeCount;
-		if(work > meshWorkLimit || vector::meshIsFull(mesh, meshQuadLimit)) return;
+		if(work > workLimit || vector::meshIsFull(mesh, meshQuadLimit)) break;
 		appendFringe(contour, insideOnLeft(contours, contour, rule) ? -1.0f : 1.0f, std::min(feather, 4.0f), mesh);
 	}
+	return insideWork + work;
+}
+
+void appendFill(std::span<const VectorPath::Contour> contours, FillRule rule, std::vector<MeshVertex>& mesh,
+                float feather) {
+	static_cast<void>(vector::appendFill(contours, rule, mesh, feather, meshWorkLimit));
 }
 
 } // namespace affresco

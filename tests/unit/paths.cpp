@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <numbers>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -104,7 +105,7 @@ TEST_CASE("render: broken path data is refused, naming the place") {
 	CHECK(refusal("M0 0 L10").find("expected a number at character") != std::string::npos);
 	CHECK(refusal("M0 0 X5 5").find("unknown command 'X'") != std::string::npos);
 	CHECK(refusal("M0 0 L5 5 Z 1 1").find("expected a command") != std::string::npos); // Z takes no numbers
-	CHECK_FALSE(refusal("M1e9 0").empty()); // past the largest coordinate
+	CHECK_FALSE(refusal("M1e9 0").empty());                                            // past the largest coordinate
 	VectorPath::Limits small;
 	small.commands = 4;
 	CHECK_THROWS_AS((void)VectorPath::parse("M0 0 L1 1 L2 2 L3 3 L4 4", small), std::invalid_argument);
@@ -240,7 +241,8 @@ TEST_CASE("render: a path scaled past the float range draws nothing, and its das
 	style.dash = {4.0f, 4.0f};
 	const float infinity = std::numeric_limits<float>::infinity();
 	for(const std::vector<VectorPath::Contour>& contours :
-	    {path.flatten(huge), std::vector<VectorPath::Contour>{{{{0.0f, 0.0f}, {infinity, 0.0f}, {infinity, 1.0f}}, false}}}) {
+	    {path.flatten(huge),
+	     std::vector<VectorPath::Contour>{{{{0.0f, 0.0f}, {infinity, 0.0f}, {infinity, 1.0f}}, false}}}) {
 		std::vector<MeshVertex> stroke, fill;
 		affresco::appendStroke(contours, style, stroke, 1.0f); // returns
 		affresco::appendFill(contours, FillRule::nonZero, fill, 1.0f);
@@ -305,6 +307,29 @@ TEST_CASE("render: SVG icons decode as images, within the limits") {
 	for(int level = 0; level < 100; ++level) nested += "<g>";
 	const std::span<const std::uint8_t> deepData(reinterpret_cast<const std::uint8_t*>(nested.data()), nested.size());
 	CHECK_THROWS_AS((void)affresco::Bitmap::decode(deepData, {}), std::runtime_error);
+}
+
+TEST_CASE("render: an SVG icon's fills are bounded as a whole, not only one by one") {
+	// Each path's fill stops at meshWorkLimit edge visits, but a document repeating a costly one (a star of 501 points
+	// whose edges all cross) decoded for seconds: past the document's share, later fills draw nothing
+	std::string star = "M1000 0";
+	for(int index = 1; index < 501; ++index) {
+		const double angle = index * 2.0 * std::numbers::pi * 249.0 / 501.0;
+		star += " L" + std::to_string(std::lround(1000.0 + 1000.0 * std::cos(angle))) + " " +
+		        std::to_string(std::lround(1000.0 + 1000.0 * std::sin(angle)));
+	}
+	const auto decode = [&star](int stars) {
+		// Made tiny, the stars cost the canvas almost nothing: only the fills' own bound can stop the green square
+		std::string svg = R"svg(<svg width="100" height="100" viewBox="0 0 100 100"><g transform="scale(0.005)">)svg";
+		for(int copy = 0; copy < stars; ++copy) svg += R"svg(<path fill="red" d=")svg" + star + R"svg( Z"/>)svg";
+		svg += R"svg(</g><rect x="50" y="50" width="50" height="50" fill="#00ff00"/></svg>)svg";
+		const auto bitmap = affresco::Bitmap::decode(
+		    std::span<const std::uint8_t>(reinterpret_cast<const std::uint8_t*>(svg.data()), svg.size()), {});
+		REQUIRE(bitmap);
+		return bitmap->pixels()[(std::size_t{150} * 200 + 150) * 4 + 1]; // the square's green
+	};
+	CHECK(decode(1) == 255); // within the document's share, the square draws
+	CHECK(decode(12) == 0);
 }
 
 TEST_CASE("format: a path node applies its properties, and refuses broken ones naming the place") {

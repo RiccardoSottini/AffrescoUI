@@ -4,6 +4,7 @@
 #include "Svg.hpp"
 
 #include "MeshRasterizer.hpp"
+#include "PathFill.hpp"
 #include "SvgStyle.hpp"
 #include "SvgXml.hpp"
 
@@ -24,6 +25,7 @@ constexpr std::size_t elementLimit = 4096;              ///< The most elements.
 constexpr std::size_t depthLimit = 32;                  ///< The deepest nesting.
 constexpr float sideLimit = 2048.0f;                    ///< The longest side of the image, in pixels.
 constexpr std::size_t workLimit = std::size_t{1} << 26; ///< The most pixels the canvas visits.
+constexpr std::size_t fillWorkLimit = workLimit;        ///< The most edge visits of all the fills together.
 constexpr float circleHandle = 0.5523f;                 ///< Where a quarter circle's cubic handles are, in radii.
 /// @brief Elements whose contents aren't drawn.
 constexpr std::array<std::string_view, 13> skippedElements{
@@ -147,6 +149,7 @@ private:
 	std::vector<SvgStyle> styles_; ///< The styles of the open elements, the root's first.
 	std::size_t skipping_ = 0;     ///< How deep inside skipped elements reading is.
 	std::size_t elements_ = 1;     ///< Elements read.
+	std::size_t fillWork_ = 0;     ///< The fills' edge visits so far.
 	std::vector<MeshVertex> mesh_; ///< Reused for each fill and stroke.
 };
 
@@ -224,7 +227,9 @@ void Renderer::draw(const VectorPath& path, const SvgStyle& style) {
 	const auto contours = path.flatten(style.transform);
 	if(style.fill && style.fill->a * style.opacity * style.fillOpacity > 0.0f) {
 		mesh_.clear();
-		appendFill(contours, style.fillRule, mesh_);
+		// Each fill is bounded (meshWorkLimit), but a document of many that each cost as much decoded for seconds
+		const std::size_t workLeft = fillWorkLimit - std::min(fillWork_, fillWorkLimit);
+		fillWork_ += vector::appendFill(contours, style.fillRule, mesh_, 1.0f, std::min(workLeft, meshWorkLimit));
 		canvas_.fill(mesh_,
 		             {style.fill->r, style.fill->g, style.fill->b, style.fill->a * style.opacity * style.fillOpacity});
 	}
