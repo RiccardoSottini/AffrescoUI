@@ -71,7 +71,21 @@ json screenTemplate(const std::string& name) {
 	REQUIRE(file);
 	std::stringstream content;
 	content << file.rdbuf();
-	return json::parse(content.str());
+	json document = json::parse(content.str());
+	// The "include" files are merged when a screen is loaded; the components of the shipped ones are enough here.
+	if(const auto includes = document.find("include"); includes != document.end()) {
+		for(const json& include : *includes) {
+			const std::ifstream part(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/" + include.get<std::string>());
+			REQUIRE(part);
+			std::stringstream partContent;
+			partContent << part.rdbuf();
+			for(const auto& [component, definition] :
+			    json::parse(partContent.str()).value("components", json::object()).items())
+				document["components"][component] = definition;
+		}
+		document.erase("include");
+	}
+	return document;
 }
 
 /// The templates in examples/assets/screens.
@@ -92,10 +106,11 @@ TEST_CASE("checker: the templates have no findings") {
 TEST_CASE("checker: typos planted in the Kanban template are each found, with their place") {
 	std::string text = screenTemplate("kanban").dump();
 	const std::vector<std::pair<std::string, std::string>> typos = {
-	    {"{{card.title}}", "{{card.titel}}"},
-	    {R"("@accentSoft")", R"("@accentSofty")"},
+	    {"{{state.toast.message}}", "{{state.toast.mesage}}"},
+	    {R"("dragging":{"color":"@color.accentSoft"})", R"("dragging":{"color":"@color.accentSofty"})"},
 	    {R"("onSubmit":"addCard")", R"("onSubmit":"addCrad")"},
-	    {R"({"by":-1})", R"({"bye":-1})"},
+	    {R"("id":"move-button-card","use":"moveButton","with":{"by":-1})",
+	     R"("id":"move-button-card","use":"moveButton","with":{"bye":-1})"},
 	    {"to < 0 ||", "too < 0 ||"},
 	    {"computed.lastColumn}}", "computed.lastColum}}"},
 	    {"{{member.name}}", "{{member.nmae}}"},
@@ -105,8 +120,8 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
-	const std::string card = "root.children[2].children[0].children[0].children[3].children[0]";
-	const std::string header = "root.children[0].children[3].children[0]";
+	const std::string card = "root.children[2].children[0].children[0].children[0].children[0].children[3].children[0]";
+	const std::string header = "root.children[0].children[5].children[0]";
 	CHECK(lines(json::parse(text)) ==
 	      std::vector<std::string>{
 	          "actions.moveCard[1].if: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
@@ -114,10 +129,10 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	          header + ".children[0].style: unknown style 'captoin' (did you mean 'caption'?)",
 	          header + ".children[1].children[0].children[1].text: 'member.nmae' doesn't exist (did you mean "
 	                   "'member.name'?)",
-	          "root.children[1].children[1].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
-	          card + ".children[2].text: 'card.titel' doesn't exist (did you mean 'card.title'?)",
-	          card + ".children[4].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
-	          card + ".dragging.color: unknown color '@accentSofty' (did you mean '@accentSoft'?)"});
+	          "root.children[1].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
+	          card + ".children[5].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
+	          card + ".dragging.color: unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
+	          "root.children[6].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
 }
 
 TEST_CASE("checker: state paths") {
