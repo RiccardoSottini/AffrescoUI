@@ -1,0 +1,23 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "a2ui",
+			"screen": "a2ui.screen.json",
+			"note": "An A2UI surface written as a screen by affrescoui import: layout, bound text, a list template, inputs and a placeholder",
+			"steps": [{ "expect": { "image": "first-frame" } }]
+		},
+		{
+			"name": "adaptive-card",
+			"screen": "adaptive-card.screen.json",
+			"note": "An Adaptive Card written as a screen: templated text, columns, facts, inputs, a placeholder; Renew later shows its card",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": [240, 502] },
+				{ "expect": { "image": "card-shown" } }
+			]
+		}
+	]
+}

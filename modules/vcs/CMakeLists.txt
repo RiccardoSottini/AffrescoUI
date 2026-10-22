@@ -14,5 +14,6 @@ affrescoui_module(vcs
 	src/Presence.cpp
 	src/Roles.cpp
 	src/Policy.cpp
-	src/PolicyRepository.cpp)
+	src/PolicyRepository.cpp
+	src/ChangeSetRepair.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)

@@ -1056,6 +1056,40 @@ revision) ends it. The report is one line per file and one per failure:
 `FAILED add-a-card, step 4: state columns[0].cards.length is 4, expected 5`. Limits: 1,000 scenarios a file, 10,000
 steps a scenario, a `wait` of 10 minutes, 100,000 bytes typed at once.
 
+## Other formats
+
+A screen file may instead hold a document in one of two other formats; the screen loader detects it and converts it
+when it loads, and `affrescoui import --from a2ui|adaptive-cards <source> [-o out.screen.json] [--font FILE]
+[--title TITLE] [--size WIDTHxHEIGHT] [--revisions FILE]` writes the screen it converts to, to read or edit. Each
+adapter follows one recorded version of its format:
+
+| Format | Version | Source |
+|---|---|---|
+| A2UI | 0.8 | A list of messages, or JSON Lines, one message a line: `surfaceUpdate`, `dataModelUpdate`, `beginRendering`, `deleteSurface` |
+| Adaptive Cards | 1.6 | One card, `{"type": "AdaptiveCard", ...}`, with its `$data` |
+
+What maps, and to what:
+
+| Theirs | Ours |
+|---|---|
+| Layout: `Column`, `Row`, `Card`, `List`, `Divider`, `Tabs` (A2UI); `Container`, `ColumnSet`, `FactSet`, `ImageSet`, `ActionSet` (cards) | `column`, `row`, framed panels, `repeat` over a list, lines; tabs as one section after another |
+| `Text`, `TextBlock`, `RichTextBlock` | `label`, sized by `usageHint` or `size` |
+| `Image` | `image`: a relative file, or an `https` URL as `source`, which loads only from a source the host allows |
+| `TextField`, `Input.Text`, `Input.Number`, `Input.Date`, `Input.Time` | `textarea` bound to the state (dates, times and numbers as text) |
+| `CheckBox`, `Input.Toggle` | `checkbox` bound to the state |
+| `MultipleChoice`, `Input.ChoiceSet` | `list` with single or multiple selection, bound to the state |
+| `Slider` | `slider` bound to the state |
+| A2UI's data model, `path` bindings and `List` templates; cards' `$data` and `${a.b}` | `state.model...` and `state.data...`, bound with `{{...}}` |
+| A2UI's `action`; `Action.Submit`, `Action.Execute`, `Action.OpenUrl`, `Action.ShowCard`, `selectAction` | `onClick` steps: `emit` (`action`, `submit`, `execute`, `openUrl` with an `https` link only) and, for `ShowCard`, a `toggle` that shows the card |
+| A2UI's updates after `beginRendering` | revisions, applied in order when the screen loads |
+
+Anything else, from an unknown element to a password field, is a visible placeholder ("Unsupported: Video") with a
+warning naming its place; an Adaptive Card's `fallback` is followed first. Text from the source is never evaluated: a
+text with `{{` in it goes into `state.literals` and is shown through a binding to it. Limits: 1 MiB of source, 32
+elements deep, 2,000 elements and messages. Only the first A2UI surface converts, and a converted screen has fonts
+only when `--font` names one (AffrescoUI has no font of its own), so load one through `affrescoui import --font` for
+text.
+
 ## Errors
 
 Loading stops at the first problem and names its place in the file:

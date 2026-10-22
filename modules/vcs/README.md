@@ -15,6 +15,7 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
 | `Leases.hpp` | `Leases`: a part of a document (an `#id` or a pointer) one person holds for a while, bounded; `LeasedRules`: a document's rules plus a deny rule for everyone else per running lease |
 | `Roles.hpp` | `Roles`: the role each author plays for this run (`design`, `data`, `builder`), set by the host or a reviewer, never by a revision; `ruleCovers`: whether a rule's author (`role:<name>` too) covers an author |
+| `ChangeSetRepair.hpp` | `ChangeSetRepairs`: change sets installed with their request, base and proof, checked on install, and repaired by an agent through review; `RepairStatus`, `InstalledChangeSet` |
 | `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
@@ -95,8 +96,10 @@ the main thread. File writes happen inside the change that causes them.
 
 ```
 include/affresco/vcs/Repository.hpp   the Repository class
+include/affresco/vcs/ChangeSetRepair.hpp   ChangeSetRepairs
 src/
   Repository.cpp            commits, main, proposals, review, permissions in use, change sets
+  ChangeSetRepair.cpp       installing change sets with a proof, asking for repairs, re-recording them once accepted
   RepositoryReview.cpp      rebasing proposals onto a newer main, approvals and review policies, expiring grants
   Merge.hpp / .cpp          the three-way JSON merge, lists of nodes merged by id
   RepositoryHistory.cpp     the history on disk: writing and loading objects and refs

@@ -11,7 +11,7 @@ add_custom_command(OUTPUT ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	COMMENT "Embedding the screen schema in affrescoui")
 
 add_executable(affrescoui_cli main.cpp Cli.cpp CheckCommand.cpp FormatCommands.cpp WindowCommands.cpp
-	HistoryCommands.cpp TestCommand.cpp PolicyCommand.cpp SchemaCommand.cpp SignCommand.cpp JsonText.cpp Schema.cpp ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
+	HistoryCommands.cpp TestCommand.cpp PolicyCommand.cpp SchemaCommand.cpp SignCommand.cpp ImportCommand.cpp JsonText.cpp Schema.cpp ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp) # the library's PNG encoder, which it keeps private
 set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

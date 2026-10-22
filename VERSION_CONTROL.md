@@ -517,6 +517,32 @@ also keeps the id of each change set it applied (the SHA-256 of its JSON; `hasIm
 building block for the application-layer vision: start from a rich template, customise it by talking to it, and
 share the result as a plugin others can install.
 
+## Self-repairing change sets
+A change set can carry what it was made for, the template it was made on, and how to tell it still works:
+
+```json
+{ "format": "affrescoui-changes", "version": 1, "name": "blocked column", "revisions": [ ... ],
+  "request": "Add a Blocked column before Done",
+  "template": { "name": "kanban.screen.json", "commit": "35331cd…", "tree": "9f1c…" },
+  "proof": { "scenarios": [ { "name": "blocked", "steps": [ { "expect": "...", "equals": "Blocked" } ] } ] } }
+```
+
+These fields travel with the change set when it is exported and imported, and its signature covers them (it covers
+the whole change set but `signature`). A host installs such a change set with `ChangeSetRepairs::install`
+(`Screen::installChanges`): if its patch no longer applies to the template, or its scenarios fail on the result, the
+change set is marked **needs repair** with the reason, left off, and the rest of the screen is untouched. The host
+then asks the peers for a repair: a `request` of kind `repair` (the MCP server's `wait_for_request` returns it) with
+the request in words, the old and the new base, what failed, the revisions and the proof. The agent answers with
+one revision (`{"type": "repair", "request": id, "revision": {...}}`, the MCP tool `answer_repair`); the host checks
+it applies and passes the proof, then **always** opens it as a proposal, whatever the mode, and the permission rules
+check it as any other revision. Once a reviewer accepts it, the change set is re-recorded on the new base, with
+`repairedFrom` naming the change set it replaces (its SHA-256), its old base and the proposal; it carries no
+signature until its publisher signs it again. One repair runs at a time; a change set whose repair is refused,
+rejected or fails is asked for again, at most three times, and then gives up until a reviewer retries it
+(`{"type": "repair", "retry": name}`, the Studio's Repairs dialog, Cmd+5). `{"type": "repair"}` alone answers with
+every installed change set's status (`{"type": "repairs", "changeSets": [...]}`), which is also sent to every peer
+when it changes.
+
 ## Features: signed packages
 A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole lifecycle is revisions on
 `/features/<name>`, so the history, blame, undo and the permission rules cover it like any other change:

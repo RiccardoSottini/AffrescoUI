@@ -1,0 +1,91 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"note": "The Studio's Repairs screen, included by studio.screen.json: the change sets the host installed with a proof, where each stands (applied, needs repair, repairing, repaired, gave up), why, and the repair's proposal, which goes through review like any other. A reviewer retries one that gave up. Cmd+5 opens it.",
+
+	"state": {
+		"repairsOpen": false,
+		"repairRows": []
+	},
+
+	"actions": {
+		"openRepairs": [{ "set": "state.repairsOpen", "to": true }, { "run": "refreshRepairs" }],
+		"refreshRepairs": [{ "send": "host", "data": { "type": "repair" } }],
+		"retryRepair": [
+			{ "note": "with: name" },
+			{ "send": "host", "data": { "type": "repair", "retry": "{{name}}" } }
+		],
+		"host:repairs": [{ "set": "state.repairRows", "to": "{{event.changeSets}}" }]
+	},
+
+	"keys": { "mod+5": "openRepairs" },
+
+	"components": {
+		"repairsDialog": {
+			"params": {},
+			"node": {
+				"use": "dialog",
+				"with": {
+					"open": "state.repairsOpen",
+					"title": "Repairs",
+					"message": "Change sets checked against the template; an agent's repair is a proposal to review.",
+					"width": 560,
+					"height": 420,
+					"highlight": "@color.accent",
+					"buttons": [{ "title": "Close" }],
+					"color": "@color.card",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"backdrop": "@color.backdrop"
+				},
+				"children": [
+					{
+						"id": "repairList",
+						"type": "column",
+						"anchors": { "left": 20, "right": 20, "top": 72, "bottom": 56 },
+						"scroll": "vertical",
+						"gap": 6,
+						"children": [
+							{
+								"when": "{{len(state.repairRows) == 0}}",
+								"style": "empty",
+								"width": "100%",
+								"height": 48,
+								"text": "No change set with a proof is installed."
+							},
+							{
+								"repeat": { "for": "c", "in": "{{state.repairRows}}" },
+								"width": "100%",
+								"height": 64,
+								"style": "card",
+								"color": "@color.cardRaised",
+								"children": [
+									{
+										"type": "label",
+										"text": "{{c.name + '  ' + c.status + (c.proposal > 0 ? '  · proposal #' + c.proposal : '')}}",
+										"textColor": "@color.text",
+										"anchors": { "left": 12, "top": 8 },
+										"fitText": true
+									},
+									{
+										"style": "caption",
+										"text": "{{c.reason == '' ? c.request : c.reason}}",
+										"anchors": { "left": 12, "right": 100, "top": 30 }
+									},
+									{
+										"when": "{{c.status == 'gaveUp' || c.status == 'needsRepair'}}",
+										"style": "smallButton",
+										"anchors": { "right": 10, "top": 18 },
+										"width": 72,
+										"height": 28,
+										"text": "Retry",
+										"onClick": { "run": "retryRepair", "with": { "name": "{{c.name}}" } }
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

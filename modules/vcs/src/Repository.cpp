@@ -476,10 +476,15 @@ std::optional<std::string> Repository::commit(const json& revision) {
 	return std::nullopt;
 }
 
-RevisionResult Repository::submit(const json& revision) {
+RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false); }
+
+RevisionResult Repository::propose(const json& revision) { return submitRevision(revision, true); }
+
+RevisionResult Repository::submitRevision(const json& revision, bool alwaysReview) {
 	const int number = mainHead().number;
 	try {
 		expect::object(revision, "revision");
+		if(alwaysReview && revision.contains("proposal")) fail("revision.proposal", "it opens a proposal of its own");
 		// Evidence is what the host draws and plays itself: an author naming any of it is trying to forge it
 		for(const char* key : {"evidence", "behaviour"})
 			if(revision.contains(key)) fail(std::string("revision.") + key, "the host gathers it itself");
@@ -493,7 +498,7 @@ RevisionResult Repository::submit(const json& revision) {
 
 		if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
-		if(verdict.kind == Verdict::Kind::Ask) {
+		if(verdict.kind == Verdict::Kind::Ask || alwaysReview) {
 			const std::string channel = detail::channelOf(author);
 			if(std::ranges::count_if(proposals_, [&](const Proposal& p) {
 				   return detail::channelOf(p.author) == channel;
@@ -877,15 +882,18 @@ json Repository::exportChanges(const json& from, std::string_view name) const {
 	        {"revisions", revisions}};
 }
 
+// The checks importChanges() and tryChanges() share
+void Repository::checkChanges(const json& changes) {
+	expect::object(changes, "changes");
+	if(changes.value("format", "") != "affrescoui-changes") fail("changes.format", "expected \"affrescoui-changes\"");
+	if(changes.value("version", 0) != 1) fail("changes.version", "unsupported version (expected 1)");
+	if(!changes.contains("revisions") || !changes["revisions"].is_array()) fail("changes.revisions", "expected a list");
+}
+
 // Applies a change set revision by revision
 std::optional<std::string> Repository::importChanges(const json& changes) {
 	try {
-		expect::object(changes, "changes");
-		if(changes.value("format", "") != "affrescoui-changes")
-			fail("changes.format", "expected \"affrescoui-changes\"");
-		if(changes.value("version", 0) != 1) fail("changes.version", "unsupported version (expected 1)");
-		if(!changes.contains("revisions") || !changes["revisions"].is_array())
-			fail("changes.revisions", "expected a list");
+		checkChanges(changes);
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
@@ -922,6 +930,37 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 
 bool Repository::hasImported(const json& changes) const {
 	return std::ranges::find(imported_, detail::sha256(changes.dump())) != imported_.end();
+}
+
+// What importChanges() does, on copies: the same patches and the same deny rules, nothing committed
+json Repository::tryChanges(const json& changes) const {
+	checkChanges(changes);
+	const std::string author = "plugin:" + changes.value("name", std::string("changes"));
+	json document = mainDocument(), state = committedState();
+	json view = detail::view(document, state);
+	for(std::size_t i = 0; i < changes["revisions"].size(); ++i) {
+		const std::string where = "changes.revisions[" + std::to_string(i) + "]";
+		try {
+			const json& revision = changes["revisions"][i];
+			expect::object(revision, "revision");
+			Prepared next = prepare(patchOf(revision), document, state);
+			if(const Verdict verdict = evaluate(next.before, next.after, author, false);
+			   verdict.kind == Verdict::Kind::Deny)
+				fail("revision", verdict.reason);
+			document = std::move(next.document);
+			state = std::move(next.state);
+			view = std::move(next.after);
+		} catch(const DocumentError& error) {
+			fail(where, detail::reasonOf(error));
+		}
+	}
+	return view;
+}
+
+void Repository::recordImported(const json& changes) {
+	if(hasImported(changes)) return;
+	imported_.push_back(detail::sha256(changes.dump()));
+	saveHistory();
 }
 
 } // namespace affresco::vcs

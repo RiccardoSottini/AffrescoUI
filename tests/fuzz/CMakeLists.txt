@@ -94,3 +94,5 @@ if(AFFRESCOUI_BUILD_FUZZERS)
 	target_sources(affrescoui_fuzz_vscode_theme PRIVATE
 		${PROJECT_SOURCE_DIR}/examples/forge/features/themes/ThemeImport.cpp)
 endif()
+# Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
+affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)

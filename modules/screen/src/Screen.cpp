@@ -9,9 +9,11 @@
 #include "affresco/channel/Session.hpp"
 #include "affresco/channel/Sockets.hpp"
 #include "affresco/core/Log.hpp"
+#include "affresco/format/Adapters.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
 #include "affresco/net/RemotePeers.hpp"
+#include "affresco/vcs/ChangeSetRepair.hpp"
 #include "affresco/vcs/Repository.hpp"
 
 #include <algorithm>
@@ -89,16 +91,17 @@ private:
 };
 
 struct Screen::Impl {
-	format::Features features;                           ///< Catalogues and publishers (RFC 0004); outlives the rest.
-	services::ServiceRegistry services;                  ///< What "services" may use (RFC 0002).
-	RelayExecutor relay;                                 ///< The network's executor.
-	std::unique_ptr<net::Client> network;                ///< See Screen::network(); outlives the runtime.
-	std::unique_ptr<net::SignIn> signIn;                 ///< The connections' "auth"; outlives the runtime.
-	format::Rules rules;                                 ///< The format's rules.
-	vcs::Repository repository;                          ///< Document, state, history, review.
-	format::Runtime runtime;                             ///< Panels and actions.
-	detail::OffscreenImages images{repository, runtime}; ///< Pictures for peers ("render").
-	std::vector<std::unique_ptr<Peer>> peers;            ///< Connected programs.
+	format::Features features;                                   ///< Catalogues and publishers (RFC 0004); outlives the rest.
+	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
+	RelayExecutor relay;                                         ///< The network's executor.
+	std::unique_ptr<net::Client> network;                        ///< See Screen::network(); outlives the runtime.
+	std::unique_ptr<net::SignIn> signIn;                         ///< The connections' "auth"; outlives the runtime.
+	format::Rules rules;                                         ///< The format's rules.
+	vcs::Repository repository;                                  ///< Document, state, history, review.
+	vcs::ChangeSetRepairs repairs{repository, "screen"};         ///< Installed change sets and their repairs.
+	format::Runtime runtime;                                     ///< Panels and actions.
+	detail::OffscreenImages images{repository, runtime};         ///< Pictures for peers ("render").
+	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
 	std::vector<std::unique_ptr<net::PeerServer>> peerServers;   ///< From listenWebSocket().
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
@@ -133,6 +136,7 @@ struct Screen::Impl {
 			}
 		});
 		runtime.onUpdated.connect([this] { save(); });
+		repairs.onMessage.connect([this](const json& message) { broadcast(message); });
 		rules.setServices(&services);
 		runtime.setServices(&services);
 		services.add(detail::makeFeaturesProvider(features, repository, alive));
@@ -351,6 +355,8 @@ struct Screen::Impl {
 
 		// A request in plain words from one peer (e.g. the user's client) is for the others (e.g. an AI agent)
 		peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {
+			if(message.value("type", std::string()) == "repair")
+				return repairs.handle(message, [sender](const json& answer) { sender->session->send(answer); });
 			if(peers.size() < 2) {
 				sender->session->send({{"type", "error"},
 				                       {"message", "nobody else is connected to receive this " +
@@ -360,6 +366,7 @@ struct Screen::Impl {
 			}
 			broadcast(message, sender);
 		});
+		if(const std::optional<json> open = repairs.openRequest()) peer->session->send(*open);
 		peers.push_back(std::move(peer));
 		return *peers.back();
 	}
@@ -529,6 +536,22 @@ bool succeeded(const std::optional<std::string>& failure, std::string* error) {
 	return !failure;
 }
 
+/// @brief A screen converted from another format (SCREEN_FORMAT.md, "Other formats"): its warnings logged, and its
+/// later updates (A2UI's) applied as revisions.
+/// @param converted The conversion.
+/// @param baseDirectory Where its files are.
+/// @return The screen.
+Screen fromConverted(format::adapters::Converted converted, std::filesystem::path baseDirectory) {
+	for(const std::string& warning : converted.warnings) affresco::log(LogLevel::Warning, "AffrescoUI screen: " + warning);
+	Screen screen = Screen::fromString(converted.screen.dump(), std::move(baseDirectory));
+	for(const json& revision : converted.revisions) {
+		std::string error;
+		if(!screen.applyRevision(revision.dump(), &error))
+			affresco::log(LogLevel::Warning, "AffrescoUI screen: an update left out: " + error);
+	}
+	return screen;
+}
+
 } // namespace
 
 Screen::Screen(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {}
@@ -554,6 +577,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
+	screen.impl_->repairs.setTemplateName(path.filename().string());
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
@@ -566,8 +590,13 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 	try {
 		document = parseUntrusted(content); // a ScreenError if it nests too deeply
 	} catch(const json::parse_error& error) {
+		if(auto foreign = format::adapters::convertForeign(content)) // A2UI as JSON Lines
+			return fromConverted(std::move(*foreign), std::move(baseDirectory));
 		throw ScreenError(std::string("AffrescoUI screen: invalid JSON: ") + error.what());
 	}
+	if(format::adapters::detect(document) != format::adapters::SourceFormat::Screen)
+		if(auto foreign = format::adapters::convertForeign(content))
+			return fromConverted(std::move(*foreign), std::move(baseDirectory));
 	resolveIncludes(document, baseDirectory);
 	return Screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
 }
@@ -883,6 +912,29 @@ bool Screen::importChanges(std::string_view changesJson, std::string* error) {
 	const auto changes = parseJson(changesJson, "changes", error);
 	return changes && succeeded(impl_->repository.importChanges(*changes), error);
 }
+
+std::string Screen::installChanges(std::string_view changesJson, std::string* error) {
+	const auto changes = parseJson(changesJson, "changes", error);
+	if(!changes) return {};
+	try {
+		return std::string(vcs::toString(impl_->repairs.install(*changes)));
+	} catch(const DocumentError& failure) {
+		if(error) *error = failure.what();
+		return {};
+	}
+}
+
+void Screen::setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check) {
+	if(!check) return impl_->repairs.setProofCheck({});
+	impl_->repairs.setProofCheck(
+	    [check = std::move(check)](const json& document, const json& proof) -> std::optional<std::string> {
+		    std::string failed = check(document.dump(), proof.dump());
+		    if(failed.empty()) return std::nullopt;
+		    return failed;
+	    });
+}
+
+std::string Screen::repairs() const { return impl_->repairs.status().dump(); }
 
 bool Screen::hasImported(std::string_view changesJson) const {
 	const auto changes = parseJson(changesJson, "changes", nullptr);

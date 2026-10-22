@@ -36,8 +36,10 @@ std::span<const Command> commands() {
 		 "Give readable ids to the nodes that have none; --check only says if some have none", nameScreenNodes},
 	    {"export", "<file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]",
 		 "Write the revisions after one, from the screen's history on disk, as a change set", exportChanges},
-	    {"import", "<file> <changes.json> [--data DIR]", "Apply a change set to the screen's history on disk",
-		 importChanges},
+	    {"import",
+	     "<file> <changes.json> [--data DIR] | --from a2ui|adaptive-cards <source> [-o out.screen.json] [--font FILE] "
+	     "[--title TITLE] [--size WIDTHxHEIGHT] [--revisions FILE]",
+		 "Apply a change set to the screen's history on disk; --from writes a screen from another format", importFile},
 	    {"schema", "[-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin|examples] [--check]",
 		 "Generate the format's JSON Schema and SCREEN_FORMAT.md's tables; --check only says if they are out of date",
 		 generateSchema},

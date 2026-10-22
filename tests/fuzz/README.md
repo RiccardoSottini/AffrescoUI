@@ -70,6 +70,7 @@ of these and what limits them.
 | The state file a host keeps | Trusted: the host wrote it; read with `parseUntrusted` and its nesting limit | `json` |
 | Paths from file dialogs, drops, the fs and watch services | The operating system gives them; no parser reads them, and the services check each against the allowed folders | None needed: no parser; the folder check is unit-tested |
 | Command-line arguments and environment variables | The user who starts the program | None needed: trusted, and read by plain comparisons |
+| `adapters` | Any text, to `convertForeign` (`format/include/affresco/format/Adapters.hpp`): an A2UI message stream or an Adaptive Card, as the screen loader converts it | Refused with `json::parse_error` or `DocumentError`, or not another format's; a conversion is a screen the format accepts, within the limits |
 
 ## Running them
 
