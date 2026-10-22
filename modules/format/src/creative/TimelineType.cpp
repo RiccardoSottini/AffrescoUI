@@ -144,22 +144,27 @@ std::vector<TimelineClip> clipsOf(const json& value, const std::string& path, co
 	return clips;
 }
 
+/// @brief The tracks read so far, with their keyframes and clips counted against the timeline's limit.
+struct TracksRead {
+	std::vector<TimelineTrack> tracks; ///< Flat: each group followed by its tracks.
+	std::size_t items = 0;             ///< The keyframes and clips in all of them.
+};
+
 /// @brief Reads "tracks" into a flat list, each group followed by its tracks (a group is a track with "tracks").
 /// @param value The list.
 /// @param path Its place, for errors.
 /// @param reader Reads colours, through the theme.
 /// @param depth How deep the list is.
-/// @param tracks The tracks read so far, which it adds to.
-/// @param items The keyframes and clips read so far, which it adds to.
+/// @param read The tracks read so far, which it adds to.
 /// @throws DocumentError If it isn't such a list, nests deeper than 16, or has too many tracks or items.
 void tracksOf(const json& value, const std::string& path, const PropertyReader& reader, std::size_t depth,
-              std::vector<TimelineTrack>& tracks, std::size_t& items) {
+              TracksRead& read) {
 	if(!value.is_array()) fail(path, "expected a list of tracks");
 	if(depth > TimelineView::maximumDepth) fail(path, "tracks nested too deep (at most 16)");
 	for(std::size_t i = 0; i < value.size(); ++i) {
 		const json& entry = value[i];
 		const std::string place = itemPlace(path, i);
-		if(tracks.size() >= TimelineView::maximumTracks) fail(place, "too many tracks (at most 10000)");
+		if(read.tracks.size() >= TimelineView::maximumTracks) fail(place, "too many tracks (at most 10000)");
 		if(!entry.is_object() || !entry.contains("id")) fail(place, "expected { id, label, keyframes, clips, tracks }");
 		TimelineTrack track;
 		track.id = text(entry["id"]);
@@ -170,10 +175,10 @@ void tracksOf(const json& value, const std::string& path, const PropertyReader& 
 		track.locked = flagOr(entry, "locked", false);
 		if(entry.contains("keyframes")) track.keyframes = keyframesOf(entry["keyframes"], place + ".keyframes");
 		if(entry.contains("clips")) track.clips = clipsOf(entry["clips"], place + ".clips", reader);
-		items += track.keyframes.size() + track.clips.size();
-		if(items > maxTotalItems) fail(place, "too many keyframes and clips (at most 100000 in all)");
-		tracks.push_back(std::move(track));
-		if(entry.contains("tracks")) tracksOf(entry["tracks"], place + ".tracks", reader, depth + 1, tracks, items);
+		read.items += track.keyframes.size() + track.clips.size();
+		if(read.items > maxTotalItems) fail(place, "too many keyframes and clips (at most 100000 in all)");
+		read.tracks.push_back(std::move(track));
+		if(entry.contains("tracks")) tracksOf(entry["tracks"], place + ".tracks", reader, depth + 1, read);
 	}
 }
 
@@ -222,27 +227,35 @@ std::vector<std::string> keysOf(const json& value) {
 	return keys;
 }
 
-/// @brief Shows a timeline node: its tracks, markers, play range, playhead, look, camera and selection.
-/// @param panel The panel, a TimelineView.
-/// @param values Its values, if given.
-/// @param reader Reads colours and fonts, through the theme.
-/// @param path The node's place, for errors.
-void applyTimeline(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
-	auto* view = dynamic_cast<TimelineView*>(&panel);
-	if(!view) return;
-	TimelineModel model;
-	if(values.contains("tracks")) {
-		std::size_t items = 0;
-		tracksOf(values["tracks"], path + ".tracks", reader, 0, model.tracks, items);
-		std::vector<std::pair<std::string_view, std::string>> trackIds, clipIds;
-		for(std::size_t t = 0; t < model.tracks.size(); ++t) {
-			trackIds.emplace_back(model.tracks[t].id, path + ".tracks: \"" + model.tracks[t].id + "\"");
-			for(const TimelineClip& clip : model.tracks[t].clips)
-				clipIds.emplace_back(clip.id, path + ".tracks: \"" + model.tracks[t].id + "\".clips");
-		}
-		checkUnique(std::move(trackIds), "track");
-		checkUnique(std::move(clipIds), "clip");
+/// @brief Reads a timeline's "tracks", and checks that no two tracks, and no two clips, share an id.
+/// @param value The list.
+/// @param path Its place, for errors.
+/// @param reader Reads colours, through the theme.
+/// @return The tracks, flat.
+/// @throws DocumentError If they can't be read, or an id is used twice.
+std::vector<TimelineTrack> timelineTracksOf(const json& value, const std::string& path, const PropertyReader& reader) {
+	TracksRead read;
+	tracksOf(value, path, reader, 0, read);
+	std::vector<std::pair<std::string_view, std::string>> trackIds, clipIds;
+	for(const TimelineTrack& track : read.tracks) {
+		trackIds.emplace_back(track.id, path + ": \"" + track.id + "\"");
+		for(const TimelineClip& clip : track.clips)
+			clipIds.emplace_back(clip.id, path + ": \"" + track.id + "\".clips");
 	}
+	checkUnique(std::move(trackIds), "track");
+	checkUnique(std::move(clipIds), "clip");
+	return std::move(read.tracks);
+}
+
+/// @brief Reads what a timeline holds: its tracks, markers, duration, frame rate and play range.
+/// @param values The node's values.
+/// @param reader Reads colours, through the theme.
+/// @param path The node's place, for errors.
+/// @return The model.
+/// @throws DocumentError If a value can't be read.
+TimelineModel timelineModelOf(const json& values, const PropertyReader& reader, const std::string& path) {
+	TimelineModel model;
+	if(values.contains("tracks")) model.tracks = timelineTracksOf(values["tracks"], path + ".tracks", reader);
 	if(values.contains("markers")) model.markers = markersOf(values["markers"], path + ".markers");
 	if(values.contains("duration")) model.duration = secondsOf(values["duration"], path + ".duration");
 	if(values.contains("fps")) model.fps = numberWithin(values["fps"], path + ".fps", 1.0, TimelineView::maximumFps);
@@ -252,16 +265,51 @@ void applyTimeline(Panel& panel, const json& values, const PropertyReader& reade
 		model.playStart = secondsOf(range[0], path + ".playRange[0]");
 		model.playEnd = secondsOf(range[1], path + ".playRange[1]");
 	}
-	view->setModel(std::move(model));
-	if(values.contains("timeFormat")) {
-		const std::string format = string(values["timeFormat"], path + ".timeFormat");
-		if(format == "frames") view->setTimeFormat(TimeFormat::Frames);
-		else if(format == "seconds") view->setTimeFormat(TimeFormat::Seconds);
-		else if(format == "timecode") view->setTimeFormat(TimeFormat::Timecode);
-		else fail(path + ".timeFormat", R"(expected "frames", "seconds" or "timecode")");
-	} else {
-		view->setTimeFormat(TimeFormat::Frames);
-	}
+	return model;
+}
+
+/// @brief Reads a timeline's "timeFormat".
+/// @param values The node's values.
+/// @param path The node's place, for errors.
+/// @return The format: frames when none is given.
+/// @throws DocumentError If it isn't "frames", "seconds" or "timecode".
+TimeFormat timeFormatOf(const json& values, const std::string& path) {
+	if(!values.contains("timeFormat")) return TimeFormat::Frames;
+	const std::string format = string(values["timeFormat"], path + ".timeFormat");
+	if(format == "frames") return TimeFormat::Frames;
+	if(format == "seconds") return TimeFormat::Seconds;
+	if(format == "timecode") return TimeFormat::Timecode;
+	fail(path + ".timeFormat", R"(expected "frames", "seconds" or "timecode")");
+}
+
+/// @brief Gives a timeline the camera its node asks for, if it asks for one.
+/// @param view The timeline.
+/// @param values The node's values: "pixelsPerSecond" and "offset".
+/// @param path The node's place, for errors.
+/// @throws DocumentError If a value is out of range.
+void applyTimelineCamera(TimelineView& view, const json& values, const std::string& path) {
+	// "pixelsPerSecond", not "scale": every panel's "scale" is its transform
+	if(!values.contains("pixelsPerSecond") && !values.contains("offset")) return;
+	TimelineCamera camera;
+	if(values.contains("pixelsPerSecond"))
+		camera.scale = numberWithin(values["pixelsPerSecond"], path + ".pixelsPerSecond", TimelineCamera::minimumScale,
+		                            TimelineCamera::maximumScale);
+	if(values.contains("offset"))
+		camera.offset = numberWithin(values["offset"], path + ".offset", -TimelineView::maximumDuration,
+		                             TimelineView::maximumDuration);
+	view.setGivenCamera(camera);
+}
+
+/// @brief Shows a timeline node: its tracks, markers, play range, playhead, look, camera and selection.
+/// @param panel The panel, a TimelineView.
+/// @param values Its values, if given.
+/// @param reader Reads colours and fonts, through the theme.
+/// @param path The node's place, for errors.
+void applyTimeline(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
+	auto* view = dynamic_cast<TimelineView*>(&panel);
+	if(!view) return;
+	view->setModel(timelineModelOf(values, reader, path));
+	view->setTimeFormat(timeFormatOf(values, path));
 	view->setSnap(flagOr(values, "snap", true));
 	const auto sizeOr = [&](const char* key, double low, double high, float otherwise) {
 		return values.contains(key) ? static_cast<float>(numberWithin(values[key], path + "." + key, low, high))
@@ -275,17 +323,7 @@ void applyTimeline(Panel& panel, const json& values, const PropertyReader& reade
 	                colorOr("textColor", Color::hex(0xeceef2)), colorOr("accentColor", colors::accent));
 	view->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
 	if(values.contains("time")) view->setGivenTime(secondsOf(values["time"], path + ".time"));
-	// "pixelsPerSecond", not "scale": every panel's "scale" is its transform
-	if(values.contains("pixelsPerSecond") || values.contains("offset")) {
-		TimelineCamera camera;
-		if(values.contains("pixelsPerSecond"))
-			camera.scale = numberWithin(values["pixelsPerSecond"], path + ".pixelsPerSecond",
-			                            TimelineCamera::minimumScale, TimelineCamera::maximumScale);
-		if(values.contains("offset"))
-			camera.offset = numberWithin(values["offset"], path + ".offset", -TimelineView::maximumDuration,
-			                             TimelineView::maximumDuration);
-		view->setGivenCamera(camera);
-	}
+	applyTimelineCamera(*view, values, path);
 	// "selectedKeys", not "selected": every node's "selected" says whether it is selected itself
 	if(values.contains("selectedKeys")) view->setGivenSelection(keysOf(values["selectedKeys"]));
 }

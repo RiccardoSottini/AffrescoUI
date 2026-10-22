@@ -179,6 +179,30 @@ std::vector<float> numbersOf(const json& value, std::size_t limit) {
 	return numbers;
 }
 
+/// @brief Reads a view's camera over the current one: each of "x", "y" and "zoom" only if it is a number.
+/// @param camera The view's "camera".
+/// @param next The current camera.
+/// @return The camera.
+Camera2D cameraOf(const json& camera, Camera2D next) {
+	const auto read = [&](const char* key, float& into) {
+		if(const auto found = camera.find(key); found != camera.end() && found->is_number()) into = found->get<float>();
+	};
+	read("x", next.x);
+	read("y", next.y);
+	read("zoom", next.zoom);
+	return next;
+}
+
+/// @brief Reads a view's selection: its string and number ids, up to the most a canvas selects.
+/// @param selection The view's "selection", a list.
+/// @return The ids.
+std::vector<std::string> selectionOf(const json& selection) {
+	std::vector<std::string> ids;
+	for(std::size_t i = 0; i < selection.size() && ids.size() < CanvasView::maximumSelection; ++i)
+		if(selection[i].is_string() || selection[i].is_number()) ids.push_back(text(selection[i]));
+	return ids;
+}
+
 /// @brief Shows the view: the bound value, else "view"; {camera: {x, y, zoom}, selection: [ids], guides: {vertical,
 /// horizontal}}, each part only if given.
 /// @param panel The panel, a CanvasView.
@@ -190,23 +214,10 @@ void showView(Panel& panel, const json* bound, const json& properties, std::opti
 	auto* canvas = dynamic_cast<CanvasView*>(&panel);
 	const json& view = bound ? *bound : properties.contains("view") ? properties["view"] : emptyObject();
 	if(!canvas || !view.is_object()) return;
-	if(const auto camera = view.find("camera"); camera != view.end() && camera->is_object()) {
-		Camera2D next = canvas->camera();
-		const auto read = [&](const char* key, float& into) {
-			if(const auto found = camera->find(key); found != camera->end() && found->is_number())
-				into = found->get<float>();
-		};
-		read("x", next.x);
-		read("y", next.y);
-		read("zoom", next.zoom);
-		canvas->setCamera(next);
-	}
-	if(const auto selection = view.find("selection"); selection != view.end() && selection->is_array()) {
-		std::vector<std::string> ids;
-		for(std::size_t i = 0; i < selection->size() && ids.size() < CanvasView::maximumSelection; ++i)
-			if((*selection)[i].is_string() || (*selection)[i].is_number()) ids.push_back(text((*selection)[i]));
-		canvas->setSelection(std::move(ids));
-	}
+	if(const auto camera = view.find("camera"); camera != view.end() && camera->is_object())
+		canvas->setCamera(cameraOf(*camera, canvas->camera()));
+	if(const auto selection = view.find("selection"); selection != view.end() && selection->is_array())
+		canvas->setSelection(selectionOf(*selection));
 	if(const auto guides = view.find("guides"); guides != view.end() && guides->is_object())
 		canvas->setGuides({numbersOf(guides->value("vertical", json()), CanvasView::maximumGuides),
 		                   numbersOf(guides->value("horizontal", json()), CanvasView::maximumGuides)});

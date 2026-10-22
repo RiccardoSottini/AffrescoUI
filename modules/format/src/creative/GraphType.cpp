@@ -168,6 +168,35 @@ std::vector<std::string> idsOf(const json& value) {
 	return ids;
 }
 
+/// @brief Gives a graph the colours its node gives each kind of node, in "kindColors".
+/// @param view The graph.
+/// @param values The node's values.
+/// @param reader Reads colours, through the theme.
+/// @param path The node's place, for errors.
+/// @throws DocumentError If it isn't an object of at most 64 colours.
+void applyKindColors(GraphView& view, const json& values, const PropertyReader& reader, const std::string& path) {
+	if(!values.contains("kindColors")) return;
+	const json& kinds = values["kindColors"];
+	if(!kinds.is_object()) fail(path + ".kindColors", R"(expected { "kind": colour })");
+	if(kinds.size() > GraphView::maximumKinds) fail(path + ".kindColors", "too many kinds (at most 64)");
+	for(const auto& [kind, color] : kinds.items())
+		view.setKindColor(kind, reader.color(color, path + ".kindColors." + kind));
+}
+
+/// @brief Gives a graph the camera its node asks for, if it asks for one.
+/// @param view The graph.
+/// @param values The node's values: "zoom" and "pan".
+/// @param path The node's place, for errors.
+/// @throws DocumentError If a value can't be read.
+void applyGraphCamera(GraphView& view, const json& values, const std::string& path) {
+	if(!values.contains("zoom") && !values.contains("pan")) return;
+	GraphCamera camera;
+	if(values.contains("zoom"))
+		camera.zoom = numberWithin(values["zoom"], path + ".zoom", GraphCamera::minimumZoom, GraphCamera::maximumZoom);
+	if(values.contains("pan")) camera.pan = panOf(values["pan"], path + ".pan");
+	view.setGivenCamera(camera);
+}
+
 /// @brief Shows a graph node: its nodes and links, rules, colours, font, minimap, camera and selection.
 /// @param panel The panel, a GraphView.
 /// @param values Its values, if given.
@@ -181,13 +210,7 @@ void applyGraph(Panel& panel, const json& values, const PropertyReader& reader, 
 	if(values.contains("links")) model.links = linksOf(values["links"], path + ".links");
 	view->setModel(std::move(model));
 	view->setCyclesAllowed(values.contains("cycles") && values["cycles"].is_boolean() && values["cycles"].get<bool>());
-	if(values.contains("kindColors")) {
-		const json& kinds = values["kindColors"];
-		if(!kinds.is_object()) fail(path + ".kindColors", R"(expected { "kind": colour })");
-		if(kinds.size() > GraphView::maximumKinds) fail(path + ".kindColors", "too many kinds (at most 64)");
-		for(const auto& [kind, color] : kinds.items())
-			view->setKindColor(kind, reader.color(color, path + ".kindColors." + kind));
-	}
+	applyKindColors(*view, values, reader, path);
 	const auto colorOr = [&](const char* key, Color otherwise) {
 		return values.contains(key) ? reader.color(values[key], path + "." + key) : otherwise;
 	};
@@ -195,14 +218,7 @@ void applyGraph(Panel& panel, const json& values, const PropertyReader& reader, 
 	                colorOr("textColor", Color::hex(0xeceef2)), colorOr("accentColor", colors::accent));
 	view->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
 	view->setMinimap(!values.contains("minimap") || !values["minimap"].is_boolean() || values["minimap"].get<bool>());
-	if(values.contains("zoom") || values.contains("pan")) {
-		GraphCamera camera;
-		if(values.contains("zoom"))
-			camera.zoom =
-			    numberWithin(values["zoom"], path + ".zoom", GraphCamera::minimumZoom, GraphCamera::maximumZoom);
-		if(values.contains("pan")) camera.pan = panOf(values["pan"], path + ".pan");
-		view->setGivenCamera(camera);
-	}
+	applyGraphCamera(*view, values, path);
 	// "selectedIds", not "selected": every node's "selected" says whether it is selected itself
 	if(values.contains("selectedIds")) view->setGivenSelection(idsOf(values["selectedIds"]));
 }
