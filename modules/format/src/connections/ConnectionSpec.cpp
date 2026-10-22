@@ -57,8 +57,8 @@ int bounded(const json& value, int low, int high, const std::string& at) {
 	return value.get<int>();
 }
 
-/// @brief Reads literal headers: names that are HTTP tokens, values with no line breaks, and none a credential or one
-/// the client sets.
+/// @brief Reads literal headers: names that are HTTP tokens, values with no control bytes but tabs (a line break or a
+/// NUL would split or cut the request), and none a credential or one the client sets.
 /// @param value name -> text.
 /// @param at Its place.
 /// @return The headers.
@@ -76,7 +76,11 @@ network::Headers readHeaders(const json& value, const std::string& at) {
 			if(sameName(name, banned))
 				expect::fail(place, "the header " + std::string(banned) + " can't be declared (sign-in or the client sets it)");
 		const std::string content = expect::string(text, place);
-		if(content.size() > 4096 || content.contains("{{") || content.find_first_of("\r\n") != std::string::npos)
+		const bool control = std::ranges::any_of(content, [](char c) {
+			const auto byte = static_cast<unsigned char>(c);
+			return (byte < 0x20 && c != '\t') || byte == 0x7f;
+		});
+		if(content.size() > 4096 || content.contains("{{") || control)
 			expect::fail(place, "a header's value is literal text on one line, at most 4096 bytes");
 		headers.emplace_back(name, content);
 	}

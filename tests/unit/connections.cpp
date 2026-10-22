@@ -149,3 +149,18 @@ TEST_CASE("connections: revisions use declared operations, never add or change t
 	                   {"add", {{"/connections/api/operations/deleteAll", {{"method", "DELETE"}, {"path", "/"}}}}}})
 	          .status == RevisionStatus::Rejected);
 }
+
+TEST_CASE("connections: a header's value is one line of text, without control bytes") {
+	const affresco::format::Rules rules;
+	json document = json::parse(connectionScreen("https://api.example.com"));
+	json& header = document["connections"]["api"]["headers"]["X-Client"];
+	header = "a\tb";
+	CHECK_NOTHROW(rules.validate(document));
+	const std::vector<std::string> bad = {"a\r\nb", "a\nb", std::string("a\0b", 3), "a\x1b" "b", "a\x7f" "b"};
+	for(const std::string& value : bad) {
+		CAPTURE(value.size());
+		header = value;
+		CHECK_THROWS_WITH_AS(rules.validate(document), doctest::Contains("literal text on one line"),
+		                     affresco::DocumentError);
+	}
+}
