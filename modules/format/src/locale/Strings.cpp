@@ -43,6 +43,46 @@ void checkTable(const json& table, const std::string& at) {
 	}
 }
 
+/// @brief The key a call of `t` translates, when it is written out.
+/// @param arguments The call's arguments, as lowered.
+/// @return The key, or nullptr if an expression gives it (or there is none).
+const std::string* literalKey(const json& arguments) {
+	if(!arguments.is_array() || arguments.empty()) return nullptr;
+	const json& key = arguments[0];
+	if(!key.is_object() || !key.contains("$value") || !key["$value"].is_string()) return nullptr;
+	return &key["$value"].get_ref<const std::string&>();
+}
+
+/// @brief The parameters the messages of a key read, in every locale that has it.
+/// @param section The "strings" section.
+/// @param name The key.
+/// @param read Where the parameters go.
+/// @return true if a locale has the key.
+bool readParameters(const json& section, const std::string& name, std::vector<std::string>& read) {
+	bool found = false;
+	for(const auto& [locale, table] : section.items()) {
+		if(!table.is_object() || !table.contains(name) || !table[name].is_string()) continue;
+		found = true;
+		static_cast<void>(checkMessage(table[name].get_ref<const std::string&>(), read));
+	}
+	return found;
+}
+
+/// @brief Checks the parameters a call of `t` gives against those its key's messages read.
+/// @param name The key.
+/// @param read The parameters they read.
+/// @param fields The parameters given.
+/// @return A problem, or "".
+std::string checkParameters(const std::string& name, const std::vector<std::string>& read, const json& fields) {
+	for(const std::string& parameter : read)
+		if(!fields.contains(parameter))
+			return std::format("'{}' reads the parameter '{}', which isn't given", name, parameter);
+	for(const auto& [parameter, value] : fields.items())
+		if(std::ranges::find(read, parameter) == read.end())
+			return std::format("'{}' has no parameter '{}'", name, parameter);
+	return "";
+}
+
 } // namespace
 
 void checkStrings(const json& section, const std::string& name) {
@@ -64,31 +104,17 @@ void checkStrings(const json& section, const std::string& name) {
 }
 
 std::string checkTranslation(const json& section, const json& arguments) {
-	if(!section.is_object() || !arguments.is_array() || arguments.empty()) return "";
-	const json& key = arguments[0];
-	if(!key.is_object() || !key.contains("$value") || !key["$value"].is_string())
-		return ""; // a key an expression gives
-	const std::string& name = key["$value"].get_ref<const std::string&>();
-	bool found = false;
+	const std::string* key = literalKey(arguments);
+	if(!section.is_object() || !key) return ""; // no strings, or a key an expression gives
+	const std::string& name = *key;
 	std::vector<std::string> read;
-	for(const auto& [locale, table] : section.items()) {
-		if(!table.is_object() || !table.contains(name) || !table[name].is_string()) continue;
-		found = true;
-		static_cast<void>(checkMessage(table[name].get_ref<const std::string&>(), read));
-	}
-	if(!found) return std::format("unknown key '{}': no locale of \"strings\" has it", name);
-	const json* given = arguments.size() > 1 ? &arguments[1] : nullptr;
-	if(given != nullptr && !(given->is_object() && given->contains("$object") && (*given)["$object"].is_object()))
+	if(!readParameters(section, name, read))
+		return std::format("unknown key '{}': no locale of \"strings\" has it", name);
+	if(arguments.size() < 2) return checkParameters(name, read, json::object());
+	const json& given = arguments[1];
+	if(!given.is_object() || !given.contains("$object") || !given["$object"].is_object())
 		return ""; // parameters an expression gives
-	const json none = json::object();
-	const json& fields = given != nullptr ? (*given)["$object"] : none;
-	for(const std::string& parameter : read)
-		if(!fields.contains(parameter))
-			return std::format("'{}' reads the parameter '{}', which isn't given", name, parameter);
-	for(const auto& [parameter, value] : fields.items())
-		if(std::ranges::find(read, parameter) == read.end())
-			return std::format("'{}' has no parameter '{}'", name, parameter);
-	return "";
+	return checkParameters(name, read, given["$object"]);
 }
 
 void Strings::read(const json& document) {
