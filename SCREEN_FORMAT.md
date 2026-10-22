@@ -628,8 +628,7 @@ Wherever a value is expected it can be computed:
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
-  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`;
-  `keyframeValue(track, time)`;
+  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
