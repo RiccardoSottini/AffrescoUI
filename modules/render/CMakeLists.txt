@@ -51,6 +51,8 @@ affrescoui_module(render
 	src/PathView.cpp
 	src/GraphView.cpp
 	src/TimelineView.cpp
+	src/CodeInput.cpp
+	src/Carousel.cpp
 	src/vector/VectorPath.cpp
 	src/vector/PathFill.cpp
 	src/vector/PathStroke.cpp

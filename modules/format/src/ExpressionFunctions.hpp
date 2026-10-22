@@ -150,6 +150,8 @@ struct Function {
 /// @copydoc logicFunctions
 [[nodiscard]] std::span<const Function> keyframeFunctions();
 [[nodiscard]] std::span<const Function> localeFunctions();
+/// @copydoc logicFunctions
+[[nodiscard]] std::span<const Function> formFunctions();
 
 /* Helpers the tables share */
 

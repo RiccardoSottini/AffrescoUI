@@ -113,7 +113,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `codeInput`, `carousel`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -623,6 +623,50 @@ announced as a state of the canvas ("3 selected").
 `{ "animate": "state.board.camera.zoom", "to": 2, "ms": 300 }` moves the camera smoothly. Until panels can be
 transformed, a child's text keeps its size while its box, images and paths scale with the zoom.
 
+### Form inputs: `secret`, `maxLength`, `accept` and `codeInput`
+Every text input (`textarea`, `editor`, `codeInput`) takes `secret` (a password: shown as dots, never copied, and
+never read out by accessibility), `maxLength` (0 for no limit) and `accept` (which characters typing and pasting may
+add). A `codeInput` is a one-time-code input: `length` cells (1 to 12, default 6) of digits, with its text, `bind`,
+`onChange` and `onSubmit` a text area's. The functions `passwordStrength(text)` (`{score, label, missing}`) and
+`isEmail(text)` help with validation. Two built-in components go with them:
+- `comboBox`: a text field over a list of its `options` (texts) that contain what is typed. Its state is
+  `state[name]`: `value` (the text), `open` and `index`; Down opens the list and moves, Up moves, Enter or a click
+  picks, Escape or a click outside closes. It has the `combobox` role, its list `listbox`, its choices `option`.
+- `passwordMeter`: a bar and a word for `passwordStrength(password)`, with `labels` by strength (`weak`, `fair`,
+  `good`, `strong`) for the screen's language, announced politely as it changes.
+
+```json
+{ "type": "codeInput", "bind": "state.code", "length": 6, "label": "One-time code", "onSubmit": "verify" }
+```
+
+<!-- generated: form -->
+| Key | Meaning |
+|---|---|
+| `secret` | A text area or a code input showing a dot per character, for a password; the screen reader gets no value, and the text is never copied. |
+| `maxLength` | The most characters typing and pasting may give a text area (0, the default: no limit; up to 100,000). |
+| `accept` | The characters typing and pasting may add: `any` (the default for a text area), `digits` (a code input's default), `letters` or `alphanumeric`; others are dropped (a pasted `123-456` gives `123456`). |
+| `length` | A code input's cells (1 to 12, default 6), which is also the most characters. |
+| `cellColor`, `cellBorderColor`, `cellGap`, `cellRadius` | A code input's cells, their outline and the space between them (default 8) and their corners (default 6). |
+<!-- end generated -->
+
+### `carousel`
+Shows one child at a time as pages, with arrow buttons at its sides and a dot per page below. Focused (`focusable`),
+Left and Right (mirrored right to left), Home and End, the arrows, the dots and a sideways swipe on a trackpad turn the
+pages; `bind` keeps the page's index in state.
+
+```json
+{ "type": "carousel", "bind": "state.shot", "loop": true, "children": [{ "type": "image", "src": "a.png" }] }
+```
+
+<!-- generated: carousel -->
+| Key | Meaning |
+|---|---|
+| `index` | The page shown, from 0, when there is no `bind` (default 0). With `bind`, the user's turns write the state and run `onChange`. |
+| `loop` | Whether turning past the last page goes to the first, and back (default false). |
+| `arrowButtons`, `dots` | The arrows in a gutter on each side, and the dots in a strip below (both default true). |
+| `arrowColor`, `dotColor` | The arrows, and the other pages' dots (`activeColor`: the page shown's). |
+<!-- end generated -->
+
 ### `outlet`
 Shows the current screen from `screens`, filling the outlet unless the screen places itself.
 
@@ -695,7 +739,7 @@ Wherever a value is expected it can be computed:
   `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`,
   `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
   `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
-  `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`;
+  `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `passwordStrength(text)`, `isEmail(text)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.

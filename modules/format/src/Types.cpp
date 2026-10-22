@@ -179,6 +179,9 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerCanvasType(registry);
 	registerGraphType(registry);
 	registerTimelineType(registry);
+	registerCodeInputType(registry);
+	registerCarouselType(registry);
+	registerTextFieldProperties(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

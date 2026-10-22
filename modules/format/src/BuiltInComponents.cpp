@@ -322,6 +322,8 @@ const std::map<std::string, json, std::less<>>& all() {
 		// Kept in a variable: a temporary in a range-for's range isn't kept alive before C++23's P2718 (GCC 15, clang 19)
 		json parsed = json::parse(others);
 		for(auto& [name, definition] : parsed.items()) made.emplace(name, std::move(definition));
+		json form = json::parse(builtInFormComponents());
+		for(auto& [name, definition] : form.items()) made.emplace(name, std::move(definition));
 		return made;
 	}();
 	return components;
