@@ -66,8 +66,11 @@ public:
 	SceneRenderer(const SceneRenderer&) = delete;
 	SceneRenderer& operator=(const SceneRenderer&) = delete;
 
+	/// @brief Compiles the programs and makes the line buffer, once. @param setup The surface's GL setup.
 	void prepare(const SurfaceSetup& setup) override;
+	/// @brief Draws the scene its parameters describe, then the overlays. @param frame The frame to draw.
 	void render(SurfaceFrame& frame) override;
+	/// @brief Frees every GL object (the context is current).
 	void release() override;
 
 private:

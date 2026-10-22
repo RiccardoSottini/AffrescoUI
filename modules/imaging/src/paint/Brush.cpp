@@ -16,6 +16,7 @@ namespace affresco::imaging {
 
 namespace {
 
+/// @brief The built-in brushes, as brushPresets() lists them.
 constexpr std::array<BrushPreset, 7> presets{{
     {"Hard Round 5", {5.0f, 1.0f, 0.25f, 1.0f, 1.0f, true, false}},
     {"Hard Round 20", {20.0f, 1.0f, 0.25f, 1.0f, 1.0f, true, false}},

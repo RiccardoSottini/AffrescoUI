@@ -18,8 +18,9 @@ namespace affresco::imaging {
 
 namespace {
 
-constexpr std::array<std::uint8_t, 8> pngSignature{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'};
-constexpr std::string_view iccMarker{"ICC_PROFILE\0", 12};
+constexpr std::array<std::uint8_t, 8> pngSignature{0x89, 'P',  'N',  'G',
+                                                   '\r', '\n', 0x1a, '\n'}; ///< A PNG file's first bytes.
+constexpr std::string_view iccMarker{"ICC_PROFILE\0", 12}; ///< Starts each JPEG APP2 segment of a profile.
 constexpr std::size_t jpegSegmentData = 65535 - 2 - iccMarker.size() - 2; ///< Profile bytes in one APP2 segment.
 constexpr std::size_t pngChunks = 10000;   ///< The most chunks read before the pixels, looking for iCCP.
 constexpr std::size_t jpegSegments = 1000; ///< The most segments read before the scan, looking for APP2.

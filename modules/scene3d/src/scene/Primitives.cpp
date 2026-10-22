@@ -11,7 +11,7 @@ namespace affresco::scene3d {
 
 namespace {
 
-constexpr float pi = std::numbers::pi_v<float>;
+constexpr float pi = std::numbers::pi_v<float>; ///< Half a turn.
 
 /// @brief Appends a vertex. @param mesh The mesh. @param position Where. @param normal Facing. @param uv Its texture
 /// coordinate.

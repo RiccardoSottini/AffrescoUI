@@ -16,7 +16,8 @@ namespace affresco::imaging {
 
 namespace {
 
-constexpr std::array<std::string_view, 5> names{"gaussian-blur", "sharpen", "unsharp-mask", "add-noise", "motion-blur"};
+constexpr std::array<std::string_view, 5> names{"gaussian-blur", "sharpen", "unsharp-mask", "add-noise",
+                                                "motion-blur"}; ///< By FilterKind.
 
 /// @brief The step's name of a filter.
 /// @param kind The filter.

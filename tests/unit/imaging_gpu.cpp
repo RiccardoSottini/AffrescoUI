@@ -93,8 +93,7 @@ private:
 	}
 }
 
-/// @brief Draws a model's document on a canvas of a size and reads it back.
-/// @param model The model.
+/// @brief Draws a canvas at a size and reads it back.
 /// @param surface The canvas, prepared.
 /// @param width The surface's width.
 /// @param height Its height.
@@ -164,7 +163,7 @@ struct Difference {
 
 /// @brief Paints a rectangle of an image with a colour that changes across it.
 /// @param image The image.
-/// @param left Its left, top, right and bottom.
+/// @param box Its left, top, right and bottom.
 /// @param from The colour at the left.
 /// @param to The colour at the right.
 void paint(Image& image, std::array<int, 4> box, const Pixel& from, const Pixel& to) {

@@ -37,7 +37,6 @@ constexpr int elementArrayBuffer = 34963;  ///< ELEMENT_ARRAY_BUFFER.
 	return text;
 }
 
-/// @brief The file being written: its JSON and its buffer.
 /// @brief What an accessor's elements are: their glTF type, the 4-byte components in one, and the components' type.
 struct Layout {
 	const char* type;       ///< "SCALAR", "VEC2", "VEC3" or "VEC4".
@@ -51,6 +50,7 @@ constexpr Layout floats3{"VEC3", 3, floatComponent};          ///< Positions, no
 constexpr Layout floats4{"VEC4", 4, floatComponent};          ///< Rotations.
 constexpr Layout indices1{"SCALAR", 1, unsignedIntComponent}; ///< Triangle indices.
 
+/// @brief The file being written: its JSON and the one binary buffer its accessors point into.
 class Writer {
 public:
 	/// @brief Adds an accessor over new bytes.

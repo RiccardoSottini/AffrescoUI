@@ -32,21 +32,21 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
-#define STBI_MALLOC(bytes) std::malloc(bytes)
-#define STBI_FREE(pointer) std::free(pointer)
-#define STBI_REALLOC_SIZED(pointer, oldBytes, newBytes) growWithin(pointer, newBytes)
-#define STBI_ONLY_PNG
-#define STBI_ONLY_JPEG
-#define STBI_NO_STDIO
-#define STBI_NO_LINEAR
-#define STBI_NO_HDR
-#define STBI_MAX_DIMENSIONS (1 << 16) // the limits are lower; this only bounds stb_image's own arithmetic
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
+#define STBI_MALLOC(bytes) std::malloc(bytes)                                         ///< stb frees with free().
+#define STBI_FREE(pointer) std::free(pointer)                                         ///< Its pair.
+#define STBI_REALLOC_SIZED(pointer, oldBytes, newBytes) growWithin(pointer, newBytes) ///< Growth, bounded.
+#define STBI_ONLY_PNG                 ///< Only the two formats the module reads.
+#define STBI_ONLY_JPEG                ///< The other one.
+#define STBI_NO_STDIO                 ///< No file access: bytes come in from memory.
+#define STBI_NO_LINEAR                ///< No float output.
+#define STBI_NO_HDR                   ///< No Radiance HDR.
+#define STBI_MAX_DIMENSIONS (1 << 16) ///< The limits are lower; this only bounds stb_image's own arithmetic
+#define STB_IMAGE_STATIC              ///< Private to this file.
+#define STB_IMAGE_IMPLEMENTATION      ///< Compiled here, once.
 #include <stb_image.h>
-#define STBI_WRITE_NO_STDIO
-#define STB_IMAGE_WRITE_STATIC
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_WRITE_NO_STDIO            ///< No file access: bytes go out to a callback.
+#define STB_IMAGE_WRITE_STATIC         ///< Private to this file.
+#define STB_IMAGE_WRITE_IMPLEMENTATION ///< Compiled here, once.
 #include <stb_image_write.h>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

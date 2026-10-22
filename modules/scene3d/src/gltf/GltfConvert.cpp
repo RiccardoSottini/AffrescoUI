@@ -87,7 +87,7 @@ void checkTotal(std::size_t total, std::size_t limit, const char* what) {
 
 /// @brief Reads a primitive's vertices and indices; the counts are checked first.
 /// @param primitive It. @param position Its positions, readable. @param totals Vertices and indices so far.
-/// @param limits The limits. @param context The load. @param where Names it in warnings.
+/// @param context The load, with its limits. @param where Names it in warnings.
 /// @return The mesh, or nothing (a warning says why).
 [[nodiscard]] std::optional<MeshData> readPrimitive(GltfContext& context, const cgltf_primitive& primitive,
                                                     const cgltf_accessor& position,

@@ -17,7 +17,8 @@ namespace affresco::imaging {
 
 namespace {
 
-constexpr std::array<std::string_view, 5> shapeNames{"linear", "radial", "angle", "reflected", "diamond"};
+constexpr std::array<std::string_view, 5> shapeNames{"linear", "radial", "angle", "reflected",
+                                                     "diamond"}; ///< By GradientShape.
 
 /// @brief A tile to fill.
 struct Place {
