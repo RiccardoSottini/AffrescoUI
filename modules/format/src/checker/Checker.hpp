@@ -48,6 +48,12 @@ struct Finding {
 [[nodiscard]] std::optional<std::vector<Finding>> check(const json& document, const json& state,
                                                         const std::set<std::string, std::less<>>& nativeActions = {});
 
+/// @brief The ids a document gives to more than one node, as the checker reports them: one finding for each node
+/// after the first. It costs one walk, so it holds for documents too large to check.
+/// @param document The document.
+/// @return The findings, in document order.
+[[nodiscard]] std::vector<Finding> duplicateIdFindings(const json& document);
+
 /// @brief The findings a change brings in: those in @p after that @p before doesn't have.
 ///
 /// Places move when nodes are added or moved, so a finding that isn't at the same place before is matched by its

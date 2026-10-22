@@ -8,6 +8,9 @@
 
 #include "affresco/format/NodeIds.hpp"
 
+#include <algorithm>
+#include <iterator>
+
 namespace affresco::format {
 
 std::string Finding::text() const {
@@ -321,13 +324,19 @@ std::optional<std::vector<Finding>> check(const json& document, const json& stat
 	checker::Checker checker(document, state, nativeActions);
 	std::optional<std::vector<Finding>> found = checker.run();
 	if(!found) return found;
-	// An id names one node: "#id" paths, rules and anchors would find only the first
+	std::ranges::move(duplicateIdFindings(document), std::back_inserter(*found));
+	std::ranges::sort(*found);
+	return found;
+}
+
+// An id names one node: "#id" paths, rules and anchors would find only the first
+std::vector<Finding> duplicateIdFindings(const json& document) {
+	std::vector<Finding> found;
 	for(const DuplicateId& duplicate : duplicateIds(document))
 		for(std::size_t i = 1; i < duplicate.pointers.size(); ++i)
-			found->push_back({placeOf(duplicate.pointers[i]),
-			                  "id '" + duplicate.id + "' is taken by " + placeOf(duplicate.pointers[0]),
-			                  "an id names one node: give this one another"});
-	std::ranges::sort(*found);
+			found.push_back({placeOf(duplicate.pointers[i]),
+			                 "id '" + duplicate.id + "' is taken by " + placeOf(duplicate.pointers[0]),
+			                 "an id names one node: give this one another"});
 	return found;
 }
 

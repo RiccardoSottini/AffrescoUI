@@ -605,10 +605,13 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 
 	// What a revision refers to must exist, so a typo is rejected before a reviewer sees it. Findings that were there
 	// before don't block it: the revision didn't bring them. (Most screens have none: then one check is enough.)
-	const auto now = check(after, stateOf(after), nativeActions_);
-	if(!now || now->empty()) return; // nothing found, or too large to check
-	const auto old = check(before, stateOf(before), nativeActions_);
-	if(!old) return;
+	auto now = check(after, stateOf(after), nativeActions_);
+	if(now && now->empty()) return;
+	auto old = now ? check(before, stateOf(before), nativeActions_) : std::nullopt;
+	if(!old) { // too large to check: ids still are, as a node given a locked one's id first would pass for it
+		now = duplicateIdFindings(after);
+		old = duplicateIdFindings(before);
+	}
 	const std::vector<Finding> added = introduced(*old, *now);
 	if(added.empty()) return;
 	std::string message = "the checker found:";

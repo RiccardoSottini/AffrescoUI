@@ -1,6 +1,8 @@
 /// @file
 /// @brief Unit tests for format::Rules::checkChange: what a revision may never add, change or move.
 
+#include "Checker.hpp"
+
 #include <affresco/format/Rules.hpp>
 
 #include <doctest/doctest.h>
@@ -278,4 +280,24 @@ TEST_CASE("format: components are expanded up to a document's size, past which a
 	};
 	CHECK_FALSE(added(20)); // 20 MiB, scanned: it runs refresh
 	CHECK(added(40));       // 40 MiB, past the budget: it may run anything
+}
+
+// A document too large to check passed any revision the other rules let through: one that gave a node before a locked
+// one its id would pass for it, as rules find a node by its id, the first that has it
+TEST_CASE("format: a revision can't give a taken id to another node, even in a document too large to check") {
+	json before = screenWithActions();
+	json& text = before["root"]["children"][0]["text"] = json::array();
+	text.get_ref<json::array_t&>().resize(1100000, json::array()); // lists cost the checker a visit each
+	REQUIRE_FALSE(affresco::format::check(before, before["state"]));
+	json after = before;
+	after["root"]["children"].insert(after["root"]["children"].begin(),
+	                                 json{{"type", "panel"}, {"id", "approveButton"}});
+	const affresco::format::Rules rules;
+	CHECK_THROWS_WITH_AS(rules.checkChange(before, after),
+	                     doctest::Contains("root.children[2]: id 'approveButton' is taken by root.children[0]"),
+	                     affresco::DocumentError);
+	json renamed = after; // the same node with an id of its own may come
+	renamed["root"]["children"][0]["id"] = "decoy";
+	CHECK_NOTHROW(rules.checkChange(before, renamed));
+	CHECK_NOTHROW(rules.checkChange(after, after)); // and a duplicate already there doesn't block what follows
 }
