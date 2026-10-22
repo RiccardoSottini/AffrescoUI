@@ -6,7 +6,7 @@
 #include "affresco/core/Log.hpp"
 #include "affresco/core/Portable.hpp"
 
-#include "Renderer.hpp"
+#include "paint/Renderer.hpp"
 #include "gl/OpenGlRenderer.hpp"
 #include "platform/Platform.hpp"
 

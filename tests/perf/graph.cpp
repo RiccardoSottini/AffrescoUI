@@ -5,7 +5,7 @@
 
 #include "Bench.hpp"
 #include "Headless.hpp"
-#include "PaintRecorder.hpp"
+#include "paint/PaintRecorder.hpp"
 
 #include <affresco/render/GraphView.hpp>
 

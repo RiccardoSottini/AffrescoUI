@@ -3,35 +3,11 @@
 # (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
-	src/Bitmap.cpp
-	src/ImageCache.cpp
-	src/text/PieceTree.cpp
-	src/Color.cpp
-	src/ColorSpaces.cpp
-	src/Font.cpp
-	src/FontCache.cpp
-	src/text/FontFace.cpp
-	src/text/FontOutlines.cpp
-	src/text/GlyphAtlas.cpp
-	src/text/LookupSpans.cpp
-	src/text/PlainText.cpp
-	src/text/Shaping.cpp
-	src/RichText.cpp
-	src/layout/Flex.cpp
-	src/layout/Grid.cpp
-	src/WindowImage.cpp
-	src/Headless.cpp
-	src/GeometryCache.cpp
-	src/PaintRecorder.cpp
-	src/vector/VectorPath.cpp
-	src/vector/PathFill.cpp
-	src/vector/PathStroke.cpp
-	src/vector/Svg.cpp
-	src/vector/SvgStyle.cpp
-	src/vector/SvgXml.cpp
-	src/vector/MeshRasterizer.cpp
-	src/SpatialIndex.cpp
-	src/Snapping.cpp
+	# paint/: what a frame records per panel and replays, behind the Renderer interface
+	src/paint/PaintRecorder.cpp
+	src/paint/GeometryCache.cpp
+	src/paint/WindowImage.cpp
+	# gl/: the OpenGL backend that replays recorded geometry as batched quads
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp
@@ -40,10 +16,44 @@ affrescoui_module(render
 	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
 	src/gl/Stencil.cpp
-	src/gl/SurfaceGuard.cpp
-	src/gl/SurfacePrelude.cpp
-	src/gl/Surfaces.cpp
-	src/gl/SurfaceView.cpp)
+	# gl/surfaces/: panels that draw with their own GL code, inside guarded state
+	src/gl/surfaces/SurfaceGuard.cpp
+	src/gl/surfaces/SurfacePrelude.cpp
+	src/gl/surfaces/Surfaces.cpp
+	src/gl/surfaces/SurfaceView.cpp
+	# font/: font files, faces, glyph lookups and outlines, the glyph atlas and the font cache
+	src/font/Font.cpp
+	src/font/FontCache.cpp
+	src/font/FontFace.cpp
+	src/font/FontOutlines.cpp
+	src/font/GlyphAtlas.cpp
+	src/font/LookupSpans.cpp
+	# text/: shaping, line layout, rich text and the piece tree that stores long texts
+	src/text/PieceTree.cpp
+	src/text/PlainText.cpp
+	src/text/Shaping.cpp
+	src/text/RichText.cpp
+	# vector/: paths, their fill and stroke, SVG and the mesh rasterizer
+	src/vector/VectorPath.cpp
+	src/vector/PathFill.cpp
+	src/vector/PathStroke.cpp
+	src/vector/Svg.cpp
+	src/vector/SvgStyle.cpp
+	src/vector/SvgXml.cpp
+	src/vector/MeshRasterizer.cpp
+	# layout/: the flex and grid layouts of panels
+	src/layout/Flex.cpp
+	src/layout/Grid.cpp
+	# image/: image decoding and caching, colours and colour spaces
+	src/image/Bitmap.cpp
+	src/image/ImageCache.cpp
+	src/image/Color.cpp
+	src/image/ColorSpaces.cpp
+	# spatial/: the spatial index and snapping of canvases
+	src/spatial/SpatialIndex.cpp
+	src/spatial/Snapping.cpp
+	# headless rendering: a window drawn offscreen, for tests, screenshots and agents
+	src/Headless.cpp)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${stb_image_SOURCE_DIR})
 affrescoui_gl_backend(affrescoui_render) # the glad loader of AFFRESCOUI_GL_BACKEND (cmake/AffrescoUIAngle.cmake)
 # nlohmann_json is public: GpuSurface.hpp hands a surface its document parameters as JSON
@@ -79,7 +89,7 @@ endif()
 # stb_image's JPEG decoder lets signed integers overflow on crafted input (found by the image fuzz target): wrapping
 # is what it expects, so the one file that compiles it wraps, and the sanitizers don't stop there
 if(NOT MSVC)
-	set_source_files_properties(src/Bitmap.cpp PROPERTIES COMPILE_OPTIONS "-fwrapv;-fno-sanitize=signed-integer-overflow")
+	set_source_files_properties(src/image/Bitmap.cpp PROPERTIES COMPILE_OPTIONS "-fwrapv;-fno-sanitize=signed-integer-overflow")
 endif()
 # File dialogs (open, save, choose a folder): nativefiledialog-extended, compiled in (cmake/AffrescoUIDialogs.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIDialogs.cmake)

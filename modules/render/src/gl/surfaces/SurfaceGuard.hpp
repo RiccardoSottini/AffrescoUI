@@ -47,7 +47,9 @@ struct GlState {
 /// @brief Saves the state on construction and restores it on destruction (exceptions included).
 class SurfaceGuard {
 public:
+	/// @brief Saves the state.
 	SurfaceGuard() : saved_(GlState::capture()) {}
+	/// @brief Restores the state saved.
 	~SurfaceGuard() { saved_.restore(); }
 	SurfaceGuard(const SurfaceGuard&) = delete;
 	SurfaceGuard& operator=(const SurfaceGuard&) = delete;

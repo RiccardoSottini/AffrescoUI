@@ -87,6 +87,12 @@ public:
 		em,     ///< Its em square (a fallback: the same em as the font's, so its text looks as large).
 	};
 
+	/// @brief The size a face is opened at.
+	struct Size {
+		float pixels; ///< In pixels: more than 0, at most largestSize.
+		SizeOf of;    ///< What it measures.
+	};
+
 	/// The largest size, in pixels. A document can ask for any size, but no glyph larger than an atlas page
 	/// (GlyphAtlas::largestPage) can be drawn, and much larger sizes don't fit the integers FreeType and the atlas use.
 	static constexpr float largestSize = 4096.0f;
@@ -94,13 +100,12 @@ public:
 	/// @brief Opens a file at a size.
 	/// @param library The FreeType library; it outlives the face.
 	/// @param file The file's bytes, kept alive by the face.
-	/// @param size The size, in pixels: more than 0, at most largestSize.
-	/// @param sizeOf What @p size measures.
+	/// @param size The size.
 	/// @param path Its path, for errors.
 	/// @param style Bold or italic, synthesised from its outlines (not its colour glyphs).
 	/// @throws std::runtime_error If it isn't a usable scalable font, or the size is out of range.
-	FontFace(FT_Library library, std::shared_ptr<const FontFile> file, float size, SizeOf sizeOf,
-	         const std::filesystem::path& path, FontStyle style = {});
+	FontFace(FT_Library library, std::shared_ptr<const FontFile> file, Size size, const std::filesystem::path& path,
+	         FontStyle style = {});
 
 	/// @brief Its glyph for a character.
 	/// @param codepoint The character.
@@ -133,6 +138,20 @@ public:
 	[[nodiscard]] std::optional<Bitmap> render(unsigned glyph) const noexcept;
 
 private:
+	/// @brief Opens the file's outlines with FreeType, into face_.
+	/// @param library The FreeType library.
+	/// @param path The file's path, for errors.
+	/// @throws std::runtime_error If FreeType can't read it, or it has no outlines.
+	void openOutlines(FT_Library library, const std::filesystem::path& path);
+	/// @brief Sets face_'s size, scale_ and color_.
+	/// @param size The size.
+	/// @param path The file's path, for errors.
+	/// @throws std::runtime_error If the face has no height or the size is out of range.
+	void setSize(Size size, const std::filesystem::path& path);
+	/// @brief Opens the file with HarfBuzz, into shaper_, styled as style_ asks.
+	/// @param path The file's path, for errors.
+	/// @throws std::runtime_error If HarfBuzz finds no glyphs in it.
+	void openShaper(const std::filesystem::path& path);
 	/// @brief Thickens or slants a glyph's outline in place, as its style asks.
 	/// @param outline The outline, in 26.6 pixels.
 	void synthesize(FT_Outline& outline) const noexcept;

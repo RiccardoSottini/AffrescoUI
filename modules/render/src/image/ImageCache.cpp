@@ -63,6 +63,8 @@ struct ImageCache::State : std::enable_shared_from_this<ImageCache::State> {
 	/// @brief What the worker made of a file: the image, or why there is none.
 	using Result = std::variant<std::shared_ptr<const Bitmap>, std::string>;
 
+	/// @brief Starts empty, with no worker.
+	/// @param bounds The bounds.
 	explicit State(Limits bounds) : limits(bounds) {}
 
 	Limits limits;                                                           ///< The bounds.
@@ -83,6 +85,10 @@ struct ImageCache::State : std::enable_shared_from_this<ImageCache::State> {
 	bool busy = false;                                          ///< Whether the worker is decoding.
 	std::jthread worker; ///< Declared last: stopped and joined first, before what it uses is destroyed.
 
+	/// @brief Decodes a file, on the worker thread or, without a main loop, on the caller's.
+	/// @param file The file.
+	/// @return Its image, or why there is none: decoding never throws across threads, the reason is delivered.
+	[[nodiscard]] Result decode(const std::filesystem::path& file) const;
 	/// @brief Decodes the files of the queue until asked to stop. Runs on the worker thread.
 	/// @param stop Asks it to stop.
 	void work(const std::stop_token& stop);
@@ -98,6 +104,14 @@ struct ImageCache::State : std::enable_shared_from_this<ImageCache::State> {
 	void deliverFile(const std::filesystem::path& file, const std::shared_ptr<const Bitmap>& bitmap);
 };
 
+ImageCache::State::Result ImageCache::State::decode(const std::filesystem::path& file) const {
+	try {
+		return Bitmap::load(file, limits.bitmap);
+	} catch(const std::exception& failure) {
+		return std::string(failure.what());
+	}
+}
+
 void ImageCache::State::work(const std::stop_token& stop) {
 	std::unique_lock lock(mutex);
 	while(wake.wait(lock, stop, [this] { return !queue.empty(); })) {
@@ -105,12 +119,7 @@ void ImageCache::State::work(const std::stop_token& stop) {
 		queue.pop_front();
 		busy = true;
 		lock.unlock();
-		Result result;
-		try {
-			result = Bitmap::load(file, limits.bitmap);
-		} catch(const std::exception& failure) { // decoding never throws across threads: the reason is delivered
-			result = std::string(failure.what());
-		}
+		Result result = decode(file);
 		lock.lock();
 		done.emplace_back(file, std::move(result));
 		busy = false;
@@ -220,12 +229,7 @@ ImageCache::Request ImageCache::load(const std::filesystem::path& file, Delivery
 	std::unique_lock lock(state.mutex);
 	if(!state.executor) { // no main loop to post to: decode now
 		lock.unlock();
-		State::Result result;
-		try {
-			result = Bitmap::load(path, state.limits.bitmap);
-		} catch(const std::exception& failure) {
-			result = std::string(failure.what());
-		}
+		State::Result result = state.decode(path);
 		lock.lock();
 		state.done.emplace_back(path, std::move(result));
 		lock.unlock();

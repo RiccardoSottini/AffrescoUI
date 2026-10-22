@@ -4,8 +4,8 @@
 /// @brief detail::GeometryCache: brings the retained geometry of a frame's panels up to date before it is drawn, and
 /// says what that changed on screen (the damage) and which shaders the frame needs.
 
-#include "Renderer.hpp"
-#include "RetainedGeometry.hpp"
+#include "paint/Renderer.hpp"
+#include "paint/RetainedGeometry.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -44,6 +44,24 @@ public:
 	Refreshed refresh(const Frame& frame);
 
 private:
+	/// @brief Refreshes a root (the tree, an overlay or the tooltip) if it needs a visit.
+	/// @param root The root.
+	/// @param window The window's area, which clips it.
+	void refreshRoot(Panel& root, const Rect& window);
+	/// @brief Adds the shaders a root's subtree draws with.
+	/// @param result Where they go.
+	/// @param root The root, refreshed.
+	static void addShaders(Refreshed& result, const Panel& root) noexcept;
+	/// @brief A panel's geometry, made with a new id the first time.
+	/// @param panel The panel.
+	/// @return Its geometry.
+	static PanelGeometry& geometryOf(Panel& panel);
+	/// @brief Whether a visited panel must be recorded again, or at least checked: everything is, it moved, it changed
+	/// or was laid out since the last refresh, or it was never recorded.
+	/// @param panel The panel.
+	/// @param geometry Its geometry.
+	/// @param moved Its place on screen changed.
+	[[nodiscard]] bool needsRecord(const Panel& panel, const PanelGeometry& geometry, bool moved) const noexcept;
 	/// @brief Refreshes a panel, then the children that need it, and gathers the subtree's shaders.
 	/// @param panel The panel.
 	/// @param outerClip What clips it: its parent's bounds, or the window for roots and overlays (in its layout space).
@@ -55,6 +73,12 @@ private:
 	/// @param geometry Its geometry, refreshed.
 	/// @param moved Its place on screen changed: every child is visited.
 	void refreshChildren(Panel& panel, PanelGeometry& geometry, bool moved);
+	/// @brief Refreshes a child's subtree, clipped by its parent's bounds.
+	/// @param parent The parent.
+	/// @param child The child.
+	/// @param parentWorld Where the parent's drawing goes on screen.
+	/// @param moved The parent's place on screen changed.
+	void refreshChild(const Panel& parent, Panel& child, const Affine2& parentWorld, bool moved);
 	/// @brief Records a panel again if it changed, or what its drawing depends on did; moves it if only its place on
 	/// screen did.
 	/// @param panel The panel.

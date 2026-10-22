@@ -3,7 +3,7 @@
 
 #include "affresco/render/FontCache.hpp"
 
-#include "text/FontFace.hpp"
+#include "font/FontFace.hpp"
 
 #include <cstdlib>
 #include <string_view>

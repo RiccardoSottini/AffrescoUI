@@ -4,7 +4,7 @@
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Window.hpp"
 
-#include "Renderer.hpp"
+#include "paint/Renderer.hpp"
 #include "platform/Platform.hpp"
 
 #include <algorithm>

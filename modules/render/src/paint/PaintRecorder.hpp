@@ -4,7 +4,7 @@
 /// @brief detail::PaintRecorder: the Painter a panel draws with; it records clipped quads and the steps that batch
 /// them into a PaintRecord, which the renderer keeps and replays.
 
-#include "RetainedGeometry.hpp"
+#include "paint/RetainedGeometry.hpp"
 
 #include "affresco/render/Painter.hpp"
 

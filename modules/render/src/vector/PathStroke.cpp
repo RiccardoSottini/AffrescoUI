@@ -20,6 +20,10 @@ using vector::times;
 namespace {
 
 constexpr std::size_t polygonLimit = 64; ///< The most corners a piece of stroke has (a circle's).
+/// @brief The most ends of dashes and gaps a stroke walks. Dashes of no length draw nothing with butt caps, so a
+/// pattern of them would never fill the mesh: past this, about a frame's time, the dashes end. Real dashes fill it long
+/// before.
+constexpr std::size_t dashWorkLimit = std::size_t{1} << 20;
 
 /// @brief Draws convex polygons into a mesh: fan quads inside, fringe quads on the edges asked for.
 class PolygonWriter {
@@ -44,33 +48,19 @@ public:
 			stopped_ = true;
 			return;
 		}
-		for(std::size_t index = 1; index + 1 < count; ++index)
-			vector::pushQuad(mesh_, {MeshVertex{corners[0]}, MeshVertex{corners[index]}, MeshVertex{corners[index + 1]},
-			                         MeshVertex{corners[index + 1]}});
-		if(!feathered) return;
-		float area = 0.0f;
-		for(std::size_t index = 0; index < count; ++index) area += vector::cross(corners[index], corners[(index + 1) % count]);
-		const float sign = area > 0.0f ? -1.0f : 1.0f; // outside is on the right of a counter-clockwise polygon
-		std::array<Vec2, polygonLimit> normals{};
-		for(std::size_t index = 0; index < count; ++index)
-			normals[index] = times(vector::leftOf(vector::normalized(minus(corners[(index + 1) % count], corners[index]))), sign);
-		for(std::size_t index = 0; index < count; ++index) {
-			if(!fringed[index]) continue;
-			const std::size_t previous = (index + count - 1) % count, next = (index + 1) % count;
-			const Vec2 start = offset(normals[index], fringed[previous] ? normals[previous] : normals[index]);
-			const Vec2 end = offset(normals[index], fringed[next] ? normals[next] : normals[index]);
-			vector::pushQuad(mesh_, {MeshVertex{corners[index]}, MeshVertex{corners[next]},
-			                         MeshVertex{plus(corners[next], end), 0.0f}, MeshVertex{plus(corners[index], start), 0.0f}});
-		}
+		fan(corners.first(count));
+		if(feathered) fringe(corners.first(count), fringed);
 	}
 
 	/// @brief Draws a circle (a polygon fine enough for its size), fringed all round.
 	void circle(Vec2 center, float radius) {
 		const float step = radius > 0.25f ? 2.0f * std::acos(1.0f - 0.25f / radius) : std::numbers::pi_v<float>;
-		const auto count = static_cast<std::size_t>(std::clamp(std::ceil(2.0f * std::numbers::pi_v<float> / step), 8.0f, 64.0f));
+		const auto count =
+		    static_cast<std::size_t>(std::clamp(std::ceil(2.0f * std::numbers::pi_v<float> / step), 8.0f, 64.0f));
 		std::array<Vec2, polygonLimit> corners{};
 		for(std::size_t index = 0; index < count; ++index) {
-			const float angle = 2.0f * std::numbers::pi_v<float> * static_cast<float>(index) / static_cast<float>(count);
+			const float angle =
+			    2.0f * std::numbers::pi_v<float> * static_cast<float>(index) / static_cast<float>(count);
 			corners[index] = {center.x + radius * std::cos(angle), center.y + radius * std::sin(angle)};
 		}
 		std::array<bool, polygonLimit> fringed{};
@@ -79,6 +69,47 @@ public:
 	}
 
 private:
+	/// @brief Fills a convex polygon with a fan of quads from its first corner.
+	/// @param corners Its corners, at least 3.
+	void fan(std::span<const Vec2> corners) {
+		for(std::size_t index = 1; index + 1 < corners.size(); ++index)
+			vector::pushQuad(mesh_, {MeshVertex{corners[0]}, MeshVertex{corners[index]}, MeshVertex{corners[index + 1]},
+			                         MeshVertex{corners[index + 1]}});
+	}
+
+	/// @brief The outward normals of a convex polygon's edges.
+	/// @param corners Its corners, at least 3 and at most polygonLimit.
+	/// @return Per edge (from corner i to corner i + 1), its normal pointing out of the polygon.
+	[[nodiscard]] static std::array<Vec2, polygonLimit> outwardNormals(std::span<const Vec2> corners) {
+		const std::size_t count = corners.size();
+		float area = 0.0f;
+		for(std::size_t index = 0; index < count; ++index)
+			area += vector::cross(corners[index], corners[(index + 1) % count]);
+		const float sign = area > 0.0f ? -1.0f : 1.0f; // outside is on the right of a counter-clockwise polygon
+		std::array<Vec2, polygonLimit> normals{};
+		for(std::size_t index = 0; index < count; ++index)
+			normals[index] =
+			    times(vector::leftOf(vector::normalized(minus(corners[(index + 1) % count], corners[index]))), sign);
+		return normals;
+	}
+
+	/// @brief Draws the fringes of a convex polygon's edges, fading out from them.
+	/// @param corners Its corners, at least 3 and at most polygonLimit.
+	/// @param fringed For each edge, whether it gets a fringe.
+	void fringe(std::span<const Vec2> corners, std::span<const bool> fringed) {
+		const std::size_t count = corners.size();
+		const std::array<Vec2, polygonLimit> normals = outwardNormals(corners);
+		for(std::size_t index = 0; index < count; ++index) {
+			if(!fringed[index]) continue;
+			const std::size_t previous = (index + count - 1) % count, next = (index + 1) % count;
+			const Vec2 start = offset(normals[index], fringed[previous] ? normals[previous] : normals[index]);
+			const Vec2 end = offset(normals[index], fringed[next] ? normals[next] : normals[index]);
+			vector::pushQuad(mesh_, {MeshVertex{corners[index]}, MeshVertex{corners[next]},
+			                         MeshVertex{plus(corners[next], end), 0.0f},
+			                         MeshVertex{plus(corners[index], start), 0.0f}});
+		}
+	}
+
 	/// @brief Where a fringe's outer corner is: its edge's normal, averaged with the neighbour's if that has a fringe.
 	[[nodiscard]] Vec2 offset(Vec2 normal, Vec2 neighbour) const noexcept {
 		const Vec2 average = times(plus(normal, neighbour), 0.5f);
@@ -97,6 +128,9 @@ public:
 	Stroker(const StrokeStyle& style, std::vector<MeshVertex>& mesh, float feather)
 	    : style_(style), half_(style.width / 2.0f), writer_(mesh, feather) {}
 
+	/// @brief Tells whether the mesh is full, so that nothing more is drawn.
+	[[nodiscard]] bool full() const noexcept { return writer_.full(); }
+
 	/// @brief Strokes a run of points.
 	/// @param points Its points, no two in a row equal.
 	/// @param closed Whether it is a loop.
@@ -109,8 +143,7 @@ public:
 		for(std::size_t index = 0; index < segments && !writer_.full(); ++index) {
 			const bool first = !closed && index == 0, last = !closed && index + 1 == segments;
 			segment(points[index], points[(index + 1) % points.size()], first, last);
-			if(!last)
-				join(points[index], points[(index + 1) % points.size()], points[(index + 2) % points.size()]);
+			if(!last) join(points[index], points[(index + 1) % points.size()], points[(index + 2) % points.size()]);
 		}
 		if(closed) return;
 		cap(points[0], vector::normalized(minus(points[0], points[1])));
@@ -192,36 +225,50 @@ private:
 	return pattern;
 }
 
-/// @brief Cuts a contour into its dashes.
-/// @param contour The contour.
+/// @brief Copies a run of points, each point that repeats the one before it left out.
+/// @param points The points.
+/// @param run Where the run goes, replacing what it held.
+void withoutRepeats(std::span<const Vec2> points, std::vector<Vec2>& run) {
+	run.clear();
+	for(const Vec2 point : points)
+		if(run.empty() || !(run.back() == point)) run.push_back(point);
+}
+
+/// @brief Cuts a contour into its dashes and strokes each, within the work left to the stroke.
+/// @param stroker What draws them.
+/// @param contour The contour, with two points at least.
 /// @param pattern The dash pattern (even, valid).
-/// @return The dashes, open runs of points.
-[[nodiscard]] std::vector<std::vector<Vec2>> dashesOf(const VectorPath::Contour& contour, std::span<const float> pattern) {
-	std::vector<std::vector<Vec2>> dashes;
+/// @param work The ends of dashes and gaps the stroke has walked, counted on: past dashWorkLimit, the dashes end there.
+void strokeDashes(Stroker& stroker, const VectorPath::Contour& contour, std::span<const float> pattern,
+                  std::size_t& work) {
+	std::vector<Vec2> current{contour.points.front()}, run; // reused: a dash allocates nothing
+	const auto draw = [&] {
+		withoutRepeats(current, run);
+		stroker.run(run, false);
+	};
 	std::size_t phase = 0;
 	float left = pattern[0];
-	std::vector<Vec2> current{contour.points.front()};
 	const std::size_t segments = contour.closed ? contour.points.size() : contour.points.size() - 1;
 	for(std::size_t index = 0; index < segments; ++index) {
 		Vec2 from = contour.points[index];
 		const Vec2 to = contour.points[(index + 1) % contour.points.size()];
 		float remaining = vector::length(minus(to, from));
 		while(remaining > left) { // the dash or gap ends within this segment
+			if(++work > dashWorkLimit || stroker.full()) return;
 			from = plus(from, times(minus(to, from), left / remaining));
 			remaining -= left;
 			if(phase % 2 == 0) {
 				current.push_back(from);
-				dashes.push_back(std::move(current));
+				draw();
 			}
-			current = {from};
+			current.assign(1, from);
 			phase = (phase + 1) % pattern.size();
 			left = pattern[phase];
 		}
 		left -= remaining;
 		if(phase % 2 == 0) current.push_back(to);
 	}
-	if(phase % 2 == 0 && current.size() > 1) dashes.push_back(std::move(current));
-	return dashes;
+	if(phase % 2 == 0 && current.size() > 1) draw();
 }
 
 /// @brief The length of a contour, closed or not.
@@ -242,29 +289,36 @@ bool strokable(std::span<const VectorPath::Contour> contours, const StrokeStyle&
 	return style.width > 0.0f && std::isfinite(style.width) && vector::finite(contours);
 }
 
+/// @brief Strokes one contour, whole or cut into its dashes.
+/// @param stroker What draws it.
+/// @param contour The contour, with a point at least.
+/// @param style The stroke.
+/// @param work The ends of dashes and gaps the stroke has walked (see strokeDashes).
+void strokeContour(Stroker& stroker, const VectorPath::Contour& contour, const StrokeStyle& style, std::size_t& work) {
+	// A closed contour whose last point is its first is one point shorter
+	std::span<const Vec2> points = contour.points;
+	if(contour.closed && points.size() > 1 && points.back() == points.front()) points = points.first(points.size() - 1);
+	const std::vector<float> pattern =
+	    style.dash.empty() ? std::vector<float>{} : dashPattern(style.dash, lengthOf(contour));
+	if(pattern.empty() || points.size() == 1) {
+		stroker.run(points, contour.closed && points.size() > 2);
+		return;
+	}
+	strokeDashes(stroker, {{points.begin(), points.end()}, contour.closed}, pattern, work);
+}
+
 } // namespace
 
-void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeStyle& style, std::vector<MeshVertex>& mesh,
-                  float feather) {
+void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeStyle& style,
+                  std::vector<MeshVertex>& mesh, float feather) {
 	if(!strokable(contours, style)) return;
 	Stroker stroker(style, mesh, std::min(std::max(feather, 0.0f), 4.0f));
+	// Bounded across contours: a dense pattern along many long contours, or dashes of no length, which draw nothing
+	// with butt caps, would otherwise walk for seconds or minutes, even with the mesh full
+	std::size_t work = 0;
 	for(const VectorPath::Contour& contour : contours) {
-		if(contour.points.empty()) continue;
-		// A closed contour whose last point is its first is one point shorter
-		std::span<const Vec2> points = contour.points;
-		if(contour.closed && points.size() > 1 && points.back() == points.front()) points = points.first(points.size() - 1);
-		const std::vector<float> pattern = style.dash.empty() ? std::vector<float>{} : dashPattern(style.dash, lengthOf(contour));
-		if(pattern.empty() || points.size() == 1) {
-			stroker.run(points, contour.closed && points.size() > 2);
-			continue;
-		}
-		const VectorPath::Contour trimmed{{points.begin(), points.end()}, contour.closed};
-		for(const std::vector<Vec2>& dash : dashesOf(trimmed, pattern)) {
-			std::vector<Vec2> run;
-			for(const Vec2 point : dash)
-				if(run.empty() || !(run.back() == point)) run.push_back(point);
-			stroker.run(run, false);
-		}
+		if(stroker.full() || work > dashWorkLimit) return;
+		if(!contour.points.empty()) strokeContour(stroker, contour, style, work);
 	}
 }
 

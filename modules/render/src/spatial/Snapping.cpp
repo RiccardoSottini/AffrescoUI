@@ -1,7 +1,7 @@
 /// @file
 /// @brief Snapping on a canvas: finding the nearest target on each axis.
 
-#include "Snapping.hpp"
+#include "spatial/Snapping.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,19 +17,6 @@ struct Pull {
 	const Rect* other = nullptr; ///< The item it lands on, if any (for the guide's extent).
 	bool grid = false;           ///< It lands on the grid (no guide is drawn).
 	std::size_t source = 0;      ///< Which moving coordinate lands.
-
-	/// @brief Keeps a candidate if it pulls less than the best so far and within the tolerance.
-	/// @param from The moving coordinate.
-	/// @param to The target coordinate.
-	/// @param tolerance The largest pull.
-	/// @param item The item the target belongs to, if any.
-	/// @param onGrid Whether the target is a grid line.
-	/// @param index Which moving coordinate it is.
-	void consider(float from, float to, float tolerance, const Rect* item, bool onGrid, std::size_t index) noexcept {
-		const float gap = std::abs(to - from);
-		if(!(gap <= tolerance) || gap >= distance) return;
-		*this = {to - from, gap, to, item, onGrid, index};
-	}
 };
 
 /// @brief The three coordinates of a rectangle along an axis: start, centre, end.
@@ -53,11 +40,15 @@ Pull bestPull(std::span<const float> moving, bool vertical, const SnapTargets& t
 	for(std::size_t index = 0; index < moving.size(); ++index) {
 		const float from = moving[index];
 		if(std::isnan(from)) continue;
-		if(targets.grid > 0.0f)
-			pull.consider(from, std::round(from / targets.grid) * targets.grid, tolerance, nullptr, true, index);
-		for(const float guide : guides) pull.consider(from, guide, tolerance, nullptr, false, index);
+		// Keeps a target if it pulls less than the best so far and within the tolerance
+		const auto consider = [&](float to, const Rect* item, bool onGrid) {
+			const float gap = std::abs(to - from);
+			if(gap <= tolerance && gap < pull.distance) pull = {to - from, gap, to, item, onGrid, index};
+		};
+		if(targets.grid > 0.0f) consider(std::round(from / targets.grid) * targets.grid, nullptr, true);
+		for(const float guide : guides) consider(guide, nullptr, false);
 		for(const Rect& other : targets.others)
-			for(const float to : stops(other, vertical)) pull.consider(from, to, tolerance, &other, false, index);
+			for(const float to : stops(other, vertical)) consider(to, &other, false);
 	}
 	return pull;
 }

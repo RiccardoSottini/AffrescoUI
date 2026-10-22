@@ -3,7 +3,7 @@
 /// and the same with 1,000 items, so that a lock shows the cost follows what is in view, not what the canvas holds.
 
 #include "Bench.hpp"
-#include "GeometryCache.hpp"
+#include "paint/GeometryCache.hpp"
 #include "Headless.hpp"
 
 #include <affresco/render/CanvasView.hpp>

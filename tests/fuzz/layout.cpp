@@ -8,7 +8,7 @@
 
 #include "Fuzz.hpp"
 
-#include "GeometryCache.hpp"
+#include "paint/GeometryCache.hpp"
 #include "Headless.hpp"
 
 #include <affresco/affresco.hpp>

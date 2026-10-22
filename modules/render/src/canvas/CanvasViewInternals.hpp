@@ -5,8 +5,8 @@
 /// frame, shared by CanvasView.cpp (content and painting) and CanvasViewInput.cpp (the pointer and the keys).
 
 #include "canvas/Rulers.hpp"
-#include "Snapping.hpp"
-#include "SpatialIndex.hpp"
+#include "spatial/Snapping.hpp"
+#include "spatial/SpatialIndex.hpp"
 
 #include <affresco/render/CanvasView.hpp>
 

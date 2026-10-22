@@ -3,7 +3,7 @@
 
 #include "affresco/render/Calendar.hpp"
 
-#include "CreativePixels.hpp"
+#include "image/CreativePixels.hpp"
 
 #include "affresco/render/RichText.hpp"
 #include "affresco/render/Window.hpp"

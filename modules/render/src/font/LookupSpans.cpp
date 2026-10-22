@@ -1,7 +1,7 @@
 /// @file
 /// @brief detail::LookupSpans: the spans of GSUB and GPOS lookups, read from the table with every offset checked.
 
-#include "text/LookupSpans.hpp"
+#include "font/LookupSpans.hpp"
 
 #include <algorithm>
 
@@ -296,19 +296,28 @@ std::optional<bool> LookupSpans::coverageLive(std::size_t coverage) {
 	if(!format || !count) return std::nullopt;
 	rulesRead_ += *count; // a coverage can be large, and many rules can name it
 	if(rulesRead_ > ruleBudget) return true;
-	for(std::size_t i = 0; i < *count; ++i) {
-		if(*format == 1) {
-			const auto glyph = u16(coverage + 4 + 2 * i);
-			if(!glyph) return std::nullopt;
-			if(isCandidate(*glyph)) return true;
-		} else if(*format == 2) {
-			const auto first = u16(coverage + 4 + 6 * i), last = u16(coverage + 6 + 6 * i);
-			if(!first || !last) return std::nullopt;
-			const auto next = std::ranges::lower_bound(candidates_, static_cast<unsigned>(*first));
-			if(next != candidates_.end() && *next <= *last) return true;
-		} else {
-			return true; // unknown: it may match anything
-		}
+	if(*format == 1) return listedCoverageLive(coverage, *count);
+	if(*format == 2) return rangedCoverageLive(coverage, *count);
+	return *count != 0; // unknown: it may match anything
+}
+
+// Format 1: the glyphs, sorted
+std::optional<bool> LookupSpans::listedCoverageLive(std::size_t coverage, std::size_t count) const {
+	for(std::size_t i = 0; i < count; ++i) {
+		const auto glyph = u16(coverage + 4 + 2 * i);
+		if(!glyph) return std::nullopt;
+		if(isCandidate(*glyph)) return true;
+	}
+	return false;
+}
+
+// Format 2: ranges of glyphs (first, last, and the first's coverage index), sorted
+std::optional<bool> LookupSpans::rangedCoverageLive(std::size_t coverage, std::size_t count) const {
+	for(std::size_t i = 0; i < count; ++i) {
+		const auto first = u16(coverage + 4 + 6 * i), last = u16(coverage + 6 + 6 * i);
+		if(!first || !last) return std::nullopt;
+		const auto next = std::ranges::lower_bound(candidates_, static_cast<unsigned>(*first));
+		if(next != candidates_.end() && *next <= *last) return true;
 	}
 	return false;
 }

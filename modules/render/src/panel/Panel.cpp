@@ -2,7 +2,7 @@
 #include "affresco/render/Painter.hpp"
 #include "affresco/render/Window.hpp"
 
-#include "RetainedGeometry.hpp"
+#include "paint/RetainedGeometry.hpp"
 #include "panel/PanelEdges.hpp"
 
 #include <algorithm>

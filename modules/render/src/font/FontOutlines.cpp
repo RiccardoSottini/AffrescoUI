@@ -4,7 +4,7 @@
 
 #include "affresco/render/Font.hpp"
 
-#include "text/FontData.hpp"
+#include "font/FontData.hpp"
 
 namespace affresco {
 

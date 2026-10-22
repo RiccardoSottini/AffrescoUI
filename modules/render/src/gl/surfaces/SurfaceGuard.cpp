@@ -1,7 +1,7 @@
 /// @file
 /// @brief gl::GlState: reading and setting the state a surface may change.
 
-#include "gl/SurfaceGuard.hpp"
+#include "gl/surfaces/SurfaceGuard.hpp"
 
 #include <cstddef>
 

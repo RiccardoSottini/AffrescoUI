@@ -2,10 +2,10 @@
 /// @brief The canvas (render's CanvasView and its spatial index) in a headless window: culling to the visible
 /// rectangle, the camera bound to what a person does, and selection, moves and guides reported back.
 
-#include "GeometryCache.hpp"
+#include "paint/GeometryCache.hpp"
 #include "Headless.hpp"
 #include "canvas/Rulers.hpp"
-#include "SpatialIndex.hpp"
+#include "spatial/SpatialIndex.hpp"
 
 #include <affresco/render/CanvasView.hpp>
 #include <affresco/render/Window.hpp>

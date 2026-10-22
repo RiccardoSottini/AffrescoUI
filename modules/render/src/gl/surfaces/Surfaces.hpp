@@ -47,14 +47,15 @@ struct Target {
 class Surfaces {
 public:
 	Surfaces() = default;
+	/// @brief Releases every surface, in the window's context.
 	~Surfaces();
 	Surfaces(const Surfaces&) = delete;
 	Surfaces& operator=(const Surfaces&) = delete;
 
 	/// @brief A surface's texture, drawn again first if it changed.
-	/// @param state The panel's surface.
+	/// @param shared The panel's surface.
 	/// @return Its texture, or 0 if it has nothing to draw (no size, or it failed).
-	[[nodiscard]] GLuint place(const std::shared_ptr<detail::SurfaceState>& state);
+	[[nodiscard]] GLuint place(const std::shared_ptr<detail::SurfaceState>& shared);
 	/// @brief Releases the surfaces whose panels are gone. Call once per frame.
 	void collect();
 	/// @brief How many surfaces there are.
@@ -87,6 +88,17 @@ private:
 	};
 	class Frame;
 
+	/// @brief A panel's entry, emptied first when it was made for another panel or another surface.
+	/// @param shared The panel's surface.
+	/// @return The entry.
+	Entry& entryFor(const std::shared_ptr<detail::SurfaceState>& shared);
+	/// @brief Makes the surface if needed and draws it into its framebuffer, at this size; disables it on a failure.
+	/// @param entry The entry.
+	/// @param state Its state.
+	/// @param width The width, in pixels.
+	/// @param height The height, in pixels.
+	/// @return Whether it drew.
+	static bool draw(Entry& entry, detail::SurfaceState& state, int width, int height);
 	/// @brief Makes or resizes an entry's framebuffer.
 	/// @param entry The entry.
 	/// @param state Its state.

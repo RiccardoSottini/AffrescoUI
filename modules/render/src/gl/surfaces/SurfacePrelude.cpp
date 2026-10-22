@@ -1,6 +1,7 @@
 /// @file
-/// @brief surfaceShaderPrelude(): the lines surfaces' shaders start with, those of this build's backend (gl/Shader.hpp's
-/// shaderPrelude()): `#version 410 core`, or on OpenGL ES (WebGL 2, ANGLE) `#version 300 es` and the precision.
+/// @brief surfaceShaderPrelude(): the lines surfaces' shaders start with, those of this build's backend
+/// (gl/Shader.hpp's shaderPrelude()): `#version 410 core`, or on OpenGL ES (WebGL 2, ANGLE) `#version 300 es` and the
+/// precision.
 
 #include "affresco/render/GpuSurface.hpp"
 

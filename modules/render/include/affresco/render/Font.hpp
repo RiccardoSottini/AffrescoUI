@@ -226,7 +226,7 @@ public:
 private:
 	friend class FontCache;
 	friend struct detail::FontInspector; // tests reach the fast path for plain text through it (src/text/)
-	struct Data; ///< The files, the atlas, the glyphs and the shaping caches; defined in src/text/FontData.hpp.
+	struct Data; ///< The files, the atlas, the glyphs and the shaping caches; defined in src/font/FontData.hpp.
 
 	/// @brief An empty font, with no face or page yet: load() fills it.
 	Font();

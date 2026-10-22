@@ -7,7 +7,7 @@
 /// Internal for now (the unit tests reach it through the private include path). It is meant to become public API once
 /// the maintainer agrees on its shape: see the PR of roadmap item 7.3.
 
-#include "Renderer.hpp"
+#include "paint/Renderer.hpp"
 
 #include "affresco/render/Clock.hpp"
 #include "affresco/render/Window.hpp"

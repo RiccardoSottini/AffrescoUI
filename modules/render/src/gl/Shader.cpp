@@ -9,7 +9,7 @@
 namespace affresco::gl {
 
 std::string_view shaderPrelude(ShaderStage stage) noexcept {
-#if defined(AFFRESCOUI_GLES3)
+#ifdef AFFRESCOUI_GLES3
 	// highp: what GLSL 4.10 computes in, so both backends round alike (ES 3.0 guarantees it in fragment shaders)
 	if(stage == ShaderStage::fragment) return "#version 300 es\nprecision highp float;\nprecision highp int;\n";
 	return "#version 300 es\n";

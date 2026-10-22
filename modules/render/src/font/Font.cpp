@@ -5,8 +5,8 @@
 #include "affresco/render/Font.hpp"
 #include "affresco/core/Log.hpp"
 
-#include "text/FontData.hpp"
-#include "text/FontInspector.hpp"
+#include "font/FontData.hpp"
+#include "font/FontInspector.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -54,22 +54,26 @@ struct LineBreak {
 	std::size_t next; ///< The next line's first code point: past a space or a '\n' that ends this one.
 };
 
+/// @brief A paragraph of a text being wrapped: up to a '\n', measured once.
+struct Paragraph {
+	std::span<const float> advances; ///< One per code point.
+	std::size_t start;               ///< Where it starts in the text.
+	std::size_t end;                 ///< Where it ends: at a '\n', or at the end of the text.
+};
+
 /// @brief Breaks the line that starts at @p start: as many code points as fit @p maxWidth (at least one), cut back to
 /// the last space when the paragraph goes on.
 /// @param text The whole text.
-/// @param advances The paragraph's advances, one per code point.
-/// @param paragraphStart Where the paragraph starts in @p text.
-/// @param paragraphEnd Where it ends: at a '\n', or at the end of @p text.
+/// @param paragraph The paragraph the line is in.
 /// @param start Where the line starts.
 /// @param maxWidth How wide it may be.
 /// @return Its end, and where the next line starts.
-LineBreak breakLine(std::u32string_view text, std::span<const float> advances, std::size_t paragraphStart,
-                    std::size_t paragraphEnd, std::size_t start, float maxWidth) noexcept {
+LineBreak breakLine(std::u32string_view text, const Paragraph& paragraph, std::size_t start, float maxWidth) noexcept {
 	std::size_t end = start;       // end of the line being built
 	std::size_t lastSpace = start; // last space seen on it (start = none)
 	float width = 0.0f;
-	while(end < paragraphEnd) {
-		const float advance = advances[end - paragraphStart];
+	while(end < paragraph.end) {
+		const float advance = paragraph.advances[end - paragraph.start];
 		// A code point with no width of its own continues its cluster (a mark, the rest of a ligature): never cut
 		if(width + advance > maxWidth && end > start && advance > 0.0f) break;
 		if(text[end] == U' ') lastSpace = end;
@@ -77,8 +81,8 @@ LineBreak breakLine(std::u32string_view text, std::span<const float> advances, s
 		++end;
 	}
 
-	if(end == paragraphEnd && end < text.size()) return {end, end + 1};            // past the '\n'
-	if(end < paragraphEnd && lastSpace > start) return {lastSpace, lastSpace + 1}; // the space itself is dropped
+	if(end == paragraph.end && end < text.size()) return {end, end + 1};            // past the '\n'
+	if(end < paragraph.end && lastSpace > start) return {lastSpace, lastSpace + 1}; // the space itself is dropped
 	return {end, end};
 }
 
@@ -157,14 +161,15 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
 	Data& data = *font->data_;
 	data.library = detail::startFreeType();
 	data.faces.reserve(1 + fallbacks.size() + optional.size());
+	using Size = detail::FontFace::Size;
 	using SizeOf = detail::FontFace::SizeOf;
-	data.faces.emplace_back(data.library.get(), files.read(path), pixelHeight, SizeOf::height, path, style);
+	data.faces.emplace_back(data.library.get(), files.read(path), Size{pixelHeight, SizeOf::height}, path, style);
 	const float em = data.faces.front().emPixels(); // fallbacks get the font's em, so their text looks as large
 	for(const std::filesystem::path& fallback : fallbacks)
-		data.faces.emplace_back(data.library.get(), files.read(fallback), em, SizeOf::em, fallback, style);
+		data.faces.emplace_back(data.library.get(), files.read(fallback), Size{em, SizeOf::em}, fallback, style);
 	for(const std::filesystem::path& extra : optional) {
 		try {
-			data.faces.emplace_back(data.library.get(), files.read(extra), em, SizeOf::em, extra, style);
+			data.faces.emplace_back(data.library.get(), files.read(extra), Size{em, SizeOf::em}, extra, style);
 		} catch(const std::runtime_error& error) {
 			log(LogLevel::Warning, std::string("AffrescoUI: skipping a system font: ") + error.what());
 		}
@@ -287,17 +292,15 @@ std::vector<std::u32string_view> Font::wrap(std::u32string_view text, float maxW
 	lines.reserve(4); // most texts wrap into a few lines: one allocation, rather than one each time the vector grows
 
 	// Each paragraph (up to a '\n') is measured once; its lines are views into it, broken by its advances
-	const std::vector<float>* paragraph = nullptr;
-	std::size_t paragraphStart = 0, paragraphEnd = 0;
+	std::optional<Paragraph> paragraph;
 	std::size_t start = 0; // where the line being built starts
 	while(start < text.size()) {
-		if(!paragraph || start > paragraphEnd) {
-			paragraphStart = start;
-			paragraphEnd = std::min(text.find(U'\n', start), text.size());
-			paragraph = &data_->measure(text.substr(start, paragraphEnd - start)).advances;
+		if(!paragraph || start > paragraph->end) {
+			const std::size_t end = std::min(text.find(U'\n', start), text.size());
+			paragraph = Paragraph{data_->measure(text.substr(start, end - start)).advances, start, end};
 		}
 
-		const auto [end, next] = breakLine(text, *paragraph, paragraphStart, paragraphEnd, start, maxWidth);
+		const auto [end, next] = breakLine(text, *paragraph, start, maxWidth);
 		lines.push_back(text.substr(start, end - start));
 		start = next;
 	}

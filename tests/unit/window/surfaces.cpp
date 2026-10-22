@@ -5,9 +5,9 @@
 ///
 /// Built into affrescoui_window_tests: it draws surfaces in a hidden window's context.
 
-#include "gl/SurfaceGuard.hpp"
-#include "gl/SurfaceState.hpp"
-#include "gl/Surfaces.hpp"
+#include "gl/surfaces/SurfaceGuard.hpp"
+#include "gl/surfaces/SurfaceState.hpp"
+#include "gl/surfaces/Surfaces.hpp"
 
 #include <affresco/core/Log.hpp>
 #include <affresco/render/Application.hpp>

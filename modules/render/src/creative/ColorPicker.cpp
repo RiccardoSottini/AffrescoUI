@@ -4,7 +4,7 @@
 #include "affresco/render/ColorPicker.hpp"
 #include "affresco/render/Window.hpp"
 
-#include "CreativePixels.hpp"
+#include "image/CreativePixels.hpp"
 
 #include <algorithm>
 #include <cmath>
