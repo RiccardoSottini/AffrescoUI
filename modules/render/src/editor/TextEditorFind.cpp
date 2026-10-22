@@ -295,9 +295,10 @@ std::optional<std::pair<TextEditor::Position, TextEditor::Position>> TextEditor:
 		const Position next = step(p, opens, false);
 		if(next == p) return std::nullopt;
 		p = next;
-		const std::optional<std::size_t> column = steppedOver(lines_[p.line], p.column, opens);
+		const std::u32string& line = lines_[p.line]; // once a step: each look-up searches the lines' cache
+		const std::optional<std::size_t> column = steppedOver(line, p.column, opens);
 		if(!column) continue;
-		const char32_t c = lines_[p.line][*column];
+		const char32_t c = line[*column];
 		if(c == self) ++depth;
 		else if(c == other && depth-- == 0) return std::pair{at, Position{p.line, *column}};
 	}
