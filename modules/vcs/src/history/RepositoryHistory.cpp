@@ -239,20 +239,8 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	});
 
 	// All read and checked: put it in place, and back if the observer can't show it
-	std::swap(objects_, objects);
-	std::swap(main_, main);
-	std::swap(proposals_, refs.proposals);
-	std::swap(grants_, refs.grants);
-	std::swap(mode_, refs.mode);
-	std::swap(nextProposal_, refs.nextProposal);
-	std::swap(imported_, refs.imported);
-	std::swap(document_, document);
-	json state = document_.contains("state") ? document_["state"] : json::object();
-	std::swap(state_, state);
-	if(upgraded != document_) upgradeHead(std::move(upgraded));
-	try {
-		documentChanged();
-	} catch(const DocumentError&) {
+	json state = document.contains("state") ? document["state"] : json::object();
+	const auto exchange = [&] {
 		std::swap(objects_, objects);
 		std::swap(main_, main);
 		std::swap(proposals_, refs.proposals);
@@ -260,8 +248,15 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		std::swap(mode_, refs.mode);
 		std::swap(nextProposal_, refs.nextProposal);
 		std::swap(imported_, refs.imported);
-		std::swap(state_, state);
 		std::swap(document_, document);
+		std::swap(state_, state);
+	};
+	exchange();
+	if(upgraded != document_) upgradeHead(std::move(upgraded));
+	try {
+		documentChanged();
+	} catch(const DocumentError&) {
+		exchange();
 		documentChanged();
 		throw;
 	}
