@@ -189,9 +189,21 @@ private:
 		std::array<int, 19> lengthOfLength{};
 		for(int i = 0; i < codeLengths; ++i) lengthOfLength[static_cast<std::size_t>(codeLengthOrder[static_cast<std::size_t>(i)])] = bits_.read(3);
 		const Huffman lengthCode(lengthOfLength);
+		const std::vector<int> lengths =
+		    readLengths(lengthCode, static_cast<std::size_t>(literals) + static_cast<std::size_t>(distances));
+		if(lengths[256] == 0) throw Malformed("a block without an end code");
+		const std::span<const int> all(lengths);
+		codes(Huffman(all.first(static_cast<std::size_t>(literals))),
+		      Huffman(all.subspan(static_cast<std::size_t>(literals))));
+	}
 
+	/// @brief Reads a block's code lengths, which repeat themselves with the symbols 16 to 18.
+	/// @param lengthCode The code they are written in.
+	/// @param total How many there are: the literal/length codes', then the distance codes'.
+	/// @return The code lengths.
+	/// @throws Malformed If a repeat has nothing before it, or goes past the total.
+	std::vector<int> readLengths(const Huffman& lengthCode, std::size_t total) {
 		std::vector<int> lengths;
-		const std::size_t total = static_cast<std::size_t>(literals) + static_cast<std::size_t>(distances);
 		while(lengths.size() < total) {
 			const int symbol = lengthCode.decode(bits_);
 			if(symbol < 16) {
@@ -204,10 +216,7 @@ private:
 			if(lengths.size() + static_cast<std::size_t>(repeat) > total) throw Malformed("code lengths that overflow");
 			lengths.insert(lengths.end(), static_cast<std::size_t>(repeat), value);
 		}
-		if(lengths[256] == 0) throw Malformed("a block without an end code");
-		const std::span<const int> all(lengths);
-		codes(Huffman(all.first(static_cast<std::size_t>(literals))),
-		      Huffman(all.subspan(static_cast<std::size_t>(literals))));
+		return lengths;
 	}
 
 	/// @brief Decodes literals and back-references until the end of the block.
@@ -268,6 +277,16 @@ int paeth(int left, int up, int corner) {
 	return toUp <= toCorner ? up : corner;
 }
 
+/// @brief What a row filter predicts a byte to be, from the bytes before it.
+/// @param filter The row's filter: 1 Sub, 2 Up, 3 Average, 4 Paeth.
+/// @param left The byte one pixel to the left.
+/// @param up The byte above.
+/// @param corner The byte above the left one.
+/// @return The prediction, which the row's byte is a difference from.
+int predict(int filter, int left, int up, int corner) {
+	return filter == 1 ? left : filter == 2 ? up : filter == 3 ? (left + up) / 2 : paeth(left, up, corner);
+}
+
 /// @brief Undoes the row filters, in place.
 /// @param data The rows, each after its filter byte.
 /// @param stride Bytes per row, without the filter byte.
@@ -284,8 +303,7 @@ void unfilter(std::vector<std::uint8_t>& data, std::size_t stride, std::size_t c
 			const int left = i >= channels ? row[i - channels] : 0;
 			const int up = above ? above[i] : 0;
 			const int corner = above && i >= channels ? above[i - channels] : 0;
-			const int predicted = filter == 1 ? left : filter == 2 ? up : filter == 3 ? (left + up) / 2 : paeth(left, up, corner);
-			row[i] = static_cast<std::uint8_t>(row[i] + predicted);
+			row[i] = static_cast<std::uint8_t>(row[i] + predict(filter, left, up, corner));
 		}
 	}
 }
