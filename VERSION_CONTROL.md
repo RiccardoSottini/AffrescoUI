@@ -181,7 +181,8 @@ and `CODEOWNERS`:
 }
 ```
 
-- `approvals`: how many reviewers must approve (1 when it is missing).
+- `approvals`: how many reviewers must approve (1 when it is missing). Reviewers count once per channel: "studio/anna"
+  and "studio/bob" are one approval, since the channel names its own users.
 - `behaviourApprovals`: how many when the proposal changes **behaviour**: an action, a shortcut, a watch, `onLoad`, a
   computed value, or a node's handlers (`onClick`...), `keys`, `every`, `check`, `when`, `repeat`, `drag` or bindings.
   Each proposal lists those changes as lines (`behaviour`: "adds onClick of #title", "changes the action 'save'").
