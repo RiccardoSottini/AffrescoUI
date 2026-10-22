@@ -1,0 +1,92 @@
+{
+	"id": "forge-agent-link",
+	"level": "forge",
+	"screen": "examples/forge/forge.screen.json",
+	"request": "In Forge, add a link \"Ask the Agent\" (id welcome-agent) to the Welcome page's Start list, and a button with the id panel-agent in the panel's header, both showing the Agent view in the side bar.",
+	"scenarios": [
+		{
+			"name": "welcome",
+			"steps": [
+				{
+					"click": "#welcome-agent"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "agent"
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "panel",
+			"steps": [
+				{
+					"click": "#title-sidebar"
+				},
+				{
+					"click": "#panel-agent"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "agent"
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#title-bar",
+		"#activity-bar",
+		"#status-bar",
+		"#agent-view"
+	],
+	"reference": [
+		{
+			"message": "Agent links",
+			"add": {
+				"#welcome-body/children/-": {
+					"type": "label",
+					"id": "welcome-agent",
+					"icon": "bot",
+					"text": "Ask the Agent",
+					"textColor": "@color.info",
+					"fitText": true,
+					"cursor": "hand",
+					"onClick": {
+						"run": "showAgent"
+					}
+				},
+				"#panel-head/children/2": {
+					"type": "label",
+					"id": "panel-agent",
+					"icon": "bot",
+					"textColor": "@color.muted",
+					"padding": 8,
+					"fitText": true,
+					"cursor": "hand",
+					"tooltip": "Show Agent",
+					"hover": {
+						"color": "@color.hover"
+					},
+					"onClick": {
+						"run": "showAgent"
+					}
+				}
+			}
+		}
+	]
+}

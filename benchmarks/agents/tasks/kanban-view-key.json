@@ -1,0 +1,61 @@
+{
+	"id": "kanban-view-key",
+	"level": "feature",
+	"screen": "examples/assets/screens/kanban.screen.json",
+	"request": "Make Cmd+T (mod+t) switch between the board and the table view, both ways.",
+	"scenarios": [
+		{
+			"name": "key",
+			"steps": [
+				{
+					"expect": {
+						"state": "view",
+						"is": "board"
+					}
+				},
+				{
+					"key": "mod+t"
+				},
+				{
+					"expect": {
+						"state": "view",
+						"is": "table"
+					}
+				},
+				{
+					"key": "mod+t"
+				},
+				{
+					"expect": {
+						"state": "view",
+						"is": "board"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#main",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Cmd+T switches the view",
+			"set": {
+				"/actions/switchView": {
+					"title": "Switch board and table",
+					"category": "View",
+					"do": [
+						{
+							"set": "state.view",
+							"to": "{{state.view == 'board' ? 'table' : 'board'}}"
+						}
+					]
+				},
+				"/keys/mod+t": "switchView"
+			}
+		}
+	]
+}

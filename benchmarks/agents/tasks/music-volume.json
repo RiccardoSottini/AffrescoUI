@@ -1,0 +1,32 @@
+{
+	"id": "music-volume",
+	"level": "edit",
+	"screen": "examples/assets/screens/music-player.screen.json",
+	"request": "Set the player's volume to 40.",
+	"scenarios": [
+		{
+			"name": "volume",
+			"steps": [
+				{
+					"expect": {
+						"state": "volume",
+						"is": 40
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#header",
+		"#tracks"
+	],
+	"reference": [
+		{
+			"message": "Volume 40",
+			"set": {
+				"/state/volume": 40
+			}
+		}
+	]
+}

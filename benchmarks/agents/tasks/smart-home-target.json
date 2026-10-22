@@ -1,0 +1,38 @@
+{
+	"id": "smart-home-target",
+	"level": "edit",
+	"screen": "examples/assets/screens/smart-home.screen.json",
+	"request": "Set the living room's target temperature to 23.",
+	"scenarios": [
+		{
+			"name": "target",
+			"steps": [
+				{
+					"expect": {
+						"state": "rooms[0].target",
+						"is": 23
+					}
+				},
+				{
+					"expect": {
+						"node": "#target",
+						"text": "23°"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#scenes",
+		"#lightsCard"
+	],
+	"reference": [
+		{
+			"message": "Living room to 23",
+			"set": {
+				"/state/rooms/0/target": 23
+			}
+		}
+	]
+}

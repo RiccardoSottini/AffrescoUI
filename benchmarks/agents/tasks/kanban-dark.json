@@ -1,0 +1,33 @@
+{
+	"id": "kanban-dark",
+	"level": "edit",
+	"screen": "examples/assets/screens/kanban.screen.json",
+	"request": "Switch the board to the dark theme.",
+	"scenarios": [
+		{
+			"name": "dark",
+			"steps": [
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#main",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Dark theme",
+			"set": {
+				"/state/theme": "dark"
+			}
+		}
+	]
+}

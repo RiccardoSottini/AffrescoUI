@@ -1,0 +1,77 @@
+{
+	"id": "smart-home-lights-off",
+	"level": "feature",
+	"screen": "examples/assets/screens/smart-home.screen.json",
+	"request": "Add an \"All off\" button with the id allLightsOff to the Lights card that switches off every light of the room shown.",
+	"scenarios": [
+		{
+			"name": "off",
+			"steps": [
+				{
+					"expect": {
+						"state": "rooms[0].lights[0].on",
+						"is": true
+					}
+				},
+				{
+					"click": "#allLightsOff"
+				},
+				{
+					"expect": {
+						"state": "rooms[0].lights[0].on",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "rooms[0].lights[1].on",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "rooms[1].lights[0].on",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#scenes",
+		"#climateCard",
+		"#lights"
+	],
+	"reference": [
+		{
+			"message": "All lights off",
+			"set": {
+				"/actions/allLightsOff": {
+					"title": "Switch off the room's lights",
+					"category": "Lights",
+					"do": [
+						{
+							"set": "state.rooms[state.room].lights",
+							"to": "{{map(computed.room.lights, merge(it, {'on': false}))}}"
+						}
+					]
+				}
+			},
+			"add": {
+				"#lightsCard/children/-": {
+					"id": "allLightsOff",
+					"type": "label",
+					"text": "All off",
+					"fitText": true,
+					"cursor": "hand",
+					"anchors": {
+						"right": 20,
+						"top": 20
+					},
+					"onClick": "allLightsOff"
+				}
+			}
+		}
+	]
+}

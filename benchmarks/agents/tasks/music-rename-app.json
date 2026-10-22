@@ -1,0 +1,32 @@
+{
+	"id": "music-rename-app",
+	"level": "edit",
+	"screen": "examples/assets/screens/music-player.screen.json",
+	"request": "Rename the app from Tempo to Cadence (the name at the top of the sidebar).",
+	"scenarios": [
+		{
+			"name": "name",
+			"steps": [
+				{
+					"expect": {
+						"node": "#logo",
+						"text": "Cadence"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#menu",
+		"#playlists",
+		"#main"
+	],
+	"reference": [
+		{
+			"message": "Tempo is now Cadence",
+			"set": {
+				"#logo/text": "Cadence"
+			}
+		}
+	]
+}

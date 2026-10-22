@@ -281,6 +281,36 @@ jobs:
           name: benchmarks
           path: ${{ runner.temp }}/perf/
 
+  # The agent benchmark (benchmarks/agents/README.md) with its oracle: every task's reference revision submitted
+  # through the MCP server to a host on a private socket, then its scenarios played. No model and no secret: it fails
+  # when a task, its scenarios or the reference no longer agree with the code.
+  agent-benchmark:
+    name: Agent benchmark (oracle)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: xvfb xauth libgl1-mesa-dri
+          cache: linux-gcc-agent-benchmark
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DAFFRESCOUI_BUILD_TESTS=OFF
+          cmake --build build --target affrescoui
+      - name: Every task, by the oracle
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 benchmarks/agents/run.py --client oracle --out "$RUNNER_TEMP/agents/oracle.json"
+      - name: Upload the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: agent-benchmark
+          path: ${{ runner.temp }}/agents/
+
   # The whole repository (the longest and most complex functions, tidy findings per module) and the coverage of the
   # unit tests, on master only: 15 minutes that a pull request doesn't need. Fails only when coverage falls below the
   # floor in tools/quality/coverage-baseline.json (the base's); the numbers are in the job summary and the artifacts.

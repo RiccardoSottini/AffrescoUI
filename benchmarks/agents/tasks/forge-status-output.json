@@ -1,0 +1,70 @@
+{
+	"id": "forge-status-output",
+	"level": "forge",
+	"screen": "examples/forge/forge.screen.json",
+	"request": "In Forge, add an \"Output\" item (id status-output) to the status bar that opens the panel on its Output tab.",
+	"scenarios": [
+		{
+			"name": "output",
+			"steps": [
+				{
+					"click": "#panel-close"
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": false
+					}
+				},
+				{
+					"click": "#status-output"
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "panelTab",
+						"is": "output"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#title-bar",
+		"#activity-bar",
+		"#panel",
+		"#welcome"
+	],
+	"reference": [
+		{
+			"message": "Output in the status bar",
+			"add": {
+				"#status-bar/children/-": {
+					"type": "label",
+					"id": "status-output",
+					"icon": "terminal",
+					"text": "Output",
+					"padding": 6,
+					"fitText": true,
+					"cursor": "hand",
+					"textColor": "@color.statusText",
+					"onClick": [
+						{
+							"set": "state.layout.panel",
+							"to": true
+						},
+						{
+							"set": "state.panelTab",
+							"to": "output"
+						}
+					]
+				}
+			}
+		}
+	]
+}

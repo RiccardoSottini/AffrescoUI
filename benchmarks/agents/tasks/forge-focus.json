@@ -1,0 +1,106 @@
+{
+	"id": "forge-focus",
+	"level": "forge",
+	"screen": "examples/forge/forge.screen.json",
+	"request": "In Forge, add a command \"Focus the Editor\" (category View) that hides the side bar and the panel, with a title-bar button (id title-focus) and a link \"Focus the Editor\" (id welcome-focus) in the Welcome page's Start list.",
+	"scenarios": [
+		{
+			"name": "welcome",
+			"steps": [
+				{
+					"click": "#welcome-focus"
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "title",
+			"steps": [
+				{
+					"click": "#title-focus"
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": false
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#activity-bar",
+		"#status-bar",
+		"#panel",
+		"#side-bar"
+	],
+	"reference": [
+		{
+			"message": "Focus the Editor",
+			"set": {
+				"/actions/focusEditor": {
+					"title": "Focus the Editor",
+					"category": "View",
+					"icon": "maximize",
+					"do": [
+						{
+							"set": "state.layout.sidebar",
+							"to": false
+						},
+						{
+							"set": "state.layout.panel",
+							"to": false
+						}
+					]
+				}
+			},
+			"add": {
+				"#title-bar/children/6": {
+					"type": "label",
+					"id": "title-focus",
+					"icon": "maximize",
+					"padding": 6,
+					"fitText": true,
+					"cursor": "hand",
+					"textColor": "@color.muted",
+					"tooltip": "Focus the Editor",
+					"hover": {
+						"color": "@color.hover"
+					},
+					"onClick": {
+						"run": "focusEditor"
+					}
+				},
+				"#welcome-body/children/-": {
+					"type": "label",
+					"id": "welcome-focus",
+					"icon": "maximize",
+					"text": "Focus the Editor",
+					"textColor": "@color.info",
+					"fitText": true,
+					"cursor": "hand",
+					"onClick": {
+						"run": "focusEditor"
+					}
+				}
+			}
+		}
+	]
+}

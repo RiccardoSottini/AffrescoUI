@@ -69,8 +69,8 @@ include(cmake/AffrescoUINetwork.cmake)
 
 # Monocypher: the Ed25519 signatures of features and catalogues (RFC 0004, decision D12)
 include(cmake/AffrescoUISignatures.cmake)
-# libvterm: the terminal emulator of Forge's terminal panel, which the examples and the tests build
-if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS)
+# libvterm: the terminal emulator of Forge's terminal panel, which the examples, the tests and the benchmarks build
+if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS OR AFFRESCOUI_BUILD_BENCHMARKS)
 	include(cmake/AffrescoUITerminal.cmake)
 endif()
 
@@ -201,7 +201,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
 		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/CodeEditor.cpp tests/perf/buffers.cpp
-		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp ${AFFRESCOUI_FORGE_SOURCES})
+		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp ${AFFRESCOUI_FORGE_SOURCES})
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples examples/forge modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)

@@ -1,0 +1,39 @@
+{
+	"id": "smart-home-rename-room",
+	"level": "edit",
+	"screen": "examples/assets/screens/smart-home.screen.json",
+	"request": "Rename the Kitchen to Cooking area.",
+	"scenarios": [
+		{
+			"name": "renamed",
+			"steps": [
+				{
+					"expect": {
+						"state": "rooms[1].name",
+						"is": "Cooking area"
+					}
+				},
+				{
+					"expect": {
+						"state": "rooms[0].name",
+						"is": "Living room"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#nav",
+		"#scenes",
+		"#lightsCard",
+		"#climateCard"
+	],
+	"reference": [
+		{
+			"message": "Kitchen is now Cooking area",
+			"set": {
+				"/state/rooms/1/name": "Cooking area"
+			}
+		}
+	]
+}
