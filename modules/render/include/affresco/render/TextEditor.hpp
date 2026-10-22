@@ -269,6 +269,18 @@ public:
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
 	Signal<Vec2> onScrolled;                  ///< The scroll offset changed (by the wheel, the caret or setScroll()).
+	/// @brief The code point under the resting mouse changed: its position, or nothing when the mouse left the text,
+	/// a button went down or the text scrolled (an anchor for hover cards).
+	Signal<std::optional<Position>> onHoverPosition;
+
+	/// @brief The box a code point takes on screen (at a line's end: a box half a line wide), e.g. to place a popup at
+	/// the caret.
+	/// @param at The position.
+	/// @return It in window units, or nothing without a font or when the position is in a fold or scrolled out of the
+	/// panel.
+	[[nodiscard]] std::optional<Rect> rectAt(Position at) const;
+	/// @brief The caret's box: rectAt(caret()).
+	[[nodiscard]] std::optional<Rect> caretRect() const { return rectAt(caret_); }
 
 protected:
 	/// @brief What an edit was, so consecutive typing can be undone in one step.
@@ -284,6 +296,7 @@ protected:
 	void mouseMoveEvent(const MouseMoveEvent& event) override;
 	void scrollEvent(const ScrollEvent& event) override;
 	void focusEvent(bool focused) override;
+	void hoverEvent(bool hovered) override;
 	void arrange() override;
 	void paint(Painter& painter) const override;
 
@@ -468,6 +481,9 @@ private:
 	/// @brief Unfolds the folds that hide a line (the caret went there).
 	/// @param line The line.
 	void unfoldAround(std::size_t line);
+	/// @brief Finds the code point under the mouse and fires onHoverPosition if it changed.
+	/// @param point The mouse, or nothing when it left the text.
+	void hoverAt(std::optional<Vec2> point);
 	/// @brief Moves folds and decorations with an edit, and drops what it removed.
 	/// @param change The edit.
 	void shiftView(const TextChange& change);
@@ -693,6 +709,7 @@ private:
 	std::size_t activeCursor_ = SIZE_MAX;                   ///< In forEachCursor(): the one being edited (not moved).
 	bool columnDragging_ = false;                           ///< Alt+Shift+drag is selecting a column.
 	Vec2 columnFrom_;                                       ///< Where it started.
+	std::optional<Position> hovered_;                       ///< See onHoverPosition.
 
 	TextPattern find_;                 ///< The find pattern; invalid: none.
 	std::string findText_;             ///< Its text.

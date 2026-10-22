@@ -350,6 +350,44 @@ TextEditor::Position TextEditor::positionAt(Vec2 point) const {
 	return positionOnRow(static_cast<std::size_t>(row), point.x - frame().left - gutterWidth() + scroll_.x);
 }
 
+std::optional<Rect> TextEditor::rectAt(Position at) const {
+	if(!font()) return std::nullopt;
+	at = clamped(at);
+	if(hidden(at.line)) return std::nullopt;
+	const float lh = lineHeight();
+	const float top = std::round(frame().top + textPadding - scroll_.y + static_cast<float>(rowOf(at)) * lh);
+	const float textLeft = std::round(frame().left + gutterWidth() - scroll_.x);
+	const float x = xOnRow(at);
+	// The next code point's start, unless the line ends (or wraps) here
+	float width = lh / 2.0f;
+	if(at.column < lines_[at.line].size())
+		if(const Position next{at.line, at.column + 1}; rowOf(next) == rowOf(at)) width = std::max(xOnRow(next) - x, 1.0f);
+	const Rect box{textLeft + x, top, textLeft + x + width, top + lh};
+	const Rect& shown = frame();
+	if(box.right <= shown.left + gutterWidth() || box.left >= shown.right || box.bottom <= shown.top ||
+	   box.top >= shown.bottom)
+		return std::nullopt;
+	return box;
+}
+
+void TextEditor::hoverAt(std::optional<Vec2> point) {
+	std::optional<Position> under;
+	if(point && frame().contains(*point) && point->x >= frame().left + gutterWidth()) {
+		// positionAt() gives the nearest place between code points: the one under the mouse is after it or before it
+		const Position near = positionAt(*point);
+		for(const Position at : {near, Position{near.line, near.column > 0 ? near.column - 1 : 0}}) {
+			if(at.column >= lines_[at.line].size()) continue;
+			if(const std::optional<Rect> box = rectAt(at); box && box->contains(*point)) {
+				under = at;
+				break;
+			}
+		}
+	}
+	if(under == hovered_) return;
+	hovered_ = under;
+	onHoverPosition(hovered_);
+}
+
 std::size_t TextEditor::visibleLines() const noexcept {
 	// No more than the text has: a huge height (or not a number) must not reach the conversion to an integer
 	const float rows =
