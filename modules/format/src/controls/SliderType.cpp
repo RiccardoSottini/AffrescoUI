@@ -34,12 +34,11 @@ void applySlider(Panel& panel, const json& values, const PropertyReader& reader,
 }
 
 /// @brief Shows a slider's value: its bound value, else "value".
+/// Its last text is not used: a slider shows a number.
 /// @param panel The panel, a Slider.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used: a slider shows a number.
-void showValue(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showValue(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* slider = dynamic_cast<Slider*>(&panel);
 	if(!slider) return;
 	const json value = bound ? *bound : properties.value("value", json(0));

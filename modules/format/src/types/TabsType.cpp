@@ -62,12 +62,11 @@ void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, c
 }
 
 /// @brief Shows the active tab: the bound value, else "value".
+/// Its last text is not used.
 /// @param panel The panel, a Tabs.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used.
-void showActive(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showActive(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* tabs = dynamic_cast<Tabs*>(&panel);
 	if(!tabs) return;
 	const json& value = bound ? *bound : properties.contains("value") ? properties["value"] : emptyObject();

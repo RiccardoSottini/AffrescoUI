@@ -66,12 +66,11 @@ void applySplit(Panel& panel, const json& values, const PropertyReader& reader, 
 }
 
 /// @brief Shows a split's sizes: its bound value, else "value"; nothing (or not a list) keeps the defaults.
+/// Its last text is not used: a split shows sizes.
 /// @param panel The panel, a Split.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used: a split shows sizes.
-void showSizes(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showSizes(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* split = dynamic_cast<Split*>(&panel);
 	if(!split) return;
 	const json& value = bound ? *bound : properties.contains("value") ? properties["value"] : emptyObject();

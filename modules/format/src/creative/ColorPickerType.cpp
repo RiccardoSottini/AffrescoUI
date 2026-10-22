@@ -58,12 +58,11 @@ void applyColorPicker(Panel& panel, const json& values, const PropertyReader& re
 }
 
 /// @brief Shows a picker's colour: its bound value, else "value"; a value that isn't a hex colour is ignored.
+/// Its last text is not used: a picker shows a colour.
 /// @param panel The panel, a ColorPicker.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used: a picker shows a colour.
-void showColor(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showColor(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* picker = dynamic_cast<ColorPicker*>(&panel);
 	if(!picker) return;
 	const json& value = bound ? *bound : properties.contains("value") ? properties["value"] : emptyObject();

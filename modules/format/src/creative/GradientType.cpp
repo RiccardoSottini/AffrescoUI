@@ -35,12 +35,11 @@ void applyGradient(Panel& panel, const json& values, const PropertyReader& reade
 }
 
 /// @brief Shows an editor's gradient: its bound value, else "value" (the default gradient when neither is one).
+/// Its last text is not used.
 /// @param panel The panel, a GradientEditor.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used.
-void showGradient(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showGradient(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* editor = dynamic_cast<GradientEditor*>(&panel);
 	if(!editor) return;
 	const json& value = bound ? *bound : properties.contains("value") ? properties["value"] : emptyObject();

@@ -61,12 +61,11 @@ void applyCurves(Panel& panel, const json& values, const PropertyReader& reader,
 }
 
 /// @brief Shows an editor's curves: its bound value, else "value"; a missing channel is the diagonal.
+/// Its last text is not used.
 /// @param panel The panel, a CurvesEditor.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used.
-void showCurves(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showCurves(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* editor = dynamic_cast<CurvesEditor*>(&panel);
 	if(!editor) return;
 	const json& value = bound ? *bound : properties.contains("value") ? properties["value"] : emptyObject();

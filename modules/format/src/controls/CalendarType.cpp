@@ -71,12 +71,11 @@ void applyCalendar(Panel& panel, const json& values, const PropertyReader& reade
 }
 
 /// @brief Shows a calendar's date: its bound value, else "value"; a value that isn't a date shows none.
+/// Its last text is not used: a calendar shows a date.
 /// @param panel The panel, a Calendar.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used: a calendar shows a date.
-void showDate(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showDate(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* calendar = dynamic_cast<Calendar*>(&panel);
 	if(!calendar) return;
 	const json& value = bound ? *bound : properties.contains("value") ? properties["value"] : emptyObject();

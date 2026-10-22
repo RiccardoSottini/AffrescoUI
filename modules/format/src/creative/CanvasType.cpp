@@ -205,12 +205,11 @@ std::vector<std::string> selectionOf(const json& selection) {
 
 /// @brief Shows the view: the bound value, else "view"; {camera: {x, y, zoom}, selection: [ids], guides: {vertical,
 /// horizontal}}, each part only if given.
+/// Its last text is not used.
 /// @param panel The panel, a CanvasView.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used.
-void showView(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showView(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* canvas = dynamic_cast<CanvasView*>(&panel);
 	const json& view = bound ? *bound : properties.contains("view") ? properties["view"] : emptyObject();
 	if(!canvas || !view.is_object()) return;

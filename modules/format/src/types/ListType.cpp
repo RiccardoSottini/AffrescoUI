@@ -136,12 +136,11 @@ void applyList(Panel& panel, const json& values, const PropertyReader& reader, c
 }
 
 /// @brief Shows the selection: the bound value, else "value"; an id, or a list of ids.
+/// Its last text is not used.
 /// @param panel The panel, a ListView.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used.
-void showSelection(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showSelection(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* list = dynamic_cast<ListView*>(&panel);
 	if(!list) return;
 	const json& value = bound ? *bound : properties.contains("value") ? properties["value"] : emptyObject();

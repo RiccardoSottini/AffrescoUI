@@ -39,12 +39,11 @@ void applyCarousel(Panel& panel, const json& values, const PropertyReader& reade
 }
 
 /// @brief Shows a carousel's page: its bound value, else "index", else the first.
+/// Its last text is not used: a carousel shows a page.
 /// @param panel The panel, a Carousel.
 /// @param bound The bound state value, or nullptr.
 /// @param properties The node's evaluated properties.
-/// @param lastText Not used: a carousel shows a page.
-void showPage(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& lastText) {
-	static_cast<void>(lastText);
+void showPage(Panel& panel, const json* bound, const json& properties, std::optional<std::string>& /*lastText*/) {
 	auto* carousel = dynamic_cast<Carousel*>(&panel);
 	if(!carousel) return;
 	const json& given = bound ? *bound : properties.value("index", json(0));
