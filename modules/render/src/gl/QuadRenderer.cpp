@@ -391,15 +391,12 @@ void QuadRenderer::replay(const detail::PaintRecord& record, std::size_t first, 
 		const detail::PaintOp& op = record.ops[i];
 		switch(op.step) {
 		case PaintStep::fill:
-			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
+			startBatch();
 			addQuads(record, op, true);
 			break;
-		case PaintStep::text: {
-			const bool sameFont = !batches_.empty() && batches_.back().font == op.font;
-			textPage_ = sameFont ? batches_.back().page : 0;
-			useFontPage(*op.font, textPage_);
+		case PaintStep::text:
+			startText(*op.font);
 			break;
-		}
 		case PaintStep::glyphs:
 			if(op.page != textPage_) useFontPage(*op.font, textPage_ = op.page);
 			addQuads(record, op, false);
@@ -408,25 +405,38 @@ void QuadRenderer::replay(const detail::PaintRecord& record, std::size_t first, 
 			useColorTexture(fontTexture(*op.font, op.page, AtlasKind::color), op.font, op.page);
 			addQuads(record, op, false);
 			break;
-		case PaintStep::image: {
-			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
-			const ImageTextures::Placement placed = images_.place(*op.bitmap);
-			useColorTexture(placed.texture, nullptr, 0);
-			addQuads(record, op, false, &placed.uv);
+		case PaintStep::image:
+			replayImage(record, op);
 			break;
-		}
-		case PaintStep::surface: { // drawn into its framebuffer first if it changed; nothing if it failed
-			// At this frame's pixels per unit, which a picture at another scale doesn't share with the display
-			op.surface->state()->scale = pixelScale_;
-			const GLuint texture = surfaces_.place(op.surface->state());
-			if(texture == 0) break;
-			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
-			useColorTexture(texture, nullptr, 0);
-			addQuads(record, op, false);
+		case PaintStep::surface:
+			replaySurface(record, op);
 			break;
-		}
 		}
 	}
+}
+void QuadRenderer::startBatch() {
+	if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
+}
+void QuadRenderer::startText(const Font& font) {
+	const bool sameFont = !batches_.empty() && batches_.back().font == &font;
+	textPage_ = sameFont ? batches_.back().page : 0;
+	useFontPage(font, textPage_);
+}
+void QuadRenderer::replayImage(const detail::PaintRecord& record, const detail::PaintOp& op) {
+	startBatch();
+	const ImageTextures::Placement placed = images_.place(*op.bitmap);
+	useColorTexture(placed.texture, nullptr, 0);
+	addQuads(record, op, false, &placed.uv);
+}
+// Drawn into its framebuffer first if it changed; nothing if it failed
+void QuadRenderer::replaySurface(const detail::PaintRecord& record, const detail::PaintOp& op) {
+	// At this frame's pixels per unit, which a picture at another scale doesn't share with the display
+	op.surface->state()->scale = pixelScale_;
+	const GLuint texture = surfaces_.place(op.surface->state());
+	if(texture == 0) return;
+	startBatch();
+	useColorTexture(texture, nullptr, 0);
+	addQuads(record, op, false);
 }
 
 // An image's quads hold coordinates within the image; its place in its texture is known only now

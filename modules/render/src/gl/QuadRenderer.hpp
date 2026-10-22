@@ -170,6 +170,20 @@ private:
 	/// @param first Its first step to replay.
 	/// @param last Past its last step to replay.
 	void replay(const detail::PaintRecord& record, std::size_t first, std::size_t last);
+	/// @brief Starts the frame's first batch, on the white texture, if there is none: a colour texture or a fill goes
+	/// on the current batch.
+	void startBatch();
+	/// @brief Starts a text: it keeps the current atlas page if the batch draws from the same font, else page 0.
+	/// @param font Its font.
+	void startText(const Font& font);
+	/// @brief Replays an image step: its bitmap placed in a texture, and its quads.
+	/// @param record The record.
+	/// @param op The step.
+	void replayImage(const detail::PaintRecord& record, const detail::PaintOp& op);
+	/// @brief Replays a GPU surface step: the surface drawn into its framebuffer if it changed, and its quads.
+	/// @param record The record.
+	/// @param op The step.
+	void replaySurface(const detail::PaintRecord& record, const detail::PaintOp& op);
 	/// @brief Adds a step's quads to the current batch: those in the region; fills take its white texel.
 	/// @param record The record.
 	/// @param op The step.
