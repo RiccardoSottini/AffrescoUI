@@ -8,6 +8,7 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/services/Schema.hpp>
 #include <affresco/services/ServiceRegistry.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -198,6 +199,21 @@ TEST_CASE("services: a registry refuses what the host didn't grant") {
 	CHECK(status["b"]["state"] == "refused");
 	CHECK(status["c"]["state"] == "refused");
 	CHECK(registry.catalog().contains("jsonrpc"));
+}
+
+// A number too large for a 64-bit integer was converted to one to test whether it was whole: undefined behaviour
+TEST_CASE("services: a schema's integer type takes whole numbers that fit, and refuses huge ones safely") {
+	using affresco::services::checkSchema;
+	const json integer = {{"type", "integer"}};
+	CHECK_FALSE(checkSchema(integer, 3.0, "with"));
+	CHECK_FALSE(checkSchema(integer, -9223372036854775808.0, "with"));
+	CHECK(checkSchema(integer, 3.5, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema(integer, 1e300, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema(integer, -1e300, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema(integer, 9223372036854775808.0, "with") == "with: must be a value of type integer");
+	CHECK(checkSchema({{"type", "string"}, {"maxLength", 1e300}}, "abc", "with") == std::nullopt);
+	CHECK(checkSchema({{"type", "string"}, {"maxLength", 2}}, "abc", "with") == "with: at most 2 bytes");
+	CHECK(checkSchema({{"type", "array"}, {"maxItems", 1}}, json::array({1, 2}), "with") == "with: at most 1 items");
 }
 
 // A debug adapter can run code (debugpy's `evaluate`): a screen attached to any program listening on a loopback port

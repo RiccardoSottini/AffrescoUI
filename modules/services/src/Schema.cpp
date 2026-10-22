@@ -4,15 +4,34 @@
 #include "affresco/services/Schema.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace affresco::services {
 
 namespace {
 
+/// @brief 2^63: a double converts to a 64-bit integer only below it (and from its negative), else undefined.
+constexpr double int64Limit = 9223372036854775808.0;
+
+/// @brief Whether a number is whole and fits a 64-bit integer, tested without converting it.
+/// @param number The number.
+/// @return Whether it is.
+bool isWhole(double number) noexcept {
+	return number >= -int64Limit && number < int64Limit && std::trunc(number) == number;
+}
+
+/// @brief A length bound for a message, cut to a whole number: "64".
+/// @param bound The bound.
+/// @return Its text.
+std::string whole(double bound) {
+	return bound >= -int64Limit && bound < int64Limit ? std::to_string(static_cast<long long>(bound))
+	                                                  : json(bound).dump();
+}
+
 /// @brief Whether a value has a type JSON Schema names.
 /// @param value The value.
 /// @param type The name.
-/// @return Whether it does ("integer" takes whole numbers only; "number" takes any number).
+/// @return Whether it does ("integer" takes whole numbers that fit 64 bits only; "number" takes any number).
 bool hasType(const json& value, const std::string& type) {
 	if(type == "object") return value.is_object();
 	if(type == "array") return value.is_array();
@@ -20,9 +39,7 @@ bool hasType(const json& value, const std::string& type) {
 	if(type == "boolean") return value.is_boolean();
 	if(type == "null") return value.is_null();
 	if(type == "number") return value.is_number();
-	if(type == "integer")
-		return value.is_number_integer() || (value.is_number_float() && value.get<double>() == static_cast<double>(
-		                                                                    static_cast<long long>(value.get<double>())));
+	if(type == "integer") return value.is_number_integer() || (value.is_number_float() && isWhole(value.get<double>()));
 	return true;
 }
 
@@ -56,9 +73,9 @@ std::optional<std::string> checkBounds(const json& schema, const json& value, co
 	if(value.is_string()) {
 		const auto size = static_cast<double>(value.get_ref<const std::string&>().size());
 		if(const auto most = bound("maxLength"); most && size > *most)
-			return path + ": at most " + std::to_string(static_cast<long long>(*most)) + " bytes";
+			return path + ": at most " + whole(*most) + " bytes";
 		if(const auto least = bound("minLength"); least && size < *least)
-			return path + ": at least " + std::to_string(static_cast<long long>(*least)) + " bytes";
+			return path + ": at least " + whole(*least) + " bytes";
 	}
 	if(value.is_number()) {
 		const double number = value.get<double>();
@@ -67,7 +84,7 @@ std::optional<std::string> checkBounds(const json& schema, const json& value, co
 	}
 	if(value.is_array())
 		if(const auto most = bound("maxItems"); most && static_cast<double>(value.size()) > *most)
-			return path + ": at most " + std::to_string(static_cast<long long>(*most)) + " items";
+			return path + ": at most " + whole(*most) + " items";
 	return std::nullopt;
 }
 
