@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 
@@ -117,6 +118,23 @@ void expectGrantRule(const std::string& rule, const std::string& where) {
 		             "'" + rule + "' is not a rule that \"don't ask again\" grants (<channel>(<one node or area>))");
 }
 
+/// @brief Reads a grant's expiry: a UTC time, "2026-10-22T08:30:00Z" exactly, which sorts as text, so expired() can
+/// compare it with the time now. Anything else ("never", "9999", a local time) would sort after every time and never
+/// expire, so it is refused.
+/// @param value The value.
+/// @param at Its place.
+/// @return The time.
+/// @throws DocumentError If it isn't one.
+std::string expiryOf(const json& value, const std::string& at) {
+	std::string time = expect::string(value, at);
+	constexpr std::string_view shape = "dddd-dd-ddTdd:dd:ddZ";
+	const bool matches = time.size() == shape.size() && std::ranges::equal(time, shape, [](char c, char expected) {
+		return expected == 'd' ? c >= '0' && c <= '9' : c == expected;
+	});
+	if(!matches) expect::fail(at, "a UTC time such as \"2026-10-22T08:30:00Z\"");
+	return time;
+}
+
 /// @brief Reads the "don't ask again" grants of a refs file.
 /// @param grants The list.
 /// @return The grants.
@@ -132,7 +150,7 @@ std::vector<Grant> grantsOf(const json& grants) {
 		result.push_back({std::move(rule), expect::string(grant.at("grantedBy"), where + ".grantedBy"),
 		                  expect::integer(grant.at("proposal"), where + ".proposal"),
 		                  expect::string(grant.at("time"), where + ".time"),
-		                  grant.contains("expires") ? expect::string(grant["expires"], where + ".expires") : ""});
+		                  grant.contains("expires") ? expiryOf(grant["expires"], where + ".expires") : ""});
 	}
 	return result;
 }

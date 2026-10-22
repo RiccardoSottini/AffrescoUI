@@ -211,4 +211,17 @@ TEST_CASE("review policy: grants expire, at most when the policy says") {
 	CHECK(repository.grants().empty());
 	CHECK(repository.submit({{"author", "agent"}, {"set", {{"#title/text", "Again"}}}}).status ==
 	      RevisionStatus::Proposed);
+
+	// An expiry that isn't a UTC time would sort after every time, and never expire: the history is refused
+	for(const char* never : {"never", "9999", "2000-01-01 00:00:00"}) {
+		INFO(never);
+		refs["grants"][0]["expires"] = never;
+		refs.erase("checksum");
+		refs["checksum"] = sha256(refs.dump());
+		writeText(history / "refs.json", refs.dump(2));
+		affresco::vcs::Repository reopened(rules, policyScreen({{"grantsLast", "1h"}}));
+		CHECK_THROWS_WITH_AS(reopened.openHistory(history), doctest::Contains("grants[0].expires: a UTC time"),
+		                     affresco::DocumentError);
+		CHECK(reopened.grants().empty());
+	}
 }
