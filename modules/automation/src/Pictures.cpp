@@ -118,45 +118,62 @@ bool sameAsFromScratch(Window& window, int scale, const affresco::detail::RgbIma
 	return false;
 }
 
+/// @brief Draws the window offscreen and reads the frame back.
+/// @param camera The window, its scale, and the folder for the drawn frame.
+/// @return The frame, or std::nullopt if it couldn't be drawn or read.
+std::optional<affresco::detail::RgbImage> drawFrame(const Camera& camera) {
+	const std::filesystem::path drawn = camera.scratch / "frame.ppm";
+	if(!camera.window.saveScreenshot(drawn, camera.scale)) return std::nullopt;
+	return affresco::detail::readPpm(drawn);
+}
+
+/// @brief Saves a capture in the output folder.
+/// @param frame What the window showed.
+/// @param picture The picture: Saved, or its problem.
+/// @param options Where pictures go.
+void saveCapture(const affresco::detail::RgbImage& frame, Picture& picture, const Options& options) {
+	const std::filesystem::path path = options.output / (picture.name + ".png");
+	if(options.output.empty()) picture.problem = "a capture needs a folder to write to (--out)";
+	else if(!writePng(path, frame.width, frame.height, frame.rgb)) picture.problem = "could not write " + path.string();
+	else picture.outcome = Picture::Outcome::Saved;
+}
+
+/// @brief Records a frame as its golden image, or compares it with the one there, as the options' policy says.
+/// @param frame What the window showed.
+/// @param picture The picture: Recorded, Matches, or its problem.
+/// @param options Where golden images are, and when to record them.
+void checkGolden(const affresco::detail::RgbImage& frame, Picture& picture, const Options& options) {
+	if(options.goldens.empty()) {
+		picture.problem = "no golden images folder to compare with (--goldens)";
+		return;
+	}
+	const std::filesystem::path golden = options.goldens / (picture.name + ".png");
+	const bool record = options.policy == Goldens::Update ||
+	                    (options.policy == Goldens::RecordMissing && !std::filesystem::exists(golden));
+	if(record) {
+		if(writePng(golden, frame.width, frame.height, frame.rgb)) picture.outcome = Picture::Outcome::Recorded;
+		else picture.problem = "could not write " + golden.string();
+		return;
+	}
+	if(!std::filesystem::exists(golden)) {
+		picture.problem = "no golden image " + golden.string() + " (record it with --update)";
+		return;
+	}
+	compareWithGolden(frame, picture, golden, options);
+}
+
 } // namespace
 
-Picture takePicture(Window& window, int scale, const std::string& name, PictureKind kind, const Options& options,
-                    const std::filesystem::path& scratch) {
+Picture takePicture(const Camera& camera, const std::string& name, PictureKind kind, const Options& options) {
 	Picture picture{name, Picture::Outcome::Differs, 0, {}};
-	const std::filesystem::path drawn = scratch / "frame.ppm";
-	std::optional<affresco::detail::RgbImage> frame;
-	if(window.saveScreenshot(drawn, scale)) frame = affresco::detail::readPpm(drawn);
+	const std::optional<affresco::detail::RgbImage> frame = drawFrame(camera);
 	if(!frame) {
 		picture.problem = "could not draw the window";
 		return picture;
 	}
-	if(!sameAsFromScratch(window, scale, *frame, picture, options)) return picture;
-
-	if(kind == PictureKind::Capture) {
-		if(options.output.empty()) picture.problem = "a capture needs a folder to write to (--out)";
-		else if(!writePng(options.output / (name + ".png"), frame->width, frame->height, frame->rgb))
-			picture.problem = "could not write " + (options.output / (name + ".png")).string();
-		else picture.outcome = Picture::Outcome::Saved;
-		return picture;
-	}
-
-	if(options.goldens.empty()) {
-		picture.problem = "no golden images folder to compare with (--goldens)";
-		return picture;
-	}
-	const std::filesystem::path golden = options.goldens / (name + ".png");
-	const bool record = options.policy == Goldens::Update ||
-	                    (options.policy == Goldens::RecordMissing && !std::filesystem::exists(golden));
-	if(record) {
-		if(writePng(golden, frame->width, frame->height, frame->rgb)) picture.outcome = Picture::Outcome::Recorded;
-		else picture.problem = "could not write " + golden.string();
-		return picture;
-	}
-	if(!std::filesystem::exists(golden)) {
-		picture.problem = "no golden image " + golden.string() + " (record it with --update)";
-		return picture;
-	}
-	compareWithGolden(*frame, picture, golden, options);
+	if(!sameAsFromScratch(camera.window, camera.scale, *frame, picture, options)) return picture;
+	if(kind == PictureKind::Capture) saveCapture(*frame, picture, options);
+	else checkGolden(*frame, picture, options);
 	return picture;
 }
 

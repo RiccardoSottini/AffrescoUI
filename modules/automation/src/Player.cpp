@@ -148,8 +148,9 @@ void Player::wait(double milliseconds) {
 void Player::picture(const std::string& name, bool capture, std::size_t number) {
 	if(!stage_.options.pictures) throw StepError("pictures aren't available here: this run has no OpenGL");
 	stage_.screen.waitForImages(); // image files decode on a worker thread: every one belongs in the picture
-	Picture taken = takePicture(stage_.window, stage_.scenario.scale, stage_.scenario.name + "-" + name,
-	                            capture ? PictureKind::Capture : PictureKind::Expect, stage_.options, stage_.scratch);
+	Picture taken =
+	    takePicture({stage_.window, stage_.scenario.scale, stage_.scratch}, stage_.scenario.name + "-" + name,
+		            capture ? PictureKind::Capture : PictureKind::Expect, stage_.options);
 	if(!taken.problem.empty()) result_.failures.push_back({number, "image " + taken.name + ": " + taken.problem});
 	result_.pictures.push_back(std::move(taken));
 }
