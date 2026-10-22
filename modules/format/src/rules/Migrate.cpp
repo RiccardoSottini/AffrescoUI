@@ -23,14 +23,14 @@ constexpr std::size_t maxStyleDepth = 16;
 /// The formats a document can have, with their kinds.
 constexpr std::array<std::pair<std::string_view, DocumentKind>, 5> formats = {
     {{"affrescoui-screen", DocumentKind::Screen},
-     {"affrescoui-scenarios", DocumentKind::Scenarios},
-     {"affrescoui-changes", DocumentKind::Changes},
-     {"affrescoui-feature", DocumentKind::Feature},
-     {"affrescoui-catalog", DocumentKind::Catalog}}};
+	 {"affrescoui-scenarios", DocumentKind::Scenarios},
+	 {"affrescoui-changes", DocumentKind::Changes},
+	 {"affrescoui-feature", DocumentKind::Feature},
+	 {"affrescoui-catalog", DocumentKind::Catalog}}};
 
 /// The sections only a screen or its include part has: a document without a "format" that has one is a part.
-constexpr std::array<std::string_view, 6> screenSections = {"root", "screens", "templates", "components", "styles",
-                                                            "actions"};
+constexpr std::array<std::string_view, 6> screenSections = {"root",       "screens", "templates",
+                                                            "components", "styles",  "actions"};
 
 /// The members of a screen whose values are data, not content: nothing in them is rewritten.
 constexpr std::array<std::string_view, 2> dataSections = {"state", "strings"};
@@ -40,6 +40,18 @@ constexpr std::array<std::string_view, 2> dataSections = {"state", "strings"};
 /// @return true for a letter, a digit, '_', '$' or '.'.
 bool namePart(char c) noexcept {
 	return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '$' || c == '.';
+}
+
+/// @brief Tells whether a call of `len` starts at a position of an expression: the name, not the end of a longer one,
+/// then '(' after any spaces.
+/// @param expression The expression.
+/// @param i The position.
+/// @return true if one does.
+bool callsLen(std::string_view expression, std::size_t i) {
+	if(!expression.substr(i).starts_with("len") || (i > 0 && namePart(expression[i - 1]))) return false;
+	std::size_t next = i + 3;
+	while(next < expression.size() && (expression[next] == ' ' || expression[next] == '\t')) ++next;
+	return next < expression.size() && expression[next] == '(';
 }
 
 /// @brief Rewrites the calls of `len` in one expression to `length`, outside quoted text.
@@ -58,15 +70,11 @@ std::optional<std::string> renameLen(std::string_view expression) {
 			continue;
 		}
 		if(c == '\'' || c == '"') quote = c;
-		if(expression.substr(i).starts_with("len") && (i == 0 || !namePart(expression[i - 1]))) {
-			std::size_t next = i + 3;
-			while(next < expression.size() && (expression[next] == ' ' || expression[next] == '\t')) ++next;
-			if(next < expression.size() && expression[next] == '(') {
-				result += "length";
-				i += 2;
-				changed = true;
-				continue;
-			}
+		if(callsLen(expression, i)) {
+			result += "length";
+			i += 2;
+			changed = true;
+			continue;
 		}
 		result += c;
 	}
@@ -159,7 +167,8 @@ private:
 	/// @param replacement The new value.
 	/// @param what What changed, for the message.
 	void replace(json& value, const std::string& pointer, json replacement, std::string_view what) {
-		rewrites_.push_back({Rewrite::Kind::Replace, pointer, "", replacement, placeOf(pointer) + ": " + std::string(what)});
+		rewrites_.push_back(
+		    {Rewrite::Kind::Replace, pointer, "", replacement, placeOf(pointer) + ": " + std::string(what)});
 		value = std::move(replacement);
 	}
 
@@ -215,29 +224,50 @@ private:
 		}
 		if(document && !pointer.empty() && documentVersion(object) == 1)
 			replace(object["version"], pointer + "/version", json(formatVersion), "version: 2");
-		const std::string type = typeOf(object);
-		if(type == "row" || type == "column" || type == "stack") rename(object, pointer, "from", "justify");
-		if(type == "stack") rename(object, pointer, "align", "justify");
-		if(const auto requires_ = object.find("requires"); requires_ != object.end() && requires_->is_object()) {
-			if(const auto format = requires_->find("format"); format != requires_->end() && *format == 1)
-				replace(*format, pointer + "/requires/format", json(formatVersion), "requires format 2");
-		}
+		layoutKeys(object, pointer);
+		requiredFormat(object, pointer);
 		for(auto& [key, member] : object.items()) {
 			if(document && std::ranges::find(dataSections, key) != dataSections.end()) continue;
 			std::string at = pointer;
 			appendKey(at, key);
 			if(key == "styles" && document && member.is_object()) {
-				for(auto& [name, style] : member.items())
-					if(style.is_object()) {
-						std::string styleAt = at;
-						appendKey(styleAt, name);
-						if(!style.contains("type")) rename(style, styleAt, "from", "justify");
-						value(style, styleAt);
-					}
+				styles(member, at);
 				continue;
 			}
 			if(key == "revision" && member.is_object()) compactEdits(member, at);
 			value(member, at, key == "screen" && member.is_object());
+		}
+	}
+
+	/// @brief Renames a row's, a column's or a stack's version 1 keys ("from", and a stack's "align").
+	/// @param object The node or the style.
+	/// @param pointer Its JSON Pointer.
+	void layoutKeys(json& object, const std::string& pointer) {
+		const std::string type = typeOf(object);
+		if(type == "row" || type == "column" || type == "stack") rename(object, pointer, "from", "justify");
+		if(type == "stack") rename(object, pointer, "align", "justify");
+	}
+
+	/// @brief Migrates a feature's "requires": its format 1 is 2.
+	/// @param object The object.
+	/// @param pointer Its JSON Pointer.
+	void requiredFormat(json& object, const std::string& pointer) {
+		const auto requires_ = object.find("requires");
+		if(requires_ == object.end() || !requires_->is_object()) return;
+		if(const auto format = requires_->find("format"); format != requires_->end() && *format == 1)
+			replace(*format, pointer + "/requires/format", json(formatVersion), "requires format 2");
+	}
+
+	/// @brief Migrates a screen's styles: a style without a "type" may be any layout's, so its "from" is renamed.
+	/// @param styles The "styles" section.
+	/// @param pointer Its JSON Pointer.
+	void styles(json& styles, const std::string& pointer) {
+		for(auto& [name, style] : styles.items()) {
+			if(!style.is_object()) continue;
+			std::string at = pointer;
+			appendKey(at, name);
+			if(!style.contains("type")) rename(style, at, "from", "justify");
+			value(style, at);
 		}
 	}
 
@@ -256,51 +286,58 @@ private:
 	/// @param revision The revision.
 	/// @param pointer Its JSON Pointer.
 	void compactEdits(json& revision, const std::string& pointer) {
-		for(const char* edits : {"set", "add", "move"}) {
+		for(const std::string_view edits : {"set", "add", "move"}) {
 			const auto found = revision.find(edits);
-			if(found == revision.end() || !found->is_object()) continue;
-			const std::string at = pointer + "/" + edits;
-			json renamed = json::object();
-			for(auto& [key, member] : found->items()) {
-				std::string memberAt = at;
-				appendKey(memberAt, key);
-				value(member, memberAt); // here, while its pointer is the one the text has
-				if(std::string(edits) == "move" && member.is_string())
-					if(auto to = renamedPath(member.get<std::string>()))
-						replace(member, memberAt, json(*to), "\"from\" is \"justify\" in version 2");
-				const auto to = renamedPath(key);
-				if(to && !found->contains(*to))
-					rewrites_.push_back({Rewrite::Kind::Rename, memberAt, *to, json(),
-					                     placeOf(at) + ": \"" + key + "\" is \"" + *to + "\" in version 2"});
-				renamed[to && !found->contains(*to) ? *to : key] = std::move(member);
-			}
-			*found = std::move(renamed);
+			if(found != revision.end() && found->is_object())
+				editPaths(*found, pointer + "/" + std::string(edits), edits);
 		}
-		if(const auto remove = revision.find("remove"); remove != revision.end() && remove->is_array())
-			for(std::size_t i = 0; i < remove->size(); ++i)
-				if((*remove)[i].is_string())
-					if(auto to = renamedPath((*remove)[i].get<std::string>()))
-						replace((*remove)[i], pointer + "/remove/" + std::to_string(i), json(*to),
-						        "\"from\" is \"justify\" in version 2");
+		const auto remove = revision.find("remove");
+		if(remove == revision.end() || !remove->is_array()) return;
+		for(std::size_t i = 0; i < remove->size(); ++i)
+			pathValue((*remove)[i], pointer + "/remove/" + std::to_string(i));
+	}
+
+	/// @brief Migrates one kind of compact edits: its keys are paths, and a move's values are too.
+	/// @param edits The edits ("set", "add" or "move").
+	/// @param pointer Their JSON Pointer.
+	/// @param kind Which kind they are.
+	void editPaths(json& edits, const std::string& pointer, std::string_view kind) {
+		json renamed = json::object();
+		for(auto& [key, member] : edits.items()) {
+			std::string at = pointer;
+			appendKey(at, key);
+			value(member, at); // here, while its pointer is the one the text has
+			if(kind == "move") pathValue(member, at);
+			const auto to = renamedPath(key);
+			const bool renames = to && !edits.contains(*to);
+			if(renames)
+				rewrites_.push_back({Rewrite::Kind::Rename, at, *to, json(),
+				                     placeOf(pointer) + ": \"" + key + "\" is \"" + *to + "\" in version 2"});
+			renamed[renames ? *to : key] = std::move(member);
+		}
+		edits = std::move(renamed);
+	}
+
+	/// @brief Migrates a value that is a path: one that ends in a node's or a style's "from" ends in "justify".
+	/// @param path The value (anything but a string is left).
+	/// @param pointer Its JSON Pointer.
+	void pathValue(json& path, const std::string& pointer) {
+		if(!path.is_string()) return;
+		if(auto to = renamedPath(path.get<std::string>()))
+			replace(path, pointer, json(*to), "\"from\" is \"justify\" in version 2");
 	}
 
 	/// @brief Migrates one patch operation: a path (and a move's "from") that ends in a node's "from", and its value.
 	/// @param op The operation.
 	/// @param pointer Its JSON Pointer.
 	void operation(json& op, const std::string& pointer) {
-		const auto renamePath = [&](const char* key) {
-			const auto path = op.find(key);
-			if(path == op.end() || !path->is_string()) return;
-			if(auto to = renamedPath(path->get<std::string>()))
-				replace(*path, pointer + "/" + key, json(*to), "\"from\" is \"justify\" in version 2");
-		};
 		const std::string path = op["path"].get<std::string>();
-		renamePath("path");
-		if(op["op"] == "move" || op["op"] == "copy") renamePath("from");
+		pathValue(op["path"], pointer + "/path");
+		if((op["op"] == "move" || op["op"] == "copy") && op.contains("from")) pathValue(op["from"], pointer + "/from");
 		if(op.contains("value") && !inData(path)) value(op["value"], pointer + "/value", path.empty());
 	}
 
-	const json& styles_;             ///< The document's styles.
+	const json& styles_;            ///< The document's styles.
 	std::vector<Rewrite> rewrites_; ///< What changed.
 };
 
@@ -312,7 +349,7 @@ DocumentKind documentKind(const json& document) noexcept {
 	if(format == document.end())
 		return std::ranges::any_of(screenSections, [&](std::string_view key) { return document.contains(key); })
 		           ? DocumentKind::Screen
-		           : DocumentKind::Other;
+				   : DocumentKind::Other;
 	for(const auto& [name, kind] : formats)
 		if(*format == name) return kind;
 	return DocumentKind::Other;
