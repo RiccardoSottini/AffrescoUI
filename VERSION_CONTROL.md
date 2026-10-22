@@ -314,6 +314,17 @@ also keeps the id of each change set it applied (the SHA-256 of its JSON; `hasIm
 building block for the application-layer vision: start from a rich template, customise it by talking to it, and
 share the result as a plugin others can install.
 
+## Features: signed packages
+A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole lifecycle is revisions on
+`/features/<name>`, so the history, blame, undo and the permission rules cover it like any other change:
+- **install** and **upgrade** go through the `features` service (`features.install {name, version}`,
+  `features.upgrade {name}`): it fetches the manifest, checks its digest and signature against a publisher the host
+  trusts, and submits the record as a revision by `features`, which the permissions review like any author's;
+- **enable**, **disable** and **remove** are plain revisions: `replace /features/<name>/enabled`, `remove
+  /features/<name>`.
+
+An upgrade never changes the publisher, and a feature can never widen a capability or bring a control step.
+
 ## Where it lives in the API
 
 | Concept | C++ (`affresco::Screen`, or `VersionControl` via `versions()`) | Live protocol | MCP tool |
