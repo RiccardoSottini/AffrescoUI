@@ -8,6 +8,7 @@
 #include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 
@@ -76,6 +77,7 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 } // namespace
 
 Exit checkScreen(std::span<const std::string_view> args) {
+	if(std::ranges::contains(args, std::string_view("--compose"))) return checkComposition(args, registerApplicationTypes);
 	static constexpr std::array<std::string_view, 1> flags = {"--json"};
 	const Arguments arguments(args, {}, flags);
 	const std::filesystem::path file = arguments.file();

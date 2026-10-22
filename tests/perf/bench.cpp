@@ -2,7 +2,7 @@
 /// @brief affrescoui_bench: runs the workloads and prints one JSON object per workload (tests/perf/README.md).
 ///
 /// Usage: affrescoui_bench [--only a,b] [--skip a,b] [--runs n] [--callgrind] [--scaling small|large]
-///                         [--screens dir] [--edits dir]
+///                         [--examples dir] [--edits dir]
 ///
 /// With --scaling, it runs the scaling workloads instead ("scaling/<area>/<n>", at sizes that double: 5 of them, or
 /// 7 with large), from which scaling.py fits how each area's cost grows with n.
@@ -76,8 +76,8 @@ struct Options {
 	int runs = 0;                  ///< Measured runs for every workload, instead of each one's own (0: its own).
 	bool callgrind = false;        ///< One counted run per workload, for callgrind.
 	std::string scaling;           ///< "small" or "large": the scaling workloads at those sizes; empty: the others.
-	std::filesystem::path screens = AFFRESCOUI_EXAMPLES_ASSETS "/screens"; ///< The template screens.
-	std::filesystem::path edits = AFFRESCOUI_PERF_DIR "/edits";            ///< The canonical agent edits.
+	std::filesystem::path examples = AFFRESCOUI_EXAMPLES_ASSETS; ///< The examples, with the templates.
+	std::filesystem::path edits = AFFRESCOUI_PERF_DIR "/edits";  ///< The canonical agent edits.
 };
 
 /// @brief Splits a comma-separated list.
@@ -108,7 +108,7 @@ Options parseOptions(const std::vector<std::string_view>& arguments) {
 		if(argument == "--only") options.only = splitList(value);
 		else if(argument == "--skip") options.skip = splitList(value);
 		else if(argument == "--runs") options.runs = std::stoi(std::string(value));
-		else if(argument == "--screens") options.screens = value;
+		else if(argument == "--examples") options.examples = value;
 		else if(argument == "--edits") options.edits = value;
 		else if(argument == "--scaling" && (value == "small" || value == "large")) options.scaling = value;
 		else throw std::invalid_argument("unknown argument " + std::string(argument));
@@ -215,13 +215,15 @@ affresco::json measure(const Workload& workload, const Options& options) {
 		allocations.push_back(static_cast<double>(affresco::bench::allocationCount() - allocationsBefore) / operations);
 		retained.push_back(static_cast<double>(affresco::bench::liveBytes() - bytesBefore) / operations);
 	}
-	return {{"name", workload.name},
-	        {"value", rounded(median(times) / nanosecondsIn(workload.unit), 3)},
-	        {"unit", workload.unit},
-	        {"runs", runs},
-	        {"operations", workload.operations},
-	        {"allocations", rounded(median(allocations), 2)},
-	        {"retainedBytes", rounded(median(retained), 1)}};
+	affresco::json result{{"name", workload.name},
+	                      {"value", rounded(median(times) / nanosecondsIn(workload.unit), 3)},
+	                      {"unit", workload.unit},
+	                      {"runs", runs},
+	                      {"operations", workload.operations},
+	                      {"allocations", rounded(median(allocations), 2)},
+	                      {"retainedBytes", rounded(median(retained), 1)}};
+	if(workload.report) workload.report(result);
+	return result;
 }
 
 /// @brief Runs the selected workloads of every group, printing each result as it comes.
@@ -270,7 +272,7 @@ int main(int argc, char** argv) {
 		const Options options = parseOptions(std::vector<std::string_view>(argv + 1, argv + argc));
 		if(options.callgrind && !callgrindAvailable)
 			throw std::invalid_argument("--callgrind needs a build that found valgrind/callgrind.h");
-		affresco::bench::Context context(options.screens, options.edits);
+		affresco::bench::Context context(options.examples, options.edits);
 		const int status = runAll(options, context);
 		// Ends without tearing the windows down. The Application owns them until it goes, after their screens; on
 		// macOS, closing one window redraws the others, whose screens are already gone.
@@ -279,7 +281,7 @@ int main(int argc, char** argv) {
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_bench: " << error.what() << '\n'
 		          << "usage: affrescoui_bench [--only a,b] [--skip a,b] [--runs n] [--callgrind] "
-		             "[--scaling small|large] [--screens dir] [--edits dir]\n";
+		             "[--scaling small|large] [--examples dir] [--edits dir]\n";
 		return 2;
 	}
 }

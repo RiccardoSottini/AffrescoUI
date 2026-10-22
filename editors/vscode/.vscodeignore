@@ -1,0 +1,8 @@
+# Only out/ (without the tests), schemas/, snippets/ and the documents go in the package.
+src/**
+scripts/**
+out/test/**
+node_modules/**
+tsconfig.json
+package-lock.json
+*.vsix

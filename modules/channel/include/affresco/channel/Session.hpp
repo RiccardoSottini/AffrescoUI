@@ -47,6 +47,12 @@ public:
 	void send(const json& message);
 	/// @brief The name this peer is authored as.
 	[[nodiscard]] const std::string& author() const noexcept { return author_; }
+	/// @brief The usage summaries (VERSION_CONTROL.md, "Usage"): given whether to clear them first, the summary, or
+	/// std::nullopt while they are off.
+	using UsageSummary = std::function<std::optional<json>(bool clear)>;
+	/// @brief Answers "getUsage" and "clearUsage" from a reviewer (by default they are off).
+	/// @param summary The summaries; must not outlive what it reads.
+	void setUsage(UsageSummary summary) { usage_ = std::move(summary); }
 
 	Signal<const json&> onRelay; ///< A "request" or "reply" for other peers, with "from" set.
 
@@ -97,6 +103,11 @@ private:
 	/// @return Why it was refused, or std::nullopt.
 	/// @throws DocumentError If it is malformed.
 	std::optional<std::string> decide(const Incoming& in);
+	/// @brief Turns the host's inspector on or off (handleReview(), once the peer may review).
+	/// @param in The message: `{"type": "inspect", "on": bool}`.
+	/// @return Why it was refused, or std::nullopt.
+	/// @throws DocumentError If it is malformed.
+	std::optional<std::string> inspect(const Incoming& in);
 	/// @brief The "proposal" a review message names.
 	/// @param in The message.
 	/// @return The proposal's id.
@@ -111,6 +122,11 @@ private:
 	/// @param in The message: `proposal` (optional) and `scale` (1 by default, at most ScreenImages::maxScale).
 	/// @throws DocumentError If it is malformed, over the rate of pictures, or the picture can't be drawn.
 	void sendImage(const Incoming& in);
+	/// @brief Answers "getEvidence" with what a proposal does, gathered by the host (VERSION_CONTROL.md, "Evidence"):
+	/// `{"type": "evidence", "proposal", "evidence": {"before", "after", "region", "behaviour", "scenarios"}}`.
+	/// @param in The message: `proposal`, and `scale` as for render.
+	/// @throws DocumentError If it is malformed, over the rate of pictures, or the evidence can't be gathered.
+	void sendEvidence(const Incoming& in);
 	/// @brief Handles blame: `{"type": "blame", "target": "#board"}` gives the commit on main that last changed it.
 	/// @param in The message.
 	/// @return false if it isn't one.
@@ -130,6 +146,7 @@ private:
 	TokenBucket pictureRate_; ///< Pictures ("render"), at the rate of changes: each draws the whole screen.
 	bool limited_ = false;                                                ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
+	UsageSummary usage_; ///< For "getUsage" and "clearUsage" (empty: off).
 };
 
 } // namespace affresco::channel

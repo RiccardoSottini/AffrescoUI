@@ -1,8 +1,8 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
-	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp.",
+	"version": 2,
+	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp; the features service offers the example catalogue (catalog/), the editor's buffers are in features/editor/Editor.cpp.",
 
 	"window": {
 		"title": "Forge", "width": 1200, "height": 760, "minWidth": 800, "minHeight": 500,
@@ -11,15 +11,19 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
-		"title": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 28 },
-		"icons": { "file": "../assets/fonts/Lucide.ttf", "size": 13 },
-		"iconsLarge": { "file": "../assets/fonts/Lucide.ttf", "size": 22 },
-		"code": { "file": "../assets/fonts/JetBrainsMono-Regular.ttf", "size": 13, "fallback": ["icons"] }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 28 },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
+		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 22 },
+		"code": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 13, "fallback": ["icons"] }
 	},
 
-	"include": ["features/themes/themes.json", "features/panels/panels.json", "features/palette/palette.json",
-	            "features/shell/shell.json"],
+	"include": ["features/editor/editor.json", "features/themes/themes.json", "features/panels/panels.json",
+	            "features/palette/palette.json", "features/search/search.json", "features/shell/shell.json",
+	            "features/accounts/accounts.json", "features/explorer/explorer.json", "features/terminal/terminal.json",
+	            "features/scm/scm.json", "features/agent/agent.json", "features/lsp/lsp.json",
+	            "features/debug/debug.json", "features/debug/debugViews.json",
+	            "features/editing/editing.json", "features/workbench/workbench.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -29,13 +33,39 @@
 		"reviewers": ["studio"]
 	},
 
-	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme"],
+	"state": { "featureRows": [], "featureStatus": "" },
+
+	"features": {},
+
+	"services": { "features": { "provider": "features" } },
+
+	"actions": {
+		"refreshFeatures": [{ "invoke": "features.catalog", "into": "state.featureRows" }],
+		"installFeature": [
+			{ "note": "event: name. Installs a feature from the example catalogue, by a revision the permissions review" },
+			{ "invoke": "features.install", "with": { "name": "{{event.name}}" },
+			  "onDone": [{ "set": "state.featureStatus", "to": "{{result.status}}" }],
+			  "onError": [{ "set": "state.featureStatus", "to": "{{error.message}}" }] }
+		],
+		"upgradeFeature": [
+			{ "note": "event: name" },
+			{ "invoke": "features.upgrade", "with": { "name": "{{event.name}}" },
+			  "onDone": [{ "set": "state.featureStatus", "to": "{{result.status}}" }],
+			  "onError": [{ "set": "state.featureStatus", "to": "{{error.message}}" }] }
+		]
+	},
+
+	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme", "state.quickPick.recent"],
 
 	"onLoad": [
 		{ "call": "forge.index", "with": { "icons": "{{settings.workbench.fileIcons ? state.iconTheme : null}}" },
 		  "into": "state.folder" }
 	],
 
+	"exports": {
+		"editor.text": { "type": "string", "value": "{{computed.activeDoc.text ?? ''}}", "description": "The text of the editor in focus." },
+		"workspace.files": { "type": "array", "value": "{{map(filter(state.docs, it.kind == 'file'), {id: it.id, name: it.label, text: it.text})}}", "description": "The open files: id, name and text." }
+	},
 	"root": {
 		"id": "root", "color": "@color.editor",
 		"children": [
@@ -54,11 +84,14 @@
 						{ "use": "forgeEditors" },
 						{ "visible": "{{state.layout.panel && !state.layout.zen}}", "use": "forgePanel" }
 					  ] }
-				  ] }
+				  ] },
+				{ "when": "{{state.layout.secondary && !state.layout.zen}}", "use": "forgeSecondarySideBar" }
 			  ] },
 			{ "when": "{{!state.layout.zen && settings.workbench.statusBar.visible}}", "use": "forgeStatusBar" }
 			] },
 			{ "use": "forgePalette" },
+			{ "use": "forgeDebugOverlays" },
+			{ "use": "forgeLsp" },
 			{ "use": "toast", "with": { "open": "state.toast.open", "message": "{{state.toast.message}}",
 				"progress": "{{state.toast.progress}}" } },
 			{ "use": "dialog", "with": { "open": "state.about", "title": "Forge",

@@ -216,7 +216,7 @@ TEST_CASE("table node: columns and sort read, sort and resize events into state,
 	ManualClock clock;
 	const auto window = createHeadlessWindow(240, 148, clock);
 	auto screen = affresco::Screen::fromString(R"({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "sorted": "", "width": 0 },
 		"root": { "id": "root", "children": [
 			{ "type": "table", "id": "files", "width": 240, "height": 148,

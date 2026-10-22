@@ -4,6 +4,7 @@
 #include "affresco/services/ServiceRegistry.hpp"
 
 #include "Providers.hpp"
+#include "SearchProvider.hpp"
 #include "affresco/services/Schema.hpp"
 
 #include <algorithm>
@@ -80,8 +81,15 @@ std::optional<std::string> Service::subscribe(const std::string& stream, std::sh
 
 ServiceRegistry::ServiceRegistry() {
 	add(makeFileProvider());
+#ifndef __EMSCRIPTEN__ // a browser runs no programs and watches no folders: declarations of these are refused
 	add(makeProcessProvider());
 	add(makeJsonRpcProvider());
+	add(makeWatchProvider());
+	add(makePtyProvider());
+#endif
+	add(makeSearchProvider());
+	add(makeDapProvider());
+	add(makeSyntaxProvider());
 }
 
 ServiceRegistry::~ServiceRegistry() { entries_.clear(); }
@@ -101,10 +109,13 @@ void ServiceRegistry::addRoot(std::string name, const std::filesystem::path& fol
 
 void ServiceRegistry::allowProcess(std::string name, const std::filesystem::path& program,
                                    std::vector<std::string> arguments,
-                                   std::optional<std::vector<std::string>> environment) {
+                                   std::optional<std::vector<std::string>> environment, ProcessShaper shape) {
 	if(!program.is_absolute()) throw std::runtime_error("the program '" + name + "' needs an absolute path");
-	processes_.insert_or_assign(std::move(name), ProcessGrant{program, std::move(arguments), std::move(environment)});
+	processes_.insert_or_assign(std::move(name), ProcessGrant{program, std::move(arguments), std::move(environment),
+	                                                          std::move(shape)});
 }
+
+void ServiceRegistry::allowAttach(std::uint16_t port) { attachPorts_.insert(port); }
 
 void ServiceRegistry::setExecutor(Executor* executor) noexcept { executor_ = executor; }
 
@@ -215,6 +226,11 @@ std::optional<std::string> ServiceRegistry::resolve(const std::string& name, con
 			       listNames(processes_) + ")";
 		grant.process = granted->second;
 		grant.processName = granted->first;
+	}
+	if(const auto attach = configuration.find("attach"); attach != configuration.end()) {
+		const auto port = attach->value("port", 0); // the provider's schema made it an integer in 1-65535
+		if(!attachPorts_.contains(static_cast<std::uint16_t>(port)))
+			return place + ".attach.port: " + std::to_string(port) + " isn't a port the host allows attaching to";
 	}
 	return std::nullopt;
 }

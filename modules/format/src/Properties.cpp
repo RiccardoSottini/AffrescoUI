@@ -6,6 +6,7 @@
 #include "Engine.hpp"
 #include "PropertyValues.hpp"
 #include "Shortcuts.hpp"
+#include "affresco/format/Migrate.hpp"
 
 #include "affresco/render/TextEditor.hpp"
 
@@ -30,6 +31,24 @@ bool behaviourSlot(Slot slot, std::string_view key) noexcept {
 	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context || key == "autofocus" || key == "locked";
 }
 
+/// @brief Tells whether a panel's type takes a key as its own property, which then isn't an event even if it is
+/// named like one (e.g. the code editor's "onType").
+/// @param sets The panel's property sets.
+/// @param key The key.
+/// @return true if a set with an apply function has it.
+bool ownProperty(const PropertySets& sets, std::string_view key) noexcept {
+	return std::ranges::any_of(sets, [key](const auto& set) { return set && set->apply && set->find(key); });
+}
+
+/// @brief Tells whether a panel and all its ancestors are visible: a field in a closed overlay takes no focus.
+/// @param panel The panel.
+/// @return true if none of them is hidden.
+bool visibleUpwards(const Panel& panel) noexcept {
+	for(const Panel* p = &panel; p; p = p->parent())
+		if(!p->isVisible()) return false;
+	return true;
+}
+
 /// @brief A property's value with the number tokens it names resolved ("@space.m"): its own, or its members' for
 /// the objects that hold numbers ("anchors", "radius", "shadow").
 /// @param document The document, which knows the tokens.
@@ -41,6 +60,16 @@ const json& withTokens(const DocumentContext& document, Slot slot, const json& v
 	if(value.is_object() && (slot == Slot::Layout || slot == Slot::Radius || slot == Slot::Shadow))
 		return document.resolveMemberTokens(value, scratch);
 	return document.resolveToken(value, scratch);
+}
+
+/// @brief Tells whether a handler-like key ("onType") is an event of the record's type rather than of every node:
+/// one the type lists as its own property, which its apply function reads like its other properties.
+/// @param record The record.
+/// @param key The key.
+/// @return true if it isn't one of every node's events and one of the record's types has it.
+bool typeEvent(const Record& record, std::string_view key) {
+	if(std::ranges::find(handlerNames, key) != std::end(handlerNames)) return false;
+	return std::ranges::any_of(record.sets, [key](const auto& set) { return set && set->apply && set->find(key); });
 }
 
 } // namespace
@@ -88,7 +117,8 @@ void Properties::apply(Panel& panel, Record& record, CompiledRef node, std::vect
 	showValue(panel, record);
 	record.appearance = appearance;
 
-	if(created && behaviour && behaviour->autofocus && engine_.window && !engine_.handlersSuspended)
+	if(created && behaviour && behaviour->autofocus && engine_.window && !engine_.handlersSuspended &&
+	   visibleUpwards(panel))
 		engine_.window->setFocus(&panel);
 	record.shown = true;
 }
@@ -111,10 +141,12 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 	std::string at;
 	for(const CompiledProperty& property : node.properties) {
 		if(!behaviourSlot(property.slot, property.key)) continue;
+		if(property.slot == Slot::Handler && ownProperty(record.sets, property.key)) continue;
 		at.assign(record.path).append(".").append(property.key);
 		const json& value = CompiledNode::valueOf(property, record.values);
-		if(property.slot == Slot::Handler) readHandler(panel, record, property.key, value, at);
-		else readBehaviourKey(panel, record, property.key, {property.slot, value, at, node.hasId}, behaviour);
+		if(property.slot != Slot::Handler)
+			readBehaviourKey(panel, record, property.key, {property.slot, value, at, node.hasId}, behaviour);
+		else if(!typeEvent(record, property.key)) readHandler(panel, record, property.key, value, at);
 	}
 	return behaviour;
 }
@@ -213,7 +245,10 @@ Properties::Visual Properties::visual(const Record& record) const {
 	const CompiledNode& node = *record.node;
 	result.entries.reserve(node.properties.size());
 	for(const CompiledProperty& property : node.properties) {
-		if(property.slot == Slot::StateBlock || behaviourSlot(property.slot, {})) continue;
+		const bool own = property.slot == Slot::Handler && ownProperty(record.sets, property.key);
+		if(property.slot == Slot::StateBlock ||
+		   (behaviourSlot(property.slot, {}) && !own && !typeEvent(record, property.key)))
+			continue;
 		result.entries.push_back({property.key, property.slot, &CompiledNode::valueOf(property, record.values)});
 	}
 	if(!node.hasStateBlocks) return result;
@@ -297,6 +332,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	}
 
 	record.disabled = false;
+	panel.setAccessibleState({});
 	record.transition = json::object();
 	record.overlayOpen.reset();
 	record.dismissOutside = false;
@@ -323,13 +359,15 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
 		const json& value = withTokens(engine_.document, slot, *pointer, token);
 		at.assign(record.path).append(".").append(key);
-		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look))
+		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look) ||
+		   accessibleStateProperty(panel, slot, value, at))
 			continue;
 		if(isRoot) fail(at, "not allowed on the root, which always fills the window");
 		if((slot == Slot::Layout && layoutProperty(panel, key, value, at)) || widgetProperty(look, slot, value, at) ||
 		   registeredProperty(record, key, value, look))
 			continue;
-		fail(at, "unknown property '" + std::string(key) + "' for this type");
+		const std::string removed = removedKeyHint(look.stack ? "stack" : "", key);
+		fail(at, "unknown property '" + std::string(key) + "' for this type" + (removed.empty() ? "" : " (" + removed + ")"));
 	}
 
 	applySets(panel, record, look);
@@ -399,6 +437,7 @@ bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const j
 		break;
 	case Slot::Disabled:
 		record.disabled = boolean(value, at);
+		panel.setAccessibleState(withDisabled(panel.accessibleState(), record.disabled));
 		break;
 	case Slot::Transition:
 		record.transition = transition(value, at);
@@ -543,7 +582,6 @@ bool Properties::textProperty(Look& look, Slot slot, const json& value, const st
 // Rows and columns
 bool Properties::stackProperty(Stack& stack, Slot slot, const json& value, const std::string& at) {
 	if(slot == Slot::Gap) stack.setGap(number(value, at));
-	else if(slot == Slot::From || slot == Slot::Align) stack.setAlignment(align(value, at)); // "align": v1 name
 	else if(slot == Slot::Direction) {
 		const std::string direction = string(value, at);
 		if(direction != "row" && direction != "column") fail(at, "expected \"row\" or \"column\"");

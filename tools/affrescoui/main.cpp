@@ -20,12 +20,21 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 9> list = {{
+	static constexpr std::array<Command, 13> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
 		 "Show a screen and let peers change it, like affrescoui_host", runScreen},
-	    {"check", "<file> [--json]", "Check a screen: the schema, the format's rules and the checker", checkScreen},
+	    {"check",
+	     "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
+	     "[--document FILE] [--revision out.json] [--json]",
+	     "Check a screen: the schema, the format's rules and the checker; --compose proves a feature from another app "
+	     "fits it",
+	     checkScreen},
+	    {"contributions", "<file> [--json] [--document FILE]",
+	     "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
 	    {"test", "<scenarios.json>... [--json] [--only NAME] [--goldens DIR] [--update] [--out DIR] [--document FILE]",
 		 "Play a screen's scenarios and report what failed", testScreen},
+	    {"policy", "test <file.policy.json>... [--json]",
+		 "Play policy files' example revisions and report the decisions that aren't the expected ones", policyCommand},
 	    {"render", "<file> -o out.png [--scale 1|2] [--size WIDTHxHEIGHT]",
 		 "Draw a screen's first frame offscreen, to a PNG", renderScreen},
 	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
@@ -34,11 +43,17 @@ std::span<const Command> commands() {
 		 "Give readable ids to the nodes that have none; --check only says if some have none", nameScreenNodes},
 	    {"export", "<file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]",
 		 "Write the revisions after one, from the screen's history on disk, as a change set", exportChanges},
-	    {"import", "<file> <changes.json> [--data DIR]", "Apply a change set to the screen's history on disk",
-		 importChanges},
+	    {"import",
+	     "<file> <changes.json> [--data DIR] | --from a2ui|adaptive-cards <source> [-o out.screen.json] [--font FILE] "
+	     "[--title TITLE] [--size WIDTHxHEIGHT] [--revisions FILE]",
+		 "Apply a change set to the screen's history on disk; --from writes a screen from another format", importFile},
 	    {"schema", "[-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin|examples] [--check]",
 		 "Generate the format's JSON Schema and SCREEN_FORMAT.md's tables; --check only says if they are out of date",
 		 generateSchema},
+	    {"sign", "<file> --key KEYFILE [-o out.json] | --new-key KEYFILE",
+		 "Sign a feature's manifest or a catalogue's index (its digests first); --new-key makes a key", signFile},
+	    {"migrate", "<file>... [--check] [--write]",
+		 "Rewrite version 1 files as version 2, listing each rewrite; --check only says which need it", migrateFiles},
 	}};
 	return list;
 }

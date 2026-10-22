@@ -1,0 +1,48 @@
+{
+	"id": "kanban-rename-backlog",
+	"level": "edit",
+	"screen": "examples/flow/kanban.screen.json",
+	"request": "Rename the Backlog column to Ideas.",
+	"scenarios": [
+		{
+			"name": "renamed",
+			"steps": [
+				{
+					"expect": {
+						"state": "columns[0].name",
+						"is": "Ideas"
+					}
+				},
+				{
+					"expect": {
+						"node": "#columnName",
+						"text": "Ideas",
+						"nth": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#columnName",
+						"text": "In progress",
+						"nth": 1
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#views",
+		"#filters",
+		"#board",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Backlog is now Ideas",
+			"set": {
+				"/state/columns/0/name": "Ideas"
+			}
+		}
+	]
+}

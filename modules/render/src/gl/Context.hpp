@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief Operations on the current OpenGL context, so that no code outside src/gl calls OpenGL directly.
+/// @brief Operations on the current OpenGL context, so that no code outside src/gl calls OpenGL directly. Everything in
+/// src/gl calls only what OpenGL 4.1 core and OpenGL ES 3.0 share, so one renderer runs on both backends.
 
 #include <cstdint>
 #include <vector>
@@ -10,7 +11,7 @@ namespace affresco::gl {
 
 using ProcAddressLoader = void* (*)(const char* name); ///< Looks an OpenGL function up by name.
 
-/// @brief Loads the OpenGL 4.1 core functions for the current context.
+/// @brief Loads the functions of the current context: OpenGL 4.1 core, or OpenGL ES 3.0 (AFFRESCOUI_GL_BACKEND=gles3).
 /// @param loader Looks the functions up.
 /// @return false if the driver doesn't provide them.
 [[nodiscard]] bool loadFunctions(ProcAddressLoader loader);
@@ -63,18 +64,26 @@ public:
 	/// @param height In pixels.
 	/// @return true if the image was created: what was drawn is gone.
 	bool resize(int width, int height);
+	/// @brief Gives it a depth and stencil buffer (the clips of turned and skewed panels, gl::StencilClips), once.
+	/// Call after resize(): it keeps it at each size from then on.
+	void addStencil();
 	/// @brief Draws into it from now on.
 	void bind() const;
 	/// @brief Reads what was drawn, then draws into the window again.
 	/// @return Tightly packed 8-bit RGB, top row first.
 	[[nodiscard]] std::vector<std::uint8_t> pixels() const;
 	/// @brief Copies it to the window's back buffer, then draws into the window again.
-	void copyToWindow() const;
+	/// @param target The framebuffer to copy to: the window's (0), or an embedding's.
+	void copyToWindow(unsigned target = 0) const;
 
 private:
 	int width_ = 0, height_ = 0; ///< In pixels.
 	unsigned framebuffer_ = 0;   ///< The framebuffer object; 0 before the first resize().
 	unsigned color_ = 0;         ///< Its colour renderbuffer.
+	unsigned depthStencil_ = 0;  ///< Its depth and stencil renderbuffer; 0 before addStencil().
+
+	/// @brief Gives the depth and stencil renderbuffer the canvas's size, attached to its framebuffer (bound).
+	void storeStencil() const;
 };
 
 } // namespace affresco::gl

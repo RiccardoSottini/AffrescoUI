@@ -1,0 +1,1808 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Orrery, a small planetarium. Everything is in this file except the 3D view's renderer and the bodies' thumbnails, which the host (main.cpp) registers: the scene3d module's 'scene' surface and an image per body. Positions are computed from state.time (days) with a cosine table read by curve(), since expressions have no sin or cos. The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.json.",
+	"window": {
+		"title": "Orrery",
+		"width": 1280,
+		"height": 860,
+		"minWidth": 1000,
+		"minHeight": 700
+	},
+	"fonts": {
+		"default": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 13,
+			"fallback": ["icons"]
+		},
+		"small": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 11,
+			"fallback": ["icons"]
+		},
+		"title": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 18,
+			"fallback": ["icons"]
+		},
+		"icons": {
+			"file": "../shared/fonts/Lucide.ttf",
+			"size": 14
+		}
+	},
+	"theme": "dark",
+	"tokens": {
+		"background": {
+			"light": "#e9ebf0",
+			"dark": "#0f1117"
+		},
+		"panel": {
+			"light": "#f6f7f9",
+			"dark": "#171a22"
+		},
+		"raised": {
+			"light": "#e2e5eb",
+			"dark": "#222632"
+		},
+		"border": {
+			"light": "#c9ccd3",
+			"dark": "#2c3140"
+		},
+		"text": {
+			"light": "#1d2026",
+			"dark": "#e6e8ee"
+		},
+		"muted": {
+			"light": "#5d6470",
+			"dark": "#8d94a3"
+		},
+		"accent": {
+			"light": "#f59e0b",
+			"dark": "#fbbf24"
+		},
+		"sky": {
+			"light": "#10131c",
+			"dark": "#0a0c12"
+		},
+		"note": {
+			"light": "#fde68a",
+			"dark": "#fde68a"
+		},
+		"mark": {
+			"light": "#f43f5e",
+			"dark": "#fb7185"
+		}
+	},
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent"],
+		"reviewers": ["studio", "user"]
+	},
+	"exports": {
+		"sky.bodies": {
+			"type": "array",
+			"kind": "list",
+			"value": "{{computed.catalogue}}",
+			"description": "Every body in the orrery, in order: id, name, the id of the body it orbits (empty for the Sun) and a thumbnail image.",
+			"item": {
+				"id": "string",
+				"name": "string",
+				"parent": "string",
+				"thumbnail": "image"
+			}
+		},
+		"sky.selected": {
+			"type": "string",
+			"kind": "state",
+			"value": "{{state.selected}}",
+			"description": "The selected body's id."
+		},
+		"bodies.reorder": {
+			"type": "string",
+			"kind": "action",
+			"value": "{{'reorderBody'}}",
+			"description": "Moves body args.id to the place of body args.onto.",
+			"arguments": {
+				"args": "object"
+			}
+		},
+		"bodies.select": {
+			"type": "string",
+			"kind": "action",
+			"value": "{{'selectBody'}}",
+			"description": "Selects body args.id.",
+			"arguments": {
+				"args": "object"
+			}
+		},
+		"bodies.clone": {
+			"type": "string",
+			"kind": "action",
+			"value": "{{'cloneBody'}}",
+			"description": "Adds a twin of body args.id on the same orbit, half a turn away.",
+			"arguments": {
+				"args": "object"
+			}
+		}
+	},
+	"points": {
+		"bodies.dock": {
+			"slot": "dock",
+			"receives": ["sky.bodies", "sky.selected", "bodies.reorder", "bodies.select", "bodies.clone"],
+			"description": "The strip under the timeline, across the window."
+		}
+	},
+	"state": {
+		"time": 0,
+		"duration": 420,
+		"playing": false,
+		"speed": 1,
+		"selected": "earth",
+		"live3d": false,
+		"camera": {
+			"target": [0, 0, 0],
+			"yaw": 0.4,
+			"pitch": 0.75,
+			"distance": 15
+		},
+		"grab": null,
+		"bodies": [
+			{
+				"id": "sun",
+				"name": "Sun",
+				"parent": "",
+				"radius": 0,
+				"period": 1,
+				"phase": 0,
+				"size": 0.9,
+				"hex": "#ffc94d",
+				"color": [1.0, 0.5841, 0.0742, 1],
+				"gx": 10,
+				"gy": 75
+			},
+			{
+				"id": "mercury",
+				"name": "Mercury",
+				"parent": "sun",
+				"radius": 2.0,
+				"period": 88,
+				"phase": 0.3,
+				"size": 0.16,
+				"hex": "#b3aca3",
+				"color": [0.4508, 0.4125, 0.3663, 1],
+				"gx": 170,
+				"gy": 0
+			},
+			{
+				"id": "venus",
+				"name": "Venus",
+				"parent": "sun",
+				"radius": 3.0,
+				"period": 224.7,
+				"phase": 0.6,
+				"size": 0.26,
+				"hex": "#e8c27a",
+				"color": [0.807, 0.5395, 0.1946, 1],
+				"gx": 170,
+				"gy": 52
+			},
+			{
+				"id": "earth",
+				"name": "Earth",
+				"parent": "sun",
+				"radius": 4.3,
+				"period": 365.25,
+				"phase": 0,
+				"size": 0.28,
+				"hex": "#3f86e0",
+				"color": [0.0497, 0.2384, 0.7454, 1],
+				"gx": 170,
+				"gy": 104
+			},
+			{
+				"id": "moon",
+				"name": "Moon",
+				"parent": "earth",
+				"radius": 0.65,
+				"period": 27.32,
+				"phase": 0.5,
+				"size": 0.09,
+				"hex": "#d4d4d4",
+				"color": [0.6584, 0.6584, 0.6584, 1],
+				"gx": 330,
+				"gy": 104
+			},
+			{
+				"id": "mars",
+				"name": "Mars",
+				"parent": "sun",
+				"radius": 5.8,
+				"period": 687,
+				"phase": 0.15,
+				"size": 0.21,
+				"hex": "#d2643c",
+				"color": [0.6445, 0.1274, 0.0452, 1],
+				"gx": 170,
+				"gy": 156
+			}
+		],
+		"events": [
+			{
+				"id": "solar-1",
+				"time": 29.5,
+				"kind": "eclipse",
+				"label": "Solar eclipse"
+			},
+			{
+				"id": "lunar-1",
+				"time": 44.3,
+				"kind": "eclipse",
+				"label": "Lunar eclipse"
+			},
+			{
+				"id": "mercury-1",
+				"time": 81.2,
+				"kind": "conjunction",
+				"label": "Mercury inferior conjunction"
+			},
+			{
+				"id": "mars-1",
+				"time": 116.8,
+				"kind": "opposition",
+				"label": "Mars at opposition"
+			},
+			{
+				"id": "mercury-2",
+				"time": 197.1,
+				"kind": "conjunction",
+				"label": "Mercury inferior conjunction"
+			},
+			{
+				"id": "solar-2",
+				"time": 206.7,
+				"kind": "eclipse",
+				"label": "Solar eclipse"
+			},
+			{
+				"id": "lunar-2",
+				"time": 221.5,
+				"kind": "eclipse",
+				"label": "Lunar eclipse"
+			},
+			{
+				"id": "venus-1",
+				"time": 234.6,
+				"kind": "conjunction",
+				"label": "Venus inferior conjunction"
+			},
+			{
+				"id": "mercury-3",
+				"time": 313.1,
+				"kind": "conjunction",
+				"label": "Mercury inferior conjunction"
+			},
+			{
+				"id": "solar-3",
+				"time": 383.9,
+				"kind": "eclipse",
+				"label": "Solar eclipse"
+			},
+			{
+				"id": "lunar-3",
+				"time": 398.7,
+				"kind": "eclipse",
+				"label": "Lunar eclipse"
+			}
+		],
+		"stars": [
+			{
+				"id": "star-0",
+				"x": -81,
+				"y": -122,
+				"width": 4,
+				"height": 4,
+				"radius": 2.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-1",
+				"x": -197,
+				"y": 13,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-2",
+				"x": 188,
+				"y": -100,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-3",
+				"x": -38,
+				"y": -91,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-4",
+				"x": -203,
+				"y": 23,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-5",
+				"x": 35,
+				"y": -36,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-6",
+				"x": 26,
+				"y": -128,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-7",
+				"x": 19,
+				"y": 25,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-8",
+				"x": -183,
+				"y": 25,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-9",
+				"x": -185,
+				"y": 74,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-10",
+				"x": 55,
+				"y": -1,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-11",
+				"x": 128,
+				"y": -12,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-12",
+				"x": -92,
+				"y": 103,
+				"width": 4,
+				"height": 4,
+				"radius": 2.0,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-13",
+				"x": -192,
+				"y": -70,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-14",
+				"x": 106,
+				"y": -74,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-15",
+				"x": 5,
+				"y": -117,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-16",
+				"x": 199,
+				"y": -27,
+				"width": 4,
+				"height": 4,
+				"radius": 2.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-17",
+				"x": 122,
+				"y": 26,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-18",
+				"x": 90,
+				"y": 33,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-19",
+				"x": -198,
+				"y": -142,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-20",
+				"x": 91,
+				"y": -152,
+				"width": 4,
+				"height": 4,
+				"radius": 2.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-21",
+				"x": 68,
+				"y": 173,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-22",
+				"x": 100,
+				"y": 135,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-23",
+				"x": 203,
+				"y": -51,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-24",
+				"x": -3,
+				"y": -99,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-25",
+				"x": 110,
+				"y": -36,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-26",
+				"x": -153,
+				"y": -34,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-27",
+				"x": 147,
+				"y": 127,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-28",
+				"x": 224,
+				"y": 64,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-29",
+				"x": -161,
+				"y": -113,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-30",
+				"x": -224,
+				"y": 116,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-31",
+				"x": -100,
+				"y": -124,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-32",
+				"x": 51,
+				"y": -63,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-33",
+				"x": -20,
+				"y": 130,
+				"width": 4,
+				"height": 4,
+				"radius": 2.0,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-34",
+				"x": -47,
+				"y": -37,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-35",
+				"x": -201,
+				"y": -151,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-36",
+				"x": -155,
+				"y": -56,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-37",
+				"x": -230,
+				"y": -122,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-38",
+				"x": 52,
+				"y": -150,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-39",
+				"x": -162,
+				"y": -87,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-40",
+				"x": -12,
+				"y": -135,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffd9c2"
+			},
+			{
+				"id": "star-41",
+				"x": -9,
+				"y": -66,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#cfd8ff"
+			},
+			{
+				"id": "star-42",
+				"x": 115,
+				"y": 84,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-43",
+				"x": 8,
+				"y": -103,
+				"width": 3,
+				"height": 3,
+				"radius": 1.5,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-44",
+				"x": -163,
+				"y": 15,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-45",
+				"x": 220,
+				"y": 127,
+				"width": 4,
+				"height": 4,
+				"radius": 2.0,
+				"color": "#ffffff"
+			},
+			{
+				"id": "star-46",
+				"x": 8,
+				"y": 143,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#fff4d6"
+			},
+			{
+				"id": "star-47",
+				"x": 15,
+				"y": 98,
+				"width": 2,
+				"height": 2,
+				"radius": 1.0,
+				"color": "#fff4d6"
+			}
+		],
+		"cos": {
+			"points": [
+				[0.0, 1.0],
+				[0.0833, 0.933],
+				[0.1667, 0.75],
+				[0.25, 0.5],
+				[0.3333, 0.25],
+				[0.4167, 0.067],
+				[0.5, 0.0],
+				[0.5833, 0.067],
+				[0.6667, 0.25],
+				[0.75, 0.5],
+				[0.8333, 0.75],
+				[0.9167, 0.933],
+				[1.0, 1.0]
+			]
+		},
+		"chart": {
+			"camera": {
+				"x": -215,
+				"y": -140,
+				"zoom": 1
+			},
+			"selection": []
+		},
+		"notes": [
+			{
+				"id": "note-1",
+				"x": 60,
+				"y": -128,
+				"width": 120,
+				"height": 22,
+				"radius": 4,
+				"color": "@note",
+				"text": "Drag me; add notes above",
+				"textSize": 10,
+				"textColor": "#1d2026"
+			}
+		],
+		"draft": "Note",
+		"nextId": 2
+	},
+	"computed": {
+		"ids": "{{map(state.bodies, it.id)}}",
+		"local": "{{map(state.bodies, merge(it, {f: it.parent == '' ? 0 : (it.phase + state.time / it.period) % 1, pi: indexOf(computed.ids, it.parent)}))}}",
+		"rel": "{{map(computed.local, merge(it, {lx: it.radius * (2 * curve(state.cos, it.f) - 1), lz: -it.radius * (2 * curve(state.cos, (it.f + 0.75) % 1) - 1)}))}}",
+		"positions": "{{map(computed.rel, merge(it, {x: it.lx + (it.pi >= 0 ? computed.rel[it.pi].lx : 0), z: it.lz + (it.pi >= 0 ? computed.rel[it.pi].lz : 0), cx: it.pi >= 0 ? computed.rel[it.pi].lx : 0, cz: it.pi >= 0 ? computed.rel[it.pi].lz : 0}))}}",
+		"scene": "{{ {nodes: concat([{id: 'sunlight', name: 'Sunlight', light: {type: 'point', intensity: 60, color: [1, 0.95, 0.85]}}, {id: 'fill', name: 'Fill', rotation: [-0.38, 0, 0, 0.92], light: {type: 'directional', intensity: 0.25}}], map(computed.positions, {id: it.id, name: it.name, mesh: 'sphere', material: 'm-' + it.id, translation: [it.x, 0, it.z], scale: [it.size, it.size, it.size]}), map(filter(computed.positions, it.parent != ''), {id: 'orbit-' + it.id, name: it.name + ' orbit', mesh: 'orbit', material: 'm-orbit', translation: [it.cx, 0, it.cz], scale: [it.radius, 1, it.radius]})), materials: concat([{id: 'm-orbit', name: 'Orbit', baseColor: [0.05, 0.06, 0.09, 1], roughness: 1, emissive: [0.05, 0.06, 0.1]}], map(state.bodies, {id: 'm-' + it.id, name: it.name, baseColor: it.color, roughness: 0.85, metallic: 0, emissive: it.parent == '' ? [3, 2.2, 0.8] : [0, 0, 0]}))} }}",
+		"chartItems": "{{concat(state.stars, map(filter(computed.positions, it.parent != ''), {id: 'ring-' + it.id, x: it.cx * 22 - it.radius * 22, y: it.cz * 22 - it.radius * 22, width: it.radius * 44, height: it.radius * 44, radius: it.radius * 22, color: 'transparent', borderColor: '#2f3a55', borderWidth: 1}), map(computed.positions, {id: 'body-' + it.id, x: it.x * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), y: it.z * 22 - (it.parent == '' ? 9 : 4 + it.size * 10), width: it.parent == '' ? 18 : 8 + it.size * 20, height: it.parent == '' ? 18 : 8 + it.size * 20, radius: it.parent == '' ? 9 : 4 + it.size * 10, color: it.hex, borderColor: it.id == state.selected ? '#fbbf24' : 'transparent', borderWidth: 2}), map(filter(computed.positions, it.parent == 'sun'), {id: 'label-' + it.id, x: it.x * 22 + 9, y: it.z * 22 - 7, width: 70, height: 14, color: 'transparent', borderWidth: 0, text: it.name, textSize: 10, textColor: '#aab2c5'}), state.notes)}}",
+		"catalogue": "{{map(state.bodies, {id: it.id, name: it.name, parent: it.parent, thumbnail: 'body:' + (it.look ?? it.id)})}}",
+		"graphNodes": "{{map(state.bodies, {id: it.id, title: it.name, x: it.gx ?? 400, y: it.gy ?? 20 + index * 40, width: 120, inputs: it.parent == '' ? [] : [{id: 'orbits', label: 'orbits', kind: 'orbit', links: 1}], outputs: [{id: 'satellites', label: 'satellites', kind: 'orbit'}]})}}",
+		"graphLinks": "{{map(filter(state.bodies, it.parent != ''), {from: it.parent, output: 'satellites', to: it.id, input: 'orbits'})}}",
+		"tracks": "{{[{id: 'eclipses', label: 'Eclipses', locked: true, clips: map(filter(state.events, it.kind == 'eclipse'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#7c3aed'})}, {id: 'conjunctions', label: 'Conjunctions', locked: true, clips: map(filter(state.events, it.kind == 'conjunction'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#0e7490'})}, {id: 'oppositions', label: 'Oppositions', locked: true, clips: map(filter(state.events, it.kind == 'opposition'), {id: it.id, label: it.label, start: it.time - 2, duration: 4, color: '#b45309'})}]}}",
+		"next": "{{find(state.events, it.time > state.time + 0.5)}}",
+		"selectedBody": "{{find(state.bodies, it.id == state.selected)}}",
+		"selectedPosition": "{{find(computed.positions, it.id == state.selected)}}"
+	},
+	"styles": {
+		"button": {
+			"type": "label",
+			"height": 30,
+			"radius": 6,
+			"padding": 8,
+			"color": "@raised",
+			"textColor": "@text",
+			"align": "center",
+			"cursor": "hand",
+			"focusable": true,
+			"hover": {
+				"color": "@border"
+			},
+			"focused": {
+				"borderWidth": 2,
+				"borderColor": "@accent"
+			}
+		},
+		"heading": {
+			"type": "label",
+			"height": 26,
+			"padding": 6,
+			"textColor": "@muted",
+			"font": "small"
+		}
+	},
+	"actions": {
+		"selectBody": [
+			{
+				"set": "state.selected",
+				"to": "{{args.id}}"
+			}
+		],
+		"reorderBody": [
+			{
+				"if": "{{args.id != args.onto && contains(computed.ids, args.id) && contains(computed.ids, args.onto)}}",
+				"then": [
+					{
+						"set": "state.bodies",
+						"to": "{{concat(slice(filter(state.bodies, it.id != args.id), 0, indexOf(computed.ids, args.onto)), [find(state.bodies, it.id == args.id)], slice(filter(state.bodies, it.id != args.id), indexOf(computed.ids, args.onto)))}}"
+					}
+				]
+			}
+		],
+		"cloneBody": [
+			{
+				"if": "{{find(state.bodies, it.id == args.id).parent ?? '' != ''}}",
+				"then": [
+					{
+						"push": "state.bodies",
+						"value": "{{merge(find(state.bodies, it.id == args.id), {id: args.id + '-' + state.nextId, name: find(state.bodies, it.id == args.id).name + ' ' + state.nextId, phase: (find(state.bodies, it.id == args.id).phase + 0.5) % 1, look: find(state.bodies, it.id == args.id).look ?? args.id})}}"
+					},
+					{
+						"set": "state.selected",
+						"to": "{{args.id + '-' + state.nextId}}"
+					},
+					{
+						"increment": "state.nextId",
+						"by": 1
+					}
+				]
+			}
+		],
+		"togglePlay": [
+			{
+				"toggle": "state.playing"
+			}
+		],
+		"nextEvent": [
+			{
+				"if": "{{computed.next}}",
+				"then": [
+					{
+						"set": "state.playing",
+						"to": false
+					},
+					{
+						"animate": "state.time",
+						"to": "{{computed.next.time}}",
+						"ms": 600,
+						"easing": "inOut"
+					}
+				]
+			}
+		],
+		"rewind": [
+			{
+				"set": "state.playing",
+				"to": false
+			},
+			{
+				"set": "state.time",
+				"to": 0
+			}
+		],
+		"tick": [
+			{
+				"if": "{{state.playing}}",
+				"then": [
+					{
+						"set": "state.time",
+						"to": "{{(state.time + state.speed) % state.duration}}"
+					}
+				]
+			}
+		],
+		"addNote": [
+			{
+				"push": "state.notes",
+				"value": "{{ {id: 'note-' + state.nextId, x: round(state.chart.camera.x + 230 / state.chart.camera.zoom - 50), y: round(state.chart.camera.y + 150 / state.chart.camera.zoom - 11), width: 100, height: 22, radius: 4, color: '@note', text: state.draft || 'Note', textSize: 10, textColor: '#1d2026'} }}"
+			},
+			{
+				"increment": "state.nextId",
+				"by": 1
+			}
+		],
+		"markSelected": [
+			{
+				"if": "{{computed.selectedPosition}}",
+				"then": [
+					{
+						"push": "state.notes",
+						"value": "{{ {id: 'mark-' + state.nextId, x: round(computed.selectedPosition.x * 22 - 16), y: round(computed.selectedPosition.z * 22 - 16), width: 32, height: 32, radius: 16, color: 'transparent', borderColor: '@mark', borderWidth: 2, text: ''} }}"
+					},
+					{
+						"push": "state.notes",
+						"value": "{{ {id: 'note-' + state.nextId, x: round(computed.selectedPosition.x * 22 + 18), y: round(computed.selectedPosition.z * 22 - 26), width: 130, height: 20, radius: 4, color: '@note', text: computed.selectedBody.name + ', day ' + round(state.time), textSize: 10, textColor: '#1d2026'} }}"
+					},
+					{
+						"increment": "state.nextId",
+						"by": 1
+					}
+				]
+			}
+		],
+		"moveNotes": [
+			{
+				"forEach": "{{event.items}}",
+				"as": "moved",
+				"do": [
+					{
+						"set": "state.notes",
+						"to": "{{map(state.notes, it.id == moved.id ? merge(it, {x: moved.x, y: moved.y, width: moved.width, height: moved.height}) : it)}}"
+					}
+				]
+			}
+		],
+		"deleteNotes": [
+			{
+				"set": "state.notes",
+				"to": "{{filter(state.notes, !contains(state.chart.selection, it.id))}}"
+			}
+		],
+		"clearNotes": [
+			{
+				"set": "state.notes",
+				"to": []
+			}
+		],
+		"moveGraphNodes": [
+			{
+				"forEach": "{{event.nodes}}",
+				"as": "n",
+				"do": [
+					{
+						"set": "state.bodies",
+						"to": "{{map(state.bodies, it.id == n.id ? merge(it, {gx: n.x, gy: n.y}) : it)}}"
+					}
+				]
+			}
+		],
+		"reparent": [
+			{
+				"if": "{{event.from != event.to}}",
+				"then": [
+					{
+						"set": "state.bodies",
+						"to": "{{map(state.bodies, it.id == event.to ? merge(it, {parent: event.from}) : it)}}"
+					}
+				]
+			}
+		],
+		"orbitAround": [
+			{
+				"set": "state.bodies",
+				"to": "{{map(state.bodies, it.id == event.to ? merge(it, {parent: 'sun'}) : it)}}"
+			}
+		],
+		"viewPress": [
+			{
+				"set": "state.grab",
+				"to": "{{state.camera}}"
+			}
+		],
+		"viewDrag": [
+			{
+				"if": "{{state.grab}}",
+				"then": [
+					{
+						"set": "state.camera",
+						"to": "{{merge(state.camera, {yaw: state.grab.yaw - event.dx * 0.008, pitch: clamp(state.grab.pitch + event.dy * 0.006, 0.05, 1.5)})}}"
+					}
+				]
+			}
+		],
+		"viewRelease": [
+			{
+				"set": "state.grab",
+				"to": null
+			}
+		],
+		"viewScroll": [
+			{
+				"set": "state.camera",
+				"to": "{{merge(state.camera, {distance: clamp(state.camera.distance * (1 + event.dy * 0.06), 4, 40)})}}"
+			}
+		]
+	},
+	"onLoad": [
+		{
+			"call": "orrery.scene",
+			"into": "state.live3d"
+		}
+	],
+	"keys": {
+		"mod+p": "togglePlay",
+		"mod+n": "nextEvent",
+		"mod+0": "rewind"
+	},
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"every": {
+			"ms": 50,
+			"do": "tick"
+		},
+		"children": [
+			{
+				"type": "column",
+				"id": "layout",
+				"fill": true,
+				"children": [
+					{
+						"type": "row",
+						"id": "toolbar",
+						"width": "100%",
+						"height": 48,
+						"gap": 8,
+						"alignItems": "center",
+						"color": "@panel",
+						"children": [
+							{
+								"type": "label",
+								"id": "toolbar-start",
+								"width": 4,
+								"height": 30
+							},
+							{
+								"type": "label",
+								"id": "app-title",
+								"font": "title",
+								"text": "Orrery",
+								"textColor": "@text",
+								"fitText": true,
+								"height": 30
+							},
+							{
+								"type": "label",
+								"id": "day",
+								"text": "Day {{round(state.time)}}",
+								"textColor": "@accent",
+								"width": 70,
+								"height": 30,
+								"align": "center"
+							},
+							{
+								"id": "rewind",
+								"style": "button",
+								"icon": "skip-back",
+								"role": "button",
+								"label": "Back to day 0",
+								"tooltip": "Back to day 0",
+								"onClick": "rewind",
+								"width": 30
+							},
+							{
+								"id": "play",
+								"style": "button",
+								"icon": "{{state.playing ? 'pause' : 'play'}}",
+								"role": "button",
+								"label": "{{state.playing ? 'Pause' : 'Play'}}",
+								"tooltip": "{{state.playing ? 'Pause' : 'Play'}}",
+								"onClick": "togglePlay",
+								"width": 30
+							},
+							{
+								"id": "next-event",
+								"style": "button",
+								"icon": "skip-forward",
+								"role": "button",
+								"label": "Next event",
+								"tooltip": "Next event",
+								"onClick": "nextEvent",
+								"width": 30
+							},
+							{
+								"type": "label",
+								"id": "next-label",
+								"grow": 1,
+								"height": 30,
+								"textColor": "@muted",
+								"padding": 6,
+								"text": "{{computed.next ? 'Next: ' + computed.next.label + ' on day ' + round(computed.next.time) + ' (in ' + round(computed.next.time - state.time) + ' days)' : 'No more events in this window'}}"
+							},
+							{
+								"type": "label",
+								"id": "selected-label",
+								"fitText": true,
+								"height": 30,
+								"textColor": "@text",
+								"padding": 6,
+								"text": "{{computed.selectedBody ? computed.selectedBody.name + (computed.selectedBody.parent ? ', orbits ' + (find(state.bodies, it.id == computed.selectedBody.parent).name ?? computed.selectedBody.parent) + ' every ' + computed.selectedBody.period + ' days' : ', at the centre') : 'Nothing selected'}}"
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "main",
+						"width": "100%",
+						"grow": 1,
+						"gap": 1,
+						"color": "@border",
+						"children": [
+							{
+								"type": "stack",
+								"id": "view-pane",
+								"grow": 1,
+								"height": "100%",
+								"color": "@sky",
+								"onPress": "viewPress",
+								"onDrag": "viewDrag",
+								"onRelease": "viewRelease",
+								"onScroll": "viewScroll",
+								"children": [
+									{
+										"type": "surface",
+										"id": "viewport",
+										"surface": "scene",
+										"when": "{{state.live3d}}",
+										"width": "100%",
+										"height": "100%",
+										"continuous": false,
+										"role": "img",
+										"label": "3D view of the orrery",
+										"params": {
+											"scene": "{{computed.scene}}",
+											"camera": "{{state.camera}}",
+											"selection": "{{[state.selected]}}",
+											"grid": false,
+											"axes": false,
+											"background": "#07090e",
+											"outline": "#fbbf24",
+											"exposure": 1.2,
+											"gizmo": {
+												"visible": false
+											}
+										}
+									},
+									{
+										"type": "label",
+										"id": "viewport-missing",
+										"when": "{{!state.live3d}}",
+										"width": "100%",
+										"height": "100%",
+										"align": "center",
+										"textColor": "@muted",
+										"text": "The 3D view is drawn by affrescoui_orrery (the scene3d surface)"
+									},
+									{
+										"type": "label",
+										"id": "view-hint",
+										"anchors": {
+											"left": 10,
+											"bottom": 8
+										},
+										"fitText": true,
+										"height": 20,
+										"font": "small",
+										"textColor": "@muted",
+										"text": "Drag to turn, scroll to zoom"
+									}
+								]
+							},
+							{
+								"type": "column",
+								"id": "side",
+								"width": 460,
+								"height": "100%",
+								"gap": 1,
+								"color": "@border",
+								"children": [
+									{
+										"type": "row",
+										"id": "chart-bar",
+										"width": "100%",
+										"height": 40,
+										"gap": 6,
+										"alignItems": "center",
+										"color": "@panel",
+										"children": [
+											{
+												"type": "label",
+												"id": "chart-title",
+												"style": "heading",
+												"text": "Sky chart, from above",
+												"fitText": true
+											},
+											{
+												"type": "textarea",
+												"id": "note-text",
+												"bind": "state.draft",
+												"grow": 1,
+												"height": 28,
+												"radius": 4,
+												"color": "@background",
+												"textColor": "@text",
+												"label": "Annotation text"
+											},
+											{
+												"id": "add-note",
+												"style": "button",
+												"icon": "sticky-note",
+												"role": "button",
+												"label": "Add a note in the middle of the chart",
+												"tooltip": "Add a note in the middle of the chart",
+												"onClick": "addNote",
+												"width": 30
+											},
+											{
+												"id": "mark",
+												"style": "button",
+												"icon": "crosshair",
+												"role": "button",
+												"label": "Mark the selected body",
+												"tooltip": "Mark the selected body",
+												"onClick": "markSelected",
+												"width": 30
+											},
+											{
+												"id": "clear-notes",
+												"style": "button",
+												"icon": "trash-2",
+												"role": "button",
+												"label": "Clear the annotations",
+												"tooltip": "Clear the annotations",
+												"onClick": "clearNotes",
+												"width": 30
+											}
+										]
+									},
+									{
+										"type": "canvas",
+										"id": "chart",
+										"bind": "state.chart",
+										"width": "100%",
+										"height": 300,
+										"color": "@sky",
+										"rulers": false,
+										"snap": false,
+										"accentColor": "@accent",
+										"items": "{{computed.chartItems}}",
+										"label": "Sky chart",
+										"onTransform": "moveNotes",
+										"keys": {
+											"delete": "deleteNotes",
+											"backspace": "deleteNotes"
+										}
+									},
+									{
+										"type": "row",
+										"id": "graph-bar",
+										"width": "100%",
+										"height": 28,
+										"color": "@panel",
+										"children": [
+											{
+												"type": "label",
+												"id": "graph-title",
+												"style": "heading",
+												"text": "What orbits what (drag a link to move a body)",
+												"grow": 1
+											}
+										]
+									},
+									{
+										"type": "graph",
+										"id": "orbits",
+										"width": "100%",
+										"grow": 1,
+										"color": "@background",
+										"minimap": false,
+										"nodes": "{{computed.graphNodes}}",
+										"links": "{{computed.graphLinks}}",
+										"selectedIds": "{{[state.selected]}}",
+										"kindColors": {
+											"orbit": "#fbbf24"
+										},
+										"nodeColor": "@raised",
+										"headerColor": "@border",
+										"textColor": "@text",
+										"accentColor": "@accent",
+										"zoom": 0.8,
+										"onMove": "moveGraphNodes",
+										"onConnect": "reparent",
+										"onDisconnect": "orbitAround",
+										"onSelect": [
+											{
+												"if": "{{length(event.ids) > 0}}",
+												"then": [
+													{
+														"set": "state.selected",
+														"to": "{{event.ids[0]}}"
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "timeline",
+						"id": "events",
+						"width": "100%",
+						"height": 128,
+						"tracks": "{{computed.tracks}}",
+						"time": "{{state.time}}",
+						"duration": "{{state.duration}}",
+						"fps": 1,
+						"timeFormat": "seconds",
+						"pixelsPerSecond": 2.6,
+						"headerWidth": 110,
+						"markers": "{{map(filter(state.events, it.kind == 'eclipse'), {time: it.time, label: ''})}}",
+						"headerColor": "@panel",
+						"textColor": "@text",
+						"accentColor": "@accent",
+						"color": "@background",
+						"label": "Upcoming events, one second a day",
+						"onScrub": [
+							{
+								"set": "state.playing",
+								"to": false
+							},
+							{
+								"set": "state.time",
+								"to": "{{event.time}}"
+							}
+						],
+						"onSelect": [
+							{
+								"if": "{{find(state.events, it.id == event.ids[0])}}",
+								"then": [
+									{
+										"set": "state.time",
+										"to": "{{find(state.events, it.id == event.ids[0]).time}}"
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "column",
+						"id": "dock",
+						"point": "bodies.dock",
+						"width": "100%",
+						"height": 136,
+						"color": "@panel",
+						"children": []
+					}
+				]
+			}
+		]
+	},
+	"features": {
+		"slideSorter": {
+			"release": "1.0.0",
+			"title": "Slide sorter",
+			"source": "app:sinopia",
+			"digest": "sha512:9kHJ4TytpjXMOg4IPjbNpIrBgsN4AodRwHOhIPKTExprjWpGlYyJRHVHxvqPpDfVjT7urDYkuSzYY7OEPqHUbQ",
+			"publisher": null,
+			"enabled": true,
+			"order": 10,
+			"requires": {
+				"format": 2
+			},
+			"provides": {
+				"state": {
+					"picked": ""
+				},
+				"actions": {
+					"pick": {
+						"title": "Select Page",
+						"category": "Slide Sorter",
+						"do": [
+							{
+								"set": "state.slideSorter.picked",
+								"to": "{{id}}"
+							},
+							{
+								"run": "app.select",
+								"with": {
+									"id": "{{id}}"
+								}
+							}
+						]
+					},
+					"move": {
+						"title": "Move Page",
+						"category": "Slide Sorter",
+						"do": [
+							{
+								"if": "{{id != onto}}",
+								"then": [
+									{
+										"run": "app.reorder",
+										"with": {
+											"id": "{{id}}",
+											"onto": "{{onto}}"
+										}
+									}
+								]
+							}
+						]
+					},
+					"duplicate": {
+						"title": "Duplicate Page",
+						"category": "Slide Sorter",
+						"do": [
+							{
+								"run": "app.duplicate",
+								"with": {
+									"id": "{{app.current ?? state.slideSorter.picked}}"
+								}
+							}
+						]
+					}
+				},
+				"views": {
+					"dock": {
+						"slideSorter-view": {
+							"type": "column",
+							"width": "100%",
+							"height": 132,
+							"gap": 4,
+							"color": "transparent",
+							"borderWidth": 1,
+							"borderColor": "@border",
+							"children": [
+								{
+									"type": "row",
+									"id": "slideSorter-header",
+									"width": "100%",
+									"height": 24,
+									"gap": 6,
+									"alignItems": "center",
+									"children": [
+										{
+											"type": "label",
+											"id": "slideSorter-title",
+											"grow": 1,
+											"height": 24,
+											"padding": 6,
+											"textColor": "@text",
+											"text": "Pages ({{length(app.pages)}})"
+										},
+										{
+											"type": "label",
+											"id": "slideSorter-duplicate",
+											"width": 24,
+											"height": 24,
+											"icon": "copy",
+											"cursor": "hand",
+											"tooltip": "Duplicate page",
+											"textColor": "@text",
+											"onClick": "slideSorter.duplicate"
+										}
+									]
+								},
+								{
+									"type": "row",
+									"id": "slideSorter-pages",
+									"width": "100%",
+									"grow": 1,
+									"gap": 8,
+									"scroll": "horizontal",
+									"color": "transparent",
+									"children": [
+										{
+											"repeat": {
+												"for": "page",
+												"in": "{{app.pages}}",
+												"key": "{{page.id}}"
+											},
+											"type": "column",
+											"id": "slideSorter-page-{{page.id}}",
+											"width": 84,
+											"height": 96,
+											"gap": 2,
+											"color": "transparent",
+											"cursor": "hand",
+											"drag": {
+												"data": {
+													"id": "{{page.id}}"
+												}
+											},
+											"onDrop": {
+												"run": "slideSorter.move",
+												"with": {
+													"id": "{{event.data.id}}",
+													"onto": "{{page.id}}"
+												}
+											},
+											"onClick": {
+												"run": "slideSorter.pick",
+												"with": {
+													"id": "{{page.id}}"
+												}
+											},
+											"children": [
+												{
+													"type": "image",
+													"id": "slideSorter-image-{{page.id}}",
+													"width": 84,
+													"height": 70,
+													"source": "{{page.image}}",
+													"fit": "contain",
+													"borderWidth": "{{page.id == (app.current ?? state.slideSorter.picked) ? 2 : 1}}",
+													"borderColor": "{{page.id == (app.current ?? state.slideSorter.picked) ? '@accent' : '@border'}}",
+													"dragOver": {
+														"borderColor": "@accent",
+														"borderWidth": 3
+													}
+												},
+												{
+													"type": "label",
+													"id": "slideSorter-name-{{page.id}}",
+													"width": 84,
+													"height": 18,
+													"align": "center",
+													"fitText": true,
+													"textColor": "@muted",
+													"text": "{{page.name}}"
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					}
+				}
+			},
+			"needs": {
+				"pages": {
+					"kind": "list",
+					"item": {
+						"id": "string",
+						"name": "string",
+						"image": "image"
+					},
+					"description": "The pages in order, each with an id, a name and an image the host renders."
+				},
+				"current": {
+					"kind": "state",
+					"type": "string",
+					"optional": true,
+					"description": "The id of the selected page."
+				},
+				"reorder": {
+					"kind": "action",
+					"arguments": {
+						"id": "string",
+						"onto": "string"
+					},
+					"description": "Page id takes the place of page onto."
+				},
+				"select": {
+					"kind": "action",
+					"arguments": {
+						"id": "string"
+					},
+					"description": "Selects page id."
+				},
+				"duplicate": {
+					"kind": "action",
+					"arguments": {
+						"id": "string"
+					},
+					"description": "Duplicates page id."
+				},
+				"dock": {
+					"kind": "slot",
+					"slot": "dock",
+					"description": "Where the sorter sits."
+				}
+			},
+			"bindings": {
+				"pages": {
+					"value": "{{map(filter(app.sky.bodies, it.parent != ''), {id: it.id, name: it.name, image: it.thumbnail})}}"
+				},
+				"current": {
+					"export": "sky.selected"
+				},
+				"reorder": {
+					"action": "bodies.reorder",
+					"with": {
+						"args": {
+							"id": "{{id}}",
+							"onto": "{{onto}}"
+						}
+					}
+				},
+				"select": {
+					"action": "bodies.select",
+					"with": {
+						"args": {
+							"id": "{{id}}"
+						}
+					}
+				},
+				"duplicate": {
+					"action": "bodies.clone",
+					"with": {
+						"args": {
+							"id": "{{id}}"
+						}
+					}
+				},
+				"dock": {
+					"point": "bodies.dock"
+				}
+			},
+			"proof": {
+				"format": "affrescoui-proof",
+				"version": 1,
+				"feature": "slideSorter",
+				"release": "1.0.0",
+				"source": "app:sinopia",
+				"host": "app:orrery",
+				"base": "",
+				"adapter": {
+					"digest": "sha512:XRKpnO7AGnykUEjoBeWEhQ30LtfokmkdzNJ4Y5QavVXrt9OsZutr25eAovs7UCN-7_BuQEnKXVMlTD1IVr4vpw",
+					"note": "Sinopia's slide sorter in Orrery: every body but the Sun is a page, drawn from the thumbnail the host makes for it, and the sorter's actions are the body actions Orrery's bodies dock receives."
+				},
+				"bindings": [
+					{
+						"need": "pages",
+						"kind": "list",
+						"by": "adapter",
+						"to": {
+							"value": "{{map(filter(app.sky.bodies, it.parent != ''), {id: it.id, name: it.name, image: it.thumbnail})}}"
+						}
+					},
+					{
+						"need": "current",
+						"kind": "state",
+						"by": "adapter",
+						"to": {
+							"export": "sky.selected"
+						}
+					},
+					{
+						"need": "reorder",
+						"kind": "action",
+						"by": "adapter",
+						"to": {
+							"action": "bodies.reorder",
+							"with": {
+								"args": {
+									"id": "{{id}}",
+									"onto": "{{onto}}"
+								}
+							}
+						}
+					},
+					{
+						"need": "select",
+						"kind": "action",
+						"by": "adapter",
+						"to": {
+							"action": "bodies.select",
+							"with": {
+								"args": {
+									"id": "{{id}}"
+								}
+							}
+						}
+					},
+					{
+						"need": "duplicate",
+						"kind": "action",
+						"by": "adapter",
+						"to": {
+							"action": "bodies.clone",
+							"with": {
+								"args": {
+									"id": "{{id}}"
+								}
+							}
+						}
+					},
+					{
+						"need": "dock",
+						"kind": "slot",
+						"by": "host",
+						"to": {
+							"point": "bodies.dock"
+						}
+					}
+				],
+				"checks": [
+					{
+						"name": "manifest",
+						"passed": true,
+						"reasons": []
+					},
+					{
+						"name": "adapter",
+						"passed": true,
+						"reasons": []
+					},
+					{
+						"name": "needs",
+						"passed": true,
+						"reasons": []
+					},
+					{
+						"name": "composition",
+						"passed": true,
+						"reasons": []
+					},
+					{
+						"name": "isolation",
+						"passed": true,
+						"reasons": []
+					},
+					{
+						"name": "permissions",
+						"passed": true,
+						"reasons": []
+					},
+					{
+						"name": "document",
+						"passed": true,
+						"reasons": []
+					},
+					{
+						"name": "scenarios",
+						"passed": true,
+						"reasons": []
+					}
+				],
+				"scenarios": [
+					{
+						"file": "feature",
+						"name": "slideSorter-shows",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "feature",
+						"name": "slideSorter-starts-unpicked",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "orrery.scenarios.json",
+						"name": "starts-on-day-zero",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "orrery.scenarios.json",
+						"name": "next-event-moves-the-planets",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "orrery.scenarios.json",
+						"name": "play-advances-the-playhead",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "orrery.scenarios.json",
+						"name": "annotate-the-chart",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "orrery.scenarios.json",
+						"name": "reparent-in-the-graph",
+						"passed": true,
+						"problem": ""
+					},
+					{
+						"file": "orrery.scenarios.json",
+						"name": "turn-and-zoom-the-view",
+						"passed": true,
+						"problem": ""
+					}
+				],
+				"passed": true,
+				"unmet": []
+			}
+		}
+	}
+}

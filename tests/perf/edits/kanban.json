@@ -1,11 +1,11 @@
 {
-	"change-colour": { "message": "Darker top bar", "set": { "/colors/topBar": "#1e1b4b" } },
+	"change-colour": { "message": "Darker top bar", "set": { "/tokens/color.topBar/light": "#1e1b4b" } },
 	"rename-label": { "message": "Call the app Board", "set": { "#logo/text": "Board" } },
 	"add-column": {
 		"message": "Add a Blocked column",
 		"add": { "/state/columns/-": { "name": "Blocked", "color": "#dc2626", "cards": [] } }
 	},
-	"add-filter": { "message": "Add a docs filter", "add": { "/state/filters/-": "docs" } },
+	"add-filter": { "message": "Add a docs filter", "add": { "/state/filters/-": "docs", "/state/tagIcons/docs": "book-open" } },
 	"restyle": { "message": "Wider filter chips", "set": { "/styles/chip/width": 96 } },
 	"add-button": {
 		"message": "Add a button that clears the Done column",

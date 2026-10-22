@@ -4,6 +4,7 @@
 #include "Forge.hpp"
 
 #include "features/palette/FileIndex.hpp"
+#include "features/scm/Scm.hpp"
 #include "features/themes/IconTheme.hpp"
 #include "features/themes/ThemeImport.hpp"
 
@@ -22,7 +23,7 @@ namespace forge {
 namespace {
 
 /// @brief The largest theme file importTheme reads.
-constexpr std::size_t maxThemeBytes = 1024 * 1024;
+constexpr std::size_t maxThemeBytes = std::size_t{1024} * 1024;
 
 /// @brief Indexes a folder and dresses its tree with the icon theme the call gives.
 /// @param folder The folder, or empty for none.
@@ -62,7 +63,8 @@ std::string readTheme(const std::filesystem::path& path) {
 
 } // namespace
 
-void registerNatives(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
+void registerNatives(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
+	registerScm(screen, workspace); // features/scm
 	screen.onCall("forge.index", [workspace](const std::string& arguments) {
 		return indexWithIcons(workspace->root, arguments).dump();
 	});
@@ -70,7 +72,7 @@ void registerNatives(affresco::Screen& screen, std::shared_ptr<Workspace> worksp
 		const std::filesystem::path folder =
 		    choose(*workspace, {.kind = affresco::FileDialogKind::Folder, .title = "Open Folder"});
 		if(folder.empty()) return indexWithIcons(workspace->root, arguments).dump();
-		affresco::json index = indexWithIcons(folder, arguments); // throws for a folder that can't be read
+		const affresco::json index = indexWithIcons(folder, arguments); // throws for a folder that can't be read
 		workspace->root = folder;
 		return index.dump();
 	});
@@ -87,6 +89,11 @@ void registerNatives(affresco::Screen& screen, std::shared_ptr<Workspace> worksp
 		if(file.empty()) throw std::runtime_error("no theme chosen");
 		return importVsCodeTheme(readTheme(file), file.stem().string()).dump();
 	});
+}
+
+void addExampleCatalog(affresco::Screen& screen, const std::filesystem::path& forgeDirectory) {
+	screen.features().trustPublisher(examplePublisher);
+	screen.features().addCatalog(forgeDirectory / "catalog" / "index.json");
 }
 
 } // namespace forge

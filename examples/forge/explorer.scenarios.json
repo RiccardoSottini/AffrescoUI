@@ -1,0 +1,160 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's explorer, checked headless, with tests/render/forge/folder open: affrescoui_render_runner explorer.scenarios.json. A scenario that makes files deletes them before it ends, so the folder stays as it is.",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "explorer-list-the-folder",
+			"note": "Opening the folder lists it into the explorer: folders first, hidden entries and node_modules skipped, dressed with the icon theme; without a running executor it is listed at each call, not watched",
+			"steps": [
+				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
+				{ "expect": { "state": "explorerTree.tree[0].id", "is": "src/" } },
+				{ "expect": { "state": "explorerTree.tree[0].icon", "is": "folder" } },
+				{ "expect": { "state": "explorerTree.tree[0].children[0].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "explorerTree.tree[0].children[0].icon", "is": "file-code" } },
+				{ "expect": { "state": "explorerTree.tree[1].id", "is": "README.md" } },
+				{ "expect": { "state": "explorerTree.truncated", "is": false } },
+				{ "expect": { "state": "explorerTree.live", "is": false } },
+				{ "expect": { "node": "#explorer", "exists": true } }
+			]
+		},
+		{
+			"name": "explorer-new-file-then-delete-it",
+			"note": "New File with a folder selected makes the file in it and selects it; Delete asks first, then removes it",
+			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
+				{ "click": "#explorer" },
+				{ "key": "home" },
+				{ "expect": { "state": "explorer.selected", "is": "src/" } },
+				{ "action": "explorerNewFile" },
+				{ "expect": { "state": "explorerEdit.naming", "is": true } },
+				{ "wait": 0 },
+				{ "type": "notes.txt" },
+				{ "action": "explorerSubmitName" },
+				{ "expect": { "state": "explorerEdit.naming", "is": false } },
+				{ "expect": { "state": "explorer.selected", "is": "src/notes.txt" } },
+				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 2 } },
+				{ "expect": { "state": "explorerTree.tree[0].children[1].id", "is": "src/notes.txt" } },
+				{ "action": "explorerDelete" },
+				{ "expect": { "state": "explorerEdit.confirm", "is": true } },
+				{ "action": "explorerDeleteConfirmed" },
+				{ "expect": { "state": "explorerEdit.confirm", "is": false } },
+				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 1 } },
+				{ "expect": { "state": "explorer.selected", "is": null } }
+			]
+		},
+		{
+			"name": "explorer-cancel-a-delete",
+			"note": "Escape on the confirm dialog deletes nothing",
+			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
+				{ "click": "#explorer" },
+				{ "key": "home" },
+				{ "key": "down" },
+				{ "expect": { "state": "explorer.selected", "is": "README.md" } },
+				{ "action": "explorerDelete" },
+				{ "expect": { "state": "explorerEdit.confirm", "is": true } },
+				{ "expect": { "state": "explorerEdit.name", "is": "README.md" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "explorerEdit.confirm", "is": false } },
+				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } }
+			]
+		},
+		{
+			"name": "explorer-rename-a-file",
+			"note": "Rename starts from the name it has; the renamed file stays selected",
+			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
+				{ "click": "#explorer" },
+				{ "key": "home" },
+				{ "key": "down" },
+				{ "action": "explorerNewFile", "note": "a file's row: the new file goes in its folder" },
+				{ "expect": { "state": "explorerEdit.naming", "is": true } },
+				{ "wait": 0 },
+				{ "type": "draft" },
+				{ "action": "explorerSubmitName" },
+				{ "expect": { "state": "explorer.selected", "is": "draft" } },
+				{ "action": "explorerRename" },
+				{ "expect": { "state": "explorerEdit.name", "is": "draft" } },
+				{ "wait": 0 },
+				{ "type": ".md" },
+				{ "action": "explorerSubmitName" },
+				{ "expect": { "state": "explorer.selected", "is": "draft.md" } },
+				{ "expect": { "state": "explorerTree.tree[2].id", "is": "draft.md" } },
+				{ "action": "explorerDelete" },
+				{ "action": "explorerDeleteConfirmed" },
+				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } }
+			]
+		},
+		{
+			"name": "explorer-refuse-a-path-as-a-name",
+			"note": "A name with a slash would leave the folder: nothing is made",
+			"steps": [
+				{ "action": "explorerNewFile" },
+				{ "wait": 0 },
+				{ "type": "../outside" },
+				{ "action": "explorerSubmitName" },
+				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
+				{ "expect": { "state": "explorer.selected", "is": null } }
+			]
+		},
+		{
+			"name": "explorer-move-by-drop",
+			"note": "Dropping a row inside a folder moves it there and opens the folder; dropping it after a root row moves it back",
+			"steps": [
+				{ "action": "explorerNewFolder" },
+				{ "wait": 0 },
+				{ "type": "box" },
+				{ "action": "explorerSubmitName" },
+				{ "expect": { "state": "explorerTree.tree[0].id", "is": "box/" } },
+				{ "action": "explorerDrop", "event": { "data": { "id": "README.md", "ids": ["README.md"] }, "id": "box/", "place": "inside" } },
+				{ "expect": { "state": "explorer.selected", "is": "box/README.md" } },
+				{ "expect": { "state": "explorer.expanded[0]", "is": "box/" } },
+				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
+				{ "action": "explorerDrop", "event": { "data": { "id": "box/README.md", "ids": ["box/README.md"] }, "id": "src/", "place": "after" } },
+				{ "expect": { "state": "explorer.selected", "is": "README.md" } },
+				{ "expect": { "state": "explorerTree.tree.length", "is": 3 } },
+				{ "click": "#explorer" },
+				{ "key": "home" },
+				{ "expect": { "state": "explorer.selected", "is": "box/" } },
+				{ "action": "explorerDelete" },
+				{ "action": "explorerDeleteConfirmed" },
+				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
+				{ "expect": { "state": "explorerTree.tree[1].id", "is": "README.md" } }
+			]
+		},
+		{
+			"name": "explorer-copy-and-paste",
+			"note": "Copy, then Paste on a folder copies the entry into it (a name taken there would get ' copy')",
+			"steps": [
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
+				{ "click": "#explorer" },
+				{ "key": "home" },
+				{ "key": "down" },
+				{ "action": "explorerCopy" },
+				{ "expect": { "state": "explorerEdit.clipboard", "is": "README.md" } },
+				{ "key": "home" },
+				{ "action": "explorerPaste" },
+				{ "expect": { "state": "explorer.selected", "is": "src/README.md" } },
+				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 2 } },
+				{ "expect": { "state": "explorerTree.tree[1].id", "is": "README.md" } },
+				{ "action": "explorerDelete" },
+				{ "action": "explorerDeleteConfirmed" },
+				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 1 } }
+			]
+		},
+		{
+			"name": "explorer-reveal-the-active-file",
+			"note": "Reveal opens the folders above the active file and selects it",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "state": "explorer.expanded.length", "is": 0 } },
+				{ "action": "explorerReveal" },
+				{ "expect": { "state": "explorer.expanded[0]", "is": "src/" } },
+				{ "expect": { "state": "explorer.selected", "is": "src/main.cpp" } }
+			]
+		}
+	]
+}

@@ -22,13 +22,14 @@ void applyIcon(Panel& panel, const json& values, const PropertyReader& reader, c
 	auto* label = dynamic_cast<Label*>(&panel);
 	if(!label) return;
 	label->setIcon(values.contains("icon") ? string(values["icon"], path + ".icon") : std::string());
+	label->setIconMirrored(values.contains("mirror") && boolean(values["mirror"], path + ".mirror"));
 }
 
 } // namespace
 
 void registerIconProperty(TypeRegistry& registry) {
 	auto set = std::make_shared<PropertySet>();
-	set->properties = {{"icon", ValueKind::Text}};
+	set->properties = {{"icon", ValueKind::Text}, {"mirror", ValueKind::Boolean}};
 	set->apply = applyIcon;
 	set->everyUpdate = true; // setIcon() does nothing when the name is the same; it also clears an icon removed
 	// Labels and the application's subclasses of them; not text inputs, whose text is what the person types

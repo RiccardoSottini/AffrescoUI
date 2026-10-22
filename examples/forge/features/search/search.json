@@ -1,0 +1,318 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Forge's Search view: an editor page (Find in Files, mod+shift+f) that searches the open folder through the natives of Search.cpp (forge.search, slow and cancellable, its results streamed into state.search.result), shows the matches as a tree by file, opens a match at its line, and replaces every match after a confirm through forge.replace. Files with unsaved edits are skipped, and the open ones that changed are read again.",
+
+	"state": {
+		"search": {
+			"query": "",
+			"replace": "",
+			"regex": false,
+			"wholeWord": false,
+			"caseSensitive": false,
+			"include": "",
+			"exclude": "",
+			"result": null,
+			"ran": null,
+			"collapsed": [],
+			"reload": [],
+			"busy": false,
+			"confirm": false,
+			"error": ""
+		}
+	},
+
+	"computed": {
+		"searchExpanded": "{{state.search.result ? filter(map(state.search.result.tree, it.id), !contains(state.search.collapsed, it)) : []}}",
+		"searchSummary": "{{!empty(state.search.error) ? state.search.error : state.search.result ? (state.search.result.matches == 0 ? 'No results' : plural(state.search.result.matches, 'result') + ' in ' + plural(state.search.result.files, 'file')) + (state.search.result.truncated ? ', capped' : '') + (state.search.result.done ? '' : '...') : ''}}"
+	},
+
+	"actions": {
+		"findInFiles": {
+			"title": "Find in Files",
+			"category": "Search",
+			"icon": "search",
+			"do": [{ "run": "openPage", "with": { "id": "forge:search", "label": "Search", "kind": "search" } }]
+		},
+		"runSearch": [
+			{ "cancel": "forge.search" },
+			{ "set": "state.search.error", "to": "" },
+			{ "set": "state.search.collapsed", "to": [] },
+			{
+				"if": "{{empty(trim(state.search.query))}}",
+				"then": [{ "set": "state.search.result", "to": null }, { "set": "state.search.ran", "to": null }],
+				"else": [
+					{
+						"call": "forge.searchScope",
+						"then": [
+							{
+								"if": "{{!result.open}}",
+								"then": [
+									{ "set": "state.search.result", "to": null },
+									{ "set": "state.search.error", "to": "Open a folder to search it." }
+								],
+								"else": [{ "run": "startSearch" }]
+							}
+						]
+					}
+				]
+			}
+		],
+		"startSearch": [
+			{
+				"set": "state.search.ran",
+				"to": "{{ {pattern: state.search.query, regex: state.search.regex, wholeWord: state.search.wholeWord, caseSensitive: state.search.caseSensitive, include: state.search.include, exclude: state.search.exclude} }}"
+			},
+			{
+				"call": "forge.search",
+				"with": "{{state.search.ran}}",
+				"into": "state.search.result",
+				"loading": "state.search.busy",
+				"onError": [
+					{ "set": "state.search.result", "to": null },
+					{ "set": "state.search.error", "to": "{{error}}" }
+				],
+				"then": [
+					{
+						"run": "log",
+						"with": { "text": "{{'Search: ' + plural(result.matches, 'result') + ' in ' + plural(result.files, 'file')}}" }
+					}
+				]
+			}
+		],
+		"cancelSearch": {
+			"title": "Cancel Search",
+			"category": "Search",
+			"icon": "close",
+			"enablement": "{{state.search.busy}}",
+			"do": [{ "cancel": "forge.search" }]
+		},
+		"openSearchHit": [
+			{
+				"if": "{{slice(event.id ?? '', 0, 4) == 'hit:'}}",
+				"then": [
+					{
+						"run": "openSearchMatch",
+						"with": { "hit": "{{state.search.result.hits[number(slice(event.id, 4))]}}" }
+					}
+				],
+				"else": [
+					{
+						"if": "{{slice(event.id ?? '', 0, 5) == 'file:'}}",
+						"then": [
+							{
+								"run": "openPath",
+								"with": { "path": "{{slice(event.id, 5)}}", "label": "{{reverse(split(event.id, '/'))[0]}}" }
+							}
+						]
+					}
+				]
+			}
+		],
+		"openSearchMatch": [
+			{
+				"if": "{{hit != null}}",
+				"then": [
+					{ "run": "openPath", "with": { "path": "{{hit.file}}", "label": "{{hit.label}}" } },
+					{ "run": "goToLine", "with": { "line": "{{hit.line}}" } }
+				]
+			}
+		],
+		"askReplace": [
+			{
+				"if": "{{state.search.result && state.search.result.done && state.search.result.files > 0}}",
+				"then": [{ "set": "state.search.confirm", "to": true }]
+			}
+		],
+		"replaceAll": [
+			{
+				"call": "forge.replace",
+				"with": "{{merge(state.search.ran, {replacement: state.search.replace, files: map(state.search.result.tree, slice(it.id, 5)), skip: computed.dirtyIds})}}",
+				"onError": [
+					{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot replace: ' + error}}" } }
+				],
+				"then": [
+					{ "set": "state.search.reload", "to": "{{filter(result.changed, contains(computed.docIds, it))}}" },
+					{ "forEach": "state.search.reload", "as": "file", "do": [{ "call": "forge.revert", "with": { "id": "{{file}}" } }] },
+					{
+						"run": "notify",
+						"with": {
+							"severity": "{{length(result.failed) > 0 || length(result.skipped) > 0 ? 'warning' : 'info'}}",
+							"message": "{{'Replaced ' + plural(result.replaced, 'match', 'matches') + ' in ' + plural(length(result.changed), 'file') + (length(result.skipped) > 0 ? ', skipped ' + plural(length(result.skipped), 'unsaved file') : '') + (length(result.failed) > 0 ? ', ' + plural(length(result.failed), 'file') + ' failed' : '')}}"
+						}
+					},
+					{ "run": "runSearch" }
+				]
+			}
+		]
+	},
+
+	"keys": { "mod+shift+f": "findInFiles" },
+
+	"menus": {
+		"go": {
+			"findInFiles": { "run": "findInFiles", "group": "2_search", "order": 1 }
+		}
+	},
+
+	"components": {
+		"forgeSearchPage": {
+			"node": {
+				"type": "column",
+				"id": "search-page",
+				"width": "100%",
+				"grow": 1,
+				"color": "@color.editor",
+				"gap": 6,
+				"children": [
+					{
+						"type": "row",
+						"id": "search-query-row",
+						"width": "100%",
+						"height": 30,
+						"gap": 6,
+						"alignItems": "center",
+						"children": [
+							{
+								"type": "textarea",
+								"id": "search-query",
+								"bind": "state.search.query",
+								"grow": 1,
+								"height": 30,
+								"padding": 7,
+								"color": "@color.input",
+								"textColor": "@color.text",
+								"placeholderColor": "@color.muted",
+								"placeholder": "Search",
+								"onSubmit": { "run": "runSearch" }
+							},
+							{ "use": "forgeSearchOption", "with": { "option": "case", "bind": "state.search.caseSensitive", "text": "Aa" } },
+							{ "use": "forgeSearchOption", "with": { "option": "word", "bind": "state.search.wholeWord", "text": "Word" } },
+							{ "use": "forgeSearchOption", "with": { "option": "regex", "bind": "state.search.regex", "text": ".*" } }
+						]
+					},
+					{
+						"type": "row",
+						"id": "search-replace-row",
+						"width": "100%",
+						"height": 30,
+						"gap": 6,
+						"children": [
+							{
+								"type": "textarea",
+								"id": "search-replace",
+								"bind": "state.search.replace",
+								"grow": 1,
+								"height": 30,
+								"padding": 7,
+								"color": "@color.input",
+								"textColor": "@color.text",
+								"placeholderColor": "@color.muted",
+								"placeholder": "Replace"
+							},
+							{
+								"id": "search-replace-all",
+								"width": 96,
+								"height": 30,
+								"radius": 4,
+								"color": "@color.accent",
+								"focusable": true,
+								"onClick": { "run": "askReplace" },
+								"children": [
+									{
+										"type": "label",
+										"text": "Replace All",
+										"textColor": "#ffffff",
+										"anchors": { "left": 12, "top": 7 },
+										"fitText": true
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "textarea",
+						"id": "search-include",
+						"bind": "state.search.include",
+						"width": "100%",
+						"height": 30,
+						"padding": 7,
+						"color": "@color.input",
+						"textColor": "@color.text",
+						"placeholderColor": "@color.muted",
+						"placeholder": "Files to include (e.g. src/**, *.cpp)",
+						"onSubmit": { "run": "runSearch" }
+					},
+					{
+						"type": "textarea",
+						"id": "search-exclude",
+						"bind": "state.search.exclude",
+						"width": "100%",
+						"height": 30,
+						"padding": 7,
+						"color": "@color.input",
+						"textColor": "@color.text",
+						"placeholderColor": "@color.muted",
+						"placeholder": "Files to exclude (e.g. build, *.md)",
+						"onSubmit": { "run": "runSearch" }
+					},
+					{
+						"type": "label",
+						"id": "search-summary",
+						"text": "{{state.search.busy ? 'Searching... ' + computed.searchSummary : computed.searchSummary}}",
+						"textColor": "@color.muted",
+						"width": "100%",
+						"height": 20
+					},
+					{
+						"type": "tree",
+						"id": "search-results",
+						"when": "{{state.search.result != null}}",
+						"width": "100%",
+						"grow": 1,
+						"items": "{{state.search.result.tree}}",
+						"expanded": "{{computed.searchExpanded}}",
+						"rowHeight": 22,
+						"color": "@color.editor",
+						"textColor": "@color.text",
+						"selectedTextColor": "@color.text",
+						"selectedBackground": "@color.selection",
+						"accentColor": "@color.accent",
+						"onExpand": [
+							{
+								"set": "state.search.collapsed",
+								"to": "{{event.expanded ? filter(state.search.collapsed, it != event.id) : concat(state.search.collapsed, [event.id])}}"
+							}
+						],
+						"onOpen": { "run": "openSearchHit" }
+					},
+					{
+						"use": "dialog",
+						"with": {
+							"open": "state.search.confirm",
+							"title": "Replace All",
+							"message": "{{state.search.result ? 'Replace ' + plural(state.search.result.matches, 'match', 'matches') + ' in ' + plural(state.search.result.files, 'file') + ' with \"' + state.search.replace + '\"? Files with unsaved edits are skipped.' : ''}}",
+							"buttons": [{ "title": "Replace", "run": "replaceAll" }, { "title": "Cancel" }]
+						}
+					}
+				]
+			}
+		},
+		"forgeSearchOption": {
+			"params": { "option": "", "bind": "", "text": "" },
+			"node": {
+				"type": "row",
+				"id": "search-{{option}}",
+				"height": 30,
+				"width": 72,
+				"gap": 4,
+				"alignItems": "center",
+				"children": [
+					{ "type": "checkbox", "id": "search-{{option}}-box", "bind": "{{bind}}", "width": 16, "height": 16 },
+					{ "type": "label", "text": "{{text}}", "textColor": "@color.text", "fitText": true }
+				]
+			}
+		}
+	}
+}

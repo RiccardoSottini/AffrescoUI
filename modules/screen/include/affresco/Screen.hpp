@@ -12,12 +12,16 @@
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/net/Client.hpp"
 #include "affresco/net/RemotePeers.hpp"
+#include "affresco/net/SignIn.hpp"
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
+#include "affresco/render/Embedding.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
+#include "affresco/format/Features.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
 #include <concepts>
@@ -120,9 +124,19 @@ public:
 	void registerType(std::string name, Factory factory, std::vector<std::string> properties = {},
 	                  ApplyProperties apply = {});
 
+	/// @brief Registers a GPU surface that "surface" nodes may name (GpuSurface.hpp): the file only names it and gives
+	/// it "params"; it never supplies shader source.
+	/// @param name Its name.
+	/// @param factory Makes one for each panel that shows it.
+	/// @param options Its framebuffer's options (a depth and stencil buffer).
+	void registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options = {});
+
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
 	void setPlaceholderTypes(bool enabled);
+	/// @brief Sets the computer's locale (format::systemLocale()), for screens whose "strings" name no "locale".
+	/// @param tag "fr-CA"; "" for the screen's default.
+	void setLocale(std::string tag);
 
 	/* Building */
 
@@ -131,6 +145,20 @@ public:
 	/// @return The window.
 	/// @throws ScreenError If the screen can't be built.
 	Window& createWindow(Application& app);
+	/// @brief Creates a second window from the "window" section, sharing another window's OpenGL context and default
+	/// font (Application::createWindow()), then builds the screen into it: one screen per window, e.g. a presenter's
+	/// audience view next to the screen that drives it (SCREEN_FORMAT.md, "Second windows").
+	/// @param app The application that owns both windows.
+	/// @param sharing The window whose context and font it shares.
+	/// @return The window.
+	/// @throws ScreenError If the screen can't be built.
+	Window& createWindow(Application& app, const Window& sharing);
+
+	/// @brief Builds the screen into an embedding's window, inside the host's OpenGL context: its slow calls,
+	/// services and channels post their results to the embedding, which runs them on the host's thread.
+	/// @param embedding The embedding (outlives the Screen).
+	/// @throws ScreenError If the screen can't be built.
+	void embed(Embedding& embedding);
 
 	/// @brief Loads the fonts, then builds "root" into a window's root panel.
 	/// @param window The window.
@@ -174,12 +202,23 @@ public:
 	/// @return The registry, owned by the Screen.
 	[[nodiscard]] services::ServiceRegistry& services() noexcept;
 
+	/// @brief The catalogues and publishers the `features` service installs from (RFC 0004): nothing is trusted
+	/// until the host says so (`features().trustPublisher("ed25519:...")`, then `addCatalog(index)`).
+	/// @return Them, owned by the Screen.
+	[[nodiscard]] format::Features& features() noexcept;
+
 	/// @brief The network the file's "connections" section uses (RFC 0003), made at the first call: until then, and
 	/// for every origin the host doesn't allow (`network().allow("https://api.example.com")`), each connection is
 	/// refused. Its handlers run through the executor (setExecutor() or startChannels()); with none, its results are
 	/// dropped.
 	/// @return The network, owned by the Screen.
 	[[nodiscard]] net::Client& network();
+
+	/// @brief Sets how the connections' "auth" signs in (net::SignInOptions): where refresh tokens are kept and how
+	/// the browser opens. Without a call, network() signs in with tokens kept in memory, for this run only; an
+	/// application passes `net::systemSecretStore("<its name>")` to stay signed in. Signing in again starts over.
+	/// @param options The options.
+	void setSignInOptions(net::SignInOptions options);
 
 	/// @brief Registers a data model the screen shows with `"repeat": {"in": "models.<name>"}`: rows the application
 	/// owns, read one at a time; a change of a row updates only what reads it. Agents see its count, shape and a sample
@@ -222,6 +261,16 @@ public:
 	/// @param directory The directory.
 	void setSocketDirectory(std::filesystem::path directory);
 
+	/// @brief Connects a declared channel somewhere else for this run, closing its connection first: a socket (as in
+	/// "channels"), or a remote peer's `wss://` address (`ws://` on the loopback) with the token its server's verifier
+	/// accepts. The token stays in memory, sent once as the connection's credentials: never in the document, the state
+	/// or a log. In a browser this is how the Studio page's connect form reaches a host (web/README.md).
+	/// @param name The channel's name in "channels" (after startChannels()).
+	/// @param address The socket or the peer address.
+	/// @param token The token for a peer address ("" for a socket).
+	/// @return false if the screen declares no such channel.
+	bool connectChannel(const std::string& name, std::string address, std::string token = {});
+
 	/// @brief Connects the file's "channels" (createWindow() does it; call it after build()). Each message of type T
 	/// on channel C runs the action "C:T" if the file has one; "C:open" and "C:closed" run on connect and disconnect.
 	/// @param executor Delivers messages on the main thread (the Application).
@@ -242,6 +291,26 @@ public:
 	/// `<data folder>/<screen file name>.state.json`, see defaultDataDirectory()).
 	/// @param file The file.
 	void setStateFile(std::filesystem::path file);
+
+	/* Usage summaries (VERSION_CONTROL.md, "Usage"): off by default; only node ids, action names, counts and times */
+	/// @brief Sets the file the usage summaries and the person's consent are kept in, and loads it (default:
+	/// `<data folder>/<screen file name>.usage.json`, beside the "persist" state).
+	/// @param file The file.
+	void setUsageFile(std::filesystem::path file);
+	/// @brief The host's setting: usage summaries count only while it is on and the person consented.
+	/// @param on Whether the setting is on.
+	void setUsageEnabled(bool on);
+	/// @brief Whether the person consented to usage summaries on this device, once.
+	/// @return true if so.
+	[[nodiscard]] bool usageConsented() const;
+	/// @brief Records the person's consent (the host asks once, then never again).
+	void giveUsageConsent();
+	/// @brief The usage summaries, as JSON text: actions run and failed per node and action, screens visited, and the
+	/// controls never touched.
+	/// @return The summary.
+	[[nodiscard]] std::string usageJson();
+	/// @brief Forgets the usage counts (the consent stays).
+	void clearUsage();
 
 	/// @brief Runs an action as if a panel triggered it.
 	/// @param name The action (from the file, else native).
@@ -291,6 +360,22 @@ public:
 	void endPreview();
 	/// @brief The proposal being previewed, if any.
 	[[nodiscard]] std::optional<int> previewedProposal() const noexcept;
+	/// @brief Sets how a proposal's evidence ("getEvidence", VERSION_CONTROL.md) plays the screen's scenarios: given
+	/// the proposal's document as JSON text, returns `[{"name", "passed", "message"}]` as JSON text. Without one, the
+	/// evidence has no scenarios. affrescoui_host plays the screen's `.scenarios.json` (modules/automation).
+	/// @param check The check, or an empty function.
+	void setScenarioCheck(std::function<std::string(const std::string& documentJson)> check);
+	/// @brief Turns the inspector on or off: an overlay showing the node, bounds, bindings as written and last commit
+	/// of the panel under the pointer, the frame and update statistics, and the latest events. Off by default; a
+	/// reviewer can also turn it on with an "inspect" message (VERSION_CONTROL.md). It never shows a value from the
+	/// state, and pictures drawn for peers leave it out.
+	/// @param on true to show it.
+	/// @param statistics false to leave out times and counts, so that a picture of it is always the same.
+	/// @param error Receives why it can't, if not null.
+	/// @return false if it can't (no window yet).
+	bool setInspector(bool on, bool statistics = true, std::string* error = nullptr);
+	/// @brief The inspector's latest events, oldest first (none while it has been off).
+	[[nodiscard]] std::vector<std::string> inspectorTrace() const;
 
 	/* History */
 
@@ -339,6 +424,20 @@ public:
 	/// @param changesJson A change set from exportChanges().
 	/// @return true if it was; false for one that wasn't, or isn't valid JSON.
 	[[nodiscard]] bool hasImported(std::string_view changesJson) const;
+	/// @brief Installs a change set that may carry its request, base and proof (VERSION_CONTROL.md, "Self-repairing
+	/// change sets"): applied if its patch applies and its proof passes, otherwise left off, marked "needsRepair", and
+	/// a repair asked of the peers (a "request" of kind "repair"), which only a reviewer lands.
+	/// @param changesJson A change set from exportChanges() (with its signature, if any, already checked).
+	/// @param error Receives the error, if it is malformed (may be nullptr).
+	/// @return "applied", "needsRepair", "repairing", "repaired" or "gaveUp"; empty on an error.
+	std::string installChanges(std::string_view changesJson, std::string* error = nullptr);
+	/// @brief Sets how installChanges() checks a change set's proof: given the document it makes (with its state) and
+	/// the proof, as JSON text, returns why it fails, or "". affrescoui_host plays the proof's scenarios.
+	/// @param check The check, or an empty function (then a change set with a proof needs repair).
+	void setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check);
+	/// @brief Where the installed change sets stand.
+	/// @return `{"type": "repairs", "changeSets": [{name, status, reason, attempts, proposal, request, repairedFrom}]}`.
+	[[nodiscard]] std::string repairs() const;
 
 	/// @brief The current document, as JSON text.
 	[[nodiscard]] std::string documentJson() const;
@@ -385,7 +484,7 @@ public:
 	/// @param options Origins and limits.
 	/// @return The port listened on.
 	/// @throws std::runtime_error See above.
-	template<std::derived_from<net::TokenVerifier> Verifier>
+	template <std::derived_from<net::TokenVerifier> Verifier>
 	std::uint16_t listenWebSocket(Executor& executor, std::string_view address, Verifier verifier,
 	                              net::PeerServerOptions options = {}) {
 		return listenWebSocket(executor, address, std::make_shared<Verifier>(std::move(verifier)), std::move(options));

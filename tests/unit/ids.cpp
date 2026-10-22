@@ -24,7 +24,7 @@ namespace {
 json unnamedScreen() {
 	return json::parse(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "board": "Launch", "cards": [], "newCard": "" },
 		"components": { "moveButton": { "params": { "by": 1 }, "node": { "type": "label", "text": "{{by}}" } } },
 		"root": { "children": [

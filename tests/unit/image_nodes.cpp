@@ -35,7 +35,7 @@ json imageScreen() {
 	const std::string roboto = (fonts() / "Roboto-Regular.ttf").string(), lucide = (fonts() / "Lucide.ttf").string();
 	return {
 	    {"format", "affrescoui-screen"},
-	    {"version", 1},
+	    {"version", 2},
 	    {"fonts",
 		 {{"default", {{"file", roboto}, {"size", 16}, {"fallback", {"icons"}}}},
 		  {"icons", {{"file", lucide}, {"size", 16}}}}},
@@ -109,7 +109,7 @@ TEST_CASE("image nodes: a revision can't show a file outside the screen's folder
 	CHECK(error.find("root.children[0].file") != std::string::npos); // the place
 	CHECK(error.find("folder") != std::string::npos);                // and why
 	CHECK_FALSE(
-	    screen.applyRevision(R"({"set": {"#photo/file": "../../../examples/assets/fonts/Lucide.ttf"}})", &error));
+	    screen.applyRevision(R"({"set": {"#photo/file": "../../../examples/shared/fonts/Lucide.ttf"}})", &error));
 	CHECK(panel<affresco::ImageView>(screen, "photo").bitmap()->width() == 48); // unchanged
 
 	// The host may allow another folder: a file there that isn't an image then shows nothing, without an error

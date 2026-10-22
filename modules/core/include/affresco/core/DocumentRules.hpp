@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco {
@@ -36,6 +37,16 @@ inline std::optional<PermissionRule> parsePermissionRule(std::string_view text) 
 	return rule;
 }
 
+/// @brief What a proposal needs before it merges (the "review" key of the permissions, VERSION_CONTROL.md).
+struct ReviewPolicy {
+	int approvals = 1;          ///< Approvals from different reviewers.
+	int behaviourApprovals = 0; ///< Approvals when it changes behaviour (DocumentRules::behaviourLines()), if more.
+	/// Owners per part, like `CODEOWNERS`: a proposal that changes a pattern ("#board", "/colors") needs an approval
+	/// from one of its owners (author or channel names), in the order they were written.
+	std::vector<std::pair<std::string, std::vector<std::string>>> owners;
+	std::string grantsLast; ///< How long a "don't ask again" lasts at most ("8h", "7d"); empty: until revoked.
+};
+
 /// @brief What a document lets each author do: its permission rules, checked deny first, then ask, then allow.
 struct Permissions {
 	bool configured = false;            ///< false: no rules, so every change applies and anyone reviews.
@@ -43,6 +54,7 @@ struct Permissions {
 	std::vector<PermissionRule> ask;    ///< The ask rules, in the order they were written.
 	std::vector<PermissionRule> deny;   ///< The deny rules, in the order they were written.
 	std::vector<std::string> reviewers; ///< Who may decide on proposals (author or channel names).
+	ReviewPolicy review;                ///< What a proposal needs before it merges.
 };
 
 /// @brief What version control needs to know about the documents it stores.
@@ -75,6 +87,18 @@ public:
 	/// @throws DocumentError If the change is forbidden.
 	virtual void checkChange(const json& before, const json& after) const = 0;
 
+	/// @brief Brings a document written for an older version of the format to the current one, in place, before it is
+	/// validated (a version 1 screen read as version 2). The default changes nothing.
+	/// @param document The document.
+	/// @return One line for each change made; empty if the document is current.
+	[[nodiscard]] virtual std::vector<std::string> upgrade([[maybe_unused]] json& document) const { return {}; }
+
+	/// @brief Brings a revision's patch written for an older version of the format to the current one, in place (a
+	/// revision of a version 1 change set). The default changes nothing.
+	/// @param patch The revision's operations, as JSON Patch.
+	/// @return One line for each change made.
+	[[nodiscard]] virtual std::vector<std::string> upgradeRevision([[maybe_unused]] json& patch) const { return {}; }
+
 	/// @brief Checks a revision's size before any of it is applied, so a peer can't make the screen do unbounded
 	/// work. The default takes any size.
 	/// @param patch The revision's operations, as JSON Patch.
@@ -88,6 +112,17 @@ public:
 	/// @return One line for each such use, e.g. "uses files.write (writes files in 'workspace')".
 	[[nodiscard]] virtual std::vector<std::string> reviewLines([[maybe_unused]] const json& before,
 	                                                           [[maybe_unused]] const json& after) const {
+		return {};
+	}
+
+	/// @brief What a change does to behaviour, as lines for a reviewer: actions, steps, events and bindings added,
+	/// removed or changed. A review policy may ask more approvals for these (ReviewPolicy::behaviourApprovals), and a
+	/// proposal's evidence shows them. The default has none.
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
+	/// @return One line for each, e.g. "changes the action 'save'".
+	[[nodiscard]] virtual std::vector<std::string> behaviourLines([[maybe_unused]] const json& before,
+	                                                              [[maybe_unused]] const json& after) const {
 		return {};
 	}
 

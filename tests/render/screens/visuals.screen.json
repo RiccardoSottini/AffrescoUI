@@ -1,15 +1,15 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Images and icons, for the rendering check: one PNG with each fit (contain, cover, fill), the same picture as a JPEG, a small image with transparency (packed into a shared page), a large one (a texture of its own), and labels with Lucide icons, from a fallback of the text font and from a font of their own.",
 
 	"window": { "title": "Images and icons", "width": 560, "height": 400 },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons"] },
-		"icons": { "file": "../../../examples/assets/fonts/Lucide.ttf", "size": 16 },
-		"bigIcons": { "file": "../../../examples/assets/fonts/Lucide.ttf", "size": 32 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons"] },
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 },
+		"bigIcons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 32 }
 	},
 
 	"colors": { "background": "#f8fafc", "frame": "#cbd5e1", "text": "#0f172a", "accent": "#7c3aed", "danger": "#dc2626" },

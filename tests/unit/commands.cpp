@@ -42,7 +42,7 @@ void press(affresco::Window& window, affresco::Key key) {
 /// @return The screen's document.
 std::string document(const std::string& keys) {
 	return R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "n": 0, "mode": "a", "dirty": false, "seen": null },
 		"actions": {
 			"add": [{ "increment": "state.n", "by": 1 }],

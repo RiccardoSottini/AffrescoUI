@@ -1,0 +1,353 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Forge's language servers: one jsonrpc service per language (clangd, pyright, typescript-language-server), started on demand when main.cpp found and granted the program. Lsp.cpp keeps the protocol's bookkeeping (initialize, open documents, changes, positions) and answers through lspShow and lspDiagnostics; this file shows the answers: diagnostics as squiggles and in Problems, a hover card, completion and signature help at the caret, a peek list for definitions and references, a reviewed list of edits for rename and formatting, and symbols in a quick pick ('@' this file, '#' the workspace). With no server for a language, the editor works as before.",
+
+	"state": {
+		"lsp": {
+			"request": 0,
+			"files": [],
+			"hover": { "open": false, "text": "", "x": 0, "y": 0, "request": 0 },
+			"at": { "x": 0, "y": 0, "top": 0 },
+			"completion": { "open": false, "items": [], "word": "", "index": 0, "request": 0 },
+			"insert": { "text": "", "before": 0, "request": 0 },
+			"signature": { "open": false, "label": "", "documentation": "" },
+			"peek": { "open": false, "title": "", "items": [], "index": 0 },
+			"review": { "open": false, "kind": "", "edits": [], "files": 0, "truncated": false },
+			"rename": { "open": false, "name": "" },
+			"symbols": []
+		},
+		"symbolPick": { "open": false, "query": "" }
+	},
+
+	"computed": {
+		"lspCompletions": "{{fuzzySort(state.lsp.completion.items, state.lsp.completion.word, 'filter', 50)}}",
+		"lspSymbolItems": "{{map(state.lsp.symbols, {title: slice('                ', 0, 2 * it.depth) + it.name, detail: it.kind + (empty(it.detail) ? '' : ' ' + it.detail) + (slice(state.symbolPick.query, 0, 1) == '#' ? ' — ' + it.id : ''), name: it.name, id: it.id, line: it.line, column: it.column})}}",
+		"lspPeekRows": "{{map(state.lsp.peek.items, {id: index, cells: [it.label, it.id, it.line]})}}"
+	},
+
+	"services": {
+		"lsp_cpp": { "provider": "jsonrpc", "process": "clangd", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
+			"framing": "contentLength",
+				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
+				                  "workspace/didChangeWorkspaceFolders"],
+				"methods": {
+					"initialize": { "effect": "run", "revisable": false }, "shutdown": { "effect": "run", "revisable": false },
+					"textDocument/hover": { "effect": "read" }, "textDocument/completion": { "effect": "read" },
+					"textDocument/signatureHelp": { "effect": "read" }, "textDocument/definition": { "effect": "read" },
+					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
+					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
+					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
+					"textDocument/publishDiagnostics": { "effect": "event" } } },
+		"lsp_python": { "provider": "jsonrpc", "process": "pyright-langserver", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
+			"framing": "contentLength",
+				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
+				                  "workspace/didChangeWorkspaceFolders"],
+				"methods": {
+					"initialize": { "effect": "run", "revisable": false }, "shutdown": { "effect": "run", "revisable": false },
+					"textDocument/hover": { "effect": "read" }, "textDocument/completion": { "effect": "read" },
+					"textDocument/signatureHelp": { "effect": "read" }, "textDocument/definition": { "effect": "read" },
+					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
+					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
+					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
+					"textDocument/publishDiagnostics": { "effect": "event" } } },
+		"lsp_typescript": { "provider": "jsonrpc", "process": "typescript-language-server", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
+			"framing": "contentLength",
+				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
+				                  "workspace/didChangeWorkspaceFolders"],
+				"methods": {
+					"initialize": { "effect": "run", "revisable": false }, "shutdown": { "effect": "run", "revisable": false },
+					"textDocument/hover": { "effect": "read" }, "textDocument/completion": { "effect": "read" },
+					"textDocument/signatureHelp": { "effect": "read" }, "textDocument/definition": { "effect": "read" },
+					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
+					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
+					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
+					"textDocument/publishDiagnostics": { "effect": "event" } } }
+	},
+
+	"actions": {
+		"lspAsk": [
+			{ "increment": "state.lsp.request", "by": 1 },
+			{ "call": "forge.lsp.request",
+			  "with": { "kind": "{{kind}}", "id": "{{computed.activeDoc.id ?? ''}}", "language": "{{computed.activeDoc.language ?? ''}}",
+			            "line": "{{line ?? state.caret.line}}", "column": "{{column ?? state.caret.column}}",
+			            "request": "{{state.lsp.request}}", "newName": "{{newName ?? ''}}", "query": "{{query ?? ''}}" },
+			  "onError": [{ "run": "log", "with": { "text": "{{'Language server: ' + error}}" } }] }
+		],
+		"lspHoverAt": [
+			{ "if": "{{!event.over || computed.activeDoc == null}}",
+			  "then": [{ "set": "state.lsp.hover.open", "to": false }],
+			  "else": [
+				{ "set": "state.lsp.at", "to": "{{ {x: event.x, y: event.y, top: event.top} }}" },
+				{ "run": "lspAsk", "with": { "kind": "hover", "line": "{{event.line}}", "column": "{{event.column}}", "newName": null, "query": null } },
+				{ "set": "state.lsp.hover.request", "to": "{{state.lsp.request}}" }
+			  ] }
+		],
+		"lspTyped": [
+			{ "set": "state.lsp.at", "to": "{{ {x: event.x, y: event.y, top: event.top} }}" },
+			{ "set": "state.lsp.hover.open", "to": false },
+			{ "set": "state.lsp.completion.word", "to": "{{event.word}}" },
+			{ "set": "state.lsp.completion.index", "to": 0 },
+			{ "if": "{{event.text == '(' || event.text == ','}}",
+			  "then": [{ "run": "lspAsk", "with": { "kind": "signature", "line": "{{event.line}}", "column": "{{event.column}}", "newName": null, "query": null } }] },
+			{ "if": "{{event.text == ')'}}", "then": [{ "set": "state.lsp.signature.open", "to": false }] },
+			{ "if": "{{empty(event.word) && event.text != '.'}}",
+			  "then": [{ "set": "state.lsp.completion.open", "to": false }],
+			  "else": [
+				{ "if": "{{event.text == '.' || length(event.word) == 1 || !state.lsp.completion.open}}",
+				  "then": [
+					{ "run": "lspAsk", "with": { "kind": "completion", "line": "{{event.line}}", "column": "{{event.column}}", "newName": null, "query": null } },
+					{ "set": "state.lsp.completion.request", "to": "{{state.lsp.request}}" }
+				  ] }
+			  ] }
+		],
+		"lspPopupKey": [
+			{ "if": "{{event.key == 'escape' || length(computed.lspCompletions) == 0}}",
+			  "then": [{ "set": "state.lsp.completion.open", "to": false }] },
+			{ "if": "{{event.key == 'down'}}",
+			  "then": [{ "set": "state.lsp.completion.index", "to": "{{min(state.lsp.completion.index + 1, length(computed.lspCompletions) - 1)}}" }] },
+			{ "if": "{{event.key == 'up'}}",
+			  "then": [{ "set": "state.lsp.completion.index", "to": "{{max(state.lsp.completion.index - 1, 0)}}" }] },
+			{ "if": "{{event.key == 'pageDown'}}",
+			  "then": [{ "set": "state.lsp.completion.index", "to": "{{min(state.lsp.completion.index + 10, length(computed.lspCompletions) - 1)}}" }] },
+			{ "if": "{{event.key == 'pageUp'}}",
+			  "then": [{ "set": "state.lsp.completion.index", "to": "{{max(state.lsp.completion.index - 10, 0)}}" }] },
+			{ "if": "{{(event.key == 'enter' || event.key == 'tab') && state.lsp.completion.open && length(computed.lspCompletions) > 0}}",
+			  "then": [{ "run": "lspComplete", "with": { "index": "{{state.lsp.completion.index}}" } }] }
+		],
+		"lspComplete": [
+			{ "set": "state.lsp.insert",
+			  "to": "{{ {text: computed.lspCompletions[index].item.insert, before: length(state.lsp.completion.word), request: state.lsp.insert.request + 1} }}" },
+			{ "set": "state.lsp.completion.open", "to": false }
+		],
+		"lspShow": [{ "run": "lspAnswer", "with": { "answer": "{{event}}" } }],
+		"lspAnswer": [
+			{ "if": "{{answer.error != null}}",
+			  "then": [
+				{ "if": "{{answer.kind != 'hover' && answer.kind != 'completion' && answer.kind != 'signature' && answer.kind != 'tokens'}}",
+				  "then": [{ "run": "notify", "with": { "severity": "info", "message": "{{'Language server: ' + answer.error}}" } }] }
+			  ],
+			  "else": [
+				{ "if": "{{answer.kind == 'hover' && answer.request == state.lsp.hover.request}}",
+				  "then": [{ "set": "state.lsp.hover", "to": "{{ {open: !empty(answer.result.text), text: answer.result.text, x: state.lsp.at.x, y: state.lsp.at.y, request: answer.request} }}" }] },
+				{ "if": "{{answer.kind == 'completion' && answer.request == state.lsp.completion.request}}",
+				  "then": [
+					{ "set": "state.lsp.completion.items", "to": "{{answer.result.items}}" },
+					{ "set": "state.lsp.completion.index", "to": 0 },
+					{ "set": "state.lsp.completion.open", "to": "{{length(answer.result.items) > 0}}" }
+				  ] },
+				{ "if": "{{answer.kind == 'signature'}}",
+				  "then": [{ "set": "state.lsp.signature", "to": "{{answer.result == null ? {open: false, label: '', documentation: ''} : {open: true, label: answer.result.label, documentation: answer.result.documentation}}}" }] },
+				{ "if": "{{answer.kind == 'definition' && length(answer.result.locations) == 1}}",
+				  "then": [{ "run": "lspOpenLocation", "with": { "at": "{{answer.result.locations[0]}}" } }] },
+				{ "if": "{{(answer.kind == 'definition' && length(answer.result.locations) != 1) || answer.kind == 'references'}}",
+				  "then": [{ "set": "state.lsp.peek", "to": "{{ {open: true, index: 0, items: answer.result.locations, title: (answer.kind == 'definition' ? 'Definitions: ' : 'References: ') + length(answer.result.locations) + (answer.result.truncated ? '+' : '')} }}" }] },
+				{ "if": "{{(answer.kind == 'rename' || answer.kind == 'format') && answer.result.error != null}}",
+				  "then": [{ "run": "notify", "with": { "severity": "warning", "message": "{{'Not applied: ' + answer.result.error}}" } }] },
+				{ "if": "{{(answer.kind == 'rename' || answer.kind == 'format') && answer.result.error == null}}",
+				  "then": [
+					{ "if": "{{length(answer.result.edits) == 0}}",
+					  "then": [{ "run": "log", "with": { "text": "Language server: nothing to change" } }],
+					  "else": [{ "set": "state.lsp.review", "to": "{{ {open: true, kind: answer.kind, edits: answer.result.edits, files: answer.result.files, truncated: answer.result.truncated} }}" }] }
+				  ] },
+				{ "if": "{{answer.kind == 'symbols' || answer.kind == 'workspaceSymbols'}}",
+				  "then": [{ "set": "state.lsp.symbols", "to": "{{answer.result.symbols}}" }] },
+				{ "if": "{{answer.kind == 'tokens'}}",
+				  "then": [{ "set": "state.lsp.files", "to": "{{concat(filter(state.lsp.files, it.id != answer.id), [{id: answer.id, decorations: (find(state.lsp.files, it.id == answer.id) ?? {}).decorations ?? [], tokens: answer.result}])}}" }] }
+			  ] }
+		],
+		"lspDiagnostics": [{ "run": "lspPublished", "with": { "published": "{{event}}" } }],
+		"lspPublished": [
+			{ "if": "{{published.error != null}}", "then": [{ "run": "log", "with": { "text": "{{'Language server: ' + published.error}}" } }],
+			  "else": [{ "run": "lspStore", "with": { "published": "{{published}}" } }] }
+		],
+		"lspStore": [
+			{ "set": "state.lsp.files",
+			  "to": "{{concat(filter(state.lsp.files, it.id != published.id), [{id: published.id, decorations: published.decorations, tokens: (find(state.lsp.files, it.id == published.id) ?? {}).tokens ?? []}])}}" },
+			{ "set": "state.problems",
+			  "to": "{{concat(filter(state.problems, !(it.server ?? false) || it.file != published.id), map(published.items, merge(it, {server: true})))}}" },
+			{ "if": "{{computed.activeDoc != null && computed.activeDoc.id == published.id}}",
+			  "then": [{ "run": "lspAsk", "with": { "kind": "tokens", "line": null, "column": null, "newName": null, "query": null } }] }
+		],
+		"lspPlay": [
+			{ "call": "forge.lsp.normalize", "with": { "kind": "{{event.kind}}", "result": "{{event.result}}", "id": "{{event.id ?? ''}}", "root": "{{event.root ?? ''}}" },
+			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Language server: ' + error}}" } }],
+			  "then": [
+				{ "if": "{{event.kind == 'diagnostics'}}",
+				  "then": [{ "run": "lspPublished", "with": { "published": "{{result}}" } }],
+				  "else": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: event.kind, id: event.id ?? '', request: event.request ?? state.lsp.request, result: result, error: null} }}" } }] }
+			  ] }
+		],
+		"lspOpenLocation": [
+			{ "run": "openPath", "with": { "path": "{{at.id}}", "label": "{{reverse(split(at.id, '/'))[0]}}" } },
+			{ "set": "state.goTo.line", "to": "{{at.line}}" },
+			{ "set": "state.goTo.column", "to": "{{at.column}}" },
+			{ "increment": "state.goTo.request", "by": 1 }
+		],
+		"lspPeekOpen": [
+			{ "run": "lspOpenLocation", "with": { "at": "{{state.lsp.peek.items[number(event.id)]}}" } },
+			{ "set": "state.lsp.peek.open", "to": false }
+		],
+		"lspApply": [
+			{ "call": "forge.lsp.apply", "with": { "edits": "{{state.lsp.review.edits}}" },
+			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied: ' + error}}" } }],
+			  "then": [{ "run": "log", "with": { "text": "{{'Applied ' + plural(result.edits, 'edit') + ' in ' + plural(result.files, 'file')}}" } }] },
+			{ "set": "state.lsp.review.open", "to": false }
+		],
+		"lspRenameSend": [
+			{ "set": "state.lsp.rename.open", "to": false },
+			{ "if": "{{!empty(trim(state.lsp.rename.name))}}",
+			  "then": [{ "run": "lspAsk", "with": { "kind": "rename", "newName": "{{trim(state.lsp.rename.name)}}", "line": null, "column": null, "query": null } }] }
+		],
+		"lspSymbolPicked": [
+			{ "run": "lspOpenLocation", "with": { "at": "{{ {id: item.id, line: item.line, column: item.column} }}" } }
+		],
+		"goToDefinition": { "title": "Go to Definition", "category": "Go", "icon": "arrow-right",
+			"enablement": "{{computed.activeDoc != null}}",
+			"do": [{ "run": "lspAsk", "with": { "kind": "definition", "line": null, "column": null, "newName": null, "query": null } }] },
+		"findReferences": { "title": "Find All References", "category": "Go", "icon": "list",
+			"enablement": "{{computed.activeDoc != null}}",
+			"do": [{ "run": "lspAsk", "with": { "kind": "references", "line": null, "column": null, "newName": null, "query": null } }] },
+		"renameSymbol": { "title": "Rename Symbol", "category": "Edit", "icon": "pencil",
+			"enablement": "{{computed.activeDoc != null}}",
+			"do": [{ "set": "state.lsp.rename", "to": { "open": true, "name": "" } }] },
+		"formatDocument": { "title": "Format Document", "category": "Edit", "icon": "align-left",
+			"enablement": "{{computed.activeDoc != null}}",
+			"do": [{ "run": "lspAsk", "with": { "kind": "format", "line": null, "column": null, "newName": null, "query": null } }] },
+		"triggerSuggest": { "title": "Trigger Suggest", "category": "Edit", "icon": "list",
+			"enablement": "{{computed.activeDoc != null}}",
+			"do": [
+				{ "run": "lspAsk", "with": { "kind": "completion", "line": null, "column": null, "newName": null, "query": null } },
+				{ "set": "state.lsp.completion.request", "to": "{{state.lsp.request}}" },
+				{ "set": "state.lsp.completion.word", "to": "" }
+			] },
+		"goToSymbol": { "title": "Go to Symbol in Editor...", "category": "Go", "icon": "hash",
+			"enablement": "{{computed.activeDoc != null}}",
+			"do": [
+				{ "set": "state.lsp.symbols", "to": [] },
+				{ "set": "state.symbolPick.query", "to": "@" }, { "set": "state.symbolPick.open", "to": true },
+				{ "run": "lspAsk", "with": { "kind": "symbols", "line": null, "column": null, "newName": null, "query": null } }
+			] },
+		"goToWorkspaceSymbol": { "title": "Go to Symbol in Workspace...", "category": "Go", "icon": "hash",
+			"enablement": "{{computed.activeDoc != null}}",
+			"do": [
+				{ "set": "state.lsp.symbols", "to": [] },
+				{ "set": "state.symbolPick.query", "to": "#" }, { "set": "state.symbolPick.open", "to": true }
+			] }
+	},
+
+	"watch": {
+		"state.symbolPick.query": [
+			{ "if": "{{state.symbolPick.open && slice(event.value, 0, 1) == '#' && length(event.value) > 1}}",
+			  "then": [{ "run": "lspAsk", "with": { "kind": "workspaceSymbols", "query": "{{slice(event.value, 1)}}", "line": null, "column": null, "newName": null } }] }
+		]
+	},
+
+	"keys": {
+		"f12": "goToDefinition",
+		"shift+f12": "findReferences",
+		"f2": "renameSymbol",
+		"shift+alt+f": "formatDocument",
+		"ctrl+space": "triggerSuggest",
+		"mod+shift+o": "goToSymbol",
+		"mod+t": "goToWorkspaceSymbol"
+	},
+
+	"menus": {
+		"go": {
+			"definition": { "run": "goToDefinition", "group": "2_symbols", "order": 1 },
+			"references": { "run": "findReferences", "group": "2_symbols", "order": 2 },
+			"symbol": { "run": "goToSymbol", "group": "2_symbols", "order": 3 },
+			"workspaceSymbol": { "run": "goToWorkspaceSymbol", "group": "2_symbols", "order": 4 }
+		}
+	},
+
+	"components": {
+		"forgeLsp": {
+			"node": {
+				"type": "column", "id": "lsp", "width": 0, "height": 0,
+				"children": [
+					{ "type": "column", "id": "lsp-hover", "width": 420, "color": "@color.widget",
+					  "borderWidth": 1, "borderColor": "@color.border",
+					  "x": "{{state.lsp.hover.x}}", "y": "{{state.lsp.hover.y}}",
+					  "overlay": { "placement": "window", "open": "state.lsp.hover.open", "dismiss": "outside" },
+					  "children": [
+						{ "type": "label", "id": "lsp-hover-text", "width": "100%", "padding": 8, "wrap": true, "fitText": true,
+						  "textColor": "@color.text", "text": "{{state.lsp.hover.text}}" }
+					  ] },
+					{ "type": "column", "id": "lsp-signature", "width": 420, "color": "@color.widget",
+					  "borderWidth": 1, "borderColor": "@color.border",
+					  "x": "{{state.lsp.at.x}}", "y": "{{max(state.lsp.at.top - 48, 0)}}",
+					  "overlay": { "placement": "window", "open": "state.lsp.signature.open", "dismiss": "outside" },
+					  "children": [
+						{ "type": "label", "id": "lsp-signature-label", "padding": 6, "font": "code", "fitText": true, "textColor": "@color.text",
+						  "text": "{{state.lsp.signature.label}}" },
+						{ "type": "label", "id": "lsp-signature-doc", "width": "100%", "padding": 6, "wrap": true, "fitText": true,
+						  "when": "{{!empty(state.lsp.signature.documentation)}}",
+						  "textColor": "@color.muted", "text": "{{state.lsp.signature.documentation}}" }
+					  ] },
+					{ "type": "column", "id": "lsp-completion", "width": 360, "color": "@color.widget",
+					  "borderWidth": 1, "borderColor": "@color.border",
+					  "x": "{{state.lsp.at.x}}", "y": "{{state.lsp.at.y}}",
+					  "overlay": { "placement": "window", "open": "state.lsp.completion.open", "dismiss": "outside" },
+					  "children": [
+						{ "type": "row", "id": "lsp-completion-item", "width": "100%", "height": 22, "gap": 8,
+						  "repeat": { "for": "c", "in": "{{slice(computed.lspCompletions, max(state.lsp.completion.index - 9, 0), max(state.lsp.completion.index - 9, 0) + 10)}}", "index": "ci" },
+						  "color": "{{c.index == state.lsp.completion.index ? '@color.selection' : '@color.widget'}}",
+						  "cursor": "hand", "onClick": { "run": "lspComplete", "with": { "index": "{{c.index}}" } },
+						  "children": [
+							{ "type": "label", "id": "lsp-completion-label", "font": "code", "fitText": true, "textColor": "@color.text",
+							  "text": "{{c.item.label}}" },
+							{ "type": "label", "id": "lsp-completion-detail", "grow": 1, "textColor": "@color.muted",
+							  "text": "{{c.item.detail}}" }
+						  ] }
+					  ] },
+					{ "type": "column", "id": "lsp-peek", "width": 640, "height": 260, "color": "@color.widget",
+					  "borderWidth": 1, "borderColor": "@color.border",
+					  "overlay": { "placement": "center", "open": "state.lsp.peek.open", "dismiss": "outside" },
+					  "children": [
+						{ "type": "label", "id": "lsp-peek-title", "width": "100%", "padding": 6, "textColor": "@color.text",
+						  "text": "{{state.lsp.peek.title}}" },
+						{ "type": "table", "id": "lsp-peek-list", "width": "100%", "grow": 1, "items": "{{computed.lspPeekRows}}",
+						  "rowHeight": 22, "color": "@color.widget", "textColor": "@color.text",
+						  "selectedBackground": "@color.selection", "accentColor": "@color.accent",
+						  "columns": [{ "id": "text", "title": "", "width": 360 }, { "id": "file", "title": "File", "width": 200 },
+						              { "id": "line", "title": "Line", "width": 60 }],
+						  "onOpen": { "run": "lspPeekOpen" } }
+					  ] },
+					{ "use": "dialog", "id": "lsp-rename-dialog",
+					  "with": { "open": "state.lsp.rename.open", "height": 150, "title": "Rename Symbol", "message": "",
+					            "buttons": [{ "title": "Rename", "run": "lspRenameSend" }, { "title": "Cancel" }] },
+					  "children": [
+						{ "type": "textarea", "id": "lsp-rename-name", "bind": "state.lsp.rename.name", "autofocus": true,
+						  "anchors": { "left": 20, "right": 20, "top": 48 }, "height": 28, "padding": 7, "color": "@color.input",
+						  "textColor": "@color.text", "placeholderColor": "@color.muted", "placeholder": "New name",
+						  "onSubmit": { "run": "lspRenameSend" } }
+					  ] },
+					{ "use": "dialog", "id": "lsp-review-dialog",
+					  "with": { "open": "state.lsp.review.open", "height": 320,
+					            "title": "{{state.lsp.review.kind == 'rename' ? 'Rename Symbol' : 'Format Document'}}",
+					            "message": "{{'Apply ' + plural(length(state.lsp.review.edits), 'edit') + ' in ' + plural(state.lsp.review.files, 'file') + '? Open files are changed in their editors and left unsaved; others are written.'}}",
+					            "buttons": [{ "title": "Apply", "run": "lspApply" }, { "title": "Cancel" }] },
+					  "children": [
+						{ "type": "table", "id": "lsp-review-list", "anchors": { "left": 20, "right": 20, "top": 80, "bottom": 56 },
+						  "items": "{{map(state.lsp.review.edits, {id: index, cells: [it.id, it.line + ':' + it.column, slice(join(split(it.text, '\n'), '⏎'), 0, 80)]})}}",
+						  "rowHeight": 20, "color": "@color.widget", "textColor": "@color.text",
+						  "columns": [{ "id": "file", "title": "File", "width": 200 }, { "id": "at", "title": "At", "width": 70 },
+						              { "id": "text", "title": "New text", "width": 260 }] }
+					  ] },
+					{ "id": "lsp-symbols", "use": "quickPick", "with": {
+						"name": "symbolPick", "width": 600, "color": "@color.widget", "textColor": "@color.text", "dimColor": "@color.muted",
+						"accent": "@color.info", "highlight": "@color.selection", "field": "@color.input",
+						"providers": [
+							{ "prefix": "@", "items": "{{computed.lspSymbolItems}}", "key": "name", "run": "lspSymbolPicked",
+							  "placeholder": "Go to a symbol in this file" },
+							{ "prefix": "#", "items": "{{computed.lspSymbolItems}}", "key": "name", "run": "lspSymbolPicked",
+							  "placeholder": "Type to search the workspace's symbols" }
+						] } }
+				]
+			}
+		}
+	}
+}

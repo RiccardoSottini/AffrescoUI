@@ -18,7 +18,7 @@ namespace {
 /// saves, and a timer that saves.
 constexpr const char* reviewScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio"] },
 	"actions": {
 		"save": [{ "call": "save" }],

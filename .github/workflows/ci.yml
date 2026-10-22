@@ -1,11 +1,12 @@
 # Every check of a pull request and of master, in a few jobs that each build once and run all that build can
 # (.github/workflows/README.md has the jobs, what each checks, and how to run each check locally):
 # - Changes: whether the change needs a build at all (prose alone doesn't; the build jobs are then skipped);
-# - Linux: GCC; the unit, window, CLI, MCP and scenario tests, the rendering check, the package check, the API
-#   reference, and the quality gate (clang-tidy on the changed lines, function size);
+# - Linux: GCC; the unit, window, CLI, MCP and scenario tests, every application opening, the rendering check, the
+#   package check, the API reference, and the quality gate (clang-tidy on the changed lines, function size);
 # - Linux (address + undefined sanitizers): GCC with ASan and UBSan: the tests and the rendering check;
 # - Fuzz, on pull requests: every fuzz target for 60 s, one after the other, from the nightly corpus;
-# - macOS (build only); Windows: MSVC, the unit tests, the scenarios and the CLI's tests, headless;
+# - macOS (build only): the unit tests, the scenarios and every application opening;
+# - Windows: MSVC, the unit tests, the scenarios and the CLI's tests, headless;
 # - Benchmarks (callgrind), on pull requests: base and head on the same runner;
 # - Quality report, on master: the whole repository and the coverage of the unit tests.
 #
@@ -48,6 +49,10 @@ jobs:
       - name: Does the change need a build?
         id: diff
         run: .github/workflows/changes.sh "$BASE_COMMIT"
+      - name: Third-party components # cmake/dependencies.json against the pins, the vendored files and the notices
+        run: |
+          python3 tools/release/sbom.py --check
+          python3 -m unittest discover -s tools/release -p "test_sbom.py"
 
   linux:
     name: Linux
@@ -67,7 +72,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
-          packages: xvfb xauth libgl1-mesa-dri doxygen clang-18 clang-tidy-18 llvm-18 python3-venv
+          packages: xvfb xauth libgl1-mesa-dri doxygen clang-18 clang-tidy-18 llvm-18 python3-venv at-spi2-core libatspi2.0-dev
           cache: linux-gcc
       - name: Build
         run: |
@@ -77,10 +82,27 @@ jobs:
         run: ctest --test-dir build -R unit --output-on-failure
       - name: Window tests # pictures drawn with OpenGL, under Xvfb (the rest of a window runs headless, in unit)
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
+      - name: Accessibility through AT-SPI # ACCESSIBILITY.md: the tree read as Orca reads it, on a bus of its own
+        run: >
+          xvfb-run -a -s "-screen 0 1920x1080x24" dbus-run-session -- sh -c
+          '/usr/libexec/at-spi-bus-launcher --launch-immediately & sleep 2;
+          dbus-send --session --print-reply --dest=org.a11y.Bus /org/a11y/bus org.freedesktop.DBus.Properties.Set
+          string:org.a11y.Status string:IsEnabled variant:boolean:true;
+          AFFRESCOUI_ATSPI=1 build/affrescoui_window_tests -tc="accessibility*"'
       - name: Command-line tool and MCP queries # tools/affrescoui/check.py, mcp/test_affrescoui_mcp.py
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
       - name: The scenarios # affrescoui test, headless: what each template does, and where the rendering check's screens put each node
-        run: build/affrescoui test examples/assets/screens/*.scenarios.json tests/render/screens/*.scenarios.json
+        run: >
+          build/affrescoui test examples/{code-editor,flow,haven,sign-in,streak,studio,tempo}/*.scenarios.json
+          tests/render/screens/*.scenarios.json
+      - name: Every application's first frame # tests/smoke/first_frames.py: each screen in tools/media/gallery.json loads, checks and draws
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/first_frames.py
+      - name: Every application opens # tests/smoke/open_apps.py: each program and screen as its README starts it, 5 s
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/smoke/open_apps.py
+      - name: The policy tests # affrescoui policy test: each *.policy.json's example revisions get the expected decision
+        run: build/affrescoui policy test $(git ls-files '*.policy.json')
+      - name: Every file is format version 2 # affrescoui migrate --check: SCREEN_FORMAT.md, "Migrating from version 1"
+        run: git ls-files -z '*.json' ':!:tests/migrate/v1/**' | xargs -0 build/affrescoui migrate --check
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
       - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)
@@ -224,6 +246,8 @@ jobs:
           cmake --build build
       - name: Unit tests and the templates' scenarios # headless
         run: ctest --test-dir build -R "unit|scenarios" --output-on-failure
+      - name: Every application opens # tests/smoke/open_apps.py, in the runner's own window session
+        run: python3 tests/smoke/open_apps.py
 
   windows:
     name: Windows
@@ -280,6 +304,36 @@ jobs:
         with:
           name: benchmarks
           path: ${{ runner.temp }}/perf/
+
+  # The agent benchmark (benchmarks/agents/README.md) with its oracle: every task's reference revision submitted
+  # through the MCP server to a host on a private socket, then its scenarios played. No model and no secret: it fails
+  # when a task, its scenarios or the reference no longer agree with the code.
+  agent-benchmark:
+    name: Agent benchmark (oracle)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: xvfb xauth libgl1-mesa-dri
+          cache: linux-gcc-agent-benchmark
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DAFFRESCOUI_BUILD_TESTS=OFF
+          cmake --build build --target affrescoui
+      - name: Every task, by the oracle
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 benchmarks/agents/run.py --client oracle --out "$RUNNER_TEMP/agents/oracle.json"
+      - name: Upload the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: agent-benchmark
+          path: ${{ runner.temp }}/agents/
 
   # The whole repository (the longest and most complex functions, tidy findings per module) and the coverage of the
   # unit tests, on master only: 15 minutes that a pull request doesn't need. Fails only when coverage falls below the

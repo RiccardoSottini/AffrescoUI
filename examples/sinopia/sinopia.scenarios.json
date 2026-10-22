@@ -1,0 +1,1316 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Sinopia checked headless, with its natives: affrescoui_sinopia --check sinopia.scenarios.json. Headless there is no window, so thumbnails, PNG exports and the audience window are drawn only when it runs; the PDF export is written to a temporary folder.",
+	"screen": "sinopia.screen.json",
+	"scenarios": [
+		{
+			"name": "sinopia-load-the-sample",
+			"note": "The sample deck loads, renders its five slides on the stage and lists them with their sections",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.title",
+						"is": "Sinopia tour"
+					}
+				},
+				{
+					"expect": {
+						"state": "render.slides.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "render.width",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "render.height",
+						"is": 450
+					}
+				},
+				{
+					"expect": {
+						"node": "#slide-s1",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#slide-s5",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#list-s1",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#list-section-s1",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#list-section-s3",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#list-section-s2",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-pick-a-slide",
+			"note": "Clicking a thumbnail in the list shows that slide on the canvas and its notes",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#list-s3"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "current",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"node": "#o:card",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#o:star",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#o:title",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-add-a-rectangle",
+			"note": "The toolbar's rectangle adds one to the slide, selected, and the inspector shows its fill",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-rect"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].kind",
+						"is": "rect"
+					}
+				},
+				{
+					"expect": {
+						"state": "board.selection.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#inspector-object",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#inspector-slide",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-add-every-kind",
+			"note": "Each kind on the toolbar adds an object of that kind",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-text"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-ellipse"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-polygon"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-star"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-line"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-arrow"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-path"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects.length",
+						"is": 9
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[8].kind",
+						"is": "path"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[5].kind",
+						"is": "star"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-fill-and-stroke",
+			"note": "The inspector's swatches set the fill, and a stroke with a width of at least 2",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-rect"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#swatch-fill-1"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].fill",
+						"is": "#f59e0b"
+					}
+				},
+				{
+					"click": "#swatch-stroke-0"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].stroke",
+						"is": "#7c3aed"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].strokeWidth",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-gradient-and-shadow",
+			"note": "The gradient and shadow toggles add and remove them",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-ellipse"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#inspector-gradient"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].gradient.angle",
+						"is": 90
+					}
+				},
+				{
+					"click": "#inspector-shadow"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].shadow.blur",
+						"is": 8
+					}
+				},
+				{
+					"click": "#inspector-shadow"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].shadow",
+						"is": null
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-steppers",
+			"note": "The steppers change the corner radius and the rotation",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-rect"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#stepper-radius-plus"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#stepper-radius-plus"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].radius",
+						"is": 8
+					}
+				},
+				{
+					"click": "#stepper-rotate-plus"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].rotate",
+						"is": 15
+					}
+				},
+				{
+					"click": "#stepper-rotate-minus"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#stepper-rotate-minus"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].rotate",
+						"is": -15
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-delete-and-undo",
+			"note": "Backspace deletes the selection; undo brings it back",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-star"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects.length",
+						"is": 3
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects.length",
+						"is": 2
+					}
+				},
+				{
+					"click": "#tool-undo"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects.length",
+						"is": 3
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-duplicate-an-object",
+			"note": "mod+D duplicates the selection, which then selects the copy",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-rect"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "board.selection.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[3].kind",
+						"is": "rect"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-arrange-align-and-order",
+			"note": "Align left puts a lone object on the slide's left edge; Back sends it behind the others",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-rect"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#choice-align-left"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].x",
+						"is": 0
+					}
+				},
+				{
+					"click": "#choice-order-back"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[0].kind",
+						"is": "rect"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-lock-an-object",
+			"note": "mod+L locks the selected object, and the lock button shows it",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-rect"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].objects[2].locked",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#inspector-lock",
+						"property": "tooltip",
+						"is": "Lock"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-set-a-build",
+			"note": "A build on an object gets the next step on its slide",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#list-s2"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-add-rect"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#choice-build-fade"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[4].build.kind",
+						"is": "fade"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[4].build.order",
+						"is": 4
+					}
+				},
+				{
+					"click": "#choice-build-none"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].objects[4].build.order",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-new-duplicate-delete-slide",
+			"note": "New slide adds one after the current slide; duplicate copies it; delete removes it",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-new-slide"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides.length",
+						"is": 6
+					}
+				},
+				{
+					"expect": {
+						"state": "current",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "render.slides.length",
+						"is": 6
+					}
+				},
+				{
+					"click": "#tool-duplicate-slide"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides.length",
+						"is": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "current",
+						"is": 2
+					}
+				},
+				{
+					"click": "#tool-delete-slide"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides.length",
+						"is": 6
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-slide-transition",
+			"note": "The slide inspector sets the transition and its duration",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#choice-transition-push"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].transition.kind",
+						"is": "push"
+					}
+				},
+				{
+					"click": "#stepper-transitionMs-plus"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].transition.ms",
+						"is": 500
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-skip-a-slide",
+			"note": "Skip slide marks the slide skipped, and its thumbnail says so",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#inspector-skip"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].skip",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#list-s1-skip",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#list-s1-number",
+						"property": "text",
+						"is": "1  skipped"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-deck-size",
+			"note": "The deck size 4:3 renders 800 by 600, and A4 a portrait-free page of its own size",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#choice-size-4:3"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.size",
+						"is": "4:3"
+					}
+				},
+				{
+					"expect": {
+						"state": "render.height",
+						"is": 600
+					}
+				},
+				{
+					"expect": {
+						"node": "#slide-s1",
+						"property": "height",
+						"is": 600
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-speaker-notes",
+			"note": "Notes typed under the canvas are saved into the slide after a pause",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#notes"
+				},
+				{
+					"type": "Say hello"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "notesDraft",
+						"is": "Say hello"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].notes",
+						"is": "Say hello"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-outline",
+			"note": "The outline tab lists the slides' titles; clicking one picks it",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#side-outline"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"node": "#outline-s1",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#list-s1",
+						"exists": false
+					}
+				},
+				{
+					"click": "#outline-s5"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "current",
+						"is": 4
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-sorter-view",
+			"note": "The sorter shows every slide in a grid in place of the canvas, and toggles back",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-sorter"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "view",
+						"is": "sorter"
+					}
+				},
+				{
+					"expect": {
+						"node": "#sorter-grid",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#sorter-s4-skip",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#board",
+						"exists": false
+					}
+				},
+				{
+					"click": "#tool-sorter"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"node": "#board",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-sorter-drag-to-reorder",
+			"note": "Dragging a thumbnail onto another moves its slide there",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"drag": "#list-s2",
+					"to": "#list-s1"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "deck.slides[0].id",
+						"is": "s2"
+					}
+				},
+				{
+					"expect": {
+						"state": "deck.slides[1].id",
+						"is": "s1"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-dark-theme",
+			"note": "The theme button switches to dark and back",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-theme"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"click": "#tool-theme"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-export-pdf",
+			"note": "Export writes a PDF with a page per slide that isn't skipped",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-pdf"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "exported.pages",
+						"is": 4
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-save",
+			"note": "Save writes the deck to a file named after its title",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"key": "mod+s"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "saved.file",
+						"is": "Sinopia-tour.sinopia.json"
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-present-and-step",
+			"note": "Present opens the presenter view; the arrows step through slides and builds; Escape ends on the shown slide",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"key": "mod+alt+p"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.on",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#presenter",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#presenter",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "right"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "show.step",
+						"is": 0
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.step",
+						"is": 1
+					}
+				},
+				{
+					"key": "down"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.step",
+						"is": 2
+					}
+				},
+				{
+					"key": "left"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.step",
+						"is": 1
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.on",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "current",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#presenter",
+						"property": "visible",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-present-skips-and-blacks",
+			"note": "Presenting passes over a skipped slide, B blacks the screen, the timer counts",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#list-s3"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-present"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 2
+					}
+				},
+				{
+					"key": "right"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 4
+					}
+				},
+				{
+					"key": "left"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 2
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.black",
+						"is": true
+					}
+				},
+				{
+					"wait": 1100
+				},
+				{
+					"expect": {
+						"state": "show.seconds",
+						"is": 1
+					}
+				},
+				{
+					"click": "#presenter-reset"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.seconds",
+						"is": 0
+					}
+				},
+				{
+					"click": "#presenter-end"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.on",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-present-ends-at-the-end",
+			"note": "On the last slide Next stays there, and the side says it is the end",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"click": "#list-s5"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#tool-present"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"click": "#presenter-forward"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"node": "#presenter-next-title",
+						"property": "text",
+						"is": "End of the deck"
+					}
+				},
+				{
+					"click": "#presenter-previous"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 2
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-presenting-keys-off-when-editing",
+			"note": "Without presenting, the arrows and B do nothing to the show",
+			"steps": [
+				{
+					"wait": 0
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "show.on",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "show.black",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "show.index",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "sinopia-the-sorter",
+			"note": "The sample deck in the sorter, every slide in a grid in place of the canvas (the gallery's scene, tools/media/gallery.json)",
+			"steps": [
+				{
+					"wait": 400,
+					"note": "past the thumbnails' debounce"
+				},
+				{
+					"click": "#tool-sorter"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "view",
+						"is": "sorter"
+					}
+				},
+				{
+					"expect": {
+						"node": "#sorter-grid",
+						"exists": true
+					}
+				}
+			]
+		}
+	]
+}

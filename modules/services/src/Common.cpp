@@ -18,6 +18,10 @@ Tasks::~Tasks() {
 bool Tasks::run(std::function<void(std::stop_token)> work) {
 	std::erase_if(tasks_, [](const Task& task) { return task.done->load(); });
 	if(tasks_.size() >= limit_) return false;
+#ifdef __EMSCRIPTEN__ // the browser build has one thread: the work runs now, on it (web/README.md)
+	work(std::stop_token{});
+	return true;
+#else
 	auto done = std::make_shared<std::atomic<bool>>(false);
 	std::jthread thread([work = std::move(work), done](std::stop_token stop) {
 		work(std::move(stop));
@@ -25,6 +29,7 @@ bool Tasks::run(std::function<void(std::stop_token)> work) {
 	});
 	tasks_.push_back({std::move(done), std::move(thread)});
 	return true;
+#endif
 }
 
 std::optional<std::filesystem::path> underRoot(const std::filesystem::path& root, std::string_view relative) {

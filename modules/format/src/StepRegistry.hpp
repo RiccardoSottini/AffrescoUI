@@ -137,5 +137,8 @@ void registerOtherSteps(StepRegistry& registry);
 /// @brief Registers the service steps: invoke, subscribe, respond (ServiceSteps.cpp).
 /// @param registry The registry.
 void registerServiceSteps(StepRegistry& registry);
+/// @brief Registers the sign-in steps: signIn, signOut (AuthSteps.cpp).
+/// @param registry The registry.
+void registerAuthSteps(StepRegistry& registry);
 
 } // namespace affresco::format

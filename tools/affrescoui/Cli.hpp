@@ -4,6 +4,7 @@
 /// @brief What the commands of the `affrescoui` tool share: exit codes, arguments, files, and the commands.
 
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <optional>
 #include <span>
@@ -113,10 +114,27 @@ Exit runScreen(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit checkScreen(std::span<const std::string_view> args);
 
+/// @brief `check --compose`: proves that a feature from another app fits a screen, through an adapter or directly
+/// (ComposeCommand.cpp), and prints the proof's reasons.
+/// @param args The arguments.
+/// @param prepare Registers the host's natives on each screen its scenarios play on.
+/// @return How it ended: Success if proven.
+Exit checkComposition(std::span<const std::string_view> args, const std::function<void(Screen&)>& prepare);
+
+/// @brief `contributions`: a screen's contribution points, typed exports and installable parts, compactly.
+/// @param args The arguments.
+/// @return How it ended.
+Exit listContributions(std::span<const std::string_view> args);
+
 /// @brief `test`: plays a screen's scenarios and reports pass and fail compactly.
 /// @param args The arguments.
 /// @return How it ended.
 Exit testScreen(std::span<const std::string_view> args);
+
+/// @brief `policy test`: plays `*.policy.json` files' example revisions against their screens' permissions.
+/// @param args The arguments.
+/// @return How it ended.
+Exit policyCommand(std::span<const std::string_view> args);
 
 /// @brief `render`: a picture of a screen's first frame, drawn offscreen.
 /// @param args The arguments.
@@ -143,9 +161,25 @@ Exit exportChanges(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit importChanges(std::span<const std::string_view> args);
 
+/// @brief `import`: with `--from`, writes a screen from another format's document (ImportCommand.cpp); without it,
+/// importChanges().
+/// @param args The arguments.
+/// @return How it ended.
+Exit importFile(std::span<const std::string_view> args);
+
+/// @brief `migrate`: rewrites version 1 files as version 2, keeping everything else as written.
+/// @param args The arguments.
+/// @return How it ended.
+Exit migrateFiles(std::span<const std::string_view> args);
+
 /// @brief `schema`: the format's JSON Schema and SCREEN_FORMAT.md's tables, generated from the registries.
 /// @param args The arguments.
 /// @return How it ended.
 Exit generateSchema(std::span<const std::string_view> args);
+
+/// @brief `sign`: signs a feature's manifest or a catalogue's index, or makes a signing key.
+/// @param args The arguments.
+/// @return How it ended.
+Exit signFile(std::span<const std::string_view> args);
 
 } // namespace affresco::cli

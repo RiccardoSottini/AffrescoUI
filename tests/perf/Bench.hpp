@@ -26,6 +26,7 @@ struct Workload {
 	bool cpuTime = false;            ///< Measure the main thread's CPU time instead of the wall clock.
 	std::function<void()> prepare{}; ///< Gets a run ready, e.g. a fresh repository; may be empty.
 	std::function<void()> step{};    ///< The measured work.
+	std::function<void(json&)> report{}; ///< Adds fields to the result after the runs, e.g. a percentile or memory.
 };
 
 /// @brief A screen loaded the way affrescoui_host loads one, and its window. Both live as long as the Context.
@@ -40,12 +41,16 @@ struct LoadedScreen {
 class Context {
 public:
 	/// @brief Sets where the inputs are.
-	/// @param screens The template screens (examples/assets/screens).
+	/// @param examples The examples, with the templates' folders (examples/templates.json).
 	/// @param edits The canonical agent edits (tests/perf/edits).
-	Context(std::filesystem::path screens, std::filesystem::path edits);
+	Context(std::filesystem::path examples, std::filesystem::path edits);
 
-	/// @brief The template screens' directory.
-	[[nodiscard]] const std::filesystem::path& screens() const noexcept { return screens_; }
+	/// @brief The examples' directory.
+	[[nodiscard]] const std::filesystem::path& examples() const noexcept { return examples_; }
+	/// @brief A template's folder, where its screen is.
+	/// @param name E.g. "kanban".
+	/// @return E.g. examples/flow.
+	[[nodiscard]] std::filesystem::path templateFolder(const std::string& name) const;
 	/// @brief The canonical edits' directory.
 	[[nodiscard]] const std::filesystem::path& edits() const noexcept { return edits_; }
 
@@ -84,7 +89,7 @@ private:
 	/// @param screen The screen, not yet built.
 	static void configure(Screen& screen);
 
-	std::filesystem::path screens_, edits_;       ///< See screens() and edits().
+	std::filesystem::path examples_, edits_;      ///< See examples() and edits().
 	std::optional<Application> application_;      ///< Started by application().
 	std::vector<std::unique_ptr<Screen>> loaded_; ///< Built or loaded so far; they go before the Application.
 };
@@ -107,12 +112,13 @@ struct Group {
 	GroupFactory create; ///< Creates them (the setup, such as windows, happens here).
 };
 
-/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp).
+/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp), editor (editor.cpp)
+/// and forge (forge.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> screenGroups();
 
-/// @brief The groups that need no window: expressions, commits, text (engine.cpp), history (history.cpp) and
-/// views (views.cpp, headless windows).
+/// @brief The groups that need no window: expressions, commits, text (engine.cpp), history (history.cpp),
+/// views (views.cpp, headless windows), buffers (buffers.cpp) and search (search.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> engineGroups();
 
@@ -121,10 +127,61 @@ struct Group {
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> historyWorkloads(const Context& context);
 
+/// @brief The "forge" group's workloads (forge.cpp): Forge, the demo IDE, opened, typed into, its tabs switched, a file
+/// searched for and its command palette run.
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> forgeWorkloads(Context& context);
+
 /// @brief The "views" group's workloads (views.cpp): a tree's 100,000-item folder opened then closed (two operations),
 /// and a 100,000-row list scrolled to a new place and drawn, on headless windows.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> viewWorkloads(Context&);
+
+/// @brief The "watch" group's workloads (watch.cpp): a folder of 100,000 files listed and watched as a DirectoryModel,
+/// and one file's change seen by it.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> watchWorkloads(Context&);
+
+/// @brief The "buffers" group's workloads (buffers.cpp): Forge's file buffers with 10,000 and 1,000,000 lines opened,
+/// edited and undone with the dirty check, and saved.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> bufferWorkloads(Context&);
+
+/// @brief The "search" group's workloads (search.cpp): the services' search engine over 2,000 generated files, a word
+/// with one thread and with eight, an expression, and a capped search.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> searchWorkloads(Context&);
+
+/// @brief The "syntax" group's workloads (syntax.cpp): a 100,000-line C++ file parsed and highlighted, and one
+/// keystroke in it parsed again and its screen highlighted, with a budget checked when AFFRESCOUI_PERF_BUDGETS is set.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> syntaxWorkloads(Context&);
+
+/// @brief The "editor" group's workloads (editor.cpp): typing in 1,000 and 100,000 lines and scrolling 10,000 and
+/// 1,000,000 on hidden windows, each operation drawn, with 99th-percentile budgets checked when AFFRESCOUI_PERF_BUDGETS is set.
+/// @param context Where the fonts are, and the windowing system.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> editorWorkloads(Context& context);
+/// @brief The "canvas" group's workloads (canvas.cpp): a canvas of 100,000 items panned to a new place and drawn, and
+/// the same with 1,000 items, on headless windows.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> canvasWorkloads(Context&);
+
+/// @brief The "tempera" group's workloads (tempera.cpp): a 20,000 by 20,000 image opened, panned and painted, with
+/// budgets when AFFRESCOUI_PERF_BUDGETS is set.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> temperaWorkloads(Context&);
+/// @brief The "graph" group's workloads (graph.cpp): a 1,000-node graph set and drawn, and one of its nodes dragged
+/// (a frame per pointer move), on a headless window.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> graphWorkloads(const Context&);
+
+/// @brief The "budgets" group's workloads (budgets.cpp): the budgets no other workload measures, an idle second, a
+/// 50 MB file opened, Forge started cold and Forge with 10 tabs and a terminal (BENCHMARKS.md).
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> budgetWorkloads(Context& context);
 
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 
@@ -173,13 +230,14 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::runtime_error If it can't be read.
 [[nodiscard]] std::string readFile(const std::filesystem::path& path);
 
-/// @brief The template screens, by name ("kanban" for kanban.screen.json), in name order.
-/// @param directory Where they are.
-/// @return Their names.
-[[nodiscard]] std::vector<std::string> templateNames(const std::filesystem::path& directory);
+/// @brief A screen file as a history holds it: its "include" files merged in, and its state.
+/// @param file The screen file.
+/// @return The document.
+/// @throws std::exception If it can't be read or isn't a valid screen.
+[[nodiscard]] json screenDocument(const std::filesystem::path& file);
 
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
-/// @param directory The template screens' directory.
+/// @param directory The Kanban template's folder.
 /// @param cards The cards in total; the template's own count, 12, leaves it as it is.
 /// @return The document.
 [[nodiscard]] json kanbanWithCards(const std::filesystem::path& directory, int cards);

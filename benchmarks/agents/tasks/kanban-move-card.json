@@ -1,0 +1,59 @@
+{
+	"id": "kanban-move-card",
+	"level": "edit",
+	"screen": "examples/flow/kanban.screen.json",
+	"request": "Move the card \"Onboarding checklist for new teams\" from the Backlog to the end of In progress.",
+	"scenarios": [
+		{
+			"name": "moved",
+			"steps": [
+				{
+					"expect": {
+						"state": "columns[0].cards.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "columns[1].cards.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "columns[1].cards[3].title",
+						"is": "Onboarding checklist for new teams"
+					}
+				},
+				{
+					"expect": {
+						"node": "#columnCount",
+						"text": "3",
+						"nth": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#columnCount",
+						"text": "4",
+						"nth": 1
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#board",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Onboarding checklist in progress",
+			"move": {
+				"/state/columns/0/cards/0": "/state/columns/1/cards/-"
+			}
+		}
+	]
+}

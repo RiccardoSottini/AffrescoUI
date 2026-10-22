@@ -1,0 +1,14 @@
+{
+	"format": "affrescoui-feature",
+	"version": 1,
+	"name": "wordCount",
+	"release": "1.0.0",
+	"title": "Word count",
+	"requires": { "format": 1 },
+	"provides": {
+		"parts": [
+			{ "id": "words", "point": "statusBar.right", "type": "row", "from": "end",
+			  "children": [{ "type": "label", "id": "wordLabel", "text": "{{len(state.words)}} words" }] }
+		]
+	}
+}

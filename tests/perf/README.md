@@ -84,6 +84,15 @@ as the OpenGL driver's, aren't counted.
 | `views/list-scroll-100k` | A list of 100,000 rows scrolled to a new place, then a frame: only the rows in view are drawn |
 | `views/table-sort-100k` | A table of 100,000 rows sorted by a column of numbers, descending or ascending (each run does both) |
 | `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
+| `editor/type-1k`, `editor/type-100k` | A key typed (a letter, then a backspace, in turn) in the middle of a file of 1,000 or 100,000 lines, then a frame drawn without presenting it, in a hidden window: 200 operations per run, each timed. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over 8 ms fails (roadmap item 8.4b) |
+| `editor/scroll-10k`, `editor/scroll-1m` | A file of 10,000 or 1,000,000 lines scrolled to a new place, then a frame drawn without presenting it. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over a 120 Hz frame (8.3 ms) fails |
+| `forge/open` | Forge (`examples/forge`), the demo IDE, parsed with its features, built with its natives, its folder (`tests/render/forge/folder`) indexed, and laid out (`forge.cpp`) |
+| `forge/type`, `forge/switch-tab` | In Forge with two files open, a character typed into the first one, or the other tab shown; the update and the layout |
+| `forge/search`, `forge/palette` | Forge's quick open filtered by a file name; its command palette opened, then filtered |
+| `canvas/pan-100k` | A canvas of 100,000 items panned to a new place, then a frame recorded (all but OpenGL): only the items in view are drawn. A frame at 120 Hz has 8.3 ms |
+| `canvas/pan-1k` | The same with 1,000 items: a lock keeps the 100,000-item pan within 3 times it |
+| `graph/1000` | A 1,000-node graph (a grid, each node linked to the next) set, laid out and painted into a record |
+| `graph/1000/drag` | One of its nodes dragged by its header: a frame (laid out and painted) per pointer move |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 
@@ -102,7 +111,7 @@ CI compares base and head the same way, so the gate isn't affected.
 
 ## Tokens
 
-`tokens.py` counts, for each template in `examples/assets/screens/`:
+`tokens.py` counts, for each template listed in `examples/templates.json`:
 
 - `document`: the minified document, as the MCP server's first `get_screen` sends it;
 - `outline`: `get_screen` with `outline=true`;
@@ -117,6 +126,40 @@ public, so compare ratios, not totals.
 The canonical edits are typical agent requests: change a colour, rename a label, add a column or a filter, restyle, add
 a button with its action, move a card, remove a node, and add an item or a node to each template. The `revision`
 workloads apply every one of them, so an edit that no longer applies fails the benchmark instead of being counted.
+
+## Budgets
+
+The budgets are the targets of [BENCHMARKS.md](../../BENCHMARKS.md): speed, memory and tokens. `budgets.json` lists
+them. For each one it gives the target, the workloads or token counts that measure it, the CI threshold, and the last
+measured value with its machine, commit and date. `budgets.py` measures and checks them through `run.py`:
+
+```sh
+python3 tests/perf/run.py --build build-release --budgets              # each budget, met or missed
+python3 tests/perf/run.py --build build-release --budgets --markdown   # BENCHMARKS.md's tables
+python3 tests/perf/run.py --build build-release --budgets --record     # writes the values into budgets.json
+python3 tests/perf/run.py --budgets --from "$out/head"                 # CI: fails above a threshold
+```
+
+The `budgets` group measures what no other workload does:
+
+- `budgets/idle`: one second of the Kanban template's event loop with nothing happening. `processMs` is the CPU time
+  of every thread in that second.
+- `budgets/open-50mb`: a 50 MiB file opened in Forge's buffers.
+- `budgets/forge-cold-start`: Forge from its document to its first frame.
+- `budgets/forge-10-tabs`: Forge with 10 files open in tabs and a terminal that starts no shell. Each run switches tab
+  and draws.
+
+The memory budgets read `residentBytes`: the process's footprint on macOS and its resident set on Linux. `run.py` runs
+each of them in a process of its own. The typing and scrolling budgets read the `p99` of their samples.
+
+CI fails a budget only above its `ciThreshold`:
+
+- **A number** is in what CI measures: instructions per operation under callgrind, or tokens.
+- **`"pending"`** waits for a Linux callgrind run to set it.
+- **`null`** gives its reason in `ciReason`, for example a wall-clock or percentile budget.
+
+A target never moves, and a miss stays a miss. The threshold of a missed token budget is the value it was recorded at,
+so the number can only get better.
 
 ## Scaling
 

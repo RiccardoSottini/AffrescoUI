@@ -1,0 +1,78 @@
+{
+	"id": "habit-uncheck-all",
+	"level": "feature",
+	"screen": "examples/streak/habit-tracker.screen.json",
+	"request": "Add an \"Uncheck all\" link with the id uncheckAll to the Today card's header that marks every habit as not done today.",
+	"scenarios": [
+		{
+			"name": "uncheck",
+			"steps": [
+				{
+					"expect": {
+						"state": "habits[0].done",
+						"is": true
+					}
+				},
+				{
+					"click": "#uncheckAll"
+				},
+				{
+					"expect": {
+						"state": "habits[0].done",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "habits[1].done",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#doneCount",
+						"text": "0 of 5 done"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#logo",
+		"#tabs",
+		"#habits",
+		"#stats",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Uncheck all",
+			"set": {
+				"/actions/uncheckAll": {
+					"title": "Uncheck every habit",
+					"category": "Habits",
+					"do": [
+						{
+							"set": "state.habits",
+							"to": "{{map(state.habits, merge(it, {'done': false}))}}"
+						}
+					]
+				}
+			},
+			"add": {
+				"#today/children/-": {
+					"id": "uncheckAll",
+					"type": "label",
+					"text": "Uncheck all",
+					"fitText": true,
+					"cursor": "hand",
+					"anchors": {
+						"left": 110,
+						"top": 24
+					},
+					"onClick": "uncheckAll"
+				}
+			}
+		}
+	]
+}

@@ -1,10 +1,10 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
-	"note": "Vector paths, for the rendering check: fills by both rules, strokes with each join and cap, dashes, curves and arcs, the line, bar and area charts from examples/assets/components/charts.json, and an SVG file as an image. The scenario changes the chart's values and a stroke.",
+	"version": 2,
+	"note": "Vector paths, for the rendering check: fills by both rules, strokes with each join and cap, dashes, curves and arcs, the line, bar and area charts from examples/shared/components/charts.json, and an SVG file as an image. The scenario changes the chart's values and a stroke.",
 
-	"include": ["../../../examples/assets/components/charts.json"],
+	"include": ["../../../examples/shared/components/charts.json"],
 
 	"window": { "title": "Paths", "width": 560, "height": 360 },
 

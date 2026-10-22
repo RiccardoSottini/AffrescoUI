@@ -1,0 +1,4 @@
+affrescoui provides CMake targets:
+
+  find_package(AffrescoUI CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE affrescoui::affrescoui)   # or one module: affrescoui::vcs, affrescoui::core, ...

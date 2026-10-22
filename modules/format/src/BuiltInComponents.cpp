@@ -82,15 +82,15 @@ constexpr std::string_view quickPickNode = R"({
 		"base": "{{'state.' + name}}",
 		"qp": "{{state[name]}}",
 		"q": "{{qp.query ?? ''}}",
-		"provider": "{{find(providers, len(it.prefix ?? '') > 0 && indexOf(q, it.prefix) == 0) ?? find(providers, len(it.prefix ?? '') == 0)}}",
-		"search": "{{slice(q, len(provider.prefix ?? ''))}}",
+		"provider": "{{find(providers, length(it.prefix ?? '') > 0 && indexOf(q, it.prefix) == 0) ?? find(providers, length(it.prefix ?? '') == 0)}}",
+		"search": "{{slice(q, length(provider.prefix ?? ''))}}",
 		"key": "{{provider.key ?? 'title'}}",
-		"home": "{{len(provider.prefix ?? '') == 0}}",
+		"home": "{{length(provider.prefix ?? '') == 0}}",
 		"recent": "{{home ? qp.recent ?? [] : []}}",
 		"recentKeys": "{{map(recent, it[key])}}",
 		"recentHits": "{{fuzzySort(recent, search, key)}}",
-		"results": "{{slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + len(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
-		"total": "{{len(results)}}",
+		"results": "{{slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + length(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}",
+		"total": "{{length(results)}}",
 		"sel": "{{clamp(qp.index ?? 0, 0, max(0, total - 1))}}",
 		"top": "{{clamp(qp.top ?? 0, 0, max(0, total - rows))}}"
 	},
@@ -121,7 +121,7 @@ constexpr std::string_view quickPickNode = R"({
 				{ "type": "row", "anchors": { "left": 14, "right": 140, "top": "{{(rowHeight - 18) / 2}}" }, "height": 18,
 				  "children": [{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}",
 				                 "textColor": "{{p.match ? accent : textColor}}", "fitText": true }] },
-				{ "type": "label", "text": "{{top + i < len(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
+				{ "type": "label", "text": "{{top + i < length(recentHits) ? 'recently used' : r.item.detail ?? ''}}",
 				  "textColor": "{{dimColor}}", "anchors": { "right": 14, "top": "{{(rowHeight - 18) / 2}}" },
 				  "fitText": true }
 			]
@@ -167,7 +167,7 @@ constexpr std::string_view others = R"({
 		"type": "row", "height": "{{height}}", "color": "{{color}}", "arrows": "horizontal",
 		"children": [{
 			"repeat": { "for": "m", "in": "{{menus}}", "index": "n" },
-			"width": "{{len(m.title ?? m.name ?? '') * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
+			"width": "{{length(m.title ?? m.name ?? '') * 8 + 20}}", "anchors": { "top": 0, "bottom": 0 },
 			"color": "{{color}}", "focusable": true, "mnemonic": "{{m.mnemonic ?? m.title ?? ''}}",
 			"hover": { "color": "{{highlight}}" }, "focused": { "color": "{{highlight}}" },
 			"onClick": { "toggle": "{{open + '.' + (m.name ?? n)}}" },
@@ -188,7 +188,7 @@ constexpr std::string_view others = R"({
 		"overlay": { "placement": "window", "open": "{{open}}", "dismiss": "outside", "modal": true },
 		"fill": true, "color": "{{backdrop}}",
 		"children": [{
-			"overlay": { "placement": "center", "open": "{{open}}" },
+			"overlay": { "placement": "center", "open": "{{open}}" }, "role": "dialog", "label": "{{title}}",
 			"width": "{{width}}", "height": "{{height}}", "color": "{{color}}", "radius": 6,
 			"borderWidth": 1, "borderColor": "#454545",
 			"children": [
@@ -198,7 +198,7 @@ constexpr std::string_view others = R"({
 				  "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 52 } },
 				{ "slot": true },
 				{ "type": "row", "anchors": { "right": 16, "bottom": 14 }, "height": 28,
-				  "width": "{{len(buttons) * 96}}", "gap": 8, "arrows": "horizontal",
+				  "width": "{{length(buttons) * 96}}", "gap": 8, "arrows": "horizontal",
 				  "children": [{
 					"repeat": { "for": "b", "in": "{{buttons}}", "index": "i" },
 					"width": 88, "anchors": { "top": 0, "bottom": 0 }, "radius": 4, "focusable": true,
@@ -221,6 +221,7 @@ constexpr std::string_view others = R"({
 		"overlay": { "placement": "window", "open": "{{open}}" },
 		"anchors": { "right": 16, "bottom": 16 }, "width": "{{width}}", "height": "{{progress == null ? 64 : 72}}",
 		"color": "{{color}}", "radius": 6, "borderWidth": 1, "borderColor": "#454545", "arrows": "horizontal",
+		"role": "status", "live": "polite",
 		"children": [
 			{ "type": "label", "text": "{{message}}", "textColor": "{{textColor}}", "anchors": { "left": 14, "top": 10 },
 			  "fitText": true },
@@ -231,7 +232,7 @@ constexpr std::string_view others = R"({
 			  "children": [{ "anchors": { "left": 0, "top": 0, "bottom": 0 }, "color": "{{accent}}",
 			                 "width": "{{max(0, min(1, progress ?? 0)) * 100 + '%'}}" }] },
 			{ "type": "row", "anchors": { "left": 14, "bottom": "{{progress == null ? 8 : 18}}" }, "height": 22,
-			  "width": "{{len(actions) * 96}}", "gap": 8,
+			  "width": "{{length(actions) * 96}}", "gap": 8,
 			  "children": [{
 				"repeat": { "for": "a", "in": "{{actions}}", "index": "i" },
 				"width": 88, "anchors": { "top": 0, "bottom": 0 }, "focusable": true, "cursor": "hand",
@@ -321,6 +322,8 @@ const std::map<std::string, json, std::less<>>& all() {
 		// Kept in a variable: a temporary in a range-for's range isn't kept alive before C++23's P2718 (GCC 15, clang 19)
 		json parsed = json::parse(others);
 		for(auto& [name, definition] : parsed.items()) made.emplace(name, std::move(definition));
+		json form = json::parse(builtInFormComponents());
+		for(auto& [name, definition] : form.items()) made.emplace(name, std::move(definition));
 		return made;
 	}();
 	return components;

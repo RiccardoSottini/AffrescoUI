@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`), change (`submit`, `commit`, proposals, history, change sets), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
@@ -24,6 +24,8 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   before their peers go.
 - **A peer is authored by the name it was connected with,** whatever name it gives itself. Every peer hears about
   commits, proposals and `emit` events; `request` and `reply` go to the other peers.
+- **Evidence is the host's:** `getEvidence` draws main and the proposal, plays the scenarios the host gave
+  `setScenarioCheck` on the proposal's document, and lists its changed texts; a revision can't carry any of it.
 - **Pictures show every image:** `render` waits for the image files still being decoded before it draws.
 - **Image files stay in their folders:** a screen's `image` nodes read files only inside the screen file's folder
   and the folders the host allows with `allowImageDirectory`.
@@ -58,7 +60,8 @@ Main thread only. Channels deliver messages through the `Executor` given to `lis
 
 ## Extension points
 
-Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `onAction`, `onCall`,
+`setLocale(tag)` gives screens whose `strings` name no `locale` the computer's (`format::systemLocale()`); the host
+calls it at start. Everything `format::Runtime` offers, as text-based callbacks: `registerType`, `onAction`, `onCall`,
 `onUnhandledAction`, `onEvent`; `setModel` for a `DataModel` the screen shows with `"in": "models.<name>"`; and
 `onAsyncCall` for a slow function run on a worker thread (with `setExecutor` for a window the Screen didn't create;
 destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and
@@ -77,7 +80,9 @@ src/
   Screen.cpp             Screen and Screen::Impl: loading (with "include": resolveIncludes, mergeInclude; menus
                          merge menu by menu, so feature files add to one menu), the data
                          and socket folders, persist, channels, peers
-  OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render"
+  OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render" and "getEvidence"
+  ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
+  Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
   Png.hpp / .cpp         a small PNG encoder and a PPM reader
 CMakeLists.txt           the affrescoui target and its sources
 ```
@@ -99,6 +104,9 @@ return app.run();
 `screen.registerType("chart", [] { return std::make_unique<Chart>(); }, {"series"}, applySeries)` before
 `createWindow`. The document can then use `{"type": "chart", "series": [...]}`, with every property of the panel's
 built-in type too.
+
+**Embed it in the host's OpenGL.** `screen.embed(embedding)` instead of `createWindow`: the screen is built in an
+`affresco::Embedding` (see the `render` README), whose frames the host draws (`src/EmbeddedScreen.cpp`).
 
 **Wire a module in differently.** Copy what `Screen::Impl` does with the parts you need: for example, a
 `vcs::Repository` and a `channel::Session` without a window give a headless document server.

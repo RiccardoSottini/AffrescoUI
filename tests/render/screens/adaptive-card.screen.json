@@ -1,0 +1,458 @@
+{
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Converted from Adaptive Cards 1.6",
+	"window": { "title": "Adaptive Card", "width": 480, "height": 640 },
+	"colors": {
+		"background": "#f8fafc",
+		"card": "#ffffff",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"accent": "#2563eb",
+		"onAccent": "#ffffff",
+		"fieldBorder": "#cbd5e1",
+		"divider": "#e2e8f0",
+		"placeholder": "#fef3c7",
+		"placeholderText": "#92400e",
+		"good": "#16a34a",
+		"warning": "#d97706",
+		"attention": "#dc2626"
+	},
+	"state": {
+		"data": { "member": { "name": "Robin", "since": "2021" }, "shelf": "B4" },
+		"inputs": { "note": "", "remind": true, "pickup": "east" },
+		"choices": {
+			"pickup": [{ "id": "east", "label": "East branch" }, { "id": "harbour", "label": "Harbour branch" }]
+		},
+		"actions": { "a1": { "book": "atlas-17" } },
+		"cards": { "a2": false }
+	},
+	"fonts": {
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14.0 },
+		"small": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 12.0 },
+		"large": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 18.0 },
+		"title": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 22.0 }
+	},
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{
+				"type": "column",
+				"id": "surface",
+				"fill": 16,
+				"alignItems": "stretch",
+				"scroll": "vertical",
+				"children": [
+					{
+						"type": "column",
+						"id": "content",
+						"gap": 12.0,
+						"alignItems": "stretch",
+						"children": [
+							{
+								"type": "column",
+								"id": "items-4",
+								"gap": 8.0,
+								"alignItems": "stretch",
+								"children": [
+									{
+										"type": "label",
+										"text": "Library loan",
+										"textColor": "@text",
+										"wrap": true,
+										"font": "title",
+										"height": 34.0,
+										"id": "text"
+									},
+									{
+										"type": "label",
+										"text": "Hello {{state.data.member.name}}, member since {{state.data.member.since}}.",
+										"textColor": "@muted",
+										"wrap": true,
+										"font": "default",
+										"height": 42.0,
+										"id": "text-2"
+									},
+									{
+										"type": "row",
+										"id": "columns",
+										"gap": 8.0,
+										"alignItems": "start",
+										"children": [
+											{
+												"type": "column",
+												"id": "items",
+												"gap": 8.0,
+												"alignItems": "stretch",
+												"children": [
+													{
+														"type": "image",
+														"id": "image",
+														"height": 80.0,
+														"fit": "contain",
+														"file": "images/badge.png",
+														"width": 80.0,
+														"radius": 999,
+														"label": "Library badge"
+													}
+												],
+												"height": 80.0,
+												"width": 80.0
+											},
+											{
+												"type": "column",
+												"id": "items-2",
+												"gap": 8.0,
+												"alignItems": "stretch",
+												"children": [
+													{
+														"type": "label",
+														"text": "The Lighthouse Keeper's Atlas",
+														"textColor": "@text",
+														"wrap": true,
+														"font": "large",
+														"height": 29.0,
+														"id": "text-3"
+													},
+													{
+														"type": "column",
+														"id": "facts",
+														"gap": 4.0,
+														"alignItems": "stretch",
+														"children": [
+															{
+																"type": "row",
+																"id": "fact",
+																"gap": 8.0,
+																"alignItems": "start",
+																"children": [
+																	{
+																		"type": "label",
+																		"text": "Shelf",
+																		"textColor": "@muted",
+																		"wrap": true,
+																		"font": "small",
+																		"height": 21.0,
+																		"width": 126.0
+																	},
+																	{
+																		"type": "label",
+																		"text": "{{state.data.shelf}}",
+																		"textColor": "@text",
+																		"wrap": true,
+																		"font": "small",
+																		"height": 21.0,
+																		"grow": 1,
+																		"basis": 0
+																	}
+																],
+																"height": 21.0
+															},
+															{
+																"type": "row",
+																"id": "fact-2",
+																"gap": 8.0,
+																"alignItems": "start",
+																"children": [
+																	{
+																		"type": "label",
+																		"text": "Due",
+																		"textColor": "@muted",
+																		"wrap": true,
+																		"font": "small",
+																		"height": 21.0,
+																		"width": 126.0
+																	},
+																	{
+																		"type": "label",
+																		"text": "in 3 weeks",
+																		"textColor": "@text",
+																		"wrap": true,
+																		"font": "small",
+																		"height": 21.0,
+																		"grow": 1,
+																		"basis": 0
+																	}
+																],
+																"height": 21.0
+															}
+														],
+														"height": 46.0
+													}
+												],
+												"height": 83.0,
+												"grow": 1.0,
+												"basis": 0
+											}
+										],
+										"height": 83.0
+									},
+									{
+										"id": "container",
+										"height": 47.0,
+										"color": "@card",
+										"radius": 8,
+										"borderWidth": 1,
+										"borderColor": "@warning",
+										"children": [
+											{
+												"type": "column",
+												"id": "items-3",
+												"gap": 8.0,
+												"alignItems": "stretch",
+												"children": [
+													{
+														"type": "label",
+														"text": "Two other members are waiting for this book.",
+														"textColor": "@warning",
+														"wrap": true,
+														"font": "default",
+														"height": 23.0,
+														"id": "text-4"
+													}
+												],
+												"height": 23.0,
+												"fill": 12
+											}
+										]
+									},
+									{
+										"type": "column",
+										"id": "note_input",
+										"gap": 4.0,
+										"alignItems": "stretch",
+										"children": [
+											{
+												"type": "label",
+												"text": "A note for the librarian",
+												"textColor": "@muted",
+												"wrap": true,
+												"font": "small",
+												"height": 21.0
+											},
+											{
+												"type": "textarea",
+												"id": "note",
+												"height": 32,
+												"padding": 8,
+												"color": "@card",
+												"textColor": "@text",
+												"borderWidth": 1,
+												"borderColor": "@fieldBorder",
+												"radius": 6,
+												"bind": "state.inputs.note",
+												"placeholder": "Optional"
+											}
+										],
+										"height": 57.0
+									},
+									{
+										"type": "column",
+										"id": "remind_input",
+										"gap": 4.0,
+										"alignItems": "stretch",
+										"children": [
+											{
+												"type": "row",
+												"id": "remind",
+												"gap": 8.0,
+												"alignItems": "start",
+												"children": [
+													{
+														"type": "checkbox",
+														"id": "remind_box",
+														"width": 20,
+														"height": 20,
+														"bind": "state.inputs.remind"
+													},
+													{
+														"type": "label",
+														"text": "Remind me two days before",
+														"textColor": "@text",
+														"wrap": true,
+														"font": "default",
+														"height": 23.0,
+														"grow": 1,
+														"basis": 0
+													}
+												],
+												"height": 23.0
+											}
+										],
+										"height": 23.0
+									},
+									{
+										"type": "column",
+										"id": "pickup_input",
+										"gap": 4.0,
+										"alignItems": "stretch",
+										"children": [
+											{
+												"type": "label",
+												"text": "Pick up at",
+												"textColor": "@muted",
+												"wrap": true,
+												"font": "small",
+												"height": 21.0
+											},
+											{
+												"type": "list",
+												"id": "pickup_choices",
+												"items": "{{state.choices.pickup}}",
+												"selection": "single",
+												"rowHeight": 28,
+												"height": 56.0,
+												"color": "@card",
+												"borderWidth": 1,
+												"borderColor": "@fieldBorder",
+												"textColor": "@text",
+												"bind": "state.inputs.pickup"
+											}
+										],
+										"height": 81.0
+									},
+									{
+										"type": "label",
+										"text": "Unsupported: Media",
+										"textColor": "@placeholderText",
+										"wrap": true,
+										"font": "small",
+										"height": 33.0,
+										"id": "placeholder",
+										"padding": 6,
+										"color": "@placeholder",
+										"radius": 6,
+										"borderWidth": 1,
+										"borderColor": "@warning",
+										"tooltip": "card.body[7]"
+									}
+								],
+								"height": 456.0
+							},
+							{
+								"type": "row",
+								"id": "actions",
+								"gap": 8.0,
+								"alignItems": "start",
+								"children": [
+									{
+										"type": "label",
+										"text": "Borrow",
+										"textColor": "@onAccent",
+										"wrap": false,
+										"font": "default",
+										"height": 36,
+										"id": "action",
+										"padding": 8,
+										"radius": 6,
+										"align": "center",
+										"color": "@accent",
+										"borderWidth": 1,
+										"borderColor": "@accent",
+										"focusable": true,
+										"role": "button",
+										"cursor": "hand",
+										"onClick": [
+											{
+												"emit": "submit",
+												"data": { "inputs": "{{state.inputs}}", "data": "{{state.actions.a1}}" }
+											}
+										],
+										"grow": 1,
+										"basis": 0
+									},
+									{
+										"type": "label",
+										"text": "Renew later",
+										"textColor": "@accent",
+										"wrap": false,
+										"font": "default",
+										"height": 36,
+										"id": "action-2",
+										"padding": 8,
+										"radius": 6,
+										"align": "center",
+										"color": "@card",
+										"borderWidth": 1,
+										"borderColor": "@accent",
+										"focusable": true,
+										"role": "button",
+										"cursor": "hand",
+										"onClick": [{ "toggle": "state.cards.a2" }],
+										"grow": 1,
+										"basis": 0
+									},
+									{
+										"type": "label",
+										"text": "Catalogue",
+										"textColor": "@accent",
+										"wrap": false,
+										"font": "default",
+										"height": 36,
+										"id": "action-3",
+										"padding": 8,
+										"radius": 6,
+										"align": "center",
+										"color": "@card",
+										"borderWidth": 1,
+										"borderColor": "@accent",
+										"focusable": true,
+										"role": "button",
+										"cursor": "hand",
+										"onClick": [
+											{ "emit": "openUrl", "data": { "url": "https://example.org/catalogue" } }
+										],
+										"grow": 1,
+										"basis": 0
+									}
+								],
+								"height": 36.0
+							},
+							{
+								"id": "shown",
+								"height": 47.0,
+								"color": "@card",
+								"radius": 8,
+								"borderWidth": 1,
+								"borderColor": "@divider",
+								"when": "{{state.cards.a2}}",
+								"children": [
+									{
+										"type": "column",
+										"id": "card",
+										"gap": 12.0,
+										"alignItems": "stretch",
+										"children": [
+											{
+												"type": "column",
+												"id": "items-5",
+												"gap": 8.0,
+												"alignItems": "stretch",
+												"children": [
+													{
+														"type": "label",
+														"text": "You can renew twice, online or at the desk.",
+														"textColor": "@text",
+														"wrap": true,
+														"font": "default",
+														"height": 23.0,
+														"id": "text-5"
+													}
+												],
+												"height": 23.0
+											}
+										],
+										"height": 23.0,
+										"fill": 12
+									}
+								]
+							}
+						],
+						"height": 563.0
+					}
+				]
+			}
+		]
+	}
+}

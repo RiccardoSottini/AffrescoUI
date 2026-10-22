@@ -10,9 +10,11 @@
 #include "Renderer.hpp"
 #include "RetainedGeometry.hpp"
 #include "detail/Ppm.hpp"
+#include "platform/Accessibility.hpp"
 #include "platform/Platform.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <iterator>
@@ -25,6 +27,16 @@ namespace {
 
 constexpr double tooltipDelayMs = 600.0; ///< How long the pointer rests before a tooltip shows.
 constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
+
+/// @brief A pointer event as a panel hears it: its position in the panel's layout space (through its transforms).
+/// @tparam Event An event with a position.
+/// @param panel The panel.
+/// @param event The event, in window units.
+/// @return The event, moved; unchanged for a panel without transforms or one they flatten.
+template <typename Event> Event inSpaceOf(const Panel& panel, Event event) noexcept {
+	event.position = panel.toLocal(event.position).value_or(event.position);
+	return event;
+}
 
 } // namespace
 
@@ -52,10 +64,12 @@ Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<d
 	if(native_) {
 		scale_ = native_->contentScale();
 		native_->connect(*this);
+		accessibility_ = platform::createAccessibilityAdapter(*this);
 	}
 }
 
 Window::~Window() {
+	accessibility_.reset(); // before the panels it reads go
 	// GL objects owned by the renderer are deleted in this window's context
 	if(native_) native_->makeCurrent();
 	renderer_.reset();
@@ -137,6 +151,7 @@ void Window::setFocus(Panel* panel) {
 	if(focusRing_) requestLayout();
 	if(previous) previous->focusEvent(false);
 	if(focused_) focused_->focusEvent(true);
+	if(accessibility_) accessibility_->focusChanged();
 }
 
 void Window::setFocusRing(std::optional<FocusRing> ring) {
@@ -196,6 +211,7 @@ void Window::updateLayout() {
 		tooltip_->layout(Rect{left, top, left + size.x, top + size.y}, area, Vec2{width, height}, true);
 	}
 	layoutFocusRing();
+	layoutInspection();
 	layingOut_ = false;
 
 	layoutDirty_ = false;
@@ -224,6 +240,22 @@ void Window::layoutFocusRing() {
 	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
 	ring_->layout(box, Rect{0.0f, 0.0f, width, height}, Vec2{width, height}, true);
 	drawn_.push_back(ring_.get());
+}
+
+void Window::layoutInspection() {
+	if(!inspection_ || !inspection_->isVisible()) return;
+	const auto width = static_cast<float>(width_), height = static_cast<float>(height_);
+	const Rect area{0.0f, 0.0f, width, height};
+	inspection_->width_ = px(width);
+	inspection_->height_ = px(height);
+	inspection_->layout(area, area, Vec2{width, height}, true);
+	drawn_.push_back(inspection_.get());
+}
+
+void Window::setInspection(std::unique_ptr<Panel> layer) {
+	inspection_ = std::move(layer); // the one before forgets itself
+	if(inspection_) inspection_->attachTo(this);
+	requestLayout();
 }
 
 // Pre-order, after the tree: an overlay's own overlays come after it, so they are drawn on top of it
@@ -371,15 +403,26 @@ void Window::runTimers() {
 void Window::render() {
 	runTimers();
 	runDeferred();
+	if(accessibility_) accessibility_->poll();
 	if(!redrawDirty_) return;
 
+	drawAndPresent();
+	redrawDirty_ = false;
+	if(accessibility_) accessibility_->frameDrawn();
+}
+
+void Window::drawAndPresent() {
+	const auto start = std::chrono::steady_clock::now(); // real time, whatever clock() says
 	if(renderer_) {
 		draw();
 		native_->present();
 	} else {
 		updateLayout(); // headless: the frame is laid out, never drawn
 	}
-	redrawDirty_ = false;
+	++statistics_.frames;
+	statistics_.frameMilliseconds =
+	    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+	statistics_.drawCalls = renderer_ ? renderer_->drawCalls() : 0;
 }
 
 bool Window::saveScreenshot(const std::filesystem::path& path) {
@@ -429,7 +472,7 @@ void Window::routeMouseMove(Vec2 position) {
 	setHovered(panelAt(position));
 
 	const MouseMoveEvent event{position};
-	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(event);
+	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(inSpaceOf(*target, event));
 	onMouseMove(event);
 
 	if(--routing_ == 0) runDeferred();
@@ -452,7 +495,7 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 		if(!grabbed_) grabbed_ = hit;
 	}
 
-	if(Panel* target = grabbed_ ? grabbed_ : hit) target->mouseButtonEvent(event);
+	if(Panel* target = grabbed_ ? grabbed_ : hit) target->mouseButtonEvent(inSpaceOf(*target, event));
 
 	if(event.action == Action::Release) {
 		grabbed_ = nullptr;
@@ -468,7 +511,7 @@ void Window::routeScroll(const ScrollEvent& event) {
 	++routing_;
 	// The panel under the pointer hears it; the nearest scrollable one (it or an ancestor) scrolls
 	if(Panel* target = panelAt(event.position)) {
-		target->scrollEvent(event);
+		target->scrollEvent(inSpaceOf(*target, event));
 		for(Panel* panel = target; panel; panel = panel->parent_)
 			if(panel->scrollContent({-event.offset.x * scrollSpeed, -event.offset.y * scrollSpeed}))
 				break;
@@ -516,7 +559,7 @@ void Window::runChosen(std::function<void()> run) {
 void Window::forget(const Panel& panel) noexcept {
 	++treeGeneration_; // an anchor may have found it
 	if(panel.geometry_ && panel.geometry_->recorded) { // where it drew is damage
-		detail::addTo(damage_, detail::reachOf(panel.geometry_->key.bounds, panel.geometry_->record));
+		detail::addTo(damage_, detail::screenReachOf(*panel.geometry_));
 		requestFrame();
 	}
 	if(focused_ == &panel) {

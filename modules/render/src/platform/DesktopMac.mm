@@ -17,7 +17,7 @@
 /// @brief The target of a window's menu items: an item's tag is its index in the actions.
 @interface AffrescoMenuTarget : NSObject {
 @public
-	std::vector<std::function<void()>> actions; ///< What each item does.
+	std::vector<std::function<void()>> actions;     ///< What each item does.
 	affresco::platform::desktop::MenuChosen chosen; ///< Runs it.
 }
 /// @brief Runs a chosen item.
@@ -123,10 +123,10 @@ private:
 		return native;
 	}
 
-	GLFWwindow* window_;          ///< Its window.
-	AffrescoMenuTarget* target_;  ///< Runs the items.
-	NSMenu* original_;            ///< GLFW's menu, shown when this window has none.
-	NSMenu* menu_ = nil;          ///< This window's, or nil.
+	GLFWwindow* window_;         ///< Its window.
+	AffrescoMenuTarget* target_; ///< Runs the items.
+	NSMenu* original_;           ///< GLFW's menu, shown when this window has none.
+	NSMenu* menu_ = nil;         ///< This window's, or nil.
 };
 
 } // namespace
@@ -144,12 +144,16 @@ void watchColorScheme() {
 	[NSDistributedNotificationCenter.defaultCenter addObserverForName:@"AppleInterfaceThemeChangedNotification"
 	                                                           object:nil
 	                                                            queue:NSOperationQueue.mainQueue
-	                                                       usingBlock:^(NSNotification*) { glfwPostEmptyEvent(); }];
+	                                                       usingBlock:^(NSNotification*) {
+		                                                     glfwPostEmptyEvent();
+	                                                       }];
 	[NSWorkspace.sharedWorkspace.notificationCenter
 	    addObserverForName:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
 	                object:nil
 	                 queue:NSOperationQueue.mainQueue
-	            usingBlock:^(NSNotification*) { glfwPostEmptyEvent(); }];
+	            usingBlock:^(NSNotification*) {
+		          glfwPostEmptyEvent();
+	            }];
 }
 
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {

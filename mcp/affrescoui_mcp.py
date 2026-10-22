@@ -5,7 +5,7 @@
                                                                                     (or wait_for_request)
     changes    AI agent ──tools (submit_revision, reply, ...)──▶ this server ──agent.sock──▶ affrescoui_host ──▶ screen
 
-The host (examples/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
+The host (examples/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the Studio; the request reaches the agent through this server; the agent reads the screen, sends
 revisions (JSON Patch), and replies. Revisions follow the screen's permission rules (allow / ask / deny, like
 Claude Code's): in the example templates the agent's changes become proposals the person reviews in the Studio,
@@ -582,6 +582,11 @@ def find_cli():
                        "AFFRESCOUI_CLI")
 
 
+def repository_path(path):
+    """A path as given, or relative to the repository when it doesn't exist as given."""
+    return path if os.path.isabs(path) or os.path.exists(path) else os.path.join(ROOT, path)
+
+
 def scenarios_report(report, shown):
     """affrescoui test --json's report of one file, as a few lines: the totals, then one line per failure."""
     lines = [f"{report.get('file')} on {shown}: {report.get('passed')} passed, {report.get('failed')} failed"]
@@ -609,6 +614,13 @@ TOOLS = [
                     "have submitted the revisions for a request.",
      "inputSchema": object_schema({"request_id": {"type": "string"}, "text": {"type": "string"}},
                                   ["request_id", "text"])},
+    {"name": "answer_repair",
+     "description": "Answer a repair request (a wait_for_request result with kind \"repair\": a change set that no "
+                    "longer applies, or whose scenarios fail, on the new template). Give the change set's request "
+                    "redone on the new base as one JSON Patch; it always becomes a proposal for a reviewer, and the "
+                    "scenarios in repair.proof must pass on it.",
+     "inputSchema": object_schema({"request_id": {"type": "string"}, "patch": {"type": "array"},
+                                   "message": {"type": "string"}}, ["request_id", "patch", "message"])},
     {"name": "get_screen",
      "description": "The running screen: its document (AffrescoUI Screen Format, with the live state as its \"state\" "
                     "and its permission rules), current revision and head commit, open proposals, the mode, the "
@@ -643,6 +655,43 @@ TOOLS = [
      "description": "What this screen's format offers: node types and their properties, events, steps, expression "
                     "functions, variables, sections, and the app's registered custom types and native functions.",
      "inputSchema": object_schema()},
+    {"name": "get_contributions",
+     "description": "What an app offers to features from other apps, and what it can install: its contribution "
+                    "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
+                    "surfaces, images) and the installable parts it ships (each one's needs and provides), one line "
+                    "each. file is an app's screen file: another app's (e.g. "
+                    "\"examples/sinopia/sinopia.screen.json\"), to pick a part to install from it, or the running "
+                    "app's with running=true, to read the running document's.",
+     "inputSchema": object_schema({"file": {"type": "string", "description": "An app's *.screen.json"},
+                                   "running": {"type": "boolean",
+                                               "description": "The running document, with file's folder"}},
+                                  ["file"]),
+     "annotations": {"readOnlyHint": True}},
+    {"name": "check_composition",
+     "description": "Prove that a feature from another app fits the running screen: binds its needs to the "
+                    "screen's exports (by name, or through your adapter), checks kinds, slots, ids and imports, "
+                    "refuses widened permissions and capabilities, checks the composed document, then plays the "
+                    "feature's and the app's scenarios on it. Returns the proof's verdict and reasons: each unmet need "
+                    "and why, each failed check and scenario. An adapter is {\"format\": \"affrescoui-adapter\", "
+                    "\"version\": 1, \"feature\", \"host\", \"bind\": {need: {\"export\": name} | {\"value\": "
+                    "\"{{expression over app.<export>}}\"} | {\"action\": name, \"with\": {...}} | {\"point\": name}}} "
+                    "(SCREEN_FORMAT.md, \"Adapters\").",
+     "inputSchema": object_schema({
+         "screen": {"type": "string", "description": "The running app's screen file, for its folder and scenarios"},
+         "feature": {"type": "string", "description": "The feature's folder or feature.json, in its own app"},
+         "adapter": {"type": "object", "description": "The adapter (optional: needs bind by name without one)"},
+     }, ["screen", "feature"]),
+     "annotations": {"readOnlyHint": True}},
+    {"name": "install_feature",
+     "description": "Install a feature from another app once check_composition proves it: the same proof, then one "
+                    "revision that adds the feature's record (its bindings and proof) to the screen's features. It "
+                    "is reviewed like any of your revisions (applied, proposed or rejected), shows in history and "
+                    "blame, and undoes like one. A failed proof installs nothing and returns its reasons.",
+     "inputSchema": object_schema({
+         "screen": {"type": "string", "description": "The running app's screen file, for its folder and scenarios"},
+         "feature": {"type": "string", "description": "The feature's folder or feature.json, in its own app"},
+         "adapter": {"type": "object", "description": "The adapter (optional)"},
+     }, ["screen", "feature"])},
     {"name": "get_format_guide",
      "description": "The AffrescoUI Screen Format specification, a part at a time: without topic, its introduction "
                     "and the list of topics (nodes, layout, values and expressions, events, actions, revisions, ...); "
@@ -683,11 +732,20 @@ TOOLS = [
                                                 "description": "An open proposal to show applied (optional)"},
                                    "scale": {"type": "integer", "description": "1 (default) or 2"}}),
      "annotations": {"readOnlyHint": True}},
+    {"name": "get_evidence",
+     "description": "The evidence a reviewer sees for an open proposal, gathered by the host itself (an author can't "
+                    "supply it): pictures of main and of the proposal applied, the region of pixels that differ "
+                    "({x, y, width, height}), lines saying what it changes in behaviour, the screen's scenarios played "
+                    "on it (name, passed, message; those that need a window aren't played), and the texts it changes "
+                    "(node, original, modified). Check it before asking for a review.",
+     "inputSchema": object_schema({"proposal": {"type": "integer", "description": "The open proposal"},
+                                   "scale": {"type": "integer", "description": "1 (default) or 2"}}, ["proposal"]),
+     "annotations": {"readOnlyHint": True}},
     {"name": "run_scenarios",
      "description": "Check your work with the screen's own scenarios (scripted clicks, typing, waits and expectations "
                     "of state and nodes, played headless): on main as it runs now, or with an open proposal applied "
                     "(`proposal`, e.g. the one submit_revision just opened). `file` is the scenarios file shipped "
-                    "next to the screen (examples/assets/screens/kanban.scenarios.json). Pass `scenarios` (a list of "
+                    "next to the screen (examples/flow/kanban.scenarios.json). Pass `scenarios` (a list of "
                     "{name, steps}) to play your own instead of the file's, `only` for one by name. Answers in a few "
                     "lines: the totals, then \"FAILED <scenario>, step <n>: <what>\" per failure. Nothing changes: "
                     "scenarios play on a copy, without a window. SCREEN_FORMAT.md, \"Scenarios\", lists the steps.",
@@ -735,6 +793,51 @@ TOOLS = [
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "name": {"type": "string"}})},
 ]
 
+# Several agents at once (VERSION_CONTROL.md, "Leases"): claim a part of the screen while you work on it, so other
+# authors' revisions that touch it are refused; it ends after its seconds, when released, or when you disconnect.
+COORDINATION_TOOLS = [
+    {"name": "lease_part",
+     "description": "Claim a part of the screen (\"#id\" or a JSON Pointer such as /state/columns/0) while you work "
+                    "on it: other authors' revisions that touch it are refused until it ends (after `seconds`, 300 "
+                    "by default, at most 3600; when you release it; or when you disconnect). Refused if someone "
+                    "else holds it or a part inside it, or if your permissions don't let you change it.",
+     "inputSchema": object_schema({"target": {"type": "string"}, "seconds": {"type": "integer"}}, ["target"])},
+    {"name": "renew_lease",
+     "description": "Make a lease you hold last `seconds` (300 by default, at most 3600) from now.",
+     "inputSchema": object_schema({"target": {"type": "string"}, "seconds": {"type": "integer"}}, ["target"])},
+    {"name": "release_part",
+     "description": "End a lease you hold, as soon as you are done with that part.",
+     "inputSchema": object_schema({"target": {"type": "string"}}, ["target"])},
+    {"name": "get_usage",
+     "description": "The screen's usage summaries (VERSION_CONTROL.md, \"Usage\"): per node id and action, how often "
+                    "it ran and failed; the screens visited; the controls never used, over the last 30 days. Only "
+                    "ids, counts and times. Refused unless the host switched them on with the person's consent and "
+                    "your connection may review.",
+     "inputSchema": object_schema(),
+     "annotations": {"readOnlyHint": True}},
+]
+TOOLS += COORDINATION_TOOLS
+
+
+def coordination_tool(host, client, name, args):
+    """Runs a lease tool or get_usage; None if `name` is none of them."""
+    if name == "get_usage":
+        reply = host.request({"type": "getUsage"})
+        if reply.get("type") == "usage":
+            return compact(reply.get("usage")), False
+        return f"refused: {reply.get('error')}", True
+    if name not in ("lease_part", "renew_lease", "release_part"):
+        return None
+    message = {"type": "release" if name == "release_part" else "lease", "author": client,
+               "target": str(args.get("target", ""))}
+    if name != "release_part":
+        message["seconds"] = args.get("seconds", 300)
+    reply = host.request(message)
+    if reply.get("type") in ("leased", "released"):
+        return compact(reply), False
+    return f"refused: {reply.get('error')}", True
+
+
 PROMPTS = [
     {"name": "serve_studio",
      "description": "Work through the change requests people send from the AffrescoUI Studio, one after another."},
@@ -760,6 +863,29 @@ INSTRUCTIONS = (
     "wait for a reviewer's approval in the Studio; get_events tells you the decision.")
 
 
+# Permissions, budgets, data rules, roles and leases (VERSION_CONTROL.md): what a denial means, from the rule it names
+DENIALS = (
+    ("over the budget", "the screen's permissions limit how many nodes you add, remove and change in one revision; "
+                        "split the change into smaller revisions"),
+    ("data rule", "the screen's data rules limit the paths you may read and write; change only the paths they allow"),
+    ("holds a lease", "another author is working on that part of the screen; wait for its lease to end or change "
+                      "another part"),
+    ("(rule \"", "a deny rule of the screen's permissions covers what you changed; leave that part as it is"),
+    ("revisions can't change", "that section is a capability of the app, which no revision changes"),
+)
+
+
+def explain_denial(error):
+    """The error of a refused revision, followed by what the rule it names means, if it is a permission denial."""
+    text = str(error)
+    if "permission denied" not in text:
+        return text
+    for marker, meaning in DENIALS:
+        if marker in text:
+            return f"{text}. The rule that matched: {meaning}."
+    return text
+
+
 def describe(reply):
     kind = reply.get("type")
     if kind == "applied":
@@ -769,7 +895,7 @@ def describe(reply):
         return (f"proposed as proposal {reply.get('proposal')} (head {str(reply.get('commit', ''))[:7]}): a reviewer "
                 f"decides in the Studio. It is not applied yet; get_events will report the decision. Pass "
                 f"proposal={reply.get('proposal')} to submit_revision to add to it."), False
-    return f"rejected, nothing changed: {reply.get('error')}", True
+    return f"rejected, nothing changed: {explain_denial(reply.get('error'))}", True
 
 
 def screen_info(reply):
@@ -820,6 +946,8 @@ class Server:
     def on_request(self, message):
         request = {"request_id": str(message.get("id") or f"r{len(self.requests) + 1}"),
                    "from": str(message.get("from") or "unknown"), "text": str(message.get("text", ""))}
+        if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
+            request["kind"], request["repair"] = "repair", message.get("repair")
         with self.arrived:
             self.requests[request["request_id"]] = request
             self.arrived.notify_all()
@@ -853,6 +981,22 @@ class Server:
         return [{"type": "image", "data": reply.get("data", ""), "mimeType": "image/png"},
                 {"type": "text", "text": caption}], False
 
+    def get_evidence(self, args):
+        """A proposal's evidence: both pictures as MCP image blocks, then the rest as compact JSON."""
+        reply = self.host.request({"type": "getEvidence", **{k: args[k] for k in ("proposal", "scale") if k in args}})
+        if reply.get("type") != "evidence":
+            return f"error: {reply.get('error') or reply.get('message')}", True
+        evidence = reply.get("evidence") or {}
+        facts = {key: evidence.get(key) for key in ("region", "behaviour", "scenarios", "texts")}
+        blocks = []
+        for side in ("before", "after"):
+            picture = evidence.get(side) or {}
+            blocks.append({"type": "text", "text": f"{side}: {picture.get('width')}x{picture.get('height')} pixels"})
+            blocks.append({"type": "image", "data": picture.get("data", ""), "mimeType": "image/png"})
+        blocks.append({"type": "text", "text": compact({"proposal": reply.get("proposal"),
+                                                        "revision": reply.get("revision"), **facts})})
+        return blocks, False
+
     def checked_document(self, args):
         """The document scenarios play on: main as the host has it now, or with an open proposal applied."""
         reply = self.host.request({"type": "getDocument"})
@@ -879,7 +1023,7 @@ class Server:
             with open(screen, "w", encoding="utf-8") as file:
                 json.dump(document, file)
             if "scenarios" in args:  # the agent's own, on the file's screen: its folder holds the fonts and includes
-                own = {"format": "affrescoui-scenarios", "version": 1,
+                own = {"format": "affrescoui-scenarios", "version": 2,
                        "screens": os.path.abspath(os.path.join(os.path.dirname(path), shipped.get("screens", "."))),
                        "scenarios": args["scenarios"], **({"screen": shipped["screen"]} if "screen" in shipped else {})}
                 path = os.path.join(scratch, "own.scenarios.json")
@@ -927,6 +1071,53 @@ class Server:
         self.seen = document
         return compact({**info, "document": document}), False
 
+    def get_contributions(self, args):
+        """An app's contribution points, exports and installable parts, as affrescoui contributions prints them."""
+        screen = repository_path(str(args.get("file", "")))
+        if not screen.endswith(".screen.json"):
+            return "error: file: expected a *.screen.json file", True
+        with tempfile.TemporaryDirectory(prefix="affrescoui-contributions-") as scratch:
+            command = [find_cli(), "contributions", screen]
+            if args.get("running"):
+                document = os.path.join(scratch, "running.json")
+                with open(document, "w", encoding="utf-8") as file:
+                    json.dump(self.host.request({"type": "getDocument"}).get("document") or {}, file)
+                command += ["--document", document]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui contributions failed'}", True
+        return result.stdout.strip(), False
+
+    def compose(self, args, install):
+        """Proves a feature from another app on the running document (affrescoui check --compose), and with install
+        submits the install revision the proof made. Returns the proof's reasons, never the document."""
+        screen, feature = repository_path(str(args.get("screen", ""))), repository_path(str(args.get("feature", "")))
+        if not screen.endswith(".screen.json"):
+            return "error: screen: expected the running app's *.screen.json file", True
+        reply = self.host.request({"type": "getDocument"})
+        with tempfile.TemporaryDirectory(prefix="affrescoui-compose-") as scratch:
+            document, revision = os.path.join(scratch, "document.json"), os.path.join(scratch, "install.json")
+            with open(document, "w", encoding="utf-8") as file:
+                json.dump(reply.get("document") or {}, file)
+            command = [find_cli(), "check", "--compose", screen, feature, "--document", document,
+                       "--base", str((reply.get("head") or {}).get("id", "")), "--revision", revision]
+            if isinstance(args.get("adapter"), dict):
+                adapter = os.path.join(scratch, "adapter.json")
+                with open(adapter, "w", encoding="utf-8") as file:
+                    json.dump(args["adapter"], file)
+                command += ["--adapter", adapter]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=300)
+            if result.returncode not in (0, 1) or not result.stdout.strip():
+                return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui check failed'}", True
+            reasons = result.stdout.strip()
+            if not install or result.returncode != 0:
+                return reasons, result.returncode != 0
+            with open(revision, encoding="utf-8") as file:
+                submitted = json.load(file)
+        submitted.pop("author", None)  # the host names the author: this connection
+        text, error = describe(self.host.request({"type": "revision", **submitted}))
+        return f"{reasons}\n{text}", error
+
     def call_tool(self, name, args):
         host = self.host
         if name == "get_blame":
@@ -942,6 +1133,16 @@ class Server:
                 self.requests.pop(request_id, None)
                 self.delivered.discard(request_id)
             return "sent to the Studio", False
+        if name == "answer_repair":
+            request_id = str(args.get("request_id", ""))
+            reply = host.request({"type": "repair", "request": request_id,
+                                  "revision": {"message": args.get("message", ""), "patch": args.get("patch", [])}})
+            with self.arrived:
+                self.requests.pop(request_id, None)
+                self.delivered.discard(request_id)
+            if reply.get("type") != "proposed":
+                return f"refused, nothing changed: {reply.get('message') or reply.get('error')}", True
+            return describe(reply), False
         if name == "get_screen":
             return self.get_screen(args)
         if name == "get_catalog":
@@ -950,6 +1151,10 @@ class Server:
             reply = host.request({"type": "getDocument"})
             return find_nodes(reply.get("document") or {}, args.get("type"), args.get("text"), args.get("property"),
                               args.get("value"), args.get("limit", 20)), False
+        if name == "get_contributions":
+            return self.get_contributions(args)
+        if name in ("check_composition", "install_feature"):
+            return self.compose(args, name == "install_feature")
         if name == "get_format_guide":
             with open(guide_path(), encoding="utf-8") as guide:
                 part = format_guide(guide.read(), args.get("topic"))
@@ -966,6 +1171,8 @@ class Server:
             return self.render_screen(args)
         if name == "run_scenarios":
             return self.run_scenarios(args)
+        if name == "get_evidence":
+            return self.get_evidence(args)
         if name == "get_history":
             reply = host.request({"type": "getHistory", **({"limit": args["limit"]} if "limit" in args else {})})
             return compact(reply.get("entries")), False
@@ -983,6 +1190,9 @@ class Server:
             reply = host.request({"type": "exportChanges", "from": args.get("from", 0),
                                   "name": args.get("name", "changes")})
             return json.dumps(reply.get("changes"), indent=2), False
+        coordinated = coordination_tool(host, self.client, name, args)
+        if coordinated is not None:
+            return coordinated
         raise UnknownTool(name)
 
     def serve(self, line):

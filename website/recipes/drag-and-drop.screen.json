@@ -1,0 +1,31 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Drag and drop", "width": 420, "height": 240 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "todo": ["Write", "Review"], "done": ["Plan"] },
+	"actions": {
+		"finish": [
+			{ "set": "state.todo", "to": "{{filter(state.todo, it != event.data.title)}}" },
+			{ "push": "state.done", "value": "{{event.data.title}}" }
+		]
+	},
+	"styles": {
+		"lane": { "width": 180, "height": 200, "gap": 6, "radius": 10, "color": "#e2e8f0" },
+		"card": { "type": "label", "anchors": { "left": 8, "right": 8 }, "height": 32, "padding": 8, "radius": 6,
+		          "color": "#ffffff", "textColor": "#0f172a" }
+	},
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "column", "id": "todo", "style": "lane", "x": 20, "y": 20, "children": [
+				{ "id": "todo-card", "style": "card", "repeat": { "for": "title", "in": "state.todo" }, "text": "{{title}}",
+				  "cursor": "hand", "drag": { "data": { "title": "{{title}}" } } }
+			] },
+			{ "type": "column", "id": "done", "style": "lane", "x": 220, "y": 20, "onDrop": "finish", "children": [
+				{ "id": "done-card", "style": "card", "repeat": { "for": "title", "in": "state.done" }, "text": "{{title}}" }
+			] }
+		]
+	}
+}

@@ -2,6 +2,7 @@
 /// @brief The format's runtime on a headless window: a shipped template built, laid out and clicked, with no display.
 
 #include "Headless.hpp"
+#include "Templates.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -23,7 +24,7 @@ namespace {
 /// @param name The template, e.g. "kanban".
 /// @return The screen.
 affresco::Screen loadTemplate(const std::string& name) {
-	const std::filesystem::path directory = AFFRESCOUI_SCREENS_DIRECTORY;
+	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
 	const std::ifstream file(directory / (name + ".screen.json"));
 	REQUIRE(file);
 	std::stringstream text;
@@ -57,7 +58,7 @@ TEST_CASE("format: the Kanban template builds on a headless window, and a click 
 	REQUIRE(members);
 	REQUIRE(menu);
 	CHECK(members->isShown());
-	CHECK(members->frame().width() == 136.0f);
+	CHECK(members->frame().width() == 140.0f);
 	CHECK_FALSE(menu->isShown());
 
 	clickOn(*window, *members);
@@ -100,7 +101,7 @@ TEST_CASE("format: a screen destroyed while its window lives on takes back every
 	CHECK_FALSE(window->secondsToNextTimer());
 }
 
-// The code editor is left out: its "code" type is the host's (examples/CodeEditor.cpp)
+// The code editor is left out: its "code" type is the host's (examples/shared/CodeEditor.cpp)
 TEST_CASE("format: the shipped templates build on a headless window") {
 	for(const std::string name : {"kanban", "smart-home", "music-player", "habit-tracker", "sign-in", "studio"}) {
 		CAPTURE(name);
@@ -119,7 +120,7 @@ namespace {
 
 /// @brief A screen with an open overlay that "dismiss"es, whose parent is the root (so it has no anchor of its own).
 constexpr const char* overlayScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": { "open": true },
 	"root": { "id": "main", "children": [
 		{ "id": "menu", "width": 100, "height": 50,
@@ -162,4 +163,24 @@ TEST_CASE("format: Escape closes the open overlays when nothing has the focus") 
 	window->routeKey({affresco::Key::Escape, 0, affresco::Action::Press, {}});
 	window->render();
 	CHECK(json::parse(screen.stateJson())["open"] == false);
+}
+
+// Modello's and Orrery's screens name a surface their own program registers: in another host (affrescoui_host, the
+// tools) the screen still opens, the surface empty
+TEST_CASE("format: a surface no program registered here shows empty, and the screen opens") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [{ "type": "surface", "id": "view", "fill": 0, "surface": "nowhere" }] }
+	})");
+	CHECK_NOTHROW(screen.build(*window));
+	window->render();
+	CHECK(screen.find("view"));
+	const auto other = createHeadlessWindow(400, 300, clock);
+	affresco::Screen unnamed = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [{ "type": "surface", "id": "view" }] }
+	})");
+	CHECK_THROWS_AS(unnamed.build(*other), affresco::DocumentError); // names none
 }

@@ -1,0 +1,79 @@
+{
+	"id": "kanban-clear-done",
+	"level": "feature",
+	"screen": "examples/flow/kanban.screen.json",
+	"request": "Add a \"Clear done\" button with the id clearDone to the toolbar, left of the Board and Table switch, that removes every card from the Done column.",
+	"scenarios": [
+		{
+			"name": "clear",
+			"steps": [
+				{
+					"expect": {
+						"state": "columns[3].cards.length",
+						"is": 3
+					}
+				},
+				{
+					"click": "#clearDone"
+				},
+				{
+					"expect": {
+						"state": "columns[3].cards.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "columns[0].cards.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"node": "#columnCount",
+						"text": "0",
+						"nth": 3
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#views",
+		"#newCard",
+		"#board",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Clear done",
+			"set": {
+				"/actions/clearDone": {
+					"title": "Clear the Done column",
+					"category": "Board",
+					"do": [
+						{
+							"set": "state.columns[3].cards",
+							"to": []
+						}
+					]
+				}
+			},
+			"add": {
+				"#toolbar/children/-": {
+					"id": "clearDone",
+					"style": "chip",
+					"width": 110,
+					"height": 32,
+					"text": "Clear done",
+					"anchors": {
+						"right": 548,
+						"top": 4
+					},
+					"onClick": "clearDone"
+				}
+			}
+		}
+	]
+}

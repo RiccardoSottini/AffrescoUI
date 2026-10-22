@@ -1,0 +1,12 @@
+{
+	"note": "The shipped templates: each one's name (its <name>.screen.json) and its folder in examples/. The tests, the tools, the web build and the release archive read this list.",
+	"templates": {
+		"code-editor": "code-editor",
+		"habit-tracker": "streak",
+		"kanban": "flow",
+		"music-player": "tempo",
+		"sign-in": "sign-in",
+		"smart-home": "haven",
+		"studio": "studio"
+	}
+}

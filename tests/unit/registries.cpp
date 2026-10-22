@@ -60,9 +60,11 @@ std::optional<bool> recognisesNothing(const Running& step) {
 TEST_CASE("format: the built-in node types register in catalog order, each with a factory") {
 	TypeRegistry registry;
 	registerBuiltInTypes(registry);
-	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "stack", "row",
-	                                                      "column", "grid", "toggle", "checkbox", "slider", "image",
-	                                                      "split", "tabs", "list", "tree", "table", "path", "outlet"});
+	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "diff", "stack",
+	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
+	                                                      "image", "surface", "split", "tabs", "list", "tree", "table", "path",
+	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "calendar",
+	                                                      "codeInput", "carousel", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());
@@ -88,11 +90,12 @@ TEST_CASE("format: a type's property sets: its own, then the built-in widgets it
 	REQUIRE(sets[0] == own);
 	REQUIRE(sets[1]);
 	CHECK(sets[1]->find("lineNumbers")); // the editor's
-	CHECK_FALSE(sets[2]);
+	CHECK(sets[2]); // then the sets that apply to every node, such as the transform properties
 
 	const affresco::Panel panel;
 	const PropertySets none = registry.setsFor(registry.find("panel"), panel);
-	CHECK(std::ranges::none_of(none, [](const auto& set) { return set != nullptr; })); // the runtime applies its own
+	CHECK(none[0]); // only the transform properties: the runtime applies the rest itself
+	CHECK_FALSE(none[1]);
 
 	CHECK(registry.transitionable("color"));
 	CHECK(registry.transitionable("textColor"));
@@ -116,7 +119,8 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "review", "navigation", "time", "other"});
+	CHECK(groups == std::vector<std::string>{"state", "flow", "outside", "services", "auth", "review", "navigation",
+	                                         "time", "other"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
@@ -124,7 +128,7 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
 	CHECK(control == std::vector<std::string>{"accept", "call", "connect", "endPreview", "patch", "preview", "reject",
-	                                          "respond", "restore", "revert", "send", "undo"});
+	                                          "respond", "restore", "revert", "send", "signIn", "signOut", "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});
@@ -144,7 +148,7 @@ TEST_CASE("format: a step group needs a runner, and a step is registered once") 
 }
 
 TEST_CASE("format: the sections validate a document, naming the place") {
-	const json valid = {{"format", "affrescoui-screen"}, {"version", 1}, {"root", {{"type", "panel"}}}};
+	const json valid = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};
 	CHECK(sectionError(valid).empty());
 
 	json unknown = valid;
@@ -153,11 +157,11 @@ TEST_CASE("format: the sections validate a document, naming the place") {
 	json included = valid;
 	included["include"] = "parts.json"; // merged when the file is read, never in a live document
 	CHECK(sectionError(included).find("include: unknown section") != std::string::npos);
-	CHECK(sectionError({{"version", 1}}).find("missing \"root\"") != std::string::npos);
+	CHECK(sectionError({{"version", 2}}).find("missing \"root\"") != std::string::npos);
 	CHECK(sectionError({{"root", json::object()}}).find("missing \"version\"") != std::string::npos);
 	json future = valid;
-	future["version"] = 2;
-	CHECK(sectionError(future).find("version: unsupported version 2") != std::string::npos);
+	future["version"] = 3;
+	CHECK(sectionError(future).find("version: unsupported version 3") != std::string::npos);
 	json component = valid;
 	component["components"] = {{"card", {{"params", json::object()}}}};
 	CHECK(sectionError(component).find("components.card: a component needs a \"node\"") != std::string::npos);
@@ -175,10 +179,11 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 	std::vector<std::string> capabilities;
 	for(const SectionType& section : sections.sections())
 		if(section.capability) capabilities.push_back(section.name);
-	CHECK(capabilities == std::vector<std::string>{"channels", "services", "connections", "persist", "permissions"});
+	CHECK(capabilities ==
+	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "points"});
 
 	const Rules rules;
-	const json before = {{"format", "affrescoui-screen"}, {"version", 1}, {"root", {{"type", "panel"}}}};
+	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};
 	for(const std::string& section : capabilities) {
 		CAPTURE(section);
 		json after = before;
@@ -191,7 +196,7 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 
 TEST_CASE("format: the catalog is built from the registries, and lists an application's types") {
 	affresco::Screen screen =
-	    affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 1, "root": {"type": "panel"}})");
+	    affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 2, "root": {"type": "panel"}})");
 	screen.registerType("notes", [] { return std::make_unique<NotesEditor>(); }, {"language"});
 	const json catalog = json::parse(screen.catalogJson());
 
@@ -203,7 +208,7 @@ TEST_CASE("format: the catalog is built from the registries, and lists an applic
 	CHECK(catalog["common"] == catalog["types"]["panel"]["properties"]);
 	CHECK(std::ranges::find(catalog["steps"], json("set")) != catalog["steps"].end());
 	CHECK(std::ranges::find(catalog["steps"], json("accept")) == catalog["steps"].end());
-	CHECK(catalog["controlSteps"].size() == 12);
+	CHECK(catalog["controlSteps"].size() == 14);
 	CHECK(catalog["sections"].front() == "window");
 	CHECK(catalog["sections"].back() == "root");
 	CHECK(std::ranges::find(catalog["sections"], json("include")) != catalog["sections"].end());
@@ -215,7 +220,7 @@ TEST_CASE("format: an application's type gets the built-in widget's properties a
 	const affresco::detail::ManualClock clock;
 	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "language": "c++", "numbers": true },
 		"root": { "type": "panel", "children": [
 			{ "type": "notes", "id": "notes", "lineNumbers": "{{state.numbers}}", "language": "{{state.language}}" }
@@ -237,4 +242,34 @@ TEST_CASE("format: an application's type gets the built-in widget's properties a
 	REQUIRE(screen.applyRevision(R"({"set": {"/state/language": "rust"}})"));
 	window->render();
 	CHECK(applied.back() == R"({"language":"rust"})");
+}
+
+// Every node's events are a fixed list; an application's type may list events of its own ("onType"), which then
+// go to its apply function like its other properties, and an unknown event still fails
+TEST_CASE("format: an application's type gets the events it lists as its own") {
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"actions": { "typed": [{ "set": "state.typed", "to": true }] },
+		"root": { "type": "panel", "children": [
+			{ "type": "notes", "id": "notes", "onType": "typed", "onClick": "typed" }
+		] }
+	})json");
+	std::vector<std::string> applied;
+	screen.registerType(
+	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"onType"},
+	    [&](affresco::Panel&, const std::string& properties) { applied.push_back(properties); });
+	screen.build(*window);
+	window->render();
+	REQUIRE(screen.find("notes"));
+	CHECK(applied == std::vector<std::string>{R"({"onType":"typed"})"}); // onClick stays every node's event
+
+	affresco::Screen unknown = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"root": { "type": "panel", "children": [{ "type": "notes", "onPopupKey": "typed" }] }
+	})json");
+	unknown.registerType(
+	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"onType"}, [](auto&, const auto&) {});
+	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onPopupKey: unknown event"));
 }

@@ -4,6 +4,12 @@ affrescoui_module(net
 	src/Client.cpp
 	src/Curl.cpp
 	src/Http.cpp
+	src/LoopbackRedirect.cpp
+	src/OAuth.cpp
+	src/OAuthBrowser.cpp
+	src/OAuthDevice.cpp
+	src/OAuthSignIn.cpp
+	src/OAuthTimer.cpp
 	src/PeerConnection.cpp
 	src/PeerHandshake.cpp
 	src/RemotePeers.cpp
@@ -13,7 +19,21 @@ affrescoui_module(net
 	src/WebSocketClient.cpp
 	src/WebSocketFrames.cpp
 	src/Worker.cpp)
-target_link_libraries(affrescoui_net PUBLIC affrescoui::core PRIVATE CURL::libcurl nlohmann_json::nlohmann_json)
+if(EMSCRIPTEN) # the browser's fetch and WebSocket in place of libcurl (cmake/AffrescoUIWeb.cmake)
+	affrescoui_web_net(affrescoui_net)
+endif()
+# nlohmann_json is public: SignIn.hpp includes core's Identity.hpp, whose json is nlohmann's
+target_link_libraries(affrescoui_net PUBLIC affrescoui::core nlohmann_json::nlohmann_json PRIVATE CURL::libcurl)
+# The system's secret store (SignIn's refresh tokens) and its random bytes
 if(WIN32)
-	target_link_libraries(affrescoui_net PRIVATE ws2_32) # Winsock (the loopback listener)
+	target_sources(affrescoui_net PRIVATE src/SecretStoreWindows.cpp)
+	target_link_libraries(affrescoui_net PRIVATE ws2_32 advapi32 bcrypt shell32) # Winsock, Credential Manager, random
+	# curl's headers bring in windows.h, whose min and max macros break std::min and std::max
+	target_compile_definitions(affrescoui_net PRIVATE NOMINMAX)
+elseif(APPLE)
+	target_sources(affrescoui_net PRIVATE src/SecretStoreApple.cpp)
+	target_link_libraries(affrescoui_net PRIVATE "-framework Security" "-framework CoreFoundation")
+else()
+	target_sources(affrescoui_net PRIVATE src/SecretStoreLinux.cpp)
+	target_link_libraries(affrescoui_net PRIVATE ${CMAKE_DL_LIBS}) # libsecret, loaded at run time if installed
 endif()

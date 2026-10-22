@@ -10,7 +10,14 @@
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
+#include "features/editor/Editor.hpp"
+#include "features/lsp/Lsp.hpp"
+#include "features/search/Search.hpp"
 #include "SocketDir.hpp"
+#include "features/accounts/Accounts.hpp"
+#include "features/explorer/Explorer.hpp"
+#include "features/terminal/Terminal.hpp"
+#include "features/debug/Debug.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -78,13 +85,23 @@ int run(const Options& options) {
 	affresco::Application app;
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
-	affresco::Screen screen = affresco::Screen::fromFile(assetsDirectory().parent_path() / "forge" / "forge.screen.json",
-	                                                     options.dataDir,
-	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
+	affresco::Screen screen =
+	    affresco::Screen::fromFile(assetsDirectory() / "forge" / "forge.screen.json", options.dataDir,
+		                           screenshotOnly ? History::InMemory : History::OnDisk);
 	examples::registerCodeEditor(screen);
-	auto workspace = std::make_shared<forge::Workspace>();
+	const auto workspace = std::make_shared<forge::Workspace>();
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
+	forge::registerAccounts(screen, !screenshotOnly);
+	forge::addExampleCatalog(screen, assetsDirectory() / "forge");
+	forge::registerExplorer(screen, workspace, &app);
+	forge::grantTerminal(screen, workspace->root);
+	forge::registerTerminal(screen, &app);
+	forge::grantLanguageServers(screen);
+	forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), &app);
+	forge::registerSearch(screen, workspace);
+	forge::registerDebug(screen, workspace);
+	screen.setSocketDirectory(options.socketDir); // the agent pane's channel reaches Forge's own studio.sock
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {
@@ -98,6 +115,10 @@ int run(const Options& options) {
 
 } // namespace
 
+/// @brief Runs Forge.
+/// @param argc The number of arguments.
+/// @param argv The arguments.
+/// @return 0, 1 for an error (written to stderr), or 2 for wrong arguments.
 int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
 		const std::optional<Options> options = parseArguments(argc, argv);

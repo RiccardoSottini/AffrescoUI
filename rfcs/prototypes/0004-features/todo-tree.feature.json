@@ -1,6 +1,6 @@
 {
 	"format": "affrescoui-feature",
-	"version": 1,
+	"version": 2,
 	"name": "todoTree",
 	"release": "1.2.0",
 	"title": "TODO tree",
@@ -8,7 +8,7 @@
 	"license": "Apache-2.0",
 	"note": "This version reads the open files through an export, so the prototype runs today. The RFC's worked example scans the whole workspace with the search service instead (requires.services).",
 	"requires": {
-		"format": 1,
+		"format": 2,
 		"points": ["sidebar.views"],
 		"exports": { "workspace.files": { "type": "array" } },
 		"features": { "wordCount": "^1.0.0" }
@@ -47,9 +47,9 @@
 							"let": { "todos": "{{filter(split(file.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME'))}}" },
 							"type": "column",
 							"anchors": { "left": 0, "right": 0 },
-							"height": "{{len(todos) == 0 ? 0 : 24 + len(todos) * 22}}",
+							"height": "{{length(todos) == 0 ? 0 : 24 + length(todos) * 22}}",
 							"children": [
-								{ "id": "todoTree-file-name", "type": "label", "fitText": true, "textColor": "@text", "padding": 4, "text": "{{file.name}}", "visible": "{{len(todos) > 0}}" },
+								{ "id": "todoTree-file-name", "type": "label", "fitText": true, "textColor": "@text", "padding": 4, "text": "{{file.name}}", "visible": "{{length(todos) > 0}}" },
 								{
 									"id": "todoTree-line",
 									"repeat": { "for": "todo", "in": "todos" },

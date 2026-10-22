@@ -28,6 +28,7 @@
 namespace affresco::format {
 
 struct ReadSet;
+class Strings;
 
 /// @brief Variables in scope: its own, then its parent's, and so on. Panels built inside a repeat share their parent's
 /// scope instead of copying it: a card's scope points at its column's, which holds the column once.
@@ -124,6 +125,7 @@ struct Context {
 	ReadSet* reads = nullptr;             ///< Gets the places of the state read, for fine-grained updates (or none).
 	const NodeLookup* models = nullptr;   ///< A data model's row by its place, "/~m/files/3" (Models.hpp), or none.
 	const VariableLookup* variables = nullptr; ///< Variables built when read (none: only the others).
+	const Strings* strings = nullptr; ///< The translations `t()` reads, and the locale (none: English, no keys).
 };
 
 /// @brief Evaluates templates, expressions and operators, recursing into objects and arrays.
@@ -218,7 +220,7 @@ inline constexpr std::size_t maxListGap = 10000;
 [[nodiscard]] json functionCatalog();
 
 /// @brief The format guide's list of functions, as SCREEN_FORMAT.md has it (from the function registry).
-/// @return Markdown lines: "- functions: `len(value)`, ...", then the list functions.
+/// @return Markdown lines: "- functions: `length(value)`, ...", then the list functions.
 [[nodiscard]] std::string functionGuide();
 
 } // namespace affresco::format

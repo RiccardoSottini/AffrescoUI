@@ -1,0 +1,46 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "A timeline, for the rendering check: three tracks (a position with linear and Bézier keyframes, an opacity with a step, and video clips) under a ruler in frames, with a marker and a play range. The tracks and the playhead live in state; scrubbing, moving keyframes and trimming clips are handled in JSON.",
+
+	"window": { "title": "Timeline", "width": 640, "height": 160 },
+
+	"fonts": { "default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 13 } },
+
+	"colors": { "background": "#111827", "header": "#1f2937", "clip": "#2563eb", "text": "#f9fafb",
+		"accent": "#f59e0b" },
+
+	"state": {
+		"time": 0.5,
+		"tracks": [
+			{ "id": "pos", "label": "Position", "keyframes": [
+				{ "time": 0, "value": 0 }, { "time": 1, "value": 100, "easing": "bezier" }, { "time": 3, "value": 50 }] },
+			{ "id": "opacity", "label": "Opacity", "keyframes": [
+				{ "time": 0, "value": 1, "easing": "step" }, { "time": 2, "value": 0 }] },
+			{ "id": "video", "label": "Video", "clips": [
+				{ "id": "intro", "label": "Intro", "start": 0.5, "duration": 1.5 },
+				{ "id": "main", "label": "Main", "start": 2.5, "duration": 1, "color": "#7c3aed" }] }
+		],
+		"selected": []
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "type": "timeline", "id": "edit", "width": "100%", "height": "100%",
+				"tracks": "{{state.tracks}}", "time": "{{state.time}}", "selectedKeys": "{{state.selected}}",
+				"duration": 4, "fps": 24, "playRange": [0.5, 3.5], "markers": [{ "time": 2, "label": "beat" }],
+				"headerColor": "@header", "clipColor": "@clip", "textColor": "@text", "accentColor": "@accent",
+				"onScrub": [{ "set": "state.time", "to": "{{event.time}}" }],
+				"onSelect": [{ "set": "state.selected", "to": "{{event.ids}}" }],
+				"onKeyframeMove": [{ "set": "state.tracks", "to": "{{map(state.tracks, it.id == event.track ? merge(it, { keyframes: map(it.keyframes, index == event.index ? merge(it, { time: event.time }) : it) }) : it)}}" }],
+				"onClipChange": [{ "set": "state.tracks", "to": "{{map(state.tracks, it.id == event.track ? merge(it, { clips: map(it.clips, it.id == event.id ? merge(it, { start: event.start, duration: event.duration }) : it) }) : it)}}" }],
+				"children": [
+					{ "id": "header", "type": "label", "repeat": { "for": "track", "in": "state.tracks", "key": "{{track.id}}" },
+						"text": "{{track.label}}", "textColor": "@text" }
+				] }
+		]
+	}
+}

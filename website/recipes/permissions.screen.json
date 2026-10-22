@@ -1,0 +1,27 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Permissions", "width": 420, "height": 200 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"permissions": {
+		"allow": ["studio", "agent(/colors)", "agent(#notes)"],
+		"ask": ["agent(/actions)"],
+		"deny": ["*(#footer)"],
+		"reviewers": ["studio"]
+	},
+	"colors": { "accent": "#6366f1" },
+	"state": { "notes": "An agent may change this area and the colours freely." },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "label", "id": "notes", "x": 24, "y": 24, "width": 372, "height": 60, "padding": 12, "radius": 8,
+			  "wrap": true, "color": "#ffffff", "textColor": "#0f172a", "text": "{{state.notes}}" },
+			{ "type": "label", "id": "title", "x": 24, "y": 96, "width": 372, "height": 32, "textColor": "@accent",
+			  "text": "Anything else an agent changes waits for review" },
+			{ "type": "label", "id": "footer", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 28,
+			  "padding": 6, "color": "#e2e8f0", "textColor": "#334155", "locked": true,
+			  "text": "Nobody may change this footer" }
+		]
+	}
+}

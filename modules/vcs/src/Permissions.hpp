@@ -32,6 +32,12 @@ namespace affresco::vcs::detail {
 /// @return e.g. "agent".
 [[nodiscard]] std::string channelOf(std::string_view author);
 
+/// @brief How many approvals count: one per channel, since a channel names its own users ("studio/anna",
+/// "studio/bob") and only the channel is the host's word.
+/// @param approvals The reviewers who approved.
+/// @return The number of channels among them.
+[[nodiscard]] std::size_t countedApprovals(const std::vector<std::string>& approvals);
+
 /// @brief Tells whether a rule's author covers an author.
 /// @param ruleAuthor "*", a channel name or a full name.
 /// @param author The author's full name.

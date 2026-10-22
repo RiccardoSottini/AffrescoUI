@@ -61,7 +61,7 @@ void settle(affresco::Window& window, ManualClock& clock, affresco::Screen& scre
 
 /// @brief A menu bar's document: a File menu with a submenu, and actions that count.
 constexpr const char* menuScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": { "n": 0, "last": null, "bar": {} },
 	"actions": {
 		"add": [{ "increment": "state.n", "by": 1 }, { "set": "state.last", "to": "{{what ?? 'add'}}" }]
@@ -84,7 +84,7 @@ TEST_CASE("format: Tab follows tabIndex first, then the tree, and Shift+Tab goes
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"root": { "id": "root", "type": "column", "children": [
 			{ "id": "a", "height": 20, "focusable": true },
 			{ "id": "b", "height": 20, "focusable": true, "tabIndex": 1 },
@@ -111,7 +111,7 @@ TEST_CASE("format: a tabIndex past int's range is the last in the tab order, and
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"root": { "id": "root", "type": "column", "children": [
 			{ "id": "huge", "height": 20, "focusable": true, "tabIndex": 1e30 },
 			{ "id": "one", "height": 20, "focusable": true, "tabIndex": 1 },
@@ -133,7 +133,7 @@ TEST_CASE("format: Enter or Space on a focusable node clicks it, and Alt with it
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1, "state": { "n": 0, "keyboard": null },
+		"format": "affrescoui-screen", "version": 2, "state": { "n": 0, "keyboard": null },
 		"root": { "id": "root", "type": "column", "children": [
 			{ "id": "go", "height": 20, "focusable": true, "mnemonic": "g",
 			  "onClick": [{ "increment": "state.n", "by": 1 }, { "set": "state.keyboard", "to": "{{event.keyboard}}" }] }
@@ -156,7 +156,7 @@ TEST_CASE("format: the arrows move through a list, Tab leaves it in one step, an
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1, "state": { "picked": null },
+		"format": "affrescoui-screen", "version": 2, "state": { "picked": null },
 		"root": { "id": "root", "type": "column", "children": [
 			{ "id": "list", "type": "column", "height": 60, "arrows": "vertical", "children": [
 				{ "id": "x", "height": 20, "focusable": true, "mnemonic": "x" },
@@ -190,7 +190,7 @@ TEST_CASE("format: a modal overlay takes the focus, keeps Tab inside, and gives 
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1, "state": { "open": false },
+		"format": "affrescoui-screen", "version": 2, "state": { "open": false },
 		"root": { "id": "root", "type": "column", "children": [
 			{ "id": "opener", "height": 20, "focusable": true, "onClick": { "set": "state.open", "to": true } },
 			{ "id": "outside", "height": 20, "focusable": true },
@@ -268,7 +268,7 @@ TEST_CASE("format: the built-in dialog and toast run their buttons and actions, 
 	ManualClock clock;
 	const auto window = createHeadlessWindow(800, 600, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "dialog": true, "toast": true, "answer": null },
 		"actions": { "answer": [{ "set": "state.answer", "to": "{{choice}}" }] },
 		"root": { "id": "root", "children": [
@@ -305,7 +305,7 @@ TEST_CASE("format: the checker knows the built-in components, and a document's o
 	ManualClock clock;
 	const auto window = createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"components": { "menu": { "node": { "id": "mine", "height": 10 } } },
 		"root": { "id": "root", "children": [{ "id": "m", "use": "menu" }] }
 	})json");

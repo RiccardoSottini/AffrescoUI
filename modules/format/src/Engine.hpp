@@ -16,6 +16,7 @@
 /// Node types (TypeRegistry), steps (StepRegistry) and document sections (SectionRegistry) register from their own
 /// files.
 
+#include "affresco/core/Identity.hpp"
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/format/Runtime.hpp"
 
@@ -61,6 +62,9 @@ struct Engine : VersionObserver {
 	Runtime& owner;           ///< For onEvent, onError, onSend, onConnect and onUpdated.
 	VersionControl& versions; ///< The document and state.
 	Window* window = nullptr; ///< Set by Runtime::build().
+	identity::Identity* identity = nullptr; ///< The host's sign-in (Runtime::setIdentity()), or none.
+	/// Expires with the engine: what comes back later from outside (a sign-in finishing) checks it first.
+	std::shared_ptr<bool> alive = std::make_shared<bool>(true);
 
 	TypeRegistry types;                                         ///< Node types: built in, then the application's.
 	std::shared_ptr<const StepRegistry> steps = builtInSteps(); ///< Steps, by group (shared, read-only).
@@ -95,6 +99,11 @@ struct Engine : VersionObserver {
 	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);
+	/// @brief Reports what a section of the screen can't use: what the host chose not to give (a folder, a program, the
+	/// network, a host to connect to) is logged as information, since the app runs without it and shows it as refused;
+	/// anything else (a declaration that is wrong) is reported as an error.
+	/// @param message What is refused.
+	void reportRefused(const std::string& message);
 	/// @brief Seconds on the window's clock, which its timers read too (a steady clock before build()).
 	/// @return Now.
 	[[nodiscard]] double now() const noexcept;

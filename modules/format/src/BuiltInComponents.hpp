@@ -15,4 +15,8 @@ namespace affresco::format {
 /// @return Its definition ({params, node}), or nullptr if there is none by that name.
 [[nodiscard]] const json* builtInComponent(std::string_view name);
 
+/// @brief The form components (BuiltInFormComponents.cpp): comboBox and passwordMeter, as one JSON object by name.
+/// @return Its text.
+[[nodiscard]] std::string_view builtInFormComponents() noexcept;
+
 } // namespace affresco::format

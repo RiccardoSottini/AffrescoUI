@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <set>
 
 namespace affresco::services {
 
@@ -42,9 +43,15 @@ public:
 	/// @param program The program, an absolute path.
 	/// @param arguments Its arguments.
 	/// @param environment Its whole environment, or std::nullopt for the host's.
+	/// @param shape Checks the arguments a call adds (`with.arguments`) and may set the folder each run starts in; empty
+	/// to refuse every call that adds arguments.
 	/// @throws std::runtime_error If the path isn't absolute.
 	void allowProcess(std::string name, const std::filesystem::path& program, std::vector<std::string> arguments = {},
-	                  std::optional<std::vector<std::string>> environment = std::nullopt);
+	                  std::optional<std::vector<std::string>> environment = std::nullopt, ProcessShaper shape = {});
+	/// @brief Names a loopback port a `dap` service may attach to (`"attach": {"port": 5678}`): whatever listens there
+	/// is spoken to as a debug adapter, which can run code.
+	/// @param port The port.
+	void allowAttach(std::uint16_t port);
 	/// @brief Sets the main thread services report to. Without one, no service starts.
 	/// @param executor The executor, or nullptr; it must outlive the registry.
 	void setExecutor(Executor* executor) noexcept;
@@ -93,6 +100,7 @@ private:
 	std::map<std::string, std::unique_ptr<Provider>, std::less<>> providers_; ///< By name.
 	std::map<std::string, std::filesystem::path, std::less<>> roots_;          ///< Granted folders, canonical.
 	std::map<std::string, ProcessGrant, std::less<>> processes_;               ///< Granted programs.
+	std::set<std::uint16_t> attachPorts_;                                      ///< Granted loopback ports.
 	std::map<std::string, std::unique_ptr<Entry>, std::less<>> entries_;       ///< The loaded services.
 	Executor* executor_ = nullptr;                                             ///< The main thread.
 	std::uint64_t generations_ = 0;                                            ///< Starts so far, to number them.

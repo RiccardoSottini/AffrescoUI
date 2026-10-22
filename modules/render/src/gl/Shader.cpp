@@ -1,9 +1,23 @@
+/// @file
+/// @brief Shader program creation, for either backend (Shader.hpp).
+
 #include "gl/Shader.hpp"
 
 #include <stdexcept>
 #include <string>
 
 namespace affresco::gl {
+
+std::string_view shaderPrelude(ShaderStage stage) noexcept {
+#if defined(AFFRESCOUI_GLES3)
+	// highp: what GLSL 4.10 computes in, so both backends round alike (ES 3.0 guarantees it in fragment shaders)
+	if(stage == ShaderStage::fragment) return "#version 300 es\nprecision highp float;\nprecision highp int;\n";
+	return "#version 300 es\n";
+#else
+	static_cast<void>(stage); // one prelude for every stage
+	return "#version 410 core\n";
+#endif
+}
 
 namespace {
 

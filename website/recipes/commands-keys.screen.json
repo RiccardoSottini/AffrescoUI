@@ -1,0 +1,29 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Commands and keys", "width": 380, "height": 200 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["symbols"] },
+	           "symbols": { "file": "../../examples/shared/fonts/JetBrainsMono-Regular.ttf", "size": 15 } },
+	"state": { "dirty": true, "saves": 0 },
+	"actions": {
+		"save": { "title": "Save", "category": "File", "enablement": "{{state.dirty}}",
+		          "description": "Write the changes.",
+		          "do": [{ "increment": "state.saves", "by": 1 }, { "set": "state.dirty", "to": false }] },
+		"edit": [{ "set": "state.dirty", "to": true }]
+	},
+	"keys": { "mod+s": "save", "mod+k mod+e": "edit" },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "column", "id": "lines", "x": 24, "y": 24, "width": 332, "height": 150, "gap": 6, "children": [
+				{ "type": "label", "id": "status", "anchors": { "left": 0, "right": 0 }, "height": 28,
+				  "textColor": "#0f172a",
+				  "text": "{{state.dirty ? 'Unsaved changes' : 'Saved'}} ({{plural(state.saves, 'save')}})" },
+				{ "type": "label", "id": "binding", "anchors": { "left": 0, "right": 0 }, "height": 28,
+				  "repeat": { "for": "binding", "in": "keybindings" }, "textColor": "#64748b",
+				  "text": "{{binding.keyLabel}}: {{binding.title ?? binding.command}}" }
+			] }
+		]
+	}
+}

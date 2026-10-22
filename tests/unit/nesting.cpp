@@ -43,7 +43,7 @@ std::string innermost(const std::string& key, int depth) {
 /// @brief A screen whose "wrap" action puts the value of state.box inside a new object, one level deeper each time.
 constexpr const char* wrappingScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"state": { "box": 0, "list": [] },
 	"actions": {
 		"wrap": [{ "set": "state.box", "to": { "inside": "{{state.box}}" } }],

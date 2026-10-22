@@ -1,0 +1,39 @@
+# The Python binding, package `affrescoui` (not published): a ctypes wrapper over the C API's shared library,
+# libaffresco, which the wheel builds from this checkout and carries inside the package.
+#
+#     pip install ./bindings/python            (builds the library with CMake; a C++23 compiler is needed)
+#
+# Without a wheel, point AFFRESCOUI_LIBRARY at a library built with -DAFFRESCOUI_BUILD_CAPI_SHARED=ON.
+
+[build-system]
+requires = ["scikit-build-core==0.10.7"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "affrescoui"
+version = "0.1.0"
+description = "Python binding of AffrescoUI: load a screen document, drive it headless or show it, answer its actions"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+classifiers = ["Private :: Do Not Upload"]
+
+[project.optional-dependencies]
+test = ["pytest==8.3.5"]
+
+[tool.scikit-build]
+minimum-version = "0.10"
+cmake.source-dir = "../.."
+cmake.build-type = "Release"
+install.components = ["python"]
+wheel.packages = ["affrescoui"]
+
+[tool.scikit-build.cmake.define]
+AFFRESCOUI_BUILD_CAPI_SHARED = "ON"
+AFFRESCOUI_BUILD_EXAMPLES = "OFF"
+AFFRESCOUI_BUILD_TESTS = "OFF"
+AFFRESCOUI_BUILD_TOOLS = "OFF"
+AFFRESCOUI_INSTALL = "OFF"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

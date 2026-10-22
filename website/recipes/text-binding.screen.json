@@ -1,0 +1,18 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Bound text", "width": 360, "height": 160 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "name": "" },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "textarea", "id": "name", "x": 24, "y": 24, "width": 312, "height": 40, "padding": 10, "radius": 8,
+			  "color": "#ffffff", "borderWidth": 1, "borderColor": "#cbd5e1", "textColor": "#0f172a",
+			  "placeholder": "Your name", "placeholderColor": "#94a3b8", "bind": "state.name" },
+			{ "type": "label", "id": "greeting", "x": 24, "y": 80, "width": 312, "height": 32, "textColor": "#0f172a",
+			  "text": "{{empty(trim(state.name)) ? 'Type your name above' : 'Hello, ' + trim(state.name) + '!'}}" }
+		]
+	}
+}

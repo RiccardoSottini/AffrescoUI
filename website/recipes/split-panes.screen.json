@@ -1,0 +1,24 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Split", "width": 480, "height": 280 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "sizes": [160] },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "split", "id": "workbench", "fill": true, "bind": "state.sizes", "minSize": [120, 200],
+			  "defaultSizes": [160], "sashColor": "#cbd5e1", "sashActiveColor": "#6366f1", "children": [
+				{ "id": "side", "color": "#e2e8f0", "children": [
+					{ "type": "label", "id": "side-title", "x": 12, "y": 10, "width": 120, "height": 24,
+					  "textColor": "#0f172a", "text": "Side bar" }
+				] },
+				{ "id": "main", "color": "#ffffff", "children": [
+					{ "type": "label", "id": "main-title", "x": 12, "y": 10, "width": 260, "height": 24,
+					  "textColor": "#0f172a", "text": "Side bar is {{state.sizes[0]}} px wide" }
+				] }
+			] }
+		]
+	}
+}

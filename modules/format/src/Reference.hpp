@@ -21,7 +21,7 @@ struct Engine;
 /// gives its schema; a later entry of the same name only lists it in another table.
 struct KeyReference {
 	std::string_view name;   ///< The key; a name with "…" stands for several (a table row only).
-	std::string_view schema; ///< A "$defs/v1" name (a "$ref" to it), the JSON of its schema, or "" for {}.
+	std::string_view schema; ///< A "$defs/v2" name (a "$ref" to it), the JSON of its schema, or "" for {}.
 	std::string_view about;  ///< Its row in the table; "" joins the row above (or none, without a table); "{types}"
 	                         ///< in it lists the built-in node types.
 	std::string_view table;  ///< The table that lists it ("" none), the name in the "generated" marker.
@@ -61,7 +61,7 @@ struct KeyReference {
 
 /// @brief The JSON Schema of the format, with the types, sections and steps the engine has registered.
 /// @param engine The engine.
-/// @return The schema; "$defs/v1" holds the format's version 1.
+/// @return The schema; "$defs/v2" holds the format's version 2.
 [[nodiscard]] json schema(const Engine& engine);
 
 /// @brief Writes the generated tables into SCREEN_FORMAT.md: the text between each "<!-- generated: name -->" and the

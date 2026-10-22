@@ -9,6 +9,7 @@
 #include "affresco/render/Layout.hpp"
 #include "affresco/render/Length.hpp"
 #include "affresco/render/Painter.hpp"
+#include "affresco/render/Transform.hpp"
 #include "affresco/core/Signal.hpp"
 
 #include <array>
@@ -44,6 +45,14 @@ enum class Edge {
 	Right,  ///< Right edge.
 };
 
+/// @brief Which way a panel's children and text run (see Panel::setWritingDirection).
+enum class WritingDirection : std::uint8_t {
+	Inherit,     ///< As its parent; the root runs left to right.
+	LeftToRight, ///< Left to right.
+	RightToLeft, ///< Right to left: children are placed mirrored and text starts at the right.
+	Locale,      ///< As the window's locale (Window::setLocaleRightToLeft()).
+};
+
 /// @brief Where an overlay panel is placed (see Panel::setOverlay).
 enum class Placement {
 	Below,    ///< Under its anchor, left edges aligned.
@@ -55,6 +64,32 @@ enum class Placement {
 	Center,   ///< Centred in the window.
 	Window,   ///< In the window, placed by its own x, y and anchors, as if the window were its parent.
 };
+
+/// @brief How an assistive technology announces changes to a panel's text (ARIA's aria-live).
+enum class LiveRegion : std::uint8_t {
+	Off,       ///< Not announced.
+	Polite,    ///< Announced when the person is idle (a toast).
+	Assertive, ///< Announced at once (an error).
+};
+
+/// @brief The states an assistive technology reads beside a panel's role and name (affresco/render/Accessibility.hpp).
+struct AccessibleState {
+	std::optional<bool> expanded; ///< Expanded or collapsed (a tree item, a disclosure); empty if it doesn't expand.
+	std::optional<bool> selected; ///< Selected or not (a tab, a list item); empty if it can't be selected.
+	bool disabled = false;        ///< It takes no input.
+	LiveRegion live = LiveRegion::Off; ///< How changes to its text are announced.
+
+	bool operator==(const AccessibleState&) const = default;
+};
+
+/// @brief A copy of a state, disabled or not.
+/// @param state The state.
+/// @param disabled Whether it takes no input.
+/// @return The copy.
+[[nodiscard]] constexpr AccessibleState withDisabled(AccessibleState state, bool disabled) noexcept {
+	state.disabled = disabled;
+	return state;
+}
 
 /// @brief A rectangle in the UI tree. Owns its children; positions and sizes are relative to the parent.
 ///
@@ -253,6 +288,18 @@ public:
 	void setGridCell(GridCell cell);
 	/// @brief The cell it asks for in a Grid.
 	[[nodiscard]] const GridCell& gridCell() const noexcept { return gridCell_; }
+	/// @brief Sets which way its children and text run: right to left, children are placed as left to right and then
+	/// mirrored in it (row order, anchors, padding), scrolling starts at the right, and Start alignment is the right.
+	/// @param direction The direction; Inherit (the default) takes the parent's.
+	void setWritingDirection(WritingDirection direction);
+	/// @brief The direction it was given.
+	[[nodiscard]] WritingDirection writingDirection() const noexcept { return writingDirection_; }
+	/// @brief Whether its children and text run right to left, as of its last layout.
+	[[nodiscard]] bool rightToLeft() const noexcept { return rightToLeft_; }
+	/// @brief An alignment as read in its direction: Start and End swap right to left.
+	/// @param align The alignment, Start meaning where reading starts.
+	/// @return Start meaning the left.
+	[[nodiscard]] Align readingAlign(Align align) const noexcept;
 
 	/* Scrolling */
 
@@ -282,6 +329,14 @@ public:
 	/// @brief Whether it is an overlay.
 	[[nodiscard]] bool isOverlay() const noexcept { return overlay_; }
 
+	/// @brief Draws this panel's own content, as a frame would, into a painter of another kind (a PDF page, an image):
+	/// paint(), for drawers outside the window's renderer. The caller clips to bounds() and draws the children after.
+	/// @param painter Where it goes.
+	void paintContent(Painter& painter) const { paint(painter); }
+	/// @brief Draws what this panel draws over its children: paintOver(), as paintContent().
+	/// @param painter Where it goes.
+	void paintContentOver(Painter& painter) const { paintOver(painter); }
+
 	/// @brief Sets the text of the tooltip the window shows after the pointer rests on this panel.
 	/// @param text UTF-8; empty for none.
 	void setTooltip(std::string text);
@@ -305,6 +360,15 @@ public:
 	void setAccessibleDescription(std::string description);
 	/// @brief The description; empty if none.
 	[[nodiscard]] const std::string& accessibleDescription() const noexcept { return description_; }
+	/// @brief Sets the states read beside the role and the name.
+	/// @param state Expanded, selected, disabled and live.
+	void setAccessibleState(const AccessibleState& state) {
+		if(state_ == state) return;
+		state_ = state;
+		invalidatePaint(); // the next frame sends it to assistive technologies
+	}
+	/// @brief The states setAccessibleState() gave.
+	[[nodiscard]] const AccessibleState& accessibleState() const noexcept { return state_; }
 
 	/* Appearance */
 
@@ -341,6 +405,29 @@ public:
 	void setCached(bool cached) { setLook(cached_, cached); }
 	/// @brief The flag set by setCached().
 	[[nodiscard]] bool isCached() const noexcept { return cached_; }
+	/// @brief Transforms how the panel and its subtree are painted, as CSS transform: layout keeps the untransformed
+	/// frame, while drawing, hit-testing and pointer positions go through it. It composes with the ancestors'
+	/// transforms (an overlay has only its own).
+	/// @param transform The transform (Affine2::compose()), about the origin.
+	/// @param origin Where it applies, as a share of the frame's size: {0.5, 0.5} is the centre.
+	void setTransform(const Affine2& transform, Vec2 origin = {0.5f, 0.5f});
+	/// @brief The transform set by setTransform(); the identity by default.
+	[[nodiscard]] const Affine2& transform() const noexcept { return transform_; }
+	/// @brief Where the transform applies, as a share of the frame's size.
+	[[nodiscard]] Vec2 transformOrigin() const noexcept { return transformOrigin_; }
+	/// @brief The transform about its origin: from this panel's layout space into its parent's.
+	/// @return The identity when it has none.
+	[[nodiscard]] Affine2 localTransform() const noexcept;
+	/// @brief From this panel's layout space (where frame() and bounds() are) into the window.
+	/// @return Its own and its ancestors' local transforms; an overlay's own only.
+	[[nodiscard]] Affine2 worldTransform() const noexcept;
+	/// @brief A window point in this panel's layout space, as its pointer events give it.
+	/// @param point In window units.
+	/// @return The point; nullopt when a transform flattens the panel (a scale of 0).
+	[[nodiscard]] std::optional<Vec2> toLocal(Vec2 point) const noexcept;
+	/// @brief The visible area on screen: bounds() through worldTransform(), as its bounding box.
+	/// @return In window units.
+	[[nodiscard]] Rect screenBounds() const noexcept;
 
 	/// @brief Shows or hides the panel and its subtree.
 	/// @param visible false to hide it from drawing, hit-testing and stacks.
@@ -383,8 +470,9 @@ public:
 	/// @return The width.
 	[[nodiscard]] float measuredWidth(float reference);
 
-	/// @brief Finds the deepest shown panel at a point; later siblings are on top.
-	/// @param point In window units.
+	/// @brief Finds the deepest shown panel at a point; later siblings are on top. Each level maps the point through
+	/// its inverse transform; a panel a transform flattens is never hit.
+	/// @param point In the parent's layout space: window units for a root or an overlay.
 	/// @return This panel or a descendant, or nullptr.
 	[[nodiscard]] Panel* hitTest(Vec2 point) noexcept;
 
@@ -509,6 +597,10 @@ private:
 	/// @param parentSize See layout().
 	/// @param parentShown See layout().
 	void placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief The parent's clip brought into this panel's layout space through the inverse of its transform.
+	/// @param clip The parent's clip, in the parent's layout space.
+	/// @return Its bounding box there; the frame when the transform flattens the panel.
+	[[nodiscard]] Rect clipInSpace(const Rect& clip) const noexcept;
 	/// @brief The positions of a panel's two edges on one axis, if anchored.
 	struct AnchoredEdges {
 		std::optional<float> start{}; ///< Top or left.
@@ -629,6 +721,8 @@ private:
 	std::optional<Length> basis_;                        ///< See basis().
 	std::optional<CrossAlign> alignSelf_;                ///< See alignSelf().
 	GridCell gridCell_;                                  ///< See gridCell().
+	WritingDirection writingDirection_ = WritingDirection::Inherit; ///< See writingDirection().
+	bool rightToLeft_ = false;                                      ///< See rightToLeft().
 	std::array<std::optional<Length>, 4> anchors_;       ///< Indexed by Edge.
 	std::array<std::optional<AnchorTarget>, 4> targets_; ///< Anchors to other panels, indexed by Edge.
 	std::uint8_t targetEdges_ = 0; ///< A bit per edge (1 << Edge) whose targets_ is set, read on every pass.
@@ -641,11 +735,14 @@ private:
 	Shadow shadow_;                                       ///< See shadow().
 	bool visible_ = true;                                 ///< See setVisible().
 	bool cached_ = false;                                 ///< See setCached().
+	Affine2 transform_;                                   ///< See transform().
+	Vec2 transformOrigin_{0.5f, 0.5f};                    ///< See transformOrigin().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
 	std::string tooltip_;                                 ///< See tooltip().
 	std::string role_;                                    ///< See accessibleRole().
 	std::string accessibleLabel_;                         ///< See accessibleLabel().
 	std::string description_;                             ///< See accessibleDescription().
+	AccessibleState state_;                               ///< See accessibleState().
 
 	bool scrollX_ = false, scrollY_ = false; ///< See setScrollable().
 	Vec2 scroll_;                            ///< See scrollOffset().

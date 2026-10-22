@@ -7,6 +7,7 @@
 #include "affresco/render/Clock.hpp"
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/FrameStatistics.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/core/Signal.hpp"
 
@@ -24,15 +25,18 @@ struct GLFWwindow;
 
 namespace affresco {
 
+class Bitmap;
 class Label;
 
 namespace platform {
 class NativeWindow;
+class AccessibilityAdapter;
 }
 namespace detail {
 class Renderer;
 struct Frame;
 struct WindowFactory;
+struct EmbeddedWindowFactory;
 } // namespace detail
 
 /// @brief An entry of a window's menu bar (Window::setMenuBar()): a menu, a command, or a separator.
@@ -281,6 +285,16 @@ public:
 		++paintGeneration_;
 	}
 
+	/// @brief Sets whether the locale is written right to left, which panels set to WritingDirection::Locale follow.
+	/// @param rightToLeft Whether it is (Arabic, Hebrew).
+	void setLocaleRightToLeft(bool rightToLeft) noexcept {
+		if(rightToLeft == localeRightToLeft_) return;
+		localeRightToLeft_ = rightToLeft;
+		invalidate();
+	}
+	/// @brief Whether the locale is written right to left.
+	[[nodiscard]] bool localeRightToLeft() const noexcept { return localeRightToLeft_; }
+
 	/// @brief Runs a task once the current event has been fully delivered (or before the next frame).
 	///
 	/// Lets event handlers rebuild parts of the UI, even the panel whose handler is running.
@@ -316,14 +330,39 @@ public:
 	/// @return false if it couldn't be written, or the window is headless.
 	bool saveScreenshot(const std::filesystem::path& path, int scale);
 
+	/// @brief Draws one panel and its subtree into an image of its own, as a frame from scratch would (nothing retained
+	/// is used or changed): for thumbnails, previews and exports. Laid out first, like a screenshot.
+	///
+	/// The image covers the panel's bounds (its visible area, clipped to its ancestors); the window's other panels,
+	/// overlays and the tooltip are left out. The image is opaque: what the subtree doesn't cover is black. The panel's
+	/// ancestors' transforms aren't applied. See SCREEN_FORMAT.md, "Images of panels".
+	/// @param panel A panel of this window.
+	/// @param scale Pixels per window unit (more than 0).
+	/// @return The image, or nullptr if the window is headless or the panel isn't shown or has no area.
+	/// @throws std::invalid_argument If the image would be past Bitmap::Limits.
+	[[nodiscard]] std::shared_ptr<const Bitmap> renderToImage(Panel& panel, float scale);
+
 	/// @brief The GLFW window, or nullptr for a headless window.
 	[[nodiscard]] GLFWwindow* nativeHandle() const noexcept;
+
+	/* Inspection */
+
+	/// @brief What the last frame cost: how long it took and how many draw calls it made.
+	[[nodiscard]] const FrameStatistics& frameStatistics() const noexcept { return statistics_; }
+
+	/// @brief Sets a layer drawn above everything but the tooltip, the size of the window, for an inspector. It is
+	/// never hit: the pointer reaches what is under it. Laid out and drawn only while it is visible.
+	/// @param layer The layer, owned from now on, or nullptr (the default) for none.
+	void setInspection(std::unique_ptr<Panel> layer);
+	/// @brief The layer setInspection() gave, or nullptr.
+	[[nodiscard]] Panel* inspection() const noexcept { return inspection_.get(); }
 
 private:
 	friend class Application;
 	friend class Panel;
 	friend class platform::NativeWindow;
 	friend struct detail::WindowFactory;
+	friend struct detail::EmbeddedWindowFactory;
 
 	/// @brief Sets a window up around its parts.
 	/// @param native The OS window, or nullptr for a headless one; owned from now on, and connected to this window.
@@ -371,6 +410,10 @@ private:
 	void layoutOverlays(Panel& panel);
 	/// @brief Lays out the focus ring around the focused panel, and lists what is drawn above the tree (drawn_).
 	void layoutFocusRing();
+	/// @brief Lays out the inspection layer over the window, if it is visible, and adds it to what is drawn (drawn_).
+	void layoutInspection();
+	/// @brief Lays out, draws and presents a frame, and records what it cost (frameStatistics()).
+	void drawAndPresent();
 	/// @brief Lays out one overlay next to its anchor.
 	/// @param overlay The overlay.
 	/// @param parent Its parent: the anchor when it names none.
@@ -393,6 +436,7 @@ private:
 	// Declaration order matters: the renderer must be destroyed before the OS window (and its GL context)
 	std::unique_ptr<platform::NativeWindow> native_; ///< OS window and OpenGL context; nullptr when headless.
 	std::unique_ptr<detail::Renderer> renderer_;     ///< Draws the tree; nullptr when headless.
+	std::unique_ptr<platform::AccessibilityAdapter> accessibility_; ///< Shows the tree to screen readers, or nullptr.
 	const Clock* clock_;                             ///< See clock(); never null.
 	std::string clipboard_;                          ///< A headless window's clipboard.
 	bool visible_ = true;                            ///< Whether a headless window counts as shown.
@@ -411,6 +455,7 @@ private:
 	bool redrawDirty_ = true;          ///< render() must draw.
 	bool layingOut_ = false;           ///< A layout pass is running.
 	bool layoutAll_ = true;            ///< The next pass lays out every panel (see invalidate()).
+	bool localeRightToLeft_ = false;   ///< See localeRightToLeft().
 	std::uint64_t measureGeneration_ = 0;
 	std::uint64_t treeGeneration_ = 1;  ///< Moves on when panels come, go, move or change id (Panel::treeChanged()).
 	std::uint64_t paintGeneration_ = 0; ///< See detail::Frame::paintGeneration.
@@ -441,6 +486,8 @@ private:
 	std::vector<Panel*> drawn_;      ///< What is drawn above the tree: the overlays, then the focus ring if shown.
 	std::optional<FocusRing> focusRing_; ///< See focusRing().
 	std::unique_ptr<Panel> ring_;        ///< The focus ring's panel, created on first use.
+	std::unique_ptr<Panel> inspection_;  ///< See inspection().
+	FrameStatistics statistics_;         ///< See frameStatistics().
 	bool keyInput_ = false;              ///< The latest input was a key, not a mouse press.
 	bool focusVisible_ = false;          ///< See focusVisible().
 	std::unique_ptr<Label> tooltip_; ///< The tooltip, created on first use.

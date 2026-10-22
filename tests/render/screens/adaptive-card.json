@@ -1,0 +1,40 @@
+{
+	"type": "AdaptiveCard",
+	"version": "1.6",
+	"$data": { "member": { "name": "Robin", "since": "2021" }, "shelf": "B4" },
+	"body": [
+		{ "type": "TextBlock", "text": "Library loan", "size": "extraLarge" },
+		{ "type": "TextBlock", "text": "Hello ${member.name}, member since ${member.since}.", "isSubtle": true },
+		{
+			"type": "ColumnSet",
+			"columns": [
+				{ "type": "Column", "width": "80px", "items": [{ "type": "Image", "url": "images/badge.png", "size": "medium", "style": "person", "altText": "Library badge" }] },
+				{
+					"type": "Column",
+					"width": "stretch",
+					"items": [
+						{ "type": "TextBlock", "text": "The Lighthouse Keeper's Atlas", "size": "medium", "wrap": true },
+						{ "type": "FactSet", "facts": [{ "title": "Shelf", "value": "${shelf}" }, { "title": "Due", "value": "in 3 weeks" }] }
+					]
+				}
+			]
+		},
+		{ "type": "Container", "style": "warning", "items": [{ "type": "TextBlock", "text": "Two other members are waiting for this book.", "color": "warning" }] },
+		{ "type": "Input.Text", "id": "note", "label": "A note for the librarian", "placeholder": "Optional" },
+		{ "type": "Input.Toggle", "id": "remind", "title": "Remind me two days before", "value": "true" },
+		{
+			"type": "Input.ChoiceSet",
+			"id": "pickup",
+			"label": "Pick up at",
+			"value": "east",
+			"choices": [{ "title": "East branch", "value": "east" }, { "title": "Harbour branch", "value": "harbour" }]
+		},
+		{ "type": "Media", "sources": [{ "mimeType": "video/mp4", "url": "https://example.org/tour.mp4" }] },
+		{ "type": "Rating", "value": 4, "fallback": "drop" }
+	],
+	"actions": [
+		{ "type": "Action.Submit", "title": "Borrow", "style": "positive", "data": { "book": "atlas-17" } },
+		{ "type": "Action.ShowCard", "title": "Renew later", "card": { "type": "AdaptiveCard", "body": [{ "type": "TextBlock", "text": "You can renew twice, online or at the desk." }] } },
+		{ "type": "Action.OpenUrl", "title": "Catalogue", "url": "https://example.org/catalogue" }
+	]
+}

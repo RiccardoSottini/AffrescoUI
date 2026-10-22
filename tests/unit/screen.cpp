@@ -106,7 +106,7 @@ void write(const std::filesystem::path& file, const std::string& content) {
 /// @param depth How many lists.
 /// @return The screen's text.
 std::string screenNestedIn(std::size_t depth) {
-	return R"({"format": "affrescoui-screen", "version": 1, "root": {"type": "panel"}, "state": {"x": )" +
+	return R"({"format": "affrescoui-screen", "version": 2, "root": {"type": "panel"}, "state": {"x": )" +
 	       std::string(depth, '[') + std::string(depth, ']') + "}}";
 }
 
@@ -139,7 +139,7 @@ TEST_CASE("screen: persisted state is read from the platform's folder for applic
 	const std::filesystem::path stateFile = folder.path / ".affrescoui" / "counter.state.json";
 #endif
 	write(folder.path / "screens" / "counter.screen.json", R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "count": 0, "other": 0 },
 		"persist": ["state.count"],
 		"root": { "type": "panel", "id": "main" }

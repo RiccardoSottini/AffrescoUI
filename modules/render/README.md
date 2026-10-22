@@ -1,8 +1,8 @@
 # render: the rendering engine
 
 `render` draws a tree of panels in a window and routes input to them. It owns the windowing system (GLFW, behind an
-internal platform layer), the OpenGL 4.1 core context and the renderer (behind an internal interface), and knows
-nothing about documents: you build the tree in C++, or `format` builds
+internal platform layer), the OpenGL 4.1 core or OpenGL ES 3.0 context ("Backends") and the renderer (behind an
+internal interface), and knows nothing about documents: you build the tree in C++, or `format` builds
 it from a screen document. It keeps the ideas of 2017: nested panels, pixel and percentage sizes, anchors to edges,
 minimum sizes, hex colours and signal-to-slot events. It adds rows, columns and grids, scrolling, overlays, rounded
 shapes with borders and shadows, shaped text with fallback fonts and colour emoji, images and icons, and a multi-line editor. No public
@@ -13,9 +13,9 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 
 | Header | Offers |
 |---|---|
-| `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
-| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale, the system's colour scheme and its reduced-motion setting (`contentScale`, `colorScheme`, `reducedMotion`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); a focus ring drawn around the focused panel only after the keyboard moved the focus (`setFocusRing`, `FocusRing`, `focusVisible`; on by default in screens); the OS's file dialogs (`chooseFiles`, `FileDialog`, `FileFilter`; `setFileDialogHandler` answers them instead, for tests and automation); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot` |
-| `Accessibility.hpp` | What a panel is to a person or a screen reader: `accessibleRole` (the panel's own, or one from its kind: a button, a checkbox, a textbox, text), `accessibleName` (its label, else its text or the text inside it, else its tooltip), `accessibilityTree` (`AccessibleNode`: shown panels with a role, in tree order), `findByRole`. The roles and names are set on a `Panel` (`setAccessibleRole`, `setAccessibleLabel`, `setAccessibleDescription`); the OS backend comes later |
+| `Application.hpp` | `Application`: the windowing system, every `Window`, the event loop (`run`, `quit`), second windows sharing a window's context and font (`createWindow(..., sharing)`), their clock (a `SteadyClock`); the `Executor` (`post`); `ApplicationOptions` (another clock, hidden windows: for automation) |
+| `Window.hpp` | `Window`: the root panel, focus, hover, mouse capture, clipboard, tooltips; the desktop: files dropped from the OS (`onDrop`), the display's scale, the system's colour scheme and its reduced-motion setting (`contentScale`, `colorScheme`, `reducedMotion`, `onDisplay`), a native menu bar (`setMenuBar`, `MenuItem`); a focus ring drawn around the focused panel only after the keyboard moved the focus (`setFocusRing`, `FocusRing`, `focusVisible`; on by default in screens); the OS's file dialogs (`chooseFiles`, `FileDialog`, `FileFilter`; `setFileDialogHandler` answers them instead, for tests and automation); the `route...` input methods; `clock`, `defer`, `runDeferredTasks`, `setTimer`, `cancelTimer`; `render`, `saveScreenshot`, `renderToImage` (a panel's subtree as a bitmap: thumbnails, mirrors); for the inspector, `frameStatistics` (`FrameStatistics.hpp`: frames drawn, the last one's time and draw calls) and `setInspection`, a layer drawn above everything and never hit |
+| `Accessibility.hpp` | What a panel is to a person or a screen reader: `accessibleRole` (the panel's own, or one from its kind: a button, a checkbox, a textbox, text), `accessibleName` (its label, else its text or the text inside it, else its tooltip), `accessibilityTree` (`AccessibleNode`: shown panels with a role, in tree order), `findByRole`; each element's value (text, a slider's `AccessibleRange`, a checkbox's state, a field's selection), states (`AccessibleState`: expanded, selected, disabled, a live region), the actions it allows, bounds and an id that lasts (`accessibleId`, `findByAccessibleId`), and `performAccessibleAction`. The roles and names are set on a `Panel` (`setAccessibleRole`, `setAccessibleLabel`, `setAccessibleDescription`, `setAccessibleState`); each window hands the tree to the platform after the frames that change it (`ACCESSIBILITY.md`) |
 | `Clock.hpp` | `Clock`, what a window's timers, tooltip delay and double clicks read, and the animations of what is built into it; `SteadyClock` |
 | `Panel.hpp` | `Panel`: the owned tree, `Length` positions and sizes, anchors (also to another panel's edge), minimum sizes, `grow`, scrolling, overlays, shapes, cursors, tooltips, event signals and hooks; `setCached` (the subtree drawn from a texture) |
 | `Stack.hpp` | `Stack` (a row or a column, like a CSS flex container: justify, alignItems, gaps, grow, shrink, basis, wrap) and `Grid` (column and row tracks, cells and spans) |
@@ -23,15 +23,22 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
 | `RichText.hpp` | `TextRun` (a part of a text with its own font, colour, link or inline icon) and `TextLayout` (runs broken into lines across styles, hit testing, carets) |
 | `TextArea.hpp` | `TextArea`: a single-line input |
-| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`) |
+| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`); an `EditorHighlighter` (`setHighlighter`) colours lines, folds and pairs brackets as it follows the model's edits. Word wrap (`setWrap`), folding (`fold`, `unfold`, `toggleFold`, `setFolds`, `offerFolds`), decorations (`EditorDecoration`: background, squiggle, gutter icon, inline text), extra cursors and column selection (`addCursor`, Cmd/Ctrl+D, Cmd+Alt+Up/Down, Alt+drag), find and replace (`setFind`, `findNext`, `replaceNext`, `replaceAll`, `matchCount`; Cmd/Ctrl+G), bracket matching, indentation guides and an IME composition (`setComposition`); `setLineLabels` numbers rows its own way |
+| `DiffView.hpp` | `DiffView`: two texts compared in read-only editors, side by side (rows aligned, scrolled together) or inline (`setMode`), each text's line numbers, changed lines and characters marked (`DiffColors`); an `EditorFactory` gives syntax-coloured editors |
 | `TextModel.hpp` | `TextModel`: UTF-8 text of any size as a piece tree, with a line index (`line`, `offsetOf`, `positionOf`), O(log n) edits, undo as operations (`beginStep`, `endStep`, `undo`) and `onChanged` (`TextChange`); `TextLines`, its lines decoded and kept for reading again |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
+| `ColorSpaces.hpp` | `color::` conversions between sRGB, linear sRGB, HSV, HSL, OKLab and OKLCH, and gamut mapping into sRGB |
+| `ColorPicker.hpp` | `ColorPicker`: a saturation-value square and hue strip, or a wheel and value strip; an alpha strip; hex, RGB, HSL, HSV and OKLCH fields; swatches and recent colours (at most 32 and 8); an eyedropper limited to the window; arrows act in the part Tab is on |
+| `GradientEditor.hpp` | `GradientEditor`: a linear or radial `Gradient` (at most 32 stops) edited on a bar, each stop's colour in a `ColorPicker` popover; `sampleGradient`, `gradientPosition` |
+| `CurvesEditor.hpp` | `CurvesEditor`: tone curves for RGB, R, G and B (at most 32 points each) over an optional histogram; `evaluateCurve` (monotone, linear or Bézier) |
 | `Split.hpp` | `Split`: panes along a row or a column with sashes between them; sizes within minimums, the last pane taking the rest; dragged, reset by a double click or Home, moved by the arrow keys (PageUp and PageDown pick a sash); `onSizesChanged` |
 | `Tabs.hpp` | `Tabs`: a strip of `Tab`s, one active; it scrolls when they overflow, closes (a button or Delete), reorders by dragging (`onMoved`), shows where a tab dragged from another strip would go (`insertionAt`, `showDropIndicator`), and moves with the arrow keys, Home and End |
 | `RowWindow.hpp` | `RowWindow`: which rows of a long list are in view and where each starts, for one shared virtualisation; fixed heights in O(1), measured ones in O(log n) |
 | `ListView.hpp` | `ListView`: rows of a `ItemModel` (`ItemList`, or an application's own model), drawing only those in view, each with an optional icon (`ListItem::icon`, `iconColor`); single or multiple selection kept by id across new items, arrow keys, pages, type-to-find, `onOpened`, a drop line or outline (`dropTargetAt`); once scrolled, the top row stays in place when items are added above it |
 | `TreeView.hpp` | `TreeView`: a `ListView` over a pre-order tree, showing only the open nodes' rows, with indent guides and chevrons; Right and Left open, close and walk; `onExpandedChanged`; the open folders of the top row pinned as it scrolls (`setStickyRows`) |
 | `TableView.hpp` | `TableView`: a `ListView` of rows of cells under a header; a header click sorts (numbers before text, stable, again to reverse: `onSortChanged`), a header edge drag resizes a column (`onColumnResized`); the order and widths given replace the user's only when they change |
+| `GraphView.hpp` | `GraphView`: a node editor over a `GraphModel` (nodes with typed ports, links); the link rules (`checkLink`: kinds, `links` per port, duplicates, cycles), a small camera (`GraphCamera`, zoom and pan, to move onto Camera2D), Bézier links coloured by kind, a minimap, off-screen nodes culled; drags, a marquee and the keyboard emit `GraphEvent`s (`onEdit`) and change nothing themselves |
+| `TimelineView.hpp` | `TimelineView`: tracks of keyframes and clips under a time ruler over a `TimelineModel` (nested groups, mute and lock, markers, a play range); ticks that follow the zoom in frames, seconds or timecode (`rulerTicks`, `formatTime`), snapping (`snapTime`), step, linear and Bézier easing (`keyframeValueAt`); only the rows in view laid out and drawn; scrubbing, keyframe drags, clip moves and trims, a marquee and the keyboard emit `TimelineEvent`s (`onEdit`) |
 | `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
 | `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images, meshes of anti-aliased quads with `fillMesh`); `CornerRadii`, `Shadow`, `MeshVertex` |
@@ -40,6 +47,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `ImageView.hpp` | `ImageView`: a panel showing a bitmap, a file or a named image, with `ImageFit` (`contain`, `cover`, `fill`) |
 | `VectorPath.hpp` | `VectorPath`: SVG path data parsed within `VectorPath::Limits` (or built with `moveTo`, `lineTo`, `cubicTo`, `close`) and flattened; `appendFill` (`FillRule`) and `appendStroke` (`StrokeStyle`: width, `LineJoin`, `LineCap`, dashes), the meshes that draw it, within `meshQuadLimit` and `meshWorkLimit` |
 | `PathView.hpp` | `PathView`: a panel drawing a path, filled and stroked, fitted to it through a view box with `ImageFit`; its meshes are built again only when the path, the style or the size changes |
+| `Camera2D.hpp` | `Camera2D`: a pure value (x, y, zoom within 0.01 to 256) mapping world units to screen units: `toScreen`, `toWorld`, `visible`, `zoomedAt` (the point under the pointer stays), `pannedBy`, `fitted` |
+| `CanvasView.hpp` | `CanvasView`: an infinite canvas. Children placed in world units (all in `placeChildren()`, to become a transform); items from a `CanvasItemModel` (up to 1,000,000) culled through a spatial index; levels of detail; pan, zoom at the pointer, `fit`; selection by click, Shift-click and marquee, handles to move, resize and rotate (`onTransform`, the document applies it); snapping to the grid, items and guides, with smart guides; rulers whose ticks follow the zoom, guides dragged from them; `onViewChanged` |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
 
@@ -73,6 +82,10 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   pixels a full frame would. The rendering check proves it: every capture is also drawn from scratch
   (`detail::drawFromScratch`) and must be the same. **A widget whose drawing depends on anything else must call
   `invalidatePaint()` (or `invalidate()`) when it changes.** One renderer per window: it clears the panels' paint bits.
+- **Writing direction is inherited** (6.9). `Panel::setWritingDirection` (`dir` in screens) sets a subtree right to
+  left, left to right, or as the window's locale (`Window::setLocaleRightToLeft`); right to left mirrors rows, grid
+  columns, anchors, positions and text alignment, and a label marked mirror swaps its icon's left and right
+  (`tests/unit/rtl.cpp`).
 - **Layout per axis:** anchored edges first, then the position, then the size within its minimum and maximum (the
   minimum wins), then the aspect ratio; percentages refer to the
   parent; a panel is clipped to its parent, and a panel clipped to nothing is not shown. Overlays are laid out, drawn
@@ -95,7 +108,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 - **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
   from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run
   with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
-  runs left to right (no bidirectional reordering yet). Shaped text is cached per font by line and by word, so a
+  runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
+  first strong character's, and numbers stay left to right). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
 - **Plain words skip shaping, with HarfBuzz's results.** A word of the first face's plain Latin-1 characters
   (`text/PlainText`) is laid out from a table of advances with kerning, one read per character, without HarfBuzz or
@@ -135,7 +149,51 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   in a treap with the bytes and line feeds under each node, so an edit or finding a line costs O(log n). A 50 MB
   text opens in under a second, an edit takes under 50 µs, and memory stays under 1.5 times the text
   (`tests/unit/text_model.cpp`). The editor decodes and colours only the visible lines (the colouring state of each
-  line above them is kept), and past 4,096 lines estimates its width from the longest line.
+  line above them is kept), and past 4,096 lines estimates its width from the longest line. Wrapped or folded, it
+  keeps a row index (a line's first row, by binary search), so scrolling a million lines costs the same as ten
+  thousand (`tests/perf/editor.cpp`: typing in 100,000 lines and scrolling 1,000,000, both well within 8 ms).
+- **Editor bounds:** at most 10,000 cursors, 10,000 decorations (8 starting on a line, inline text 256 code points),
+  10,000 folds, 10,000 matches counted or replaced and 10,000 highlighted, 1,000 on a line; bracket matching reads at
+  most 100,000 code points and Cmd+D 100,000 lines. Find runs line by line, under `TextPattern`'s limits.
+- **Diff bounds:** lines are diffed within core's `DiffLimits`; characters only on lines up to 2,000 code points, for
+  at most 2,000 changed line pairs, 50,000 steps each.
+
+## Backends
+
+The renderer draws with one of two OpenGL backends, chosen when building (`cmake/AffrescoUIAngle.cmake`):
+
+| `AFFRESCOUI_GL_BACKEND` | Context | Where |
+|---|---|---|
+| `gl41` (default) | OpenGL 4.1 core, the platform's driver | macOS, Linux, Windows |
+| `gles3` | OpenGL ES 3.0 through EGL | ANGLE on macOS (Metal) and Windows (Direct3D 11), Mesa on Linux, WebGL2 in a browser |
+
+The code in `src/gl/` calls only what both share, and every shader body is written once, in the common subset of GLSL
+4.10 core and GLSL ES 3.00 (no implicit int-to-float conversions, `layout(location)` only on vertex inputs and
+fragment outputs). `gl::shaderPrelude(stage)` (`src/gl/Shader.hpp`) adds what differs: the `#version` line and, for
+OpenGL ES fragment shaders, `precision highp float` and `int`. `gl::linkProgram` takes whole sources and adds nothing.
+The one call that had to change is reading the frame back: OpenGL ES reads only RGBA, so screenshots read RGBA and
+drop the alpha.
+
+**ANGLE on macOS and Windows.** ANGLE needs Chromium's tools to build, so the build doesn't fetch it. Build it
+([ANGLE's dev setup](https://chromium.googlesource.com/angle/angle/+/HEAD/doc/DevSetup.md): `gn gen out/Release
+--args='is_debug=false'`, then `autoninja -C out/Release libEGL libGLESv2`), or take the two libraries from a
+Chromium-based browser of the same architecture. Then point the build at the folder that holds them:
+
+```
+cmake -S . -B build-angle -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3 -DAFFRESCOUI_ANGLE_DIR=/path/to/angle/out/Release
+cmake --build build-angle
+AFFRESCOUI_SCREENSHOT=out.ppm ./build-angle/affrescoui_host
+```
+
+macOS needs `libEGL.dylib` and `libGLESv2.dylib`; Windows needs `libEGL.dll` and `libGLESv2.dll`. GLFW opens them by
+path at run time, and asks ANGLE for Metal on macOS and Direct3D 11 on Windows (`src/platform/GlfwPlatform.cpp`).
+If `libEGL` can't find `libGLESv2` on Windows, copy both DLLs next to the executables. Without
+`AFFRESCOUI_ANGLE_DIR`, GLFW loads the system's EGL, which is Mesa's on Linux.
+
+**Golden images.** Each backend has its own pixel-exact golden images: `python3 tests/render/check.py --backend gles3
+--build build-angle` compares with `tests/render/golden-gles3/`. A frame is compared only within its backend, because
+two drivers' rasterizers round differently (anti-aliased edges, gradients, text coverage). `.github/workflows/gles.yml`
+checks every template on gles3 (Mesa EGL, llvmpipe), and its summary lists the frames that differ from gl41's.
 
 ## Threads
 
@@ -159,7 +217,9 @@ captures `this` in one must cancel its timers in its destructor.
   `prepareLayout`, place your children in `arrange`, and react in the event hooks (`keyEvent`, `mouseButtonEvent`, ...)
   or through the signals (`onKey`, `onMouseButton`, ...).
 - **Text editors:** `TextEditor`'s protected editing API and its `colorLine` hook let an application add a language
-  without changing the library (`examples/CodeEditor.*` adds syntax colours that way).
+  without changing the library (`examples/shared/CodeEditor.*` adds syntax colours that way).
+- **Highlighters:** an `EditorHighlighter` (`TextEditor::setHighlighter`) is told of every edit and colours each
+  line; it may answer folds and bracket pairs too (the format's `SyntaxHighlighter` does, on tree-sitter).
 - **Another platform or renderer:** implement `platform::Platform` and `NativeWindow`, or `detail::Renderer`
   (internal interfaces, kept small: 7.8 builds damage tracking on the renderer).
 - **File dialogs:** `Window::setFileDialogHandler` answers `chooseFiles` with an application's own dialog, or a
@@ -175,12 +235,15 @@ src/
   Application.cpp          the platform, the windows, the event loop, posted tasks
   Window.cpp               input routing, focus, the focus ring, hover, capture, tooltips, timers, deferred tasks,
                            frames
-  Accessibility.cpp        roles, accessible names, the tree, finding by role
+  Accessibility.cpp        roles, accessible names, the tree, values, states, actions, finding by role or id
   Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
   Renderer.hpp             detail::Renderer, what a window draws with
   platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call), Desktop.hpp
                            and DesktopMac.mm, DesktopWin32.cpp, DesktopOther.cpp (colour scheme, menu bar per OS),
-                           FileDialogs.cpp (the OS's file dialogs, through nativefiledialog-extended)
+                           FileDialogs.cpp (the OS's file dialogs, through nativefiledialog-extended),
+                           Accessibility.hpp (the adapter a window owns) with AccessKitTree (the tree as AccessKit
+                           updates, only the changed elements) and AccessibilityMac.mm, AccessibilityWindows.cpp,
+                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF)
   Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
   Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid
@@ -191,14 +254,28 @@ src/
   ImageCache.cpp           the worker, the deliveries, the allowed folders, the bound
   ImageView.cpp            showing an image, fitted
   PathView.cpp             showing a vector path, fitted
+  CanvasView.cpp           the canvas: content, culling, children placed, painting (items, levels of detail, the
+                           selection, guides); CanvasViewInput.cpp its pointer, wheel and keys;
+                           SpatialIndex.cpp (a uniform grid, stored flat, rebuilt only when the items change),
+                           Snapping.cpp (the nearest edge or centre within a reach), Rulers.cpp (steps and ticks)
   vector/                  VectorPath.cpp (parsing, flattening), PathFill.cpp (scanline trapezoids by the fill
                            rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
                            MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
                            SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
   TextEditor.cpp           the multi-line editor: input, selection, scrolling, undo through its model
   TextEditorPaint.cpp      its drawing: visible lines in runs of one colour, selection, gutter, caret
+  TextEditorView.cpp       wrapping and its row index, folds, scrolling, and how edits move folds and decorations
+  TextEditorCursors.cpp    extra cursors, column selection, Cmd+D, decorations, the view's keys
+  TextEditorFind.cpp       find and replace line by line, bracket matching
+  TextEditorPaintView.cpp  what is drawn under and over the text: decorations, matches, brackets, guides, the
+                           extra carets, the composition
+  DiffView.cpp             a diff's rows, numbers and marks in one or two editors, scrolled together
   TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   Controls.cpp             Toggle and Slider
+  ColorSpaces.cpp          the colour-space maths
+  ColorPicker*.cpp         the picker: input, fields and swatches; its drawing (ColorPickerPaint.cpp)
+  GradientEditor.cpp       the gradient maths and editor; CurvesEditor.cpp the curve maths and editor
+  CreativePixels.hpp       their CPU bitmaps (each a cached slot, at most 256 px a side) and drawing helpers
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
   RowWindow.cpp            the rows in view: fixed heights, or measured ones in a Fenwick tree
   ListView.cpp, TreeView.cpp  virtualised rows: selection, keys, type-to-find, drops, anchoring; a tree's open
@@ -261,3 +338,8 @@ window->render();                                                       // runs 
 **Run work later.** `window.defer(task)` runs after the current event has been fully delivered (a handler may then
 rebuild even its own panel). `window.setTimer(ms, task)` runs it later and returns an id for `cancelTimer`. From
 another thread, `application.post(task)`.
+
+**Draw inside the host's OpenGL.** `affresco::Embedding` (`Embedding.hpp`) is a Window with no window or event loop of
+its own, in a context the host owns and keeps current: `frame()` draws it over the host's framebuffer, `renderTexture()`
+into a texture of the library's; each saves and restores the OpenGL state it changes. Its platform is
+`src/platform/EmbeddedPlatform.*` (cursors left to the host, a clipboard of its own, the clock it is given).

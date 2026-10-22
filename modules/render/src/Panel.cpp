@@ -266,6 +266,19 @@ void Panel::setAlignSelf(std::optional<CrossAlign> align) { setProperty(alignSel
 
 void Panel::setGridCell(GridCell cell) { setProperty(gridCell_, cell); }
 
+// Every panel below may move, so the whole window is laid out again
+void Panel::setWritingDirection(WritingDirection direction) {
+	if(direction == writingDirection_) return;
+	writingDirection_ = direction;
+	invalidate();
+	if(window_) window_->invalidate();
+}
+
+Align Panel::readingAlign(Align align) const noexcept {
+	if(!rightToLeft_ || align == Align::Center) return align;
+	return align == Align::Start ? Align::End : Align::Start;
+}
+
 /* Scrolling */
 
 void Panel::setScrollable(bool horizontal, bool vertical) {
@@ -429,6 +442,9 @@ void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool p
 	    sameInputs && std::ranges::none_of(children_, [](const auto& child) { return child->layoutDirty_; });
 	laidOut_ = {origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
 
+	rightToLeft_ = writingDirection_ == WritingDirection::RightToLeft ||
+	               (writingDirection_ == WritingDirection::Locale && window_ && window_->localeRightToLeft()) ||
+	               (writingDirection_ == WritingDirection::Inherit && parent_ && parent_->rightToLeft_);
 	prepareLayout();
 	if(window_) layoutPass_ = window_->layoutPass_;
 	placeFrame(origin, clip, parentSize, parentShown);
@@ -452,17 +468,27 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 	    alongAxis({top, bottom}, origin.top + y_.resolve(parentSize.y), size_.y, arrangedHeight_.has_value());
 	std::tie(rect.left, rect.right) =
 	    alongAxis({left, right}, origin.left + x_.resolve(parentSize.x), size_.x, arrangedWidth_.has_value());
+	// Right to left: placed as left to right, then mirrored in the parent; content wider than it reaches left, where
+	// scrolling from 0 goes. Edges anchored to another panel are already where it was placed
+	if(parent_ && parent_->rightToLeft_ && !overlay_ &&
+	   (targetEdges_ & (edgeBit(Edge::Left) | edgeBit(Edge::Right))) == 0) {
+		const float width = rect.width();
+		rect.left = 2.0f * origin.left + parentSize.x - rect.right;
+		rect.right = rect.left + width;
+	}
 
 	// A panel anchored on opposite edges is stretched: its real size (what children measure against) comes from them
 	size_ = {std::max(rect.width(), 0.0f), std::max(rect.height(), 0.0f)};
 
 	frame_ = rect;
 
-	// Clip to the parent
-	rect.top = std::max(rect.top, clip.top);
-	rect.bottom = std::min(rect.bottom, clip.bottom);
-	rect.left = std::max(rect.left, clip.left);
-	rect.right = std::min(rect.right, clip.right);
+	// Clip to the parent; a transformed panel to the parent's clip brought into its space (exact when the transform
+	// keeps rectangles, else that area's bounding box, which the renderer narrows with a stencil)
+	const Rect within = transform_.isIdentity() ? clip : clipInSpace(clip);
+	rect.top = std::max(rect.top, within.top);
+	rect.bottom = std::min(rect.bottom, within.bottom);
+	rect.left = std::max(rect.left, within.left);
+	rect.right = std::min(rect.right, within.right);
 
 	bounds_ = rect;
 	shown_ = parentShown && visible_ && rect.bottom >= rect.top && rect.right >= rect.left;
@@ -501,8 +527,15 @@ void Panel::layoutChildren() {
 	if(scrollBy({0.0f, 0.0f})) pass();
 }
 
+// A rotated panel's bounds are a bounding box: the parent already checked the point is inside its own bounds
 Panel* Panel::hitTest(Vec2 point) noexcept {
-	if(!shown_ || !bounds_.contains(point)) return nullptr;
+	if(!shown_) return nullptr;
+	if(!transform_.isIdentity()) {
+		const std::optional<Affine2> inverse = localTransform().inverse();
+		if(!inverse) return nullptr; // flattened: never hit
+		point = inverse->apply(point);
+	}
+	if(!bounds_.contains(point)) return nullptr;
 
 	for(const auto& child : std::views::reverse(children_)) {
 		if(child->overlay_) continue; // hit-tested by the window, above everything
@@ -510,6 +543,42 @@ Panel* Panel::hitTest(Vec2 point) noexcept {
 	}
 
 	return this;
+}
+
+Rect Panel::clipInSpace(const Rect& clip) const noexcept {
+	const std::optional<Affine2> inverse = localTransform().inverse();
+	return inverse ? inverse->boundingBox(clip) : frame_; // flattened: it draws nothing anyway
+}
+
+void Panel::setTransform(const Affine2& transform, Vec2 origin) {
+	setProperty(transform_, transform);
+	setProperty(transformOrigin_, origin);
+}
+
+Affine2 Panel::localTransform() const noexcept {
+	if(transform_.isIdentity()) return {};
+	return transform_.about({frame_.left + transformOrigin_.x * size_.x, frame_.top + transformOrigin_.y * size_.y});
+}
+
+Affine2 Panel::worldTransform() const noexcept {
+	Affine2 world = localTransform();
+	for(const Panel* panel = this; !panel->overlay_ && panel->parent_;) {
+		panel = panel->parent_;
+		if(!panel->transform_.isIdentity()) world = panel->localTransform() * world;
+	}
+	return world;
+}
+
+std::optional<Vec2> Panel::toLocal(Vec2 point) const noexcept {
+	const Affine2 world = worldTransform();
+	if(world.isIdentity()) return point;
+	const std::optional<Affine2> inverse = world.inverse();
+	return inverse ? std::optional<Vec2>{inverse->apply(point)} : std::nullopt;
+}
+
+Rect Panel::screenBounds() const noexcept {
+	const Affine2 world = worldTransform();
+	return world.isIdentity() ? bounds_ : world.boundingBox(bounds_);
 }
 
 // Square corners keep the plain fill, so panels without the new properties look exactly as they always have

@@ -115,6 +115,116 @@ The screen file decides, in a `permissions` section that no revision can change:
 - **Reviewers** (`reviewers`) are the authors who may decide on proposals, set the mode and revoke grants. Without a
   `permissions` section anyone may; with one, only those listed.
 
+### Budgets
+`permissions.budgets` caps how much one author changes at once: the most nodes it may add, remove and change in one
+revision, and in one proposal, which is judged whole when it merges.
+
+```json
+"budgets": [
+  { "author": "agent", "added": 20, "removed": 5, "changed": 50 },
+  { "author": "role:design", "changed": 10, "over": "ask" }
+]
+```
+
+- `author` is a rule's author without a pattern: `*`, a channel, a full name, or a role (`role:design`, below).
+- Nodes are counted by id, before and after, in `root`, `screens` and `templates`: a node is changed when its own
+  keys differ (not its children), however the patch was written.
+- Over a budget the change is refused (`"over": "deny"`, the default) or sent to review (`"over": "ask"`). The reason
+  names the budget: `over the budget "agent: 20 added, 5 removed, 50 changed": 21 new nodes, at most 20`.
+- A budget applies to changes that would apply on their own; a change that already goes to review is judged by its
+  reviewers. Deny rules still come first.
+- At most 64 budgets; each limit is between 0 and 100,000.
+
+### Data rules
+`permissions.data` says which paths in `state` and in the sections an author may read, write, or never touch:
+
+```json
+"data": [
+  { "author": "agent", "read": ["/state/cards", "/state/board"], "write": ["/state/cards"],
+    "never": ["/state/token"] }
+]
+```
+
+- `read`: if given, the only paths of their part (`/state`, `/colors`...) the author reads; its `write` paths are
+  readable too. `write`: if given, the only paths of their part it changes. `never`: paths it neither reads nor
+  changes. Paths are JSON Pointers, `#id` nodes or `*` patterns, as in rules; state is at `/state`.
+- **Writes are judged by effect**, like every rule: a change to a path outside `write`, or to a `never` path, is
+  refused with the rule (`data rule: 'agent' may never touch /state/token`), even when the patch never names it.
+- **Reads are masked.** An author whose reads are limited gets the screen and the state without what it may not read
+  (array elements read as `null`, so positions stay). It can't ask for a diff, export, render, evidence or blame of
+  the whole screen, and proposals it sees list no changes. A revision that names an unreadable path (a `test` or a
+  `copy` from it would tell its value) is refused.
+- At most 64 data rules, each with at most 64 paths of at most 256 bytes.
+
+### Policy tests
+A `*.policy.json` file beside a screen holds example revisions, their authors and what they should get:
+
+```json
+{
+  "screen": "kanban.screen.json",
+  "roles": { "agent/claude-code": "design" },
+  "cases": [
+    { "name": "the agent recolours a card", "revision": { "author": "agent", "set": { "#card1/color": "#1e293b" } },
+      "expect": "allow" },
+    { "name": "21 new panels", "revision": { "author": "agent", "add": { "...": {} } }, "expect": "deny",
+      "reason": "over the budget" }
+  ]
+}
+```
+
+`affrescoui policy test <files> [--json]` judges each revision against the screen as it is (nothing is applied) and
+compares `allow`, `ask` or `deny`, and a part of the reason if given. Exit codes are those of `affrescoui test`: 0 all
+passed, 1 a case failed or a file is malformed. CI runs every `*.policy.json` in the repository, and each template has
+one. The MCP server explains a denial with the rule that matched.
+
+### Roles
+A role says what an author is in this run for (`design`, `data`, `builder`), and rules, budgets and data rules can
+name it as `role:design`.
+
+- **Only the host or a reviewer sets a role** (`setRole`), never a revision, and nobody sets the role of their own
+  channel. An agent can't give itself one.
+- Roles last for the run; a policy test file gives its own (`"roles"`). `role:` never covers a reviewer's decisions
+  or a grant.
+
+```json
+{ "type": "setRole", "id": 7, "author": "agent/claude-code", "role": "design" }
+```
+
+### Leases
+Several agents at once claim the parts they work on, so one doesn't undo another's work:
+
+```json
+{ "type": "lease", "id": 8, "author": "ada", "target": "/state/columns/0", "seconds": 300 }
+{ "type": "leased", "id": 8, "target": "/state/columns/0", "seconds": 300 }
+```
+
+- `target` is an `#id` or a JSON Pointer; `seconds` is 1 to 3600 (300 by default). Asking again renews it;
+  `release` ends it, and so does the holder's connection closing or the time running out.
+- **A revision that changes another holder's part is refused, naming the holder:** `permission denied: 'agent/ada'
+  holds a lease on /state/columns/0; wait for it to end`. Judged by effect, like every rule. A part already leased by
+  someone else, or overlapping one, can't be leased.
+- **A lease can't reach beyond its holder's rules:** a part the holder may not change at all is refused. One name holds
+  leases on one connection only.
+- A reviewer ends anyone's lease (`endLease`, with `target`). Every `review` message carries `coordination`: who is
+  connected and their role, the leases with the seconds left, and the roles. The Studio shows it in its Agents tab,
+  where a reviewer ends a lease or gives a role; the MCP server has `lease_part`, `renew_lease` and `release_part`.
+- At most 256 peers and 256 leases, 16 per holder and 16 per connection; targets are at most 256 bytes, holder names 64.
+
+### Usage
+Usage summaries say which controls people use, so whoever improves a screen can see what runs, what fails and what
+nobody touches. They are **off by default**: `affrescoui_host --usage` switches them on, and the host asks the person
+once, on the terminal, whether to count (without a terminal or a "yes", nothing is counted; the answer is kept).
+
+- Counted per node id and action (`onClick`, `onClick:addCard`): runs and errors, the first and last time; the screens
+  navigated to; and, when asked, the controls (nodes with an id and a handler or a `bind`) never used.
+- **Never content:** ids as the document writes them, action and screen names, counts and times. No text, values,
+  state or pictures. Kept only on the device, in `<data folder>/<screen>.usage.json` beside the "persist" state; counts
+  not made for 30 days are dropped.
+- Bounded: 1,024 node and action pairs, 64 screens, names of 1 to 64 printable bytes, counts up to 10^9.
+- **Only a reviewer reads them,** and only while they are on: `getUsage` answers `{ "type": "usage", "usage": {...} }`,
+  `clearUsage` forgets the counts (the consent stays). An agent can't read them, nor grant itself that. The Studio's
+  Agents tab shows them and clears them; the MCP server has `get_usage`.
+
 ## Modes
 A reviewer sets how much they are asked, like Claude Code's permission modes (`affrescoui_host --mode`, the Studio's
 switch, or `setMode` over the live protocol):
@@ -160,6 +270,96 @@ inside those areas apply without asking.
 - They are allow rules, so `deny` and `ask` rules still win, and `plan` mode suspends them.
 - Not every proposal can be remembered. A proposal can't be remembered if it touches parts an `ask` rule covers, or
   if it changes something as broad as the whole layout (`/root`) or a whole section (`/actions`).
+- **Grants can expire.** An accept can say how long its grants last (`"for": "8h"`: minutes `m`, hours `h` or days
+  `d`, at most a year), and a review policy can cap it (`grantsLast`, below). Each grant then carries `expires`
+  (UTC); from that time on it no longer allows, and changes like it are proposed again. Without either, a grant lasts
+  until a reviewer revokes it.
+
+### Review policies
+A screen says what a proposal needs before it merges in `permissions.review`, like a repository's branch protection
+and `CODEOWNERS`:
+
+```json
+"permissions": {
+  "reviewers": ["studio", "human"],
+  "review": {
+    "approvals": 1,
+    "behaviourApprovals": 2,
+    "owners": { "#board": ["human/anna"], "/colors": ["studio"] },
+    "grantsLast": "8h"
+  }
+}
+```
+
+- `approvals`: how many reviewers must approve (1 when it is missing). Reviewers count once per channel: "studio/anna"
+  and "studio/bob" are one approval, since the channel names its own users.
+- `behaviourApprovals`: how many when the proposal changes **behaviour**: an action, a shortcut, a watch, `onLoad`, a
+  computed value, or a node's handlers (`onClick`...), `keys`, `every`, `check`, `when`, `repeat`, `drag` or bindings.
+  Each proposal lists those changes as lines (`behaviour`: "adds onClick of #title", "changes the action 'save'").
+- `owners`: parts of the screen and who owns them. A proposal that changes a part needs, besides the count, an approval
+  from one of its owners (an author or a channel name).
+- `grantsLast`: the longest a "don't ask again" grant lasts.
+
+Each approval counts once per reviewer, and never from the author's own channel. Until the policy is met, an accept
+records the approval and the proposal stays open; every peer sees `approvals`, `policy` (what it needs, e.g. "2
+approvals (it changes behaviour), one from an owner of #board (human/anna)") and `reason` (what is missing). The
+approval that completes the policy merges it. The policy is the one `main` has when the approval arrives, judged on
+the change as it would merge then, so neither an older policy nor a rebase lowers the bar.
+
+### Rebasing
+When `main` moves on (a commit, an accepted proposal, an import), every open proposal rebases itself onto the new
+head with a **three-way merge**: of the document it was built on, `main`'s document now, and its own. Objects merge key
+by key, and lists of nodes merge **by id**, so two peers who change, add or remove different nodes never conflict,
+wherever the nodes moved. A list reordered differently on both sides, or a value both sides changed differently, is a
+conflict.
+
+- **Exact rebase.** If replaying the proposal's commits on the new `main` gives what the merge gives, its commits are
+  replayed as they were (new ids, same changes). Approvals stay, and the head a reviewer saw (pinned in the approval,
+  "You accept what you saw") still counts: what merges is what was reviewed, plus `main`'s own changes.
+- **Merged rebase.** If the commits no longer give the merge (e.g. an operation that adds at a position that has moved),
+  the branch becomes one commit with the merge's changes, "Rebase onto ...". That is a change nobody reviewed:
+  **its approvals are dismissed**, and an approval naming an older head is refused. Reviewers look again.
+- **Conflict.** The proposal stays where it was, and lists its conflicts (`conflicts`: `[{"path", "reason", "base",
+  "main", "proposal"}]`, paths from the nearest node, e.g. `#title/text`), which the Studio shows side by side. It
+  can't be accepted until its author pushes again (which rebuilds the branch on the current `main`); it can be
+  rejected.
+
+### Evidence
+A reviewer can ask the host for a proposal's **evidence** (`{"type": "getEvidence", "proposal": 3, "scale": 1}`), and
+gets it back as `evidence`:
+
+```json
+"evidence": {
+  "before": {"format": "png", "data": "...", "width": 1280, "height": 800},
+  "after": {"format": "png", "data": "...", "width": 1280, "height": 800},
+  "region": [x, y, w, h],
+  "behaviour": ["adds onClick of #title"],
+  "scenarios": [{"name": "opens", "passed": true, "message": ""}],
+  "texts": [{"node": "#title", "original": "Tasks", "modified": "Today", "language": "text"}]
+}
+```
+
+- `before` and `after` are the screen drawn on `main` and as accepting would leave it, off screen; `region` is the
+  smallest rectangle (in those pictures' pixels) holding every pixel that differs, `[0, 0, 0, 0]` when none does.
+- `behaviour` is the proposal's lines of behaviour change (as in "Review policies").
+- `scenarios` are the results of the screen's scenarios (`<name>.scenarios.json` beside the screen) played on the
+  proposal's document, headless: those that need no pictures. The host decides whether to play any.
+- `texts` lists each text the proposal changes, added or removes, by node, for a diff view (the Studio shows them side
+  by side).
+
+**The host gathers all of it itself**, when asked, from the proposal as it is now: a revision that carries
+`evidence` or `behaviour` is refused, so an author can never supply or forge it. Gathering draws two pictures, so it
+counts against the same rate as `render`.
+
+### Inspector
+A reviewer can turn on the host's **inspector** (`{"type": "inspect", "on": true}`; the Studio's search button): a
+debug overlay on the screen's window. For the panel under the pointer it shows its node, bounds, bindings as written
+(`{{state.count}}`, never the value) and handlers, and the commit that last changed it (`blame`); then the last frame's
+time and draw calls, the last update's time and panels rebuilt and created, and the latest events: clicks and scrolls
+by node, keys such as Enter or Escape (never a typed character), sends by channel (never the message), commits and
+decisions. It is off by default, a peer that may not review can't turn it on, and the overlay is never in a picture
+drawn for a peer. The host answers `done`, or `rejected` with no window or no inspector. In C++:
+`Screen::setInspector()` and `Screen::inspectorTrace()`.
 
 ## What keeps it safe
 - **Nobody approves their own change.** Agents aren't reviewers, the MCP server has no accept tool, revisions can't
@@ -167,6 +367,8 @@ inside those areas apply without asking.
 - **You accept what you saw.** Every accept names the proposal's head commit: over the live protocol (`head`), in an
   `accept` step (`"head"`) and through `Screen::acceptProposal(id, head)`. If the author pushed since, the approval
   is refused and the proposal stays open for another look.
+- **A rebase never carries an approval further than what was reviewed.** It keeps approvals only when the proposal's
+  changes are exactly the ones reviewed; otherwise it dismisses them. A conflicted proposal can't be accepted.
 - **Deny is final.** Deny rules are checked when a revision arrives *and* again when it is merged, against the
   current `main`.
 - **The history can't be rewritten.** `main` only grows, and commit ids chain every commit to its parents.
@@ -176,6 +378,8 @@ inside those areas apply without asking.
   commits too), at most 100,000 values copied by its `copy` operations in all (a copy of a list into itself doubles
   it), and no object given more than 10,000 members. A screen file may hold a wider object: a revision may change
   it, not widen it.
+- **Evidence comes from the host.** Pictures, behaviour lines and scenario results are gathered by the host from the
+  proposal itself; a revision can't carry any.
 - **Merges never guess:** a proposal that no longer applies to `main` is closed with the reason, and a revert whose
   parts changed later is refused as a conflict.
 
@@ -301,7 +505,7 @@ same time at commit 100 and at commit 10,000 (248 and 247 µs), and blame reads 
 The commits on `main` after a point can be exported as a **change set**:
 
 ```json
-{ "format": "affrescoui-changes", "version": 1, "name": "task filter", "from": 0, "to": 3, "base": "35331cd…",
+{ "format": "affrescoui-changes", "version": 2, "name": "task filter", "from": 0, "to": 3, "base": "35331cd…",
   "head": "e6636b0…",
   "revisions": [ { "author": "mcp/claude-code", "committer": "studio", "message": "Add a filter to the task list",
                    "commit": "e6636b0…", "patch": [ ... ] } ] }
@@ -313,6 +517,61 @@ also keeps the id of each change set it applied (the SHA-256 of its JSON; `hasIm
 `affrescoui_host --plugin x.json` applies a plugin once: on a later start it says so and skips it. This is the
 building block for the application-layer vision: start from a rich template, customise it by talking to it, and
 share the result as a plugin others can install.
+
+## Self-repairing change sets
+A change set can carry what it was made for, the template it was made on, and how to tell it still works:
+
+```json
+{ "format": "affrescoui-changes", "version": 2, "name": "blocked column", "revisions": [ ... ],
+  "request": "Add a Blocked column before Done",
+  "template": { "name": "kanban.screen.json", "commit": "35331cd…", "tree": "9f1c…" },
+  "proof": { "scenarios": [ { "name": "blocked", "steps": [ { "expect": "...", "equals": "Blocked" } ] } ] } }
+```
+
+These fields travel with the change set when it is exported and imported, and its signature covers them (it covers
+the whole change set but `signature`). A host installs such a change set with `ChangeSetRepairs::install`
+(`Screen::installChanges`): if its patch no longer applies to the template, or its scenarios fail on the result, the
+change set is marked **needs repair** with the reason, left off, and the rest of the screen is untouched. The host
+then asks the peers for a repair: a `request` of kind `repair` (the MCP server's `wait_for_request` returns it) with
+the request in words, the old and the new base, what failed, the revisions and the proof. The agent answers with
+one revision (`{"type": "repair", "request": id, "revision": {...}}`, the MCP tool `answer_repair`); the host checks
+it applies and passes the proof, then **always** opens it as a proposal, whatever the mode, and the permission rules
+check it as any other revision. Once a reviewer accepts it, the change set is re-recorded on the new base, with
+`repairedFrom` naming the change set it replaces (its SHA-256), its old base and the proposal; it carries no
+signature until its publisher signs it again. One repair runs at a time; a change set whose repair is refused,
+rejected or fails is asked for again, at most three times, and then gives up until a reviewer retries it
+(`{"type": "repair", "retry": name}`, the Studio's Repairs dialog, Cmd+5). `{"type": "repair"}` alone answers with
+every installed change set's status (`{"type": "repairs", "changeSets": [...]}`), which is also sent to every peer
+when it changes.
+
+## Features: signed packages
+A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole lifecycle is revisions on
+`/features/<name>`, so the history, blame, undo and the permission rules cover it like any other change:
+- **install** and **upgrade** go through the `features` service (`features.install {name, version}`,
+  `features.upgrade {name}`): it fetches the manifest, checks its digest and signature against a publisher the host
+  trusts, and submits the record as a revision by `features`, which the permissions review like any author's;
+- **enable**, **disable** and **remove** are plain revisions: `replace /features/<name>/enabled`, `remove
+  /features/<name>`.
+
+An upgrade never changes the publisher, and a feature can never widen a capability or bring a control step.
+
+## Installing across apps
+A feature from another app (a part another app ships, such as Sinopia's slide sorter) installs the same way, with its
+needs bound to what the host offers ([Screen format](SCREEN_FORMAT.md), "Features from another app"):
+- **prove**: `affrescoui check --compose <screen> <feature> [--adapter <file>]`, the MCP tool `check_composition`, or
+  `features.compose {manifest, adapter, source}` binds the needs, checks the composed document and plays the
+  scenarios. A failed proof installs nothing and names each unmet need;
+- **install**: a proven composition is one revision on `/features/<name>` (or `/features`, when the section is
+  missing), its message naming the proof (`Install slideSorter from app:sinopia (proof: slideSorter 1.0.0 from
+  app:sinopia, passed, ...)`) and its record carrying the bindings and the proof with the base commit. It is reviewed
+  under the document's `permissions` like any author's: Tempera proposes what `features` and `agent` write, and a
+  reviewer accepts it in the Studio;
+- **after**: history and blame show the install, and undo or `remove /features/<name>` takes it out. Signatures and
+  trusted publishers apply unchanged to a signed manifest.
+
+Over the channel, the revision's author is the connection's: an agent's install through MCP (`install_feature`) is the
+agent's, an in-screen `features.compose` is `features`'. The Studio's "Install from another app" (Cmd+6) asks the
+agent to read the contributions, write the adapter and submit it, and shows the proof in its reply.
 
 ## Where it lives in the API
 

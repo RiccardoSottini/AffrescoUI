@@ -1,0 +1,22 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Grid", "width": 480, "height": 280 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "rooms": ["Kitchen", "Living room", "Bedroom", "Office", "Garden", "Garage"] },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "grid", "id": "rooms", "anchors": { "left": 24, "right": 24, "top": 24 }, "columns": ["1fr", "1fr", "1fr"],
+			  "gap": 12, "children": [
+				{ "type": "label", "id": "room", "repeat": { "for": "room", "in": "state.rooms" }, "height": 64,
+				  "padding": 12, "radius": 10, "color": "#ffffff", "borderWidth": 1, "borderColor": "#e2e8f0",
+				  "textColor": "#0f172a", "text": "{{room}}" }
+			] },
+			{ "type": "label", "id": "wide", "anchors": { "left": 24, "right": 24, "top": "#rooms.bottom + 12" },
+			  "height": 40, "padding": 12, "radius": 10, "color": "#e0e7ff", "textColor": "#3730a3",
+			  "text": "Placed 12 pixels under the grid with an anchor" }
+		]
+	}
+}

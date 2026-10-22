@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Design tokens, for the rendering check: spacing, radius, a type size and colour roles used as \"@name\" in styles and nodes, with a light and a dark theme. The scenario restyles the whole screen with one small edit to the tokens.",
 
 	"window": { "title": "Design tokens", "width": 420, "height": 300 },
@@ -24,7 +24,7 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": "@type.body" }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": "@type.body" }
 	},
 
 	"styles": {

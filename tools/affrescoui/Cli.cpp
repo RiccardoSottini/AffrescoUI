@@ -7,6 +7,7 @@
 
 #ifdef AFFRESCOUI_CLI_EXAMPLE_TYPES
 #include "CodeEditor.hpp"
+#include "tempo/Visualiser.hpp"
 #endif
 
 #include <algorithm>
@@ -62,6 +63,7 @@ void registerApplicationTypes([[maybe_unused]] Screen& screen) {
 	screen.setPlaceholderTypes(true); // other apps' types show as plain panels
 #ifdef AFFRESCOUI_CLI_EXAMPLE_TYPES
 	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
+	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
 #endif
 }
 

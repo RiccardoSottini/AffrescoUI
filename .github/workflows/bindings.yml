@@ -1,0 +1,53 @@
+# The C API and its bindings (.github/workflows/README.md): the C11 test of every afr_ function, the Python binding's
+# tests against the shared library, and the embedding demo's two modes, on Linux under Xvfb (Mesa's llvmpipe).
+name: Bindings
+
+on:
+  pull_request:
+    paths: [modules/**, bindings/**, examples/embed/**, tests/capi/**, external/**, cmake/**, CMakeLists.txt,
+            .github/workflows/bindings.yml, .github/actions/setup/**]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bindings-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  LIBGL_ALWAYS_SOFTWARE: "1"
+  MESA_GL_VERSION_OVERRIDE: "4.1"
+
+jobs:
+  bindings:
+    name: C API and Python
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: xvfb xauth libgl1-mesa-dri python3-venv
+          cache: linux-gcc-bindings
+      - name: Build # the static C API, its test and the demo; libaffresco for Python
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DAFFRESCOUI_BUILD_CAPI_SHARED=ON
+          cmake --build build --target affrescoui_capi_test affrescoui_capi_shared affrescoui_embed
+      - name: C API test (C11) # headless, a hidden window and embedded: a display is needed
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R capi --output-on-failure
+      - name: Python binding tests # headless
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install pytest==8.3.5
+          AFFRESCOUI_LIBRARY="$PWD/build/modules/capi/libaffresco.so" PYTHONPATH=bindings/python \
+            xvfb-run -a -s "-screen 0 1920x1080x24" "$RUNNER_TEMP/venv/bin/python" -m pytest -q bindings/python/tests
+      - name: Embedding demo, both modes # a frame of each, written as PPM
+        run: |
+          mkdir -p out
+          AFFRESCOUI_SCREENSHOT=out/overlay.ppm xvfb-run -a -s "-screen 0 1920x1080x24" build/affrescoui_embed
+          AFFRESCOUI_SCREENSHOT=out/texture.ppm xvfb-run -a -s "-screen 0 1920x1080x24" build/affrescoui_embed --texture
+          test -s out/overlay.ppm && test -s out/texture.ppm

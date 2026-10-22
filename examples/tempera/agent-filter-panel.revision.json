@@ -1,0 +1,87 @@
+{
+	"author": "agent",
+	"message": "Add a Filters panel: one button per filter, above the Layers panel",
+	"add": {
+		"#panels/children/3": {
+			"type": "column",
+			"id": "filter-panel",
+			"role": "region",
+			"label": "Filters",
+			"width": "100%",
+			"height": 92,
+			"color": "@panel",
+			"gap": 6,
+			"children": [
+				{
+					"type": "label",
+					"id": "filter-panel-title",
+					"text": "Filters",
+					"textColor": "@muted",
+					"width": 120,
+					"height": 22,
+					"align": {
+						"horizontal": "start",
+						"vertical": "center"
+					},
+					"anchors": {
+						"left": 10
+					}
+				},
+				{
+					"type": "row",
+					"id": "filter-panel-buttons",
+					"width": "100%",
+					"height": 60,
+					"gap": 6,
+					"wrap": true,
+					"children": [
+						{
+							"id": "filter-panel-start",
+							"color": "transparent",
+							"width": 4,
+							"height": 26
+						},
+						{
+							"type": "label",
+							"id": "filter-panel-{{f.id}}",
+							"repeat": {
+								"for": "f",
+								"in": "state.filters",
+								"key": "{{f.id}}"
+							},
+							"role": "button",
+							"text": "{{f.title}}",
+							"textColor": "@text",
+							"padding": 6,
+							"height": 26,
+							"fitText": true,
+							"radius": 4,
+							"color": "@input",
+							"borderWidth": 1,
+							"borderColor": "@border",
+							"cursor": "hand",
+							"tooltip": "{{f.title}}...",
+							"hover": {
+								"color": "@hover"
+							},
+							"onClick": {
+								"run": "showFilter",
+								"with": {
+									"args": {
+										"kind": "{{f.id}}"
+									}
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		"#panels/children/4": {
+			"id": "filter-panel-split",
+			"width": "100%",
+			"height": 1,
+			"color": "@border"
+		}
+	}
+}

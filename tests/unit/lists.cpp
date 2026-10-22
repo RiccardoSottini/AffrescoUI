@@ -374,7 +374,7 @@ TEST_CASE("list and tree nodes: selection and expanded items bound to state, ope
 	ManualClock clock;
 	const auto window = createHeadlessWindow(200, 210, clock);
 	auto screen = affresco::Screen::fromString(R"({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "files": [{ "id": "src", "children": ["main", "lib"] }, "README"], "open": [], "picked": null,
 		           "opened": "", "many": ["y"] },
 		"root": { "id": "root", "children": [

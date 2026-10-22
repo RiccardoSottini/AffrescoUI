@@ -1,0 +1,16 @@
+#!/bin/sh
+# Starts one of the AppImage's programs: the host by default, the Studio with "studio", the command-line tool with
+# "affrescoui" (e.g. AffrescoUI.AppImage affrescoui check screen.json). A link to the AppImage named after a program
+# starts that program. The programs find their templates and fonts in usr/bin/assets, next to themselves.
+here="$(dirname "$(readlink -f "$0")")"
+case "$(basename "${ARGV0:-$0}")" in
+	affrescoui_studio*) exec "$here/usr/bin/affrescoui_studio" "$@" ;;
+	affrescoui_host*) exec "$here/usr/bin/affrescoui_host" "$@" ;;
+	affrescoui) exec "$here/usr/bin/affrescoui" "$@" ;;
+esac
+case "$1" in
+	studio) shift; exec "$here/usr/bin/affrescoui_studio" "$@" ;;
+	affrescoui | cli) shift; exec "$here/usr/bin/affrescoui" "$@" ;;
+	host) shift ;;
+esac
+exec "$here/usr/bin/affrescoui_host" "$@"

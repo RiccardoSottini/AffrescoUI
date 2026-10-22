@@ -269,7 +269,8 @@ void ListView::mouseButtonEvent(const MouseButtonEvent& event) {
 
 void ListView::keyEvent(const KeyEvent& event) {
 	const std::size_t count = rows_.size();
-	if(count > 0 && event.action != Action::Release && !rowKey(event)) {
+	// Alt with a key is left to the node's "keys" (e.g. Alt+Up to move a row)
+	if(count > 0 && event.action != Action::Release && !event.mods.alt() && !rowKey(event)) {
 		const std::size_t row = rowOf(cursor_);
 		const bool none = row >= count;
 		// At most the row count before the cast: a list 1e30 tall is past size_t's range, where the cast is undefined

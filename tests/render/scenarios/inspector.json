@@ -1,0 +1,20 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "inspector",
+			"screen": "layout.screen.json",
+			"note": "The inspector's overlay, statistics left out: the panel under the pointer highlighted, its node, bounds, bindings as written and history, then the trace of a click",
+			"steps": [
+				{ "action": "inspector:on" },
+				{ "move": "#label-short" },
+				{ "expect": { "image": "overlay" } },
+				{ "press": "#label-tall" },
+				{ "release": "#label-tall" },
+				{ "expect": { "image": "overlay-traced" } }
+			]
+		}
+	]
+}

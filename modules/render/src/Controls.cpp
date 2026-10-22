@@ -81,13 +81,29 @@ void Slider::setColors(Color track, Color fill, Color knob) {
 void Slider::pick(float x) {
 	const Rect& f = frame();
 	const double t = f.width() > 0.0f ? std::clamp((x - f.left) / f.width(), 0.0f, 1.0f) : 0.0;
-	double value = minimum_ + t * (maximum_ - minimum_);
+	change(minimum_ + t * (maximum_ - minimum_));
+}
+
+void Slider::change(double value) {
 	if(step_ > 0.0) value = minimum_ + std::round((value - minimum_) / step_) * step_;
 	value = std::clamp(value, std::min(minimum_, maximum_), std::max(minimum_, maximum_));
 	if(value == value_) return;
 	value_ = value;
 	invalidatePaint();
 	onValueChanged(value_);
+}
+
+void Slider::keyEvent(const KeyEvent& event) {
+	const double step = step_ > 0.0 ? step_ : (maximum_ - minimum_) / 100.0;
+	if(event.action != Action::Release && !event.mods.alt() && !event.mods.control() && !event.mods.super()) {
+		if(event.key == Key::Right || event.key == Key::Up) change(value_ + step);
+		else if(event.key == Key::Left || event.key == Key::Down) change(value_ - step);
+		else if(event.key == Key::PageUp) change(value_ + step * 10.0);
+		else if(event.key == Key::PageDown) change(value_ - step * 10.0);
+		else if(event.key == Key::Home) change(minimum_);
+		else if(event.key == Key::End) change(maximum_);
+	}
+	Panel::keyEvent(event);
 }
 
 void Slider::mouseButtonEvent(const MouseButtonEvent& event) {

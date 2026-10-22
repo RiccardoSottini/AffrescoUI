@@ -45,7 +45,7 @@ TEST_CASE("format: a screen destroyed while its window lives on cancels the time
 	const auto window = createHeadlessWindow(200, 100, clock);
 	auto screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "x": 0, "y": 0 },
 		"onLoad": [
 			{ "animate": "state.x", "to": 100, "ms": 1000 },
@@ -108,7 +108,7 @@ TEST_CASE("format: a screen destroyed before its window's next frame leaves no d
 	const auto window = createHeadlessWindow(200, 100, clock);
 	auto screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "y": 0 },
 		"onLoad": [{ "set": "state.y", "to": 1 }],
 		"root": { "type": "panel" }
@@ -127,7 +127,7 @@ TEST_CASE("screen: a screen destroyed while its window lives on cancels its chan
 	affresco::test::QueueExecutor executor;
 	auto screen = std::make_unique<affresco::Screen>(affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"channels": { "nobody": { "socket": "/nonexistent-affrescoui-test/nobody.sock", "reconnect": { "after": 1 } } },
 		"root": { "type": "panel" }
 	})json"));
@@ -148,7 +148,7 @@ TEST_CASE("format: an animate step moves the state on the window's clock") {
 	const auto window = createHeadlessWindow(200, 100, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "x": 0 },
 		"onLoad": [{ "animate": "state.x", "to": 100, "ms": 100, "easing": "linear" }],
 		"root": { "type": "panel" }

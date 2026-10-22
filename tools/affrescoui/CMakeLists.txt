@@ -10,20 +10,25 @@ add_custom_command(OUTPUT ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	DEPENDS ${AFFRESCOUI_CLI_SCHEMA} ${CMAKE_CURRENT_SOURCE_DIR}/Embed.cmake
 	COMMENT "Embedding the screen schema in affrescoui")
 
-add_executable(affrescoui_cli main.cpp Cli.cpp CheckCommand.cpp FormatCommands.cpp WindowCommands.cpp
-	HistoryCommands.cpp TestCommand.cpp SchemaCommand.cpp JsonText.cpp Schema.cpp ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
+add_executable(affrescoui_cli main.cpp Cli.cpp CheckCommand.cpp ComposeCommand.cpp FormatCommands.cpp WindowCommands.cpp
+	HistoryCommands.cpp TestCommand.cpp PolicyCommand.cpp SchemaCommand.cpp SignCommand.cpp ImportCommand.cpp MigrateCommand.cpp JsonText.cpp Schema.cpp ${AFFRESCOUI_CLI_SCHEMA_SOURCE}
 	${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp) # the library's PNG encoder, which it keeps private
 set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 target_link_libraries(affrescoui_cli PRIVATE affrescoui::automation) # and through it, the whole library
-# SocketDir.hpp (the socket folder's checks) is shared with affrescoui_host; Png.hpp is the library's
-target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/modules/screen/src)
+# SocketDir.hpp (the socket folder's checks) is shared with affrescoui_host; Png.hpp and FeatureSignatures.hpp are the
+# library's
+target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
+	${PROJECT_SOURCE_DIR}/modules/format/src ${PROJECT_SOURCE_DIR}/modules/vcs/src)
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_VERSION}")
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# The example apps' own types, as affrescoui_host has them, so their templates run and render the same
-	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/CodeEditor.cpp)
+	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp)
+	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp) # Tempo's visualiser surface
+	target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples)
+	target_include_directories(affrescoui_cli SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)
 	target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_CLI_EXAMPLE_TYPES)
 endif()
 
@@ -45,6 +50,6 @@ if(AFFRESCOUI_BUILD_TESTS)
 			--build $<TARGET_FILE_DIR:affrescoui_cli> ${headless})
 	endif()
 	# The schema and SCREEN_FORMAT.md's tables are generated from the registries: fails if they are out of date
-	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json
+	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json --types examples
 		--doc SCREEN_FORMAT.md --check WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endif()

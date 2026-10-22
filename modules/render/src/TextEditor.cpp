@@ -1,11 +1,12 @@
 /// @file
 /// @brief TextEditor: properties, geometry, editing on the text model, undo and input events (drawing is in
-/// TextEditorPaint.cpp).
+/// TextEditorPaint.cpp; rows, cursors and find in TextEditorView.cpp, TextEditorCursors.cpp and TextEditorFind.cpp).
 
 #include "affresco/render/TextEditor.hpp"
 #include "affresco/render/Painter.hpp"
 #include "affresco/render/Window.hpp"
 
+#include "TextEditorRows.hpp"
 #include "detail/Utf8.hpp"
 
 #include <algorithm>
@@ -41,7 +42,28 @@ TextEditor::TextEditor() {
 	setColor(Color::hex(0x1b1d23));
 	setCursor(Cursor::IBeam);
 	resetColors();
-	model_.onChanged.connect([this](const TextChange& change) { textChanged(change); }); // the model is a member
+	modelConnection_ = model_->onChanged.connect([this](const TextChange& change) { textChanged(change); });
+}
+
+TextEditor::~TextEditor() { model_->onChanged.disconnect(modelConnection_); }
+
+void TextEditor::setModel(std::shared_ptr<TextModel> model) {
+	if(!model) model = std::make_shared<TextModel>();
+	if(model == model_) return;
+	model_->onChanged.disconnect(modelConnection_);
+	model_ = std::move(model);
+	lines_ = TextLines(*model_);
+	modelConnection_ = model_->onChanged.connect([this](const TextChange& change) { textChanged(change); });
+	caret_ = anchor_ = {};
+	cursors_.clear();
+	folds_.clear();
+	lastEdit_ = Edit::Other;
+	states_.assign(1, 0);
+	if(highlighter_) highlighter_->reset(*model_);
+	widest_ = -1.0f;
+	scroll_ = {};
+	rebuildRows();
+	invalidate();
 }
 
 /* Properties */
@@ -57,20 +79,28 @@ void TextEditor::setText(std::string_view utf8) {
 		}
 		utf8 = normalised;
 	}
-	if(model_.equals(utf8)) return;
-	model_.beginStep(false, caret_, anchor_);
-	model_.assign(utf8);
-	model_.endStep();
+	if(model_->equals(utf8)) return;
+	editing_ = true;
+	cursorsMerge_ = false;
+	cursorsPending_ = true;
+	cursorsBefore_ = cursors_;
+	model_->beginStep(false, caret_, anchor_);
+	model_->assign(utf8);
+	model_->endStep();
+	cursors_.clear();
+	recordCursorStep();
+	editing_ = false;
 	lastEdit_ = Edit::Other;
-
-	auto clamp = [this](Position p) {
-		p.line = std::min(p.line, model_.lineCount() - 1);
-		p.column = std::min(p.column, model_.lineLength(p.line));
-		return p;
-	};
-	caret_ = clamp(caret_);
-	anchor_ = clamp(anchor_);
+	caret_ = clamped(caret_);
+	anchor_ = clamped(anchor_);
+	cursors_.clear();
 	invalidate();
+}
+
+TextEditor::Position TextEditor::clamped(Position at) const noexcept {
+	at.line = std::min(at.line, model_->lineCount() - 1);
+	at.column = std::min(at.column, model_->lineLength(at.line));
+	return at;
 }
 
 void TextEditor::setFont(std::shared_ptr<const Font> font) {
@@ -86,6 +116,13 @@ const Font* TextEditor::font() const noexcept {
 
 void TextEditor::setLineNumbers(bool shown) {
 	lineNumbers_ = shown;
+	invalidate();
+}
+
+void TextEditor::setLineLabels(std::vector<std::size_t> numbers) {
+	if(numbers == lineLabels_) return;
+	largestLabel_ = numbers.empty() ? 0 : std::ranges::max(numbers);
+	lineLabels_ = std::move(numbers);
 	invalidate();
 }
 
@@ -126,6 +163,9 @@ void TextEditor::resetColors() {
 	lineColor_ = Color::hex(0x23262e);
 	selectionColor_ = Color::hex(0x264f78);
 	caretColor_ = Color::hex(0xaeafad);
+	guideColor_ = Color::hex(0x3b3f4a);
+	matchColor_ = Color::hex(0x613214);
+	bracketColor_ = Color::hex(0x3e4452);
 	invalidatePaint();
 }
 
@@ -145,7 +185,7 @@ float TextEditor::gutterWidth() const noexcept {
 	const Font* f = font();
 	if(!f) return 0.0f;
 	if(!lineNumbers_) return 12.0f;
-	const std::size_t digits = std::max<std::size_t>(std::to_string(lines_.size()).size(), 3);
+	const std::size_t digits = std::max<std::size_t>(std::to_string(std::max(lines_.size(), largestLabel_)).size(), 3);
 	return std::round(16.0f + static_cast<float>(digits) * f->glyph(U'0').advance + 20.0f);
 }
 
@@ -169,53 +209,27 @@ std::size_t TextEditor::columnAt(std::size_t line, float x) const {
 	return nearest;
 }
 
-TextEditor::Position TextEditor::positionAt(Vec2 point) const {
-	const float y = point.y - frame().top - textPadding + scroll_.y;
-	const float row = std::floor(y / lineHeight());
-	Position p;
-	if(row < 0.0f) return p; // above the text: the start
-	// Below (or not a number, from a huge frame): the end, before the row is converted to an integer
-	if(!(row < static_cast<float>(lines_.size()))) return {lines_.size() - 1, lines_.back().size()};
-	p.line = static_cast<std::size_t>(row);
-	p.column = columnAt(p.line, point.x - frame().left - gutterWidth() + scroll_.x);
-	return p;
-}
-
-std::size_t TextEditor::visibleLines() const noexcept {
-	// No more than the text has: a huge height (or not a number) must not reach the conversion to an integer
-	const float rows =
-	    std::min(std::floor((frame().height() - textPadding) / lineHeight()), static_cast<float>(lines_.size()));
-	return rows >= 1.0f ? static_cast<std::size_t>(rows) : 1;
-}
-
-void TextEditor::clampScroll() {
-	const Font* f = font();
-	const float contentHeight = static_cast<float>(lines_.size()) * lineHeight() + textPadding;
-	// Like most code editors, the last line can scroll up to the top
-	const float maxY = std::max(contentHeight - lineHeight() - textPadding, 0.0f);
-	const float widest = f ? widestLine(*f) : 0.0f;
-	const float textWidth = frame().width() - gutterWidth() - 16.0f;
-	const float maxX = std::max(widest - textWidth, 0.0f);
-	scroll_.x = std::clamp(scroll_.x, 0.0f, maxX);
-	scroll_.y = std::clamp(scroll_.y, 0.0f, maxY);
-}
-
-float TextEditor::widestLine(const Font& font) const {
-	if(widest_ >= 0.0f && widestFont_ == &font) return widest_;
-	widestFont_ = &font;
-	widest_ = 0.0f;
-	if(lines_.size() <= exactWidth) {
-		for(std::size_t line = 0; line < lines_.size(); ++line) widest_ = std::max(widest_, font.measure(lines_[line]));
-		return widest_;
-	}
-	// Measuring every line of a large text would cost more than opening it: a byte is at most one code point
-	const float advance = std::max(font.glyph(U'M').advance, font.glyph(U'0').advance);
-	widest_ = static_cast<float>(model_.longestLine()) * advance;
-	return widest_;
-}
-
 void TextEditor::textChanged(const TextChange& change) {
 	if(states_.size() > change.from.line + 1) states_.resize(change.from.line + 1);
+	if(highlighter_) highlighter_->changed(*model_, change);
+	// Another editor's edit of a shared model (or an outside one) moves the text under this caret
+	if(!editing_) {
+		caret_ = shifted(caret_, change);
+		anchor_ = shifted(anchor_, change);
+	}
+	for(std::size_t i = 0; i < cursors_.size(); ++i) {
+		cursors_[i].caret = shifted(cursors_[i].caret, change);
+		cursors_[i].anchor = shifted(cursors_[i].anchor, change);
+	}
+	if(editedCursors_)
+		for(std::size_t i = 0; i < editedCursors_->size(); ++i) {
+			if(i == activeCursor_) continue;
+			EditorSelection& other = (*editedCursors_)[i];
+			other = {shifted(other.anchor, change), shifted(other.caret, change)};
+		}
+	shiftView(change);
+	rowsChanged(change);
+	invalidate();
 	const std::size_t edited = change.newEnd.line - change.from.line + 1;
 	if(lines_.size() <= exactWidth || edited > exactWidth) {
 		widest_ = -1.0f;
@@ -227,27 +241,13 @@ void TextEditor::textChanged(const TextChange& change) {
 		widest_ = std::max(widest_, widestFont_->measure(lines_[line]));
 }
 
-void TextEditor::revealCaret() {
-	const float lh = lineHeight();
-	const float top = static_cast<float>(caret_.line) * lh;
-	const float height = frame().height() - textPadding;
-	if(top < scroll_.y) scroll_.y = top;
-	else if(top + lh > scroll_.y + height) scroll_.y = top + lh - height;
-
-	const float x = columnX(caret_.line, caret_.column);
-	const float width = frame().width() - gutterWidth() - 16.0f;
-	if(x < scroll_.x) scroll_.x = std::max(x - 40.0f, 0.0f);
-	else if(x > scroll_.x + width) scroll_.x = x - width + 40.0f;
-	invalidate();
-}
-
 /* Text */
 
 std::u32string TextEditor::textIn(Position from, Position to) const {
-	return detail::fromUtf8(model_.textIn(from, to));
+	return detail::fromUtf8(model_->textIn(from, to));
 }
 
-void TextEditor::erase(Position from, Position to) { model_.erase(from, to); }
+void TextEditor::erase(Position from, Position to) { model_->erase(from, to); }
 
 TextEditor::Position TextEditor::insert(Position at, std::u32string_view text) {
 	std::string utf8;
@@ -256,7 +256,7 @@ TextEditor::Position TextEditor::insert(Position at, std::u32string_view text) {
 		if(c == U'\t') utf8.append(tabSize, ' ');
 		else if(c != U'\r') detail::appendUtf8(utf8, c);
 	}
-	return model_.insert(at, utf8);
+	return model_->insert(at, utf8);
 }
 
 std::pair<TextEditor::Position, TextEditor::Position> TextEditor::selection() const noexcept {
@@ -314,21 +314,48 @@ std::pair<std::size_t, std::size_t> TextEditor::selectedLines() const noexcept {
 /* Editing */
 
 void TextEditor::beginEdit(Edit kind) {
-	model_.beginStep(kind != Edit::Other && kind == lastEdit_, caret_, anchor_);
+	editing_ = true;
+	const bool merge = kind != Edit::Other && kind == lastEdit_;
+	cursorsMerge_ = merge && model_->undoSteps() > 0;
+	cursorsPending_ = true;
+	if(editedCursors_) cursorsBefore_.assign(editedCursors_->begin() + 1, editedCursors_->end());
+	else cursorsBefore_ = cursors_;
+	model_->beginStep(merge, caret_, anchor_);
 	lastEdit_ = kind;
 }
 
 void TextEditor::endEdit() {
-	model_.endStep();
+	model_->endStep();
+	recordCursorStep();
+	editing_ = false;
 	preferredX_ = -1.0f;
 	revealCaret();
-	if(!onTextChanged.empty()) onTextChanged(model_.text());
+	if(!onTextChanged.empty()) onTextChanged(model_->text());
 	onCaretMoved(caret_);
+}
+
+void TextEditor::recordCursorStep() {
+	if(!cursorsPending_) return; // undo and redo end no step of their own
+	cursorsPending_ = false;
+	redoCursors_.clear();
+	if(cursorsMerge_ && !undoCursors_.empty()) undoCursors_.back().after = cursors_;
+	else undoCursors_.push_back({std::move(cursorsBefore_), cursors_});
+	cursorsBefore_.clear();
+	// Aligned with the model's steps from the newest: the oldest go when the model drops them
+	const std::size_t kept = model_->undoSteps();
+	if(undoCursors_.size() > kept)
+		undoCursors_.erase(undoCursors_.begin(), undoCursors_.end() - static_cast<std::ptrdiff_t>(kept));
 }
 
 void TextEditor::recolor() {
 	states_.clear();
 	invalidate();
+}
+
+void TextEditor::setHighlighter(std::unique_ptr<EditorHighlighter> highlighter) {
+	highlighter_ = std::move(highlighter);
+	if(highlighter_) highlighter_->reset(*model_);
+	recolor();
 }
 
 void TextEditor::moveCaret(Position to, bool extend, bool keepX) {
@@ -342,7 +369,25 @@ void TextEditor::moveCaret(Position to, bool extend, bool keepX) {
 }
 
 void TextEditor::undo(bool redo) {
-	if(!model_.undo(redo, caret_, anchor_)) return;
+	if(!editable()) return;
+	editing_ = true;
+	const std::size_t steps = model_->undoSteps();
+	const bool undone = model_->undo(redo, caret_, anchor_);
+	editing_ = false;
+	if(!undone) return;
+	// The extra cursors come back with the caret, while they are kept for every step
+	std::vector<CursorStep>& from = redo ? redoCursors_ : undoCursors_;
+	std::vector<CursorStep>& to = redo ? undoCursors_ : redoCursors_;
+	if(redo ? !from.empty() : from.size() == steps) {
+		cursors_ = redo ? from.back().after : from.back().before;
+		to.push_back(std::move(from.back()));
+		from.pop_back();
+		mergeCursors();
+	} else {
+		cursors_.clear();
+		undoCursors_.clear();
+		redoCursors_.clear();
+	}
 	lastEdit_ = Edit::Other;
 	endEdit();
 }
@@ -362,8 +407,8 @@ void TextEditor::indentLines(bool outdent) {
 		const std::size_t removed = outdent ? std::min(indentOf(line), tabSize) : 0;
 		if(outdent && removed == 0) continue;
 		if(!outdent && lines_[line].empty()) continue;
-		if(outdent) model_.erase({line, 0}, {line, removed});
-		else model_.insert({line, 0}, std::string(tabSize, ' '));
+		if(outdent) model_->erase({line, 0}, {line, removed});
+		else model_->insert({line, 0}, std::string(tabSize, ' '));
 		const long change = outdent ? -static_cast<long>(removed) : static_cast<long>(tabSize);
 		for(Position* p : {&caret_, &anchor_})
 			if(p->line == line)
@@ -376,7 +421,7 @@ void TextEditor::copy(bool cut) {
 	if(!window() || !hasSelection()) return;
 	const auto [from, to] = selection();
 	window()->setClipboardText(detail::toUtf8(textIn(from, to)));
-	if(cut) {
+	if(cut && editable()) {
 		beginEdit(Edit::Other);
 		replaceSelection({});
 		endEdit();
@@ -384,7 +429,7 @@ void TextEditor::copy(bool cut) {
 }
 
 void TextEditor::paste() {
-	if(!window()) return;
+	if(!window() || !editable()) return;
 	const std::u32string text = detail::fromUtf8(window()->clipboardText());
 	if(text.empty()) return;
 	beginEdit(Edit::Other);
@@ -414,80 +459,92 @@ void TextEditor::selectWord(Position at) {
 void TextEditor::keyEvent(const KeyEvent& event) {
 	Panel::keyEvent(event);
 	if(event.action == Action::Release) return;
+	if(viewKey(event) || cursorsKey(event) || caretKey(event) || editingKey(event)) return;
+	if(event.mods.super() || event.mods.control()) commandKey(event); // Cmd on macOS, Ctrl elsewhere
+}
 
+bool TextEditor::caretKey(const KeyEvent& event) {
 	const Mods m = event.mods;
-	const bool command = m.super() || m.control(); // Cmd on macOS, Ctrl elsewhere
-	const bool word = m.alt() || (m.control() && !m.super());
+	const bool command = m.super() || m.control();
 	const bool shift = m.shift();
-
-	auto vertical = [&](long lines) {
-		if(preferredX_ < 0.0f) preferredX_ = columnX(caret_.line, caret_.column);
-		const long target = static_cast<long>(caret_.line) + lines;
-		if(target < 0) return moveCaret({0, 0}, shift, true);
-		if(target >= static_cast<long>(lines_.size()))
-			return moveCaret({lines_.size() - 1, lines_.back().size()}, shift, true);
-		const auto line = static_cast<std::size_t>(target);
-		moveCaret({line, columnAt(line, preferredX_)}, shift, true);
-	};
-
+	const Position end{lines_.size() - 1, lines_.back().size()};
 	switch(event.key) {
 	case Key::Left:
-		if(m.super()) return moveCaret({caret_.line, 0}, shift);
-		if(hasSelection() && !shift) return moveCaret(selection().first, false);
-		return moveCaret(step(caret_, false, word), shift);
 	case Key::Right:
-		if(m.super()) return moveCaret({caret_.line, lines_[caret_.line].size()}, shift);
-		if(hasSelection() && !shift) return moveCaret(selection().second, false);
-		return moveCaret(step(caret_, true, word), shift);
+		horizontalKey(event.key == Key::Right, m);
+		return true;
 	case Key::Up:
-		if(m.super()) return moveCaret({0, 0}, shift);
-		return vertical(-1);
 	case Key::Down:
-		if(m.super()) return moveCaret({lines_.size() - 1, lines_.back().size()}, shift);
-		return vertical(1);
+		verticalKey(event.key == Key::Down, m);
+		return true;
 	case Key::Home: {
 		// First non-blank character, or the start of the line if already there
 		const std::size_t indent = indentOf(caret_.line);
-		if(command) return moveCaret({0, 0}, shift);
-		return moveCaret({caret_.line, caret_.column == indent ? 0 : indent}, shift);
+		moveCaret(command ? Position{0, 0} : Position{caret_.line, caret_.column == indent ? 0 : indent}, shift);
+		return true;
 	}
 	case Key::End:
-		if(command) return moveCaret({lines_.size() - 1, lines_.back().size()}, shift);
-		return moveCaret({caret_.line, lines_[caret_.line].size()}, shift);
+		moveCaret(command ? end : Position{caret_.line, lines_[caret_.line].size()}, shift);
+		return true;
 	case Key::PageUp:
-		return vertical(-static_cast<long>(visibleLines()));
-	case Key::PageDown:
-		return vertical(static_cast<long>(visibleLines()));
+	case Key::PageDown: {
+		const auto rows = static_cast<long>(visibleLines());
+		moveRows(event.key == Key::PageUp ? -rows : rows, shift);
+		return true;
+	}
+	default:
+		return false;
+	}
+}
+
+void TextEditor::horizontalKey(bool right, Mods mods) {
+	const bool word = mods.alt() || (mods.control() && !mods.super());
+	const bool shift = mods.shift();
+	if(mods.super()) return moveCaret({caret_.line, right ? lines_[caret_.line].size() : 0}, shift);
+	if(hasSelection() && !shift) return moveCaret(right ? selection().second : selection().first, false);
+	moveCaret(step(caret_, right, word), shift);
+}
+
+void TextEditor::verticalKey(bool down, Mods mods) {
+	if(!mods.super()) return moveRows(down ? 1 : -1, mods.shift());
+	moveCaret(down ? Position{lines_.size() - 1, lines_.back().size()} : Position{0, 0}, mods.shift());
+}
+
+bool TextEditor::editingKey(const KeyEvent& event) {
+	const Mods m = event.mods;
+	const bool command = m.super() || m.control();
+	switch(event.key) {
 	case Key::Enter:
 	case Key::KeypadEnter:
-		if(!command) newLine();
-		return;
+		if(editable() && !command) newLine();
+		return true;
 	case Key::Tab:
-		if(command) return;
-		if(shift || hasSelection()) return indentLines(shift);
+		if(!editable() || command) return true;
+		if(m.shift() || hasSelection()) {
+			indentLines(m.shift());
+			return true;
+		}
 		beginEdit(Edit::Typing);
 		replaceSelection(std::u32string(tabSize - caret_.column % tabSize, U' '));
-		return endEdit();
-	case Key::Backspace: {
-		if(hasSelection()) {
-			beginEdit(Edit::Other);
-			replaceSelection({});
-			return endEdit();
-		}
-		if(caret_ == Position{}) return;
-		beginEdit(Edit::Deleting);
-		Position from = m.super() ? Position{caret_.line, 0} : step(caret_, false, word);
-		if(from == caret_) from = step(caret_, false, false); // Cmd+Backspace at a line start joins lines
-		erase(from, caret_);
-		caret_ = anchor_ = from;
+		endEdit();
+		return true;
+	case Key::Backspace:
+	case Key::Delete:
+		if(editable()) deleteKey(event.key == Key::Delete, m);
+		return true;
+	default:
+		return false;
+	}
+}
+
+void TextEditor::deleteKey(bool forward, Mods mods) {
+	const bool word = mods.alt() || (mods.control() && !mods.super());
+	if(hasSelection()) {
+		beginEdit(Edit::Other);
+		replaceSelection({});
 		return endEdit();
 	}
-	case Key::Delete: {
-		if(hasSelection()) {
-			beginEdit(Edit::Other);
-			replaceSelection({});
-			return endEdit();
-		}
+	if(forward) {
 		const Position to = step(caret_, true, word);
 		if(to == caret_) return;
 		beginEdit(Edit::Deleting);
@@ -495,11 +552,16 @@ void TextEditor::keyEvent(const KeyEvent& event) {
 		anchor_ = caret_;
 		return endEdit();
 	}
-	default:
-		break;
-	}
+	if(caret_ == Position{}) return;
+	beginEdit(Edit::Deleting);
+	Position from = mods.super() ? Position{caret_.line, 0} : step(caret_, false, word);
+	if(from == caret_) from = step(caret_, false, false); // Cmd+Backspace at a line start joins lines
+	erase(from, caret_);
+	caret_ = anchor_ = from;
+	endEdit();
+}
 
-	if(!command) return;
+void TextEditor::commandKey(const KeyEvent& event) {
 	switch(event.key) {
 	case Key::A:
 		anchor_ = {0, 0};
@@ -514,9 +576,9 @@ void TextEditor::keyEvent(const KeyEvent& event) {
 	case Key::V:
 		return paste();
 	case Key::Z:
-		return undo(shift);
+		return undo(event.mods.shift());
 	case Key::Y:
-		if(m.control()) undo(true);
+		if(event.mods.control()) undo(true);
 		return;
 	default:
 		return;
@@ -525,21 +587,39 @@ void TextEditor::keyEvent(const KeyEvent& event) {
 
 void TextEditor::charEvent(const CharEvent& event) {
 	Panel::charEvent(event);
-	if(event.codepoint < 0x20) return;
+	if(event.codepoint < 0x20 || !editable()) return;
+	const std::u32string typed(1, event.codepoint);
+	if(!cursors_.empty()) return forEachCursor(Edit::Typing, [&] { replaceSelection(typed); });
 	beginEdit(Edit::Typing);
-	replaceSelection(std::u32string(1, event.codepoint));
+	replaceSelection(typed);
 	endEdit();
 }
 
 void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 	Panel::mouseButtonEvent(event);
+	hoverAt(std::nullopt);
 	if(event.button != MouseButton::Left) return;
+	if(minimapPress(event.position, event.action != Action::Release)) return;
 	if(event.action == Action::Release) {
-		dragging_ = false;
+		dragging_ = columnDragging_ = false;
 		return;
 	}
 
 	const Position at = positionAt(event.position);
+	// Alt+click adds a cursor, Alt+Shift+drag selects a column; a click on a folded line's gutter unfolds it
+	if(event.mods.alt() && event.mods.shift()) {
+		columnDragging_ = true;
+		columnFrom_ = event.position;
+		return selectColumn(columnFrom_, event.position);
+	}
+	if(event.mods.alt()) {
+		addCursor({at, at});
+		return;
+	}
+	if(event.position.x < frame().left + gutterWidth() - 8.0f && unfold(at.line)) return;
+	if(event.position.x < frame().left + gutterWidth() && !onGutterClicked.empty())
+		return onGutterClicked(at.line, event.mods);
+	clearCursors();
 	const double time = now();
 	clicks_ = time - lastClickTime_ < doubleClickSeconds && at.line == lastClickAt_.line ? clicks_ % 3 + 1 : 1;
 	lastClickTime_ = time;
@@ -559,7 +639,20 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 
 void TextEditor::mouseMoveEvent(const MouseMoveEvent& event) {
 	Panel::mouseMoveEvent(event);
-	if(!dragging_ || clicks_ != 1) return;
+	if(columnDragging_) return selectColumn(columnFrom_, event.position);
+	if(minimapDrag(event.position)) return;
+	if(!dragging_ && !onWordHovered.empty()) {
+		const Position at = positionAt(event.position);
+		const std::u32string& text = lines_[at.line];
+		std::size_t start = at.column, end = at.column;
+		while(start > 0 && isWord(text[start - 1])) --start;
+		while(end < text.size() && isWord(text[end])) ++end;
+		const bool onWord = start < end && event.position.x >= frame().left + gutterWidth();
+		const Position word = onWord ? Position{at.line, start} : Position{SIZE_MAX, 0};
+		if(word != hoveredWord_) onWordHovered(hoveredWord_ = word, onWord ? detail::toUtf8(text.substr(start, end - start)) : "");
+	}
+	if(!dragging_) return hoverAt(event.position);
+	if(clicks_ != 1) return;
 	const Position at = positionAt(event.position);
 	if(at != caret_) moveCaret(at, true);
 }
@@ -570,15 +663,27 @@ void TextEditor::scrollEvent(const ScrollEvent& event) {
 	scroll_.x -= event.offset.x * scrollSpeed;
 	scroll_.y -= event.offset.y * scrollSpeed;
 	clampScroll();
-	if(scroll_.x != before.x || scroll_.y != before.y) invalidatePaint();
+	if(scroll_.x == before.x && scroll_.y == before.y) return;
+	invalidatePaint();
+	hoverAt(std::nullopt);
+	onScrolled(scroll_);
+}
+
+void TextEditor::hoverEvent(bool hovered) {
+	if(!hovered) hoverAt(std::nullopt);
+	Panel::hoverEvent(hovered);
 }
 
 void TextEditor::focusEvent(bool focused) {
-	if(!focused) dragging_ = false;
+	if(!focused) dragging_ = columnDragging_ = minimapDragging_ = false;
 	invalidatePaint(); // the caret appears or disappears
 	Panel::focusEvent(focused);
 }
 
-void TextEditor::arrange() { clampScroll(); }
+void TextEditor::arrange() {
+	// The wrapped rows follow the width (and the font)
+	if(wrap_ && (wrapWidth() != rowsWidth_ || font() != rowsFont_)) rebuildRows();
+	clampScroll();
+}
 
 } // namespace affresco

@@ -67,8 +67,8 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 - Tests don't need a display or a network, so they run anywhere, CI included. Use a headless window for anything
   that happens on a window; only the files in `window/` need OpenGL. A test that needs files makes them in a temporary folder of its own and removes it
   (`history.cpp`, `sockets.cpp`, `peers.cpp`, `screen.cpp`); `protocol.cpp` reads `SCREEN_FORMAT.md`, `text.cpp`,
-  `shaping.cpp` and `fonts.cpp` the fonts in `examples/assets/fonts` and `tests/render/fonts`, and `checker.cpp` the
-  templates in `examples/assets/screens`, which must have no findings (all from the checkout). The `ProcessChannel`
+  `shaping.cpp` and `fonts.cpp` the fonts in `examples/shared/fonts` and `tests/render/fonts`, and `checker.cpp` the
+  templates (`examples/templates.json`), which must have no findings (all from the checkout). The `ProcessChannel`
   tests start small programs through the system shell (`/bin/sh`, or `cmd.exe` on Windows).
 - Property tests (`vcs_properties.cpp`) draw from `std::mt19937` with a fixed seed and read it with `%`, never
   through a `std::uniform_*_distribution`, whose numbers differ between standard libraries: a seed then gives the

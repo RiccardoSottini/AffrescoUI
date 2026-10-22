@@ -98,7 +98,7 @@ A host may also accept peers over WebSocket (`Screen::listenWebSocket`, `net::Pe
   refused with 403 unless the origin is in `PeerServerOptions::allowedOrigins`; the list is empty by default, so no
   web page can connect. Programs that send no `Origin` are judged by their token alone.
 - **On the loopback by default.** The server refuses to listen on any other address unless `allowRemote` is set. It
-  has no TLS code of its own: put a TLS proxy in front of it (`examples/deploy/Caddyfile`) and keep it on the loopback,
+  has no TLS code of its own: put a TLS proxy in front of it (`examples/server/deploy/Caddyfile`) and keep it on the loopback,
   so tokens never cross the network in the clear.
 - **Connections are capped**: how many peers are connected or opening at once, and how fast one address may open
   connections (a token bucket per address); over either, the connection is refused (503 or 429) before it is read.
@@ -189,6 +189,26 @@ from approving itself:
 allow" adds a grant for exactly what the accepted proposal touched, for its author's channel, until the host quits.
 Grants are allow rules, so `ask` and `deny` still win.
 
+### Review policies, rebases and expiring grants
+- **Policies** (`permissions.review`) are part of the screen's permissions, which no revision can change. An approval
+  counts once per channel, whatever names the channel gives its users ("studio/anna" and "studio/bob" are one
+  approval: only the channel is the host's word), and never from the author's own channel; the policy is read from `main` when each approval
+  arrives, and applied to the change as it would merge then.
+- **A rebase can't bypass a policy.** A proposal rebased onto a newer `main` keeps its approvals only if replaying its
+  commits gives exactly the three-way merge, that is, the changes that were reviewed. Otherwise its approvals are
+  dismissed, and approvals that name an older head are refused. A proposal with conflicts can't be accepted.
+- **A merge never applies more than was reviewed.** What merges is the proposal's reviewed changes on top of `main`;
+  deny rules are checked again at the merge.
+- **Grants can expire** (`"for"` on an accept, capped by `grantsLast`). An expired grant no longer allows; it stays in
+  the history until revoked.
+- **Evidence is the host's.** A proposal's pictures, changed region, behaviour lines, scenario results and changed
+  texts are gathered by the host when a reviewer asks (`getEvidence`), from the proposal as it is then; a revision
+  carrying `evidence` or `behaviour` is refused. The scenarios are played headless, on a screen connected to nobody,
+  and gathering is rate limited like `render`.
+- **The inspector shows no secret state.** It is off by default and only a peer that may review turns it on
+  (`inspect`). It shows bindings as written, never their values; its trace names keys that type nothing and the
+  channel of a send, never a typed character or a message; and it is hidden while a picture is drawn for a peer.
+
 ### You accept what you saw
 An author can keep pushing commits to its open proposal. Every approval must name the proposal's head commit (at
 least its first 7 characters): the version the reviewer looked at. If the author pushed since, the approval is
@@ -224,10 +244,76 @@ A screen's `connections` section names servers and the operations the screen may
 capability, like `services`: a revision can't change it, and may add `request` and `subscribe` steps only for
 operations it declares, written out (a computed name is refused). A step a revision adds that writes or runs
 (`effect` other than `read`) is always reviewed. The host allows each origin first (`Screen::network().allow`); until
-then every request is refused. A document never holds a credential: the headers that carry one are refused, and an
-`auth` key is accepted for sign-in, which is not implemented yet. While a proposal is previewed, only a read without
+then every request is refused. A document never holds a credential: the headers that carry one are refused, and sign-in
+sets them (next section). While a proposal is previewed, only a read without
 a `mock` reaches a server; any other operation answers from its mock, or fails with `preview`, so a preview has no
 side effects.
+
+### Sign-in
+
+A connection's `auth` declares an OAuth 2 / OpenID Connect provider for a public client (no client secret: none is
+ever in a document or in this repository), or names another connection's. The host signs in when the person runs a
+`signIn` step: the authorization code with PKCE (S256) and a redirect to a listener bound to 127.0.0.1 on a random
+port, matched exactly and closed after one answer; or the device flow. The `state` and the OpenID `nonce` are
+checked, and compared in constant time; every answer from the provider is bounded in size and time. The tokens stay
+in the host's `SignIn` object, and the refresh token in its `SecretStore` (the Keychain, the Credential Manager or the
+Secret Service when the application passes `net::systemSecretStore`; in memory by default). The host adds the
+`Authorization` header to each request of a connection that signs in, after the document's headers, which can't
+carry one. What a document sees is `auth.<name>`: a state, an account and an expiry, never a token, so a token
+reaches no document, state, history, log or screenshot (`tests/unit/auth.cpp` signs in through a mock provider and
+looks for every token it issued in all of them). A 401 refreshes once; a refused refresh signs out and erases the
+stored token. `signIn` and `signOut` are control steps: a revision can't add or move them, nor change a provider, and
+they don't run while a proposal is previewed. The id token is read for its claims (account, expiry) from the token
+endpoint over TLS, not verified as a signature: it decides what is shown, never what is allowed.
+
+### The document server
+
+`affrescoui_server` (examples/server) accepts no peer without a token: its `TokenFile` keeps each token's SHA-256 and
+a name, so the file reveals no token; a token is 256 bits from the system's random source, shown once when added, and
+checked by hashing it and comparing it with every entry in constant time. It listens on the loopback unless told
+otherwise, and is meant to sit behind a proxy that terminates TLS (examples/server/deploy). The token's name is the author
+of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
+that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
+document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,
+never used to decide anything. Leases, presence entries and the server's messages are all bounded (examples/server). With `--userinfo` it also admits OAuth access
+tokens: each is checked at the provider's https userinfo endpoint, and only the subjects of the people file the
+operator writes get in, by the name that file gives them; a token that worked is remembered by its hash for five
+minutes (a revoked token keeps working that long at most), a refused one isn't, and each question is bounded in time
+and size. The server never keeps, logs or forwards a token anywhere but to that endpoint.
+
+### Watched folders and terminals
+
+The `watch` provider and `DirectoryModel` see only a folder the host granted, like `fs`: paths are reported relative
+to it, and symbolic links are listed but never followed or watched, so nothing outside it is reported. What they
+send is bounded: at most 1,000 paths a batch (more becomes one `rescan`), one batch per debounce interval (20 ms at
+least), 100,000 watched folders, 200,000 rows, 4 subscriptions per service. Ignore globs only narrow what is reported.
+
+The `pty` provider starts only a program the host allowed (`allowProcess`, as for `process`), from an argument vector:
+a shell runs only if the host allows a shell as the program. The terminal's output reaches the screen as text, and
+it is bounded: 8 terminals per service, 64 KiB a write and 1 MiB waiting, 16 KiB an event and 4 MiB a second. Escape
+sequences in that text are the terminal widget's to interpret; the provider acts on none of them.
+
+Forge's terminal widget (`examples/forge/features/terminal`, on libvterm) keeps every escape sequence inside itself:
+a program can't set the window title unless the node's `allowTitle` is true (and then only the session's, at most
+256 bytes), clipboard writes (OSC 52) and the bell are dropped, and its replies to queries go back to the program
+only. Its scrollback is bounded (10,000 lines at most). Forge grants the user's login shell, started in the open
+folder; the screen document only names the service.
+
+### Debug adapters
+
+A debug adapter is an untrusted program. The `dap` provider starts only one the host allowed (`allowProcess`), and
+attaches only to a loopback port the host allowed (`allowAttach`), since whatever listens there can run code. It
+reads what it sends as bounded Content-Length frames: headers of 8 KiB and a message of 4 MiB at most (a larger one
+closes the session), checked JSON, and the lists and texts inside cut to the limits below before the screen sees them.
+Requests wait for their own response with a timeout and can be cancelled; at most 256 wait, and 16 MiB waits to be
+written. A source the adapter names is placed against the granted folder: a path under it gets `inside: true`, any
+other `inside: false`, and Forge opens a frame outside the folder only after a confirm, read-only, through the
+adapter's `source` request. A relative path in a request that leaves the folder is refused. If the adapter crashes or
+exits, every waiting request ends and the session ends with one message. The only reverse requests are
+`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds itself
+(`forge.debug.commandLine`): every word single-quoted, the working folder inside the open one, no control characters,
+and it runs in the terminal's shell under that shell's grant. Forge grants `lldb-dap` and `python3 -m
+debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
@@ -242,12 +328,40 @@ other end can run those actions with any data. Revisions can't change `channels`
 sender's author. A request is how a person asks an agent for a change, so an agent should treat it as instructions
 from the channel `from` starts with (`studio` in `studio/riccardo`), and nothing more: the part after the slash is
 the sender's own claim. Any peer can send one.
+A `repair` message is the exception: the host interprets it (see VERSION_CONTROL.md, "Self-repairing change sets").
+The agent's revision is authored by its channel, checked against the change set's proof, and always opened as a
+proposal, so a repair never skips review or the permission rules; only a reviewer retries a change set that gave up.
 
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
 or write files, apart from the parts of the state its `persist` section lists, which go to the state file the host
-chose.
+chose. A `surface` node only names a GPU surface the host registered (`Screen::registerSurface`) and gives it
+parameters: a document never supplies shader source or GPU code.
+
+### Features and catalogues
+A feature package or a catalogue's index (RFC 0004) is untrusted input, read like a screen file: size limits (an
+index or a manifest over its limit is refused before it is parsed), the JSON nesting limit, and keys and digests
+parsed at their fixed lengths and compared in constant time. Each is signed with Ed25519 (Monocypher) over its
+canonical JSON (RFC 8785); its releases are pinned by SHA-512 digest and size. The host trusts no publisher until its
+code calls `Features::trustPublisher`; a catalogue installs only if its index and each manifest are signed by trusted
+keys, the manifest by the very publisher the index names, and an upgrade never changes the publisher. A release's
+URL is a path inside the catalogue's folder. Whatever is installed is a revision under the document's
+`permissions`, and a feature can't bring a capability (`channels`, `services`, `connections`, `persist`) or a
+control step, so a feature never widens what the app can do. `affrescoui sign --new-key` writes a key only its owner
+can read and never over an existing file; keep keys out of repositories (Forge's example catalogue was signed by a
+key that was then deleted).
+
+### Installing across apps
+A feature from another app, its adapter and the proof sent with it are untrusted input. Each is size-limited before it
+is read (a manifest and a proof 256 KiB, an adapter 64 KiB, 64 bindings of 2,048 characters, 8 levels deep) and fuzzed
+(`composition`). A feature gets only what the host exports through the point it is placed in, and what the adapter
+binds: its expressions may read `app.<export>` and the need's arguments, its actions run only the action exports that
+point receives, and a feature that reads the host's state, computed values, actions or components otherwise is
+refused. An adapter is expressions only and can't give a capability or a permission; a composition that widens
+`permissions` or any capability is refused. The install is a revision under the document's permissions, proven
+again on the document it lands on; signatures and trust apply unchanged. The MCP tools return a proof's reasons,
+never the document.
 
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
@@ -274,6 +388,112 @@ costs only that message, and its log escapes what isn't printable, as the host's
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
 
+## Threat model by area
+
+The trust model above says who may change a document. This section goes through what large apps such as IDEs and
+creative tools add around a document: services that run programs and read folders, the network, and features
+installed from catalogues. For each area: what is worth protecting (assets), who attacks it, where their bytes come
+in, what bounds them, what stops them, and what doesn't yet (the gap's tracking number, "Known gaps" below). Every
+entry point is in the fuzzing inventory (`tests/fuzz/README.md`, "Inventory of untrusted inputs"), with its target or
+the reason it has none.
+
+### Services
+
+Services are `process`, `pty`, `fs`, `watch`, `search` and `jsonrpc`; language servers (LSP) and debug adapters (DAP)
+are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built into the
+library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and read no
+grammar from outside; the `syntax` fuzz target covers them.
+
+| | |
+|---|---|
+| Assets | The user's files and folders, what the programs the host allows can do, and the host's memory and main thread |
+| Who attacks | A peer or a revision that calls a service; a program that misbehaves or was swapped (a language server, a debug adapter, a shell's child); whoever made the folder being searched or watched (file names, `.gitignore` files, contents) |
+| Entry points | `invoke`, `subscribe` and `respond` from the document; what a program writes (frames, lines, terminal output); file names, links and contents in a granted folder |
+| Limits | "Limits" below: the `process`, `fs`, `pty`, `search` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
+| Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs and patterns are fuzzed (`frames`, `search_glob`, `find_pattern`); PCRE2's match limits end catastrophic backtracking |
+| Known gaps | Programs aren't sandboxed (G-02); the terminal's escape-sequence parser isn't fuzzed yet (G-24) |
+
+### The network
+
+TLS, WebSocket, sign-in (OAuth 2 and OpenID Connect), remote peers, the document server and the secrets a host keeps
+("Connections a screen declares", "Sign-in", "Remote peers" and "The document server" above).
+
+| | |
+|---|---|
+| Assets | Access and refresh tokens, the server tokens of the document server, the documents a server holds, and the host's memory and threads |
+| Who attacks | A server a connection reaches, or whoever answers in its place; anyone on the network path; anyone who can reach the document server or a host that `allowRemote`s; another program of the same user racing the sign-in listener |
+| Entry points | Response heads and bodies, server-sent events, WebSocket frames, sign-in answers and redirects, a remote peer's upgrade request and first message, URLs a document or a provider names, the token file |
+| Limits | "Limits" below: the `net` module, remote peer and connection rows, and the token file's |
+| Mitigations | TLS 1.2 or later with the certificate and host always verified; only origins the host allowed, plain http and ws to the loopback only; PKCE (S256), `state` and `nonce` compared in constant time; a token never reaches a document, state, history, log or screenshot (`tests/unit/auth.cpp`); the document server and remote peers admit no one without a token; server tokens kept as SHA-256 only. Every parser here is fuzzed (`http_response`, `sse`, `websocket`, `peer_handshake`, `url`, `oauth`, `token_file`) |
+| Known gaps | A token is as safe as the process, and the sign-in listener can be raced (G-01); the queue to the main thread isn't bounded (G-05); keys chosen to collide (G-19) |
+
+### Features, signatures and the catalogue
+
+Feature packages, the Ed25519 signatures over them and the catalogue indexes that list them ("Features and
+catalogues" above).
+
+| | |
+|---|---|
+| Assets | The document a feature changes, and the user's trust in a publisher |
+| Who attacks | A catalogue's server or whoever answers in its place; a publisher whose key was stolen; a publisher that turns hostile in an upgrade |
+| Entry points | A catalogue's index, a manifest, a release's archive, public keys and signatures |
+| Limits | Index and manifest sizes, checked before parsing; the JSON nesting limit; fixed-length keys and digests |
+| Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
+| Known gaps | None of its own: a feature is a revision, so the revision gaps apply (G-06 to G-12) |
+
+### Installing across apps
+
+Features from another app, the adapters that bind their needs, and their proofs ("Installing across apps" above).
+
+| | |
+|---|---|
+| Assets | The host document and what its exports reach |
+| Who attacks | Whoever writes a feature's manifest or an adapter: another app's author, an agent, a peer |
+| Entry points | A manifest's `needs` and `provides`, an adapter, a proof record, `features.compose`, the MCP tools `check_composition` and `install_feature` |
+| Limits | Manifest and proof 256 KiB, adapter 64 KiB, 64 needs, 64 bindings of 2,048 characters, 8 levels, 16 reasons per check, 256 scenarios per proof |
+| Mitigations | Expressions read only the host's exports; actions only those its point receives; no capability, permission or control step can be added; the composed document is checked and the scenarios played before the install; the install is a reviewed revision. Fuzzed: `composition` |
+| Known gaps | A proof's scenarios are those the feature and the host ship: behaviour they don't cover isn't proven |
+
+### Dependencies
+
+Every third-party component is listed in `cmake/dependencies.json`, with its version, URL, SHA-256 and licence;
+`tools/release/sbom.py --check` (CI) fails on a missing pin, a hash that doesn't match or a licence that isn't
+permissive, and each release carries the SPDX SBOM it writes. What is downloaded is fetched by URL and checked by
+SHA-256; what is vendored is checked by the same hash. Known gap: no job matches these versions against vulnerability
+databases (G-25).
+
+### Other formats
+An A2UI message stream or an Adaptive Card (SCREEN_FORMAT.md, "Other formats") is untrusted input, converted into a
+screen document by pure functions before anything is built: 1 MiB at most, refused before it is parsed, then the JSON
+nesting limit, 32 elements deep and 2,000 elements and messages. The screen it gives is validated like any other.
+Text from the source is never evaluated as an expression: text with `{{` is kept in the state and shown through a
+binding. Links open only as an `emit` of an `https` URL for the host to handle (no `javascript:`, `file:` or other
+schemes); images are relative files without `..`, or `https` sources that load only where the host allows remote
+images. A2UI updates become revisions applied at load, so they pass the same checks as any revision.
+
+### Forge's search and source control
+
+Forge (examples/forge) works on a folder the person opens, which may come from anywhere. Its search walks only that
+folder, follows no symbolic link out of it, and skips binary files; a replacement is written only to a regular file
+inside it, through a new file renamed over the old one, so a link planted in the folder is replaced, never written
+through. A pattern is at most 4 KiB, a replacement text 64 KiB, and what one replacement expands to 64 MiB; PCRE2
+runs with match and depth limits. Its source control runs the `git` the host allows (`allowProcess`) with a fixed
+argument vector per command (`status`, `add`, `restore`, `commit -F -`, `switch`, `show --no-textconv`, ...): paths
+are literal pathspecs after `--`, never options, and a commit message goes on standard input. git runs with the
+repository's hooks, file-system monitor and commit signing turned off (`-c core.hooksPath=...`), since the folder's
+`.git` may name programs to run.
+
+### Modello's 3D files
+
+Modello (examples/modello) imports glTF files (`.gltf` and `.glb`) a person drops in its data folder's `imports/`, and
+the bundled samples; a file may come from anywhere. Files are read only from those two folders, by relative paths
+without `..` that stay inside them once links are resolved, and the scene's export is written only to `exports/`
+under a sanitised name. The loader checks every count and size against its limits ("Limits" below) before anything is
+read; a buffer is the `.glb`'s own chunk, a `data:` URI or a relative file beside the model without `..`, never a
+network URI or an absolute path; extensions it doesn't decode (Draco and meshopt compression, KTX2 textures) are
+skipped with a warning naming them. A document never supplies shader source: a material graph is data the host checks
+and assembles from fixed snippets, and the renderer frees GPU memory past its budget. The loader is fuzzed (`gltf`).
+
 ## Limits
 
 Input from peers, revisions and change sets is limited so that one message can't exhaust the stack or loop forever:
@@ -281,6 +501,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | What | Limit |
 |---|---|
 | JSON nesting of one message from a peer, a revision, a change set or a declared channel, and of a screen file, an include or the state file | 256 levels |
+| A number in that JSON (some C libraries' `strtod` stops the program on certain numbers hundreds of digits long) | 40 characters |
 | The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
 | The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
 | One message on a channel (one line) | 64 MiB; a longer line closes the channel |
@@ -293,6 +514,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
 | `range(n)` | n up to 10,000 |
+| A document in another format (A2UI, Adaptive Cards) | 1 MiB, 32 elements deep, 2,000 elements and messages |
 | `pad(text, width)` | width up to 10,000 |
 | Step lists inside step lists and actions (`if`, `forEach`, `while`, `run`, named handlers) | 32 levels |
 | Components using components | 32 levels |
@@ -335,10 +557,20 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Design tokens (`tokens`) | 4,096 tokens, 32 themes, aliases 16 deep (a circle is an error); more is refused |
 | Sizes and styles of fonts one document derives (rich text runs) | 32 |
 | One label's rich text (`runs`) | 256 runs, 64 Ki code points in all, 2,048 bytes a link |
+| Self-repairing change sets (`ChangeSetRepairs`) | 64 installed per screen; a request in words of 4,096 bytes; 3 repairs per change set before it gives up; one repair at a time |
+| One debug adapter message (`dap`) | Headers of 8 KiB, a message of 4 MiB (a larger one ends the session); 256 requests waiting, 16 MiB waiting to be written |
+| What one debug adapter answer gives the screen (`DapProtocol.hpp`) | 1,000 threads, 500 frames, 1,000 variables or scopes a page, 10,000 breakpoints, 500 completions; 4,096 bytes a value, 1,000 bytes a name, message or path |
+| A debug adapter's output events | 200 a second and 1 MiB a second, 64 KiB each; the ones dropped are counted and said once. Forge's debug console keeps 2,000 lines and 100 history entries, and its variables 5,000 rows |
 | Items a list, a tree or a table reads | 1,000,000 items, trees 256 deep, 256 cells an item, 256 columns of 10,000 pixels at most, 16 sticky folders |
 | Tabs a strip reads, panes a split reads | 10,000 tabs and 1,000 panes (more are ignored); a split's sizes 0 to 1,000,000 pixels |
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |
 | Slow calls (`Screen::onAsyncCall`) running or waiting for a worker at once | 64; more end with an error (`onError`) |
+| A curves editor's plot (`curves`) | 4,096 columns, however wide the node: a wider plot draws each column wider |
+| A `canvas` (`CanvasType.cpp`) | 10,000 items from the document (a host's model may hold more), 256 levels of detail, 4,096 bytes of text an item, coordinates within 10^9 |
+| A `timeline` (`TimelineType.cpp`) | 100,000 keyframes and clips in all; values within 10^12 either side of 0 |
+| A `graph` (`GraphType.cpp`) | Positions and the pan within 1,000,000 graph units, nodes 4,000 units a side, 1,000 links a port |
+| The syntax engine (`SyntaxLimits`, tree-sitter) | Texts of 16 MiB (larger ones stay plain); a first parse stops after 2 s, one after an edit after 100 ms; 2,048 query matches at once, 200,000 captures a pass, matches starting 512 levels deep at most, 1,024 bytes a predicate reads |
+| Leases on a document the document server holds (`Leases`) | 256 in all, 16 per person and 16 per connection (whatever names it gives), an hour each, 256 bytes a target |
 | A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign (a contour scaled past 10^12 on screen isn't drawn), 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
 | A response body, a server-sent event or line of a stream, or a WebSocket message the `net` module receives (`Request::maxBodyBytes`) | 8 MiB by default; a larger one fails with `tooLarge` (a WebSocket is closed with 1009) |
 | A response's headers, or a WebSocket handshake's answer | 64 KiB and 256 lines |
@@ -349,6 +581,12 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Remote peers (`PeerServerOptions`) connected or opening at once | 32; more are refused with 503 |
 | Connections one address may open | 5 a second, 10 at once; more are refused with 429. 4,096 addresses are tracked (past that, those back to a full burst are forgotten) |
 | A remote peer's token | 5 s to arrive (as a first message); 8 KiB at most |
+| A glTF file Modello imports, and each buffer and image file beside it (`GltfLimits`, checked before reading) | 256 MiB; 512 MiB of buffers in all |
+| What one glTF file holds | 10,000 nodes 64 deep, 10,000 meshes and primitives, 1,000 materials, 8 Mi vertices, 24 Mi indices, 256 images of 8,192 pixels a side and 16 Mi pixels each, 256 animations of 1 Mi keyframes in all |
+| A 3D scene in a document (`SceneLimits`) | 100,000 nodes 64 deep, 10,000 materials |
+| A material graph (`MaterialGraphLimits`) | 256 nodes, 1,024 links |
+| GPU memory one 3D viewport keeps (`GpuBudget`) | 512 MiB; past it, the least recently used meshes and textures are freed |
+| Modello's file list and exports | 200 files listed a folder; an export name of 64 characters |
 | A remote peer's upgrade request | 16 KiB and 64 header lines; a larger one is refused with 431 |
 | One message from a remote peer, and what waits to be written to it | 8 MiB a message (a larger one closes it with 1009); 64 MiB queued, or a write stalled for 10 s, closes it |
 | Where a peer server listens | The loopback, unless `allowRemote` is set |
@@ -363,6 +601,28 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A screen's `connections` | 64 connections, 256 operations and messages each; a `timeout` of 10 minutes at most (30 s by default), `retry.times` 5 at most |
 | Requests one connection starts (`request`, `subscribe`) | 50 a second; more fail with `refused`. Each also has the `net` module's limits above |
 | Headers a connection or an operation declares | Names that are HTTP tokens of 64 bytes at most; never `Authorization`, `Proxy-Authorization`, `Cookie`, `Host`, `Content-Length` or `Transfer-Encoding` (credentials come from sign-in, never from the document) |
+| Passes of one GPU surface (`SurfaceFrame::pass`) | 8; a pass and the surface itself at most 4,096 pixels a side; the surface's framebuffer (counted twice, for colour and depth) and its passes 256 MiB in all. Over a limit, the surface is disabled with one logged error |
+| Pointer events a GPU surface holds between two renders | 256; older ones are dropped |
+| Usage summaries (`affrescoui_host --usage`, VERSION_CONTROL.md "Usage"): privacy | Off by default; on only with the host's setting and the person's one-time consent, asked on the terminal (no terminal, no consent). Node ids, action names, screen names, counts and times only: never text, values, the state or pictures. Ids as the document writes them, never evaluated |
+| Usage summaries: where they are kept and who reads them | On the device only, in `<data folder>/<screen>.usage.json` beside the "persist" state; nothing is sent anywhere. Only a peer that may review reads (`getUsage`, MCP `get_usage`) or clears (`clearUsage`) them, and only while they are on: an agent can't grant itself that |
+| Usage summaries: bounds | 1,024 node and action pairs, 64 screens, 1,024 controls listed as never used; names of 1 to 64 printable bytes (others aren't counted); counts stop at 10^9; counts not made for 30 days are dropped; a file over 1 MiB isn't read |
+| A `search` service | 4 calls at once; 2,000 results by default, 20,000 at most; folders 64 deep; a file replaced in 8 MiB, a replaced text 64 MiB |
+| Globs a `search` call or a `.gitignore` gives (`SearchGlob`) | 256 bytes a glob, 64 globs a list; 64 KiB of a `.gitignore` read, 10,000 rules kept |
+| A `pty` service | 8 terminals; 64 KiB a write and 1 MiB waiting; 16 KiB an event and 4 MiB a second |
+| Forge's terminal widget | A title of 256 bytes, only with `allowTitle`; 10,000 lines of scrollback |
+| What git prints for Forge (`GitLimits`) | 8 MiB of output, 10,000 files or branches, 4 KiB a path |
+| A VS Code theme Forge imports | An id of 40 characters; only `#rrggbb` and `#rrggbbaa` colours are kept |
+| The document server's token file (`TokenFile`) | 4,096 tokens |
+| A Sinopia deck (`sinopia::DeckLimits`) | A file of 8 MiB; 500 slides, 1,000 objects a slide, master or layout (groups' included), 32 masters and 32 layouts, 200 sections, 64 theme tokens; text of 20,000 bytes and 256 runs an object, notes of 50,000 bytes a slide, pen paths of 64 KiB, ids of 64 bytes; images of 32 MiB and 4,096 pixels a side; numbers clamped, ids made unique. A peer's edit is read again, so the same limits hold |
+| A PDF export (`PdfLimits`) | 2,000 pages, a file of 256 MiB, 64 MiB of embedded fonts and of a page's drawing, 2^26 image pixels in all; Sinopia exports at most 500 pages, and as PNG at most 500 files |
+| Sinopia's audience window | Its keys run only the workspace's `nextStep`, `previousStep`, `toggleBlack` and `stopPresenting` |
+| An image of `modules/imaging` (`imaging::Limits`) | 32,768 pixels across and down, and a gigapixel; 256 layers and groups, groups 2 deep |
+| Memory of an image's tiles (`imaging::Limits`) | 512 MiB of loaded tiles and mips per image on the CPU (the least recently used go), 256 MiB of resident tiles per view on the GPU |
+| Tempera's undo history (`imaging::Limits`) | 200 steps and 512 MiB of changed tiles; the oldest steps go first |
+| Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
+| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down, checked from the header before decoding |
+| A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
+| An ICC profile (lcms2, `tests/fuzz/icc.cpp`) | 4 MiB; only a device or colour-space profile of RGB, grey or CMYK over XYZ or Lab is kept, and a conversion that can't be built is refused |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
@@ -374,7 +634,8 @@ settings takes a fraction of a second, not minutes.
 A document's numbers are floats of any size, and a size, an index or a step count computed from one is clamped before
 it becomes an integer, since a float past the integer's range makes the conversion undefined behaviour. A `tabIndex`
 of `1e30` is the last in the tab order, a list `1e30` pixels tall pages to its last row, and a curve under a view box
-a millionth of a pixel wide is drawn with at most 64 lines a bend. A call's `timeout` is cancelled when the call ends
+a millionth of a pixel wide is drawn with at most 64 lines a bend. A sign-in provider's `expires_in` and `interval`
+are clamped the same way. A call's `timeout` is cancelled when the call ends
 first, so many short calls with long timeouts leave no timers behind.
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
@@ -404,18 +665,25 @@ approves.
 
 ## Known gaps
 
-These are not protected today. They are stated plainly so that you can decide what to expose.
+These are not protected today. They are stated plainly so that you can decide what to expose. Each has a tracking
+line, `Tracking: G-NN`: the number stays the same while the gap is open, and the change that closes it names it and
+removes the gap from this list.
+
+- **A signed-in token is as safe as the process.** Anything running in the host process can read the tokens in
+  memory, and anything the person runs can ask their secret store for the refresh token (the system may ask them
+  first). The browser flow's listener accepts the first answer that carries the right `state`: another program of the
+  same user that learns the authorization URL could race it, though PKCE keeps the code useless without the verifier. Tracking: G-01.
 
 - **Services aren't sandboxed.** A program the host allows (`allowProcess`) runs with the user's rights, and a
   JSON-RPC service may do whatever its program does once started; `fs` keeps paths inside its folder, but a program
   writing to that folder at the same time could swap a folder for a link between the check and the use. Grant only
-  programs and folders you trust the screen with.
+  programs and folders you trust the screen with. Tracking: G-02.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
-  who listens there, nor the directory of that socket or of one an embedding application passes to `listen`.
+  who listens there, nor the directory of that socket or of one an embedding application passes to `listen`. Tracking: G-03.
 - **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
   connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
-  a non-elevated host, and is then refused.
+  a non-elevated host, and is then refused. Tracking: G-04.
 - **The rate limits are per peer, and the queue to the main thread isn't bounded.** Over local sockets nothing
   limits how many peers connect, and each new connection gets fresh limits (remote peers over WebSocket are capped in
   number and in connection rate, "Limits" above). A socket's reader thread hands every line to the main thread
@@ -424,7 +692,7 @@ These are not protected today. They are stated plainly so that you can decide wh
   proposals, and the change rate caps how often they are pushed. Each connection also takes a file descriptor and two
   threads: a peer that opens enough connections to use up the descriptors makes the server's accepting thread retry
   without pause until one is closed, and one that uses up the threads stops the app (a thread that can't be started
-  ends the process).
+  ends the process). Tracking: G-05.
 - **Large revisions.** A message can be up to 8 MiB, so a revision can still be large, and so can the lists it puts
   in the state, which the screen may render as one panel per item. A long text costs in proportion to its length,
   but a line longer than a font keeps shaped (128 Ki code points) is shaped again every time it is drawn or measured:
@@ -433,17 +701,17 @@ These are not protected today. They are stated plainly so that you can decide wh
   about 0.4 s to prepare (Release, Apple silicon), a revision that waits for review is prepared twice, and a peer may
   send 30 changes at once. Reads have only the message rate: `diff` looks up each key of an object among the
   other's, so diffing an object takes time in proportion to the square of its members. A process or stdio channel
-  the host opens isn't a peer: it isn't held to these limits, and the host writes to it on the main thread.
+  the host opens isn't a peer: it isn't held to these limits, and the host writes to it on the main thread. Tracking: G-06.
 - **A revision of many operations costs operations times the document.** Each operation is applied to the whole
   document as it stands: a `#id` path is looked up, and an operation that adds a node without an id collects every id
   of the document to name it. A revision of 8,000 operations that each add a node without an id takes about 6.6
-  seconds on the main thread; give nodes their ids, or add them in one operation.
+  seconds on the main thread; give nodes their ids, or add them in one operation. Tracking: G-07.
 - **Nested components and repeats multiply.** Each use builds its component's node: a component that uses another
   twice, 25 levels down, builds 2^25 panels, and a `repeat` over 10,000 items inside another builds 100 million. The
-  depth limits above hold, but nothing limits how many panels a document builds.
+  depth limits above hold, but nothing limits how many panels a document builds. Tracking: G-08.
 - **The name a peer gives itself isn't limited.** The part after the slash in `agent/<name>` is any text up to the
   message size, line breaks included. It is shown to the other peers (`from` on a relayed request, `author` in the
-  history) and to the agents that read them; only the channel before the slash says who sent it.
+  history) and to the agents that read them; only the channel before the slash says who sent it. Tracking: G-09.
 - **The work budget bounds one event, not a stream of them.** An event stops after its steps, operations or bytes
   (above), which takes well under a second of work in a Release build. But `after`, `debounce` and `every` schedule
   more events, each with a budget of its own, and nothing caps how many are waiting; and across events the state can
@@ -452,16 +720,16 @@ These are not protected today. They are stated plainly so that you can decide wh
   builds a large text). A revision that adds steps can cause this. Steps live in `/actions` and also inline: in event handlers on
   nodes, components and templates, and in `onLoad`, `watch` and `keys`. An `ask` rule on `/actions` alone doesn't
   cover them; only allow agents the parts of a screen that hold no steps (the templates allow agents nothing, so
-  every change of theirs is reviewed).
+  every change of theirs is reviewed). Tracking: G-10.
 - **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
   it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
   should deny agents the `/state` paths those steps read. The same holds for a menu, dialog, toast or quick pick the
   screen already feeds from the state: a revision can change the items it runs (a quick pick keeps its recent items
-  in `/state/<name>/recent`), so deny agents those paths when the screen has actions that control changes.
+  in `/state/<name>/recent`), so deny agents those paths when the screen has actions that control changes. Tracking: G-11.
 - **A revision can add a `copy` step.** `copy` puts text on the system clipboard, and it isn't a control step: an
   allowed revision can make a button, or a timer, copy text the user didn't choose, which they may then paste into a
   terminal. A proposal being previewed runs its timers too, so this can happen before anyone accepts it. Review
-  changes to handlers and timers before accepting them.
+  changes to handlers and timers before accepting them. Tracking: G-12.
 - **A revision can point a font at any file.** `fonts.<name>.file` can be changed by a revision, and the app then
   reads that file, if it is a regular file of at most 256 MiB, and parses it as a font; the error a peer gets back
   says whether it could be read. The parsers are FreeType and HarfBuzz, which OSS-Fuzz fuzzes all the time, and far
@@ -471,7 +739,7 @@ These are not protected today. They are stated plainly so that you can decide wh
   ask for one, so the font a proposal names is read and parsed before a reviewer looks at it. Fonts no screen uses
   are bounded (the limits above),
   but the fonts the current document declares are all kept, however many it declares: only the document's size
-  bounds them, and each costs at least its first atlas page (up to 16 MiB for very large sizes).
+  bounds them, and each costs at least its first atlas page (up to 16 MiB for very large sizes). Tracking: G-13.
 - **Image files are decoded by stb_image.** A revision can point an `image` node at any file inside the screen's
   folder (and the folders the host allows), and the app decodes it, as PNG or JPEG, on a worker thread. Files
   elsewhere are refused, the path resolved with symbolic links followed, so a revision can't show a picture from
@@ -479,35 +747,44 @@ These are not protected today. They are stated plainly so that you can decide wh
   agents, and a picture of a proposal (`render`) decodes the files the proposal names before a reviewer sees it.
   stb_image is small and widely used but not hardened like libpng: its input is bounded (the limits above,
   read from the header first) and fuzzed (`image`), and only PNG and JPEG are compiled in. Font files are not held
-  to folders yet (the gap above).
+  to folders yet (the gap above). Tracking: G-14.
 - **Errors can name files by their full path.** An image or font that can't be read is reported to peers with its
   resolved path, and the MCP server can pass on a system error that names one, so a peer can learn where the screen's
-  files are on the disk.
+  files are on the disk. Tracking: G-15.
 - **Image files are checked by path, then opened.** A file inside an allowed folder is resolved and checked, then
   read by a worker thread, so whoever can write that folder can swap it for a link in between, or put a hard link
   there to a file elsewhere; this needs write access to the folder. An image that fails to decode isn't remembered,
-  so it is read and decoded again each time it is asked for.
+  so it is read and decoded again each time it is asked for. Tracking: G-16.
 - **Scratch folders are made private just after they are created.** The folders `render`, `test` and pictures of
   proposals draw into are created under a random name in the system's temporary folder, then limited to their
-  owner: under a umask of 000 another user could put a file there in between.
+  owner: under a umask of 000 another user could put a file there in between. Tracking: G-17.
 - **A grid's children aren't limited.** Placing one looks at each of the grid's cells about once, up to a million
   for a grid of 1,000 tracks a side, so a revision that adds tens of thousands of children to a full grid makes each
-  layout slow.
+  layout slow. Tracking: G-18.
 - **Keys chosen to collide.** `parseUntrusted` indexes an object's keys by a hash with no random seed, so a message
-  whose keys were made to collide could take time in proportion to the square of its keys (not demonstrated).
+  whose keys were made to collide could take time in proportion to the square of its keys (not demonstrated). Tracking: G-19.
 - **A history on disk is only as safe as its folder.** Anyone who can write the data folder can write a history
   whose hashes are valid. The checks above hold, but deny rules aren't replayed for each commit on `main`, so such a
   history can contain changes the deny rules would have refused, as long as its head passes the revision check. This
   is the same trust as the state file's. A screen loaded from a string (`fromString`) keeps its history in memory
-  only, and it is lost when the host quits.
+  only, and it is lost when the host quits. Tracking: G-20.
 - **A commit's delta isn't covered by its id** (it says how the commit is kept, not what it is). The document deltas
   rebuild is checked against the commit's tree whenever it is rebuilt, and `main`'s head when a history loads, so a
   damaged delta stops that rebuild with an error; but a delta written by hand that rebuilds the right document can't
-  be told from one the program wrote, which is the trust above.
+  be told from one the program wrote, which is the trust above. Tracking: G-21.
 - **Windows is new.** The socket channels run on Windows through Winsock's `AF_UNIX`, with an owner-only access list
   on each socket file and the peer's user checked through its process. CI builds it and runs its unit tests, but
   that job may fail without failing CI, and its window tests, rendering check and fuzzing don't run there, so it is
-  far less tested than macOS and Linux.
+  far less tested than macOS and Linux. Tracking: G-22.
 - **The MCP server keeps what waits for the agent without a limit.** The news for `get_events` and the requests not
   yet answered stay in its memory until the agent reads or answers them. The host's limits slow how fast peers can
-  add to them, not how much piles up over a long session with an agent that never asks.
+  add to them, not how much piles up over a long session with an agent that never asks. Tracking: G-23.
+
+- **The terminal's escape-sequence parser isn't fuzzed yet.** What a program writes to a terminal is parsed by
+  libvterm inside Forge's terminal widget. The `pty` provider bounds it (the limits above) and the widget acts on few
+  sequences, but no fuzz target covers the parser yet (`tests/fuzz/README.md`, "Inventory of untrusted inputs"): run
+  in a terminal only programs you would run in your own. Tracking: G-24.
+- **Dependencies aren't scanned for known vulnerabilities.** Every third-party component is pinned by version and
+  SHA-256 and listed in the SBOM each release carries (`cmake/dependencies.json`), and Dependabot proposes updates to
+  the workflows' actions; but no job matches the pinned versions against vulnerability databases, so a known flaw is
+  found only when someone looks. Tracking: G-25.

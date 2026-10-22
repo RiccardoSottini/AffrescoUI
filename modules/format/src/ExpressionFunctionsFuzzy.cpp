@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -45,7 +46,8 @@ template <typename Char> constexpr Char lowered(Char c) noexcept {
 /// @return true for a space and the usual separators of names and paths.
 template <typename Char> constexpr bool separates(Char c) noexcept {
 	constexpr std::string_view separators = " \t/\\_-.:,;()[]{}'\"";
-	return c < Char(0x80) && separators.find(static_cast<char>(c)) != std::string_view::npos;
+	return static_cast<std::make_unsigned_t<Char>>(c) < 0x80u &&
+	       separators.contains(static_cast<char>(c));
 }
 
 /// @brief The bonus for a match at a position: the start of a word or a camelCase hump.

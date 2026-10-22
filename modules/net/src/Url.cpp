@@ -137,6 +137,11 @@ bool isLoopback(std::string_view host) noexcept {
 	                                                 std::ranges::all_of(host, [](char c) { return c == '.' || (c >= '0' && c <= '9'); }));
 }
 
+bool isSignInPage(std::string_view url) {
+	const auto parsed = parseUrl(url);
+	return parsed && (parsed->scheme == "https" || (parsed->scheme == "http" && isLoopback(parsed->host)));
+}
+
 std::optional<std::string> OriginAllowlist::allow(std::string_view origin) {
 	std::string text(origin);
 	bool subdomains = false;
