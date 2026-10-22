@@ -500,6 +500,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | What | Limit |
 |---|---|
 | JSON nesting of one message from a peer, a revision, a change set or a declared channel, and of a screen file, an include or the state file | 256 levels |
+| A number in that JSON (some C libraries' `strtod` stops the program on certain numbers hundreds of digits long) | 40 characters |
 | The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
 | The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
 | One message on a channel (one line) | 64 MiB; a longer line closes the channel |

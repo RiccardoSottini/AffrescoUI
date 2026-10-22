@@ -30,7 +30,7 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
 /// @param size Its size.
 /// @return 0.
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
-	const json input = json::parse(affresco::fuzz::text(data, size), nullptr, false);
+	const json input = affresco::fuzz::untrusted(affresco::fuzz::text(data, size));
 	if(!input.is_object()) return 0;
 
 	format::ProofInputs inputs;

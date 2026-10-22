@@ -79,6 +79,22 @@ TEST_CASE("core: parseUntrusted refuses text that is not JSON, and skips comment
 	CHECK(affresco::parseUntrusted("// note\n{}", true) == affresco::json::object());
 }
 
+// Found by fuzzing (tests/fuzz, sinopia_deck): macOS's strtod(), which nlohmann::json reads numbers with, stopped the
+// program on this number, 165 characters long
+TEST_CASE("core: parseUntrusted refuses a number longer than maxNumberLength, outside strings and comments") {
+	const std::string stopping = "9066666660" + std::string(85, '0') + "." + std::string(58, '0') + "12297829042";
+	CHECK_THROWS_WITH_AS((void)affresco::parseUntrusted("[[" + stopping + "]]"),
+	                     doctest::Contains("a number longer than 40 characters"), affresco::DocumentError);
+	CHECK_THROWS_AS((void)affresco::parseUntrusted("[" + std::string(41, '1') + "]"), affresco::DocumentError);
+	CHECK_THROWS_AS((void)affresco::parseUntrusted("{\"a\": 1" + std::string(40, '0') + "}"), affresco::DocumentError);
+
+	CHECK(affresco::parseUntrusted("[" + std::string(40, '1') + "]").size() == 1);
+	CHECK(affresco::parseUntrusted("[-1.2345678901234567e-308, 18446744073709551615]")[1] == 18446744073709551615u);
+	const std::string digits(100, '1');
+	CHECK(affresco::parseUntrusted("{\"" + digits + "\": \"\\\"" + digits + "\"}").size() == 1);
+	CHECK(affresco::parseUntrusted("/* " + digits + " */ [1] // " + digits, true) == affresco::json::parse("[1]"));
+}
+
 // Found by fuzzing (tests/fuzz, json): nlohmann::json throws out_of_range for these, which callers let through
 TEST_CASE("core: parseUntrusted refuses a number too large for a double with a DocumentError") {
 	for(const char* text : {"1e400", R"({"type": "revision", "x": -7e777})", "[0, 1E309]"}) {

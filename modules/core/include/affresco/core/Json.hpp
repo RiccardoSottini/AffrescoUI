@@ -32,6 +32,11 @@ public:
 /// recursive work done on a value (copying, comparing, evaluating) can't overflow the stack.
 inline constexpr int maxNesting = 256;
 
+/// Longest number accepted from outside the app, in characters: far more than a double needs (17 digits, a sign, a
+/// point and an exponent). Some platforms' strtod(), which nlohmann::json reads numbers with, stops the program on
+/// certain numbers a few hundred digits long.
+inline constexpr std::size_t maxNumberLength = 40;
+
 namespace detail {
 
 /// @brief Builds a value from the parser's events, as json::parse() does, but finds the keys of a large object in a
@@ -149,6 +154,37 @@ inline bool UntrustedBuilder::key(json::string_t& name) {
 	return true;
 }
 
+/// @brief Skips a string of JSON text.
+/// @param text The JSON text.
+/// @param at Where the string's opening quote is.
+/// @return Where its closing quote is, past escaped characters (the text's size if it has none).
+inline std::size_t endOfString(std::string_view text, std::size_t at) {
+	for(++at; at < text.size() && text[at] != '"'; ++at)
+		if(text[at] == '\\') ++at;
+	return std::min(at, text.size());
+}
+
+/// @brief Tells whether JSON text holds a number longer than maxNumberLength, outside its strings and comments.
+/// @param text The JSON text.
+/// @param allowComments Whether comments are skipped, as the parser skips them.
+/// @return true if it does.
+inline bool hasOverlongNumber(std::string_view text, bool allowComments) {
+	std::size_t run = 0; // characters a number can hold, in a row
+	for(std::size_t at = 0; at < text.size(); ++at) {
+		const char next = at + 1 < text.size() ? text[at + 1] : '\0';
+		if(text[at] == '"') {
+			at = endOfString(text, at);
+		} else if(allowComments && text[at] == '/' && (next == '/' || next == '*')) {
+			at = std::min(text.find(next == '/' ? "\n" : "*/", at + 2), text.size());
+		} else if(std::string_view("0123456789+-.eE").find(text[at]) != std::string_view::npos) {
+			if(++run > maxNumberLength) return true;
+			continue;
+		}
+		run = 0;
+	}
+	return false;
+}
+
 } // namespace detail
 
 /// @brief Parses JSON that comes from outside the app (peers, revisions, change sets).
@@ -159,8 +195,10 @@ inline bool UntrustedBuilder::key(json::string_t& name) {
 /// @return The value.
 /// @throws json::parse_error If the text is not JSON.
 /// @throws DocumentError If it nests deeper than maxNesting (it is never built), or holds a number too large for a
-/// double, such as 1e400.
+/// double, such as 1e400, or one longer than maxNumberLength.
 inline json parseUntrusted(std::string_view text, bool allowComments = false) {
+	if(detail::hasOverlongNumber(text, allowComments))
+		throw DocumentError("AffrescoUI screen: a number longer than " + std::to_string(maxNumberLength) + " characters");
 	json result;
 	detail::UntrustedBuilder builder(result);
 	try {

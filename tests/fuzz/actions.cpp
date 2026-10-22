@@ -25,7 +25,7 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
-	const json steps = json::parse(affresco::fuzz::text(data, size), nullptr, false);
+	const json steps = affresco::fuzz::untrusted(affresco::fuzz::text(data, size));
 	if(steps.is_discarded()) return 0;
 
 	// The template without its fonts, which are read from files next to it: a runtime with no window needs none

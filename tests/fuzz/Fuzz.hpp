@@ -25,6 +25,18 @@ inline std::string_view text(const std::uint8_t* data, std::size_t size) noexcep
 	return {reinterpret_cast<const char*>(data), size};
 }
 
+/// @brief Parses the input as the app parses JSON from outside it, with parseUntrusted().
+/// @param text The input.
+/// @return Its value, or a discarded value if it is refused.
+inline json untrusted(std::string_view text) {
+	try {
+		return parseUntrusted(text);
+	} catch(const json::parse_error&) {
+	} catch(const DocumentError&) {
+	}
+	return json(json::value_t::discarded);
+}
+
 /// @brief Stops the run because a rule the app relies on was broken: libFuzzer saves the input as a crash.
 /// @param rule What should have held.
 [[noreturn]] inline void broken(const char* rule) noexcept {
