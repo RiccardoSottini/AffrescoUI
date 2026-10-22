@@ -22,7 +22,7 @@ namespace {
 /// @param text The text.
 /// @return It, encoded.
 std::string encode(std::string_view text) {
-	static constexpr char hex[] = "0123456789ABCDEF";
+	static constexpr std::string_view hex = "0123456789ABCDEF";
 	std::string out;
 	out.reserve(text.size());
 	for(const char c : text) {
@@ -109,9 +109,10 @@ json parseBody(const std::string& body) {
 	try {
 		return parseUntrusted(body);
 	} catch(const json::exception&) {
+		return body; // not JSON: its text
 	} catch(const DocumentError&) {
+		return body; // JSON past the reading limits: its text
 	}
-	return body;
 }
 
 /// @brief The part of a response a declaration's "result" names, or the whole of it.
@@ -277,7 +278,7 @@ std::optional<std::string> Connections::start(std::string_view service, std::str
 		return "connection '" + live.spec.name + "' declares no '" + std::string(name) + "'";
 	const Operation& operation = declared->second;
 	if(engine_.versions.previewing() && previewed(operation, *call, stream)) return std::nullopt;
-	if(live.state == "refused") return *live.error;
+	if(live.state == "refused") return live.error.value_or("connection '" + live.spec.name + "' is refused");
 	if(!admit(live)) return "too many requests on '" + live.spec.name + "' (at most 50 a second)";
 	if(operation.message) {
 		sendMessage(live, operation, *call);
@@ -307,7 +308,7 @@ std::optional<std::string> Connections::start(std::string_view service, std::str
 	return std::nullopt;
 }
 
-bool Connections::previewed(const Operation& operation, services::Call& call, bool stream) const {
+bool Connections::previewed(const Operation& operation, services::Call& call, bool stream) {
 	if(operation.mock.is_object()) {
 		const int status = operation.mock.value("status", 200);
 		const json body = operation.mock.contains("body") ? operation.mock["body"] : json();
@@ -325,8 +326,9 @@ bool Connections::previewed(const Operation& operation, services::Call& call, bo
 network::Handlers Connections::handlers(std::uint64_t number, const std::optional<json::json_pointer>& result,
                                         bool stream) {
 	const auto alive = std::weak_ptr<bool>(alive_);
+	// `result = result` captures a mutable copy, so moving the handler never copies (or throws).
 	network::Handlers out;
-	out.done = [this, alive, number, result](network::Response response) {
+	out.done = [this, alive, number, result = result](const network::Response& response) {
 		if(!alive.lock()) return;
 		const Running* running = unended(number);
 		if(!running) return;
@@ -382,7 +384,7 @@ void Connections::sendMessage(Live& live, const Operation& operation, services::
 	call.finish(nullptr);
 }
 
-network::Request Connections::build(const Live& live, const Operation& operation, const json& with) const {
+network::Request Connections::build(const Live& live, const Operation& operation, const json& with) {
 	const std::string at = "connections." + live.spec.name + ".operations." + operation.name;
 	network::Request request;
 	request.method = operation.method;
@@ -445,8 +447,9 @@ void Connections::open(Live& live) {
 network::SocketHandlers Connections::socketHandlers(const std::string& name) {
 	const std::uint64_t generation = generation_;
 	const auto alive = std::weak_ptr<bool>(alive_);
+	// `name = name` captures a std::string, not a const one, so moving a handler never copies (or throws).
 	network::SocketHandlers events;
-	events.opened = [this, alive, name, generation] {
+	events.opened = [this, alive, name = name, generation] {
 		if(!alive.lock()) return;
 		Live* found = find(name, generation);
 		if(!found) return;
@@ -455,11 +458,11 @@ network::SocketHandlers Connections::socketHandlers(const std::string& name) {
 		changed();
 		runAction(name, "open", json::object());
 	};
-	events.message = [this, alive, name, generation](const std::string& text) {
+	events.message = [this, alive, name = name, generation](const std::string& text) {
 		if(!alive.lock() || !find(name, generation) || text.size() > maxMessageBytes) return;
 		if(const auto message = namingMessage(text)) runAction(name, (*message)["type"].get<std::string>(), *message);
 	};
-	events.closed = [this, alive, name, generation](std::optional<network::Failure> failure) {
+	events.closed = [this, alive, name = name, generation](const std::optional<network::Failure>& failure) {
 		if(alive.lock() && find(name, generation)) closed(name, failure);
 	};
 	return events;
@@ -471,12 +474,14 @@ void Connections::closed(const std::string& name, const std::optional<network::F
 	live->state = "closed";
 	if(failure) live->error = failure->message;
 	retire(std::move(live->socket));
+	// `name = name`: see socketHandlers.
 	if(live->spec.reconnect > 0)
-		engine_.scheduler.once(live->spec.reconnect, [this, name, generation = generation_,
-		                                              alive = std::weak_ptr<bool>(alive_)] {
-			if(!alive.lock()) return;
-			if(Live* again = find(name, generation); again && again->state == "closed") open(*again);
-		});
+		engine_.scheduler.once(live->spec.reconnect,
+		                       [this, name = name, generation = generation_, alive = std::weak_ptr<bool>(alive_)] {
+			                       if(!alive.lock()) return;
+			                       if(Live* again = find(name, generation); again && again->state == "closed")
+				                       open(*again);
+		                       });
 	changed();
 	// the actions come last: they may load the connections again, which ends `live`
 	if(failure) runAction(name, "error", {{"code", failure->code}, {"message", failure->message}});

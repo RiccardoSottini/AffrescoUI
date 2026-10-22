@@ -22,9 +22,10 @@ void signIn(const Running& s) {
 	const SharedScope locals = snapshot(s.locals);
 	const auto failure = std::make_shared<const Scope>(Scope{locals.get(), locals, json::object(), {}, {}});
 	auto failed = s.steps.later(onError, s.sender, s.event, failure, s.where + ".onError");
+	// `name = name` captures a std::string, not a const one, so moving the callback never copies (or throws).
 	engine.identity->signIn(name, [&engine, alive = std::weak_ptr<bool>(engine.alive), succeeded = std::move(succeeded),
 	                               failed = std::move(failed), done = !onDone.is_null(), failing = !onError.is_null(),
-	                               failure, name](std::optional<std::string> error) {
+	                               failure, name = name](std::optional<std::string> error) {
 		if(!alive.lock()) return; // the screen went away while signing in
 		if(!error) {
 			if(done) succeeded();

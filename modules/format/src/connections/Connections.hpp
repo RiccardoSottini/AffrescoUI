@@ -82,7 +82,7 @@ public:
 	[[nodiscard]] json status() const override;
 	void onStatus(std::function<void()> callback) override { onStatus_ = std::move(callback); }
 	/// @brief Connections send no requests to answer: the handler is ignored.
-	void onRequest(services::RequestHandler) override {}
+	void onRequest(services::RequestHandler /*handler*/) override {}
 
 private:
 	/// @brief What a declared connection is doing.
@@ -119,7 +119,7 @@ private:
 	/// @param call The call: finished with the mock's body, or failed ("status" from a mock, else "preview").
 	/// @param stream Whether it is a subscription.
 	/// @return Whether it answered.
-	bool previewed(const Operation& operation, services::Call& call, bool stream) const;
+	static bool previewed(const Operation& operation, services::Call& call, bool stream);
 	/// @brief The network handlers of a request: they answer its call, note the connection's health, then end it.
 	/// @param number The request.
 	/// @param result The declaration's "result", or none.
@@ -135,14 +135,14 @@ private:
 	/// @param live The connection.
 	/// @param operation The message.
 	/// @param call The call, finished or failed at once.
-	void sendMessage(Live& live, const Operation& operation, services::Call& call);
+	static void sendMessage(Live& live, const Operation& operation, services::Call& call);
 	/// @brief Builds an operation's request from its declaration and the call's arguments.
 	/// @param live The connection.
 	/// @param operation The operation.
 	/// @param with The arguments.
 	/// @return The request.
 	/// @throws DocumentError If an argument can't be used (a path value that is missing, empty or not a scalar).
-	[[nodiscard]] network::Request build(const Live& live, const Operation& operation, const json& with) const;
+	[[nodiscard]] static network::Request build(const Live& live, const Operation& operation, const json& with);
 	/// @brief Whether a connection may start one more request now (maxRequestsPerSecond); counts it if so.
 	/// @param live The connection.
 	/// @return Whether it may.
