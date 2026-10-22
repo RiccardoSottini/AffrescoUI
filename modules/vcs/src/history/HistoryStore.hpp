@@ -37,7 +37,12 @@ public:
 	/// @return The lock, or std::nullopt.
 	[[nodiscard]] static std::optional<FileLock> tryLock(const std::filesystem::path& file, std::string& problem);
 
+	/// @brief Takes over a lock.
+	/// @param other The lock; it holds none after.
 	FileLock(FileLock&& other) noexcept;
+	/// @brief Releases this lock, and takes over another.
+	/// @param other The lock; it holds none after.
+	/// @return This.
 	FileLock& operator=(FileLock&& other) noexcept;
 	FileLock(const FileLock&) = delete;
 	FileLock& operator=(const FileLock&) = delete;
@@ -112,7 +117,7 @@ public:
 
 	/// @brief The file of an object: a commit, or a document that commits name.
 	/// @param id The object's id: 64 lowercase hex digits (see isObjectId()).
-	/// @return objects/<first two digits>/<the other 62>.
+	/// @return In objects/, a folder named by its first two digits, holding a file named by the other 62.
 	[[nodiscard]] std::filesystem::path objectFile(std::string_view id) const;
 	/// @brief Tells whether an object is known to be on disk (written or read by this store).
 	/// @param id The object's id.
@@ -132,7 +137,7 @@ public:
 
 	/// @brief The file of a pack.
 	/// @param name The pack's name: the SHA-256 of its text.
-	/// @return packs/<name>.
+	/// @return The file named @p name in packs/.
 	[[nodiscard]] std::filesystem::path packFile(std::string_view name) const;
 	/// @brief The packs this history has, oldest first: what the refs name.
 	[[nodiscard]] const std::vector<std::string>& packs() const noexcept { return packs_; }

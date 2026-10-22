@@ -38,6 +38,10 @@ public:
 	                Executor& executor)
 	    : features_(features), repository_(repository), alive_(std::move(alive)), executor_(executor) {}
 
+	/// @brief Starts a call to one of its methods. Main thread; returns at once.
+	/// @param method The method (its arguments already checked).
+	/// @param call Where the result goes.
+	/// @return An error if the call can't start, else std::nullopt.
 	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call> call) override {
 		const json& with = call->arguments();
 		const json& document = repository_.document();
@@ -118,13 +122,21 @@ public:
 	FeaturesProvider(const format::Features& features, vcs::Repository& repository, std::weak_ptr<bool> alive)
 	    : features_(features), repository_(repository), alive_(std::move(alive)) {}
 
+	/// @brief The name declarations use.
+	/// @return "features".
 	std::string_view name() const override { return "features"; }
+	/// @brief One sentence for the catalog.
+	/// @return It.
 	std::string_view about() const override {
 		return "the features of the host's signed catalogues, installed and upgraded by revision";
 	}
+	/// @brief The JSON Schema of its configuration.
+	/// @return An empty object: it takes none.
 	json configurationSchema() const override {
 		return {{"type", "object"}, {"additionalProperties", false}, {"properties", json::object()}};
 	}
+	/// @brief Its methods.
+	/// @return catalog, install, upgrade and compose.
 	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const json name = {{"type", "string"}, {"maxLength", 64}};
 		// Installing changes the document, so a revision may not add a step that does it: only the screen's file
@@ -155,6 +167,9 @@ public:
 		         "installs a feature from another app with an adapter, once proven, by revision: {status, revision, "
 		         "proposal}; refused \"unproven\" with the proof's reasons"}};
 	}
+	/// @brief Creates the service. Main thread.
+	/// @param context What it works with: its executor.
+	/// @return The service.
 	std::unique_ptr<services::Service> create(const json& /*configuration*/,
 	                                          services::ServiceContext context) override {
 		return std::make_unique<FeaturesService>(features_, repository_, alive_, context.executor);

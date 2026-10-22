@@ -53,10 +53,12 @@ Fit fit(const Segments& pattern, const Segments& path) noexcept {
 
 /// @brief The data rules covering one author, merged.
 struct Applied {
-	std::vector<std::string> read, write, never; ///< As written; "read" includes the write paths.
-	std::vector<std::string> scope;              ///< Top-level sections they limit, escaped: "state" and those named.
-	bool hasRead = false;                        ///< Some rule lists "read" paths.
-	bool hasWrite = false;                       ///< Some rule lists "write" paths.
+	std::vector<std::string> read;  ///< As written, with the write paths.
+	std::vector<std::string> write; ///< As written.
+	std::vector<std::string> never; ///< As written.
+	std::vector<std::string> scope; ///< Top-level sections they limit, escaped: "state" and those named.
+	bool hasRead = false;           ///< Some rule lists "read" paths.
+	bool hasWrite = false;          ///< Some rule lists "write" paths.
 };
 
 /// @brief Merges the data rules covering an author.

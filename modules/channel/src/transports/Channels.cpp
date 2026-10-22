@@ -253,7 +253,7 @@ void ProcessChannel::Process::end() noexcept {
 #include <sys/wait.h>
 #include <unistd.h>
 
-// The environment that posix_spawn passes on: POSIX's own variable, which not every C library's unistd.h declares
+/// The environment that posix_spawn passes on: POSIX's own variable, which not every C library's unistd.h declares
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,readability-redundant-declaration)
 extern char** environ;
 

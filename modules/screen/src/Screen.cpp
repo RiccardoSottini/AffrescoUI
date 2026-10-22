@@ -144,7 +144,8 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 /// @param dataDirectory The data folder (Screen::defaultDataDirectory()).
 /// @param screenFile The screen file.
 /// @param suffix What is kept: ".state.json" or ".history".
-/// @return <data folder>/<the file's name without ".screen.json"><suffix>: "habits.screen.json" -> "habits.history".
+/// @return In the data folder, the file's name without ".screen.json", then @p suffix: "habits.screen.json" gives
+/// "habits.history".
 std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, const std::filesystem::path& screenFile,
                                     std::string_view suffix) {
 	std::string name = screenFile.filename().string();

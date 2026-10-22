@@ -58,7 +58,7 @@ inline bool fitsInMessage(std::size_t length) {
 /// bring its end.
 /// @param buffer What was read and not yet delivered; keeps the line that hasn't ended.
 /// @param searched How many bytes at its start were searched for a line break before (they have none).
-/// @param dropCarriageReturns Whether a line ending in "\r\n" loses its '\r'.
+/// @param dropCarriageReturns Whether a carriage return that ends a line is dropped.
 /// @param to Where the lines go.
 /// @return false once a line is longer than maxMessageBytes: the stream must end.
 inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCarriageReturns, const Delivery& to) {
@@ -85,8 +85,8 @@ inline bool deliverLines(std::string& buffer, std::size_t searched, bool dropCar
 /// @param read Reads the next chunk of the stream (see ChunkReader).
 /// @param to Where the lines go.
 /// @param running Set to false when the stream ends (may be nullptr).
-/// @param dropCarriageReturns Whether a line ending in "\r\n" loses its '\r' (a Windows console's and cmd.exe's
-/// line breaks).
+/// @param dropCarriageReturns Whether a carriage return that ends a line is dropped (a Windows console's and
+/// cmd.exe's line breaks end in one).
 template <ChunkReader Read>
 void readLines(Read read, const Delivery& to, std::atomic<bool>* running, bool dropCarriageReturns = false) {
 	std::string buffer;

@@ -58,7 +58,7 @@ void startSockets() {
 std::string lastError() { return std::system_category().message(static_cast<int>(GetLastError())); }
 
 /// @brief Keeps a socket from the programs the host starts: on Windows they get only the handles listed for them.
-/// @param socket The socket.
+/// @param socket The socket, or noSocket.
 /// @return It.
 SocketHandle hostOnly(SocketHandle socket) noexcept { return socket; }
 
@@ -214,7 +214,7 @@ std::string lastError() { return std::strerror(errno); }
 
 /// @brief Keeps a descriptor from the programs the host starts (close-on-exec): a peer's connection or the
 /// listening socket must not reach a shell or a debug adapter.
-/// @param socket The descriptor, or noSocket.
+/// @param socket The socket, or noSocket.
 /// @return It.
 SocketHandle hostOnly(SocketHandle socket) noexcept {
 	if(socket != noSocket) fcntl(socket, F_SETFD, FD_CLOEXEC);
@@ -321,6 +321,7 @@ constexpr auto addressLength = static_cast<AddressLength>(sizeof(sockaddr_un));
 /// @brief Connects to a socket file.
 /// @param path The file.
 /// @return A connected socket, or noSocket.
+/// @throws std::runtime_error If the path is too long.
 SocketHandle connectTo(const std::filesystem::path& path) {
 	startSockets();
 	const sockaddr_un target = address(path);
