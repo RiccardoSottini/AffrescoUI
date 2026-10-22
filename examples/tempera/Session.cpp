@@ -12,6 +12,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstdio>
+#include <iterator>
 
 namespace tempera {
 
@@ -135,9 +136,9 @@ void updateThumbnails(Session& session, affresco::Screen& screen) {
 std::span<const std::string_view> toolNames() noexcept { return toolNameList; }
 
 std::optional<Tool> toolOf(std::string_view name) noexcept {
-	const auto* const found = std::ranges::find(toolNameList, name);
-	if(found == toolNameList.end()) return std::nullopt;
-	return static_cast<Tool>(found - toolNameList.begin());
+	const auto index = std::ranges::find(toolNameList, name) - toolNameList.begin();
+	if(index == std::ssize(toolNameList)) return std::nullopt;
+	return static_cast<Tool>(index);
 }
 
 std::optional<imaging::Pixel> colorOf(std::string_view text) noexcept {

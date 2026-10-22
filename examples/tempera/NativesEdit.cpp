@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iterator>
 
 namespace tempera {
 
@@ -24,8 +25,8 @@ constexpr std::size_t mostPoints = 4096;
 /// @param fallback When it is none of them.
 [[nodiscard]] imaging::SelectionMode modeOf(std::string_view name, imaging::SelectionMode fallback) noexcept {
 	constexpr std::array<std::string_view, 4> names{"replace", "add", "subtract", "intersect"};
-	const auto* const found = std::ranges::find(names, name);
-	return found == names.end() ? fallback : static_cast<imaging::SelectionMode>(found - names.begin());
+	const auto index = std::ranges::find(names, name) - names.begin();
+	return index == std::ssize(names) ? fallback : static_cast<imaging::SelectionMode>(index);
 }
 
 /// @brief A point argument: an object with x and y.
