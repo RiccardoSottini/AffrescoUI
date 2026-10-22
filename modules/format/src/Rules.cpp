@@ -3,6 +3,7 @@
 #include "affresco/format/NodeIds.hpp"
 
 #include "Checker.hpp"
+#include "Composition.hpp"
 #include "SectionRegistry.hpp"
 #include "ServiceRules.hpp"
 #include "Limits.hpp"
@@ -31,6 +32,16 @@ constexpr std::size_t maxListed = 10;
 /// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
 /// control step.
 constexpr std::size_t maxExpansions = 64;
+
+/// @brief The screen a document builds: itself, or composed with its features (Composition.hpp).
+/// @param document The document.
+/// @param storage Holds the composed screen when there is one.
+/// @return The screen.
+const json& screenOf(const json& document, json& storage) {
+	if(!needsComposition(document)) return document;
+	storage = compose(document).screen;
+	return storage;
+}
 
 /// @brief Whether a key's string value names an action to run: an event handler ("onClick"), "do", "onLoad", "run".
 /// @param key The key.
@@ -383,13 +394,20 @@ void Rules::checkRevision(const json& patch) const {
 void Rules::validate(const json& doc) const {
 	sections_->validate(doc);
 	checkDocumentSize(doc);
-	const std::vector<Mismatch> mismatches = stateMismatches(doc, stateOf(doc));
+	json composed;
+	if(needsComposition(doc)) { // its features must fit, and what they merge must be valid too
+		composed = composeOrFail(doc);
+		sections_->validate(composed);
+	}
+	const json& screen = composed.is_null() ? doc : composed;
+	const std::vector<Mismatch> mismatches = stateMismatches(screen, stateOf(screen));
 	if(!mismatches.empty()) fail(mismatches.front().place, mismatches.front().problem + typeNote(mismatches.front()));
 }
 
-// In root, then screens, templates and components (NodeIds.hpp)
+// In root, then screens, templates and components (NodeIds.hpp), then the features' views (Composition.hpp)
 std::optional<std::string> Rules::findNode(const json& doc, std::string_view nodeId) const {
-	return findNodeWithId(doc, nodeId);
+	if(auto found = findNodeWithId(doc, nodeId)) return found;
+	return findFeatureNode(doc, nodeId);
 }
 
 // "permissions" as rules, plus every node with "locked": true denied to everyone
@@ -424,12 +442,16 @@ Permissions Rules::permissions(const json& doc) const {
 	return result;
 }
 
-void Rules::checkChange(const json& before, const json& after) const {
+// On the composed screens: what a feature brings is checked as if the app had it
+void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 	for(const SectionType& section : sections_->sections()) {
 		if(!section.capability) continue;
-		if(before.value(section.name, json()) != after.value(section.name, json()))
+		if(rawBefore.value(section.name, json()) != rawAfter.value(section.name, json()))
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
+	json composedBefore, composedAfter;
+	const json& before = screenOf(rawBefore, composedBefore);
+	const json& after = screenOf(rawAfter, composedAfter);
 
 	checkTypedState(before, after);
 	checkStateSize(before, after);
@@ -457,8 +479,15 @@ void Rules::checkChange(const json& before, const json& after) const {
 	fail("revision", message);
 }
 
-std::vector<std::string> Rules::findings(const json& document, const json& state) const {
+std::vector<std::string> Rules::findings(const json& raw, const json& state) const {
 	std::vector<std::string> lines;
+	json composed;
+	if(needsComposition(raw)) { // features that don't fit are left out: say why
+		Composition composition = compose(raw);
+		lines = std::move(composition.problems);
+		composed = std::move(composition.screen);
+	}
+	const json& document = composed.is_null() ? raw : composed;
 	for(const Mismatch& mismatch : stateMismatches(document, state)) // a state kept on disk may predate its types
 		lines.push_back(mismatch.text() + typeNote(mismatch));
 	const auto found = check(document, state, nativeActions_);

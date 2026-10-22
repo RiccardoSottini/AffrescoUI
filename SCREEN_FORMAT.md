@@ -83,6 +83,9 @@ Every part of the format follows these, and so should every extension:
 | `persist` | `["state.habits", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it. |
 | `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu). |
 | `permissions` | Who may change the running screen (see [Version control](VERSION_CONTROL.md)). Revisions can't change it. |
+| `features` | `{"wordCount": {"release": "1.0.0", "enabled": true, "order": 10, "requires": {...}, "provides": {...}}}`: installed features, each kept whole in its record (with `title`, `source`, `digest` and `publisher`). The runtime merges the enabled ones in `order`, under their names (`state.wordCount`, `wordCount.toggle`); views join the nodes whose `point` they name. Install, enable, disable and remove are revisions on `/features/<name>`. A feature can't bring a capability or a control step. |
+| `exports` | `{"editor.text": {"type": "string", "value": "{{state.text}}"}}`: values features read as `app.editor.text`. |
+| `imports` | `{"ui": "workbench@^1.0.0"}`: `"use": "ui.panel"` builds the feature's `workbench.panel`, if its release is in the range. |
 <!-- end generated -->
 
 ## Nodes

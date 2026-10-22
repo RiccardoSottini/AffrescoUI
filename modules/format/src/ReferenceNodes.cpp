@@ -200,6 +200,8 @@ constexpr KeyReference nodeTable[] = {
     {"use", R"json({"type": "string", "description": "A component from \"components\""})json",
 	 R"(Build a component: `{ "use": "chip", "with": { "label": "{{tag}}" } }` (see Components).)", "behaviour"},
     {"with", R"json({"type": "object", "description": "A component's parameters"})json", "", "behaviour"},
+    {"point", R"json({"type": "string", "description": "A contribution point features add views to"})json",
+	 R"(`"point": "statusBar.right"`: features' views for that point become the node's last children.)", "behaviour"},
     {"check", R"json({"type": "object", "additionalProperties": false, "description": "Gives valid and error",
 		"properties": {"rule": {}, "message": {}, "value": {}}})json",
 	 "`{ \"rule\": \"{{len(value) >= 3}}\", \"message\": \"Too short\", \"value\": ... }`: `value` defaults to the "

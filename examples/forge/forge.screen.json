@@ -36,6 +36,10 @@
 		  "into": "state.folder" }
 	],
 
+	"exports": {
+		"editor.text": { "type": "string", "value": "{{computed.activeDoc.text ?? ''}}", "description": "The text of the editor in focus." },
+		"workspace.files": { "type": "array", "value": "{{map(filter(state.docs, it.kind == 'file'), {id: it.id, name: it.label, text: it.text})}}", "description": "The open files: id, name and text." }
+	},
 	"root": {
 		"id": "root", "color": "@color.editor",
 		"children": [

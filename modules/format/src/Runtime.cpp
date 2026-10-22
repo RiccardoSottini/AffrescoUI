@@ -2,24 +2,38 @@
 /// @brief format::Runtime: the public API, forwarding to the engine's subsystems (Engine.hpp).
 
 #include "Catalog.hpp"
+#include "ComposedVersions.hpp"
 #include "Engine.hpp"
 #include "Reference.hpp"
 
 namespace affresco::format {
 
+/// @brief The document's version control as the engine sees it, a base so it is made before the engine.
+struct ComposedHolder {
+	/// @brief Wraps the document's version control.
+	/// @param versions It.
+	explicit ComposedHolder(VersionControl& versions) : composed(versions) {}
+	ComposedVersions composed; ///< The document with its features merged in (Composition.hpp).
+};
+
 /// @brief The runtime's private parts: the engine, out of the public header.
-struct Runtime::Impl final : Engine {
-	using Engine::Engine;
+struct Runtime::Impl final : ComposedHolder, Engine {
+	/// @brief Builds the engine on the composed document.
+	/// @param runtime The runtime.
+	/// @param versions The document's version control.
+	/// @param baseDirectory Where relative paths start.
+	Impl(Runtime& runtime, VersionControl& versions, std::filesystem::path baseDirectory)
+	    : ComposedHolder(versions), Engine(runtime, composed, std::move(baseDirectory)) {}
 };
 
 Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
     : impl_(std::make_unique<Impl>(*this, versions, std::move(baseDirectory))) {
 	impl_->document.readDerived();
-	versions.setObserver(impl_.get());
+	impl_->composed.setObserver(impl_.get());
 }
 
 Runtime::~Runtime() {
-	impl_->versions.setObserver(nullptr);
+	impl_->composed.setObserver(nullptr);
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
 	impl_->calls.cancelAll();      // and what slow calls return would reach it
