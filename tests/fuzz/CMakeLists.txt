@@ -99,3 +99,5 @@ endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+# The image editor's inputs (examples/tempera): ICC profiles and project files
+affrescoui_fuzzer(icc affrescoui::imaging)
