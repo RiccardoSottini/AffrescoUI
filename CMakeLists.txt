@@ -16,6 +16,12 @@ option(AFFRESCOUI_BUILD_TESTS "Build the rendering check and the unit tests (tes
 option(AFFRESCOUI_BUILD_FUZZERS "Build the libFuzzer targets (tests/fuzz); needs clang, instruments the whole build" OFF)
 option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
 option(AFFRESCOUI_BUILD_TOOLS "Build the affrescoui command-line tool (tools/affrescoui)" ${PROJECT_IS_TOP_LEVEL})
+option(AFFRESCOUI_BUILD_CAPI "Build the C API (modules/capi) and its test (tests/capi)" ${PROJECT_IS_TOP_LEVEL})
+option(AFFRESCOUI_BUILD_CAPI_SHARED "Also build the C API as one shared library, libaffresco (bindings/python loads it)" OFF)
+if(AFFRESCOUI_BUILD_CAPI_SHARED)
+	set(AFFRESCOUI_BUILD_CAPI ON CACHE BOOL "" FORCE)
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON) # before the dependencies: the static libraries go into the shared one
+endif()
 
 if(AFFRESCOUI_BUILD_FUZZERS)
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
@@ -122,6 +128,9 @@ endfunction()
 foreach(module core render format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
+if(AFFRESCOUI_BUILD_CAPI)
+	add_subdirectory(modules/capi) # the C API, on top of the others
+endif()
 
 # cmake --install: the libraries, their headers and the AffrescoUI package for find_package
 if(AFFRESCOUI_INSTALL)
@@ -167,6 +176,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
+	if(AFFRESCOUI_BUILD_CAPI)
+		add_subdirectory(tests/capi) # the C API's test, compiled as C
+	endif()
 	# The MCP server's queries (outline, find_nodes, the guide by topic), which need no host
 	find_package(Python3 COMPONENTS Interpreter)
 	if(Python3_FOUND)
