@@ -37,7 +37,7 @@ layouts (a background and objects under the slides that use them, placeholders a
 A slide has its notes, background, transition (`none`, `fade`, `push`, `wipe` or `zoom`, with a duration) and objects,
 back to front. An object is a `rect`, `ellipse`, `polygon`, `star`, `line`, `arrow`, `path`, `text`, `image` or
 `group`, with its frame, rotation, fill or gradient, stroke, corner radius, shadow, rich text (runs, with autofit or
-overflow), lock and build (`appear`, `fade` or `fly`, in order). `Deck.hpp` has every key; `readDeck` checks every
+overflow), lock and build (`appear`, `fade` or `fly`, in order). [`deck/Deck.hpp`](deck/Deck.hpp) has every key; `readDeck` checks every
 value against `DeckLimits` (SECURITY.md, "Limits"), and every edit is read again, so a deck never gets past them.
 
 ## Natives
@@ -47,7 +47,7 @@ value against `DeckLimits` (SECURITY.md, "Limits"), and every edit is read again
 | `sinopia.load` (`file`) | Reads a deck from `decks/` |
 | `sinopia.save` (`name`, `deck`) | Writes it to `decks/<name>.sinopia.json` |
 | `sinopia.render` (`deck`) | The deck as the screen draws it: masters and layouts resolved, text fitted, pages sized |
-| `sinopia.edit` (`deck`, `slide`, `op`, `ids`, ...) | One edit (`Edit.hpp` lists them): it gives back the deck, the slide and the selection |
+| `sinopia.edit` (`deck`, `slide`, `op`, `ids`, ...) | One edit ([`deck/Edit.hpp`](deck/Edit.hpp) lists them): it gives back the deck, the slide and the selection |
 | `sinopia.thumbnails` (`render`) | Draws each changed slide into its host image `thumb-<id>` |
 | `sinopia.exportPdf`, `sinopia.exportPng` (`render`) | The shown slides as one vector PDF (`modules/export`) or a PNG each, 1920 pixels wide |
 | `sinopia.openAudience`, `sinopia.closeAudience` | The audience window: a second window sharing the workspace's GL context |
@@ -78,3 +78,12 @@ changes).
 
 `pick` runs with `{ index }` when a thumbnail is clicked, and `move` with `{ from, to }` when one is dropped on
 another. A skipped page is dimmed and marked. Ids are `<prefix>-<id>`, so two sorters can share a screen.
+
+## The code
+
+| Where | What |
+|---|---|
+| [`main.cpp`](main.cpp) | The command line: the workspace, or `--check` to play the scenarios |
+| [`Natives.cpp`](Natives.cpp), [`Present.cpp`](Present.cpp) | The natives: decks, thumbnails and exports; the audience window and its frames |
+| [`deck/`](deck) | The deck model, no window needed: reading and writing a deck within its limits, the edits, and aligning, distributing and grouping |
+| [`drawing/`](drawing) | Drawing: the `sinopiaShape` type and its outlines, a deck as panels, and the slide transitions |

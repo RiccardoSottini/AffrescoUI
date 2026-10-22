@@ -1,6 +1,6 @@
 /// @file
-/// @brief Fuzzes Sinopia's deck reader (examples/sinopia/Deck.hpp): a deck file someone sent, or a peer's change to
-/// one, is untrusted, and what it gives is drawn, presented and exported.
+/// @brief Fuzzes Sinopia's deck reader (examples/sinopia/deck/Deck.hpp): a deck file someone sent, or a peer's change
+/// to one, is untrusted, and what it gives is drawn, presented and exported.
 ///
 /// A deck read holds within its limits (slides, objects, notes, sections, theme tokens), and writing it and reading it
 /// again gives the same deck; anything else is a std::runtime_error.
