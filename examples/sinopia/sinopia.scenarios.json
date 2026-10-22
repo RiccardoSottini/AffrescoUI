@@ -1283,6 +1283,34 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "sinopia-the-sorter",
+			"note": "The sample deck in the sorter, every slide in a grid in place of the canvas (the gallery's scene, tools/media/gallery.json)",
+			"steps": [
+				{
+					"wait": 400,
+					"note": "past the thumbnails' debounce"
+				},
+				{
+					"click": "#tool-sorter"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "view",
+						"is": "sorter"
+					}
+				},
+				{
+					"expect": {
+						"node": "#sorter-grid",
+						"exists": true
+					}
+				}
+			]
 		}
 	]
 }

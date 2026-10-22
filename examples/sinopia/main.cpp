@@ -3,10 +3,11 @@
 /// (sinopia.screen.json).
 //
 //   affrescoui_sinopia [--socket DIR] [--data DIR]
-//   affrescoui_sinopia --check sinopia.scenarios.json
+//   affrescoui_sinopia --check sinopia.scenarios.json [--out DIR]
 //
 // Opens the sample deck in decks/. Like affrescoui_host, it listens for the Studio and an agent in DIR (studio.sock,
-// agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report.
+// agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report; with --out,
+// their pictures are drawn and captures are saved in DIR (tools/media/capture.py).
 
 #include "SocketDir.hpp"
 #include "ShapePanel.hpp"
@@ -27,6 +28,7 @@ namespace {
 /// @brief What the command line asks for.
 struct Options {
 	std::filesystem::path check; ///< A scenarios file to play instead of opening the window; empty: none.
+	std::filesystem::path out;   ///< With check: where captures are saved, which draws pictures; empty: none drawn.
 	std::filesystem::path socketDir = affresco::Screen::defaultSocketDirectory(); ///< Where peers connect.
 	std::filesystem::path dataDir = affresco::Screen::defaultDataDirectory();     ///< Where the state is kept.
 };
@@ -41,10 +43,11 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		const std::string_view arg = argv[i];
 		const char* value = i + 1 < argc ? argv[i + 1] : nullptr;
 		if(value != nullptr && arg == "--check") options.check = value;
+		else if(value != nullptr && arg == "--out") options.out = value;
 		else if(value != nullptr && arg == "--socket") options.socketDir = value;
 		else if(value != nullptr && arg == "--data") options.dataDir = value;
 		else {
-			std::cerr << "usage: affrescoui_sinopia [--socket DIR] [--data DIR] | --check FILE.scenarios.json\n";
+			std::cerr << "usage: affrescoui_sinopia [--socket DIR] [--data DIR] | --check FILE.scenarios.json [--out DIR]\n";
 			return std::nullopt;
 		}
 	}
@@ -63,15 +66,17 @@ void prepare(affresco::Screen& screen, const std::shared_ptr<sinopia::Session>& 
 
 /// @brief Plays a scenarios file headless, each scenario on a fresh session whose exports go to a temporary folder.
 /// @param file The scenarios file.
+/// @param out Where captures are saved; empty: no pictures are drawn.
 /// @return The exit status: 0 if every scenario passed.
-int check(const std::filesystem::path& file) {
+int check(const std::filesystem::path& file, const std::filesystem::path& out) {
 	namespace automation = affresco::automation;
 	const automation::ScenarioFile scenarios = automation::ScenarioFile::load(file);
 	automation::Options options;
-	options.pictures = false;
-	options.prepare = [folder = file.parent_path()](affresco::Screen& screen) {
+	options.pictures = !out.empty();
+	options.output = out;
+	options.prepare = [](affresco::Screen& screen) {
 		auto session = std::make_shared<sinopia::Session>();
-		session->folder = folder;
+		session->folder = AFFRESCOUI_SINOPIA_DIR; // the sample decks, wherever the scenarios file is (capture.py's)
 		session->exportFolder = std::filesystem::temp_directory_path() / "affrescoui-sinopia-check";
 		session->saveFolder = session->exportFolder; // never into the source tree
 		prepare(screen, session);
@@ -108,7 +113,7 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 	try {
 		const std::optional<Options> options = parseArguments(argc, argv);
 		if(!options) return 2;
-		return options->check.empty() ? run(*options) : check(options->check);
+		return options->check.empty() ? run(*options) : check(options->check, options->out);
 	} catch(const std::exception& error) {
 		std::cerr << "affrescoui_sinopia: " << error.what() << '\n';
 		return 1;

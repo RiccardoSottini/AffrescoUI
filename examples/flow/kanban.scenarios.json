@@ -395,6 +395,17 @@
 				{ "expect": { "state": "selected.i", "is": 0 } },
 				{ "capture": "small-dark" }
 			]
+		},
+		{
+			"name": "a-card-mid-drag",
+			"note": "Half way through a drag, the first Backlog card is over the Review column and not moved yet (the gallery's scene, tools/media/gallery.json)",
+			"steps": [
+				{ "press": "#card" },
+				{ "move": "#column", "nth": 1 },
+				{ "move": "#column", "nth": 2 },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "state": "columns[2].cards.length", "is": 2 } }
+			]
 		}
 	]
 }

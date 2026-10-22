@@ -1660,6 +1660,36 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-a-filter-previewing",
+			"note": "The sample's layers with a blur previewing on the canvas, its dialog open (the gallery's scene, tools/media/gallery.json)",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "showFilter",
+						"args": {
+							"kind": "gaussian-blur"
+						}
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"node": "#filter-dialog",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.previewing",
+						"is": true
+					}
+				}
+			]
 		}
 	]
 }

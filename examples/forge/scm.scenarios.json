@@ -638,6 +638,41 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "forge-scm-diff-and-terminal",
+			"note": "A change open as a diff beside a terminal in the panel (the gallery's scene, tools/media/gallery.json)",
+			"steps": [
+				{
+					"action": "terminalNew"
+				},
+				{
+					"action": "scmCompare",
+					"event": {
+						"path": "src/main.cpp",
+						"original": "#include <iostream>\n\nint main() {\n\tstd::cout << \"hello\\n\";\n}\n",
+						"modified": "#include <iostream>\n\nint main(int argc, char** argv) {\n\tstd::cout << \"hello, \" << argc << \"\\n\";\n\treturn 0;\n}\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "terminals.list.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				}
+			]
 		}
 	]
 }

@@ -94,19 +94,21 @@ void checkImage(const Session& session, const std::string& file) {
 }
 
 /// @brief Draws each slide whose look changed into its thumbnail, `thumb-<id>`, for the sorter and the slide list.
+/// Without a window of its own (--check), it draws with the stage's: the scenario's, which draws only with --out.
 /// @param session The session.
 /// @param render The deck as renderDeck() gives it.
 /// @return `{ drawn }`: how many were drawn again.
 [[nodiscard]] json drawThumbnails(Session& session, const json& render) {
 	std::size_t drawn = 0;
-	if(session.window == nullptr || !render.contains("slides") || !render["slides"].is_array()) return {{"drawn", 0}};
+	if(!render.contains("slides") || !render["slides"].is_array()) return {{"drawn", 0}};
 	const float width = render.value("width", 800.0f);
 	for(const json& slide : render["slides"]) {
 		const std::string id = slide.is_object() ? slide.value("id", std::string()) : std::string();
 		const std::size_t look = std::hash<std::string>{}(slide.dump() + std::to_string(width));
 		affresco::Panel* panel = stagePanel(session, id);
-		if(panel == nullptr || session.thumbnails[id] == look) continue;
-		const std::shared_ptr<const affresco::Bitmap> image = session.window->renderToImage(*panel, 200.0f / width);
+		affresco::Window* window = session.window != nullptr ? session.window : panel != nullptr ? panel->window() : nullptr;
+		if(window == nullptr || session.thumbnails[id] == look) continue;
+		const std::shared_ptr<const affresco::Bitmap> image = window->renderToImage(*panel, 200.0f / width);
 		if(!image) continue;
 		session.screen->setImage("thumb-" + id, image);
 		session.thumbnails[id] = look;
