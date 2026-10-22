@@ -16,6 +16,7 @@ affrescoui_module(imaging
 	src/Image.cpp
 	src/History.cpp src/Blend.cpp src/Adjustment.cpp src/Document.cpp src/Composite.cpp src/Rasterize.cpp src/Selection.cpp src/Kernels.cpp src/Filter.cpp src/Brush.cpp
 	src/Gradient.cpp src/Color.cpp src/Stb.cpp src/Codec.cpp src/ProjectJson.cpp src/Project.cpp
+	src/Residency.cpp src/CanvasShaders.cpp src/Canvas.cpp
 	${AFFRESCOUI_LCMS2_SOURCES})
 target_include_directories(affrescoui_imaging SYSTEM PRIVATE ${stb_image_SOURCE_DIR} ${stb_image_write_SOURCE_DIR}
 	${AFFRESCOUI_LCMS2_INCLUDE_DIR} ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
