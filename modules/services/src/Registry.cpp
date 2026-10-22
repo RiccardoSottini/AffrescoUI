@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <expected>
 #include <stdexcept>
 #include <utility>
 
@@ -52,6 +53,115 @@ bool isWord(std::string_view name) noexcept {
 	for(const char c : name)
 		if(!letter(c) && !(c >= '0' && c <= '9') && c != '_') return false;
 	return true;
+}
+
+/// @brief Reads a declaration's `start` and `restart`.
+/// @param place "services.<name>", for messages.
+/// @param declaration The declaration.
+/// @param startOnLoad Receives whether it starts on load.
+/// @param after Receives `restart.after`.
+/// @param times Receives `restart.times`.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> readLife(const std::string& place, const json& declaration, bool& startOnLoad, int& after,
+                                    int& times) {
+	if(const auto start = declaration.find("start"); start != declaration.end()) {
+		if(*start != "onDemand" && *start != "onLoad") return place + ".start: must be \"onDemand\" or \"onLoad\"";
+		startOnLoad = *start == "onLoad";
+	}
+	if(const auto restart = declaration.find("restart"); restart != declaration.end()) {
+		const json schema = {{"type", "object"},
+		                     {"additionalProperties", false},
+		                     {"properties",
+		                      {{"after", {{"type", "integer"}, {"minimum", 0}, {"maximum", 3600000}}},
+		                       {"times", {{"type", "integer"}, {"minimum", 0}, {"maximum", 100}}}}}};
+		if(auto problem = checkSchema(schema, *restart, place + ".restart")) return problem;
+		after = restart->value("after", 1000);
+		times = restart->value("times", 1);
+	}
+	return std::nullopt;
+}
+
+/// @brief Finds a declaration's provider by its `provider` key.
+/// @param providers The registered providers, by name.
+/// @param place "services.<name>", for messages.
+/// @param declaration The declaration.
+/// @return The provider, or why there is none.
+std::expected<Provider*, std::string>
+findProvider(const std::map<std::string, std::unique_ptr<Provider>, std::less<>>& providers, const std::string& place,
+             const json& declaration) {
+	const json& name = declaration.contains("provider") ? declaration["provider"] : json();
+	const auto provider = name.is_string() ? providers.find(name.get<std::string>()) : providers.end();
+	if(provider != providers.end()) return provider->second.get();
+	return std::unexpected(place + ".provider: no provider " +
+	                       (name.is_string() ? "'" + name.get<std::string>() + "'" : "named") +
+	                       " (registered: " + listNames(providers) + ")");
+}
+
+/// @brief A declaration's configuration: every key but the registry's own.
+/// @param declaration The declaration.
+/// @return The provider's keys.
+json configurationOf(const json& declaration) {
+	json configuration = json::object();
+	for(const auto& [key, value] : declaration.items())
+		if(std::ranges::find(sharedKeys, key) == std::end(sharedKeys)) configuration[key] = value;
+	return configuration;
+}
+
+/// @brief The methods a provider offers for a configuration, by name.
+/// @param provider The provider.
+/// @param configuration The service's configuration.
+/// @return The methods.
+std::map<std::string, MethodSpec, std::less<>> methodsOf(Provider& provider, const json& configuration) {
+	std::map<std::string, MethodSpec, std::less<>> methods;
+	for(MethodSpec& spec : provider.methods(configuration)) {
+		std::string name = spec.name;
+		methods.insert_or_assign(std::move(name), std::move(spec));
+	}
+	return methods;
+}
+
+/// @brief Whether a failed service may start again: it has restarts left and has waited long enough.
+/// @param restarts How often it was restarted.
+/// @param times `restart.times`.
+/// @param after `restart.after`, in ms.
+/// @param failedAt When it last failed.
+/// @return Whether it may.
+bool mayRestart(int restarts, int times, int after, Clock::time_point failedAt) {
+	const auto waited = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - failedAt);
+	return restarts < times && waited.count() >= after;
+}
+
+/// @brief Sets a context's report and request so they run on the main thread, and not at all once the registry
+/// has ended: a service reports from its own threads, and may outlive neither.
+/// @param context The context, whose executor is the main thread.
+/// @param alive Expires when the registry ends.
+/// @param report What a report does on the main thread.
+/// @param request What a request does on the main thread.
+void postToMainThread(ServiceContext& context, const std::weak_ptr<bool>& alive,
+                      decltype(ServiceContext::report) report, decltype(ServiceContext::request) request) {
+	Executor* executor = &context.executor;
+	context.report = [executor, alive, report = std::move(report)](ServiceState state, std::string reason) {
+		executor->post([alive, report, state, reason = std::move(reason)]() mutable {
+			if(!alive.expired()) report(state, std::move(reason));
+		});
+	};
+	context.request = [executor, alive, request = std::move(request)](std::string method, json params,
+	                                                                  Responder respond) {
+		executor->post([alive, request, method = std::move(method), params = std::move(params),
+		                respond = std::move(respond)]() mutable {
+			if(!alive.expired()) request(std::move(method), std::move(params), std::move(respond));
+		});
+	};
+}
+
+/// @brief The spec to hand a service: a listed method's, or the unlisted one under its real name.
+/// @param spec What method() found.
+/// @param name The method's name.
+/// @return The spec.
+MethodSpec named(const MethodSpec& spec, std::string_view name) {
+	MethodSpec copy = spec;
+	copy.name = std::string(name);
+	return copy;
 }
 
 } // namespace
@@ -148,32 +258,6 @@ std::vector<std::string> ServiceRegistry::load(const json& section) {
 	return refused;
 }
 
-/// @brief Reads a declaration's `start` and `restart`.
-/// @param place "services.<name>", for messages.
-/// @param declaration The declaration.
-/// @param startOnLoad Receives whether it starts on load.
-/// @param after Receives `restart.after`.
-/// @param times Receives `restart.times`.
-/// @return What is wrong, or std::nullopt.
-static std::optional<std::string> readLife(const std::string& place, const json& declaration, bool& startOnLoad,
-                                           int& after, int& times) {
-	if(const auto start = declaration.find("start"); start != declaration.end()) {
-		if(*start != "onDemand" && *start != "onLoad") return place + ".start: must be \"onDemand\" or \"onLoad\"";
-		startOnLoad = *start == "onLoad";
-	}
-	if(const auto restart = declaration.find("restart"); restart != declaration.end()) {
-		const json schema = {{"type", "object"},
-		                     {"additionalProperties", false},
-		                     {"properties",
-		                      {{"after", {{"type", "integer"}, {"minimum", 0}, {"maximum", 3600000}}},
-		                       {"times", {{"type", "integer"}, {"minimum", 0}, {"maximum", 100}}}}}};
-		if(auto problem = checkSchema(schema, *restart, place + ".restart")) return problem;
-		after = restart->value("after", 1000);
-		times = restart->value("times", 1);
-	}
-	return std::nullopt;
-}
-
 std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::string& name,
                                                                  const json& declaration) const {
 	auto entry = std::make_unique<Entry>();
@@ -186,23 +270,16 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
 	};
 	if(!isWord(name)) return refuse(place + ": a service's name is a word (letters, digits, _)");
 	if(!declaration.is_object()) return refuse(place + ": must be an object");
-	const json& providerName = declaration.contains("provider") ? declaration["provider"] : json();
-	const auto provider = providerName.is_string() ? providers_.find(providerName.get<std::string>()) : providers_.end();
-	if(provider == providers_.end())
-		return refuse(place + ".provider: no provider " + (providerName.is_string() ? "'" + providerName.get<std::string>() + "'" : "named") +
-		              " (registered: " + listNames(providers_) + ")");
-	entry->provider = provider->second.get();
+	const auto provider = findProvider(providers_, place, declaration);
+	if(!provider) return refuse(provider.error());
+	entry->provider = *provider;
 	if(auto problem = readLife(place, declaration, entry->startOnLoad, entry->restartAfter, entry->restartTimes))
 		return refuse(*problem);
-	for(const auto& [key, value] : declaration.items())
-		if(std::ranges::find(sharedKeys, key) == std::end(sharedKeys)) entry->configuration[key] = value;
+	entry->configuration = configurationOf(declaration);
 	if(holdsBinding(entry->configuration)) return refuse(place + ": a service's configuration is literal (no {{ }})");
 	if(auto problem = checkSchema(entry->provider->configurationSchema(), entry->configuration, place))
 		return refuse(*problem);
-	for(MethodSpec& spec : entry->provider->methods(entry->configuration)) {
-		std::string methodName = spec.name;
-		entry->methods.insert_or_assign(std::move(methodName), std::move(spec));
-	}
+	entry->methods = methodsOf(*entry->provider, entry->configuration);
 	entry->unlisted = {"*", Effect::Run, false, false, nullptr, "not declared: a call or a stream, the file's only"};
 	if(auto problem = resolve(name, entry->configuration, entry->grant)) return refuse(*problem);
 	return entry;
@@ -248,16 +325,6 @@ const MethodSpec* ServiceRegistry::method(std::string_view service, std::string_
 	return nullptr;
 }
 
-/// @brief The spec to hand a service: a listed method's, or the unlisted one under its real name.
-/// @param spec What method() found.
-/// @param name The method's name.
-/// @return The spec.
-static MethodSpec named(const MethodSpec& spec, std::string_view name) {
-	MethodSpec copy = spec;
-	copy.name = std::string(name);
-	return copy;
-}
-
 std::optional<std::string> ServiceRegistry::invoke(std::string_view service, std::string_view methodName,
                                                    std::shared_ptr<Call> call) {
 	Entry* entry = find(service);
@@ -286,8 +353,7 @@ std::optional<std::string> ServiceRegistry::ensureStarted(Entry& entry) {
 	if(entry.state == ServiceState::Refused) return label + " was refused: " + entry.error;
 	if(entry.state == ServiceState::Ready || entry.state == ServiceState::Starting) return std::nullopt;
 	if(entry.state == ServiceState::Failed) {
-		const auto waited = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - entry.failedAt);
-		if(entry.restarts >= entry.restartTimes || waited.count() < entry.restartAfter)
+		if(!mayRestart(entry.restarts, entry.restartTimes, entry.restartAfter, entry.failedAt))
 			return label + " failed: " + entry.error;
 		++entry.restarts;
 	}
@@ -296,24 +362,16 @@ std::optional<std::string> ServiceRegistry::ensureStarted(Entry& entry) {
 	entry.generation = ++generations_;
 	setState(entry, ServiceState::Starting, {});
 	ServiceContext context{*executor_, entry.grant, {}, {}};
-	const std::weak_ptr<bool> alive = alive_;
-	Executor* executor = executor_;
-	context.report = [this, alive, executor, name = entry.name, generation = entry.generation](ServiceState state,
-	                                                                                          std::string reason) {
-		executor->post([this, alive, name, generation, state, reason = std::move(reason)]() mutable {
-			if(alive.expired()) return;
-			if(Entry* current = find(name); current && current->generation == generation)
-				setState(*current, state, std::move(reason));
-		});
-	};
-	context.request = [this, alive, executor, name = entry.name](std::string method, json params, Responder respond) {
-		executor->post([this, alive, name, method = std::move(method), params = std::move(params),
-		                respond = std::move(respond)]() mutable {
-			if(alive.expired()) return;
-			if(!requests_) return respond(std::nullopt, std::string(methodNotFound));
-			requests_(name, method, params, std::move(respond));
-		});
-	};
+	postToMainThread(
+	    context, alive_,
+	    [this, name = entry.name, generation = entry.generation](ServiceState state, std::string reason) {
+		    if(Entry* current = find(name); current && current->generation == generation)
+			    setState(*current, state, std::move(reason));
+	    },
+	    [this, name = entry.name](std::string method, json params, Responder respond) {
+		    if(!requests_) return respond(std::nullopt, std::string(methodNotFound));
+		    requests_(name, method, params, std::move(respond));
+	    });
 	try {
 		entry.service = entry.provider->create(entry.configuration, std::move(context));
 	} catch(const std::exception& error) {
