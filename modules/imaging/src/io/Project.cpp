@@ -284,6 +284,19 @@ private:
 	return {parseUntrusted(text), headerBytes + length};
 }
 
+/// @brief Makes the empty document a manifest describes: its size and pixel format.
+/// @param manifest The manifest.
+/// @param limits Its limits.
+/// @return The document.
+[[nodiscard]] std::unique_ptr<Document> documentOf(const json& manifest, const Limits& limits) {
+	const auto side = static_cast<std::uint64_t>(limits.side);
+	const auto format = manifest.value("pixels", std::string("rgba8"));
+	if(format != "rgba8" && format != "rgba16f") malformed("has pixels of no known format");
+	return std::make_unique<Document>(static_cast<int>(whole(manifest.value("width", json()), side, "width")),
+	                                  static_cast<int>(whole(manifest.value("height", json()), side, "height")),
+	                                  limits, format == "rgba16f" ? PixelFormat::rgba16f : PixelFormat::rgba8);
+}
+
 } // namespace
 
 bool isProject(std::span<const std::uint8_t> file) noexcept {
@@ -313,14 +326,8 @@ LoadedProject loadProject(std::shared_ptr<const std::vector<std::uint8_t>> file,
 	try {
 		const auto [manifest, base] = manifestOf(*file, limits);
 		if(!manifest.is_object()) malformed("has a manifest that is not an object");
-		const auto side = static_cast<std::uint64_t>(limits.side);
-		const auto format = manifest.value("pixels", std::string("rgba8"));
-		if(format != "rgba8" && format != "rgba16f") malformed("has pixels of no known format");
 		LoadedProject loaded;
-		loaded.document =
-		    std::make_unique<Document>(static_cast<int>(whole(manifest.value("width", json()), side, "width")),
-			                           static_cast<int>(whole(manifest.value("height", json()), side, "height")),
-			                           limits, format == "rgba16f" ? PixelFormat::rgba16f : PixelFormat::rgba8);
+		loaded.document = documentOf(manifest, limits);
 		Reader reader(file, base, *loaded.document);
 		if(manifest.contains("profile"))
 			loaded.profile = ColorProfile::parse(reader.bytes(reader.blob(manifest["profile"])), limits);
