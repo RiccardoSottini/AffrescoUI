@@ -110,6 +110,14 @@ private:
 	std::size_t size_;          ///< How many.
 };
 
+/// @brief Tells whether a function takes a number of arguments.
+/// @param function The function.
+/// @param count The number.
+/// @return Whether it is within the function's fewest and most.
+bool takesCount(const Function& function, std::size_t count) noexcept {
+	return count >= function.fewest && count <= function.most;
+}
+
 /// @brief What a call with the wrong number of arguments says.
 /// @param function The function.
 /// @return "expected 2 arguments", "expected at least one argument", "expected 2 to 3 arguments".
@@ -229,11 +237,7 @@ Value Machine::call(const Node& node, const Place& place) {
 	const Place at(place, node.label);
 	const Function* function = node.function;
 	if(function && function->changes && context_.reads) context_.reads->always = true; // the clock
-	if(function && function->decide) {
-		if(node.children.size() < function->fewest || node.children.size() > function->most)
-			fail(at, std::string(function->shape));
-		return function->decide(Call(*this, node, at, {}));
-	}
+	if(function && function->decide) return decide(*function, node, at);
 
 	// Arguments first, then their number, as evaluating the JSON form did
 	SmallList<Value> arguments(node.children.size());
@@ -242,8 +246,13 @@ Value Machine::call(const Node& node, const Place& place) {
 	if(!function) fail(at, "unknown operator '" + node.label + "'");
 	if(function->takes == Takes::One) return function->apply(Call(*this, node, at, values));
 	if(function->spreads && values.size() == 1 && values[0].isList()) return spread(*function, node, at, values[0]);
-	if(values.size() < function->fewest || values.size() > function->most) fail(at, arityProblem(*function));
+	if(!takesCount(*function, values.size())) fail(at, arityProblem(*function));
 	return function->apply(Call(*this, node, at, values));
+}
+
+Value Machine::decide(const Function& function, const Node& node, const Place& at) {
+	if(!takesCount(function, node.children.size())) fail(at, std::string(function.shape));
+	return function.decide(Call(*this, node, at, {}));
 }
 
 // max(list): the list's items are the arguments

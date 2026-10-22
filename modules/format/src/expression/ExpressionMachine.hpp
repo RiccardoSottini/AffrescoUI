@@ -274,6 +274,13 @@ private:
 	/// @return Its value.
 	/// @throws DocumentError If it is invalid.
 	[[nodiscard]] Value call(const Node& node, const Place& place);
+	/// @brief Evaluates a call of a function that evaluates its own arguments (`if`, `and`, the list functions).
+	/// @param function The function.
+	/// @param node The call.
+	/// @param at Its place.
+	/// @return Its value.
+	/// @throws DocumentError If it is invalid.
+	[[nodiscard]] Value decide(const Function& function, const Node& node, const Place& at);
 	/// @brief Evaluates a path node.
 	/// @param node The node.
 	/// @param place Its place.
