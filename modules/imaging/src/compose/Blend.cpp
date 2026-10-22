@@ -3,6 +3,8 @@
 
 #include "affresco/imaging/Blend.hpp"
 
+#include "Luminosity.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -39,16 +41,10 @@ namespace {
 	}
 }
 
-/// @brief The luminosity of a colour.
-/// @param color The colour.
-[[nodiscard]] float luminosity(const Pixel& color) noexcept {
-	return 0.3f * color.red + 0.59f * color.green + 0.11f * color.blue;
-}
-
 /// @brief Brings a colour into 0 to 1 keeping its luminosity.
 /// @param color The colour.
 [[nodiscard]] Pixel clipColor(Pixel color) noexcept {
-	const float lum = luminosity(color);
+	const float lum = detail::luminosityOf(color);
 	const float low = std::min({color.red, color.green, color.blue});
 	const float high = std::max({color.red, color.green, color.blue});
 	const auto scale = [&](float factor, float limit) {
@@ -64,7 +60,7 @@ namespace {
 /// @param color The colour.
 /// @param lum The luminosity.
 [[nodiscard]] Pixel setLuminosity(const Pixel& color, float lum) noexcept {
-	const float shift = lum - luminosity(color);
+	const float shift = lum - detail::luminosityOf(color);
 	return clipColor({color.red + shift, color.green + shift, color.blue + shift, color.alpha});
 }
 
@@ -112,13 +108,13 @@ std::optional<BlendMode> blendModeOf(std::string_view name) noexcept {
 Pixel blendColors(BlendMode mode, const Pixel& backdrop, const Pixel& source) noexcept {
 	switch(mode) {
 	case BlendMode::hue:
-		return setLuminosity(setSaturation(source, saturationOf(backdrop)), luminosity(backdrop));
+		return setLuminosity(setSaturation(source, saturationOf(backdrop)), detail::luminosityOf(backdrop));
 	case BlendMode::saturation:
-		return setLuminosity(setSaturation(backdrop, saturationOf(source)), luminosity(backdrop));
+		return setLuminosity(setSaturation(backdrop, saturationOf(source)), detail::luminosityOf(backdrop));
 	case BlendMode::color:
-		return setLuminosity(source, luminosity(backdrop));
+		return setLuminosity(source, detail::luminosityOf(backdrop));
 	case BlendMode::luminosity:
-		return setLuminosity(backdrop, luminosity(source));
+		return setLuminosity(backdrop, detail::luminosityOf(source));
 	default:
 		return {separable(mode, backdrop.red, source.red), separable(mode, backdrop.green, source.green),
 		        separable(mode, backdrop.blue, source.blue), 1.0f};

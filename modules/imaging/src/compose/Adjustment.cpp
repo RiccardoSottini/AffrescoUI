@@ -3,6 +3,8 @@
 
 #include "affresco/imaging/Adjustment.hpp"
 
+#include "Luminosity.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <numbers>
@@ -10,12 +12,6 @@
 namespace affresco::imaging {
 
 namespace {
-
-/// @brief The luminosity of a colour (Rec. 601 weights, as the blend modes use).
-/// @param pixel The colour.
-[[nodiscard]] float luminosityOf(const Pixel& pixel) noexcept {
-	return 0.3f * pixel.red + 0.59f * pixel.green + 0.11f * pixel.blue;
-}
 
 /// @brief The curve's output at an input: monotone cubic (Fritsch-Carlson) through its points.
 /// @param points The points, sorted, at least two.
@@ -83,7 +79,7 @@ namespace {
 	            c = third * (1.0f - cosine) + root * sine;
 	Pixel turned{a * pixel.red + b * pixel.green + c * pixel.blue, c * pixel.red + a * pixel.green + b * pixel.blue,
 	             b * pixel.red + c * pixel.green + a * pixel.blue, pixel.alpha};
-	const float grey = luminosityOf(turned), scale = 1.0f + adjustment.saturation;
+	const float grey = detail::luminosityOf(turned), scale = 1.0f + adjustment.saturation;
 	for(float* channel : {&turned.red, &turned.green, &turned.blue}) {
 		*channel = grey + (*channel - grey) * scale;
 		*channel = adjustment.lightness >= 0.0f ? *channel + (1.0f - *channel) * adjustment.lightness
@@ -198,11 +194,11 @@ Pixel adjustPixel(const Adjustment& adjustment, const Pixel& pixel) noexcept {
 	case AdjustmentKind::hueSaturation:
 		return hueSaturation(adjustment, pixel);
 	case AdjustmentKind::threshold: {
-		const float value = luminosityOf(pixel) >= adjustment.level ? 1.0f : 0.0f;
+		const float value = detail::luminosityOf(pixel) >= adjustment.level ? 1.0f : 0.0f;
 		return {value, value, value, pixel.alpha};
 	}
 	case AdjustmentKind::gradientMap: {
-		const Pixel mapped = adjustment.gradient.at(clamped(luminosityOf(pixel)));
+		const Pixel mapped = adjustment.gradient.at(clamped(detail::luminosityOf(pixel)));
 		// The gradient's own alpha mixes it with the colour below
 		const auto mix = [&](float below, float above) { return below + (above - below) * mapped.alpha; };
 		return {mix(pixel.red, mapped.red), mix(pixel.green, mapped.green), mix(pixel.blue, mapped.blue), pixel.alpha};
