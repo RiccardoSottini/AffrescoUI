@@ -60,12 +60,12 @@ CaseResult play(const vcs::Repository& repository, const json& item, const std::
 	result.name = expect::string(item.value("name", json()), at + ".name");
 	result.expected = expect::string(item.value("expect", json()), at + ".expect");
 	if(result.expected != "allow" && result.expected != "ask" && result.expected != "deny")
-		expect::fail(at + ".expect", "expected \"allow\", \"ask\" or \"deny\"");
+		expect::fail(at + ".expect", R"(expected "allow", "ask" or "deny")");
 	const std::string reason = item.contains("reason") ? expect::string(item["reason"], at + ".reason") : "";
 	const vcs::Repository::Judgement judgement = repository.judge(item.value("revision", json()));
 	result.decision = judgement.decision;
 	result.reason = judgement.reason;
-	result.passed = result.decision == result.expected && result.reason.find(reason) != std::string::npos;
+	result.passed = result.decision == result.expected && result.reason.contains(reason);
 	return result;
 }
 
@@ -86,6 +86,7 @@ std::vector<CaseResult> playFile(const std::filesystem::path& file) {
 			if(const auto refused = repository.roles().set(author, expect::string(role, "roles." + author)))
 				expect::fail("roles." + author, *refused);
 		std::vector<CaseResult> results;
+		results.reserve(cases.size());
 		for(std::size_t i = 0; i < cases.size(); ++i)
 			results.push_back(play(repository, expect::object(cases[i], "cases"), "cases[" + std::to_string(i) + "]"));
 		return results;

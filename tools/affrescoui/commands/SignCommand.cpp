@@ -66,10 +66,10 @@ SigningKey readKey(const std::filesystem::path& file) {
 /// @param folder The index's folder: the releases' URLs are relative to it.
 /// @throws FileProblem If a manifest can't be read.
 void refreshReleases(json& index, const std::filesystem::path& folder) {
-	auto features = index.find("features");
+	const auto features = index.find("features");
 	if(features == index.end() || !features->is_object()) return;
 	for(auto& [name, feature] : features->items()) {
-		auto releases = feature.find("releases");
+		const auto releases = feature.find("releases");
 		if(releases == feature.end() || !releases->is_array()) continue;
 		for(json& release : *releases) {
 			if(!release.is_object() || !release.contains("url") || !release["url"].is_string()) continue;
