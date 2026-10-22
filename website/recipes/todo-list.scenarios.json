@@ -1,0 +1,26 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screen": "todo-list.screen.json",
+	"scenarios": [
+		{ "name": "adds-an-item", "steps": [
+			{ "click": "#draft" },
+			{ "type": "Ship it" },
+			{ "key": "enter" },
+			{ "expect": { "state": "items.length", "is": 3 } },
+			{ "expect": { "node": "#item-title", "nth": 2, "text": "Ship it" } },
+			{ "expect": { "state": "draft", "is": "" } }
+		] },
+		{ "name": "ignores-an-empty-draft", "steps": [
+			{ "click": "#draft" },
+			{ "key": "enter" },
+			{ "expect": { "state": "items.length", "is": 2 } }
+		] },
+		{ "name": "removes-an-item", "steps": [
+			{ "click": "#item-remove" },
+			{ "expect": { "state": "items.length", "is": 1 } },
+			{ "expect": { "node": "#item-title", "text": "Write a screen" } }
+		] }
+	]
+}

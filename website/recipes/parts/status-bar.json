@@ -1,0 +1,5 @@
+{
+	"components": {
+		"statusBar": { "node": { "type": "row", "point": "statusBar.right", "height": 30, "color": "#e2e8f0", "alignItems": "center" } }
+	}
+}

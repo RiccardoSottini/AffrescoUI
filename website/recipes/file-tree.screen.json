@@ -1,0 +1,30 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Tree", "width": 400, "height": 300 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": {
+		"files": [
+			{ "id": "src", "children": [{ "id": "ui", "children": ["Button.cpp", "List.cpp"] }, "main.cpp"] },
+			{ "id": "tests", "children": ["list.cpp"] },
+			"README.md"
+		],
+		"open": ["src"],
+		"file": "main.cpp",
+		"opened": ""
+	},
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "tree", "id": "explorer", "width": 220, "height": "100%", "color": "#e2e8f0",
+			  "items": "{{state.files}}", "expanded": "{{state.open}}", "bind": "state.file", "textColor": "#0f172a",
+			  "selectedTextColor": "#0f172a", "selectedBackground": "#ddd6fe", "accentColor": "#7c3aed",
+			  "onExpand": [{ "set": "state.open",
+			                 "to": "{{event.expanded ? concat(state.open, [event.id]) : filter(state.open, it != event.id)}}" }],
+			  "onOpen": [{ "set": "state.opened", "to": "{{event.id}}" }] },
+			{ "type": "label", "id": "status", "x": 232, "y": 16, "width": 152, "height": 48, "wrap": true,
+			  "textColor": "#0f172a", "text": "Selected {{state.file}}. Opened {{state.opened || 'nothing'}}." }
+		]
+	}
+}

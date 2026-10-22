@@ -1,0 +1,21 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Rich text", "width": 420, "height": 160 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "opened": "" },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "label", "id": "intro", "x": 24, "y": 24, "width": 372, "height": 60, "wrap": true,
+			  "textColor": "#0f172a", "selectable": true,
+			  "runs": ["Text can be ", { "text": "bold", "bold": true }, ", ", { "text": "larger", "size": 20 },
+			           ", ", { "text": "coloured", "color": "#7c3aed" }, " or ",
+			           { "text": "a link", "link": "docs" }, "."],
+			  "onLink": [{ "set": "state.opened", "to": "{{event.link}}" }] },
+			{ "type": "label", "id": "opened", "x": 24, "y": 96, "width": 372, "height": 24, "textColor": "#64748b",
+			  "when": "{{!empty(state.opened)}}", "text": "Link pressed: {{state.opened}}" }
+		]
+	}
+}

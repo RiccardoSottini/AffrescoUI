@@ -1,0 +1,34 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "To do", "width": 400, "height": 320 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "draft": "", "items": [{ "title": "Read the format" }, { "title": "Write a screen" }] },
+	"actions": {
+		"add": [
+			{ "if": "{{empty(trim(state.draft))}}", "then": [{ "stop": true }] },
+			{ "push": "state.items", "value": { "title": "{{trim(state.draft)}}" } },
+			{ "set": "state.draft", "to": "" }
+		]
+	},
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "textarea", "id": "draft", "x": 24, "y": 24, "width": 352, "height": 40, "padding": 10, "radius": 8,
+			  "color": "#ffffff", "textColor": "#0f172a", "placeholder": "Add an item and press Enter",
+			  "bind": "state.draft", "onSubmit": "add" },
+			{ "type": "column", "id": "items", "x": 24, "y": 80, "width": 352, "height": 220, "gap": 6, "children": [
+				{ "type": "row", "id": "item", "height": 36, "anchors": { "left": 0, "right": 0 }, "gap": 8,
+				  "repeat": { "for": "item", "in": "state.items", "index": "i" },
+				  "children": [
+					{ "type": "label", "id": "item-title", "grow": 1, "height": 36, "padding": 8, "radius": 6,
+					  "color": "#ffffff", "textColor": "#0f172a", "text": "{{item.title}}" },
+					{ "type": "label", "id": "item-remove", "width": 36, "height": 36, "align": "center", "radius": 6,
+					  "color": "#fee2e2", "textColor": "#b91c1c", "cursor": "hand", "role": "button", "text": "×",
+					  "onClick": [{ "remove": "state.items", "at": "{{i}}" }] }
+				  ] }
+			] }
+		]
+	}
+}

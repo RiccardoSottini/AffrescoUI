@@ -1,0 +1,26 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"window": { "title": "Search", "width": 400, "height": 300 },
+	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": {
+		"query": "",
+		"applied": "",
+		"commands": ["Open file", "Save all", "Toggle side bar", "Format document", "Go to line", "Close editor"]
+	},
+	"computed": { "results": "{{fuzzySort(state.commands, state.applied, null, 5)}}" },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "textarea", "id": "query", "x": 24, "y": 24, "width": 352, "height": 40, "padding": 10, "radius": 8,
+			  "color": "#ffffff", "textColor": "#0f172a", "placeholder": "Search commands", "bind": "state.query",
+			  "onChange": [{ "debounce": 200, "do": [{ "set": "state.applied", "to": "{{state.query}}" }] }] },
+			{ "type": "column", "id": "results", "x": 24, "y": 76, "width": 352, "height": 200, "gap": 4, "children": [
+				{ "type": "label", "id": "result", "repeat": { "for": "match", "in": "computed.results" },
+				  "anchors": { "left": 0, "right": 0 }, "height": 30, "padding": 6, "textColor": "#0f172a",
+				  "text": "{{match.item}}" }
+			] }
+		]
+	}
+}
