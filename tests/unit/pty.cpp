@@ -15,7 +15,13 @@
 #include <thread>
 #include <vector>
 
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 using affresco::json;
+using affresco::services::ChildProcess;
 using affresco::services::Launch;
 using affresco::services::PseudoTerminal;
 using affresco::services::takeTerminalText;
@@ -135,6 +141,26 @@ TEST_CASE("pty: a shell command runs on a terminal of the size asked, and its ou
 	CHECK(output.contains("30 100"));
 	CHECK(output.contains("hello"));
 	CHECK(terminal->wait() == 0);
+}
+
+TEST_CASE("pty: a program started in a terminal or as a child gets none of the host's other descriptors") {
+	// The host's sockets (its peers' connections among them) must not reach a shell or a debug adapter it starts.
+	const int open = ::open("/dev/null", O_RDONLY); // without O_CLOEXEC, like a library's descriptor
+	REQUIRE(open > 2);
+	const std::string probe = "test -e /dev/fd/" + std::to_string(open) + " && echo inherited || echo closed";
+	auto terminal = PseudoTerminal::start(Launch{"/bin/sh", {"-c", probe}, {}, {}}, {80, 24});
+	std::string output;
+	char buffer[256];
+	for(std::size_t count; (count = terminal->read(buffer, sizeof buffer)) > 0;) output.append(buffer, count);
+	CHECK(output.contains("closed"));
+	CHECK(terminal->wait() == 0);
+	const auto child = ChildProcess::start(Launch{"/bin/sh", {"-c", probe}, {}, std::nullopt});
+	output.clear();
+	for(std::ptrdiff_t count; (count = child->read(buffer, sizeof buffer)) > 0;)
+		output.append(buffer, static_cast<std::size_t>(count));
+	CHECK(output == "closed\n");
+	CHECK(child->wait() == 0);
+	::close(open);
 }
 
 TEST_CASE("pty: the provider streams a session's output and takes what is typed") {

@@ -107,7 +107,7 @@ void checkImage(const Session& session, const std::string& file) {
 		const std::size_t look = std::hash<std::string>{}(slide.dump() + std::to_string(width));
 		affresco::Panel* panel = stagePanel(session, id);
 		affresco::Window* window = session.window != nullptr ? session.window : panel != nullptr ? panel->window() : nullptr;
-		if(window == nullptr || session.thumbnails[id] == look) continue;
+		if(panel == nullptr || window == nullptr || session.thumbnails[id] == look) continue; // no stage for it yet
 		const std::shared_ptr<const affresco::Bitmap> image = window->renderToImage(*panel, 200.0f / width);
 		if(!image) continue;
 		session.screen->setImage("thumb-" + id, image);

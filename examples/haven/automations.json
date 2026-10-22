@@ -222,7 +222,7 @@
 								"tracks": "{{computed.scheduleTracks}}",
 								"duration": 24,
 								"fps": 1,
-								"scale": "{{max(16, (window.width - 248 - 64 - 16 - 140) / 24)}}",
+								"pixelsPerSecond": "{{max(16, (window.width - 248 - 64 - 16 - 140) / 24)}}",
 								"offset": 0,
 								"time": 14,
 								"headerWidth": 140,

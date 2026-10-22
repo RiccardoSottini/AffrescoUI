@@ -11,7 +11,7 @@
 		"query": "",
 		"labels": ["urgent", "frontend", "backend", "docs"],
 		"swimlanes": false,
-		"undo": [],
+		"undoStack": [],
 		"today": "2026-03-16",
 		"sprintStart": "2026-03-09",
 		"burndown": [34, 33, 30, 29, 27, 24, 23],
@@ -53,8 +53,8 @@
 	"actions": {
 		"remember": [
 			{ "note": "Keeps the columns before a change, for undoChange (the last 20)" },
-			{ "push": "state.undo", "value": "{{state.columns}}" },
-			{ "if": "{{length(state.undo) > 20}}", "then": [{ "remove": "state.undo", "at": 0 }] }
+			{ "push": "state.undoStack", "value": "{{state.columns}}" },
+			{ "if": "{{length(state.undoStack) > 20}}", "then": [{ "remove": "state.undoStack", "at": 0 }] }
 		],
 		"logActivity": [
 			{ "note": "with: key, title, column. Newest first, the last 30" },
@@ -67,9 +67,9 @@
 		],
 		"undoChange": { "title": "Undo the last change", "category": "Card", "icon": "undo-2",
 			"do": [
-				{ "if": "{{length(state.undo) == 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.nothingToUndo')}}" } }, { "stop": true }] },
-				{ "set": "state.columns", "to": "{{state.undo[length(state.undo) - 1]}}" },
-				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
+				{ "if": "{{length(state.undoStack) == 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.nothingToUndo')}}" } }, { "stop": true }] },
+				{ "set": "state.columns", "to": "{{state.undoStack[length(state.undoStack) - 1]}}" },
+				{ "remove": "state.undoStack", "at": "{{length(state.undoStack) - 1}}" },
 				{ "set": "state.selected", "to": null },
 				{ "run": "logActivity", "with": { "key": "undone", "title": "", "column": "" } },
 				{ "run": "notify", "with": { "message": "{{t('toast.undone')}}" } }

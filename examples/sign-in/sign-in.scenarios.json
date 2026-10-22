@@ -440,7 +440,7 @@
 			]
 		},
 		{
-			"name": "light-theme",
+			"name": "sign-in-light-theme",
 			"note": "The light theme: a white card on a pale background",
 			"steps": [
 				{ "expect": { "state": "theme", "is": "light" } },
@@ -475,7 +475,7 @@
 			]
 		},
 		{
-			"name": "arabic-right-to-left",
+			"name": "sign-in-arabic-right-to-left",
 			"note": "Cmd+L twice switches to Arabic: the texts are Arabic and the layout runs right to left",
 			"steps": [
 				{ "expect": { "node": "#forgot", "property": "x", "is": 575 } },

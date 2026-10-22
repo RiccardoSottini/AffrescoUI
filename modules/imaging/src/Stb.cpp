@@ -95,17 +95,18 @@ std::optional<Decoded> decode(std::span<const std::uint8_t> file, const Header& 
 	if(header.sixteenBit) {
 		stbi_us* data =
 		    stbi_load_16_from_memory(file.data(), *length, &decoded.width, &decoded.height, &channels, STBI_rgb_alpha);
-		if(data == nullptr) return std::nullopt;
-		decoded.bytes16.assign(data, data + pixels * 4);
+		const bool same = data != nullptr && decoded.width == header.width && decoded.height == header.height;
+		if(same) decoded.bytes16.assign(data, data + pixels * 4); // only as many pixels as were decoded
 		stbi_image_free(data);
+		if(!same) return std::nullopt;
 	} else {
 		stbi_uc* data =
 		    stbi_load_from_memory(file.data(), *length, &decoded.width, &decoded.height, &channels, STBI_rgb_alpha);
-		if(data == nullptr) return std::nullopt;
-		decoded.bytes8.assign(data, data + pixels * 4);
+		const bool same = data != nullptr && decoded.width == header.width && decoded.height == header.height;
+		if(same) decoded.bytes8.assign(data, data + pixels * 4);
 		stbi_image_free(data);
+		if(!same) return std::nullopt;
 	}
-	if(decoded.width != header.width || decoded.height != header.height) return std::nullopt;
 	return decoded;
 }
 

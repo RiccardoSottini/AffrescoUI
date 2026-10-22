@@ -302,7 +302,7 @@
 			]
 		},
 		{
-			"name": "palette-runs-a-command",
+			"name": "haven-palette-runs-a-command",
 			"note": "Cmd+K opens the command palette; typing filters it and Enter runs the command",
 			"steps": [
 				{ "key": "mod+k" },

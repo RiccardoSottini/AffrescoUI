@@ -150,7 +150,7 @@ void Connections::setNetwork(network::Network* network) {
 	if(!section_) return;
 	const json section = std::move(*section_);
 	section_.reset();
-	for(const std::string& refused : load(section)) engine_.report("AffrescoUI screen: connections: " + refused);
+	for(const std::string& refused : load(section)) engine_.reportRefused("AffrescoUI screen: connections: " + refused);
 }
 
 void Connections::closeAll() {

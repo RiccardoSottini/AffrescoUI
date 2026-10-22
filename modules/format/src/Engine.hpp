@@ -99,6 +99,11 @@ struct Engine : VersionObserver {
 	/// @brief Logs an error (stderr unless the application set a log sink) and fires onError.
 	/// @param message The error.
 	void report(const std::string& message);
+	/// @brief Reports what a section of the screen can't use: what the host chose not to give (a folder, a program, the
+	/// network, a host to connect to) is logged as information, since the app runs without it and shows it as refused;
+	/// anything else (a declaration that is wrong) is reported as an error.
+	/// @param message What is refused.
+	void reportRefused(const std::string& message);
 	/// @brief Seconds on the window's clock, which its timers read too (a steady clock before build()).
 	/// @return Now.
 	[[nodiscard]] double now() const noexcept;

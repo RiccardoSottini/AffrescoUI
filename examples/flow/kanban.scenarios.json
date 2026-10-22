@@ -227,7 +227,7 @@
 				{ "key": "mod+z" },
 				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
 				{ "expect": { "state": "columns[1].cards.length", "is": 3 } },
-				{ "expect": { "state": "undo.length", "is": 0 } },
+				{ "expect": { "state": "undoStack.length", "is": 0 } },
 				{ "expect": { "state": "activity[0].key", "is": "undone" } },
 				{ "key": "mod+z" },
 				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },

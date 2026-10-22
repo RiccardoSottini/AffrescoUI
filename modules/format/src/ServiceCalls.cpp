@@ -140,12 +140,13 @@ void ServiceCalls::load() {
 	if(!engine_.window) return; // build() loads them first, once the host granted what they use
 	const json& document = engine_.versions.document();
 	for(const std::string& refused : engine_.connections.load(document.value("connections", json())))
-		engine_.report("AffrescoUI screen: connections: " + refused); // nothing when the section didn't change
+		engine_.reportRefused("AffrescoUI screen: connections: " + refused); // nothing when the section didn't change
 	if(!services_) return;
 	const json section = document.contains("services") ? document["services"] : json();
 	if(loaded_ && *loaded_ == section) return;
 	loaded_ = section;
-	for(const std::string& refused : services_->load(section)) engine_.report("AffrescoUI screen: services: " + refused);
+	for(const std::string& refused : services_->load(section))
+		engine_.reportRefused("AffrescoUI screen: services: " + refused);
 	engine_.document.globalsChanged(); // the "services" variable
 }
 

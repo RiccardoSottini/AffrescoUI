@@ -124,19 +124,19 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
-	const std::string card = "root.children[2].children[0].children[0].children[0].children[0].children[3].children[0]";
-	const std::string header = "root.children[0].children[5].children[0]";
+	const std::string card = "root.children[2].children[0].children[2].children[0].children[0].children[4].children[0]";
+	const std::string drawer = "components.cardDrawer.node.children";
 	CHECK(lines(json::parse(text)) ==
 	      std::vector<std::string>{
-	          "actions.moveCard[1].if: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
 	          "actions.moveCard[1].if: unknown variable 'too' (did you mean 'to'?)",
-	          header + ".children[0].style: unknown style 'captoin' (did you mean 'caption'?)",
-	          header + ".children[1].children[0].children[1].text: 'member.nmae' doesn't exist (did you mean "
-	                   "'member.name'?)",
+	          drawer + "[0].children[1].style: unknown style 'captoin' (did you mean 'caption'?)",
+	          drawer + "[12].children[0].label: 'member.nmae' doesn't exist (did you mean 'member.name'?)",
+	          drawer + "[6].children[2].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
+	          "components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].dragging.color: "
+	          "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
 	          "root.children[1].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
-	          card + ".children[5].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
-	          card + ".dragging.color: unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
-	          "root.children[6].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
+	          card + ".children[6].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
+	          "root.children[7].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
 }
 
 TEST_CASE("checker: state paths") {

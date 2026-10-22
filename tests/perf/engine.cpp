@@ -176,7 +176,7 @@ void commitRenames(vcs::Repository& repository) {
 std::vector<Workload> commitWorkloads(const Context& context) {
 	const auto rules = std::make_shared<const format::Rules>();
 	const auto document =
-	    std::make_shared<const json>(json::parse(readFile(context.templateFolder("kanban") / "kanban.screen.json")));
+	    std::make_shared<const json>(screenDocument(context.templateFolder("kanban") / "kanban.screen.json"));
 	const auto repository = std::make_shared<std::unique_ptr<vcs::Repository>>();
 	Workload workload{.name = "commits", .runs = 3, .operations = commitCount};
 	workload.prepare = [rules, document, repository] {

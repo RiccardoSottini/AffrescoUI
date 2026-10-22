@@ -164,3 +164,23 @@ TEST_CASE("format: Escape closes the open overlays when nothing has the focus") 
 	window->render();
 	CHECK(json::parse(screen.stateJson())["open"] == false);
 }
+
+// Modello's and Orrery's screens name a surface their own program registers: in another host (affrescoui_host, the
+// tools) the screen still opens, the surface empty
+TEST_CASE("format: a surface no program registered here shows empty, and the screen opens") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [{ "type": "surface", "id": "view", "fill": 0, "surface": "nowhere" }] }
+	})");
+	CHECK_NOTHROW(screen.build(*window));
+	window->render();
+	CHECK(screen.find("view"));
+	const auto other = createHeadlessWindow(400, 300, clock);
+	affresco::Screen unnamed = affresco::Screen::fromString(R"({
+		"format": "affrescoui-screen", "version": 2,
+		"root": { "id": "root", "children": [{ "type": "surface", "id": "view" }] }
+	})");
+	CHECK_THROWS_AS(unnamed.build(*other), affresco::DocumentError); // names none
+}

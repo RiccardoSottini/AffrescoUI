@@ -64,6 +64,16 @@ template <typename Check> bool addThrowingCheck(json& proof, const std::string& 
 	return addCheck(proof, name, {});
 }
 
+/// @brief A member of an untrusted object that should be text, before anything checked it.
+/// @param object The object, or any other value.
+/// @param key The member's name.
+/// @return The text, or "" if the object has no such member or it isn't text.
+std::string textOf(const json& object, const char* key) {
+	if(!object.is_object()) return "";
+	const auto member = object.find(key);
+	return member != object.end() && member->is_string() ? member->get<std::string>() : "";
+}
+
 /// @brief A proof with nothing checked yet.
 /// @param inputs What it proves.
 /// @return The proof.
@@ -71,11 +81,11 @@ json emptyProof(const ProofInputs& inputs) {
 	const json& manifest = inputs.manifest;
 	json adapter = nullptr;
 	if(!inputs.adapter.is_null())
-		adapter = {{"digest", digestOf(inputs.adapter.dump())}, {"note", inputs.adapter.value("note", "")}};
+		adapter = {{"digest", digestOf(inputs.adapter.dump())}, {"note", textOf(inputs.adapter, "note")}};
 	return {{"format", proofFormat},
 	        {"version", 1},
-	        {"feature", manifest.is_object() ? manifest.value("name", "") : ""},
-	        {"release", manifest.is_object() ? manifest.value("release", "") : ""},
+	        {"feature", textOf(manifest, "name")},
+	        {"release", textOf(manifest, "release")},
 	        {"source", inputs.source},
 	        {"host", inputs.hostName},
 	        {"base", inputs.base},

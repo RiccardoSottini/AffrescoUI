@@ -54,7 +54,7 @@ void describe(cmsHPROFILE profile, const char* name) noexcept {
 /// @brief What a profile's colour space is, or nothing for the unsupported.
 /// @param profile The profile.
 [[nodiscard]] std::optional<ColorModel> modelOf(cmsHPROFILE profile) noexcept {
-	switch(cmsGetColorSpace(profile)) {
+	switch(static_cast<cmsUInt32Number>(cmsGetColorSpace(profile))) {
 	case cmsSigRgbData:
 		return ColorModel::rgb;
 	case cmsSigGrayData:
@@ -91,10 +91,11 @@ void describe(cmsHPROFILE profile, const char* name) noexcept {
 /// @brief Whether a profile's class and connection space are ones we convert through.
 /// @param profile The profile.
 [[nodiscard]] bool usable(cmsHPROFILE profile) noexcept {
-	const cmsProfileClassSignature kind = cmsGetDeviceClass(profile);
+	// Read as numbers: a profile's header may hold any 32 bits, which an enum variable mustn't (undefined behaviour)
+	const cmsUInt32Number kind = cmsGetDeviceClass(profile);
 	const bool device = kind == cmsSigInputClass || kind == cmsSigDisplayClass || kind == cmsSigOutputClass ||
 	                    kind == cmsSigColorSpaceClass;
-	const cmsColorSpaceSignature connection = cmsGetPCS(profile);
+	const cmsUInt32Number connection = cmsGetPCS(profile);
 	return device && (connection == cmsSigXYZData || connection == cmsSigLabData) && modelOf(profile).has_value();
 }
 

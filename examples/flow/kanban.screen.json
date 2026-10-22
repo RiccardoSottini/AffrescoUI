@@ -348,7 +348,7 @@
 			{ "set": "state.boardId", "to": "{{event.value}}" },
 			{ "set": "state.board", "to": "{{find(state.boards, it.id == event.value).label}}" },
 			{ "set": "state.selected", "to": null },
-			{ "set": "state.undo", "to": [], "note": "undo keeps one board's columns" }
+			{ "set": "state.undoStack", "to": [], "note": "undo keeps one board's columns" }
 		],
 		"saveCard": [
 			{ "if": "{{computed.card == null || length(trim(state.edit.title)) == 0}}", "then": [{ "stop": true }] },

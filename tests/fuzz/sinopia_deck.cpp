@@ -36,7 +36,7 @@ bool withinLimits(const sinopia::Deck& deck, const sinopia::DeckLimits& limits) 
 /// @param size Its size.
 /// @return 0.
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
-	const affresco::json value = affresco::json::parse(affresco::fuzz::text(data, size), nullptr, false);
+	const affresco::json value = affresco::fuzz::untrusted(affresco::fuzz::text(data, size));
 	if(value.is_discarded()) return 0;
 	const sinopia::DeckLimits limits;
 	try {

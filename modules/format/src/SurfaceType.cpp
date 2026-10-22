@@ -5,6 +5,7 @@
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
+#include "affresco/core/Log.hpp"
 #include "affresco/render/GpuSurface.hpp"
 
 #include <memory>
@@ -19,15 +20,19 @@ namespace {
 /// @param panel The panel, a SurfaceView.
 /// @param values Its surface, params and continuous, if given.
 /// @param path The node's place, for errors.
-/// @throws DocumentError If it names no surface, or one that isn't registered.
+/// @throws DocumentError If it names no surface. One that isn't registered shows empty, with a note: the screen opens
+/// in a host without the program that draws it (e.g. Modello's screen in affrescoui_host).
 void applySurface(const SurfaceRegistry& surfaces, Panel& panel, const json& values, const std::string& path) {
 	auto* view = dynamic_cast<SurfaceView*>(&panel);
 	if(!view) return;
 	if(!values.contains("surface")) fail(path + ".surface", "a surface node names a surface the host registered");
 	const std::string name = string(values["surface"], path + ".surface");
 	const auto found = surfaces.find(name);
-	if(found == surfaces.end())
-		fail(path + ".surface", "no surface \"" + name + "\" is registered (Screen::registerSurface)");
+	if(found == surfaces.end()) {
+		log(LogLevel::Info, "AffrescoUI screen: " + path + ".surface: \"" + name +
+		                        "\" is drawn by the program that registers it (Screen::registerSurface); empty here");
+		return;
+	}
 	view->setParams(values.contains("params") ? object(values["params"], path + ".params") : json::object());
 	view->setContinuous(values.contains("continuous") && boolean(values["continuous"], path + ".continuous"));
 	view->setSurface(name, found->second.factory, found->second.options);

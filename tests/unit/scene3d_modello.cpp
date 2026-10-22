@@ -33,7 +33,7 @@ json agentPanelRevision() {
 	                    {"font", "small"},
 	                    {"width", "100%"},
 	                    {"height", 22},
-	                    {"text", "Notes: {{len(computed.scene.nodes)}} objects in the scene"}};
+	                    {"text", "Notes: {{length(computed.scene.nodes)}} objects in the scene"}};
 	return {{"author", "agent"},
 	        {"message", "Add a notes panel to the properties"},
 	        {"add", {{"#properties/children/-", panel}}}};

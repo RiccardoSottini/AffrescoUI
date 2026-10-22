@@ -254,9 +254,17 @@ const std::vector<Case> cases = {
     {"{{addDays('not a date', 1)}}", nullptr, {}},
     {"{{isDate('2026-02-30')}}", false, {}},
     // The creative controls' values: tests/unit/creative_controls.cpp has the curves and the colours
+    {"{{curve([[0, 0], [1, 1]], 0.25, 'linear')}}", 0.25, {}},
     {"{{curve(1, 0.5)}}", {}, "test.$curve: expected a list of points or a curves value"},
+    {"{{gradientColor({ kind: 'linear', stops: [{ at: 0, color: '#000000ff' }, { at: 1, color: '#ffffffff' }] }, 1)}}",
+     "#ffffffff", {}},
     {"{{gradientColor('#000000ff', 0)}}", {}, "test.$gradientColor: expected a gradient"},
+    // Forms: tests/unit/form_inputs.cpp has the strengths and the shapes
+    {"{{passwordStrength('').score}}", 0, {}},
+    {"{{isEmail('ada@example.com')}}", true, {}},
+    {"{{isEmail('ada@example')}}", false, {}},
     // Timelines and the locale's: tests/unit/timeline.cpp and tests/unit/i18n.cpp have their values
+    {"{{keyframeValue([{ time: 0, value: 0 }, { time: 2, value: 10 }], 0.5)}}", 2.5, {}},
     {"{{keyframeValue(1)}}", {}, "test.$keyframeValue: expected 2 arguments"},
     {"{{t()}}", {}, "test.$t: expected 1 to 2 arguments"},
     {"{{formatNumber()}}", {}, "test.$formatNumber: expected 1 to 3 arguments"},

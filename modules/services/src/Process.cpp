@@ -278,6 +278,24 @@ int changeDirectory(posix_spawn_file_actions_t& actions, const char* directory) 
 #endif
 }
 
+/// @brief Gives the child only its stdin, stdout and stderr: none of the host's other descriptors (its peers' sockets
+/// among them), close-on-exec or not.
+/// @param actions The file actions, after the dup2s.
+/// @param flags The spawn flags, to which it may add one.
+/// @return 0 or an error number.
+int closeTheRest(posix_spawn_file_actions_t& actions, short& flags) noexcept {
+#ifdef __APPLE__
+	flags |= POSIX_SPAWN_CLOEXEC_DEFAULT; // all but the dup2 targets and those inherited explicitly
+	return posix_spawn_file_actions_addinherit_np(&actions, STDERR_FILENO);
+#elif defined(__GLIBC__) && (__GLIBC__ > 2 || __GLIBC_MINOR__ >= 34)
+	return posix_spawn_file_actions_addclosefrom_np(&actions, STDERR_FILENO + 1);
+#else
+	(void)actions;
+	(void)flags;
+	return 0; // the host's own descriptors are close-on-exec
+#endif
+}
+
 /// @brief The exit code waitpid reported.
 /// @param status Its status.
 /// @return The code, or -1 if a signal ended the child.
@@ -318,9 +336,11 @@ std::unique_ptr<ChildProcess> ChildProcess::start(const Launch& launch) {
 	posix_spawn_file_actions_adddup2(&actions, output[1], STDOUT_FILENO);
 	const std::string directory = launch.directory.string();
 	int problem = directory.empty() ? 0 : changeDirectory(actions, directory.c_str());
+	short flags = POSIX_SPAWN_SETPGROUP;
+	if(problem == 0) problem = closeTheRest(actions, flags);
 	posix_spawnattr_t attributes;
 	posix_spawnattr_init(&attributes);
-	posix_spawnattr_setflags(&attributes, POSIX_SPAWN_SETPGROUP);
+	posix_spawnattr_setflags(&attributes, flags);
 	posix_spawnattr_setpgroup(&attributes, 0);
 
 	std::string program = launch.program.string();

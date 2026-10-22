@@ -302,6 +302,7 @@ folder; the screen document only names the service.
 ### Debug adapters
 
 A debug adapter is an untrusted program. The `dap` provider starts only one the host allowed (`allowProcess`), and
+attaches only to a loopback port the host allowed (`allowAttach`), since whatever listens there can run code. It
 reads what it sends as bounded Content-Length frames: headers of 8 KiB and a message of 4 MiB at most (a larger one
 closes the session), checked JSON, and the lists and texts inside cut to the limits below before the screen sees them.
 Requests wait for their own response with a timeout and can be cancelled; at most 256 wait, and 16 MiB waits to be
@@ -409,7 +410,7 @@ grammar from outside; the `syntax` fuzz target covers them.
 | Who attacks | A peer or a revision that calls a service; a program that misbehaves or was swapped (a language server, a debug adapter, a shell's child); whoever made the folder being searched or watched (file names, `.gitignore` files, contents) |
 | Entry points | `invoke`, `subscribe` and `respond` from the document; what a program writes (frames, lines, terminal output); file names, links and contents in a granted folder |
 | Limits | "Limits" below: the `process`, `fs`, `pty`, `search` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
-| Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs and patterns are fuzzed (`frames`, `search_glob`, `find_pattern`); PCRE2's match limits end catastrophic backtracking |
+| Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs and patterns are fuzzed (`frames`, `search_glob`, `find_pattern`); PCRE2's match limits end catastrophic backtracking |
 | Known gaps | Programs aren't sandboxed (G-02); the terminal's escape-sequence parser isn't fuzzed yet (G-24) |
 
 ### The network
@@ -500,6 +501,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | What | Limit |
 |---|---|
 | JSON nesting of one message from a peer, a revision, a change set or a declared channel, and of a screen file, an include or the state file | 256 levels |
+| A number in that JSON (some C libraries' `strtod` stops the program on certain numbers hundreds of digits long) | 40 characters |
 | The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
 | The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
 | One message on a channel (one line) | 64 MiB; a longer line closes the channel |
