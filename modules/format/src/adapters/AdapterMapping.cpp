@@ -329,37 +329,46 @@ void moveViews(json& provides, const std::string& need, const std::string& point
 	for(auto& [id, node] : views.items()) provides["views"][point][id] = std::move(node);
 }
 
-/// @brief Applies one need's binding to a feature being adapted.
-/// @param name The feature.
-/// @param need The need's name.
-/// @param wanted The need.
-/// @param binding Its binding, or nullptr if the record has none.
+/// @brief One need of a feature being adapted.
+struct NeedOf {
+	const std::string& feature; ///< The feature.
+	const std::string& name;    ///< The need's name.
+	const json& wanted;         ///< The need.
+	std::string kind;           ///< Its kind.
+	std::string place;          ///< Its place, for problems: "features.<feature>.needs.<name>: ".
+};
+
+/// @brief Adapts a feature to a need the app leaves unbound: an optional slot shows nothing, an optional value is
+/// null, and a need that isn't optional is a problem.
+/// @param need The need.
+/// @param adapted The feature being adapted, changed in place.
+void adaptUnbound(const NeedOf& need, AdaptedFeature& adapted) {
+	if(!need.wanted.value("optional", false)) adapted.problems.push_back(need.place + "not bound to the app");
+	else if(need.kind == "slot") moveViews(adapted.provides, need.name, "");
+	else if(need.kind != "action" && need.kind != "capability") adapted.replacements.emplace_back(need.name, "null");
+}
+
+/// @brief Adapts a feature to a need the app binds: its views move to the point, its action runs the app's, and its
+/// value is the app's export or value.
+/// @param need The need.
+/// @param binding Its binding.
 /// @param exports The host's exports.
 /// @param adapted The feature being adapted, changed in place.
-void adaptNeed(const std::string& name, const std::string& need, const json& wanted, const json* binding,
-               const json& exports, AdaptedFeature& adapted) {
-	const std::string kind = wanted.value("kind", "");
-	const std::string place = "features." + name + ".needs." + need + ": ";
-	if(binding == nullptr) {
-		if(!wanted.value("optional", false)) adapted.problems.push_back(place + "not bound to the app");
-		else if(kind == "slot") moveViews(adapted.provides, need, "");
-		else if(kind != "action" && kind != "capability") adapted.replacements.emplace_back(need, "null");
-		return;
-	}
-	std::string why = readsOf(wanted, *binding, exports);
-	if(why.empty() && binding->contains("export") && !exports.contains(binding->value("export", "")))
-		why = "the app exports no '" + binding->value("export", "") + "'";
-	if(!why.empty()) adapted.problems.push_back(place + why);
-	else if(kind == "slot") moveViews(adapted.provides, need, binding->value("point", ""));
-	else if(kind == "action") {
-		if(adaptAction(wanted, *binding, exports, adapted.provides["actions"], need).empty())
-			adapted.problems.push_back(place + "the app exports no action for it");
-		else adapted.replacements.emplace_back(need, name + ".adapted." + need);
-	} else if(kind != "capability") {
+void adaptBound(const NeedOf& need, const json& binding, const json& exports, AdaptedFeature& adapted) {
+	std::string why = readsOf(need.wanted, binding, exports);
+	if(why.empty() && binding.contains("export") && !exports.contains(binding.value("export", "")))
+		why = "the app exports no '" + binding.value("export", "") + "'";
+	if(!why.empty()) adapted.problems.push_back(need.place + why);
+	else if(need.kind == "slot") moveViews(adapted.provides, need.name, binding.value("point", ""));
+	else if(need.kind == "action") {
+		if(adaptAction(need.wanted, binding, exports, adapted.provides["actions"], need.name).empty())
+			adapted.problems.push_back(need.place + "the app exports no action for it");
+		else adapted.replacements.emplace_back(need.name, need.feature + ".adapted." + need.name);
+	} else if(need.kind != "capability") {
 		const std::string text =
-		    binding->contains("export") ? "app." + binding->value("export", "") : binding->value("value", "");
+		    binding.contains("export") ? "app." + binding.value("export", "") : binding.value("value", "");
 		const Placeholders found = placeholders(text);
-		adapted.replacements.emplace_back(need, found.whole ? std::string(found.expressions.front()) : text);
+		adapted.replacements.emplace_back(need.name, found.whole ? std::string(found.expressions.front()) : text);
 	}
 }
 
@@ -420,8 +429,11 @@ AdaptedFeature adaptFeature(const std::string& name, const json& record, const j
 			if(key.starts_with("adapted."))
 				adapted.problems.push_back("features." + name + ".provides.actions." + key +
 				                           ": \"adapted.\" names are the adapter's");
-	for(const json entries = record.value("needs", json::object()); const auto& [need, wanted] : entries.items())
-		adaptNeed(name, need, wanted, bindings.contains(need) ? &bindings[need] : nullptr, exports, adapted);
+	for(const json entries = record.value("needs", json::object()); const auto& [need, wanted] : entries.items()) {
+		const NeedOf of{name, need, wanted, wanted.value("kind", ""), "features." + name + ".needs." + need + ": "};
+		if(bindings.contains(need)) adaptBound(of, bindings[need], exports, adapted);
+		else adaptUnbound(of, adapted);
+	}
 	std::ranges::stable_sort(adapted.replacements, std::ranges::greater{},
 	                         [](const auto& item) { return item.first.size(); });
 	return adapted;
