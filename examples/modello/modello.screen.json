@@ -1444,6 +1444,7 @@
 																"when": "{{computed.graph}}",
 																"type": "row",
 																"id": "graph-ops",
+																"grow": 1,
 																"gap": 2,
 																"alignItems": "center",
 																"children": [
@@ -1571,7 +1572,6 @@
 														"grow": 1,
 														"nodes": "{{computed.graph.nodes}}",
 														"links": "{{computed.graph.links}}",
-														"selected": "{{state.graphSelected}}",
 														"kindColors": { "color": "#f472b6", "float": "#a3e635" },
 														"nodeColor": "@color.raised",
 														"headerColor": "@color.border",
@@ -1918,6 +1918,45 @@
 										"text": "A node graph sets what it links (Materials)."
 									}
 								]
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "review-bar",
+						"when": "{{len(proposals) > 0}}",
+						"width": "100%",
+						"height": 30,
+						"color": "@color.accentSoft",
+						"alignItems": "center",
+						"gap": 8,
+						"children": [
+							{
+								"id": "review-text",
+								"type": "label",
+								"font": "small",
+								"icon": "git-pull-request",
+								"height": 22,
+								"grow": 1,
+								"text": "{{len(proposals) > 0 ? proposals[0].author + ' proposes: ' + proposals[0].message : ''}}"
+							},
+							{
+								"id": "review-accept",
+								"style": "tool",
+								"height": 22,
+								"icon": "check",
+								"text": "Accept",
+								"tooltip": "Apply the proposed change",
+								"onClick": [{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }]
+							},
+							{
+								"id": "review-reject",
+								"style": "tool",
+								"height": 22,
+								"icon": "x",
+								"text": "Reject",
+								"tooltip": "Turn the proposed change down",
+								"onClick": [{ "reject": "{{proposals[0].id}}", "reason": "Rejected in Modello" }]
 							}
 						]
 					},
