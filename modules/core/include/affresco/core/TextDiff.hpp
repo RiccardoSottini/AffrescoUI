@@ -169,6 +169,7 @@ private:
 	};
 
 	/// @brief A search from one end of the ranges.
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): bisect() sets every field
 	struct Front {
 		std::vector<std::ptrdiff_t>* furthest; ///< The furthest x on each diagonal.
 		bool backward;                         ///< From the end.

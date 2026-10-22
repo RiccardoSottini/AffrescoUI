@@ -273,11 +273,11 @@ namespace expect {
 /// for what the returned reference points into.
 /// @param value The value.
 /// @param path Its place, for the error.
-/// @return @p value.
+/// @return @p value itself, so the result lives as long as it does.
 /// @throws DocumentError If it is not an object.
 inline const json& object(const json& value, std::string_view path) {
 	if(!value.is_object()) fail(std::string(path), "expected an object");
-	return value;
+	return value; // NOLINT(bugprone-return-const-ref-from-parameter): returning the value read is the point
 }
 
 /// @brief Reads a number.

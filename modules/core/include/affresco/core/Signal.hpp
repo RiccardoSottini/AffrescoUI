@@ -79,6 +79,7 @@ public:
 
 private:
 	/// @brief A connected slot.
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): connect() sets every field
 	struct Entry {
 		Connection id;    ///< Its id.
 		Slot slot;        ///< The callable.
