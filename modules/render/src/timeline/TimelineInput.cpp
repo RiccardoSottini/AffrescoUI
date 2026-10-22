@@ -17,6 +17,7 @@ namespace affresco {
 
 using timeline::buttonSize;
 using timeline::chevronWidth;
+using timeline::holds;
 using timeline::indentStep;
 using timeline::isGroup;
 using timeline::rulerHeight;
@@ -350,10 +351,13 @@ void TimelineView::mouseButtonEvent(const MouseButtonEvent& event) {
 			}
 		} else if(const auto item = itemAt(point, edge)) {
 			select(pressedSelection(selectedItems_, *item, event.mods.shift()));
-			keyRow_ = rowOf_[item->track];
-			pressedItem_ = *item;
 			drag_ = Drag::None;
-			if(isSelected(*item)) {
+			// The owner may answer the selection with a model that no longer holds the item: then nothing is dragged
+			if(holds(model_, *item)) {
+				keyRow_ = rowOf_[item->track];
+				pressedItem_ = *item;
+			}
+			if(holds(model_, *item) && isSelected(*item)) {
 				findSnapTargets(true);
 				const std::optional<double> trimmed = grabbedEdge(model_, *item, edge);
 				drag_ = !trimmed ? Drag::Items : edge == TimelineEvent::Edge::Start ? Drag::Start : Drag::End;
