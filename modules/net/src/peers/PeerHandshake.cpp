@@ -100,28 +100,39 @@ std::string_view phrase(int status) noexcept {
 	}
 }
 
+/// @brief Whether the fields ask to upgrade to WebSocket.
+/// @param fields The fields.
+bool asksForWebSocket(const Fields& fields) {
+	return fields.upgrade && equalsIgnoringCase(*fields.upgrade, "websocket") && fields.connection &&
+	       hasToken(*fields.connection, "upgrade");
+}
+
+/// @brief Takes the bearer token of an Authorization field into an upgrade.
+/// @param upgrade The upgrade.
+/// @param authorization The field's value.
+/// @return The upgrade with it, or its refusal.
+Upgrade withToken(Upgrade upgrade, std::string_view authorization) {
+	if(authorization.size() < 7 || !equalsIgnoringCase(authorization.substr(0, 7), "bearer "))
+		return refuse(401, "Authorization must be a bearer token");
+	const std::string_view token = trim(authorization.substr(7));
+	if(token.empty() || token.size() > maxTokenBytes) return refuse(401, "the bearer token is empty or too long");
+	upgrade.token = std::string(token);
+	return upgrade;
+}
+
 /// @brief Checks the fields of an upgrade, and takes its key, origin and token.
 /// @param fields The fields.
 /// @return The upgrade, or its refusal.
 Upgrade checkFields(Fields fields) {
 	if(fields.repeated) return refuse(400, "a WebSocket header came twice");
-	if(!fields.upgrade || !equalsIgnoringCase(*fields.upgrade, "websocket") || !fields.connection ||
-	   !hasToken(*fields.connection, "upgrade"))
-		return refuse(426, "this address only takes WebSocket connections");
+	if(!asksForWebSocket(fields)) return refuse(426, "this address only takes WebSocket connections");
 	if(!fields.version || *fields.version != "13") return refuse(426, "only WebSocket version 13 is spoken");
 	if(!fields.key || fields.key->size() != 24) return refuse(400, "Sec-WebSocket-Key is missing or malformed");
 	Upgrade upgrade;
 	upgrade.key = std::move(*fields.key);
 	upgrade.hasOrigin = fields.origin.has_value();
 	upgrade.origin = fields.origin.value_or("");
-	if(fields.authorization) {
-		const std::string_view value = *fields.authorization;
-		if(value.size() < 7 || !equalsIgnoringCase(value.substr(0, 7), "bearer "))
-			return refuse(401, "Authorization must be a bearer token");
-		const std::string_view token = trim(value.substr(7));
-		if(token.empty() || token.size() > maxTokenBytes) return refuse(401, "the bearer token is empty or too long");
-		upgrade.token = std::string(token);
-	}
+	if(fields.authorization) return withToken(std::move(upgrade), *fields.authorization);
 	return upgrade;
 }
 
