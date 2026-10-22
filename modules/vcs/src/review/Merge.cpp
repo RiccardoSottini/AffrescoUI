@@ -66,13 +66,25 @@ std::vector<std::string> idsOf(const json& list) {
 	return ids;
 }
 
+/// @brief The items of a keyed list by id, so that a merge finds each at once, not by searching the list.
+using Items = std::unordered_map<std::string_view, Side>;
+
+/// @brief Indexes the items of a keyed list.
+/// @param list The list; outlives the index.
+/// @return Its items by id.
+Items itemsOf(const json& list) {
+	Items items;
+	for(const json& item : list) items.emplace(*idOf(item), &item);
+	return items;
+}
+
 /// @brief Finds an item of a keyed list.
-/// @param list The list.
+/// @param items The list's items (itemsOf()).
 /// @param id The item's id.
 /// @return The item, or nullptr.
-Side itemOf(const json& list, const std::string& id) {
-	const auto it = std::ranges::find_if(list, [&](const json& item) { return *idOf(item) == id; });
-	return it == list.end() ? nullptr : &*it;
+Side itemOf(const Items& items, const std::string& id) {
+	const auto it = items.find(id);
+	return it == items.end() ? nullptr : it->second;
 }
 
 /// @brief Records a conflict.
@@ -133,15 +145,17 @@ json mergeObject(const json& base, const json& main, const json& proposal, const
 /// @param kept The ids the merge keeps.
 void placeAdded(std::vector<std::string>& order, const std::vector<std::string>& side,
                 const std::unordered_set<std::string>& kept) {
+	std::unordered_set<std::string> placed(order.begin(), order.end()); // what order holds
 	for(std::size_t i = 0; i < side.size(); ++i) {
-		if(!kept.contains(side[i]) || std::ranges::find(order, side[i]) != order.end()) continue;
+		if(!kept.contains(side[i]) || placed.contains(side[i])) continue;
 		auto at = order.begin();
 		for(std::size_t before = i; before-- > 0;)
-			if(const auto it = std::ranges::find(order, side[before]); it != order.end()) {
-				at = it + 1;
+			if(placed.contains(side[before])) {
+				at = std::ranges::find(order, side[before]) + 1;
 				break;
 			}
 		order.insert(at, side[i]);
+		placed.insert(side[i]);
 	}
 }
 
@@ -154,11 +168,13 @@ void placeAdded(std::vector<std::string>& order, const std::vector<std::string>&
 /// @return The ids, in order.
 std::vector<std::string> mergeOrder(const Sides& sides, const std::unordered_set<std::string>& kept,
                                     const std::string& path, json& conflicts) {
+	const std::array<std::unordered_set<std::string_view>, 3> on = {
+	    {{sides[0].begin(), sides[0].end()}, {sides[1].begin(), sides[1].end()}, {sides[2].begin(), sides[2].end()}}};
 	Sides common;
 	for(std::size_t i = 0; i < 3; ++i)
 		std::ranges::copy_if(sides[i], std::back_inserter(common[i]), [&](const std::string& id) {
-			return kept.contains(id) && std::ranges::all_of(sides, [&](const std::vector<std::string>& side) {
-				       return std::ranges::find(side, id) != side.end();
+			return kept.contains(id) && std::ranges::all_of(on, [&](const std::unordered_set<std::string_view>& side) {
+				       return side.contains(id);
 			       });
 		});
 	std::vector<std::string> order = common[1];
@@ -181,13 +197,14 @@ std::vector<std::string> mergeOrder(const Sides& sides, const std::unordered_set
 /// @return The merged list.
 json mergeKeyed(const json& base, const json& main, const json& proposal, const std::string& path, json& conflicts) {
 	const Sides sides = {idsOf(base), idsOf(main), idsOf(proposal)};
+	const std::array<Items, 3> indexed = {itemsOf(base), itemsOf(main), itemsOf(proposal)};
 	std::unordered_map<std::string, json> items;
 	std::unordered_set<std::string> seen, kept;
 	for(const std::vector<std::string>* side : {&sides[1], &sides[2]})
 		for(const std::string& id : *side) {
 			if(!seen.insert(id).second) continue;
 			std::optional<json> item =
-			    mergeValue(itemOf(base, id), itemOf(main, id), itemOf(proposal, id), "#" + id, conflicts);
+			    mergeValue(itemOf(indexed[0], id), itemOf(indexed[1], id), itemOf(indexed[2], id), "#" + id, conflicts);
 			if(!item) continue; // removed
 			items.emplace(id, std::move(*item));
 			kept.insert(id);
