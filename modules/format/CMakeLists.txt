@@ -148,6 +148,9 @@ target_include_directories(affrescoui_format PRIVATE src/updates)
 # src/events/: pointer, keys, focus and shortcuts
 target_sources(affrescoui_format PRIVATE
 	src/events/Events.cpp
+	src/events/EventsPointer.cpp
+	src/events/EventsKeys.cpp
+	src/events/EventsFocus.cpp
 	src/events/Shortcuts.cpp)
 target_include_directories(affrescoui_format PRIVATE src/events)
 # src/steps/: the registry and the step groups
