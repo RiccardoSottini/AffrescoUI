@@ -82,6 +82,13 @@ constexpr KeyReference nodeTable[] = {
 	 "In a `grid`: `{ \"column\": 2, \"row\": 1, \"columnSpan\": 2, \"rowSpan\": 1 }`, counted from 1 (each key "
 	 "optional). Without `column` and `row`, it takes the next free cell, row after row.",
 	 "node"},
+    {"dir", R"json({"description": "Which way its children and text run: ltr, rtl, auto (the locale's) or inherit",
+		"anyOf": [{"enum": ["ltr", "rtl", "auto", "inherit"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Which way its children and text run, inherited: `\"ltr\"`, `\"rtl\"`, `\"auto\"` (the locale's: Arabic and "
+	 "Hebrew are right to left) or `\"inherit\"` (the default; the root is left to right). Right to left mirrors row "
+	 "order, grid columns, left and right anchors, `x`, padding and scrolling, swaps a label's `align` start and end, "
+	 "and draws an icon marked `mirror` mirrored.",
+	 "node"},
     {"color", "color", "Background. Default: light grey for panels, transparent for labels, stacks and controls.",
 	 "look"},
     {"radius",
@@ -257,6 +264,10 @@ constexpr KeyReference nodeTable[] = {
 	 "at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The "
 	 "examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text "
 	 "areas.",
+	 "label"},
+    {"mirror", "flag",
+	 "Right to left (`dir`), draw the icon mirrored: `left` and `right` swap in its name (`\"chevron-left\"` draws "
+	 "`\"chevron-right\"`), when the font has that one. For arrows and chevrons that point the reading way.",
 	 "label"},
     {"runs", R"json({"type": "array", "maxItems": 256, "items": {"oneOf": [{"type": ["string", "number", "boolean"]},
 		{"type": "object", "additionalProperties": false, "properties": {"text": {}, "icon": {"type": "string"},

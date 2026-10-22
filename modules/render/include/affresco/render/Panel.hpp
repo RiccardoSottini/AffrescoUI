@@ -44,6 +44,14 @@ enum class Edge {
 	Right,  ///< Right edge.
 };
 
+/// @brief Which way a panel's children and text run (see Panel::setWritingDirection).
+enum class WritingDirection : std::uint8_t {
+	Inherit,     ///< As its parent; the root runs left to right.
+	LeftToRight, ///< Left to right.
+	RightToLeft, ///< Right to left: children are placed mirrored and text starts at the right.
+	Locale,      ///< As the window's locale (Window::setLocaleRightToLeft()).
+};
+
 /// @brief Where an overlay panel is placed (see Panel::setOverlay).
 enum class Placement {
 	Below,    ///< Under its anchor, left edges aligned.
@@ -279,6 +287,18 @@ public:
 	void setGridCell(GridCell cell);
 	/// @brief The cell it asks for in a Grid.
 	[[nodiscard]] const GridCell& gridCell() const noexcept { return gridCell_; }
+	/// @brief Sets which way its children and text run: right to left, children are placed as left to right and then
+	/// mirrored in it (row order, anchors, padding), scrolling starts at the right, and Start alignment is the right.
+	/// @param direction The direction; Inherit (the default) takes the parent's.
+	void setWritingDirection(WritingDirection direction);
+	/// @brief The direction it was given.
+	[[nodiscard]] WritingDirection writingDirection() const noexcept { return writingDirection_; }
+	/// @brief Whether its children and text run right to left, as of its last layout.
+	[[nodiscard]] bool rightToLeft() const noexcept { return rightToLeft_; }
+	/// @brief An alignment as read in its direction: Start and End swap right to left.
+	/// @param align The alignment, Start meaning where reading starts.
+	/// @return Start meaning the left.
+	[[nodiscard]] Align readingAlign(Align align) const noexcept;
 
 	/* Scrolling */
 
@@ -664,6 +684,8 @@ private:
 	std::optional<Length> basis_;                        ///< See basis().
 	std::optional<CrossAlign> alignSelf_;                ///< See alignSelf().
 	GridCell gridCell_;                                  ///< See gridCell().
+	WritingDirection writingDirection_ = WritingDirection::Inherit; ///< See writingDirection().
+	bool rightToLeft_ = false;                                      ///< See rightToLeft().
 	std::array<std::optional<Length>, 4> anchors_;       ///< Indexed by Edge.
 	std::array<std::optional<AnchorTarget>, 4> targets_; ///< Anchors to other panels, indexed by Edge.
 	std::uint8_t targetEdges_ = 0; ///< A bit per edge (1 << Edge) whose targets_ is set, read on every pass.

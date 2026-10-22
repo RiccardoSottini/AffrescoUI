@@ -266,6 +266,19 @@ void Panel::setAlignSelf(std::optional<CrossAlign> align) { setProperty(alignSel
 
 void Panel::setGridCell(GridCell cell) { setProperty(gridCell_, cell); }
 
+// Every panel below may move, so the whole window is laid out again
+void Panel::setWritingDirection(WritingDirection direction) {
+	if(direction == writingDirection_) return;
+	writingDirection_ = direction;
+	invalidate();
+	if(window_) window_->invalidate();
+}
+
+Align Panel::readingAlign(Align align) const noexcept {
+	if(!rightToLeft_ || align == Align::Center) return align;
+	return align == Align::Start ? Align::End : Align::Start;
+}
+
 /* Scrolling */
 
 void Panel::setScrollable(bool horizontal, bool vertical) {
@@ -429,6 +442,9 @@ void Panel::layout(const Rect& origin, const Rect& clip, Vec2 parentSize, bool p
 	    sameInputs && std::ranges::none_of(children_, [](const auto& child) { return child->layoutDirty_; });
 	laidOut_ = {origin, clip, parentSize, arrangedWidth_, arrangedHeight_, parentShown};
 
+	rightToLeft_ = writingDirection_ == WritingDirection::RightToLeft ||
+	               (writingDirection_ == WritingDirection::Locale && window_ && window_->localeRightToLeft()) ||
+	               (writingDirection_ == WritingDirection::Inherit && parent_ && parent_->rightToLeft_);
 	prepareLayout();
 	if(window_) layoutPass_ = window_->layoutPass_;
 	placeFrame(origin, clip, parentSize, parentShown);
@@ -452,6 +468,14 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 	    alongAxis({top, bottom}, origin.top + y_.resolve(parentSize.y), size_.y, arrangedHeight_.has_value());
 	std::tie(rect.left, rect.right) =
 	    alongAxis({left, right}, origin.left + x_.resolve(parentSize.x), size_.x, arrangedWidth_.has_value());
+	// Right to left: placed as left to right, then mirrored in the parent; content wider than it reaches left, where
+	// scrolling from 0 goes. Edges anchored to another panel are already where it was placed
+	if(parent_ && parent_->rightToLeft_ && !overlay_ &&
+	   (targetEdges_ & (edgeBit(Edge::Left) | edgeBit(Edge::Right))) == 0) {
+		const float width = rect.width();
+		rect.left = 2.0f * origin.left + parentSize.x - rect.right;
+		rect.right = rect.left + width;
+	}
 
 	// A panel anchored on opposite edges is stretched: its real size (what children measure against) comes from them
 	size_ = {std::max(rect.width(), 0.0f), std::max(rect.height(), 0.0f)};

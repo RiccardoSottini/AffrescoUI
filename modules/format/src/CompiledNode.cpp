@@ -63,6 +63,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"basis", Slot::Layout},
     {"alignSelf", Slot::Layout},
     {"cell", Slot::Layout},
+    {"dir", Slot::Layout},
     {"textColor", Slot::TextColor},
     {"padding", Slot::Padding},
     {"wrap", Slot::Wrap},

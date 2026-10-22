@@ -31,6 +31,25 @@ float aligned(Align align, float start, float available, float used) noexcept {
 	return start;
 }
 
+/// @brief An icon's name with "left" and "right" swapped, as it reads right to left.
+/// @param name The name, e.g. "chevron-left".
+/// @return It mirrored, e.g. "chevron-right".
+std::string mirroredIconName(std::string_view name) {
+	std::string mirrored;
+	for(std::size_t i = 0; i < name.size();) {
+		if(name.substr(i).starts_with("left")) {
+			mirrored += "right";
+			i += 4;
+		} else if(name.substr(i).starts_with("right")) {
+			mirrored += "left";
+			i += 5;
+		} else {
+			mirrored += name[i++];
+		}
+	}
+	return mirrored;
+}
+
 } // namespace
 
 Label::Label() { setColor(colors::transparent); }
@@ -64,11 +83,23 @@ void Label::setIcon(std::string name) {
 	invalidate();
 }
 
+void Label::setIconMirrored(bool mirrored) {
+	if(mirrored == iconMirrored_) return;
+	iconMirrored_ = mirrored;
+	shownFont_ = 0;
+	invalidate();
+}
+
 void Label::updateShown() {
 	const Font* f = font();
-	if(icon_.empty() || !f || shownFont_ == f->id()) return;
+	const bool mirrored = iconMirrored_ && rightToLeft();
+	if(icon_.empty() || !f || (shownFont_ == f->id() && shownMirrored_ == mirrored)) return;
+	if(shownMirrored_ != mirrored) ++textVersion_;
+	shownMirrored_ = mirrored;
 	shown_.clear();
-	if(const char32_t codepoint = f->codepointNamed(icon_)) {
+	char32_t codepoint = mirrored ? f->codepointNamed(mirroredIconName(icon_)) : 0;
+	if(!codepoint) codepoint = f->codepointNamed(icon_);
+	if(codepoint) {
 		shown_ += codepoint;
 		if(!text_.empty()) shown_ += U' ';
 	}
@@ -173,7 +204,7 @@ void Label::paint(Painter& painter) const {
 
 void Label::paintLine(Painter& painter, const Font& font, std::u32string_view line, float top) const {
 	const Rect content = contentRect();
-	const float left = aligned(horizontal_, content.left, content.width(), font.measure(line));
+	const float left = aligned(readingAlign(horizontal_), content.left, content.width(), font.measure(line));
 	// Whole pixels keep glyphs sharp: atlas texels map 1:1 onto screen pixels
 	painter.drawText(font, line, {std::round(left), std::round(top + font.ascent())}, textColor_);
 }
@@ -221,12 +252,13 @@ const TextLayout& Label::textLayout() const {
 	if(!f) return layout_;
 	const Rect content = contentRect();
 	const float maxWidth = wrap_ ? content.width() : std::numeric_limits<float>::infinity();
-	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal_, shown().size()};
+	const Align horizontal = readingAlign(horizontal_);
+	const LaidOut key{textVersion_, f->id(), maxWidth, content.width(), horizontal, shown().size()};
 	if(key == laidOut_) return layout_;
 	if(runs_.empty()) {
-		layout_.layOutPlain(shown(), *f, maxWidth, content.width(), horizontal_);
+		layout_.layOutPlain(shown(), *f, maxWidth, content.width(), horizontal);
 	} else {
-		layout_.layOut(runs_, *f, maxWidth, content.width(), horizontal_);
+		layout_.layOut(runs_, *f, maxWidth, content.width(), horizontal);
 	}
 	laidOut_ = key;
 	return layout_;

@@ -29,6 +29,8 @@ struct Font::Data {
 		std::size_t face = 0;                  ///< The face that draws it.
 		hb_script_t script = HB_SCRIPT_COMMON; ///< Its script (Common if it has none of its own, e.g. digits only).
 		bool rightToLeft = false;              ///< Whether it is laid out right to left.
+		bool number = false;                   ///< Digits and the separators between them: always left to right.
+		std::uint8_t level = 0;                ///< Its bidirectional level: odd is right to left (UAX #9).
 	};
 
 	/// @brief Glyphs of one cluster, together: what carets and widths are spread over.
@@ -134,9 +136,14 @@ struct Font::Data {
 	/// @param last The run before it, if any.
 	/// @return The face.
 	[[nodiscard]] std::size_t faceAt(char32_t codepoint, hb_script_t script, bool wantsColor, const Run* last) const;
-	/// @brief Gives each run its direction: its script's, and for a run with no script of its own (spaces,
-	/// punctuation, digits) right to left only between two right-to-left runs. The line itself is left to right.
+	/// @brief Gives each run its bidirectional level and direction, after UAX #9 without explicit embeddings: the
+	/// line runs the way of its first strong character (P2), numbers stay left to right (W7, I1, I2), and a run with no
+	/// script of its own (spaces, punctuation) goes the way of the strong runs on both sides when they agree, else the
+	/// line's way (N1, N2).
 	void resolveDirections() noexcept;
+	/// @brief Splits the runs of a text that has right-to-left runs where numbers start and end.
+	/// @param text The text the runs cover.
+	void splitNumbers(std::u32string_view text);
 	/// @brief Shapes one run with HarfBuzz and appends its glyphs, advances and carets.
 	/// @param run The run.
 	/// @param pen Where it starts; moved past it.

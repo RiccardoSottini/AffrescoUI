@@ -49,6 +49,23 @@ bool hasRightToLeft(hb_unicode_funcs_t* unicode, std::u32string_view text) noexc
 	});
 }
 
+/// @brief Whether a character is a decimal digit, in any script (0-9, Arabic-Indic, ...).
+/// @param unicode HarfBuzz's Unicode data.
+/// @param codepoint The character.
+bool isDigit(hb_unicode_funcs_t* unicode, char32_t codepoint) noexcept {
+	return hb_unicode_general_category(unicode, codepoint) == HB_UNICODE_GENERAL_CATEGORY_DECIMAL_NUMBER;
+}
+
+/// @brief Whether a character goes on a number: a digit, or a separator between two digits (1,234.5; 12:30; ١٢٫٥).
+/// @param unicode HarfBuzz's Unicode data.
+/// @param text The text.
+/// @param index The character's place, after the number's first digit.
+bool continuesNumber(hb_unicode_funcs_t* unicode, std::u32string_view text, std::size_t index) noexcept {
+	if(isDigit(unicode, text[index])) return true;
+	constexpr std::u32string_view separators = U",.:/\u00a0\u202f\u066b\u066c";
+	return separators.contains(text[index]) && index + 1 < text.size() && isDigit(unicode, text[index + 1]);
+}
+
 /// @brief Empties shaped text and sizes it for a text.
 /// @param shaped The shaped text.
 /// @param length The text's code points.
@@ -191,35 +208,84 @@ void Font::Data::shapeRuns(std::u32string_view text, ShapedText& shaped) {
 	codepoints.assign(text.begin(), text.end());
 	itemize(text);
 
-	// Left to right, except that a sequence of right-to-left runs is laid out from its last run to its first
-	float pen = 0.0f;
-	for(std::size_t first = 0; first < runs.size();) {
-		std::size_t end = first + 1;
-		while(runs[first].rightToLeft && end < runs.size() && runs[end].rightToLeft) ++end;
-		for(std::size_t run = end; run > first; --run)
-			shapeRun(runs[runs[first].rightToLeft ? run - 1 : end - run + first], pen, shaped);
-		first = end;
+	// Visual order (L2): from the highest level down to the lowest odd one, each sequence of runs at that level or
+	// higher is reversed
+	std::vector<std::size_t> order(runs.size());
+	for(std::size_t run = 0; run < runs.size(); ++run) order[run] = run;
+	const auto highest = std::ranges::max(runs, {}, &Run::level).level;
+	for(int level = highest; level >= 1; --level) {
+		for(std::size_t first = 0; first < order.size();) {
+			if(runs[order[first]].level < level) {
+				++first;
+				continue;
+			}
+			std::size_t end = first + 1;
+			while(end < order.size() && runs[order[end]].level >= level) ++end;
+			std::reverse(order.begin() + static_cast<std::ptrdiff_t>(first),
+			             order.begin() + static_cast<std::ptrdiff_t>(end));
+			first = end;
+		}
 	}
+	float pen = 0.0f;
+	for(const std::size_t run : order) shapeRun(runs[run], pen, shaped);
 	shaped.width = pen;
 }
 
-void Font::Data::resolveDirections() noexcept {
-	for(Run& run : runs)
-		run.rightToLeft = isOwnScript(run.script) && hb_script_get_horizontal_direction(run.script) == HB_DIRECTION_RTL;
+void Font::Data::splitNumbers(std::u32string_view text) {
+	hb_unicode_funcs_t* unicode = hb_unicode_funcs_get_default();
+	std::vector<Run> split;
+	split.reserve(runs.size());
+	for(const Run& run : runs) {
+		for(std::size_t start = run.start; start < run.end;) {
+			const bool number = isDigit(unicode, text[start]); // a number starts with a digit
+			std::size_t end = start + 1;
+			while(end < run.end && (number ? continuesNumber(unicode, text, end) : !isDigit(unicode, text[end]))) ++end;
+			Run piece = run;
+			piece.start = start;
+			piece.end = end;
+			piece.number = number;
+			if(number) piece.script = HB_SCRIPT_COMMON;
+			split.push_back(piece);
+			start = end;
+		}
+	}
+	runs = std::move(split);
+}
 
-	// A neutral run takes the direction of the strong runs on both sides when they agree. Neutral runs in a row share
-	// both sides, so each is visited once: a text that alternates faces can make one run per character
-	bool before = false; // the direction of the last run with a script of its own
+void Font::Data::resolveDirections() noexcept {
+	const auto strong = [](const Run& run) { return isOwnScript(run.script) && !run.number; };
+	const auto rightToLeftScript = [](const Run& run) {
+		return hb_script_get_horizontal_direction(run.script) == HB_DIRECTION_RTL;
+	};
+	const auto found = std::ranges::find_if(runs, strong);
+	const bool base = found != runs.end() && rightToLeftScript(*found); // P2, P3
+	const auto levelOf = [base](bool rightToLeft) { return static_cast<std::uint8_t>(rightToLeft ? 1 : base ? 2 : 0); };
+
+	// Strong runs and numbers first: rightToLeft holds which way each pulls the neutrals beside it (N1)
+	bool lastStrong = base;
+	for(Run& run : runs) {
+		if(strong(run)) {
+			run.rightToLeft = lastStrong = rightToLeftScript(run);
+			run.level = levelOf(run.rightToLeft);
+		} else if(run.number) {
+			run.rightToLeft = lastStrong; // W7: after a left-to-right run, a number is left to right
+			run.level = static_cast<std::uint8_t>(!base && !lastStrong ? 0 : 2);
+		}
+	}
+	// A neutral run takes the direction of the runs on both sides when they agree. Neutral runs in a row share both
+	// sides, so each is visited once: a text that alternates faces can make one run per character
+	bool before = base;
 	for(std::size_t i = 0; i < runs.size();) {
-		if(isOwnScript(runs[i].script)) {
+		if(strong(runs[i]) || runs[i].number) {
 			before = runs[i++].rightToLeft;
 			continue;
 		}
-		std::size_t after = i; // the next run with a script of its own
-		while(after < runs.size() && !isOwnScript(runs[after].script)) ++after;
-		const bool rightToLeft = before && after < runs.size() && runs[after].rightToLeft;
-		for(; i < after; ++i) runs[i].rightToLeft = rightToLeft;
+		std::size_t after = i;
+		while(after < runs.size() && !strong(runs[after]) && !runs[after].number) ++after;
+		const bool rightToLeft = before == (after < runs.size() ? runs[after].rightToLeft : base) ? before : base;
+		for(; i < after; ++i) runs[i].level = levelOf(rightToLeft);
 	}
+	for(Run& run : runs) run.rightToLeft = run.level % 2 == 1;
 }
 
 void Font::Data::itemize(std::u32string_view text) {
@@ -240,6 +306,7 @@ void Font::Data::itemize(std::u32string_view text) {
 			runs.push_back({i, i + 1, face, isOwnScript(script) ? script : HB_SCRIPT_COMMON});
 		}
 	}
+	if(hasRightToLeft(unicode, text)) splitNumbers(text);
 	resolveDirections();
 }
 

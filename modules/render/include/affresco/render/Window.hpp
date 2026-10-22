@@ -283,6 +283,16 @@ public:
 		++paintGeneration_;
 	}
 
+	/// @brief Sets whether the locale is written right to left, which panels set to WritingDirection::Locale follow.
+	/// @param rightToLeft Whether it is (Arabic, Hebrew).
+	void setLocaleRightToLeft(bool rightToLeft) noexcept {
+		if(rightToLeft == localeRightToLeft_) return;
+		localeRightToLeft_ = rightToLeft;
+		invalidate();
+	}
+	/// @brief Whether the locale is written right to left.
+	[[nodiscard]] bool localeRightToLeft() const noexcept { return localeRightToLeft_; }
+
 	/// @brief Runs a task once the current event has been fully delivered (or before the next frame).
 	///
 	/// Lets event handlers rebuild parts of the UI, even the panel whose handler is running.
@@ -430,6 +440,7 @@ private:
 	bool redrawDirty_ = true;          ///< render() must draw.
 	bool layingOut_ = false;           ///< A layout pass is running.
 	bool layoutAll_ = true;            ///< The next pass lays out every panel (see invalidate()).
+	bool localeRightToLeft_ = false;   ///< See localeRightToLeft().
 	std::uint64_t measureGeneration_ = 0;
 	std::uint64_t treeGeneration_ = 1;  ///< Moves on when panels come, go, move or change id (Panel::treeChanged()).
 	std::uint64_t paintGeneration_ = 0; ///< See detail::Frame::paintGeneration.
