@@ -1,6 +1,7 @@
 /// @file
 /// @brief vcs::Repository's documents: rebuilding a commit's document from the nearest snapshot and the deltas after
-/// it, and blame, which follows a node or a path back through the deltas to the commit that last changed it.
+/// it, blame, which follows a node or a path back through the deltas to the commit that last changed it, and the
+/// revisions that restore or revert a commit.
 
 #include "affresco/vcs/Repository.hpp"
 
@@ -234,6 +235,60 @@ CommitInfo Repository::blame(std::string_view target) const {
 		if(trail.changedBy(commit.delta.is_null() ? worked : commit.delta)) return info(commit);
 	}
 	return info(objects_.at(main_.front())); // unchanged since the screen file
+}
+
+json Repository::restoreRevision(const json& revision, std::string_view author) const {
+	const Commit& target = find(revision);
+	json patch = json::diff(mainDocument(), documentOf(target));
+	if(patch.empty()) fail("restore", "nothing to restore: the screen already looks like " + describe(target));
+	return {{"author", std::string(author)}, {"message", "Restore " + describe(target)}, {"patch", std::move(patch)}};
+}
+
+// The inverse of the commit, refused if a later commit changed any part it touches (a revert never guesses)
+json Repository::revertRevision(const json& revision, std::string_view author) const {
+	const Commit& target = find(revision);
+	if(std::ranges::find(main_, target.id) == main_.end()) fail("revert", describe(target) + " is not on main");
+	if(target.parents.empty()) fail("revert", "revision 0 is the screen as loaded: there is nothing to revert");
+
+	const json then = documentOf(target);
+	json patch = json::diff(then, documentOf(objects_.at(target.parents.front())));
+	checkDocumentRevert(target, then, patch);
+	const json undo = stateRevert(target); // the live state too, when the commit changed it in this run
+	if(patch.empty() && undo.empty())
+		fail("revert", "nothing to revert: " + describe(target) +
+		                   " changed neither the document nor, in this run, the live state");
+	patch.insert(patch.end(), undo.begin(), undo.end());
+	return {
+	    {"author", std::string(author)}, {"message", "Revert \"" + target.message + "\""}, {"patch", std::move(patch)}};
+}
+
+void Repository::checkDocumentRevert(const Commit& target, const json& then, const json& patch) const {
+	const json& head = mainDocument();
+	auto same = [&](const std::string& pointer) {
+		const json *now = detail::locate(head, pointer), *before = detail::locate(then, pointer);
+		return now && before ? *now == *before : now == before;
+	};
+	for(const json& op : patch) {
+		const json::json_pointer path(op["path"].get<std::string>());
+		std::string checked = path.to_string();
+		const json* container = detail::locate(then, path.parent_pointer().to_string());
+		if(!path.empty() && (path.back() == "-" || (container && container->is_array())))
+			checked = path.parent_pointer().to_string();
+
+		// The part must be as the commit left it, inside the same nodes
+		bool unchanged = same(checked);
+		for(json::json_pointer prefix(checked); unchanged && !prefix.empty(); prefix = prefix.parent_pointer()) {
+			const json* node = detail::locate(then, prefix.to_string());
+			if(node && node->is_object() && node->contains("id")) unchanged = same(prefix.to_string() + "/id");
+		}
+		if(!unchanged)
+			fail("revert", "conflict: " + (checked.empty() ? std::string("the screen") : checked) + " changed after " +
+			                   describe(target) + "; restore an earlier revision instead");
+	}
+}
+
+json Repository::diff(const json& from, const json& to) const {
+	return json::diff(documentOf(find(from)), documentOf(find(to)));
 }
 
 } // namespace affresco::vcs

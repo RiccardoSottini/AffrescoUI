@@ -129,9 +129,10 @@ const affresco::RevisionResult result = repository.submit(affresco::parseUntrust
 ```
 
 **Add a field to commits or proposals.** Add it to `CommitInfo` or `ProposalInfo` (`core/VersionControl.hpp`) and to
-its protocol JSON there; fill it in `Repository.cpp`. If it is part of what a commit is, it changes the hash: ask the
-maintainer first, because existing histories on disk would no longer load.
+its protocol JSON there; fill it in `Repository.cpp` (commits) or `RepositoryProposals.cpp` (proposals). If it is
+part of what a commit is, it changes the hash: ask the maintainer first, because existing histories on disk would no
+longer load.
 
-**Add a permission behaviour.** Rules are judged in `Repository::evaluate` (`Repository.cpp`) using
+**Add a permission behaviour.** Rules are judged in `Repository::evaluate` (`PolicyRepository.cpp`) using
 `Permissions.cpp`. Changes to who may do what touch the security model: ask first, update `VERSION_CONTROL.md` and
 `SECURITY.md`, and add unit tests to `tests/unit/vcs.cpp`.

@@ -2,14 +2,17 @@
 affrescoui_module(vcs
 	# revisions: the repository's commits, what a revision changes, and the size limits on it
 	src/revisions/Repository.cpp
+	src/revisions/Revisions.cpp
 	src/revisions/RepositoryDocuments.cpp
 	src/revisions/Deltas.cpp
 	src/revisions/Budget.cpp
-	# history: the history on disk (snapshots, refs, packs) and loading it back
+	# history: the history on disk (snapshots, refs, packs) and loading it back, the log and change sets
 	src/history/RepositoryHistory.cpp
+	src/history/RepositoryChanges.cpp
 	src/history/HistoryStore.cpp
 	# review: proposals, the three-way merge and repairing change sets
 	src/review/RepositoryReview.cpp
+	src/review/RepositoryProposals.cpp
 	src/review/Merge.cpp
 	src/review/ChangeSetRepair.cpp
 	# permissions: permission rules, data policies and roles

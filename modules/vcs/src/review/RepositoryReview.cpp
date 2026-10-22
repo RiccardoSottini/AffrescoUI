@@ -219,4 +219,11 @@ std::vector<Grant> Repository::grants() const {
 	return active;
 }
 
+bool Repository::revokeGrant(std::string_view rule) {
+	if(std::erase_if(grants_, [&](const Grant& g) { return g.rule == rule; }) == 0) return false;
+	saveHistory();
+	onReviewChanged();
+	return true;
+}
+
 } // namespace affresco::vcs
