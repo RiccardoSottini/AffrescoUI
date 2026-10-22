@@ -208,13 +208,14 @@ TEST_CASE("change set repair: the Blocked column applies on the template it was 
 
 TEST_CASE("change set repair: the template changes, the fake agent repairs it, the reviewer accepts") {
 	ThreadedExecutor executor;
+	// The channels first: a connected channel must outlive the screen, which says goodbye on it when it closes
+	affresco::test::MemoryChannel studio;
+	const std::string agentScript = (screens() / "../../../tests/repair/fake_agent.py").string();
+	affresco::channel::ProcessChannel agent(executor, "python3 \"" + agentScript + "\"");
 	affresco::Screen screen = affresco::Screen::fromString(kanban(renameDone).dump(), screens());
 	screen.setProofCheck(playProof);
 	screen.versions().setMode(affresco::Mode::AcceptEdits); // a repair is reviewed even so
-	affresco::test::MemoryChannel studio;
 	screen.connect(studio, "studio");
-	const std::string agentScript = (screens() / "../../../tests/repair/fake_agent.py").string();
-	affresco::channel::ProcessChannel agent(executor, "python3 \"" + agentScript + "\"");
 	screen.connect(agent, "agent");
 	const json before = screen.versions().state();
 
