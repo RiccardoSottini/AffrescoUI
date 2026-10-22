@@ -215,3 +215,33 @@ TEST_CASE("format: control steps inside each other are compared whole, at the co
 	CHECK_THROWS_WITH_AS(rules.checkChange(before, nested({{"accept", 1}})), doctest::Contains("permission denied"),
 	                     affresco::DocumentError); // and so is a control step added there
 }
+
+// Each round scanned every action (and component) again, to add the next link of a chain: 3000 actions that run each
+// other took 11 s at each revision
+TEST_CASE("format: actions and components that run each other in a long chain are found at the cost of the chain" *
+          doctest::timeout(5)) {
+	json before = screenWithActions();
+	const int links = 3000;
+	for(int i = 0; i < links; ++i)
+		before["actions"]["link" + std::to_string(i)] = json::array({{{"run", "link" + std::to_string(i + 1)}}});
+	before["actions"]["link" + std::to_string(links)] = json::array({{{"run", "approve"}}});
+	before["components"]["part0"] = json::parse(R"({"node": {"type": "panel", "onClick": "{{act}}"}})");
+	for(int i = 1; i < 1000; ++i)
+		before["components"]["part" + std::to_string(i)] = {
+		    {"node", {{"use", "part" + std::to_string(i - 1)}, {"with", {{"act", "{{act}}"}}}}}};
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before));
+	for(const char* node : {R"({"type": "panel", "onClick": "link0"})", // runs approve at the end of the chain
+	                        R"({"use": "part999", "with": {"act": "{{state.p}}"}})"}) { // a computed run at its end
+		CAPTURE(node);
+		json after = before;
+		after["root"]["children"][0]["children"] = json::array({json::parse(node)});
+		CHECK_THROWS_WITH_AS(rules.checkChange(before, after), doctest::Contains("permission denied"),
+		                     affresco::DocumentError);
+	}
+	json harmless = before; // a chain that ends in an action that changes only the screen may be run
+	harmless["actions"]["link" + std::to_string(links)] = json::array({{{"run", "refresh"}}});
+	json after = harmless;
+	after["root"]["children"][0]["children"] = json::array({json::parse(R"({"type": "panel", "onClick": "link0"})")});
+	CHECK_NOTHROW(rules.checkChange(harmless, after));
+}

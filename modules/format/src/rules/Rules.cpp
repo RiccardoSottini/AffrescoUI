@@ -4,6 +4,7 @@
 #include "affresco/format/NodeIds.hpp"
 
 #include "Checker.hpp"
+#include "CheckerShapes.hpp"
 #include "Composition.hpp"
 #include "ContributionPoints.hpp"
 #include "SectionRegistry.hpp"
@@ -15,6 +16,7 @@
 #include <array>
 #include <cctype>
 #include <functional>
+#include <map>
 #include <set>
 #include <utility>
 
@@ -133,7 +135,19 @@ public:
 	[[nodiscard]] bool mayControl(const json& target) const {
 		if(!target.is_string()) return true;
 		const auto& name = target.get_ref<const std::string&>();
-		return name.contains("{{") || !actions_.is_object() || !actions_.contains(name) || control_.contains(name);
+		if(name.contains("{{") || !actions_.is_object() || !actions_.contains(name) || control_.contains(name))
+			return true;
+		if(askedActions_) askedActions_->push_back(name);
+		return false;
+	}
+
+	/// @brief Has the scan note the names it found not to run control steps, whose joining would change what it finds:
+	/// the actions it runs, and the document's components it uses.
+	/// @param actions Gets those actions; nullptr for none.
+	/// @param components Gets those components; nullptr for none.
+	void note(std::vector<std::string>* actions, std::vector<std::string>* components) const {
+		askedActions_ = actions;
+		askedComponents_ = components;
 	}
 
 	/// @brief Scans a value.
@@ -190,7 +204,10 @@ private:
 		const auto use = node.find("use");
 		if(use == node.end() || !use->is_string()) return false;
 		const auto& used = use->get_ref<const std::string&>();
-		if(!runners_.contains(used)) return false;
+		if(!runners_.contains(used)) {
+			if(askedComponents_ && components_.contains(used)) askedComponents_->push_back(used);
+			return false;
+		}
 		const auto with = node.find("with");
 		const json& parameters = with != node.end() ? *with : json();
 		if(const auto own = components_.find(used); own != components_.end()) {
@@ -241,7 +258,41 @@ private:
 	mutable std::size_t depth_ = 0;        ///< How many uses of the document's components are being expanded.
 	mutable std::size_t expansions_ = 0;   ///< How many more the use being scanned may be expanded through.
 	mutable bool dumped_ = false;          ///< Whether the value being scanned is inside a control step's text.
+	mutable std::vector<std::string>* askedActions_ = nullptr;    ///< Gets the actions found not to control.
+	mutable std::vector<std::string>* askedComponents_ = nullptr; ///< Gets the components found not to run actions.
 };
+
+/// @brief Grows a set to the names that join it: those that do on their own, and those that do once others have.
+/// Each is scanned once, then again only when a name its scan depended on joins, so a chain of N costs N scans, not
+/// N rounds of N (it took seconds for a few thousand actions).
+/// @param candidates The names that may join.
+/// @param members The set, which the scans read: it gets the names that join.
+/// @param joins Scans a name against the set: whether it joins, noting in its second parameter the names not in the
+/// set it depended on.
+template <typename Joins>
+void grow(const std::vector<std::string>& candidates, std::set<std::string>& members, Joins joins) {
+	std::map<std::string, std::set<std::string>> waiting; // a name, and the candidates whose scan depended on it
+	std::vector<std::string> joined;
+	const auto consider = [&](const std::string& name) {
+		std::vector<std::string> asked;
+		if(!joins(name, asked)) {
+			for(std::string& other : asked) waiting[std::move(other)].insert(name);
+		} else if(members.insert(name).second) {
+			joined.push_back(name);
+		}
+	};
+	for(const std::string& name : candidates)
+		if(!members.contains(name)) consider(name);
+	while(!joined.empty()) {
+		const auto it = waiting.find(joined.back());
+		joined.pop_back();
+		if(it == waiting.end()) continue;
+		const std::set<std::string> waiters = std::move(it->second);
+		waiting.erase(it);
+		for(const std::string& waiter : waiters)
+			if(!members.contains(waiter)) consider(waiter);
+	}
+}
 
 /// @brief The components that run the actions their parameters name: the built-in ones, and the document's own that
 /// hold a way to run a control step (a computed "run", say) or use such a component with computed parameters.
@@ -254,18 +305,13 @@ std::set<std::string> runningComponents(const json& doc, const std::set<std::str
 	if(components == doc.end() || !components->is_object()) return runners;
 	static const json none;
 	const auto actions = doc.find("actions");
-	for(bool grew = true; grew;) { // until no component joins: a chain of uses takes one round per link
-		grew = false;
-		const ControlScan scan(actions != doc.end() ? *actions : none, control, runners, *components);
-		for(const auto& [name, component] : components->items()) {
-			if(runners.contains(name)) continue;
-			std::vector<std::string> found;
-			scan.walk(component, name, Part::Steps, found);
-			if(found.empty()) continue;
-			runners.insert(name);
-			grew = true;
-		}
-	}
+	const ControlScan scan(actions != doc.end() ? *actions : none, control, runners, *components);
+	grow(checker::keysOf(*components), runners, [&](const std::string& name, std::vector<std::string>& asked) {
+		scan.note(nullptr, &asked);
+		std::vector<std::string> found;
+		scan.walk((*components)[name], name, Part::Steps, found);
+		return !found.empty();
+	});
 	return runners;
 }
 
@@ -278,19 +324,16 @@ std::set<std::string> controlActions(const json& doc, const std::set<std::string
 	std::set<std::string> control;
 	if(!doc.contains("actions") || !doc["actions"].is_object()) return control;
 	const json& actions = doc["actions"];
-	static const json none;        // actions use no component
-	for(bool grew = true; grew;) { // until no action joins: a chain of runs takes one round per link
-		grew = false;
-		const ControlScan scan(actions, control, runningBuiltInNames(), none);
-		for(const auto& [name, steps] : actions.items()) {
-			if(control.contains(name) || granted.contains(name)) continue;
-			std::vector<std::string> found;
-			scan.walk(steps, name, Part::Steps, found);
-			if(found.empty()) continue;
-			control.insert(name);
-			grew = true;
-		}
-	}
+	static const json none; // actions use no component
+	const ControlScan scan(actions, control, runningBuiltInNames(), none);
+	std::vector<std::string> candidates = checker::keysOf(actions);
+	std::erase_if(candidates, [&](const std::string& name) { return granted.contains(name); });
+	grow(candidates, control, [&](const std::string& name, std::vector<std::string>& asked) {
+		scan.note(&asked, nullptr);
+		std::vector<std::string> found;
+		scan.walk(actions[name], name, Part::Steps, found);
+		return !found.empty();
+	});
 	return control;
 }
 
