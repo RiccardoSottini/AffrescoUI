@@ -145,6 +145,14 @@ public:
 	/// @return The window.
 	/// @throws ScreenError If the screen can't be built.
 	Window& createWindow(Application& app);
+	/// @brief Creates a second window from the "window" section, sharing another window's OpenGL context and default
+	/// font (Application::createWindow()), then builds the screen into it: one screen per window, e.g. a presenter's
+	/// audience view next to the screen that drives it (SCREEN_FORMAT.md, "Second windows").
+	/// @param app The application that owns both windows.
+	/// @param sharing The window whose context and font it shares.
+	/// @return The window.
+	/// @throws ScreenError If the screen can't be built.
+	Window& createWindow(Application& app, const Window& sharing);
 
 	/// @brief Builds the screen into an embedding's window, inside the host's OpenGL context: its slow calls,
 	/// services and channels post their results to the embedding, which runs them on the host's thread.

@@ -6,7 +6,8 @@ add_library(affrescoui
 	src/ProposalEvidence.cpp
 	src/Inspector.cpp
 	src/Png.cpp
-	src/EmbeddedScreen.cpp)
+	src/EmbeddedScreen.cpp
+	src/SecondWindow.cpp)
 add_library(affrescoui::affrescoui ALIAS affrescoui)
 target_include_directories(affrescoui PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/screen/include>)
 set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)

@@ -46,6 +46,7 @@ affrescoui_module(render
 	src/layout/Grid.cpp
 	src/TextArea.cpp
 	src/Window.cpp
+	src/WindowImage.cpp
 	src/Headless.cpp
 	src/GeometryCache.cpp
 	src/PaintRecorder.cpp
