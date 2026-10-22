@@ -246,6 +246,11 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		rules_.validate(upgraded);
 		return rebuilt;
 	});
+	// A proposal's head is merged when main moves: checked now, as main's is, so a damaged one can't fail then
+	for(const Proposal& proposal : refs.proposals) {
+		const Commit& tip = objects.at(proposal.head);
+		static_cast<void>(reading(store.objectFile(tip.id), [&] { return rebuild(objects, tip); }));
+	}
 
 	// All read and checked: put it in place, and back if the observer can't show it
 	json state = document.contains("state") ? document["state"] : json::object();

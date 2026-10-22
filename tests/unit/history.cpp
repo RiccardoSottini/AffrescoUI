@@ -407,6 +407,36 @@ TEST_CASE("vcs: a history whose delta was damaged is never loaded, and the error
 	CHECK(second.document() == permissionsScreen());
 }
 
+// Before, only main's head was checked: a damaged proposal head loaded, and failed when main moved, after main had
+TEST_CASE("vcs: a history whose proposal's delta was damaged is never loaded, and the error names its file") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	std::string head;
+	{
+		Repository first(rules, permissionsScreen());
+		first.openHistory(history);
+		fill(first);
+		head = first.proposals().back().head; // the open proposal's, rebuilt from its parent's document
+	}
+
+	const std::filesystem::path damaged = objectFile(history, head);
+	json commit = json::parse(readText(damaged));
+	REQUIRE(commit.at("delta").size() == 1);
+	REQUIRE(commit["delta"][0].at("value") == "#00ff00");
+	commit["delta"][0]["value"] = "#00ff01"; // still a delta that applies: only the head's tree can tell
+	writeText(damaged, commit.dump());
+
+	Repository second(rules, permissionsScreen());
+	CHECK_THROWS_WITH_AS(second.openHistory(history),
+	                     doctest::Contains(("AffrescoUI history: " + damaged.string() + ": commit " + head +
+	                                        ": its deltas don't give the document its id names")
+	                                           .c_str()),
+	                     affresco::DocumentError);
+	CHECK(second.head().number == 0); // nothing was loaded
+	CHECK(second.proposals().empty());
+}
+
 TEST_CASE("vcs: a whole history whose last revision can't be shown isn't loaded, and isn't called damaged") {
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;
