@@ -195,7 +195,8 @@ void GlfwWindow::connect(Window& window) {
 	glfwSetDropCallback(handle_, [](GLFWwindow* native, int count, const char** paths) {
 		double x = 0.0, y = 0.0;
 		glfwGetCursorPos(native, &x, &y);
-		DropEvent event{std::vector<std::string>(paths, paths + count), {static_cast<float>(x), static_cast<float>(y)}};
+		const DropEvent event{std::vector<std::string>(paths, paths + count),
+		                      {static_cast<float>(x), static_cast<float>(y)}};
 		dropped(owner(native), event);
 	});
 	glfwSetWindowContentScaleCallback(handle_,
