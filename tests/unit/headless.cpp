@@ -15,6 +15,7 @@
 #include <vector>
 
 using affresco::Action;
+using affresco::CharEvent;
 using affresco::Edge;
 using affresco::MouseButton;
 using affresco::Panel;
@@ -289,6 +290,16 @@ TEST_CASE("render: a drop leaves out the paths a screen can't take, and too many
 	window->routeDrop({std::vector<std::string>(5000, "/f"), {}});
 	REQUIRE(drops.size() == 2);
 	CHECK(drops[1].size() == 4096);
+}
+
+TEST_CASE("render: a typed codepoint that is no character is dropped") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	std::vector<char32_t> typed;
+	window->onChar.connect([&](const CharEvent& event) { typed.push_back(event.codepoint); });
+	for(const char32_t codepoint : {U'a', char32_t{0xD800}, char32_t{0xDFFF}, char32_t{0x110000}, U'\U0010FFFF'})
+		window->routeChar({codepoint});
+	CHECK(typed == std::vector<char32_t>{U'a', U'\U0010FFFF'});
 }
 
 TEST_CASE("render: a paste reads at most 64 MiB of the clipboard, and never half a character") {

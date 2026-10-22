@@ -66,6 +66,9 @@ void Window::routeKey(const KeyEvent& event) {
 }
 
 void Window::routeChar(const CharEvent& event) {
+	// A surrogate or a codepoint past U+10FFFF is no character: no keyboard types one, and UTF-8 can't hold it
+	const char32_t codepoint = event.codepoint;
+	if((codepoint >= 0xD800U && codepoint <= 0xDFFFU) || codepoint > 0x10FFFFU) return;
 	++routing_;
 	if(focused_ && focused_->isShown()) focused_->charEvent(event);
 	onChar(event);

@@ -247,7 +247,7 @@ public:
 	/// @param event The event.
 	void routeKey(const KeyEvent& event);
 	/// @brief Delivers a typed character to the focused panel, then onChar.
-	/// @param event The event.
+	/// @param event The event; one that is no Unicode character (a surrogate, or past U+10FFFF) is dropped.
 	void routeChar(const CharEvent& event);
 	/// @brief Updates the hovered panel and delivers the move to the grabbing or hovered panel, then onMouseMove.
 	/// @param position The pointer position.
