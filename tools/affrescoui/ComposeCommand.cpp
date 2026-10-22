@@ -28,7 +28,9 @@ namespace {
 class QuietLog {
 public:
 	/// @brief Silences the log.
-	QuietLog() { setLogSink([](LogLevel, std::string_view) {}); }
+	QuietLog() {
+		setLogSink([](LogLevel, std::string_view) {});
+	}
 	/// @brief Puts the default log back.
 	~QuietLog() { setLogSink({}); }
 	QuietLog(const QuietLog&) = delete;
@@ -79,7 +81,8 @@ json partsOf(const std::filesystem::path& screen) {
 	if(!std::filesystem::is_directory(folder)) return parts;
 	std::vector<std::filesystem::path> files;
 	for(const auto& entry : std::filesystem::directory_iterator(folder))
-		if(std::filesystem::is_regular_file(entry.path() / "feature.json")) files.push_back(entry.path() / "feature.json");
+		if(std::filesystem::is_regular_file(entry.path() / "feature.json"))
+			files.push_back(entry.path() / "feature.json");
 	std::ranges::sort(files);
 	for(const std::filesystem::path& file : files) try {
 			const json manifest = readUntrusted(file);
@@ -119,10 +122,8 @@ std::string featureScenarios(const json& manifest, const std::filesystem::path& 
 	json list = manifest.value("scenarios", json());
 	if(list.is_object()) list = list.value("scenarios", json());
 	if(!list.is_array() || list.empty()) return {};
-	return json{{"format", "affrescoui-scenarios"},
-	            {"version", 2},
-	            {"screen", screen.filename().string()},
-	            {"scenarios", list}}
+	return json{
+	    {"format", "affrescoui-scenarios"}, {"version", 2}, {"screen", screen.filename().string()}, {"scenarios", list}}
 	    .dump();
 }
 
@@ -161,7 +162,8 @@ std::filesystem::path hostScenariosOf(const Arguments& arguments, const std::fil
 	if(const std::optional<std::string> given = arguments.value("--scenarios"))
 		return *given == "none" ? std::filesystem::path() : std::filesystem::path(*given);
 	std::string name = screen.filename().string();
-	if(const std::size_t at = name.find(".screen.json"); at != std::string::npos) name.replace(at, 12, ".scenarios.json");
+	if(const std::size_t at = name.find(".screen.json"); at != std::string::npos)
+		name.replace(at, 12, ".scenarios.json");
 	const std::filesystem::path beside = screen.parent_path() / name;
 	return name != screen.filename().string() && std::filesystem::is_regular_file(beside) ? beside
 	                                                                                      : std::filesystem::path();
@@ -178,10 +180,12 @@ std::string sourceOf(const std::filesystem::path& feature) {
 } // namespace
 
 Exit listContributions(std::span<const std::string_view> args) {
+	static constexpr std::array<std::string_view, 1> valued = {"--document"};
 	static constexpr std::array<std::string_view, 1> flags = {"--json"};
-	const Arguments arguments(args, {}, flags);
+	const Arguments arguments(args, valued, flags);
 	const std::filesystem::path file = arguments.file();
-	const json contributions = format::contributionsOf(loadDocument(file, readFile(file)), partsOf(file));
+	const std::string text = readFile(arguments.value("--document").value_or(file.string()));
+	const json contributions = format::contributionsOf(loadDocument(file, text), partsOf(file));
 	if(arguments.flag("--json")) std::cout << contributions.dump() << '\n';
 	else std::cout << format::contributionsText(contributions);
 	return Exit::Success;
@@ -200,7 +204,8 @@ Exit checkComposition(std::span<const std::string_view> args, const std::functio
 	format::ProofInputs inputs;
 	inputs.host = loadDocument(screen, readFile(arguments.value("--document").value_or(screen.string())));
 	inputs.manifest = readUntrusted(feature);
-	if(const std::optional<std::string> adapter = arguments.value("--adapter")) inputs.adapter = readUntrusted(*adapter);
+	if(const std::optional<std::string> adapter = arguments.value("--adapter"))
+		inputs.adapter = readUntrusted(*adapter);
 	inputs.source = arguments.value("--source").value_or(sourceOf(feature));
 	inputs.hostName = "app:" + std::filesystem::absolute(screen).parent_path().filename().string();
 	inputs.base = arguments.value("--base").value_or("");
@@ -211,7 +216,8 @@ Exit checkComposition(std::span<const std::string_view> args, const std::functio
 	const bool passed = proven.proof.value("passed", false) == true;
 	if(const std::optional<std::string> revision = arguments.value("--revision"); revision && passed)
 		writeFile(*revision,
-		          vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, "features", inputs.host).dump(1, '\t'));
+		          vcs::compositionRevision(proven.proof.value("feature", ""), proven.record, "features", inputs.host)
+		              .dump(1, '\t'));
 	if(arguments.flag("--json")) std::cout << proven.proof.dump() << '\n';
 	else
 		for(const std::string& line : format::proofReasons(proven.proof)) std::cout << line << '\n';

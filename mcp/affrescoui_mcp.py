@@ -659,9 +659,13 @@ TOOLS = [
      "description": "What an app offers to features from other apps, and what it can install: its contribution "
                     "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
                     "surfaces, images) and the installable parts it ships (each one's needs and provides), one line "
-                    "each. Without file, the running screen; with file, another app's screen file (e.g. "
-                    "\"examples/sinopia/sinopia.screen.json\"), to pick a part to install from it.",
-     "inputSchema": object_schema({"file": {"type": "string", "description": "An app's *.screen.json (optional)"}}),
+                    "each. file is an app's screen file: another app's (e.g. "
+                    "\"examples/sinopia/sinopia.screen.json\"), to pick a part to install from it, or the running "
+                    "app's with running=true, to read the running document's.",
+     "inputSchema": object_schema({"file": {"type": "string", "description": "An app's *.screen.json"},
+                                   "running": {"type": "boolean",
+                                               "description": "The running document, with file's folder"}},
+                                  ["file"]),
      "annotations": {"readOnlyHint": True}},
     {"name": "check_composition",
      "description": "Prove that a feature from another app fits the running screen: binds its needs to the "
@@ -1069,16 +1073,17 @@ class Server:
 
     def get_contributions(self, args):
         """An app's contribution points, exports and installable parts, as affrescoui contributions prints them."""
+        screen = repository_path(str(args.get("file", "")))
+        if not screen.endswith(".screen.json"):
+            return "error: file: expected a *.screen.json file", True
         with tempfile.TemporaryDirectory(prefix="affrescoui-contributions-") as scratch:
-            if args.get("file"):
-                screen = repository_path(str(args["file"]))
-                if not screen.endswith(".screen.json"):
-                    return "error: file: expected a *.screen.json file", True
-            else:
-                screen = os.path.join(scratch, "running.screen.json")
-                with open(screen, "w", encoding="utf-8") as file:
+            command = [find_cli(), "contributions", screen]
+            if args.get("running"):
+                document = os.path.join(scratch, "running.json")
+                with open(document, "w", encoding="utf-8") as file:
                     json.dump(self.host.request({"type": "getDocument"}).get("document") or {}, file)
-            result = subprocess.run([find_cli(), "contributions", screen], capture_output=True, text=True, timeout=60)
+                command += ["--document", document]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
             return f"error: {(result.stderr or result.stdout).strip() or 'affrescoui contributions failed'}", True
         return result.stdout.strip(), False

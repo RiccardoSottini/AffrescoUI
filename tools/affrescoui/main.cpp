@@ -29,7 +29,7 @@ std::span<const Command> commands() {
 	     "Check a screen: the schema, the format's rules and the checker; --compose proves a feature from another app "
 	     "fits it",
 	     checkScreen},
-	    {"contributions", "<file> [--json]",
+	    {"contributions", "<file> [--json] [--document FILE]",
 	     "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
 	    {"test", "<scenarios.json>... [--json] [--only NAME] [--goldens DIR] [--update] [--out DIR] [--document FILE]",
 		 "Play a screen's scenarios and report what failed", testScreen},

@@ -1,7 +1,8 @@
 /// @file
 /// @brief affrescoui_bottega: Bottega's demo, Sinopia's slide sorter installed into Tempera, with Tempera's natives.
 //
-//   affrescoui_bottega [FILE...]                         plays the scenarios (bottega.scenarios.json)
+//   affrescoui_bottega [--document FILE] [FILE...]       plays the scenarios (bottega.scenarios.json), on FILE's
+//                                                        document if given (a live one, as e2e_test.py does)
 //   affrescoui_bottega check --compose SCREEN FEATURE …  affrescoui's check --compose, Tempera's scenarios included
 //   affrescoui_bottega contributions SCREEN [--json]     affrescoui's contributions
 //
@@ -86,12 +87,14 @@ void prepare(affresco::Screen& screen, std::shared_ptr<tempera::Session>& sessio
 
 /// @brief Plays the files and prints each failure.
 /// @param files The scenario files.
+/// @param document The document to play them on instead of their screen's, or empty.
 /// @return How many failures there were.
 /// @throws affresco::DocumentError If a file is malformed.
-std::size_t playAll(const std::vector<std::filesystem::path>& files) {
+std::size_t playAll(const std::vector<std::filesystem::path>& files, const std::string& document) {
 	std::shared_ptr<tempera::Session> session; // the session of the screen playing
 	automation::Options options;
 	options.pictures = false;
+	if(!document.empty()) options.document = document;
 	options.prepare = [&session](affresco::Screen& screen) { prepare(screen, session); };
 	std::size_t failed = 0, played = 0;
 	for(const std::filesystem::path& file : files) {
@@ -130,9 +133,15 @@ int main(int argc, char** argv) {
 	const std::vector<std::string_view> args(argv + 1, argv + argc);
 	try {
 		if(!args.empty() && (args.front() == "check" || args.front() == "contributions")) return runCommand(args);
-		std::vector<std::filesystem::path> files(args.begin(), args.end());
+		std::string document;
+		auto first = args.begin();
+		if(args.size() >= 2 && args.front() == "--document") {
+			document = cli::readFile(args[1]);
+			first += 2;
+		}
+		std::vector<std::filesystem::path> files(first, args.end());
 		if(files.empty()) files.push_back(bottegaDirectory() / "bottega.scenarios.json");
-		return playAll(files) ? EXIT_FAILURE : EXIT_SUCCESS;
+		return playAll(files, document) ? EXIT_FAILURE : EXIT_SUCCESS;
 	} catch(const cli::UsageError& error) {
 		std::cerr << "affrescoui_bottega: " << error.what() << '\n';
 		return static_cast<int>(cli::Exit::Usage);
