@@ -190,7 +190,9 @@ std::string statePath(const std::vector<std::string>& segments) {
 bool allowedUrl(std::string_view url) noexcept {
 	constexpr std::string_view scheme = "https://";
 	if(!url.starts_with(scheme) || url.size() <= scheme.size() || url.size() > 2048) return false;
-	if(url[scheme.size()] == '/') return false;
+	const std::string_view rest = url.substr(scheme.size());
+	// "https://example.com@other.example/" goes to other.example: a user name before '@' only hides the host
+	if(rest.front() == '/' || rest.substr(0, rest.find_first_of("/?#")).contains('@')) return false;
 	return std::ranges::none_of(url, [](char c) {
 		const auto byte = static_cast<unsigned char>(c);
 		return byte <= 0x20 || byte == 0x7f || std::string_view("\\{}<>\"").contains(c);

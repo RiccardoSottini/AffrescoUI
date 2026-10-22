@@ -112,7 +112,9 @@ TEST_CASE("adapters: what has no equivalent is a visible placeholder and a warni
 		{"type": "ActionSet", "actions": [{"type": "Action.OpenUrl", "title": "Run", "url": "javascript:alert(1)"}]},
 		{"type": "Image", "url": "http://example.com/a.png"},
 		{"type": "Image", "url": "../outside.png"},
-		{"type": "Image", "url": "https://example.com/b.png"}
+		{"type": "Image", "url": "https://example.com/b.png"},
+		{"type": "Image", "url": "https://example.com@evil.example/c.png"},
+		{"type": "Image", "url": "https://example.com/@team/d.png"}
 	])json")));
 	const std::string screen = converted.screen.dump();
 	CHECK(screen.find("Unsupported: Hologram") != std::string::npos);
@@ -123,6 +125,8 @@ TEST_CASE("adapters: what has no equivalent is a visible placeholder and a warni
 	CHECK(screen.find("http://") == std::string::npos);
 	CHECK(screen.find("outside.png") == std::string::npos);
 	CHECK(screen.find("\"source\":\"https://example.com/b.png\"") != std::string::npos);
+	CHECK(screen.find("evil.example") == std::string::npos); // a user name that hides the host
+	CHECK(screen.find("\"source\":\"https://example.com/@team/d.png\"") != std::string::npos);
 	// The text is in the state and shown through a binding to it, so {{...}} inside it is never evaluated
 	CHECK(converted.screen["state"]["literals"]["k1"] == "{{state.secret}} and {{1+1}}");
 	CHECK(screen.find("\"text\":\"{{state.secret}}") == std::string::npos);
