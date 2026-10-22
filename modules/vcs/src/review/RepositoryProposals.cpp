@@ -145,30 +145,30 @@ std::vector<ProposalInfo> Repository::proposals() const {
 	return result;
 }
 
-json Repository::proposalDiff(int id) const {
-	const Proposal* proposal = findProposal(id);
-	if(!proposal) fail("diff", "no proposal " + std::to_string(id));
-	const Prepared next = prepare(proposal->patch, mainDocument(), committedState());
+json Repository::proposalDiff(int proposal) const {
+	const Proposal* open = findProposal(proposal);
+	if(!open) fail("diff", "no proposal " + std::to_string(proposal));
+	const Prepared next = prepare(open->patch, mainDocument(), committedState());
 	return json::diff(next.before, next.after);
 }
 
 // Always a merge commit (like `git merge --no-ff`): the history keeps who approved it, and the branch's commits
-std::optional<std::string> Repository::accept(int id, const Approval& approval) {
-	Proposal* proposal = findProposal(id);
-	if(!proposal) return "AffrescoUI screen: no proposal " + std::to_string(id);
+std::optional<std::string> Repository::accept(int proposal, const Approval& approval) {
+	Proposal* open = findProposal(proposal);
+	if(!open) return "AffrescoUI screen: no proposal " + std::to_string(proposal);
 
 	// Refused approvals leave the proposal open
-	if(std::optional<std::string> refused = checkApproval(*proposal, approval)) return refused;
-	if(const std::string missing = approve(*proposal, approval.reviewer); !missing.empty()) {
-		proposal->reason =
-		    "approved by " + std::to_string(detail::countedApprovals(proposal->approvals)) + ", waiting for " + missing;
+	if(std::optional<std::string> refused = checkApproval(*open, approval)) return refused;
+	if(const std::string missing = approve(*open, approval.reviewer); !missing.empty()) {
+		open->reason =
+		    "approved by " + std::to_string(detail::countedApprovals(open->approvals)) + ", waiting for " + missing;
 		saveHistory();
 		proposalsChanged();
 		return std::nullopt;
 	}
 
-	const Proposal taken = *proposal;
-	std::erase_if(proposals_, [id](const Proposal& p) { return p.id == id; });
+	const Proposal taken = *open;
+	std::erase_if(proposals_, [proposal](const Proposal& p) { return p.id == proposal; });
 	proposalsChanged();
 
 	std::optional<std::string> error;
@@ -180,7 +180,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 				return prepare(taken.patch, mainDocument(), committedState());
 			} catch(const DocumentError& failure) {
 				const std::string why = detail::reasonOf(failure);
-				fail("proposal #" + std::to_string(id),
+				fail("proposal #" + std::to_string(proposal),
 				     "no longer applies on " + describe(mainHead()) + " (" + why + "): ask its author for a new one");
 			}
 		}();
@@ -194,48 +194,48 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 		merge.committer = approval.reviewer;
 		merge.message = taken.message;
 		merge.time = detail::utcNow();
-		merge.proposal = id;
+		merge.proposal = proposal;
 		merge.patch = taken.patch;
 		merged = land(std::move(merge), std::move(next.document), std::move(next.state)).id;
 
 		if(approval.dontAskAgain) {
 			for(const std::string& rule : taken.remember)
 				if(std::ranges::find(grants_, rule, &Grant::rule) == grants_.end())
-					grants_.push_back({rule, approval.reviewer, id, detail::utcNow(), grantsExpire(approval)});
+					grants_.push_back({rule, approval.reviewer, proposal, detail::utcNow(), grantsExpire(approval)});
 			onReviewChanged();
 		}
 	} catch(const DocumentError& failure) {
 		error = failure.what();
 	}
 	saveHistory(); // the proposal is closed, merged or not, and grants may have been added
-	onDecision({id, error, mainHead().number, merged});
+	onDecision({proposal, error, mainHead().number, merged});
 	return error;
 }
 
-bool Repository::reject(int id, std::string_view reason) {
-	if(!findProposal(id)) return false;
+bool Repository::reject(int proposal, std::string_view reason) {
+	if(!findProposal(proposal)) return false;
 
-	if(previewing_ == id) endPreview();
-	std::erase_if(proposals_, [id](const Proposal& p) { return p.id == id; });
+	if(previewing_ == proposal) endPreview();
+	std::erase_if(proposals_, [proposal](const Proposal& p) { return p.id == proposal; });
 	saveHistory();
 	proposalsChanged();
-	onDecision({id,
+	onDecision({proposal,
 	            "rejected by the reviewer" + (reason.empty() ? std::string() : ": " + std::string(reason)),
 	            mainHead().number,
 	            {}});
 	return true;
 }
 
-std::optional<std::string> Repository::preview(int id) {
-	const Proposal* proposal = findProposal(id);
-	if(!proposal) return "AffrescoUI screen: no proposal " + std::to_string(id);
+std::optional<std::string> Repository::preview(int proposal) {
+	const Proposal* open = findProposal(proposal);
+	if(!open) return "AffrescoUI screen: no proposal " + std::to_string(proposal);
 
 	endPreview();
 	try {
-		Prepared next = prepare(proposal->patch, document_, state_);
+		Prepared next = prepare(open->patch, document_, state_);
 		committedState_ = std::exchange(state_, std::move(next.state));
 		committedDocument_ = std::exchange(document_, std::move(next.document));
-		previewing_ = id;
+		previewing_ = proposal;
 		documentChanged();
 	} catch(const DocumentError& error) {
 		endPreview();
