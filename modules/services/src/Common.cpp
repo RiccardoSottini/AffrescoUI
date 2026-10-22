@@ -8,6 +8,38 @@
 
 namespace affresco::services {
 
+namespace {
+
+/// @brief The length of the UTF-8 sequence a byte leads.
+/// @param lead The byte.
+/// @return 1 to 4, or 0 if the byte leads none (a continuation byte, or 0xF8 and above).
+constexpr std::size_t sequenceLength(std::uint8_t lead) noexcept {
+	if(lead < 0x80) return 1;
+	if((lead >> 5) == 0x6) return 2;
+	if((lead >> 4) == 0xE) return 3;
+	if((lead >> 3) == 0x1E) return 4;
+	return 0;
+}
+
+/// @brief Whether one sequence encodes a Unicode scalar value: continuation bytes after its lead, in its shortest
+/// form (not overlong), at most U+10FFFF and not a surrogate.
+/// @param sequence The sequence, as long as its lead byte says.
+/// @return Whether it does.
+constexpr bool isScalar(std::string_view sequence) noexcept {
+	const auto lead = static_cast<std::uint8_t>(sequence.front());
+	std::uint32_t codepoint = sequence.size() == 1 ? lead : lead & (0xFFu >> (sequence.size() + 1));
+	for(const char next : sequence.substr(1)) {
+		const auto byte = static_cast<std::uint8_t>(next);
+		if((byte >> 6) != 0x2) return false;
+		codepoint = (codepoint << 6) | (byte & 0x3Fu);
+	}
+	constexpr std::uint32_t smallest[] = {0, 0, 0x80, 0x800, 0x10000};
+	return codepoint >= smallest[sequence.size()] && codepoint <= 0x10FFFF &&
+	       (codepoint < 0xD800 || codepoint > 0xDFFF);
+}
+
+} // namespace
+
 Tasks::Tasks(std::size_t limit) noexcept : limit_(limit) {}
 
 Tasks::~Tasks() {
@@ -46,18 +78,8 @@ std::optional<std::filesystem::path> underRoot(const std::filesystem::path& root
 bool isUtf8(std::string_view bytes) noexcept {
 	std::size_t index = 0;
 	while(index < bytes.size()) {
-		const auto lead = static_cast<std::uint8_t>(bytes[index]);
-		const std::size_t length = lead < 0x80 ? 1 : (lead >> 5) == 0x6 ? 2 : (lead >> 4) == 0xE ? 3 : (lead >> 3) == 0x1E ? 4 : 0;
-		if(length == 0 || index + length > bytes.size()) return false;
-		std::uint32_t codepoint = length == 1 ? lead : lead & (0xFFu >> (length + 1));
-		for(std::size_t next = 1; next < length; ++next) {
-			const auto byte = static_cast<std::uint8_t>(bytes[index + next]);
-			if((byte >> 6) != 0x2) return false;
-			codepoint = (codepoint << 6) | (byte & 0x3Fu);
-		}
-		constexpr std::uint32_t smallest[] = {0, 0, 0x80, 0x800, 0x10000};
-		if(codepoint < smallest[length] || codepoint > 0x10FFFF || (codepoint >= 0xD800 && codepoint <= 0xDFFF))
-			return false;
+		const std::size_t length = sequenceLength(static_cast<std::uint8_t>(bytes[index]));
+		if(length == 0 || length > bytes.size() - index || !isScalar(bytes.substr(index, length))) return false;
 		index += length;
 	}
 	return true;
