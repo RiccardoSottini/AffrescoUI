@@ -472,13 +472,13 @@ private:
 	/// @param down Down, not Up.
 	/// @param mods The modifiers (Shift extends the selection).
 	void verticalKey(bool down, Mods mods);
-	/// @brief The keys that edit: Enter, Tab, Backspace and Delete (ignored when not editable).
-	/// @param event The key.
-	/// @return Whether it was one.
 	/// @brief Left or Right: to the line's end with Cmd, to the selection's end, else by a character or a word.
 	/// @param right Right, not Left.
 	/// @param mods The modifiers (Shift extends the selection).
 	void horizontalKey(bool right, Mods mods);
+	/// @brief The keys that edit: Enter, Tab, Backspace and Delete (ignored when not editable).
+	/// @param event The key.
+	/// @return Whether it was one.
 	bool editingKey(const KeyEvent& event);
 	/// @brief Backspace or Delete: the selection, else the character or word before or after the caret.
 	/// @param forward Delete, not Backspace.
