@@ -177,8 +177,7 @@ public:
 		if(at_ < data_.size() && data_[at_] != 'M' && data_[at_] != 'm') fail("path data must start with M");
 		char command = 0;
 		while(skipSpace(), at_ < data_.size()) {
-			if(std::isalpha(static_cast<unsigned char>(data_[at_])) != 0) command = data_[at_++];
-			else if(command == 0 || command == 'Z' || command == 'z') fail("expected a command");
+			command = nextCommand(command);
 			if(++commands_ > limits_.commands)
 				fail("more than " + std::to_string(limits_.commands) + " commands");
 			runCommand(command);
@@ -190,6 +189,15 @@ public:
 	}
 
 private:
+	/// @brief Reads the next command's letter; without one, the last command repeats with new numbers.
+	/// @param last The last command, or 0 before the first.
+	/// @return The command to run.
+	char nextCommand(char last) {
+		if(std::isalpha(static_cast<unsigned char>(data_[at_])) != 0) return data_[at_++];
+		if(last == 0 || last == 'Z' || last == 'z') fail("expected a command");
+		return last;
+	}
+
 	/// @brief Runs one command, reading its numbers.
 	/// @param command Its letter.
 	void runCommand(char command) {
@@ -273,7 +281,7 @@ private:
 		const float radiusX = std::abs(number()), radiusY = std::abs(number()), rotation = number();
 		const bool large = flag(), sweep = flag();
 		const Vec2 end = plus(base, pair());
-		appendArc(current_, {radiusX, radiusY}, rotation, large, sweep, end);
+		appendArc(current_, {{radiusX, radiusY}, rotation, large, sweep}, end);
 		control_ = current_ = end;
 		curve_ = Curve::none;
 	}
@@ -287,12 +295,46 @@ private:
 		return curve_ == kind ? minus(times(current_, 2.0f), control_) : current_;
 	}
 
-	void appendArc(Vec2 from, Vec2 radii, float degrees, bool large, bool sweep, Vec2 to);
+	/// @brief An SVG arc's shape, as A gives it.
+	struct Arc {
+		Vec2 radii;          ///< The ellipse's radii, not negative.
+		float degrees = 0;   ///< The ellipse's rotation, in degrees.
+		bool large = false;  ///< Whether the arc takes the long way round.
+		bool sweep = false;  ///< Whether the arc turns at positive angles.
+	};
+
+	/// @brief The digits of a number: the value they make without the point, and where the point goes.
+	struct Decimal {
+		double mantissa = 0.0; ///< The digits as an integer.
+		int digits = 0;        ///< How many digits there were.
+		int exponent = 0;      ///< The power of ten the mantissa is scaled by (minus the digits after the point).
+	};
+
+	/// @brief Adds an elliptical arc as cubic curves and makes its end the current point.
+	/// @param from Where the arc starts. @param arc Its shape. @param to Where it ends.
+	void appendArc(Vec2 from, const Arc& arc, Vec2 to);
+	/// @brief Adds the cubic curves of an arc of an ellipse, each at most a quarter turn.
+	/// @param center The ellipse's centre. @param radii Its radii. @param rotation Its rotation, in radians.
+	/// @param startAngle Where the arc starts, @p sweepAngle how far it turns, in radians.
 	void appendArcSegments(Vec2 center, Vec2 radii, float rotation, float startAngle, float sweepAngle);
+	/// @brief Skips white space and commas.
 	void skipSpace() noexcept;
+	/// @brief Reads two numbers. @return They, as a point.
 	[[nodiscard]] Vec2 pair();
+	/// @brief Reads a number, failing on none and beyond the magnitude limit. @return It.
 	[[nodiscard]] float number();
+	/// @brief Reads a number's optional sign. @return -1 or 1.
+	[[nodiscard]] double readSign() noexcept;
+	/// @brief Reads a number's digits and its decimal point. @return What they make.
+	[[nodiscard]] Decimal readDigits() noexcept;
+	/// @brief Reads a number's optional exponent, e or E then an optionally signed integer. @return It, or 0.
+	[[nodiscard]] int readExponent() noexcept;
+	/// @brief Whether a digit is next.
+	[[nodiscard]] bool digitAhead() const noexcept;
+	/// @brief Reads an arc flag. @return Whether it is 1.
 	[[nodiscard]] bool flag();
+	/// @brief Fails with where reading is.
+	/// @param message What went wrong.
 	[[noreturn]] void fail(const std::string& message) const;
 
 	std::string_view data_;           ///< The data.
@@ -307,19 +349,19 @@ private:
 	bool closed_ = false;             ///< Whether the last command was Z.
 };
 
-void PathParser::appendArc(Vec2 from, Vec2 radii, float degrees, bool large, bool sweep, Vec2 to) {
+void PathParser::appendArc(Vec2 from, const Arc& arc, Vec2 to) {
 	ensureStarted();
 	if(from == to) return;
-	if(radii.x <= 0.0f || radii.y <= 0.0f) { // SVG: an arc without radii is a line
+	if(arc.radii.x <= 0.0f || arc.radii.y <= 0.0f) { // SVG: an arc without radii is a line
 		path_.lineTo(to);
 		return;
 	}
 	// The SVG implementation notes, F.6.5: from end points to centre
-	const double rotation = static_cast<double>(degrees) * std::numbers::pi / 180.0;
+	const double rotation = static_cast<double>(arc.degrees) * std::numbers::pi / 180.0;
 	const double cosine = std::cos(rotation), sine = std::sin(rotation);
 	const double halfX = (from.x - to.x) / 2.0, halfY = (from.y - to.y) / 2.0;
 	const double x1 = cosine * halfX + sine * halfY, y1 = -sine * halfX + cosine * halfY;
-	double rx = radii.x, ry = radii.y;
+	double rx = arc.radii.x, ry = arc.radii.y;
 	const double grow = x1 * x1 / (rx * rx) + y1 * y1 / (ry * ry);
 	if(grow > 1.0) { // radii too small to reach: scaled up, as SVG says
 		rx *= std::sqrt(grow);
@@ -328,14 +370,14 @@ void PathParser::appendArc(Vec2 from, Vec2 radii, float degrees, bool large, boo
 	const double numerator = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1;
 	const double denominator = rx * rx * y1 * y1 + ry * ry * x1 * x1;
 	double factor = denominator > 0.0 ? std::sqrt(std::max(0.0, numerator / denominator)) : 0.0;
-	if(large == sweep) factor = -factor;
+	if(arc.large == arc.sweep) factor = -factor;
 	const double cx1 = factor * rx * y1 / ry, cy1 = -factor * ry * x1 / rx;
 	const Vec2 center{static_cast<float>(cosine * cx1 - sine * cy1 + (from.x + to.x) / 2.0),
 	                  static_cast<float>(sine * cx1 + cosine * cy1 + (from.y + to.y) / 2.0)};
 	const double startAngle = std::atan2((y1 - cy1) / ry, (x1 - cx1) / rx);
 	double sweepAngle = std::atan2((-y1 - cy1) / ry, (-x1 - cx1) / rx) - startAngle;
-	if(sweep && sweepAngle < 0.0) sweepAngle += 2.0 * std::numbers::pi;
-	if(!sweep && sweepAngle > 0.0) sweepAngle -= 2.0 * std::numbers::pi;
+	if(arc.sweep && sweepAngle < 0.0) sweepAngle += 2.0 * std::numbers::pi;
+	if(!arc.sweep && sweepAngle > 0.0) sweepAngle -= 2.0 * std::numbers::pi;
 	appendArcSegments(center, {static_cast<float>(rx), static_cast<float>(ry)}, static_cast<float>(rotation),
 	                  static_cast<float>(startAngle), static_cast<float>(sweepAngle));
 	current_ = to;
@@ -373,33 +415,49 @@ Vec2 PathParser::pair() {
 float PathParser::number() {
 	skipSpace();
 	const std::size_t begin = at_;
-	const auto digit = [&] { return at_ < data_.size() && data_[at_] >= '0' && data_[at_] <= '9'; };
-	double sign = 1.0, mantissa = 0.0;
-	int exponent = 0, digits = 0;
-	if(at_ < data_.size() && (data_[at_] == '-' || data_[at_] == '+')) sign = data_[at_++] == '-' ? -1.0 : 1.0;
-	for(; digit(); ++at_, ++digits) mantissa = mantissa * 10.0 + (data_[at_] - '0');
-	if(at_ < data_.size() && data_[at_] == '.') // "0.5.5" is 0.5 then .5
-		for(++at_; digit(); ++at_, ++digits, --exponent) mantissa = mantissa * 10.0 + (data_[at_] - '0');
-	if(digits == 0) {
+	const double sign = readSign();
+	Decimal decimal = readDigits();
+	if(decimal.digits == 0) {
 		at_ = begin;
 		fail("expected a number");
 	}
-	if(at_ + 1 < data_.size() && (data_[at_] == 'e' || data_[at_] == 'E') &&
-	   (std::isdigit(static_cast<unsigned char>(data_[at_ + 1])) != 0 || data_[at_ + 1] == '-' || data_[at_ + 1] == '+')) {
-		++at_;
-		const int exponentSign = data_[at_] == '-' ? -1 : 1;
-		if(data_[at_] == '-' || data_[at_] == '+') ++at_;
-		int written = 0;
-		for(; digit(); ++at_) written = std::min(written * 10 + (data_[at_] - '0'), 1000);
-		exponent += exponentSign * written;
-	}
-	const double value = sign * mantissa * std::pow(10.0, exponent);
+	decimal.exponent += readExponent();
+	const double value = sign * decimal.mantissa * std::pow(10.0, decimal.exponent);
 	if(!std::isfinite(value) || std::abs(value) > static_cast<double>(limits_.magnitude)) {
 		at_ = begin;
 		fail("number out of range");
 	}
 	return static_cast<float>(value);
 }
+
+double PathParser::readSign() noexcept {
+	if(at_ >= data_.size() || (data_[at_] != '-' && data_[at_] != '+')) return 1.0;
+	return data_[at_++] == '-' ? -1.0 : 1.0;
+}
+
+PathParser::Decimal PathParser::readDigits() noexcept {
+	Decimal decimal;
+	for(; digitAhead(); ++at_, ++decimal.digits) decimal.mantissa = decimal.mantissa * 10.0 + (data_[at_] - '0');
+	if(at_ < data_.size() && data_[at_] == '.') // "0.5.5" is 0.5 then .5
+		for(++at_; digitAhead(); ++at_, ++decimal.digits, --decimal.exponent)
+			decimal.mantissa = decimal.mantissa * 10.0 + (data_[at_] - '0');
+	return decimal;
+}
+
+int PathParser::readExponent() noexcept {
+	if(at_ + 1 >= data_.size() || (data_[at_] != 'e' && data_[at_] != 'E')) return 0;
+	const char after = data_[at_ + 1]; // an e starts an exponent only before its digits or their sign
+	if(std::isdigit(static_cast<unsigned char>(after)) == 0 && after != '-' && after != '+') return 0;
+	++at_;
+	const int exponentSign = data_[at_] == '-' ? -1 : 1;
+	if(data_[at_] == '-' || data_[at_] == '+') ++at_;
+	// Capped: a longer exponent can't make a number in range, and the cap keeps the int from overflowing
+	int written = 0;
+	for(; digitAhead(); ++at_) written = std::min(written * 10 + (data_[at_] - '0'), 1000);
+	return exponentSign * written;
+}
+
+bool PathParser::digitAhead() const noexcept { return at_ < data_.size() && data_[at_] >= '0' && data_[at_] <= '9'; }
 
 bool PathParser::flag() {
 	skipSpace();
