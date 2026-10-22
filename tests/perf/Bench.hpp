@@ -163,6 +163,11 @@ struct Group {
 /// the same with 1,000 items, on headless windows.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> canvasWorkloads(Context&);
+
+/// @brief The "tempera" group's workloads (tempera.cpp): a 20,000 by 20,000 image opened, panned and painted, with
+/// budgets when AFFRESCOUI_PERF_BUDGETS is set.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> temperaWorkloads(Context&);
 /// @brief The "graph" group's workloads (graph.cpp): a 1,000-node graph set and drawn, and one of its nodes dragged
 /// (a frame per pointer move), on a headless window.
 /// @return The workloads.

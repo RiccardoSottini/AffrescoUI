@@ -253,7 +253,8 @@ std::vector<Group> engineGroups() {
 	        {"search", searchWorkloads},
 	        {"canvas", canvasWorkloads},
 	        {"graph", graphWorkloads},
-	        {"syntax", syntaxWorkloads}};
+	        {"syntax", syntaxWorkloads},
+	        {"tempera", temperaWorkloads}};
 }
 
 } // namespace affresco::bench

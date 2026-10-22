@@ -244,11 +244,13 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
 		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/CodeEditor.cpp tests/perf/buffers.cpp
 		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp ${AFFRESCOUI_FORGE_SOURCES}
-		tests/perf/syntax.cpp)
+		tests/perf/syntax.cpp
+		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples examples/forge modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets"
 		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf"
