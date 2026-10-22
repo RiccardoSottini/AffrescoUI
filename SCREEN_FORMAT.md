@@ -692,7 +692,10 @@ Wherever a value is expected it can be computed:
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
-  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`;
+  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`,
+  `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
+  `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
+  `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
