@@ -287,5 +287,11 @@ void registerCurvesType(TypeRegistry& registry);
 /// @brief Registers "canvas" (CanvasType.cpp).
 /// @param registry The registry.
 void registerCanvasType(TypeRegistry& registry);
+/// @brief Registers "graph" (GraphType.cpp).
+/// @param registry The registry.
+void registerGraphType(TypeRegistry& registry);
+/// @brief Registers "timeline" (TimelineType.cpp).
+/// @param registry The registry.
+void registerTimelineType(TypeRegistry& registry);
 
 } // namespace affresco::format

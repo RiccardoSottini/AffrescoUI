@@ -285,9 +285,13 @@ src/
                            SplitType.cpp, TabsType.cpp, ListType.cpp (list and tree; ListItems.* reads their
                            items within limits, without recursion), PathType.cpp ("path": d, viewBox, fill and
                            stroke, the data parsed only when it changes), ColorPickerType.cpp, GradientType.cpp,
-                           CurvesType.cpp (the creative controls; CreativeValues.* reads and writes their values)
-                           stroke, the data parsed only when it changes), CanvasType.cpp ("canvas": its items
-                           within limits, levels of detail, and its view bound both ways)
+                           CurvesType.cpp (the creative controls; CreativeValues.* reads and writes their values),
+                           CanvasType.cpp ("canvas": its items within limits, levels of detail, and its view bound
+                           both ways),
+                           GraphType.cpp ("graph": nodes, ports and links read within limits, the edits as
+                           events for its handlers),
+                           TimelineType.cpp ("timeline": tracks, keyframes, clips and markers read within
+                           limits, scrubs and edits as events for its handlers)
                            register them, IconProperty.cpp the labels' "icon", and RunsProperty.cpp their
                            "runs", "selectable" and "selectionColor" (within limits: 256 runs, 64 Ki characters)
   SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them

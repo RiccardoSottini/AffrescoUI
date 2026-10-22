@@ -1,0 +1,62 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "A graph, for the rendering check: a small material graph (UV, a texture, a tint and a roughness into a multiply and a material) with ports coloured by kind, two nodes with a body and a minimap. The nodes and links live in state; connecting, disconnecting, moving and deleting are handled in JSON.",
+
+	"window": { "title": "Material graph", "width": 640, "height": 400 },
+
+	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 13 } },
+
+	"colors": { "background": "#111827", "node": "#1f2937", "header": "#374151", "text": "#f9fafb",
+		"accent": "#38bdf8", "swatch": "#b45309" },
+
+	"state": {
+		"nodes": [
+			{ "id": "uv", "title": "UV", "x": 20, "y": 30, "width": 120, "outputs": [{ "id": "uv", "label": "uv", "kind": "vec2" }] },
+			{ "id": "texture", "title": "Texture", "x": 170, "y": 30, "width": 120, "bodyHeight": 24,
+				"inputs": [{ "id": "uv", "label": "uv", "kind": "vec2", "links": 1 }],
+				"outputs": [{ "id": "color", "label": "color", "kind": "color" }] },
+			{ "id": "tint", "title": "Tint", "x": 170, "y": 150, "width": 120, "bodyHeight": 24,
+				"outputs": [{ "id": "color", "label": "color", "kind": "color" }] },
+			{ "id": "roughness", "title": "Roughness", "x": 20, "y": 240, "width": 120,
+				"outputs": [{ "id": "value", "label": "value", "kind": "float" }] },
+			{ "id": "multiply", "title": "Multiply", "x": 320, "y": 90, "width": 120,
+				"inputs": [{ "id": "a", "label": "a", "kind": "color", "links": 1 }, { "id": "b", "label": "b", "kind": "color", "links": 1 }],
+				"outputs": [{ "id": "color", "label": "color", "kind": "color" }] },
+			{ "id": "material", "title": "Material", "x": 480, "y": 30, "width": 120,
+				"inputs": [{ "id": "albedo", "label": "albedo", "kind": "color", "links": 1 },
+					{ "id": "roughness", "label": "roughness", "kind": "float", "links": 1 },
+					{ "id": "emissive", "label": "emissive", "kind": "color", "links": 1 }] }
+		],
+		"links": [
+			{ "from": "uv", "output": "uv", "to": "texture", "input": "uv" },
+			{ "from": "texture", "output": "color", "to": "multiply", "input": "a" },
+			{ "from": "multiply", "output": "color", "to": "material", "input": "albedo" }
+		],
+		"selected": []
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "type": "graph", "id": "material-graph", "width": "100%", "height": "100%",
+				"nodes": "{{state.nodes}}", "links": "{{state.links}}",
+				"nodeColor": "@node", "headerColor": "@header", "textColor": "@text", "accentColor": "@accent",
+				"kindColors": { "vec2": "#facc15", "color": "#f472b6", "float": "#a3e635" },
+				"onConnect": [{ "set": "state.links", "to": "{{concat(state.links, [{ from: event.from, output: event.output, to: event.to, input: event.input }])}}" }],
+				"onDisconnect": [{ "set": "state.links", "to": "{{filter(state.links, index != event.index)}}" }],
+				"onMove": [{ "set": "state.nodes", "to": "{{map(state.nodes, contains(event.ids, it.id) ? merge(it, { x: it.x + event.dx, y: it.y + event.dy }) : it)}}" }],
+				"onSelect": [{ "set": "state.selected", "to": "{{event.ids}}" }],
+				"onDelete": [
+					{ "set": "state.links", "to": "{{filter(state.links, !contains(event.ids, it.from) && !contains(event.ids, it.to))}}" },
+					{ "set": "state.nodes", "to": "{{filter(state.nodes, !contains(event.ids, it.id))}}" }
+				],
+				"children": [
+					{ "id": "body", "repeat": { "for": "node", "in": "state.nodes", "index": "i", "key": "{{node.id}}" },
+						"color": "@swatch" }
+				] }
+		]
+	}
+}

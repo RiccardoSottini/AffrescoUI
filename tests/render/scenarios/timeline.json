@@ -1,0 +1,38 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "timeline",
+			"screen": "timeline.screen.json",
+			"note": "Three tracks: the first frame, the playhead scrubbed on the ruler to 1.5 seconds and to the play range's end with End, Position's second keyframe dragged near the marker and snapped onto it, and the Intro clip's end trimmed until it snaps to Main's start",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "press": [260, 14] },
+				{ "move": [290, 14] },
+				{ "move": [310, 14] },
+				{ "release": [310, 14] },
+				{ "expect": { "state": "time", "is": 1.5 } },
+				{ "expect": { "image": "scrubbed" } },
+				{ "key": "end" },
+				{ "expect": { "state": "time", "is": 3.5 } },
+				{ "press": [260, 42] },
+				{ "move": [320, 42] },
+				{ "move": [357, 42] },
+				{ "expect": { "image": "keyframe-dragging" } },
+				{ "release": [357, 42] },
+				{ "expect": { "state": "tracks[0].keyframes[1].time", "is": 2 } },
+				{ "expect": { "state": "selected[0]", "is": "pos:1" } },
+				{ "expect": { "image": "keyframe-snapped" } },
+				{ "press": [357, 98] },
+				{ "move": [380, 98] },
+				{ "move": [407, 98] },
+				{ "release": [407, 98] },
+				{ "expect": { "state": "tracks[2].clips[0].duration", "is": 2 } },
+				{ "expect": { "state": "tracks[2].clips[0].start", "is": 0.5 } },
+				{ "expect": { "image": "trimmed" } }
+			]
+		}
+	]
+}

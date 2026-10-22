@@ -1,0 +1,44 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "graph",
+			"screen": "graph.screen.json",
+			"note": "A material graph: the first frame, a link made from Tint to Multiply, one refused (a float into a vec2), the material's albedo moved to its emissive input, Roughness deleted, and the view panned on the minimap",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "press": [290, 184] },
+				{ "move": [310, 160] },
+				{ "move": [320, 144] },
+				{ "expect": { "image": "linking" } },
+				{ "release": [320, 144] },
+				{ "expect": { "state": "links.length", "is": 4 } },
+				{ "expect": { "image": "connected" } },
+				{ "press": [140, 274] },
+				{ "move": [160, 120] },
+				{ "move": [170, 64] },
+				{ "release": [170, 64] },
+				{ "expect": { "state": "links.length", "is": 4 } },
+				{ "expect": { "image": "refused" } },
+				{ "press": [480, 64] },
+				{ "move": [470, 90] },
+				{ "move": [480, 104] },
+				{ "release": [480, 104] },
+				{ "expect": { "state": "links.length", "is": 4 } },
+				{ "expect": { "state": "links[3].input", "is": "emissive" } },
+				{ "expect": { "image": "reconnected" } },
+				{ "click": [60, 252] },
+				{ "key": "delete" },
+				{ "expect": { "state": "nodes.length", "is": 5 } },
+				{ "expect": { "image": "deleted" } },
+				{ "press": [530, 330] },
+				{ "move": [536, 334] },
+				{ "move": [542, 338] },
+				{ "release": [542, 338] },
+				{ "expect": { "image": "minimap-panned" } }
+			]
+		}
+	]
+}

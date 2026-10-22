@@ -91,6 +91,8 @@ as the OpenGL driver's, aren't counted.
 | `forge/search`, `forge/palette` | Forge's quick open filtered by a file name; its command palette opened, then filtered |
 | `canvas/pan-100k` | A canvas of 100,000 items panned to a new place, then a frame recorded (all but OpenGL): only the items in view are drawn. A frame at 120 Hz has 8.3 ms |
 | `canvas/pan-1k` | The same with 1,000 items: a lock keeps the 100,000-item pan within 3 times it |
+| `graph/1000` | A 1,000-node graph (a grid, each node linked to the next) set, laid out and painted into a record |
+| `graph/1000/drag` | One of its nodes dragged by its header: a frame (laid out and painted) per pointer move |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

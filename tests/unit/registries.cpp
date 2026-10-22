@@ -63,7 +63,7 @@ TEST_CASE("format: the built-in node types register in catalog order, each with 
 	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "diff", "stack",
 	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
 	                                                      "image", "split", "tabs", "list", "tree", "table", "path",
-	                                                      "colorPicker", "gradient", "curves", "canvas", "outlet"});
+	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());

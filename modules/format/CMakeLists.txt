@@ -14,6 +14,7 @@ affrescoui_module(format
 	src/ExpressionFunctionsTime.cpp
 	src/ExpressionFunctionsFuzzy.cpp
 	src/ExpressionFunctionsColor.cpp
+	src/ExpressionFunctionsKeyframes.cpp
 	src/Value.cpp
 	src/Rules.cpp
 	src/BehaviourLines.cpp
@@ -66,6 +67,8 @@ affrescoui_module(format
 	src/GradientType.cpp
 	src/CurvesType.cpp
 	src/CanvasType.cpp
+	src/GraphType.cpp
+	src/TimelineType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp

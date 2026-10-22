@@ -72,6 +72,12 @@
 			"of": "canvas/pan-1k",
 			"atMost": 3,
 			"why": "a canvas draws what is in view (a spatial index), so 100,000 items pan about as fast as 1,000 (1.35 on macOS, 0.12 ms a frame against 8.3 ms at 120 Hz)"
+		},
+		{
+			"name": "graph/1000/drag",
+			"of": "graph/1000",
+			"atMost": 1.0,
+			"why": "a frame of a node dragged in a 1,000-node graph never costs more than setting the whole graph and drawing it (0.73 on macOS, 0.17 ms a frame)"
 		}
 	]
 }

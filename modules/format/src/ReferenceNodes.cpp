@@ -603,6 +603,109 @@ constexpr KeyReference nodeTable[] = {
 	 "Rulers along the top and left, in world units; dragging out of one makes a guide (default true).", "canvas"},
     {"font", "", "The items' text font (default `default`), in a few sizes.", "canvas"},
     {"accentColor", "", "The selection, the marquee, the handles and the guides.", "canvas"},
+    {"nodes", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"type": "object", "required": ["id"]}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "graph: the nodes, { id, title, x, y, width, bodyHeight, inputs, outputs }"})json",
+	 "The nodes, usually from state: `{ id, title, x, y, width, bodyHeight, inputs, outputs }` (at most 10,000, ids "
+	 "unique). A port is an id, or `{ id, label, kind, links }`: links join ports of the same `kind` (or either "
+	 "`\"any\"`, the default), and `links` is how many it takes (0, the default, for any number); at most 64 inputs "
+	 "and 64 outputs. The node's children, made with `repeat` like the nodes, are their bodies: child i sits under "
+	 "node i's ports, `bodyHeight` tall (0, the default, for none), hidden when the node is off screen or the zoom "
+	 "below 0.5.",
+	 "graph"},
+    {"links", R"json({"anyOf": [{"type": "array", "maxItems": 50000, "items": {"type": "object",
+		"required": ["from", "output", "to", "input"]}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "graph: the links, { from, output, to, input }"})json",
+	 "The links, `{ from, output, to, input }`: a node's output to a node's input (at most 50,000). The graph changes "
+	 "nothing itself: its handlers change the state.",
+	 "graph"},
+    {"cycles", "flag", "Whether a link may close a cycle (a node linked to itself included); `false`, the default, "
+	 "refuses it.",
+	 "graph"},
+    {"kindColors", R"json({"anyOf": [{"type": "object", "maxProperties": 64, "additionalProperties": {"$ref": "#/$defs/v1/color"}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "graph: each port kind's colour"})json",
+	 "Each kind's colour, `{ \"float\": \"#a3e635\" }` (at most 64): its ports and the links from them.", "graph"},
+    {"nodeColor", "color", "The nodes' box and header; their text and the selection's colours are `textColor` and "
+	 "`accentColor`.",
+	 "graph"},
+    {"headerColor", "color", "", "graph"},
+    {"minimap", "flag", "Whether the minimap shows, at the bottom right (the default): a press or a drag there moves "
+	 "the view.",
+	 "graph"},
+    {"zoom", R"json({"anyOf": [{"type": "number", "minimum": 0.1, "maximum": 4}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "graph: window units per graph unit, 0.1 to 4 (default 1)"})json",
+	 "The camera: the zoom (0.1 to 4, the default 1) and where the graph's origin is in the view, `[x, y]`. They are "
+	 "applied when they change, so the user's own zoom (+ and -) and pan (the wheel, or a drag with the right or "
+	 "middle button) stay until then.",
+	 "graph"},
+    {"pan", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "", "graph"},
+    {"selected", R"json({"description": "graph: the selected node's id, or a list of ids; timeline: the selected items' keys"})json",
+	 "The selected nodes' ids (applied when it changes); a click, Shift and a click, or a marquee changes the "
+	 "selection and runs `onSelect`.",
+	 "graph"},
+    {"tracks", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"type": "object", "required": ["id"]}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "timeline: the tracks, { id, label, keyframes, clips, tracks, expanded, muted, locked }"})json",
+	 "The tracks, usually from state: `{ id, label, keyframes, clips, tracks, expanded, muted, locked }` (at most "
+	 "10,000 in all, ids unique). A track with `tracks` is a group (at most 16 deep) that its chevron or Enter opens "
+	 "and closes (`onExpand`); its M and L buttons, or the keys, mute and lock it (`onChange`, `event.type` "
+	 "`\"track\"`): a locked track's items don't move. A keyframe is `{ time, value, easing }`, `easing` being "
+	 "`\"step\"` (drawn as a square), `\"linear\"` (a diamond, the default) or `\"bezier\"` (a circle; CSS's "
+	 "ease-in-out, or `[x1, y1, x2, y2]` for others). A clip is `{ id, label, start, duration, color }` (ids unique "
+	 "across tracks). At most 10,000 keyframes and 10,000 clips a track, 100,000 in all. The node's children, made "
+	 "with `repeat`, are the headers: child i is the i-th track (a group's tracks following it), placed in its row and "
+	 "hidden while the row is scrolled away or closed.",
+	 "timeline"},
+    {"duration", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1000000}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "timeline: its length in seconds"})json",
+	 "Its length, in seconds (default 10), and its frames per second (`fps`, 1 to 1000, default 30): times snap to "
+	 "frames.",
+	 "timeline"},
+    {"fps", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 1000}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "", "timeline"},
+    {"time", R"json({"anyOf": [{"type": "number", "minimum": 0}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "timeline: the playhead, in seconds"})json",
+	 "The playhead, in seconds, usually `{{state.time}}` (applied when it changes). A press or a drag on the ruler, "
+	 "Left and Right (a frame; a second with Shift), Comma and Period (the previous or next keyframe, clip edge or "
+	 "marker), Home and End (the play range's ends) move it and run `onScrub`.",
+	 "timeline"},
+    {"timeFormat", R"json({"anyOf": [{"enum": ["frames", "seconds", "timecode"]}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The ruler's labels: `\"frames\"` (the default), `\"seconds\"` or `\"timecode\"` (`HH:MM:SS:FF`). Its ticks "
+	 "follow the zoom.",
+	 "timeline"},
+    {"playRange", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}},
+		{"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "`[start, end]`, shaded on the ruler, the rest of the lanes dimmed (without it, the whole duration).",
+	 "timeline"},
+    {"markers", R"json({"anyOf": [{"type": "array", "maxItems": 1000}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "Times, or `{ time, label }`, marked on the ruler and across the lanes (at most 1,000).", "timeline"},
+    {"snap", "flag",
+	 "Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the "
+	 "play range and the playhead. Alt held at the press leaves it off for that drag.",
+	 "timeline"},
+    {"scale", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 10000}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "timeline: window units per second, 1 to 10000 (default 100)"})json",
+	 "The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, "
+	 "`offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, "
+	 "or a drag with the right or middle button) stay until then.",
+	 "timeline"},
+    {"offset", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json", "", "timeline"},
+    {"selected", "",
+	 "The selected items' keys (applied when it changes): a clip's id, or a track's id, `:` and a keyframe's index "
+	 "(`\"pos:2\"`). A click, Shift and a click, a marquee, or Page Up and Page Down on the keyboard's track changes "
+	 "it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and "
+	 "`onClipChange` for each item.",
+	 "timeline"},
+    {"headerWidth", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 2000}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "The headers' column (default 160) and a row's height (`trackHeight`, 12 to 400, default 28).", "timeline"},
+    {"trackHeight", R"json({"anyOf": [{"type": "number", "minimum": 12, "maximum": 400}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "", "timeline"},
+    {"headerColor", "", "The ruler and headers, the clips (a clip's own `color` first), the text and the selection.",
+	 "timeline"},
+    {"clipColor", "color", "", "timeline"},
+    {"textColor", "", "", "timeline"},
+    {"accentColor", "", "", "timeline"},
+    {"font", "", "", "timeline"},
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
@@ -621,20 +724,49 @@ constexpr KeyReference nodeTable[] = {
     {"onScroll", "handler", "`event.dx`, `event.dy`.", "events"},
     {"onKey", "handler", "A key on the focused node: `event.key`, `shortcut`, `shift`, `ctrl`, `alt`, `cmd`.",
 	 "events"},
-    {"onChange", "", "A bound or value control changed: `event.value`.", "events"},
+    {"onChange", "",
+	 "A bound or value control changed: `event.value`; a timeline's track muted or locked: `event.type` `\"track\"`, "
+	 "`id`, `muted`, `locked`.",
+	 "events"},
     {"onSubmit", "handler", "Enter in a text area: `event.text`.", "events"},
     {"onLink", "handler", "A press on a part of `runs` with a link: `event.link`.", "events"},
     {"onShow", "handler", "The node was built, or removed (by `when`, `repeat` or a revision).", "events"},
     {"onHide", "handler", "", "events"},
     {"onClose", "handler", "A tab's close button or Delete: `event.id`.", "events"},
-    {"onMove", "handler", "A tab dragged along its strip: `event.id`, `from`, `to`.", "events"},
-    {"onExpand", "handler", "A tree row opened or closed: `event.id`, `expanded`.", "events"},
+    {"onMove", "handler",
+	 "A tab dragged along its strip: `event.id`, `from`, `to`; a graph's nodes dragged or moved with the arrows: "
+	 "`event.ids`, `dx`, `dy` (in graph units) and `nodes`, each `{ id, index, x, y }`.",
+	 "events"},
+    {"onExpand", "handler", "A tree row or a timeline's group opened or closed: `event.id`, `expanded`.", "events"},
     {"onOpen", "handler", "Enter or a double click on a tree, list or table row: `event.id`.", "events"},
     {"onSort", "handler", "A table header clicked: `event.column`, `descending`.", "events"},
     {"onColumnResize", "handler", "A table column's edge dragged and let go: `event.column`, `width`.", "events"},
     {"onTransform", "handler",
 	 "Canvas items moved, resized, rotated or nudged: `event.items`, each `{ \"id\", \"x\", \"y\", \"width\", "
 	 "\"height\", \"rotate\" }`, where they should go; the document applies them.",
+	 "events"},
+    {"onConnect", "handler",
+	 "A graph's link made, by a drag from a port or Enter on two ports: `event.from`, `output`, `to`, `input`.",
+	 "events"},
+    {"onDisconnect", "handler",
+	 "A graph's link removed (Shift+Delete on its port) or its end picked up: `event.index`, `from`, `output`, `to`, "
+	 "`input`. Moving an end runs `onDisconnect` then `onConnect`.",
+	 "events"},
+    {"onLinkDrop", "handler",
+	 "A graph's link dropped on empty space: `event.node`, `port`, `output` (whether it started at an output), `x`, "
+	 "`y` (in graph units), e.g. to add a node there.",
+	 "events"},
+    {"onSelect", "handler", "A graph's or a timeline's selection changed: `event.ids` (a timeline's item keys).",
+	 "events"},
+    {"onDelete", "handler", "Delete or Backspace on a graph: `event.ids`, the selected nodes.", "events"},
+    {"onScrub", "handler", "A timeline's playhead moved by the user: `event.time` (seconds), `frame`.", "events"},
+    {"onKeyframeMove", "handler",
+	 "A timeline's keyframe dragged or moved with Alt and the arrows: `event.track` (its id), `index`, `time`, "
+	 "`from`, `value`.",
+	 "events"},
+    {"onClipChange", "handler",
+	 "A timeline's clip moved or trimmed: `event.id`, `track` (where it is now), `fromTrack`, `index` (in "
+	 "`fromTrack`), `start`, `duration`, `from` (the start before) and `edge` (`\"move\"`, `\"start\"` or `\"end\"`).",
 	 "events"},
     {"slot", R"json({"const": true, "description": "In a component: where the use's children go"})json", "", ""},
     {"placeholder", R"json({"description": "Text, or a {{binding}}"})json", "", ""},

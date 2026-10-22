@@ -173,6 +173,8 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerGradientType(registry);
 	registerCurvesType(registry);
 	registerCanvasType(registry);
+	registerGraphType(registry);
+	registerTimelineType(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

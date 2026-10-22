@@ -194,7 +194,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
 		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/CodeEditor.cpp tests/perf/buffers.cpp
-		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp ${AFFRESCOUI_FORGE_SOURCES})
+		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp ${AFFRESCOUI_FORGE_SOURCES})
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples examples/forge modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
