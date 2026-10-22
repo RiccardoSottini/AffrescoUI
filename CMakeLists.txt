@@ -202,7 +202,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
 	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
 		# deck/: the deck model, read, checked, edited and arranged without a window
-		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Edit.cpp examples/sinopia/deck/Arrange.cpp
+		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
+		examples/sinopia/deck/Arrange.cpp
 		# drawing/: slides, shapes and transitions turned into pixels and paths, and the shape panel
 		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/ShapeGeometry.cpp
 		examples/sinopia/drawing/ShapePanel.cpp examples/sinopia/drawing/Transition.cpp)

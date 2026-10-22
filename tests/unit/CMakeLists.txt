@@ -55,6 +55,7 @@ target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/mode
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/modello)
 # sinopia_*.cpp test the slides app's deck model, edits, arranging and shapes (examples/sinopia), which need no window
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Deck.cpp
+	${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Write.cpp
 	${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Arrange.cpp ${PROJECT_SOURCE_DIR}/examples/sinopia/deck/Edit.cpp
 	${PROJECT_SOURCE_DIR}/examples/sinopia/drawing/ShapeGeometry.cpp)
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared)
