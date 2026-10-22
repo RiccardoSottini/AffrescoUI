@@ -6,6 +6,7 @@
 #include "detail/Utf8.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -14,8 +15,8 @@ namespace affresco {
 
 namespace {
 
-constexpr std::size_t maxMatchesPerLine = 1000;     ///< Matches highlighted on one line, at most.
-constexpr std::size_t maxVisibleMatches = 10'000;   ///< Matches highlighted on the lines drawn, at most.
+constexpr std::size_t maxMatchesPerLine = 1000;   ///< Matches highlighted on one line, at most.
+constexpr std::size_t maxVisibleMatches = 10'000; ///< Matches highlighted on the lines drawn, at most.
 
 /// @brief Encodes a line to UTF-8, and where one of its columns starts.
 /// @param text The line.
@@ -47,14 +48,31 @@ std::size_t codepoints(std::string_view text, std::size_t from, std::size_t to) 
 /// @return The other bracket (0: c isn't one) and true if c opens.
 std::pair<char32_t, bool> pairOf(char32_t c) noexcept {
 	switch(c) {
-	case U'(': return {U')', true};
-	case U'[': return {U']', true};
-	case U'{': return {U'}', true};
-	case U')': return {U'(', false};
-	case U']': return {U'[', false};
-	case U'}': return {U'{', false};
-	default: return {0, false};
+	case U'(':
+		return {U')', true};
+	case U'[':
+		return {U']', true};
+	case U'{':
+		return {U'}', true};
+	case U')':
+		return {U'(', false};
+	case U']':
+		return {U'[', false};
+	case U'}':
+		return {U'{', false};
+	default:
+		return {0, false};
 	}
+}
+
+/// @brief The bracket next to a caret: the one after it, else the one before it.
+/// @param text The caret's line.
+/// @param column The caret's column.
+/// @return The bracket's column, or std::nullopt if neither is a bracket.
+std::optional<std::size_t> bracketNear(const std::u32string& text, std::size_t column) noexcept {
+	if(column < text.size() && pairOf(text[column]).first != 0) return column;
+	if(column > 0 && column <= text.size() && pairOf(text[column - 1]).first != 0) return column - 1;
+	return std::nullopt;
 }
 
 } // namespace
@@ -123,7 +141,8 @@ bool TextEditor::findNext(bool backwards) {
 	const auto [start, end] = selection();
 	const std::size_t lines = lines_.size();
 	for(std::size_t scanned = 0; scanned <= lines; ++scanned) {
-		const std::size_t line = backwards ? (start.line + lines - scanned % lines) % lines : (end.line + scanned) % lines;
+		const std::size_t line =
+		    backwards ? (start.line + lines - scanned % lines) % lines : (end.line + scanned) % lines;
 		lineMatches(line, scanned == 0 && !backwards ? end.column : 0, maxMatchesPerLine, found_);
 		if(backwards && scanned == 0) std::erase_if(found_, [&](const auto& m) { return m.first >= start.column; });
 		if(found_.empty()) continue;
@@ -143,7 +162,8 @@ bool TextEditor::replaceNext(std::string_view replacement) {
 	const std::size_t byte = from.line == to.line ? encodeLine(lines_[from.line], from.column, subject_) : 0;
 	const PatternFind found = from.line == to.line ? find_.find(subject_, byte) : PatternFind{};
 	const bool selected = found.match && found.match->offset == byte &&
-	                      codepoints(subject_, byte, byte + found.match->length) == to.column - from.column && from != to;
+	                      codepoints(subject_, byte, byte + found.match->length) == to.column - from.column &&
+	                      from != to;
 	if(!selected) {
 		findNext();
 		return false;
@@ -176,7 +196,8 @@ std::size_t TextEditor::replaceAll(std::string_view replacement) {
 			const std::optional<std::string> text = find_.expand(subject_, m, replacement);
 			if(!text) return 0;
 			if(m.length > 0)
-				replacements.push_back({{line, column}, {line, column + codepoints(subject_, m.offset, m.offset + m.length)},
+				replacements.push_back({{line, column},
+				                        {line, column + codepoints(subject_, m.offset, m.offset + m.length)},
 				                        detail::fromUtf8(*text)});
 			byte = m.offset + std::max<std::size_t>(m.length, 1);
 			while(byte < subject_.size() && (static_cast<unsigned char>(subject_[byte]) & 0xC0) == 0x80) ++byte;
@@ -199,15 +220,11 @@ std::size_t TextEditor::replaceAll(std::string_view replacement) {
 std::optional<std::pair<TextEditor::Position, TextEditor::Position>> TextEditor::matchingBrackets() const {
 	if(!brackets_) return std::nullopt;
 	const std::u32string& text = lines_[caret_.line];
-	// The bracket after the caret, else the one before it
-	Position at = caret_;
-	auto [other, opens] = at.column < text.size() ? pairOf(text[at.column]) : std::pair<char32_t, bool>{0, false};
-	if(other == 0 && at.column > 0) {
-		--at.column;
-		std::tie(other, opens) = pairOf(text[at.column]);
-	}
-	if(other == 0) return std::nullopt;
+	const auto bracket = bracketNear(text, caret_.column);
+	if(!bracket) return std::nullopt;
+	const Position at{caret_.line, *bracket};
 	const char32_t self = text[at.column];
+	const auto [other, opens] = pairOf(self);
 	std::size_t depth = 0, scanned = 0;
 	Position p = at;
 	while(scanned++ < maxBracketScan) {

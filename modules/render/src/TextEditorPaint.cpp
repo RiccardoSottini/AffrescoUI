@@ -33,7 +33,8 @@ void TextEditor::paint(Painter& painter) const {
 	if(layout.first >= layout.last) return paintGutter(painter, *f, layout);
 	const std::size_t firstLine = rowSpan(layout.first).line, lastLine = rowSpan(layout.last - 1).line + 1;
 
-	if(const std::size_t caretRow = rowOf(caret_); !hasSelection() && caretRow >= layout.first && caretRow < layout.last) {
+	if(const std::size_t caretRow = rowOf(caret_);
+	   !hasSelection() && caretRow >= layout.first && caretRow < layout.last) {
 		const float top = lineTop(layout, caretRow);
 		painter.fillRect({box.left, top, box.right, top + lh}, lineColor_);
 	}
@@ -118,17 +119,28 @@ void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& lay
 
 void TextEditor::paintSelection(Painter& painter, const Font& /*font*/, const Layout& layout, RowSpan span,
                                 std::size_t row, std::pair<Position, Position> selection) const {
+	if(const auto columns = selectedColumns(span, selection))
+		paintColumns(painter, layout, span, row, *columns, selectionColor_);
+}
+
+std::optional<std::pair<std::size_t, std::size_t>>
+TextEditor::selectedColumns(RowSpan span, std::pair<Position, Position> selection) const {
 	const auto [from, to] = selection;
-	if(from == to || span.line < from.line || span.line > to.line) return;
 	const bool lastRow = span.end == lines_[span.line].size();
-	if(span.line == from.line && (from.column > span.end || (!lastRow && from.column == span.end))) return;
-	if(span.line == to.line && to.column < span.start) return;
+	if(!rowSelected(span, selection, lastRow)) return std::nullopt;
 	const std::size_t start = span.line == from.line ? std::max(from.column, span.start) : span.start;
 	const std::size_t end = span.line == to.line ? std::min(to.column, span.end) : span.end;
 	// A selected line break shows as a space's width
 	const bool lineBreak = span.line != to.line && lastRow;
-	if(start >= end && !lineBreak) return;
-	paintColumns(painter, layout, span, row, {start, lineBreak ? end + 1 : end}, selectionColor_);
+	if(start >= end && !lineBreak) return std::nullopt;
+	return std::pair{start, lineBreak ? end + 1 : end};
+}
+
+bool TextEditor::rowSelected(RowSpan span, std::pair<Position, Position> selection, bool lastRow) noexcept {
+	const auto [from, to] = selection;
+	if(from == to || span.line < from.line || span.line > to.line) return false;
+	if(span.line == from.line && (from.column > span.end || (!lastRow && from.column == span.end))) return false;
+	return span.line != to.line || to.column >= span.start;
 }
 
 void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
@@ -187,12 +199,13 @@ void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& l
 		if(it->kind != EditorDecoration::Kind::Gutter || hidden(it->line)) continue;
 		const float top = lineTop(layout, rowOf({it->line, 0}));
 		if(it->icon != 0) {
-			painter.drawText(font, std::u32string_view(&it->icon, 1), {box.left + 2.0f, top + layout.baseline}, it->color);
+			painter.drawText(font, std::u32string_view(&it->icon, 1), {box.left + 2.0f, top + layout.baseline},
+			                 it->color);
 			continue;
 		}
 		const float middle = top + layout.lineHeight / 2.0f;
-		painter.fillRoundedRect({box.left + 3.0f, middle - 3.0f, box.left + 9.0f, middle + 3.0f}, CornerRadii::all(3.0f),
-		                        it->color);
+		painter.fillRoundedRect({box.left + 3.0f, middle - 3.0f, box.left + 9.0f, middle + 3.0f},
+		                        CornerRadii::all(3.0f), it->color);
 	}
 }
 

@@ -102,6 +102,40 @@ bool excluded(const Filters& filters, std::string_view relative, bool folder) {
 	return filters.exclude.matches(names, folder) || (filters.gitignore && filters.ignore.ignored(names, folder));
 }
 
+/// @brief A folder waiting to be walked.
+struct PendingFolder {
+	fs::path path;         ///< The folder.
+	std::string relative;  ///< It, relative to the root.
+	std::size_t depth = 0; ///< How deep it is below the start.
+};
+
+/// @brief Takes one entry of a walked folder: a folder to walk later, or a file to match.
+/// @param entry The entry.
+/// @param folder The folder it is in.
+/// @param filters The filters.
+/// @param query The limits.
+/// @param pending Gets the folder to walk.
+/// @param files Gets the file.
+/// @return False if maxFiles is reached, so the walk stops.
+bool take(const fs::directory_entry& entry, const PendingFolder& folder, const Filters& filters,
+          const SearchQuery& query, std::vector<PendingFolder>& pending, std::vector<Candidate>& files) {
+	std::error_code status;
+	const std::string name = entry.path().filename().string();
+	const fs::file_status kind = entry.symlink_status(status);
+	if(name == ".git" || !isUtf8(name) || status || fs::is_symlink(kind)) return true;
+	const bool isFolder = fs::is_directory(kind);
+	std::string path = joined(folder.relative, name);
+	if((!isFolder && !fs::is_regular_file(kind)) || excluded(filters, path, isFolder)) return true;
+	if(isFolder) {
+		if(folder.depth + 1 < mostDepth) pending.push_back({entry.path(), std::move(path), folder.depth + 1});
+		return true;
+	}
+	if(!filters.include.empty() && !filters.include.matches(splitPath(path), false)) return true;
+	if(files.size() == query.maxFiles) return false;
+	files.push_back({entry.path(), std::move(path)});
+	return true;
+}
+
 /// @brief Walks a folder, depth first without recursion, gathering the files to match.
 /// @param start The folder.
 /// @param relative It, relative to the root.
@@ -112,32 +146,16 @@ bool excluded(const Filters& filters, std::string_view relative, bool folder) {
 /// @param summary Gets "truncated" if maxFiles is reached.
 void collect(const fs::path& start, const std::string& relative, Filters& filters, const SearchQuery& query,
              const std::stop_token& stop, std::vector<Candidate>& files, SearchSummary& summary) {
-	struct Pending {
-		fs::path path;
-		std::string relative;
-		std::size_t depth = 0;
-	};
-	std::vector<Pending> pending{{start, relative, 0}};
+	std::vector<PendingFolder> pending{{start, relative, 0}};
 	while(!pending.empty() && !stop.stop_requested()) {
-		const Pending folder = std::move(pending.back());
+		const PendingFolder folder = std::move(pending.back());
 		pending.pop_back();
 		if(filters.gitignore) readIgnore(folder.path, folder.relative, filters.ignore);
-		std::error_code error, status;
+		std::error_code error;
 		for(fs::directory_iterator entry(folder.path, error), end; !error && entry != end; entry.increment(error)) {
-			const std::string name = entry->path().filename().string();
-			const fs::file_status kind = entry->symlink_status(status);
-			if(name == ".git" || !isUtf8(name) || status || fs::is_symlink(kind)) continue;
-			const bool isFolder = fs::is_directory(kind);
-			std::string path = joined(folder.relative, name);
-			if((!isFolder && !fs::is_regular_file(kind)) || excluded(filters, path, isFolder)) continue;
-			if(isFolder) {
-				if(folder.depth + 1 < mostDepth) pending.push_back({entry->path(), std::move(path), folder.depth + 1});
-			} else if(filters.include.empty() || filters.include.matches(splitPath(path), false)) {
-				if(files.size() == query.maxFiles) {
-					summary.truncated = true;
-					return;
-				}
-				files.push_back({entry->path(), std::move(path)});
+			if(!take(*entry, folder, filters, query, pending, files)) {
+				summary.truncated = true;
+				return;
 			}
 		}
 	}

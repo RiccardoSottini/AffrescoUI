@@ -414,75 +414,92 @@ void TextEditor::selectWord(Position at) {
 void TextEditor::keyEvent(const KeyEvent& event) {
 	Panel::keyEvent(event);
 	if(event.action == Action::Release) return;
-	if(viewKey(event) || cursorsKey(event)) return;
+	if(viewKey(event) || cursorsKey(event) || caretKey(event) || editingKey(event)) return;
+	if(event.mods.super() || event.mods.control()) commandKey(event); // Cmd on macOS, Ctrl elsewhere
+}
 
+bool TextEditor::caretKey(const KeyEvent& event) {
 	const Mods m = event.mods;
-	const bool command = m.super() || m.control(); // Cmd on macOS, Ctrl elsewhere
-	const bool word = m.alt() || (m.control() && !m.super());
+	const bool command = m.super() || m.control();
 	const bool shift = m.shift();
-	const auto vertical = [&](long rows) { moveRows(rows, shift); };
-	const bool editKey = event.key == Key::Enter || event.key == Key::KeypadEnter || event.key == Key::Tab ||
-	                     event.key == Key::Backspace || event.key == Key::Delete;
-	if(editKey && !editable()) return;
-
+	const Position end{lines_.size() - 1, lines_.back().size()};
 	switch(event.key) {
 	case Key::Left:
-		if(m.super()) return moveCaret({caret_.line, 0}, shift);
-		if(hasSelection() && !shift) return moveCaret(selection().first, false);
-		return moveCaret(step(caret_, false, word), shift);
 	case Key::Right:
-		if(m.super()) return moveCaret({caret_.line, lines_[caret_.line].size()}, shift);
-		if(hasSelection() && !shift) return moveCaret(selection().second, false);
-		return moveCaret(step(caret_, true, word), shift);
+		horizontalKey(event.key == Key::Right, m);
+		return true;
 	case Key::Up:
-		if(m.super()) return moveCaret({0, 0}, shift);
-		return vertical(-1);
 	case Key::Down:
-		if(m.super()) return moveCaret({lines_.size() - 1, lines_.back().size()}, shift);
-		return vertical(1);
+		verticalKey(event.key == Key::Down, m);
+		return true;
 	case Key::Home: {
 		// First non-blank character, or the start of the line if already there
 		const std::size_t indent = indentOf(caret_.line);
-		if(command) return moveCaret({0, 0}, shift);
-		return moveCaret({caret_.line, caret_.column == indent ? 0 : indent}, shift);
+		moveCaret(command ? Position{0, 0} : Position{caret_.line, caret_.column == indent ? 0 : indent}, shift);
+		return true;
 	}
 	case Key::End:
-		if(command) return moveCaret({lines_.size() - 1, lines_.back().size()}, shift);
-		return moveCaret({caret_.line, lines_[caret_.line].size()}, shift);
+		moveCaret(command ? end : Position{caret_.line, lines_[caret_.line].size()}, shift);
+		return true;
 	case Key::PageUp:
-		return vertical(-static_cast<long>(visibleLines()));
-	case Key::PageDown:
-		return vertical(static_cast<long>(visibleLines()));
+	case Key::PageDown: {
+		const auto rows = static_cast<long>(visibleLines());
+		moveRows(event.key == Key::PageUp ? -rows : rows, shift);
+		return true;
+	}
+	default:
+		return false;
+	}
+}
+
+void TextEditor::horizontalKey(bool right, Mods mods) {
+	const bool word = mods.alt() || (mods.control() && !mods.super());
+	const bool shift = mods.shift();
+	if(mods.super()) return moveCaret({caret_.line, right ? lines_[caret_.line].size() : 0}, shift);
+	if(hasSelection() && !shift) return moveCaret(right ? selection().second : selection().first, false);
+	moveCaret(step(caret_, right, word), shift);
+}
+
+void TextEditor::verticalKey(bool down, Mods mods) {
+	if(!mods.super()) return moveRows(down ? 1 : -1, mods.shift());
+	moveCaret(down ? Position{lines_.size() - 1, lines_.back().size()} : Position{0, 0}, mods.shift());
+}
+
+bool TextEditor::editingKey(const KeyEvent& event) {
+	const Mods m = event.mods;
+	const bool command = m.super() || m.control();
+	switch(event.key) {
 	case Key::Enter:
 	case Key::KeypadEnter:
-		if(!command) newLine();
-		return;
+		if(editable() && !command) newLine();
+		return true;
 	case Key::Tab:
-		if(command) return;
-		if(shift || hasSelection()) return indentLines(shift);
+		if(!editable() || command) return true;
+		if(m.shift() || hasSelection()) {
+			indentLines(m.shift());
+			return true;
+		}
 		beginEdit(Edit::Typing);
 		replaceSelection(std::u32string(tabSize - caret_.column % tabSize, U' '));
-		return endEdit();
-	case Key::Backspace: {
-		if(hasSelection()) {
-			beginEdit(Edit::Other);
-			replaceSelection({});
-			return endEdit();
-		}
-		if(caret_ == Position{}) return;
-		beginEdit(Edit::Deleting);
-		Position from = m.super() ? Position{caret_.line, 0} : step(caret_, false, word);
-		if(from == caret_) from = step(caret_, false, false); // Cmd+Backspace at a line start joins lines
-		erase(from, caret_);
-		caret_ = anchor_ = from;
+		endEdit();
+		return true;
+	case Key::Backspace:
+	case Key::Delete:
+		if(editable()) deleteKey(event.key == Key::Delete, m);
+		return true;
+	default:
+		return false;
+	}
+}
+
+void TextEditor::deleteKey(bool forward, Mods mods) {
+	const bool word = mods.alt() || (mods.control() && !mods.super());
+	if(hasSelection()) {
+		beginEdit(Edit::Other);
+		replaceSelection({});
 		return endEdit();
 	}
-	case Key::Delete: {
-		if(hasSelection()) {
-			beginEdit(Edit::Other);
-			replaceSelection({});
-			return endEdit();
-		}
+	if(forward) {
 		const Position to = step(caret_, true, word);
 		if(to == caret_) return;
 		beginEdit(Edit::Deleting);
@@ -490,11 +507,16 @@ void TextEditor::keyEvent(const KeyEvent& event) {
 		anchor_ = caret_;
 		return endEdit();
 	}
-	default:
-		break;
-	}
+	if(caret_ == Position{}) return;
+	beginEdit(Edit::Deleting);
+	Position from = mods.super() ? Position{caret_.line, 0} : step(caret_, false, word);
+	if(from == caret_) from = step(caret_, false, false); // Cmd+Backspace at a line start joins lines
+	erase(from, caret_);
+	caret_ = anchor_ = from;
+	endEdit();
+}
 
-	if(!command) return;
+void TextEditor::commandKey(const KeyEvent& event) {
 	switch(event.key) {
 	case Key::A:
 		anchor_ = {0, 0};
@@ -509,9 +531,9 @@ void TextEditor::keyEvent(const KeyEvent& event) {
 	case Key::V:
 		return paste();
 	case Key::Z:
-		return undo(shift);
+		return undo(event.mods.shift());
 	case Key::Y:
-		if(m.control()) undo(true);
+		if(event.mods.control()) undo(true);
 		return;
 	default:
 		return;

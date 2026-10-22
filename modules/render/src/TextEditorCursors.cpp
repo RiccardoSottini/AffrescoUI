@@ -8,6 +8,7 @@
 #include "detail/Utf8.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -15,7 +16,7 @@ namespace affresco {
 
 namespace {
 
-constexpr std::size_t maxInlineLength = 256;        ///< Code points of a decoration's inline text kept, at most.
+constexpr std::size_t maxInlineLength = 256;       ///< Code points of a decoration's inline text kept, at most.
 constexpr std::size_t maxOccurrenceScan = 100'000; ///< Lines Cmd+D reads for the next occurrence, at most.
 
 /// @brief A selection's start.
@@ -64,7 +65,8 @@ void TextEditor::lineLabel(std::size_t line, std::u32string& out) const {
 TextEditor::Position TextEditor::shifted(Position at, const TextChange& change) noexcept {
 	if(at < change.from) return at;
 	if(at < change.oldEnd) return change.from; // in the text removed
-	if(at.line == change.oldEnd.line) return {change.newEnd.line, change.newEnd.column + at.column - change.oldEnd.column};
+	if(at.line == change.oldEnd.line)
+		return {change.newEnd.line, change.newEnd.column + at.column - change.oldEnd.column};
 	return {at.line - change.oldEnd.line + change.newEnd.line, at.column};
 }
 
@@ -145,7 +147,11 @@ bool TextEditor::viewKey(const KeyEvent& event) {
 		clearCursors();
 		return true;
 	}
-	if(!command) return false;
+	return command && commandViewKey(event);
+}
+
+bool TextEditor::commandViewKey(const KeyEvent& event) {
+	const Mods m = event.mods;
 	if(event.key == Key::A) clearCursors(); // then selects everything as usual
 	if(event.key == Key::G && !m.alt()) {
 		findNext(m.shift());
@@ -169,8 +175,14 @@ bool TextEditor::viewKey(const KeyEvent& event) {
 
 bool TextEditor::cursorsKey(const KeyEvent& event) {
 	if(cursors_.empty()) return false;
+	const bool command = event.mods.super() || event.mods.control();
+	if(command && event.key != Key::V) return false;
+	if(const auto moved = cursorsMoveKey(event)) return *moved;
+	return editable() && cursorsEditKey(event);
+}
+
+std::optional<bool> TextEditor::cursorsMoveKey(const KeyEvent& event) {
 	const Mods m = event.mods;
-	const bool command = m.super() || m.control();
 	const bool word = m.alt() || (m.control() && !m.super());
 	const bool shift = m.shift();
 	const auto moveEach = [&](auto to) {
@@ -184,7 +196,6 @@ bool TextEditor::cursorsKey(const KeyEvent& event) {
 		const long row = std::clamp(static_cast<long>(rowOf(p)) + rows, 0L, static_cast<long>(rowCount()) - 1);
 		return positionOnRow(static_cast<std::size_t>(row), xOnRow(p));
 	};
-	if(command && event.key != Key::V) return false;
 	switch(event.key) {
 	case Key::Left:
 		return moveEach([&](EditorSelection s) { return step(s.caret, false, word); });
@@ -199,9 +210,13 @@ bool TextEditor::cursorsKey(const KeyEvent& event) {
 	case Key::End:
 		return moveEach([&](EditorSelection s) { return Position{s.caret.line, lines_[s.caret.line].size()}; });
 	default:
-		break;
+		return std::nullopt;
 	}
-	if(!editable()) return false;
+}
+
+bool TextEditor::cursorsEditKey(const KeyEvent& event) {
+	const Mods m = event.mods;
+	const bool word = m.alt() || (m.control() && !m.super());
 	switch(event.key) {
 	case Key::Enter:
 	case Key::KeypadEnter:

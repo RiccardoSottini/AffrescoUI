@@ -60,9 +60,10 @@ std::optional<bool> recognisesNothing(const Running& step) {
 TEST_CASE("format: the built-in node types register in catalog order, each with a factory") {
 	TypeRegistry registry;
 	registerBuiltInTypes(registry);
-	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "stack", "row",
-	                                                      "column", "grid", "toggle", "checkbox", "slider", "image",
-	                                                      "split", "tabs", "list", "tree", "table", "path", "outlet"});
+	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "diff", "stack",
+	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
+	                                                      "image", "split", "tabs", "list", "tree", "table", "path",
+	                                                      "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());

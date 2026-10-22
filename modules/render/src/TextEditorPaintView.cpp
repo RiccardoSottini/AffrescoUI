@@ -70,19 +70,24 @@ void TextEditor::paintUnder(Painter& painter, const Font& /*font*/, const Layout
 }
 
 void TextEditor::paintAbove(Painter& painter, const Font& font, const Layout& layout) const {
+	paintGuides(painter, font, layout);
+	paintDecorationsAbove(painter, font, layout);
+	paintCarets(painter, font, layout);
+}
+
+float TextEditor::rowX(RowSpan span, std::size_t column) const {
+	return columnX(span.line, column) - (wrap_ ? columnX(span.line, span.start) : 0.0f);
+}
+
+void TextEditor::paintGuides(Painter& painter, const Font& font, const Layout& layout) const {
 	const float lh = layout.lineHeight;
 	const float space = font.glyph(U' ').advance;
-	// x of a column on its row, relative to the text's start
-	const auto rowX = [this](RowSpan span, std::size_t column) {
-		return columnX(span.line, column) - (wrap_ ? columnX(span.line, span.start) : 0.0f);
-	};
 	for(std::size_t row = layout.first; row < layout.last; ++row) {
 		const RowSpan span = rowSpan(row);
 		const float top = lineTop(layout, row);
 		// Indentation guides, on a line's first row, at each level but the deepest
 		if(guides_ && span.start == 0)
-			for(std::size_t column = 0; column < indentOf(span.line) && column < span.end; column += tabSize) {
-				if(column == 0) continue;
+			for(std::size_t column = tabSize; column < indentOf(span.line) && column < span.end; column += tabSize) {
 				const float x = std::round(layout.textLeft + static_cast<float>(column) * space);
 				painter.fillRect({x, top, x + 1.0f, top + lh}, guideColor_);
 			}
@@ -90,12 +95,16 @@ void TextEditor::paintAbove(Painter& painter, const Font& font, const Layout& la
 		if(viewActive() && span.end == lines_[span.line].size() && nextShown(span.line) > span.line + 1) {
 			const float x = layout.textLeft + rowX(span, span.end) + space;
 			for(int dot = 0; dot < 3; ++dot)
-				painter.fillRect({x + static_cast<float>(dot) * 4.0f, top + lh - 8.0f, x + static_cast<float>(dot) * 4.0f + 2.0f,
-				                  top + lh - 6.0f},
+				painter.fillRect({x + static_cast<float>(dot) * 4.0f, top + lh - 8.0f,
+				                  x + static_cast<float>(dot) * 4.0f + 2.0f, top + lh - 6.0f},
 				                 lineNumberColor_);
 		}
 	}
+}
 
+void TextEditor::paintDecorationsAbove(Painter& painter, const Font& font, const Layout& layout) const {
+	const float lh = layout.lineHeight;
+	const float space = font.glyph(U' ').advance;
 	const std::size_t firstLine = rowSpan(layout.first).line, lastLine = rowSpan(layout.last - 1).line;
 	const auto visible = std::ranges::lower_bound(decorations_, firstLine - std::min(firstLine, decorationSpan_), {},
 	                                              &EditorDecoration::line);
@@ -117,7 +126,10 @@ void TextEditor::paintAbove(Painter& painter, const Font& font, const Layout& la
 				painter.drawText(font, d.text, {std::round(x), lineTop(layout, row) + layout.baseline}, d.color);
 			});
 	}
+}
 
+void TextEditor::paintCarets(Painter& painter, const Font& font, const Layout& layout) const {
+	const float lh = layout.lineHeight;
 	if(hasFocus())
 		for(const EditorSelection& s : cursors_) {
 			const std::size_t row = rowOf(s.caret);

@@ -49,13 +49,13 @@ public:
 
 	static constexpr std::size_t tabSize = 4; ///< Spaces per indentation level.
 
-	static constexpr std::size_t maxDecorations = 10'000;      ///< Decorations kept, at most; the rest are dropped.
-	static constexpr std::size_t maxDecorationsPerLine = 8;    ///< Decorations starting on one line, at most.
-	static constexpr std::size_t maxCursors = 10'000;          ///< Extra cursors, at most.
-	static constexpr std::size_t maxFolds = 10'000;            ///< Folded ranges, at most.
-	static constexpr std::size_t maxMatches = 10'000;          ///< Matches counted or replaced at once, at most.
-	static constexpr std::size_t maxBracketScan = 100'000;     ///< Code points scanned for a matching bracket.
-	static constexpr std::size_t maxCompositionLength = 256;   ///< Code points of IME composition shown, at most.
+	static constexpr std::size_t maxDecorations = 10'000;    ///< Decorations kept, at most; the rest are dropped.
+	static constexpr std::size_t maxDecorationsPerLine = 8;  ///< Decorations starting on one line, at most.
+	static constexpr std::size_t maxCursors = 10'000;        ///< Extra cursors, at most.
+	static constexpr std::size_t maxFolds = 10'000;          ///< Folded ranges, at most.
+	static constexpr std::size_t maxMatches = 10'000;        ///< Matches counted or replaced at once, at most.
+	static constexpr std::size_t maxBracketScan = 100'000;   ///< Code points scanned for a matching bracket.
+	static constexpr std::size_t maxCompositionLength = 256; ///< Code points of IME composition shown, at most.
 
 	/// @brief An empty editor with a dark background and an I-beam cursor.
 	TextEditor();
@@ -313,8 +313,8 @@ protected:
 	void indentLines(bool outdent);
 
 private:
-	static constexpr float textPadding = 6.0f;    ///< Space above the first line, in pixels.
-	static constexpr float scrollBarWidth = 4.0f; ///< Thickness of the scroll bar, in pixels.
+	static constexpr float textPadding = 6.0f;      ///< Space above the first line, in pixels.
+	static constexpr float scrollBarWidth = 4.0f;   ///< Thickness of the scroll bar, in pixels.
 	static constexpr std::size_t exactWidth = 4096; ///< Up to this many lines, the widest is measured, not estimated.
 
 	/// @brief One row on screen: a line, or the part of a wrapped line between two columns.
@@ -446,6 +446,41 @@ private:
 	/// @param event The key.
 	/// @return Whether it was handled.
 	bool cursorsKey(const KeyEvent& event);
+	/// @brief The view keys with Command or Control: find next, next occurrence, cursor rows, folding.
+	/// @param event The key.
+	/// @return Whether it was handled.
+	bool commandViewKey(const KeyEvent& event);
+	/// @brief Moving keys with extra cursors: arrows, Home and End move each.
+	/// @param event The key.
+	/// @return Whether it was handled, or std::nullopt if it isn't a moving key.
+	std::optional<bool> cursorsMoveKey(const KeyEvent& event);
+	/// @brief Editing keys with extra cursors: Enter, Tab, Backspace, Delete and paste at each.
+	/// @param event The key.
+	/// @return Whether it was handled.
+	bool cursorsEditKey(const KeyEvent& event);
+	/// @brief The keys that move the caret: arrows, Home, End, Page Up and Page Down.
+	/// @param event The key.
+	/// @return Whether it was one.
+	bool caretKey(const KeyEvent& event);
+	/// @brief Up or Down: to the text's start or end with Cmd, else by a row.
+	/// @param down Down, not Up.
+	/// @param mods The modifiers (Shift extends the selection).
+	void verticalKey(bool down, Mods mods);
+	/// @brief The keys that edit: Enter, Tab, Backspace and Delete (ignored when not editable).
+	/// @param event The key.
+	/// @return Whether it was one.
+	/// @brief Left or Right: to the line's end with Cmd, to the selection's end, else by a character or a word.
+	/// @param right Right, not Left.
+	/// @param mods The modifiers (Shift extends the selection).
+	void horizontalKey(bool right, Mods mods);
+	bool editingKey(const KeyEvent& event);
+	/// @brief Backspace or Delete: the selection, else the character or word before or after the caret.
+	/// @param forward Delete, not Backspace.
+	/// @param mods The modifiers (Alt or Control: a word; Cmd with Backspace: to the line's start).
+	void deleteKey(bool forward, Mods mods);
+	/// @brief The keys with Command or Control: select all, copy, cut, paste, undo and redo.
+	/// @param event The key.
+	void commandKey(const KeyEvent& event);
 	/// @brief Cmd+D: selects the word at the caret, or adds a cursor at the next occurrence of the selection.
 	void selectNextOccurrence();
 	/// @brief Cmd+Alt+Up/Down: adds a cursor on the row above or below the outermost one.
@@ -502,6 +537,18 @@ private:
 	/// @param selection The selection, start first.
 	void paintSelection(Painter& painter, const Font& font, const Layout& layout, RowSpan span, std::size_t row,
 	                    std::pair<Position, Position> selection) const;
+	/// @brief Whether a selection covers any of a row.
+	/// @param span The row.
+	/// @param selection The selection, start first.
+	/// @param lastRow Whether the row is its line's last (its line break can be selected).
+	/// @return Whether it does.
+	[[nodiscard]] static bool rowSelected(RowSpan span, std::pair<Position, Position> selection, bool lastRow) noexcept;
+	/// @brief The columns of a row that a selection covers, one past the row's end for a selected line break.
+	/// @param span The row.
+	/// @param selection The selection, start first.
+	/// @return The first column and one past the last, or std::nullopt if none.
+	[[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>>
+	selectedColumns(RowSpan span, std::pair<Position, Position> selection) const;
 	/// @brief Draws a range of columns of a row as a rectangle, or several where the text's direction changes.
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
@@ -530,6 +577,26 @@ private:
 	/// @param font The font.
 	/// @param layout The frame's layout.
 	void paintAbove(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief The x of a column on its row, relative to the text's start.
+	/// @param span The row.
+	/// @param column The column.
+	/// @return Its x.
+	[[nodiscard]] float rowX(RowSpan span, std::size_t column) const;
+	/// @brief Draws the indentation guides and the folded lines' ellipses.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	void paintGuides(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief Draws the squiggle and inline decorations.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	void paintDecorationsAbove(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief Draws the extra carets and the IME composition.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	void paintCarets(Painter& painter, const Font& font, const Layout& layout) const;
 	/// @brief Calls a function for each row drawn that a range of lines shows.
 	/// @param layout The frame's layout.
 	/// @param from The first line.
@@ -540,46 +607,46 @@ private:
 
 	/// @brief The text; shared, as a file buffer may be shown by several editors at once (setModel()).
 	std::shared_ptr<TextModel> model_ = std::make_shared<TextModel>();
-	TextLines lines_{*model_};                            ///< See lines().
-	Connection modelConnection_ = 0;                      ///< To model_->onChanged.
-	Position caret_;                                      ///< Where typing happens.
-	Position anchor_;                                     ///< The selection's other end (== caret_: none).
-	float preferredX_ = -1.0f;                            ///< The x vertical moves aim for (< 0: the caret's).
-	Vec2 scroll_;                                         ///< Pixels scrolled right and down.
-	bool dragging_ = false;                               ///< A button press is selecting text.
-	double lastClickTime_ = -1.0;                         ///< When the last press happened, for double clicks.
-	Position lastClickAt_;                                ///< Where it happened.
-	int clicks_ = 0;                                      ///< Presses in a row at one place (1, 2 or 3).
-	bool editing_ = false;  ///< This editor is changing the model: its caret is set by the edit, not moved.
-	bool readOnly_ = false; ///< See setReadOnly().
+	TextLines lines_{*model_};       ///< See lines().
+	Connection modelConnection_ = 0; ///< To model_->onChanged.
+	Position caret_;                 ///< Where typing happens.
+	Position anchor_;                ///< The selection's other end (== caret_: none).
+	float preferredX_ = -1.0f;       ///< The x vertical moves aim for (< 0: the caret's).
+	Vec2 scroll_;                    ///< Pixels scrolled right and down.
+	bool dragging_ = false;          ///< A button press is selecting text.
+	double lastClickTime_ = -1.0;    ///< When the last press happened, for double clicks.
+	Position lastClickAt_;           ///< Where it happened.
+	int clicks_ = 0;                 ///< Presses in a row at one place (1, 2 or 3).
+	bool editing_ = false;           ///< This editor is changing the model: its caret is set by the edit, not moved.
+	bool readOnly_ = false;          ///< See setReadOnly().
 
-	Edit lastEdit_ = Edit::Other; ///< The edit that made the newest undo step (Other: start a new step).
+	Edit lastEdit_ = Edit::Other;        ///< The edit that made the newest undo step (Other: start a new step).
 	mutable std::vector<int> states_{0}; ///< The colouring state each line starts with, for the lines coloured so far.
 	mutable float widest_ = -1.0f;       ///< See widestLine(); < 0: to work out.
 	mutable const Font* widestFont_ = nullptr; ///< The font widest_ was measured with.
 	mutable std::vector<Color> colors_;        ///< One line's colours, reused from frame to frame.
 	mutable std::vector<std::tuple<std::size_t, float, float>> runs_; ///< One row's colour runs: end, x and width.
-	mutable std::vector<std::size_t> breaks_;  ///< One line's row starts, reused.
-	mutable std::u32string label_;             ///< One line's gutter label, reused.
+	mutable std::vector<std::size_t> breaks_;                         ///< One line's row starts, reused.
+	mutable std::u32string label_;                                    ///< One line's gutter label, reused.
 
-	bool wrap_ = false;                        ///< See setWrap().
-	std::vector<FoldRange> folds_;             ///< See folds().
-	std::vector<FoldRange> givenFolds_;        ///< See offerFolds().
-	std::unique_ptr<detail::ViewRows> rows_;   ///< The rows of each line, while wrap or folds are on.
-	std::vector<std::uint32_t> wrapRows_;      ///< Each line's wrapped rows (folds aside), while wrapping.
-	float rowsWidth_ = -1.0f;                  ///< The width wrapRows_ was worked out for.
-	const Font* rowsFont_ = nullptr;           ///< The font it was worked out with.
+	bool wrap_ = false;                         ///< See setWrap().
+	std::vector<FoldRange> folds_;              ///< See folds().
+	std::vector<FoldRange> givenFolds_;         ///< See offerFolds().
+	std::unique_ptr<detail::ViewRows> rows_;    ///< The rows of each line, while wrap or folds are on.
+	std::vector<std::uint32_t> wrapRows_;       ///< Each line's wrapped rows (folds aside), while wrapping.
+	float rowsWidth_ = -1.0f;                   ///< The width wrapRows_ was worked out for.
+	const Font* rowsFont_ = nullptr;            ///< The font it was worked out with.
 	std::vector<EditorDecoration> decorations_; ///< See decorations().
-	std::size_t decorationSpan_ = 0;           ///< The most lines one decoration spans, to find those drawn.
-	std::vector<EditorSelection> cursors_;     ///< See cursors().
+	std::size_t decorationSpan_ = 0;            ///< The most lines one decoration spans, to find those drawn.
+	std::vector<EditorSelection> cursors_;      ///< See cursors().
 	std::vector<EditorSelection>* editedCursors_ = nullptr; ///< In forEachCursor(): every cursor, moved by edits.
-	std::size_t activeCursor_ = SIZE_MAX;      ///< In forEachCursor(): the one being edited (not moved).
-	bool columnDragging_ = false;              ///< Alt+Shift+drag is selecting a column.
-	Vec2 columnFrom_;                          ///< Where it started.
+	std::size_t activeCursor_ = SIZE_MAX;                   ///< In forEachCursor(): the one being edited (not moved).
+	bool columnDragging_ = false;                           ///< Alt+Shift+drag is selecting a column.
+	Vec2 columnFrom_;                                       ///< Where it started.
 
-	TextPattern find_;                ///< The find pattern; invalid: none.
-	std::string findText_;            ///< Its text.
-	PatternOptions findOptions_;      ///< Its options.
+	TextPattern find_;                 ///< The find pattern; invalid: none.
+	std::string findText_;             ///< Its text.
+	PatternOptions findOptions_;       ///< Its options.
 	std::uint64_t findGeneration_ = 0; ///< Counts setFind() calls, for the cached matches.
 	/// @brief The matches of the rows drawn last: line, column and length.
 	struct VisibleMatch {
@@ -587,28 +654,28 @@ private:
 		std::size_t column; ///< The first code point.
 		std::size_t length; ///< Code points.
 	};
-	mutable std::vector<VisibleMatch> visibleMatches_;                ///< See VisibleMatch.
+	mutable std::vector<VisibleMatch> visibleMatches_;               ///< See VisibleMatch.
 	mutable std::vector<std::pair<std::size_t, std::size_t>> found_; ///< One line's matches, reused.
-	mutable std::string subject_;                                     ///< One line in UTF-8, reused.
+	mutable std::string subject_;                                    ///< One line in UTF-8, reused.
 	/// @brief What visibleMatches_ was found for: the model's version, the lines and findGeneration_.
 	mutable std::array<std::uint64_t, 4> matchesKey_{};
-	bool brackets_ = false;           ///< See setBracketMatching().
-	bool guides_ = false;             ///< See setIndentGuides().
-	std::u32string composition_;      ///< See setComposition().
+	bool brackets_ = false;      ///< See setBracketMatching().
+	bool guides_ = false;        ///< See setIndentGuides().
+	std::u32string composition_; ///< See setComposition().
 
-	std::shared_ptr<const Font> font_; ///< nullptr: the window's default.
-	bool lineNumbers_ = false;         ///< See setLineNumbers().
+	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
+	bool lineNumbers_ = false;            ///< See setLineNumbers().
 	std::vector<std::size_t> lineLabels_; ///< See setLineLabels().
 	std::size_t largestLabel_ = 0;        ///< The largest of lineLabels_, for the gutter's width.
-	Color textColor_;                  ///< See setTextColor().
-	Color lineNumberColor_;            ///< See setLineNumberColor().
-	Color activeLineNumberColor_;      ///< See setActiveLineNumberColor().
-	Color lineColor_;                  ///< See setLineColor().
-	Color selectionColor_;             ///< See setSelectionColor().
-	Color caretColor_;                 ///< See setCaretColor().
-	Color guideColor_;                 ///< See setGuideColor().
-	Color matchColor_;                 ///< See setMatchColor().
-	Color bracketColor_;               ///< See setBracketColor().
+	Color textColor_;                     ///< See setTextColor().
+	Color lineNumberColor_;               ///< See setLineNumberColor().
+	Color activeLineNumberColor_;         ///< See setActiveLineNumberColor().
+	Color lineColor_;                     ///< See setLineColor().
+	Color selectionColor_;                ///< See setSelectionColor().
+	Color caretColor_;                    ///< See setCaretColor().
+	Color guideColor_;                    ///< See setGuideColor().
+	Color matchColor_;                    ///< See setMatchColor().
+	Color bracketColor_;                  ///< See setBracketColor().
 };
 
 } // namespace affresco
