@@ -148,6 +148,18 @@ static void testGlobals(void) {
 	CHECK(afr_screen_step(NULL, 0) == AFR_ERROR_ARGUMENT);
 	CHECK(afr_call_return(NULL, "1", 1) == AFR_ERROR_ARGUMENT);
 	CHECK(afr_call_fail(NULL, "x") == AFR_ERROR_ARGUMENT);
+
+	/* Before, a picture had no size limit: 16384 window units at a scale of 16 asked for terabytes */
+	options.mode = AFR_MODE_HEADLESS;
+	options.width = 16384;
+	options.height = 16;
+	options.scale = 2.0f;
+	CHECK_OK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen));
+	if(screen == NULL) return;
+	int w = 0, h = 0;
+	uint8_t* rgba = NULL;
+	CHECK(afr_screen_render_rgba(screen, &w, &h, &rgba) == AFR_ERROR_ARGUMENT && rgba == NULL);
+	afr_screen_destroy(screen);
 }
 
 /** @brief The state, revisions and document calls. */

@@ -24,6 +24,9 @@ constexpr int allModifiers = 0x3F;
 /// @brief The longest text afr_screen_text() takes, in bytes.
 constexpr std::size_t longestText = 65536;
 
+/// @brief The widest and highest picture afr_screen_render_rgba() draws, in pixels: an embedded screen's limit.
+constexpr int largestPicture = affresco::Embedding::maximumSize;
+
 /// @brief Checks a screen handle, and that it is in one of the modes given.
 /// @param screen The handle.
 /// @param first A mode it may be in.
@@ -242,6 +245,10 @@ afr_status afr_screen_render_rgba(afr_screen* screen, int* width, int* height, u
 		const float scale = handle.embedding ? handle.scale : static_cast<float>(whole);
 		const int wide = static_cast<int>(std::lround(static_cast<float>(window.width()) * scale));
 		const int high = static_cast<int>(std::lround(static_cast<float>(window.height()) * scale));
+		// Headless, the window may be 16384 units wide and the scale 16: a picture of terabytes, which the host
+		// would get as a failed allocation at best
+		if(wide > largestPicture || high > largestPicture)
+			throw Failure{AFR_ERROR_ARGUMENT, "the picture would be over 16384 pixels wide or high: lower the scale"};
 		const std::vector<std::uint8_t> pixels =
 		    handle.embedding ? handle.embedding->renderPixels(wide, high, scale) : windowPixels(handle, whole);
 		if(pixels.size() != static_cast<std::size_t>(wide) * static_cast<std::size_t>(high) * 4)

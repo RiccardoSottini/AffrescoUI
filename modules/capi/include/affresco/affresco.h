@@ -363,6 +363,7 @@ AFR_API afr_status afr_screen_render_texture(afr_screen* screen, int width, int 
  * @param width Receives its width in pixels (window width times the scale).
  * @param height Receives its height in pixels.
  * @param rgba Receives width * height * 4 bytes, premultiplied RGBA, top row first; free it with afr_free().
+ * @return AFR_ERROR_ARGUMENT for a picture over 16384 pixels wide or high (a large window at a large scale).
  */
 AFR_API afr_status afr_screen_render_rgba(afr_screen* screen, int* width, int* height, uint8_t** rgba);
 
