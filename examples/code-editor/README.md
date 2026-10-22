@@ -1,4 +1,4 @@
-# Bottega, a code editor
+# Quaderno, a code editor
 
 A menu bar, an explorer tree, editor tabs, quick open, a command palette, problems and a terminal. The `code-editor` template: a screen document that the stock host runs.
 

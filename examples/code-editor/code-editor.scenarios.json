@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "What the Code editor template (Bottega) does, checked headless: affrescoui test code-editor.scenarios.json",
+	"note": "What the Code editor template (Quaderno) does, checked headless: affrescoui test code-editor.scenarios.json",
 	"screen": "code-editor.screen.json",
 	"scenarios": [
 		{
@@ -13,7 +13,7 @@
 				{ "expect": { "state": "active", "is": 2 } },
 				{ "expect": { "state": "tabs", "is": [0, 1, 3, 2] } },
 				{ "expect": { "node": "#breadcrumbs", "text": "weather-station  /  src  /  Station.cpp" } },
-				{ "expect": { "node": "#windowTitle", "text": "Station.cpp  —  weather-station  —  Bottega" } },
+				{ "expect": { "node": "#windowTitle", "text": "Station.cpp  —  weather-station  —  Quaderno" } },
 				{ "click": [130, 313], "note": "README.md, at the root" },
 				{ "expect": { "state": "active", "is": 6 } },
 				{ "expect": { "node": "#breadcrumbs", "text": "weather-station  /  README.md" } },

@@ -23,7 +23,6 @@
 			"edit": { "open": false, "id": "", "condition": "", "hitCondition": "", "logMessage": "" },
 			"setValue": { "open": false, "path": "", "name": "", "value": "" },
 			"outside": { "open": false, "frame": null },
-			"caret": { "line": 1, "column": 1, "selected": 0 },
 			"hover": { "path": "", "word": "", "line": 0, "value": "" },
 			"terminalSent": false
 		}
@@ -35,7 +34,7 @@
 		"debugConfigurationRows": "{{map(state.debug.configurations, {id: text(index), label: it.name, icon: it.type == 'python' ? 'file-code' : 'cpu'})}}",
 		"debugStackRows": "{{concat(map(slice(state.debug.threads, 0, indexOf(map(state.debug.threads, it.id), state.debug.threadId) + 1), {id: 't:' + it.id, label: it.name + (it.id == state.debug.threadId && state.debug.status == 'stopped' ? '  paused on ' + state.debug.reason : ''), icon: 'list-tree'}), map(state.debug.frames, {id: 'f:' + it.id, label: '    ' + it.name + '  ' + (empty(it.path) ? 'unknown source' : reverse(split(it.path, '/'))[0]) + ':' + it.line, icon: it.id == state.debug.frameId ? 'arrow-right' : '', iconColor: it.inside ? '#e5c07b' : '#848484'}), map(slice(state.debug.threads, indexOf(map(state.debug.threads, it.id), state.debug.threadId) + 1), {id: 't:' + it.id, label: it.name, icon: 'list-tree'}))}}",
 		"debugVariableRows": "{{map(state.debug.variables, {id: it.path, label: pad('', it.depth * 2) + (it.kind == 'more' ? '  … ' + it.value : (it.ref > 0 ? (it.expanded ? '▾ ' : '▸ ') : '  ') + it.name + (it.kind == 'scope' ? '' : ' = ' + it.value))})}}",
-		"debugWatchRows": "{{map(state.debug.watches, {id: it.id, label: it.expression + ' = ' + (empty(it.error) ? (state.debug.status == 'stopped' ? it.value : 'not available') : it.error), icon: 'eye', iconColor: empty(it.error) ? '' : '#f85149'})}}",
+		"debugWatchRows": "{{map(state.debug.watches, {id: it.id, label: it.expression + ' = ' + (empty(it.error) ? (state.debug.status == 'stopped' ? it.value : 'not available') : it.error), icon: 'eye', iconColor: empty(it.error) ? '#848484' : '#f85149'})}}",
 		"debugBreakpointRows": "{{map(state.debug.breakpoints, {id: it.id, label: reverse(split(it.path, '/'))[0] + ':' + it.line + (empty(it.condition) ? '' : '  if ' + it.condition) + (empty(it.hitCondition) ? '' : '  hits ' + it.hitCondition) + (empty(it.logMessage) ? '' : '  log ' + it.logMessage) + (state.debug.status != 'inactive' && !it.verified && !empty(it.message) ? '  (' + it.message + ')' : ''), icon: !it.enabled ? 'circle-off' : !empty(it.logMessage) ? 'diamond' : 'circle', iconColor: !it.enabled || (state.debug.status != 'inactive' && !it.verified) ? '#848484' : '#e51400'})}}",
 		"debugConsoleRows": "{{map(state.debug.console, {id: it.id, label: it.text, icon: it.kind == 'input' ? 'chevron-right' : it.kind == 'error' || it.kind == 'stderr' ? 'circle-x' : '', iconColor: it.kind == 'input' ? '#3794ff' : '#f85149'})}}"
 	},
@@ -482,7 +481,7 @@
 		"debugToggleBreakpointAtCaret": { "title": "Toggle Breakpoint", "category": "Debug", "icon": "circle-dot",
 			"enablement": "{{computed.activeDoc != null && computed.activeDoc.kind == 'file'}}",
 			"do": [{ "if": "{{computed.activeDoc != null && computed.activeDoc.kind == 'file'}}",
-				"then": [{ "run": "debugToggleBreakpoint", "with": { "path": "{{computed.activeDoc.id}}", "line": "{{state.debug.caret.line}}" } }] }] },
+				"then": [{ "run": "debugToggleBreakpoint", "with": { "path": "{{computed.activeDoc.id}}", "line": "{{state.caret.line}}" } }] }] },
 		"debugGutterClick": [
 			{ "if": "{{event.shift}}",
 			  "then": [{ "run": "debugEditBreakpointAt", "with": { "path": "{{path}}", "line": "{{event.line + 1}}" } }],

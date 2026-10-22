@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Forge's agent pane and Bottega, checked headless: what the host would send on the channel is given as forgeAgent:* events, and the catalogue as featuresApplyCatalog; the runner has no host to relay to, so a request ends in the channel's error. affrescoui_render_runner agent.scenarios.json",
+	"note": "Forge's agent pane and the Features view, checked headless: what the host would send on the channel is given as forgeAgent:* events, and the catalogue as featuresApplyCatalog; the runner has no host to relay to, so a request ends in the channel's error. affrescoui_render_runner agent.scenarios.json",
 	"screen": "forge.screen.json",
 	"scenarios": [
 		{
@@ -353,7 +353,7 @@
 		},
 		{
 			"name": "forge-features-show-the-view",
-			"note": "The features entry shows Bottega, which lists the host's signed example catalogue (features.catalog)",
+			"note": "The features entry shows the Features view, which lists the host's signed example catalogue (features.catalog)",
 			"steps": [
 				{
 					"action": "showFeatures"
@@ -401,7 +401,7 @@
 		},
 		{
 			"name": "forge-features-key",
-			"note": "mod+Shift+X shows Bottega",
+			"note": "mod+Shift+X shows the Features view",
 			"steps": [
 				{
 					"key": "mod+shift+x"

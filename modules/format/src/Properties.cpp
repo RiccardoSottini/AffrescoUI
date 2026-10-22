@@ -31,6 +31,15 @@ bool behaviourSlot(Slot slot, std::string_view key) noexcept {
 	       slot == Slot::Drag || slot == Slot::Every || slot == Slot::Context || key == "autofocus" || key == "locked";
 }
 
+/// @brief Tells whether a panel's type takes a key as its own property, which then isn't an event even if it is
+/// named like one (e.g. the code editor's "onType").
+/// @param sets The panel's property sets.
+/// @param key The key.
+/// @return true if a set with an apply function has it.
+bool ownProperty(const PropertySets& sets, std::string_view key) noexcept {
+	return std::ranges::any_of(sets, [key](const auto& set) { return set && set->apply && set->find(key); });
+}
+
 /// @brief A property's value with the number tokens it names resolved ("@space.m"): its own, or its members' for
 /// the objects that hold numbers ("anchors", "radius", "shadow").
 /// @param document The document, which knows the tokens.
@@ -112,6 +121,7 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 	std::string at;
 	for(const CompiledProperty& property : node.properties) {
 		if(!behaviourSlot(property.slot, property.key)) continue;
+		if(property.slot == Slot::Handler && ownProperty(record.sets, property.key)) continue;
 		at.assign(record.path).append(".").append(property.key);
 		const json& value = CompiledNode::valueOf(property, record.values);
 		if(property.slot == Slot::Handler) readHandler(panel, record, property.key, value, at);
@@ -214,7 +224,8 @@ Properties::Visual Properties::visual(const Record& record) const {
 	const CompiledNode& node = *record.node;
 	result.entries.reserve(node.properties.size());
 	for(const CompiledProperty& property : node.properties) {
-		if(property.slot == Slot::StateBlock || behaviourSlot(property.slot, {})) continue;
+		const bool own = property.slot == Slot::Handler && ownProperty(record.sets, property.key);
+		if(property.slot == Slot::StateBlock || (behaviourSlot(property.slot, {}) && !own)) continue;
 		result.entries.push_back({property.key, property.slot, &CompiledNode::valueOf(property, record.values)});
 	}
 	if(!node.hasStateBlocks) return result;
