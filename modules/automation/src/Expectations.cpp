@@ -31,6 +31,16 @@ std::string shown(const json& value) {
 	return text;
 }
 
+/// @brief Reads a path segment as an index into a list.
+/// @param segment The segment.
+/// @return The index, or std::nullopt unless it is one to nine digits.
+std::optional<std::size_t> indexOf(const std::string& segment) {
+	if(segment.empty() || segment.size() >= 10 ||
+	   !std::ranges::all_of(segment, [](char c) { return c >= '0' && c <= '9'; }))
+		return std::nullopt;
+	return std::stoul(segment);
+}
+
 /// @brief Follows a path into a value.
 /// @param value Where to start.
 /// @param segments The path's segments.
@@ -39,13 +49,12 @@ std::optional<json> follow(const json& value, const std::vector<std::string>& se
 	const json* at = &value;
 	for(std::size_t i = 0; i < segments.size(); ++i) {
 		const std::string& segment = segments[i];
+		const std::optional<std::size_t> index = at->is_array() ? indexOf(segment) : std::nullopt;
 		if(at->is_object() && at->contains(segment)) {
 			at = &(*at)[segment];
-		} else if(at->is_array() && !segment.empty() && segment.size() < 10 &&
-		          std::ranges::all_of(segment, [](char c) { return c >= '0' && c <= '9'; })) {
-			const std::size_t index = std::stoul(segment);
-			if(index >= at->size()) return std::nullopt;
-			at = &(*at)[index];
+		} else if(index) {
+			if(*index >= at->size()) return std::nullopt;
+			at = &(*at)[*index];
 		} else if(segment == "length" && i + 1 == segments.size() && (at->is_array() || at->is_string())) {
 			return json(at->is_array() ? at->size() : at->get<std::string>().size());
 		} else {
