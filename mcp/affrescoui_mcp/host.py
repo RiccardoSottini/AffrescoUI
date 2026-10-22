@@ -62,6 +62,8 @@ class Host:
     """The running affrescoui_host, at the other end of agent.sock. Connects (again) when needed."""
 
     def __init__(self, socket_dir, launch, on_request):
+        """A host listening in `socket_dir`; `launch` (a command, or None) starts one; `on_request` gets each person's
+        request the host relays."""
         self.path = os.path.join(socket_dir, "agent.sock")
         self.launch = launch
         self.on_request = on_request
@@ -73,6 +75,8 @@ class Host:
         self.rules = ("default", [])  # the mode and grants last reported
 
     def ensure(self):
+        """Connects to the host unless connected, starting it first with --launch when none listens; a RuntimeError
+        says why there is no host."""
         with self.lock:
             if self.sock:
                 return
@@ -80,23 +84,27 @@ class Host:
         if not hasattr(socket, "AF_UNIX"):  # CPython on Windows, so far (python/cpython#77589)
             raise RuntimeError(NO_UNIX_SOCKETS)
         if not os.path.exists(self.path) and self.launch:
-            log(f"no host running: starting {self.launch}")
-            # Windows parses a command line itself, and shlex would drop the backslashes of its paths
-            command = self.launch if os.name == "nt" else shlex.split(self.launch)
-            try:
-                subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
-            except OSError as failure:  # reported like a host that isn't there, not ending the server
-                raise RuntimeError(f"couldn't start {self.launch}: {failure}")
-            for _ in range(50):
-                if os.path.exists(self.path):
-                    break
-                time.sleep(0.1)
+            self.start()
         check_socket_dir(os.path.dirname(self.path))
         sock = connect_unix(self.path)
         with self.lock:
             self.sock = sock
         threading.Thread(target=self.read, args=(sock,), daemon=True).start()
         log(f"connected to {self.path}")
+
+    def start(self):
+        """Starts the --launch command and waits up to 5 seconds for its socket to appear."""
+        log(f"no host running: starting {self.launch}")
+        # Windows parses a command line itself, and shlex would drop the backslashes of its paths
+        command = self.launch if os.name == "nt" else shlex.split(self.launch)
+        try:
+            subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
+        except OSError as failure:  # reported like a host that isn't there, not ending the server
+            raise RuntimeError(f"couldn't start {self.launch}: {failure}")
+        for _ in range(50):
+            if os.path.exists(self.path):
+                break
+            time.sleep(0.1)
 
     def read(self, sock):
         """Reads the host's messages until it closes the connection. Whatever stops the reading closes it too, so the
@@ -127,29 +135,44 @@ class Host:
                 return
         if kind == "request":
             self.on_request(message)
-        elif kind == "event":
-            self.note({"event": message.get("name"), "data": message.get("data")})
-        elif kind in ("applied", "rejected") and "proposal" in message:  # a reviewer decided
-            self.note({"proposal": message["proposal"],
-                       "outcome": "merged" if kind == "applied" else "rejected",
-                       "revision": message.get("revision"), "detail": message.get("error")})
-        elif kind == "committed":
-            self.note({"committed": message.get("revision"), "commit": message.get("short"),
-                       "author": message.get("author"), "committer": message.get("committer"),
-                       "message": message.get("message")})
-        elif kind == "review":  # only news when the reviewer changed the mode or the "don't ask again" grants
-            rules = (message.get("mode"), [g.get("rule") for g in message.get("grants") or [] if isinstance(g, dict)])
-            if rules != self.rules:
-                self.rules = rules
-                self.note({"mode": rules[0], "grants": rules[1]})
-        elif kind == "error":
-            self.note({"error": message.get("message")})
+            return
+        event = self.news(kind, message)
+        if event is not None:
+            self.note(event)
+
+    def news(self, kind, message):
+        """What a message nobody waits for tells get_events, or None if it tells nothing."""
+        if kind == "event":
+            return {"event": message.get("name"), "data": message.get("data")}
+        if kind in ("applied", "rejected") and "proposal" in message:  # a reviewer decided
+            return {"proposal": message["proposal"], "outcome": "merged" if kind == "applied" else "rejected",
+                    "revision": message.get("revision"), "detail": message.get("error")}
+        if kind == "committed":
+            return {"committed": message.get("revision"), "commit": message.get("short"),
+                    "author": message.get("author"), "committer": message.get("committer"),
+                    "message": message.get("message")}
+        if kind == "review":
+            return self.review_news(message)
+        if kind == "error":
+            return {"error": message.get("message")}
+        return None
+
+    def review_news(self, message):
+        """The review's mode and "don't ask again" grants, only when the reviewer changed them since the last report
+        (the host reports them on every connection). Called on the reading thread alone, as is dispatch."""
+        rules = (message.get("mode"), [g.get("rule") for g in message.get("grants") or [] if isinstance(g, dict)])
+        if rules == self.rules:
+            return None
+        self.rules = rules
+        return {"mode": rules[0], "grants": rules[1]}
 
     def note(self, event):
+        """Keeps news for the next get_events."""
         with self.lock:
             self.events.append(event)
 
     def send(self, message):
+        """Sends one message to the host, connecting (or starting it) first if needed."""
         self.ensure()
         with self.lock:
             if not self.sock:
@@ -172,6 +195,7 @@ class Host:
                 self.waiting.pop(request_id, None)
 
     def take_events(self):
+        """The news since the last call, oldest first; there is none left after it."""
         with self.lock:
             events, self.events = self.events, []
         return events

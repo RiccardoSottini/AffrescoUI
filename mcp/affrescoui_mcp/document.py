@@ -15,31 +15,41 @@ def diff(before, after, path=""):
     if before == after:
         return []
     if isinstance(before, dict) and isinstance(after, dict):
-        ops = []
-        for key in before:
-            pointer = path + "/" + str(key).replace("~", "~0").replace("/", "~1")
-            if key not in after:
-                ops.append({"op": "remove", "path": pointer})
-            else:
-                ops.extend(diff(before[key], after[key], pointer))
-        for key in after:
-            if key not in before:
-                ops.append({"op": "add", "path": path + "/" + str(key).replace("~", "~0").replace("/", "~1"),
-                            "value": after[key]})
-        return ops
+        return diff_objects(before, after, path)
     if isinstance(before, list) and isinstance(after, list):
-        common = min(len(before), len(after))
-        ops = []
-        for i in range(common):
-            ops.extend(diff(before[i], after[i], f"{path}/{i}"))
-        for i in range(len(before) - 1, common - 1, -1):
-            ops.append({"op": "remove", "path": f"{path}/{i}"})
-        for i in range(common, len(after)):
-            ops.append({"op": "add", "path": f"{path}/-", "value": after[i]})
-        if len(compact(ops)) > len(compact(after)):
-            return [{"op": "replace", "path": path, "value": after}]
-        return ops
+        return diff_lists(before, after, path)
     return [{"op": "replace", "path": path, "value": after}]
+
+
+def member(path, key):
+    """The JSON Pointer to an object's member: its key escaped (RFC 6901), "~" as "~0" and "/" as "~1"."""
+    return path + "/" + str(key).replace("~", "~0").replace("/", "~1")
+
+
+def diff_objects(before, after, path):
+    """diff() of two objects: members removed, changed (recursively), then added."""
+    ops = []
+    for key in before:
+        if key not in after:
+            ops.append({"op": "remove", "path": member(path, key)})
+        else:
+            ops.extend(diff(before[key], after[key], member(path, key)))
+    ops.extend({"op": "add", "path": member(path, key), "value": after[key]} for key in after if key not in before)
+    return ops
+
+
+def diff_lists(before, after, path):
+    """diff() of two lists: the common items changed in place, the tail removed from the end or appended; the list
+    replaced whole when that is shorter."""
+    common = min(len(before), len(after))
+    ops = []
+    for i in range(common):
+        ops.extend(diff(before[i], after[i], f"{path}/{i}"))
+    ops.extend({"op": "remove", "path": f"{path}/{i}"} for i in range(len(before) - 1, common - 1, -1))
+    ops.extend({"op": "add", "path": f"{path}/-", "value": after[i]} for i in range(common, len(after)))
+    if len(compact(ops)) > len(compact(after)):
+        return [{"op": "replace", "path": path, "value": after}]
+    return ops
 
 
 def changes_since(seen, document):
@@ -165,21 +175,28 @@ def describe_type(kind, depth=0):
     if not isinstance(kind, dict):
         return "anything"
     if isinstance(kind.get("enum"), list):
-        values = ["'" + v + "'" if isinstance(v, str) else compact(v) for v in kind["enum"][:8]]
-        return " | ".join(values) + (" | ..." if len(kind["enum"]) > 8 else "")
+        return describe_enum(kind["enum"])
     if "const" in kind:
         return compact(kind["const"])
     names = kind.get("type")
-    said = []
-    for name in names if isinstance(names, list) else [names]:
-        if name == "array" and "items" in kind:
-            said.append("list of ..." if depth >= 3 else "list of " + describe_type(kind["items"], depth + 1))
-        elif name == "object" and isinstance(kind.get("properties"), dict):
-            said.append("{...}" if depth >= 3 else "{" + ", ".join(
-                f"{key}: {describe_type(inside, depth + 1)}" for key, inside in kind["properties"].items()) + "}")
-        elif name in TYPE_WORDS:
-            said.append(TYPE_WORDS[name])
-    return " | ".join(said) or "anything"
+    said = [describe_type_name(kind, name, depth) for name in (names if isinstance(names, list) else [names])]
+    return " | ".join(word for word in said if word) or "anything"
+
+
+def describe_enum(values):
+    """An enum's values as the runtime says them: text quoted, the rest as JSON, the first 8 and then "..."."""
+    said = ["'" + v + "'" if isinstance(v, str) else compact(v) for v in values[:8]]
+    return " | ".join(said) + (" | ..." if len(values) > 8 else "")
+
+
+def describe_type_name(kind, name, depth):
+    """One of a state type's JSON types in words, its items or properties three levels deep; "" for no type."""
+    if name == "array" and "items" in kind:
+        return "list of ..." if depth >= 3 else "list of " + describe_type(kind["items"], depth + 1)
+    if name == "object" and isinstance(kind.get("properties"), dict):
+        return "{...}" if depth >= 3 else "{" + ", ".join(
+            f"{key}: {describe_type(inside, depth + 1)}" for key, inside in kind["properties"].items()) + "}"
+    return TYPE_WORDS.get(name, "")
 
 
 def state_types(document):
@@ -252,19 +269,33 @@ def find_nodes(document, kind=None, text=None, prop=None, value=None, limit=20):
     found = []
     for pointer, start in trees(document):
         for node, address, _, parent in walk_nodes(start, pointer):
-            if kind and kind not in (node_type(node, styles), node.get("use")):
-                continue
-            if needle is not None and not any(isinstance(node.get(k), str) and needle in node[k].lower()
-                                              for k in ("text", "placeholder", "tooltip")):
-                continue
-            if prop and (prop not in node or (value is not None and node[prop] != value
-                                              and compact(node[prop]) != str(value))):
+            if not (matches_kind(node, kind, styles) and matches_text(node, needle)
+                    and matches_property(node, prop, value)):
                 continue
             found.append(f"{address} {summary(node, address, styles)}".rstrip() + (f" in {parent}" if parent else ""))
     shown = found[:max(1, int(limit))]
     more = f"\n... and {len(found) - len(shown)} more: narrow the search or raise limit" if len(found) > len(shown) \
         else ""
     return f"{len(found)} found" + ("\n" + "\n".join(shown) if shown else "") + more
+
+
+def matches_kind(node, kind, styles):
+    """Whether a node is of type `kind` or uses the component `kind`; any node when no kind is given."""
+    return not kind or kind in (node_type(node, styles), node.get("use"))
+
+
+def matches_text(node, needle):
+    """Whether a node's text, placeholder or tooltip holds `needle` (lower case); any node when it is None."""
+    return needle is None or any(isinstance(node.get(k), str) and needle in node[k].lower()
+                                 for k in ("text", "placeholder", "tooltip"))
+
+
+def matches_property(node, prop, value):
+    """Whether a node has `prop`, set to `value` (as written, or as its compact JSON) when one is given; any node
+    when no property is."""
+    if not prop:
+        return True
+    return prop in node and (value is None or node[prop] == value or compact(node[prop]) == str(value))
 
 
 def pointer_parts(pointer):
