@@ -9,7 +9,7 @@
 #include "gl/GlObjects.hpp"
 #include "gl/ImageTextures.hpp"
 #include "gl/Stencil.hpp"
-#include "gl/Surfaces.hpp"
+#include "gl/surfaces/Surfaces.hpp"
 #include "gl/SubtreeTextures.hpp"
 
 #include "affresco/render/Font.hpp"

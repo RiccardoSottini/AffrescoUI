@@ -6,7 +6,7 @@
 #include "affresco/render/Painter.hpp"
 #include "affresco/render/Window.hpp"
 
-#include "gl/SurfaceState.hpp"
+#include "gl/surfaces/SurfaceState.hpp"
 
 #include <utility>
 

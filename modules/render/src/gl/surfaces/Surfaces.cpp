@@ -2,10 +2,10 @@
 /// @brief gl::Surfaces: making, drawing and releasing GPU surfaces, each in its own framebuffer, behind a guard that
 /// gives the window its state back.
 
-#include "gl/Surfaces.hpp"
+#include "gl/surfaces/Surfaces.hpp"
 
-#include "gl/SurfaceGuard.hpp"
-#include "gl/SurfaceState.hpp"
+#include "gl/surfaces/SurfaceGuard.hpp"
+#include "gl/surfaces/SurfaceState.hpp"
 
 #include "affresco/core/Log.hpp"
 

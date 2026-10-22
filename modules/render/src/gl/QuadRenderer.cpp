@@ -1,7 +1,7 @@
 #include "gl/QuadRenderer.hpp"
 #include "paint/PaintRecorder.hpp"
 #include "gl/Shader.hpp"
-#include "gl/SurfaceState.hpp"
+#include "gl/surfaces/SurfaceState.hpp"
 
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Font.hpp"

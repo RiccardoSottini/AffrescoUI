@@ -81,10 +81,10 @@ affrescoui_module(render
 	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
 	src/gl/Stencil.cpp
-	src/gl/SurfaceGuard.cpp
-	src/gl/SurfacePrelude.cpp
-	src/gl/Surfaces.cpp
-	src/gl/SurfaceView.cpp)
+	src/gl/surfaces/SurfaceGuard.cpp
+	src/gl/surfaces/SurfacePrelude.cpp
+	src/gl/surfaces/Surfaces.cpp
+	src/gl/surfaces/SurfaceView.cpp)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${stb_image_SOURCE_DIR})
 affrescoui_gl_backend(affrescoui_render) # the glad loader of AFFRESCOUI_GL_BACKEND (cmake/AffrescoUIAngle.cmake)
 # nlohmann_json is public: GpuSurface.hpp hands a surface its document parameters as JSON
