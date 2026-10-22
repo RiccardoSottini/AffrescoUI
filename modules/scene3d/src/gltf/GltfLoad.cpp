@@ -212,10 +212,10 @@ void warnExtensions(detail::GltfContext& context) {
 	if(std::string_view(image.uri).starts_with("data:")) {
 		const cgltf_options options{};
 		const auto [bytes, size] = dataUri(options, image.uri, 0, context.limits.fileBytes);
-		std::vector<std::uint8_t> copy(static_cast<const std::uint8_t*>(bytes),
-		                               static_cast<const std::uint8_t*>(bytes) + size);
-		std::free(bytes); // NOLINT(cppcoreguidelines-no-malloc): cgltf allocated it with malloc()
-		return copy;
+		// NOLINTNEXTLINE(cppcoreguidelines-no-malloc): cgltf allocated it with malloc(); freed even if the copy throws
+		const std::unique_ptr<void, decltype(&std::free)> owned(bytes, &std::free);
+		const auto* begin = static_cast<const std::uint8_t*>(bytes);
+		return {begin, begin + size};
 	}
 	return detail::readLimited(safeFile(context.directory, decodedUri(image.uri)), context.limits.fileBytes);
 }

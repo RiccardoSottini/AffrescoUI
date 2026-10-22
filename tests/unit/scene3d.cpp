@@ -211,6 +211,24 @@ TEST_CASE("scene3d: the samples load") {
 	CHECK(texture->srgb);
 	CHECK(texture->pixels.size() == static_cast<std::size_t>(texture->width * texture->height * 4));
 	CHECK_FALSE(cube.animations.empty());
+
+	// An image given as a data: URI decodes; one that isn't an image is skipped with a warning
+	const auto withImage = [](std::string_view uri) {
+		return bytesOf(R"({"asset":{"version":"2.0"},"images":[{"uri":")" + std::string(uri) +
+		               R"("}],"textures":[{"source":0}],"materials":[{"pbrMetallicRoughness":)"
+		               R"({"baseColorTexture":{"index":0}}}]})");
+	};
+	const GltfImport embedded = loadGltf(withImage("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
+	                                               "AAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="),
+	                                     std::filesystem::path());
+	REQUIRE(embedded.scene.materials.size() == 1);
+	const auto pixel = embedded.assets.texture(embedded.scene.materials[0].baseColorTexture);
+	REQUIRE(pixel);
+	CHECK((pixel->width == 1 && pixel->height == 1 && pixel->pixels.size() == 4));
+	const GltfImport broken = loadGltf(withImage("data:image/png;base64,AAAA"), std::filesystem::path());
+	REQUIRE(broken.scene.materials.size() == 1);
+	CHECK(broken.scene.materials[0].baseColorTexture.empty());
+	CHECK_FALSE(broken.warnings.empty());
 }
 
 TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
