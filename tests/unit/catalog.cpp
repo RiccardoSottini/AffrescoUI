@@ -14,12 +14,22 @@
 #include <fstream>
 #include <random>
 #include <string>
+#include <string_view>
 
 using affresco::json;
 using affresco::RevisionStatus;
 using affresco::format::SigningKey;
 
 namespace {
+
+/// @brief Forge's example catalogue (examples/forge/catalog), signed by a key whose private half was discarded.
+/// @return Its folder.
+std::filesystem::path exampleCatalog() {
+	return std::filesystem::path(AFFRESCOUI_SCREENS_DIRECTORY) / ".." / ".." / "forge" / "catalog";
+}
+
+/// @brief The example catalogue's publisher, as Forge trusts it (Forge.hpp).
+constexpr std::string_view examplePublisher = "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc";
 
 /// @brief Forge's word count package, unsigned.
 /// @return Its manifest.
@@ -268,4 +278,42 @@ TEST_CASE("catalog: an oversized index is refused before it is read") {
 	features.trustPublisher(publisher.publisher());
 	CHECK(refusal([&] { (void)features.addCatalog(catalog.publish(publisher)); }).find("larger than") !=
 	      std::string::npos);
+}
+
+TEST_CASE("catalog: Forge's example catalogue verifies with its public key, and installs") {
+	affresco::format::Features features;
+	const auto add = [&] { (void)features.addCatalog(exampleCatalog() / "index.json"); };
+	CHECK(refusal(add).find("which isn't a trusted publisher") != std::string::npos);
+	features.trustPublisher(examplePublisher);
+	CHECK(features.addCatalog(exampleCatalog() / "index.json") == "forge-examples");
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, app());
+	const json rows = features.catalog(repository.document());
+	REQUIRE(rows.size() == 2);
+	CHECK(rows[1]["name"] == "wordCount");
+	CHECK(rows[1]["publisher"] == "AffrescoUI examples");
+	const affresco::RevisionResult installed =
+	    repository.submit(features.installRevision(repository.document(), "wordCount", "", "features"));
+	REQUIRE_MESSAGE(installed.status == RevisionStatus::Applied, installed.error);
+	CHECK(repository.document()["features"]["wordCount"]["source"] == "catalog:forge-examples");
+}
+
+TEST_CASE("catalog: a tampered copy of Forge's example catalogue is refused") {
+	Catalog copy;
+	std::filesystem::copy(exampleCatalog(), copy.folder, std::filesystem::copy_options::recursive);
+	affresco::format::Features features;
+	features.trustPublisher(examplePublisher);
+	const json document = app();
+
+	SUBCASE("a manifest") {
+		features.addCatalog(copy.folder / "index.json");
+		tamper(copy.folder / "wordCount" / "1.0.0.json", "\"Word count\"", "\"Word_count\"");
+		const auto install = [&] { (void)features.installRevision(document, "wordCount", "", "features"); };
+		CHECK(refusal(install).find("its digest isn't the catalogue's") != std::string::npos);
+	}
+	SUBCASE("the index") {
+		tamper(copy.folder / "index.json", "\"1.2.0\"", "\"1.2.1\"");
+		const auto add = [&] { (void)features.addCatalog(copy.folder / "index.json"); };
+		CHECK(refusal(add).find("it was changed after signing") != std::string::npos);
+	}
 }

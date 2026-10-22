@@ -89,4 +89,9 @@ void registerNatives(affresco::Screen& screen, std::shared_ptr<Workspace> worksp
 	});
 }
 
+void addExampleCatalog(affresco::Screen& screen, const std::filesystem::path& forgeDirectory) {
+	screen.features().trustPublisher(examplePublisher);
+	screen.features().addCatalog(forgeDirectory / "catalog" / "index.json");
+}
+
 } // namespace forge

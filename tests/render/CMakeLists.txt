@@ -9,7 +9,7 @@ add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/example
 	${forge_dir}/features/themes/IconTheme.cpp)
 target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples ${forge_dir})
 target_compile_definitions(affrescoui_render_runner PRIVATE
-	AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/forge/folder")
+	AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/forge/folder" AFFRESCOUI_FORGE_DIRECTORY="${forge_dir}")
 target_link_libraries(affrescoui_render_runner PRIVATE affrescoui::automation)
 target_compile_options(affrescoui_render_runner PRIVATE ${AFFRESCOUI_WARNINGS})
 set_target_properties(affrescoui_render_runner PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

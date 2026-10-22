@@ -117,6 +117,12 @@ TEST_CASE("features: releases and ranges have semver's meanings") {
 TEST_CASE("features: the worked examples are valid manifests") {
 	CHECK_NOTHROW(affresco::format::checkManifest(package("word-count"), "wordCount"));
 	CHECK_NOTHROW(affresco::format::checkManifest(package("todo-tree"), "todoTree"));
+	// Forge's own four, built in: manifests that describe them and provide nothing
+	for(const char* name : {"shell", "palette", "themes", "panels"}) {
+		CAPTURE(name);
+		CHECK_NOTHROW(affresco::format::checkManifest(package(name), name));
+		CHECK(package(name)["provides"].empty());
+	}
 }
 
 TEST_CASE("features: a manifest can never widen a capability") {

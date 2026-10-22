@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <string_view>
 
 namespace forge {
 
@@ -29,5 +30,16 @@ struct Workspace {
 /// @param screen The screen.
 /// @param workspace The open folder, which the functions read and change.
 void registerNatives(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);
+
+/// @brief The public key of the example catalogue's publisher (catalog/, README.md). Its private half was discarded
+/// once the catalogue was signed, so nothing more can be signed with it.
+inline constexpr std::string_view examplePublisher = "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc";
+
+/// @brief Trusts the example catalogue's publisher, for this screen only, and reads the catalogue, so the features
+/// service offers its features (word count and the TODO tree).
+/// @param screen The screen.
+/// @param forgeDirectory Forge's folder (examples/forge), which holds catalog/index.json.
+/// @throws affresco::DocumentError If the catalogue was changed after signing.
+void addExampleCatalog(affresco::Screen& screen, const std::filesystem::path& forgeDirectory);
 
 } // namespace forge

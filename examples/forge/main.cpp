@@ -85,6 +85,7 @@ int run(const Options& options) {
 	auto workspace = std::make_shared<forge::Workspace>();
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
+	forge::addExampleCatalog(screen, assetsDirectory().parent_path() / "forge");
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {
