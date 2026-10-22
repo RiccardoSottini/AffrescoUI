@@ -8,7 +8,10 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <ranges>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace affresco::format::detail {
 namespace {
@@ -245,21 +248,35 @@ std::string formatCurrency(const LocaleData& locale, double amount, std::string_
 
 std::string formatList(const LocaleData& locale, std::span<const std::string> items, bool disjunction) {
 	const std::array<std::string_view, 4>& patterns = disjunction ? locale.orList : locale.andList;
-	const auto join = [](std::string_view pattern, std::string_view first, std::string_view second) {
-		std::string out;
+	// Writes a pattern up to its {1}, with {0} as the item: where the rest starts, or npos if it has no {1}
+	const auto write = [](std::string& out, std::string_view pattern, std::string_view item) {
 		for(std::size_t i = 0; i < pattern.size(); ++i) {
-			if(pattern.substr(i).starts_with("{0}")) out += first, i += 2;
-			else if(pattern.substr(i).starts_with("{1}")) out += second, i += 2;
+			if(pattern.substr(i).starts_with("{0}")) out += item, i += 2;
+			else if(pattern.substr(i).starts_with("{1}")) return i + 3;
 			else out += pattern[i];
 		}
-		return out;
+		return std::string_view::npos;
 	};
 	if(items.empty()) return {};
 	if(items.size() == 1) return items[0];
-	if(items.size() == 2) return join(patterns[3], items[0], items[1]);
-	std::string result = join(patterns[2], items[items.size() - 2], items.back());
-	for(std::size_t i = items.size() - 2; i-- > 1;) result = join(patterns[1], items[i], result);
-	return join(patterns[0], items[0], result);
+	// The patterns nest: the first item, then the rest of the list (the start's, the middle's, the end's, or the
+	// pair's), as {0} and {1}. Each has one {1}, so the parts before it are written in order, the parts after it in
+	// reverse: linear in the list, where joining each level's text into the next was quadratic.
+	const std::size_t last = items.size() - 1;
+	std::string out;
+	std::vector<std::pair<std::string_view, std::size_t>> rests; // a pattern after its {1}, and its item
+	for(std::size_t i = 0; i < last; ++i) {
+		const std::string_view pattern = last == 1       ? patterns[3]
+		                                 : i == 0        ? patterns[0]
+		                                 : i + 1 == last ? patterns[2]
+		                                                 : patterns[1];
+		const std::size_t rest = write(out, pattern, items[i]);
+		if(rest == std::string_view::npos) break; // the rest of the list isn't written
+		rests.emplace_back(pattern.substr(rest), i);
+		if(i + 1 == last) out += items[last];
+	}
+	for(const auto& [rest, i] : std::views::reverse(rests)) write(out, rest, items[i]);
+	return out;
 }
 
 int compareText(std::string_view a, std::string_view b) noexcept {

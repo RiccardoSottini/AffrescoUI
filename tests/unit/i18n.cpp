@@ -224,6 +224,17 @@ TEST_CASE("i18n: lists are joined, and text is compared letters first, then acce
 	CHECK(formatList(findLocale("en"), std::vector<std::string>{"tea", "coffee"}, true) == "tea or coffee");
 	CHECK(formatList(findLocale("en"), std::vector<std::string>{"alone"}, false) == "alone");
 	CHECK(formatList(findLocale("en"), std::vector<std::string>{}, false).empty());
+	const std::vector<std::string> five{"a", "b", "c", "d", "e"};
+	CHECK(formatList(findLocale("en"), five, true) == "a, b, c, d, or e");
+	CHECK(formatList(findLocale("ja"), five, true) == "a、b、c、d、またはe");
+	// formatList writes each pattern up to its {1} and the rest after the inner ones: one {1} in each
+	for(const auto& locale : affresco::format::detail::localeData())
+		for(const auto* patterns : {&locale.andList, &locale.orList})
+			for(const std::string_view pattern : *patterns) {
+				CAPTURE(pattern);
+				CHECK(pattern.find("{1}") != std::string_view::npos);
+				CHECK(pattern.find("{1}") == pattern.rfind("{1}"));
+			}
 
 	CHECK(compareText("apple", "Banana") < 0);
 	CHECK(compareText("e", "é") < 0);
