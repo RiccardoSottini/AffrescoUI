@@ -81,8 +81,7 @@ void TaskQueue::run() {
 		const std::lock_guard lock(mutex_);
 		running_.swap(tasks_);
 	}
-	for(auto& task : running_) task();
-	running_.clear(); // keeps its capacity
+	runTasks(running_); // emptied even if one throws: a failed step doesn't run them again
 }
 
 } // namespace affresco::capi

@@ -4,6 +4,7 @@
 
 #include "GeometryCache.hpp"
 #include "Headless.hpp"
+#include "Rulers.hpp"
 #include "SpatialIndex.hpp"
 
 #include <affresco/render/CanvasView.hpp>
@@ -190,11 +191,39 @@ TEST_CASE("canvas: a click selects, a marquee selects what it meets, and a drag 
 }
 
 TEST_CASE("canvas: dragging from the top ruler makes a horizontal guide, and back onto it removes it") {
-	CanvasWindow test(gridItems(4));
+	const CanvasWindow test(gridItems(4));
 	test.drag({300.0f, 10.0f}, {300.0f, 200.5f});
 	REQUIRE(test.canvas.guides().horizontal.size() == 1);
 	CHECK(test.canvas.guides().horizontal[0] == doctest::Approx(200.0f).epsilon(0.01));
 	CHECK(test.canvas.guides().vertical.empty());
 	test.drag({300.0f, 200.0f}, {300.0f, 5.0f});
 	CHECK(test.canvas.guides().horizontal.empty());
+}
+
+TEST_CASE("canvas: a grid far from the origin ends, and a guide taken away mid-drag is let go") {
+	CanvasWindow test(gridItems(4));
+	test.canvas.setGrid(10.72089672088623f);
+	test.canvas.setCamera({1.5889568680091192e22f, -1.5889568680091192e22f, 1.0f});
+	test.draw(); // a start so far left that the spacing no longer moves it would never end
+
+	test.canvas.setCamera({});
+	test.window->routeMouseMove({300.0f, 10.0f});
+	test.button(Action::Press, {300.0f, 10.0f});
+	test.window->routeMouseMove({300.0f, 100.0f});
+	REQUIRE(test.canvas.guides().horizontal.size() == 1);
+	test.canvas.setGuides({}); // a peer clears the guides while one is dragged
+	test.window->routeMouseMove({300.0f, 150.0f});
+	test.window->routeMouseMove({300.0f, 5.0f});
+	test.button(Action::Release, {300.0f, 5.0f});
+	CHECK(test.canvas.guides().horizontal.empty());
+}
+
+TEST_CASE("canvas: a ruler too far out for whole ticks has none") {
+	std::vector<affresco::RulerTick> ticks;
+	affresco::rulerTicks(0.0, 1.0f, 200.0f, ticks);
+	CHECK_FALSE(ticks.empty());
+	affresco::rulerTicks(1e30, 1.0f, 200.0f, ticks);
+	CHECK(ticks.empty());
+	affresco::rulerTicks(-1e30, 1.0f, 200.0f, ticks);
+	CHECK(ticks.empty());
 }

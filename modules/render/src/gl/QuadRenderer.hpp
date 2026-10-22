@@ -120,8 +120,10 @@ private:
 		std::array<std::vector<PageTexture>, 2> pages; ///< By AtlasKind, then page.
 	};
 
-	/// @brief Empties the frame's quads and batches, and frees the textures of fonts that are gone.
-	void startFrame();
+	/// @brief Takes the frame's size and its framebuffer's, empties the quads and batches, and frees the textures of
+	/// fonts that are gone.
+	/// @param frame The frame about to be drawn.
+	void startFrame(const detail::Frame& frame);
 	/// @brief Replays a panel's record, then its children's (pre-order: later ones land on top), then the rest of its
 	/// record. Hidden subtrees, and subtrees wholly outside the region, are left out.
 	/// @param panel The subtree's root.
@@ -267,6 +269,7 @@ private:
 	int framebufferHeight_ = 0; ///< The frame's framebuffer height, in pixels.
 	int frameWidth_ = 0;        ///< The frame's width, in window units.
 	int frameHeight_ = 0;       ///< The frame's height, in window units.
+	float pixelScale_ = 1.0f;   ///< The frame's framebuffer pixels per window unit.
 	/// The paint generation of whole frames drawn by draw(root, ...), counted from the top so it never meets a
 	/// window's.
 	std::uint64_t ownGeneration_ = std::uint64_t{1} << 63;

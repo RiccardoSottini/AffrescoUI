@@ -245,6 +245,18 @@ const std::vector<Case> cases = {
     // The creative controls' values: tests/unit/creative_controls.cpp has the curves and the colours
     {"{{curve(1, 0.5)}}", {}, "test.$curve: expected a list of points or a curves value"},
     {"{{gradientColor('#000000ff', 0)}}", {}, "test.$gradientColor: expected a gradient"},
+    // Timelines and the locale's: tests/unit/timeline.cpp and tests/unit/i18n.cpp have their values
+    {"{{keyframeValue(1)}}", {}, "test.$keyframeValue: expected 2 arguments"},
+    {"{{t()}}", {}, "test.$t: expected 1 to 2 arguments"},
+    {"{{formatNumber()}}", {}, "test.$formatNumber: expected 1 to 3 arguments"},
+    {"{{formatPercent()}}", {}, "test.$formatPercent: expected 1 to 2 arguments"},
+    {"{{formatCurrency(1)}}", {}, "test.$formatCurrency: expected 2 arguments"},
+    {"{{formatDate()}}", {}, "test.$formatDate: expected 1 to 3 arguments"},
+    {"{{formatTime()}}", {}, "test.$formatTime: expected 1 to 3 arguments"},
+    {"{{formatRelative(1)}}", {}, "test.$formatRelative: expected 2 arguments"},
+    {"{{formatList()}}", {}, "test.$formatList: expected 1 to 2 arguments"},
+    {"{{compareText('a')}}", {}, "test.$compareText: expected 2 arguments"},
+    {"{{sortText()}}", {}, "test.$sortText: expected 1 arguments"},
     {"{{clamp(1, 2)}}", {}, "test.$clamp: expected 3 arguments"},
     {"{{round(-2.5)}}", -3, {}},
     {"{{floor('x')}}", {}, "test.$floor: expected a number, got \"x\""},

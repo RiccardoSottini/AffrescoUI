@@ -92,9 +92,10 @@ bool LoopbackRedirect::answer(tcp::Connection& connection) {
 	const std::string_view query = target.size() > path.size() ? target.substr(path.size() + 1) : std::string_view();
 	const auto state = oauth::queryField(query, "state");
 	if(!state || !oauth::equalInConstantTime(*state, state_)) {
+		// Any program on this machine can reach the listener, so a forged redirect is refused without ending the
+		// sign-in that was started: the browser's own redirect may still come
 		static_cast<void>(connection.send(page("400 Bad Request", "This sign-in isn't the one started."), requestTimeout));
-		deliver(std::nullopt, "the sign-in's state didn't match: it was not the one started");
-		return true;
+		return false;
 	}
 	const auto code = oauth::queryField(query, "code");
 	if(!code || code->empty() || code->size() > oauth::maxTokenBytes) {

@@ -30,7 +30,7 @@
 		"color": "@background",
 		"children": [
 			{ "type": "timeline", "id": "edit", "width": "100%", "height": "100%",
-				"tracks": "{{state.tracks}}", "time": "{{state.time}}", "selected": "{{state.selected}}",
+				"tracks": "{{state.tracks}}", "time": "{{state.time}}", "selectedKeys": "{{state.selected}}",
 				"duration": 4, "fps": 24, "playRange": [0.5, 3.5], "markers": [{ "time": 2, "label": "beat" }],
 				"headerColor": "@header", "clipColor": "@clip", "textColor": "@text", "accentColor": "@accent",
 				"onScrub": [{ "set": "state.time", "to": "{{event.time}}" }],

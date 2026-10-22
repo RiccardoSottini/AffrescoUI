@@ -90,7 +90,7 @@ void CanvasView::begin(Vec2 position, bool shift) {
 		grabSelection();
 		return;
 	}
-	if(std::string id = itemAt(position); !id.empty()) {
+	if(const std::string id = itemAt(position); !id.empty()) {
 		if(shift || !isSelected(id)) {
 			std::vector<std::string> ids = shift ? selection_ : std::vector<std::string>{};
 			if(const auto found = std::ranges::find(ids, id); found != ids.end()) ids.erase(found);
@@ -162,8 +162,8 @@ void CanvasView::moved(const MouseMoveEvent& event) {
 		if(guideIndex_ < 0 && axis.size() < maximumGuides) {
 			guideIndex_ = static_cast<int>(axis.size());
 			axis.push_back(at);
-		} else if(guideIndex_ >= 0) {
-			axis[static_cast<std::size_t>(guideIndex_)] = at;
+		} else if(guideIndex_ >= 0 && static_cast<std::size_t>(guideIndex_) < axis.size()) {
+			axis[static_cast<std::size_t>(guideIndex_)] = at; // (a peer may have taken guides away meanwhile)
 		}
 		invalidatePaint();
 		if(guideIndex_ >= 0) onViewChanged();
@@ -247,7 +247,7 @@ void CanvasView::finishGuide() {
 	const float thickness = std::min({RulerStyle{}.thickness, box.width(), box.height()});
 	const bool away = guideVertical_ ? pointer_.x < box.left + thickness || pointer_.x > box.right
 	                                 : pointer_.y < box.top + thickness || pointer_.y > box.bottom;
-	if(away) axis.erase(axis.begin() + guideIndex_);
+	if(away && static_cast<std::size_t>(guideIndex_) < axis.size()) axis.erase(axis.begin() + guideIndex_);
 	guideIndex_ = -1;
 	onViewChanged();
 }

@@ -10,6 +10,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `json` | Any text, to `parseUntrusted` (`core/Json.hpp`) | Throws only `json::parse_error` or `DocumentError`; what parses nests at most `maxNesting` levels |
 | `expression` | A JSON value (templates, `$` operators) or, if it isn't JSON, the inside of a `{{ }}` | Evaluating gives a value or a `DocumentError`, the only error the runtime catches |
 | `revision` | A revision's JSON, submitted to a `vcs::Repository` holding the Kanban template | A revision that isn't applied changes nothing; reverting one that is (directly or after review) restores the document and the state |
+| `policy` | A JSON object: the Kanban template's `permissions` with budgets and data rules (VERSION_CONTROL.md, "Budgets" and "Data rules"), and a `revision` judged as an agent's | Judging changes nothing and gives the same decision twice; what an agent reads never holds a path a data rule says it may never touch |
 | `delta` | A JSON object `{"from", "to", "delta"}`, to the history's deltas (`vcs/src/Deltas.hpp`), which a history on disk keeps for each commit and its id doesn't cover | Applying a delta gives a document or throws `json::exception` or `DocumentError`; the delta from `from` to `to` rebuilds `to` exactly |
 | `session` | Lines from two peers, through in-memory channels to `channel::Session`: the agent, or the reviewer (`studio`) when a line starts with `>`. The agent's limits are low (4 KiB a message, 24 messages, 6 changes, none refilled), so inputs reach them | Every answer is one JSON object with a `"type"` |
 | `scenarios` | A scenarios file (`modules/automation`), read and played headless on the Kanban template, pictures off | Reading gives scenarios or a `DocumentError`; every scenario is reported, every failure says what went wrong, and the report can be written |
@@ -29,8 +30,9 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `sse` | A streamed body cut into chunks (the first byte picks their size), to the server-sent events and line stream parsers (`net/src/Streams.hpp`), with a 64-byte limit | Every event and line is within the limit, a line is one line and not blank, and a parser over its limit stops |
 | `peer_handshake` | A remote peer's opening on the server side (`net/src/PeerHandshake.hpp`): an upgrade request, or a first message; the first byte picks which | A refusal has a known status and a reason without the token, an accepted request has a key, and a token is never empty or over 8 KiB |
 | `websocket` | WebSocket frames, cut into pieces, to the frame reader (`net/src/WebSocketFrames.hpp`) as a client (unmasked) or a server (masked) reads them; the first byte picks the side | A message is UTF-8 within the 256-byte limit, control payloads are at most 125 bytes, an error carries a close code and nothing is read after it |
-| `oauth` | What a sign-in reads (`net/src/OAuth.hpp`): the loopback redirect's query, base64url, and a provider's token, device and error answers | A field is never longer than its query, base64url reads back what it writes, tokens are within their limits and expire within a year, device codes poll every 1..60 s and last 10 s..1 h |
 | `frames` | What a service process writes (`services/src/Framing.hpp`), cut into pieces: Content-Length frames or lines; the first byte picks the framing and the piece size | Every body is within the 64-byte limit, a line holds no line feed, and a refused stream stays refused with no body after |
+| `dap` | A message body a debug adapter writes, to the `dap` service's reader (`services/src/DapProtocol.hpp`), and the same bytes as a request's arguments | A message is read or refused with a reason; what a screen gets is UTF-8, its lists within their limits, and every source it names says whether it is inside the folder |
+| `syntax` | Text in a language the first byte picks, then edits of five bytes each, to the syntax engine (`services/Syntax.hpp`, tree-sitter and its grammars) | It parses within its limits; runs stay on their lines, folds go downwards, bracket pairs read back as pairs; an edited document highlights as a fresh parse of the same text does |
 | `migrate` | A version 1 document or patch, to `migrate` and `migratePatch` (`format/Migrate.hpp`), each twice | Refused with `json::parse_error`; otherwise migrated, a changed document declares version 2, and the second migration changes nothing |
 | `feature_manifest` | A feature's manifest (RFC 0004), to `checkManifest` (`format/src/FeatureManifest.hpp`), and if it passes, its record composed into the Kanban template | Refused with `json::parse_error` or `DocumentError`; a manifest that passes composes into a screen or problems |
 | `catalog_index` | A catalogue's index, signed at start-up by a trusted key made then, to `readCatalog` (`format/src/FeatureCatalog.hpp`) | An index or a `DocumentError`; releases newest first and once each, keys well formed, URLs inside the folder |
@@ -41,6 +43,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `token_file` | The document server's token file (`examples/server/TokenFile.hpp`), `<sha256 hex> <name>` lines, and the tokens peers present | What reads lists valid names only, at most `maxEntries`; `verify()` gives a listed name or nothing |
 | `git_output` | What git prints for Forge (`examples/forge/features/scm`): `status --porcelain=v2 -z`, `for-each-ref`, and the line diff of two texts; the first byte picks which | Within the byte, entry and path limits; every file has a known kind, at most one branch is current, a diff's rows account for every line |
 | `vscode_theme` | A VS Code colour theme, imported by Forge (`examples/forge/features/themes/ThemeImport.hpp`) | An id of lower-case letters, digits and dashes (at most 40), and a patch adding only `#rrggbb` or `#rrggbbaa` colours under `/tokens/`, or a `std::runtime_error` |
+| `adapters` | Any text, to `convertForeign` (`format/include/affresco/format/Adapters.hpp`): an A2UI message stream or an Adaptive Card, as the screen loader converts it | Refused with `json::parse_error` or `DocumentError`, or not another format's; a conversion is a screen the format accepts, within the limits |
 
 ## Inventory of untrusted inputs
 
@@ -50,29 +53,29 @@ of these and what limits them.
 
 | Where bytes come in | Who controls them | Target, or why none |
 |---|---|---|
-| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, Studio, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout` |
+| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, Studio, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy` |
 | A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
 | WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
 | Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |
 | Image files a revision names (PNG, JPEG, SVG) | Peers, within the allowed folders | `image`, `path` |
 | Font files a revision names | Peers, within the allowed folders | `lookups` for the tables the app reads itself; the rest is FreeType and HarfBuzz, fuzzed upstream by OSS-Fuzz, and `text` and `richtext` shape through them |
-| Text typed, pasted or sent to an editor | Users and peers | `text_model`, `text`, `richtext` |
+| Text typed, pasted or sent to an editor | Users and peers | `text_model`, `text`, `richtext`, `syntax` (the grammars that colour it) |
 | Find and search patterns, replacements, globs, `.gitignore` files | Peers, and whoever made the searched folder | `find_pattern`, `search_glob` |
-| What a service program writes (process, `jsonrpc` for language and debug servers) | The program the screen runs | `frames` for the framing, `json` for the messages |
+| What a service program writes (process, `jsonrpc` for language and debug servers) | The program the screen runs | `frames` for the framing, `json` for the messages, `dap` for what a debug adapter sends |
 | What a terminal program writes (the VT stream) | The program running in the terminal | None yet: a target is pending (`SECURITY.md`, gap G-24). The parser is libvterm; the stream reaches the screen only as cells within the terminal's size |
 | What git prints for Forge | Whoever made the repository (file names, branches, contents) | `git_output` |
 | A history folder on disk | Anyone who can write to it, a crash, a full disk | `history`, `delta` |
 | Feature manifests, catalogue indexes, signatures and key files | A catalogue's publisher, or whoever serves it | `feature_manifest`, `catalog_index`, `signature` |
 | The document server's token file | Whoever can write its folder | `token_file` |
 | A VS Code theme imported into Forge | Whoever published the theme | `vscode_theme` |
+| A document in another format (an A2UI message stream, an Adaptive Card) | Whoever wrote it: an agent, a service, a file | `adapters` |
 | Scenario files and golden images | The project's contributors | `scenarios`, `png` |
 | Screen files read by the `affrescoui` tool and the MCP server | Whoever wrote the file | `cli`, `json` |
 | Screen files and their includes loaded by the host | Trusted (the app ships them), but read with the same `parseUntrusted` | `json`, `layout` |
 | The state file a host keeps | Trusted: the host wrote it; read with `parseUntrusted` and its nesting limit | `json` |
 | Paths from file dialogs, drops, the fs and watch services | The operating system gives them; no parser reads them, and the services check each against the allowed folders | None needed: no parser; the folder check is unit-tested |
 | Command-line arguments and environment variables | The user who starts the program | None needed: trusted, and read by plain comparisons |
-| `adapters` | Any text, to `convertForeign` (`format/include/affresco/format/Adapters.hpp`): an A2UI message stream or an Adaptive Card, as the screen loader converts it | Refused with `json::parse_error` or `DocumentError`, or not another format's; a conversion is a screen the format accepts, within the limits |
 
 ## Running them
 

@@ -1,11 +1,14 @@
 /// @file
-/// @brief surfaceShaderPrelude(): the GLSL version line of surfaces' shaders. One line, in a file of its own, so that
-/// a build for OpenGL ES (WebGL 2, ANGLE) swaps it for gl/Shader.hpp's shaderPrelude().
+/// @brief surfaceShaderPrelude(): the lines surfaces' shaders start with, those of this build's backend (gl/Shader.hpp's
+/// shaderPrelude()): `#version 410 core`, or on OpenGL ES (WebGL 2, ANGLE) `#version 300 es` and the precision.
 
 #include "affresco/render/GpuSurface.hpp"
 
+#include "gl/Shader.hpp"
+
 namespace affresco {
 
-std::string_view surfaceShaderPrelude() noexcept { return "#version 410 core\n"; }
+// The fragment stage's, which on OpenGL ES also sets the precision: valid at the top of a vertex shader too
+std::string_view surfaceShaderPrelude() noexcept { return gl::shaderPrelude(gl::ShaderStage::fragment); }
 
 } // namespace affresco

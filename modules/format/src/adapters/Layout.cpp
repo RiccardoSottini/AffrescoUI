@@ -70,7 +70,7 @@ std::string Output::uniqueId(std::string_view base) {
 }
 
 json Output::literal(const std::string& text) {
-	if(text.find("{{") == std::string::npos) return text;
+	if(!text.contains("{{")) return text;
 	const std::string key = "k" + std::to_string(++literals_);
 	state_["literals"][key] = text;
 	return "{{state.literals." + key + "}}";
@@ -193,16 +193,15 @@ bool allowedUrl(std::string_view url) noexcept {
 	if(url[scheme.size()] == '/') return false;
 	return std::ranges::none_of(url, [](char c) {
 		const auto byte = static_cast<unsigned char>(c);
-		return byte <= 0x20 || byte == 0x7f || std::string_view("\\{}<>\"").find(c) != std::string_view::npos;
+		return byte <= 0x20 || byte == 0x7f || std::string_view("\\{}<>\"").contains(c);
 	});
 }
 
 bool relativeFile(std::string_view path) noexcept {
-	if(path.empty() || path.size() > 512 || path.front() == '/' || path.find("..") != std::string_view::npos)
-		return false;
+	if(path.empty() || path.size() > 512 || path.front() == '/' || path.contains("..")) return false;
 	const bool plain = std::ranges::none_of(path, [](char c) {
 		const auto byte = static_cast<unsigned char>(c);
-		return byte < 0x20 || byte == 0x7f || std::string_view("\\:{}<>\"").find(c) != std::string_view::npos;
+		return byte < 0x20 || byte == 0x7f || std::string_view("\\:{}<>\"").contains(c);
 	});
 	return plain && imageExtension(path);
 }

@@ -44,6 +44,16 @@ const json& withTokens(const DocumentContext& document, Slot slot, const json& v
 	return document.resolveToken(value, scratch);
 }
 
+/// @brief Tells whether a handler-like key ("onType") is an event of the record's type rather than of every node:
+/// one the type lists as its own property, which its apply function reads like its other properties.
+/// @param record The record.
+/// @param key The key.
+/// @return true if it isn't one of every node's events and one of the record's types has it.
+bool typeEvent(const Record& record, std::string_view key) {
+	if(std::ranges::find(handlerNames, key) != std::end(handlerNames)) return false;
+	return std::ranges::any_of(record.sets, [key](const auto& set) { return set && set->apply && set->find(key); });
+}
+
 } // namespace
 
 /* PropertyReader */
@@ -114,8 +124,9 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 		if(!behaviourSlot(property.slot, property.key)) continue;
 		at.assign(record.path).append(".").append(property.key);
 		const json& value = CompiledNode::valueOf(property, record.values);
-		if(property.slot == Slot::Handler) readHandler(panel, record, property.key, value, at);
-		else readBehaviourKey(panel, record, property.key, {property.slot, value, at, node.hasId}, behaviour);
+		if(property.slot != Slot::Handler)
+			readBehaviourKey(panel, record, property.key, {property.slot, value, at, node.hasId}, behaviour);
+		else if(!typeEvent(record, property.key)) readHandler(panel, record, property.key, value, at);
 	}
 	return behaviour;
 }
@@ -214,7 +225,8 @@ Properties::Visual Properties::visual(const Record& record) const {
 	const CompiledNode& node = *record.node;
 	result.entries.reserve(node.properties.size());
 	for(const CompiledProperty& property : node.properties) {
-		if(property.slot == Slot::StateBlock || behaviourSlot(property.slot, {})) continue;
+		if(property.slot == Slot::StateBlock || (behaviourSlot(property.slot, {}) && !typeEvent(record, property.key)))
+			continue;
 		result.entries.push_back({property.key, property.slot, &CompiledNode::valueOf(property, record.values)});
 	}
 	if(!node.hasStateBlocks) return result;

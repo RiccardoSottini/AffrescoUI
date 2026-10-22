@@ -47,6 +47,6 @@ if(AFFRESCOUI_BUILD_TESTS)
 			--build $<TARGET_FILE_DIR:affrescoui_cli> ${headless})
 	endif()
 	# The schema and SCREEN_FORMAT.md's tables are generated from the registries: fails if they are out of date
-	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json
+	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json --types examples
 		--doc SCREEN_FORMAT.md --check WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endif()

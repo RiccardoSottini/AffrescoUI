@@ -45,10 +45,8 @@ std::variant<Lease, std::string> Leases::acquire(const json& document, std::stri
 	if(!pointer) return "nothing is at " + std::string(target);
 	std::size_t held = 0;
 	for(const Lease& lease : leases_) {
-		if(lease.holder == holder) {
-			++held;
-			continue;
-		}
+		if(lease.holder == holder || lease.peer == peer) ++held; // a connection can't rotate names past the cap
+		if(lease.holder == holder) continue;
 		if(holds(lease.pointer, *pointer) || holds(*pointer, lease.pointer))
 			return lease.holder + " holds " + lease.target;
 	}
@@ -60,7 +58,7 @@ std::variant<Lease, std::string> Leases::acquire(const json& document, std::stri
 		same->peer = peer;
 		return *same;
 	}
-	if(held >= maxPerHolder) return std::string("one person holds at most 16 leases");
+	if(held >= maxPerHolder) return std::string("one person or connection holds at most 16 leases");
 	if(leases_.size() >= maxLeases) return std::string("this document has too many leases");
 	leases_.push_back({std::string(target), *pointer, std::string(holder), peer, now + duration});
 	return leases_.back();

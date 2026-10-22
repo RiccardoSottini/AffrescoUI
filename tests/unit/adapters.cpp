@@ -54,7 +54,7 @@ json card(json body) { return {{"type", "AdaptiveCard"}, {"version", "1.6"}, {"b
 /// @return Whether one does.
 bool warned(const adapters::Converted& converted, const std::string& text) {
 	for(const std::string& warning : converted.warnings)
-		if(warning.find(text) != std::string::npos) return true;
+		if(warning.contains(text)) return true;
 	return false;
 }
 
@@ -144,4 +144,19 @@ TEST_CASE("adapters: input size, nesting and element count are limited") {
 
 	CHECK_THROWS_AS((void)adapters::fromAdaptiveCard(json::parse(R"({"type": "Other"})")), affresco::DocumentError);
 	CHECK_THROWS_AS((void)adapters::fromA2ui(R"({"unknownMessage": {}})"), affresco::DocumentError);
+
+	// A data model path is as limited as nesting, and never walks into a value that isn't an object
+	const std::string surface =
+	    R"({"surfaceUpdate": {"surfaceId": "s", "components": [{"id": "root", "component": {"Text": {"text": )"
+	    R"({"literalString": "hi"}}}}]}})";
+	const auto update = [](const std::string& path) {
+		return R"({"dataModelUpdate": {"surfaceId": "s", "path": ")" + path +
+		       R"(", "contents": [{"key": "v", "valueString": "x"}]}})";
+	};
+	std::string deep;
+	for(int depth = 0; depth <= adapters::maxDepth; ++depth) deep += "/a";
+	CHECK_THROWS_AS((void)adapters::fromA2ui(surface + "\n" + update(deep)), affresco::DocumentError);
+	CHECK_THROWS_AS((void)adapters::fromA2ui(surface + "\n" + update("/") + "\n" + update("/v/w")),
+	                affresco::DocumentError);
+	CHECK_NOTHROW((void)adapters::fromA2ui(surface + "\n" + update("/a/b")));
 }

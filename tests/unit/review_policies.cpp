@@ -82,6 +82,7 @@ TEST_CASE("review policy: a change in behaviour waits for two approvals from dif
 	REQUIRE(repository.proposals().size() == 1);
 	CHECK(repository.proposals()[0].approvals == std::vector<std::string>{"studio/bob"});
 	CHECK(repository.proposals()[0].reason.find("waiting for 1 more approval") != std::string::npos);
+	CHECK(repository.proposals()[0].reason.starts_with("approved by 1,")); // what counted, not the three names
 	CHECK_FALSE(repository.document()["root"]["children"][1].contains("onClick"));
 
 	// The same reviewer again doesn't count twice
@@ -211,4 +212,17 @@ TEST_CASE("review policy: grants expire, at most when the policy says") {
 	CHECK(repository.grants().empty());
 	CHECK(repository.submit({{"author", "agent"}, {"set", {{"#title/text", "Again"}}}}).status ==
 	      RevisionStatus::Proposed);
+
+	// An expiry that isn't a UTC time would sort after every time, and never expire: the history is refused
+	for(const char* never : {"never", "9999", "2000-01-01 00:00:00"}) {
+		INFO(never);
+		refs["grants"][0]["expires"] = never;
+		refs.erase("checksum");
+		refs["checksum"] = sha256(refs.dump());
+		writeText(history / "refs.json", refs.dump(2));
+		affresco::vcs::Repository reopened(rules, policyScreen({{"grantsLast", "1h"}}));
+		CHECK_THROWS_WITH_AS(reopened.openHistory(history), doctest::Contains("grants[0].expires: a UTC time"),
+		                     affresco::DocumentError);
+		CHECK(reopened.grants().empty());
+	}
 }

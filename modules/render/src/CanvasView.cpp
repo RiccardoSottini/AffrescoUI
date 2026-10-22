@@ -245,10 +245,17 @@ void CanvasView::paintGrid(Painter& painter) const {
 	if(!(spacing >= 8.0f)) return;
 	const Color line = Color::hex(0xe5e7eb);
 	const Rect& box = frame();
-	const float firstX = std::ceil(camera_.x / grid_) * grid_, firstY = std::ceil(camera_.y / grid_) * grid_;
-	for(float x = (firstX - camera_.x) * camera_.zoom; x <= box.width(); x += spacing)
+	// The first line's offset; far from the origin a float loses it, and is taken from the remainder instead (a start
+	// so far left that adding the spacing no longer moves it would never end the loop)
+	const auto first = [&](float camera) {
+		const float offset = (std::ceil(camera / grid_) * grid_ - camera) * camera_.zoom;
+		if(offset >= -spacing && offset <= spacing) return offset;
+		const double rest = std::fmod(-static_cast<double>(camera), static_cast<double>(grid_));
+		return static_cast<float>((rest < 0.0 ? rest + grid_ : rest) * camera_.zoom);
+	};
+	for(float x = first(camera_.x); x <= box.width(); x += spacing)
 		painter.fillRect({box.left + std::round(x), box.top, box.left + std::round(x) + 1.0f, box.bottom}, line);
-	for(float y = (firstY - camera_.y) * camera_.zoom; y <= box.height(); y += spacing)
+	for(float y = first(camera_.y); y <= box.height(); y += spacing)
 		painter.fillRect({box.left, box.top + std::round(y), box.right, box.top + std::round(y) + 1.0f}, line);
 }
 

@@ -13,3 +13,5 @@ target_include_directories(affrescoui_capi_test SYSTEM PRIVATE $<TARGET_PROPERTY
 set(affrescoui_capi_scratch ${CMAKE_CURRENT_BINARY_DIR}/s)
 file(MAKE_DIRECTORY ${affrescoui_capi_scratch})
 add_test(NAME capi COMMAND affrescoui_capi_test ${affrescoui_capi_scratch})
+# It passes enums values they don't have, as C may: under UBSan, C++ reading them as the enum fails the test
+set_tests_properties(capi PROPERTIES ENVIRONMENT "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1")

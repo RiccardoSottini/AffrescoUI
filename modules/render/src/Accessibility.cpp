@@ -214,7 +214,7 @@ Panel* findByAccessibleId(Panel& root, std::uint64_t id) noexcept {
 
 bool performAccessibleAction(Window& window, Panel& panel, AccessibleAction action) {
 	const std::string role = accessibleRole(panel);
-	AccessibleNode node = element(panel, role);
+	const AccessibleNode node = element(panel, role);
 	if(!(node.actions & static_cast<std::uint8_t>(action))) return false;
 	auto* slider = dynamic_cast<Slider*>(&panel);
 	switch(action) {

@@ -1,6 +1,7 @@
 #include "gl/QuadRenderer.hpp"
 #include "PaintRecorder.hpp"
 #include "gl/Shader.hpp"
+#include "gl/SurfaceState.hpp"
 
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Font.hpp"
@@ -206,7 +207,14 @@ QuadRenderer::QuadRenderer()
 	glBindVertexArray(0);
 }
 
-void QuadRenderer::startFrame() {
+void QuadRenderer::startFrame(const detail::Frame& frame) {
+	std::array<GLint, 4> viewport{};
+	glGetIntegerv(GL_VIEWPORT, viewport.data());
+	framebufferWidth_ = viewport[2];
+	framebufferHeight_ = viewport[3];
+	frameWidth_ = frame.width;
+	frameHeight_ = frame.height;
+	pixelScale_ = frameWidth_ > 0 ? static_cast<float>(framebufferWidth_) / static_cast<float>(frameWidth_) : 1.0f;
 	vertices_.clear();
 	batches_.clear();
 	drawCalls_ = 0;
@@ -217,13 +225,7 @@ void QuadRenderer::startFrame() {
 }
 
 void QuadRenderer::draw(const detail::Frame& frame, const std::optional<Rect>& region, bool shapes, bool color) {
-	startFrame();
-	std::array<GLint, 4> viewport{};
-	glGetIntegerv(GL_VIEWPORT, viewport.data());
-	framebufferWidth_ = viewport[2];
-	framebufferHeight_ = viewport[3];
-	frameWidth_ = frame.width;
-	frameHeight_ = frame.height;
+	startFrame(frame);
 	region_ = region;
 	replayTree(frame.root);
 	for(const Panel* overlay : frame.overlays) replayTree(*overlay);
@@ -234,7 +236,7 @@ void QuadRenderer::draw(const detail::Frame& frame, const std::optional<Rect>& r
 }
 
 void QuadRenderer::drawFromScratch(const detail::Frame& frame) {
-	startFrame();
+	startFrame(frame);
 	scratchShapes_ = scratchColor_ = false;
 	const Rect window{0.0f, 0.0f, static_cast<float>(frame.width), static_cast<float>(frame.height)};
 	scratchTree(frame.root, window, 0, {});
@@ -414,6 +416,8 @@ void QuadRenderer::replay(const detail::PaintRecord& record, std::size_t first, 
 			break;
 		}
 		case PaintStep::surface: { // drawn into its framebuffer first if it changed; nothing if it failed
+			// At this frame's pixels per unit, which a picture at another scale doesn't share with the display
+			op.surface->state()->scale = pixelScale_;
 			const GLuint texture = surfaces_.place(op.surface->state());
 			if(texture == 0) break;
 			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});

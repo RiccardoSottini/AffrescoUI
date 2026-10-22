@@ -272,7 +272,7 @@ Built CardConverter::factSet(const json& element, const std::string& at, float w
 }
 
 json CardConverter::templated(const std::string& text, const std::string& at) {
-	if(text.find("${") == std::string::npos) return out_.literal(text);
+	if(!text.contains("${")) return out_.literal(text);
 	std::string result;
 	bool plain = true;
 	for(std::size_t start = 0; start < text.size() && plain;) {

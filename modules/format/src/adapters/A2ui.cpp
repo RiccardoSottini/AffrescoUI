@@ -27,6 +27,23 @@ namespace {
 	return segments;
 }
 
+/// @brief The place of a data model path, made on the way: only objects are walked into, at most maxDepth deep.
+/// @param model The data model.
+/// @param segments The path's names.
+/// @param at The path's place in the source, for the error.
+/// @return The value at the path (null if it is new).
+/// @throws DocumentError If the path is too deep, or goes through a value that isn't an object.
+[[nodiscard]] json& placeOf(json& model, const std::vector<std::string>& segments, const std::string& at) {
+	if(segments.size() > static_cast<std::size_t>(maxDepth))
+		fail(at, "nests deeper than " + std::to_string(maxDepth) + " names");
+	json* place = &model;
+	for(const std::string& segment : segments) {
+		if(!place->is_null() && !place->is_object()) fail(at, "goes through a value that isn't an object");
+		place = &(*place)[stateKey(segment)];
+	}
+	return *place;
+}
+
 /// @brief Whether every key of an object is 0, 1, 2... in order: A2UI writes a list as such a map.
 /// @param object The object.
 /// @return Whether it is a list.
@@ -133,8 +150,7 @@ void A2uiConverter::dataModelUpdate(const json& update, const std::string& at) {
 	    segmentsOf(update.contains("path") ? expect::string(update["path"], at + ".path") : "/");
 	const json value = entries(update.value("contents", json()), at + ".contents", out_, 1);
 	json set = json::object();
-	json* place = &out_.state()["model"];
-	for(const std::string& segment : segments) place = &(*place)[stateKey(segment)];
+	json* place = &placeOf(out_.state()["model"], segments, at + ".path");
 	if(segments.empty()) { // the root: each key, so keys not named stay
 		for(const auto& [key, item] : value.items()) {
 			(*place)[key] = item;
@@ -183,9 +199,8 @@ BoundValue A2uiConverter::bound(const json& value, const std::string& at, const 
 	result.value = "{{" + expression + "}}";
 	if(expression.starts_with("state.")) result.path = expression;
 	if(expression.starts_with("state.") && !literal.is_null()) { // A2UI: a path with a literal starts it there
-		json* place = &out_.state()["model"];
-		for(const std::string& segment : segmentsOf(path)) place = &(*place)[stateKey(segment)];
-		if(place->is_null()) *place = literal;
+		json& place = placeOf(out_.state()["model"], segmentsOf(path), at + ".path");
+		if(place.is_null()) place = literal;
 	}
 	result.characters = std::max<std::size_t>(textOf(literal).size(), 16);
 	return result;

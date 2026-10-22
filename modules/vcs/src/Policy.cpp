@@ -156,26 +156,31 @@ std::optional<json> filtered(const json& value, Segments& path, const Filter& fi
 	return result;
 }
 
-/// @brief Collects the nodes under one, by id.
+/// @brief Collects the nodes under one: by id, or by place for a node with no id (or the id of one seen before), so
+/// that nodes without ids count against a budget too.
 /// @param node The node.
-/// @param into Gets id -> node; the first of an id is kept.
-void collectNodes(const json& node, std::map<std::string, const json*>& into) {
+/// @param at Its JSON Pointer.
+/// @param into Gets "#id" or the pointer -> node.
+void collectNodes(const json& node, const std::string& at, std::map<std::string, const json*>& into) {
 	if(!node.is_object()) return;
-	if(const auto id = node.find("id"); id != node.end() && id->is_string())
-		into.emplace(id->get<std::string>(), &node);
+	const auto id = node.find("id");
+	if(id == node.end() || !id->is_string() || !into.emplace("#" + id->get<std::string>(), &node).second)
+		into.emplace(at, &node);
 	if(const auto children = node.find("children"); children != node.end() && children->is_array())
-		for(const json& child : *children) collectNodes(child, into);
+		for(std::size_t i = 0; i < children->size(); ++i)
+			collectNodes((*children)[i], at + "/children/" + std::to_string(i), into);
 }
 
-/// @brief The nodes of a view, by id.
+/// @brief The nodes of a view, by id (or place).
 /// @param view The view.
-/// @return id -> node.
+/// @return "#id" or JSON Pointer -> node.
 std::map<std::string, const json*> nodesOf(const json& view) {
 	std::map<std::string, const json*> nodes;
-	if(const json* root = locate(view, "/root")) collectNodes(*root, nodes);
+	if(const json* root = locate(view, "/root")) collectNodes(*root, "/root", nodes);
 	for(const char* section : {"/screens", "/templates"})
 		if(const json* all = locate(view, section); all && all->is_object())
-			for(const auto& [name, node] : all->items()) collectNodes(node, nodes);
+			for(const auto& [name, node] : all->items())
+				collectNodes(node, std::string(section) + "/" + escape(name), nodes);
 	return nodes;
 }
 

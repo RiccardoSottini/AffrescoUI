@@ -5,6 +5,8 @@
 
 #include "gl/Shader.hpp"
 
+#include <affresco/render/GpuSurface.hpp>
+
 #include <doctest/doctest.h>
 
 #include <string_view>
@@ -51,4 +53,8 @@ TEST_CASE("gles: each prelude is whole lines, so a body appended after it starts
 TEST_CASE("gles: the vertex prelude is only the #version line: vertex shaders have default precisions on both") {
 	const std::string_view vertex = shaderPrelude(ShaderStage::vertex);
 	CHECK(vertex.find('\n') == vertex.size() - 1);
+}
+
+TEST_CASE("gles: surfaces' shaders start with the backend's prelude, so they compile on OpenGL ES too") {
+	CHECK(affresco::surfaceShaderPrelude() == shaderPrelude(ShaderStage::fragment));
 }

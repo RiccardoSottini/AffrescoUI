@@ -153,6 +153,10 @@ TEST_CASE("i18n: malformed messages are refused, with where") {
 	CHECK(affresco::format::checkMessage("{n, colour}", read).contains("isn't number, date, time, plural or select"));
 	CHECK(affresco::format::checkMessage("{n, plural, lots {x} other {y}}", read).contains("isn't a plural selector"));
 	CHECK_FALSE(affresco::format::checkMessage("Unclosed {name", read).empty());
+	// An offset past a double's range is refused, not thrown out of the check
+	const std::string huge = "{n, plural, offset:" + std::string(400, '9') + " other {x}}";
+	CHECK(affresco::format::checkMessage(huge, read).contains("at most 9 digits"));
+	CHECK(affresco::format::checkMessage("{n, plural, offset:1 other {#}}", read).empty());
 	read.clear();
 	CHECK(affresco::format::checkMessage("{a} and {b, plural, other {#}} and {a}", read).empty());
 	CHECK(read == std::vector<std::string>{"a", "b"});

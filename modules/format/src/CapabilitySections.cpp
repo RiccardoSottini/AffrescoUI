@@ -105,8 +105,7 @@ void checkReview(const json& value, const std::string& name) {
 /// @param item The budget or rule.
 /// @param at Where it is.
 void checkPolicyAuthor(const json& item, const std::string& at) {
-	if(!item.contains("author") || !item["author"].is_string() ||
-	   item["author"].get<std::string>().find('(') != std::string::npos ||
+	if(!item.contains("author") || !item["author"].is_string() || item["author"].get<std::string>().contains('(') ||
 	   !parsePermissionRule(item["author"].get<std::string>()))
 		expect::fail(at + ".author", "expected an author, a channel, \"*\" or \"role:<name>\", e.g. \"agent\"");
 }

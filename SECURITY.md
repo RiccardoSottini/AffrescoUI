@@ -388,8 +388,9 @@ the reason it has none.
 ### Services
 
 Services are `process`, `pty`, `fs`, `watch`, `search` and `jsonrpc`; language servers (LSP) and debug adapters (DAP)
-are `jsonrpc` programs. Syntax colours are the application's own code (`TextEditor::colorLine`), which reads the
-editor's text and no grammar from outside, so they add no entry point of their own.
+are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built into the
+library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and read no
+grammar from outside; the `syntax` fuzz target covers them.
 
 | | |
 |---|---|
@@ -539,6 +540,11 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |
 | Slow calls (`Screen::onAsyncCall`) running or waiting for a worker at once | 64; more end with an error (`onError`) |
 | A curves editor's plot (`curves`) | 4,096 columns, however wide the node: a wider plot draws each column wider |
+| A `canvas` (`CanvasType.cpp`) | 10,000 items from the document (a host's model may hold more), 256 levels of detail, 4,096 bytes of text an item, coordinates within 10^9 |
+| A `timeline` (`TimelineType.cpp`) | 100,000 keyframes and clips in all; values within 10^12 either side of 0 |
+| A `graph` (`GraphType.cpp`) | Positions and the pan within 1,000,000 graph units, nodes 4,000 units a side, 1,000 links a port |
+| The syntax engine (`SyntaxLimits`, tree-sitter) | Texts of 16 MiB (larger ones stay plain); a first parse stops after 2 s, one after an edit after 100 ms; 2,048 query matches at once, 200,000 captures a pass, matches starting 512 levels deep at most, 1,024 bytes a predicate reads |
+| Leases on a document the document server holds (`Leases`) | 256 in all, 16 per person and 16 per connection (whatever names it gives), an hour each, 256 bytes a target |
 | A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign (a contour scaled past 10^12 on screen isn't drawn), 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
 | A response body, a server-sent event or line of a stream, or a WebSocket message the `net` module receives (`Request::maxBodyBytes`) | 8 MiB by default; a larger one fails with `tooLarge` (a WebSocket is closed with 1009) |
 | A response's headers, or a WebSocket handshake's answer | 64 KiB and 256 lines |

@@ -195,7 +195,7 @@ private:
 				});
 				overstayed = link_->ending && now - *link_->ending > disconnectGrace;
 			}
-			for(Waiting& request : late)
+			for(const Waiting& request : late)
 				request.call->fail("timeout", "the debug adapter didn't answer '" + request.command + "' in time");
 			if(overstayed) (void)transport_->end(); // the reader then sees the end, as expected
 		}

@@ -85,7 +85,7 @@ std::string fixedDecimals(double value, int decimals) {
 	std::array<char, 400> buffer{}; // the largest double, written out in full, has 309 digits
 	const auto written = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, std::chars_format::fixed);
 	std::string plain(buffer.data(), written.ptr);
-	if(plain.find('.') == std::string::npos) plain += '.';
+	if(!plain.contains('.')) plain += '.';
 	const std::size_t point = plain.find('.');
 	const std::size_t length = point + 1 + static_cast<std::size_t>(decimals);
 	const bool roundUp = plain.size() > length && plain[length] >= '5';

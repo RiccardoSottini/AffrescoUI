@@ -279,7 +279,7 @@ TEST_CASE("render: dragging a header moves the selection; the keyboard selects, 
 }
 
 TEST_CASE("render: a marquee selects the nodes it touches") {
-	GraphFixture fixture;
+	const GraphFixture fixture;
 	const GraphCamera& camera = fixture.view->camera();
 	fixture.drag(camera.toView({160.0f, 260.0f}), camera.toView({60.0f, 150.0f})); // from empty space over tint
 	CHECK(fixture.view->selection() == std::vector<std::string>{"tint"});
@@ -303,6 +303,21 @@ TEST_CASE("render: the model is bounded and off-screen nodes are culled") {
 	camera.zoom = 1e9f;
 	fixture.view->setCamera(camera);
 	CHECK(fixture.view->camera().zoom == GraphCamera::maximumZoom);
+}
+
+TEST_CASE("format: a graph's selection is selectedIds, and selected stays every node's flag") {
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(600, 400, clock);
+	affresco::Screen screen = affresco::Screen::fromString(graphScreen);
+	screen.build(*headless);
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"#graph/selectedIds": ["mix"]}})", &error));
+	headless->render();
+	auto* graph = dynamic_cast<GraphView*>(screen.find("graph"));
+	REQUIRE(graph);
+	CHECK(graph->selection() == std::vector<std::string>{"mix"});
+	CHECK(screen.applyRevision(R"({"set": {"#graph/selected": true}})", &error));
+	CHECK_FALSE(screen.applyRevision(R"({"set": {"#graph/selected": ["tex"]}})", &error));
 }
 
 TEST_CASE("format: a graph node keeps its links in state through its handlers, and refuses broken data") {
@@ -375,4 +390,30 @@ TEST_CASE("render: a drag that would close a cycle is refused unless cycles are 
 	fixture.drag(fixture.port(4, 0, true), fixture.port(2, 1, false));
 	REQUIRE(fixture.events.size() == 1);
 	CHECK(fixture.events[0].link == GraphLink{"loop", "out", "mix", "b"});
+}
+
+TEST_CASE("render: a link to an unknown node, or a model changed mid-drag, never reads past the ports") {
+	GraphFixture fixture;
+	GraphModel ghost = material();
+	ghost.links = {{"ghost", "out", "mix", "a"}, {"tex", "gone", "mix", "b"}}; // the format allows both
+	fixture.view->setModel(ghost);
+	fixture.window->render();
+	fixture.drag(fixture.port(2, 0, false), {300.0f, 340.0f}); // picked up as unlinked
+	fixture.drag(fixture.port(2, 1, false), fixture.port(3, 0, false));
+	for(const GraphEvent& event : fixture.events) CHECK(event.kind != GraphEvent::Kind::Connect);
+
+	// A peer removes the port a drag started from: the drag is dropped, nothing is connected
+	fixture.view->setModel(material());
+	fixture.events.clear();
+	const Vec2 from = fixture.port(2, 0, true), to = fixture.port(3, 0, false);
+	fixture.window->routeMouseButton({MouseButton::Left, Action::Press, {}, from});
+	fixture.window->routeMouseMove({(from.x + to.x) * 0.5f, from.y});
+	GraphModel fewer = material();
+	fewer.nodes[2].outputs.clear();
+	fixture.view->setModel(fewer);
+	fixture.window->render();
+	fixture.window->routeMouseMove(to);
+	fixture.window->routeMouseButton({MouseButton::Left, Action::Release, {}, to});
+	fixture.window->render();
+	CHECK(fixture.events.empty());
 }

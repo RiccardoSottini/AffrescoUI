@@ -4,6 +4,7 @@
 /// reverse request (`runInTerminal`), a timeout and a crash said once.
 
 #include "DapProtocol.hpp"
+#include "DapTransport.hpp"
 #include "Framing.hpp"
 #include "Headless.hpp"
 
@@ -21,6 +22,14 @@
 #include <string>
 #include <variant>
 #include <vector>
+
+#ifndef _WIN32
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 
 using affresco::json;
 using affresco::detail::createHeadlessWindow;
@@ -179,10 +188,12 @@ TEST_CASE("dap: an adapter's messages are read, bounded and placed against the f
 	// Lists are cut to their limits, and sources placed
 	const std::filesystem::path root = std::filesystem::path("/work");
 	json threads = json::array();
-	for(int index = 0; index < 1500; ++index) threads.push_back({{"id", index}, {"name", "t"}});
+	for(int index = 0; index < 1500; ++index)
+		threads.push_back({{"id", index}, {"name", std::string(dap::longestText + 10, 't')}});
 	const json bounded = dap::boundResponse("threads", {{"threads", threads}}, root);
 	CHECK(bounded["threads"].size() == dap::mostThreads);
 	CHECK(bounded["truncated"] == true);
+	CHECK(bounded["threads"][0]["name"].get<std::string>().size() <= dap::longestText); // cut after the list is
 	json inside = {{"path", "/work/src/a.py"}};
 	dap::place(inside, root);
 	CHECK(inside["inside"] == true);
@@ -261,3 +272,32 @@ TEST_CASE("dap: an unanswered request times out, and a crash is said once") {
 	REQUIRE(session.executor.pumpUntil([&] { return session.at("/ended") != ""; }));
 	CHECK(session.at("/ended") == "the debug adapter ended unexpectedly (exit code 3)");
 }
+
+#ifndef _WIN32
+TEST_CASE("dap: the connection to an adapter attached to isn't inherited by programs started later") {
+	const int listener = ::socket(AF_INET, SOCK_STREAM, 0);
+	REQUIRE(listener >= 0);
+	sockaddr_in address{};
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	socklen_t size = sizeof(address);
+	REQUIRE(::bind(listener, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == 0);
+	REQUIRE(::listen(listener, 1) == 0);
+	REQUIRE(::getsockname(listener, reinterpret_cast<sockaddr*>(&address), &size) == 0);
+	const std::uint16_t port = ntohs(address.sin_port);
+	{
+		const auto transport = affresco::services::DapTransport::connect(port);
+		int connected = -1; // the descriptor whose peer is the listener's port
+		for(int fd = 3; fd < 1024 && connected < 0; ++fd) {
+			sockaddr_in peer{};
+			socklen_t length = sizeof(peer);
+			if(fd != listener && ::getpeername(fd, reinterpret_cast<sockaddr*>(&peer), &length) == 0 &&
+			   peer.sin_family == AF_INET && ntohs(peer.sin_port) == port)
+				connected = fd;
+		}
+		REQUIRE(connected >= 0);
+		CHECK((fcntl(connected, F_GETFD) & FD_CLOEXEC) != 0);
+	}
+	::close(listener);
+}
+#endif

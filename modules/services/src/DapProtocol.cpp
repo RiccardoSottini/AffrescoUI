@@ -49,7 +49,8 @@ json* cutList(json& object, const char* key, std::size_t most) {
 	if(found == object.end() || !found->is_array()) return nullptr;
 	if(found->size() > most) {
 		found->erase(found->begin() + static_cast<std::ptrdiff_t>(most), found->end());
-		object["truncated"] = true;
+		object["truncated"] = true; // can move the members, so the list is found again
+		return &object[key];
 	}
 	return &*found;
 }
@@ -134,7 +135,7 @@ Message readResponse(const json& message) {
 
 std::string textOf(const json& value, std::string_view fallback) {
 	if(!value.is_string()) return std::string(fallback);
-	std::string text = cut(value.get<std::string>(), longestText);
+	const std::string text = cut(value.get<std::string>(), longestText);
 	return isUtf8(text) ? text : std::string(fallback);
 }
 

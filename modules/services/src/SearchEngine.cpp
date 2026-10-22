@@ -47,8 +47,8 @@ struct Shared {
 	const std::vector<Candidate>& files;             ///< What they match.
 	const std::function<void(SearchFile&&)>& onFile; ///< Where results go, under mutex.
 	SearchSummary& summary;                          ///< Its files and matches, under mutex.
-	std::stop_source stop;                           ///< Stops them all.
-	std::mutex mutex;                                ///< Guards onFile and summary.
+	std::stop_source stop{};                         ///< Stops them all.
+	std::mutex mutex{};                              ///< Guards onFile and summary.
 	std::atomic<std::size_t> next{0};                ///< The next file to take.
 	std::atomic<std::size_t> taken{0};               ///< Matches taken towards maxResults.
 	std::atomic<std::size_t> searched{0};            ///< See SearchSummary.
@@ -79,11 +79,13 @@ std::string joined(const std::string& base, std::string_view name) {
 	return base.empty() ? std::string(name) : base + '/' + std::string(name);
 }
 
-/// @brief Reads a folder's .gitignore, if it has one.
+/// @brief Reads a folder's .gitignore, if it has one and it is a file (a FIFO would block the walk).
 /// @param folder The folder.
 /// @param relative It, relative to the root.
 /// @param rules Gets its rules.
 void readIgnore(const fs::path& folder, const std::string& relative, IgnoreRules& rules) {
+	std::error_code error;
+	if(!fs::is_regular_file(folder / ".gitignore", error)) return;
 	std::ifstream in(folder / ".gitignore", std::ios::binary);
 	if(!in) return;
 	std::string text(IgnoreRules::maxFileBytes, '\0');

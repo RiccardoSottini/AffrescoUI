@@ -31,13 +31,36 @@ affresco::identity::Provider provider(bool issuer) {
 	return result;
 }
 
+/// @brief Checks that a refused token answer says why and never quotes its access token.
+/// @tparam Read A function that reads an answer as body was read.
+/// @param body The answer.
+/// @param error Why it was refused.
+/// @param read It.
+template <typename Read> void checkRefusal(std::string_view body, const std::string& error, const Read& read) {
+	if(error.empty()) affresco::fuzz::broken("a refused answer says why");
+	const std::size_t at = body.find("\"access_token\":\"");
+	if(at == std::string_view::npos) return;
+	const std::string_view rest = body.substr(at + 16);
+	const std::string_view token = rest.substr(0, rest.find('"'));
+	if(token.size() < 12 || !error.contains(token)) return;
+	// The token may be words of the error's own text: then the error still has them for another token
+	std::string other(body);
+	for(std::size_t i = 0; i < token.size(); ++i) other[at + 16 + i] = token[i] == 'q' ? 'z' : 'q';
+	const auto again = read(other);
+	const auto* otherError = std::get_if<std::string>(&again);
+	if(otherError && !otherError->contains(token)) affresco::fuzz::broken("an error never quotes the access token");
+}
+
 /// @brief Reads a token endpoint's answer and checks what it gives.
 /// @param body The answer.
 /// @param issuer Whether the provider names an issuer.
 void readTokens(std::string_view body, bool issuer) {
 	namespace oauth = affresco::net::oauth;
 	const auto now = std::chrono::system_clock::time_point(std::chrono::seconds(1'800'000'000));
-	const auto result = oauth::readTokens(body, provider(issuer), issuer ? "n0nce" : "", now);
+	const auto read = [&](std::string_view answer) {
+		return oauth::readTokens(answer, provider(issuer), issuer ? "n0nce" : "", now);
+	};
+	const auto result = read(body);
 	if(const auto* tokens = std::get_if<oauth::Tokens>(&result)) {
 		if(tokens->access.empty()) affresco::fuzz::broken("tokens have an access token");
 		if(tokens->access.size() > oauth::maxTokenBytes || tokens->refresh.size() > oauth::maxTokenBytes ||
@@ -46,15 +69,7 @@ void readTokens(std::string_view body, bool issuer) {
 		if(tokens->expires <= now || tokens->expires > now + std::chrono::seconds(oauth::maxLifetime))
 			affresco::fuzz::broken("a token expires within the longest lifetime");
 	} else {
-		const auto& error = std::get<std::string>(result);
-		if(error.empty()) affresco::fuzz::broken("a refused answer says why");
-		const std::size_t at = body.find("\"access_token\":\"");
-		if(at != std::string_view::npos) {
-			const std::string_view rest = body.substr(at + 16);
-			const std::string_view token = rest.substr(0, rest.find('"'));
-			if(token.size() >= 12 && error.find(token) != std::string::npos)
-				affresco::fuzz::broken("an error never quotes the access token");
-		}
+		checkRefusal(body, std::get<std::string>(result), read);
 	}
 }
 

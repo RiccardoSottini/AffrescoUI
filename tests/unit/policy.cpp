@@ -173,6 +173,18 @@ TEST_CASE("policy: nodes are counted by id, however the patch was written") {
 	CHECK(counts.changed == 1); // card2; title only gained children
 }
 
+TEST_CASE("policy: nodes without ids, or with an id seen before, count too") {
+	const json before = budgetScreen();
+	json after = before;
+	json many = json::array();
+	for(int i = 0; i < 5; ++i) many.push_back({{"type", "label"}, {"text", std::to_string(i)}}); // no ids
+	many.push_back({{"type", "label"}, {"id", "card2"}});                                        // an id taken
+	after["root"]["children"][1]["children"] = many;
+	const affresco::vcs::detail::NodeCounts counts = affresco::vcs::detail::countNodes(before, after);
+	CHECK(counts.added == 6); // once, nodes without ids passed any budget
+	CHECK(counts.removed == 0);
+}
+
 TEST_CASE("policy: the format checks budgets and data rules") {
 	const affresco::format::Rules rules;
 	const auto with = [](const char* key, const json& value) {

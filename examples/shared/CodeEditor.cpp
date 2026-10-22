@@ -385,7 +385,7 @@ void CodeEditor::setLanguage(std::string_view name) {
 	                          : grammar == "markdown" ? Language::Markdown
 	                          : lower == "cmake"      ? Language::CMake
 	                                                  : Language::Plain;
-	auto* current = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	const auto* current = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
 	if(language == language_ && (current ? current->language() : std::string()) == grammar) return;
 	language_ = language;
 	if(grammar.empty()) setHighlighter(nullptr);

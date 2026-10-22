@@ -170,7 +170,7 @@ struct Group {
 /// @brief The "graph" group's workloads (graph.cpp): a 1,000-node graph set and drawn, and one of its nodes dragged
 /// (a frame per pointer move), on a headless window.
 /// @return The workloads.
-[[nodiscard]] std::vector<Workload> graphWorkloads(Context&);
+[[nodiscard]] std::vector<Workload> graphWorkloads(const Context&);
 
 /// @brief The "budgets" group's workloads (budgets.cpp): the budgets no other workload measures, an idle second, a
 /// 50 MB file opened, Forge started cold and Forge with 10 tabs and a terminal (BENCHMARKS.md).

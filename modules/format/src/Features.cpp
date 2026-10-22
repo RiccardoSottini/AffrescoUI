@@ -7,6 +7,8 @@
 #include "FeatureManifest.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 #include <map>
 #include <vector>
 
@@ -115,11 +117,15 @@ json Features::installRevision(const json& document, std::string_view name, std:
 	if(installed(document, name)) fail(std::string(name), "is installed already (upgrade it, or remove it first)");
 	const Found found = impl_->find(name, release);
 	const json manifest = fetchManifest(*found.index, std::string(name), *found.release, impl_->trusted);
-	int order = 0;
+	// After the last one, in steps of 10; a peer may have written any number, so it is read in 64 bits and capped
+	std::int64_t order = 0;
 	if(const auto features = document.find("features"); features != document.end() && features->is_object())
-		for(const auto& [other, record] : features->items()) order = std::max(order, record.value("order", 0));
-	const json record = recordFor(manifest, "catalog:" + found.index->name, found.release->digest,
-	                              found.release->publisher, order + 10);
+		for(const auto& [other, record] : features->items())
+			if(const auto value = record.find("order"); value != record.end() && value->is_number_integer())
+				order = std::max(order, value->get<std::int64_t>());
+	const int next = static_cast<int>(std::min<std::int64_t>(order, std::numeric_limits<int>::max() - 10) + 10);
+	const json record =
+	    recordFor(manifest, "catalog:" + found.index->name, found.release->digest, found.release->publisher, next);
 	json set = json::object();
 	if(document.contains("features"))
 		set["/features/" + std::string(name)] = record;

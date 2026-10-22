@@ -85,7 +85,7 @@ TEST_CASE("format: validate accepts the capability sections when well formed, an
 	    // permissions
 	    {"permissions: not an object", "/permissions", json::array(), "permissions: expected an object"},
 	    {"permissions: an unknown key", "/permissions/grant", json::array({"agent"}),
-	     "permissions.grant: unknown property (expected allow, ask, deny, reviewers or review)"},
+	     "permissions.grant: unknown property (expected allow, ask, deny, reviewers, review, budgets or data)"},
 	    {"permissions: rules not in a list", "/permissions/allow", "studio", "permissions.allow: expected a list of rules"},
 	    {"permissions: reviewers not in a list", "/permissions/reviewers", "studio",
 	     "permissions.reviewers: expected a list of author names"},

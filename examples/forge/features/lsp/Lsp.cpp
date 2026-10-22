@@ -4,6 +4,7 @@
 #include "features/lsp/Lsp.hpp"
 
 #include "features/lsp/LspProtocol.hpp"
+#include "features/palette/FileIndex.hpp"
 
 #include <affresco/core/Json.hpp>
 
@@ -189,14 +190,14 @@ public:
 		if(!kind) throw std::runtime_error("no request kind '" + kindName + "'");
 		const json server = lsp::serverFor(textArgument(with, "language", 64));
 		if(server.is_null()) return {{"pending", false}};
-		Request request{*kind,
-		                textArgument(with, "id", 4096),
-		                server["languageId"].get<std::string>(),
-		                positionArgument(with, "line") - 1,
-		                positionArgument(with, "column") - 1,
-		                with.is_object() && with.contains("request") ? with["request"] : json(0),
-		                textArgument(with, "newName", longestName),
-		                textArgument(with, "query", longestName)};
+		const Request request{*kind,
+		                      textArgument(with, "id", 4096),
+		                      server["languageId"].get<std::string>(),
+		                      positionArgument(with, "line") - 1,
+		                      positionArgument(with, "column") - 1,
+		                      with.is_object() && with.contains("request") ? with["request"] : json(0),
+		                      textArgument(with, "newName", longestName),
+		                      textArgument(with, "query", longestName)};
 		if(request.id.empty() && kind->name != "workspaceSymbols") throw std::runtime_error("expected { \"id\": file }");
 		if(kind->name == "rename" && request.newName.empty()) throw std::runtime_error("expected a newName");
 		if(workspace_->root.empty()) {
@@ -245,15 +246,8 @@ public:
 				replace(*model, text);
 				continue;
 			}
-			const std::filesystem::path path = root / id, temporary = root / (id + ".forge-edit");
-			{
-				std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-				out << text;
-				if(!out.flush()) throw std::runtime_error(id + " can't be written");
-			}
-			std::error_code error;
-			std::filesystem::rename(temporary, path, error);
-			if(error) throw std::runtime_error(id + " can't be written: " + error.message());
+			// A fresh name, created exclusively: a link planted at a fixed name would send the text elsewhere
+			if(auto failed = writeInFolder(root / id, text)) throw std::runtime_error(id + ": " + *failed);
 		}
 		return {{"files", texts.size()}, {"edits", edits.size()}};
 	}

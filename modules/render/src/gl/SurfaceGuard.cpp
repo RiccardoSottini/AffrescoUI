@@ -88,7 +88,7 @@ void GlState::restore() const {
 	for(std::size_t index = 0; index < switches.size(); ++index) enable(switches[index], enabled[index]);
 	glDepthFunc(static_cast<GLenum>(depthFunction));
 	glDepthMask(depthMask);
-	glClearDepth(clearDepth);
+	glClearDepthf(clearDepth);
 	glClearStencil(clearStencil);
 	glFrontFace(static_cast<GLenum>(frontFace));
 	glCullFace(static_cast<GLenum>(cullFace));

@@ -27,7 +27,7 @@ void checkNeverRead(const affresco::vcs::Repository& repository, const json& per
 	if(!view) return;
 	for(const json& rule : permissions.value("data", json::array()))
 		for(const json& path : rule.value("never", json::array())) {
-			if(rule.value("author", "") != "agent" || path.get<std::string>().find('*') != std::string::npos) continue;
+			if(rule.value("author", "") != "agent" || path.get<std::string>().contains('*')) continue;
 			try {
 				if(view->contains(json::json_pointer(path.get<std::string>())) && path != "/")
 					affresco::fuzz::broken("an agent never reads a path it may never touch");
@@ -59,7 +59,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	} catch(const std::exception&) {
 		return 0; // the format refuses them: no repository holds them
 	}
-	affresco::vcs::Repository repository(rules, document);
+	const affresco::vcs::Repository repository(rules, document);
 	const std::string before = repository.document().dump();
 	const affresco::vcs::Repository::Judgement first = repository.judge(input.value("revision", json()));
 	const affresco::vcs::Repository::Judgement second = repository.judge(input.value("revision", json()));

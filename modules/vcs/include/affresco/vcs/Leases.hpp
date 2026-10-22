@@ -27,14 +27,14 @@ struct Lease {
 };
 
 /// @brief The leases on one document. Leases on overlapping parts (one inside the other) can't be held by two
-/// people at once; the same holder renews its own. Bounded: maxLeases in all, maxPerHolder each, maxDuration long.
+/// people at once; the same holder renews its own. Bounded: maxLeases in all, maxPerHolder per holder and per connection, maxDuration long.
 ///
 /// Not thread-safe: kept on the thread that changes the document.
 class Leases {
 public:
 	using Clock = std::chrono::steady_clock;          ///< The clock the times come from.
 	static constexpr std::size_t maxLeases = 256;       ///< Leases on one document.
-	static constexpr std::size_t maxPerHolder = 16;     ///< Leases one person holds.
+	static constexpr std::size_t maxPerHolder = 16;     ///< Leases one person, or one connection, holds.
 	static constexpr std::chrono::seconds maxDuration{3600}; ///< The longest lease.
 	static constexpr std::size_t maxTargetBytes = 256;  ///< The longest target.
 

@@ -13,6 +13,7 @@
 using affresco::capi::checkedString;
 using affresco::capi::checkedText;
 using affresco::capi::Failure;
+using affresco::capi::fromC;
 using affresco::capi::guarded;
 using affresco::capi::require;
 
@@ -36,7 +37,8 @@ afr_options readOptions(const afr_options* given) {
 		throw Failure{AFR_ERROR_ARGUMENT, "options.size is not one this library knows (use afr_options_init())"};
 	std::memcpy(&options, given, given->size);
 	options.size = sizeof(afr_options);
-	if(options.mode != AFR_MODE_WINDOW && options.mode != AFR_MODE_HEADLESS && options.mode != AFR_MODE_EMBEDDED)
+	if(const int mode = fromC(options.mode);
+	   mode != AFR_MODE_WINDOW && mode != AFR_MODE_HEADLESS && mode != AFR_MODE_EMBEDDED)
 		throw Failure{AFR_ERROR_ARGUMENT, "options.mode is not an afr_mode"};
 	if(options.width < 0 || options.height < 0 || options.width > largestSize || options.height > largestSize)
 		throw Failure{AFR_ERROR_ARGUMENT, "options.width and options.height must be 0 to 16384"};
@@ -124,7 +126,7 @@ afr_status finish(std::unique_ptr<afr_screen> handle, const afr_options& options
 			if(name.empty()) throw Failure{AFR_ERROR_ARGUMENT, "options.native_actions has an empty name"};
 			handle->screen->onAction(std::string(name), [](affresco::Panel&) {});
 		}
-	afr_screen* self = handle.get();
+	const afr_screen* self = handle.get();
 	handle->screen->onEvent([self](const std::string& eventJson) {
 		if(self->onEvent != nullptr) self->onEvent(self->onEventUser, eventJson.c_str());
 	});
@@ -279,7 +281,7 @@ afr_status afr_screen_on_action(afr_screen* screen, const char* name, afr_action
 	return guarded([&] {
 		afr_screen& handle = checked(screen);
 		if(callback == nullptr) throw Failure{AFR_ERROR_ARGUMENT, "callback is NULL"};
-		std::string action(checkedString(name, "name", 256));
+		const std::string action(checkedString(name, "name", 256));
 		handle.screen->onAction(action, [callback, user, action](affresco::Panel& sender) {
 			callback(user, action.c_str(), sender.id().c_str());
 		});

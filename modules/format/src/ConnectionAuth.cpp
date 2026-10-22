@@ -13,6 +13,17 @@ namespace affresco::format {
 
 namespace {
 
+/// @brief Whether a URL is http:// to the loopback. The host is compared whole: what follows it must be a port, a
+/// path, a query or nothing, so "http://localhost.example.com" and "http://127.0.0.1.example.com" are not.
+/// @param url The URL.
+/// @return Whether it reaches only this machine.
+bool isLoopbackUrl(std::string_view url) {
+	constexpr std::array<std::string_view, 3> hosts{"http://127.0.0.1", "http://localhost", "http://[::1]"};
+	return std::ranges::any_of(hosts, [url](std::string_view host) {
+		return url.starts_with(host) && (url.size() == host.size() || std::string_view(":/?").contains(url[host.size()]));
+	});
+}
+
 /// @brief Reads one of a provider's URLs: literal https:// (http:// on the loopback), with no fragment, user name or
 /// spaces, at most 2048 bytes.
 /// @param value The value.
@@ -20,9 +31,7 @@ namespace {
 /// @return The URL.
 std::string readEndpoint(const json& value, const std::string& at) {
 	const std::string url = expect::string(value, at);
-	const bool loopback = url.starts_with("http://127.0.0.1") || url.starts_with("http://localhost") ||
-	                      url.starts_with("http://[::1]");
-	if(!url.starts_with("https://") && !loopback)
+	if(!url.starts_with("https://") && !isLoopbackUrl(url))
 		expect::fail(at, "an https:// URL (http:// reaches only this machine)");
 	if(url.size() > 2048 || url.contains("{{") || url.find_first_of("#@ \r\n\"<>") != std::string::npos)
 		expect::fail(at, "a literal URL with no fragment, user name or spaces, at most 2048 bytes");

@@ -123,6 +123,7 @@ TEST_CASE("forge scm: the branch list") {
 	CHECK(branches["branches"][0]["id"] == "feature/x");
 	CHECK_THROWS_AS((void)forge::parseBranches("main\n"), std::runtime_error);
 	CHECK_THROWS_AS((void)forge::parseBranches("*\0main"s), std::runtime_error); // not ended
+	CHECK_THROWS_AS((void)forge::parseBranches("*\0a\n*\0b\n"s), std::runtime_error); // two current
 }
 
 TEST_CASE("forge scm: only Forge's own git commands run") {

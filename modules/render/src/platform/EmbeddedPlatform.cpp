@@ -7,6 +7,7 @@
 #include "Renderer.hpp"
 #include "gl/OpenGlRenderer.hpp"
 
+#include "affresco/core/Executor.hpp"
 #include "affresco/render/Embedding.hpp"
 #include "affresco/render/Window.hpp"
 
@@ -125,8 +126,7 @@ struct Embedding::Impl {
 			const std::lock_guard lock(mutex);
 			running.swap(posted);
 		}
-		for(auto& task : running) task();
-		running.clear(); // keeps its capacity: no allocation per frame
+		affresco::runTasks(running); // keeps its capacity (no allocation per frame), and is emptied even if one throws
 	}
 
 	/// @brief Sizes the window and the target, runs the tasks and draws what changed into the target.

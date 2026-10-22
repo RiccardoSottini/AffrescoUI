@@ -58,7 +58,7 @@ struct Built {
 	/// @param id The node's id.
 	/// @return Its element; one without a panel if it isn't in the tree.
 	[[nodiscard]] affresco::AccessibleNode element(const std::string& id) {
-		affresco::Panel* panel = screen.find(id);
+		const affresco::Panel* panel = screen.find(id);
 		const affresco::AccessibleNode tree = affresco::accessibilityTree(window->root());
 		for(const affresco::AccessibleNode& child : tree.children)
 			if(panel && child.panel == panel) return child;
