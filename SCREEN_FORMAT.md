@@ -707,8 +707,9 @@ are the matched `[start, end]` character spans, `parts` the text cut into `{ tex
 `fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
 the best first (an empty query keeps the order), at most `limit` of them.
 
-**Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar` is shown natively); `theme`;
-`screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
+**Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
+display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `nativeMenuBar`: whether `window.menuBar`
+is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
 `touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; and the names given by `repeat`, `let`,
@@ -719,7 +720,8 @@ the best first (an empty query keeps the order), at most `limit` of them.
 
 **Truthy** means anything except `false`, `null`, `0`, `""`, `[]` and `{}`.
 
-**Work budget:** an event (a handler, a timer, `onLoad`, `watch`) or an update may run 100,000 steps, evaluate
+### Work budget
+An event (a handler, a timer, `onLoad`, `watch`) or an update may run 100,000 steps, evaluate
 10,000,000 expression operations (each item a list function visits counts) and write 64 MiB into the state. Past
 one, what is running stops with an error that names its place (`actions.spin[0]: the event ran more than 100000
 steps, its work budget: the action stopped`), and the screen goes on. An update that stops refuses the version that
