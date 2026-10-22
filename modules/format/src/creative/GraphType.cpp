@@ -180,7 +180,7 @@ void applyKindColors(GraphView& view, const json& values, const PropertyReader& 
 	if(!kinds.is_object()) fail(path + ".kindColors", R"(expected { "kind": colour })");
 	if(kinds.size() > GraphView::maximumKinds) fail(path + ".kindColors", "too many kinds (at most 64)");
 	for(const auto& [kind, color] : kinds.items())
-		view.setKindColor(kind, reader.color(color, path + ".kindColors." + kind));
+		view.setKindColor(kind, reader.color(color, concatenate(path, ".kindColors.", kind)));
 }
 
 /// @brief Gives a graph the camera its node asks for, if it asks for one.

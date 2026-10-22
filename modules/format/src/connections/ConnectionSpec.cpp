@@ -4,6 +4,7 @@
 #include "ConnectionSpec.hpp"
 #include "ConnectionAuth.hpp"
 #include "SectionRegistry.hpp"
+#include "NodeKeys.hpp"
 
 #include <algorithm>
 #include <array>
@@ -67,7 +68,7 @@ network::Headers readHeaders(const json& value, const std::string& at) {
 	                                                              "Transfer-Encoding", "Proxy-Authorization"};
 	network::Headers headers;
 	for(const auto& [name, text] : expect::object(value, at).items()) {
-		const std::string place = at + "." + name;
+		const std::string place = concatenate(at, ".", name);
 		const bool token = !name.empty() && name.size() <= 64 && std::ranges::all_of(name, [](char c) {
 			return std::isalnum(static_cast<unsigned char>(c)) || std::string_view("!#$%&'*+-.^_`|~").contains(c);
 		});
@@ -200,7 +201,7 @@ void readOperations(const json& definition, ConnectionSpec& connection, const st
 	const json& list = expect::object(definition[key], at + "." + key);
 	if(list.size() > maxOperations) expect::fail(at + "." + key, "at most 256");
 	for(const auto& [name, item] : list.items()) {
-		const std::string place = at + "." + key + "." + name;
+		const std::string place = std::format("{}.{}.{}", at, key, name);
 		checkName(name, place);
 		Operation operation;
 		if(connection.socket) {

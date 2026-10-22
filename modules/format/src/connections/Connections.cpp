@@ -8,6 +8,7 @@
 #include "Engine.hpp"
 #include "Expression.hpp"
 
+#include <format>
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -79,7 +80,8 @@ std::string expandPath(const std::string& path, const json& with, const std::str
 		const std::string name = path.substr(i + 1, close - i - 1);
 		const auto found = with.is_object() ? with.find(name) : with.end();
 		const std::string value = found != with.end() && found->is_primitive() && !found->is_null() ? text(*found) : "";
-		if(value.empty()) throw DocumentError(at + ": \"with\" has no value for {" + name + "} (a text or a number)");
+		if(value.empty())
+			throw DocumentError(std::format(R"({}: "with" has no value for {{{}}} (a text or a number))", at, name));
 		out += value == "." ? "%2E" : value == ".." ? "%2E%2E" : encode(value);
 		i = close + 1;
 	}

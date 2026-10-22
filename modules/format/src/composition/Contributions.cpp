@@ -4,9 +4,11 @@
 #include "Contributions.hpp"
 #include "Engine.hpp"
 #include "Shortcuts.hpp"
+#include "NodeKeys.hpp"
 
 #include "affresco/render/TextEditor.hpp"
 
+#include <format>
 #include <algorithm>
 #include <array>
 #include <string_view>
@@ -272,7 +274,7 @@ json menuOf(Engine& engine, MenuSources& sources, const std::string& name, int d
 	json kept = json::array();
 	for(const auto& [key, item] : menus[name].items()) {
 		if(!item.is_object()) continue;
-		if(item.contains("when") && !shown(engine, item["when"], "menus." + name + "." + key + ".when")) continue;
+		if(item.contains("when") && !shown(engine, item["when"], std::format("menus.{}.{}.when", name, key))) continue;
 		if(!take(engine, sources.budget, "menus")) break;
 		kept.push_back(menuEntry(key, item, sources.commands));
 	}
@@ -373,8 +375,8 @@ void hideMenuBar(Engine& engine) {
 void checkMenus(const json& section, const std::string& name) {
 	static constexpr std::array keys = {"run", "with", "submenu", "group", "order", "when", "title", "icon"};
 	for(const auto& [menu, items] : expect::object(section, name).items())
-		for(const auto& [key, item] : expect::object(items, name + "." + menu).items()) {
-			const std::string at = name + "." + menu + "." + key;
+		for(const auto& [key, item] : expect::object(items, concatenate(name, ".", menu)).items()) {
+			const std::string at = std::format("{}.{}.{}", name, menu, key);
 			for(const auto& [property, value] : expect::object(item, at).items())
 				if(std::ranges::find(keys, property) == keys.end())
 					expect::fail(at, "unknown key '" + property + "' (a menu item has run, with, submenu, group, order, "

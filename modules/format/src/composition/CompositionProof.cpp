@@ -11,6 +11,7 @@
 #include "ExpressionParser.hpp"
 #include "FeatureManifest.hpp"
 #include "FeatureSignatures.hpp"
+#include "NodeKeys.hpp"
 
 #include "affresco/format/Rules.hpp"
 
@@ -192,7 +193,8 @@ void textProblems(const std::string& name, const std::string& text, const json& 
 			problems.push_back(error.what());
 		}
 	for(const auto& names : paths)
-		if(std::string why = pathWhy(name, names, needs); !why.empty()) problems.push_back(place + ": " + why);
+		if(std::string why = pathWhy(name, names, needs); !why.empty())
+			problems.push_back(concatenate(place, ": ", why));
 }
 
 /// @brief Why a "run" target isn't the feature's own or a need.
@@ -247,7 +249,7 @@ void walkIsolation(const IsolationWalk& walk, const json& value, const std::stri
 			walkIsolation(walk, value[index], std::format("{}[{}]", place, index), depth + 1);
 	if(!value.is_object()) return;
 	for(const auto& [key, item] : value.items()) {
-		const std::string at = place + "." + key;
+		const std::string at = concatenate(place, ".", key);
 		if(item.is_string() && namesAction(key, place))
 			targetProblems(walk.name, item.get<std::string>(), walk.needs, at, walk.problems);
 		else walkIsolation(walk, item, at, depth + 1);
@@ -351,7 +353,7 @@ void checkProofRecord(const json& proof, const std::string& place) {
 	expect::object(proof, place);
 	if(proof.dump().size() > maxProofBytes) fail(place, std::format("larger than {} bytes", maxProofBytes));
 	for(const auto& [key, value] : proof.items())
-		if(!std::ranges::contains(proofKeys, key)) fail(place + "." + key, "unknown key");
+		if(!std::ranges::contains(proofKeys, key)) fail(concatenate(place, ".", key), "unknown key");
 	if(proof.value("format", "") != proofFormat) fail(place + ".format", std::format("expected \"{}\"", proofFormat));
 	(void)expect::boolean(proof.value("passed", json()), place + ".passed");
 	for(const char* part : {"bindings", "checks", "scenarios", "unmet"})

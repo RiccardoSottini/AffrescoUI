@@ -3,7 +3,9 @@
 
 #include "ConnectionAuth.hpp"
 #include "SectionRegistry.hpp"
+#include "NodeKeys.hpp"
 
+#include <format>
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -87,8 +89,9 @@ identity::Provider readProvider(const json& value, const std::string& at) {
 	identity::Provider provider;
 	for(const auto& [key, item] : expect::object(value, at).items())
 		if(std::ranges::find(keys, key) == keys.end())
-			expect::fail(at + "." + key, "unknown property (expected flow, signInUrl, deviceUrl, tokenUrl, clientId, "
-			                             "scopes, issuer, note; never a client secret)");
+			expect::fail(concatenate(at, ".", key),
+			             "unknown property (expected flow, signInUrl, deviceUrl, tokenUrl, clientId, "
+			             "scopes, issuer, note; never a client secret)");
 	provider.flow = readFlow(value, at);
 	if(value.contains("signInUrl")) provider.signInUrl = readEndpoint(value["signInUrl"], at + ".signInUrl");
 	if(value.contains("deviceUrl")) provider.deviceUrl = readEndpoint(value["deviceUrl"], at + ".deviceUrl");
@@ -108,7 +111,7 @@ void linkSignIns(ConnectionMap& connections, const json& section, const std::str
 		const std::string shared = auth.get<std::string>();
 		const auto found = connections.find(shared);
 		if(found == connections.end() || !found->second.provider)
-			expect::fail(at + "." + name + ".auth", "the name of a connection with its own \"auth\" object");
+			expect::fail(std::format("{}.{}.auth", at, name), "the name of a connection with its own \"auth\" object");
 		connection.authName = shared;
 	}
 }

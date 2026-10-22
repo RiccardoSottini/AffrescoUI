@@ -6,6 +6,7 @@
 #include "LayoutProperties.hpp"
 #include "Properties.hpp"
 #include "PropertyValues.hpp"
+#include "NodeKeys.hpp"
 
 #include <algorithm>
 #include <array>
@@ -135,7 +136,7 @@ void Properties::overlay(Panel& panel, Record& record, const json& value, const 
 	const json& overlay = object(value, at);
 	for(const auto& [k, v] : overlay.items())
 		if(std::ranges::find(keys, k) == keys.end())
-			fail(at + "." + k, "unknown property (expected anchor, placement, open, dismiss or modal)");
+			fail(concatenate(at, ".", k), "unknown property (expected anchor, placement, open, dismiss or modal)");
 	std::string anchor = overlay.contains("anchor") ? string(overlay["anchor"], at + ".anchor") : "";
 	if(anchor.starts_with('#')) anchor.erase(0, 1);
 	record.overlayAnchor = anchor;

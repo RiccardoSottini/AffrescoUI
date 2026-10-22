@@ -65,7 +65,8 @@ TextRun readRun(const json& run, const Label& label, const PropertyReader& reade
 	}
 	for(const auto& [key, value] : run.items())
 		if(!std::ranges::contains(runKeys, key))
-			fail(at + "." + key, "unknown run property (expected text, icon, font, size, bold, italic, color or link)");
+			fail(concatenate(at, ".", key),
+			     "unknown run property (expected text, icon, font, size, bold, italic, color or link)");
 	if(run.contains("text")) result.text = codepointsOf(text(run["text"]));
 	if(run.contains("icon")) result.icon = string(run["icon"], at + ".icon");
 	if(run.contains("color")) result.color = reader.color(run["color"], at + ".color");

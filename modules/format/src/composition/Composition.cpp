@@ -5,6 +5,7 @@
 #include "Composition.hpp"
 #include "AdapterMapping.hpp"
 #include "FeatureManifest.hpp"
+#include "NodeKeys.hpp"
 
 #include "affresco/format/NodeIds.hpp"
 
@@ -332,10 +333,12 @@ private:
 		for(const auto& point : needs.value("points", json::array())) checkPoint(point.get<std::string>(), at + ".points");
 		for(const json entries = needs.value("exports", json::object());
 		    const auto& [exported, wanted] : entries.items()) {
-			if(!exports_.contains(exported)) problem(at + ".exports." + exported, "the app doesn't export it");
+			if(!exports_.contains(exported))
+				problem(concatenate(at, ".exports.", exported), "the app doesn't export it");
 			else if(exports_[exported].value("type", json()) != wanted["type"])
-				problem(at + ".exports." + exported, std::format("needs a {}, the app exports a {}", wanted["type"].dump(),
-				                                                 exports_[exported].value("type", json()).dump()));
+				problem(concatenate(at, ".exports.", exported),
+				        std::format("needs a {}, the app exports a {}", wanted["type"].dump(),
+				                    exports_[exported].value("type", json()).dump()));
 		}
 		for(const char* section : {"services", "connections"})
 			for(const json entries = needs.value(section, json::object());
@@ -348,9 +351,10 @@ private:
 		for(const json entries = needs.value("features", json::object());
 		    const auto& [other, range] : entries.items()) {
 			if(!merged_.contains(other))
-				problem(at + ".features." + other, enabled(other) ? "can't be merged" : "not installed, or disabled");
+				problem(concatenate(at, ".features.", other),
+				        enabled(other) ? "can't be merged" : "not installed, or disabled");
 			else if(!satisfies(merged_.at(other), range.get<std::string>()))
-				problem(at + ".features." + other,
+				problem(concatenate(at, ".features.", other),
 				        std::format("needs {}, {} is installed", range.get<std::string>(), merged_.at(other)));
 		}
 	}
@@ -380,7 +384,8 @@ private:
 		for(const json entries = provides.value("views", json::object());
 		    const auto& [point, nodes] : entries.items()) {
 			if(!points_.contains(point))
-				problem(place + ".views." + point, std::format("the app has no contribution point '{}'", point));
+				problem(concatenate(place, ".views.", point),
+				        std::format("the app has no contribution point '{}'", point));
 			for(const auto& [id, node] : nodes.items()) {
 				std::vector<std::string> ids = {id};
 				idsIn(node, ids);
@@ -397,15 +402,15 @@ private:
 	void checkConflicts(const std::string& name, const json& provides, const std::string& place) {
 		for(const json entries = provides.value("keys", json::object()); const auto& [key, handler] : entries.items())
 			if(const auto owner = keyOwners_.find(key); owner != keyOwners_.end())
-				problem(place + ".keys." + key, owner->second + " binds it already (give one a \"when\")");
+				problem(concatenate(place, ".keys.", key), owner->second + " binds it already (give one a \"when\")");
 		for(const json entries = provides.value("menus", json::object()); const auto& [menu, items] : entries.items()) {
 			if(!screen_.contains("menus") || !screen_["menus"].contains(menu)) {
-				problem(place + ".menus." + menu, std::format("the app has no menu '{}'", menu));
+				problem(concatenate(place, ".menus.", menu), std::format("the app has no menu '{}'", menu));
 				continue;
 			}
 			for(const auto& [item, entry] : (items.contains("items") ? items["items"] : items).items())
-				if(screen_["menus"][menu].contains(name + "." + item))
-					problem(place + ".menus." + menu + "." + item, "the menu has that item already");
+				if(screen_["menus"][menu].contains(concatenate(name, ".", item)))
+					problem(std::format("{}.menus.{}.{}", place, menu, item), "the menu has that item already");
 		}
 	}
 
@@ -428,13 +433,13 @@ private:
 		for(const std::string_view section : prefixedSections)
 			for(const json entries = provides.value(section, json::object());
 			    const auto& [key, value] : entries.items())
-				screen_[section][name + "." + key] = value;
+				screen_[section][concatenate(name, ".", key)] = value;
 		mergeKeys(name, provides);
 		mergeMenus(name, provides);
 		for(const json entries = provides.value("views", json::object()); const auto& [point, nodes] : entries.items())
 			for(const auto& [id, node] : nodes.items()) mergeView(point, id, node);
 		for(const json entries = provides.value("exports", json::object()); const auto& [key, entry] : entries.items())
-			exports_[name + "." + key] = entry;
+			exports_[concatenate(name, ".", key)] = entry;
 		merged_.emplace(name, record["release"].get<std::string>());
 	}
 
@@ -456,8 +461,8 @@ private:
 		for(const json entries = provides.value("menus", json::object()); const auto& [menu, items] : entries.items())
 			for(const auto& [item, entry] : (items.contains("items") ? items["items"] : items).items()) {
 				json merged = entry;
-				if(!merged.contains("run") && !merged.contains("submenu")) merged["run"] = name + "." + item;
-				screen_["menus"][menu][name + "." + item] = std::move(merged);
+				if(!merged.contains("run") && !merged.contains("submenu")) merged["run"] = concatenate(name, ".", item);
+				screen_["menus"][menu][concatenate(name, ".", item)] = std::move(merged);
 			}
 	}
 

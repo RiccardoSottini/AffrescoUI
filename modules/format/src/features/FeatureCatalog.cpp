@@ -3,6 +3,7 @@
 /// RFC 0004 asks of untrusted packages.
 
 #include "FeatureCatalog.hpp"
+#include "NodeKeys.hpp"
 
 #include "FeatureManifest.hpp"
 #include "affresco/format/Migrate.hpp"
@@ -40,7 +41,7 @@ constexpr std::size_t maxText = 1024;
 template <std::size_t N>
 void onlyKeys(const json& object, const std::array<std::string_view, N>& keys, const std::string& place) {
 	for(const auto& [key, value] : object.items())
-		if(std::ranges::find(keys, key) == keys.end()) fail(place + "." + key, "unknown key");
+		if(std::ranges::find(keys, key) == keys.end()) fail(concatenate(place, ".", key), "unknown key");
 }
 
 /// @brief Reads a member that must be a short string.

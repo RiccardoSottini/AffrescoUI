@@ -4,6 +4,7 @@
 
 #include "ContributionPoints.hpp"
 #include "ExpressionParser.hpp"
+#include "NodeKeys.hpp"
 
 #include <algorithm>
 #include <format>
@@ -69,7 +70,7 @@ bool dottedName(std::string_view text) {
 template <std::size_t N>
 void knownKeys(const json& value, const std::array<std::string_view, N>& keys, const std::string& place) {
 	for(const auto& [key, item] : value.items())
-		if(!among(keys, key)) fail(place + "." + key, "unknown key");
+		if(!among(keys, key)) fail(concatenate(place, ".", key), "unknown key");
 }
 
 /// @brief Whether a value is the name of a field's type.
@@ -89,8 +90,8 @@ void checkFields(const json& fields, const std::string& place) {
 	expect::object(fields, place);
 	if(fields.size() > maxFields) fail(place, std::format("more than {} fields", maxFields));
 	for(const auto& [field, type] : fields.items()) {
-		if(!identifier(field)) fail(place + "." + field, "must be an identifier");
-		if(!fieldType(type)) fail(place + "." + field, expectedFieldType);
+		if(!identifier(field)) fail(concatenate(place, ".", field), "must be an identifier");
+		if(!fieldType(type)) fail(concatenate(place, ".", field), expectedFieldType);
 	}
 }
 
@@ -177,7 +178,7 @@ std::string contractText(const json& contract) {
 void checkPointsSection(const json& section, const std::string& name) {
 	expect::object(section, name);
 	for(const auto& [point, entry] : section.items()) {
-		const std::string at = name + "." + point;
+		const std::string at = concatenate(name, ".", point);
 		if(!dottedName(point)) fail(at, "must be a name like panels.dock");
 		expect::object(entry, at);
 		knownKeys(entry, pointKeys, at);
@@ -211,7 +212,7 @@ void checkNeeds(const json& needs, const std::string& place) {
 	expect::object(needs, place);
 	if(needs.size() > maxNeeds) fail(place, std::format("more than {} needs", maxNeeds));
 	for(const auto& [name, need] : needs.items()) {
-		const std::string at = place + "." + name;
+		const std::string at = concatenate(place, ".", name);
 		if(!identifier(name)) fail(at, "must be an identifier");
 		expect::object(need, at);
 		knownKeys(need, needKeys, at);

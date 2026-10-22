@@ -7,6 +7,7 @@
 #include "Expression.hpp"
 #include "ExpressionParser.hpp"
 #include "FeatureManifest.hpp"
+#include "NodeKeys.hpp"
 
 #include <algorithm>
 #include <array>
@@ -73,7 +74,8 @@ void checkBinding(const json& binding, const std::string& place) {
 	if(form.empty()) fail(place, "expected one of \"export\", \"value\", \"action\", \"point\" or \"capability\"");
 	for(const auto& [key, value] : binding.items())
 		if(key != form && !(key == "with" && form == "action") && key != "note")
-			fail(place + "." + key, form == "action" ? "unknown key" : "only an action binding has more than one key");
+			fail(concatenate(place, ".", key),
+			     form == "action" ? "unknown key" : "only an action binding has more than one key");
 	checkText(expect::string(binding[form], place + "." + form), place + "." + form);
 	if(form == "value" && !placeholders(binding["value"].get<std::string>()).whole)
 		fail(place + ".value", "expected one expression, \"{{...}}\"");
@@ -392,7 +394,7 @@ void checkBindings(const json& bindings, const std::string& place) {
 	if(bindings.size() > maxBindings) fail(place, std::format("more than {} bindings", maxBindings));
 	for(const auto& [need, binding] : bindings.items()) {
 		if(need.empty() || need.size() > 64) fail(place, "a need's name is empty or too long");
-		checkBinding(binding, place + "." + need);
+		checkBinding(binding, concatenate(place, ".", need));
 	}
 }
 
@@ -427,10 +429,11 @@ AdaptedFeature adaptFeature(const std::string& name, const json& record, const j
 	if(adapted.provides.contains("actions"))
 		for(const auto& [key, steps] : adapted.provides["actions"].items())
 			if(key.starts_with("adapted."))
-				adapted.problems.push_back("features." + name + ".provides.actions." + key +
-				                           ": \"adapted.\" names are the adapter's");
+				adapted.problems.push_back(
+				    std::format("features.{}.provides.actions.{}: \"adapted.\" names are the adapter's", name, key));
 	for(const json entries = record.value("needs", json::object()); const auto& [need, wanted] : entries.items()) {
-		const NeedOf of{name, need, wanted, wanted.value("kind", ""), "features." + name + ".needs." + need + ": "};
+		const NeedOf of{name, need, wanted, wanted.value("kind", ""),
+		                std::format("features.{}.needs.{}: ", name, need)};
 		if(bindings.contains(need)) adaptBound(of, bindings[need], exports, adapted);
 		else adaptUnbound(of, adapted);
 	}

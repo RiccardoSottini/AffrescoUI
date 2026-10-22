@@ -3,6 +3,7 @@
 /// and "permissions".
 
 #include "SectionRegistry.hpp"
+#include "NodeKeys.hpp"
 
 #include "affresco/core/DocumentRules.hpp"
 
@@ -35,7 +36,7 @@ void checkLiteral(const json& value, const std::string& at) {
 	if(value.is_string() && value.get_ref<const std::string&>().contains("{{"))
 		expect::fail(at, "a service's configuration is literal: no {{ }}");
 	if(value.is_object())
-		for(const auto& [key, item] : value.items()) checkLiteral(item, at + "." + key);
+		for(const auto& [key, item] : value.items()) checkLiteral(item, concatenate(at, ".", key));
 	if(value.is_array())
 		for(std::size_t i = 0; i < value.size(); ++i) checkLiteral(value[i], at + "[" + std::to_string(i) + "]");
 }
@@ -82,7 +83,7 @@ bool isDuration(const std::string& text) {
 /// @param at "permissions.review.owners".
 void checkOwners(const json& value, const std::string& at) {
 	for(const auto& [pattern, owners] : expect::object(value, at).items()) {
-		const std::string where = at + "." + pattern;
+		const std::string where = concatenate(at, ".", pattern);
 		if(!parsePermissionRule("*(" + pattern + ")"))
 			expect::fail(where, "expected a JSON Pointer or \"#id\" path, e.g. \"#board\"");
 		if(!owners.is_array() || owners.empty()) expect::fail(where, "expected a list of author names");

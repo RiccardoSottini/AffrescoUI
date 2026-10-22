@@ -7,6 +7,7 @@
 #include "ContributionPoints.hpp"
 #include "Limits.hpp"
 #include "affresco/format/Migrate.hpp"
+#include "NodeKeys.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -103,7 +104,7 @@ bool localName(std::string_view text) {
 template<std::size_t N>
 void knownKeys(const json& value, const std::array<std::string_view, N>& keys, const std::string& place) {
 	for(const auto& [key, item] : value.items())
-		if(!among(keys, key)) fail(place + "." + key, "unknown key");
+		if(!among(keys, key)) fail(concatenate(place, ".", key), "unknown key");
 }
 
 /// @brief Reads an object of names, each checked.
@@ -115,7 +116,7 @@ void knownKeys(const json& value, const std::array<std::string_view, N>& keys, c
 void checkNames(const json& value, const std::string& place, bool (*valid)(std::string_view), const char* what) {
 	expect::object(value, place);
 	for(const auto& [key, item] : value.items())
-		if(!valid(key)) fail(place + "." + key, std::format("must be {}", what));
+		if(!valid(key)) fail(concatenate(place, ".", key), std::format("must be {}", what));
 }
 
 /// @brief Reads a list of distinct strings.
@@ -158,7 +159,7 @@ void checkRequires(const json& needs, const std::string& place) {
 	if(const auto exports = needs.find("exports"); exports != needs.end()) {
 		checkNames(*exports, place + ".exports", dottedName, "a name like editor.text");
 		for(const auto& [name, wanted] : exports->items()) {
-			const std::string at = place + ".exports." + name;
+			const std::string at = concatenate(place, ".exports.", name);
 			expect::object(wanted, at);
 			if(!wanted.contains("type")) fail(at, "missing \"type\"");
 			checkTypeName(wanted["type"], at + ".type");
@@ -169,13 +170,14 @@ void checkRequires(const json& needs, const std::string& place) {
 	for(const char* part : {"services", "connections"})
 		if(const auto uses = needs.find(part); uses != needs.end()) {
 			checkNames(*uses, place + "." + part, identifier, "a name");
-			for(const auto& [name, methods] : uses->items()) checkStringList(methods, place + "." + part + "." + name);
+			for(const auto& [name, methods] : uses->items())
+				checkStringList(methods, std::format("{}.{}.{}", place, part, name));
 		}
 	if(const auto features = needs.find("features"); features != needs.end()) {
 		checkNames(*features, place + ".features", validFeatureName, "a feature's name");
 		for(const auto& [name, range] : features->items())
 			if(!range.is_string() || !validRange(range.get_ref<const std::string&>()))
-				fail(place + ".features." + name, "expected a range: 1.2.3, ^1.2.3, ~1.2.3 or >=1.2.3");
+				fail(concatenate(place, ".features.", name), "expected a range: 1.2.3, ^1.2.3, ~1.2.3 or >=1.2.3");
 	}
 }
 
@@ -203,15 +205,16 @@ void checkViews(const json& views, const std::string& feature, const std::string
 	expect::object(views, place);
 	const std::string prefix = feature + "-";
 	for(const auto& [point, nodes] : views.items()) {
-		const std::string at = place + "." + point;
+		const std::string at = concatenate(place, ".", point);
 		if(point.empty()) fail(at, "expected a contribution point's name");
 		expect::object(nodes, at);
 		for(const auto& [id, node] : nodes.items()) {
 			if(!id.starts_with(prefix) || id.size() == prefix.size())
-				fail(at + "." + id, std::format("id '{}' must start with '{}'", id, prefix));
-			checkViewIds(node, prefix, at + "." + id);
-			if(node.contains("id")) fail(at + "." + id + ".id", "the view's key is its id");
-			if(node.contains("point")) fail(at + "." + id + ".point", "a feature's view can't be a contribution point");
+				fail(concatenate(at, ".", id), std::format("id '{}' must start with '{}'", id, prefix));
+			checkViewIds(node, prefix, concatenate(at, ".", id));
+			if(node.contains("id")) fail(std::format("{}.{}.id", at, id), "the view's key is its id");
+			if(node.contains("point"))
+				fail(std::format("{}.{}.point", at, id), "a feature's view can't be a contribution point");
 		}
 	}
 }
@@ -223,12 +226,12 @@ void checkViews(const json& views, const std::string& feature, const std::string
 void checkProvidedMenus(const json& menus, const std::string& place) {
 	expect::object(menus, place);
 	for(const auto& [menu, items] : menus.items()) {
-		const std::string at = place + "." + menu;
+		const std::string at = concatenate(place, ".", menu);
 		expect::object(items, at);
 		const json& list = items.contains("items") ? items["items"] : items;
 		const std::string listAt = items.contains("items") ? at + ".items" : at;
 		checkNames(list, listAt, localName, "a local name");
-		for(const auto& [item, entry] : list.items()) expect::object(entry, listAt + "." + item);
+		for(const auto& [item, entry] : list.items()) expect::object(entry, concatenate(listAt, ".", item));
 	}
 }
 
@@ -241,13 +244,14 @@ void checkProvides(const json& provides, const std::string& feature, const std::
 	expect::object(provides, place);
 	for(const auto& [key, part] : provides.items())
 		if(among(capabilitySections, key))
-			fail(place + "." + key, "a capability: only the host can grant it, never a revision");
+			fail(concatenate(place, ".", key), "a capability: only the host can grant it, never a revision");
 	knownKeys(provides, providesKeys, place);
 	if(const auto state = provides.find("state"); state != provides.end())
 		checkNames(*state, place + ".state", identifier, "an identifier");
 	if(const auto computed = provides.find("computed"); computed != provides.end()) {
 		checkNames(*computed, place + ".computed", identifier, "an identifier");
-		for(const auto& [name, value] : computed->items()) expect::string(value, place + ".computed." + name);
+		for(const auto& [name, value] : computed->items())
+			expect::string(value, concatenate(place, ".computed.", name));
 	}
 	for(const char* part : {"actions", "components", "styles"})
 		if(const auto declared = provides.find(part); declared != provides.end())
@@ -256,7 +260,7 @@ void checkProvides(const json& provides, const std::string& feature, const std::
 	if(const auto menus = provides.find("menus"); menus != provides.end()) checkProvidedMenus(*menus, place + ".menus");
 	if(const auto settings = provides.find("settings"); settings != provides.end()) {
 		checkNames(*settings, place + ".settings", dottedName, "a name like showCharacters");
-		for(const auto& [name, type] : settings->items()) expect::object(type, place + ".settings." + name);
+		for(const auto& [name, type] : settings->items()) expect::object(type, concatenate(place, ".settings.", name));
 	}
 	if(const auto views = provides.find("views"); views != provides.end()) checkViews(*views, feature, place + ".views");
 	if(const auto exports = provides.find("exports"); exports != provides.end())
@@ -278,7 +282,7 @@ void collectControlSteps(const json& value, const std::string& place, std::vecto
 		for(const auto& [key, item] : value.items())
 			if(among(controlSteps, key)) found.push_back(std::format("{}: '{}'", place, key));
 		for(const auto& [key, item] : value.items())
-			if(item.is_structured()) collectControlSteps(item, place + "." + key, found, depth + 1);
+			if(item.is_structured()) collectControlSteps(item, concatenate(place, ".", key), found, depth + 1);
 	} else if(value.is_array()) {
 		for(std::size_t index = 0; index < value.size(); ++index)
 			if(value[index].is_structured())
@@ -305,7 +309,7 @@ void checkLimits(const json& value, const std::string& place) {
 void checkSignatureShape(const json& signature, const std::string& place) {
 	expect::object(signature, place);
 	for(const auto& [key, item] : signature.items())
-		if(key != "publisher" && key != "value") fail(place + "." + key, "unknown key");
+		if(key != "publisher" && key != "value") fail(concatenate(place, ".", key), "unknown key");
 	if(!signature.contains("publisher") || !signature["publisher"].is_string() ||
 	   !signature["publisher"].get_ref<const std::string&>().starts_with("ed25519:"))
 		fail(place + ".publisher", "expected \"ed25519:<public key>\"");
@@ -393,7 +397,8 @@ std::vector<std::string> controlStepsIn(const json& provides, const std::string&
 	std::vector<std::string> found;
 	if(!provides.is_object()) return found;
 	for(const auto& [key, part] : provides.items())
-		if(!among(dataParts, key) && part.is_structured()) collectControlSteps(part, place + "." + key, found, 1);
+		if(!among(dataParts, key) && part.is_structured())
+			collectControlSteps(part, concatenate(place, ".", key), found, 1);
 	return found;
 }
 
@@ -437,13 +442,14 @@ void checkFeatureRecord(const std::string& name, const json& record, const std::
 
 void checkFeaturesSection(const json& section, const std::string& name) {
 	expect::object(section, name);
-	for(const auto& [feature, record] : section.items()) checkFeatureRecord(feature, record, name + "." + feature);
+	for(const auto& [feature, record] : section.items())
+		checkFeatureRecord(feature, record, concatenate(name, ".", feature));
 }
 
 void checkExportsSection(const json& section, const std::string& name) {
 	checkNames(section, name, dottedName, "a name like editor.text");
 	for(const auto& [key, entry] : section.items()) {
-		const std::string at = name + "." + key;
+		const std::string at = concatenate(name, ".", key);
 		expect::object(entry, at);
 		knownKeys(entry, exportKeys, at);
 		if(!entry.contains("type")) fail(at, "missing \"type\"");
@@ -461,10 +467,10 @@ void checkExportsSection(const json& section, const std::string& name) {
 void checkImportsSection(const json& section, const std::string& name) {
 	checkNames(section, name, identifier, "an identifier");
 	for(const auto& [alias, entry] : section.items()) {
-		const std::string text = expect::string(entry, name + "." + alias);
+		const std::string text = expect::string(entry, concatenate(name, ".", alias));
 		const auto parts = splitImport(text);
 		if(!parts || !validFeatureName(parts->first) || !validRange(parts->second))
-			fail(name + "." + alias, "expected \"<feature>@<range>\", e.g. \"workbench@^1.0.0\"");
+			fail(concatenate(name, ".", alias), "expected \"<feature>@<range>\", e.g. \"workbench@^1.0.0\"");
 	}
 }
 
