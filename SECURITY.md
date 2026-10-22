@@ -564,6 +564,13 @@ Input from peers, revisions and change sets is limited so that one message can't
 | What git prints for Forge (`GitLimits`) | 8 MiB of output, 10,000 files or branches, 4 KiB a path |
 | A VS Code theme Forge imports | An id of 40 characters; only `#rrggbb` and `#rrggbbaa` colours are kept |
 | The document server's token file (`TokenFile`) | 4,096 tokens |
+| An image of `modules/imaging` (`imaging::Limits`) | 32,768 pixels across and down, and a gigapixel; 256 layers and groups, groups 2 deep |
+| Memory of an image's tiles (`imaging::Limits`) | 512 MiB of loaded tiles and mips per image on the CPU (the least recently used go), 256 MiB of resident tiles per view on the GPU |
+| Tempera's undo history (`imaging::Limits`) | 200 steps and 512 MiB of changed tiles; the oldest steps go first |
+| Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
+| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down, checked from the header before decoding |
+| A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
+| An ICC profile (lcms2, `tests/fuzz/icc.cpp`) | 4 MiB; only a device or colour-space profile of RGB, grey or CMYK over XYZ or Lab is kept, and a conversion that can't be built is refused |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
