@@ -28,6 +28,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `search` | Find in Files (`mod+shift+f`): an editor page that searches the open folder with the services' search engine (`Search.*`) as you submit, plain, whole word, case-sensitive or a regular expression, with include and exclude globs and the `.gitignore` files followed; the matches stream into a tree by file, a match opens at its line, and Replace All writes every file after a confirm, skipping those with unsaved edits and reloading the open ones |
 | `explorer` | The side bar's tree, kept current by the file watcher (`Explorer.*`, a `DirectoryModel`), with new file and folder, rename, delete (after a confirm dialog), copy and paste, move by drag and drop, and reveal of the active file, from its context menu, the File menu and the palette |
 | `terminal` | The panel's Terminal tab: up to 8 shells as tabs (`Terminal.*`, a VT terminal on libvterm in `TerminalModel.*`, on the `pty` provider), with bounded scrollback, the pty resized with the node, and no title or clipboard writes unless allowed; New Terminal is `mod+alt+t` |
+| `debug` | Run and Debug (`mod+shift+d`): launch configurations from `.vscode/launch.json`, sessions with lldb-dap or debugpy on the `dap` provider, a floating toolbar and F5, Shift+F5, Cmd+Shift+F5, F6, F9, F10, F11, Shift+F11; gutter breakpoints (a click toggles one, Shift+click edits its condition, hit count or log message, Alt+click disables it) marked verified or not, the Breakpoints list with the exception filters, the call stack per thread, variables as a lazy tree paged by 100, Set Value, watches, the debug console with history and completion, and a value on hover while paused; `debug.scenarios.json` |
 | `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly in C++ (`GitStatus.*`, `LineDiff.*`) |
 | `agent` | The agent pane (Cmd+Alt+I): a request in plain words goes to the connected agents, and their change comes back as a proposal, reviewed here with its changes, evidence (screenshots, scenario results) and a live preview, then accepted or rejected; and Bottega, the Features view (Cmd+Shift+X): the host's catalogue, install, enable and disable |
 
@@ -48,6 +49,27 @@ program and Forge's own commands only (`GitArguments.*`): status, add and restor
 (the message goes to git's input), the branch list, `switch` to a checked branch name, and `show HEAD:<path>`. Each run
 is given as an array, without a shell, against the open folder's repository (`--git-dir`, `--work-tree`). Its output is
 bounded and parsed by `forge.scm.parseStatus`, `forge.scm.parseBranches` and `forge.scm.diff`.
+
+The debugger (`features/debug/Debug.*`) grants `lldb-dap` and `debugpy` (`python3 -m debugpy.adapter`) when they are on
+PATH, so either one works without a setting:
+- lldb-dap, for C and C++: on macOS, `xcrun -f lldb-dap` names it (put its folder on PATH); elsewhere it comes with
+  LLVM. A configuration of type `lldb` (or `lldb-dap`) launches `program` or attaches to `pid`.
+- debugpy, for Python: `python3 -m pip install debugpy`. A configuration of type `python` (or `debugpy`) launches
+  `program` or attaches to `port` on 127.0.0.1.
+
+Forge reads this subset of `launch.json` (comments allowed): `name`, `type`, `request` (`launch` or `attach`),
+`program`, `args`, `cwd`, `env`, `stopOnEntry`, `console`, `pid` and `port`; `${workspaceFolder}` is the open folder.
+Other keys are left out, and configurations of other types are counted as skipped. For example:
+
+```json
+{ "version": "0.2.0", "configurations": [
+	{ "name": "Run main", "type": "python", "request": "launch", "program": "${workspaceFolder}/main.py" },
+	{ "name": "Debug app", "type": "lldb", "request": "launch", "program": "${workspaceFolder}/build/app", "args": ["--verbose"] }
+] }
+```
+
+A frame outside the open folder opens only after a confirm, read-only. `debug.scenarios.json` plays what
+`tests/dap/fake_adapter.py` answers through the `debugApply*` actions, so it runs without an adapter.
 
 The agent pane talks to the agents through Forge's own host: a channel to `studio.sock` in Forge's socket folder
 (`--socket`), relayed by the host to the peers on `agent.sock`. Agents hold `ask` permission there, so what one changes

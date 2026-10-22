@@ -813,6 +813,8 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onScrub` | A timeline's playhead moved by the user: `event.time` (seconds), `frame`. |
 | `onKeyframeMove` | A timeline's keyframe dragged or moved with Alt and the arrows: `event.track` (its id), `index`, `time`, `from`, `value`. |
 | `onClipChange` | A timeline's clip moved or trimmed: `event.id`, `track` (where it is now), `fromTrack`, `index` (in `fromTrack`), `start`, `duration`, `from` (the start before) and `edge` (`"move"`, `"start"` or `"end"`). |
+| `onGutterClick` | A press in an editor's gutter: `event.line` (from 0), `shift`, `alt`, `control`, `super`. While a node has one, the press doesn't move the caret. |
+| `onWordHover` | The pointer moved onto a word of an editor, or off one: `event.word`, `line`, `column` (where it starts, from 0); off a word, `word` is empty and `line` null. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it

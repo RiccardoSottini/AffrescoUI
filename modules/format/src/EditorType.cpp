@@ -203,6 +203,42 @@ void stopListeningToEditor(Panel& panel, Connection connection) {
 	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) editor->onTextChanged.disconnect(connection);
 }
 
+/// @brief Runs "onGutterClick" on a press in the gutter and "onWordHover" when the pointer moves onto a word or off
+/// one.
+/// @param panel The panel, a TextEditor.
+/// @param sink Runs a handler.
+/// @return The connections.
+EventConnections listenToEditorEvents(Panel& panel, EventSink sink) {
+	auto* editor = dynamic_cast<TextEditor*>(&panel);
+	if(!editor) return {};
+	const Connection gutter = editor->onGutterClicked.connect([sink](std::size_t line, Mods mods) {
+		sink("onGutterClick", json{{"type", "gutterClick"},
+		                           {"line", line},
+		                           {"shift", mods.shift()},
+		                           {"alt", mods.alt()},
+		                           {"control", mods.control()},
+		                           {"super", mods.super()}});
+	});
+	const Connection hover = editor->onWordHovered.connect([sink](TextEditor::Position at, const std::string& word) {
+		const bool onWord = at.line != SIZE_MAX;
+		sink("onWordHover", json{{"type", "wordHover"},
+		                         {"line", onWord ? json(at.line) : json()},
+		                         {"column", onWord ? json(at.column) : json()},
+		                         {"word", word}});
+	});
+	return {gutter, hover, 0, 0};
+}
+
+/// @brief Disconnects listenToEditorEvents().
+/// @param panel The panel.
+/// @param connections The connections.
+void stopListeningToEditorEvents(Panel& panel, const EventConnections& connections) {
+	auto* editor = dynamic_cast<TextEditor*>(&panel);
+	if(!editor) return;
+	editor->onGutterClicked.disconnect(connections[0]);
+	editor->onWordHovered.disconnect(connections[1]);
+}
+
 } // namespace
 
 void registerEditorType(TypeRegistry& registry) {
@@ -222,6 +258,7 @@ void registerEditorType(TypeRegistry& registry) {
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };
 	set->value = {"text", showText, listenToEditor, stopListeningToEditor};
+	set->events = {listenToEditorEvents, stopListeningToEditorEvents};
 
 	registry.add({"editor", "A multi-line text editor: selection, undo, clipboard, line numbers, wrap, folds, decorations, find, cursors",
 	              [] { return std::make_unique<TextEditor>(); }, set, false});

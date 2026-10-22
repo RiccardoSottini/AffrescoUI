@@ -12,7 +12,8 @@ add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/example
 	${forge_dir}/features/search/Search.cpp
 	${forge_dir}/features/scm/Scm.cpp ${forge_dir}/features/scm/GitStatus.cpp
 	${forge_dir}/features/scm/GitArguments.cpp ${forge_dir}/features/scm/LineDiff.cpp
-	${PROJECT_SOURCE_DIR}/examples/surfaces/Surfaces.cpp)
+	${PROJECT_SOURCE_DIR}/examples/surfaces/Surfaces.cpp
+	${forge_dir}/features/debug/Debug.cpp)
 target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples ${forge_dir})
 # The example surfaces, and a failing one, draw with OpenGL (surfaces.json)
 target_include_directories(affrescoui_render_runner SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)

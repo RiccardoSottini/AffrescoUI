@@ -570,6 +570,8 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 		return;
 	}
 	if(event.position.x < frame().left + gutterWidth() - 8.0f && unfold(at.line)) return;
+	if(event.position.x < frame().left + gutterWidth() && !onGutterClicked.empty())
+		return onGutterClicked(at.line, event.mods);
 	clearCursors();
 	const double time = now();
 	clicks_ = time - lastClickTime_ < doubleClickSeconds && at.line == lastClickAt_.line ? clicks_ % 3 + 1 : 1;
@@ -591,6 +593,16 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 void TextEditor::mouseMoveEvent(const MouseMoveEvent& event) {
 	Panel::mouseMoveEvent(event);
 	if(columnDragging_) return selectColumn(columnFrom_, event.position);
+	if(!dragging_ && !onWordHovered.empty()) {
+		const Position at = positionAt(event.position);
+		const std::u32string& text = lines_[at.line];
+		std::size_t start = at.column, end = at.column;
+		while(start > 0 && isWord(text[start - 1])) --start;
+		while(end < text.size() && isWord(text[end])) ++end;
+		const bool onWord = start < end && event.position.x >= frame().left + gutterWidth();
+		const Position word = onWord ? Position{at.line, start} : Position{SIZE_MAX, 0};
+		if(word != hoveredWord_) onWordHovered(hoveredWord_ = word, onWord ? detail::toUtf8(text.substr(start, end - start)) : "");
+	}
 	if(!dragging_ || clicks_ != 1) return;
 	const Position at = positionAt(event.position);
 	if(at != caret_) moveCaret(at, true);

@@ -39,12 +39,12 @@ inline bool handlerKey(const std::string& key) {
 }
 
 /// Event handlers a node may have.
-inline constexpr std::array<std::string_view, 33> handlerNames = {
-    "onClick",  "onDoubleClick", "onContextMenu", "onPress",    "onRelease",      "onDrag",     "onDrop",
-    "onHover",  "onLeave",       "onFocus",       "onBlur",     "onScroll",       "onKey",      "onChange",
-    "onSubmit", "onLink",        "onShow",        "onHide",     "onClose",        "onMove",     "onExpand",
-    "onOpen",   "onSort",        "onColumnResize", "onTransform", "onConnect",     "onDisconnect", "onLinkDrop",
-    "onSelect", "onDelete",      "onScrub",       "onKeyframeMove", "onClipChange"};
+inline constexpr std::array<std::string_view, 35> handlerNames = {
+    "onClick",  "onDoubleClick", "onContextMenu",  "onPress",        "onRelease",    "onDrag",        "onDrop",
+    "onHover",  "onLeave",       "onFocus",        "onBlur",         "onScroll",     "onKey",         "onChange",
+    "onSubmit", "onLink",        "onShow",         "onHide",         "onClose",      "onMove",        "onExpand",
+    "onOpen",   "onSort",        "onColumnResize", "onTransform",    "onConnect",    "onDisconnect",  "onLinkDrop",
+    "onSelect", "onDelete",      "onScrub",        "onKeyframeMove", "onClipChange", "onGutterClick", "onWordHover"};
 
 /// Handlers that bubble: when a node has none, its nearest ancestor with one handles the event.
 inline constexpr std::array<std::string_view, 8> bubbling = {"onClick",   "onDoubleClick", "onContextMenu", "onPress",
@@ -58,8 +58,8 @@ inline constexpr std::array<std::string_view, 5> stateBlocks = {"hover", "focuse
 /// @return true for children, repeat, when, let, handlers, ...
 inline bool structural(const std::string& key) {
 	return key == "children" || key == "repeat" || key == "when" || key == "let" || key == "check" || key == "use" ||
-	       key == "with" || key == "bind" || key == "caret" || key == "keys" || key == "every" || key == "drag" || key == "context" ||
-	       key == "note" || key == "slot" || key == "point" || handlerKey(key);
+	       key == "with" || key == "bind" || key == "caret" || key == "keys" || key == "every" || key == "drag" ||
+	       key == "context" || key == "note" || key == "slot" || key == "point" || handlerKey(key);
 }
 
 /// @brief Joins three pieces of text, allocating once: places for errors ("root", ".", "color") are built on every

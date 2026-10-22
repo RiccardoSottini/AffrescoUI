@@ -88,6 +88,7 @@ ServiceRegistry::ServiceRegistry() {
 	add(makePtyProvider());
 #endif
 	add(makeSearchProvider());
+	add(makeDapProvider());
 }
 
 ServiceRegistry::~ServiceRegistry() { entries_.clear(); }

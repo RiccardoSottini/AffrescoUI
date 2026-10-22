@@ -1,6 +1,9 @@
 # services: folders, programs and JSON-RPC servers a screen calls by method name (RFC 0002)
 affrescoui_module(services
 	src/Common.cpp
+	src/Dap.cpp
+	src/DapProtocol.cpp
+	src/DapTransport.cpp
 	src/FileProvider.cpp
 	src/Framing.cpp
 	src/JsonRpc.cpp
