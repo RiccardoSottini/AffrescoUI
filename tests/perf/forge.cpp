@@ -18,12 +18,10 @@ namespace affresco::bench {
 
 namespace {
 
-/// @brief Forge's folder, next to the template screens.
+/// @brief Forge's folder, beside the templates' folders.
 /// @param context The context.
 /// @return examples/forge.
-std::filesystem::path forgeDirectory(const Context& context) {
-	return context.screens().parent_path().parent_path() / "forge";
-}
+std::filesystem::path forgeDirectory(const Context& context) { return context.examples() / "forge"; }
 
 /// @brief Forge's screen document, with three bench actions merged in for what a person does through a binding (typing
 /// into the editor, typing into the quick pick) and that no action of Forge's takes from an event.

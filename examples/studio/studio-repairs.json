@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"note": "The Studio's Repairs screen, included by studio.screen.json: the change sets the host installed with a proof, where each stands (applied, needs repair, repairing, repaired, gave up), why, and the repair's proposal, which goes through review like any other. A reviewer retries one that gave up. Cmd+5 opens it.",
 
 	"state": {

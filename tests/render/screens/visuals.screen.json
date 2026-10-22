@@ -7,9 +7,9 @@
 	"window": { "title": "Images and icons", "width": 560, "height": 400 },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons"] },
-		"icons": { "file": "../../../examples/assets/fonts/Lucide.ttf", "size": 16 },
-		"bigIcons": { "file": "../../../examples/assets/fonts/Lucide.ttf", "size": 32 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons"] },
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 },
+		"bigIcons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 32 }
 	},
 
 	"colors": { "background": "#f8fafc", "frame": "#cbd5e1", "text": "#0f172a", "accent": "#7c3aed", "danger": "#dc2626" },

@@ -10,15 +10,15 @@
 	},
 	"fonts": {
 		"default": {
-			"file": "../../../examples/assets/fonts/Roboto-Regular.ttf",
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
 			"size": 14
 		},
 		"small": {
-			"file": "../../../examples/assets/fonts/Roboto-Regular.ttf",
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
 			"size": 12
 		},
 		"title": {
-			"file": "../../../examples/assets/fonts/Roboto-Regular.ttf",
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
 			"size": 18
 		}
 	},

@@ -1,7 +1,7 @@
 {
 	"format": "affrescoui-screen",
 	"version": 2,
-	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"fonts": { "default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
 	"state": { "n": 0, "last": "", "bar": {}, "dialog": false, "toast": true, "answer": "" },
 	"actions": {
 		"add": [{ "increment": "state.n", "by": 1 }, { "set": "state.last", "to": "{{what}}" }],

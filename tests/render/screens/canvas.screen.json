@@ -21,7 +21,7 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 }
 	},
 
 	"colors": { "paper": "#ffffff", "ink": "#0f172a", "accent": "#7c3aed" },

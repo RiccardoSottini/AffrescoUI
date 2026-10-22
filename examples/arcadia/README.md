@@ -5,9 +5,9 @@ A game launcher built only from what an outsider has: the public docs (`README.m
 single screen document, with no C++: the stock host runs it.
 
 ```sh
-./build/affrescoui_host examples/game-launcher/game-launcher.screen.json
-./build/affrescoui test examples/game-launcher/game-launcher.scenarios.json --out out/shots
-python3 examples/game-launcher/e2e_test.py build
+./build/affrescoui_host examples/arcadia/game-launcher.screen.json
+./build/affrescoui test examples/arcadia/game-launcher.scenarios.json --out out/shots
+python3 examples/arcadia/e2e_test.py build
 ```
 
 ## What is in it
@@ -21,7 +21,7 @@ python3 examples/game-launcher/e2e_test.py build
 | Keys | `mod+p`, `mod+shift+p`, `mod+1..3`, `mod+enter`, `mod+d` and the chord `mod+k mod+t` |
 | Uninstall | The built-in `dialog`, shown only when the `launcher.confirmUninstall` setting is on |
 | Feedback | The built-in `toast`, with a progress bar animated while a game "starts" |
-| Stats | Bar, area and line charts from `examples/assets/components/charts.json`, stat cards (a local component) and a sessions `list` |
+| Stats | Bar, area and line charts from `examples/shared/components/charts.json`, stat cards (a local component) and a sessions `list` |
 | Settings | Declared `settings` (theme, cover size, sort, uninstalled games, confirmations) and the built-in `settingsPage` |
 | Look | Design tokens with dark and light variants switched by the theme setting; Lucide icons as a fallback font; rich text runs with bold, colour, a link and an icon |
 

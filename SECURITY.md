@@ -98,7 +98,7 @@ A host may also accept peers over WebSocket (`Screen::listenWebSocket`, `net::Pe
   refused with 403 unless the origin is in `PeerServerOptions::allowedOrigins`; the list is empty by default, so no
   web page can connect. Programs that send no `Origin` are judged by their token alone.
 - **On the loopback by default.** The server refuses to listen on any other address unless `allowRemote` is set. It
-  has no TLS code of its own: put a TLS proxy in front of it (`examples/deploy/Caddyfile`) and keep it on the loopback,
+  has no TLS code of its own: put a TLS proxy in front of it (`examples/server/deploy/Caddyfile`) and keep it on the loopback,
   so tokens never cross the network in the clear.
 - **Connections are capped**: how many peers are connected or opening at once, and how fast one address may open
   connections (a token bucket per address); over either, the connection is refused (503 or 429) before it is read.
@@ -271,7 +271,7 @@ endpoint over TLS, not verified as a signature: it decides what is shown, never 
 `affrescoui_server` (examples/server) accepts no peer without a token: its `TokenFile` keeps each token's SHA-256 and
 a name, so the file reveals no token; a token is 256 bits from the system's random source, shown once when added, and
 checked by hashing it and comparing it with every entry in constant time. It listens on the loopback unless told
-otherwise, and is meant to sit behind a proxy that terminates TLS (examples/deploy). The token's name is the author
+otherwise, and is meant to sit behind a proxy that terminates TLS (examples/server/deploy). The token's name is the author
 of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
 that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
 document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,

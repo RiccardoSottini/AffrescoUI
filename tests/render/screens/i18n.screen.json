@@ -8,13 +8,13 @@
 
 	"fonts": {
 		"default": {
-			"file": "../../../examples/assets/fonts/Roboto-Regular.ttf",
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
 			"size": 16,
 			"fallback": ["arabic", "icons"]
 		},
-		"large": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["arabic"] },
+		"large": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["arabic"] },
 		"arabic": { "file": "../fonts/NotoSansArabic-Subset.ttf", "size": 16 },
-		"icons": { "file": "../../../examples/assets/fonts/Lucide.ttf", "size": 16 }
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
 	},
 
 	"colors": {

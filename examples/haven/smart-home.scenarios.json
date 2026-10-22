@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "What the Smart home template does, checked headless: affrescoui test smart-home.scenarios.json",

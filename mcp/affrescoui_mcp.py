@@ -5,7 +5,7 @@
                                                                                     (or wait_for_request)
     changes    AI agent ──tools (submit_revision, reply, ...)──▶ this server ──agent.sock──▶ affrescoui_host ──▶ screen
 
-The host (examples/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
+The host (examples/host/host.cpp) renders a screen and doesn't care where changes come from. A person asks for a change in
 plain words in the Studio; the request reaches the agent through this server; the agent reads the screen, sends
 revisions (JSON Patch), and replies. Revisions follow the screen's permission rules (allow / ask / deny, like
 Claude Code's): in the example templates the agent's changes become proposals the person reviews in the Studio,
@@ -703,7 +703,7 @@ TOOLS = [
      "description": "Check your work with the screen's own scenarios (scripted clicks, typing, waits and expectations "
                     "of state and nodes, played headless): on main as it runs now, or with an open proposal applied "
                     "(`proposal`, e.g. the one submit_revision just opened). `file` is the scenarios file shipped "
-                    "next to the screen (examples/assets/screens/kanban.scenarios.json). Pass `scenarios` (a list of "
+                    "next to the screen (examples/flow/kanban.scenarios.json). Pass `scenarios` (a list of "
                     "{name, steps}) to play your own instead of the file's, `only` for one by name. Answers in a few "
                     "lines: the totals, then \"FAILED <scenario>, step <n>: <what>\" per failure. Nothing changes: "
                     "scenarios play on a copy, without a window. SCREEN_FORMAT.md, \"Scenarios\", lists the steps.",

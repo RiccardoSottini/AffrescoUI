@@ -39,9 +39,9 @@ void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
 /// @param cards n.
 /// @return The screen.
 LoadedScreen loadKanban(Context& context, int cards) {
-	json document = kanbanWithCards(context.screens(), cards);
+	json document = kanbanWithCards(context.templateFolder("kanban"), cards);
 	document["actions"]["renameBoard"] = json::parse(R"([{"set": "state.board", "to": "{{event.name}}"}])");
-	return context.load(document, context.screens());
+	return context.load(document, context.templateFolder("kanban"));
 }
 
 /// @brief "scaling/update/<cards>": one state change (renaming the board), its reconciliation and layout.
@@ -120,13 +120,13 @@ std::vector<Workload> frameWorkloads(Context& context, bool large) {
 /// @return One workload per size.
 std::vector<Workload> loadWorkloads(Context& context, bool large) {
 	return perSize(scalingSizes(16, large), [&context](int cards) {
-		const auto document = std::make_shared<const json>(kanbanWithCards(context.screens(), cards));
+		const auto document = std::make_shared<const json>(kanbanWithCards(context.templateFolder("kanban"), cards));
 		const auto text = std::make_shared<const std::string>(document->dump());
 		const auto window = std::make_shared<Window*>(nullptr);
 		Workload workload{.name = scalingName("load", cards), .unit = "ms", .runs = 3};
 		workload.prepare = [&context, document, window] { *window = &context.openWindow(*document); };
 		workload.step = [&context, text, window] {
-			static_cast<void>(context.build(*text, context.screens(), **window));
+			static_cast<void>(context.build(*text, context.templateFolder("kanban"), **window));
 		};
 		return workload;
 	});
@@ -138,14 +138,14 @@ std::vector<Workload> loadWorkloads(Context& context, bool large) {
 /// @return One workload per size.
 std::vector<Workload> buildWorkloads(Context& context, bool large) {
 	return perSize(scalingSizes(16, large), [&context](int cards) {
-		const auto document = std::make_shared<const json>(kanbanWithCards(context.screens(), cards));
+		const auto document = std::make_shared<const json>(kanbanWithCards(context.templateFolder("kanban"), cards));
 		const auto text = std::make_shared<const std::string>(document->dump());
 		const auto window = std::make_shared<Window*>(nullptr);
 		const auto screen = std::make_shared<Screen*>(nullptr);
 		Workload workload{.name = scalingName("build", cards), .unit = "ms", .runs = 3};
 		workload.prepare = [&context, text, document, window, screen] {
 			*window = &context.openWindow(*document);
-			*screen = &context.create(*text, context.screens());
+			*screen = &context.create(*text, context.templateFolder("kanban"));
 		};
 		workload.step = [window, screen] { (*screen)->build(**window); };
 		return workload;
@@ -213,7 +213,7 @@ Workload buildAndLayOut(Context& context, std::string name, const json& document
 	Workload workload{.name = std::move(name), .runs = 5};
 	workload.prepare = [&context, shared, window] { *window = &context.openWindow(*shared); };
 	workload.step = [&context, text, window] {
-		static_cast<void>(context.build(*text, context.screens(), **window));
+		static_cast<void>(context.build(*text, context.templateFolder("kanban"), **window));
 		layOut(**window);
 	};
 	return workload;
@@ -248,7 +248,7 @@ std::vector<Workload> keyWorkloads(Context& context, bool large) {
 		for(int i = 0; i < count; ++i) state[std::format("k{}", i)] = i;
 		json document = screenOf({{"type", "label"}, {"id", "value"}, {"text", "{{state.k0}}"}}, std::move(state));
 		document["actions"]["bump"] = json::parse(R"([{"set": "state.k0", "to": "{{event.value}}"}])");
-		const LoadedScreen loaded = context.load(document, context.screens());
+		const LoadedScreen loaded = context.load(document, context.templateFolder("kanban"));
 		const auto flip = std::make_shared<bool>(false);
 		Workload workload{.name = scalingName("adversarial/keys", count)};
 		workload.step = [loaded, flip] {

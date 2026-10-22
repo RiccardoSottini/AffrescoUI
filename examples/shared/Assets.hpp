@@ -1,8 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief Where the examples find their screens and fonts: the source tree they were built from, or, in a downloaded
-/// release (tools/release), the "assets" folder next to the program.
+/// @brief Where the examples find their screens and fonts: the examples folder of the source tree they were built
+/// from, or, in a downloaded release (tools/release), the "assets" folder next to the program, laid out the same way.
 
 #include <filesystem>
 #include <system_error>
@@ -45,12 +45,12 @@ inline std::filesystem::path programFile() {
 #endif
 }
 
-/// @brief The examples' assets folder (screens/, fonts/): the one in the source tree they were built from
-/// (AFFRESCOUI_EXAMPLES_ASSETS) while it is there, else "assets" next to the program.
+/// @brief The examples' folder (one folder per template, shared/ for the fonts): the one in the source tree they
+/// were built from (AFFRESCOUI_EXAMPLES_ASSETS) while it is there, else "assets" next to the program.
 /// @return The folder.
 inline std::filesystem::path assetsDirectory() {
 	std::filesystem::path built = AFFRESCOUI_EXAMPLES_ASSETS;
 	std::error_code error;
-	if(std::filesystem::exists(built / "screens", error)) return built;
+	if(std::filesystem::exists(built / "shared", error)) return built;
 	return programFile().parent_path() / "assets";
 }

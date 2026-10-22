@@ -1,7 +1,7 @@
 # Deploying behind TLS
 
 AffrescoUI's listeners speak plain WebSocket on the loopback; a reverse proxy in front of them terminates TLS. Two
-examples, for the document server ([`examples/server`](../server/README.md)) or any host that calls
+examples, for the document server ([`examples/server`](../README.md)) or any host that calls
 `listenWebSocket`:
 
 | File | Proxy |

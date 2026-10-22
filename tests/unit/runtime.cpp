@@ -2,6 +2,7 @@
 /// @brief The format's runtime on a headless window: a shipped template built, laid out and clicked, with no display.
 
 #include "Headless.hpp"
+#include "Templates.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -23,7 +24,7 @@ namespace {
 /// @param name The template, e.g. "kanban".
 /// @return The screen.
 affresco::Screen loadTemplate(const std::string& name) {
-	const std::filesystem::path directory = AFFRESCOUI_SCREENS_DIRECTORY;
+	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
 	const std::ifstream file(directory / (name + ".screen.json"));
 	REQUIRE(file);
 	std::stringstream text;
@@ -100,7 +101,7 @@ TEST_CASE("format: a screen destroyed while its window lives on takes back every
 	CHECK_FALSE(window->secondsToNextTimer());
 }
 
-// The code editor is left out: its "code" type is the host's (examples/CodeEditor.cpp)
+// The code editor is left out: its "code" type is the host's (examples/shared/CodeEditor.cpp)
 TEST_CASE("format: the shipped templates build on a headless window") {
 	for(const std::string name : {"kanban", "smart-home", "music-player", "habit-tracker", "sign-in", "studio"}) {
 		CAPTURE(name);

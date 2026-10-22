@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"window": { "title": "Screens", "width": 360, "height": 200 },
-	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
 	"styles": {
 		"button": { "type": "label", "width": 140, "height": 40, "align": "center", "radius": 8, "color": "#6366f1",
 		            "textColor": "#ffffff", "cursor": "hand", "role": "button" },

@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"note": "The Studio's Features screen (RFC 0004), included by studio.screen.json: what the host's signed catalogues offer, installed and upgraded through the features service, enabled, disabled and removed by revisions on /features/<name>. Cmd+4 opens it. A catalogue the host doesn't trust lists nothing.",
 
 	"services": { "features": { "provider": "features" } },

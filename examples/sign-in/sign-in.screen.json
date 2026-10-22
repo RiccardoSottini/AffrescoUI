@@ -1,16 +1,16 @@
 {
-	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Sign in: three screens (sign in, create an account, signed in), validation with check, a reset dialog, light and dark tokens, no code.",
 	"window": { "title": "Sign in", "width": 960, "height": 720, "minWidth": 600, "minHeight": 640 },
 	"fonts": {
-		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
-		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["iconsSmall"] },
-		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 26 },
-		"icons": { "file": "../fonts/Lucide.ttf", "size": 18 },
-		"iconsSmall": { "file": "../fonts/Lucide.ttf", "size": 13 },
-		"logo": { "file": "../fonts/Lucide.ttf", "size": 22 }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["iconsSmall"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 26 },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 18 },
+		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
+		"logo": { "file": "../shared/fonts/Lucide.ttf", "size": 22 }
 	},
 	"tokens": {
 		"radius.card": 16,

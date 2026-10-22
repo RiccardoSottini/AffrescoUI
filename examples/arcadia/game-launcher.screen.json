@@ -19,14 +19,14 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons"] },
-		"small": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
-		"title": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 22, "fallback": ["icons"] },
-		"big": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 30 },
-		"icons": { "file": "../assets/fonts/Lucide.ttf", "size": 16 }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 22, "fallback": ["icons"] },
+		"big": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 30 },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 16 }
 	},
 
-	"include": ["../assets/components/charts.json"],
+	"include": ["../shared/components/charts.json"],
 
 	"tokens": {
 		"space.s": 8,

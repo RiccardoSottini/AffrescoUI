@@ -7,9 +7,9 @@
 	"window": { "title": "Unicode text", "width": 720, "height": 480 },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["mono"] },
-		"large": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["mono"] },
-		"mono": { "file": "../../../examples/assets/fonts/JetBrainsMono-Regular.ttf", "size": 15 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["mono"] },
+		"large": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["mono"] },
+		"mono": { "file": "../../../examples/shared/fonts/JetBrainsMono-Regular.ttf", "size": 15 }
 	},
 
 	"colors": { "background": "#f8fafc", "text": "#0f172a", "muted": "#64748b", "field": "#e2e8f0", "selection": "#bfdbfe" },

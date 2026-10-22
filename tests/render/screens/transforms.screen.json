@@ -7,7 +7,7 @@
 	"window": { "title": "Transforms", "width": 560, "height": 320 },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 }
 	},
 
 	"colors": { "background": "#f8fafc", "card": "#ffffff", "frame": "#cbd5e1", "text": "#0f172a", "accent": "#7c3aed" },

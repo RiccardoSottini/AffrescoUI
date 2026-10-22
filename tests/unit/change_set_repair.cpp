@@ -73,7 +73,7 @@ private:
 
 /// @brief The shipped screens' folder.
 /// @return It.
-std::filesystem::path screens() { return AFFRESCOUI_SCREENS_DIRECTORY; }
+std::filesystem::path screens() { return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow"; }
 
 /// @brief A JSON file.
 /// @param path Its path.
@@ -213,7 +213,7 @@ TEST_CASE("change set repair: the template changes, the fake agent repairs it, t
 	screen.versions().setMode(affresco::Mode::AcceptEdits); // a repair is reviewed even so
 	affresco::test::MemoryChannel studio;
 	screen.connect(studio, "studio");
-	const std::string agentScript = (screens() / "../../../tests/repair/fake_agent.py").string();
+	const std::string agentScript = (screens() / "../../tests/repair/fake_agent.py").string();
 	affresco::channel::ProcessChannel agent(executor, "python3 \"" + agentScript + "\"");
 	screen.connect(agent, "agent");
 	const json before = screen.versions().state();

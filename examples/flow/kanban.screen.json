@@ -1,22 +1,22 @@
 {
-	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Flow: a kanban board. Boards are tabs; the board, or a table of every card, shares a split with the chosen card's details. Drag a card to another column, use « and », or right-click it for its menu; double-click it to edit it. Cmd+P goes to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+J switches light and dark, Escape clears the filters.",
 
 	"window": { "title": "Flow: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
-	"include": ["../components/charts.json"],
+	"include": ["../shared/components/charts.json"],
 
 	"fonts": {
-		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons", "symbols"] },
-		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
-		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons", "symbols"] },
-		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 22, "fallback": ["iconsLarge"] },
-		"icons": { "file": "../fonts/Lucide.ttf", "size": 16 },
-		"iconsSmall": { "file": "../fonts/Lucide.ttf", "size": 13 },
-		"iconsLarge": { "file": "../fonts/Lucide.ttf", "size": 22 },
-		"symbols": { "file": "../fonts/JetBrainsMono-Regular.ttf", "size": 14 }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons", "symbols"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
+		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons", "symbols"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 22, "fallback": ["iconsLarge"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 16 },
+		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
+		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 22 },
+		"symbols": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 14 }
 	},
 
 	"theme": "{{state.theme}}",

@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Tempo: a music player. Playlists and a library of 3,000 songs in a table, a queue with a waveform beside them, Cmd+P to find a song and Cmd+Shift+P for every command. Space plays or pauses, the arrows skip and set the volume.",
@@ -7,14 +7,14 @@
 	"window": { "title": "Tempo: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
 	"fonts": {
-		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
-		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
-		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons"] },
-		"large": { "file": "../fonts/Roboto-Regular.ttf", "size": 32 },
-		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 44 },
-		"brand": { "file": "../fonts/Roboto-Regular.ttf", "size": 24 },
-		"icons": { "file": "../fonts/Lucide.ttf", "size": 18 },
-		"iconsSmall": { "file": "../fonts/Lucide.ttf", "size": 13 }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
+		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons"] },
+		"large": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 32 },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 44 },
+		"brand": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 24 },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 18 },
+		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 }
 	},
 
 	"colors": {

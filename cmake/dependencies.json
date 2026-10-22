@@ -45,12 +45,12 @@
       "url": "https://github.com/googlefonts/roboto",
       "files": [
         {
-          "path": "examples/assets/fonts/Roboto-Regular.ttf",
+          "path": "examples/shared/fonts/Roboto-Regular.ttf",
           "sha256": "56a45233d29f11b4dfb86d248e921939d115778f87325e7ae8cc108383d6664d"
         }
       ],
       "license": "Apache-2.0",
-      "licenseNote": "Apache License 2.0 (`examples/assets/fonts/LICENSE-Roboto.txt`)",
+      "licenseNote": "Apache License 2.0 (`examples/shared/fonts/LICENSE-Roboto.txt`)",
       "usedBy": [
         "the templates",
         "the release archives"
@@ -65,12 +65,12 @@
       "url": "https://github.com/JetBrains/JetBrainsMono",
       "files": [
         {
-          "path": "examples/assets/fonts/JetBrainsMono-Regular.ttf",
+          "path": "examples/shared/fonts/JetBrainsMono-Regular.ttf",
           "sha256": "e6fd0d7e91550b3ed2b735d4312474362c4716edc4fc0577a0f61ed782d5aed1"
         }
       ],
       "license": "OFL-1.1",
-      "licenseNote": "SIL Open Font License 1.1 (`examples/assets/fonts/LICENSE-JetBrainsMono.txt`)",
+      "licenseNote": "SIL Open Font License 1.1 (`examples/shared/fonts/LICENSE-JetBrainsMono.txt`)",
       "usedBy": [
         "the templates",
         "the release archives"
@@ -85,13 +85,13 @@
       "url": "https://lucide.dev",
       "files": [
         {
-          "path": "examples/assets/fonts/Lucide.ttf",
+          "path": "examples/shared/fonts/Lucide.ttf",
           "sha256": "eaf30a2a0d2ec0cfbf7ab69ed6dc6e39b7e5e2f0255c17856dcb0b73a15584bb"
         }
       ],
       "pinnedIn": "CMakeLists.txt",
       "license": "ISC AND MIT",
-      "licenseNote": "ISC License; the icons derived from Feather: MIT License (`examples/assets/fonts/LICENSE-Lucide.txt`)",
+      "licenseNote": "ISC License; the icons derived from Feather: MIT License (`examples/shared/fonts/LICENSE-Lucide.txt`)",
       "usedBy": [
         "the templates",
         "the rendering check",

@@ -34,13 +34,16 @@ class Affrescoui < Formula
     system "cmake", "--install", "build"
     # The host and the Studio find their templates and fonts in "assets" next to themselves, as in a release archive
     libexec.install "build/affrescoui_host", "build/affrescoui_studio"
-    libexec.install "examples/assets"
+    # (the templates' folders, examples/templates.json, and examples/shared, without the C++ sources)
+    folders = JSON.parse(File.read("examples/templates.json"))["templates"].values.uniq
+    (libexec/"assets").install "examples/shared", *folders.map { |folder| "examples/#{folder}" }
+    rm Dir[libexec/"assets/**/*.{cpp,hpp}"]
     bin.write_exec_script libexec/"affrescoui_host", libexec/"affrescoui_studio"
   end
 
   test do
     assert_match "affrescoui #{version}", shell_output("#{bin}/affrescoui --version")
-    system bin/"affrescoui", "check", libexec/"assets/screens/kanban.screen.json"
+    system bin/"affrescoui", "check", libexec/"assets/flow/kanban.screen.json"
     assert_path_exists lib/"cmake/AffrescoUI/AffrescoUIConfig.cmake"
   end
 end

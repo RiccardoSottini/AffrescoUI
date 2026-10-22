@@ -289,7 +289,7 @@ constexpr KeyReference nodeTable[] = {
 	 "its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has "
 	 "shows nothing. Give the text font an icon font as a fallback (`\"fallback\": [\"icons\"]`) and icons are drawn "
 	 "at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The "
-	 "examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text "
+	 "examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text "
 	 "areas.",
 	 "label"},
     {"mirror", "flag",

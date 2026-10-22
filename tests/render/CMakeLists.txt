@@ -4,7 +4,7 @@
 # It registers what affrescoui_host and affrescoui_forge register: the code editor and Forge's natives, which see
 # forge/folder (a small fixed folder) open.
 set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
-add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/examples/CodeEditor.cpp ${forge_dir}/Forge.cpp
+add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp ${forge_dir}/Forge.cpp
 	${forge_dir}/features/palette/FileIndex.cpp ${forge_dir}/features/themes/ThemeImport.cpp
 	${forge_dir}/features/themes/IconTheme.cpp ${forge_dir}/features/explorer/Explorer.cpp
 	${forge_dir}/features/terminal/Terminal.cpp ${forge_dir}/features/terminal/TerminalModel.cpp
@@ -15,7 +15,9 @@ add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/example
 	${PROJECT_SOURCE_DIR}/examples/surfaces/Surfaces.cpp
 	${forge_dir}/features/debug/Debug.cpp)
 target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/lsp/Lsp.cpp ${forge_dir}/features/lsp/LspProtocol.cpp)
-target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples ${forge_dir})
+# examples: surfaces/Surfaces.hpp; examples/shared: CodeEditor.hpp and the other shared headers
+target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples
+	${PROJECT_SOURCE_DIR}/examples/shared ${forge_dir})
 # The example surfaces, and a failing one, draw with OpenGL (surfaces.json)
 target_include_directories(affrescoui_render_runner SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)
 target_compile_definitions(affrescoui_render_runner PRIVATE
@@ -30,10 +32,13 @@ if(Python3_FOUND)
 	         WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 endif()
 
-# The templates' own scenarios (examples/assets/screens/*.scenarios.json) and Forge's (examples/forge): what each one
+# The templates' own scenarios (in their folders, examples/templates.json) and Forge's (examples/forge): what each one
 # does, checked headless, without a window or golden images; and the rendering check's screens'
 # (screens/*.scenarios.json): where layout, images, icons and partial redraws put each node, held while they get faster
-file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/examples/assets/screens/*.scenarios.json
+affrescoui_template_folders(template_folders)
+list(TRANSFORM template_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_VARIABLE template_globs)
+list(TRANSFORM template_globs APPEND /*.scenarios.json)
+file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
 	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	add_test(NAME scenarios COMMAND affrescoui_render_runner ${AFFRESCOUI_TEMPLATE_SCENARIOS})

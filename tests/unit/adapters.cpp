@@ -39,7 +39,7 @@ std::string read(const std::filesystem::path& path) {
 /// @return The options.
 adapters::Options sampleOptions() {
 	adapters::Options options;
-	options.fontFile = "../../../examples/assets/fonts/Roboto-Regular.ttf";
+	options.fontFile = "../../../examples/shared/fonts/Roboto-Regular.ttf";
 	return options;
 }
 

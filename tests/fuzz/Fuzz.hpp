@@ -62,7 +62,7 @@ inline json readJsonFile(const std::filesystem::path& path) {
 	return json::parse(content.str());
 }
 
-/// @brief The Kanban template (examples/assets/screens), read once: the document version control is fuzzed with.
+/// @brief The Kanban template (examples/flow), read once: the document version control is fuzzed with.
 /// Its "include" files are merged as a screen file's are when it is read (a Repository takes a merged document): what
 /// the template lacks comes from them, and its own entries win.
 /// @return The document.

@@ -35,12 +35,13 @@ done
 # A page per template, and its link in the picker; the Studio's own screen isn't a template
 links="$build/site-links.html"
 : >"$links"
-for file in "$root"/examples/assets/screens/*.screen.json; do
-	name=$(basename "$file" .screen.json)
+python3 -I -c 'import json, sys; [print(name, folder) for name, folder in json.load(open(sys.argv[1]))["templates"].items()]' \
+	"$root/examples/templates.json" | while read -r name folder; do
+	file="$root/examples/$folder/$name.screen.json"
 	[ "$name" = studio ] && continue
 	title=$(python3 -I -c 'import html, json, sys; print(html.escape(json.load(open(sys.argv[1])).get("window", {}).get("title", sys.argv[2]).split(":")[0]))' "$file" "$name")
 	replacement=$(printf '%s' "$title" | sed 's/[&|\\]/\\&/g') # sed's own characters, escaped
-	sed -e "s|@SCREEN@|$name|g" -e "s|@TITLE@|$replacement|g" "$root/web/template.html" >"$site/$name.html"
+	sed -e "s|@FOLDER@|$folder|g" -e "s|@SCREEN@|$name|g" -e "s|@TITLE@|$replacement|g" "$root/web/template.html" >"$site/$name.html"
 	echo "<li><a href=\"$name.html\"><strong>$title</strong><br>$name</a></li>" >>"$links"
 done
 awk -v links="$links" '/<!-- templates -->/ { while ((getline line < links) > 0) print line; next } { print }' \

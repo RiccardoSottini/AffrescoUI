@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
 	"note": "What the Music player template does, checked headless: affrescoui test music-player.scenarios.json",

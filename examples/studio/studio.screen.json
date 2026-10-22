@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
 	"include": ["studio-features.json", "studio-repairs.json"],
@@ -13,39 +13,39 @@
 	},
 	"fonts": {
 		"default": {
-			"file": "../fonts/Roboto-Regular.ttf",
+			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 14,
 			"fallback": ["icons", "symbols"]
 		},
 		"small": {
-			"file": "../fonts/Roboto-Regular.ttf",
+			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 12,
 			"fallback": ["iconsSmall", "symbols"]
 		},
 		"heading": {
-			"file": "../fonts/Roboto-Regular.ttf",
+			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 16,
 			"fallback": ["icons"]
 		},
 		"title": {
-			"file": "../fonts/Roboto-Regular.ttf",
+			"file": "../shared/fonts/Roboto-Regular.ttf",
 			"size": 20,
 			"fallback": ["iconsLarge"]
 		},
 		"icons": {
-			"file": "../fonts/Lucide.ttf",
+			"file": "../shared/fonts/Lucide.ttf",
 			"size": 16
 		},
 		"iconsSmall": {
-			"file": "../fonts/Lucide.ttf",
+			"file": "../shared/fonts/Lucide.ttf",
 			"size": 13
 		},
 		"iconsLarge": {
-			"file": "../fonts/Lucide.ttf",
+			"file": "../shared/fonts/Lucide.ttf",
 			"size": 24
 		},
 		"symbols": {
-			"file": "../fonts/JetBrainsMono-Regular.ttf",
+			"file": "../shared/fonts/JetBrainsMono-Regular.ttf",
 			"size": 12
 		}
 	},

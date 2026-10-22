@@ -5,9 +5,9 @@
 	"note": "RFC 0004 prototype: a small editor app in the proposed syntax. It offers two contribution points (nodes with 'point') and two exports (named values features may read as app.<name>). compose.py installs features into it, and expands the result into a screen today's engine loads.",
 	"window": { "title": "Features prototype", "width": 960, "height": 560 },
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 },
-		"small": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 12 },
-		"code": { "file": "../../../examples/assets/fonts/JetBrainsMono-Regular.ttf", "size": 13 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 },
+		"small": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 12 },
+		"code": { "file": "../../../examples/shared/fonts/JetBrainsMono-Regular.ttf", "size": 13 }
 	},
 	"colors": {
 		"background": "#ffffff",

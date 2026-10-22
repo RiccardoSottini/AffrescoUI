@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
 	"note": "Streak: a habit tracker. Tick habits, click heatmap days to change them, read the charts, the day-by-day history and the notes; habits, the heatmap, the notes and the theme are kept on disk (persist).",
@@ -11,13 +11,13 @@
 		"minHeight": 640
 	},
 	"fonts": {
-		"default": { "file": "../fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
-		"small": { "file": "../fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
-		"heading": { "file": "../fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons"] },
-		"title": { "file": "../fonts/Roboto-Regular.ttf", "size": 26 },
-		"figure": { "file": "../fonts/Roboto-Regular.ttf", "size": 34 },
-		"icons": { "file": "../fonts/Lucide.ttf", "size": 18 },
-		"iconsSmall": { "file": "../fonts/Lucide.ttf", "size": 13 }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["iconsSmall"] },
+		"heading": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["icons"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 26 },
+		"figure": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 34 },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 18 },
+		"iconsSmall": { "file": "../shared/fonts/Lucide.ttf", "size": 13 }
 	},
 	"theme": "{{state.theme}}",
 	"tokens": {

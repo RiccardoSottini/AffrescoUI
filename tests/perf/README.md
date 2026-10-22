@@ -111,7 +111,7 @@ CI compares base and head the same way, so the gate isn't affected.
 
 ## Tokens
 
-`tokens.py` counts, for each template in `examples/assets/screens/`:
+`tokens.py` counts, for each template listed in `examples/templates.json`:
 
 - `document`: the minified document, as the MCP server's first `get_screen` sends it;
 - `outline`: `get_screen` with `outline=true`;

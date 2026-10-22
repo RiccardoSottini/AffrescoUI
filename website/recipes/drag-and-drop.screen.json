@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"window": { "title": "Drag and drop", "width": 420, "height": 240 },
-	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
 	"state": { "todo": ["Write", "Review"], "done": ["Plan"] },
 	"actions": {
 		"finish": [

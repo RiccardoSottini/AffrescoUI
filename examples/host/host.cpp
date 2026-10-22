@@ -13,8 +13,7 @@
 // and a plugin is applied once: the history remembers it. Default screen:
 // --usage counts how the screen is used (VERSION_CONTROL.md, "Usage"), on this device and only once the person agreed,
 // asked once on the terminal. Default screen:
-// the Kanban board template; the other templates are in assets/screens (smart-home, music-player, code-editor,
-// habit-tracker).
+// the Kanban board template (examples/flow); the other templates have a folder each in examples (examples/README.md).
 
 #include "Assets.hpp"
 #include "CodeEditor.hpp"
@@ -115,7 +114,7 @@ void applyPlugins(affresco::Screen& screen, const std::vector<std::string>& plug
 /// @param given The file on the command line, or "".
 /// @return It, or the Kanban template.
 std::filesystem::path screenFile(const std::string& given) {
-	return given.empty() ? assetsDirectory() / "screens" / "kanban.screen.json" : std::filesystem::path(given);
+	return given.empty() ? assetsDirectory() / "flow" / "kanban.screen.json" : std::filesystem::path(given);
 }
 
 /// @brief Whether this is a plain screenshot run (AFFRESCOUI_SCREENSHOT without AFFRESCOUI_SCREENSHOT_AFTER), which

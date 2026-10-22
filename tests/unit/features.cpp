@@ -25,7 +25,7 @@ namespace {
 /// @param folder Its folder under examples/forge/features, e.g. "word-count".
 /// @return Its manifest.
 json package(const std::string& folder) {
-	std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/../../forge/features/" + folder + "/feature.json");
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/forge/features/" + folder + "/feature.json");
 	REQUIRE(file);
 	return json::parse(file);
 }

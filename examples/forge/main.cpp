@@ -85,15 +85,15 @@ int run(const Options& options) {
 	affresco::Application app;
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
-	affresco::Screen screen = affresco::Screen::fromFile(assetsDirectory().parent_path() / "forge" / "forge.screen.json",
-	                                                     options.dataDir,
-	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
+	affresco::Screen screen =
+	    affresco::Screen::fromFile(assetsDirectory() / "forge" / "forge.screen.json", options.dataDir,
+		                           screenshotOnly ? History::InMemory : History::OnDisk);
 	examples::registerCodeEditor(screen);
 	const auto workspace = std::make_shared<forge::Workspace>();
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
 	forge::registerAccounts(screen, !screenshotOnly);
-	forge::addExampleCatalog(screen, assetsDirectory().parent_path() / "forge");
+	forge::addExampleCatalog(screen, assetsDirectory() / "forge");
 	forge::registerExplorer(screen, workspace, &app);
 	forge::grantTerminal(screen, workspace->root);
 	forge::registerTerminal(screen, &app);

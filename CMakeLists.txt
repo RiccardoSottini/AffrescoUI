@@ -47,6 +47,7 @@ include(FetchContent)
 
 # GLFW: windows, OpenGL context, input. The versions pinned here are also the ones the installed package asks for.
 set(AFFRESCOUI_GLFW_VERSION 3.4)
+include(cmake/AffrescoUITemplates.cmake) # the templates' folders (examples/templates.json)
 include(cmake/AffrescoUIWeb.cmake) # the browser build: GLFW's Emscripten port and the browser's network instead
 if(NOT EMSCRIPTEN)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -88,10 +89,10 @@ if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS OR AFFRESCOUI_BUILD_BENCH
 endif()
 
 # The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
-# of lucide-static 1.48.0 (examples/assets/fonts/README.md)
-file(SHA256 ${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/fonts/Lucide.ttf AFFRESCOUI_LUCIDE_SHA256)
+# of lucide-static 1.48.0 (examples/shared/fonts/README.md)
+file(SHA256 ${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/fonts/Lucide.ttf AFFRESCOUI_LUCIDE_SHA256)
 if(NOT AFFRESCOUI_LUCIDE_SHA256 STREQUAL "eaf30a2a0d2ec0cfbf7ab69ed6dc6e39b7e5e2f0255c17856dcb0b73a15584bb")
-	message(FATAL_ERROR "examples/assets/fonts/Lucide.ttf isn't lucide-static 1.48.0's lucide.ttf (its hash differs)")
+	message(FATAL_ERROR "examples/shared/fonts/Lucide.ttf isn't lucide-static 1.48.0's lucide.ttf (its hash differs)")
 endif()
 
 # Strict warnings for our C++ code only (not for glad.c or dependencies)
@@ -163,9 +164,10 @@ list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp example
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
 	foreach(example host studio)
-		add_executable(affrescoui_${example} examples/${example}.cpp)
+		add_executable(affrescoui_${example} examples/${example}/${example}.cpp)
+		target_include_directories(affrescoui_${example} PRIVATE examples/shared)
 		if(example STREQUAL "host")
-			target_sources(affrescoui_host PRIVATE examples/CodeEditor.cpp) # the Forge template's "code" type
+			target_sources(affrescoui_host PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
 			# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice
 			# makes the linker warn about a duplicate library)
 			target_link_libraries(affrescoui_host PRIVATE affrescoui::automation)
@@ -173,14 +175,14 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 			target_link_libraries(affrescoui_${example} PRIVATE affrescoui)
 		endif()
 		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
-		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	endforeach()
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
-	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
-	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
+	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
+	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (examples/surfaces)
 	add_executable(affrescoui_surfaces examples/surfaces/main.cpp examples/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
@@ -218,7 +220,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/game-launcher/e2e_test.py ${CMAKE_BINARY_DIR})
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()
 endif()
 
@@ -238,15 +240,15 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/CodeEditor.cpp tests/perf/buffers.cpp
+		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/shared/CodeEditor.cpp tests/perf/buffers.cpp
 		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp ${AFFRESCOUI_FORGE_SOURCES}
 		tests/perf/syntax.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples examples/forge modules/format/src modules/render/src)
+	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
 	target_compile_definitions(affrescoui_bench PRIVATE
-		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets"
+		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples"
 		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf"
 		AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/forge/folder")
 	set_target_properties(affrescoui_bench PROPERTIES CXX_EXTENSIONS OFF)
