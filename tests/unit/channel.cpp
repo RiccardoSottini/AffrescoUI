@@ -126,7 +126,7 @@ TEST_CASE("channel: a Session sends hello when created") {
 	Peer peer;
 	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
 
-	REQUIRE(peer.channel.sent.size() == 1);
+	REQUIRE(peer.channel.sent.size() == 2); // hello, then the review state that its joining changed
 	const json& hello = peer.channel.sent[0];
 	CHECK(hello.at("type") == "hello");
 	CHECK(hello.at("format") == "affrescoui-screen");
@@ -137,6 +137,10 @@ TEST_CASE("channel: a Session sends hello when created") {
 	CHECK(hello.at("mode") == "default");
 	CHECK(hello.at("you") == "agent");
 	CHECK(hello.at("canReview") == false);
+	const json& joined = peer.channel.sent[1];
+	CHECK(joined.at("type") == "review");
+	REQUIRE(joined.at("coordination").at("peers").size() == 1);
+	CHECK(joined["coordination"]["peers"][0].at("author") == "agent");
 }
 
 TEST_CASE("channel: a message of an unknown type gets an error") {
@@ -144,13 +148,13 @@ TEST_CASE("channel: a message of an unknown type gets an error") {
 	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
 
 	peer.channel.receive(R"({"type": "launchRockets", "id": 7})");
-	REQUIRE(peer.channel.sent.size() == 2);
-	CHECK(peer.channel.sent[1] ==
+	REQUIRE(peer.channel.sent.size() == 3);
+	CHECK(peer.channel.sent[2] ==
 	      json{{"type", "error"}, {"message", "unknown message type 'launchRockets'"}, {"id", 7}});
 
 	peer.channel.receive("not json");
-	REQUIRE(peer.channel.sent.size() == 3);
-	CHECK(peer.channel.sent[2]["type"] == "error");
+	REQUIRE(peer.channel.sent.size() == 4);
+	CHECK(peer.channel.sent[3]["type"] == "error");
 	CHECK(peer.versions.head().number == 0);
 }
 
@@ -268,9 +272,9 @@ TEST_CASE("channel: a message with a number too large for a double gets an error
 	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
 
 	peer.channel.receive(R"({"type": "revision", "id": 1, "set": {"/state/count": 1e400}})");
-	REQUIRE(peer.channel.sent.size() == 2);
-	CHECK(peer.channel.sent[1]["type"] == "error");
-	CHECK(peer.channel.sent[1]["message"].get<std::string>().find("number overflow") != std::string::npos);
+	REQUIRE(peer.channel.sent.size() == 3);
+	CHECK(peer.channel.sent[2]["type"] == "error");
+	CHECK(peer.channel.sent[2]["message"].get<std::string>().find("number overflow") != std::string::npos);
 	CHECK(peer.versions.state() == json{{"count", 0}});
 }
 
@@ -280,9 +284,9 @@ TEST_CASE("channel: a line that isn't UTF-8 gets an error, with the bytes replac
 	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
 
 	peer.channel.receive("{\"type\": \xff}");
-	REQUIRE(peer.channel.sent.size() == 2);
-	CHECK(peer.channel.sent[1]["type"] == "error");
-	CHECK(peer.channel.sent[1]["message"].get<std::string>().find("\xef\xbf\xbd") != std::string::npos); // U+FFFD
+	REQUIRE(peer.channel.sent.size() == 3);
+	CHECK(peer.channel.sent[2]["type"] == "error");
+	CHECK(peer.channel.sent[2]["message"].get<std::string>().find("\xef\xbf\xbd") != std::string::npos); // U+FFFD
 }
 
 // Found by fuzzing (tests/fuzz, session, under UBSan): a limit of 1e20 was converted to an int, which is undefined
@@ -483,6 +487,6 @@ TEST_CASE("channel: render refuses what it can't draw") {
 	MemoryChannel other;
 	const affresco::channel::Session blind(other, peer.versions, "agent"); // a host that draws no pictures
 	other.receive(R"({"type": "render"})");
-	REQUIRE(other.sent.size() == 2); // hello, then the answer
-	CHECK(other.sent[1]["error"] == "AffrescoUI screen: render: this host draws no pictures");
+	REQUIRE(other.sent.size() == 3); // hello, the review state its joining changed, then the answer
+	CHECK(other.sent[2]["error"] == "AffrescoUI screen: render: this host draws no pictures");
 }
