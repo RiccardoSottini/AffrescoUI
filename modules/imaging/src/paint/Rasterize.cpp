@@ -117,7 +117,7 @@ void storeRow(int y, std::vector<float>& partial, std::vector<float>& whole, Ban
 		auto& tile = band.tiles[static_cast<std::size_t>(column)];
 		if(!tile) tile = std::make_shared<Tile>(PixelFormat::mask8);
 		std::copy(bytes.begin(), bytes.begin() + (right - left),
-		          tile->bytes().begin() + static_cast<std::ptrdiff_t>((y % tileSize) * tileSize));
+		          tile->bytes().begin() + static_cast<std::ptrdiff_t>(y % tileSize) * tileSize);
 		if(full) ++band.fullRows[static_cast<std::size_t>(column)];
 	}
 	whole[partial.size()] = 0.0f;

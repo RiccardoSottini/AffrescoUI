@@ -34,15 +34,15 @@ Aabb Aabb::transformed(const Mat4& matrix) const noexcept {
 	return result;
 }
 
-Frustum Frustum::fromMatrix(const Mat4& m) noexcept {
+Frustum Frustum::fromMatrix(const Mat4& viewProjection) noexcept {
+	const auto at = [&](int row, int column) { return viewProjection.at(row, column); };
 	Frustum frustum;
 	// Row 3 plus or minus rows 0 (left, right), 1 (bottom, top) and 2 (near, far)
 	for(std::size_t i = 0; i < 6; ++i) {
 		const int row = static_cast<int>(i / 2);
 		const float sign = (i % 2 == 0) ? 1.0f : -1.0f;
-		Vec3 normal{m.at(3, 0) + sign * m.at(row, 0), m.at(3, 1) + sign * m.at(row, 1),
-		            m.at(3, 2) + sign * m.at(row, 2)};
-		float distance = m.at(3, 3) + sign * m.at(row, 3);
+		Vec3 normal{at(3, 0) + sign * at(row, 0), at(3, 1) + sign * at(row, 1), at(3, 2) + sign * at(row, 2)};
+		float distance = at(3, 3) + sign * at(row, 3);
 		const float size = length(normal);
 		if(size > 0.0f) {
 			normal = normal / size;

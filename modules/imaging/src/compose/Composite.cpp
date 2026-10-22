@@ -86,7 +86,7 @@ void Compositor::compositeLayer(const Layer& layer, const TileKey& key, std::spa
 	std::vector<float>& base = bases_[depth];
 	for(int y = 0; y < tileSize; ++y)
 		for(int x = 0; x < tileSize; ++x) {
-			const auto at = static_cast<std::size_t>(y * tileSize + x);
+			const auto at = static_cast<std::size_t>(y) * tileSize + static_cast<std::size_t>(x);
 			const float covered = maskImage == nullptr ? 1.0f : pixelOf(mask.get(), x, y).alpha;
 			Pixel source = sourceOf(layer, pixels.get(), group, backdrop[at], at);
 			const float own = (layer.kind == LayerKind::adjustment ? 1.0f : source.alpha) * covered;
@@ -105,9 +105,9 @@ Sampler::Sampler(const Document& document, std::uint64_t image)
 Pixel Sampler::at(int x, int y) {
 	if(x < 0 || y < 0 || x >= document_.width() || y >= document_.height()) return {};
 	const Entry& last = entries_[last_];
-	if(last.column == x / tileSize && last.row == y / tileSize)
-		return last.pixels[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)];
-	return tile(x / tileSize, y / tileSize)[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)];
+	const auto at = static_cast<std::size_t>(y % tileSize) * tileSize + static_cast<std::size_t>(x % tileSize);
+	if(last.column == x / tileSize && last.row == y / tileSize) return last.pixels[at];
+	return tile(x / tileSize, y / tileSize)[at];
 }
 
 std::span<const Pixel> Sampler::tile(int column, int row) {
@@ -131,7 +131,8 @@ std::span<const Pixel> Sampler::tile(int column, int row) {
 	const std::shared_ptr<const Tile> source = image_->tile({0, column, row});
 	for(int y = 0; y < tileSize; ++y)
 		for(int x = 0; x < tileSize; ++x)
-			entry.pixels[static_cast<std::size_t>(y * tileSize + x)] = pixelOf(source.get(), x, y);
+			entry.pixels[static_cast<std::size_t>(y) * tileSize + static_cast<std::size_t>(x)] =
+			    pixelOf(source.get(), x, y);
 	return entry.pixels;
 }
 
@@ -175,14 +176,17 @@ std::vector<std::uint8_t> thumbnail(const Document& document, std::uint64_t imag
 	const int fittedWidth = std::max(1, static_cast<int>(static_cast<float>(width) / scale));
 	const int fittedHeight = std::max(1, static_cast<int>(static_cast<float>(height) / scale));
 	std::vector<std::uint8_t> out(static_cast<std::size_t>(side * side) * 4, 0);
+	const auto offset = [](int column, int row, int stride) {
+		return (static_cast<std::size_t>(row) * static_cast<std::size_t>(stride) + static_cast<std::size_t>(column)) *
+		       4;
+	};
 	for(int y = 0; y < fittedHeight; ++y)
 		for(int x = 0; x < fittedWidth; ++x) {
 			const int sx = std::min(width - 1, static_cast<int>((static_cast<float>(x) + 0.5f) * scale));
 			const int sy = std::min(height - 1, static_cast<int>((static_cast<float>(y) + 0.5f) * scale));
-			std::uint8_t* to = &out[static_cast<std::size_t>(
-			    ((y + (side - fittedHeight) / 2) * side + x + (side - fittedWidth) / 2) * 4)];
+			std::uint8_t* to = &out[offset(x + (side - fittedWidth) / 2, y + (side - fittedHeight) / 2, side)];
 			if(source == nullptr) {
-				std::copy_n(&top[static_cast<std::size_t>((sy * width + sx) * 4)], 4, to);
+				std::copy_n(&top[offset(sx, sy, width)], 4, to);
 				continue;
 			}
 			Pixel pixel = pixelOf(tile.get(), sx, sy);

@@ -98,10 +98,11 @@ Mat4 Mat4::scaling(Vec3 factors) noexcept {
 	return m;
 }
 
-Mat4 Mat4::rotation(Quat q) noexcept {
-	const float xx = q.x * q.x, yy = q.y * q.y, zz = q.z * q.z;
-	const float xy = q.x * q.y, xz = q.x * q.z, yz = q.y * q.z;
-	const float wx = q.w * q.x, wy = q.w * q.y, wz = q.w * q.z;
+Mat4 Mat4::rotation(Quat rotation) noexcept {
+	const auto [x, y, z, w] = rotation;
+	const float xx = x * x, yy = y * y, zz = z * z;
+	const float xy = x * y, xz = x * z, yz = y * z;
+	const float wx = w * x, wy = w * y, wz = w * z;
 	Mat4 m;
 	m.at(0, 0) = 1.0f - 2.0f * (yy + zz);
 	m.at(0, 1) = 2.0f * (xy - wz);

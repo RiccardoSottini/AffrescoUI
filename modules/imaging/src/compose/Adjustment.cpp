@@ -174,8 +174,8 @@ AdjustmentShader adjustmentShader(const Adjustment& adjustment) noexcept {
 	}
 }
 
-std::array<std::uint8_t, 256 * 4> adjustmentTable(const Adjustment& adjustment) {
-	std::array<std::uint8_t, 256 * 4> table{};
+std::array<std::uint8_t, std::size_t{256} * 4> adjustmentTable(const Adjustment& adjustment) {
+	std::array<std::uint8_t, std::size_t{256} * 4> table{};
 	for(std::size_t index = 0; index < 256; ++index) {
 		const float value = static_cast<float>(index) / 255.0f;
 		const Pixel grey{value, value, value, 1.0f};

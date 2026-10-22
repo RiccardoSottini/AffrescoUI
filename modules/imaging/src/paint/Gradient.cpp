@@ -67,7 +67,8 @@ template <typename Source>
 	for(int y = 0; y < height; ++y)
 		for(int x = 0; x < width; ++x) {
 			Pixel laid = source(place.column * tileSize + x, place.row * tileSize + y);
-			laid.alpha = coveredAt(laid.alpha, place, selection, static_cast<std::size_t>(y * tileSize + x));
+			laid.alpha = coveredAt(laid.alpha, place, selection,
+			                       static_cast<std::size_t>(y) * tileSize + static_cast<std::size_t>(x));
 			if(laid.alpha <= 0.0f) continue;
 			tile->setPixel(x, y, laidOver(tile->pixel(x, y), laid, mask));
 		}
@@ -158,14 +159,14 @@ float gradientPosition(GradientShape shape, Point from, Point to, float x, float
 	return 0.0f;
 }
 
-void drawGradient(Document& document, std::uint64_t target, const Gradient& given, GradientShape shape, Point from,
+void drawGradient(Document& document, std::uint64_t target, const Gradient& gradient, GradientShape shape, Point from,
                   Point to, float opacity) {
-	Gradient gradient = given;
-	gradient.normalize();
+	Gradient normalized = gradient;
+	normalized.normalize();
 	const float laid = clamped(std::isfinite(opacity) ? opacity : 1.0f);
 	lay(document, target, "Gradient", everywhere(document, target), [&](int x, int y) {
-		Pixel colour =
-		    gradient.at(gradientPosition(shape, from, to, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f));
+		Pixel colour = normalized.at(
+		    gradientPosition(shape, from, to, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f));
 		colour.alpha *= laid;
 		return colour;
 	});

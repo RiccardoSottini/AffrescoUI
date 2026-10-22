@@ -85,6 +85,18 @@ float walkVisible(const StrokePoint& from, const StrokePoint& to, const Area& ar
 	return static_cast<float>(std::fmod(length - spacing.start, spacing.step));
 }
 
+/// @brief The image a stroke paints, once it is known to be paintable.
+/// @param document The document.
+/// @param target The image's id.
+/// @return The image.
+/// @throws DocumentError when the target can't be painted.
+[[nodiscard]] const Image& paintedImage(const Document& document, std::uint64_t target) {
+	if(const auto refused = document.paintable(target); refused) throw DocumentError(*refused);
+	const Image* image = document.image(target);
+	if(image == nullptr) throw DocumentError("imaging: no image to paint");
+	return *image;
+}
+
 } // namespace
 
 void BrushTip::normalize(const Limits& limits) noexcept {
@@ -106,45 +118,42 @@ float stampCoverage(float distance, float radius, float hardness) noexcept {
 
 Stroke::Stroke(Document& document, std::uint64_t target, const BrushTip& tip, StrokeMode mode, const Pixel& colour,
                std::string name)
-    : document_(&document), target_(target), tip_(tip), mode_(mode), colour_(colour), mask_(false),
+    : document_(&document), target_(target), tip_(tip), mode_(mode), colour_(colour),
+      mask_(paintedImage(document, target).format() == PixelFormat::mask8),
       selected_(document.hasSelection() && target != Document::selectionId) {
 	tip_.normalize(document.limits());
-	if(const auto refused = document.paintable(target); refused) throw DocumentError(*refused);
-	const Image* image = document.image(target);
-	if(image == nullptr) throw DocumentError("imaging: no image to paint");
-	mask_ = image->format() == PixelFormat::mask8;
 	document.begin(std::move(name));
 }
 
 Stroke::~Stroke() { cancel(); }
 
-void Stroke::add(const StrokePoint& given) {
-	if(document_ == nullptr || !std::isfinite(given.x) || !std::isfinite(given.y)) return;
-	StrokePoint point = given;
-	point.pressure = clamped(std::isfinite(point.pressure) ? point.pressure : 1.0f);
+void Stroke::add(const StrokePoint& point) {
+	if(document_ == nullptr || !std::isfinite(point.x) || !std::isfinite(point.y)) return;
+	StrokePoint next = point;
+	next.pressure = clamped(std::isfinite(next.pressure) ? next.pressure : 1.0f);
 	if(!started_) {
-		started_ = true, last_ = point, travelled_ = 0.0f;
-		stamp(point.x, point.y, point.pressure);
+		started_ = true, last_ = next, travelled_ = 0.0f;
+		stamp(next.x, next.y, next.pressure);
 		return;
 	}
-	const float length = std::hypot(point.x - last_.x, point.y - last_.y);
+	const float length = std::hypot(next.x - last_.x, next.y - last_.y);
 	const float step = std::max(tip_.spacing * tip_.size, 0.5f);
 	float position = step - travelled_;
 	if(static_cast<double>(length) / step > longWalk) {
 		const Image& image = *document_->image(target_);
 		const Area area{static_cast<double>(image.width()), static_cast<double>(image.height()), tip_.size / 2.0 + 1.0};
-		travelled_ = walkVisible(last_, point, area, {position, step},
+		travelled_ = walkVisible(last_, next, area, {position, step},
 		                         [this](float x, float y, float pressure) { stamp(x, y, pressure); });
-		last_ = point;
+		last_ = next;
 		return;
 	}
 	for(; position <= length; position += step) {
 		const float share = position / length;
-		stamp(last_.x + (point.x - last_.x) * share, last_.y + (point.y - last_.y) * share,
-		      last_.pressure + (point.pressure - last_.pressure) * share);
+		stamp(last_.x + (next.x - last_.x) * share, last_.y + (next.y - last_.y) * share,
+		      last_.pressure + (next.pressure - last_.pressure) * share);
 	}
 	travelled_ = length - (position - step);
-	last_ = point;
+	last_ = next;
 }
 
 void Stroke::finish() {

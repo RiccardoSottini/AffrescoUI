@@ -91,8 +91,9 @@ namespace {
 	if(text.size() < 7 || text[0] != '#') return fallback;
 	Vec3 color;
 	for(int channel = 0; channel < 3; ++channel) {
-		const int high = hexValue(text[static_cast<std::size_t>(1 + channel * 2)]);
-		const int low = hexValue(text[static_cast<std::size_t>(2 + channel * 2)]);
+		const std::size_t at = 1 + static_cast<std::size_t>(channel) * 2;
+		const int high = hexValue(text[at]);
+		const int low = hexValue(text[at + 1]);
 		if(high < 0 || low < 0) return fallback;
 		color[channel] = static_cast<float>(high * 16 + low) / 255.0f;
 	}

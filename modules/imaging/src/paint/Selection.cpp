@@ -36,7 +36,9 @@ namespace {
 /// @return Left, top, right and bottom (exclusive) within the tile, or nothing when it covers nothing.
 [[nodiscard]] std::optional<std::array<int, 4>> coveredBounds(const Tile& tile) {
 	const auto bytes = tile.bytes();
-	const auto covered = [&](int x, int y) { return bytes[static_cast<std::size_t>(y * tileSize + x)] != 0; };
+	const auto covered = [&](int x, int y) {
+		return bytes[static_cast<std::size_t>(y) * tileSize + static_cast<std::size_t>(x)] != 0;
+	};
 	const auto rowCovered = [&](int y) {
 		for(int x = 0; x < tileSize; ++x)
 			if(covered(x, y)) return true;
@@ -66,8 +68,8 @@ public:
 	/// @brief Whether a pixel is marked.
 	[[nodiscard]] bool marked(int x, int y) const {
 		const auto found = tiles_.find({x / tileSize, y / tileSize});
-		return found != tiles_.end() &&
-		       found->second->bytes()[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)] != 0;
+		return found != tiles_.end() && found->second->bytes()[static_cast<std::size_t>(y % tileSize) * tileSize +
+		                                                       static_cast<std::size_t>(x % tileSize)] != 0;
 	}
 
 	/// @brief Marks a pixel.
@@ -77,7 +79,7 @@ public:
 			throw DocumentError("imaging: a region of more than " + std::to_string(limits_.floodPixels) + " pixels");
 		auto& tile = tiles_[{x / tileSize, y / tileSize}];
 		if(!tile) tile = std::make_shared<Tile>(PixelFormat::mask8);
-		tile->bytes()[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)] = 255;
+		tile->bytes()[static_cast<std::size_t>(y % tileSize) * tileSize + static_cast<std::size_t>(x % tileSize)] = 255;
 	}
 
 	/// @brief The marks as a coverage.
