@@ -13,6 +13,9 @@
 
 namespace affresco::format::detail {
 
+/// @brief How deep an expression may nest (real expressions use a handful of levels): a bracket takes two, a '!' one.
+inline constexpr int maxNesting = 100;
+
 /// @brief Parses an expression. Literals are `{"$value": x}` (numbers, booleans and null stay bare), paths
 /// `{"$get": [root, key, ...]}`, where a string key is a name and anything else is evaluated; functions are their
 /// operators.

@@ -183,6 +183,18 @@ TEST_CASE("checker: state paths") {
 	});
 }
 
+TEST_CASE("checker: paths nested past the expression limit are findings, not a crash") {
+	std::string deep;
+	for(int i = 0; i < 20000; ++i) deep += "state.items[";
+	deep += "0" + std::string(20000, ']');
+	json document = screen(R"("state": {"items": [0]}, "actions": {"go": {"set": "", "to": 1}}, "root": {})");
+	document["root"]["text"] = "{{" + deep + "}}";
+	document["actions"]["go"]["set"] = deep;
+	const std::vector<std::string> found = lines(document);
+	REQUIRE(found.size() == 3); // the text, the step's target, and the action that holds it
+	for(const std::string& line : found) CHECK(line.find("nested too deeply") != std::string::npos);
+}
+
 TEST_CASE("checker: variables in scope") {
 	checkAll({
 	    {"an unknown variable",

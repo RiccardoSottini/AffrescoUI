@@ -23,10 +23,14 @@ namespace {
 /// @brief Tells whether text that isn't an expression may be a path written before expressions: "state.items[0]".
 /// @param text The text.
 /// @return true for names, dots and brackets, starting with a variable's name (never a digit: "99999999999999999999"
-/// is a number too large).
+/// is a number too large), nested no deeper than an expression may be.
 bool looksLikePath(std::string_view text) {
 	if(text.empty() || std::isdigit(static_cast<unsigned char>(text.front()))) return false;
-	return std::ranges::all_of(text, [](char c) {
+	// Each bracket is read by a call inside the one before: nested past the limit, they would overflow the stack
+	int depth = 0;
+	return std::ranges::all_of(text, [&depth](char c) {
+		if(c == '[' && ++depth > detail::maxNesting) return false;
+		if(c == ']') --depth;
 		return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.' || c == '[' || c == ']';
 	});
 }

@@ -95,7 +95,7 @@ private:
 		/// @brief Enters one level.
 		/// @param parser The parser.
 		explicit Nesting(Parser& parser) : parser_(parser) {
-			if(++parser_.depth_ > maxDepth) parser_.error("nested too deeply");
+			if(++parser_.depth_ > maxNesting) parser_.error("nested too deeply");
 		}
 		/// @brief Leaves it.
 		~Nesting() { --parser_.depth_; }
@@ -366,8 +366,6 @@ private:
 		}
 		return node(name, std::move(arguments));
 	}
-
-	static constexpr int maxDepth = 100; ///< Deeper nesting is refused (real expressions use a handful of levels).
 
 	std::string_view text_;    ///< The expression.
 	const std::string& where_; ///< Its place, for errors.

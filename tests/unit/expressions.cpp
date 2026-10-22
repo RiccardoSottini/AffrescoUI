@@ -36,6 +36,16 @@ std::string parentheses(int depth) {
 	return std::string(n, '(') + "1" + std::string(n, ')');
 }
 
+/// @brief Paths nested inside the brackets of paths, as paths were written before expressions.
+/// @param depth How many.
+/// @return E.g. "state.items[state.items[0]]" for 2.
+std::string nestedPaths(int depth) {
+	const auto n = static_cast<std::size_t>(depth);
+	std::string text;
+	for(std::size_t i = 0; i < n; ++i) text += "state.items[";
+	return text + "0" + std::string(n, ']');
+}
+
 /// @brief Parses JSON written in a row.
 /// @param text The JSON.
 /// @return The value.
@@ -175,6 +185,9 @@ const std::vector<Case> cases = {
     {"{{" + std::string(99, '!') + "true}}", {}, "nested too deeply"},
     {"{{" + std::string(200, '!') + "true}}", {}, "nested too deeply"},
     {"{{" + std::string(200, '[') + " 1 " + std::string(200, ']') + "}}", {}, "nested too deeply"},
+    // Text that fails to parse may be read as a path, whose brackets were read without the limit, to a crash
+    {"{{" + nestedPaths(20000) + "}}", {}, "nested too deeply"},
+    {{{"$path", nestedPaths(20000)}}, {}, "nested too deeply"},
     // A "$path" that isn't text was a json::type_error, which the runtime doesn't catch: now it is a document error
     {J(R"({"$path": 5})"), {}, "test.$path: expected a path written as text"},
     // `||` and `&&` give an operand, like JavaScript (D1): the first that decides, else the last
