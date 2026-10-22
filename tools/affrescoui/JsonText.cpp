@@ -194,6 +194,13 @@ private:
 		if(value.kind == TextValue::Kind::Scalar) return value.text;
 		if(value.members.empty()) return value.kind == TextValue::Kind::Object ? "{}" : "[]";
 		if(value.expanded) return "";
+		return inlineMembers(value);
+	}
+
+	/// @brief The members of a value that isn't expanded, on one line.
+	/// @param value The value: an object or array with members.
+	/// @return The text, or "" if one can't be on one line, or a blank line comes between two.
+	static std::string inlineMembers(const TextValue& value) {
 		const bool object = value.kind == TextValue::Kind::Object;
 		std::string text = object ? "{ " : "[";
 		for(std::size_t i = 0; i < value.members.size(); ++i) {
