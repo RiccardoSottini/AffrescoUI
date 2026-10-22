@@ -90,15 +90,23 @@ void appendUtf16(std::string& out, std::uint32_t codepoint) {
 	out += unit;
 }
 
+/// @brief How many continuation bytes follow a UTF-8 lead byte.
+/// @param lead The byte, 0x80 or more.
+/// @return 1 to 3, or 0 for a continuation byte or a byte past F4.
+std::size_t continuationBytes(unsigned char lead) noexcept {
+	if(lead > 0xF4) return 0;
+	return lead >= 0xF0 ? 3 : lead >= 0xE0 ? 2 : lead >= 0xC0 ? 1 : 0;
+}
+
 /// @brief Decodes one UTF-8 code point.
 /// @param text The text.
-/// @param at Where it starts; moved past it.
+/// @param at Where it starts, before the end; moved past it.
 /// @return It, or U+FFFD if the bytes aren't valid UTF-8.
 std::uint32_t decodeUtf8(std::string_view text, std::size_t& at) noexcept {
 	const auto lead = static_cast<unsigned char>(text[at++]);
 	if(lead < 0x80) return lead;
-	const std::size_t extra = lead >= 0xF0 ? 3 : lead >= 0xE0 ? 2 : lead >= 0xC0 ? 1 : 0;
-	if(extra == 0 || lead > 0xF4 || at + extra > text.size()) return 0xFFFD;
+	const std::size_t extra = continuationBytes(lead);
+	if(extra == 0 || at + extra > text.size()) return 0xFFFD;
 	std::uint32_t codepoint = lead & (0x3Fu >> extra);
 	for(std::size_t i = 0; i < extra; ++i) {
 		const auto next = static_cast<unsigned char>(text[at]);
