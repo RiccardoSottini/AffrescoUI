@@ -4,7 +4,7 @@
 
 #include "affresco/render/TextEditor.hpp"
 
-#include "TextEditorRows.hpp"
+#include "editor/TextEditorRows.hpp"
 #include "detail/Utf8.hpp"
 
 #include <algorithm>

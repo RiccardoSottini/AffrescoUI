@@ -4,7 +4,7 @@
 /// @brief What a CanvasView keeps out of its public header: the spatial index and the storage reused frame to
 /// frame, shared by CanvasView.cpp (content and painting) and CanvasViewInput.cpp (the pointer and the keys).
 
-#include "Rulers.hpp"
+#include "canvas/Rulers.hpp"
 #include "Snapping.hpp"
 #include "SpatialIndex.hpp"
 

@@ -6,7 +6,7 @@
 #include "affresco/render/Painter.hpp"
 #include "affresco/render/Window.hpp"
 
-#include "TextEditorRows.hpp"
+#include "editor/TextEditorRows.hpp"
 #include "detail/Utf8.hpp"
 
 #include <algorithm>

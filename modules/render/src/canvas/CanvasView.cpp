@@ -1,7 +1,7 @@
 /// @file
 /// @brief CanvasView: its content, the camera, laying out children through the camera, and painting.
 
-#include "CanvasViewInternals.hpp"
+#include "canvas/CanvasViewInternals.hpp"
 
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Painter.hpp"

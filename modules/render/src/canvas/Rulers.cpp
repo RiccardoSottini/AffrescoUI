@@ -1,7 +1,7 @@
 /// @file
 /// @brief The rulers of a canvas: choosing the step, the ticks and their labels, and drawing them.
 
-#include "Rulers.hpp"
+#include "canvas/Rulers.hpp"
 
 #include <affresco/render/Font.hpp>
 #include <affresco/render/Painter.hpp>

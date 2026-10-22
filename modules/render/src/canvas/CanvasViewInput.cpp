@@ -2,7 +2,7 @@
 /// @brief CanvasView: the pointer and the keys. Panning, zooming at the pointer, selecting, the handles, snapping
 /// and guides dragged out of the rulers.
 
-#include "CanvasViewInternals.hpp"
+#include "canvas/CanvasViewInternals.hpp"
 
 #include "affresco/render/Window.hpp"
 
