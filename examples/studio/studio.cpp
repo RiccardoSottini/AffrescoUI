@@ -54,7 +54,7 @@ std::shared_ptr<const affresco::Bitmap> decodePicture(const affresco::json& pict
 /// @return "true".
 std::string showEvidence(affresco::Screen& studio, const std::string& argumentsJson) {
 	const affresco::json evidence = affresco::json::parse(argumentsJson);
-	const auto region = evidence.value("region", std::array<int, 4>{});
+	const std::array<int, 4> region = examples::studio::regionOf(evidence);
 	for(const auto& [key, name] : {std::pair{"before", "evidenceBefore"}, std::pair{"after", "evidenceAfter"}}) {
 		const std::shared_ptr<const affresco::Bitmap> picture = decodePicture(evidence.at(key));
 		studio.setImage(name, picture->width(), picture->height(), outlined(*picture, region));

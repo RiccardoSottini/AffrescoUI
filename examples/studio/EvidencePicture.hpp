@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
@@ -36,6 +37,20 @@ inline std::vector<std::uint8_t> fromBase64(std::string_view text) {
 		}
 	}
 	return bytes;
+}
+
+/// @brief The changed region of a proposal's evidence.
+/// @param evidence The evidence: `{"region": [x, y, width, height]}`, from the connected peer.
+/// @return The region; empty if the evidence has none.
+/// @throws std::out_of_range If a coordinate is a number beyond int, whose conversion C++ leaves undefined.
+/// @throws affresco::json::exception If the region isn't four numbers.
+inline std::array<int, 4> regionOf(const affresco::json& evidence) {
+	const affresco::json region = evidence.value("region", affresco::json::array({0, 0, 0, 0}));
+	for(const affresco::json& value : region)
+		if(value.is_number_float() &&
+		   !(value.get<double>() > double{INT_MIN} - 1 && value.get<double>() < double{INT_MAX} + 1))
+			throw std::out_of_range("the evidence's region is beyond the picture's coordinates");
+	return region.get<std::array<int, 4>>();
 }
 
 /// @brief Draws the changed region's outline on a picture, so a reviewer sees at once what moved.

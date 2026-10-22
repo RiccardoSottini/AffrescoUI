@@ -48,6 +48,17 @@ TEST_SUITE("studio evidence") {
 		CHECK_THROWS_AS((void)studio::fromBase64("a-b"), std::invalid_argument);
 	}
 
+	TEST_CASE("a region beyond int is refused") {
+		using affresco::json;
+		CHECK(studio::regionOf(json::object()) == std::array<int, 4>{});
+		CHECK(studio::regionOf({{"region", {1, 2.5, 3, 4}}}) == std::array<int, 4>{1, 2, 3, 4});
+		// UBSan reported the conversion of 1e30 to int before the region was checked
+		CHECK_THROWS_AS((void)studio::regionOf({{"region", {1e30, 0, 1, 1}}}), std::out_of_range);
+		CHECK_THROWS_AS((void)studio::regionOf({{"region", {0, 0, 1, -3e9}}}), std::out_of_range);
+		CHECK_THROWS_AS((void)studio::regionOf({{"region", {0, 0, 1}}}), json::exception);
+		CHECK_THROWS_AS((void)studio::regionOf({{"region", "all"}}), json::exception);
+	}
+
 	TEST_CASE("the outline is three pixels wide, around the region") {
 		const auto picture = white(10, 10);
 		const std::vector<std::uint8_t> rgba = studio::outlined(*picture, {4, 4, 2, 2});
