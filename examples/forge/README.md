@@ -104,6 +104,25 @@ A theme is a set of variants of the same tokens (`themes.json`), switched by `"t
 - **The file icon theme** maps file names and extensions to Lucide glyphs and colours. Turn it off in the settings
   (`workbench.fileIcons`).
 
+## Language servers
+
+`features/lsp/` talks to one language server per language over a `jsonrpc` service: `lsp-cpp` (clangd),
+`lsp-python` (pyright) and `lsp-typescript` (typescript-language-server). `main.cpp` grants each one it finds on
+PATH; a server that isn't installed isn't granted, and the editor works without it. A server starts with the first
+file of its language, and gets incremental changes in the encoding it chose. It gives diagnostics (squiggles, and rows
+in Problems), hover, completion (fuzzy, Ctrl+Space) and signature help, Go to Definition (F12), Find References
+(Shift+F12, a peek list), Rename (F2) and Format Document (Shift+Alt+F) as a list of edits applied only after you
+confirm it, symbols (Cmd+Shift+O for the file with `@`, Cmd+T for the folder with `#`) and semantic colours.
+
+A server is untrusted: its answers are bounded (`LspProtocol.hpp`), locations and edits outside the open folder are
+dropped or refused, and one that crashes is started again at most 3 times.
+
+To try it: install clangd (`brew install llvm`, or your system's `clangd` package) or pyright (`npm install -g
+pyright`), check that `clangd --version` or `pyright-langserver --version` runs, then open a folder with C++ or Python
+files in `affrescoui_forge`. A C++ folder needs a `compile_commands.json` (CMake writes one with
+`-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`). `tests/lsp/fake_server.py` is a small server with fixed answers; its
+`--print METHOD` shows the answer that `lsp.scenarios.json` plays without a process.
+
 ## Features from a catalogue
 
 The four features above are also described as packages: each folder has a `feature.json` (RFC 0004) with its title,

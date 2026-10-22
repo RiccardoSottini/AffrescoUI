@@ -17,9 +17,15 @@ affrescoui_module(services
 	src/SearchEngine.cpp
 	src/SearchGlob.cpp
 	src/SearchProvider.cpp
+	src/Syntax.cpp
+	src/SyntaxLanguages.cpp
+	src/SyntaxProvider.cpp
 	src/WatchProvider.cpp
 	src/Watcher.cpp)
 target_link_libraries(affrescoui_services PUBLIC affrescoui::core nlohmann_json::nlohmann_json affrescoui_regex)
+# The syntax engine: tree-sitter, its grammars and their queries (cmake/AffrescoUISyntax.cmake)
+target_link_libraries(affrescoui_services PRIVATE affrescoui_syntax)
+target_include_directories(affrescoui_services PRIVATE ${AFFRESCOUI_SYNTAX_GENERATED})
 # The watcher's backend: FSEvents, inotify or ReadDirectoryChangesW.
 if(APPLE)
 	target_sources(affrescoui_services PRIVATE src/WatcherMac.cpp)

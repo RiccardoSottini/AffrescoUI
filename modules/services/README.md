@@ -16,6 +16,7 @@ folders).
 | `DirectoryModel.hpp` | `DirectoryModel`: every file and folder under a folder as a `DataModel` (rows `{path, name, kind, depth, size}`, folders first, by name), listed on a worker thread and kept current by the watcher, with each change as a range of rows. `Screen::setModel` lets a screen read it (`repeat: {"in": "models.<name>"}`) |
 | `Schema.hpp` | Checks a declaration's configuration against a provider's schema (a small subset of JSON Schema) |
 | `Search.hpp` | The search engine behind the `search` provider, for natives that search a folder themselves: `searchFiles` (streamed, cancellable, capped) and `replaceAll` |
+| `Syntax.hpp` | The syntax engine behind the `syntax` provider, for natives that colour text themselves: `SyntaxDocument` (tree-sitter, with `edit` then `parse` re-reading only what changed, and the rows it changed), `highlight` (runs of `@syntax.*` styles), `fold`, `brackets`; bounded by `SyntaxLimits` (size, parse time, query matches, captures, depth). Languages: C, C++, JSON, Python, JavaScript, TypeScript, Markdown; their queries are in `syntax/queries/` |
 
 The method, call and request types are `core`'s (`affresco/core/Services.hpp`), so the format depends on the
 interface, not on this module.
@@ -24,12 +25,13 @@ interface, not on this module.
 
 | Provider | Offers |
 |---|---|
-| `jsonrpc` | A JSON-RPC 2.0 program the host allowed, over its stdin and stdout, framed with `Content-Length` headers (LSP's way) or one message per line. Calls, notifications as streams, cancellation (`$/cancelRequest`), and requests from the program answered by `respond` |
+| `jsonrpc` | A JSON-RPC 2.0 program the host allowed, over its stdin and stdout, framed with `Content-Length` headers (LSP's way) or one message per line. Calls, notifications as streams, cancellation (`$/cancelRequest`), and requests from the program answered by `respond`. Methods listed in the declaration's `notifications` (at most 256) are sent without an id, and their call ends once sent |
 | `process` | A command the host allowed, run once per `invoke`: its arguments and stdin from `with`, its exit code and output as the result, its lines as events while it runs |
 | `fs` | A folder the host granted: `read` and `list`, and `write` unless the declaration is read-only, with UTF-8 text files and paths inside it. A write goes through a file beside it, so a reader never sees half of it |
 | `watch` | A folder the host granted, watched: the `changes` stream sends `{changes: [{path, kind}], rescan}` batches, debounced (`debounce`, 20 to 2,000 ms, 100 by default), without the paths an `ignore` glob matches (`*` and `?` within a name, `**` across names; a glob without `/` matches any name). `rescan` means too much changed to list: read the folder again |
 | `pty` | A command the host allowed, on a terminal of its own (no shell unless the host allows one as the program): `open {cols, rows}` starts it and streams a first event `{session}`, then its output as `{data}` text (UTF-8, a split character waits for the rest, other bytes become U+FFFD), and ends with `{code}`; `write {session, data}` types, `resize {session, cols, rows}` resizes (the program hears `SIGWINCH`), `signal {session, name}` sends `interrupt` (to the foreground group), `terminate`, `hangup` or `kill`. On Windows it needs a pseudo console (Windows 10 1809 or later); there `interrupt` types Ctrl+C and the other signals end the program and what it started. The Windows side isn't built in this repository's local checks |
 | `search` | A folder the host granted, searched: `find` matches its text files against a plain, whole-word or case-sensitive pattern or a regular expression (PCRE2, with match limits) on several threads, filtered by `include` and `exclude` globs and the `.gitignore` files, one event `{file, matches}` per file, cancellable and capped at `maxResults`; `replace` returns a file's text with every match replaced (`$1` in an expression), for an `fs` write: it writes nothing |
+| `syntax` | Text parsed with tree-sitter on worker threads (at most 4 calls at once, 4 MiB each): `languages`, `highlight {language, text, first, last}` gives `{styles, spans: [[line, start, end, style]], complete}` (columns in bytes, later runs over earlier), `folds` gives `{folds: [[first, last]]}` |
 
 ## Invariants
 

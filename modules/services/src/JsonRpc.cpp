@@ -13,6 +13,7 @@
 #include <deque>
 #include <map>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 
 namespace affresco::services {
@@ -85,9 +86,11 @@ public:
 	/// @param launch What to run.
 	/// @param framing How messages are framed.
 	/// @param context What the service works with.
+	/// @param notifications The methods sent as notifications: no id, and the call ends once it is sent.
 	/// @throws std::runtime_error If the program won't start.
-	JsonRpcService(const Launch& launch, Framing framing, ServiceContext context)
-	    : context_(std::move(context)), child_(ChildProcess::start(launch)), reader_(framing) {
+	JsonRpcService(const Launch& launch, Framing framing, ServiceContext context, std::set<std::string> notifications = {})
+	    : context_(std::move(context)), child_(ChildProcess::start(launch)), reader_(framing),
+	      notifications_(std::move(notifications)) {
 		link_->framing = framing;
 		writer_ = std::jthread([this] { writeLoop(); });
 		readerThread_ = std::jthread([this] { readLoop(); });
@@ -114,6 +117,13 @@ public:
 	JsonRpcService& operator=(JsonRpcService&&) = delete;
 
 	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call> call) override {
+		if(notifications_.contains(method.name)) {
+			json message = {{"jsonrpc", "2.0"}, {"method", method.name}};
+			if(!call->arguments().is_null()) message["params"] = call->arguments();
+			if(!link_->send(message)) return "the service is busy (its input is full)";
+			call->finish(nullptr);
+			return std::nullopt;
+		}
 		std::int64_t id = 0;
 		{
 			const std::lock_guard lock(link_->mutex);
@@ -302,6 +312,7 @@ private:
 	std::shared_ptr<Link> link_ = std::make_shared<Link>(); ///< Shared with the stop callbacks and responders.
 	std::unique_ptr<ChildProcess> child_;             ///< The program.
 	FrameReader reader_;                              ///< The reader thread's framing.
+	std::set<std::string> notifications_;             ///< See the constructor.
 	std::jthread writer_;                             ///< Writes the outbox.
 	std::jthread readerThread_;                       ///< Reads the program's messages.
 };
@@ -343,7 +354,8 @@ public:
 		         {{"process", {{"type", "string"}}},
 		          {"root", {{"type", "string"}}},
 		          {"framing", {{"enum", {"contentLength", "lines"}}}},
-		          {"methods", {{"type", "object"}, {"additionalProperties", method}}}}}};
+		          {"methods", {{"type", "object"}, {"additionalProperties", method}}},
+		          {"notifications", {{"type", "array"}, {"maxItems", 256}, {"items", {{"type", "string"}}}}}}}};
 	}
 	std::vector<MethodSpec> methods(const json& configuration) const override {
 		return declaredMethods(configuration.value("methods", json::object()));
@@ -354,7 +366,10 @@ public:
 		const Launch launch{grant.program, grant.arguments, context.grant.root, grant.environment};
 		const Framing framing =
 		    configuration.value("framing", std::string("contentLength")) == "lines" ? Framing::Lines : Framing::ContentLength;
-		return std::make_unique<JsonRpcService>(launch, framing, std::move(context));
+		std::set<std::string> notifications;
+		for(const json& name : configuration.value("notifications", json::array()))
+			if(name.is_string()) notifications.insert(name.get<std::string>());
+		return std::make_unique<JsonRpcService>(launch, framing, std::move(context), std::move(notifications));
 	}
 };
 

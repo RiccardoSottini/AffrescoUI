@@ -60,6 +60,7 @@ affrescoui_module(format
 	src/TypeRegistry.cpp
 	src/Types.cpp
 	src/EditorType.cpp
+	src/SyntaxHighlighter.cpp
 	src/DiffType.cpp
 	src/ToggleType.cpp
 	src/SliderType.cpp
@@ -120,4 +121,5 @@ target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::rend
 if(APPLE)
 	target_link_libraries(affrescoui_format PRIVATE "-framework CoreFoundation") # systemLocale()
 endif()
+target_link_libraries(affrescoui_format PRIVATE affrescoui::services)
 target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_MONOCYPHER_DIR} ${AFFRESCOUI_MONOCYPHER_DIR}/optional)

@@ -1,8 +1,10 @@
 /// @file
-/// @brief CodeEditor: syntax colours for C++, JSON, CMake and Markdown, and the commands of common code editors, on
+/// @brief CodeEditor: syntax colours (tree-sitter grammars, and CMake's own tokens), and the commands of common code editors, on
 /// the library's TextEditor; registerCodeEditor() adds it to a screen as the "code" type.
 
 #include "CodeEditor.hpp"
+
+#include <affresco/format/SyntaxHighlighter.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -86,6 +88,31 @@ std::string utf8(std::u32string_view text) {
 		}
 	}
 	return out;
+}
+
+/// @brief The name a popup gets for one of its keys (CodeEditor::setPopupKeys()).
+/// @param key The key.
+/// @return The name, or "" for a key a popup doesn't take.
+std::string_view popupKeyName(Key key) noexcept {
+	switch(key) {
+	case Key::Up:
+		return "up";
+	case Key::Down:
+		return "down";
+	case Key::PageUp:
+		return "pageUp";
+	case Key::PageDown:
+		return "pageDown";
+	case Key::Enter:
+	case Key::KeypadEnter:
+		return "enter";
+	case Key::Tab:
+		return "tab";
+	case Key::Escape:
+		return "escape";
+	default:
+		return {};
+	}
 }
 
 /// @brief Whether a word is in a sorted list.
@@ -349,19 +376,51 @@ CodeEditor::CodeEditor() { resetTokenColors(); }
 void CodeEditor::setLanguage(std::string_view name) {
 	std::string lower(name);
 	std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-	const Language language = lower == "c++" || lower == "cpp" || lower == "c" ? Language::Cpp
-	                          : lower == "json"                                ? Language::Json
-	                          : lower == "cmake"                               ? Language::CMake
-	                          : lower == "markdown" || lower == "md"           ? Language::Markdown
-	                                                                           : Language::Plain;
-	if(language == language_) return;
+	// A grammar colours (and folds) where one exists; the language still picks the comment marker
+	const std::string grammar = affresco::format::SyntaxHighlighter::canonical(lower);
+	const Language language = grammar == "c" || grammar == "cpp" || grammar == "javascript" || grammar == "typescript"
+	                              ? Language::Cpp
+	                          : grammar == "json"     ? Language::Json
+	                          : grammar == "python"   ? Language::Python
+	                          : grammar == "markdown" ? Language::Markdown
+	                          : lower == "cmake"      ? Language::CMake
+	                                                  : Language::Plain;
+	auto* current = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(language == language_ && (current ? current->language() : std::string()) == grammar) return;
 	language_ = language;
+	if(grammar.empty()) setHighlighter(nullptr);
+	else {
+		setHighlighter(affresco::format::SyntaxHighlighter::create(grammar));
+		refreshPalette();
+	}
 	recolor();
 }
 
 void CodeEditor::setTokenColor(Token token, Color color) {
 	tokenColors_[static_cast<std::size_t>(token)] = color;
+	refreshPalette();
 	recolor();
+}
+
+void CodeEditor::refreshPalette() {
+	auto* grammar = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(!grammar) return;
+	// The grammar's styles (a style without a token takes its parent's, e.g. "type.builtin" is "type")
+	static constexpr std::array<std::pair<std::string_view, Token>, 10> tokens = {{{"keyword", Token::Keyword},
+	                                                                               {"constant.builtin", Token::Keyword},
+	                                                                               {"type", Token::Type},
+	                                                                               {"constructor", Token::Type},
+	                                                                               {"string", Token::String},
+	                                                                               {"text.literal", Token::String},
+	                                                                               {"number", Token::Number},
+	                                                                               {"comment", Token::Comment},
+	                                                                               {"text.title", Token::Heading},
+	                                                                               {"punctuation.special", Token::Heading}}};
+	grammar->setPalette([colors = tokenColors_](std::string_view style) -> std::optional<Color> {
+		const auto found = std::ranges::find(tokens, style, &std::pair<std::string_view, Token>::first);
+		if(found == tokens.end()) return std::nullopt;
+		return colors[static_cast<std::size_t>(found->second)];
+	});
 }
 
 void CodeEditor::resetTokenColors() {
@@ -372,6 +431,7 @@ void CodeEditor::resetTokenColors() {
 	                Color::hex(0xb5cea8),
 	                Color::hex(0x6f8f6b),
 	                Color::hex(0x7aa7ff)};
+	refreshPalette();
 	recolor();
 }
 
@@ -409,8 +469,9 @@ void CodeEditor::newLine() {
 
 // Comment out unless every non-blank line already is; the markers line up at the smallest indentation
 void CodeEditor::toggleComment() {
-	if(language_ != Language::Cpp && language_ != Language::CMake) return; // no line comments in JSON or Markdown
-	const std::u32string_view marker = language_ == Language::CMake ? U"# " : U"// ";
+	if(language_ == Language::Plain || language_ == Language::Json || language_ == Language::Markdown)
+		return; // no line comments in JSON or Markdown
+	const std::u32string_view marker = language_ == Language::CMake || language_ == Language::Python ? U"# " : U"// ";
 	const auto [first, last] = selectedLines();
 	const std::optional<std::size_t> column = commentColumn(first, last);
 	if(!column) return;
@@ -497,11 +558,19 @@ void CodeEditor::keyEvent(const affresco::KeyEvent& event) {
 	if(event.action == affresco::Action::Release) return TextEditor::keyEvent(event);
 	const affresco::Mods m = event.mods;
 	const bool command = m.super() || m.control();
+	if(popupKeys_ && !command && !m.alt() && !m.shift())
+		if(const std::string_view key = popupKeyName(event.key); !key.empty() && popupKeys_(key)) {
+			// NOLINTNEXTLINE(bugprone-parent-virtual-call): the popup took the key, and the signals still fire
+			Panel::keyEvent(event);
+			return;
+		}
+	const std::uint64_t before = model().version();
 	const bool handled =
 	    runShortcut(event) || (event.key == Key::Backspace && !command && !m.alt() && deleteEmptyPair());
 	// NOLINTNEXTLINE(bugprone-parent-virtual-call): skips TextEditor's handling, and keeps the signals firing
 	if(handled) Panel::keyEvent(event);
 	else TextEditor::keyEvent(event);
+	if((event.key == Key::Backspace || event.key == Key::Delete) && model().version() != before) onTyped(std::string());
 }
 
 bool CodeEditor::runShortcut(const affresco::KeyEvent& event) {
@@ -553,6 +622,13 @@ bool CodeEditor::deleteEmptyPair() {
 }
 
 void CodeEditor::charEvent(const affresco::CharEvent& event) {
+	const char32_t c = event.codepoint;
+	const std::uint64_t before = model().version();
+	typeCodepoint(event);
+	if(model().version() != before) onTyped(utf8(std::u32string_view(&c, 1)));
+}
+
+void CodeEditor::typeCodepoint(const affresco::CharEvent& event) {
 	const char32_t c = event.codepoint;
 	const PairTyping typing = pairTypingFor(c);
 	if(typing == PairTyping::None) {
@@ -628,6 +704,7 @@ std::vector<CodeEditor::Token> CodeEditor::tokenize(std::u32string_view line, bo
 	std::vector<Token> tokens(line.size(), Token::Plain);
 	switch(language_) {
 	case Language::Plain:
+	case Language::Python: // coloured by its grammar
 		break;
 	case Language::Cpp:
 		markCpp(line, tokens, inComment);
@@ -645,30 +722,133 @@ std::vector<CodeEditor::Token> CodeEditor::tokenize(std::u32string_view line, bo
 	return tokens;
 }
 
-void CodeEditor::goToLine(std::size_t line, long long request) {
+void CodeEditor::goToLine(std::size_t line, long long request, std::size_t column) {
 	if(request == goToRequest_ || lines().size() == 0) return;
 	goToRequest_ = request;
-	moveCaret({std::min(line == 0 ? 0 : line - 1, lines().size() - 1), 0}, false);
+	const std::size_t at = std::min(line == 0 ? 0 : line - 1, lines().size() - 1);
+	moveCaret({at, std::min(column == 0 ? 0 : column - 1, lines()[at].size())}, false);
+}
+
+void CodeEditor::insertAtCaret(std::u32string_view text, std::size_t before, long long request) {
+	if(request == insertRequest_ || readOnly()) return;
+	insertRequest_ = request;
+	beginEdit(Edit::Other);
+	const auto [start, end] = selection();
+	const Position from{start.line, start.column - std::min(before, start.column)};
+	erase(from, end);
+	const Position after = insert(from, text);
+	setSelection(after, after);
+	endEdit();
+}
+
+void CodeEditor::setOverlay(std::vector<affresco::format::SyntaxHighlighter::Overlay> runs) {
+	auto* grammar = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
+	if(!grammar) return;
+	grammar->setOverlay(std::move(runs));
+	recolor();
+}
+
+std::u32string CodeEditor::wordBeforeCaret() const {
+	const Position at = caret();
+	const std::u32string& text = lines()[at.line];
+	std::size_t start = std::min(at.column, text.size());
+	while(start > 0 && isWord(text[start - 1])) --start;
+	return text.substr(start, at.column - start);
 }
 
 /* Registration */
 
+namespace {
+
+/// @brief The "code" type's editor: a CodeEditor and the actions its properties name.
+struct ScreenCodeEditor : CodeEditor {
+	std::string hoverAction; ///< "onHover".
+	std::string typeAction;  ///< "onType".
+	affresco::json tokens = affresco::json::array(); ///< The "tokens" last given.
+};
+
+/// @brief The event of a place in the text, for "onHover" and "onType": its line and column from 1, and its box.
+/// @param editor The editor.
+/// @param at The place.
+affresco::json caretEvent(const CodeEditor& editor, Position at) {
+	affresco::json event{{"line", at.line + 1}, {"column", at.column + 1}};
+	if(const std::optional<affresco::Rect> box = editor.rectAt(at)) {
+		event["x"] = box->left;
+		event["y"] = box->bottom;
+		event["top"] = box->top;
+	}
+	return event;
+}
+
+} // namespace
+
 void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers) {
 	screen.registerType(
-	    "code", [] { return std::make_unique<CodeEditor>(); }, {"language", "syntax", "goTo", "buffer"},
+	    "code",
+	    [&screen] {
+		    auto editor = std::make_unique<ScreenCodeEditor>();
+		    ScreenCodeEditor& self = *editor;
+		    self.onHoverPosition.connect([&screen, &self](std::optional<Position> at) {
+			    if(self.hoverAction.empty()) return;
+			    affresco::json event = at ? caretEvent(self, *at) : affresco::json::object();
+			    event["over"] = at.has_value();
+			    screen.runAction(self.hoverAction, self, event.dump());
+		    });
+		    self.onTyped.connect([&screen, &self](const std::string& text) {
+			    if(self.typeAction.empty()) return;
+			    affresco::json event = caretEvent(self, self.caret());
+			    event["text"] = text;
+			    event["word"] = utf8(self.wordBeforeCaret());
+			    screen.runAction(self.typeAction, self, event.dump());
+		    });
+		    return editor;
+	    },
+	    {"language", "syntax", "goTo", "buffer", "onHover", "onType", "popup", "onPopupKey", "insert", "tokens"},
 	    [&screen, buffers = std::move(buffers)](affresco::Panel& panel, const std::string& propertiesJson) {
-		    auto& editor = dynamic_cast<CodeEditor&>(panel); // the factory above made it
+		    auto& editor = dynamic_cast<ScreenCodeEditor&>(panel); // the factory above made it
 		    const affresco::json properties = affresco::json::parse(propertiesJson);
+		    const auto actionOf = [&properties](const char* key) {
+			    const auto found = properties.find(key);
+			    return found != properties.end() && found->is_string() ? found->get<std::string>() : std::string();
+		    };
+		    editor.hoverAction = actionOf("onHover");
+		    editor.typeAction = actionOf("onType");
+		    // "popup": the keys go to "onPopupKey" while it is true
+		    if(const std::string action = actionOf("onPopupKey"); properties.value("popup", false) && !action.empty())
+			    editor.setPopupKeys([&screen, &editor, action](std::string_view key) {
+				    screen.runAction(action, editor, affresco::json{{"key", key}}.dump());
+				    return true;
+			    });
+		    else editor.setPopupKeys({});
+		    if(const auto insert = properties.find("insert"); insert != properties.end() && insert->is_object() &&
+		                                                      (*insert)["text"].is_string())
+			    editor.insertAtCaret(affresco::codepointsOf((*insert)["text"].get<std::string>()),
+			                         static_cast<std::size_t>(std::max(0.0, insert->value("before", 0.0))),
+			                         static_cast<long long>(insert->value("request", 0.0)));
 		    // "buffer": the application's text for that id, shared with every editor showing it
 		    if(const auto buffer = properties.find("buffer"); buffers && buffer != properties.end() && buffer->is_string())
 			    if(auto text = buffers(buffer->get<std::string>()); text && text != editor.sharedModel())
 				    editor.setModel(std::move(text));
 		    editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "");
 		    editor.resetTokenColors();
+		    // "tokens": runs over the grammar's colours, given again only when they change (edits move them meanwhile)
+		    if(affresco::json tokens = properties.value("tokens", affresco::json::array()); tokens != editor.tokens) {
+			    std::vector<affresco::format::SyntaxHighlighter::Overlay> runs;
+			    for(const affresco::json& run : tokens.is_array() ? tokens : affresco::json::array()) {
+				    if(!run.is_object() || !run.value("style", affresco::json()).is_string()) continue;
+				    const auto whole = [&run](const char* key) {
+					    return static_cast<std::size_t>(std::max(0.0, run.value(key, 0.0)));
+				    };
+				    runs.push_back({whole("line"), whole("column"), whole("length"), run["style"].get<std::string>()});
+			    }
+			    editor.tokens = std::move(tokens);
+			    editor.setOverlay(std::move(runs));
+		    }
 		    // "goTo": { "line": 12, "request": 3 } moves the caret, once per request (Forge's go to line)
 		    if(const auto goTo = properties.find("goTo"); goTo != properties.end() && goTo->is_object())
 			    editor.goToLine(static_cast<std::size_t>(std::max(0.0, goTo->value("line", 1.0))),
-			                    static_cast<long long>(goTo->value("request", 0.0)));
+			                    static_cast<long long>(goTo->value("request", 0.0)),
+			                    static_cast<std::size_t>(std::max(0.0, goTo->value("column", 1.0))));
 		    if(!properties.contains("syntax")) return;
 		    for(const auto& [name, value] : properties["syntax"].items()) {
 			    const auto token = static_cast<std::size_t>(std::ranges::find(tokenNames, name) - tokenNames.begin());

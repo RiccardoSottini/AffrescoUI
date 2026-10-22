@@ -6,6 +6,7 @@
 /// registerCodeEditor().
 
 #include <affresco/affresco.hpp>
+#include <affresco/format/SyntaxHighlighter.hpp>
 
 #include <array>
 #include <cstddef>
@@ -20,7 +21,9 @@ namespace examples {
 
 /// @brief A TextEditor for code: syntax colours and the commands of common code editors.
 ///
-/// On top of TextEditor: colours C++, JSON, CMake and Markdown; Enter adds a level after `{`, `[`, `(` or `:` and puts
+/// On top of TextEditor: colours C, C++, JSON, Python, JavaScript, TypeScript and Markdown with their tree-sitter
+/// grammars (affresco/format/SyntaxHighlighter.hpp), which also give the folds and bracket pairs, and CMake by its
+/// own tokens; Enter adds a level after `{`, `[`, `(` or `:` and puts
 /// a closing bracket on its own line; brackets and quotes close themselves (typing the closer steps over it, Backspace
 /// deletes an empty pair, a selection gets wrapped); Cmd+/ toggles line comments; Alt+Up/Down moves lines; Cmd+Shift+K
 /// deletes lines; Cmd+[ and Cmd+] indent; without a selection, Cmd+C and Cmd+X take the whole line.
@@ -38,13 +41,14 @@ public:
 	};
 
 	/// @brief The languages it colours.
-	enum class Language { Plain, Cpp, Json, CMake, Markdown };
+	enum class Language { Plain, Cpp, Json, CMake, Markdown, Python };
 
 	/// @brief An editor with default syntax colours and no language.
 	CodeEditor();
 
 	/// @brief Sets which syntax to colour.
-	/// @param name "c++" (or "cpp", "c"), "json", "cmake", "markdown" (or "md"); anything else is plain. Any case.
+	/// @param name "c++" (or "cpp", "c"), "json", "cmake", "markdown" (or "md"), "python" (or "py"), "javascript" (or
+	/// "js"), "typescript" (or "ts"); anything else is plain. Any case.
 	void setLanguage(std::string_view name);
 
 	/// @brief Sets the colour of one kind of text.
@@ -55,17 +59,41 @@ public:
 	/// @brief Restores the default syntax colours.
 	void resetTokenColors();
 
-	/// @brief Moves the caret to the start of a line and scrolls to it, once per request (a "go to line" command).
+	/// @brief Moves the caret to a line and scrolls to it, once per request (a "go to line" command).
 	/// @param line The line, from 1; past the last line, the last.
 	/// @param request Which request this is: the same one again does nothing, so reapplied properties don't move it.
-	void goToLine(std::size_t line, long long request);
+	/// @param column The column, from 1 (code points); past the line's end, its end.
+	void goToLine(std::size_t line, long long request, std::size_t column = 1);
+
+	/// @brief Inserts text at the caret, in place of the selection and of the code points just before the caret (e.g.
+	/// a completion replacing the word typed), once per request, as one undo step.
+	/// @param text The text, which may contain "\n".
+	/// @param before Code points before the caret it replaces (at most the line's, before the caret).
+	/// @param request Which request this is: the same one again does nothing.
+	void insertAtCaret(std::u32string_view text, std::size_t before, long long request);
+
+	/// @brief The word (letters, digits, underscore) that ends at the caret, e.g. what a completion list filters by.
+	[[nodiscard]] std::u32string wordBeforeCaret() const;
+
+	/// @brief Gives the keys of a popup at the caret (Up, Down, Page Up, Page Down, Enter, Tab, Escape) to a handler
+	/// instead of the text, while one is open.
+	/// @param handler Gets "up", "down", "pageUp", "pageDown", "enter", "tab" or "escape" and returns true if it took
+	/// the key; empty: no popup.
+	void setPopupKeys(std::function<bool(std::string_view key)> handler) { popupKeys_ = std::move(handler); }
+
+	/// @brief Paints runs over the grammar's colours (e.g. a language server's semantic tokens), until the language
+	/// changes; nothing without a grammar. See affresco::format::SyntaxHighlighter::setOverlay().
+	/// @param runs The runs; their styles are the grammar's ("type", "keyword", "string", ...).
+	void setOverlay(std::vector<affresco::format::SyntaxHighlighter::Overlay> runs);
+
+	/// @brief The user typed a code point (its UTF-8), or deleted with Backspace or Delete (""), just now.
+	affresco::Signal<const std::string&> onTyped;
 
 protected:
 	/// @brief The editor's shortcuts (runShortcut()) and Backspace in an empty pair, then TextEditor's keys.
 	/// @param event The key event.
 	void keyEvent(const affresco::KeyEvent& event) override;
-	/// @brief Typing with pairs: steps over a closer, wraps the selection, closes a pair (pairTypingFor()); a closing
-	/// brace on a blank line goes back one level.
+	/// @brief Types a code point (typeCodepoint()), then fires onTyped.
 	/// @param event The typed code point.
 	void charEvent(const affresco::CharEvent& event) override;
 	/// @brief Colours a line by its tokens (tokenize()); `state` is 1 while a block comment is open.
@@ -86,6 +114,10 @@ private:
 		Close,    ///< An opener: the pair goes in, with the caret inside.
 	};
 
+	/// @brief Typing with pairs: steps over a closer, wraps the selection, closes a pair (pairTypingFor()); a closing
+	/// brace on a blank line goes back one level.
+	/// @param event The typed code point.
+	void typeCodepoint(const affresco::CharEvent& event);
 	/// @brief The editor's own shortcuts: Alt+Up/Down, Cmd+/, Cmd+Shift+K, Cmd+[ and Cmd+], Cmd+C and Cmd+X without a
 	/// selection.
 	/// @param event A key press or repeat.
@@ -144,9 +176,13 @@ private:
 	/// @param line The line.
 	/// @param inComment In: whether a block comment is open at its start; out: at its end.
 	[[nodiscard]] std::vector<Token> tokenize(std::u32string_view line, bool& inComment) const;
+	/// @brief Gives the grammar's highlighter the token colours again (its styles map to tokens).
+	void refreshPalette();
 
 	Language language_ = Language::Plain;        ///< See setLanguage().
 	long long goToRequest_ = 0;                  ///< The last request goToLine() carried out.
+	long long insertRequest_ = 0;                ///< The last request insertAtCaret() carried out.
+	std::function<bool(std::string_view)> popupKeys_; ///< See setPopupKeys().
 	std::array<affresco::Color, 7> tokenColors_; ///< Indexed by Token (Plain unused).
 };
 
@@ -154,9 +190,17 @@ private:
 using BufferLookup = std::function<std::shared_ptr<affresco::TextModel>(std::string_view id)>;
 
 /// @brief Registers the "code" type on a screen: a CodeEditor with the properties of "editor", plus "language",
-/// "syntax" (`{ "keyword", "type", "string", "number", "comment", "heading" }`: a colour each), "goTo" and, with a
-/// lookup, "buffer": the id of a text the application keeps, which the editor then edits in place of "text" (so a
-/// large file never passes through the screen's state).
+/// "syntax" (`{ "keyword", "type", "string", "number", "comment", "heading" }`: a colour each), "goTo" (`{ "line",
+/// "column", "request" }`) and, with a lookup, "buffer": the id of a text the application keeps, which the editor then
+/// edits in place of "text" (so a large file never passes through the screen's state).
+///
+/// For features at the caret (e.g. a language server's): "onHover" names an action run when the code point under the
+/// resting mouse changes (event `{ "over", "line", "column", "x", "y", "top" }`: lines and columns from 1, x and y the
+/// window point below its box, top its top); "onType" one run after each typed code point or deletion (event
+/// `{ "text", "line", "column", "word", "x", "y", "top" }`, at the caret); "popup": true gives the popup keys to
+/// "onPopupKey" (event `{ "key" }`, see CodeEditor::setPopupKeys()); "insert" (`{ "text", "before", "request" }`) is
+/// CodeEditor::insertAtCaret(); "tokens" (`[{ "line", "column", "length", "style" }]`, from 0, as "decorations") is
+/// CodeEditor::setOverlay(), set again only when the list changes.
 /// @param screen The screen, before it is built; it must not move afterwards (the type reads its colours).
 /// @param buffers Finds the text for "buffer" (empty: "buffer" is ignored); registering again replaces it.
 void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers = {});

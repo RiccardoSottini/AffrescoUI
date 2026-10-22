@@ -78,6 +78,12 @@
 			"of": "graph/1000",
 			"atMost": 1.0,
 			"why": "a frame of a node dragged in a 1,000-node graph never costs more than setting the whole graph and drawing it (0.73 on macOS, 0.17 ms a frame)"
+		},
+		{
+			"name": "syntax/type-100k",
+			"of": "syntax/open-100k",
+			"atMost": 0.05,
+			"why": "a keystroke in a 100,000-line file parses again only what it changed and highlights one screen"
 		}
 	]
 }

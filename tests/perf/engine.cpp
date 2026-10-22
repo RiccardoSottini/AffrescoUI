@@ -252,7 +252,8 @@ std::vector<Group> engineGroups() {
 	        {"buffers", bufferWorkloads},
 	        {"search", searchWorkloads},
 	        {"canvas", canvasWorkloads},
-	        {"graph", graphWorkloads}};
+	        {"graph", graphWorkloads},
+	        {"syntax", syntaxWorkloads}};
 }
 
 } // namespace affresco::bench

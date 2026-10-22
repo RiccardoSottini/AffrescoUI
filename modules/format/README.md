@@ -20,6 +20,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 | `Locale.hpp` | `systemLocale()`: the locale the computer's user chose, for `Runtime::setLocale` |
 | `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
 | `Adapters.hpp` | Other formats (SCREEN_FORMAT.md): `detect`, `fromA2ui` (A2UI 0.8), `fromAdaptiveCard` (Adaptive Cards 1.6) and `convertForeign`, pure functions that give a screen document, its warnings and A2UI's later updates as revisions (`src/adapters/`) |
+| `SyntaxHighlighter.hpp` | `SyntaxHighlighter`: a `TextEditor`'s `EditorHighlighter` on the services' syntax engine: follows the model's edits incrementally, colours a block of lines at a time through a palette (style name to colour, a dotted style falling back to its parent), and gives the editor folds and bracket pairs. The `editor` type's `grammar` key installs one, coloured by `@syntax.*` tokens |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),

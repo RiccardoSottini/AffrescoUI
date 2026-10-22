@@ -34,6 +34,9 @@ namespace affresco::services {
 /// Protocol.
 [[nodiscard]] std::unique_ptr<Provider> makeDapProvider();
 
+/// @brief The `syntax` provider: text parsed with tree-sitter, its highlights and folds (no grant).
+[[nodiscard]] std::unique_ptr<Provider> makeSyntaxProvider();
+
 /// @brief Takes the text from terminal output that arrives in pieces (a split sequence waits for the next piece;
 /// bytes that aren't UTF-8 become U+FFFD).
 /// @param carry Bytes left from the piece before; on return, the incomplete sequence at this one's end.

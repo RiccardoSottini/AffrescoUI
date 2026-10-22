@@ -14,11 +14,6 @@
 
 namespace forge {
 
-/// @brief Finds a program: the first one of that name in one of PATH's absolute folders.
-/// @param name The program's file name.
-/// @return Its absolute path, or an empty path if there is none.
-[[nodiscard]] std::filesystem::path findProgram(std::string_view name);
-
 /// @brief Reads the launch configurations of a folder's `.vscode/launch.json`, in the subset Forge knows: `name`,
 /// `type` (`lldb`, `lldb-dap`, `python` or `debugpy`), `request` (`launch` or `attach`), `program`, `args`, `cwd`,
 /// `env`, `stopOnEntry`, `console` and, to attach, `pid` (lldb) or `port` (debugpy, on 127.0.0.1). Comments are

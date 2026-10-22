@@ -59,6 +59,7 @@ void TextEditor::setModel(std::shared_ptr<TextModel> model) {
 	folds_.clear();
 	lastEdit_ = Edit::Other;
 	states_.assign(1, 0);
+	if(highlighter_) highlighter_->reset(*model_);
 	widest_ = -1.0f;
 	scroll_ = {};
 	rebuildRows();
@@ -205,6 +206,7 @@ std::size_t TextEditor::columnAt(std::size_t line, float x) const {
 
 void TextEditor::textChanged(const TextChange& change) {
 	if(states_.size() > change.from.line + 1) states_.resize(change.from.line + 1);
+	if(highlighter_) highlighter_->changed(*model_, change);
 	// Another editor's edit of a shared model (or an outside one) moves the text under this caret
 	if(!editing_) {
 		caret_ = shifted(caret_, change);
@@ -324,6 +326,12 @@ void TextEditor::endEdit() {
 void TextEditor::recolor() {
 	states_.clear();
 	invalidate();
+}
+
+void TextEditor::setHighlighter(std::unique_ptr<EditorHighlighter> highlighter) {
+	highlighter_ = std::move(highlighter);
+	if(highlighter_) highlighter_->reset(*model_);
+	recolor();
 }
 
 void TextEditor::moveCaret(Position to, bool extend, bool keepX) {
@@ -552,6 +560,7 @@ void TextEditor::charEvent(const CharEvent& event) {
 
 void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 	Panel::mouseButtonEvent(event);
+	hoverAt(std::nullopt);
 	if(event.button != MouseButton::Left) return;
 	if(event.action == Action::Release) {
 		dragging_ = columnDragging_ = false;
@@ -603,7 +612,8 @@ void TextEditor::mouseMoveEvent(const MouseMoveEvent& event) {
 		const Position word = onWord ? Position{at.line, start} : Position{SIZE_MAX, 0};
 		if(word != hoveredWord_) onWordHovered(hoveredWord_ = word, onWord ? detail::toUtf8(text.substr(start, end - start)) : "");
 	}
-	if(!dragging_ || clicks_ != 1) return;
+	if(!dragging_) return hoverAt(event.position);
+	if(clicks_ != 1) return;
 	const Position at = positionAt(event.position);
 	if(at != caret_) moveCaret(at, true);
 }
@@ -616,7 +626,13 @@ void TextEditor::scrollEvent(const ScrollEvent& event) {
 	clampScroll();
 	if(scroll_.x == before.x && scroll_.y == before.y) return;
 	invalidatePaint();
+	hoverAt(std::nullopt);
 	onScrolled(scroll_);
+}
+
+void TextEditor::hoverEvent(bool hovered) {
+	if(!hovered) hoverAt(std::nullopt);
+	Panel::hoverEvent(hovered);
 }
 
 void TextEditor::focusEvent(bool focused) {

@@ -1,0 +1,801 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Forge's language servers (features/lsp), checked headless: the answers tests/lsp/fake_server.py gives (python3 tests/lsp/fake_server.py --print hover) are played through lspPlay, which normalizes them as the client does, so no server runs; tests/unit/lsp.cpp checks the protocol. affrescoui_render_runner lsp.scenarios.json",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-lsp-diagnostics-squiggles",
+			"note": "A server's diagnostics (fake_server.py: each FIXME) become squiggles in the file's editor and rows in Problems",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"uri": "file:///folder/src/main.cpp",
+							"diagnostics": [
+								{
+									"range": {
+										"start": {
+											"line": 2,
+											"character": 16
+										},
+										"end": {
+											"line": 2,
+											"character": 21
+										}
+									},
+									"severity": 1,
+									"source": "fake",
+									"message": "FIXME left in the code"
+								}
+							]
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].id",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations[0].kind",
+						"is": "squiggle"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations[0].line",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations[0].color",
+						"is": "#f85149"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-diagnostics-replace",
+			"note": "A file's new diagnostics replace its old ones, squiggles and Problems rows alike",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"uri": "file:///folder/src/main.cpp",
+							"diagnostics": [
+								{
+									"range": {
+										"start": {
+											"line": 2,
+											"character": 16
+										},
+										"end": {
+											"line": 2,
+											"character": 21
+										}
+									},
+									"severity": 1,
+									"source": "fake",
+									"message": "FIXME left in the code"
+								}
+							]
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"uri": "file:///folder/src/main.cpp",
+							"diagnostics": []
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-diagnostics-outside-the-folder",
+			"note": "Diagnostics for a file outside the open folder are dropped: an untrusted server names only the folder's files",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"uri": "file:///elsewhere/secret.cpp",
+							"diagnostics": [
+								{
+									"range": {
+										"start": {
+											"line": 0,
+											"character": 0
+										},
+										"end": {
+											"line": 0,
+											"character": 5
+										}
+									},
+									"severity": 1,
+									"source": "fake",
+									"message": "FIXME left in the code"
+								}
+							]
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-hover",
+			"note": "A hover's answer opens the hover card with its text",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "hover",
+						"result": {
+							"contents": {
+								"kind": "markdown",
+								"value": "```cpp\nint main()\n```\nThe program starts here."
+							}
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.hover.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.hover.text",
+						"is": "```cpp\nint main()\n```\nThe program starts here."
+					}
+				},
+				{
+					"expect": {
+						"node": "#lsp-hover-text",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-hover-stale",
+			"note": "An answer to an older hover is ignored: only the latest request opens the card",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "hover",
+						"result": {
+							"contents": {
+								"kind": "markdown",
+								"value": "```cpp\nint main()\n```\nThe program starts here."
+							}
+						},
+						"root": "/folder",
+						"request": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.hover.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-completion-insert",
+			"note": "Completion items fill the popup; Down and Enter insert the chosen one, its snippet's placeholder as plain text",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "completion",
+						"result": {
+							"isIncomplete": false,
+							"items": [
+								{
+									"label": "printf",
+									"kind": 3,
+									"detail": "int printf(const char*, ...)",
+									"insertText": "printf"
+								},
+								{
+									"label": "puts",
+									"kind": 3,
+									"detail": "int puts(const char*)",
+									"insertTextFormat": 2,
+									"insertText": "puts(${1:text})"
+								},
+								{
+									"label": "putchar",
+									"kind": 3,
+									"detail": "int putchar(int)"
+								}
+							]
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.items.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.items[1].insert",
+						"is": "puts(text)"
+					}
+				},
+				{
+					"action": "lspPopupKey",
+					"event": {
+						"key": "down"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.index",
+						"is": 1
+					}
+				},
+				{
+					"action": "lspPopupKey",
+					"event": {
+						"key": "enter"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.insert.text",
+						"is": "puts(text)"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.insert.request",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-signature",
+			"note": "Signature help shows the signature and its documentation above the caret",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "signature",
+						"result": {
+							"signatures": [
+								{
+									"label": "int puts(const char* text)",
+									"documentation": "Writes a line.",
+									"parameters": [
+										{
+											"label": [9, 25]
+										}
+									]
+								}
+							],
+							"activeSignature": 0,
+							"activeParameter": 0
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.signature.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.signature.label",
+						"is": "int puts(const char* text)"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.signature.documentation",
+						"is": "Writes a line."
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-definition",
+			"note": "One definition goes to it: the file opens at its line and column (from 1)",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "definition",
+						"result": {
+							"uri": "file:///folder/src/main.cpp",
+							"range": {
+								"start": {
+									"line": 0,
+									"character": 4
+								},
+								"end": {
+									"line": 0,
+									"character": 8
+								}
+							}
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].id",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "goTo.line",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "goTo.column",
+						"is": 5
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-references-peek",
+			"note": "References open the peek list, without the one outside the folder; choosing a row goes there",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "references",
+						"result": [
+							{
+								"uri": "file:///folder/src/main.cpp",
+								"range": {
+									"start": {
+										"line": 0,
+										"character": 4
+									},
+									"end": {
+										"line": 0,
+										"character": 8
+									}
+								}
+							},
+							{
+								"uri": "file:///elsewhere/secret.cpp",
+								"range": {
+									"start": {
+										"line": 2,
+										"character": 8
+									},
+									"end": {
+										"line": 2,
+										"character": 12
+									}
+								}
+							}
+						],
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.items.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.items[0].line",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#lsp-peek-list",
+						"exists": true
+					}
+				},
+				{
+					"action": "lspPeekOpen",
+					"event": {
+						"id": "0"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "goTo.line",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-rename-outside-refused",
+			"note": "A rename that edits a file outside the folder is refused whole: nothing to review",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "rename",
+						"result": {
+							"changes": {
+								"file:///folder/src/main.cpp": [
+									{
+										"range": {
+											"start": {
+												"line": 0,
+												"character": 4
+											},
+											"end": {
+												"line": 0,
+												"character": 8
+											}
+										},
+										"newText": "start"
+									}
+								],
+								"file:///elsewhere/secret.cpp": [
+									{
+										"range": {
+											"start": {
+												"line": 2,
+												"character": 8
+											},
+											"end": {
+												"line": 2,
+												"character": 12
+											}
+										},
+										"newText": "start"
+									}
+								]
+							}
+						},
+						"root": "/folder"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-format-review",
+			"note": "Formatting is a list of edits to review; Apply changes the open file's buffer and closes the list",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "format",
+						"result": [
+							{
+								"range": {
+									"start": {
+										"line": 0,
+										"character": 0
+									},
+									"end": {
+										"line": 0,
+										"character": 0
+									}
+								},
+								"newText": "// formatted\n"
+							}
+						],
+						"root": "/folder",
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.kind",
+						"is": "format"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.edits.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.edits[0].text",
+						"is": "// formatted\n"
+					}
+				},
+				{
+					"action": "lspApply"
+				},
+				{
+					"expect": {
+						"state": "lsp.review.open",
+						"is": false
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-symbols",
+			"note": "Document symbols fill the '@' quick pick, nested ones indented",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "goToSymbol"
+				},
+				{
+					"expect": {
+						"state": "symbolPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "symbolPick.query",
+						"is": "@"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "symbols",
+						"result": [
+							{
+								"name": "main",
+								"detail": "int ()",
+								"kind": 12,
+								"range": {
+									"start": {
+										"line": 0,
+										"character": 0
+									},
+									"end": {
+										"line": 0,
+										"character": 10
+									}
+								},
+								"selectionRange": {
+									"start": {
+										"line": 0,
+										"character": 4
+									},
+									"end": {
+										"line": 0,
+										"character": 8
+									}
+								},
+								"children": [
+									{
+										"name": "count",
+										"kind": 13,
+										"range": {
+											"start": {
+												"line": 1,
+												"character": 1
+											},
+											"end": {
+												"line": 1,
+												"character": 10
+											}
+										},
+										"selectionRange": {
+											"start": {
+												"line": 1,
+												"character": 5
+											},
+											"end": {
+												"line": 1,
+												"character": 10
+											}
+										}
+									}
+								]
+							}
+						],
+						"root": "/folder",
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.symbols.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.symbols[1].name",
+						"is": "count"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.symbols[1].depth",
+						"is": 1
+					}
+				}
+			]
+		}
+	]
+}

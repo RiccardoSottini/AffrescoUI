@@ -2,6 +2,7 @@
 /// @brief Forge's debugger natives and adapter grants (Debug.hpp).
 
 #include "features/debug/Debug.hpp"
+#include "features/lsp/Lsp.hpp" // findProgram
 
 #include <affresco/core/Json.hpp>
 #include <affresco/core/Services.hpp>
@@ -221,25 +222,6 @@ bool variableName(std::string_view name) {
 }
 
 } // namespace
-
-fs::path findProgram(std::string_view name) {
-#ifdef _WIN32
-	constexpr char separator = ';';
-	const std::string file = std::string(name) + ".exe";
-#else
-	constexpr char separator = ':';
-	const std::string file(name);
-#endif
-	const char* path = std::getenv("PATH");
-	for(std::string_view folders = path ? path : ""; !folders.empty();) {
-		const std::size_t end = std::min(folders.find(separator), folders.size());
-		const fs::path folder(folders.substr(0, end));
-		folders.remove_prefix(std::min(end + 1, folders.size()));
-		std::error_code error;
-		if(folder.is_absolute() && fs::is_regular_file(folder / file, error)) return folder / file;
-	}
-	return {};
-}
 
 json launchConfigurations(const fs::path& root) {
 	json result = {{"configurations", json::array()}, {"skipped", 0}};
