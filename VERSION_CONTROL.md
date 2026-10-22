@@ -177,6 +177,39 @@ compares `allow`, `ask` or `deny`, and a part of the reason if given. Exit codes
 passed, 1 a case failed or a file is malformed. CI runs every `*.policy.json` in the repository, and each template has
 one. The MCP server explains a denial with the rule that matched.
 
+### Roles
+A role says what an author is in this run for (`design`, `data`, `builder`), and rules, budgets and data rules can
+name it as `role:design`.
+
+- **Only the host or a reviewer sets a role** (`setRole`), never a revision, and nobody sets the role of their own
+  channel. An agent can't give itself one.
+- Roles last for the run; a policy test file gives its own (`"roles"`). `role:` never covers a reviewer's decisions
+  or a grant.
+
+```json
+{ "type": "setRole", "id": 7, "author": "agent/claude-code", "role": "design" }
+```
+
+### Leases
+Several agents at once claim the parts they work on, so one doesn't undo another's work:
+
+```json
+{ "type": "lease", "id": 8, "author": "ada", "target": "/state/columns/0", "seconds": 300 }
+{ "type": "leased", "id": 8, "target": "/state/columns/0", "seconds": 300 }
+```
+
+- `target` is an `#id` or a JSON Pointer; `seconds` is 1 to 3600 (300 by default). Asking again renews it;
+  `release` ends it, and so does the holder's connection closing or the time running out.
+- **A revision that changes another holder's part is refused, naming the holder:** `permission denied: 'agent/ada'
+  holds a lease on /state/columns/0; wait for it to end`. Judged by effect, like every rule. A part already leased by
+  someone else, or overlapping one, can't be leased.
+- **A lease can't reach beyond its holder's rules:** a part the holder may not change at all is refused. One name holds
+  leases on one connection only.
+- A reviewer ends anyone's lease (`endLease`, with `target`). Every `review` message carries `coordination`: who is
+  connected and their role, the leases with the seconds left, and the roles. The Studio shows it in its Agents tab,
+  where a reviewer ends a lease or gives a role; the MCP server has `lease_part`, `renew_lease` and `release_part`.
+- At most 256 peers and 256 leases, 16 per holder; targets are at most 256 bytes, holder names 64.
+
 ## Modes
 A reviewer sets how much they are asked, like Claude Code's permission modes (`affrescoui_host --mode`, the Studio's
 switch, or `setMode` over the live protocol):

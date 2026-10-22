@@ -269,6 +269,63 @@ public:
 		return std::nullopt;
 	}
 
+	/* Several agents at once (VERSION_CONTROL.md, "Roles" and "Leases"). A connection is any address unique while it
+	 * is connected, e.g. its session's; leases end with it. By default nothing is kept and every request is refused. */
+	/// @brief A peer connected.
+	/// @param connection The connection.
+	/// @param author Who it is authored as (its channel).
+	virtual void join([[maybe_unused]] const void* connection, [[maybe_unused]] std::string_view author) {}
+	/// @brief A peer went away: its leases end.
+	/// @param connection The connection.
+	virtual void leave([[maybe_unused]] const void* connection) {}
+	/// @brief As submit(), for a connected peer: the leases it holds don't stop it, everyone else's do.
+	/// @param connection The connection.
+	/// @param revision The revision.
+	/// @return As submit().
+	virtual RevisionResult submitFrom([[maybe_unused]] const void* connection, const json& revision) {
+		return submit(revision);
+	}
+	/// @brief Takes or renews a lease on a part of the document for a connected peer.
+	/// @param connection The connection.
+	/// @param holder Who holds it (the author the peer writes as).
+	/// @param target "#id" or a JSON Pointer.
+	/// @param seconds How long.
+	/// @return Why it was refused, or std::nullopt.
+	virtual std::optional<std::string> lease([[maybe_unused]] const void* connection,
+	                                         [[maybe_unused]] std::string_view holder,
+	                                         [[maybe_unused]] std::string_view target, [[maybe_unused]] int seconds) {
+		return std::string("leases aren't kept for this document");
+	}
+	/// @brief Ends a lease the connection holds.
+	/// @param connection The connection.
+	/// @param target The target, as leased.
+	/// @return false if it held none there.
+	virtual bool release([[maybe_unused]] const void* connection, [[maybe_unused]] std::string_view target) {
+		return false;
+	}
+	/// @brief A reviewer ends whoever's lease on a target.
+	/// @param target The target, as leased.
+	/// @param by The reviewer.
+	/// @return Why it was refused, or std::nullopt.
+	virtual std::optional<std::string> endLease([[maybe_unused]] std::string_view target,
+	                                            [[maybe_unused]] std::string_view by) {
+		return std::string("leases aren't kept for this document");
+	}
+	/// @brief A reviewer gives an author a role ("role:<name>" in rules) for this run, or takes it away ("").
+	/// @param author The author or channel.
+	/// @param role The role, or "".
+	/// @param by The reviewer, never of the author's own channel.
+	/// @return Why it was refused, or std::nullopt.
+	virtual std::optional<std::string> setRole([[maybe_unused]] std::string_view author,
+	                                           [[maybe_unused]] std::string_view role,
+	                                           [[maybe_unused]] std::string_view by) {
+		return std::string("roles aren't kept for this document");
+	}
+	/// @brief Who is connected and with which role, and the leases running: `{"peers": [{"author", "role"}],
+	/// "leases": [{"target", "holder", "seconds"}], "roles": {author: role}}`. onReviewChanged tells when it changes.
+	/// @return It, or an empty object.
+	[[nodiscard]] virtual json coordination() const { return json::object(); }
+
 	/* Notifications, e.g. for every connected peer (the VersionObserver is for the one that renders) */
 
 	Signal<const Decision&> onDecision; ///< A reviewer accepted or rejected a proposal.

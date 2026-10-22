@@ -235,14 +235,20 @@
 			"commit": "@color.logCommit",
 			"review": "@color.logReview",
 			"error": "@color.logError"
-		}
+		},
+		"coordination": {
+			"peers": [],
+			"leases": [],
+			"roles": {}
+		},
+		"roleDraft": ""
 	},
 	"stateTypes": {
 		"theme": {
 			"enum": ["light", "dark"]
 		},
 		"tab": {
-			"enum": ["review", "history", "rules"]
+			"enum": ["review", "history", "rules", "agents"]
 		},
 		"sizes": {
 			"type": "array"
@@ -342,6 +348,12 @@
 					"type": "string"
 				}
 			}
+		},
+		"coordination": {
+			"type": "object"
+		},
+		"roleDraft": {
+			"type": "string"
 		}
 	},
 	"computed": {
@@ -349,7 +361,7 @@
 		"evidence": "{{state.evidence != null && computed.current != null && state.evidence.proposal == computed.current.id ? state.evidence : null}}",
 		"diffs": "{{computed.evidence == null ? [] : map(computed.evidence.texts, {type: 'diff', node: it.node, original: it.original, modified: it.modified, mode: 'split', language: it.language})}}",
 		"entry": "{{find(state.history, it.number == state.historyPick) ?? (len(state.history) > 0 ? state.history[len(state.history) - 1] : null)}}",
-		"tabs": "{{[{id: 'review', label: len(state.proposals) > 0 ? 'Review (' + len(state.proposals) + ')' : 'Review', closable: false}, {id: 'history', label: 'History', closable: false}, {id: 'rules', label: len(state.grants) > 0 ? 'Rules (' + len(state.grants) + ')' : 'Rules', closable: false}]}}"
+		"tabs": "{{concat([{id: 'review', label: len(state.proposals) > 0 ? 'Review (' + len(state.proposals) + ')' : 'Review', closable: false}, {id: 'history', label: 'History', closable: false}, {id: 'rules', label: len(state.grants) > 0 ? 'Rules (' + len(state.grants) + ')' : 'Rules', closable: false}], empty(state.coordination.peers) ? [] : [{id: 'agents', label: 'Agents (' + len(state.coordination.peers) + ')', closable: false}])}}"
 	},
 	"styles": {
 		"card": {
@@ -839,6 +851,10 @@
 			{
 				"set": "state.grants",
 				"to": "{{event.grants}}"
+			},
+			{
+				"set": "state.coordination",
+				"to": "{{event.coordination ?? {peers: [], leases: [], roles: {}} }}"
 			}
 		],
 		"host:evidence": [
@@ -1014,6 +1030,10 @@
 		"mod+3": {
 			"set": "state.tab",
 			"to": "rules"
+		},
+		"mod+4": {
+			"set": "state.tab",
+			"to": "agents"
 		},
 		"mod+j": "toggleTheme"
 	},
@@ -2294,6 +2314,213 @@
 																		"data": {
 																			"type": "revoke",
 																			"rule": "{{g.rule}}"
+																		}
+																	}
+																]
+															}
+														]
+													}
+												]
+											}
+										]
+									},
+									{
+										"id": "agentsPage",
+										"when": "{{state.tab == 'agents'}}",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 52,
+											"bottom": 0
+										},
+										"color": "transparent",
+										"children": [
+											{
+												"id": "label-who",
+												"type": "label",
+												"font": "heading",
+												"text": "Who is connected",
+												"textColor": "@color.text",
+												"anchors": {
+													"left": 20,
+													"top": 8
+												},
+												"fitText": true
+											},
+											{
+												"id": "label-who-hint",
+												"style": "caption",
+												"text": "{{empty(state.coordination.peers) ? 'Nobody is connected.' : 'Each peer, its role, the parts it leases and its proposals. Roles are given by a reviewer, never by the agent.'}}",
+												"anchors": {
+													"left": 20,
+													"top": 36
+												}
+											},
+											{
+												"id": "roleDraft",
+												"style": "input",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 60
+												},
+												"placeholder": "A role to give, e.g. design",
+												"bind": "state.roleDraft",
+												"when": "{{state.canReview}}"
+											},
+											{
+												"id": "peers",
+												"type": "stack",
+												"gap": 6,
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 104,
+													"bottom": 140
+												},
+												"color": "transparent",
+												"scroll": "vertical",
+												"children": [
+													{
+														"id": "panel-peer",
+														"repeat": {
+															"for": "p",
+															"in": "state.coordination.peers"
+														},
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"height": 72,
+														"color": "@color.cardRaised",
+														"radius": "@radius.chip",
+														"borderWidth": 1,
+														"borderColor": "@color.border",
+														"children": [
+															{
+																"id": "label-peer",
+																"type": "label",
+																"text": "{{p.author}}{{empty(p.role) ? '' : ' (' + p.role + ')'}}",
+																"textColor": "@color.text",
+																"anchors": {
+																	"left": 12,
+																	"right": 200,
+																	"top": 8
+																},
+																"height": 18
+															},
+															{
+																"id": "label-peer-leases",
+																"style": "caption",
+																"text": "{{empty(p.leases) ? 'Leases nothing' : 'Leases ' + join(p.leases, ', ')}}",
+																"anchors": {
+																	"left": 12,
+																	"top": 28
+																}
+															},
+															{
+																"id": "label-peer-work",
+																"style": "caption",
+																"text": "{{plural(count(state.proposals, it.author == p.author), 'open proposal')}}, {{plural(count(state.proposals, it.author == p.author && !empty(it.conflicts)), 'conflict')}}",
+																"anchors": {
+																	"left": 12,
+																	"top": 48
+																}
+															},
+															{
+																"id": "label-set-role",
+																"style": "smallButton",
+																"text": "Give role",
+																"anchors": {
+																	"right": 12,
+																	"top": 10
+																},
+																"width": 88,
+																"when": "{{state.canReview}}",
+																"onClick": [
+																	{
+																		"send": "host",
+																		"data": {
+																			"type": "setRole",
+																			"author": "{{p.author}}",
+																			"role": "{{trim(state.roleDraft)}}"
+																		}
+																	}
+																]
+															}
+														]
+													}
+												]
+											},
+											{
+												"id": "label-leases",
+												"type": "label",
+												"font": "heading",
+												"text": "Leases",
+												"textColor": "@color.text",
+												"anchors": {
+													"left": 20,
+													"bottom": 108
+												},
+												"fitText": true
+											},
+											{
+												"id": "leases",
+												"type": "stack",
+												"gap": 6,
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"bottom": 12
+												},
+												"height": 92,
+												"color": "transparent",
+												"scroll": "vertical",
+												"children": [
+													{
+														"id": "panel-lease",
+														"repeat": {
+															"for": "l",
+															"in": "state.coordination.leases"
+														},
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"height": 40,
+														"color": "@color.cardRaised",
+														"radius": "@radius.chip",
+														"borderWidth": 1,
+														"borderColor": "@color.border",
+														"children": [
+															{
+																"id": "label-lease",
+																"type": "label",
+																"text": "{{l.target}}: {{l.holder}}, {{l.seconds}} s left",
+																"textColor": "@color.text",
+																"anchors": {
+																	"left": 12,
+																	"right": 112,
+																	"top": 11
+																},
+																"height": 18
+															},
+															{
+																"id": "label-end-lease",
+																"style": "smallButton",
+																"text": "End lease",
+																"anchors": {
+																	"right": 12,
+																	"top": 6
+																},
+																"width": 88,
+																"when": "{{state.canReview}}",
+																"onClick": [
+																	{
+																		"send": "host",
+																		"data": {
+																			"type": "endLease",
+																			"target": "{{l.target}}"
 																		}
 																	}
 																]

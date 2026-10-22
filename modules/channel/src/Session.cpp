@@ -51,6 +51,41 @@ std::string typeOf(const json& message) {
 	return message.contains("type") && message["type"].is_string() ? message["type"].get<std::string>() : "";
 }
 
+/// @brief Answers lease, release, endLease and setRole (VERSION_CONTROL.md, "Leases" and "Roles"): a peer leases and
+/// releases parts for itself; only a reviewer ends another's lease or sets a role, and nobody sets their own.
+/// @param versions The document's version control.
+/// @param connection The session asking, which its leases name.
+/// @param channel The session's channel ("agent"): who may review.
+/// @param author Who asks, as the session names it ("agent/claude-code").
+/// @param type The message's type.
+/// @param message The message.
+/// @return The answer, without its "id", or std::nullopt if it is none of those.
+std::optional<json> coordinate(VersionControl& versions, const void* connection, const std::string& channel,
+                               const std::string& author, const std::string& type, const json& message) {
+	if(type != "lease" && type != "release" && type != "endLease" && type != "setRole") return std::nullopt;
+	const auto refused = [](const std::string& error) { return json{{"type", "rejected"}, {"error", error}}; };
+	const std::string target =
+	    type == "setRole" ? "" : expect::string(message.value("target", json()), type + ".target");
+	if(type == "release") {
+		if(versions.release(connection, target)) return json{{"type", "released"}, {"target", target}};
+		return refused("you hold no lease on " + target);
+	}
+	if(type == "lease") {
+		const json seconds = message.value("seconds", json(300));
+		const int duration = seconds.is_number_integer()
+		                         ? static_cast<int>(std::clamp<std::int64_t>(seconds.get<std::int64_t>(), 1, 3600))
+		                         : 300;
+		if(const auto error = versions.lease(connection, author, target, duration)) return refused(*error);
+		return json{{"type", "leased"}, {"target", target}, {"seconds", duration}};
+	}
+	if(!versions.mayReview(channel)) return refused("permission denied: '" + channel + "' may not review changes");
+	const std::optional<std::string> error =
+	    type == "endLease" ? versions.endLease(target, author)
+		                   : versions.setRole(expect::string(message.value("author", json()), "setRole.author"),
+		                                      expect::string(message.value("role", json()), "setRole.role"), author);
+	return error ? refused(*error) : json{{"type", "done"}};
+}
+
 } // namespace
 
 Session::Session(Channel& channel, VersionControl& versions, std::string author, std::function<json()> catalog,
@@ -96,6 +131,7 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
 	      {"mode", toString(versions_.mode())},
 	      {"you", author_},
 	      {"canReview", versions_.mayReview(author_)}});
+	versions_.join(this, author_); // after hello: joining tells every peer, this one included
 }
 
 Session::~Session() {
@@ -103,6 +139,7 @@ Session::~Session() {
 	versions_.onDecision.disconnect(decisions_);
 	versions_.onCommit.disconnect(commits_);
 	versions_.onReviewChanged.disconnect(reviews_);
+	versions_.leave(this); // its leases end with it
 }
 
 // Error texts can quote what the peer sent, bytes that aren't UTF-8 included (a parse error shows the bytes it read),
@@ -124,6 +161,7 @@ json Session::reviewState() const {
 	        {"previewing", previewing ? json(*previewing) : json()},
 	        {"mode", toString(versions_.mode())},
 	        {"grants", grants},
+	        {"coordination", versions_.coordination()},
 	        {"revision", versions_.head().number}};
 }
 
@@ -144,6 +182,11 @@ void Session::handle(const std::string& line) {
 			onRelay(relayed);
 		} else if(showsWhole(in.type) && versions_.readable(author_)) {
 			expect::fail(in.type, "permission denied: the data rules let '" + author_ + "' read only some paths");
+		} else if(const auto answer = coordinate(versions_, this, author_, in.author, in.type, m)) {
+			json reply = *answer;
+			reply["revision"] = versions_.head().number;
+			reply["id"] = in.id;
+			send(reply);
 		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in)) {
 			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
@@ -238,13 +281,13 @@ bool Session::handleChange(const Incoming& in) {
 		submitted["author"] = in.author;
 		submitted.erase("type");
 		submitted.erase("id");
-		reply(in, versions_.submit(submitted));
+		reply(in, versions_.submitFrom(this, submitted));
 	} else if(in.type == "restore") {
-		reply(in, versions_.submit(versions_.restoreRevision(revision(), in.author)));
+		reply(in, versions_.submitFrom(this, versions_.restoreRevision(revision(), in.author)));
 	} else if(in.type == "revert") {
-		reply(in, versions_.submit(versions_.revertRevision(revision(), in.author)));
+		reply(in, versions_.submitFrom(this, versions_.revertRevision(revision(), in.author)));
 	} else { // undo
-		reply(in, versions_.submit(versions_.revertRevision("HEAD", in.author)));
+		reply(in, versions_.submitFrom(this, versions_.revertRevision("HEAD", in.author)));
 	}
 	return true;
 }

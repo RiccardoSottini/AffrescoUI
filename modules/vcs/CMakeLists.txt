@@ -10,6 +10,7 @@ affrescoui_module(vcs
 	src/HistoryStore.cpp
 	src/Permissions.cpp
 	src/Leases.cpp
+	src/LeasesRepository.cpp
 	src/Presence.cpp
 	src/Roles.cpp
 	src/Policy.cpp

@@ -393,6 +393,7 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 	if(const auto denied = detail::dataDenial(rules_, policy, before, after, author, roles_))
 		return {Kind::Deny, "permission denied: " + *denied};
 	if(!reviewed) return {Kind::Allow, {}};
+	if(const auto leased = leaseDenial(before, after, author)) return {Kind::Deny, "permission denied: " + *leased};
 	if(const auto over = detail::overBudget(policy, before, after, author, roles_))
 		return {over->deny ? Kind::Deny : Kind::Ask, (over->deny ? "permission denied: " : "") + over->reason, true};
 	if(const std::vector<std::string> lines = rules_.reviewLines(before, after); !lines.empty()) {

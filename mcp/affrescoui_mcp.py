@@ -744,6 +744,39 @@ TOOLS = [
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "name": {"type": "string"}})},
 ]
 
+# Several agents at once (VERSION_CONTROL.md, "Leases"): claim a part of the screen while you work on it, so other
+# authors' revisions that touch it are refused; it ends after its seconds, when released, or when you disconnect.
+COORDINATION_TOOLS = [
+    {"name": "lease_part",
+     "description": "Claim a part of the screen (\"#id\" or a JSON Pointer such as /state/columns/0) while you work "
+                    "on it: other authors' revisions that touch it are refused until it ends (after `seconds`, 300 "
+                    "by default, at most 3600; when you release it; or when you disconnect). Refused if someone "
+                    "else holds it or a part inside it, or if your permissions don't let you change it.",
+     "inputSchema": object_schema({"target": {"type": "string"}, "seconds": {"type": "integer"}}, ["target"])},
+    {"name": "renew_lease",
+     "description": "Make a lease you hold last `seconds` (300 by default, at most 3600) from now.",
+     "inputSchema": object_schema({"target": {"type": "string"}, "seconds": {"type": "integer"}}, ["target"])},
+    {"name": "release_part",
+     "description": "End a lease you hold, as soon as you are done with that part.",
+     "inputSchema": object_schema({"target": {"type": "string"}}, ["target"])},
+]
+TOOLS += COORDINATION_TOOLS
+
+
+def coordination_tool(host, client, name, args):
+    """Runs a lease tool; None if `name` is none of them."""
+    if name not in ("lease_part", "renew_lease", "release_part"):
+        return None
+    message = {"type": "release" if name == "release_part" else "lease", "author": client,
+               "target": str(args.get("target", ""))}
+    if name != "release_part":
+        message["seconds"] = args.get("seconds", 300)
+    reply = host.request(message)
+    if reply.get("type") in ("leased", "released"):
+        return compact(reply), False
+    return f"refused: {reply.get('error')}", True
+
+
 PROMPTS = [
     {"name": "serve_studio",
      "description": "Work through the change requests people send from the AffrescoUI Studio, one after another."},
@@ -1033,6 +1066,9 @@ class Server:
             reply = host.request({"type": "exportChanges", "from": args.get("from", 0),
                                   "name": args.get("name", "changes")})
             return json.dumps(reply.get("changes"), indent=2), False
+        coordinated = coordination_tool(host, self.client, name, args)
+        if coordinated is not None:
+            return coordinated
         raise UnknownTool(name)
 
     def serve(self, line):

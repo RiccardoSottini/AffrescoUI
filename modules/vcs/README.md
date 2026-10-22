@@ -107,6 +107,7 @@ src/
   Policy.hpp / .cpp         budgets and data rules: counting nodes by id, paths an author may read, write or never touch
   PolicyRepository.cpp      what a read-limited author sees, refusing revisions that name what it may not read
   Roles.cpp                 the roles of this run, and rules naming them
+  LeasesRepository.cpp      who is connected, the parts they lease, and refusing changes to another holder's part
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
   Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)
 CMakeLists.txt              the affrescoui_vcs target and its sources

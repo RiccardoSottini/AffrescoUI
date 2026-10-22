@@ -251,6 +251,39 @@
 				{ "expect": { "node": "#label-diff-original", "text": "Tasks" } },
 				{ "expect": { "node": "#label-diff-modified", "text": "Clicks" } }
 			]
+		},
+		{
+			"name": "agents-show-who-leases-what",
+			"note": "The Agents tab appears once peers connect: their roles, leases, proposals and conflicts; a reviewer ends a lease or gives a role",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "expect": { "node": "#agentsPage", "exists": false } },
+				{ "action": "host:review", "event": { "proposals": [{ "id": 5, "branch": "proposal/5", "author": "agent/bob", "message": "Rename Doing", "base": "a1b2c3d", "head": "d1d2d3d", "short": "d1d2d3d", "commits": 1, "operations": 1, "touches": ["/state/columns/1"], "remember": [], "changes": ["set /state/columns/1/name \"Next\""], "conflicts": ["/state/columns/1/name"], "reason": "asks", "time": 1760000200 }], "previewing": null, "mode": "default", "grants": [], "revision": 4, "coordination": { "peers": [{ "author": "studio", "role": "", "leases": [] }, { "author": "agent/ada", "role": "design", "leases": ["/state/columns/0"] }, { "author": "agent/bob", "role": "", "leases": [] }], "leases": [{ "target": "/state/columns/0", "holder": "agent/ada", "seconds": 240 }], "roles": { "agent/ada": "design" } } } },
+				{ "key": "mod+4" },
+				{ "expect": { "state": "tab", "is": "agents" } },
+				{ "expect": { "node": "#label-peer", "text": "agent/ada (design)", "nth": 1 } },
+				{ "expect": { "node": "#label-peer-leases", "text": "Leases /state/columns/0", "nth": 1 } },
+				{ "expect": { "node": "#label-peer-work", "text": "1 open proposal, 1 conflict", "nth": 2 } },
+				{ "expect": { "node": "#label-lease", "text": "/state/columns/0: agent/ada, 240 s left" } },
+				{ "expect": { "node": "#label-end-lease", "exists": true } },
+				{ "expect": { "node": "#roleDraft", "exists": true } },
+				{ "action": "host:review", "event": { "proposals": [], "previewing": null, "mode": "default", "grants": [], "revision": 4, "coordination": { "peers": [], "leases": [], "roles": {} } } },
+				{ "expect": { "node": "#panel-lease", "exists": false } },
+				{ "expect": { "node": "#label-who-hint", "text": "Nobody is connected." } }
+			]
+		},
+		{
+			"name": "agents-only-a-reviewer-ends-leases",
+			"note": "A peer that may not review sees the leases but no End lease, Give role or role field",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 4, "head": { "short": "a1b2c3d" }, "you": "agent", "canReview": false, "mode": "default" } },
+				{ "action": "host:review", "event": { "proposals": [], "previewing": null, "mode": "default", "grants": [], "revision": 4, "coordination": { "peers": [{ "author": "studio", "role": "", "leases": [] }, { "author": "agent/ada", "role": "design", "leases": ["/state/columns/0"] }, { "author": "agent/bob", "role": "", "leases": [] }], "leases": [{ "target": "/state/columns/0", "holder": "agent/ada", "seconds": 240 }], "roles": { "agent/ada": "design" } } } },
+				{ "key": "mod+4" },
+				{ "expect": { "node": "#label-lease", "text": "/state/columns/0: agent/ada, 240 s left" } },
+				{ "expect": { "node": "#label-end-lease", "exists": false } },
+				{ "expect": { "node": "#label-set-role", "exists": false } },
+				{ "expect": { "node": "#roleDraft", "exists": false } }
+			]
 		}
 	]
 }
