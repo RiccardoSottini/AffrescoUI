@@ -15,7 +15,7 @@ C++ only connects it.
 | `studio.screen.json` | The screen document |
 | `studio-features.json`, `studio-repairs.json` | Parts of the document it includes |
 | `studio-strings.json` | Its texts in English, Italian and Arabic (`strings`, `t()`) |
-| `studio.scenarios.json` | Its scenarios (`affrescoui test`; the rendering check plays them too) |
+| `studio.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `studio.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 
 ## What it shows

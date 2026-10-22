@@ -14,7 +14,7 @@ Playlists, a library of 3,000 songs in a table, albums and artists in grids, sea
 | `strings.json` | The string tables: English, Italian and Arabic |
 | `Visualiser.hpp`, `Visualiser.cpp` | The `visualiser` type: bars drawn on a GPU surface, registered by the host |
 | `music-player.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `music-player.scenarios.json` | Its scenarios (`affrescoui test`; the rendering check plays them too) |
+| `music-player.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `music-player.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).

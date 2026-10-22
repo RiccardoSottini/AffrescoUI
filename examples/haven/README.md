@@ -13,7 +13,7 @@ Rooms in a tree by floor, a floor plan, scenes, lights with their colours, clima
 | `images/` | The pictures the screen shows |
 | `plan.json` | The floor plan, the media card and the colour dialog (included) |
 | `smart-home.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `smart-home.scenarios.json` | Its scenarios (`affrescoui test`; the rendering check plays them too) |
+| `smart-home.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `smart-home.screen.json` | The screen document |
 | `strings.json` | Its string tables: English, Italian and Arabic |
 

@@ -24,7 +24,7 @@ Sign in, create an account, two-step verification, a password reset, provider si
 | File | What it is |
 |---|---|
 | `sign-in.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `sign-in.scenarios.json` | Its scenarios (`affrescoui test`; the rendering check plays them too) |
+| `sign-in.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `sign-in.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
