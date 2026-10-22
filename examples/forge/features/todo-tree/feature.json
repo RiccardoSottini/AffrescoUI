@@ -1,6 +1,6 @@
 {
 	"format": "affrescoui-feature",
-	"version": 1,
+	"version": 2,
 	"name": "todoTree",
 	"release": "1.2.0",
 	"title": "TODO tree",
@@ -8,7 +8,7 @@
 	"license": "Apache-2.0",
 	"note": "RFC 0004's worked example, fitted to Forge: it reads the open files through Forge's workspace.files export.",
 	"requires": {
-		"format": 1,
+		"format": 2,
 		"points": ["sidebar.views"],
 		"exports": { "workspace.files": { "type": "array" } },
 		"features": { "wordCount": "^1.0.0" }
@@ -47,9 +47,9 @@
 							"let": { "todos": "{{filter(split(file.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME'))}}" },
 							"type": "column",
 							"width": "100%",
-							"height": "{{len(todos) == 0 ? 0 : 24 + len(todos) * 22}}",
+							"height": "{{length(todos) == 0 ? 0 : 24 + length(todos) * 22}}",
 							"children": [
-								{ "id": "todoTree-file-name", "type": "label", "fitText": true, "textColor": "@color.text", "padding": 4, "text": "{{file.name}}", "visible": "{{len(todos) > 0}}" },
+								{ "id": "todoTree-file-name", "type": "label", "fitText": true, "textColor": "@color.text", "padding": 4, "text": "{{file.name}}", "visible": "{{length(todos) > 0}}" },
 								{
 									"id": "todoTree-line",
 									"repeat": { "for": "todo", "in": "todos" },

@@ -12,6 +12,7 @@
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 
+#include "affresco/core/Log.hpp"
 #include "affresco/core/Portable.hpp"
 
 #include <algorithm>
@@ -149,9 +150,25 @@ bool idPrefix(std::string_view name) {
 	       std::ranges::all_of(name, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
 }
 
+/// @brief A change set as the current format writes it: a version 1 one's patches upgraded (DocumentRules::
+/// upgradeRevision()), a current one as it is.
+/// @param rules The format's rules.
+/// @param changes The change set, checked.
+/// @return It, current.
+json currentChanges(const DocumentRules& rules, const json& changes) {
+	if(changes.value("version", 0) != 1) return changes;
+	json current = changes;
+	current["version"] = 2;
+	for(json& revision : current["revisions"])
+		if(revision.is_object() && revision.contains("patch")) static_cast<void>(rules.upgradeRevision(revision["patch"]));
+	return current;
+}
+
 } // namespace
 
 Repository::Repository(const DocumentRules& rules, json document) : rules_(rules) {
+	if(!rules_.upgrade(document).empty())
+		affresco::log(LogLevel::Info, "AffrescoUI history: the screen was written for an older format version, read as the current one");
 	rules_.validate(document);
 	if(document.contains("state")) state_ = expect::object(document["state"], "state");
 
@@ -426,6 +443,19 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 /* Changes */
 
 // The observer refusing the new version rolls everything back
+// The files on disk keep what they were written as: the upgrade is one more commit on top
+void Repository::upgradeHead(json upgraded) {
+	Commit commit;
+	commit.author = commit.committer = "format";
+	commit.message = "format version 2";
+	commit.time = utcNow();
+	commit.patch = detail::delta(document_, upgraded);
+	commit.parents.push_back(main_.back());
+	commit.number = mainHead().number + 1;
+	main_.push_back(store(std::move(commit), upgraded, &document_).id);
+	document_ = std::move(upgraded);
+}
+
 const Repository::Commit& Repository::land(Commit commit, json document, json state) {
 	endPreview();
 	commit.parents.insert(commit.parents.begin(), main_.back());
@@ -873,7 +903,7 @@ json Repository::exportChanges(const json& from, std::string_view name) const {
 		                     {"patch", c.patch}});
 	}
 	return {{"format", "affrescoui-changes"},
-	        {"version", 1},
+	        {"version", 2},
 	        {"name", name.empty() ? "changes" : std::string(name)},
 	        {"from", base.number},
 	        {"to", mainHead().number},
@@ -886,7 +916,8 @@ json Repository::exportChanges(const json& from, std::string_view name) const {
 void Repository::checkChanges(const json& changes) {
 	expect::object(changes, "changes");
 	if(changes.value("format", "") != "affrescoui-changes") fail("changes.format", "expected \"affrescoui-changes\"");
-	if(changes.value("version", 0) != 1) fail("changes.version", "unsupported version (expected 1)");
+	if(const int version = changes.value("version", 0); version != 1 && version != 2)
+		fail("changes.version", "unsupported version (expected 1 or 2)");
 	if(!changes.contains("revisions") || !changes["revisions"].is_array()) fail("changes.revisions", "expected a list");
 }
 
@@ -897,15 +928,16 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
+	const json current = currentChanges(rules_, changes);
 
 	endPreview();
 	const json oldState = state_, oldDocument = document_;
 	const std::size_t oldMain = main_.size();
-	const std::string name = changes.value("name", "changes");
+	const std::string name = current.value("name", "changes");
 
 	importing_ = true;
-	for(std::size_t i = 0; i < changes["revisions"].size(); ++i) {
-		json revision = changes["revisions"][i];
+	for(std::size_t i = 0; i < current["revisions"].size(); ++i) {
+		json revision = current["revisions"][i];
 		if(revision.is_object()) {
 			revision.erase("parent"); // a change set applies on top of whatever is there
 			revision["author"] = "plugin:" + name;
@@ -935,13 +967,14 @@ bool Repository::hasImported(const json& changes) const {
 // What importChanges() does, on copies: the same patches and the same deny rules, nothing committed
 json Repository::tryChanges(const json& changes) const {
 	checkChanges(changes);
-	const std::string author = "plugin:" + changes.value("name", std::string("changes"));
+	const json current = currentChanges(rules_, changes);
+	const std::string author = "plugin:" + current.value("name", std::string("changes"));
 	json document = mainDocument(), state = committedState();
 	json view = detail::view(document, state);
-	for(std::size_t i = 0; i < changes["revisions"].size(); ++i) {
+	for(std::size_t i = 0; i < current["revisions"].size(); ++i) {
 		const std::string where = "changes.revisions[" + std::to_string(i) + "]";
 		try {
-			const json& revision = changes["revisions"][i];
+			const json& revision = current["revisions"][i];
 			expect::object(revision, "revision");
 			Prepared next = prepare(patchOf(revision), document, state);
 			if(const Verdict verdict = evaluate(next.before, next.after, author, false);

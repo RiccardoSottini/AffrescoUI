@@ -30,7 +30,7 @@ static int failures = 0;
 
 /** @brief The test's document: a button that runs a native action, one that emits and calls, one that fails. */
 static const char document[] =
-    "{ \"format\": \"affrescoui-screen\", \"version\": 1,\n"
+    "{ \"format\": \"affrescoui-screen\", \"version\": 2,\n"
     "  \"window\": { \"title\": \"C API\", \"width\": 200, \"height\": 120 },\n"
     "  \"state\": { \"count\": 1, \"result\": 0, \"failed\": false, \"items\": [{ \"title\": \"a/b\" }] },\n"
     "  \"root\": { \"id\": \"root\", \"children\": [\n"

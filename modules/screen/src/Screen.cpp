@@ -10,6 +10,7 @@
 #include "affresco/channel/Sockets.hpp"
 #include "affresco/core/Log.hpp"
 #include "affresco/format/Adapters.hpp"
+#include "affresco/format/Migrate.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
 #include "affresco/net/RemotePeers.hpp"
@@ -480,9 +481,10 @@ void mergeInclude(json& document, const json& part) {
 /// comes first and the including file's entries win; root and window come from the including file.
 /// @param document The screen.
 /// @param baseDirectory Where its include paths are resolved from.
+/// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
 /// @param depth Includes inside includes so far.
 /// @throws ScreenError If an include can't be read.
-void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, int depth = 0) {
+void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth = 0) {
 	if(!document.is_object() || !document.contains("include")) return;
 	if(depth > 8) throw ScreenError("AffrescoUI screen: include: nested too deeply (a file includes itself?)");
 	const json includes = document["include"].is_string() ? json::array({document["include"]}) : document["include"];
@@ -493,7 +495,8 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
 		json part = readInclude(path);
-		resolveIncludes(part, path.parent_path(), depth + 1);
+		if(!format::migrate(part).empty()) migrated = true;
+		resolveIncludes(part, path.parent_path(), migrated, depth + 1);
 		mergeInclude(document, part);
 	}
 }
@@ -597,7 +600,11 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 	if(format::adapters::detect(document) != format::adapters::SourceFormat::Screen)
 		if(auto foreign = format::adapters::convertForeign(content))
 			return fromConverted(std::move(*foreign), std::move(baseDirectory));
-	resolveIncludes(document, baseDirectory);
+	bool migrated = !format::migrate(document).empty();
+	resolveIncludes(document, baseDirectory, migrated);
+	if(migrated) // one notice for the screen and its parts: they work as they are, in memory
+		affresco::log(LogLevel::Info, "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
+		                    "--write <files>` rewrites the files)");
 	return Screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
 }
 

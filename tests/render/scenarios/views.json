@@ -1,6 +1,6 @@
 {
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"screens": "../screens",
 	"scenarios": [
 		{

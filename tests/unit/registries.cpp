@@ -147,7 +147,7 @@ TEST_CASE("format: a step group needs a runner, and a step is registered once") 
 }
 
 TEST_CASE("format: the sections validate a document, naming the place") {
-	const json valid = {{"format", "affrescoui-screen"}, {"version", 1}, {"root", {{"type", "panel"}}}};
+	const json valid = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};
 	CHECK(sectionError(valid).empty());
 
 	json unknown = valid;
@@ -156,11 +156,11 @@ TEST_CASE("format: the sections validate a document, naming the place") {
 	json included = valid;
 	included["include"] = "parts.json"; // merged when the file is read, never in a live document
 	CHECK(sectionError(included).find("include: unknown section") != std::string::npos);
-	CHECK(sectionError({{"version", 1}}).find("missing \"root\"") != std::string::npos);
+	CHECK(sectionError({{"version", 2}}).find("missing \"root\"") != std::string::npos);
 	CHECK(sectionError({{"root", json::object()}}).find("missing \"version\"") != std::string::npos);
 	json future = valid;
-	future["version"] = 2;
-	CHECK(sectionError(future).find("version: unsupported version 2") != std::string::npos);
+	future["version"] = 3;
+	CHECK(sectionError(future).find("version: unsupported version 3") != std::string::npos);
 	json component = valid;
 	component["components"] = {{"card", {{"params", json::object()}}}};
 	CHECK(sectionError(component).find("components.card: a component needs a \"node\"") != std::string::npos);
@@ -181,7 +181,7 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 	CHECK(capabilities == std::vector<std::string>{"channels", "services", "connections", "persist", "permissions"});
 
 	const Rules rules;
-	const json before = {{"format", "affrescoui-screen"}, {"version", 1}, {"root", {{"type", "panel"}}}};
+	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};
 	for(const std::string& section : capabilities) {
 		CAPTURE(section);
 		json after = before;
@@ -194,7 +194,7 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 
 TEST_CASE("format: the catalog is built from the registries, and lists an application's types") {
 	affresco::Screen screen =
-	    affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 1, "root": {"type": "panel"}})");
+	    affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 2, "root": {"type": "panel"}})");
 	screen.registerType("notes", [] { return std::make_unique<NotesEditor>(); }, {"language"});
 	const json catalog = json::parse(screen.catalogJson());
 
@@ -218,7 +218,7 @@ TEST_CASE("format: an application's type gets the built-in widget's properties a
 	const affresco::detail::ManualClock clock;
 	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
 	affresco::Screen screen = affresco::Screen::fromString(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "language": "c++", "numbers": true },
 		"root": { "type": "panel", "children": [
 			{ "type": "notes", "id": "notes", "lineNumbers": "{{state.numbers}}", "language": "{{state.language}}" }

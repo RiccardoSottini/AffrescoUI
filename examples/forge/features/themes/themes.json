@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's themes: every colour of the workbench is a token with one variant per theme, so a theme is a set of values and switching is one state change. Importing a VS Code colour theme adds a variant to each token through a patch. The file icon theme maps names and extensions to icons, applied by forge.index.",
 
 	"tokens": {

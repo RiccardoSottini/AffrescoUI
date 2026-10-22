@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "The diff view, for the rendering check: two versions of a function, side by side (rows aligned with blank rows, changed characters marked) or inline, switched by a button; the mode lives in state.",
 
 	"window": { "title": "Diff", "width": 640, "height": 360 },

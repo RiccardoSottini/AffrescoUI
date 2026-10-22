@@ -16,7 +16,7 @@ namespace {
 json screenWithActions() {
 	return json::parse(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "p": 0 },
 		"actions": {
 			"refresh": [{ "set": "state.p", "to": 0 }],

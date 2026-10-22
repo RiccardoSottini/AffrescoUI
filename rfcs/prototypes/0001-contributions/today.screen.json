@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "RFC 0001 prototype, runnable today. The lists RFC 0001 would give as variables (commands, menus, keybindings, settings) are written into the state by hand here, and the palette, the menu, the keybinding editor and the settings page are ordinary components that read them. Under the RFC the hand-written lists disappear: see proposed.screen.json.",
 	"window": { "title": "Contributions prototype", "width": 1040, "height": 640 },
 	"fonts": {
@@ -119,7 +119,7 @@
 						"anchors": { "right": 0, "top": 8 },
 						"width": 220,
 						"height": 26,
-						"from": "end",
+						"justify": "end",
 						"children": [
 							{
 								"id": "label-setting-choice",
@@ -301,7 +301,7 @@
 						"placeholder": "Type the name of a command",
 						"placeholderColor": "@muted",
 						"bind": "state.query",
-						"onSubmit": [{ "if": "{{len(computed.paletteItems) > 0}}", "then": [{ "set": "state.palette", "to": false }, { "run": "{{computed.paletteItems[0].name}}" }] }]
+						"onSubmit": [{ "if": "{{length(computed.paletteItems) > 0}}", "then": [{ "set": "state.palette", "to": false }, { "run": "{{computed.paletteItems[0].name}}" }] }]
 					},
 					{
 						"id": "column-palette",

@@ -1,0 +1,15 @@
+{
+	"format": "affrescoui-changes",
+	"version": 1,
+	"name": "toolbar at the end",
+	"revisions": [
+		{
+			"message": "The toolbar's buttons at the end",
+			"patch": [
+				{ "op": "replace", "path": "/root/children/0/from", "value": "end" },
+				{ "op": "add", "path": "/root/children/-", "value": { "type": "row", "id": "footer", "from": "end" } },
+				{ "op": "replace", "path": "/state/from", "value": "data" }
+			]
+		}
+	]
+}

@@ -105,7 +105,7 @@ json kanban(const std::function<void(json&)>& change = {}) {
 /// @return It.
 json blockedColumn() {
 	const json changes = {{"format", "affrescoui-changes"},
-	                      {"version", 1},
+	                      {"version", 2},
 	                      {"name", "blocked-column"},
 	                      {"revisions",
 	                       {{{"message", "A Blocked column before Done"},
@@ -132,7 +132,7 @@ json blockedColumn() {
 std::string playProof(const std::string& document, const std::string& proof) {
 	namespace automation = affresco::automation;
 	const json file = {{"format", "affrescoui-scenarios"},
-	                   {"version", 1},
+	                   {"version", 2},
 	                   {"screen", "kanban.screen.json"},
 	                   {"scenarios", json::parse(proof).at("scenarios")}};
 	automation::Options options;

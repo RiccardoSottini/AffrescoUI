@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "The debugger's views (debug.json has the logic; the source page's actions are here): the Run and Debug side bar (configurations, variables, watches, the call stack and the breakpoints), the Debug Console panel, the floating toolbar and the dialogs, and the read-only page for a source outside the open folder.",
 
 	"actions": {
@@ -41,13 +41,13 @@
 						  "textColor": "@color.muted", "tooltip": "Reload .vscode/launch.json",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "debugLoadConfigurations" } }
 					  ] },
-					{ "type": "label", "id": "debug-empty", "when": "{{len(state.debug.configurations) == 0 && empty(state.debug.error)}}",
+					{ "type": "label", "id": "debug-empty", "when": "{{length(state.debug.configurations) == 0 && empty(state.debug.error)}}",
 					  "wrap": true, "width": "100%", "padding": 12, "textColor": "@color.text",
 					  "text": "{{'No launch configurations. Add one of type lldb or python to ' + (empty(state.folder.root) ? 'the open folder' : 'this folder') + '\\'s .vscode/launch.json.' + (state.debug.skipped > 0 ? ' ' + plural(state.debug.skipped, 'configuration') + ' Forge can\\'t run were left out.' : '')}}" },
 					{ "type": "label", "id": "debug-error", "when": "{{!empty(state.debug.error)}}", "icon": "circle-x", "wrap": true,
 					  "width": "100%", "padding": 8, "textColor": "@color.text", "text": "{{state.debug.error}}" },
-					{ "type": "list", "id": "debug-configurations", "when": "{{len(state.debug.configurations) > 0}}", "width": "100%",
-					  "height": "{{min(4, len(state.debug.configurations)) * 22}}", "items": "{{computed.debugConfigurationRows}}",
+					{ "type": "list", "id": "debug-configurations", "when": "{{length(state.debug.configurations) > 0}}", "width": "100%",
+					  "height": "{{min(4, length(state.debug.configurations)) * 22}}", "items": "{{computed.debugConfigurationRows}}",
 					  "bind": "state.debug.selected", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
 					  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
 					  "onOpen": { "run": "debugStart" } },
@@ -123,7 +123,7 @@
 					{ "type": "list", "id": "debug-console-lines", "width": "100%", "grow": 1, "font": "code",
 					  "items": "{{computed.debugConsoleRows}}", "rowHeight": 18, "color": "@color.panel", "textColor": "@color.text",
 					  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent" },
-					{ "type": "label", "id": "debug-completions", "when": "{{len(state.debug.completions) > 1}}", "width": "100%",
+					{ "type": "label", "id": "debug-completions", "when": "{{length(state.debug.completions) > 1}}", "width": "100%",
 					  "height": 20, "padding": 4, "font": "code", "textColor": "@color.muted", "text": "{{join(state.debug.completions, '  ')}}" },
 					{ "type": "row", "id": "debug-console-input-row", "width": "100%", "height": 26, "alignItems": "center",
 					  "children": [

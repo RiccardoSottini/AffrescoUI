@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "What the Code editor template (Bottega) does, checked headless: affrescoui test code-editor.scenarios.json",
 	"screen": "code-editor.screen.json",
 	"scenarios": [

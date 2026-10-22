@@ -182,7 +182,7 @@ json fiftyThousandPanels() {
 	json items = json::array();
 	for(int i = 0; i < 25'000; ++i) items.push_back({{"id", i}, {"v", i}});
 	json document = json::parse(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"actions": { "touch": [{ "set": "state.items[event.i].v", "to": "{{event.v}}" }] },
 		"root": { "type": "panel", "children": [{ "type": "column", "children": [
 			{ "type": "row", "repeat": { "for": "item", "in": "state.items", "key": "{{item.id}}" }, "children": [

@@ -23,7 +23,7 @@ namespace {
 /// @brief A screen with a white board the agent may only propose changes to, and a studio that reviews.
 constexpr const char* boardScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"window": { "title": "pictures", "width": 120, "height": 80 },
 	"state": { "count": 0 },
 	"permissions": { "allow": ["studio"], "ask": ["agent(#board)"], "reviewers": ["studio"] },

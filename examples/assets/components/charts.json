@@ -8,7 +8,7 @@
 				"type": "path",
 				"width": 240,
 				"height": 120,
-				"viewBox": "0 0 {{max(len(values) - 1, 1)}} 100",
+				"viewBox": "0 0 {{max(length(values) - 1, 1)}} 100",
 				"fit": "fill",
 				"d": "{{empty(values) ? '' : 'M ' + join(map(values, index + ' ' + (100 - it * 100 / max(top || max(values), 0.000001))), ' L ')}}",
 				"stroke": "{{color}}",
@@ -23,9 +23,9 @@
 				"type": "path",
 				"width": 240,
 				"height": 120,
-				"viewBox": "0 0 {{max(len(values) - 1, 1)}} 100",
+				"viewBox": "0 0 {{max(length(values) - 1, 1)}} 100",
 				"fit": "fill",
-				"d": "{{empty(values) ? '' : 'M 0 100 L ' + join(map(values, index + ' ' + (100 - it * 100 / max(top || max(values), 0.000001))), ' L ') + ' L ' + (len(values) - 1) + ' 100 Z'}}",
+				"d": "{{empty(values) ? '' : 'M 0 100 L ' + join(map(values, index + ' ' + (100 - it * 100 / max(top || max(values), 0.000001))), ' L ') + ' L ' + (length(values) - 1) + ' 100 Z'}}",
 				"fillColor": "{{color}}"
 			}
 		},
@@ -35,7 +35,7 @@
 				"type": "path",
 				"width": 240,
 				"height": 120,
-				"viewBox": "0 0 {{max(len(values), 1)}} 100",
+				"viewBox": "0 0 {{max(length(values), 1)}} 100",
 				"fit": "fill",
 				"d": "{{join(map(values, 'M ' + (index + gap / 2) + ' 100 V ' + (100 - it * 100 / max(top || max(values), 0.000001)) + ' H ' + (index + 1 - gap / 2) + ' V 100 Z'), ' ')}}",
 				"fillColor": "{{color}}"

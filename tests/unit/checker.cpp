@@ -35,7 +35,7 @@ struct Case {
 /// @brief Makes a screen from its sections.
 /// @param sections JSON text of an object, e.g. `"state": {...}, "root": {...}`.
 /// @return The document.
-json screen(const std::string& sections) { return json::parse("{\"version\": 1, " + sections + "}"); }
+json screen(const std::string& sections) { return json::parse("{\"version\": 2, " + sections + "}"); }
 
 /// @brief Checks a document against its own state.
 /// @param document The document.
@@ -149,7 +149,7 @@ TEST_CASE("checker: state paths") {
 		 {"root.text: 'state.cards[state.current].titel' doesn't exist (did you mean "
 		  "'state.cards[state.current].title'?)"}},
 	    {"a list and a single value have no keys, only a length",
-		 R"("state": {"cards": [], "name": ""}, "root": {"text": "{{len(state.cards)}} {{state.cards.length}} {{state.name.length}} {{state.cards.first}} {{state.name.first}}"})",
+		 R"("state": {"cards": [], "name": ""}, "root": {"text": "{{length(state.cards)}} {{state.cards.length}} {{state.name.length}} {{state.cards.first}} {{state.name.first}}"})",
 		 {"root.text: 'state.cards.first' doesn't exist (state.cards is a list)",
 		  "root.text: 'state.name.first' doesn't exist (state.name is a single value)"}},
 	    {"a key a step creates may be read",
@@ -197,12 +197,12 @@ TEST_CASE("checker: variables in scope") {
 		 {"root.children[1].text: unknown variable 'card'"}},
 	    {"check gives value, valid and error",
 		 R"("state": {"email": ""},
-	        "root": {"children": [{"type": "textarea", "bind": "state.email", "check": {"rule": "{{len(value) > 3}}"},
+	        "root": {"children": [{"type": "textarea", "bind": "state.email", "check": {"rule": "{{length(value) > 3}}"},
 	          "children": [{"text": "{{valid ? '' : error}}"}]}]})",
 		 {}},
 	    {"list functions see it and index",
 		 R"("state": {"cards": [{"done": true}]},
-	        "root": {"text": "{{count(state.cards, it.done)}} {{len(filter(state.cards, it.don))}}"})",
+	        "root": {"text": "{{count(state.cards, it.done)}} {{length(filter(state.cards, it.don))}}"})",
 		 {"root.text: 'it.don' doesn't exist (did you mean 'it.done'?)"}},
 	    {"forEach, run with, and an action that reads its caller's variables",
 		 R"("state": {"cards": [{"title": "a"}]}, "actions": {"rename": [{"set": "state.last", "to": "{{card.title}} {{to}}"}]},
@@ -321,17 +321,17 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 		    {"node", {{"children", json::array({{{"use", "c" + std::to_string(i + 1)}}})}}}};
 	components["c1000"] = {{"node", json::object()}};
 	const json chain = {
-	    {"version", 1}, {"components", components}, {"root", {{"children", json::array({{{"use", "c0"}}})}}}};
+	    {"version", 2}, {"components", components}, {"root", {{"children", json::array({{{"use", "c0"}}})}}}};
 	CHECK(affresco::format::check(chain, json::object()));
 
 	// Over a million values: too large to check, so nothing is claimed
-	json wide = {{"version", 1}, {"root", {{"text", json::array()}}}};
+	json wide = {{"version", 2}, {"root", {{"text", json::array()}}}};
 	wide["root"]["text"].get_ref<json::array_t&>().resize(1100000, json::array()); // numbers cost no visit: lists do
 	CHECK_FALSE(affresco::format::check(wide, json::object()));
 
 	// A long name with a typo: hints compare names of a sensible length only, not a square of a hundred thousand
 	const std::string longName(100000, 'a');
-	const json longTypo = {{"version", 1},
+	const json longTypo = {{"version", 2},
 	                       {"state", {{longName, 1}}},
 	                       {"root", {{"text", "{{state." + longName + "b}}"}}}};
 	const auto found = affresco::format::check(longTypo, longTypo["state"]);
@@ -346,7 +346,7 @@ TEST_CASE("checker: only the first findings of a pass get a hint, each against t
 	for(int i = 0; i < 2000; ++i) state["key" + std::to_string(i)] = i;
 	json labels = json::array();
 	for(int i = 0; i < 200; ++i) labels.push_back({{"text", "{{state.kez" + std::to_string(i) + "}}"}});
-	const json document = {{"version", 1}, {"state", state}, {"root", {{"children", labels}}}};
+	const json document = {{"version", 2}, {"state", state}, {"root", {{"children", labels}}}};
 
 	const auto found = affresco::format::check(document, state);
 	REQUIRE(found);
@@ -360,7 +360,7 @@ TEST_CASE("checker: only the first findings of a pass get a hint, each against t
 	json many = json::object();
 	for(int i = 0; i < 1000; ++i) many["k" + std::to_string(i)] = i;
 	many["special"] = 1;
-	const json late = {{"version", 1}, {"state", many}, {"root", {{"text", "{{state.specail}}"}}}};
+	const json late = {{"version", 2}, {"state", many}, {"root", {{"text", "{{state.specail}}"}}}};
 	CHECK(lines(late).front().starts_with("root.text: 'state.specail' doesn't exist (state has k0, k1, k2,"));
 }
 
@@ -383,7 +383,7 @@ TEST_CASE("checker: computed values that read each other are read safely") {
 		const std::string next = "c" + std::to_string(link + 1);
 		computed["c" + std::to_string(link)] = link < 19 ? "{{computed." + next + " + 1}}" : "{{0}}";
 	}
-	CHECK(lines({{"version", 1}, {"computed", computed}, {"root", {{"text", "{{computed.c0}}"}}}}).empty());
+	CHECK(lines({{"version", 2}, {"computed", computed}, {"root", {{"text", "{{computed.c0}}"}}}}).empty());
 }
 
 TEST_CASE("checker: a finding a change moves is not new; one it adds is") {

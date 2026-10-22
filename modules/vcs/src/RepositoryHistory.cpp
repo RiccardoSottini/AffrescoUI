@@ -198,7 +198,10 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		if(commit->parents.empty()) break;
 	}
 	std::ranges::reverse(main);
-	if(*objects.at(main.front()).snapshot != mainDocument()) return false;
+	// A history begun on a version 1 screen began on this one, if the screen file was migrated since
+	json original = *objects.at(main.front()).snapshot;
+	static_cast<void>(rules_.upgrade(original));
+	if(original != mainDocument()) return false;
 
 	for(Proposal& proposal : refs.proposals) {
 		completeProposal(proposal, objects, main, store.refsFile());
@@ -207,10 +210,13 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	}
 	// Hashes catch damage, not a history written by hand: it may not do what no revision can (widen capabilities)
 	const Commit& head = objects.at(main.back());
+	json upgraded;
 	json document = reading(store.objectFile(head.id), [&] {
 		json rebuilt = rebuild(objects, head); // checked against the head's tree
 		rules_.checkChange(*objects.at(main.front()).snapshot, rebuilt);
-		rules_.validate(rebuilt);
+		upgraded = rebuilt;
+		static_cast<void>(rules_.upgrade(upgraded)); // a version 1 head is read as the current version
+		rules_.validate(upgraded);
 		return rebuilt;
 	});
 
@@ -225,6 +231,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	std::swap(document_, document);
 	json state = document_.contains("state") ? document_["state"] : json::object();
 	std::swap(state_, state);
+	if(upgraded != document_) upgradeHead(std::move(upgraded));
 	try {
 		documentChanged();
 	} catch(const DocumentError&) {

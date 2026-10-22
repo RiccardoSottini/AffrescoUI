@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's Search view (features/search), checked headless with tests/render/forge/folder open; nothing is replaced (each Replace All dialog is cancelled), so the folder stays as it is: affrescoui_render_runner search.scenarios.json",
 	"screen": "forge.screen.json",
 	"scenarios": [

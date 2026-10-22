@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"window": { "title": "A feature", "width": 420, "height": 200 },
 	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
 	"include": ["parts/status-bar.json"],
@@ -12,9 +12,9 @@
 			"release": "1.0.0",
 			"enabled": true,
 			"order": 10,
-			"requires": { "format": 1, "points": ["statusBar.right"], "exports": { "editor.text": { "type": "string" } } },
+			"requires": { "format": 2, "points": ["statusBar.right"], "exports": { "editor.text": { "type": "string" } } },
 			"provides": {
-				"computed": { "words": "{{len(filter(split(app.editor.text, ' '), len(trim(it)) > 0))}}" },
+				"computed": { "words": "{{length(filter(split(app.editor.text, ' '), length(trim(it)) > 0))}}" },
 				"views": {
 					"statusBar.right": {
 						"wordCount-label": { "type": "label", "fitText": true, "padding": 6, "textColor": "#334155",

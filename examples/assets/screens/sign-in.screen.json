@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Sign in: three screens (sign in, create an account, signed in), validation with check, a reset dialog, light and dark tokens, no code.",
 	"window": { "title": "Sign in", "width": 960, "height": 720, "minWidth": 600, "minHeight": 640 },
 	"fonts": {
@@ -69,11 +69,11 @@
 	"persist": ["state.theme", "state.remember"],
 	"computed": {
 		"emailValid": "{{contains(state.email, '@') && contains(state.email, '.')}}",
-		"passwordValid": "{{len(state.password) >= 8}}",
-		"strength": "{{len(state.password) == 0 ? 0 : 1 + (len(state.password) >= 8 ? 1 : 0) + (lower(state.password) != state.password ? 1 : 0) + (some(split(state.password, ''), contains('0123456789', it)) ? 1 : 0)}}",
+		"passwordValid": "{{length(state.password) >= 8}}",
+		"strength": "{{length(state.password) == 0 ? 0 : 1 + (length(state.password) >= 8 ? 1 : 0) + (lower(state.password) != state.password ? 1 : 0) + (some(split(state.password, ''), contains('0123456789', it)) ? 1 : 0)}}",
 		"strengthName": "{{['', 'Weak', 'Fair', 'Good', 'Strong'][computed.strength]}}",
 		"errors": "{{!state.submitted ? 0 : (computed.emailValid ? 0 : 1) + (computed.passwordValid ? 0 : 1)}}",
-		"initials": "{{upper(slice(len(trim(state.name)) > 0 ? trim(state.name) : state.email, 0, 1))}}"
+		"initials": "{{upper(slice(length(trim(state.name)) > 0 ? trim(state.name) : state.email, 0, 1))}}"
 	},
 	"styles": {
 		"caption": { "type": "label", "height": 20, "textColor": "@color.muted", "anchors": { "left": 0, "right": 0 } },
@@ -339,7 +339,7 @@
 		"createAccount": [
 			{ "set": "state.submitted", "to": true },
 			{
-				"if": "{{len(trim(state.name)) == 0 || !computed.emailValid || !computed.passwordValid}}",
+				"if": "{{length(trim(state.name)) == 0 || !computed.emailValid || !computed.passwordValid}}",
 				"then": [{ "stop": true }]
 			},
 			{ "set": "state.submitted", "to": false },
@@ -501,7 +501,7 @@
 				{
 					"id": "panel-card",
 					"style": "card",
-					"height": "{{572 + (state.submitted ? (len(trim(state.name)) > 0 ? 0 : 1) + computed.errors : 0) * 24}}",
+					"height": "{{572 + (state.submitted ? (length(trim(state.name)) > 0 ? 0 : 1) + computed.errors : 0) * 24}}",
 					"children": [
 						{
 							"id": "stack-form-2",
@@ -526,7 +526,7 @@
 										"key": "name",
 										"icon": "user",
 										"placeholder": "Your name",
-										"valid": "{{len(trim(state.name)) > 0}}",
+										"valid": "{{length(trim(state.name)) > 0}}",
 										"message": "Enter your name"
 									}
 								},
@@ -581,7 +581,7 @@
 											"font": "small",
 											"fitText": true,
 											"height": 18,
-											"text": "{{len(state.password) == 0 ? 'Use 8 or more characters, a capital and a digit' : computed.strengthName + ' password'}}",
+											"text": "{{length(state.password) == 0 ? 'Use 8 or more characters, a capital and a digit' : computed.strengthName + ' password'}}",
 											"textColor": "@color.muted"
 										}
 									]

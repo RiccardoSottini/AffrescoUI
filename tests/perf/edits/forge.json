@@ -8,7 +8,7 @@
 				"padding": 6,
 				"fitText": true,
 				"when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
-				"text": "{{len(split(trim(computed.activeDoc.text), ' ')) + ' words'}}"
+				"text": "{{length(split(trim(computed.activeDoc.text), ' ')) + ' words'}}"
 			}
 		}
 	},

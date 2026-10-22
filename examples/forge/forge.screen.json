@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp; the features service offers the example catalogue (catalog/), the editor's buffers are in features/editor/Editor.cpp.",
 
 	"window": {

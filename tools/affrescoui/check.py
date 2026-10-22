@@ -75,7 +75,7 @@ def render_scenarios():
         for scenario in area["scenarios"]:
             yield os.path.normpath(os.path.join(RENDER_SCENARIOS, area["screens"])), scenario
 
-CHANGES = {"format": "affrescoui-changes", "version": 1, "name": "cli-check",
+CHANGES = {"format": "affrescoui-changes", "version": 2, "name": "cli-check",
            "revisions": [{"author": "cli-check", "message": "A colour for the tool's check",
                           "patch": [{"op": "add", "path": "/tokens/color.cliCheck", "value": "#123456"}]}]}
 
@@ -123,7 +123,7 @@ class Checker:
         """The first frame of a scenario whose first step expects it, against the runner's capture of it."""
         frames = os.path.join(self.scratch, "frames")
         os.makedirs(frames, exist_ok=True)
-        first = {"format": "affrescoui-scenarios", "version": 1, "screens": screens,
+        first = {"format": "affrescoui-scenarios", "version": 2, "screens": screens,
                  "scenarios": [{"name": scenario["name"], "screen": scenario["screen"],
                                 "scale": scenario.get("scale", 1), "steps": [{"capture": "first"}]}]}
         scenarios_file = os.path.join(self.scratch, "first.scenarios.json")
@@ -143,13 +143,13 @@ class Checker:
         self.expect(report["failed"] == 0 and report["passed"] >= 5, f"test --json {path}: {report}")
         wrong = os.path.join(self.scratch, "wrong.scenarios.json")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 1, "screens": SCREENS, "screen": "kanban.screen.json", "scenarios": [
+            json.dump({"version": 2, "screens": SCREENS, "screen": "kanban.screen.json", "scenarios": [
                 {"name": "wrong", "steps": [{"expect": {"state": "board", "is": "Not the board"}}]}]}, file)
         output = self.run("test", wrong, expect=1)
         self.expect('FAILED wrong, step 1: state board is "Product launch", expected "Not the board"' in output,
                     f"test: a failing expectation: {output}")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 1, "screens": SCREENS, "screen": "kanban.screen.json",
+            json.dump({"version": 2, "screens": SCREENS, "screen": "kanban.screen.json",
                        "scenarios": [{"name": "a", "steps": [{"clik": "#card"}]}]}, file)
         self.run("test", wrong, expect=1)
 
@@ -176,7 +176,7 @@ class Checker:
         listener.setblocking(False)
         path = os.path.join(self.scratch, "channels.screen.json")
         with open(path, "w", encoding="utf-8") as file:
-            json.dump({"format": "affrescoui-screen", "version": 1, "channels": {"host": {"socket": address}},
+            json.dump({"format": "affrescoui-screen", "version": 2, "channels": {"host": {"socket": address}},
                        "actions": {"host:open": [{"send": "host", "data": {"type": "setMode", "mode": "acceptEdits"}}]},
                        "root": {"id": "root", "color": "#203040"}}, file)
         self.run("render", path, "-o", os.path.join(self.scratch, "channels.png"))
@@ -192,7 +192,7 @@ class Checker:
         overflowed the stack on it), so check reports it as too long to check instead of crashing."""
         path = os.path.join(self.scratch, "long.screen.json")
         with open(path, "w", encoding="utf-8") as file:
-            json.dump({"format": "affrescoui-screen", "version": 1,
+            json.dump({"format": "affrescoui-screen", "version": 2,
                        "root": {"id": "root", "color": "{{1" + " " * 30000 + "}}"}}, file)
         report = json.loads(self.run("check", path, "--json", expect=1))
         self.expect(any(problem["source"] == "schema" and "too long to check" in problem["message"]
@@ -232,7 +232,7 @@ def main():
         checker.run("check", os.path.join(scratch, "missing.json"), expect=3)
         broken = os.path.join(scratch, "broken.json")
         with open(broken, "w", encoding="utf-8") as file:
-            file.write('{ "version": 1, ')
+            file.write('{ "version": 2, ')
         checker.run("fmt", broken, expect=1)
         checker.expect(json.loads(checker.run("check", broken, "--json", expect=1))["problems"][0]["source"] == "json",
                        "check: a file that isn't JSON")

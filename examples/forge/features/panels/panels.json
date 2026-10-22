@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's panels: Problems (TODO and FIXME lines of the open files, a click goes to the line), Output (a log every feature writes to with the notify action), Notifications (the toast's history) and progress (a toast with a bar while a long task runs). The panel's tabs and the status bar counts come from this state.",
 
 	"state": {
@@ -37,7 +37,7 @@
 						{ "push": "state.problems", "value": "{{ {severity: contains(hit.text, 'FIXME') ? 'warning' : 'info', message: slice(hit.text, 0, 120), file: doc.id, label: doc.label, line: hit.line} }}" }
 					] }
 				] },
-				{ "run": "log", "with": { "text": "{{'Problems: ' + plural(len(state.problems), 'item')}}" } }
+				{ "run": "log", "with": { "text": "{{'Problems: ' + plural(length(state.problems), 'item')}}" } }
 			] },
 		"goToProblem": [
 			{ "forEach": "{{[state.problems[number(event.id)]]}}", "as": "p", "do": [
@@ -63,7 +63,7 @@
 				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Indexing failed: ' + error}}" } }],
 				  "then": [
 					{ "set": "state.toast.progress", "to": 1 },
-					{ "run": "log", "with": { "text": "{{'Indexed ' + plural(len(result.files), 'file') + (result.truncated ? ' (truncated)' : '')}}" } },
+					{ "run": "log", "with": { "text": "{{'Indexed ' + plural(length(result.files), 'file') + (result.truncated ? ' (truncated)' : '')}}" } },
 					{ "debounce": 1500, "do": [{ "set": "state.toast.open", "to": false }] }
 				  ] }
 			] }
@@ -92,7 +92,7 @@
 						{ "type": "tabs", "id": "panel-tabs", "role": "tablist", "label": "Panel Views", "width": 420, "height": 32, "bind": "state.panelTab",
 						  "color": "@color.panel", "textColor": "@color.muted", "activeTextColor": "@color.text",
 						  "activeBackground": "@color.panel", "accentColor": "@color.accent",
-						  "tabs": "{{concat([{id: 'problems', label: 'Problems' + (len(state.problems) > 0 ? ' ' + len(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'notifications', label: 'Notifications', closable: false}], len(state.terminals.list) > 0 ? [{id: 'terminal', label: 'Terminal', closable: false}] : [], [{id: 'debugConsole', label: 'Debug Console', closable: false}])}}" },
+						  "tabs": "{{concat([{id: 'problems', label: 'Problems' + (length(state.problems) > 0 ? ' ' + length(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'notifications', label: 'Notifications', closable: false}], length(state.terminals.list) > 0 ? [{id: 'terminal', label: 'Terminal', closable: false}] : [], [{id: 'debugConsole', label: 'Debug Console', closable: false}])}}" },
 						{ "id": "panel-gap", "grow": 1 },
 						{ "type": "label", "id": "panel-close", "role": "button", "icon": "x", "textColor": "@color.muted", "padding": 8,
 						  "fitText": true, "cursor": "hand", "tooltip": "Close Panel", "hover": { "color": "@color.hover" },

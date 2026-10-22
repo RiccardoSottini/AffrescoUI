@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's debugger: launch configurations from .vscode/launch.json (forge.debug.launchConfigurations, a subset), a session with lldb-dap or debugpy through the dap service the host granted (Debug.cpp), breakpoints in the editor's gutter, the call stack, variables, watches and the debug console. Every request goes through debugRequest, which names the service by state.debug.type and runs the answer action with `body` and `context`; the adapter's events go to debugEvent. The actions that take the adapter's messages as events (debugApplySession, debugApplyEvent, debugApplyResponse) let a scenario or an agent drive the views without an adapter. What an adapter sends is bounded in the dap service; here the console keeps 2000 lines, the history 100 entries and the variables 5000 rows. The views are in debugViews.json.",
 
 	"services": {
@@ -53,7 +53,7 @@
 			{ "set": "state.debug.configurations", "to": "{{found.configurations ?? []}}" },
 			{ "set": "state.debug.skipped", "to": "{{found.skipped ?? 0}}" },
 			{ "set": "state.debug.error", "to": "" },
-			{ "if": "{{number(state.debug.selected) >= len(state.debug.configurations)}}", "then": [{ "set": "state.debug.selected", "to": "0" }] }
+			{ "if": "{{number(state.debug.selected) >= length(state.debug.configurations)}}", "then": [{ "set": "state.debug.selected", "to": "0" }] }
 		],
 		"debugApplyLaunchFile": [{ "run": "debugApplyConfigurations", "with": { "found": "{{event}}" } }],
 
@@ -182,7 +182,7 @@
 			{ "set": "state.debug.configured", "to": true },
 			{ "forEach": "{{filter(map(state.debug.breakpoints, it.path), indexOf(map(state.debug.breakpoints, it.path), it) == index)}}", "as": "path",
 			  "do": [{ "run": "debugSendBreakpoints", "with": { "path": "{{path}}" } }] },
-			{ "if": "{{len(state.debug.exceptionFilters) > 0}}", "then": [{ "run": "debugSendFilters" }] },
+			{ "if": "{{length(state.debug.exceptionFilters) > 0}}", "then": [{ "run": "debugSendFilters" }] },
 			{ "if": "{{state.debug.capabilities.supportsConfigurationDoneRequest ?? false}}",
 			  "then": [{ "run": "debugRequest", "with": { "command": "configurationDone", "arguments": {}, "answer": "", "context": {}, "refused": "" } }] }
 		],
@@ -218,8 +218,8 @@
 			  "then": [{ "run": "debugPrintLines", "with": { "lines": "{{split(body.output, '\n')}}", "kind": "{{body.category ?? 'console'}}" } }] }
 		],
 		"debugPrintLines": [
-			{ "set": "state.debug.console", "to": "{{slice(concat(state.debug.console, map(slice(lines, 0, len(lines) - (empty(lines[len(lines) - 1]) ? 1 : 0)), {id: 'c' + (state.debug.consoleNext + index), text: it, kind: kind})), -2000)}}" },
-			{ "increment": "state.debug.consoleNext", "by": "{{len(lines)}}" }
+			{ "set": "state.debug.console", "to": "{{slice(concat(state.debug.console, map(slice(lines, 0, length(lines) - (empty(lines[length(lines) - 1]) ? 1 : 0)), {id: 'c' + (state.debug.consoleNext + index), text: it, kind: kind})), -2000)}}" },
+			{ "increment": "state.debug.consoleNext", "by": "{{length(lines)}}" }
 		],
 		"debugPrint": [{ "run": "debugPrintLines", "with": { "lines": "{{[text]}}", "kind": "{{kind}}" } }],
 		"debugStopped": [
@@ -247,7 +247,7 @@
 			{ "if": "{{context.threadId == state.debug.threadId && state.debug.status == 'stopped'}}",
 			  "then": [
 				{ "set": "state.debug.frames", "to": "{{map(body.stackFrames ?? [], {id: it.id, name: text(it.name ?? ''), line: it.line ?? 0, path: text(it.source.path ?? it.source.name ?? ''), relative: text(it.source.relative ?? ''), inside: it.source.inside ?? false, reference: it.source.sourceReference ?? 0})}}" },
-				{ "if": "{{len(state.debug.frames) > 0}}", "then": [{ "run": "debugSelectFrame", "with": { "frame": "{{state.debug.frames[0]}}", "ask": false } }] }
+				{ "if": "{{length(state.debug.frames) > 0}}", "then": [{ "run": "debugSelectFrame", "with": { "frame": "{{state.debug.frames[0]}}", "ask": false } }] }
 			  ] }
 		],
 		"debugResumed": [
@@ -297,7 +297,7 @@
 			"do": [{ "run": "debugRequest", "with": { "command": "threads", "arguments": {}, "answer": "debugOnThreadsPause", "context": {}, "refused": "" } }] },
 		"debugOnThreadsPause": [
 			{ "run": "debugOnThreads", "with": { "body": "{{body}}" } },
-			{ "if": "{{len(state.debug.threads) > 0}}",
+			{ "if": "{{length(state.debug.threads) > 0}}",
 			  "then": [{ "run": "debugRequest", "with": { "command": "pause", "arguments": "{{ {threadId: state.debug.threads[0].id} }}", "answer": "", "context": {}, "refused": "" } }] }
 		],
 		"debugStop": { "title": "Stop", "category": "Debug", "icon": "square",
@@ -340,7 +340,7 @@
 			{ "if": "{{context.frameId == state.debug.frameId}}",
 			  "then": [
 				{ "set": "state.debug.variables", "to": "{{map(slice(body.scopes ?? [], 0, 20), {path: 's' + index, depth: 0, name: text(it.name ?? ''), value: '', ref: it.variablesReference ?? 0, indexed: it.indexedVariables ?? 0, expanded: false, kind: 'scope', expensive: it.expensive ?? false})}}" },
-				{ "if": "{{len(state.debug.variables) > 0 && !state.debug.variables[0].expensive}}", "then": [{ "run": "debugExpand", "with": { "path": "s0" } }] }
+				{ "if": "{{length(state.debug.variables) > 0 && !state.debug.variables[0].expensive}}", "then": [{ "run": "debugExpand", "with": { "path": "s0" } }] }
 			  ] }
 		],
 		"debugExpand": [{ "run": "debugExpandRow", "with": { "row": "{{find(state.debug.variables, it.path == path)}}" } }],
@@ -348,7 +348,7 @@
 			{ "if": "{{row != null && row.kind == 'more'}}",
 			  "then": [{ "run": "debugLoadVariables", "with": { "parent": "{{row.parent}}", "ref": "{{row.ref}}", "depth": "{{row.depth}}", "start": "{{row.start}}", "indexed": "{{row.indexed}}", "replace": "{{row.path}}" } }],
 			  "else": [{ "if": "{{row != null && row.ref > 0 && row.expanded}}",
-				"then": [{ "set": "state.debug.variables", "to": "{{map(filter(state.debug.variables, slice(it.path, 0, len(row.path) + 1) != row.path + '/'), it.path == row.path ? merge(it, {expanded: false}) : it)}}" }],
+				"then": [{ "set": "state.debug.variables", "to": "{{map(filter(state.debug.variables, slice(it.path, 0, length(row.path) + 1) != row.path + '/'), it.path == row.path ? merge(it, {expanded: false}) : it)}}" }],
 				"else": [{ "if": "{{row != null && row.ref > 0}}",
 				  "then": [{ "set": "state.debug.variables", "to": "{{map(state.debug.variables, it.path == row.path ? merge(it, {expanded: true}) : it)}}" },
 				           { "run": "debugLoadVariables", "with": { "parent": "{{row.path}}", "ref": "{{row.ref}}", "depth": "{{row.depth + 1}}", "start": 0, "indexed": "{{row.indexed}}", "replace": "" } }] }] }] }
@@ -363,7 +363,7 @@
 			  "then": [{ "run": "debugInsertRows", "with": {
 				"at": "{{indexOf(map(state.debug.variables, it.path), empty(context.replace) ? context.parent : context.replace) + (empty(context.replace) ? 1 : 0)}}",
 				"skip": "{{empty(context.replace) ? 0 : 1}}",
-				"rows": "{{concat(map(slice(body.variables ?? [], 0, max(0, 5000 - len(state.debug.variables))), {path: context.parent + '/' + (context.start + index), depth: context.depth, name: text(it.name ?? ''), value: text(it.value ?? ''), type: text(it.type ?? ''), ref: it.variablesReference ?? 0, indexed: it.indexedVariables ?? 0, expanded: false, kind: 'variable', container: context.ref}), context.indexed > 0 && context.start + 100 < context.indexed ? [{path: context.parent + '/more' + (context.start + 100), depth: context.depth, name: '', value: text(context.indexed - context.start - 100) + ' more', ref: context.ref, indexed: context.indexed, expanded: false, kind: 'more', parent: context.parent, start: context.start + 100}] : [])}}" } }] }
+				"rows": "{{concat(map(slice(body.variables ?? [], 0, max(0, 5000 - length(state.debug.variables))), {path: context.parent + '/' + (context.start + index), depth: context.depth, name: text(it.name ?? ''), value: text(it.value ?? ''), type: text(it.type ?? ''), ref: it.variablesReference ?? 0, indexed: it.indexedVariables ?? 0, expanded: false, kind: 'variable', container: context.ref}), context.indexed > 0 && context.start + 100 < context.indexed ? [{path: context.parent + '/more' + (context.start + 100), depth: context.depth, name: '', value: text(context.indexed - context.start - 100) + ' more', ref: context.ref, indexed: context.indexed, expanded: false, kind: 'more', parent: context.parent, start: context.start + 100}] : [])}}" } }] }
 		],
 		"debugInsertRows": [
 			{ "set": "state.debug.variables", "to": "{{concat(slice(state.debug.variables, 0, at), rows, slice(state.debug.variables, at + skip))}}" }
@@ -388,7 +388,7 @@
 		],
 
 		"debugAddWatch": [
-			{ "if": "{{!empty(trim(state.debug.watchDraft)) && len(state.debug.watches) < 100}}",
+			{ "if": "{{!empty(trim(state.debug.watchDraft)) && length(state.debug.watches) < 100}}",
 			  "then": [
 				{ "push": "state.debug.watches", "value": "{{ {id: 'w' + state.debug.watchNext, expression: trim(state.debug.watchDraft), value: '', error: ''} }}" },
 				{ "increment": "state.debug.watchNext", "by": 1 },
@@ -417,7 +417,7 @@
 			  "then": [
 				{ "run": "debugPrint", "with": { "text": "{{state.debug.input}}", "kind": "input" } },
 				{ "set": "state.debug.history", "to": "{{slice(concat(filter(state.debug.history, it != state.debug.input), [state.debug.input]), -100)}}" },
-				{ "set": "state.debug.historyAt", "to": "{{len(state.debug.history)}}" },
+				{ "set": "state.debug.historyAt", "to": "{{length(state.debug.history)}}" },
 				{ "set": "state.debug.completions", "to": [] },
 				{ "if": "{{state.debug.status == 'inactive'}}",
 				  "then": [{ "run": "debugPrint", "with": { "text": "Start a debug session to evaluate expressions.", "kind": "error" } }],
@@ -433,20 +433,20 @@
 			  "then": [{ "increment": "state.debug.historyAt", "by": -1 }, { "set": "state.debug.input", "to": "{{state.debug.history[state.debug.historyAt]}}" }] }
 		],
 		"debugHistoryForward": [
-			{ "if": "{{state.debug.historyAt < len(state.debug.history)}}", "then": [{ "increment": "state.debug.historyAt", "by": 1 }] },
+			{ "if": "{{state.debug.historyAt < length(state.debug.history)}}", "then": [{ "increment": "state.debug.historyAt", "by": 1 }] },
 			{ "set": "state.debug.input", "to": "{{state.debug.history[state.debug.historyAt] ?? ''}}" }
 		],
 		"debugComplete": [
 			{ "if": "{{state.debug.status != 'inactive' && (state.debug.capabilities.supportsCompletionsRequest ?? false)}}",
 			  "then": [{ "run": "debugRequest", "with": { "command": "completions", "answer": "debugOnCompletions", "refused": "debugIgnore",
 				"context": "{{ {input: state.debug.input} }}",
-				"arguments": "{{merge({text: state.debug.input, column: len(state.debug.input) + 1}, state.debug.frameId == null ? {} : {frameId: state.debug.frameId})}}" } }] }
+				"arguments": "{{merge({text: state.debug.input, column: length(state.debug.input) + 1}, state.debug.frameId == null ? {} : {frameId: state.debug.frameId})}}" } }] }
 		],
 		"debugOnCompletions": [
 			{ "if": "{{context.input == state.debug.input}}",
 			  "then": [{ "set": "state.debug.completions", "to": "{{slice(map(body.targets ?? [], text(it.text ?? it.label)), 0, 50)}}" },
-			           { "if": "{{len(state.debug.completions) == 1}}",
-			             "then": [{ "set": "state.debug.input", "to": "{{slice(state.debug.input, 0, len(state.debug.input) - len(reverse(split(state.debug.input, ' '))[0])) + state.debug.completions[0]}}" },
+			           { "if": "{{length(state.debug.completions) == 1}}",
+			             "then": [{ "set": "state.debug.input", "to": "{{slice(state.debug.input, 0, length(state.debug.input) - length(reverse(split(state.debug.input, ' '))[0])) + state.debug.completions[0]}}" },
 			                      { "set": "state.debug.completions", "to": [] }] }] }
 		],
 		"debugClearConsole": { "title": "Clear Console", "category": "Debug", "icon": "eraser",
@@ -475,7 +475,7 @@
 			{ "run": "debugSendBreakpoints", "with": { "path": "{{path}}" } }
 		],
 		"debugAddBreakpoint": [
-			{ "if": "{{len(state.debug.breakpoints) < 10000}}",
+			{ "if": "{{length(state.debug.breakpoints) < 10000}}",
 			  "then": [{ "push": "state.debug.breakpoints", "value": "{{ {id: 'b' + state.debug.breakpointNext, path: path, line: line, enabled: true, condition: '', hitCondition: '', logMessage: '', verified: false, message: '', adapterId: null} }}" },
 			           { "increment": "state.debug.breakpointNext", "by": 1 }] }
 		],

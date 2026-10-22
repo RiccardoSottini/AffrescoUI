@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Rich text, for the rendering check: runs with bold, italic, larger and coloured parts, a link and an inline icon, wrapped across styles, and a selectable label. The scenario selects all of it, then edits one run.",
 
 	"window": { "title": "Rich text", "width": 420, "height": 240 },

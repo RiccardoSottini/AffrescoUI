@@ -16,7 +16,7 @@ namespace {
 /// @brief A screen with one label.
 constexpr std::string_view screenText = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"window": { "title": "Package test", "width": 320, "height": 120 },
 	"root": { "type": "panel", "id": "main", "color": "#1e1e2e", "children": [
 		{ "type": "label", "id": "greeting", "text": "Hello" }

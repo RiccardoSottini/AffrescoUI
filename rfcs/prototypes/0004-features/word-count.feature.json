@@ -1,21 +1,21 @@
 {
 	"format": "affrescoui-feature",
-	"version": 1,
+	"version": 2,
 	"name": "wordCount",
 	"release": "1.0.0",
 	"title": "Word count",
 	"description": "Shows the words (or characters) of the text being edited in the status bar; click to switch.",
 	"license": "Apache-2.0",
 	"requires": {
-		"format": 1,
+		"format": 2,
 		"points": ["statusBar.right"],
 		"exports": { "editor.text": { "type": "string" } }
 	},
 	"provides": {
 		"state": { "characters": false },
 		"computed": {
-			"words": "{{len(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), len(trim(it)) > 0))}}",
-			"characters": "{{len(app.editor.text)}}"
+			"words": "{{length(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), length(trim(it)) > 0))}}",
+			"characters": "{{length(app.editor.text)}}"
 		},
 		"actions": {
 			"toggle": { "title": "Toggle Word or Character Count", "category": "Word Count", "do": { "toggle": "state.wordCount.characters" } }

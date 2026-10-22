@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted (Scm.cpp): only Forge's own commands, as arrays, in the open folder's repository, and its output is read strictly in C++ (forge.scm.parseStatus, forge.scm.parseBranches, forge.scm.diff). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository.",
 
 	"services": {
@@ -74,18 +74,18 @@
 			"do": [{ "forEach": "{{filter([event.id ?? state.scm.selectedStaged], !empty(it))}}", "as": "path", "do": [
 				{ "run": "scmGit", "with": { "arguments": "{{['restore', '--staged', '--', path]}}", "input": "" } }] }] },
 		"scmStageAll": { "title": "Stage All Changes", "category": "Source Control", "icon": "list-plus",
-			"enablement": "{{len(state.scm.status.changes) > 0}}",
+			"enablement": "{{length(state.scm.status.changes) > 0}}",
 			"do": [{ "run": "scmGit", "with": { "arguments": ["add", "--", "."], "input": "" } }] },
 		"scmUnstageAll": { "title": "Unstage All Changes", "category": "Source Control", "icon": "list-minus",
-			"enablement": "{{len(state.scm.status.staged) > 0}}",
+			"enablement": "{{length(state.scm.status.staged) > 0}}",
 			"do": [{ "run": "scmGit", "with": { "arguments": ["restore", "--staged", "--", "."], "input": "" } }] },
 		"scmCommit": { "title": "Commit", "category": "Source Control", "icon": "check",
 			"description": "Commit the staged changes with the message (it goes to git's input, never its arguments).",
-			"enablement": "{{!empty(trim(state.scm.message)) && len(state.scm.status.staged) > 0}}",
+			"enablement": "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0}}",
 			"do": [
-				{ "if": "{{empty(trim(state.scm.message)) || len(state.scm.status.staged) == 0}}",
+				{ "if": "{{empty(trim(state.scm.message)) || length(state.scm.status.staged) == 0}}",
 				  "then": [{ "run": "notify", "with": { "severity": "info",
-					"message": "{{len(state.scm.status.staged) == 0 ? 'There are no staged changes to commit.' : 'Write a commit message first.'}}" } }],
+					"message": "{{length(state.scm.status.staged) == 0 ? 'There are no staged changes to commit.' : 'Write a commit message first.'}}" } }],
 				  "else": [{ "run": "scmGit", "with": { "arguments": ["commit", "-F", "-"], "input": "{{trim(state.scm.message) + '\n'}}" } }] }
 			] },
 		"scmBranches": { "title": "Show Branches", "category": "Source Control", "icon": "git-branch",
@@ -187,11 +187,11 @@
 					  "onSubmit": { "run": "scmCommit" } },
 					{ "type": "label", "id": "scm-commit", "icon": "check", "text": "Commit", "width": "100%", "height": 28,
 					  "align": "center", "radius": 2, "cursor": "hand", "focusable": true, "textColor": "#ffffff",
-					  "color": "{{!empty(trim(state.scm.message)) && len(state.scm.status.staged) > 0 ? '@color.accent' : '@color.border'}}",
+					  "color": "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0 ? '@color.accent' : '@color.border'}}",
 					  "onClick": { "run": "scmCommit" } },
 					{ "type": "row", "id": "scm-staged-head", "width": "100%", "height": 22, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "scm-staged-title", "text": "{{'STAGED CHANGES  ' + len(state.scm.status.staged)}}",
+						{ "type": "label", "id": "scm-staged-title", "text": "{{'STAGED CHANGES  ' + length(state.scm.status.staged)}}",
 						  "textColor": "@color.muted", "grow": 1, "padding": 8 },
 						{ "type": "label", "id": "scm-unstage", "icon": "minus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Unstage the selected change", "hover": { "textColor": "@color.text" },
@@ -206,7 +206,7 @@
 					  "onOpen": { "run": "scmOpenDiff" } },
 					{ "type": "row", "id": "scm-changes-head", "width": "100%", "height": 22, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "scm-changes-title", "text": "{{'CHANGES  ' + len(state.scm.status.changes)}}",
+						{ "type": "label", "id": "scm-changes-title", "text": "{{'CHANGES  ' + length(state.scm.status.changes)}}",
 						  "textColor": "@color.muted", "grow": 1, "padding": 8 },
 						{ "type": "label", "id": "scm-stage", "icon": "plus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Stage the selected change", "hover": { "textColor": "@color.text" },

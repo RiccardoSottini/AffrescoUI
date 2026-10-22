@@ -221,7 +221,7 @@ TEST_CASE("i18n: lists are joined, and text is compared letters first, then acce
 
 TEST_CASE("i18n: the checker reports unknown keys and wrong parameters, not computed ones") {
 	const auto document = [](const std::string& text) {
-		return json::parse(R"({"version": 1,
+		return json::parse(R"({"version": 2,
 			"strings": {"en": {"files": "{n, plural, one {# file} other {# files}}"}, "it": {"hi": "Ciao"}},
 			"state": {"count": 2, "key": "hi"},
 			"root": {"children": [{"type": "label", "text": ")" +

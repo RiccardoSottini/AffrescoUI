@@ -127,7 +127,7 @@ private:
 	/// @brief Runs the peer check on a new connection.
 	/// @param connection The connection.
 	/// @return Whether to accept it: false also when the check throws.
-	bool admits(SocketHandle connection) const noexcept;
+	[[nodiscard]] bool admits(SocketHandle connection) const noexcept;
 
 	Executor& executor_;                 ///< Delivers connections on the main thread.
 	std::filesystem::path path_;         ///< See path().

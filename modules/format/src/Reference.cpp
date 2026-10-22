@@ -19,12 +19,12 @@ void addOnce(std::vector<std::string>& names, std::string_view name) {
 }
 
 /// @brief The schema an entry gives.
-/// @param text A "$defs/v1" name, the JSON of a schema, or "" for {}.
+/// @param text A "$defs/v2" name, the JSON of a schema, or "" for {}.
 /// @return The schema.
 json schemaOf(std::string_view text) {
 	if(text.empty()) return json::object();
 	if(text.front() == '{') return json::parse(text);
-	return {{"$ref", concatenate("#/$defs/v1/", text, "")}};
+	return {{"$ref", concatenate("#/$defs/v2/", text, "")}};
 }
 
 /// @brief The schemas of a list of keys: each from its first entry in the reference, {} for one it lacks.
@@ -119,14 +119,14 @@ json stepSchema(const Engine& engine) {
 	        {"properties", schemasOf(stepKeyNames(engine), stepKeys())}};
 }
 
-/// @brief The schema of the document of version 1: its sections, those a document must have required.
+/// @brief The schema of the document of version 2: its sections, those a document must have required.
 /// @param engine The engine.
 /// @return The schema.
 json screenSchema(const Engine& engine) {
 	json required = json::array();
 	for(const SectionType& section : engine.sections->sections())
 		if(section.missing) required.push_back(section.name);
-	return {{"description", "Version 1 of the format"},
+	return {{"description", "Version 2 of the format"},
 	        {"type", "object"},
 	        {"required", std::move(required)},
 	        {"additionalProperties", false},
@@ -183,11 +183,21 @@ json schema(const Engine& engine) {
 	                        "version has its definitions under $defs/v<N>; \"version\" selects one."},
 	        {"type", "object"},
 	        {"required", {"version"}},
-	        {"properties", {{"version", {{"enum", {1}}, {"description", "Format version. This library reads: 1"}}}}},
+	        {"properties",
+	         {{"version", {{"enum", {1, 2}}, {"description", "Format version. This library reads: 1 (by migrating it), 2"}}}}},
 	        {"allOf",
 	         {{{"if", {{"properties", {{"version", {{"const", 1}}}}}, {"required", {"version"}}}},
-	           {"then", {{"$ref", "#/$defs/v1/screen"}}}}}},
-	        {"$defs", {{"v1", std::move(defs)}}}};
+	           {"then", {{"$ref", "#/$defs/v1/screen"}}}},
+	          {{"if", {{"properties", {{"version", {{"const", 2}}}}}, {"required", {"version"}}}},
+	           {"then", {{"$ref", "#/$defs/v2/screen"}}}}}},
+	        // Version 1 is only read by migrating it (Migrate.hpp): `affrescoui migrate` first, then the schema checks it
+	        {"$defs",
+	         {{"v1",
+	           {{"screen",
+	             {{"description", "Version 1 of the format: read by migrating it to version 2 (`affrescoui migrate`), "
+	                              "which this schema then checks"},
+	              {"type", "object"}}}}},
+	          {"v2", std::move(defs)}}}};
 }
 
 } // namespace affresco::format

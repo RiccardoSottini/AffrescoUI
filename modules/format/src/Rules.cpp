@@ -1,5 +1,6 @@
 #include "affresco/format/Rules.hpp"
 
+#include "affresco/format/Migrate.hpp"
 #include "affresco/format/NodeIds.hpp"
 
 #include "Checker.hpp"
@@ -380,6 +381,23 @@ void checkTypedState(const json& before, const json& after) {
 } // namespace
 
 Rules::Rules() : sections_(builtInSections()) {}
+
+namespace {
+
+/// @brief The lines for people of a migration's rewrites.
+/// @param rewrites The rewrites.
+/// @return Their messages.
+std::vector<std::string> linesOf(const std::vector<Rewrite>& rewrites) {
+	std::vector<std::string> lines;
+	for(const Rewrite& rewrite : rewrites) lines.push_back(rewrite.message);
+	return lines;
+}
+
+} // namespace
+
+std::vector<std::string> Rules::upgrade(json& document) const { return linesOf(migrate(document)); }
+
+std::vector<std::string> Rules::upgradeRevision(json& patch) const { return linesOf(migratePatch(patch)); }
 
 void Rules::checkRevision(const json& patch) const {
 	if(patch.is_array() && patch.size() > maxRevisionOperations)

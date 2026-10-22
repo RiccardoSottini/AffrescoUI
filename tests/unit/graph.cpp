@@ -105,7 +105,7 @@ struct GraphFixture {
 
 /// @brief A screen whose graph keeps its nodes and links in state, edited by its handlers.
 constexpr const char* graphScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": {
 		"nodes": [
 			{ "id": "tex", "title": "Texture", "x": 0, "y": 0, "outputs": [{ "id": "out", "kind": "color" }] },

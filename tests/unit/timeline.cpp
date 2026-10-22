@@ -112,7 +112,7 @@ json evaluate(const std::string& text) {
 
 /// @brief A screen whose timeline keeps its time and edits in state, through its handlers.
 constexpr const char* timelineScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": {
 		"time": 0,
 		"tracks": [

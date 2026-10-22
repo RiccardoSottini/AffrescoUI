@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "What the Sign-in template does, checked headless: affrescoui test sign-in.scenarios.json",
 	"screen": "sign-in.screen.json",
 	"scenarios": [

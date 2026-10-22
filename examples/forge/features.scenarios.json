@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's features as packages, from the example catalogue (catalog/, whose publisher only Forge trusts): listed by the features service, installed, disabled, enabled and removed by revisions on /features/<name>. The installs are the revisions features.install makes; a scenario can't wait for the service's own (what it posts never runs headless).",
 	"screen": "forge.screen.json",
 	"scenarios": [
@@ -37,15 +37,15 @@
 								"enabled": true,
 								"order": 10,
 								"requires": {
-									"format": 1,
+									"format": 2,
 									"points": ["statusBar.right"],
 									"exports": { "editor.text": { "type": "string" } }
 								},
 								"provides": {
 									"state": { "characters": false },
 									"computed": {
-										"words": "{{len(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), len(trim(it)) > 0))}}",
-										"characters": "{{len(app.editor.text)}}"
+										"words": "{{length(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), length(trim(it)) > 0))}}",
+										"characters": "{{length(app.editor.text)}}"
 									},
 									"actions": {
 										"toggle": {
@@ -117,15 +117,15 @@
 								"enabled": true,
 								"order": 10,
 								"requires": {
-									"format": 1,
+									"format": 2,
 									"points": ["statusBar.right"],
 									"exports": { "editor.text": { "type": "string" } }
 								},
 								"provides": {
 									"state": { "characters": false },
 									"computed": {
-										"words": "{{len(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), len(trim(it)) > 0))}}",
-										"characters": "{{len(app.editor.text)}}"
+										"words": "{{length(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), length(trim(it)) > 0))}}",
+										"characters": "{{length(app.editor.text)}}"
 									},
 									"actions": {
 										"toggle": {
@@ -167,7 +167,7 @@
 								"enabled": true,
 								"order": 20,
 								"requires": {
-									"format": 1,
+									"format": 2,
 									"points": ["sidebar.views"],
 									"exports": { "workspace.files": { "type": "array" } },
 									"features": { "wordCount": "^1.0.0" }
@@ -216,7 +216,7 @@
 														},
 														"type": "column",
 														"width": "100%",
-														"height": "{{len(todos) == 0 ? 0 : 24 + len(todos) * 22}}",
+														"height": "{{length(todos) == 0 ? 0 : 24 + length(todos) * 22}}",
 														"children": [
 															{
 																"id": "todoTree-file-name",
@@ -225,7 +225,7 @@
 																"textColor": "@color.text",
 																"padding": 4,
 																"text": "{{file.name}}",
-																"visible": "{{len(todos) > 0}}"
+																"visible": "{{length(todos) > 0}}"
 															},
 															{
 																"id": "todoTree-line",

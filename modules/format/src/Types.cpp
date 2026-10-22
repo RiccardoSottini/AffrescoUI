@@ -148,7 +148,6 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	addCore(registry, "stack", "Children in a column or a row", column,
 	        stackProperties({{"gap", ValueKind::Number},
 	                         {"direction", ValueKind::Text},
-	                         {"from", ValueKind::Text},
 	                         {"wrap", ValueKind::Boolean}}));
 	addCore(
 	    registry, "row", "A stack in a row",
@@ -157,9 +156,9 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 		    row->setDirection(Direction::Row);
 		    return row;
 	    },
-	    stackProperties({{"gap", ValueKind::Number}, {"from", ValueKind::Text}, {"wrap", ValueKind::Boolean}}));
+	    stackProperties({{"gap", ValueKind::Number}, {"wrap", ValueKind::Boolean}}));
 	addCore(registry, "column", "A stack in a column", column,
-	        stackProperties({{"gap", ValueKind::Number}, {"from", ValueKind::Text}, {"wrap", ValueKind::Boolean}}));
+	        stackProperties({{"gap", ValueKind::Number}, {"wrap", ValueKind::Boolean}}));
 	addCore(
 	    registry, "grid", "Children in columns and rows of tracks", [] { return std::make_unique<Grid>(); },
 	    gridProperties());

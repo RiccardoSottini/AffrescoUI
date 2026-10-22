@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Creative controls, for the rendering check: a colour picker with swatches, a gradient whose colour halfway along fills a preview panel, and tone curves over a histogram whose output at 0.5 sets a bar's width. The scenario drags in the square, types a hex value, adds and moves a stop, and moves a curve point.",
 
 	"window": { "title": "Creative controls", "width": 640, "height": 400 },

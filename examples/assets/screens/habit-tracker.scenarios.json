@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "What the Habit tracker template (Streak) does, checked headless: affrescoui test habit-tracker.scenarios.json",
 	"screen": "habit-tracker.screen.json",
 	"scenarios": [

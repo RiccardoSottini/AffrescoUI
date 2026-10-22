@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 
 	"note": "Arcadia: a game launcher. A library of games with covers, collections and filters, details, play stats and a settings page. Built from the public docs only; see README.md next to it.",
 
@@ -180,7 +180,7 @@
 		"weekTotals": "{{map(state.weekDays, sum(map(state.games, it.week), 0))}}",
 		"weekHours": "{{[sum(state.games, it.week[0]), sum(state.games, it.week[1]), sum(state.games, it.week[2]), sum(state.games, it.week[3]), sum(state.games, it.week[4]), sum(state.games, it.week[5]), sum(state.games, it.week[6])]}}",
 		"byHours": "{{sort(state.games, it.hours, 'desc')}}",
-		"collections": "{{[{ id: 'all', label: 'All games  ' + len(state.games) }, { id: 'installed', label: 'Installed  ' + computed.installedCount }, { id: 'favourites', label: 'Favourites  ' + count(state.games, it.favourite) }, { id: 'genres', label: 'Genres', children: map(state.genres, { id: it, label: it }) }]}}",
+		"collections": "{{[{ id: 'all', label: 'All games  ' + length(state.games) }, { id: 'installed', label: 'Installed  ' + computed.installedCount }, { id: 'favourites', label: 'Favourites  ' + count(state.games, it.favourite) }, { id: 'genres', label: 'Genres', children: map(state.genres, { id: it, label: it }) }]}}",
 		"rows": "{{map(computed.visible, { id: it.id, cells: [it.title, it.genre, it.hours, it.lastPlayed, it.installed ? 'Installed' : fixed(it.sizeGb, 1) + ' GB'] })}}"
 	},
 
@@ -428,7 +428,7 @@
 										"height": 24,
 										"textColor": "@color.text",
 										"runs": [
-											{ "text": "{{plural(len(computed.visible), 'game')}}", "bold": true },
+											{ "text": "{{plural(length(computed.visible), 'game')}}", "bold": true },
 											{ "text": "{{empty(state.query) ? '' : '  matching “' + state.query + '”'}}", "color": "@color.muted" }
 										]
 									},
@@ -450,7 +450,7 @@
 										"wrap": true,
 										"gap": "@space.l",
 										"anchors": { "left": 20, "right": 20, "top": 4 },
-										"height": "{{(floor(len(computed.visible) / max(1, floor((nodes['library-main'].width - 40 + 20) / (settings.library.coverSize + 20)))) + 1) * (settings.library.coverSize * 4 / 3 + 72)}}",
+										"height": "{{(floor(length(computed.visible) / max(1, floor((nodes['library-main'].width - 40 + 20) / (settings.library.coverSize + 20)))) + 1) * (settings.library.coverSize * 4 / 3 + 72)}}",
 										"children": [
 											{
 												"id": "game-card",
@@ -620,7 +620,7 @@
 								"children": [
 									{ "id": "stat-total", "use": "statCard", "with": { "value": "{{round(computed.totalHours)}} h", "caption": "played in all", "icon": "clock" } },
 									{ "id": "stat-week", "use": "statCard", "with": { "value": "{{sum(computed.weekHours)}} h", "caption": "this week", "icon": "calendar" } },
-									{ "id": "stat-installed", "use": "statCard", "with": { "value": "{{computed.installedCount}} / {{len(state.games)}}", "caption": "installed", "icon": "hard-drive" } },
+									{ "id": "stat-installed", "use": "statCard", "with": { "value": "{{computed.installedCount}} / {{length(state.games)}}", "caption": "installed", "icon": "hard-drive" } },
 									{ "id": "stat-top", "use": "statCard", "with": { "value": "{{computed.byHours[0].title}}", "caption": "most played", "icon": "trophy" } }
 								]
 							},

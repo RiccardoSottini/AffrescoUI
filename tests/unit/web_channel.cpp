@@ -41,7 +41,7 @@ public:
 /// @return The screen.
 std::unique_ptr<affresco::Screen> channelScreen(const std::string& address) {
 	const json document = {{"format", "affrescoui-screen"},
-	                       {"version", 1},
+	                       {"version", 2},
 	                       {"state", {{"greeted", false}, {"closed", ""}}},
 	                       {"channels", {{"host", {{"socket", address}}}}},
 	                       {"actions",

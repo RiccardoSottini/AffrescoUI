@@ -119,7 +119,7 @@ namespace {
 
 /// @brief A screen with an open overlay that "dismiss"es, whose parent is the root (so it has no anchor of its own).
 constexpr const char* overlayScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": { "open": true },
 	"root": { "id": "main", "children": [
 		{ "id": "menu", "width": 100, "height": 50,

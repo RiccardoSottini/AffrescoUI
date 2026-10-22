@@ -981,7 +981,7 @@ class Server:
             with open(screen, "w", encoding="utf-8") as file:
                 json.dump(document, file)
             if "scenarios" in args:  # the agent's own, on the file's screen: its folder holds the fonts and includes
-                own = {"format": "affrescoui-scenarios", "version": 1,
+                own = {"format": "affrescoui-scenarios", "version": 2,
                        "screens": os.path.abspath(os.path.join(os.path.dirname(path), shipped.get("screens", "."))),
                        "scenarios": args["scenarios"], **({"screen": shipped["screen"]} if "screen" in shipped else {})}
                 path = os.path.join(scratch, "own.scenarios.json")

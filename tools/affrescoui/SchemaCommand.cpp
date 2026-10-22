@@ -19,7 +19,7 @@ constexpr std::array<std::string_view, 3> schemaOptions = {"-o", "--doc", "--typ
 constexpr std::array<std::string_view, 1> schemaFlags = {"--check"};
 
 /// The smallest document there is: the registries are the screen's, whatever it shows.
-constexpr std::string_view emptyScreen = R"({"format": "affrescoui-screen", "version": 1, "root": {}})";
+constexpr std::string_view emptyScreen = R"({"format": "affrescoui-screen", "version": 2, "root": {}})";
 
 /// @brief Writes a generated file, or with --check says whether it is out of date.
 /// @param file The file.

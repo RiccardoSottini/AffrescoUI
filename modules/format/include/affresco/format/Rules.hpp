@@ -56,6 +56,16 @@ public:
 	/// @throws DocumentError If the change is forbidden; what() lists the new findings, each with its place.
 	void checkChange(const json& before, const json& after) const override;
 
+	/// @brief Migrates a version 1 document to version 2 (format::migrate()).
+	/// @param document The document, changed in place.
+	/// @return One line for each rewrite.
+	[[nodiscard]] std::vector<std::string> upgrade(json& document) const override;
+
+	/// @brief Migrates a version 1 revision's patch (format::migratePatch()).
+	/// @param patch The patch, changed in place.
+	/// @return One line for each rewrite.
+	[[nodiscard]] std::vector<std::string> upgradeRevision(json& patch) const override;
+
 	/// @brief Refuses a revision of more than 100,000 operations, or of more than 16 MiB written as JSON
 	/// (SECURITY.md, "Limits").
 	/// @param patch The revision's operations, as JSON Patch.

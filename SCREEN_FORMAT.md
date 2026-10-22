@@ -8,8 +8,9 @@ Screens are **live**: the UI follows the state, and **revisions** (compact edits
 layout and behaviour while the app runs. A revision can come from the app itself or from a program connected over a
 channel, for example an AI agent through the MCP server.
 
-**Current version: 1.** Every file declares `"version"`. The schema keeps each version's definition separately
-(`$defs/v1`, later `$defs/v2`, ...) and the loader checks the version first.
+**Current version: 2.** Every file declares `"version"`. The schema keeps each version's definition separately
+(`$defs/v2`; `$defs/v1` only says to migrate) and the loader checks the version first. A file of version 1 still
+loads: it is migrated in memory, with one notice ("Migrating from version 1").
 
 - File extension: `.screen.json`. JSON Schema (editor completion and validation):
   [`schema/affrescoui-screen.schema.json`](schema/affrescoui-screen.schema.json), referenced with `"$schema"`.
@@ -19,7 +20,7 @@ channel, for example an AI agent through the MCP server.
 {
 	"$schema": "../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"window": { "title": "Hello", "width": 600, "height": 400 },
 	"fonts": { "default": { "file": "Roboto-Regular.ttf", "size": 16 } },
 	"colors": { "accent": "#6366f1" },
@@ -55,7 +56,7 @@ Every part of the format follows these, and so should every extension:
 <!-- generated: sections -->
 | Key | Meaning |
 |---|---|
-| `version` | Required. `1`. |
+| `version` | Required. `2` (a file of version 1 is read by migrating it: "Migrating from version 1"). |
 | `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
@@ -186,7 +187,7 @@ only for the elements that changed.
 | `let` | `{ "on": "{{tag == state.filter}}" }`: named values for the node and its children, evaluated in order. |
 | `use`, `with` | Build a component: `{ "use": "chip", "with": { "label": "{{tag}}" } }` (see Components). |
 | `point` | `"point": "statusBar.right"`: features' views for that point become the node's last children. |
-| `check` | `{ "rule": "{{len(value) >= 3}}", "message": "Too short", "value": ... }`: `value` defaults to the node's bound value; gives the node and its children `valid` and `error`. |
+| `check` | `{ "rule": "{{length(value) >= 3}}", "message": "Too short", "value": ... }`: `value` defaults to the node's bound value; gives the node and its children `valid` and `error`. |
 | `every` | `{ "ms": 1000, "do": steps }`: runs while the node exists. |
 | `drag` | `{ "data": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`. |
 | `context` | `{ "editorFocus": true }`: keys added to the `context` variable while the node or a child has the focus (an inner node wins); `when` clauses read them. |
@@ -287,7 +288,6 @@ overflow.
 | `gap` | Pixels between children (and between lines, when it wraps). |
 | `rowGap`, `columnGap` | Pixels between rows and between columns, over `gap`: in a column `rowGap` is between children, in a wrapping row between lines. |
 | `justify` | How the children are spread along it: `start` (default), `center`, `end` (a column from the bottom, like a chat: overflow is clipped at the top), `space-between`, `space-around` or `space-evenly`, as in CSS. |
-| `from` | The older form of `justify`, with `start`, `center` or `end`. `align` is an older name for it on `stack`. |
 | `alignItems` | Where the children sit across: `start`, `center`, `end` or `stretch` (as tall as a row, as wide as a column, within their maximum). Left out, they keep their own anchors across. |
 | `direction` | On a `stack`: `"row"` or `"column"`. |
 | `wrap` | Continue on a new line (in a column, a new column) when a child doesn't fit; each line grows, shrinks and is spread on its own, and sits at the start of its line unless aligned. |
@@ -688,17 +688,20 @@ Wherever a value is expected it can be computed:
   `min(a, b, ...)` (numbers or a list), `max(a, b, ...)` (numbers or a list), `clamp(value, low, high)`, `upper(text)`,
   `lower(text)`, `trim(text)`, `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
   `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
-  `len(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
+  `length(value)`, `concat(a, b, ...)`, `join(list, separator)`, `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
-  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`;
+  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`,
+  `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
+  `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
+  `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
 
-Each function is also an operator: `len(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
-are UTF-8: `len`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
+Each function is also an operator: `length(x)` is `{"$length": x}`, `filter(l, c)` is `{"$filter": [l, c]}`. Texts
+are UTF-8: `length`, `indexOf` and `slice` count bytes, `split(text, '')` and `reverse` keep characters whole.
 `fuzzy` matches the query's characters in order, in any case, and gives null or `{ score, ranges, parts }`: `ranges`
 are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
 `fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
@@ -908,7 +911,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `remove` | `{ "remove": "state.items", "at": 0 }`, or without `at` to delete a key of an object |
 | `toggle` | `{ "toggle": "state.dark" }` |
 | `increment` | `{ "increment": "state.clicks", "by": 1 }` |
-| `if` | `{ "if": "{{len(state.draft) == 0}}", "then": [...], "else": [...] }` |
+| `if` | `{ "if": "{{length(state.draft) == 0}}", "then": [...], "else": [...] }` |
 | `forEach` | `{ "forEach": "state.items", "as": "item", "index": "i", "do": [...] }` |
 | `while` | `{ "while": "{{state.n < 10}}", "do": [...] }` (at most 10,000 iterations) |
 | `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed, and `with` too (`"{{item.with}}"`, an object or null) |
@@ -1078,7 +1081,7 @@ own scenarios. Schema: [`schema/affrescoui-scenarios.schema.json`](schema/affres
 ```json
 {
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"screen": "kanban.screen.json",
 	"scenarios": [
 		{ "name": "add-a-card", "steps": [
@@ -1162,6 +1165,37 @@ text with `{{` in it goes into `state.literals` and is shown through a binding t
 elements deep, 2,000 elements and messages. Only the first A2UI surface converts, and a converted screen has fonts
 only when `--font` names one (AffrescoUI has no font of its own), so load one through `affrescoui import --font` for
 text.
+
+## Migrating from version 1
+
+Version 1 grew by additions; version 2 keeps one form of each thing it wrote two ways, before 1.0
+([COMPATIBILITY.md](COMPATIBILITY.md) says when a version changes). What changed:
+
+| Version 1 | Version 2 |
+|---|---|
+| `"from"` on a `row`, a `column` or a `stack` (and in their styles) | `"justify"`, the same values |
+| `"align"` on a `stack` | `"justify"` |
+| `len(x)` in expressions | `length(x)` |
+| A feature's `"requires": { "format": 1 }` | `"format": 2` |
+| `"version": 1` | `"version": 2` |
+
+The same rewrites apply to every file that holds screen content: screens and their include parts, scenario files,
+change sets (and the patches of their revisions), feature packages and catalogue indexes.
+
+- `affrescoui migrate <file>... [--write]` lists each rewrite, `file: place: what`, and with `--write` writes it. It
+  changes only the keys and values above, so ids, key order and spacing stay as written, and
+  running it twice changes nothing. `affrescoui migrate --check <file>...` only says which files need it and exits
+  with 1 if any does: CI runs it over every JSON file of the repository.
+- The loader reads a version 1 file as version 2, in memory, and logs one notice for the screen and its include parts;
+  nothing is written. A version 1 change set or scenario file is migrated the same way when it is read.
+- A revision written for version 2 that uses a removed key or function is refused with a hint naming the new one:
+  `unknown property 'from' for this type ('from' was removed in version 2: use 'justify')`, `unknown function 'len'
+  ('len' was removed in version 2: use 'length')`.
+- A history on disk is never rewritten. When its head was written for version 1, the screen opens with one commit on
+  top, by `format`, "format version 2", that holds the migration; older commits stay as they were recorded, and
+  restoring one of them brings back version 1 content, which the checker then refuses with the hints above.
+- A signed file (a feature package, a catalogue index) is left as version 1 by `affrescoui migrate`, since rewriting
+  it would break its signature: readers check the signature, then migrate it in memory. Sign it again after migrating.
 
 ## Errors
 

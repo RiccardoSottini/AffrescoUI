@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Haven: a smart-home dashboard. Rooms in a tree by floor, scenes, lights (switch, dim), climate, blinds, device tiles whose calls take a while (progress, then a toast), an energy page with charts and a table, and a settings page from the settings schema; a light and a dark theme.",
 	"include": ["../components/charts.json"],
 
@@ -393,7 +393,7 @@
 					{
 						"id": "summary",
 						"style": "caption",
-						"text": "{{computed.lightsOn}} of {{len(computed.room.lights)}} lights on{{state.scene ? '  ·  scene: ' + state.scene : ''}}",
+						"text": "{{computed.lightsOn}} of {{length(computed.room.lights)}} lights on{{state.scene ? '  ·  scene: ' + state.scene : ''}}",
 						"anchors": { "left": 164, "top": 64 }
 					},
 					{

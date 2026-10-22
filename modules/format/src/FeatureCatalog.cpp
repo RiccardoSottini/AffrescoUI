@@ -5,6 +5,7 @@
 #include "FeatureCatalog.hpp"
 
 #include "FeatureManifest.hpp"
+#include "affresco/format/Migrate.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -166,7 +167,8 @@ CatalogIndex readCatalog(std::string_view text, const std::filesystem::path& fol
 	if(!isTrusted(signer, trusted)) fail("catalog", "it is signed by " + signer + ", which isn't a trusted publisher");
 	onlyKeys(index, indexKeys, "catalog");
 	if(index.value("format", json()) != catalogFormat) fail("catalog.format", "expected \"affrescoui-catalog\"");
-	if(index.value("version", json()) != 1) fail("catalog.version", "expected 1");
+	if(const json version = index.value("version", json()); version != 1 && version != formatVersion)
+		fail("catalog.version", "expected 1 or 2");
 	CatalogIndex catalog;
 	catalog.name = shortText(index, "name", "catalog");
 	if(!validCatalogName(catalog.name)) fail("catalog.name", "expected lower-case letters, digits and '-'");
@@ -201,13 +203,14 @@ json fetchManifest(const CatalogIndex& index, const std::string& name, const Cat
 	if(bytes.size() != release.size) fail(place, "its size isn't the catalogue's (the package was changed)");
 	if(!sameDigest(digestOf(bytes), release.digest))
 		fail(place, "its digest isn't the catalogue's (the package was changed)");
-	const json manifest = parseUntrusted(bytes);
+	json manifest = parseUntrusted(bytes);
 	const std::string signer = verifySignature(manifest, place);
 	const auto key = parsePublicKey(signer);
 	const auto expected = parsePublicKey(release.publisher);
 	if(!key || !expected || !sameKey(*key, *expected))
 		fail(place, "it is signed by " + signer + ", not by the publisher the catalogue names");
 	if(!isTrusted(signer, trusted)) fail(place, "it is signed by " + signer + ", which isn't a trusted publisher");
+	static_cast<void>(migrate(manifest)); // after the signature, which covers the manifest as it was published
 	checkManifest(manifest, place);
 	if(manifest["name"] != name || manifest["release"] != release.release)
 		fail(place, "the manifest is " + manifest["name"].get<std::string>() + " " +

@@ -1,7 +1,7 @@
 {
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's editor (features/editor), checked headless with tests/render/forge/folder open; nothing is saved, so the folder stays as it is: affrescoui_render_runner editor.scenarios.json",
 	"screen": "forge.screen.json",
 	"scenarios": [

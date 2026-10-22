@@ -1,6 +1,6 @@
 {
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"state": { "n": 0, "dirty": false, "focused": null },
 	"actions": {
 		"add": [{ "increment": "state.n", "by": 1 }],

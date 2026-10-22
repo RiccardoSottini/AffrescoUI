@@ -505,7 +505,7 @@ same time at commit 100 and at commit 10,000 (248 and 247 µs), and blame reads 
 The commits on `main` after a point can be exported as a **change set**:
 
 ```json
-{ "format": "affrescoui-changes", "version": 1, "name": "task filter", "from": 0, "to": 3, "base": "35331cd…",
+{ "format": "affrescoui-changes", "version": 2, "name": "task filter", "from": 0, "to": 3, "base": "35331cd…",
   "head": "e6636b0…",
   "revisions": [ { "author": "mcp/claude-code", "committer": "studio", "message": "Add a filter to the task list",
                    "commit": "e6636b0…", "patch": [ ... ] } ] }
@@ -522,7 +522,7 @@ share the result as a plugin others can install.
 A change set can carry what it was made for, the template it was made on, and how to tell it still works:
 
 ```json
-{ "format": "affrescoui-changes", "version": 1, "name": "blocked column", "revisions": [ ... ],
+{ "format": "affrescoui-changes", "version": 2, "name": "blocked column", "revisions": [ ... ],
   "request": "Add a Blocked column before Done",
   "template": { "name": "kanban.screen.json", "commit": "35331cd…", "tree": "9f1c…" },
   "proof": { "scenarios": [ { "name": "blocked", "steps": [ { "expect": "...", "equals": "Blocked" } ] } ] } }

@@ -4,6 +4,7 @@
 
 #include "FeatureManifest.hpp"
 #include "Limits.hpp"
+#include "affresco/format/Migrate.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -378,7 +379,8 @@ void checkManifest(const json& manifest, const std::string& place) {
 	knownKeys(manifest, manifestKeys, place);
 	if(manifest.value("format", json()) != manifestFormat)
 		fail(place + ".format", std::format("expected \"{}\"", manifestFormat));
-	if(manifest.value("version", json()) != 1) fail(place + ".version", "expected 1");
+	if(const json version = manifest.value("version", json()); version != 1 && version != formatVersion)
+		fail(place + ".version", "expected 1 or 2");
 	if(!manifest.contains("name") || !manifest["name"].is_string() ||
 	   !validFeatureName(manifest["name"].get_ref<const std::string&>()))
 		fail(place + ".name", "must be one camelCase word, starting with a lower-case letter");

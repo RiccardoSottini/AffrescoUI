@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "A timeline, for the rendering check: three tracks (a position with linear and Bézier keyframes, an opacity with a step, and video clips) under a ruler in frames, with a marker and a play range. The tracks and the playhead live in state; scrubbing, moving keyframes and trimming clips are handled in JSON.",
 
 	"window": { "title": "Timeline", "width": 640, "height": 160 },

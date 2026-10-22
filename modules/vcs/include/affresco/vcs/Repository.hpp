@@ -565,6 +565,10 @@ private:
 	/// @return false, changing nothing, if it began with another document.
 	/// @throws DocumentError If it is damaged, or its head can't be shown; then nothing changed.
 	bool loadHistory(detail::HistoryStore& store);
+	/// @brief Lands a loaded head upgraded to the current format version (DocumentRules::upgrade()) as one commit
+	/// by "format" on top of it, so the history on disk is never rewritten. The observer hasn't heard of it yet.
+	/// @param upgraded The head's document, upgraded.
+	void upgradeHead(json upgraded);
 	/// @brief The refs file's content: main's head, the open proposals, the grants, the mode and the change sets
 	/// applied.
 	/// @return It, without its checksum.

@@ -208,7 +208,7 @@ void ChangeSetRepairs::propose(const json& message, const std::function<void(con
 	revision["author"] = message.value("from", std::string("agent")); // the channel's, never the message's
 	revision.erase("parent");
 	revision.erase("proposal");
-	json candidate = {{"format", "affrescoui-changes"}, {"version", 1}, {"name", nameOf(open->changes)},
+	json candidate = {{"format", "affrescoui-changes"}, {"version", 2}, {"name", nameOf(open->changes)},
 	                  {"revisions", json::array({revision})}};
 	for(const char* field : {"request", "proof"})
 		if(open->changes.contains(field)) candidate[field] = open->changes[field];

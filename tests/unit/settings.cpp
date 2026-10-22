@@ -37,7 +37,7 @@ std::size_t itemsIn(const json& menu) {
 /// @return The screen's document.
 std::string document(const std::string& menus, const std::string& root = R"({ "type": "panel", "id": "root" })") {
 	return R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "n": 0, "dirty": false, "seen": null },
 		"actions": {
 			"add": [{ "increment": "state.n", "by": 1 }],

@@ -17,7 +17,7 @@ namespace {
 /// @return The document.
 json personalDocument() {
 	return {{"format", "affrescoui-screen"},
-	        {"version", 1},
+	        {"version", 2},
 	        {"state", json::object()},
 	        {"root", {{"type", "panel"}, {"id", "main"}}}};
 }

@@ -87,7 +87,7 @@ private:
 
 /// How a function takes its arguments, as an operator.
 enum class Takes : std::uint8_t {
-	One,  ///< One value directly: `{"$length": x}`, `len(x)`.
+	One,  ///< One value directly: `{"$length": x}`, `length(x)`.
 	List, ///< An array of arguments: `{"$max": [a, b]}`, `max(a, b)`.
 };
 
@@ -114,7 +114,6 @@ struct Function {
 	Value (*decide)(const Call&) = nullptr; ///< its implementation, evaluating the arguments it needs.
 	std::string_view shape = {};  ///< For `decide`: the error when its arguments aren't a list of the right size.
 	bool spreads = false;         ///< A single list argument stands for its items: `max(list)`.
-	std::string_view alias = {};  ///< Another name it is written with ("len").
 	std::string_view remark = {}; ///< A note the guide adds: "(n up to 10000)".
 	bool changes = false;         ///< Gives another value with nothing read changed (the clock): read on every update.
 };
@@ -123,7 +122,7 @@ struct Function {
 /// @return The registry.
 [[nodiscard]] std::span<const Function> functions();
 /// @brief Finds a function by the name expressions write.
-/// @param name "clamp" or "len".
+/// @param name "clamp" or "length".
 /// @return Its row, or nullptr.
 [[nodiscard]] const Function* findFunction(std::string_view name);
 /// @brief Finds a function by its operator.

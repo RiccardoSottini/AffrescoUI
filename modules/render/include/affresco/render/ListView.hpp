@@ -224,7 +224,8 @@ protected:
 	/// @param origin The label's start: left edge and baseline.
 	/// @param color The text's colour, for an icon without its own.
 	/// @return How far the label moves right for it: 0 without an icon.
-	float paintIcon(Painter& painter, const Font& font, const ListItem& item, Vec2 origin, Color color) const;
+	[[nodiscard]] float paintIcon(Painter& painter, const Font& font, const ListItem& item, Vec2 origin,
+	                              Color color) const;
 	/// @brief The left padding of a row's text.
 	[[nodiscard]] static constexpr float padding() noexcept { return 8.0f; }
 	/// @brief The colour of a tree's guides and a table's lines.

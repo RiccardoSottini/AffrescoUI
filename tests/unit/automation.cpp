@@ -29,7 +29,7 @@ namespace {
 /// @brief A screen with a counter, a text field that adds what is typed to a list, and a delayed message.
 constexpr std::string_view counterScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"window": { "width": 400, "height": 300 },
 	"state": { "clicks": 0, "items": [], "draft": "", "message": "" },
 	"root": { "id": "root", "children": [
@@ -54,7 +54,7 @@ public:
 	/// @param scenarios The "scenarios" list, as JSON text.
 	/// @return The file.
 	[[nodiscard]] automation::ScenarioFile scenarios(std::string_view scenarios) const {
-		return automation::ScenarioFile::parse(R"({"version": 1, "screen": "counter.screen.json", "scenarios": )" +
+		return automation::ScenarioFile::parse(R"({"version": 2, "screen": "counter.screen.json", "scenarios": )" +
 		                                           std::string(scenarios) + "}",
 		                                       folder_.path() / "counter.scenarios.json");
 	}
@@ -86,7 +86,7 @@ automation::detail::KeyPress key(std::string_view text) {
 /// @param step The step, as JSON text.
 /// @return The file.
 std::string oneStep(std::string_view step) {
-	return R"({"version": 1, "screen": "a.json", "scenarios": [{"name": "a", "steps": [)" + std::string(step) + "]}]}";
+	return R"({"version": 2, "screen": "a.json", "scenarios": [{"name": "a", "steps": [)" + std::string(step) + "]}]}";
 }
 
 /// @brief An Executor that drops what it is given: a server that listens, and never answers.
@@ -117,10 +117,10 @@ TEST_CASE("automation: a scenarios file that is wrong says where") {
 	CHECK(errorOf(oneStep(R"({"expect": {"node": "#a", "text": "x", "exists": true}})")).contains("expected one of"));
 	CHECK(errorOf(oneStep(R"({"expect": {"image": "../escape"}})")).contains("expect.image: expected a name"));
 	CHECK(errorOf(oneStep(R"({"drag": "#a"})")).contains("\"drag\" needs \"to\""));
-	CHECK(errorOf(R"({"version": 1, "screen": "a.json", "scenarios": [{"name": "a", "steps": []}, {"name": "a", "steps": []}]})")
+	CHECK(errorOf(R"({"version": 2, "screen": "a.json", "scenarios": [{"name": "a", "steps": []}, {"name": "a", "steps": []}]})")
 	          .contains("scenarios[1].name: 'a' is the name of another scenario"));
 	CHECK(errorOf(R"({"scenarios": [{"name": "a", "screen": "a.json"}]})").contains("version: expected 1"));
-	CHECK(errorOf(R"({"version": 1, "scenarios": [{"name": "a"}]})").contains("scenarios[0]: no \"screen\""));
+	CHECK(errorOf(R"({"version": 2, "scenarios": [{"name": "a"}]})").contains("scenarios[0]: no \"screen\""));
 	CHECK(errorOf("{").contains("place.scenarios.json"));
 	CHECK(errorOf(oneStep(R"({"note": "only a comment"}, {"click": [1, 2], "note": "and a click"})")).empty());
 }

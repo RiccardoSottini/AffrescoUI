@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's explorer: the open folder's tree (forge.explorer.tree, kept current by the file watcher), new file and folder, rename, delete behind a confirm dialog, copy and paste, move by drag and drop, and reveal of the active file. The natives are in Explorer.cpp; state.explorerEdit holds what the dialogs and the context menu are doing.",
 
 	"state": {
@@ -140,7 +140,7 @@
 					  ] },
 					{ "use": "dialog", "id": "explorer-delete-dialog",
 					  "with": { "open": "state.explorerEdit.confirm", "title": "{{'Delete ' + state.explorerEdit.name + '?'}}",
-					            "message": "{{slice(state.explorerEdit.id, len(state.explorerEdit.id) - 1) == '/' ? 'The folder and everything in it will be deleted. This cannot be undone.' : 'The file will be deleted. This cannot be undone.'}}",
+					            "message": "{{slice(state.explorerEdit.id, length(state.explorerEdit.id) - 1) == '/' ? 'The folder and everything in it will be deleted. This cannot be undone.' : 'The file will be deleted. This cannot be undone.'}}",
 					            "buttons": [{ "title": "Delete", "run": "explorerDeleteConfirmed" }, { "title": "Cancel" }] } }
 				]
 			}

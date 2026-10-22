@@ -140,7 +140,7 @@ const std::vector<Case> cases = {
     {"{{pad(1, 10001)}}", {}, "width too large"},
     // Lists
     {"{{range(3)}}", {0, 1, 2}, {}},
-    {"{{len(range(10000))}}", 10000, {}},
+    {"{{length(range(10000))}}", 10000, {}},
     {"{{range(10001)}}", {}, "range too long"},
     {"{{max(3, 9, 4)}}", 9, {}},
     {"{{min(state.scores)}}", 2, {}},
@@ -161,7 +161,8 @@ const std::vector<Case> cases = {
     // Syntax errors and the nesting limit (100 levels inside the parser: a bracket takes two, a '!' one)
     {"{{1 +}}", {}, "expected a value"},
     {"{{foo(1)}}", {}, "unknown function 'foo'"},
-    {"{{len(1, 2)}}", {}, "'len' takes one argument"},
+    {"{{length(1, 2)}}", {}, "'length' takes one argument"},
+    {"{{len(state.items)}}", {}, "unknown function 'len' ('len' was removed in version 2: use 'length')"},
     // Numbers too large for their type are errors, not exceptions that escape (they used to: std::out_of_range)
     {"{{99999999999999999999}}", {}, "number '99999999999999999999' is too large"},
     {"{{1" + std::string(400, '0') + ".5}}", {}, "is too large (at column 404)"},
@@ -285,11 +286,11 @@ const std::vector<Case> cases = {
     {"{{parseJson('nope')}}", nullptr, {}},
     {"{{parseJson(state.name)}}", nullptr, {}},
     // Lists and objects; objects keep the order of their keys, as the documents' JSON does
-    {"{{len('é')}}", 2, {}},
-    {"{{len(state.name)}}", 15, {}},
-    {"{{len({a: 1})}}", 1, {}},
-    {"{{len(null)}}", 0, {}},
-    {"{{len(5)}}", {}, "test.$length: expected a string, a list or an object"},
+    {"{{length('é')}}", 2, {}},
+    {"{{length(state.name)}}", 15, {}},
+    {"{{length({a: 1})}}", 1, {}},
+    {"{{length(null)}}", 0, {}},
+    {"{{length(5)}}", {}, "test.$length: expected a string, a list or an object"},
     {"{{length([1])}}", 1, {}},
     {"{{concat([1], [2, 3])}}", J(R"([1,2,3])"), {}},
     {"{{concat('a', 1, null)}}", "a1", {}},
@@ -361,7 +362,7 @@ const std::vector<Case> cases = {
     // The clock: 200 days after 1970 began is in 1970 in every time zone
     {"{{time(17280000000, 'YYYY')}}", "1970", {}},
     {"{{time('x', 'YYYY')}}", {}, "test.$time: expected a number, got \"x\""},
-    {"{{len(text(now())) >= 13}}", true, {}},
+    {"{{length(text(now())) >= 13}}", true, {}},
     // Paths and variables: missing values are null; computed values and nodes are read by name
     {"{{state.missing.x}}", nullptr, {}},
     {"{{state.none.x}}", nullptr, {}},
@@ -401,7 +402,7 @@ const std::vector<Case> cases = {
     {J(R"({"$length": "{{state.items}}"})"), 3, {}},
     {J(R"({"$max": 3})"), {}, "test.$max: expected an array of arguments"},
     {J(R"({"a": "{{state.count}}", "b": ["{{1 + 1}}", "x"]})"), J(R"({"a":3,"b":[2,"x"]})"), {}},
-    {"{{state.count}} of {{len(state.items)}}", "3 of 3", {}},
+    {"{{state.count}} of {{length(state.items)}}", "3 of 3", {}},
     {"  {{state.count}}  ", 3, {}},
     {"{{state.count}}{{", {}, "test: unclosed '{{' in \"{{state.count}}{{\""},
     {"{{ {a: '}}'}.a }}", "}}", {}},
@@ -410,7 +411,7 @@ const std::vector<Case> cases = {
     {"{{(1}}", {}, "test: in {{(1}}: expected ')' (at column 3)"},
     {"{{a.}}", {}, "test: invalid path 'a.'"},
     {"{{f(}}", {}, "test: in {{f(}}: expected a value (at column 3)"},
-    {"{{len()}}", {}, "test: in {{len()}}: 'len' takes one argument (at column 6)"},
+    {"{{length()}}", {}, "test: in {{length()}}: 'length' takes one argument (at column 9)"},
     {"{{9.}}", {}, "test: in {{9.}}: expected a name (at column 3)"},
 };
 
@@ -443,7 +444,7 @@ TEST_CASE("format: every function has a row of the table") {
 	for(const Case& c : cases) table += c.value.dump();
 	for(const auto& function : affresco::format::detail::functions()) {
 		CAPTURE(function.name);
-		const std::string name(function.alias.empty() ? function.name : function.alias);
+		const std::string name(function.name);
 		const bool written = table.contains(name + "(") || table.contains("\"$" + std::string(function.name) + "\"");
 		const bool symbol = function.group == affresco::format::detail::Group::Syntax; // `+`, `&&`, `c ? a : b`
 		CHECK((written || symbol));
@@ -465,7 +466,7 @@ TEST_CASE("format: truthy follows the documented rules") {
 TEST_CASE("format: a name with '-' is read with brackets; after a dot, '-' subtracts") {
 	CHECK(evaluate("{{state['my-list']}}").dump() == "[1,2]");
 	CHECK(evaluate("{{state[\"my-list\"][1]}}").dump() == "2");
-	CHECK(evaluate("{{len(state['my-list'])}}").dump() == "2");
+	CHECK(evaluate("{{length(state['my-list'])}}").dump() == "2");
 	CHECK_THROWS_WITH_AS((void)evaluate("{{state.my-list}}"), doctest::Contains("unknown variable 'list'"),
 	                     affresco::DocumentError);
 }
@@ -480,8 +481,8 @@ TEST_CASE("format: the registry lists every function once, with what the catalog
 		CHECK((function.decide == nullptr || !function.shape.empty()));
 		CHECK(affresco::format::detail::findOperator("$" + std::string(function.name)) == &function);
 	}
-	CHECK(affresco::format::detail::findFunction("len") == affresco::format::detail::findFunction("length"));
-	CHECK(affresco::format::detail::findOperator("$len") == nullptr); // an alias is written in expressions only
+	CHECK(affresco::format::detail::findFunction("len") == nullptr); // removed in version 2 (Migrate.hpp)
+	CHECK(affresco::format::detail::findOperator("$len") == nullptr);
 	CHECK(affresco::format::operatorNames().size() == names.size());
 	CHECK(affresco::format::functionCatalog().size() == names.size());
 	CHECK(affresco::format::functionCatalog()["clamp"] == "value, low, high: The value, kept between low and high");

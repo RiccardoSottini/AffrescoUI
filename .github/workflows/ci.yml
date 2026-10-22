@@ -94,6 +94,8 @@ jobs:
         run: build/affrescoui test examples/assets/screens/*.scenarios.json tests/render/screens/*.scenarios.json
       - name: The policy tests # affrescoui policy test: each *.policy.json's example revisions get the expected decision
         run: build/affrescoui policy test $(git ls-files '*.policy.json')
+      - name: Every file is format version 2 # affrescoui migrate --check: SCREEN_FORMAT.md, "Migrating from version 1"
+        run: git ls-files -z '*.json' ':!:tests/migrate/v1/**' | xargs -0 build/affrescoui migrate --check
       - name: Rendering check
         run: xvfb-run -a -s "-screen 0 1920x1080x24" .github/workflows/render-check.sh
       - name: Upload the frames # the differing ones and their diffs, or all recorded ones (visual-change)

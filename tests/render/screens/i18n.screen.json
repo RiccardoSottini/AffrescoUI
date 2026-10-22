@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Translations and locales, for the rendering check: a strings section in English, Italian and Arabic chosen by state.locale, plurals and parameters through t(), numbers, percents, currencies, dates, relative times and lists in the locale's way, and a layout whose dir follows the locale (Arabic mirrors rows, anchors and alignment, and an icon marked mirror). The Arabic font is the check's subset, so the Arabic text keeps to its letters.",
 
 	"window": { "title": "Locales", "width": 640, "height": 420 },

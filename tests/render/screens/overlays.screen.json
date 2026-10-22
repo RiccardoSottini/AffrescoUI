@@ -1,6 +1,6 @@
 {
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
 	"state": { "n": 0, "last": "", "bar": {}, "dialog": false, "toast": true, "answer": "" },
 	"actions": {

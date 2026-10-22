@@ -20,7 +20,7 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 11> list = {{
+	static constexpr std::array<Command, 12> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
 		 "Show a screen and let peers change it, like affrescoui_host", runScreen},
 	    {"check", "<file> [--json]", "Check a screen: the schema, the format's rules and the checker", checkScreen},
@@ -45,6 +45,8 @@ std::span<const Command> commands() {
 		 generateSchema},
 	    {"sign", "<file> --key KEYFILE [-o out.json] | --new-key KEYFILE",
 		 "Sign a feature's manifest or a catalogue's index (its digests first); --new-key makes a key", signFile},
+	    {"migrate", "<file>... [--check] [--write]",
+		 "Rewrite version 1 files as version 2, listing each rewrite; --check only says which need it", migrateFiles},
 	}};
 	return list;
 }

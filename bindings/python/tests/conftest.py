@@ -14,7 +14,7 @@ from affrescoui import Screen
 #: "clicked" and calls the native function "double", and a button "broken" whose call fails.
 DOCUMENT = {
     "format": "affrescoui-screen",
-    "version": 1,
+    "version": 2,
     "window": {"title": "Python", "width": 200, "height": 120},
     "state": {"count": 1, "result": 0, "failed": False, "items": [{"title": "a/b"}]},
     "root": {"id": "root", "children": [

@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Streak: a habit tracker. Tick habits, click heatmap days to change them, read the charts, the day-by-day history and the notes; habits, the heatmap, the notes and the theme are kept on disk (persist).",
 	"window": {
 		"title": "Streak: an AffrescoUI template",
@@ -189,7 +189,7 @@
 		"completionLine": "{{join(map(computed.weekly, (index == 0 ? 'M ' : 'L ') + index * 10 + ' ' + (100 - it)), ' ')}}",
 		"completionArea": "{{computed.completionLine + ' L 190 100 L 0 100 Z'}}",
 		"streakHeights": "{{map(state.habits, max(round(it.streak * 110 / max(computed.bestStreak, 1)), 3))}}",
-		"history": "{{map(range(137), {id: text(index), cells: [time(1792065600000 - index * 86400000, 'ddd D MMM'), index, floor((136 - index) / 7) + 1, state.weeks[floor((136 - index) / 7)][(136 - index) % 7] + ' of ' + len(state.habits), state.weeks[floor((136 - index) / 7)][(136 - index) % 7] * 20 + '%']})}}",
+		"history": "{{map(range(137), {id: text(index), cells: [time(1792065600000 - index * 86400000, 'ddd D MMM'), index, floor((136 - index) / 7) + 1, state.weeks[floor((136 - index) / 7)][(136 - index) % 7] + ' of ' + length(state.habits), state.weeks[floor((136 - index) / 7)][(136 - index) % 7] * 20 + '%']})}}",
 		"average": "{{round(computed.checkIns * 20 / 137)}}",
 		"notes": "{{reverse(state.noteFilter == '' ? state.notes : filter(state.notes, it.habit == state.noteFilter))}}"
 	},
@@ -235,7 +235,7 @@
 			}
 		],
 		"addHabit": [
-			{ "if": "{{len(trim(state.newHabit)) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{length(trim(state.newHabit)) == 0}}", "then": [{ "stop": true }] },
 			{
 				"push": "state.habits",
 				"value": {
@@ -243,7 +243,7 @@
 					"done": false,
 					"streak": 0,
 					"week": 0,
-					"color": "{{state.habitColors[len(state.habits) % len(state.habitColors)]}}"
+					"color": "{{state.habitColors[length(state.habits) % length(state.habitColors)]}}"
 				}
 			},
 			{ "set": "state.newHabit", "to": "" }
@@ -259,12 +259,12 @@
 				"to": {
 					"open": true,
 					"name": "",
-					"color": "{{state.habitColors[len(state.habits) % len(state.habitColors)]}}"
+					"color": "{{state.habitColors[length(state.habits) % length(state.habitColors)]}}"
 				}
 			}
 		],
 		"createHabit": [
-			{ "if": "{{len(trim(state.draft.name)) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{length(trim(state.draft.name)) == 0}}", "then": [{ "stop": true }] },
 			{
 				"push": "state.habits",
 				"value": {
@@ -290,7 +290,7 @@
 		],
 		"closeDelete": [{ "set": "state.deleting.open", "to": false }],
 		"addNote": [
-			{ "if": "{{len(trim(state.newNote)) == 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{length(trim(state.newNote)) == 0}}", "then": [{ "stop": true }] },
 			{
 				"push": "state.notes",
 				"value": {
@@ -381,7 +381,7 @@
 							{ "id": "label-today", "style": "cardTitle", "text": "Today" },
 							{
 								"style": "caption",
-								"text": "{{computed.doneToday}} of {{len(state.habits)}} done",
+								"text": "{{computed.doneToday}} of {{length(state.habits)}} done",
 								"anchors": { "right": 60, "top": 24 },
 								"id": "doneCount"
 							},
@@ -401,7 +401,7 @@
 									{
 										"id": "panel-progress",
 										"anchors": { "left": 0, "top": 0, "bottom": 0 },
-										"width": "{{round(computed.doneToday * 100 / max(len(state.habits), 1))}}%",
+										"width": "{{round(computed.doneToday * 100 / max(length(state.habits), 1))}}%",
 										"color": "@color.accent"
 									}
 								],
@@ -513,7 +513,7 @@
 										{ "label": "Best streak", "value": "{{plural(computed.bestStreak, 'day')}}" },
 										{
 											"label": "Completed today",
-											"value": "{{computed.doneToday}} / {{len(state.habits)}}"
+											"value": "{{computed.doneToday}} / {{length(state.habits)}}"
 										},
 										{ "label": "Check-ins", "value": "{{computed.checkIns}}" }
 									]
@@ -790,7 +790,7 @@
 					{
 						"id": "historySummary",
 						"style": "caption",
-						"text": "{{len(computed.history)}} days  ·  {{computed.average}}% on average  ·  click a title to sort",
+						"text": "{{length(computed.history)}} days  ·  {{computed.average}}% on average  ·  click a title to sort",
 						"anchors": { "right": 24, "top": 24 }
 					},
 					{

@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Forge's palette: one quick pick with four providers (files by default, '>' commands, ':' go to line, 'theme ' colour themes), and the Settings and Keyboard Shortcuts pages, both generated from what the features contribute (the settings and commands sections and the keys).",
 
 	"state": {

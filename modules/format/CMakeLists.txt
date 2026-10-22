@@ -103,6 +103,7 @@ affrescoui_module(format
 	src/CheckerValues.cpp
 	src/CheckerTypes.cpp
 	src/NodeIds.cpp
+	src/Migrate.cpp
 	src/RulesNodes.cpp
 	src/FeatureManifest.cpp
 	src/Composition.cpp

@@ -22,7 +22,7 @@ namespace {
 /// @brief A screen with a label that shows a computed value, and actions that write to the state.
 constexpr const char* stateScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"state": { "n": 1, "form": { "name": "" }, "items": [], "selected": 0, "count": 1, "by": 1 },
 	"computed": { "c0": "{{state.n}}" },
 	"actions": {

@@ -69,7 +69,7 @@ bool drawsAsQuestionMark(const Font& font, char32_t codepoint) {
 /// @return The document.
 json screenWithFallback(const json& fallback) {
 	return {{"format", "affrescoui-screen"},
-	        {"version", 1},
+	        {"version", 2},
 	        {"fonts",
 	         {{"default", {{"file", "Roboto-Regular.ttf"}, {"size", 14}, {"fallback", fallback}}},
 	          {"mono", {{"file", "JetBrainsMono-Regular.ttf"}, {"size", 13}}}}},

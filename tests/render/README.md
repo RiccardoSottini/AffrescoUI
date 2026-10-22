@@ -44,7 +44,7 @@ an optional `scale` and `note`, and the steps. A picture is an expectation, name
 ```json
 {
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"screens": "../../../examples/assets/screens",
 	"scenarios": [
 		{ "name": "studio", "screen": "studio.screen.json", "steps": [{ "expect": { "image": "first-frame" } }] }

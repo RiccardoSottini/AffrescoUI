@@ -27,7 +27,7 @@ std::span<const Function> functions() {
 
 const Function* findFunction(std::string_view name) {
 	for(const Function& function : functions())
-		if(function.name == name || (!function.alias.empty() && function.alias == name)) return &function;
+		if(function.name == name) return &function;
 	return nullptr;
 }
 
@@ -61,8 +61,7 @@ namespace {
 /// @param function The function.
 /// @return The text.
 std::string signature(const Function& function) {
-	const std::string_view name = function.alias.empty() ? function.name : function.alias;
-	std::string text = "`" + std::string(name) + "(" + std::string(function.arguments) + ")`";
+	std::string text = "`" + std::string(function.name) + "(" + std::string(function.arguments) + ")`";
 	if(!function.remark.empty()) text += " (" + std::string(function.remark) + ")";
 	return text;
 }
@@ -106,8 +105,7 @@ json operatorNames() {
 json functionCatalog() {
 	json catalog = json::object();
 	for(const detail::Function& function : detail::functions()) {
-		const std::string_view name = function.alias.empty() ? function.name : function.alias;
-		catalog[std::string(name)] = std::string(function.arguments) + ": " + std::string(function.about);
+		catalog[std::string(function.name)] = std::string(function.arguments) + ": " + std::string(function.about);
 	}
 	return catalog;
 }

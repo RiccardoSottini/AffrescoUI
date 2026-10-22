@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "A cached subtree (\"cache\": true), for the rendering check: a square group of rounded, bordered cards with text, drawn from a texture of its own (opaque, so it is drawn as it would be without the cache, pixel for pixel), next to a panel that isn't cached and moves over it on hover.",
 
 	"window": { "title": "Cached subtree", "width": 480, "height": 240 },

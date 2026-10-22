@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "The changes that redraw part of the window, checked headless (ctest scenarios): what each one does to the tree, and that it all comes back, so a narrower redraw can't skip a change.",
 	"screen": "damage.screen.json",
 	"scenarios": [

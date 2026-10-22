@@ -75,7 +75,7 @@ float coverageAt(std::span<const MeshVertex> mesh, affresco::Vec2 point) {
 /// @brief A screen with one path node, "mark".
 constexpr std::string_view markScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"colors": { "accent": "#7c3aed" },
 	"root": { "children": [
 		{ "type": "path", "id": "mark", "width": 48, "height": 48, "viewBox": "0 0 24 24",

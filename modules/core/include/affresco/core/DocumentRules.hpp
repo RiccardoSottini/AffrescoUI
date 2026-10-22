@@ -87,6 +87,18 @@ public:
 	/// @throws DocumentError If the change is forbidden.
 	virtual void checkChange(const json& before, const json& after) const = 0;
 
+	/// @brief Brings a document written for an older version of the format to the current one, in place, before it is
+	/// validated (a version 1 screen read as version 2). The default changes nothing.
+	/// @param document The document.
+	/// @return One line for each change made; empty if the document is current.
+	[[nodiscard]] virtual std::vector<std::string> upgrade([[maybe_unused]] json& document) const { return {}; }
+
+	/// @brief Brings a revision's patch written for an older version of the format to the current one, in place (a
+	/// revision of a version 1 change set). The default changes nothing.
+	/// @param patch The revision's operations, as JSON Patch.
+	/// @return One line for each change made.
+	[[nodiscard]] virtual std::vector<std::string> upgradeRevision([[maybe_unused]] json& patch) const { return {}; }
+
 	/// @brief Checks a revision's size before any of it is applied, so a peer can't make the screen do unbounded
 	/// work. The default takes any size.
 	/// @param patch The revision's operations, as JSON Patch.

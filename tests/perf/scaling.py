@@ -82,7 +82,7 @@ def node_list(count):
     """A screen of n labels, each in its own row with an id, the shape agents read in large screens."""
     rows = [{"type": "row", "id": f"row-{i}", "children": [{"type": "label", "id": f"item-{i}", "text": f"Item {i}"}]}
             for i in range(count)]
-    return {"format": "affrescoui-screen", "version": 1, "root": {"type": "stack", "id": "list", "children": rows}}
+    return {"format": "affrescoui-screen", "version": 2, "root": {"type": "stack", "id": "list", "children": rows}}
 
 
 def best_time(call, repeats=5):
