@@ -195,3 +195,23 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 	CHECK_FALSE(added(R"({"use": "outer"})"));
 	CHECK_FALSE(added(R"({"use": "goApprove", "with": {"act": "refresh"}})"));
 }
+
+// Each control step was written out whole, the ones inside it again at each level: 250 nested around 4 MiB made
+// 2 GiB of text, and took seconds, at each revision
+TEST_CASE("format: control steps inside each other are compared whole, at the cost of their size" *
+          doctest::timeout(5)) {
+	const auto nested = [](const json& inner) {
+		json before = screenWithActions();
+		json step = {{"accept", inner}, {"note", std::string(4u << 20, 'a')}};
+		for(int i = 0; i < 250; ++i) step = {{"accept", step}};
+		before["actions"]["approve"] = json::array({step});
+		return before;
+	};
+	const json before = nested(1);
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before));
+	CHECK_THROWS_WITH_AS(rules.checkChange(before, nested(2)), doctest::Contains("permission denied"),
+	                     affresco::DocumentError); // a change deep inside is still one
+	CHECK_THROWS_WITH_AS(rules.checkChange(before, nested({{"accept", 1}})), doctest::Contains("permission denied"),
+	                     affresco::DocumentError); // and so is a control step added there
+}

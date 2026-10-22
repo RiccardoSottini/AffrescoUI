@@ -16,6 +16,7 @@
 #include <cctype>
 #include <functional>
 #include <set>
+#include <utility>
 
 namespace affresco::format {
 
@@ -148,10 +149,14 @@ public:
 				control = control || std::ranges::find(controlSteps, entry.key()) != std::ranges::end(controlSteps);
 				uses = uses || entry.key() == "use";
 			}
-			if(control) found.push_back(trigger + ": " + value.dump());
+			// One text per outermost control step: the ones inside it are in its text, so theirs would only repeat
+			// it, once per level (a document of a few MiB, nested, would make GiBs)
+			if(control && !dumped_) found.push_back(trigger + ": " + value.dump());
 			if(uses && runsControl(value))
 				found.push_back(trigger + ": use " + value["use"].dump() + " with parameters that may control");
+			const bool outer = std::exchange(dumped_, dumped_ || control);
 			for(const auto& [key, item] : value.items()) member(key, item, trigger, part, found);
+			dumped_ = outer;
 		} else if(value.is_array()) {
 			for(const json& item : value) walk(item, trigger, part == Part::Values ? Part::Values : Part::Steps, found);
 		}
@@ -223,7 +228,9 @@ private:
 		json value = *node;
 		substitute(value, parameters);
 		std::vector<std::string> found;
+		const bool outer = std::exchange(dumped_, false); // the expansion's own control steps count
 		walk(value, "use", Part::Steps, found);
+		dumped_ = outer;
 		return !found.empty();
 	}
 
@@ -233,6 +240,7 @@ private:
 	const json& components_;               ///< The document's own components.
 	mutable std::size_t depth_ = 0;        ///< How many uses of the document's components are being expanded.
 	mutable std::size_t expansions_ = 0;   ///< How many more the use being scanned may be expanded through.
+	mutable bool dumped_ = false;          ///< Whether the value being scanned is inside a control step's text.
 };
 
 /// @brief The components that run the actions their parameters name: the built-in ones, and the document's own that
