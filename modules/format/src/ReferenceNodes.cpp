@@ -853,6 +853,33 @@ constexpr KeyReference nodeTable[] = {
 	 "The pointer moved onto a word of an editor, or off one: `event.word`, `line`, `column` (where it starts, "
 	 "from 0); off a word, `word` is empty and `line` null.",
 	 "events"},
+    {"secret", "flag",
+	 "A text area or a code input showing a dot per character, for a password; the screen reader gets no value, and "
+	 "the text is never copied.",
+	 "form"},
+    {"maxLength", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The most characters typing and pasting may give a text area (0, the default: no limit; up to 100,000).", "form"},
+    {"accept", R"json({"anyOf": [{"enum": ["any", "digits", "letters", "alphanumeric"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The characters typing and pasting may add: `any` (the default for a text area), `digits` (a code input's "
+	 "default), `letters` or `alphanumeric`; others are dropped (a pasted `123-456` gives `123456`).",
+	 "form"},
+    {"length", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "A code input's cells (1 to 12, default 6), which is also the most characters.", "form"},
+    {"cellColor", "color", "A code input's cells, their outline and the space between them (default 8) and their corners "
+	 "(default 6).", "form"},
+    {"cellBorderColor", "color", "", "form"},
+    {"cellGap", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", "form"},
+    {"cellRadius", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", "form"},
+    {"index", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "The page shown, from 0, when there is no `bind` (default 0). With `bind`, the user's turns write the state and "
+	 "run `onChange`.",
+	 "carousel"},
+    {"loop", "flag", "Whether turning past the last page goes to the first, and back (default false).", "carousel"},
+    {"arrowButtons", "flag",
+	 "The arrows in a gutter on each side, and the dots in a strip below (both default true).", "carousel"},
+    {"dots", "flag", "", "carousel"},
+    {"arrowColor", "color", "The arrows, and the other pages' dots (`activeColor`: the page shown's).", "carousel"},
+    {"dotColor", "color", "", "carousel"},
     {"slot", R"json({"const": true, "description": "In a component: where the use's children go"})json", "", ""},
     {"placeholder", R"json({"description": "Text, or a {{binding}}"})json", "", ""},
     {"placeholderColor", "color", "", ""},

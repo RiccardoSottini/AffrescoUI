@@ -152,6 +152,7 @@ struct Function {
 [[nodiscard]] std::span<const Function> localeFunctions();
 /// @copydoc logicFunctions
 [[nodiscard]] std::span<const Function> dateFunctions();
+[[nodiscard]] std::span<const Function> formFunctions();
 
 /* Helpers the tables share */
 

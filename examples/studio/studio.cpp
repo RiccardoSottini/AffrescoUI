@@ -10,7 +10,8 @@
 // The Studio is itself an AffrescoUI screen (examples/studio/studio.screen.json): layout, behaviour and the connection
 // to the host. Its "channels" section connects to studio.sock (and reconnects); every message from the host runs the
 // screen's "host:<type>" action, and its "send" steps go to the host. This program only opens it, and shows the
-// pictures of a proposal's evidence (VERSION_CONTROL.md, "Evidence"), which a screen can't decode itself.
+// pictures of a proposal's evidence (VERSION_CONTROL.md, "Evidence"), which a screen can't decode itself, and moves
+// the channel to the connection chosen in the Connections list (a host's socket or the document server).
 
 #include "Assets.hpp"
 #include "SocketDir.hpp"
@@ -108,6 +109,26 @@ std::string showEvidence(affresco::Screen& studio, const std::string& argumentsJ
 	return "true";
 }
 
+/// @brief Moves the Studio's "host" channel to another connection from its Connections list: a host's socket (a
+/// name in the socket folder, or a path) or a remote peer's `ws://` or `wss://` address, such as the document server.
+/// The token stays in this run's memory and goes to the server once, as the connection's credentials; the screen
+/// never keeps it.
+/// @param studio The Studio's screen.
+/// @param argumentsJson `{"address", "token"}` (the token may be empty for a local socket).
+/// @return "true"; the connection then reports on the "host:" actions.
+/// @throws std::runtime_error Without an address, with one longer than 2,048 bytes or a token longer than 4,096, or
+/// when the screen has no "host" channel.
+std::string connectTo(affresco::Screen& studio, const std::string& argumentsJson) {
+	const affresco::json arguments = affresco::json::parse(argumentsJson);
+	std::string address = arguments.value("address", std::string{});
+	std::string token = arguments.value("token", std::string{});
+	if(address.empty() || address.size() > 2048 || token.size() > 4096)
+		throw std::runtime_error("no address, or an address or token too long");
+	if(!studio.connectChannel("host", std::move(address), std::move(token)))
+		throw std::runtime_error("the Studio has no host channel");
+	return "true";
+}
+
 #ifdef __EMSCRIPTEN__
 affresco::Screen* connectable = nullptr; ///< The Studio, for the page's connect form (main() keeps it to the end).
 #endif
@@ -148,6 +169,8 @@ int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own 
 		studio.setSocketDirectory(socketDir);
 		studio.onCall("showEvidence",
 		              [&studio](const std::string& argumentsJson) { return showEvidence(studio, argumentsJson); });
+		studio.onCall("connectTo",
+		              [&studio](const std::string& argumentsJson) { return connectTo(studio, argumentsJson); });
 		studio.createWindow(app); // connects the file's channels
 #ifdef __EMSCRIPTEN__
 		connectable = &studio;

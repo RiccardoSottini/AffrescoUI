@@ -815,7 +815,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, codeInput, carousel, outlet, code, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -846,6 +846,8 @@
 									"graph",
 									"timeline",
 									"calendar",
+									"codeInput",
+									"carousel",
 									"outlet",
 									"code"
 								]
@@ -2894,6 +2896,95 @@
 					"onWordHover": {
 						"$ref": "#/$defs/v2/handler"
 					},
+					"secret": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"maxLength": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"accept": {
+						"anyOf": [
+							{
+								"enum": [
+									"any",
+									"digits",
+									"letters",
+									"alphanumeric"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"length": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"cellColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"cellBorderColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"cellGap": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"cellRadius": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"index": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"loop": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"arrowButtons": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"dots": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"arrowColor": {
+						"$ref": "#/$defs/v2/color"
+					},
+					"dotColor": {
+						"$ref": "#/$defs/v2/color"
+					},
 					"slot": {
 						"const": true,
 						"description": "In a component: where the use's children go"
@@ -2957,6 +3048,8 @@
 									"graph",
 									"timeline",
 									"calendar",
+									"codeInput",
+									"carousel",
 									"outlet",
 									"code"
 								]
@@ -3167,7 +3260,9 @@
 						"$daysInMonth",
 						"$dateOf",
 						"$dateMs",
-						"$isDate"
+						"$isDate",
+						"$passwordStrength",
+						"$isEmail"
 					]
 				}
 			},

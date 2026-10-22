@@ -31,6 +31,7 @@ bool accessibleStateProperty(Panel& panel, Slot slot, const json& value, const s
 		state.expanded = boolean(value, at);
 		break;
 	case Slot::Selected:
+		if(!value.is_boolean()) return false; // a graph's or a timeline's own "selected": ids, not a flag
 		state.selected = boolean(value, at);
 		break;
 	case Slot::Live:

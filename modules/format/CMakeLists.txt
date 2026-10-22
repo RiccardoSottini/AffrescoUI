@@ -17,6 +17,7 @@ affrescoui_module(format
 	src/ExpressionFunctionsColor.cpp
 	src/ExpressionFunctionsKeyframes.cpp
 	src/ExpressionFunctionsLocale.cpp
+	src/ExpressionFunctionsForm.cpp
 	src/LocaleData.cpp
 	src/LocalePlurals.cpp
 	src/LocaleNumbers.cpp
@@ -83,6 +84,10 @@ affrescoui_module(format
 	src/GraphType.cpp
 	src/TimelineType.cpp
 	src/CalendarType.cpp
+	src/TextFieldProperties.cpp
+	src/CodeInputType.cpp
+	src/CarouselType.cpp
+	src/BuiltInFormComponents.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp

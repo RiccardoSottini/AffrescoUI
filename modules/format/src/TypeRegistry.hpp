@@ -315,5 +315,14 @@ void registerTimelineType(TypeRegistry& registry);
 /// @brief Registers "calendar" (CalendarType.cpp).
 /// @param registry The registry.
 void registerCalendarType(TypeRegistry& registry);
+/// @brief Registers secret, maxLength and accept on text fields (TextFieldProperties.cpp).
+/// @param registry The registry.
+void registerTextFieldProperties(TypeRegistry& registry);
+/// @brief Registers "codeInput" (CodeInputType.cpp).
+/// @param registry The registry.
+void registerCodeInputType(TypeRegistry& registry);
+/// @brief Registers "carousel" (CarouselType.cpp).
+/// @param registry The registry.
+void registerCarouselType(TypeRegistry& registry);
 
 } // namespace affresco::format

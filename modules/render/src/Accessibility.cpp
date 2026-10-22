@@ -79,7 +79,7 @@ std::uint8_t actionsOf(std::string_view role, const AccessibleNode& node) {
 /// @param node Its element.
 void readText(const Panel& panel, AccessibleNode& node) {
 	if(const auto* area = dynamic_cast<const TextArea*>(&panel)) {
-		node.value = capped(area->text());
+		node.value = area->secret() ? std::string() : capped(area->text());
 		const auto [from, to] = area->selection();
 		const auto length = static_cast<std::size_t>(
 		    std::ranges::count_if(node.value, [](char c) { return (static_cast<unsigned char>(c) & 0xC0u) != 0x80u; }));
