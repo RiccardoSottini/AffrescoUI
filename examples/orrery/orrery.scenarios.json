@@ -1,0 +1,212 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "orrery.screen.json",
+	"note": "Orrery's own checks. They run without the 3D view (the affrescoui tool has no scene surface), the rest of the screen is the same.",
+	"scenarios": [
+		{
+			"name": "starts-on-day-zero",
+			"steps": [
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#day",
+						"text": "Day 0"
+					}
+				},
+				{
+					"expect": {
+						"node": "#next-label",
+						"text": "Next: Solar eclipse on day 30 (in 30 days)"
+					}
+				},
+				{
+					"expect": {
+						"node": "#viewport-missing",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "next-event-moves-the-planets",
+			"steps": [
+				{
+					"click": "#next-event"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 29.5
+					}
+				},
+				{
+					"expect": {
+						"node": "#next-label",
+						"text": "Next: Lunar eclipse on day 44 (in 15 days)"
+					}
+				},
+				{
+					"click": "#rewind"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "play-advances-the-playhead",
+			"steps": [
+				{
+					"click": "#play"
+				},
+				{
+					"wait": 500
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": true
+					}
+				},
+				{
+					"click": "#play"
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#day",
+						"text": "Day 9"
+					}
+				}
+			]
+		},
+		{
+			"name": "annotate-the-chart",
+			"steps": [
+				{
+					"expect": {
+						"state": "notes.length",
+						"is": 1
+					}
+				},
+				{
+					"click": "#add-note"
+				},
+				{
+					"expect": {
+						"state": "notes.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "notes[1].x",
+						"is": -35
+					}
+				},
+				{
+					"click": "#mark"
+				},
+				{
+					"expect": {
+						"state": "notes.length",
+						"is": 4
+					}
+				},
+				{
+					"click": "#clear-notes"
+				},
+				{
+					"expect": {
+						"state": "notes.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "reparent-in-the-graph",
+			"steps": [
+				{
+					"action": "reparent",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].parent",
+						"is": "earth"
+					}
+				},
+				{
+					"action": "orbitAround",
+					"event": {
+						"from": "earth",
+						"output": "satellites",
+						"to": "mars",
+						"input": "orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[5].parent",
+						"is": "sun"
+					}
+				}
+			]
+		},
+		{
+			"name": "turn-and-zoom-the-view",
+			"note": "The camera's handlers are on the view's pane, so they work where the 3D view isn't drawn too (the note in its place).",
+			"steps": [
+				{
+					"drag": [200, 200],
+					"to": [300, 200]
+				},
+				{
+					"expect": {
+						"state": "camera.yaw",
+						"is": -0.4
+					}
+				},
+				{
+					"expect": {
+						"state": "grab",
+						"is": null
+					}
+				},
+				{
+					"scroll": "#viewport-missing",
+					"dy": -3
+				},
+				{
+					"expect": {
+						"state": "camera.distance",
+						"is": 12.3
+					}
+				}
+			]
+		}
+	]
+}

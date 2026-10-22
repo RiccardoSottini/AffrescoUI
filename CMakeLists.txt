@@ -215,6 +215,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	add_subdirectory(examples/tempera)
 	# Bottega, Sinopia's slide sorter installed into Tempera with an adapter and a proof (examples/bottega/)
 	add_subdirectory(examples/bottega)
+	# Orrery, a small planetarium with a 3D view, a sky chart, an orbit graph and an events timeline (examples/orrery/)
+	add_subdirectory(examples/orrery)
 	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp
 	    examples/server/UserInfoVerifier.cpp)
@@ -250,6 +252,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/bottega)
 		add_test(NAME bottega_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/bottega/e2e_test.py ${CMAKE_BINARY_DIR})
+		# Orrery end to end: host, MCP server, a revision, an approval, a picture (examples/orrery)
+		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()
 	if(AFFRESCOUI_BUILD_EXAMPLES)
 		# Sinopia's scenarios, headless: editing, the sorter, exporting and presenting (examples/sinopia/README.md)
