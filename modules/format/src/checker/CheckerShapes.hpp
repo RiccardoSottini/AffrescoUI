@@ -14,6 +14,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -165,12 +166,10 @@ struct Prepared {
 	/// @brief Visits each property once, from the layer that wins.
 	/// @param visit Called with the key, the value and the layer.
 	template <class Visit> void forEach(const Visit& visit) const {
-		std::vector<const std::string*> seen; // keys stay where they are in their objects
+		std::unordered_set<std::string_view> seen; // keys stay where they are in their objects
 		for(const Layer& layer : std::views::reverse(layers))
 			for(const auto& [key, value] : layer.properties->items()) {
-				if(!layer.holds(key) || std::ranges::any_of(seen, [&](const std::string* s) { return *s == key; }))
-					continue;
-				seen.push_back(&key);
+				if(!layer.holds(key) || !seen.insert(key).second) continue;
 				visit(key, value, layer);
 			}
 	}

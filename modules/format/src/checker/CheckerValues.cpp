@@ -406,7 +406,7 @@ const Shape& Checker::computedShape(const std::string& name) {
 	if(computing_.size() >= maxComputedDepth) return anything;                   // too deep: the runtime reports it
 	computing_.push_back(name);
 	const Scope none;
-	Shape shape = shapeOf(document_.at("computed").at(name), none, "computed." + name);
+	Shape shape = shapeOf(*definition("computed", name), none, "computed." + name); // its callers found it
 	computing_.pop_back();
 	return computedShapes_[name] = std::move(shape);
 }

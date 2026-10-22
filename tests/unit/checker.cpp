@@ -412,6 +412,22 @@ const std::string panel = R"("root": {"type": "panel", "id": "main"})";
 
 } // namespace
 
+// Sections and a node's properties were found by name in a list, once for each name: a hundred thousand actions,
+// components or properties took seconds to check, and each revision is checked
+TEST_CASE("checker: many sections and properties are checked at the cost of their number" * doctest::timeout(5)) {
+	checkWide({
+	    {"actions",
+		 R"("state": {"p": 0}, "actions": null, )" + panel,
+		 {{"/actions", R"("a$", [{"set": "state.p", "to": $}])"}}},
+	    {"styles", R"("styles": null, )" + panel, {{"/styles", R"("s$", {"padding": $})"}}},
+	    {"components", R"("components": null, )" + panel, {{"/components", R"("c$", {"node": {"type": "panel"}})"}}},
+	    {"computed values",
+		 R"("state": {"p": 1}, "computed": null, )" + panel,
+		 {{"/computed", R"("c$", "{{state.p + $}}")"}}},
+	    {"a node's properties", R"("root": null)", {{"/root", R"("x$", $)"}}},
+	});
+}
+
 // The shape of an object, of what a list's items hold or of what the state's types let it hold was built a key at a
 // time, each found among those before it: a hundred thousand keys took from seconds to a minute to check
 TEST_CASE("checker: the shapes of wide values are built at the cost of their size" * doctest::timeout(5)) {

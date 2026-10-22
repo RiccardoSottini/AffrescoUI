@@ -336,8 +336,15 @@ const json* Checker::section(const char* name) const {
 const json* Checker::definition(const char* sectionName, const std::string& name) const {
 	const json* entries = section(sectionName);
 	if(!entries) return nullptr;
-	const auto it = entries->find(name);
-	return it != entries->end() ? &*it : nullptr;
+	if(entries->size() < indexedEntries) {
+		const auto it = entries->find(name);
+		return it != entries->end() ? &*it : nullptr;
+	}
+	const auto [index, added] = entries_.try_emplace(sectionName);
+	if(added)
+		for(const auto& [key, entry] : entries->items()) index->second.emplace(key, &entry);
+	const auto it = index->second.find(name);
+	return it != index->second.end() ? it->second : nullptr;
 }
 
 std::vector<std::string> Checker::definedNames(const char* sectionName) const {
