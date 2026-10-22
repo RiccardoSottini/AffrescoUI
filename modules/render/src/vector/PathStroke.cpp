@@ -44,24 +44,8 @@ public:
 			stopped_ = true;
 			return;
 		}
-		for(std::size_t index = 1; index + 1 < count; ++index)
-			vector::pushQuad(mesh_, {MeshVertex{corners[0]}, MeshVertex{corners[index]}, MeshVertex{corners[index + 1]},
-			                         MeshVertex{corners[index + 1]}});
-		if(!feathered) return;
-		float area = 0.0f;
-		for(std::size_t index = 0; index < count; ++index) area += vector::cross(corners[index], corners[(index + 1) % count]);
-		const float sign = area > 0.0f ? -1.0f : 1.0f; // outside is on the right of a counter-clockwise polygon
-		std::array<Vec2, polygonLimit> normals{};
-		for(std::size_t index = 0; index < count; ++index)
-			normals[index] = times(vector::leftOf(vector::normalized(minus(corners[(index + 1) % count], corners[index]))), sign);
-		for(std::size_t index = 0; index < count; ++index) {
-			if(!fringed[index]) continue;
-			const std::size_t previous = (index + count - 1) % count, next = (index + 1) % count;
-			const Vec2 start = offset(normals[index], fringed[previous] ? normals[previous] : normals[index]);
-			const Vec2 end = offset(normals[index], fringed[next] ? normals[next] : normals[index]);
-			vector::pushQuad(mesh_, {MeshVertex{corners[index]}, MeshVertex{corners[next]},
-			                         MeshVertex{plus(corners[next], end), 0.0f}, MeshVertex{plus(corners[index], start), 0.0f}});
-		}
+		fan(corners.first(count));
+		if(feathered) fringe(corners.first(count), fringed);
 	}
 
 	/// @brief Draws a circle (a polygon fine enough for its size), fringed all round.
@@ -79,6 +63,44 @@ public:
 	}
 
 private:
+	/// @brief Fills a convex polygon with a fan of quads from its first corner.
+	/// @param corners Its corners, at least 3.
+	void fan(std::span<const Vec2> corners) {
+		for(std::size_t index = 1; index + 1 < corners.size(); ++index)
+			vector::pushQuad(mesh_, {MeshVertex{corners[0]}, MeshVertex{corners[index]}, MeshVertex{corners[index + 1]},
+			                         MeshVertex{corners[index + 1]}});
+	}
+
+	/// @brief The outward normals of a convex polygon's edges.
+	/// @param corners Its corners, at least 3 and at most polygonLimit.
+	/// @return Per edge (from corner i to corner i + 1), its normal pointing out of the polygon.
+	[[nodiscard]] static std::array<Vec2, polygonLimit> outwardNormals(std::span<const Vec2> corners) {
+		const std::size_t count = corners.size();
+		float area = 0.0f;
+		for(std::size_t index = 0; index < count; ++index) area += vector::cross(corners[index], corners[(index + 1) % count]);
+		const float sign = area > 0.0f ? -1.0f : 1.0f; // outside is on the right of a counter-clockwise polygon
+		std::array<Vec2, polygonLimit> normals{};
+		for(std::size_t index = 0; index < count; ++index)
+			normals[index] = times(vector::leftOf(vector::normalized(minus(corners[(index + 1) % count], corners[index]))), sign);
+		return normals;
+	}
+
+	/// @brief Draws the fringes of a convex polygon's edges, fading out from them.
+	/// @param corners Its corners, at least 3 and at most polygonLimit.
+	/// @param fringed For each edge, whether it gets a fringe.
+	void fringe(std::span<const Vec2> corners, std::span<const bool> fringed) {
+		const std::size_t count = corners.size();
+		const std::array<Vec2, polygonLimit> normals = outwardNormals(corners);
+		for(std::size_t index = 0; index < count; ++index) {
+			if(!fringed[index]) continue;
+			const std::size_t previous = (index + count - 1) % count, next = (index + 1) % count;
+			const Vec2 start = offset(normals[index], fringed[previous] ? normals[previous] : normals[index]);
+			const Vec2 end = offset(normals[index], fringed[next] ? normals[next] : normals[index]);
+			vector::pushQuad(mesh_, {MeshVertex{corners[index]}, MeshVertex{corners[next]},
+			                         MeshVertex{plus(corners[next], end), 0.0f}, MeshVertex{plus(corners[index], start), 0.0f}});
+		}
+	}
+
 	/// @brief Where a fringe's outer corner is: its edge's normal, averaged with the neighbour's if that has a fringe.
 	[[nodiscard]] Vec2 offset(Vec2 normal, Vec2 neighbour) const noexcept {
 		const Vec2 average = times(plus(normal, neighbour), 0.5f);
@@ -242,30 +264,41 @@ bool strokable(std::span<const VectorPath::Contour> contours, const StrokeStyle&
 	return style.width > 0.0f && std::isfinite(style.width) && vector::finite(contours);
 }
 
+/// @brief A run of points with each point that repeats the one before it left out.
+/// @param points The points.
+/// @return The run.
+[[nodiscard]] std::vector<Vec2> withoutRepeats(std::span<const Vec2> points) {
+	std::vector<Vec2> run;
+	for(const Vec2 point : points)
+		if(run.empty() || !(run.back() == point)) run.push_back(point);
+	return run;
+}
+
+/// @brief Strokes one contour, whole or cut into its dashes.
+/// @param stroker What draws it.
+/// @param contour The contour, with a point at least.
+/// @param style The stroke.
+void strokeContour(Stroker& stroker, const VectorPath::Contour& contour, const StrokeStyle& style) {
+	// A closed contour whose last point is its first is one point shorter
+	std::span<const Vec2> points = contour.points;
+	if(contour.closed && points.size() > 1 && points.back() == points.front()) points = points.first(points.size() - 1);
+	const std::vector<float> pattern = style.dash.empty() ? std::vector<float>{} : dashPattern(style.dash, lengthOf(contour));
+	if(pattern.empty() || points.size() == 1) {
+		stroker.run(points, contour.closed && points.size() > 2);
+		return;
+	}
+	const VectorPath::Contour trimmed{{points.begin(), points.end()}, contour.closed};
+	for(const std::vector<Vec2>& dash : dashesOf(trimmed, pattern)) stroker.run(withoutRepeats(dash), false);
+}
+
 } // namespace
 
 void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeStyle& style, std::vector<MeshVertex>& mesh,
                   float feather) {
 	if(!strokable(contours, style)) return;
 	Stroker stroker(style, mesh, std::min(std::max(feather, 0.0f), 4.0f));
-	for(const VectorPath::Contour& contour : contours) {
-		if(contour.points.empty()) continue;
-		// A closed contour whose last point is its first is one point shorter
-		std::span<const Vec2> points = contour.points;
-		if(contour.closed && points.size() > 1 && points.back() == points.front()) points = points.first(points.size() - 1);
-		const std::vector<float> pattern = style.dash.empty() ? std::vector<float>{} : dashPattern(style.dash, lengthOf(contour));
-		if(pattern.empty() || points.size() == 1) {
-			stroker.run(points, contour.closed && points.size() > 2);
-			continue;
-		}
-		const VectorPath::Contour trimmed{{points.begin(), points.end()}, contour.closed};
-		for(const std::vector<Vec2>& dash : dashesOf(trimmed, pattern)) {
-			std::vector<Vec2> run;
-			for(const Vec2 point : dash)
-				if(run.empty() || !(run.back() == point)) run.push_back(point);
-			stroker.run(run, false);
-		}
-	}
+	for(const VectorPath::Contour& contour : contours)
+		if(!contour.points.empty()) strokeContour(stroker, contour, style);
 }
 
 } // namespace affresco
