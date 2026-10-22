@@ -271,3 +271,22 @@ TEST_CASE("render: a deferred task runs once the outermost event is delivered") 
 	CHECK(order == std::vector<std::string>{"handler", "deferred"});
 	CHECK_FALSE(window->routingInput());
 }
+
+TEST_CASE("render: a drop leaves out the paths a screen can't take, and too many of them") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	std::vector<std::vector<std::string>> drops;
+	window->onDrop.connect([&](const affresco::DropEvent& event) { drops.push_back(event.paths); });
+
+	const std::string nul("/a\0b", 4);
+	window->routeDrop({{"/ok.txt", "/bad\xFF.txt", nul, std::string(32769, 'a'), "", "/caf\xC3\xA9\xEF\xBF\xBD"}, {}});
+	REQUIRE(drops.size() == 1);
+	CHECK(drops[0] == std::vector<std::string>{"/ok.txt", "/caf\xC3\xA9\xEF\xBF\xBD"});
+
+	window->routeDrop({{"/\xC0\xAF", "/\xED\xA0\x80"}, {}}); // an overlong slash, a surrogate: nothing left
+	CHECK(drops.size() == 1);
+
+	window->routeDrop({std::vector<std::string>(5000, "/f"), {}});
+	REQUIRE(drops.size() == 2);
+	CHECK(drops[1].size() == 4096);
+}

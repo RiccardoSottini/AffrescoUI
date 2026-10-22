@@ -7,9 +7,13 @@
 
 #include "GeometryCache.hpp"
 #include "RetainedGeometry.hpp"
+#include "detail/Utf8.hpp"
 #include "platform/Platform.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -17,8 +21,25 @@ namespace affresco {
 
 namespace {
 
-constexpr double tooltipDelayMs = 600.0; ///< How long the pointer rests before a tooltip shows.
-constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
+constexpr double tooltipDelayMs = 600.0;   ///< How long the pointer rests before a tooltip shows.
+constexpr float scrollSpeed = 24.0f;       ///< Pixels per wheel step.
+constexpr std::size_t maxDropPaths = 4096; ///< The most paths a drop delivers.
+constexpr std::size_t maxDropPath = 32768; ///< The longest path a drop delivers, in bytes.
+
+/// @brief Whether a dropped path can be delivered: the screens put paths in JSON, which needs valid UTF-8, and a NUL
+/// would cut the path short in the C functions that open it.
+/// @param path The path, as the platform gave it.
+/// @return true if it is not empty, not too long, has no NUL and is valid UTF-8.
+[[nodiscard]] bool deliverable(std::string_view path) noexcept {
+	if(path.empty() || path.size() > maxDropPath) return false;
+	for(std::size_t at = 0; at < path.size();) {
+		const detail::Decoded decoded = detail::decodeUtf8(path.substr(at));
+		if(decoded.codepoint == 0 || (decoded.codepoint == 0xFFFD && path.substr(at, 3) != "\xEF\xBF\xBD"))
+			return false;
+		at += decoded.length;
+	}
+	return true;
+}
 
 /// @brief A pointer event as a panel hears it: its position in the panel's layout space (through its transforms).
 /// @tparam Event An event with a position.
@@ -112,6 +133,13 @@ void Window::routeCursorEnter(bool entered) {
 }
 
 void Window::routeDrop(const DropEvent& event) {
+	if(event.paths.size() > maxDropPaths || !std::ranges::all_of(event.paths, deliverable)) {
+		DropEvent kept{{}, event.position};
+		for(const std::string& path : event.paths)
+			if(kept.paths.size() < maxDropPaths && deliverable(path)) kept.paths.push_back(path);
+		if(!kept.paths.empty()) routeDrop(kept); // every path of kept is deliverable, so this goes on below
+		return;
+	}
 	++routing_;
 	cursor_ = event.position;
 	setHovered(panelAt(event.position));

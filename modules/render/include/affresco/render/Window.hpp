@@ -260,7 +260,9 @@ public:
 	/// @brief Clears the hovered panel when the pointer leaves, then onCursorEnter.
 	/// @param entered true if the pointer entered.
 	void routeCursorEnter(bool entered);
-	/// @brief Delivers files dropped from the OS: the pointer moves where they were dropped, then onDrop.
+	/// @brief Delivers files dropped from the OS: the pointer moves where they were dropped, then onDrop. Paths that
+	/// aren't valid UTF-8, hold a NUL or are longer than 32 KiB are left out, and so is every path after the 4096th;
+	/// a drop that loses all its paths isn't delivered.
 	/// @param event The event.
 	void routeDrop(const DropEvent& event);
 	/// @brief Takes a new display scale, colour scheme or motion setting: a new scale draws everything again. Then
