@@ -7,6 +7,7 @@
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/format/Runtime.hpp"
 
+#include "Inspector.hpp"
 #include "Png.hpp"
 
 #include <functional>
@@ -27,11 +28,18 @@ public:
 	/// @brief Draws a screen.
 	/// @param versions Its document; must outlive this object.
 	/// @param runtime Its panels and window; must outlive this object.
-	OffscreenImages(VersionControl& versions, format::Runtime& runtime) : versions_(versions), runtime_(runtime) {}
+	OffscreenImages(VersionControl& versions, format::Runtime& runtime)
+	    : versions_(versions), runtime_(runtime), inspector_(versions, runtime) {}
 
 	[[nodiscard]] std::optional<std::string> render(const ImageRequest& request, Image& image) override;
 	[[nodiscard]] bool rendering() const noexcept override { return rendering_; }
 	[[nodiscard]] std::optional<std::string> evidence(int proposal, int scale, Evidence& evidence) override;
+	/// @brief Turns the inspector on or off (a picture drawn for a peer never shows it).
+	/// @param on true to show it.
+	/// @return An error (no window yet), or std::nullopt.
+	[[nodiscard]] std::optional<std::string> inspect(bool on) override { return inspector_.setOn(on); }
+	/// @brief The inspector, for the host's own controls and tests.
+	[[nodiscard]] Inspector& inspector() noexcept { return inspector_; }
 
 	/// Plays the screen's scenarios on a document (JSON text): `[{"name", "passed", "message"}]`.
 	using ScenarioCheck = std::function<json(const std::string& document)>;
@@ -72,6 +80,7 @@ private:
 	format::Runtime& runtime_;       ///< Has the window.
 	bool rendering_ = false;         ///< See rendering().
 	ScenarioCheck scenarioCheck_;    ///< See setScenarioCheck().
+	Inspector inspector_;            ///< See inspect().
 };
 
 } // namespace affresco::detail

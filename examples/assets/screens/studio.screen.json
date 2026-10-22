@@ -198,6 +198,7 @@
 		"head": "",
 		"mode": "default",
 		"grants": [],
+		"inspecting": false,
 		"proposals": [],
 		"previewing": null,
 		"evidence": null,
@@ -563,6 +564,22 @@
 						"to": false
 					}
 				]
+			}
+		],
+		"toggleInspector": [
+			{
+				"note": "The host's debug overlay: the panel under the pointer, frame statistics and an event trace"
+			},
+			{
+				"send": "host",
+				"data": {
+					"type": "inspect",
+					"on": "{{!state.inspecting}}"
+				}
+			},
+			{
+				"set": "state.inspecting",
+				"to": "{{!state.inspecting}}"
 			}
 		],
 		"toggleTheme": [
@@ -1108,6 +1125,20 @@
 						"height": 28,
 						"align": "center",
 						"tooltip": "The branch, revision and commit the app runs"
+					},
+					{
+						"id": "inspectorToggle",
+						"when": "{{state.connected && state.canReview}}",
+						"style": "iconButton",
+						"icon": "search",
+						"font": "icons",
+						"textColor": "{{state.inspecting ? '@color.accent' : '@color.muted'}}",
+						"anchors": {
+							"right": 302,
+							"top": 14
+						},
+						"tooltip": "Inspect the app: the panel under the pointer, frame times, events",
+						"onClick": "toggleInspector"
 					},
 					{
 						"id": "themeToggle",

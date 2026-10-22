@@ -204,6 +204,9 @@ Grants are allow rules, so `ask` and `deny` still win.
   texts are gathered by the host when a reviewer asks (`getEvidence`), from the proposal as it is then; a revision
   carrying `evidence` or `behaviour` is refused. The scenarios are played headless, on a screen connected to nobody,
   and gathering is rate limited like `render`.
+- **The inspector shows no secret state.** It is off by default and only a peer that may review turns it on
+  (`inspect`). It shows bindings as written, never their values; its trace names keys that type nothing and the
+  channel of a send, never a typed character or a message; and it is hidden while a picture is drawn for a peer.
 
 ### You accept what you saw
 An author can keep pushing commits to its open proposal. Every approval must name the proposal's head commit (at

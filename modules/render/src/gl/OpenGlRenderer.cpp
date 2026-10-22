@@ -59,6 +59,8 @@ public:
 		return readBackBuffer(size.width, size.height);
 	}
 
+	[[nodiscard]] std::size_t drawCalls() const noexcept override { return quads_.drawCalls(); }
+
 	[[nodiscard]] std::vector<std::uint8_t> drawOffscreen(const detail::Frame& frame,
 	                                                      platform::PixelSize size) override {
 		render(offscreen_, frame, size);

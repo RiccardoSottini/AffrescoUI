@@ -67,6 +67,16 @@ public:
 		(void)proposal, (void)scale, (void)evidence;
 		return "AffrescoUI screen: this host gathers no evidence";
 	}
+
+	/// @brief Turns the inspector on or off: an overlay on the window showing how the panel under the pointer was
+	/// built, what the frames cost and the latest events (never a value from the state). Off until a reviewer turns
+	/// it on.
+	/// @param on true to show it.
+	/// @return An error, or std::nullopt.
+	[[nodiscard]] virtual std::optional<std::string> inspect(bool on) {
+		(void)on;
+		return "AffrescoUI screen: this host has no inspector";
+	}
 };
 
 } // namespace affresco

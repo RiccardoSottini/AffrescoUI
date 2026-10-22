@@ -240,6 +240,16 @@ gets it back as `evidence`:
 `evidence` or `behaviour` is refused, so an author can never supply or forge it. Gathering draws two pictures, so it
 counts against the same rate as `render`.
 
+### Inspector
+A reviewer can turn on the host's **inspector** (`{"type": "inspect", "on": true}`; the Studio's search button): a
+debug overlay on the screen's window. For the panel under the pointer it shows its node, bounds, bindings as written
+(`{{state.count}}`, never the value) and handlers, and the commit that last changed it (`blame`); then the last frame's
+time and draw calls, the last update's time and panels rebuilt and created, and the latest events: clicks and scrolls
+by node, keys such as Enter or Escape (never a typed character), sends by channel (never the message), commits and
+decisions. It is off by default, a peer that may not review can't turn it on, and the overlay is never in a picture
+drawn for a peer. The host answers `done`, or `rejected` with no window or no inspector. In C++:
+`Screen::setInspector()` and `Screen::inspectorTrace()`.
+
 ## What keeps it safe
 - **Nobody approves their own change.** Agents aren't reviewers, the MCP server has no accept tool, revisions can't
   create review controls, and a reviewer can't accept a proposal from its own channel.

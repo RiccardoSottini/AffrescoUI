@@ -296,6 +296,17 @@ public:
 	/// evidence has no scenarios. affrescoui_host plays the screen's `.scenarios.json` (modules/automation).
 	/// @param check The check, or an empty function.
 	void setScenarioCheck(std::function<std::string(const std::string& documentJson)> check);
+	/// @brief Turns the inspector on or off: an overlay showing the node, bounds, bindings as written and last commit
+	/// of the panel under the pointer, the frame and update statistics, and the latest events. Off by default; a
+	/// reviewer can also turn it on with an "inspect" message (VERSION_CONTROL.md). It never shows a value from the
+	/// state, and pictures drawn for peers leave it out.
+	/// @param on true to show it.
+	/// @param statistics false to leave out times and counts, so that a picture of it is always the same.
+	/// @param error Receives why it can't, if not null.
+	/// @return false if it can't (no window yet).
+	bool setInspector(bool on, bool statistics = true, std::string* error = nullptr);
+	/// @brief The inspector's latest events, oldest first (none while it has been off).
+	[[nodiscard]] std::vector<std::string> inspectorTrace() const;
 
 	/* History */
 

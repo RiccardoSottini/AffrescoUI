@@ -235,10 +235,10 @@ bool Session::handleChange(const Incoming& in) {
 }
 
 // accept, reject, preview, endPreview, setMode, revoke: decisions, for reviewers only (an agent must not approve
-// its own changes)
+// its own changes); inspect too, which shows how the screen is built
 bool Session::handleReview(const Incoming& in) {
-	static constexpr std::array<std::string_view, 6> decisions = {"accept",     "reject",  "preview",
-	                                                              "endPreview", "setMode", "revoke"};
+	static constexpr std::array<std::string_view, 7> decisions = {"accept",  "reject", "preview", "endPreview",
+	                                                              "setMode", "revoke", "inspect"};
 	if(std::ranges::find(decisions, in.type) == decisions.end()) return false;
 
 	const int at = versions_.head().number;
@@ -249,7 +249,7 @@ bool Session::handleReview(const Incoming& in) {
 		      {"id", in.id}});
 		return true;
 	}
-	if(const std::optional<std::string> error = decide(in))
+	if(const std::optional<std::string> error = in.type == "inspect" ? inspect(in) : decide(in))
 		send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", in.id}});
 	else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", in.id}});
 	return true;
@@ -284,6 +284,13 @@ std::optional<std::string> Session::decide(const Incoming& in) {
 	const std::string rule = expect::string(m.value("rule", json()), "revoke.rule"); // revoke
 	if(versions_.revokeGrant(rule)) return std::nullopt;
 	return "AffrescoUI screen: no grant '" + rule + "'";
+}
+
+std::optional<std::string> Session::inspect(const Incoming& in) {
+	const json on = in.message.value("on", json());
+	if(!on.is_boolean()) expect::fail("inspect.on", "expected true or false");
+	if(!images_) return "AffrescoUI screen: this host has no inspector";
+	return images_->inspect(on.get<bool>());
 }
 
 int Session::proposalOf(const Incoming& in) {

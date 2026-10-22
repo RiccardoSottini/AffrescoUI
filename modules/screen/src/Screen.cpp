@@ -737,6 +737,18 @@ void Screen::setScenarioCheck(std::function<std::string(const std::string& docum
 	});
 }
 
+bool Screen::setInspector(bool on, bool statistics, std::string* error) {
+	impl_->images.inspector().setShowStatistics(statistics);
+	const std::optional<std::string> failed = impl_->images.inspect(on);
+	if(failed && error) *error = *failed;
+	return !failed;
+}
+
+std::vector<std::string> Screen::inspectorTrace() const {
+	const std::deque<std::string>& trace = impl_->images.inspector().trace();
+	return {trace.begin(), trace.end()};
+}
+
 std::vector<CommitInfo> Screen::log() const { return impl_->repository.log(); }
 
 bool Screen::restore(int revision, std::string* error) {

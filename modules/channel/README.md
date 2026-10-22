@@ -28,6 +28,8 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
   session; `render` and `getEvidence` take a scale from 1 to `ScreenImages::maxScale` (2).
 - **Evidence comes from the host:** `getEvidence` answers with `ScreenImages::evidence` (pictures, region, behaviour
   lines, scenario results, changed texts); nothing in it comes from the proposal's author.
+- **The inspector is a reviewer's:** `inspect` turns on `ScreenImages::inspect` only for a peer that may review; it is
+  off by default.
 - **Rates (`PeerLimits`):** messages of any kind, changes (they rebuild the screen) and pictures (`render` draws it, and
   builds a proposal's and main's again; `getEvidence` draws two) each have a token bucket of their own; pictures use the changes' rate.
 - **Only this user can connect.** On POSIX, the socket file is `0600`; on Windows, its access list has one entry, for

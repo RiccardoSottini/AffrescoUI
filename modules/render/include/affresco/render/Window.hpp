@@ -7,6 +7,7 @@
 #include "affresco/render/Clock.hpp"
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/FrameStatistics.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/core/Signal.hpp"
 
@@ -319,6 +320,18 @@ public:
 	/// @brief The GLFW window, or nullptr for a headless window.
 	[[nodiscard]] GLFWwindow* nativeHandle() const noexcept;
 
+	/* Inspection */
+
+	/// @brief What the last frame cost: how long it took and how many draw calls it made.
+	[[nodiscard]] const FrameStatistics& frameStatistics() const noexcept { return statistics_; }
+
+	/// @brief Sets a layer drawn above everything but the tooltip, the size of the window, for an inspector. It is
+	/// never hit: the pointer reaches what is under it. Laid out and drawn only while it is visible.
+	/// @param layer The layer, owned from now on, or nullptr (the default) for none.
+	void setInspection(std::unique_ptr<Panel> layer);
+	/// @brief The layer setInspection() gave, or nullptr.
+	[[nodiscard]] Panel* inspection() const noexcept { return inspection_.get(); }
+
 private:
 	friend class Application;
 	friend class Panel;
@@ -371,6 +384,10 @@ private:
 	void layoutOverlays(Panel& panel);
 	/// @brief Lays out the focus ring around the focused panel, and lists what is drawn above the tree (drawn_).
 	void layoutFocusRing();
+	/// @brief Lays out the inspection layer over the window, if it is visible, and adds it to what is drawn (drawn_).
+	void layoutInspection();
+	/// @brief Lays out, draws and presents a frame, and records what it cost (frameStatistics()).
+	void drawAndPresent();
 	/// @brief Lays out one overlay next to its anchor.
 	/// @param overlay The overlay.
 	/// @param parent Its parent: the anchor when it names none.
@@ -441,6 +458,8 @@ private:
 	std::vector<Panel*> drawn_;      ///< What is drawn above the tree: the overlays, then the focus ring if shown.
 	std::optional<FocusRing> focusRing_; ///< See focusRing().
 	std::unique_ptr<Panel> ring_;        ///< The focus ring's panel, created on first use.
+	std::unique_ptr<Panel> inspection_;  ///< See inspection().
+	FrameStatistics statistics_;         ///< See frameStatistics().
 	bool keyInput_ = false;              ///< The latest input was a key, not a mouse press.
 	bool focusVisible_ = false;          ///< See focusVisible().
 	std::unique_ptr<Label> tooltip_; ///< The tooltip, created on first use.

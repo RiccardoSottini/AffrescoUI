@@ -81,6 +81,7 @@ src/
                          and socket folders, persist, channels, peers
   OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render" and "getEvidence"
   ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
+  Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
   Png.hpp / .cpp         a small PNG encoder and a PPM reader
 CMakeLists.txt           the affrescoui target and its sources
 ```

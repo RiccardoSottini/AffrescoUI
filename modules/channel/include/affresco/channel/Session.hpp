@@ -97,6 +97,11 @@ private:
 	/// @return Why it was refused, or std::nullopt.
 	/// @throws DocumentError If it is malformed.
 	std::optional<std::string> decide(const Incoming& in);
+	/// @brief Turns the host's inspector on or off (handleReview(), once the peer may review).
+	/// @param in The message: `{"type": "inspect", "on": bool}`.
+	/// @return Why it was refused, or std::nullopt.
+	/// @throws DocumentError If it is malformed.
+	std::optional<std::string> inspect(const Incoming& in);
 	/// @brief The "proposal" a review message names.
 	/// @param in The message.
 	/// @return The proposal's id.

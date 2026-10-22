@@ -101,7 +101,10 @@ std::optional<std::string> OffscreenImages::drawPixels(int scale, RgbImage& pixe
 	if(folder.path().empty()) return "AffrescoUI screen: render: could not create a temporary folder";
 	const std::filesystem::path file = folder.path() / "screen.ppm";
 	runtime_.waitForImages(); // a picture shows every image, not those decoded so far
-	if(!runtime_.window()->saveScreenshot(file, scale)) return "AffrescoUI screen: render: could not draw the screen";
+	inspector_.setVisible(false); // a picture shows the screen, not the overlay
+	const bool drawn = runtime_.window()->saveScreenshot(file, scale);
+	inspector_.setVisible(true);
+	if(!drawn) return "AffrescoUI screen: render: could not draw the screen";
 
 	std::optional<RgbImage> read = readPpm(file);
 	if(!read) return "AffrescoUI screen: render: could not read the drawn screen back";
