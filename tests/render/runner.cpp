@@ -11,6 +11,7 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/editor/Editor.hpp"
+#include "features/search/Search.hpp"
 
 #include <affresco/Screen.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -101,6 +102,7 @@ int main(int argc, char** argv) {
 			const auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER);
 			forge::registerNatives(screen, workspace);
 			forge::registerEditor(screen, workspace);
+			forge::registerSearch(screen, workspace);
 		};
 		std::vector<std::string> files;
 		if(!readArguments(std::vector<std::string_view>(argv + 1, argv + argc), options, files)) return 2;

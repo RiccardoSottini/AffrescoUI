@@ -51,6 +51,8 @@ affrescoui_fuzzer(image affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.
 affrescoui_fuzzer(path affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(text_model affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 affrescoui_fuzzer(find_pattern affrescoui::regex affrescoui::core nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+affrescoui_fuzzer(search_glob affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+target_include_directories(affrescoui_fuzz_search_glob PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # SearchGlob.hpp
 affrescoui_fuzzer(scenarios affrescoui::automation)
 affrescoui_fuzzer(png affrescoui::automation)
 target_include_directories(affrescoui_fuzz_png PRIVATE ${PROJECT_SOURCE_DIR}/modules/automation/src) # PngReader.hpp

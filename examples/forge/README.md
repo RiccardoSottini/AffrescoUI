@@ -24,6 +24,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
 | `panels` | Problems, output, notifications (toasts and a list), and progress |
 | `editor` | File buffers kept natively, never in the state (`Buffers.*`, `Editor.*`), shared by every group; preview tabs (a click in the explorer, replaced by the next), dirty markers, Save (`mod+s`), Save All (`mod+alt+s`), Revert File and Keep Editor; Problems read from the buffers. Files of a million lines open in about 0.1 s |
+| `search` | Find in Files (`mod+shift+f`): an editor page that searches the open folder with the services' search engine (`Search.*`) as you submit, plain, whole word, case-sensitive or a regular expression, with include and exclude globs and the `.gitignore` files followed; the matches stream into a tree by file, a match opens at its line, and Replace All writes every file after a confirm, skipping those with unsaved edits and reloading the open ones |
 
 The shell has four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
 - `forge.index`: the open folder as a tree and a flat file list, with file icons.

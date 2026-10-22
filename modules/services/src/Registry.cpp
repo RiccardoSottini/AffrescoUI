@@ -4,6 +4,7 @@
 #include "affresco/services/ServiceRegistry.hpp"
 
 #include "Providers.hpp"
+#include "SearchProvider.hpp"
 #include "affresco/services/Schema.hpp"
 
 #include <algorithm>
@@ -82,6 +83,7 @@ ServiceRegistry::ServiceRegistry() {
 	add(makeFileProvider());
 	add(makeProcessProvider());
 	add(makeJsonRpcProvider());
+	add(makeSearchProvider());
 }
 
 ServiceRegistry::~ServiceRegistry() { entries_.clear(); }

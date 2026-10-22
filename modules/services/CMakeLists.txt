@@ -7,5 +7,8 @@ affrescoui_module(services
 	src/Process.cpp
 	src/ProcessProvider.cpp
 	src/Registry.cpp
-	src/Schema.cpp)
-target_link_libraries(affrescoui_services PUBLIC affrescoui::core nlohmann_json::nlohmann_json PRIVATE affrescoui_regex)
+	src/Schema.cpp
+	src/SearchEngine.cpp
+	src/SearchGlob.cpp
+	src/SearchProvider.cpp)
+target_link_libraries(affrescoui_services PUBLIC affrescoui::core nlohmann_json::nlohmann_json affrescoui_regex)

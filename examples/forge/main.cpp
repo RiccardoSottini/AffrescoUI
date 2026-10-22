@@ -11,6 +11,7 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/editor/Editor.hpp"
+#include "features/search/Search.hpp"
 #include "SocketDir.hpp"
 
 #include <affresco/affresco.hpp>
@@ -87,6 +88,7 @@ int run(const Options& options) {
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
 	forge::registerEditor(screen, workspace);
+	forge::registerSearch(screen, workspace);
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {

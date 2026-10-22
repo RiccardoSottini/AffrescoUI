@@ -6,7 +6,8 @@
 set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/examples/CodeEditor.cpp ${forge_dir}/Forge.cpp
 	${forge_dir}/features/palette/FileIndex.cpp ${forge_dir}/features/themes/ThemeImport.cpp
-	${forge_dir}/features/themes/IconTheme.cpp ${forge_dir}/features/editor/Buffers.cpp ${forge_dir}/features/editor/Editor.cpp)
+	${forge_dir}/features/themes/IconTheme.cpp ${forge_dir}/features/editor/Buffers.cpp ${forge_dir}/features/editor/Editor.cpp
+	${forge_dir}/features/search/Search.cpp)
 target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples ${forge_dir})
 target_compile_definitions(affrescoui_render_runner PRIVATE
 	AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/forge/folder")

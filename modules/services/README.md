@@ -13,6 +13,7 @@ is all the format sees: the `services` section declares what a screen uses, and 
 | `ServiceRegistry.hpp` | `ServiceRegistry` (the `Services`: `add` a provider, `addRoot`, `allowProcess`, `setExecutor`, `catalog`) |
 | `Provider.hpp` | `Provider` and `Service` (the extension point), `ServiceContext`, `Grant`, `ProcessGrant`, `ServiceState` |
 | `Schema.hpp` | Checks a declaration's configuration against a provider's schema (a small subset of JSON Schema) |
+| `Search.hpp` | The search engine behind the `search` provider, for natives that search a folder themselves: `searchFiles` (streamed, cancellable, capped) and `replaceAll` |
 
 The method, call and request types are `core`'s (`affresco/core/Services.hpp`), so the format depends on the
 interface, not on this module.
@@ -24,6 +25,7 @@ interface, not on this module.
 | `jsonrpc` | A JSON-RPC 2.0 program the host allowed, over its stdin and stdout, framed with `Content-Length` headers (LSP's way) or one message per line. Calls, notifications as streams, cancellation (`$/cancelRequest`), and requests from the program answered by `respond` |
 | `process` | A command the host allowed, run once per `invoke`: its arguments and stdin from `with`, its exit code and output as the result, its lines as events while it runs |
 | `fs` | A folder the host granted: `read` and `list`, and `write` unless the declaration is read-only, with UTF-8 text files and paths inside it. A write goes through a file beside it, so a reader never sees half of it |
+| `search` | A folder the host granted, searched: `find` matches its text files against a plain, whole-word or case-sensitive pattern or a regular expression (PCRE2, with match limits) on several threads, filtered by `include` and `exclude` globs and the `.gitignore` files, one event `{file, matches}` per file, cancellable and capped at `maxResults`; `replace` returns a file's text with every match replaced (`$1` in an expression), for an `fs` write: it writes nothing |
 
 ## Invariants
 
@@ -38,6 +40,9 @@ interface, not on this module.
 - **Every byte read is bounded:** a frame's headers 8 KiB, a body or a line 8 MiB, an error message from a program
   1,000 bytes; a file read or written 8 MiB, a listing 10,000 entries; a `process` line 64 KiB (longer ones arrive in
   pieces) and its input 1 MiB.
+  A search skips files over 8 MiB, binary files (a NUL byte in the first 8 KiB), symbolic links, `.git` and folders
+  over 64 deep; it reports at most 20,000 matches and looks at most at 100,000 files, a pattern is at most 4 KiB, a
+  glob list 64 globs, and a `.gitignore` is read up to 64 KiB and 10,000 rules.
 - **Concurrency is bounded:** per JSON-RPC service 256 calls waiting and 256 subscriptions, and 16 MiB waiting to be
   written; 16 runs at once per `process` or `fs` service; per screen 1,024 calls running, 256 subscriptions, 256
   requests waiting for `respond`; a stream keeps at most 10,000 events.
@@ -45,7 +50,8 @@ interface, not on this module.
 
 ## Threads
 
-Each running program has a thread reading its output; `fs` and `process` calls run on worker threads. None calls the
+Each running program has a thread reading its output; `fs`, `process` and `search` calls run on worker threads (a
+`find` matches on up to 8 more). None calls the
 format: results, events, requests and status changes are posted to the `Executor` set by `setExecutor`, so they run
 on the main thread. A `Call` cancelled (or destroyed) gets no more callbacks. A `ServiceRegistry` being destroyed
 stops its programs and joins its threads.

@@ -289,7 +289,8 @@
 										}
 									},
 									{ "when": "{{state.docs[d].kind == 'settings'}}", "use": "forgeSettingsPage" },
-									{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" }
+									{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" },
+									{ "when": "{{state.docs[d].kind == 'search'}}", "use": "forgeSearchPage" }
 								]
 							}
 						]
