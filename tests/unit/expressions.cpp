@@ -413,6 +413,13 @@ const std::vector<Case> cases = {
     {"{{sort([3, 1, 2])}}", J(R"([1,2,3])"), {}},
     {"{{sort(['b', 'a', 'C'], it, 'desc')}}", J(R"(["b","a","C"])"), {}},
     {"{{sort([{a: 2}, {a: 1}], it)}}", J(R"([{"a":1},{"a":2}])"), {}},
+    // Numbers by size among themselves; with anything else, every key by its text (or its JSON text)
+    {"{{sort([2, 'b', 1, null, {b: 1}, true, 'a'])}}", J(R"([1,2,"a","b",null,true,{"b":1}])"), {}},
+    {"{{sort([10, 9, 1.5])}}", J(R"([1.5,9,10])"), {}},
+    {"{{sort([{k: 1, i: 0}, {k: 2, i: 1}, {k: 1, i: 2}], it.k, 'desc')}}",
+	 J(R"([{"k":2,"i":1},{"k":1,"i":0},{"k":1,"i":2}])"),
+	 {}},
+    {"{{sort([[2], [1, 3], [1]], it)}}", J(R"([[1,3],[1],[2]])"), {}},
     {"{{filter()}}", {}, "test.$filter: expected [list, expression]"},
     {J(R"({"$filter": 3})"), {}, "test.$filter: expected [list, expression]"},
     {"{{it}}", "outer", {}},

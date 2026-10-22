@@ -40,16 +40,6 @@ const Function* findOperator(std::string_view name) {
 	return nullptr;
 }
 
-int order(const Value& a, const Value& b) {
-	if(a.isNumber() && b.isNumber()) {
-		const double x = a.number(), y = b.number();
-		return x < y ? -1 : x > y ? 1 : 0;
-	}
-	const std::string x = a.isText() ? std::string(a.text()) : a.dump();
-	const std::string y = b.isText() ? std::string(b.text()) : b.dump();
-	return x.compare(y);
-}
-
 std::string_view trim(std::string_view text) noexcept {
 	while(!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) text.remove_prefix(1);
 	while(!text.empty() && std::isspace(static_cast<unsigned char>(text.back()))) text.remove_suffix(1);

@@ -7,7 +7,9 @@
 #include <algorithm>
 #include <array>
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace affresco::format::detail {
 namespace {
@@ -123,17 +125,32 @@ Value every(const Call& call) { return any(call, false); }
 Value sort(const Call& call) {
 	const std::optional<Value> list = listOf(call);
 	if(!list) return Value::fromList({});
-	std::vector<std::pair<Value, std::size_t>> keyed;
-	keyed.reserve(list->size());
-	for(std::size_t i = 0; i < list->size(); ++i) keyed.emplace_back(each(call, *list, i), i);
+	// Each key is written as text once, not at every comparison: a list of objects sorts in n log n, not n log n dumps
+	struct Key {
+		std::optional<double> number; ///< Its value, if it is a number.
+		std::string text;             ///< Its text, or its JSON text (a number's too, when the other key isn't one).
+		std::size_t index;            ///< The item's position.
+	};
+	std::vector<Key> keys;
+	keys.reserve(list->size());
+	for(std::size_t i = 0; i < list->size(); ++i) {
+		const Value key = each(call, *list, i);
+		keys.push_back({.number = key.isNumber() ? std::optional(key.number()) : std::nullopt,
+		                .text = key.isText() ? std::string(key.text()) : key.dump(),
+		                .index = i});
+	}
 	const bool descending = call.size() > 2 && call.evaluate(2).toText() == "desc";
-	std::ranges::stable_sort(keyed, [&](const auto& a, const auto& b) {
-		const int c = order(a.first, b.first);
+	// Numbers by size, anything else by its text
+	std::ranges::stable_sort(keys, [&](const Key& a, const Key& b) {
+		const int c = a.number && b.number ? (*a.number < *b.number   ? -1
+		                                      : *a.number > *b.number ? 1
+		                                                              : 0)
+		                                   : a.text.compare(b.text);
 		return descending ? c > 0 : c < 0;
 	});
 	std::vector<Value> result;
-	result.reserve(keyed.size());
-	for(const auto& entry : keyed) result.push_back(list->item(entry.second));
+	result.reserve(keys.size());
+	for(const Key& key : keys) result.push_back(list->item(key.index));
 	return Value::fromList(std::move(result));
 }
 

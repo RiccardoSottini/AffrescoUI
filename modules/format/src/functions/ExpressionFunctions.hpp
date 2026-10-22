@@ -184,12 +184,6 @@ inline constexpr double integerLimit = 9223372036854775808.0;
 	return Value::fromNumber(value);
 }
 
-/// @brief Orders two values: numbers by size, text alphabetically, anything else by its JSON text.
-/// @param a A value.
-/// @param b Another.
-/// @return Negative, zero or positive.
-[[nodiscard]] int order(const Value& a, const Value& b);
-
 /// @brief How many bytes the UTF-8 character starting with a byte takes.
 /// @param lead The first byte.
 /// @return 1 to 4 (1 for a byte that can't start one).
