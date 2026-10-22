@@ -303,3 +303,20 @@ TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 		CHECK(model->statistics.residentBytes <= small.gpuBytes);
 	}
 }
+
+TEST_CASE("imaging canvas: a view far off the document composites nothing") {
+	std::optional<affresco::Application> application;
+	if(!openContext(application)) return;
+	const auto model = std::make_shared<CanvasModel>(painted());
+	CanvasSurface surface(model);
+	surface.prepare({64, 64, 1.0f, affresco::surfaceShaderPrelude()});
+	for(const double far : {1e300, -1e300, 1e12}) {
+		CAPTURE(far);
+		(void)draw(surface, 64, 64, affresco::json{{"zoom", 1.0}, {"x", far}, {"y", -far}, {"checker", false}});
+		CHECK(model->statistics.regionWidth == 0);
+		CHECK(model->statistics.regionHeight == 0);
+	}
+	(void)draw(surface, 64, 64, affresco::json{{"zoom", 1.0}, {"x", 32.0}, {"y", 32.0}, {"checker", false}});
+	CHECK(model->statistics.regionWidth > 0);
+	surface.release();
+}

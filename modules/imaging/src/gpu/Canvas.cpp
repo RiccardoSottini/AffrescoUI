@@ -100,6 +100,16 @@ void forwardPointers(CanvasModel& model, const CanvasView& view, std::span<const
 		}
 }
 
+/// @brief An edge of the region in a level's pixels, from a coordinate of the view, within [0, size].
+/// @param value The coordinate, already rounded outwards. It is clamped as a double, because a view far off the
+/// document (or not a number) must not overflow an int.
+/// @param size The level's width or height.
+/// @return The edge.
+[[nodiscard]] int edgeOf(double value, int size) noexcept {
+	if(!(value > 0.0)) return 0;
+	return value >= static_cast<double>(size) ? size : static_cast<int>(value);
+}
+
 /// @brief Whether a list has a visible clipped layer, so its depth needs a clipping base.
 /// @param document The document.
 /// @param list The layers.
@@ -285,12 +295,10 @@ struct CanvasSurface::Region {
 		const int levelHeight = (documentHeight + (1 << level) - 1) >> level;
 		const auto [left, top] = view.toDocument(0.0, 0.0);
 		const auto [right, bottom] = view.toDocument(frame.width, frame.height);
-		x = std::clamp(static_cast<int>(std::floor(left / scale)) - 1, 0, levelWidth);
-		y = std::clamp(static_cast<int>(std::floor(top / scale)) - 1, 0, levelHeight);
-		width = std::min(std::clamp(static_cast<int>(std::ceil(right / scale)) + 1, 0, levelWidth) - x,
-		                 SurfaceFrame::maxPassSide);
-		height = std::min(std::clamp(static_cast<int>(std::ceil(bottom / scale)) + 1, 0, levelHeight) - y,
-		                  SurfaceFrame::maxPassSide);
+		x = edgeOf(std::floor(left / scale) - 1.0, levelWidth);
+		y = edgeOf(std::floor(top / scale) - 1.0, levelHeight);
+		width = std::min(edgeOf(std::ceil(right / scale) + 1.0, levelWidth) - x, SurfaceFrame::maxPassSide);
+		height = std::min(edgeOf(std::ceil(bottom / scale) + 1.0, levelHeight) - y, SurfaceFrame::maxPassSide);
 		passWidth = std::min((width + 255) / 256 * 256, SurfaceFrame::maxPassSide);
 		passHeight = std::min((height + 255) / 256 * 256, SurfaceFrame::maxPassSide);
 	}
