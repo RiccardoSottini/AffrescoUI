@@ -25,6 +25,7 @@ target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
+target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${AFFRESCOUI_GLAD_INCLUDE_DIRS}) # gles.cpp: gl/Shader.hpp
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation affrescoui_vterm) # all modules; screen.cpp loads screens, no window
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it
@@ -47,7 +48,7 @@ add_executable(affrescoui_window_tests ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${af
 target_include_directories(affrescoui_window_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 	${PROJECT_SOURCE_DIR}/modules/render/src)
 target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
-	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES> ${PROJECT_SOURCE_DIR}/external/glad/include)
+	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES> ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
 target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")

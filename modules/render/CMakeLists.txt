@@ -1,5 +1,6 @@
-# render: the rendering engine. Vendored in external/: glad (OpenGL 4.1 core loader). Text: FreeType and HarfBuzz
-# (cmake/AffrescoUIText.cmake). Images: stb_image (cmake/AffrescoUIImages.cmake).
+# render: the rendering engine. Vendored in external/: glad (the OpenGL 4.1 core and OpenGL ES 3.0 loaders, one per
+# backend: cmake/AffrescoUIAngle.cmake). Text: FreeType and HarfBuzz (cmake/AffrescoUIText.cmake). Images: stb_image
+# (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
 	src/Accessibility.cpp
@@ -62,10 +63,9 @@ affrescoui_module(render
 	src/gl/QuadRenderer.cpp
 	src/gl/QuadRendererCache.cpp
 	src/gl/SubtreeTextures.cpp
-	src/gl/Shader.cpp
-	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
-target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include
-	${stb_image_SOURCE_DIR})
+	src/gl/Shader.cpp)
+target_include_directories(affrescoui_render SYSTEM PRIVATE ${stb_image_SOURCE_DIR})
+affrescoui_gl_backend(affrescoui_render) # the glad loader of AFFRESCOUI_GL_BACKEND (cmake/AffrescoUIAngle.cmake)
 target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw freetype affrescoui_harfbuzz affrescoui_regex)
 target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
 # What GLFW doesn't do (the colour scheme, native menu bars), per OS: Cocoa on macOS, Win32 on Windows, none elsewhere

@@ -1,8 +1,8 @@
 # render: the rendering engine
 
 `render` draws a tree of panels in a window and routes input to them. It owns the windowing system (GLFW, behind an
-internal platform layer), the OpenGL 4.1 core context and the renderer (behind an internal interface), and knows
-nothing about documents: you build the tree in C++, or `format` builds
+internal platform layer), the OpenGL 4.1 core or OpenGL ES 3.0 context ("Backends") and the renderer (behind an
+internal interface), and knows nothing about documents: you build the tree in C++, or `format` builds
 it from a screen document. It keeps the ideas of 2017: nested panels, pixel and percentage sizes, anchors to edges,
 minimum sizes, hex colours and signal-to-slot events. It adds rows, columns and grids, scrolling, overlays, rounded
 shapes with borders and shadows, shaped text with fallback fonts and colour emoji, images and icons, and a multi-line editor. No public
@@ -148,6 +148,43 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   most 100,000 code points and Cmd+D 100,000 lines. Find runs line by line, under `TextPattern`'s limits.
 - **Diff bounds:** lines are diffed within core's `DiffLimits`; characters only on lines up to 2,000 code points, for
   at most 2,000 changed line pairs, 50,000 steps each.
+
+## Backends
+
+The renderer draws with one of two OpenGL backends, chosen when building (`cmake/AffrescoUIAngle.cmake`):
+
+| `AFFRESCOUI_GL_BACKEND` | Context | Where |
+|---|---|---|
+| `gl41` (default) | OpenGL 4.1 core, the platform's driver | macOS, Linux, Windows |
+| `gles3` | OpenGL ES 3.0 through EGL | ANGLE on macOS (Metal) and Windows (Direct3D 11), Mesa on Linux, WebGL2 in a browser |
+
+The code in `src/gl/` calls only what both share, and every shader body is written once, in the common subset of GLSL
+4.10 core and GLSL ES 3.00 (no implicit int-to-float conversions, `layout(location)` only on vertex inputs and
+fragment outputs). `gl::shaderPrelude(stage)` (`src/gl/Shader.hpp`) adds what differs: the `#version` line and, for
+OpenGL ES fragment shaders, `precision highp float` and `int`. `gl::linkProgram` takes whole sources and adds nothing.
+The one call that had to change is reading the frame back: OpenGL ES reads only RGBA, so screenshots read RGBA and
+drop the alpha.
+
+**ANGLE on macOS and Windows.** ANGLE needs Chromium's tools to build, so the build doesn't fetch it. Build it
+([ANGLE's dev setup](https://chromium.googlesource.com/angle/angle/+/HEAD/doc/DevSetup.md): `gn gen out/Release
+--args='is_debug=false'`, then `autoninja -C out/Release libEGL libGLESv2`), or take the two libraries from a
+Chromium-based browser of the same architecture. Then point the build at the folder that holds them:
+
+```
+cmake -S . -B build-angle -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3 -DAFFRESCOUI_ANGLE_DIR=/path/to/angle/out/Release
+cmake --build build-angle
+AFFRESCOUI_SCREENSHOT=out.ppm ./build-angle/affrescoui_host
+```
+
+macOS needs `libEGL.dylib` and `libGLESv2.dylib`; Windows needs `libEGL.dll` and `libGLESv2.dll`. GLFW opens them by
+path at run time, and asks ANGLE for Metal on macOS and Direct3D 11 on Windows (`src/platform/GlfwPlatform.cpp`).
+If `libEGL` can't find `libGLESv2` on Windows, copy both DLLs next to the executables. Without
+`AFFRESCOUI_ANGLE_DIR`, GLFW loads the system's EGL, which is Mesa's on Linux.
+
+**Golden images.** Each backend has its own pixel-exact golden images: `python3 tests/render/check.py --backend gles3
+--build build-angle` compares with `tests/render/golden-gles3/`. A frame is compared only within its backend, because
+two drivers' rasterizers round differently (anti-aliased edges, gradients, text coverage). `.github/workflows/gles.yml`
+checks every template on gles3 (Mesa EGL, llvmpipe), and its summary lists the frames that differ from gl41's.
 
 ## Threads
 

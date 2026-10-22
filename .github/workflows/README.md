@@ -6,6 +6,7 @@ compiler and flags, kept warm by a compile cache (ccache) shared across runs.
 | Workflow | When | Jobs |
 |---|---|---|
 | [`ci.yml`](ci.yml) | Every pull request (opened, pushed to, labelled), every push to `master` | `Changes`, `Linux`, `Linux (address + undefined sanitizers)`, `macOS (build only)`, `Windows`, `Benchmarks (callgrind)` (pull requests), `Quality report` (`master`) |
+| [`gles.yml`](gles.yml) | Every pull request, every push to `master` | `Linux (OpenGL ES 3.0, Mesa EGL)`: the gles3 backend's build, unit and window tests, and the rendering check against its own golden images (recorded from the base commit's gles3 build); the summary lists the frames that differ from gl41 |
 | [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand | `Fuzz (nightly)`, `Scaling (nightly)` |
 | [`release.yml`](release.yml) | A `v*` tag ([RELEASING.md](../../RELEASING.md)) | The release builds |
 

@@ -19,8 +19,6 @@ namespace {
 
 /// @brief Vertex shader: window units to clip space.
 constexpr std::string_view vertexSource = R"glsl(
-	#version 410 core
-
 	uniform vec2 uScale; // (2 / width, -2 / height): window units -> clip space, y pointing down
 
 	layout(location = 0) in vec2 aPosition;
@@ -47,8 +45,6 @@ constexpr std::string_view vertexSource = R"glsl(
 /// rectangles), the glyph's shape for text. It reads none of the shape's inputs: some drivers (Mesa's llvmpipe) round
 /// text differently as soon as a fragment shader reads more of them, so frames without shapes keep their exact pixels.
 constexpr std::string_view plainFragmentSource = R"glsl(
-	#version 410 core
-
 	uniform sampler2D uAtlas;
 
 	in vec2 vTexCoord;
@@ -63,8 +59,6 @@ constexpr std::string_view plainFragmentSource = R"glsl(
 /// @brief The inputs of the fragment shaders with shapes or colour glyphs. Those with shapes are as
 /// plainFragmentSource, and shapes multiply the coverage by the share of the pixel inside their edge.
 constexpr std::string_view shapeInputs = R"glsl(
-	#version 410 core
-
 	uniform sampler2D uAtlas;
 
 	in vec2 vTexCoord;
@@ -150,6 +144,15 @@ std::string join(std::initializer_list<std::string_view> parts) {
 	return source;
 }
 
+/// @brief Links vertexSource with a fragment shader, each after its shaderPrelude().
+/// @param fragmentParts The fragment shader's parts, in order.
+/// @return The program.
+Program linkQuadProgram(std::initializer_list<std::string_view> fragmentParts) {
+	std::string fragmentSource(shaderPrelude(ShaderStage::fragment));
+	for(const std::string_view part : fragmentParts) fragmentSource += part;
+	return linkProgram(join({shaderPrelude(ShaderStage::vertex), vertexSource}), fragmentSource);
+}
+
 constexpr std::size_t indicesPerQuad = 6; ///< Two triangles.
 
 /// @brief Converts to a normalized 16-bit integer.
@@ -162,10 +165,10 @@ std::uint16_t toUnorm16(float value) noexcept {
 } // namespace
 
 QuadRenderer::QuadRenderer()
-    : shaders_{Shader{linkProgram(vertexSource, plainFragmentSource)},
-	           Shader{linkProgram(vertexSource, join({shapeInputs, shapeFunctions, shapeMain}))},
-	           Shader{linkProgram(vertexSource, join({shapeInputs, colorFunctions, colorMain}))},
-	           Shader{linkProgram(vertexSource, join({shapeInputs, shapeFunctions, colorFunctions, shapeColorMain}))}},
+    : shaders_{Shader{linkQuadProgram({plainFragmentSource})},
+	           Shader{linkQuadProgram({shapeInputs, shapeFunctions, shapeMain})},
+	           Shader{linkQuadProgram({shapeInputs, colorFunctions, colorMain})},
+	           Shader{linkQuadProgram({shapeInputs, shapeFunctions, colorFunctions, shapeColorMain})}},
       vertexArray_(VertexArray::create()), vertexBuffer_(Buffer::create()), indexBuffer_(Buffer::create()) {
 	for(Shader& shader : shaders_) {
 		shader.scaleLocation = glGetUniformLocation(shader.program.id(), "uScale");

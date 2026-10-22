@@ -1,0 +1,96 @@
+# The OpenGL ES 3.0 backend (AFFRESCOUI_GL_BACKEND=gles3, modules/render/README.md, "Backends"), on Linux through
+# Mesa's EGL and llvmpipe under Xvfb: the build with warnings as errors, the unit and window tests, and every
+# template's scenarios through the rendering check, against golden images of its own (tests/render/golden-gles3/).
+#
+# Those golden images are recorded on this runner from the base commit's gles3 build, as render-check.sh does for
+# gl41; a base without the backend gets a warning, and HEAD's frames are recorded. Then, for information only, the
+# gl41 build's frames are compared with gles3's, and the frames that differ between the backends go in the summary.
+#
+# ANGLE itself isn't built here (it needs Chromium's tools): Mesa is another implementation of the same OpenGL ES 3.0.
+name: OpenGL ES
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gles-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  BASE_COMMIT: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
+  LIBGL_ALWAYS_SOFTWARE: "1" # Mesa's llvmpipe, under Xvfb
+
+jobs:
+  gles:
+    name: Linux (OpenGL ES 3.0, Mesa EGL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the base can be several commits back (a push of several commits)
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: xvfb xauth libgl1-mesa-dri libegl1 libegl-mesa0 libgles2
+          cache: linux-gles3
+      - name: Build (gles3)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DAFFRESCOUI_GL_BACKEND=gles3
+          cmake --build build
+      - name: Unit tests
+        run: ctest --test-dir build -R unit --output-on-failure
+      - name: Window tests # drawn with OpenGL ES 3.0
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R window --output-on-failure
+      - name: Golden images from the base commit (gles3)
+        run: |
+          base="$RUNNER_TEMP/base"
+          git worktree add --detach "$base" "$BASE_COMMIT"
+          if [ ! -f "$base/cmake/AffrescoUIAngle.cmake" ]; then
+            echo "::warning title=OpenGL ES::The base commit has no gles3 backend: HEAD's frames are recorded, not compared"
+            exit 0
+          fi
+          cmake -S "$base" -B "$base/build" -G Ninja -DAFFRESCOUI_GL_BACKEND=gles3
+          cmake --build "$base/build" --target affrescoui_render_runner
+          xvfb-run -a -s "-screen 0 1920x1080x24" python3 "$base/tests/render/check.py" --build "$base/build" --backend gles3 ||
+            echo "::warning title=OpenGL ES::The base commit's own check failed (above); its pictures are compared all the same"
+          mkdir -p tests/render/golden-gles3
+          cp "$base"/tests/render/golden-gles3/*.png tests/render/golden-gles3/
+      - name: Rendering check (gles3) # every template's scenarios
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests/render/check.py --backend gles3
+      - name: Frames that differ between gl41 and gles3 # for information: each backend is checked against its own
+        if: success() || failure()
+        continue-on-error: true
+        env:
+          MESA_GL_VERSION_OVERRIDE: "4.1" # for the gl41 build, as in ci.yml
+        run: |
+          cmake -S . -B build-gl41 -G Ninja
+          cmake --build build-gl41 --target affrescoui_render_runner
+          scenarios=$(find tests/render/scenarios -name '*.json' | sort)
+          # shellcheck disable=SC2086 # the scenarios are a list
+          xvfb-run -a -s "-screen 0 1920x1080x24" build-gl41/affrescoui_render_runner --goldens "$RUNNER_TEMP/gl41" --out "$RUNNER_TEMP/gl41-out" \
+            --update $scenarios >/dev/null
+          # shellcheck disable=SC2086
+          xvfb-run -a -s "-screen 0 1920x1080x24" build/affrescoui_render_runner --goldens "$RUNNER_TEMP/gl41" --out build/backends $scenarios \
+            >"$RUNNER_TEMP/backends.txt" || true
+          {
+            echo "### Frames that differ between gl41 and gles3 (Mesa llvmpipe)"
+            echo
+            grep '^FAILED' "$RUNNER_TEMP/backends.txt" | sed 's/^FAILED  /- /' || echo "None: every frame is the same."
+            echo
+            tail -n 1 "$RUNNER_TEMP/backends.txt"
+          } >>"$GITHUB_STEP_SUMMARY"
+      - name: Upload the frames # the differing ones and their diffs
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-check-gles3
+          if-no-files-found: ignore
+          path: |
+            build/render-check/*.png
+            build/backends/*.png

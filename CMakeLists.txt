@@ -53,6 +53,8 @@ FetchContent_MakeAvailable(glfw)
 # Warnings as errors are for our code: GLFW's own warnings (e.g. sprintf, deprecated in recent macOS SDKs) must not
 # fail the build
 set_target_properties(glfw PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
+# The OpenGL backend: gl41 (the default) or gles3, through ANGLE, Mesa's EGL or WebGL2
+include(cmake/AffrescoUIAngle.cmake)
 
 # nlohmann/json: the documents (format, vcs and channel modules; the rendering engine does without)
 set(AFFRESCOUI_JSON_VERSION 3.11.3)
