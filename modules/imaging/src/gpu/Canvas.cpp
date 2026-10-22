@@ -121,6 +121,12 @@ void forwardPointers(CanvasModel& model, const CanvasView& view, std::span<const
 	});
 }
 
+/// @brief Whether a layer is the base the clipped layers above it clip to.
+/// @param layer The layer.
+/// @param clipping Whether its list clips.
+/// @return true if the list clips and the layer isn't clipped itself.
+[[nodiscard]] bool isBase(const Layer& layer, bool clipping) noexcept { return clipping && !layer.clipped; }
+
 /// @brief Binds an adjustment layer's table and sets its uniforms.
 /// @param program The layer program, in use.
 /// @param tableTexture The adjustment table's texture.
@@ -444,14 +450,14 @@ void CanvasSurface::compositeList(const Document& document, const std::vector<st
 	for(const std::uint64_t id : list) {
 		const Layer* layer = document.layer(id);
 		if(layer == nullptr) continue;
-		if(!layer->clipped && !layer->visible && clipping) clearPass(region.base(depth));
+		if(isBase(*layer, clipping) && !layer->visible) clearPass(region.base(depth)); // clips to nothing
 		if(!layer->visible) continue;
 		if(layer->kind == LayerKind::group) {
 			if(depth + 1 >= depths) continue;
 			clearPass(region.accumulation(depth + 1));
 			compositeList(document, layer->children, region, depth + 1);
 		}
-		if(clipping && !layer->clipped) drawLayer(document, *layer, region, depth, canvas::baseStage);
+		if(isBase(*layer, clipping)) drawLayer(document, *layer, region, depth, canvas::baseStage);
 		drawLayer(document, *layer, region, depth, canvas::blendStage);
 	}
 }
