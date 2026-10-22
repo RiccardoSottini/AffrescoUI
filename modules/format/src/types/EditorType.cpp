@@ -150,11 +150,10 @@ std::map<std::string, Color, std::less<>> paletteOf(const std::vector<std::strin
 			try {
 				palette.emplace(name, reader.color("@syntax." + std::string(name), at));
 				break;
-			} catch(const DocumentError&) {
-				// no such token: the parent style's, if any
+			} catch(const DocumentError&) { // no such token: the parent style's, if any
+				const std::size_t dot = name.rfind('.');
+				name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
 			}
-			const std::size_t dot = name.rfind('.');
-			name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
 		}
 	return palette;
 }

@@ -240,6 +240,7 @@ std::string actionTarget(const json& entry) {
 		const json tree = detail::parse(std::string_view(value).substr(2, value.size() - 4), "exports");
 		if(tree.contains("$value") && tree["$value"].is_string()) return tree["$value"].get<std::string>();
 	} catch(const DocumentError&) {
+		return {}; // not an expression: no target
 	}
 	return {};
 }

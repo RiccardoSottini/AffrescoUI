@@ -231,11 +231,13 @@ std::optional<std::string> A2uiConverter::bindable(const BoundValue& value, cons
 Converted fromA2ui(std::string_view text, const Options& options) {
 	if(text.size() > maxInputBytes) expect::fail("a2ui", "larger than " + std::to_string(maxInputBytes) + " bytes");
 	detail::A2uiConverter converter(options);
-	std::optional<json> whole;
-	try {
-		whole = parseUntrusted(text);
-	} catch(const json::parse_error&) { // JSON Lines: one message per line
-	}
+	const std::optional<json> whole = [text] -> std::optional<json> {
+		try {
+			return parseUntrusted(text);
+		} catch(const json::parse_error&) {
+			return std::nullopt; // JSON Lines: one message per line
+		}
+	}();
 	if(whole && whole->is_array()) {
 		if(whole->size() > maxElements) expect::fail("a2ui", "more than " + std::to_string(maxElements) + " messages");
 		for(std::size_t i = 0; i < whole->size(); ++i) converter.message((*whole)[i], "a2ui[" + std::to_string(i) + "]");

@@ -83,6 +83,7 @@ struct ColumnWidth {
 		try {
 			return {0, std::clamp(std::stof(text.substr(0, text.size() - 2)), 1.0f, 4096.0f)};
 		} catch(const std::exception&) {
+			return {}; // not a number of pixels: automatic
 		}
 	}
 	return {};

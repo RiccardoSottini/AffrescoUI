@@ -43,7 +43,7 @@ std::optional<Converted> convertForeign(std::string_view text, const Options& op
 		case SourceFormat::Screen: break;
 		}
 		return std::nullopt;
-	} catch(const json::parse_error&) { // perhaps JSON Lines: A2UI, one message per line
+	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): perhaps JSON Lines, which the rest tries
 	}
 	const std::string_view first = text.substr(0, std::min(text.find('\n'), text.size()));
 	try {
