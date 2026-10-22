@@ -4,17 +4,15 @@
 #include "features/lsp/Lsp.hpp"
 
 #include "features/lsp/LspCall.hpp"
+#include "features/lsp/LspEdits.hpp"
 #include "features/lsp/LspProtocol.hpp"
-#include "features/palette/FileIndex.hpp"
 
 #include <affresco/core/Json.hpp>
 
 #include <cstdlib>
-#include <fstream>
 #include <functional>
 #include <map>
 #include <optional>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -36,7 +34,6 @@ using lsp::utf16Units;
 constexpr std::size_t mostWaiting = 64;    ///< Requests kept while a server initializes.
 constexpr std::size_t mostChanges = 1000;  ///< Changes kept before a document is sent whole instead.
 constexpr std::size_t longestName = 256;   ///< Bytes of a rename's new name, or a symbol query.
-constexpr std::size_t largestFile = std::size_t{8} << 20; ///< A file forge.lsp.apply edits on disk, at most 8 MiB.
 
 /// @brief What a request kind asks a server.
 struct Kind {
@@ -114,48 +111,6 @@ public:
 		whenReady(entry, [this, &entry, request] { send(entry, request); },
 		          [this, request](const std::string& error) { show(request, std::nullopt, error); });
 		return {{"pending", true}};
-	}
-
-	/// @brief forge.lsp.apply: applies edits, all or none.
-	/// @param with `{ "edits" }`.
-	/// @return `{ "files", "edits" }`.
-	/// @throws std::runtime_error With the reason nothing was applied.
-	json apply(const json& with) {
-		const json& edits = with.is_object() && with.contains("edits") ? with["edits"] : json();
-		if(!edits.is_array() || edits.size() > lsp::Limits{}.edits) throw std::runtime_error("expected { \"edits\": [...] }");
-		const std::filesystem::path& root = workspace_->root;
-		if(root.empty()) throw std::runtime_error("no folder is open");
-		std::map<std::string, json> byFile;
-		for(const json& edit : edits) {
-			const std::string id = textArgument(edit, "id", 4096);
-			// the id comes from the document: it must name a file inside the folder
-			if(id.empty() || lsp::idOfUri(root, lsp::uriOf(root, id)) != id)
-				throw std::runtime_error("an edit names a file outside the open folder");
-			byFile[id].push_back(edit);
-		}
-		std::map<std::string, std::string> texts; // checked first, so a bad edit changes nothing
-		for(auto& [id, list] : byFile) {
-			std::string text;
-			if(const auto model = buffers_->find(id)) text = model->text();
-			else {
-				std::error_code error;
-				if(std::filesystem::file_size(root / id, error) > largestFile || error)
-					throw std::runtime_error(id + " can't be read, or is too large");
-				std::ifstream in(root / id, std::ios::binary);
-				text.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
-			}
-			if(auto problem = lsp::applyEdits(text, list)) throw std::runtime_error(id + ": " + *problem);
-			texts.emplace(id, std::move(text));
-		}
-		for(auto& [id, text] : texts) {
-			if(const auto model = buffers_->find(id)) {
-				replace(*model, text);
-				continue;
-			}
-			// A fresh name, created exclusively: a link planted at a fixed name would send the text elsewhere
-			if(auto failed = writeInFolder(root / id, text)) throw std::runtime_error(id + ": " + *failed);
-		}
-		return {{"files", texts.size()}, {"edits", edits.size()}};
 	}
 
 	/// @brief forge.lsp.status: what the client knows of each server.
@@ -524,26 +479,6 @@ private:
 		(void)screen_.services().invoke(service, method, std::move(pending));
 	}
 
-	/// @brief Replaces a buffer's text as one undo step, changing only the lines between the first and last that differ.
-	/// @param model The buffer.
-	/// @param text The new text.
-	static void replace(affresco::TextModel& model, std::string_view text) {
-		const std::string old = model.text();
-		std::size_t prefix = 0;
-		while(prefix < old.size() && prefix < text.size() && old[prefix] == text[prefix]) ++prefix;
-		std::size_t suffix = 0;
-		while(suffix < old.size() - prefix && suffix < text.size() - prefix &&
-		      old[old.size() - 1 - suffix] == text[text.size() - 1 - suffix])
-			++suffix;
-		while(prefix > 0 && (static_cast<unsigned char>(old[prefix]) & 0xC0) == 0x80) --prefix;
-		while(suffix > 0 && (static_cast<unsigned char>(old[old.size() - suffix]) & 0xC0) == 0x80) --suffix;
-		const affresco::TextPosition from = model.positionOf(prefix), to = model.positionOf(old.size() - suffix);
-		model.beginStep(false, from, from);
-		model.erase(from, to);
-		model.insert(from, text.substr(prefix, text.size() - prefix - suffix));
-		model.endStep();
-	}
-
 	affresco::Screen& screen_;                   ///< See the constructor.
 	std::shared_ptr<Workspace> workspace_;       ///< See the constructor.
 	std::shared_ptr<Buffers> buffers_;           ///< See the constructor.
@@ -583,12 +518,12 @@ void grantLanguageServers(affresco::Screen& screen) {
 
 void registerLsp(affresco::Screen& screen, std::shared_ptr<Workspace> workspace, std::shared_ptr<Buffers> buffers,
                  affresco::Executor* executor) {
-	const auto client = std::make_shared<Client>(screen, workspace, std::move(buffers), executor);
+	const auto client = std::make_shared<Client>(screen, workspace, buffers, executor);
 	screen.onCall("forge.lsp.request", [client](const std::string& arguments) {
 		return client->request(affresco::parseUntrusted(arguments)).dump();
 	});
-	screen.onCall("forge.lsp.apply", [client](const std::string& arguments) {
-		return client->apply(affresco::parseUntrusted(arguments)).dump();
+	screen.onCall("forge.lsp.apply", [workspace, buffers = std::move(buffers)](const std::string& arguments) {
+		return lsp::applyToFolder(affresco::parseUntrusted(arguments), workspace->root, *buffers).dump();
 	});
 	screen.onCall("forge.lsp.status", [client](const std::string&) { return client->status().dump(); });
 	screen.onCall("forge.lsp.normalize", [workspace](const std::string& arguments) {

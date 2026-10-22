@@ -166,7 +166,7 @@ list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/terminal/TerminalSe
 	examples/forge/features/terminal/TerminalView.cpp)
 # The lsp feature (examples/forge/features/lsp)
 list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspCall.cpp
-	examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
+	examples/forge/features/lsp/LspEdits.cpp examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
 	foreach(example host studio)
