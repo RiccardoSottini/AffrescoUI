@@ -6,8 +6,26 @@
 #include "affresco/scene3d/Mesh.hpp"
 
 #include <algorithm>
+#include <limits>
 
 namespace affresco::scene3d {
+
+namespace {
+
+/// @brief Where a ray first meets a placed mesh, unless its bounds are already farther than a bound.
+/// @param mesh The mesh. @param world Where it is placed. @param ray The ray, in the world.
+/// @param bound The nearest hit so far. @return The distance along the ray, or nothing.
+[[nodiscard]] std::optional<float> meshHit(const MeshData& mesh, const Mat4& world, const Ray& ray, float bound) {
+	const auto box = intersect(ray, mesh.bounds.transformed(world));
+	if(!box || *box > bound) return std::nullopt;
+	const auto inverse = world.inverse();
+	if(!inverse) return std::nullopt;
+	// The ray goes into the mesh's space unnormalised, so the distance found there is the world distance.
+	const Ray local{inverse->transformPoint(ray.origin), inverse->transformDirection(ray.direction)};
+	return mesh.raycast(local);
+}
+
+} // namespace
 
 std::optional<PickHit> pickNode(const Scene& scene, const Assets& assets, const Ray& ray) {
 	std::optional<PickHit> best;
@@ -16,13 +34,7 @@ std::optional<PickHit> pickNode(const Scene& scene, const Assets& assets, const 
 		const Node* node = scene.node(id);
 		const auto mesh = visible && node != nullptr && !node->mesh.empty() ? assets.mesh(node->mesh) : nullptr;
 		if(!mesh) continue;
-		const auto box = intersect(ray, mesh->bounds.transformed(world));
-		if(!box || (best && *box > best->distance)) continue;
-		const auto inverse = world.inverse();
-		if(!inverse) continue;
-		// The ray goes into the mesh's space unnormalised, so the distance found there is the world distance.
-		const Ray local{inverse->transformPoint(ray.origin), inverse->transformDirection(ray.direction)};
-		const auto hit = mesh->raycast(local);
+		const auto hit = meshHit(*mesh, world, ray, best ? best->distance : std::numeric_limits<float>::infinity());
 		if(!hit || (best && *hit >= best->distance)) continue;
 		best = PickHit{id, *hit, ray.at(*hit)};
 	}
