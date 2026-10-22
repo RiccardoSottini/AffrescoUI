@@ -40,6 +40,15 @@ bool ownProperty(const PropertySets& sets, std::string_view key) noexcept {
 	return std::ranges::any_of(sets, [key](const auto& set) { return set && set->apply && set->find(key); });
 }
 
+/// @brief Tells whether a panel and all its ancestors are visible: a field in a closed overlay takes no focus.
+/// @param panel The panel.
+/// @return true if none of them is hidden.
+bool visibleUpwards(const Panel& panel) noexcept {
+	for(const Panel* p = &panel; p; p = p->parent())
+		if(!p->isVisible()) return false;
+	return true;
+}
+
 /// @brief A property's value with the number tokens it names resolved ("@space.m"): its own, or its members' for
 /// the objects that hold numbers ("anchors", "radius", "shadow").
 /// @param document The document, which knows the tokens.
@@ -108,7 +117,8 @@ void Properties::apply(Panel& panel, Record& record, CompiledRef node, std::vect
 	showValue(panel, record);
 	record.appearance = appearance;
 
-	if(created && behaviour && behaviour->autofocus && engine_.window && !engine_.handlersSuspended)
+	if(created && behaviour && behaviour->autofocus && engine_.window && !engine_.handlersSuspended &&
+	   visibleUpwards(panel))
 		engine_.window->setFocus(&panel);
 	record.shown = true;
 }

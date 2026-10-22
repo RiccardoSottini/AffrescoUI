@@ -26,6 +26,9 @@ target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# The example apps' own types, as affrescoui_host has them, so their templates run and render the same
 	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp)
+	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp) # Tempo's visualiser surface
+	target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples)
+	target_include_directories(affrescoui_cli SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)
 	target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_CLI_EXAMPLE_TYPES)
 endif()
 

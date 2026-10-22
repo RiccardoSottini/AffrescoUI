@@ -170,6 +170,9 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		target_include_directories(affrescoui_${example} PRIVATE examples/shared)
 		if(example STREQUAL "host")
 			target_sources(affrescoui_host PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
+			target_sources(affrescoui_host PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
+			target_include_directories(affrescoui_host PRIVATE examples)
+			target_include_directories(affrescoui_host SYSTEM PRIVATE external/glad/include)
 			# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice
 			# makes the linker warn about a duplicate library)
 			target_link_libraries(affrescoui_host PRIVATE affrescoui::automation)

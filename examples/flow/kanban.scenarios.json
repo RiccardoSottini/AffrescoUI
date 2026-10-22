@@ -215,6 +215,186 @@
 				{ "key": "mod+j" },
 				{ "expect": { "state": "theme", "is": "light" } }
 			]
+		},
+		{
+			"name": "undo-a-move",
+			"note": "Cmd+Z puts a moved card back and says so; a second undo with nothing left says that instead",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "mod+right" },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 3 } },
+				{ "expect": { "state": "undo.length", "is": 0 } },
+				{ "expect": { "state": "activity[0].key", "is": "undone" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "columns[0].cards.length", "is": 4 } },
+				{ "expect": { "state": "toast.open", "is": true } }
+			]
+		},
+		{
+			"name": "wip-limit-warns",
+			"note": "Moving a fourth card into In progress (limit 3) shows a notice and the column's count turns to a warning",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "mod+right" },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "expect": { "state": "columns[1].cards.length", "is": 4 } },
+				{ "capture": "over-limit" }
+			]
+		},
+		{
+			"name": "move-a-card-with-the-keyboard",
+			"note": "Alt+arrows move the chosen card down, up, right and left, without a mouse",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "alt+down" },
+				{ "expect": { "state": "selected.i", "is": 1 } },
+				{ "expect": { "state": "columns[0].cards[1].title", "is": "Onboarding checklist for new teams" } },
+				{ "key": "alt+up" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "key": "alt+right" },
+				{ "expect": { "state": "selected.c", "is": 1 } },
+				{ "key": "alt+left" },
+				{ "expect": { "state": "selected.c", "is": 0 } },
+				{ "expect": { "state": "columns[0].cards[3].title", "is": "Onboarding checklist for new teams" } }
+			]
+		},
+		{
+			"name": "tick-and-add-checklist-items",
+			"note": "The drawer's checklist: ticking an item and adding one; a blank item is ignored",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "click": "#checkBox", "nth": 1 },
+				{ "expect": { "state": "columns[0].cards[0].checklist[1].done", "is": true } },
+				{ "click": "#newItem" },
+				{ "type": "Review the copy" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].checklist.length", "is": 4 } },
+				{ "expect": { "state": "newItem", "is": "" } },
+				{ "type": "  " },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].checklist.length", "is": 4 } }
+			]
+		},
+		{
+			"name": "pick-a-due-date",
+			"note": "The due button opens the calendar with the focus in it (a regression: the keyboard could not reach it); arrows and Enter pick the next day, and clearing removes it",
+			"steps": [
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "click": "#dueButton" },
+				{ "wait": 50 },
+				{ "expect": { "state": "dueOpen", "is": true } },
+				{ "capture": "date-picker" },
+				{ "key": "right" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].due", "is": "2026-03-21" } },
+				{ "expect": { "state": "dueOpen", "is": false } },
+				{ "click": "#dueClear" },
+				{ "expect": { "state": "columns[0].cards[0].due", "is": null } }
+			]
+		},
+		{
+			"name": "labels-comments-and-attachments",
+			"note": "A label chip toggles on the card, and a comment and an attachment name are added, the comment in the feed",
+			"steps": [
+				{ "resize": [1600, 1400], "note": "tall enough for the whole drawer" },
+				{ "wait": 50 },
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "click": "#labelChip", "nth": 0 },
+				{ "expect": { "state": "columns[0].cards[0].labels.length", "is": 2 } },
+				{ "click": "#labelChip", "nth": 0 },
+				{ "expect": { "state": "columns[0].cards[0].labels.length", "is": 1 } },
+				{ "click": "#newComment" },
+				{ "type": "Looks good" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].comments.length", "is": 2 } },
+				{ "expect": { "state": "activity[0].key", "is": "commented" } },
+				{ "click": "#newAttachment" },
+				{ "type": "copy.txt" },
+				{ "key": "enter" },
+				{ "expect": { "state": "columns[0].cards[0].attachments[1]", "is": "copy.txt" } }
+			]
+		},
+		{
+			"name": "fuzzy-search",
+			"note": "Cmd+F focuses the search; letters in order match a title, and Escape clears it",
+			"steps": [
+				{ "key": "mod+f" },
+				{ "wait": 50 },
+				{ "type": "crsh" },
+				{ "expect": { "state": "query", "is": "crsh" } },
+				{ "expect": { "node": "#cardTitle", "nth": 0, "text": "Crash when a board has no columns" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "query", "is": "" } }
+			]
+		},
+		{
+			"name": "timeline-view",
+			"note": "The timeline shows a track a member with the dated cards; a regression for the generic scale transform drawing it as a block",
+			"steps": [
+				{ "action": "showTimeline" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#cardTimeline", "exists": true } },
+				{ "expect": { "state": "timelineTracks.length", "is": 4 } },
+				{ "capture": "timeline" }
+			]
+		},
+		{
+			"name": "swimlanes",
+			"note": "Swimlanes show one lane a member; toggling again goes back to the columns",
+			"steps": [
+				{ "action": "toggleSwimlanes" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#lane", "exists": true } },
+				{ "capture": "lanes" },
+				{ "action": "toggleSwimlanes" },
+				{ "expect": { "state": "swimlanes", "is": false } }
+			]
+		},
+		{
+			"name": "settings-sheet",
+			"note": "Cmd+, opens the settings in the middle; Escape closes them",
+			"steps": [
+				{ "key": "mod+comma" },
+				{ "wait": 50 },
+				{ "expect": { "state": "settingsOpen", "is": true } },
+				{ "capture": "settings" },
+				{ "key": "escape" },
+				{ "expect": { "state": "settingsOpen", "is": false } }
+			]
+		},
+		{
+			"name": "arabic-right-to-left",
+			"note": "Cmd+L twice switches to Arabic: the board runs right to left with Arabic text, a regression for the missing Arabic font",
+			"steps": [
+				{ "key": "mod+l" },
+				{ "key": "mod+l" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#filter", "nth": 0, "text": "كل البطاقات" } },
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "capture": "arabic" }
+			]
+		},
+		{
+			"name": "small-window-dark",
+			"note": "At the minimum size, in dark, the filters and drawer buttons become icons with names; a regression for clipped buttons",
+			"steps": [
+				{ "resize": [1040, 640] },
+				{ "key": "mod+j" },
+				{ "wait": 50 },
+				{ "click": "#cardTitle" },
+				{ "expect": { "state": "selected.i", "is": 0 } },
+				{ "capture": "small-dark" }
+			]
 		}
 	]
 }

@@ -8,6 +8,8 @@
 #include "Shortcuts.hpp"
 
 #include "affresco/render/ColorPicker.hpp"
+#include "affresco/render/Controls.hpp"
+#include "affresco/render/ListView.hpp"
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
@@ -67,6 +69,31 @@ void runCounted(Engine& engine, const Record& record, Panel& panel, std::string_
 	const std::int64_t now = Usage::now();
 	if(id.is_string()) engine.owner.usage.ran(id.get<std::string>(), action, failed, now);
 	if(engine.document.screen() != screen) engine.owner.usage.visited(engine.document.screen(), now);
+}
+
+/// @brief Whether a focused list, table, tree or slider, or an item inside an "arrows" node, moves with this key, which
+/// it then keeps from the screen's "keys" (as a text input keeps the keys it types).
+/// @param reconciler The records, to find an "arrows" node above the panel.
+/// @param panel The focused panel, or nullptr.
+/// @param event The key.
+/// @return true if it does.
+bool movesWith(Reconciler& reconciler, const Panel* panel, const KeyEvent& event) {
+	if(event.mods.alt() || event.mods.control() || event.mods.super()) return false;
+	const bool vertical = event.key == Key::Up || event.key == Key::Down || event.key == Key::PageUp ||
+	                      event.key == Key::PageDown || event.key == Key::Home || event.key == Key::End;
+	const bool horizontal = event.key == Key::Left || event.key == Key::Right;
+	if(dynamic_cast<const ListView*>(panel)) return vertical;
+	if(dynamic_cast<const Slider*>(panel)) return vertical || horizontal;
+	for(const Panel* p = panel; p; p = p->parent()) {
+		const Record* record = reconciler.recordOf(p);
+		if(!record || record->arrows.empty()) continue;
+		const bool along = record->arrows == "vertical" ? event.key == Key::Up || event.key == Key::Down
+		                   : record->arrows == "horizontal"
+		                       ? horizontal
+		                       : horizontal || event.key == Key::Up || event.key == Key::Down;
+		return along || event.key == Key::Home || event.key == Key::End;
+	}
+	return false;
 }
 
 } // namespace
@@ -303,7 +330,8 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const json& document = engine_.versions.document();
 	const bool typing = (dynamic_cast<const TextArea*>(from) || dynamic_cast<const TextEditor*>(from)) && !chording &&
 	                    !event.mods.super() && !event.mods.control() && !event.mods.alt() && name != "escape";
-	if(!typing && document.contains("keys") && document["keys"].is_object() && engine_.window) {
+	if(!typing && !movesWith(engine_.reconciler, from, event) && document.contains("keys") &&
+	   document["keys"].is_object() && engine_.window) {
 		starts(document["keys"], true);
 		for(const auto& [written, handler] : document["keys"].items()) {
 			if(normalizeChord(written) != press) continue;

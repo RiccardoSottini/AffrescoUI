@@ -1,0 +1,204 @@
+{
+	"note": "Flow's board logic, included by kanban.screen.json: undo, the activity feed, work-in-progress limits, moves by keyboard and between swimlanes, the card drawer's edits, the timeline's tracks, presence from the host's channel, and the settings.",
+
+	"settings": {
+		"appearance.language": { "type": "string", "enum": ["en", "it", "ar"], "default": "en", "title": "Language", "description": "English, Italian or Arabic (right to left)." },
+		"board.wipWarnings": { "type": "boolean", "default": true, "title": "Warn over a column's limit", "description": "Show a notice when a move puts a column over its work-in-progress limit." },
+		"board.weekStart": { "type": "number", "minimum": 0, "maximum": 6, "default": 1, "title": "First day of the week", "description": "0 for Sunday, 1 for Monday, up to 6 for Saturday, in the date picker." }
+	},
+
+	"state": {
+		"query": "",
+		"labels": ["urgent", "frontend", "backend", "docs"],
+		"swimlanes": false,
+		"undo": [],
+		"today": "2026-03-16",
+		"sprintStart": "2026-03-09",
+		"burndown": [34, 33, 30, 29, 27, 24, 23],
+		"activity": [
+			{ "who": "MK", "key": "moved", "title": "New colour palette for labels", "column": "In progress" },
+			{ "who": "JD", "key": "commented", "title": "Invite teammates by email", "column": "" },
+			{ "who": "AL", "key": "added", "title": "Document the board API", "column": "" }
+		],
+		"presence": {},
+		"draft": { "editing": false, "notes": "" },
+		"dueOpen": false,
+		"settingsOpen": false,
+		"newItem": "",
+		"newComment": "",
+		"newAttachment": "",
+		"timelineTracks": [],
+		"settings": {}
+	},
+
+	"computed": {
+		"remaining": "{{sum(filter(computed.allCards, it.c != computed.lastColumn), it.points)}}",
+		"burndownValues": "{{concat(state.burndown, [computed.remaining])}}",
+		"checklistDone": "{{computed.card == null ? 0 : count(computed.card.checklist ?? [], it.done)}}",
+		"dueDays": "{{computed.card == null || computed.card.due == null ? null : daysBetween(state.today, computed.card.due)}}",
+		"present": "{{filter(keys(state.presence), state.presence[it] != null)}}"
+	},
+
+	"watch": {
+		"state.columns": "buildTimeline",
+		"state.members": "buildTimeline"
+	},
+
+	"onLoad": "buildTimeline",
+
+	"channels": {
+		"team": { "socket": "studio.sock", "reconnect": { "after": 2000 } }
+	},
+
+	"actions": {
+		"remember": [
+			{ "note": "Keeps the columns before a change, for undoChange (the last 20)" },
+			{ "push": "state.undo", "value": "{{state.columns}}" },
+			{ "if": "{{length(state.undo) > 20}}", "then": [{ "remove": "state.undo", "at": 0 }] }
+		],
+		"logActivity": [
+			{ "note": "with: key, title, column. Newest first, the last 30" },
+			{ "set": "state.activity", "to": "{{concat([{ who: 'RS', key: key, title: title, column: column }], slice(state.activity, 0, 29))}}" }
+		],
+		"checkLimit": [
+			{ "note": "with: c. A notice when the column is over its limit" },
+			{ "if": "{{settings.board.wipWarnings && state.columns[c].limit != null && length(state.columns[c].cards) > state.columns[c].limit}}",
+				"then": [{ "run": "notify", "with": { "message": "{{t('toast.wip', { column: state.columns[c].name, limit: state.columns[c].limit })}}" } }] }
+		],
+		"undoChange": { "title": "Undo the last change", "category": "Card", "icon": "undo-2",
+			"do": [
+				{ "if": "{{length(state.undo) == 0}}", "then": [{ "run": "notify", "with": { "message": "{{t('toast.nothingToUndo')}}" } }, { "stop": true }] },
+				{ "set": "state.columns", "to": "{{state.undo[length(state.undo) - 1]}}" },
+				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
+				{ "set": "state.selected", "to": null },
+				{ "run": "logActivity", "with": { "key": "undone", "title": "", "column": "" } },
+				{ "run": "notify", "with": { "message": "{{t('toast.undone')}}" } }
+			] },
+		"reorderCard": [
+			{ "note": "with: c, i, by (-1 or 1): swaps the card with its neighbour in the column" },
+			{ "if": "{{i + by < 0 || i + by >= length(state.columns[c].cards)}}", "then": [{ "stop": true }] },
+			{ "run": "remember" },
+			{ "set": "state.columns[c].cards", "to": "{{map(state.columns[c].cards, index == i ? state.columns[c].cards[i + by] : index == i + by ? state.columns[c].cards[i] : it)}}" },
+			{ "set": "state.selected", "to": { "c": "{{c}}", "i": "{{i + by}}" } }
+		],
+		"moveUp": { "title": "Move card up", "category": "Card", "icon": "arrow-up", "enablement": "{{computed.card != null && state.selected.i > 0}}",
+			"do": [{ "run": "reorderCard", "with": { "c": "{{state.selected.c}}", "i": "{{state.selected.i}}", "by": -1 } }] },
+		"moveDown": { "title": "Move card down", "category": "Card", "icon": "arrow-down",
+			"enablement": "{{computed.card != null && state.selected.i < length(state.columns[state.selected.c].cards) - 1}}",
+			"do": [{ "run": "reorderCard", "with": { "c": "{{state.selected.c}}", "i": "{{state.selected.i}}", "by": 1 } }] },
+		"moveToLane": [
+			{ "note": "with: from, at, to, who: a card dropped in a swimlane takes that column and that owner" },
+			{ "if": "{{from != to}}",
+				"then": [
+					{ "run": "moveCard", "with": { "from": "{{from}}", "at": "{{at}}", "to": "{{to}}" } },
+					{ "set": "state.columns[to].cards[length(state.columns[to].cards) - 1].who", "to": "{{who}}" }
+				],
+				"else": [
+					{ "if": "{{state.columns[from].cards[at].who == who}}", "then": [{ "stop": true }] },
+					{ "run": "remember" },
+					{ "set": "state.columns[from].cards[at].who", "to": "{{who}}" }
+				] }
+		],
+		"buildTimeline": [
+			{ "note": "One track per member, a clip per card with a start and a due date; days are frames" },
+			{ "set": "state.timelineTracks", "to": [] },
+			{ "forEach": "state.members", "as": "m", "do": [
+				{ "push": "state.timelineTracks", "value": {
+					"id": "{{m.who}}",
+					"label": "{{m.name}}",
+					"clips": "{{map(filter(computed.allCards, it.who == m.who && it.due != null), { id: it.c + '-' + it.at, label: it.title, start: max(0, daysBetween(state.sprintStart, it.start ?? it.due)), duration: max(1, daysBetween(it.start ?? it.due, it.due)), color: state.columns[it.c].color })}}"
+				} }
+			] }
+		],
+		"changeClip": [
+			{ "note": "A timeline clip moved or trimmed: its card gets the new dates, and the track's owner" },
+			{ "run": "setCardDates", "with": {
+				"c": "{{number(split(event.id, '-')[0])}}", "i": "{{number(split(event.id, '-')[1])}}",
+				"start": "{{addDays(state.sprintStart, round(event.start))}}", "due": "{{addDays(state.sprintStart, round(event.start + event.duration))}}", "who": "{{event.track}}" } }
+		],
+		"setCardDates": [
+			{ "note": "with: c, i, start, due, who" },
+			{ "run": "remember" },
+			{ "set": "state.columns[c].cards[i].start", "to": "{{start}}" },
+			{ "set": "state.columns[c].cards[i].due", "to": "{{due}}" },
+			{ "set": "state.columns[c].cards[i].who", "to": "{{who}}" }
+		],
+		"setDue": [
+			{ "note": "with: date, or null to clear it" },
+			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
+			{ "run": "remember" },
+			{ "set": "state.columns[state.selected.c].cards[state.selected.i].due", "to": "{{date}}" },
+			{ "set": "state.dueOpen", "to": false }
+		],
+		"toggleListItem": [
+			{ "note": "with: field (labels or assignees), value: adds or removes it on the selected card" },
+			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
+			{ "run": "remember" },
+			{ "set": "state.columns[state.selected.c].cards[state.selected.i][field]",
+				"to": "{{contains(computed.card[field] ?? [], value) ? filter(computed.card[field], it != value) : concat(computed.card[field] ?? [], [value])}}" }
+		],
+		"addToCard": [
+			{ "note": "with: field (checklist, comments or attachments), value, input (the text typed: nothing is added while it is blank)" },
+			{ "if": "{{computed.card == null || length(trim(input ?? '')) == 0}}", "then": [{ "stop": true }] },
+			{ "run": "remember" },
+			{ "set": "state.columns[state.selected.c].cards[state.selected.i][field]", "to": "{{concat(computed.card[field] ?? [], [value])}}" },
+			{ "if": "{{field == 'comments'}}", "then": [{ "run": "logActivity", "with": { "key": "commented", "title": "{{computed.card.title}}", "column": "" } }] }
+		],
+		"removeFromCard": [
+			{ "note": "with: field, at" },
+			{ "run": "remember" },
+			{ "remove": "state.columns[state.selected.c].cards[state.selected.i][field]", "at": "{{at}}" }
+		],
+		"checkItem": [
+			{ "note": "with: at, value" },
+			{ "run": "remember" },
+			{ "set": "state.columns[state.selected.c].cards[state.selected.i].checklist[at].done", "to": "{{value}}" }
+		],
+		"editNotes": [
+			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
+			{ "set": "state.draft", "to": { "editing": true, "notes": "{{computed.card.notes ?? ''}}" } }
+		],
+		"saveNotes": [
+			{ "if": "{{computed.card == null}}", "then": [{ "stop": true }] },
+			{ "run": "remember" },
+			{ "set": "state.columns[state.selected.c].cards[state.selected.i].notes", "to": "{{state.draft.notes}}" },
+			{ "set": "state.draft.editing", "to": false },
+			{ "run": "notify", "with": { "message": "{{t('toast.saved')}}" } }
+		],
+		"cancelNotes": [{ "set": "state.draft.editing", "to": false }],
+		"announcePresence": [
+			{ "note": "Tells the other people on this board which card is open" },
+			{ "emit": "presence", "data": { "who": "RS", "card": "{{computed.card == null ? null : computed.card.title}}" } }
+		],
+		"team:committed": [
+			{ "note": "Someone changed the board: the feed shows it and its author is here" },
+			{ "set": "state.activity", "to": "{{concat([{ who: event.author ?? '?', key: 'revised', title: event.message ?? '', column: '' }], slice(state.activity, 0, 29))}}" },
+			{ "set": "state.presence[event.author ?? '?']", "to": "{{state.presence[event.author ?? '?'] ?? ''}}" }
+		],
+		"team:event": [
+			{ "note": "presence: { who, card } from another person's Flow" },
+			{ "if": "{{event.name != 'presence' || event.data.who == 'RS'}}", "then": [{ "stop": true }] },
+			{ "set": "state.presence[event.data.who]", "to": "{{event.data.card ?? ''}}" }
+		],
+		"team:closed": [{ "set": "state.presence", "to": {} }],
+		"showTimeline": { "title": "Show the timeline", "category": "View", "icon": "chart-gantt", "do": [{ "set": "state.view", "to": "timeline" }] },
+		"toggleSwimlanes": { "title": "Swimlanes by member", "category": "View", "icon": "rows-2",
+			"do": [{ "set": "state.view", "to": "board" }, { "toggle": "state.swimlanes" }] },
+		"openSettings": { "title": "Settings…", "category": "View", "icon": "settings", "do": [{ "set": "state.settingsOpen", "to": true }] },
+		"closeSettings": [{ "set": "state.settingsOpen", "to": false }],
+		"changeLanguage": { "title": "Change the language", "category": "View", "icon": "languages",
+			"do": [{ "set": "settings.appearance.language", "to": "{{settings.appearance.language == 'en' ? 'it' : settings.appearance.language == 'it' ? 'ar' : 'en'}}" }] },
+		"focusSearch": { "title": "Search cards", "category": "Go", "icon": "search", "do": [{ "focus": "#search" }] }
+	},
+
+	"keys": {
+		"mod+z": "undoChange",
+		"mod+l": "changeLanguage",
+		"mod+f": "focusSearch",
+		"mod+comma": "openSettings",
+		"alt+up": { "when": "{{!context.textInputFocus}}", "do": "moveUp" },
+		"alt+down": { "when": "{{!context.textInputFocus}}", "do": "moveDown" },
+		"alt+left": { "when": "{{!context.textInputFocus}}", "do": "moveLeft" },
+		"alt+right": { "when": "{{!context.textInputFocus}}", "do": "moveRight" }
+	}
+}

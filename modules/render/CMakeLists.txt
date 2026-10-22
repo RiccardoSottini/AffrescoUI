@@ -24,6 +24,8 @@ affrescoui_module(render
 	src/ColorPickerPaint.cpp
 	src/CurvesEditor.cpp
 	src/GradientEditor.cpp
+	src/CivilDate.cpp
+	src/Calendar.cpp
 	src/Controls.cpp
 	src/Split.cpp
 	src/Tabs.cpp

@@ -1,0 +1,248 @@
+{
+	"note": "Haven's automations, security and simulated service, included by smart-home.screen.json: rules as a node graph, schedules on a timeline, the security mode and the notifications at the foot of the sidebar, and a timer that stands in for the devices (rooms drift towards their target; motion while away).",
+
+	"settings": {
+		"security.motionAlerts": { "type": "boolean", "default": true, "title": "Motion alerts",
+		                           "description": "While the security mode is Away, motion in the hall sends a notification." },
+		"simulation.enabled": { "type": "boolean", "default": true, "title": "Simulated devices",
+		                        "description": "Every ten seconds the simulated service moves each room towards its target and reports motion." }
+	},
+
+	"state": {
+		"security": "off",
+		"securityModes": ["off", "home", "away"],
+		"notifications": [],
+		"notificationsOpen": false,
+		"notifyCount": 0,
+		"tick": 0,
+		"autoSelected": [],
+		"autoNodes": [
+			{ "id": "motion", "kind": "motion", "x": 20, "y": 30, "outputs": [{ "id": "when", "kind": "event" }] },
+			{ "id": "sunset", "kind": "sunset", "x": 20, "y": 190, "outputs": [{ "id": "when", "kind": "event" }] },
+			{ "id": "armed", "kind": "armed", "x": 230, "y": 30, "inputs": [{ "id": "if", "kind": "event" }], "outputs": [{ "id": "then", "kind": "event" }] },
+			{ "id": "hallLight", "kind": "hallLight", "x": 440, "y": 10, "inputs": [{ "id": "do", "kind": "event" }] },
+			{ "id": "notify", "kind": "notify", "x": 440, "y": 100, "inputs": [{ "id": "do", "kind": "event" }] },
+			{ "id": "blindsDown", "kind": "blindsDown", "x": 440, "y": 190, "inputs": [{ "id": "do", "kind": "event" }] }
+		],
+		"autoLinks": [
+			{ "from": "motion", "output": "when", "to": "armed", "input": "if" },
+			{ "from": "armed", "output": "then", "to": "notify", "input": "do" },
+			{ "from": "armed", "output": "then", "to": "hallLight", "input": "do" },
+			{ "from": "sunset", "output": "when", "to": "blindsDown", "input": "do" }
+		],
+		"schedules": [
+			{ "id": "heating", "clips": [{ "id": "heatMorning", "key": "morning", "start": 6, "duration": 3 }, { "id": "heatEvening", "key": "evening", "start": 17, "duration": 6 }] },
+			{ "id": "lights", "clips": [{ "id": "lightsNight", "key": "night", "start": 19, "duration": 4 }] },
+			{ "id": "vacuum", "clips": [{ "id": "vacuumClean", "key": "clean", "start": 10, "duration": 2 }] }
+		]
+	},
+
+	"computed": {
+		"autoGraph": "{{map(state.autoNodes, merge(it, { title: t('auto.' + it.kind), width: 170, inputs: map(it.inputs ?? [], merge(it, { label: t('port.' + it.id) })), outputs: map(it.outputs ?? [], merge(it, { label: t('port.' + it.id) })) }))}}",
+		"scheduleTracks": "{{map(state.schedules, { id: it.id, label: t('schedule.' + it.id), clips: map(it.clips, { id: it.id, label: t('schedule.' + it.key), start: it.start, duration: it.duration }) })}}",
+		"securityLabel": "{{t('security.' + state.security)}}"
+	},
+
+	"actions": {
+		"notify": [
+			{ "note": "with: message, icon. Keeps the newest twenty notifications, the newest first" },
+			{ "increment": "state.notifyCount", "by": 1 },
+			{ "set": "state.notifications", "to": "{{filter(concat([{ id: 'n' + state.notifyCount, message: message, icon: icon }], state.notifications), index < 20)}}" }
+		],
+		"cycleSecurity": { "title": "Change the security mode", "category": "Security", "icon": "shield",
+			"do": [
+				{ "set": "state.security", "to": "{{state.securityModes[(indexOf(state.securityModes, state.security) + 1) % 3]}}" },
+				{ "run": "notify", "with": { "message": "{{t('security.changed', { mode: t('security.' + state.security) })}}", "icon": "shield" } }
+			] },
+		"toggleNotifications": { "title": "Show the notifications", "category": "Security", "icon": "bell",
+			"do": [{ "toggle": "state.notificationsOpen" }] },
+		"clearNotifications": { "title": "Clear the notifications", "category": "Security", "icon": "bell-off",
+			"do": [{ "set": "state.notifications", "to": [] }] },
+		"simulate": [
+			{ "note": "The simulated service, every ten seconds: each room 0.5° nearer its target; every fourth tick while away, motion in the hall" },
+			{ "if": "{{settings.simulation.enabled}}", "then": [
+				{ "increment": "state.tick", "by": 1 },
+				{ "forEach": "state.rooms", "index": "r", "do": [
+					{ "set": "state.rooms[r].temp", "to": "{{state.rooms[r].temp + clamp(state.rooms[r].target - state.rooms[r].temp, -0.5, 0.5)}}" }
+				] },
+				{ "if": "{{state.security == 'away' && settings.security.motionAlerts && state.tick % 4 == 0}}", "then": [
+					{ "run": "notify", "with": { "message": "{{t('notify.motion')}}", "icon": "siren" } }
+				] }
+			] }
+		],
+		"addAutoNode": [
+			{ "note": "with: kind and the node's ports: a new node to the right of the others, chosen" },
+			{ "set": "state.autoNodes", "to": "{{concat(state.autoNodes, [merge(node, { id: node.kind + length(state.autoNodes), x: 640, y: 20 + 80 * (length(state.autoNodes) % 4) })])}}" },
+			{ "set": "state.autoSelected", "to": "{{[node.kind + (length(state.autoNodes) - 1)]}}" }
+		],
+		"changeSchedule": [
+			{ "note": "A schedule clip moved or trimmed: whole hours, at least one; it stays on its own track" },
+			{ "set": "state.schedules", "to": "{{map(state.schedules, it.id != (event.fromTrack ?? event.track) ? it : merge(it, { clips: map(it.clips, it.id != event.id ? it : merge(it, { start: clamp(round(event.start), 0, 23), duration: max(1, round(event.duration)) })) }))}}" }
+		]
+	},
+
+	"components": {
+		"securityBar": {
+			"note": "The foot of the sidebar: the security mode and the notifications bell with its count",
+			"params": {},
+			"node": {
+				"anchors": { "left": 16, "right": 16, "bottom": 12 },
+				"height": 36,
+				"color": "transparent",
+				"children": [
+					{ "id": "securityButton", "style": "{{state.security == 'off' ? 'button' : 'choiceOn'}}", "font": "small", "icon": "{{state.security == 'off' ? 'shield-off' : 'shield'}}",
+						"text": " {{computed.securityLabel}}", "anchors": { "left": 0, "top": 0, "bottom": 0, "right": 52 },
+						"color": "{{state.security == 'away' ? '@alertSoft' : (state.security == 'home' ? '@accentSoft' : '@raised')}}",
+						"textColor": "{{state.security == 'away' ? '@alert' : (state.security == 'home' ? '@accent' : '@text')}}",
+						"label": "{{t('security.label', { mode: computed.securityLabel })}}", "tooltip": "{{t('security.cycle')}}", "onClick": "cycleSecurity" },
+					{ "id": "bellButton", "style": "button", "icon": "bell", "text": "", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 44,
+						"label": "{{t('notify.count', { n: length(state.notifications) })}}", "tooltip": "{{t('notify.open')}}", "isOpen": "{{state.notificationsOpen}}",
+						"onClick": "toggleNotifications" },
+					{ "id": "bellCount", "when": "{{length(state.notifications) > 0}}", "type": "label", "font": "small", "text": "{{min(length(state.notifications), 9)}}",
+						"anchors": { "right": -4, "top": -6 }, "width": 18, "height": 18, "radius": 9, "align": "center", "color": "@alert", "textColor": "@knob" }
+				]
+			}
+		},
+
+		"notificationsPanel": {
+			"note": "The notifications, beside the bell; Escape or a click outside closes them",
+			"params": {},
+			"node": {
+				"dir": "auto",
+				"overlay": { "anchor": "#bellButton", "placement": "right", "open": "state.notificationsOpen", "dismiss": "outside", "modal": true },
+				"x": 8,
+				"width": 320,
+				"height": 300,
+				"radius": 12,
+				"color": "@card",
+				"shadow": { "y": 6, "blur": 18, "color": "#00000040" },
+				"role": "dialog",
+				"label": "{{t('notify.title')}}",
+				"children": [
+					{ "id": "notificationsTitle", "type": "label", "font": "heading", "icon": "bell", "text": " {{t('notify.title')}}", "textColor": "@text",
+						"anchors": { "left": 16, "top": 14 }, "fitText": true },
+					{ "id": "notificationsClear", "style": "button", "font": "small", "text": "{{t('notify.clear')}}", "anchors": { "right": 12, "top": 12 }, "width": 96, "height": 26,
+						"onClick": "clearNotifications" },
+					{ "id": "notificationsEmpty", "when": "{{length(state.notifications) == 0}}", "style": "caption", "text": "{{t('notify.empty')}}",
+						"anchors": { "left": 16, "top": 60 } },
+					{
+						"id": "notificationList",
+						"type": "column",
+						"anchors": { "left": 8, "right": 8, "top": 50, "bottom": 8 },
+						"gap": 4,
+						"scroll": "vertical",
+						"role": "list",
+						"live": "polite",
+						"children": [
+							{ "id": "notification", "repeat": { "for": "note", "in": "state.notifications", "key": "{{note.id}}" }, "type": "label", "font": "small",
+								"icon": "{{note.icon}}", "text": "  {{note.message}}", "anchors": { "left": 0, "right": 0 }, "height": 34, "padding": 10, "radius": 6,
+								"align": { "horizontal": "start", "vertical": "center" }, "color": "@raised", "textColor": "@text", "role": "listitem" }
+						]
+					}
+				]
+			}
+		},
+
+		"simulator": {
+			"note": "No pixels: the timer of the simulated service",
+			"params": {},
+			"node": { "width": 0, "height": 0, "color": "transparent", "every": { "ms": 10000, "do": "simulate" } }
+		},
+
+		"automationsPage": {
+			"note": "Rules as a node graph (triggers, conditions, actions) and the schedules of the day on a timeline",
+			"params": {},
+			"node": {
+				"color": "transparent",
+				"children": [
+					{ "id": "automationsTitle", "style": "pageTitle", "icon": "workflow", "text": " {{t('page.automations')}}" },
+					{ "id": "automationsSummary", "style": "caption", "text": "{{t('auto.summary')}}", "anchors": { "left": 32, "top": 66 } },
+					{
+						"id": "autoAdd",
+						"type": "row",
+						"anchors": { "right": 32, "top": 28 },
+						"width": 330,
+						"height": 30,
+						"gap": 6,
+						"role": "toolbar",
+						"arrows": "horizontal",
+						"children": [
+							{ "id": "autoAddLabel", "style": "caption", "text": "{{t('auto.add')}}", "anchors": { "top": 8 } },
+							{ "id": "autoAddTime", "style": "button", "font": "small", "icon": "clock", "text": " {{t('auto.addTime')}}", "grow": 1, "anchors": { "top": 0, "bottom": 0 },
+								"onClick": { "run": "addAutoNode", "with": { "node": { "kind": "time", "outputs": [{ "id": "when", "kind": "event" }] } } } },
+							{ "id": "autoAddDark", "style": "button", "font": "small", "icon": "moon", "text": " {{t('auto.addDark')}}", "grow": 1, "anchors": { "top": 0, "bottom": 0 },
+								"onClick": { "run": "addAutoNode", "with": { "node": { "kind": "dark", "inputs": [{ "id": "if", "kind": "event" }], "outputs": [{ "id": "then", "kind": "event" }] } } } },
+							{ "id": "autoAddScene", "style": "button", "font": "small", "icon": "sparkles", "text": " {{t('auto.addScene')}}", "grow": 1, "anchors": { "top": 0, "bottom": 0 },
+								"onClick": { "run": "addAutoNode", "with": { "node": { "kind": "scene", "inputs": [{ "id": "do", "kind": "event" }] } } } }
+						]
+					},
+					{
+						"id": "autoCard",
+						"style": "card",
+						"anchors": { "left": 32, "right": 32, "top": 104, "bottom": "#scheduleCard.top - 16" },
+						"children": [
+							{
+								"id": "autoGraph",
+								"type": "graph",
+								"fill": 8,
+								"focusable": true,
+								"label": "{{t('auto.graph')}}",
+								"nodes": "{{computed.autoGraph}}",
+								"links": "{{state.autoLinks}}",
+								"color": "@field",
+								"minimap": "{{!computed.compact}}",
+								"nodeColor": "@raised",
+								"headerColor": "@raisedHover",
+								"textColor": "@text",
+								"accentColor": "@accent",
+								"kindColors": { "event": "@warm" },
+								"onConnect": [{ "set": "state.autoLinks", "to": "{{concat(state.autoLinks, [{ from: event.from, output: event.output, to: event.to, input: event.input }])}}" }],
+								"onDisconnect": [{ "set": "state.autoLinks", "to": "{{filter(state.autoLinks, index != event.index)}}" }],
+								"onMove": [{ "set": "state.autoNodes", "to": "{{map(state.autoNodes, contains(event.ids, it.id) ? merge(it, { x: it.x + event.dx, y: it.y + event.dy }) : it)}}" }],
+								"onSelect": [{ "set": "state.autoSelected", "to": "{{event.ids}}" }],
+								"onDelete": [
+									{ "set": "state.autoLinks", "to": "{{filter(state.autoLinks, !contains(event.ids, it.from) && !contains(event.ids, it.to))}}" },
+									{ "set": "state.autoNodes", "to": "{{filter(state.autoNodes, !contains(event.ids, it.id))}}" },
+									{ "set": "state.autoSelected", "to": [] }
+								]
+							}
+						]
+					},
+					{
+						"id": "scheduleCard",
+						"style": "card",
+						"anchors": { "left": 32, "right": 32, "bottom": 24 },
+						"height": "{{computed.compact ? 156 : 196}}",
+						"children": [
+							{ "id": "scheduleTitle", "style": "caption", "icon": "calendar-clock", "text": " {{t('schedule.title')}}", "anchors": { "left": 16, "top": 12 } },
+							{
+								"id": "schedule",
+								"type": "timeline",
+								"anchors": { "left": 8, "right": 8, "top": 34, "bottom": 8 },
+								"tracks": "{{computed.scheduleTracks}}",
+								"duration": 24,
+								"fps": 1,
+								"scale": "{{max(16, (window.width - 248 - 64 - 16 - 140) / 24)}}",
+								"offset": 0,
+								"time": 14,
+								"headerWidth": 140,
+								"trackHeight": "{{computed.compact ? 30 : 40}}",
+								"label": "{{t('schedule.title')}}",
+								"color": "@card",
+								"clipColor": "@accent",
+								"headerColor": "@field",
+								"textColor": "@text",
+								"accentColor": "@accent",
+								"onClipChange": "changeSchedule",
+								"children": [
+									{ "id": "scheduleHeader", "repeat": { "for": "track", "in": "computed.scheduleTracks" }, "type": "label", "font": "small", "text": "{{track.label}}",
+										"textColor": "@text", "fill": 0, "padding": 10, "align": { "horizontal": "start", "vertical": "center" } }
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

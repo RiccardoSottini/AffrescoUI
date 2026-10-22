@@ -34,14 +34,14 @@
 			"name": "pick-a-room",
 			"note": "Clicking a room in the rooms tree shows its name, its picture, its lights and its climate",
 			"steps": [
-				{ "click": [130, 343], "note": "Kitchen, under Ground floor" },
+				{ "click": [130, 397], "note": "Kitchen, under Ground floor" },
 				{ "expect": { "state": "room", "is": 1 } },
 				{ "expect": { "node": "#greeting", "text": "Kitchen" } },
 				{ "expect": { "node": "#roomImage", "property": "shown", "is": true } },
 				{ "expect": { "node": "#label-light-name", "nth": 0, "text": "Pendants" } },
 				{ "expect": { "node": "#light", "nth": 2, "exists": false } },
 				{ "expect": { "node": "#target", "text": "21°" } },
-				{ "click": [26, 283], "note": "the arrow closes a floor; picking a floor picks no room" },
+				{ "click": [26, 337], "note": "the arrow closes a floor; picking a floor picks no room" },
 				{ "expect": { "state": "room", "is": 1 } },
 				{ "expect": { "state": "floorsOpen", "is": ["upper"] } }
 			]
@@ -161,6 +161,186 @@
 				{ "wait": 1000 },
 				{ "expect": { "state": "devices[0].on", "is": false } },
 				{ "expect": { "state": "toast.open", "is": false, "note": "no toast with notifications off" } }
+			]
+		},
+		{
+			"name": "plan-click-picks-a-room",
+			"note": "On the floor plan, clicking a room on the canvas makes it the room the other pages show",
+			"steps": [
+				{ "key": "mod+3" },
+				{ "expect": { "state": "page", "is": "plan" } },
+				{ "click": [700, 250], "note": "the Kitchen on the canvas" },
+				{ "expect": { "state": "room", "is": 1 } },
+				{ "expect": { "node": "#planRoomName", "text": "Kitchen" } },
+				{ "click": "#planShow" },
+				{ "expect": { "state": "page", "is": "home" } },
+				{ "expect": { "node": "#greeting", "text": "Kitchen" } }
+			]
+		},
+		{
+			"name": "colour-a-light",
+			"note": "A light's bulb opens the colour dialog; Warm white sets its colour and Done closes it",
+			"steps": [
+				{ "click": "#lightIcon", "nth": 1 },
+				{ "wait": 100, "note": "the dialog takes the focus once it is laid out" },
+				{ "expect": { "state": "colourOpen", "is": true } },
+				{ "expect": { "state": "light", "is": 1 } },
+				{ "expect": { "node": "#colourPicker", "property": "focused", "is": true } },
+				{ "click": "#colourWarm" },
+				{ "expect": { "state": "rooms[0].lights[1].color", "is": "#ffd58aff" } },
+				{ "click": "#colourDone" },
+				{ "expect": { "state": "colourOpen", "is": false } },
+				{ "click": "#lightIcon", "nth": 0 },
+				{ "wait": 100 },
+				{ "key": "escape", "note": "Escape closes it too" },
+				{ "expect": { "state": "colourOpen", "is": false } }
+			]
+		},
+		{
+			"name": "automations-add-a-node",
+			"note": "The Add buttons put a new node on the automation graph, chosen",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "expect": { "state": "autoNodes.length", "is": 6 } },
+				{ "click": "#autoAddTime" },
+				{ "expect": { "state": "autoNodes.length", "is": 7 } },
+				{ "expect": { "state": "autoNodes[6].kind", "is": "time" } },
+				{ "expect": { "state": "autoSelected", "is": ["time6"] } },
+				{ "click": "#autoAddScene" },
+				{ "expect": { "state": "autoNodes.length", "is": 8 } }
+			]
+		},
+		{
+			"name": "drag-a-schedule-clip",
+			"note": "Dragging the Morning heating clip two hours later moves it by whole hours",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "drag": [680, 630], "to": [748, 630], "moves": 8 },
+				{ "expect": { "state": "schedules[0].clips[0].start", "is": 8 } },
+				{ "expect": { "state": "schedules[0].clips[0].duration", "is": 3 } }
+			]
+		},
+		{
+			"name": "energy-by-device",
+			"note": "The By device switch charts the week's energy per device, labelled by device",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "click": "#energyByDevice" },
+				{ "expect": { "state": "energyView", "is": "device" } },
+				{ "expect": { "node": "#energyByDevice", "property": "role", "is": "button" } },
+				{ "expect": { "node": "#weekDay", "exists": false } },
+				{ "expect": { "node": "#weekDevice", "exists": true } },
+				{ "click": "#energyByDay" },
+				{ "expect": { "state": "energyView", "is": "day" } }
+			]
+		},
+		{
+			"name": "security-mode-and-notifications",
+			"note": "Cmd+Shift+A cycles Off, Home, Away; each change is a notification, the bell counts them, Cmd+Shift+N shows them and Clear empties them",
+			"steps": [
+				{ "key": "mod+shift+a" },
+				{ "expect": { "state": "security", "is": "home" } },
+				{ "click": "#securityButton" },
+				{ "expect": { "state": "security", "is": "away" } },
+				{ "expect": { "node": "#bellCount", "text": "2" } },
+				{ "key": "mod+shift+n" },
+				{ "expect": { "state": "notificationsOpen", "is": true } },
+				{ "expect": { "node": "#notification", "nth": 0, "text": "Security: Away" } },
+				{ "click": "#notificationsClear" },
+				{ "expect": { "state": "notifications", "is": [] } },
+				{ "expect": { "node": "#bellCount", "exists": false } }
+			]
+		},
+		{
+			"name": "simulated-service-moves-rooms",
+			"note": "Every ten seconds the simulated service moves each room half a degree towards its target",
+			"steps": [
+				{ "expect": { "state": "rooms[0].temp", "is": 21.5 } },
+				{ "wait": 10100 },
+				{ "expect": { "state": "tick", "is": 1 } },
+				{ "expect": { "state": "rooms[0].temp", "is": 22 } },
+				{ "expect": { "state": "rooms[2].temp", "is": 18.5 } },
+				{ "expect": { "state": "rooms[3].temp", "is": 22 } }
+			]
+		},
+		{
+			"name": "motion-alerts-while-away",
+			"note": "While away, the simulated service reports motion in the hall every fourth tick",
+			"steps": [
+				{ "key": "mod+shift+a" },
+				{ "key": "mod+shift+a" },
+				{ "expect": { "state": "security", "is": "away" } },
+				{ "wait": 40100 },
+				{ "expect": { "state": "notifications[0].message", "is": "Motion in the hall while away" } }
+			]
+		},
+		{
+			"name": "arabic-reads-right-to-left",
+			"note": "Cmd+L twice switches to Arabic: the page title and the sidebar read in Arabic; once more is English again",
+			"steps": [
+				{ "key": "mod+l" },
+				{ "expect": { "node": "#languageButton", "text": "IT" } },
+				{ "key": "mod+l" },
+				{ "expect": { "node": "#languageButton", "text": "AR" } },
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "المنزل" } },
+				{ "key": "mod+l" },
+				{ "expect": { "node": "#languageButton", "text": "EN" } }
+			]
+		},
+		{
+			"name": "small-dark-window",
+			"note": "Regression: at 1040 by 640 in the dark theme the sidebar's energy card makes room, the lights card ends before the climate card, and the devices stay usable",
+			"steps": [
+				{ "resize": [1040, 640] },
+				{ "key": "mod+t" },
+				{ "expect": { "node": "#energy", "exists": false } },
+				{ "expect": { "node": "#lightsCard", "property": "x", "is": 280 } },
+				{ "expect": { "node": "#lightsCard", "property": "width", "is": 355.5999755859375 } },
+				{ "expect": { "node": "#climateCard", "property": "x", "is": 651.5999755859375, "note": "16 after the lights card" } },
+				{ "click": "#deviceAction", "nth": 1 },
+				{ "expect": { "state": "devices[1].busy", "is": true } }
+			]
+		},
+		{
+			"name": "palette-runs-a-command",
+			"note": "Cmd+K opens the command palette; typing filters it and Enter runs the command",
+			"steps": [
+				{ "key": "mod+k" },
+				{ "wait": 100 },
+				{ "type": "floor plan" },
+				{ "key": "enter" },
+				{ "expect": { "state": "page", "is": "plan" } }
+			]
+		},
+		{
+			"name": "keyboard-only-language",
+			"note": "Tab reaches the language button and Enter presses it",
+			"steps": [
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#languageButton", "property": "focused", "is": true } },
+				{ "key": "enter" },
+				{ "expect": { "node": "#languageButton", "text": "IT" } }
+			]
+		},
+		{
+			"name": "arrows-at-start-change-the-target",
+			"note": "Regression: the closed quick pick's field took the focus at start and swallowed Up and Down",
+			"steps": [
+				{ "key": "up" },
+				{ "expect": { "state": "rooms[0].target", "is": 22.5 } },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "expect": { "state": "rooms[0].target", "is": 21.5 } }
+			]
+		},
+		{
+			"name": "blinds-slider-on-the-first-frame",
+			"note": "Regression: the blinds slider anchored to a button laid out after it, so the first frame had no slider",
+			"steps": [
+				{ "expect": { "node": "#blinds", "property": "width", "is": 172.4000244140625 } }
 			]
 		}
 	]

@@ -179,6 +179,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerCanvasType(registry);
 	registerGraphType(registry);
 	registerTimelineType(registry);
+	registerCalendarType(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

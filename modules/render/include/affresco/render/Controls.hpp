@@ -85,12 +85,19 @@ public:
 protected:
 	void mouseButtonEvent(const MouseButtonEvent& event) override;
 	void mouseMoveEvent(const MouseMoveEvent& event) override;
+	/// @brief The arrows move it a step (a hundredth without one), Page Up and Down ten, Home and End to the ends.
+	/// @param event The key.
+	void keyEvent(const KeyEvent& event) override;
 	void paint(Painter& painter) const override;
 
 private:
 	/// @brief Sets the value from a pointer position and fires onValueChanged if it changed.
 	/// @param x The pointer's x, in window units.
 	void pick(float x);
+
+	/// @brief Snaps a value to the step and the range, sets it and fires onValueChanged if it changed.
+	/// @param value The value.
+	void change(double value);
 
 	double value_ = 0.0, minimum_ = 0.0, maximum_ = 100.0, step_ = 0.0; ///< See setValue() and setRange().
 	bool dragging_ = false;                                             ///< The button is held on it.

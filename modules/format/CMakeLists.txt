@@ -12,6 +12,7 @@ affrescoui_module(format
 	src/ExpressionFunctionsLists.cpp
 	src/ExpressionFunctionsItems.cpp
 	src/ExpressionFunctionsTime.cpp
+	src/ExpressionFunctionsDates.cpp
 	src/ExpressionFunctionsFuzzy.cpp
 	src/ExpressionFunctionsColor.cpp
 	src/ExpressionFunctionsKeyframes.cpp
@@ -81,6 +82,7 @@ affrescoui_module(format
 	src/CanvasType.cpp
 	src/GraphType.cpp
 	src/TimelineType.cpp
+	src/CalendarType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp

@@ -815,7 +815,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, calendar, outlet, code, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -845,6 +845,7 @@
 									"canvas",
 									"graph",
 									"timeline",
+									"calendar",
 									"outlet",
 									"code"
 								]
@@ -2906,6 +2907,12 @@
 					"checked": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"today": {},
+					"marked": {},
+					"firstDayOfWeek": {},
+					"monthNames": {},
+					"dayNames": {},
+					"pickedTextColor": {},
 					"syntax": {},
 					"goTo": {},
 					"buffer": {},
@@ -2949,6 +2956,7 @@
 									"canvas",
 									"graph",
 									"timeline",
+									"calendar",
 									"outlet",
 									"code"
 								]
@@ -3150,7 +3158,16 @@
 						"$formatRelative",
 						"$formatList",
 						"$compareText",
-						"$sortText"
+						"$sortText",
+						"$today",
+						"$addDays",
+						"$addMonths",
+						"$daysBetween",
+						"$weekday",
+						"$daysInMonth",
+						"$dateOf",
+						"$dateMs",
+						"$isDate"
 					]
 				}
 			},
