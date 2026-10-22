@@ -194,21 +194,41 @@ void writeAnimations(Writer& writer, const std::vector<AnimationClip>& animation
 	}
 }
 
+/// @brief Writes the materials. @param writer The file. @param scene Its materials.
+/// @param skipped Receives what couldn't be written. @return Material indices by id.
+[[nodiscard]] std::map<std::string, std::size_t, std::less<>> writeMaterials(Writer& writer, const Scene& scene,
+                                                                             std::vector<std::string>& skipped) {
+	std::map<std::string, std::size_t, std::less<>> materials;
+	for(const auto& material : scene.materials) {
+		materials.emplace(material.id, materials.size());
+		writer.root["materials"].push_back(materialJson(material, skipped));
+	}
+	return materials;
+}
+
+/// @brief Links each written node to its parent. @param writer The file, with the nodes.
+/// @param scene The nodes. @param nodes Node indices by id. @return The nodes without a parent.
+[[nodiscard]] json linkNodes(Writer& writer, const Scene& scene,
+                             const std::map<std::string, std::size_t, std::less<>>& nodes) {
+	json roots = json::array();
+	for(const auto& node : scene.nodes) {
+		const auto parent = nodes.find(node.parent);
+		if(parent == nodes.end()) roots.push_back(nodes.at(node.id));
+		else writer.root["nodes"][parent->second]["children"].push_back(nodes.at(node.id));
+	}
+	return roots;
+}
+
 } // namespace
 
 std::string exportGltf(const Scene& scene, const Assets& assets, const std::vector<AnimationClip>& animations,
                        std::vector<std::string>* warnings) {
 	std::vector<std::string> skipped;
 	Writer writer;
-	std::map<std::string, std::size_t, std::less<>> materials;
-	for(const auto& material : scene.materials) {
-		materials.emplace(material.id, materials.size());
-		writer.root["materials"].push_back(materialJson(material, skipped));
-	}
+	const auto materials = writeMaterials(writer, scene, skipped);
 	std::map<std::string, std::size_t, std::less<>> nodes;
 	for(const auto& node : scene.nodes) nodes.emplace(node.id, nodes.size());
 	std::map<std::pair<std::string, int>, std::size_t> meshes;
-	json roots = json::array();
 	for(const auto& node : scene.nodes) {
 		int mesh = -1;
 		if(const auto data = node.mesh.empty() ? nullptr : assets.mesh(node.mesh)) {
@@ -220,11 +240,7 @@ std::string exportGltf(const Scene& scene, const Assets& assets, const std::vect
 		} else if(!node.mesh.empty()) skipped.push_back("the mesh " + node.mesh + " of " + node.id + " is missing");
 		writer.root["nodes"].push_back(nodeJson(writer, node, mesh));
 	}
-	for(const auto& node : scene.nodes) {
-		const auto parent = nodes.find(node.parent);
-		if(parent == nodes.end()) roots.push_back(nodes.at(node.id));
-		else writer.root["nodes"][parent->second]["children"].push_back(nodes.at(node.id));
-	}
+	const json roots = linkNodes(writer, scene, nodes);
 	if(writer.root.contains("extensions")) writer.root["extensionsUsed"] = {"KHR_lights_punctual"};
 	writer.root["scene"] = 0;
 	writer.root["scenes"] = json::array({{{"nodes", roots}}});
