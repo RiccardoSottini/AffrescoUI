@@ -573,7 +573,7 @@ is `grid`. Dates are ISO 8601 texts, `"YYYY-MM-DD"` (see Dates).
 - `marked`: the days with a dot. `firstDayOfWeek`: 0 for Sunday to 6 for Saturday (default 1, Monday).
 - `monthNames` (twelve, January first) and `dayNames` (seven, short, Sunday first): the locale's words, usually from
   `t()`; missing ones stay English.
-- `font`, `textColor`, `accentColor` (the picked day, the keyboard's ring and the dots), `onAccentColor`.
+- `font`, `textColor`, `accentColor` (the picked day, the keyboard's ring and the dots), `pickedTextColor` (the picked day's number; a name starting with `on` would read as an event).
 
 ```json
 { "type": "calendar", "bind": "state.due", "today": "2026-10-22", "min": "2026-01-01", "focusable": true,

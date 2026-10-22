@@ -67,7 +67,7 @@ void applyCalendar(Panel& panel, const json& values, const PropertyReader& reade
 	calendar->setNames(textsOr(values, "monthNames", path), textsOr(values, "dayNames", path));
 	calendar->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
 	calendar->setColors(colorOr("textColor", colors::black), colorOr("accentColor", colors::accent),
-	                    colorOr("onAccentColor", colors::white));
+	                    colorOr("pickedTextColor", colors::white));
 }
 
 /// @brief Shows a calendar's date: its bound value, else "value"; a value that isn't a date shows none.
@@ -108,7 +108,7 @@ void registerCalendarType(TypeRegistry& registry) {
 	                   {"max", ValueKind::Text},           {"today", ValueKind::Text},      {"marked", ValueKind::Any},
 	                   {"firstDayOfWeek", ValueKind::Number}, {"monthNames", ValueKind::Any}, {"dayNames", ValueKind::Any},
 	                   {"font", ValueKind::Font},          {"textColor", ValueKind::Color}, {"accentColor", ValueKind::Color},
-	                   {"onAccentColor", ValueKind::Color}};
+	                   {"pickedTextColor", ValueKind::Color}};
 	set->apply = applyCalendar;
 	set->everyUpdate = true; // colours and names follow the theme and the locale
 	set->keepsClicks = true;

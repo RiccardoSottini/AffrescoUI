@@ -1,0 +1,173 @@
+{
+	"note": "Flow's card drawer, included by kanban.screen.json: the selected card's description (rich text, edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments.",
+
+	"styles": {
+		"section": { "type": "label", "font": "small", "textColor": "@color.muted", "height": 18, "align": { "horizontal": "start", "vertical": "center" } },
+		"drawerInput": {
+			"type": "textarea",
+			"height": 30,
+			"padding": 8,
+			"radius": "@radius.chip",
+			"borderWidth": 1,
+			"borderColor": "@color.border",
+			"color": "@color.input",
+			"focused": { "borderColor": "@color.accent" },
+			"textColor": "@color.text",
+			"placeholderColor": "@color.muted"
+		},
+		"pill": {
+			"type": "label",
+			"font": "small",
+			"height": 26,
+			"padding": 8,
+			"radius": 999,
+			"fitText": true,
+			"focusable": true,
+			"role": "checkbox",
+			"cursor": "hand"
+		},
+		"removeButton": { "type": "label", "font": "small", "icon": "x", "text": "", "width": 24, "height": 24, "radius": 4, "align": "center",
+			"focusable": true, "role": "button", "textColor": "@color.muted", "hover": { "color": "@color.chipHover" }, "cursor": "hand" }
+	},
+
+	"components": {
+		"cardDrawer": {
+			"note": "The selected card, in a scrolling column",
+			"params": {},
+			"node": {
+				"id": "cardDetail",
+				"type": "column",
+				"gap": 10,
+				"scroll": "vertical",
+				"color": "transparent",
+				"children": [
+					{ "id": "detailHead", "anchors": { "left": 12, "right": 12 }, "height": 24, "color": "transparent", "children": [
+						{ "id": "detailTag", "type": "label", "text": " {{t('tag.' + computed.card.tag)}}", "icon": "{{state.tagIcons[computed.card.tag]}}", "font": "small",
+							"anchors": { "left": 0, "top": 0 }, "padding": 4, "radius": 4, "fitText": true, "color": "@{{computed.card.tag}}Soft", "textColor": "@{{computed.card.tag}}" },
+						{ "id": "detailColumn", "style": "caption", "text": "{{state.columns[state.selected.c].name}} · {{t('card.points', { n: computed.card.points })}}", "anchors": { "right": 0, "top": 2 } }
+					] },
+					{ "id": "detailTitle", "type": "label", "font": "heading", "text": "{{computed.card.title}}", "textColor": "@color.text", "wrap": true, "anchors": { "left": 12, "right": 12 }, "height": 44 },
+					{ "id": "detailOwner", "style": "caption", "icon": "user", "text": " {{find(state.members, it.who == computed.card.who).name ?? computed.card.who}}", "anchors": { "left": 12 }, "height": 18 },
+					{
+						"id": "detailNotes",
+						"when": "{{!state.draft.editing}}",
+						"type": "label",
+						"anchors": { "left": 12, "right": 12 },
+						"height": 64,
+						"wrap": true,
+						"textColor": "@color.text",
+						"runs": "{{concat(computed.card.notes == null || computed.card.notes == '' ? [t('detail.noNotes')] : map(split(computed.card.notes, '*'), { text: it, bold: index % 2 == 1 }), [' ', { text: computed.card.linkText ?? '', link: computed.card.link ?? '' }])}}",
+						"onLink": { "run": "notify", "with": { "message": "{{t('toast.opening', { link: event.link })}}" } }
+					},
+					{ "id": "notesEditor", "when": "{{state.draft.editing}}", "type": "editor", "anchors": { "left": 12, "right": 12 }, "height": 110, "radius": "@radius.chip",
+						"color": "@color.input", "textColor": "@color.text", "wrap": true, "grammar": "markdown", "bind": "state.draft.notes", "autofocus": true,
+						"label": "{{t('detail.editNotes')}}", "keys": { "mod+enter": "saveNotes", "escape": "cancelNotes" } },
+					{ "id": "notesButtons", "when": "{{state.draft.editing}}", "type": "row", "gap": 8, "anchors": { "left": 12, "right": 12 }, "height": 30, "children": [
+						{ "id": "notesSave", "style": "detailButton", "text": "{{t('detail.save')}}", "focusable": true, "role": "button", "onClick": "saveNotes" },
+						{ "id": "notesCancel", "style": "detailButton", "text": "{{t('detail.cancel')}}", "focusable": true, "role": "button", "onClick": "cancelNotes" }
+					] },
+					{ "id": "detailActions", "type": "row", "gap": 8, "anchors": { "left": 12, "right": 12 }, "height": 30, "arrows": "horizontal", "role": "toolbar", "children": [
+						{ "id": "detailEdit", "style": "detailButton", "text": "{{window.width < 1440 ? '' : t('detail.edit')}}", "label": "{{t('detail.edit')}}", "tooltip": "{{t('detail.edit')}}", "icon": "pencil", "focusable": true, "role": "button", "onClick": "editCard" },
+						{ "id": "detailNotesEdit", "style": "detailButton", "text": "", "icon": "file-pen-line", "focusable": true, "role": "button",
+							"tooltip": "{{t('detail.editNotes')}}", "label": "{{t('detail.editNotes')}}", "onClick": "editNotes" },
+						{ "id": "detailRight", "style": "detailButton", "text": "{{window.width < 1440 ? '' : t('detail.right')}}", "label": "{{t('detail.right')}}", "tooltip": "{{t('detail.right')}}", "icon": "arrow-right", "mirror": true, "focusable": true, "role": "button",
+							"when": "{{state.selected.c < computed.lastColumn}}", "onClick": "moveRight" },
+						{ "id": "detailDelete", "style": "detailButton", "text": "{{window.width < 1440 ? '' : t('detail.delete')}}", "label": "{{t('detail.delete')}}", "tooltip": "{{t('detail.delete')}}", "icon": "trash-2", "textColor": "@bug", "focusable": true, "role": "button", "onClick": "deleteCard" },
+						{ "id": "detailMore", "style": "detailButton", "text": "", "icon": "ellipsis", "focusable": true, "role": "button", "tooltip": "{{t('detail.more')}}", "label": "{{t('detail.more')}}",
+							"onClick": { "run": "openCardMenu", "with": { "c": "{{state.selected.c}}", "i": "{{state.selected.i}}" } } }
+					] },
+					{ "id": "dueTitle", "style": "section", "text": "{{t('drawer.due')}}", "anchors": { "left": 12, "right": 12 } },
+					{ "id": "dueRow", "type": "row", "gap": 8, "anchors": { "left": 12, "right": 12 }, "height": 30, "children": [
+						{ "id": "dueButton", "style": "detailButton", "icon": "calendar", "focusable": true, "role": "button", "isOpen": "{{state.dueOpen}}",
+							"text": " {{computed.card.due == null ? t('drawer.noDue') : formatDate(dateMs(computed.card.due), 'medium', 'utc')}}",
+							"onClick": { "toggle": "state.dueOpen" } },
+						{ "id": "dueState", "type": "label", "font": "small", "when": "{{computed.dueDays != null}}", "fitText": true, "anchors": { "top": 0, "bottom": 0 },
+							"align": { "horizontal": "start", "vertical": "center" }, "textColor": "{{computed.dueDays < 0 && state.selected.c != computed.lastColumn ? '@bug' : '@color.muted'}}",
+							"text": "{{computed.dueDays < 0 ? t('drawer.late', { n: -computed.dueDays }) : t('drawer.dueIn', { n: computed.dueDays })}}" },
+						{ "id": "dueClear", "style": "removeButton", "when": "{{computed.card.due != null}}", "anchors": { "top": 3 }, "tooltip": "{{t('drawer.clearDue')}}",
+							"label": "{{t('drawer.clearDue')}}", "onClick": { "run": "setDue", "with": { "date": null } } },
+						{
+							"id": "duePicker",
+							"overlay": { "placement": "below", "open": "state.dueOpen", "dismiss": "outside", "modal": true },
+							"y": 6,
+							"width": 280,
+							"height": 292,
+							"radius": "@radius.card",
+							"shadow": { "y": 6, "blur": 16, "color": "#0000002e" },
+							"color": "@color.menu",
+							"children": [
+								{ "id": "dueCalendar", "type": "calendar", "fill": 10, "focusable": true, "label": "{{t('drawer.due')}}",
+									"value": "{{computed.card.due ?? state.today}}", "today": "{{state.today}}", "marked": "{{filter(map(computed.allCards, it.due), it != null)}}",
+									"firstDayOfWeek": "{{settings.board.weekStart}}", "monthNames": "{{split(t('calendar.months'), ',')}}", "dayNames": "{{split(t('calendar.days'), ',')}}",
+									"textColor": "@color.text", "accentColor": "@color.accent", "pickedTextColor": "@color.chipOnText",
+									"keys": { "escape": { "set": "state.dueOpen", "to": false } },
+									"onChange": { "run": "setDue", "with": { "date": "{{event.value}}" } } }
+							]
+						}
+					] },
+					{ "id": "labelsTitle", "style": "section", "text": "{{t('drawer.labels')}}", "anchors": { "left": 12, "right": 12 } },
+					{ "id": "labels", "type": "row", "gap": 6, "anchors": { "left": 12, "right": 12 }, "height": 26, "arrows": "horizontal", "children": [
+						{ "id": "labelChip", "repeat": { "for": "name", "in": "state.labels" }, "style": "pill",
+							"let": { "on": "{{contains(computed.card.labels ?? [], name)}}" },
+							"text": "{{t('label.' + name)}}", "selected": "{{on}}",
+							"color": "{{on ? '@color.accent' : '@color.field'}}", "textColor": "{{on ? '@color.chipOnText' : '@color.text'}}",
+							"onClick": { "run": "toggleListItem", "with": { "field": "labels", "value": "{{name}}" } } }
+					] },
+					{ "id": "assigneesTitle", "style": "section", "text": "{{t('drawer.assignees')}}", "anchors": { "left": 12, "right": 12 } },
+					{ "id": "assignees", "type": "row", "gap": 6, "anchors": { "left": 12, "right": 12 }, "height": 30, "arrows": "horizontal", "children": [
+						{ "id": "assignee", "repeat": { "for": "member", "in": "state.members" }, "style": "badge",
+							"let": { "on": "{{contains(computed.card.assignees ?? [], member.who)}}" },
+							"text": "{{member.who}}", "width": 30, "height": 30, "radius": 999, "focusable": true, "role": "checkbox", "selected": "{{on}}",
+							"label": "{{member.name}}", "tooltip": "{{member.name}}", "cursor": "hand",
+							"color": "{{on ? member.color : '@color.field'}}", "textColor": "{{on ? '#ffffff' : '@color.muted'}}",
+							"onClick": { "run": "toggleListItem", "with": { "field": "assignees", "value": "{{member.who}}" } } }
+					] },
+					{ "id": "checklistTitle", "style": "section", "anchors": { "left": 12, "right": 12 },
+						"text": "{{t('drawer.checklist', { done: computed.checklistDone, total: length(computed.card.checklist ?? []) })}}" },
+					{ "id": "checklistBar", "type": "row", "anchors": { "left": 12, "right": 12 }, "height": 4, "radius": 2, "color": "@color.field", "children": [
+						{ "id": "checklistDone", "grow": "{{computed.checklistDone}}", "anchors": { "top": 0, "bottom": 0 }, "radius": 2, "color": "@chore" },
+						{ "id": "checklistLeft", "grow": "{{length(computed.card.checklist ?? []) - computed.checklistDone}}", "anchors": { "top": 0, "bottom": 0 }, "color": "transparent" }
+					] },
+					{ "id": "checklist", "type": "column", "anchors": { "left": 12, "right": 12 }, "height": "{{length(computed.card.checklist ?? []) * 28}}", "children": [
+						{ "id": "checkRow", "repeat": { "for": "item", "in": "computed.card.checklist", "index": "k" }, "anchors": { "left": 0, "right": 0 }, "height": 28, "color": "transparent", "children": [
+							{ "id": "checkBox", "type": "checkbox", "checked": "{{item.done}}", "label": "{{item.text}}", "anchors": { "left": 0, "top": 5 }, "width": 18, "height": 18,
+								"activeColor": "@color.accent", "trackColor": "@color.border",
+								"onChange": { "run": "checkItem", "with": { "at": "{{k}}", "value": "{{event.value}}" } } },
+							{ "id": "checkText", "type": "label", "text": "{{item.text}}", "textColor": "{{item.done ? '@color.muted' : '@color.text'}}",
+								"anchors": { "left": 28, "right": 30, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "checkRemove", "style": "removeButton", "anchors": { "right": 0, "top": 2 }, "label": "{{t('drawer.remove', { name: item.text })}}",
+								"onClick": { "run": "removeFromCard", "with": { "field": "checklist", "at": "{{k}}" } } }
+						] }
+					] },
+					{ "id": "newItem", "style": "drawerInput", "anchors": { "left": 12, "right": 12 }, "placeholder": "{{t('drawer.addItem')}}", "label": "{{t('drawer.addItem')}}",
+						"bind": "state.newItem",
+						"onSubmit": [{ "run": "addToCard", "with": { "field": "checklist", "input": "{{state.newItem}}", "value": { "text": "{{trim(state.newItem)}}", "done": false } } },
+							{ "set": "state.newItem", "to": "" }] },
+					{ "id": "commentsTitle", "style": "section", "text": "{{t('drawer.comments', { n: length(computed.card.comments ?? []) })}}", "anchors": { "left": 12, "right": 12 } },
+					{ "id": "comments", "type": "column", "gap": 6, "anchors": { "left": 12, "right": 12 }, "height": "{{length(computed.card.comments ?? []) * 46}}", "children": [
+						{ "id": "comment", "repeat": { "for": "note", "in": "computed.card.comments" }, "type": "label", "anchors": { "left": 0, "right": 0 }, "height": 40,
+							"wrap": true, "padding": 6, "radius": "@radius.chip", "color": "@color.field", "textColor": "@color.text", "font": "small",
+							"runs": [{ "text": "{{find(state.members, it.who == note.who).name ?? note.who}}", "bold": true }, "  {{note.text}}"] }
+					] },
+					{ "id": "newComment", "style": "drawerInput", "anchors": { "left": 12, "right": 12 }, "placeholder": "{{t('drawer.addComment')}}", "label": "{{t('drawer.addComment')}}",
+						"bind": "state.newComment",
+						"onSubmit": [{ "run": "addToCard", "with": { "field": "comments", "input": "{{state.newComment}}", "value": { "who": "RS", "text": "{{trim(state.newComment)}}" } } },
+							{ "set": "state.newComment", "to": "" }] },
+					{ "id": "attachmentsTitle", "style": "section", "text": "{{t('drawer.attachments')}}", "anchors": { "left": 12, "right": 12 } },
+					{ "id": "attachments", "type": "column", "anchors": { "left": 12, "right": 12 }, "height": "{{length(computed.card.attachments ?? []) * 28}}", "children": [
+						{ "id": "attachment", "repeat": { "for": "file", "in": "computed.card.attachments", "index": "k" }, "anchors": { "left": 0, "right": 0 }, "height": 28, "color": "transparent", "children": [
+							{ "id": "attachmentName", "type": "label", "icon": "paperclip", "text": " {{file}}", "textColor": "@color.text", "font": "small",
+								"anchors": { "left": 0, "right": 30, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
+							{ "id": "attachmentRemove", "style": "removeButton", "anchors": { "right": 0, "top": 2 }, "label": "{{t('drawer.remove', { name: file })}}",
+								"onClick": { "run": "removeFromCard", "with": { "field": "attachments", "at": "{{k}}" } } }
+						] }
+					] },
+					{ "id": "newAttachment", "style": "drawerInput", "anchors": { "left": 12, "right": 12 }, "placeholder": "{{t('drawer.addAttachment')}}", "label": "{{t('drawer.addAttachment')}}",
+						"bind": "state.newAttachment",
+						"onSubmit": [{ "run": "addToCard", "with": { "field": "attachments", "input": "{{state.newAttachment}}", "value": "{{trim(state.newAttachment)}}" } },
+							{ "set": "state.newAttachment", "to": "" }] }
+				]
+			}
+		}
+	}
+}
