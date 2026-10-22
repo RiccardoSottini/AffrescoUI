@@ -248,6 +248,30 @@ TEST_CASE("format: actions and components that run each other in a long chain ar
 	CHECK_NOTHROW(rules.checkChange(harmless, after));
 }
 
+// Each action and component the scan reached was found by name in a list: 30,000 of each took 15 seconds to
+// check, and each revision is checked
+TEST_CASE("format: many actions and components are scanned at the cost of their number" * doctest::timeout(5)) {
+	json before = screenWithActions();
+	json::object_t& actions = before["actions"].get_ref<json::object_t&>();
+	json::object_t& components = (before["components"] = json::object()).get_ref<json::object_t&>();
+	for(int i = 0; i < 30000; ++i) { // read as text, a JSON object would find each key among those before it
+		const std::string name = std::to_string(i);
+		actions.emplace_back("a" + name, json::array({{{"run", "refresh"}}}));
+		components.emplace_back("c" + name, json{{"node", {{"type", "panel"}, {"onClick", "a" + name}}}});
+	}
+	const auto using29999 = [](json screen) {
+		screen["root"]["children"][0]["children"] = json::array({{{"use", "c29999"}}});
+		return screen;
+	};
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before));
+	CHECK_NOTHROW(rules.checkChange(before, using29999(before))); // it runs refresh
+	json controlling = before;
+	controlling["actions"]["a29999"] = json::array({{{"run", "approve"}}});
+	CHECK_THROWS_WITH_AS(rules.checkChange(controlling, using29999(controlling)), doctest::Contains("permission denied"),
+	                     affresco::DocumentError);
+}
+
 // Each use of the screen's own component was scanned on a copy of it, without bound: 2000 uses of a large one took
 // 11 s at each revision, and a large parameter put in 1000 times took a GiB
 TEST_CASE("format: components are expanded up to a document's size, past which a use may control" *

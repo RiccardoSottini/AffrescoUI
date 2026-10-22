@@ -18,6 +18,8 @@
 #include <functional>
 #include <map>
 #include <set>
+#include <string_view>
+#include <unordered_map>
 #include <utility>
 
 namespace affresco::format {
@@ -119,6 +121,29 @@ bool substitute(json& value, const json& parameters, std::size_t& room) {
 	return true;
 }
 
+/// An object's members by key. An ordered object finds a key by looking at each one, which, for each of thousands of
+/// actions, took seconds.
+using Members = std::unordered_map<std::string_view, const json*>;
+
+/// @brief Indexes an object's members by key.
+/// @param object The object (anything else has none).
+/// @return Its members, which point into it.
+Members membersOf(const json& object) {
+	Members members;
+	if(object.is_object())
+		for(const auto& [key, value] : object.items()) members.emplace(key, &value);
+	return members;
+}
+
+/// @brief A member of an indexed object.
+/// @param members The object's members (membersOf()).
+/// @param key The key.
+/// @return The member, or nullptr.
+const json* memberOf(const Members& members, std::string_view key) {
+	const auto it = members.find(key);
+	return it != members.end() ? it->second : nullptr;
+}
+
 /// @brief Where a scan is in the document: what its strings mean.
 enum class Part {
 	Values,   ///< "state": values, never run.
@@ -140,7 +165,18 @@ public:
 	/// @param components The document's own "components" (an object, or null).
 	ControlScan(const json& actions, const std::set<std::string>& control, const std::set<std::string>& runners,
 	            const json& components)
-	    : actions_(actions), control_(control), runners_(runners), components_(components) {}
+	    : actions_(actions), control_(control), runners_(runners), actionsAt_(membersOf(actions)),
+	      componentsAt_(membersOf(components)) {}
+
+	/// @brief An action of the document.
+	/// @param name Its name.
+	/// @return Its steps, or nullptr.
+	[[nodiscard]] const json* action(std::string_view name) const { return memberOf(actionsAt_, name); }
+
+	/// @brief A component of the document.
+	/// @param name Its name.
+	/// @return It, or nullptr.
+	[[nodiscard]] const json* component(std::string_view name) const { return memberOf(componentsAt_, name); }
 
 	/// @brief Whether running a target may run a control step: a computed one, an action the document doesn't have
 	/// (a native action, which is the application's code), or one in the control set.
@@ -149,8 +185,7 @@ public:
 	[[nodiscard]] bool mayControl(const json& target) const {
 		if(!target.is_string()) return true;
 		const auto& name = target.get_ref<const std::string&>();
-		if(name.contains("{{") || !actions_.is_object() || !actions_.contains(name) || control_.contains(name))
-			return true;
+		if(name.contains("{{") || !actions_.is_object() || !action(name) || control_.contains(name)) return true;
 		if(askedActions_) askedActions_->push_back(name);
 		return false;
 	}
@@ -219,12 +254,12 @@ private:
 		if(use == node.end() || !use->is_string()) return false;
 		const auto& used = use->get_ref<const std::string&>();
 		if(!runners_.contains(used)) {
-			if(askedComponents_ && components_.contains(used)) askedComponents_->push_back(used);
+			if(askedComponents_ && component(used)) askedComponents_->push_back(used);
 			return false;
 		}
 		const auto with = node.find("with");
 		const json& parameters = with != node.end() ? *with : json();
-		if(const auto own = components_.find(used); own != components_.end()) {
+		if(const json* own = component(used)) {
 			if(depth_ == 0) expansions_ = maxExpansions; // each use outside a component has its own budget
 			++depth_;
 			const bool controls = expandsToControl(*own, parameters);
@@ -278,7 +313,8 @@ private:
 	const json& actions_;                         ///< The document's actions.
 	const std::set<std::string>& control_;        ///< Those that may run control steps.
 	const std::set<std::string>& runners_;        ///< The components that run the actions their parameters name.
-	const json& components_;                      ///< The document's own components.
+	const Members actionsAt_;                     ///< The document's actions by name.
+	const Members componentsAt_;                  ///< The document's own components by name.
 	mutable std::size_t depth_ = 0;               ///< How many uses of the document's components are being expanded.
 	mutable std::size_t expansions_ = 0;          ///< How many more the use being scanned may be expanded through.
 	mutable std::size_t room_ = maxExpandedBytes; ///< How many more bytes the scan may expand components to.
@@ -334,7 +370,7 @@ std::set<std::string> runningComponents(const json& doc, const std::set<std::str
 	grow(checker::keysOf(*components), runners, [&](const std::string& name, std::vector<std::string>& asked) {
 		scan.note(nullptr, &asked);
 		std::vector<std::string> found;
-		scan.walk((*components)[name], name, Part::Steps, found);
+		scan.walk(*scan.component(name), name, Part::Steps, found);
 		return !found.empty();
 	});
 	return runners;
@@ -356,7 +392,7 @@ std::set<std::string> controlActions(const json& doc, const std::set<std::string
 	grow(candidates, control, [&](const std::string& name, std::vector<std::string>& asked) {
 		scan.note(&asked, nullptr);
 		std::vector<std::string> found;
-		scan.walk(actions[name], name, Part::Steps, found);
+		scan.walk(*scan.action(name), name, Part::Steps, found);
 		return !found.empty();
 	});
 	return control;
