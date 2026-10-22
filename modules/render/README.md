@@ -70,7 +70,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   arranged sizes. Their arithmetic keeps the 2017 rows, columns and grids on exactly the same pixels. A grid has at
   most `maxGridTracks` (1,000) tracks a side, and placing a child looks at each of the grid's cells about once at most.
 - **A window draws only when something changed,** and the event loop sleeps while nothing is due: idle costs no CPU.
-- **A frame draws only what changed.** Each panel keeps what it drew (`src/RetainedGeometry.hpp`: its clipped quads
+- **A frame draws only what changed.** Each panel keeps what it drew (`src/paint/RetainedGeometry.hpp`: its clipped quads
   and the batch steps between them, recorded by `PaintRecorder`, the Painter panels draw with). Before a frame,
   `GeometryCache` visits only the panels whose drawing changed (`invalidatePaint()`, or `invalidate()`) and those a
   layout pass laid out since the last frame (their pass stamp), records again those that changed or whose frame,
@@ -95,7 +95,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   Win32 on Windows; elsewhere the scheme is light, motion is full and there is no native bar, so `setMenuBar` returns
   false). `Window.cpp` and
   `Application.cpp` call neither: the OS window is a `platform::NativeWindow` (`src/platform/Platform.hpp`), and
-  drawing a `detail::Renderer` (`src/Renderer.hpp`), whose OpenGL implementation (`gl/OpenGlRenderer.cpp`) uses
+  drawing a `detail::Renderer` (`src/paint/Renderer.hpp`), whose OpenGL implementation (`gl/OpenGlRenderer.cpp`) uses
   `gl::QuadRenderer`: batched quads replayed from the panels' records, one draw call per texture switch, clipping on
   the CPU.
 - **A window without a platform window or renderer is headless.** It routes input, keeps the focus, hover and
@@ -145,6 +145,10 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
   32 fonts and 128 MiB that nothing uses. A `TextModel` (a `TextEditor`'s text) keeps 500 undo steps, and at most
   256 MiB of removed text in them; invalid UTF-8 becomes U+FFFD as it comes in.
+- **Vector bounds:** a path flattens to at most 65,536 points, and a fill or stroke makes at most 65,536 quads and
+  16 Mi edge visits (`VectorPath.hpp`); a dashed stroke ends after 1 Mi dashes and gaps. An SVG icon is at most 1 MiB,
+  4,096 elements nested 32 deep and 2,048 pixels a side, and its fills together visit at most 64 Mi edges. Past a
+  bound a path is drawn in part, never slowly.
 - **Large texts:** a `TextModel` copies a file once into buffers that are only appended to, and keeps pieces of them
   in a treap with the bytes and line feeds under each node, so an edit or finding a line costs O(log n). A 50 MB
   text opens in under a second, an edit takes under 50 µs, and memory stays under 1.5 times the text
@@ -203,6 +207,12 @@ deliver messages. Each `ImageCache` has a worker thread that only decodes files 
 results that way; it is stopped and joined when its cache is destroyed, and what it posted then does nothing. Timers (`Window::setTimer`) and deferred tasks (`Window::defer`) run on the main thread too; an owner that
 captures `this` in one must cancel its timers in its destructor.
 
+Every OpenGL object (textures, framebuffers, buffers, programs) is owned by a `gl::` RAII name (`gl/GlObjects.hpp`)
+held by the renderer of the window whose context made it, and is deleted with that context current. What panels share
+with the renderer (a font's pages, an image's `Bitmap`, a surface's state) the renderer holds weakly, and frees on the
+GPU the first frame after the owner is gone. A texture larger than the driver's `GL_MAX_TEXTURE_SIZE` fails in the
+driver, not here: images are bounded by `Bitmap::Limits` and passes by `SurfaceFrame::maxPassSide`.
+
 ## Errors
 
 - Failures of the platform or of OpenGL throw `std::runtime_error` (`Application`, `createWindow`). A second
@@ -237,31 +247,59 @@ src/
                            frames
   Accessibility.cpp        roles, accessible names, the tree, values, states, actions, finding by role or id
   Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
-  Renderer.hpp             detail::Renderer, what a window draws with
   platform/                Platform.hpp (the internal interface), GlfwPlatform.cpp (every GLFW call), Desktop.hpp
                            and DesktopMac.mm, DesktopWin32.cpp, DesktopOther.cpp (colour scheme, menu bar per OS),
                            FileDialogs.cpp (the OS's file dialogs, through nativefiledialog-extended),
                            Accessibility.hpp (the adapter a window owns) with AccessKitTree (the tree as AccessKit
                            updates, only the changed elements) and AccessibilityMac.mm, AccessibilityWindows.cpp,
-                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF)
-  Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
-  Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
+                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF),
+                           EmbeddedPlatform* (a window drawn into the host's OpenGL context)
+  paint/                   no OpenGL: Renderer.hpp (detail::Renderer, what a window draws with),
+                           RetainedGeometry.hpp (what a panel drew: quads, batch steps, what the drawing depended on),
+                           PaintRecorder (the Painter panels draw with: clipped quads and batch steps, recorded),
+                           GeometryCache (before a frame: the panels that changed or moved recorded again, the damage,
+                           the shaders), WindowImage.cpp (a subtree drawn from scratch into an image)
+  gl/                      everything OpenGL: Context (state, read-back, canvases, scissored regions), GlObjects
+                           (RAII names), Shader, QuadShaders.hpp (the programs' GLSL), QuadRenderer (replays records
+                           into batches and draws them), QuadRendererCache.cpp (cached subtrees), Stencil (clips that
+                           are not axis-aligned), SubtreeTextures (cached subtrees' textures and framebuffers),
+                           ImageTextures (image pages and textures), OpenGlRenderer (the Renderer: canvases with their
+                           damage, a full frame as the fallback)
+  gl/surfaces/             GPU surfaces: SurfaceView.cpp (the panel), SurfaceState.hpp (what it shares with the
+                           renderer), Surfaces (their framebuffers and passes, and drawing into them), SurfaceGuard
+                           (the GL state saved and restored around a surface), SurfacePrelude.cpp (the GLSL prelude)
+  font/                    Font.cpp (loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas),
+                           FontCache.cpp (the bounded cache, the system's fallback fonts), FontFace (one file at one
+                           size, in FreeType and HarfBuzz), FontData.hpp (what a Font holds), GlyphAtlas (coverage and
+                           colour pages), LookupSpans (how far GSUB and GPOS lookups reach, read with every offset
+                           checked), FontOutlines.cpp (the files and glyphs behind a font, for vector output),
+                           FontInspector.hpp (what tests see of a font)
+  text/                    Shaping.cpp (runs, HarfBuzz, clusters into advances and carets), ShapedTextCache (LRU by
+                           text), PlainText (words laid out without shaping), RichText.cpp (TextLayout: runs into
+                           lines, hit testing, carets), PieceTree (the text model's treap of pieces over append-only
+                           buffers, with line feeds counted)
+  vector/                  VectorPath.cpp (parsing, flattening), PathFill (scanline trapezoids by the fill rule, and
+                           the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
+                           MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
+                           SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid
                            (placement in cells, track sizing): pure functions
+  image/                   Bitmap.cpp (decoding PNG and JPEG, stb_image compiled here, within limits; SVG goes to
+                           vector/), ImageCache.cpp (the worker, the deliveries, the allowed folders, the bound),
+                           Color.cpp (hex colours), ColorSpaces.cpp (the colour-space maths), CreativePixels.hpp (the
+                           creative widgets' CPU bitmaps, each a cached slot of at most 256 px a side)
+  spatial/                 SpatialIndex (a uniform grid, stored flat, rebuilt only when the items change), Snapping
+                           (the nearest edge or centre within a reach)
+  detail/                  Utf8.hpp (UTF-8 decoding), Ppm.hpp (PPM screenshots), ShelfPacker.hpp (shelf packing,
+                           shared by the glyph atlas and the image pages)
+  Panel.cpp                the tree, layout, scrolling, overlays, painting the panel's own shape
+  Stack.cpp                rows, columns and grids: measured, laid out by layout/, turned into anchors
   Label.cpp, TextArea.cpp  text (and its icon, runs, links and selection) and a single-line input
-  RichText.cpp             TextLayout: runs into lines, hit testing, carets
-  Bitmap.cpp               decoding PNG and JPEG (stb_image compiled here), within limits; SVG goes to vector/
-  ImageCache.cpp           the worker, the deliveries, the allowed folders, the bound
   ImageView.cpp            showing an image, fitted
   PathView.cpp             showing a vector path, fitted
   CanvasView.cpp           the canvas: content, culling, children placed, painting (items, levels of detail, the
-                           selection, guides); CanvasViewInput.cpp its pointer, wheel and keys;
-                           SpatialIndex.cpp (a uniform grid, stored flat, rebuilt only when the items change),
-                           Snapping.cpp (the nearest edge or centre within a reach), Rulers.cpp (steps and ticks)
-  vector/                  VectorPath.cpp (parsing, flattening), PathFill.cpp (scanline trapezoids by the fill
-                           rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
-                           MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
-                           SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
+                           selection, guides); CanvasViewInput.cpp its pointer, wheel and keys; Rulers.cpp (steps
+                           and ticks)
   TextEditor.cpp           the multi-line editor: input, selection, scrolling, undo through its model
   TextEditorPaint.cpp      its drawing: visible lines in runs of one colour, selection, gutter, caret
   TextEditorView.cpp       wrapping and its row index, folds, scrolling, and how edits move folds and decorations
@@ -272,35 +310,13 @@ src/
   DiffView.cpp             a diff's rows, numbers and marks in one or two editors, scrolled together
   TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   Controls.cpp             Toggle and Slider
-  ColorSpaces.cpp          the colour-space maths
   ColorPicker*.cpp         the picker: input, fields and swatches; its drawing (ColorPickerPaint.cpp)
   GradientEditor.cpp       the gradient maths and editor; CurvesEditor.cpp the curve maths and editor
-  CreativePixels.hpp       their CPU bitmaps (each a cached slot, at most 256 px a side) and drawing helpers
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs
   RowWindow.cpp            the rows in view: fixed heights, or measured ones in a Fenwick tree
   ListView.cpp, TreeView.cpp  virtualised rows: selection, keys, type-to-find, drops, anchoring; a tree's open
                            nodes and its pinned folders
   TableView.cpp            a table's header, sorting and column widths
-  Font.cpp                 the font: loading, Latin-1 at load, glyphs, measuring and wrapping, the atlas
-  FontCache.cpp            the bounded font cache, and the system's fallback fonts
-  text/                    FontFace (one file at one size, in FreeType and HarfBuzz), GlyphAtlas (coverage and
-                           colour pages), ShapedTextCache (LRU by text), FontData.hpp (what a Font holds),
-                           Shaping.cpp (runs, HarfBuzz, clusters into advances and carets), PlainText (words laid
-                           out without shaping), LookupSpans (how far GSUB and GPOS lookups reach, read with every
-                           offset checked), FontInspector.hpp (what tests see of a font), PieceTree (the text model's
-                           treap of pieces over append-only buffers, with line feeds counted)
-  Color.cpp                hex colours
-  detail/Utf8.hpp          UTF-8 decoding, shared by the text code
-  detail/Ppm.hpp           PPM screenshots
-  RetainedGeometry.hpp     what a panel drew: quads, batch steps, what the drawing depended on (no OpenGL)
-  PaintRecorder.*          the Painter panels draw with: clipped quads and batch steps, recorded
-  GeometryCache.*          before a frame: the panels that changed or moved recorded again, the damage, the shaders
-  detail/ShelfPacker.hpp   shelf packing, shared by the glyph atlas and the image pages
-  gl/                      everything OpenGL: Context (state, read-back, canvases, scissored regions), GlObjects
-                           (RAII names), Shader, QuadRenderer (replays records into batches and draws them),
-                           QuadRendererCache (cached subtrees), SubtreeTextures (their textures and
-                           framebuffers), ImageTextures (image pages and textures), OpenGlRenderer (the Renderer: canvases with
-                           their damage, a full frame as the fallback)
 CMakeLists.txt             the affrescoui_render target and its sources
 ```
 
