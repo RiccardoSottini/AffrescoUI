@@ -1,0 +1,139 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Sinopia's slide sorter installed into Tempera's panels dock: proven with tempera-sorter.adapter.json, submitted by the features service, then reordering Tempera's layers. affrescoui_bottega bottega.scenarios.json",
+	"screen": "../tempera/tempera.screen.json",
+	"scenarios": [
+		{
+			"name": "bottega-sorter",
+			"steps": [
+				{
+					"action": "installSlideSorter"
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-view",
+						"exists": false
+					}
+				},
+				{
+					"action": "acceptAgentProposal"
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-view",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-title",
+						"text": "Pages (3)"
+					}
+				},
+				{
+					"drag": "#slideSorter-page-7",
+					"to": "#slideSorter-page-5"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Sun"
+					}
+				},
+				{
+					"click": "#slideSorter-page-5"
+				},
+				{
+					"expect": {
+						"state": "doc.active",
+						"is": "5"
+					}
+				},
+				{
+					"expect": {
+						"state": "slideSorter.picked",
+						"is": "5"
+					}
+				},
+				{
+					"click": "#slideSorter-duplicate"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-title",
+						"text": "Pages (4)"
+					}
+				}
+			],
+			"note": "The features service submits the proven install; it waits for review like an agent's change, and once accepted the sorter is docked in Tempera's panels, one page per top-level layer, and reorders, selects and duplicates layers"
+		},
+		{
+			"name": "bottega-sorter-without-adapter",
+			"note": "With no adapter Tempera exports no pages, reorder, select or duplicate under the sorter's names: the proof fails, naming each unmet need, and nothing is submitted",
+			"steps": [
+				{
+					"action": "installSlideSorterBare"
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-view",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-name-7",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "bottega-sorter-with-a-broken-adapter",
+			"note": "The broken adapter binds the pages to a scalar and the reorder to an action Tempera doesn't export: the proof fails and nothing is submitted",
+			"steps": [
+				{
+					"action": "installSlideSorterBadly"
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-view",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-name-7",
+						"exists": true
+					}
+				}
+			]
+		}
+	]
+}
