@@ -260,4 +260,11 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/forge/folder")
 	set_target_properties(affrescoui_bench PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_bench PRIVATE ${AFFRESCOUI_WARNINGS})
+	# Modello's budgets (examples/modello): 200k triangles orbited and a pick, its own executable
+	add_executable(affrescoui_perf_modello tests/perf/modello.cpp)
+	target_include_directories(affrescoui_perf_modello PRIVATE modules/render/src) # Headless.hpp
+	target_include_directories(affrescoui_perf_modello SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+	target_link_libraries(affrescoui_perf_modello PRIVATE affrescoui affrescoui::scene3d)
+	set_target_properties(affrescoui_perf_modello PROPERTIES CXX_EXTENSIONS OFF)
+	target_compile_options(affrescoui_perf_modello PRIVATE ${AFFRESCOUI_WARNINGS})
 endif()

@@ -457,6 +457,17 @@ are literal pathspecs after `--`, never options, and a commit message goes on st
 repository's hooks, file-system monitor and commit signing turned off (`-c core.hooksPath=...`), since the folder's
 `.git` may name programs to run.
 
+### Modello's 3D files
+
+Modello (examples/modello) imports glTF files (`.gltf` and `.glb`) a person drops in its data folder's `imports/`, and
+the bundled samples; a file may come from anywhere. Files are read only from those two folders, by relative paths
+without `..` that stay inside them once links are resolved, and the scene's export is written only to `exports/`
+under a sanitised name. The loader checks every count and size against its limits ("Limits" below) before anything is
+read; a buffer is the `.glb`'s own chunk, a `data:` URI or a relative file beside the model without `..`, never a
+network URI or an absolute path; extensions it doesn't decode (Draco and meshopt compression, KTX2 textures) are
+skipped with a warning naming them. A document never supplies shader source: a material graph is data the host checks
+and assembles from fixed snippets, and the renderer frees GPU memory past its budget. The loader is fuzzed (`gltf`).
+
 ## Limits
 
 Input from peers, revisions and change sets is limited so that one message can't exhaust the stack or loop forever:
@@ -538,6 +549,12 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Remote peers (`PeerServerOptions`) connected or opening at once | 32; more are refused with 503 |
 | Connections one address may open | 5 a second, 10 at once; more are refused with 429. 4,096 addresses are tracked (past that, those back to a full burst are forgotten) |
 | A remote peer's token | 5 s to arrive (as a first message); 8 KiB at most |
+| A glTF file Modello imports, and each buffer and image file beside it (`GltfLimits`, checked before reading) | 256 MiB; 512 MiB of buffers in all |
+| What one glTF file holds | 10,000 nodes 64 deep, 10,000 meshes and primitives, 1,000 materials, 8 Mi vertices, 24 Mi indices, 256 images of 8,192 pixels a side and 16 Mi pixels each, 256 animations of 1 Mi keyframes in all |
+| A 3D scene in a document (`SceneLimits`) | 100,000 nodes 64 deep, 10,000 materials |
+| A material graph (`MaterialGraphLimits`) | 256 nodes, 1,024 links |
+| GPU memory one 3D viewport keeps (`GpuBudget`) | 512 MiB; past it, the least recently used meshes and textures are freed |
+| Modello's file list and exports | 200 files listed a folder; an export name of 64 characters |
 | A remote peer's upgrade request | 16 KiB and 64 header lines; a larger one is refused with 431 |
 | One message from a remote peer, and what waits to be written to it | 8 MiB a message (a larger one closes it with 1009); 64 MiB queued, or a write stalled for 10 s, closes it |
 | Where a peer server listens | The loopback, unless `allowRemote` is set |
