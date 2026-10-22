@@ -5,8 +5,8 @@
 
 #include "Headless.hpp"
 #include "Helpers.hpp"
-#include "Inspector.hpp"       // modules/screen/src
-#include "OffscreenImages.hpp" // modules/screen/src
+#include "pictures/Inspector.hpp"       // modules/screen/src
+#include "pictures/OffscreenImages.hpp" // modules/screen/src
 
 #include <affresco/channel/Session.hpp>
 #include <affresco/format/Rules.hpp>

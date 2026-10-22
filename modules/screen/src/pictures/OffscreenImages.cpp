@@ -1,7 +1,7 @@
 /// @file
 /// @brief detail::OffscreenImages: pictures of a screen, drawn offscreen by its window.
 
-#include "OffscreenImages.hpp"
+#include "pictures/OffscreenImages.hpp"
 #include "Png.hpp"
 #include "ScratchFolder.hpp"
 

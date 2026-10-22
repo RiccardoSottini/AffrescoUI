@@ -7,7 +7,7 @@
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/format/Runtime.hpp"
 
-#include "Inspector.hpp"
+#include "pictures/Inspector.hpp"
 #include "Png.hpp"
 
 #include <functional>

@@ -1,7 +1,7 @@
 /// @file
 /// @brief detail::Inspector: the overlay, its trace and the statistics it shows.
 
-#include "Inspector.hpp"
+#include "pictures/Inspector.hpp"
 
 #include "affresco/render/Label.hpp"
 #include "affresco/render/Window.hpp"

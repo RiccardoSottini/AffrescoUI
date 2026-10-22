@@ -3,7 +3,7 @@
 /// the "getEvidence" answer and its contract, and an author never supplying any of it.
 
 #include "Helpers.hpp"
-#include "ProposalEvidence.hpp" // modules/screen/src
+#include "pictures/ProposalEvidence.hpp" // modules/screen/src
 
 #include <affresco/channel/Session.hpp>
 #include <affresco/core/ScreenImages.hpp>

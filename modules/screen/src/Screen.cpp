@@ -3,8 +3,8 @@
 /// together with the services, and adds includes, declared channels and the "persist" state file.
 
 #include "affresco/Screen.hpp"
-#include "FeaturesService.hpp"
-#include "OffscreenImages.hpp"
+#include "features/FeaturesService.hpp"
+#include "pictures/OffscreenImages.hpp"
 
 #include "affresco/channel/Session.hpp"
 #include "affresco/channel/Sockets.hpp"

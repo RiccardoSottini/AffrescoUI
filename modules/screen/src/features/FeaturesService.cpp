@@ -2,7 +2,7 @@
 /// @brief The `features` provider: `catalog`, `install`, `upgrade` and `compose` (a feature from another app, with its
 /// adapter and proof), each install or upgrade one revision.
 
-#include "FeaturesService.hpp"
+#include "features/FeaturesService.hpp"
 #include "CompositionProof.hpp"
 #include "CompositionProofRevision.hpp"
 
