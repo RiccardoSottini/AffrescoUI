@@ -486,8 +486,8 @@ private:
 	/// @param method The method.
 	/// @param params Its params.
 	/// @param done Gets the answer, on the main thread (or now, if it can't be sent).
-	void call(const std::string& service, const std::string& method, json params, ServerCall::Done done) {
-		auto pending = std::make_shared<ServerCall>(std::move(params), executor_, alive_, std::move(done));
+	void call(const std::string& service, const std::string& method, json params, const ServerCall::Done& done) {
+		auto pending = std::make_shared<ServerCall>(std::move(params), executor_, alive_, done);
 		if(auto problem = screen_.services().invoke(service, method, std::move(pending))) done(std::nullopt, *problem);
 	}
 
