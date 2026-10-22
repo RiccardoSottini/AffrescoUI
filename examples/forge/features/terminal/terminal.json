@@ -52,7 +52,7 @@
 	},
 
 	"keys": {
-		"mod+shift+t": "terminalNew"
+		"mod+alt+t": "terminalNew"
 	},
 
 	"components": {
