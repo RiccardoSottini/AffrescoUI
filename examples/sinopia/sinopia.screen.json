@@ -54,7 +54,7 @@
 		"view": "edit",
 		"side": "slides",
 		"notesDraft": "",
-		"undo": [],
+		"undoStack": [],
 		"show": { "on": false, "index": 0, "step": 0, "t": 1, "black": false, "kind": "none", "seconds": 0, "audience": null, "shown": null },
 		"exported": null,
 		"saved": null,
@@ -83,7 +83,7 @@
 		"load": [
 			{ "call": "sinopia.load", "with": { "file": "{{state.file}}" }, "into": "state.deck",
 			  "onError": [{ "set": "state.error", "to": "{{error}}" }],
-			  "then": [{ "set": "state.current", "to": 0 }, { "set": "state.undo", "to": [] }, { "run": "render" }] }
+			  "then": [{ "set": "state.current", "to": 0 }, { "set": "state.undoStack", "to": [] }, { "run": "render" }] }
 		],
 		"render": [
 			{ "call": "sinopia.render", "with": { "deck": "{{state.deck}}" }, "into": "state.render",
@@ -97,8 +97,8 @@
 			{ "call": "sinopia.edit", "with": "{{merge({deck: state.deck, slide: state.current, ids: computed.selected, op: op}, extra ?? {})}}",
 			  "onError": [{ "set": "state.error", "to": "{{error}}" }],
 			  "then": [
-				{ "push": "state.undo", "value": "{{state.deck}}" },
-				{ "if": "{{length(state.undo) > 20}}", "then": [{ "remove": "state.undo", "at": 0 }] },
+				{ "push": "state.undoStack", "value": "{{state.deck}}" },
+				{ "if": "{{length(state.undoStack) > 20}}", "then": [{ "remove": "state.undoStack", "at": 0 }] },
 				{ "set": "state.deck", "to": "{{result.deck}}" },
 				{ "set": "state.current", "to": "{{result.slide}}" },
 				{ "set": "state.board.selection", "to": "{{map(result.selection, 'o:' + it)}}" },
@@ -107,9 +107,9 @@
 			  ] }
 		],
 		"undo": [
-			{ "if": "{{length(state.undo) > 0}}", "then": [
-				{ "set": "state.deck", "to": "{{state.undo[length(state.undo) - 1]}}" },
-				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
+			{ "if": "{{length(state.undoStack) > 0}}", "then": [
+				{ "set": "state.deck", "to": "{{state.undoStack[length(state.undoStack) - 1]}}" },
+				{ "remove": "state.undoStack", "at": "{{length(state.undoStack) - 1}}" },
 				{ "set": "state.board.selection", "to": [] },
 				{ "set": "state.current", "to": "{{min(state.current, length(state.deck.slides) - 1)}}" },
 				{ "run": "render" }
