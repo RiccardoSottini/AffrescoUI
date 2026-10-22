@@ -132,7 +132,7 @@ TEST_CASE("imaging selection: the magic wand and colour range") {
 	CHECK(valueAt(range, 5, 5) == 0);
 	Limits limits;
 	limits.floodPixels = 1000;
-	Document small(100, 100, limits);
+	const Document small(100, 100, limits);
 	CHECK_THROWS_AS(static_cast<void>(wandCoverage(small, 5, 5, {})), affresco::DocumentError);
 }
 

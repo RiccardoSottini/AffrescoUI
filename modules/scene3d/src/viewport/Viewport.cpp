@@ -80,7 +80,7 @@ namespace {
 /// @brief A colour from three finite numbers, clamped to 0 to 1.
 /// @param value The array of three numbers. @param fallback When one isn't finite. @return The colour.
 [[nodiscard]] Vec3 arrayColor(const json& value, Vec3 fallback) noexcept {
-	Vec3 color{value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
+	const Vec3 color{value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
 	if(!isFinite(color)) return fallback;
 	return {std::clamp(color.x, 0.0f, 1.0f), std::clamp(color.y, 0.0f, 1.0f), std::clamp(color.z, 0.0f, 1.0f)};
 }

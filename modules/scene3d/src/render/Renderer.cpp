@@ -116,7 +116,7 @@ void collectItems(FrameView& view, const Assets& assets) {
 	for(const Node& node : view.scene.nodes) {
 		const auto world = view.worlds.find(node.id);
 		if(node.mesh.empty() || world == view.worlds.end() || !world->second.second) continue;
-		auto data = assets.mesh(node.mesh);
+		const auto data = assets.mesh(node.mesh);
 		if(!data || data->indices.empty()) continue;
 		DrawItem item{&node, view.scene.material(node.material), world->second.first, data,
 		              data->bounds.transformed(world->second.first)};

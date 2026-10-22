@@ -209,7 +209,7 @@ void Stroke::stampTile(int column, int row, float x, float y, float radius, floa
 
 Stroke::Touched& Stroke::touched(int column, int row) {
 	const TileKey key{0, column, row};
-	auto found = touched_.find(key);
+	const auto found = touched_.find(key);
 	if(found != touched_.end()) return found->second;
 	const Tile& tile = document_->editTile(target_, column, row);
 	return touched_.emplace(key, Touched{std::make_shared<const Tile>(tile), std::vector<float>(tilePixels, 0.0f)})

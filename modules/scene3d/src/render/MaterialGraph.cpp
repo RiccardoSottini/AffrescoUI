@@ -120,7 +120,7 @@ struct GraphNode {
 /// @return The literal, 0.5 by default.
 [[nodiscard]] std::string numberValue(const json& node, std::vector<std::string>& errors) {
 	const auto found = node.find("value");
-	if(found != node.end() && !found->is_number()) errors.push_back("a number node's value must be a number");
+	if(found != node.end() && !found->is_number()) errors.emplace_back("a number node's value must be a number");
 	return literal(found != node.end() && found->is_number() ? found->get<double>() : 0.5);
 }
 
@@ -131,7 +131,7 @@ struct GraphNode {
 	if(const auto found = node.find("value"); found != node.end()) {
 		if(!found->is_array() || found->size() != 3 ||
 		   !std::ranges::all_of(*found, [](const json& c) { return c.is_number(); }))
-			errors.push_back("a colour node's value must be three numbers");
+			errors.emplace_back("a colour node's value must be three numbers");
 		else
 			for(std::size_t i = 0; i < 3; ++i) rgb[i] = (*found)[i].get<double>();
 	}
@@ -154,7 +154,7 @@ void readNode(const json& node, std::map<std::string, GraphNode, std::less<>>& n
 	const auto id = node.is_object() ? node.find("id") : node.end();
 	const auto op = node.is_object() ? node.find("op") : node.end();
 	if(id == node.end() || !id->is_string() || op == node.end() || !op->is_string()) {
-		errors.push_back("every node needs an id and an op");
+		errors.emplace_back("every node needs an id and an op");
 		return;
 	}
 	const OperationSpec* operation = operationNamed(op->get<std::string>());
@@ -168,7 +168,7 @@ void readNode(const json& node, std::map<std::string, GraphNode, std::less<>>& n
 		return;
 	}
 	if(std::string_view(operation->name) == "output") {
-		if(!output.empty()) errors.push_back("a graph has one output node");
+		if(!output.empty()) errors.emplace_back("a graph has one output node");
 		output = key;
 	}
 	nodes.emplace(key, GraphNode{operation, valueOf(node, *operation, errors), {}});
@@ -181,12 +181,12 @@ readNodes(const json& graph, const MaterialGraphLimits& limits, std::vector<std:
 	std::map<std::string, GraphNode, std::less<>> nodes;
 	const auto list = graph.find("nodes");
 	if(list == graph.end() || !list->is_array()) {
-		errors.push_back("the graph needs a list of nodes");
+		errors.emplace_back("the graph needs a list of nodes");
 		return nodes;
 	}
 	if(list->size() > limits.nodes) errors.push_back(std::format("more than {} nodes", limits.nodes));
 	for(const auto& node : *list) readNode(node, nodes, errors, output);
-	if(output.empty()) errors.push_back("the graph has no output node");
+	if(output.empty()) errors.emplace_back("the graph has no output node");
 	return nodes;
 }
 
@@ -201,7 +201,7 @@ void readLink(const json& link, std::map<std::string, GraphNode, std::less<>>& n
 	const std::string from = member("from"), output = member("output"), to = member("to"), input = member("input");
 	const auto source = nodes.find(from), target = nodes.find(to);
 	if(source == nodes.end() || target == nodes.end()) {
-		errors.push_back("a link joins a node that isn't there");
+		errors.emplace_back("a link joins a node that isn't there");
 		return;
 	}
 	const int index = inputIndex(*target->second.operation, input);

@@ -79,9 +79,9 @@ void readLists(const json& value, Adjustment& adjustment) {
 /// @brief Reads a layer's kind. @param value The layer. @return The kind; throws if there is none it knows.
 [[nodiscard]] LayerKind kindIn(const json& value) {
 	const auto kind = value.find("kind");
-	const auto named = kind != value.end() && kind->is_string()
-	                       ? std::find(kindNames.begin(), kindNames.end(), kind->get<std::string>())
-	                       : kindNames.end();
+	const auto* const named = kind != value.end() && kind->is_string()
+	                              ? std::find(kindNames.begin(), kindNames.end(), kind->get<std::string>())
+	                              : kindNames.end();
 	if(named == kindNames.end()) project::malformed("has a layer of no known kind");
 	return static_cast<LayerKind>(named - kindNames.begin());
 }

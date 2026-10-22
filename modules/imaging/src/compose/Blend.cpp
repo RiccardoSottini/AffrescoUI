@@ -51,7 +51,7 @@ namespace {
 	const float lum = luminosity(color);
 	const float low = std::min({color.red, color.green, color.blue});
 	const float high = std::max({color.red, color.green, color.blue});
-	auto scale = [&](float factor, float limit) {
+	const auto scale = [&](float factor, float limit) {
 		for(float* channel : {&color.red, &color.green, &color.blue})
 			*channel = lum + (*channel - lum) * factor / std::max(limit, 1e-6f);
 	};
@@ -104,7 +104,7 @@ std::string_view blendModeName(BlendMode mode) noexcept { return blendModeNames(
 
 std::optional<BlendMode> blendModeOf(std::string_view name) noexcept {
 	const auto& names = blendModeNames();
-	const auto found = std::find(names.begin(), names.end(), name);
+	const auto* const found = std::find(names.begin(), names.end(), name);
 	if(found == names.end()) return std::nullopt;
 	return static_cast<BlendMode>(found - names.begin());
 }
@@ -131,7 +131,7 @@ Pixel blendPixels(const Pixel& backdrop, const Pixel& source, BlendMode mode, fl
 	const float alpha = sourceAlpha + backdropAlpha * (1.0f - sourceAlpha);
 	if(alpha <= 0.0f) return {};
 	const Pixel mixed = mode == BlendMode::normal ? source : blendColors(mode, backdrop, source);
-	auto channel = [&](float below, float above, float blended) {
+	const auto channel = [&](float below, float above, float blended) {
 		const float colour = (1.0f - backdropAlpha) * above + backdropAlpha * blended;
 		return (sourceAlpha * colour + (1.0f - sourceAlpha) * backdropAlpha * below) / alpha;
 	};

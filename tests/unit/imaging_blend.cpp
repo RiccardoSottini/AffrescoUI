@@ -84,7 +84,7 @@ TEST_CASE("imaging adjustments: identities, invert, threshold and the gradient m
 		adjustment.kind = kind;
 		CHECK(near(adjustPixel(adjustment, colour), colour, 2e-3f));
 	}
-	Adjustment invert;
+	const Adjustment invert;
 	CHECK(near(adjustPixel(invert, adjustPixel(invert, colour)), colour));
 	CHECK(near(adjustPixel(invert, colour), {0.75f, 0.5f, 0.25f, 0.6f}));
 	Adjustment threshold;

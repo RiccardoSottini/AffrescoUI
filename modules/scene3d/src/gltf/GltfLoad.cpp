@@ -130,8 +130,9 @@ void checkRanges(const cgltf_data& data) {
 [[nodiscard]] std::string decodedUri(const char* uri) {
 	std::string text(uri);
 	text.push_back('\0');
-	cgltf_decode_uri(text.data());
-	return {text.c_str()};
+	cgltf_decode_uri(text.data()); // decoding shortens the text in place and ends it with a NUL
+	text.erase(text.find('\0'));
+	return text;
 }
 
 /// @brief The bytes of a `data:` URI with base64 content.
@@ -198,7 +199,7 @@ void warnExtensions(detail::GltfContext& context) {
 /// @brief The encoded bytes of an image, from a buffer view, a `data:` URI or a relative file.
 /// @param context The load. @param image The image.
 /// @return The bytes. @throws GltfError If they can't be had.
-[[nodiscard]] std::vector<std::uint8_t> imageBytes(detail::GltfContext& context, const cgltf_image& image) {
+[[nodiscard]] std::vector<std::uint8_t> imageBytes(const detail::GltfContext& context, const cgltf_image& image) {
 	if(image.buffer_view != nullptr) {
 		const cgltf_buffer_view& view = *image.buffer_view;
 		if(view.buffer->data == nullptr) throw GltfError("its buffer isn't loaded");
@@ -207,7 +208,7 @@ void warnExtensions(detail::GltfContext& context) {
 	}
 	if(image.uri == nullptr) throw GltfError("it has no data");
 	if(std::string_view(image.uri).starts_with("data:")) {
-		cgltf_options options{};
+		const cgltf_options options{};
 		const auto [bytes, size] = dataUri(options, image.uri, 0, context.limits.fileBytes);
 		std::vector<std::uint8_t> copy(static_cast<const std::uint8_t*>(bytes),
 		                               static_cast<const std::uint8_t*>(bytes) + size);
@@ -317,7 +318,7 @@ GltfImport loadGltf(std::span<const std::uint8_t> bytes, const std::filesystem::
                     const GltfLimits& limits, std::string_view idPrefix) {
 	if(bytes.size() > limits.fileBytes)
 		throw GltfError("glTF: the file is larger than " + std::to_string(limits.fileBytes) + " bytes");
-	cgltf_options options{};
+	const cgltf_options options{};
 	cgltf_data* parsed = nullptr;
 	const cgltf_result result = cgltf_parse(&options, bytes.data(), bytes.size(), &parsed);
 	const std::unique_ptr<cgltf_data, CgltfFree> data(parsed);

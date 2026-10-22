@@ -7,13 +7,14 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <numbers>
 
 namespace affresco::scene3d {
 
 namespace {
 
 constexpr float halfPi = 1.5707963267948966f; ///< A quarter turn.
-constexpr float pi = 3.141592653589793f;      ///< Half a turn.
+constexpr float pi = std::numbers::pi_v<float>; ///< Half a turn.
 
 /// @brief The views by name.
 constexpr std::array<std::pair<StandardView, const char*>, 6> viewNames{{{StandardView::Front, "front"},

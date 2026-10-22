@@ -8,6 +8,7 @@
 #include <climits>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
 
 namespace {
 
@@ -27,7 +28,7 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 } // namespace
 
 // stb casts in C style where its macros are defined (here), so the warning is off around the includes
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
@@ -47,7 +48,7 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 #define STB_IMAGE_WRITE_STATIC
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
@@ -117,7 +118,7 @@ std::optional<std::vector<std::uint8_t>> inflate(std::span<const std::uint8_t> s
 	std::vector<std::uint8_t> out(most + 1);
 	const int made = stbi_zlib_decode_buffer(reinterpret_cast<char*>(out.data()), static_cast<int>(out.size()),
 	                                         reinterpret_cast<const char*>(stream.data()), *length);
-	if(made < 0 || static_cast<std::size_t>(made) > most) return std::nullopt;
+	if(made < 0 || std::cmp_greater(made, most)) return std::nullopt;
 	out.resize(static_cast<std::size_t>(made));
 	return out;
 }

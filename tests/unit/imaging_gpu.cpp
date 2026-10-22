@@ -19,6 +19,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 using namespace affresco::imaging;
 
@@ -108,7 +109,7 @@ private:
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, read.data());
 	std::vector<std::uint8_t> flipped(read.size());
 	const auto row = static_cast<std::size_t>(width * 4);
-	for(std::size_t y = 0; y < static_cast<std::size_t>(height); ++y)
+	for(std::size_t y = 0; std::cmp_less(y, height); ++y)
 		std::copy_n(read.begin() + static_cast<std::ptrdiff_t>((static_cast<std::size_t>(height) - 1 - y) * row), row,
 		            flipped.begin() + static_cast<std::ptrdiff_t>(y * row));
 	CHECK(glGetError() == GL_NO_ERROR);

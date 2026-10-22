@@ -33,7 +33,7 @@ void attribute(GLuint location, GLint components) {
 void destroy(GpuMesh& mesh) noexcept {
 	glDeleteVertexArrays(1, &mesh.vertexArray);
 	if(mesh.edgeArray != 0) glDeleteVertexArrays(1, &mesh.edgeArray);
-	for(auto& buffer : mesh.buffers)
+	for(const auto& buffer : mesh.buffers)
 		if(buffer != 0) glDeleteBuffers(1, &buffer);
 	mesh = {};
 }

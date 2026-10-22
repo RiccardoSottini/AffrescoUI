@@ -177,7 +177,7 @@ template <typename Selects>
 /// @param mode How they combine (add, subtract or intersect).
 /// @return The tile, null when it selects nothing.
 [[nodiscard]] std::shared_ptr<const Tile> combinedTile(const Tile& old, const Tile& added, SelectionMode mode) {
-	auto tile = std::make_shared<Tile>(PixelFormat::mask8);
+	const auto tile = std::make_shared<Tile>(PixelFormat::mask8);
 	bool any = false;
 	for(std::size_t at = 0; at < tilePixels; ++at) {
 		tile->bytes()[at] = combinedByte(old.bytes()[at], added.bytes()[at], mode);

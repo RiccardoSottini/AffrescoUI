@@ -230,6 +230,7 @@ TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
 	CHECK_THROWS_AS((void)loadGltf(withBuffer("data:application/octet-stream;base64,AAAA", 64), none), GltfError);
 	CHECK_NOTHROW((void)loadGltf(withBuffer("data:application/octet-stream;base64,AAAA", 3), none));
 	CHECK_NOTHROW((void)loadGltf(withBuffer("AnimatedCube.bin", 4), directory));
+	CHECK_NOTHROW((void)loadGltf(withBuffer("Animated%43ube.bin", 4), directory)); // decoded, and only the name
 
 	GltfLimits small;
 	small.fileBytes = 16;

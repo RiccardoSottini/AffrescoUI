@@ -92,7 +92,7 @@ void bindTexture(int unit, unsigned texture, GLenum target = GL_TEXTURE_2D) {
 /// @param model The model.
 /// @param view The frame's view (the tools may change the model's).
 /// @param input The events.
-void forwardPointers(CanvasModel& model, const CanvasView& view, std::span<const SurfacePointer> input) {
+void forwardPointers(const CanvasModel& model, const CanvasView& view, std::span<const SurfacePointer> input) {
 	for(const SurfacePointer& event : input)
 		if(model.onPointer) {
 			const auto [x, y] = view.toDocument(event.position.x, event.position.y);
@@ -503,7 +503,7 @@ void CanvasSurface::drawSelection(const Document& document, Region& region) {
 bool CanvasSurface::bindTile(const Image& image, std::uint64_t id, const TileKey& key, int unit) {
 	const ResidentKey residentKey{id, key};
 	const std::uint64_t version = image.version(key);
-	if(Resident* found = residency_.find(residentKey); found != nullptr) {
+	if(const Resident* found = residency_.find(residentKey); found != nullptr) {
 		if(found->version == version) {
 			if(found->texture != 0) bindTexture(unit, found->texture);
 			return found->texture != 0;

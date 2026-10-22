@@ -319,7 +319,7 @@ void Document::moveLayer(std::uint64_t id, std::uint64_t parent, std::size_t ind
 			throw DocumentError("Groups nest at most " + std::to_string(limits_.groupDepth) + " deep");
 		auto& from = listOf(structure, layer.parent);
 		const auto place = std::find(from.begin(), from.end(), id);
-		if(layer.parent == parent && static_cast<std::size_t>(place - from.begin()) < index) --index;
+		if(layer.parent == parent && std::cmp_less(place - from.begin(), index)) --index;
 		from.erase(place);
 		auto& to = listOf(structure, parent);
 		to.insert(to.begin() + static_cast<std::ptrdiff_t>(std::min(index, to.size())), id);

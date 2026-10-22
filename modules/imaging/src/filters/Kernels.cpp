@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <utility>
 
 namespace affresco::imaging::kernels {
 
@@ -30,7 +31,7 @@ void boxPass(std::vector<float>& data, int side, int radius, Walk walk, std::vec
 	const auto [step, stride] = walk;
 	const float scale = 1.0f / static_cast<float>(2 * radius + 1);
 	line.resize(static_cast<std::size_t>(side) * 4);
-	for(std::size_t lineIndex = 0; lineIndex < static_cast<std::size_t>(side); ++lineIndex) {
+	for(std::size_t lineIndex = 0; std::cmp_less(lineIndex, side); ++lineIndex) {
 		float* start = data.data() + lineIndex * stride;
 		for(int at = 0; at < side; ++at)
 			std::copy_n(start + static_cast<std::size_t>(at) * step, 4, &line[static_cast<std::size_t>(at) * 4]);

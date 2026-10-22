@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <utility>
 #include <vector>
 
 namespace affresco::imaging {
@@ -131,8 +132,11 @@ void storeRow(int y, std::vector<float>& partial, std::vector<float>& whole, Ban
 void storeBand(int row, int rows, Band& band, const std::shared_ptr<const Tile>& white, Coverage& coverage) {
 	for(std::size_t column = 0; column < band.tiles.size(); ++column) {
 		if(!band.tiles[column]) continue;
-		const bool full = band.fullRows[column] == rows;
-		coverage[{static_cast<int>(column), row}] = full ? white : std::move(band.tiles[column]);
+		auto& stored = coverage[{static_cast<int>(column), row}];
+		if(band.fullRows[column] == rows)
+			stored = white;
+		else
+			stored = std::move(band.tiles[column]);
 		band.tiles[column].reset(), band.fullRows[column] = 0;
 	}
 }

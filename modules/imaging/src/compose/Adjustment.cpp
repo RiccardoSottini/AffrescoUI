@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 namespace affresco::imaging {
 
@@ -76,7 +77,7 @@ namespace {
 /// @param pixel The colour.
 [[nodiscard]] Pixel hueSaturation(const Adjustment& adjustment, const Pixel& pixel) noexcept {
 	// Turning the hue: a rotation about the grey axis
-	const float angle = adjustment.hue * 3.14159265f / 180.0f;
+	const float angle = adjustment.hue * std::numbers::pi_v<float> / 180.0f;
 	const float cosine = std::cos(angle), sine = std::sin(angle), third = 1.0f / 3.0f, root = std::sqrt(third);
 	const float a = cosine + (1.0f - cosine) * third, b = third * (1.0f - cosine) - root * sine,
 	            c = third * (1.0f - cosine) + root * sine;
@@ -104,7 +105,7 @@ Pixel Gradient::at(float position) const noexcept {
 	const GradientStop& high = stops[index];
 	const float span = high.position - low.position;
 	const float t = span > 0.0f ? (position - low.position) / span : 1.0f;
-	auto mix = [t](float from, float to) { return from + (to - from) * t; };
+	const auto mix = [t](float from, float to) { return from + (to - from) * t; };
 	return {mix(low.color.red, high.color.red), mix(low.color.green, high.color.green),
 	        mix(low.color.blue, high.color.blue), mix(low.color.alpha, high.color.alpha)};
 }
@@ -131,7 +132,7 @@ const std::array<std::string_view, adjustmentKindCount>& adjustmentKindNames() n
 
 std::optional<AdjustmentKind> adjustmentKindOf(std::string_view name) noexcept {
 	const auto& names = adjustmentKindNames();
-	const auto found = std::find(names.begin(), names.end(), name);
+	const auto* const found = std::find(names.begin(), names.end(), name);
 	if(found == names.end()) return std::nullopt;
 	return static_cast<AdjustmentKind>(found - names.begin());
 }
@@ -151,7 +152,7 @@ void Adjustment::normalize() {
 	                 [](const auto& left, const auto& right) { return left.first < right.first; });
 	if(curve.size() < 2) curve = {{0.0f, 0.0f}, {1.0f, 1.0f}};
 	hue = std::isfinite(hue) ? std::clamp(hue, -180.0f, 180.0f) : 0.0f;
-	auto unit = [](float& value) { value = std::isfinite(value) ? std::clamp(value, -1.0f, 1.0f) : 0.0f; };
+	const auto unit = [](float& value) { value = std::isfinite(value) ? std::clamp(value, -1.0f, 1.0f) : 0.0f; };
 	unit(saturation);
 	unit(lightness);
 	for(float& value : balance) unit(value);
@@ -205,7 +206,7 @@ Pixel adjustPixel(const Adjustment& adjustment, const Pixel& pixel) noexcept {
 	case AdjustmentKind::gradientMap: {
 		const Pixel mapped = adjustment.gradient.at(clamped(luminosityOf(pixel)));
 		// The gradient's own alpha mixes it with the colour below
-		auto mix = [&](float below, float above) { return below + (above - below) * mapped.alpha; };
+		const auto mix = [&](float below, float above) { return below + (above - below) * mapped.alpha; };
 		return {mix(pixel.red, mapped.red), mix(pixel.green, mapped.green), mix(pixel.blue, mapped.blue), pixel.alpha};
 	}
 	default:

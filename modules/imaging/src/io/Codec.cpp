@@ -12,6 +12,7 @@
 #include <cstring>
 #include <map>
 #include <string_view>
+#include <utility>
 
 namespace affresco::imaging {
 
@@ -106,7 +107,7 @@ struct ProfileParts {
 	/// @return It, or nothing without parts.
 	[[nodiscard]] std::optional<std::vector<std::uint8_t>> joined() const {
 		if(parts.empty()) return std::nullopt;
-		if(static_cast<int>(parts.size()) != count)
+		if(std::cmp_not_equal(parts.size(), count))
 			throw DocumentError("imaging: the embedded colour profile is incomplete");
 		std::vector<std::uint8_t> bytes;
 		bytes.reserve(total);
@@ -153,7 +154,7 @@ void checkSize(const stb::Header& header, const Limits& limits) {
 /// @param column Its column.
 /// @param row Its row.
 [[nodiscard]] std::shared_ptr<const Tile> tileOf(const stb::Decoded& decoded, PixelFormat format, int column, int row) {
-	auto tile = std::make_shared<Tile>(format);
+	const auto tile = std::make_shared<Tile>(format);
 	const int left = column * tileSize, top = row * tileSize;
 	const int right = std::min(left + tileSize, decoded.width), bottom = std::min(top + tileSize, decoded.height);
 	for(int y = top; y < bottom; ++y) {

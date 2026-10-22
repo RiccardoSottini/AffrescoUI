@@ -250,7 +250,7 @@ TEST_CASE("imaging tiles: undo restores tiles that came from a source") {
 	Image image(1024, 1024, PixelFormat::rgba8, {}, source);
 	std::map<std::uint64_t, Image*> images{{1, &image}};
 	const Pixel before = image.pixel(5, 5);
-	HistoryStep step = paint(image, 0, 0, 10, {0.0f, 0.0f, 0.0f, 0.0f});
+	const HistoryStep step = paint(image, 0, 0, 10, {0.0f, 0.0f, 0.0f, 0.0f});
 	CHECK(image.pixel(5, 5).alpha == 0.0f);
 	applyTiles(step, false, resolver(images));
 	CHECK(image.pixel(5, 5) == before);
