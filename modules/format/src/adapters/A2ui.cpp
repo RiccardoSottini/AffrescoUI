@@ -138,7 +138,7 @@ void A2uiConverter::surfaceUpdate(const json& update, const std::string& at) {
 		components_[expect::string(entry["id"], place + ".id")] = entry["component"];
 	}
 	if(!document_) return;
-	json root = out_.root(buildRoot());
+	json root = Output::root(buildRoot());
 	json revision = {{"type", "revision"}, {"message", "A2UI surfaceUpdate"}, {"set", {{"/root", std::move(root)}}}};
 	if(out_.state().contains("literals")) revision["set"]["/state/literals"] = out_.state()["literals"];
 	revisions_.push_back(std::move(revision));

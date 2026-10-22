@@ -54,7 +54,7 @@ namespace {
 
 } // namespace
 
-Output::Output(const Options& options) : options_(options) { newBuild(); }
+Output::Output(Options options) : options_(std::move(options)) { newBuild(); }
 
 void Output::enter(const std::string& at, int depth) {
 	if(depth > maxDepth) fail(at, "nests deeper than " + std::to_string(maxDepth) + " elements");
@@ -110,7 +110,7 @@ Built Output::placeholder(const std::string& what, const std::string& at, float 
 
 float Output::contentWidth() const noexcept { return std::max(64.0f, options_.width - 32); }
 
-json Output::root(Built body) const {
+json Output::root(Built body) {
 	body.node["id"] = "content";
 	return {{"id", "root"},
 	        {"color", "@background"},

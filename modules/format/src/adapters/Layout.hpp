@@ -34,7 +34,7 @@ class Output {
 public:
 	/// @brief Starts an empty screen.
 	/// @param options How it is written.
-	explicit Output(const Options& options);
+	explicit Output(Options options);
 
 	/// @brief Counts an element, and checks the limits.
 	/// @param at Its place in the source, for the error.
@@ -95,7 +95,7 @@ public:
 	/// @brief The root node for a body, as screen() writes it (A2UI's updates set it again).
 	/// @param body The content.
 	/// @return The root.
-	[[nodiscard]] json root(Built body) const;
+	[[nodiscard]] static json root(Built body);
 
 private:
 	Options options_;                    ///< See Options.
