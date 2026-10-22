@@ -1,26 +1,39 @@
 # Third-party notices
 
+<!-- Written by tools/release/sbom.py --notices from cmake/dependencies.json: edit those, not this file. -->
+
 AffrescoUI is licensed under the Apache License 2.0 (see `LICENSE` and `NOTICE`). It includes or downloads the
 following components, which keep their own licenses:
 
-| Component | Where | License |
-|---|---|---|
-| glad 0.1.36 (generated OpenGL loader) | `external/glad/` (vendored) | Public domain; `khrplatform.h`: MIT-style Khronos license (in the file) |
-| Roboto font | `examples/assets/fonts/` (vendored) | Apache License 2.0 (`examples/assets/fonts/LICENSE-Roboto.txt`) |
-| JetBrains Mono font | `examples/assets/fonts/` (vendored) | SIL Open Font License 1.1 (`examples/assets/fonts/LICENSE-JetBrainsMono.txt`) |
-| Lucide 1.48.0 icon font (`lucide-static`) | `examples/assets/fonts/Lucide.ttf` (vendored, SHA-256 checked by CMake) | ISC License; the icons derived from Feather: MIT License (`examples/assets/fonts/LICENSE-Lucide.txt`) |
-| GLFW 3.4 | downloaded by CMake | zlib/libpng license |
-| stb_image 2.30 (PNG and JPEG decoder) | downloaded by CMake at a pinned commit, SHA-256 checked | Public domain (Unlicense) or MIT, at your choice (end of `stb_image.h`) |
-| nlohmann/json 3.11.3 | downloaded by CMake | MIT |
-| FreeType 2.14.3 (glyph rasteriser) | downloaded by CMake | The FreeType License (FTL), chosen of FTL or GPLv2 (`docs/FTL.TXT` in its archive) |
-| HarfBuzz 12.3.2 (text shaping) | downloaded by CMake | "Old MIT" (`COPYING` in its archive; `src/ms-use/COPYING`: MIT) |
-| PCRE2 10.45 (regular expressions: the editor's find and the search service) | downloaded by CMake, SHA-256 checked, and built statically (`cmake/AffrescoUIRegex.cmake`) | BSD 3-Clause, with the PCRE2 exception for binary distribution (`LICENCE.md` in its archive) |
-| nativefiledialog-extended 1.4.1 (file dialogs) | downloaded by CMake, SHA-256 checked | zlib license (`LICENSE` in its archive) |
-| curl 8.22.0 (libcurl, the `net` module's transport) | downloaded by CMake, SHA-256 checked, and built statically on Linux and Windows; the system's libcurl on macOS | The curl license, MIT-style (`COPYING` in its archive). Its TLS is the platform's: OpenSSL 3 on Linux (Apache License 2.0, a system package), Schannel on Windows and the system's on macOS (parts of the operating system) |
-| Monocypher 4.0.2 (Ed25519 and SHA-512, the signatures of features and catalogues) | downloaded by CMake, SHA-256 checked; two C files compiled into the format module | BSD 2-Clause or CC0 1.0, at your choice (`LICENCE.md` in its archive), © Loup Vaillant, Michael Savage and Fabio Scotoni |
-| libvterm 0.3.3 (terminal emulator, Forge's terminal only) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUITerminal.cmake`) | MIT, Copyright (c) 2008 Paul Evans (`LICENSE` in its archive) |
-| Noto Sans Arabic, Devanagari, SC, JP and KR, subsets (rendering check only) | `tests/render/fonts/` (vendored) | SIL Open Font License 1.1 (`tests/render/fonts/LICENSE-NotoSans*.txt`) |
-| Twemoji Mozilla, a subset (rendering check only) | `tests/render/fonts/` (vendored) | Art: CC BY 4.0, © Twitter, Inc. and other contributors; font build: Apache License 2.0 (`tests/render/fonts/LICENSE-TwemojiMozilla.md`) |
+| Component | Where | Used for | License |
+|---|---|---|---|
+| glad 0.1.36 (generated OpenGL loader) | `external/glad/include/KHR/`, `external/glad/include/glad/`, `external/glad/src/` (vendored, SHA-256 checked by sbom.py) | runtime: affrescoui::render | Public domain; `khrplatform.h`: MIT-style Khronos license (in the file); SPDX: `LicenseRef-Public-Domain AND MIT` |
+| Roboto 2.001047 (font) | `examples/assets/fonts/Roboto-Regular.ttf` (vendored, SHA-256 checked by sbom.py) | runtime: the templates, the release archives | Apache License 2.0 (`examples/assets/fonts/LICENSE-Roboto.txt`); SPDX: `Apache-2.0` |
+| JetBrains Mono 2.305 (font) | `examples/assets/fonts/JetBrainsMono-Regular.ttf` (vendored, SHA-256 checked by sbom.py) | runtime: the templates, the release archives | SIL Open Font License 1.1 (`examples/assets/fonts/LICENSE-JetBrainsMono.txt`); SPDX: `OFL-1.1` |
+| Lucide 1.48.0 (icon font, `lucide-static`) | `examples/assets/fonts/Lucide.ttf` (vendored, SHA-256 checked by sbom.py) | runtime: the templates, the rendering check, the release archives | ISC License; the icons derived from Feather: MIT License (`examples/assets/fonts/LICENSE-Lucide.txt`); SPDX: `ISC AND MIT` |
+| GLFW 3.4 (windows and input) | downloaded by CMake, SHA-256 checked (`CMakeLists.txt`) | runtime: affrescoui::render | zlib/libpng license; SPDX: `Zlib` |
+| stb_image 2.30 (PNG and JPEG decoder) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUIImages.cmake`) | runtime: affrescoui::render | Public domain (Unlicense) or MIT, at your choice (end of `stb_image.h`); SPDX: `MIT OR Unlicense` |
+| nlohmann/json 3.11.3 (JSON) | downloaded by CMake, SHA-256 checked (`CMakeLists.txt`) | runtime: affrescoui::core | MIT; SPDX: `MIT` |
+| FreeType 2.14.3 (glyph rasteriser) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUIText.cmake`) | runtime: affrescoui::render | The FreeType License (FTL), chosen of FTL or GPLv2 (`docs/FTL.TXT` in its archive); SPDX: `FTL` |
+| HarfBuzz 12.3.2 (text shaping) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUIText.cmake`) | runtime: affrescoui::render | "Old MIT" (`COPYING` in its archive; `src/ms-use/COPYING`: MIT); SPDX: `MIT-Modern-Variant AND MIT` |
+| PCRE2 10.45 (regular expressions: the editor's find and the search service) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUIRegex.cmake`) | runtime: affrescoui::regex | BSD 3-Clause, with the PCRE2 exception for binary distribution (`LICENCE.md` in its archive); built statically; SPDX: `BSD-3-Clause WITH PCRE2-exception` |
+| nativefiledialog-extended 1.4.1 (file dialogs) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUIDialogs.cmake`) | runtime: affrescoui::render | zlib license (`LICENSE` in its archive); SPDX: `Zlib` |
+| curl 8.22.0 (libcurl, the `net` module's transport) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUINetwork.cmake`) | runtime: affrescoui::net | The curl license, MIT-style (`COPYING` in its archive); built statically on Linux and Windows, the system's libcurl on macOS. Its TLS is the platform's: OpenSSL 3 on Linux (Apache License 2.0, a system package), Schannel on Windows and the system's on macOS (parts of the operating system); SPDX: `curl` |
+| Monocypher 4.0.2 (Ed25519 and SHA-512, the signatures of features and catalogues) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUISignatures.cmake`) | runtime: affrescoui::format | BSD 2-Clause or CC0 1.0, at your choice (`LICENCE.md` in its archive), © Loup Vaillant, Michael Savage and Fabio Scotoni; two C files compiled into the format module; SPDX: `BSD-2-Clause OR CC0-1.0` |
+| libvterm 0.3.3 (terminal emulator, Forge's terminal only) | downloaded by CMake, SHA-256 checked (`cmake/AffrescoUITerminal.cmake`) | runtime: examples/forge | MIT, Copyright (c) 2008 Paul Evans (`LICENSE` in its archive); SPDX: `MIT` |
+| doctest 2.4.12 (the unit tests) | downloaded by CMake, SHA-256 checked (`tests/unit/CMakeLists.txt`) | test: tests/unit | MIT (`LICENSE.txt` in its archive); SPDX: `MIT` |
+| Noto Sans Arabic, Devanagari, SC, JP and KR subsets (rendering check only) | `tests/render/fonts/` (vendored, SHA-256 checked by sbom.py) | test: tests/render | SIL Open Font License 1.1 (`tests/render/fonts/LICENSE-NotoSans*.txt`); SPDX: `OFL-1.1` |
+| Twemoji Mozilla 0.7.0, a subset (rendering check only) | `tests/render/fonts/TwemojiMozilla-Subset.ttf` (vendored, SHA-256 checked by sbom.py) | test: tests/render | Art: CC BY 4.0, © Twitter, Inc. and other contributors; font build: Apache License 2.0 (`tests/render/fonts/LICENSE-TwemojiMozilla.md`); SPDX: `CC-BY-4.0 AND Apache-2.0` |
+| build 1.4.4 (builds the MCP package) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
+| hatchling 1.27.0 (the MCP package's build backend) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
+| packaging 26.3 (used by hatchling) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | Apache License 2.0 or BSD 2-Clause; SPDX: `Apache-2.0 OR BSD-2-Clause` |
+| pathspec 1.1.1 (used by hatchling) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | Mozilla Public License 2.0; SPDX: `MPL-2.0` |
+| pluggy 1.6.0 (used by hatchling) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
+| pyproject_hooks 1.3.3 (used by build) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
+| trove_classifiers 2026.9.21.13 (used by hatchling) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | Apache License 2.0; SPDX: `Apache-2.0` |
+| importlib_metadata 8.7.1 (used by build, older Pythons only) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | Apache License 2.0; SPDX: `Apache-2.0` |
+| tomli 2.5.0 (used by build and hatchling, older Pythons only) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
+| zipp 3.23.1 (used by importlib_metadata, older Pythons only) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
 
 Portions of this software are copyright © 2026 The FreeType Project (https://freetype.org). All rights reserved.
 

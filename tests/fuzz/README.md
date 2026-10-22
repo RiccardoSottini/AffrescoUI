@@ -33,6 +33,43 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `feature_manifest` | A feature's manifest (RFC 0004), to `checkManifest` (`format/src/FeatureManifest.hpp`), and if it passes, its record composed into the Kanban template | Refused with `json::parse_error` or `DocumentError`; a manifest that passes composes into a screen or problems |
 | `catalog_index` | A catalogue's index, signed at start-up by a trusted key made then, to `readCatalog` (`format/src/FeatureCatalog.hpp`) | An index or a `DocumentError`; releases newest first and once each, keys well formed, URLs inside the folder |
 | `signature` | Any text, to the signature parsers (`format/src/FeatureSignatures.hpp`): base64url, public keys, digests, key files, canonical JSON, verifying | Fixed-length parsing gives that length or nothing and writes back as the same text; canonical JSON is its own canonical form; verifying gives the named key or a `DocumentError` |
+| `url` | An allowlist entry, a line feed, then a URL, to `parseUrl` and the origin allowlist (`net/Url.hpp`): every URL a connection, a sign-in provider or a remote peer names | A URL that parses has a known scheme, a lower-case host, a port and a target starting with `/`, and its origin parses again to the same; encoded segments and query parts hold unreserved characters only |
+| `oauth` | A sign-in provider's answer (`net/src/OAuth.hpp`): a token, a device authorization or an error answer, a redirect's query, base64url; the first byte picks the reader and whether an id token is checked | Tokens read have an access token and expire after now; an error never quotes the access token; device codes poll at a sane interval; base64url read back writes the same bytes |
+| `history` | A history on disk (`Repository::openHistory`, `VERSION_CONTROL.md` "History on disk") with `refs.json` or an object file replaced by the input | It opens, or throws `DocumentError` naming the file |
+| `token_file` | The document server's token file (`examples/server/TokenFile.hpp`), `<sha256 hex> <name>` lines, and the tokens peers present | What reads lists valid names only, at most `maxEntries`; `verify()` gives a listed name or nothing |
+| `git_output` | What git prints for Forge (`examples/forge/features/scm`): `status --porcelain=v2 -z`, `for-each-ref`, and the line diff of two texts; the first byte picks which | Within the byte, entry and path limits; every file has a known kind, at most one branch is current, a diff's rows account for every line |
+| `vscode_theme` | A VS Code colour theme, imported by Forge (`examples/forge/features/themes/ThemeImport.hpp`) | An id of lower-case letters, digits and dashes (at most 40), and a patch adding only `#rrggbb` or `#rrggbbaa` colours under `/tokens/`, or a `std::runtime_error` |
+
+## Inventory of untrusted inputs
+
+Every place where bytes the app didn't write itself come in, and the target that covers it, or why none does. A new
+reader of outside bytes adds a row here and, unless a reason below fits, a target. `SECURITY.md` says who controls each
+of these and what limits them.
+
+| Where bytes come in | Who controls them | Target, or why none |
+|---|---|---|
+| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, Studio, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout` |
+| A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
+| WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |
+| URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
+| Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |
+| Image files a revision names (PNG, JPEG, SVG) | Peers, within the allowed folders | `image`, `path` |
+| Font files a revision names | Peers, within the allowed folders | `lookups` for the tables the app reads itself; the rest is FreeType and HarfBuzz, fuzzed upstream by OSS-Fuzz, and `text` and `richtext` shape through them |
+| Text typed, pasted or sent to an editor | Users and peers | `text_model`, `text`, `richtext` |
+| Find and search patterns, replacements, globs, `.gitignore` files | Peers, and whoever made the searched folder | `find_pattern`, `search_glob` |
+| What a service program writes (process, `jsonrpc` for language and debug servers) | The program the screen runs | `frames` for the framing, `json` for the messages |
+| What a terminal program writes (the VT stream) | The program running in the terminal | None yet: a target is pending (`SECURITY.md`, gap G-24). The parser is libvterm; the stream reaches the screen only as cells within the terminal's size |
+| What git prints for Forge | Whoever made the repository (file names, branches, contents) | `git_output` |
+| A history folder on disk | Anyone who can write to it, a crash, a full disk | `history`, `delta` |
+| Feature manifests, catalogue indexes, signatures and key files | A catalogue's publisher, or whoever serves it | `feature_manifest`, `catalog_index`, `signature` |
+| The document server's token file | Whoever can write its folder | `token_file` |
+| A VS Code theme imported into Forge | Whoever published the theme | `vscode_theme` |
+| Scenario files and golden images | The project's contributors | `scenarios`, `png` |
+| Screen files read by the `affrescoui` tool and the MCP server | Whoever wrote the file | `cli`, `json` |
+| Screen files and their includes loaded by the host | Trusted (the app ships them), but read with the same `parseUntrusted` | `json`, `layout` |
+| The state file a host keeps | Trusted: the host wrote it; read with `parseUntrusted` and its nesting limit | `json` |
+| Paths from file dialogs, drops, the fs and watch services | The operating system gives them; no parser reads them, and the services check each against the allowed folders | None needed: no parser; the folder check is unit-tested |
+| Command-line arguments and environment variables | The user who starts the program | None needed: trusted, and read by plain comparisons |
 
 ## Running them
 
@@ -50,7 +87,8 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake` or `frames` in place of `session`. `-fork=4 -ignore_crashes=1`
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `url`, `oauth`, `history`, `token_file`, `git_output` or `vscode_theme` in place of
+`session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
 
@@ -104,7 +142,7 @@ artifact, in a folder named after its target.
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp` | The targets |
+| `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `vscode_theme.cpp` and the others named above | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates in `examples/assets/screens/`, the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |

@@ -73,3 +73,23 @@ affrescoui_fuzzer(catalog_index affrescoui::format)
 target_include_directories(affrescoui_fuzz_catalog_index PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
 affrescoui_fuzzer(signature affrescoui::format)
 target_include_directories(affrescoui_fuzz_signature PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+# The 1.0 security audit (SECURITY.md, README.md "Inventory of untrusted inputs"): URLs, sign-in responses, the token
+# file, what git prints, imported VS Code themes and history files on disk
+affrescoui_fuzzer(url affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+affrescoui_fuzzer(oauth affrescoui::net nlohmann_json::nlohmann_json)
+target_include_directories(affrescoui_fuzz_oauth PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # OAuth.hpp
+affrescoui_fuzzer(history affrescoui::format affrescoui::vcs)
+# The example apps' readers: their own sources, linked only into the fuzzer (the apps' targets compile them otherwise)
+affrescoui_fuzzer(token_file affrescoui::net nlohmann_json::nlohmann_json)
+target_include_directories(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/examples/server) # TokenFile.hpp
+affrescoui_fuzzer(git_output affrescoui::core nlohmann_json::nlohmann_json)
+target_include_directories(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
+affrescoui_fuzzer(vscode_theme affrescoui::core nlohmann_json::nlohmann_json)
+target_include_directories(affrescoui_fuzz_vscode_theme PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge)
+if(AFFRESCOUI_BUILD_FUZZERS)
+	target_sources(affrescoui_fuzz_token_file PRIVATE ${PROJECT_SOURCE_DIR}/examples/server/TokenFile.cpp)
+	target_sources(affrescoui_fuzz_git_output PRIVATE ${PROJECT_SOURCE_DIR}/examples/forge/features/scm/GitStatus.cpp
+		${PROJECT_SOURCE_DIR}/examples/forge/features/scm/LineDiff.cpp)
+	target_sources(affrescoui_fuzz_vscode_theme PRIVATE
+		${PROJECT_SOURCE_DIR}/examples/forge/features/themes/ThemeImport.cpp)
+endif()

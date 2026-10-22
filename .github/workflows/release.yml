@@ -183,6 +183,17 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source # the manifest the SBOM is made from; dist keeps only what the release carries
+          persist-credentials: false
+      - name: Software bill of materials # SPDX 2.3, from cmake/dependencies.json, checked first; attached and attested with the rest
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          python3 source/tools/release/sbom.py --check
+          SOURCE_DATE_EPOCH="$(git -C source log -1 --format=%ct)" \
+            python3 source/tools/release/sbom.py --sbom "dist/affrescoui-$VERSION.spdx.json"
       - name: Checksums
         working-directory: dist
         run: sha256sum affrescoui* > SHA256SUMS && cat SHA256SUMS
