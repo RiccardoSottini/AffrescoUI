@@ -338,6 +338,18 @@ class Malformed(unittest.TestCase):
 
 
 
+class Requests(unittest.TestCase):
+    def test_requests_without_an_id_keep_apart(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        with contextlib.redirect_stderr(io.StringIO()):
+            server.on_request({"type": "request", "text": "first"})
+            server.on_request({"type": "request", "text": "second"})
+            server.forget(server.wait_for_request(1)["request_id"])  # the first, answered
+            server.on_request({"type": "request", "text": "third"})
+        self.assertEqual([request["text"] for request in server.requests.values()], ["second", "third"])
+        self.assertEqual(list(server.requests), ["r2", "r3"])
+
+
 class Connecting(unittest.TestCase):
     """Calls on several threads at once share one connection to the host."""
 

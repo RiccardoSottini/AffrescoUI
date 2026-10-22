@@ -1,6 +1,7 @@
 """The MCP server: JSON-RPC over stdio with the client, each tool call answered from the host or the affrescoui tool."""
 
 import collections
+import itertools
 import json
 import os
 import socket
@@ -64,6 +65,7 @@ class Server:
         self.ready = False  # the client said notifications/initialized: channel events may be sent
         self.requests = collections.OrderedDict()  # request_id -> request, until answered
         self.delivered = set()  # given out by wait_for_request
+        self.unnamed = itertools.count(1)  # numbers the requests that come without an id: r1, r2, ...
         self.arrived = threading.Condition()
         self.host = Host(socket_dir, launch, self.on_request)
         self.seen = None  # the document (with the live state) the agent last read, for get_screen's changes
@@ -76,8 +78,9 @@ class Server:
 
     def on_request(self, message):
         """A person's request, relayed by the host: pushed to the agent if it listens to channel events, and kept for
-        wait_for_request until it is answered."""
-        request = {"request_id": str(message.get("id") or f"r{len(self.requests) + 1}"),
+        wait_for_request until it is answered. One without an id gets a number no other had: one counted from the
+        requests kept would be taken again once one of them was answered, replacing a request not answered yet."""
+        request = {"request_id": str(message.get("id") or f"r{next(self.unnamed)}"),
                    "from": str(message.get("from") or "unknown"), "text": str(message.get("text", ""))}
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
             request["kind"], request["repair"] = "repair", message.get("repair")
