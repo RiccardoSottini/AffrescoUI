@@ -1,0 +1,116 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://github.com/RiccardoSottini/AffrescoUI/editors/vscode/schemas/affrescoui-feature.schema.json",
+	"title": "AffrescoUI Feature",
+	"description": "A feature manifest (feature.json): what a feature needs from a screen and what it adds. Written by hand from the library's checks (modules/format/src/FeatureManifest.cpp); the library's check is the authority.",
+	"type": "object",
+	"required": ["format", "version", "name", "release", "title", "provides"],
+	"additionalProperties": false,
+	"properties": {
+		"$schema": { "type": "string" },
+		"format": { "const": "affrescoui-feature", "description": "What the file is" },
+		"version": { "const": 1, "description": "The manifest format's version" },
+		"name": {
+			"type": "string",
+			"pattern": "^[a-z][A-Za-z0-9]{0,63}$",
+			"description": "One camelCase word, starting with a lower-case letter: the feature's records are under /features/<name>, its state under state.<name>"
+		},
+		"release": { "type": "string", "pattern": "^[0-9]{1,9}\\.[0-9]{1,9}\\.[0-9]{1,9}$", "description": "The release, like 1.2.3" },
+		"title": { "type": "string", "description": "The name people read" },
+		"description": { "type": "string", "description": "What the feature does" },
+		"license": { "type": "string", "description": "The feature's license, as an SPDX identifier" },
+		"publisher": { "type": "string", "description": "Who publishes it" },
+		"homepage": { "type": "string", "description": "Where to read more" },
+		"note": { "type": "string", "description": "A note for the people and agents who change it" },
+		"requires": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "What the feature needs from the screen it joins",
+			"properties": {
+				"format": { "type": "integer", "description": "The screen format version it needs" },
+				"points": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": { "type": "string", "minLength": 1 },
+					"description": "The contribution points (nodes with \"point\") its views join"
+				},
+				"exports": {
+					"type": "object",
+					"description": "The screen's exports it reads as app.<name>, each with its type",
+					"propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$", "maxLength": 64 },
+					"additionalProperties": {
+						"type": "object",
+						"required": ["type"],
+						"properties": { "type": { "$ref": "#/$defs/typeName" } }
+					}
+				},
+				"models": { "type": "object", "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$" } },
+				"services": { "$ref": "#/$defs/methodsByName", "description": "Services it calls, each with its methods" },
+				"connections": { "$ref": "#/$defs/methodsByName", "description": "Connections it uses, each with its methods" },
+				"features": {
+					"type": "object",
+					"description": "Other features it needs, each with a release range: 1.2.3, ^1.2.3, ~1.2.3 or >=1.2.3",
+					"propertyNames": { "pattern": "^[a-z][A-Za-z0-9]{0,63}$" },
+					"additionalProperties": { "type": "string", "pattern": "^(\\^|~|>=)?[0-9]{1,9}\\.[0-9]{1,9}\\.[0-9]{1,9}$" }
+				}
+			}
+		},
+		"provides": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "What the feature adds to the screen, under its own name",
+			"properties": {
+				"state": { "type": "object", "propertyNames": { "$ref": "#/$defs/identifier" }, "description": "Its state, as state.<feature>.<key>" },
+				"computed": {
+					"type": "object",
+					"propertyNames": { "$ref": "#/$defs/identifier" },
+					"additionalProperties": { "type": "string" },
+					"description": "Its computed values, as computed.<feature>.<key>"
+				},
+				"actions": { "type": "object", "propertyNames": { "$ref": "#/$defs/localName" }, "description": "Its actions, run as <feature>.<name>" },
+				"components": { "type": "object", "propertyNames": { "$ref": "#/$defs/localName" }, "description": "Its components" },
+				"styles": { "type": "object", "propertyNames": { "$ref": "#/$defs/localName" }, "description": "Its styles" },
+				"keys": { "type": "object", "description": "Its key bindings" },
+				"menus": { "type": "object", "description": "Items it adds to menus: \"<menu>\": { \"items\": { \"<action>\": {} } }" },
+				"settings": {
+					"type": "object",
+					"propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$", "maxLength": 64 },
+					"additionalProperties": { "type": "object" },
+					"description": "Its settings, each described by a JSON Schema"
+				},
+				"views": {
+					"type": "object",
+					"description": "Nodes it puts in contribution points: \"<point>\": { \"<id>\": node }, each id starting with the feature's name",
+					"additionalProperties": { "type": "object", "additionalProperties": { "type": "object" } }
+				},
+				"exports": { "type": "object", "description": "Values it offers other features" }
+			}
+		},
+		"scenarios": { "type": ["array", "object"], "description": "Scenarios that prove the feature" },
+		"signature": {
+			"type": "object",
+			"required": ["publisher", "value"],
+			"additionalProperties": false,
+			"description": "The publisher's signature (affrescoui sign)",
+			"properties": {
+				"publisher": { "type": "string", "pattern": "^ed25519:" },
+				"value": { "type": "string" }
+			}
+		}
+	},
+	"$defs": {
+		"identifier": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$" },
+		"localName": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,63}$" },
+		"typeName": {
+			"anyOf": [
+				{ "enum": ["string", "number", "integer", "boolean", "array", "object", "null"] },
+				{ "type": "array", "minItems": 1, "items": { "enum": ["string", "number", "integer", "boolean", "array", "object", "null"] } }
+			]
+		},
+		"methodsByName": {
+			"type": "object",
+			"propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$" },
+			"additionalProperties": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+		}
+	}
+}

@@ -1,0 +1,118 @@
+{
+	"AffrescoUI screen": {
+		"prefix": "affrescoui-screen",
+		"description": "A new screen: format, window, state and a root with one label",
+		"body": [
+			"{",
+			"\t\"format\": \"affrescoui-screen\",",
+			"\t\"version\": 1,",
+			"\t\"window\": { \"title\": \"${1:App}\", \"width\": ${2:640}, \"height\": ${3:400} },",
+			"\t\"state\": {},",
+			"\t\"root\": {",
+			"\t\t\"children\": [",
+			"\t\t\t{ \"type\": \"label\", \"id\": \"${4:hello}\", \"x\": 16, \"y\": 16, \"width\": 240, \"height\": 32, \"text\": \"${5:Hello}\" }$0",
+			"\t\t]",
+			"\t}",
+			"}"
+		]
+	},
+	"AffrescoUI label": {
+		"prefix": "affrescoui-label",
+		"description": "A label node",
+		"body": [
+			"{ \"type\": \"label\", \"id\": \"${1:label}\", \"width\": ${2:200}, \"height\": ${3:28}, \"text\": \"${4:Text}\" }"
+		]
+	},
+	"AffrescoUI button": {
+		"prefix": "affrescoui-button",
+		"description": "A label that runs an action when clicked",
+		"body": [
+			"{ \"type\": \"label\", \"id\": \"${1:button}\", \"width\": ${2:120}, \"height\": ${3:32}, \"radius\": 6, \"cursor\": \"hand\", \"text\": \"${4:Button}\", \"onClick\": \"${5:action}\" }"
+		]
+	},
+	"AffrescoUI row": {
+		"prefix": "affrescoui-row",
+		"description": "A row laying out its children left to right",
+		"body": [
+			"{ \"type\": \"row\", \"id\": \"${1:row}\", \"gap\": ${2:8}, \"children\": [",
+			"\t$0",
+			"] }"
+		]
+	},
+	"AffrescoUI column": {
+		"prefix": "affrescoui-column",
+		"description": "A column laying out its children top to bottom",
+		"body": [
+			"{ \"type\": \"column\", \"id\": \"${1:column}\", \"gap\": ${2:8}, \"children\": [",
+			"\t$0",
+			"] }"
+		]
+	},
+	"AffrescoUI text field": {
+		"prefix": "affrescoui-textarea",
+		"description": "A text area bound to a state path, running an action on Enter",
+		"body": [
+			"{ \"type\": \"textarea\", \"id\": \"${1:field}\", \"width\": ${2:240}, \"height\": 40, \"placeholder\": \"${3:Type here}\", \"bind\": \"state.${4:draft}\", \"onSubmit\": \"${5:submit}\" }"
+		]
+	},
+	"AffrescoUI repeat": {
+		"prefix": "affrescoui-repeat",
+		"description": "A node built once per item of a state list, with item and i in scope",
+		"body": [
+			"{ \"type\": \"label\", \"id\": \"${1:item}\", \"height\": 28, \"repeat\": { \"for\": \"item\", \"in\": \"state.${2:items}\", \"index\": \"i\" }, \"text\": \"{{item}}\" }"
+		]
+	},
+	"AffrescoUI action": {
+		"prefix": "affrescoui-action",
+		"description": "An entry of \"actions\": a named list of steps",
+		"body": [
+			"\"${1:name}\": [",
+			"\t{ \"set\": \"state.${2:key}\", \"to\": ${3:true} }$0",
+			"]"
+		]
+	},
+	"AffrescoUI component": {
+		"prefix": "affrescoui-component",
+		"description": "An entry of \"components\": a node with parameters, used with \"use\" and \"with\"",
+		"body": [
+			"\"${1:name}\": {",
+			"\t\"params\": { \"${2:label}\": \"\" },",
+			"\t\"node\": { \"type\": \"label\", \"height\": 28, \"text\": \"{{${2:label}}}\" }",
+			"}"
+		]
+	},
+	"AffrescoUI scenarios": {
+		"prefix": "affrescoui-scenarios",
+		"description": "A new scenarios file: steps played on a screen, with expectations",
+		"body": [
+			"{",
+			"\t\"format\": \"affrescoui-scenarios\",",
+			"\t\"version\": 1,",
+			"\t\"screen\": \"${1:app.screen.json}\",",
+			"\t\"scenarios\": [",
+			"\t\t{ \"name\": \"${2:starts}\", \"steps\": [",
+			"\t\t\t{ \"expect\": { \"node\": \"#${3:id}\", \"exists\": true } }$0",
+			"\t\t] }",
+			"\t]",
+			"}"
+		]
+	},
+	"AffrescoUI feature": {
+		"prefix": "affrescoui-feature",
+		"description": "A new feature manifest (feature.json)",
+		"body": [
+			"{",
+			"\t\"format\": \"affrescoui-feature\",",
+			"\t\"version\": 1,",
+			"\t\"name\": \"${1:myFeature}\",",
+			"\t\"release\": \"${2:0.1.0}\",",
+			"\t\"title\": \"${3:My feature}\",",
+			"\t\"requires\": { \"format\": 1, \"points\": [] },",
+			"\t\"provides\": {",
+			"\t\t\"state\": {},",
+			"\t\t\"actions\": {}$0",
+			"\t}",
+			"}"
+		]
+	}
+}
