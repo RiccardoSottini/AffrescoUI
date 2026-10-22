@@ -38,6 +38,11 @@ constexpr std::size_t maxListed = 10;
 /// control step.
 constexpr std::size_t maxExpansions = 64;
 
+/// The most bytes one scan expands the document's components to, over all their uses: as many as the largest document
+/// has. Past them, a use may run a control step. Each use copies its component, and a few MiB used a few thousand times
+/// would be GiBs.
+constexpr std::size_t maxExpandedBytes = maxDocumentBytes;
+
 /// @brief The screen a document builds: itself, or composed with its features (Composition.hpp).
 /// @param document The document.
 /// @param storage Holds the composed screen when there is one.
@@ -91,18 +96,27 @@ bool computes(const json& value) {
 /// @brief Puts a component's parameters in place of the strings that only name one ("{{label}}"), as using it does.
 /// @param value The component's node, or a value in it.
 /// @param parameters The parameters: the component's defaults, then the use's "with".
-void substitute(json& value, const json& parameters) {
+/// @param room How many more bytes the parameters put in may take; lowered by theirs.
+/// @return false if they would take more (the value is then only partly substituted).
+bool substitute(json& value, const json& parameters, std::size_t& room) {
 	if(value.is_structured()) {
-		for(json& item : value) substitute(item, parameters);
-		return;
+		for(json& item : value)
+			if(!substitute(item, parameters, room)) return false;
+		return true;
 	}
-	if(!value.is_string()) return;
+	if(!value.is_string()) return true;
 	std::string_view name = value.get_ref<const std::string&>();
-	if(name.size() < 4 || !name.starts_with("{{") || !name.ends_with("}}")) return;
+	if(name.size() < 4 || !name.starts_with("{{") || !name.ends_with("}}")) return true;
 	name = name.substr(2, name.size() - 4);
 	name.remove_prefix(std::min(name.find_first_not_of(" \t"), name.size()));
 	name.remove_suffix(name.size() - std::min(name.find_last_not_of(" \t") + 1, name.size()));
-	if(const auto it = parameters.find(std::string(name)); it != parameters.end()) value = *it;
+	const auto it = parameters.find(std::string(name));
+	if(it == parameters.end()) return true;
+	const std::size_t size = approximateBytes(*it, room);
+	if(size > room) return false;
+	room -= size;
+	value = *it;
+	return true;
 }
 
 /// @brief Where a scan is in the document: what its strings mean.
@@ -229,12 +243,12 @@ private:
 	/// @brief Whether a use of the document's own component may run a control step: its parameters compute anything,
 	/// or the component's node, with its defaults and the use's literal parameters in place of the strings that name
 	/// them, holds a way to run one (a parameter naming an action that controls, say). Past maxExpansions nested
-	/// uses, it may.
+	/// uses, or once the scan has expanded maxExpandedBytes, it may.
 	/// @param component The component.
 	/// @param with The use's "with".
 	/// @return true if it may.
 	[[nodiscard]] bool expandsToControl(const json& component, const json& with) const {
-		if(computes(with) || !component.is_object() || expansions_ == 0) return true;
+		if(computes(with) || !component.is_object() || expansions_ == 0 || room_ == 0) return true;
 		--expansions_;
 		const auto node = component.find("node");
 		if(node == component.end()) return false;
@@ -242,8 +256,18 @@ private:
 		if(const auto defaults = component.find("params"); defaults != component.end() && defaults->is_object())
 			parameters = *defaults;
 		if(with.is_object()) parameters.update(with);
+		// Once spent, the budget stays spent (0), so the uses after it aren't measured again
+		const std::size_t size = approximateBytes(*node, room_);
+		if(size > room_) {
+			room_ = 0;
+			return true;
+		}
+		room_ -= size;
 		json value = *node;
-		substitute(value, parameters);
+		if(!substitute(value, parameters, room_)) {
+			room_ = 0;
+			return true;
+		}
 		std::vector<std::string> found;
 		const bool outer = std::exchange(dumped_, false); // the expansion's own control steps count
 		walk(value, "use", Part::Steps, found);
@@ -251,13 +275,14 @@ private:
 		return !found.empty();
 	}
 
-	const json& actions_;                  ///< The document's actions.
-	const std::set<std::string>& control_; ///< Those that may run control steps.
-	const std::set<std::string>& runners_; ///< The components that run the actions their parameters name.
-	const json& components_;               ///< The document's own components.
-	mutable std::size_t depth_ = 0;        ///< How many uses of the document's components are being expanded.
-	mutable std::size_t expansions_ = 0;   ///< How many more the use being scanned may be expanded through.
-	mutable bool dumped_ = false;          ///< Whether the value being scanned is inside a control step's text.
+	const json& actions_;                         ///< The document's actions.
+	const std::set<std::string>& control_;        ///< Those that may run control steps.
+	const std::set<std::string>& runners_;        ///< The components that run the actions their parameters name.
+	const json& components_;                      ///< The document's own components.
+	mutable std::size_t depth_ = 0;               ///< How many uses of the document's components are being expanded.
+	mutable std::size_t expansions_ = 0;          ///< How many more the use being scanned may be expanded through.
+	mutable std::size_t room_ = maxExpandedBytes; ///< How many more bytes the scan may expand components to.
+	mutable bool dumped_ = false;                 ///< Whether the value being scanned is inside a control step's text.
 	mutable std::vector<std::string>* askedActions_ = nullptr;    ///< Gets the actions found not to control.
 	mutable std::vector<std::string>* askedComponents_ = nullptr; ///< Gets the components found not to run actions.
 };

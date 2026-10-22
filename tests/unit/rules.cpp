@@ -179,13 +179,13 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 		}
 	};
 	for(const char* node : {
-	        R"({"use": "go", "with": {"act": "approve"}})",       // an action holding a control step
-	        R"({"use": "go", "with": {"act": "save"}})",          // one holding a call
-	        R"({"use": "go", "with": {"act": "openFile"}})",      // a native action
-	        R"({"use": "goApprove"})",                            // the default names it
-	        R"({"use": "outer", "with": {"what": "approve"}})",   // through a component inside
-	        R"({"use": "menu", "with": {"act": "approve"}})",     // the screen's own "menu" wins over the built-in
-	        R"({"use": "self"})", // expanded without end: past the budget, it may
+	        R"({"use": "go", "with": {"act": "approve"}})",     // an action holding a control step
+	        R"({"use": "go", "with": {"act": "save"}})",        // one holding a call
+	        R"({"use": "go", "with": {"act": "openFile"}})",    // a native action
+	        R"({"use": "goApprove"})",                          // the default names it
+	        R"({"use": "outer", "with": {"what": "approve"}})", // through a component inside
+	        R"({"use": "menu", "with": {"act": "approve"}})",   // the screen's own "menu" wins over the built-in
+	        R"({"use": "self"})",                               // expanded without end: past the budget, it may
 	    }) {
 		CAPTURE(node);
 		CHECK(added(node));
@@ -244,4 +244,38 @@ TEST_CASE("format: actions and components that run each other in a long chain ar
 	json after = harmless;
 	after["root"]["children"][0]["children"] = json::array({json::parse(R"({"type": "panel", "onClick": "link0"})")});
 	CHECK_NOTHROW(rules.checkChange(harmless, after));
+}
+
+// Each use of the screen's own component was scanned on a copy of it, without bound: 2000 uses of a large one took
+// 11 s at each revision, and a large parameter put in 1000 times took a GiB
+TEST_CASE("format: components are expanded up to a document's size, past which a use may control" *
+          doctest::timeout(5)) {
+	json before = screenWithActions();
+	json labels = json::array();
+	for(int i = 0; i < 20000; ++i) labels.push_back({{"type", "label"}, {"text", "hello"}});
+	before["components"]["large"] = {{"node", {{"type", "panel"}, {"onClick", "{{act}}"}, {"children", labels}}}};
+	json uses = json::array();
+	for(int i = 0; i < 2000; ++i) uses.push_back({{"use", "large"}, {"with", {{"act", "refresh"}}}});
+	before["root"]["children"][0]["children"] = uses;
+	const affresco::format::Rules rules;
+	CHECK_NOTHROW(rules.checkChange(before, before)); // the same uses, the same answers
+
+	json copies = screenWithActions();
+	copies["components"]["copies"] = {
+	    {"node", {{"type", "panel"}, {"onClick", "{{act}}"}, {"children", json::array()}}}};
+	const auto added = [&](int times) {
+		json screen = copies;
+		for(int i = 0; i < times; ++i) screen["components"]["copies"]["node"]["children"].push_back("{{text}}");
+		json after = screen;
+		after["root"]["children"][0]["children"] =
+		    json::array({{{"use", "copies"}, {"with", {{"act", "refresh"}, {"text", std::string(1u << 20, 'a')}}}}});
+		try {
+			rules.checkChange(screen, after);
+			return false;
+		} catch(const affresco::DocumentError& error) {
+			return std::string_view(error.what()).contains("permission denied");
+		}
+	};
+	CHECK_FALSE(added(20)); // 20 MiB, scanned: it runs refresh
+	CHECK(added(40));       // 40 MiB, past the budget: it may run anything
 }
