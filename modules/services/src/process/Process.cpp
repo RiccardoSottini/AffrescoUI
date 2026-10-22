@@ -343,7 +343,7 @@ std::unique_ptr<ChildProcess> ChildProcess::start(const Launch& launch) {
 	posix_spawnattr_setflags(&attributes, flags);
 	posix_spawnattr_setpgroup(&attributes, 0);
 
-	std::string program = launch.program.string();
+	const std::string program = launch.program.string();
 	std::vector<std::string> words{program};
 	words.insert(words.end(), launch.arguments.begin(), launch.arguments.end());
 	std::vector<char*> argv, environment;

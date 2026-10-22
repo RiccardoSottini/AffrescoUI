@@ -108,10 +108,11 @@ public:
 			if(!file) return "with.path: must be a path inside the root";
 			path = *file;
 		}
-		const bool started = tasks_.run([name = method.name, path = std::move(path), call](std::stop_token stop) {
-			if(name == "find") find(path, stop, *call);
-			else replace(path, *call);
-		});
+		const bool started =
+		    tasks_.run([name = method.name, path = std::move(path), call](const std::stop_token& stop) {
+			    if(name == "find") find(path, stop, *call);
+			    else replace(path, *call);
+		    });
 		return started ? std::nullopt : std::optional<std::string>("the service is busy (4 calls at once)");
 	}
 
@@ -131,7 +132,7 @@ public:
 		        {"additionalProperties", false},
 		        {"properties", {{"root", {{"type", "string"}}}}}};
 	}
-	std::vector<MethodSpec> methods(const json&) const override {
+	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const json text = {{"type", "string"}, {"maxLength", TextPattern::maxPatternBytes}};
 		const json globs = {{"type", "string"}, {"maxLength", 16384}};
 		const json flag = {{"type", "boolean"}};
@@ -162,7 +163,7 @@ public:
 			  {"additionalProperties", false}},
 			 "a file's text with every match replaced, for an fs write (nothing is written): {text, replacements}"}};
 	}
-	std::unique_ptr<Service> create(const json&, ServiceContext context) override {
+	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
 		return std::make_unique<SearchService>(context.grant.root);
 	}
 };

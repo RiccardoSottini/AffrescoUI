@@ -13,6 +13,7 @@
 #include <functional>
 #include <iterator>
 #include <mutex>
+#include <ranges>
 #include <stop_token>
 #include <thread>
 #include <unordered_set>
@@ -105,6 +106,7 @@ struct Listing {
 /// @param model The model.
 /// @param work The work.
 template <typename Work> void postTo(Executor& executor, std::weak_ptr<DirectoryModel> model, Work work) {
+	// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	executor.post([model = std::move(model), work = std::move(work)]() mutable {
 		if(const std::shared_ptr<DirectoryModel> self = model.lock()) work(*self);
 	});
@@ -171,7 +173,7 @@ std::shared_ptr<DirectoryModel> DirectoryModel::open(Executor& executor, std::fi
 	return model;
 }
 
-DirectoryModel::DirectoryModel(Key, Executor& executor, std::filesystem::path root, DirectoryOptions options)
+DirectoryModel::DirectoryModel(Key /*key*/, Executor& executor, std::filesystem::path root, DirectoryOptions options)
     : executor_(executor), root_(std::move(root)), options_(std::move(options)) {
 	std::error_code error;
 	const std::filesystem::path canonical = std::filesystem::canonical(root_, error);
@@ -302,11 +304,11 @@ void DirectoryModel::removeAll(const std::vector<std::string>& paths) {
 		else merged.push_back(range);
 	}
 	const bool many = merged.size() > mostRuns;
-	for(auto range = merged.rbegin(); range != merged.rend(); ++range) {
+	for(const auto& range : std::views::reverse(merged)) {
 		const auto begin = entries_.begin();
-		entries_.erase(begin + static_cast<std::ptrdiff_t>(range->first),
-		               begin + static_cast<std::ptrdiff_t>(range->second));
-		if(!many) onChange.emit({ModelChange::Kind::Removed, range->first, range->second - range->first});
+		entries_.erase(begin + static_cast<std::ptrdiff_t>(range.first),
+		               begin + static_cast<std::ptrdiff_t>(range.second));
+		if(!many) onChange.emit({ModelChange::Kind::Removed, range.first, range.second - range.first});
 	}
 	if(many) onChange.emit({ModelChange::Kind::Reset, 0, entries_.size()});
 }
@@ -328,10 +330,10 @@ void DirectoryModel::insertAll(std::vector<Entry> entries) {
 		runs.back().second.push_back(std::move(entry));
 	}
 	const bool many = runs.size() > mostRuns;
-	for(auto run = runs.rbegin(); run != runs.rend(); ++run) {
-		entries_.insert(entries_.begin() + static_cast<std::ptrdiff_t>(run->first),
-		                std::make_move_iterator(run->second.begin()), std::make_move_iterator(run->second.end()));
-		if(!many) onChange.emit({ModelChange::Kind::Inserted, run->first, run->second.size()});
+	for(auto& run : std::views::reverse(runs)) {
+		entries_.insert(entries_.begin() + static_cast<std::ptrdiff_t>(run.first),
+		                std::make_move_iterator(run.second.begin()), std::make_move_iterator(run.second.end()));
+		if(!many) onChange.emit({ModelChange::Kind::Inserted, run.first, run.second.size()});
 	}
 	if(many) onChange.emit({ModelChange::Kind::Reset, 0, entries_.size()});
 }

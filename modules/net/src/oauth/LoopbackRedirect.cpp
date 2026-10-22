@@ -133,6 +133,7 @@ void LoopbackRedirect::takeCode(tcp::Connection& connection, std::string_view qu
 
 void LoopbackRedirect::deliver(std::optional<std::string> code, std::string error) {
 	executor_.post([alive = std::weak_ptr<bool>(alive_), received = received_, code = std::move(code),
+	                // NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	                error = std::move(error)]() mutable {
 		if(alive.lock()) received(std::move(code), std::move(error));
 	});

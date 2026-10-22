@@ -175,7 +175,7 @@ void SignIn::startBrowser(Entry& entry) {
 	std::string error;
 	entry.redirect = LoopbackRedirect::open(
 	    executor_, entry.pending.state,
-	    [this, &entry](std::optional<std::string> code, std::string why) {
+	    [this, &entry](std::optional<std::string> code, const std::string& why) {
 		    entry.redirect.reset(); // this callback's owner: it is not called again
 		    if(!code) {
 			    fail(entry, why);

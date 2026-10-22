@@ -157,7 +157,7 @@ Panel* findTarget(Panel& root, const json& target, long long nth, bool shownOnly
 	if(target.is_string()) return findById(root, std::string_view(target.get_ref<const std::string&>()).substr(1), nth,
 	                                       shownOnly);
 	const std::vector<Panel*> found = findByRole(root, target["role"].get<std::string>(), target.value("name", ""));
-	return nth < static_cast<long long>(found.size()) ? found[static_cast<std::size_t>(nth)] : nullptr;
+	return std::cmp_less(nth, found.size()) ? found[static_cast<std::size_t>(nth)] : nullptr;
 }
 
 std::string targetName(const json& target, long long nth) {

@@ -46,6 +46,7 @@ void startStream(Job& job) {
 /// @param count Its length.
 /// @param user The Job.
 /// @return count, or 0 to abort the transfer.
+// NOLINTNEXTLINE(readability-non-const-parameter): curl's CURLOPT_HEADERFUNCTION type
 std::size_t onHeader(char* buffer, std::size_t size, std::size_t count, void* user) {
 	Job& job = *static_cast<Job*>(user);
 	const std::size_t length = size * count;
@@ -79,6 +80,7 @@ std::size_t onHeader(char* buffer, std::size_t size, std::size_t count, void* us
 /// @param count How many.
 /// @param user The Job.
 /// @return count, or 0 to abort the transfer.
+// NOLINTNEXTLINE(readability-non-const-parameter): curl's CURLOPT_WRITEFUNCTION type
 std::size_t onBody(char* buffer, std::size_t size, std::size_t count, void* user) {
 	Job& job = *static_cast<Job*>(user);
 	const std::size_t length = size * count;
@@ -119,8 +121,8 @@ void Job::resetResponse() {
 	lines.reset();
 }
 
-Worker::Worker(Executor& executor, const ClientOptions& options)
-    : executor_(executor), options_(options), multi_(curl_multi_init()),
+Worker::Worker(Executor& executor, ClientOptions options)
+    : executor_(executor), options_(std::move(options)), multi_(curl_multi_init()),
       thread_([this](const std::stop_token& stop) { run(stop); }) {}
 
 Worker::~Worker() {
@@ -166,7 +168,7 @@ void Worker::run(const std::stop_token& stop) {
 		int running = 0;
 		curl_multi_perform(multi_.get(), &running);
 		int left = 0;
-		while(CURLMsg* message = curl_multi_info_read(multi_.get(), &left))
+		while(const CURLMsg* message = curl_multi_info_read(multi_.get(), &left))
 			if(message->msg == CURLMSG_DONE) finished(message->easy_handle, message->data.result);
 		int ready = 0;
 		curl_multi_poll(multi_.get(), nullptr, 0, static_cast<int>(nextWait().count()), &ready);
@@ -188,13 +190,13 @@ void Worker::takeCommands() {
 }
 
 void Worker::drop(std::uint64_t id) {
-	for(auto it = running_.begin(); it != running_.end(); ++it) {
-		if(it->second->id != id) continue;
-		static_cast<void>(takeRunning(it->first));
+	for(const auto& [easy, job] : running_) {
+		if(job->id != id) continue;
+		static_cast<void>(takeRunning(easy));
 		--jobs_;
 		return;
 	}
-	auto waiting = std::ranges::find_if(waiting_, [id](const auto& job) { return job->id == id; });
+	const auto waiting = std::ranges::find_if(waiting_, [id](const auto& job) { return job->id == id; });
 	if(waiting == waiting_.end()) return; // it has ended already
 	waiting_.erase(waiting);
 	--jobs_;
@@ -266,12 +268,12 @@ void Worker::applyMethod(Job& job) {
 }
 
 std::unique_ptr<Job> Worker::takeRunning(CURL* easy) {
-	auto it = running_.find(easy);
+	const auto it = running_.find(easy);
 	if(it == running_.end()) return nullptr;
 	std::unique_ptr<Job> job = std::move(it->second);
 	running_.erase(it);
 	curl_multi_remove_handle(multi_.get(), easy);
-	auto origin = perOrigin_.find(job->url.origin());
+	const auto origin = perOrigin_.find(job->url.origin());
 	if(origin != perOrigin_.end() && --origin->second == 0) perOrigin_.erase(origin);
 	return job;
 }
@@ -315,7 +317,7 @@ void Worker::answered(std::unique_ptr<Job> job) {
 }
 
 void Worker::redirect(std::unique_ptr<Job> job) {
-	char* location = nullptr;
+	char* location = nullptr; // NOLINT(misc-const-correctness): curl_easy_getinfo writes a char*
 	curl_easy_getinfo(job->easy.get(), CURLINFO_REDIRECT_URL, &location);
 	std::optional<Url> target = location ? parseUrl(location) : std::nullopt;
 	const int status = job->status;

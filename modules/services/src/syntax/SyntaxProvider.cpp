@@ -79,7 +79,7 @@ public:
 			call->finish({{"languages", SyntaxDocument::languages()}});
 			return std::nullopt;
 		}
-		const bool started = tasks_.run([name = method.name, call](std::stop_token) {
+		const bool started = tasks_.run([name = method.name, call](const std::stop_token&) {
 			if(name == "highlight") highlight(*call);
 			else folds(*call);
 		});
@@ -98,7 +98,7 @@ public:
 	json configurationSchema() const override {
 		return {{"type", "object"}, {"additionalProperties", false}, {"properties", json::object()}};
 	}
-	std::vector<MethodSpec> methods(const json&) const override {
+	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const json text = {{"type", "string"}, {"maxLength", largestText}};
 		const json language = {{"type", "string"}, {"maxLength", 64}};
 		const json row = {{"type", "integer"}, {"minimum", 0}, {"maximum", 100'000'000}};
@@ -119,7 +119,9 @@ public:
 		         "[[line, start, end, style]], complete}"},
 		        {"folds", Effect::Read, true, false, parse, "a text's folding ranges: {folds: [[first, last]]}"}};
 	}
-	std::unique_ptr<Service> create(const json&, ServiceContext) override { return std::make_unique<SyntaxService>(); }
+	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext /*context*/) override {
+		return std::make_unique<SyntaxService>();
+	}
 };
 
 } // namespace

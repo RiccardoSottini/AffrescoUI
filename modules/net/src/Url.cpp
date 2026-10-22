@@ -38,9 +38,9 @@ bool isHostName(std::string_view host) noexcept {
 /// @brief Whether text is an IPv6 address's characters (hex digits, ':' and '.').
 /// @param host The text between the brackets.
 bool isIpv6(std::string_view host) noexcept {
-	return host.find(':') != std::string_view::npos && std::ranges::all_of(host, [](char c) {
-		return std::isxdigit(static_cast<unsigned char>(c)) != 0 || c == ':' || c == '.';
-	});
+	return host.contains(':') && std::ranges::all_of(host, [](char c) {
+		       return std::isxdigit(static_cast<unsigned char>(c)) != 0 || c == ':' || c == '.';
+	       });
 }
 
 /// @brief Parses a port.
@@ -122,7 +122,7 @@ std::string requestTarget(std::string_view target) {
 std::string Url::origin() const { return scheme + "://" + authority(); }
 
 std::string Url::authority() const {
-	std::string result = host.find(':') != std::string::npos ? "[" + host + "]" : host;
+	std::string result = host.contains(':') ? "[" + host + "]" : host;
 	if(port != defaultPort(scheme)) result += ":" + std::to_string(port);
 	return result;
 }
@@ -138,8 +138,7 @@ std::optional<Url> parseUrl(std::string_view text) {
 	const auto rest = text.substr(separator + 3);
 	const auto end = rest.find_first_of("/?#");
 	const auto authority = rest.substr(0, end);
-	if(authority.empty() || authority.find('@') != std::string_view::npos || !parseAuthority(authority, url))
-		return std::nullopt;
+	if(authority.empty() || authority.contains('@') || !parseAuthority(authority, url)) return std::nullopt;
 	url.target = requestTarget(end == std::string_view::npos ? std::string_view{} : rest.substr(end));
 	return url;
 }
@@ -164,7 +163,7 @@ std::optional<std::string> OriginAllowlist::allow(std::string_view origin) {
 	const auto url = parseUrl(text);
 	if(!url || url->target != "/" || (text.find('/', text.find("://") + 3) != std::string::npos))
 		return "'" + std::string(origin) + "' isn't an origin (a scheme, a host and a port, nothing more)";
-	if(text.find('*') != std::string::npos) return "'" + std::string(origin) + "': a wildcard may only be the first label";
+	if(text.contains('*')) return "'" + std::string(origin) + "': a wildcard may only be the first label";
 	entries_.push_back({url->secure(), subdomains, url->host, url->port});
 	return std::nullopt;
 }

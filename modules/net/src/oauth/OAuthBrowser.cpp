@@ -6,7 +6,7 @@
 
 #include "affresco/core/Log.hpp"
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -28,13 +28,13 @@ void openInBrowser(const std::string& url) {
 		log(LogLevel::Warning, "AffrescoUI sign-in: won't open a URL that isn't https in the browser");
 		return;
 	}
-#if defined(_WIN32)
+#ifdef _WIN32
 	const int length = MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, nullptr, 0);
 	std::wstring wide(static_cast<std::size_t>(length), L'\0');
 	MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, wide.data(), length);
 	ShellExecuteW(nullptr, L"open", wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 #else
-#if defined(__APPLE__)
+#ifdef __APPLE__
 	const char* program = "open";
 #else
 	const char* program = "xdg-open";

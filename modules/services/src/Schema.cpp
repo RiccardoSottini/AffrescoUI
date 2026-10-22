@@ -47,8 +47,9 @@ std::optional<std::string> checkKind(const json& schema, const json& value, cons
 		    std::ranges::any_of(types, [&](const json& name) { return name.is_string() && hasType(value, name); });
 		if(!matches) return path + ": must be " + (type->is_string() ? "a value of type " + type->get<std::string>() : "one of the types " + type->dump());
 	}
-	if(const auto choices = schema.find("enum"); choices != schema.end() && choices->is_array())
-		if(std::ranges::find(*choices, value) == choices->end()) return path + ": must be one of " + choices->dump();
+	if(const auto choices = schema.find("enum");
+	   choices != schema.end() && choices->is_array() && std::ranges::find(*choices, value) == choices->end())
+		return path + ": must be one of " + choices->dump();
 	return std::nullopt;
 }
 

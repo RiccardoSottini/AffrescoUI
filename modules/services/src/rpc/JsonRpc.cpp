@@ -75,7 +75,7 @@ json response(const json& id, const std::optional<json>& value, const std::strin
 /// @return The text.
 std::string messageOf(const json& value) {
 	if(!value.is_string()) return "the service answered with an error";
-	std::string text = value.get<std::string>().substr(0, longestMessage);
+	const std::string text = value.get<std::string>().substr(0, longestMessage);
 	return isUtf8(text) ? text : "the service answered with an error";
 }
 
@@ -284,8 +284,9 @@ private:
 	void request(const json& id, std::string method, json params) {
 		const std::weak_ptr<Link> weak = link_;
 		context_.request(std::move(method), std::move(params),
-		                 [weak, id](std::optional<json> value, std::string error) {
-			                 if(const std::shared_ptr<Link> link = weak.lock()) (void)link->send(response(id, value, error));
+		                 [weak, id](const std::optional<json>& value, const std::string& error) {
+			                 if(const std::shared_ptr<Link> link = weak.lock())
+				                 (void)link->send(response(id, value, error));
 		                 });
 	}
 

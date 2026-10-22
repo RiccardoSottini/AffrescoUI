@@ -13,12 +13,12 @@
 #include <cstdint>
 #include <stdexcept>
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #include <windows.h>
 #include <bcrypt.h>
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-#include <stdlib.h>
-#elif defined(__EMSCRIPTEN__)
+#include <cstdlib>
+#elif defined(__EMSCRIPTEN__) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 #include <unistd.h>
 #else
 #include <sys/random.h>
@@ -37,7 +37,7 @@ constexpr std::string_view alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno
 /// @param into The bytes.
 /// @throws std::runtime_error If the system gives none (never on a working system).
 void fillRandom(std::string& into) {
-#if defined(_WIN32)
+#ifdef _WIN32
 	if(BCryptGenRandom(nullptr, reinterpret_cast<PUCHAR>(into.data()), static_cast<ULONG>(into.size()),
 	                   BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0)
 		throw std::runtime_error("the system's random generator failed");

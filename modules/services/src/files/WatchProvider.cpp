@@ -45,7 +45,7 @@ public:
 	WatchService(std::filesystem::path root, WatchOptions options)
 	    : root_(std::move(root)), options_(std::move(options)) {}
 
-	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call>) override {
+	std::optional<std::string> invoke(const MethodSpec& method, std::shared_ptr<Call> /*call*/) override {
 		return "'" + method.name + "' is a stream: subscribe to it";
 	}
 	std::optional<std::string> subscribe(const std::string& stream, std::shared_ptr<Call> call) override {
@@ -54,9 +54,10 @@ public:
 		if(subscriptions_.size() >= mostSubscriptions) return "the service has 4 subscriptions already";
 		Subscription subscription{call, nullptr};
 		try {
-			subscription.watcher = std::make_unique<Watcher>(root_, options_, [call, root = root_](WatchBatch batch) {
-				if(!call->stopToken().stop_requested()) call->event(batchEvent(root, batch));
-			});
+			subscription.watcher =
+			    std::make_unique<Watcher>(root_, options_, [call, root = root_](const WatchBatch& batch) {
+				    if(!call->stopToken().stop_requested()) call->event(batchEvent(root, batch));
+			    });
 		} catch(const std::exception&) {
 			return "the root couldn't be watched";
 		}
@@ -85,7 +86,7 @@ public:
 		          {"ignore", {{"type", "array"}, {"maxItems", 64}, {"items", glob}}},
 		          {"debounce", {{"type", "integer"}, {"minimum", shortestDebounce}, {"maximum", longestDebounce}}}}}};
 	}
-	std::vector<MethodSpec> methods(const json&) const override {
+	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		return {
 		    {"changes",
 			 Effect::Read,

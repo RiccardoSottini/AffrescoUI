@@ -317,6 +317,7 @@ std::optional<std::string> prepare(const fs::path& root, const SearchQuery& quer
 
 } // namespace
 
+// NOLINTNEXTLINE(performance-unnecessary-value-param): the public signature (a stop_token is one shared pointer)
 std::optional<std::string> searchFiles(const fs::path& root, const SearchQuery& query, std::stop_token stop,
                                        const std::function<void(SearchFile&&)>& onFile, SearchSummary& summary) {
 	summary = {};

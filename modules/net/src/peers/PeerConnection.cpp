@@ -204,7 +204,7 @@ void PeerConnection::writeLoop() {
 			connection_->close();
 			return;
 		}
-		std::string bytes = std::move(output_.front());
+		const std::string bytes = std::move(output_.front());
 		output_.pop_front();
 		queuedBytes_ -= bytes.size();
 		lock.unlock();

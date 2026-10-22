@@ -45,8 +45,8 @@ public:
 	/// @param token The token, checked.
 	ClientPeer(Executor& executor, const ClientOptions& options, Url url, std::string_view token) {
 		network::SocketHandlers handlers;
-		handlers.message = [this](std::string message) { onMessage(message); };
-		handlers.closed = [this](std::optional<network::Failure>) { onClosed(); };
+		handlers.message = [this](const std::string& message) { onMessage(message); };
+		handlers.closed = [this](const std::optional<network::Failure>&) { onClosed(); };
 		socket_ = openWebSocket(executor, options, std::move(url), {{"Authorization", "Bearer " + std::string(token)}},
 		                        std::move(handlers));
 	}
@@ -123,6 +123,7 @@ private:
 			    [weak = weak_from_this()](PeerConnection& opened, std::optional<std::string> author) {
 				    const auto state = weak.lock();
 				    if(!state) return;
+				    // NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 				    state->shared_->executor.post([weak, &opened, author = std::move(author)]() mutable {
 					    if(const auto alive = weak.lock()) alive->finish(&opened, std::move(author));
 				    });

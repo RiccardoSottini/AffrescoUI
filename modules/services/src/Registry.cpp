@@ -36,10 +36,10 @@ template <typename Map> std::string listNames(const Map& map) {
 /// @param value The configuration.
 /// @return Whether it does.
 bool holdsBinding(const json& value) {
-	if(value.is_string()) return value.get_ref<const std::string&>().find("{{") != std::string::npos;
+	if(value.is_string()) return value.get_ref<const std::string&>().contains("{{");
 	if(value.is_structured())
 		for(const auto& [key, member] : value.items())
-			if(key.find("{{") != std::string::npos || holdsBinding(member)) return true;
+			if(key.contains("{{") || holdsBinding(member)) return true;
 	return false;
 }
 
@@ -111,7 +111,7 @@ json configurationOf(const json& declaration) {
 /// @param provider The provider.
 /// @param configuration The service's configuration.
 /// @return The methods.
-std::map<std::string, MethodSpec, std::less<>> methodsOf(Provider& provider, const json& configuration) {
+std::map<std::string, MethodSpec, std::less<>> methodsOf(const Provider& provider, const json& configuration) {
 	std::map<std::string, MethodSpec, std::less<>> methods;
 	for(MethodSpec& spec : provider.methods(configuration)) {
 		std::string name = spec.name;
@@ -141,6 +141,7 @@ void postToMainThread(ServiceContext& context, const std::weak_ptr<bool>& alive,
                       decltype(ServiceContext::report) report, decltype(ServiceContext::request) request) {
 	Executor* executor = &context.executor;
 	context.report = [executor, alive, report = std::move(report)](ServiceState state, std::string reason) {
+		// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 		executor->post([alive, report, state, reason = std::move(reason)]() mutable {
 			if(!alive.expired()) report(state, std::move(reason));
 		});
@@ -148,6 +149,7 @@ void postToMainThread(ServiceContext& context, const std::weak_ptr<bool>& alive,
 	context.request = [executor, alive, request = std::move(request)](std::string method, json params,
 	                                                                  Responder respond) {
 		executor->post([alive, request, method = std::move(method), params = std::move(params),
+		                // NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 		                respond = std::move(respond)]() mutable {
 			if(!alive.expired()) request(std::move(method), std::move(params), std::move(respond));
 		});
@@ -185,7 +187,7 @@ struct ServiceRegistry::Entry {
 	std::unique_ptr<Service> service;                             ///< The running service, or nullptr.
 };
 
-std::optional<std::string> Service::subscribe(const std::string& stream, std::shared_ptr<Call>) {
+std::optional<std::string> Service::subscribe(const std::string& stream, std::shared_ptr<Call> /*call*/) {
 	return "it has no stream '" + stream + "'";
 }
 
@@ -369,7 +371,7 @@ std::optional<std::string> ServiceRegistry::ensureStarted(Entry& entry) {
 		    if(Entry* current = find(name); current && current->generation == generation)
 			    setState(*current, state, std::move(reason));
 	    },
-	    [this, name = entry.name](std::string method, json params, Responder respond) {
+	    [this, name = entry.name](const std::string& method, const json& params, Responder respond) {
 		    if(!requests_) return respond(std::nullopt, std::string(methodNotFound));
 		    requests_(name, method, params, std::move(respond));
 	    });

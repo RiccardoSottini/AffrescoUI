@@ -14,7 +14,7 @@ namespace {
 /// @param c The byte.
 bool isTokenCharacter(char c) noexcept {
 	static constexpr std::string_view others = "!#$%&'*+-.^_`|~";
-	return std::isalnum(static_cast<unsigned char>(c)) != 0 || others.find(c) != std::string_view::npos;
+	return std::isalnum(static_cast<unsigned char>(c)) != 0 || others.contains(c);
 }
 
 /// @brief Text without the spaces and tabs around it.

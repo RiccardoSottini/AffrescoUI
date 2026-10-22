@@ -39,6 +39,7 @@ struct Input {
 /// @param byte Where to read.
 /// @param at The same place as a point.
 /// @param bytes Gets how many bytes the chunk has.
+// NOLINTNEXTLINE(readability-non-const-parameter): tree-sitter's TSInput.read type
 const char* readInput(void* payload, std::uint32_t byte, TSPoint at, std::uint32_t* bytes) {
 	const auto& input = *static_cast<const Input*>(payload);
 	if(byte >= input.size) {
@@ -52,6 +53,7 @@ const char* readInput(void* payload, std::uint32_t byte, TSPoint at, std::uint32
 
 /// @brief tree-sitter's progress callback: true (stop) past the deadline.
 /// @param state Its payload is the deadline.
+// NOLINTNEXTLINE(readability-non-const-parameter): tree-sitter's progress callback type
 bool pastDeadline(TSParseState* state) { return Clock::now() > *static_cast<const Clock::time_point*>(state->payload); }
 
 /// @brief A capture found by highlight(), before it is cut into lines.

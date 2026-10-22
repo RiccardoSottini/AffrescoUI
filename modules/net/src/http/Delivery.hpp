@@ -43,9 +43,10 @@ using SocketDelivery = Delivery<network::SocketHandlers>;
 /// @param delivery The delivery.
 /// @param failure The failure.
 inline void postFailure(Executor& executor, const std::shared_ptr<RequestDelivery>& delivery, network::Failure failure) {
+	// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	executor.post([delivery, failure = std::move(failure)]() mutable {
 		if(delivery->cancelled) return;
-		auto failed = std::move(delivery->handlers.failed);
+		const auto failed = std::move(delivery->handlers.failed);
 		delivery->cancel();
 		if(failed) failed(std::move(failure));
 	});
@@ -56,9 +57,10 @@ inline void postFailure(Executor& executor, const std::shared_ptr<RequestDeliver
 /// @param delivery The delivery.
 /// @param response The response.
 inline void postResponse(Executor& executor, const std::shared_ptr<RequestDelivery>& delivery, network::Response response) {
+	// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	executor.post([delivery, response = std::move(response)]() mutable {
 		if(delivery->cancelled) return;
-		auto done = std::move(delivery->handlers.done);
+		const auto done = std::move(delivery->handlers.done);
 		delivery->cancel();
 		if(done) done(std::move(response));
 	});
@@ -70,10 +72,11 @@ inline void postResponse(Executor& executor, const std::shared_ptr<RequestDelive
 /// @param event The event.
 inline void postEvent(Executor& executor, const std::shared_ptr<RequestDelivery>& delivery, network::StreamEvent event) {
 	++delivery->undelivered;
+	// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	executor.post([delivery, event = std::move(event)]() mutable {
 		--delivery->undelivered;
 		if(delivery->cancelled || !delivery->handlers.event) return;
-		auto handle = delivery->handlers.event; // a copy: the handler may destroy the transfer
+		const auto handle = delivery->handlers.event; // a copy: the handler may destroy the transfer
 		handle(std::move(event));
 	});
 }

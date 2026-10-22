@@ -4,6 +4,7 @@
 #include "search/SearchGlob.hpp"
 
 #include <algorithm>
+#include <ranges>
 #include <utility>
 
 namespace affresco::services {
@@ -236,10 +237,10 @@ void IgnoreRules::add(std::string_view base, std::string_view text) {
 }
 
 bool IgnoreRules::ignored(std::span<const std::string_view> segments, bool folder) const {
-	for(auto rule = rules_.rbegin(); rule != rules_.rend(); ++rule) {
-		if(rule->base.size() >= segments.size() || !std::equal(rule->base.begin(), rule->base.end(), segments.begin()))
+	for(const auto& rule : std::views::reverse(rules_)) {
+		if(rule.base.size() >= segments.size() || !std::equal(rule.base.begin(), rule.base.end(), segments.begin()))
 			continue;
-		if(rule->glob.matches(segments.subspan(rule->base.size()), folder)) return !rule->negated;
+		if(rule.glob.matches(segments.subspan(rule.base.size()), folder)) return !rule.negated;
 	}
 	return false;
 }

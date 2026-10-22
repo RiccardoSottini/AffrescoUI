@@ -64,8 +64,8 @@ private:
 	/// @param count The number of events.
 	/// @param paths Their paths (C strings).
 	/// @param flags Their flags.
-	static void received(ConstFSEventStreamRef, void* info, std::size_t count, void* paths,
-	                     const FSEventStreamEventFlags flags[], const FSEventStreamEventId[]) {
+	static void received(ConstFSEventStreamRef /*stream*/, void* info, std::size_t count, void* paths,
+	                     const FSEventStreamEventFlags flags[], const FSEventStreamEventId /*ids*/[]) {
 		const auto& self = *static_cast<EventStreamBackend*>(info);
 		const auto* const* names = static_cast<const char* const*>(paths);
 		constexpr FSEventStreamEventFlags lost =

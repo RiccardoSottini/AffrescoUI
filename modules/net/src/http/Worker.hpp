@@ -64,7 +64,7 @@ public:
 	/// @brief Starts the thread.
 	/// @param executor The main thread.
 	/// @param options The client's options.
-	Worker(Executor& executor, const ClientOptions& options);
+	Worker(Executor& executor, ClientOptions options);
 	/// @brief Stops the thread; requests still running end without a word.
 	~Worker();
 	Worker(const Worker&) = delete;

@@ -290,8 +290,8 @@ json boundEvent(std::string_view event, json body, const std::filesystem::path& 
 			cutMember(breakpoint, "message", longestText);
 			if(breakpoint.contains("source")) place(breakpoint["source"], root);
 		}
-	} else if(event == "loadedSource") {
-		if(body.contains("source")) place(body["source"], root);
+	} else if(event == "loadedSource" && body.contains("source")) {
+		place(body["source"], root);
 	}
 	cutMember(body, "description", longestText); // stopped
 	cutMember(body, "text", longestText);

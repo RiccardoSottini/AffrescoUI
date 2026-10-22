@@ -154,7 +154,7 @@ public:
 	/// @param launch What each run starts, before the call's own arguments.
 	ProcessService(ProcessGrant grant, Launch launch) : grant_(std::move(grant)), launch_(std::move(launch)) {}
 
-	std::optional<std::string> invoke(const MethodSpec&, std::shared_ptr<Call> call) override {
+	std::optional<std::string> invoke(const MethodSpec& /*method*/, std::shared_ptr<Call> call) override {
 		std::variant<Launch, std::string> shaped = shapeRun(grant_, launch_, call->arguments());
 		if(const std::string* refused = std::get_if<std::string>(&shaped)) return *refused;
 		const bool started = tasks_.run([launch = std::get<Launch>(std::move(shaped)), call](const std::stop_token& stop) {
@@ -180,7 +180,7 @@ public:
 		        {"additionalProperties", false},
 		        {"properties", {{"process", {{"type", "string"}}}, {"root", {{"type", "string"}}}}}};
 	}
-	std::vector<MethodSpec> methods(const json&) const override {
+	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		return {{"run", Effect::Run, true, false,
 		         {{"type", "object"},
 		          {"properties",
@@ -194,7 +194,7 @@ public:
 		         "runs the program (in the root, if one is named) with an input, and the arguments the host's rule allows: "
 		         "each output line is an event {line}; {code}, or {code, output} with collect (8 MiB of UTF-8 at most)"}};
 	}
-	std::unique_ptr<Service> create(const json&, ServiceContext context) override {
+	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
 		const ProcessGrant& grant = *context.grant.process;
 		return std::make_unique<ProcessService>(
 		    grant, Launch{grant.program, grant.arguments, context.grant.root, grant.environment});

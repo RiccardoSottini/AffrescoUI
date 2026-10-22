@@ -254,7 +254,7 @@ public:
 		        {"additionalProperties", false},
 		        {"properties", {{"process", {{"type", "string"}}}, {"root", {{"type", "string"}}}}}};
 	}
-	std::vector<MethodSpec> methods(const json&) const override {
+	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const json side = {{"type", "integer"}, {"minimum", 1}, {"maximum", largestSide}};
 		const json session = {{"type", "integer"}, {"minimum", 1}};
 		const json names = {{"enum", {"interrupt", "terminate", "hangup", "kill"}}};
@@ -269,7 +269,7 @@ public:
 		        {"signal", Effect::Run, true, false, argumentsOf({{"session", session}, {"name", names}}),
 		         "signals the program on an open terminal: {}"}};
 	}
-	std::unique_ptr<Service> create(const json&, ServiceContext context) override {
+	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
 		const ProcessGrant& grant = *context.grant.process;
 		return std::make_unique<PtyService>(
 		    Launch{grant.program, grant.arguments, context.grant.root, grant.environment});

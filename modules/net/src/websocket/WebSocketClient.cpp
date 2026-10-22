@@ -18,6 +18,7 @@
 #include <random>
 #include <string>
 #include <thread>
+#include <utility>
 
 namespace affresco::net {
 
@@ -37,9 +38,10 @@ constexpr std::chrono::milliseconds closeTimeout{250};
 /// @param delivery The delivery.
 /// @param failure Why, or nullopt for a clean close.
 void postClosed(Executor& executor, const std::shared_ptr<SocketDelivery>& delivery, std::optional<network::Failure> failure) {
+	// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	executor.post([delivery, failure = std::move(failure)]() mutable {
 		if(delivery->cancelled) return;
-		auto closed = std::move(delivery->handlers.closed);
+		const auto closed = std::move(delivery->handlers.closed);
 		delivery->cancel();
 		if(closed) closed(std::move(failure));
 	});
@@ -48,7 +50,9 @@ void postClosed(Executor& executor, const std::shared_ptr<SocketDelivery>& deliv
 /// @brief libcurl's progress callback while connecting: aborts once the owner closes.
 /// @param user The stop token.
 /// @return Non-zero to abort.
-int onConnectProgress(void* user, curl_off_t, curl_off_t, curl_off_t, curl_off_t) {
+// NOLINTNEXTLINE(readability-non-const-parameter): curl's CURLOPT_XFERINFOFUNCTION type
+int onConnectProgress(void* user, curl_off_t /*downloadTotal*/, curl_off_t /*downloaded*/, curl_off_t /*uploadTotal*/,
+                      curl_off_t /*uploaded*/) {
 	return static_cast<const std::stop_token*>(user)->stop_requested() ? 1 : 0;
 }
 
@@ -65,7 +69,7 @@ public:
 	RefusedSocket(RefusedSocket&&) = delete;
 	RefusedSocket& operator=(RefusedSocket&&) = delete;
 
-	bool send(std::string_view) override { return false; }
+	bool send(std::string_view /*message*/) override { return false; }
 
 private:
 	std::shared_ptr<SocketDelivery> delivery_; ///< See the constructor.
@@ -80,9 +84,9 @@ public:
 	/// @param url The URL.
 	/// @param headers Extra headers of the upgrade request.
 	/// @param handlers Told what happens.
-	ClientSocket(Executor& executor, const ClientOptions& options, Url url, network::Headers headers,
+	ClientSocket(Executor& executor, ClientOptions options, Url url, network::Headers headers,
 	             network::SocketHandlers handlers)
-	    : executor_(executor), options_(options), url_(std::move(url)), headers_(std::move(headers)),
+	    : executor_(executor), options_(std::move(options)), url_(std::move(url)), headers_(std::move(headers)),
 	      delivery_(std::make_shared<SocketDelivery>(std::move(handlers))), multi_(curl_multi_init()),
 	      thread_([this](const std::stop_token& stop) { run(stop); }) {}
 	/// @brief Closes the connection (a close frame, best effort); no handler is called afterwards.
@@ -190,7 +194,7 @@ void ClientSocket::run(const std::stop_token& stop) {
 	if(!end && !stop.stop_requested()) {
 		executor_.post([delivery = delivery_] {
 			if(delivery->cancelled || !delivery->handlers.opened) return;
-			auto opened = delivery->handlers.opened; // a copy: the handler may destroy the connection
+			const auto opened = delivery->handlers.opened; // a copy: the handler may destroy the connection
 			opened();
 		});
 		end = loop(stop);
@@ -321,10 +325,11 @@ bool ClientSocket::handle(FrameEvent event, std::optional<network::Failure>& end
 bool ClientSocket::deliver(std::string& message) {
 	if(delivery_->undelivered > options_.maxUndelivered) return false;
 	++delivery_->undelivered;
+	// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	executor_.post([delivery = delivery_, message = std::move(message)]() mutable {
 		--delivery->undelivered;
 		if(delivery->cancelled || !delivery->handlers.message) return;
-		auto handleMessage = delivery->handlers.message; // a copy: the handler may destroy the connection
+		const auto handleMessage = delivery->handlers.message; // a copy: the handler may destroy the connection
 		handleMessage(std::move(message));
 	});
 	return true;

@@ -62,7 +62,7 @@ public:
 	/// @param executor See open().
 	/// @param root See open().
 	/// @param options See open().
-	DirectoryModel(Key, Executor& executor, std::filesystem::path root, DirectoryOptions options);
+	DirectoryModel(Key /*key*/, Executor& executor, std::filesystem::path root, DirectoryOptions options);
 	/// @brief Stops watching and listing, and waits for its threads.
 	~DirectoryModel() override;
 	DirectoryModel(const DirectoryModel&) = delete;

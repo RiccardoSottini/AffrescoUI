@@ -144,6 +144,7 @@ std::unordered_map<std::uint32_t, SocketEvents*>& sockets() {
 /// @param failure Why, or nullopt for a clean close.
 void postClosed(Executor& executor, const std::shared_ptr<SocketDelivery>& delivery,
                 std::optional<network::Failure> failure) {
+	// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 	executor.post([delivery, failure = std::move(failure)]() mutable {
 		if(delivery->cancelled) return;
 		auto closed = std::move(delivery->handlers.closed);
@@ -240,6 +241,7 @@ private:
 		if(!isUtf8(message)) return false;
 		if(delivery_->undelivered >= options_.maxUndelivered) return false;
 		++delivery_->undelivered;
+		// NOLINTNEXTLINE(readability-redundant-lambda-parameter-list): `] mutable` without () is C++23
 		executor_.post([delivery = delivery_, message = std::move(message)]() mutable {
 			--delivery->undelivered;
 			if(delivery->cancelled || !delivery->handlers.message) return;

@@ -55,7 +55,7 @@ void keep(Fields& fields, std::string_view name, std::string_view value) {
 /// @param lines The head after the request line.
 /// @param fields Receives the fields.
 /// @return An error, or empty.
-std::string readHeaders(std::string_view lines, Fields& fields) {
+std::string_view readHeaders(std::string_view lines, Fields& fields) {
 	std::size_t count = 0;
 	while(!lines.empty()) {
 		const std::size_t end = lines.find("\r\n");
@@ -66,7 +66,7 @@ std::string readHeaders(std::string_view lines, Fields& fields) {
 		const std::size_t colon = line.find(':');
 		if(colon == std::string_view::npos || colon == 0 || trim(line.substr(0, colon)).size() != colon)
 			return "a header line is malformed";
-		if(line.find('\0') != std::string_view::npos) return "a header line has a NUL byte";
+		if(line.contains('\0')) return "a header line has a NUL byte";
 		keep(fields, line.substr(0, colon), trim(line.substr(colon + 1)));
 	}
 	return {};
@@ -155,8 +155,8 @@ Upgrade parseUpgrade(std::string_view head) {
 	   line.substr(last + 1) != "HTTP/1.1" || line.substr(first + 1, 1) != "/")
 		return refuse(400, "the request line must be GET /<path> HTTP/1.1");
 	Fields fields;
-	if(std::string error = readHeaders(head.substr(lineEnd + 2), fields); !error.empty())
-		return refuse(error == "too many header lines" ? 431 : 400, std::move(error));
+	if(const std::string_view error = readHeaders(head.substr(lineEnd + 2), fields); !error.empty())
+		return refuse(error == "too many header lines" ? 431 : 400, std::string(error));
 	return checkFields(std::move(fields));
 }
 

@@ -94,7 +94,7 @@ public:
 		const std::optional<std::filesystem::path> path = underRoot(root_, relative);
 		if(!path) return "with.path: must be a path inside the root '" + std::string(relative.size() > 200 ? "…" : relative) + "'";
 		if(method.name == "write" && readOnly_) return "the service is read-only";
-		const bool started = tasks_.run([name = method.name, path = *path, call](std::stop_token) {
+		const bool started = tasks_.run([name = method.name, path = *path, call](const std::stop_token&) {
 			if(name == "read") readFile(path, *call);
 			else if(name == "write") writeFile(path, call->arguments().value("text", std::string()), *call);
 			else listFolder(path, call->stopToken(), *call);

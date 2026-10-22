@@ -50,7 +50,7 @@ void EventStreamParser::field(std::string_view name, std::string_view value) {
 		event_.data += value;
 		hasData_ = true;
 	} else if(name == "event") event_.type = value.empty() ? "message" : std::string(value);
-	else if(name == "id" && value.find('\0') == std::string_view::npos) event_.id = value;
+	else if(name == "id" && !value.contains('\0')) event_.id = value;
 }
 
 LineStreamParser::LineStreamParser(std::size_t maxLineBytes, EventSink sink)

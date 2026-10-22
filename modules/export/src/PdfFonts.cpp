@@ -42,7 +42,7 @@ template <typename T> using HarfBuzzPointer = std::unique_ptr<T, HarfBuzzDeleter
 /// @param face The face.
 /// @param tag The table.
 /// @return Its blob (empty when the face hasn't it).
-HarfBuzzPointer<hb_blob_t> table(hb_face_t* face, hb_tag_t tag) {
+HarfBuzzPointer<hb_blob_t> table(const hb_face_t* face, hb_tag_t tag) {
 	return HarfBuzzPointer<hb_blob_t>(hb_face_reference_table(face, tag));
 }
 
@@ -78,7 +78,7 @@ std::string postScriptName(hb_face_t* face) {
 /// @param glyphs The glyphs (0, the missing glyph, is added).
 /// @return The subset file, or the whole file if it can't be subset.
 HarfBuzzPointer<hb_blob_t> subset(hb_face_t* face, const std::set<unsigned>& glyphs) {
-	HarfBuzzPointer<hb_subset_input_t> input(hb_subset_input_create_or_fail());
+	const HarfBuzzPointer<hb_subset_input_t> input(hb_subset_input_create_or_fail());
 	if(input) {
 		hb_set_t* keep = hb_subset_input_glyph_set(input.get());
 		hb_set_add(keep, 0);

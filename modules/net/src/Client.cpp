@@ -36,7 +36,7 @@ public:
 	/// @brief Cancels the request: no handler is called afterwards.
 	~HttpTransfer() override {
 		delivery_->cancel();
-		if(auto worker = worker_.lock()) worker->cancel(id_);
+		if(const auto worker = worker_.lock()) worker->cancel(id_);
 	}
 	HttpTransfer(const HttpTransfer&) = delete;
 	HttpTransfer& operator=(const HttpTransfer&) = delete;
@@ -70,7 +70,7 @@ private:
 /// @param c The character.
 bool isTokenCharacter(char c) noexcept {
 	if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) return true;
-	return std::string_view{"!#$%&'*+-.^_`|~"}.find(c) != std::string_view::npos;
+	return std::string_view{"!#$%&'*+-.^_`|~"}.contains(c);
 }
 
 /// @brief Whether a header is one the transport sets, which a caller may not.

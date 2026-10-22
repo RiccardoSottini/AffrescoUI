@@ -301,11 +301,12 @@ private:
 		std::string command = request.command;
 		json arguments = std::move(request.arguments);
 		request.arguments = nullptr;
-		context_.request(std::move(command), std::move(arguments),
-		                 [weak, request = std::move(request)](std::optional<json> value, std::string error) {
-			                 if(const std::shared_ptr<Link> link = weak.lock())
-				                 (void)link->send(dap::responseMessage(0, request, value, error));
-		                 });
+		context_.request(
+		    std::move(command), std::move(arguments),
+		    [weak, request = std::move(request)](const std::optional<json>& value, const std::string& error) {
+			    if(const std::shared_ptr<Link> link = weak.lock())
+				    (void)link->send(dap::responseMessage(0, request, value, error));
+		    });
 	}
 
 	/// @brief Closes the link once: the requests waiting end ("ended"), and the subscriptions finish if the adapter
@@ -393,7 +394,7 @@ public:
 		            {"properties", {{"port", {{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}}}}}},
 		          {"timeout", {{"type", "integer"}, {"minimum", 100}, {"maximum", 600000}}}}}};
 	}
-	std::vector<MethodSpec> methods(const json&) const override {
+	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const Commands commands;
 		const json object = {{"type", "object"}};
 		std::vector<MethodSpec> specs;
