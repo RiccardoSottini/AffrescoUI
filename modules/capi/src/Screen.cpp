@@ -26,9 +26,9 @@ constexpr int largestSize = affresco::Embedding::maximumSize;
 constexpr std::size_t maximumNativeActions = 4096;
 
 /// @brief Checks the options' mode.
-/// @param mode The mode, as the host gave it.
+/// @param mode The mode, as the host gave it: by reference, as loading a value no afr_mode has is undefined.
 /// @throws Failure If it isn't an afr_mode.
-void checkMode(afr_mode mode) {
+void checkMode(const afr_mode& mode) {
 	if(const int value = fromC(mode);
 	   value != AFR_MODE_WINDOW && value != AFR_MODE_HEADLESS && value != AFR_MODE_EMBEDDED)
 		throw Failure{AFR_ERROR_ARGUMENT, "options.mode is not an afr_mode"};
