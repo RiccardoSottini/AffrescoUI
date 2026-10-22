@@ -93,6 +93,18 @@ private:
 	std::size_t count_ = 0;                                      ///< The pixels marked.
 };
 
+/// @brief Pushes a seed for each run of pixels like the seed's in a row's span, at the run's left.
+/// @param stack The seeds to fill from.
+/// @param left The span's left.
+/// @param right Its right, included.
+/// @param row The row.
+/// @param like Whether a pixel is like the seed's and not yet filled.
+template <typename Like>
+void pushSeeds(std::vector<std::pair<int, int>>& stack, int left, int right, int row, const Like& like) {
+	for(int fill = left; fill <= right; ++fill)
+		if(like(fill, row) && (fill == left || !like(fill - 1, row))) stack.emplace_back(fill, row);
+}
+
 /// @brief A scanline flood fill from a pixel over the pixels like it.
 /// @param document The document.
 /// @param sampler What is sampled.
@@ -115,11 +127,8 @@ private:
 		while(like(left - 1, py)) --left;
 		while(like(right + 1, py)) ++right;
 		for(int fill = left; fill <= right; ++fill) marks.mark(fill, py);
-		for(const int next : {py - 1, py + 1}) {
-			if(next < 0 || next >= document.height()) continue;
-			for(int fill = left; fill <= right; ++fill)
-				if(like(fill, next) && (fill == left || !like(fill - 1, next))) stack.emplace_back(fill, next);
-		}
+		for(const int next : {py - 1, py + 1})
+			if(next >= 0 && next < document.height()) pushSeeds(stack, left, right, next, like);
 	}
 	return std::move(marks).coverage();
 }
@@ -146,6 +155,37 @@ template <typename Selects>
 	return coverage;
 }
 
+/// @brief A byte of a selection combined with a coverage's.
+/// @param was The selection's.
+/// @param with The coverage's.
+/// @param mode How they combine (add, subtract or intersect).
+/// @return The byte.
+[[nodiscard]] std::uint8_t combinedByte(std::uint8_t was, std::uint8_t with, SelectionMode mode) noexcept {
+	switch(mode) {
+	case SelectionMode::add:
+		return std::max(was, with);
+	case SelectionMode::subtract:
+		return std::min(was, static_cast<std::uint8_t>(255 - with));
+	default:
+		return std::min(was, with);
+	}
+}
+
+/// @brief Two tiles combined byte by byte.
+/// @param old The selection's tile.
+/// @param added The coverage's tile.
+/// @param mode How they combine (add, subtract or intersect).
+/// @return The tile, null when it selects nothing.
+[[nodiscard]] std::shared_ptr<const Tile> combinedTile(const Tile& old, const Tile& added, SelectionMode mode) {
+	auto tile = std::make_shared<Tile>(PixelFormat::mask8);
+	bool any = false;
+	for(std::size_t at = 0; at < tilePixels; ++at) {
+		tile->bytes()[at] = combinedByte(old.bytes()[at], added.bytes()[at], mode);
+		any = any || tile->bytes()[at] != 0;
+	}
+	return any ? tile : nullptr;
+}
+
 /// @brief One tile of a selection combined with a coverage's.
 /// @param old The selection's tile (null for none).
 /// @param added The coverage's tile (null for none).
@@ -154,27 +194,9 @@ template <typename Selects>
 [[nodiscard]] std::shared_ptr<const Tile> combine(const std::shared_ptr<const Tile>& old,
                                                   const std::shared_ptr<const Tile>& added, SelectionMode mode) {
 	if(mode == SelectionMode::replace || (mode == SelectionMode::add && !old)) return added;
-	if((mode == SelectionMode::add && !added) || (mode == SelectionMode::subtract && !added)) return old;
+	if(!added && (mode == SelectionMode::add || mode == SelectionMode::subtract)) return old;
 	if(!old || (mode == SelectionMode::intersect && !added)) return nullptr;
-	auto tile = std::make_shared<Tile>(PixelFormat::mask8);
-	bool any = false;
-	for(std::size_t at = 0; at < tilePixels; ++at) {
-		const std::uint8_t was = old->bytes()[at], with = added->bytes()[at];
-		std::uint8_t& to = tile->bytes()[at];
-		switch(mode) {
-		case SelectionMode::add:
-			to = std::max(was, with);
-			break;
-		case SelectionMode::subtract:
-			to = std::min(was, static_cast<std::uint8_t>(255 - with));
-			break;
-		default:
-			to = std::min(was, with);
-			break;
-		}
-		any = any || to != 0;
-	}
-	return any ? tile : nullptr;
+	return combinedTile(*old, *added, mode);
 }
 
 } // namespace
