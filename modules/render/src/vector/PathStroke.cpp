@@ -313,8 +313,8 @@ void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeSty
                   std::vector<MeshVertex>& mesh, float feather) {
 	if(!strokable(contours, style)) return;
 	Stroker stroker(style, mesh, std::min(std::max(feather, 0.0f), 4.0f));
-	// Bounded across contours: a dense pattern (SVG's stroke-dasharray has no length limit) or dashes of no length,
-	// which draw nothing with butt caps, would otherwise walk without end, even with the mesh full
+	// Bounded across contours: a dense pattern along many long contours, or dashes of no length, which draw nothing
+	// with butt caps, would otherwise walk for seconds or minutes, even with the mesh full
 	std::size_t work = 0;
 	for(const VectorPath::Contour& contour : contours) {
 		if(stroker.full() || work > dashWorkLimit) return;
