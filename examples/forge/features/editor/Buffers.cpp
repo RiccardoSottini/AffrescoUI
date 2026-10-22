@@ -47,16 +47,19 @@ std::string message(std::string_view line) {
 	return std::string(line.substr(0, end));
 }
 
-/// @brief A line's place in an outline.
+/// @brief A Markdown line's place in an outline: a heading's.
 /// @param row The line, without its line break.
-/// @param markdown Whether the file is Markdown (headings) rather than code (blocks).
+/// @return Its depth and label, or std::nullopt if it isn't a heading.
+std::optional<std::pair<int, std::string>> headingEntry(std::string_view row) {
+	const std::size_t hashes = row.find_first_not_of('#');
+	if(hashes == 0 || hashes == std::string_view::npos || hashes > 6 || row[hashes] != ' ') return std::nullopt;
+	return std::pair{static_cast<int>(hashes) - 1, message(row.substr(hashes))};
+}
+
+/// @brief A line of code's place in an outline: a block's opening line, at the first or second level.
+/// @param row The line, without its line break.
 /// @return Its depth and label, or std::nullopt if it isn't in the outline.
-std::optional<std::pair<int, std::string>> outlineEntry(std::string_view row, bool markdown) {
-	if(markdown) {
-		const std::size_t hashes = row.find_first_not_of('#');
-		if(hashes == 0 || hashes == std::string_view::npos || hashes > 6 || row[hashes] != ' ') return std::nullopt;
-		return std::pair{static_cast<int>(hashes) - 1, message(row.substr(hashes))};
-	}
+std::optional<std::pair<int, std::string>> blockEntry(std::string_view row) {
 	const std::size_t first = row.find_first_not_of(" \t");
 	const std::size_t last = row.find_last_not_of(" \t\r");
 	if(first == std::string_view::npos || row[last] != '{') return std::nullopt;
@@ -66,6 +69,14 @@ std::optional<std::pair<int, std::string>> outlineEntry(std::string_view row, bo
 	if(depth > 1 || label.empty() || label.starts_with('}') || label.starts_with('/') || label.starts_with('#'))
 		return std::nullopt;
 	return std::pair{depth, label};
+}
+
+/// @brief A line's place in an outline.
+/// @param row The line, without its line break.
+/// @param markdown Whether the file is Markdown (headings) rather than code (blocks).
+/// @return Its depth and label, or std::nullopt if it isn't in the outline.
+std::optional<std::pair<int, std::string>> outlineEntry(std::string_view row, bool markdown) {
+	return markdown ? headingEntry(row) : blockEntry(row);
 }
 
 } // namespace
