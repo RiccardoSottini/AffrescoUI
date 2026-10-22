@@ -34,7 +34,7 @@ class Output {
 public:
 	/// @brief Starts an empty screen.
 	/// @param options How it is written.
-	explicit Output(const Options& options);
+	explicit Output(Options options);
 
 	/// @brief Counts an element, and checks the limits.
 	/// @param at Its place in the source, for the error.
@@ -95,7 +95,7 @@ public:
 	/// @brief The root node for a body, as screen() writes it (A2UI's updates set it again).
 	/// @param body The content.
 	/// @return The root.
-	[[nodiscard]] json root(Built body) const;
+	[[nodiscard]] static json root(Built body);
 
 private:
 	Options options_;                    ///< See Options.
@@ -132,7 +132,8 @@ private:
 /// @return The path.
 [[nodiscard]] std::string statePath(const std::vector<std::string>& segments);
 /// @brief Whether a link from the source may be opened or fetched: https only, and nothing that could hide another
-/// scheme or host, or be read as a binding (spaces, control characters, a backslash, braces, quotes, angle brackets).
+/// scheme or host (a user name before '@'), or be read as a binding (spaces, control characters, a backslash, braces,
+/// quotes, angle brackets).
 /// @param url The link.
 /// @return Whether it is allowed.
 [[nodiscard]] bool allowedUrl(std::string_view url) noexcept;

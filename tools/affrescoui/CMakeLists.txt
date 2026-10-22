@@ -19,7 +19,7 @@ target_link_libraries(affrescoui_cli PRIVATE affrescoui::automation) # and throu
 # SocketDir.hpp (the socket folder's checks) is shared with affrescoui_host; Png.hpp and FeatureSignatures.hpp are the
 # library's
 target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
-	${PROJECT_SOURCE_DIR}/modules/format/src ${PROJECT_SOURCE_DIR}/modules/vcs/src)
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> ${PROJECT_SOURCE_DIR}/modules/vcs/src)
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_VERSION}")

@@ -2,7 +2,7 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://github.com/RiccardoSottini/AffrescoUI/editors/vscode/schemas/affrescoui-feature.schema.json",
 	"title": "AffrescoUI Feature",
-	"description": "A feature manifest (feature.json): what a feature needs from a screen and what it adds. Written by hand from the library's checks (modules/format/src/FeatureManifest.cpp); the library's check is the authority.",
+	"description": "A feature manifest (feature.json): what a feature needs from a screen and what it adds. Written by hand from the library's checks (modules/format/src/features/FeatureManifest.cpp); the library's check is the authority.",
 	"type": "object",
 	"required": ["format", "version", "name", "release", "title", "provides"],
 	"additionalProperties": false,

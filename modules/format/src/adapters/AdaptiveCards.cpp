@@ -5,7 +5,9 @@
 #include "AdaptiveCards.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <string_view>
 
 namespace affresco::format::adapters::detail {
 
@@ -81,9 +83,24 @@ struct ColumnWidth {
 		try {
 			return {0, std::clamp(std::stof(text.substr(0, text.size() - 2)), 1.0f, 4096.0f)};
 		} catch(const std::exception&) {
+			return {}; // not a number of pixels: automatic
 		}
 	}
 	return {};
+}
+
+/// @brief The input elements it converts.
+constexpr std::array<std::string_view, 6> inputTypes = {"Input.Text", "Input.Number", "Input.Date",
+                                                        "Input.Time", "Input.Toggle", "Input.ChoiceSet"};
+
+/// @brief A RichTextBlock's text: its "inlines" (texts, or TextRuns' "text") joined.
+/// @param element The element.
+/// @return The text, before its templates are expanded.
+std::string inlinesText(const json& element) {
+	std::string text;
+	for(const json& run : element.value("inlines", json::array()))
+		text += run.is_string() ? run.get<std::string>() : textOf(run.is_object() ? run.value("text", json()) : json());
+	return text;
 }
 
 } // namespace
@@ -142,33 +159,29 @@ std::vector<Built> CardConverter::element(const json& element, const std::string
 std::optional<std::vector<Built>> CardConverter::elementOfType(const std::string& type, const json& element,
                                                                const std::string& at, float width, int depth) {
 	if(type == "TextBlock") return std::vector<Built>{textBlock(element, field(element, "text", at), width)};
-	if(type == "RichTextBlock") {
-		std::string text;
-		for(const json& run : element.value("inlines", json::array()))
-			text += run.is_string() ? run.get<std::string>() : textOf(run.is_object() ? run.value("text", json()) : json());
-		return std::vector<Built>{textBlock(element, textOf(templated(text, at)), width)};
-	}
+	if(type == "RichTextBlock")
+		return std::vector<Built>{textBlock(element, textOf(templated(inlinesText(element), at)), width)};
 	if(type == "Image")
 		return std::vector<Built>{image(element, at, width, imageSize(textOf(element.value("size", json()))))};
 	if(type == "Container") return std::vector<Built>{container(element, at, width, depth)};
 	if(type == "ColumnSet") return std::vector<Built>{columnSet(element, at, width, depth)};
 	if(type == "FactSet") return std::vector<Built>{factSet(element, at, width)};
-	if(type == "ImageSet") {
-		std::vector<Built> images;
-		const float size = imageSize(textOf(element.value("imageSize", json()), "medium"));
-		const json& list = element.value("images", json::array());
-		for(std::size_t i = 0; i < (list.is_array() ? list.size() : 0); ++i) {
-			const std::string place = at + ".images[" + std::to_string(i) + "]";
-			out_.enter(place, depth + 1);
-			images.push_back(image(list[i], place, size, size));
-		}
-		return std::vector<Built>{row(out_.uniqueId("images"), std::move(images))};
-	}
+	if(type == "ImageSet") return std::vector<Built>{imageSet(element, at, depth)};
 	if(type == "ActionSet") return actions(element.value("actions", json()), at + ".actions", width, depth + 1);
-	if(type == "Input.Text" || type == "Input.Number" || type == "Input.Date" || type == "Input.Time" ||
-	   type == "Input.Toggle" || type == "Input.ChoiceSet")
-		return std::vector<Built>{input(type, element, at, width)};
+	if(std::ranges::contains(inputTypes, type)) return std::vector<Built>{input(type, element, at, width)};
 	return std::nullopt;
+}
+
+Built CardConverter::imageSet(const json& element, const std::string& at, int depth) {
+	std::vector<Built> images;
+	const float size = imageSize(textOf(element.value("imageSize", json()), "medium"));
+	const json& list = element.value("images", json::array());
+	for(std::size_t i = 0; i < (list.is_array() ? list.size() : 0); ++i) {
+		const std::string place = at + ".images[" + std::to_string(i) + "]";
+		out_.enter(place, depth + 1);
+		images.push_back(image(list[i], place, size, size));
+	}
+	return row(out_.uniqueId("images"), std::move(images));
 }
 
 Built CardConverter::textBlock(const json& element, const std::string& text, float width) {

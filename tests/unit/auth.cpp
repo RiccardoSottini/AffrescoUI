@@ -222,6 +222,20 @@ TEST_CASE("auth: a redirect with another state is refused, and the sign-in start
 	CHECK(shown.auth()["state"] == "signedIn");
 }
 
+TEST_CASE("auth: a refused sign-in runs onError with the error, and keeps nothing") {
+	MockIdentity identity;
+	json document = authScreen(identity, "device");
+	document["connections"]["api"]["auth"]["clientId"] = "someoneElse"; // the provider refuses it: invalid_client
+	const auto store = std::make_shared<affresco::MemorySecretStore>();
+	Shown shown(identity, document, store);
+	identity.approve();
+	REQUIRE(shown.run("login", "/failed"));
+	CHECK(stateAt(*shown.screen, "/failed").get<std::string>().contains("invalid_client"));
+	CHECK(stateAt(*shown.screen, "/who").is_null()); // onDone never ran
+	CHECK(shown.auth()["state"] == "error");
+	CHECK_FALSE(store->read("affrescoui/affrescoui/api").has_value());
+}
+
 TEST_CASE("auth: a request that needs a sign-in fails with signedOut, and sends nothing") {
 	MockIdentity identity;
 	Shown shown(identity, authScreen(identity, "device"), std::make_shared<affresco::MemorySecretStore>());

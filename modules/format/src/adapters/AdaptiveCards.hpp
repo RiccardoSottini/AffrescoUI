@@ -50,6 +50,12 @@ private:
 	[[nodiscard]] Built columnSet(const json& element, const std::string& at, float width, int depth);
 	/// @brief FactSet: a title and a value on each line.
 	[[nodiscard]] Built factSet(const json& element, const std::string& at, float width);
+	/// @brief ImageSet: its images side by side, each as large as its "imageSize".
+	/// @param element The element.
+	/// @param at Its place.
+	/// @param depth How deeply it nests.
+	/// @return The row.
+	[[nodiscard]] Built imageSet(const json& element, const std::string& at, int depth);
 
 	/// @brief The inputs: Input.Text, Number, Date, Time, Toggle and ChoiceSet, bound to `state.inputs.<id>`.
 	[[nodiscard]] Built input(const std::string& type, const json& element, const std::string& at, float width);
