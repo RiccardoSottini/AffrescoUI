@@ -1,6 +1,7 @@
 /// @file
 /// @brief Unit tests for the core module: parsing JSON from outside the app.
 
+#include <affresco/core/Executor.hpp>
 #include <affresco/core/Json.hpp>
 #include <affresco/core/Log.hpp>
 #include <affresco/core/Portable.hpp>
@@ -10,6 +11,8 @@
 #include <chrono>
 #include <cstddef>
 #include <ctime>
+#include <functional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -167,4 +170,17 @@ TEST_CASE("core: the portable C library calls read the environment and break dow
 	CHECK(later.tm_min == 1);
 	CHECK(later.tm_sec == 1);
 	CHECK(affresco::localTime(86'400).tm_year == 70); // whatever the time zone, still 1970
+}
+
+TEST_CASE("core: a batch of tasks is emptied even when one throws, so none runs twice") {
+	int runs = 0;
+	std::vector<std::function<void()>> tasks{[&runs] { ++runs; }, [] { throw std::runtime_error("failed"); },
+	                                         [&runs] { runs += 10; }};
+	CHECK_THROWS_AS(affresco::runTasks(tasks), std::runtime_error);
+	CHECK(runs == 1);
+	CHECK(tasks.empty()); // a queue that swaps it back in would otherwise run the first task again
+	tasks.emplace_back([&runs] { ++runs; });
+	affresco::runTasks(tasks);
+	CHECK(runs == 2);
+	CHECK(tasks.empty());
 }
