@@ -1,5 +1,6 @@
 """The host at the other end of agent.sock: where it listens, connecting to it, and the messages it sends."""
 
+import collections
 import itertools
 import json
 import os
@@ -12,6 +13,7 @@ import threading
 import time
 
 TIMEOUT = 10  # seconds to wait for the host to answer
+MAX_EVENTS = 1000  # news kept for get_events: an agent that never asks would otherwise keep all of it
 NO_UNIX_SOCKETS = ("this Python has no Unix domain sockets (socket.AF_UNIX), which the host listens on: on Windows "
                    "no released CPython has them yet, see mcp/README.md")
 
@@ -72,7 +74,8 @@ class Host:
         self.connecting = threading.Lock()  # held while connecting (and launching), apart from self.lock
         self.ids = itertools.count(1)
         self.waiting = {}  # request id -> [threading.Event, reply]
-        self.events = []   # what happened since the agent last asked
+        self.events = collections.deque(maxlen=MAX_EVENTS)  # what happened since the agent last asked, the latest
+        self.dropped = 0  # older news the bound let go since then
         self.rules = ("default", [])  # the mode and grants last reported
 
     def ensure(self):
@@ -171,8 +174,9 @@ class Host:
         return {"mode": rules[0], "grants": rules[1]}
 
     def note(self, event):
-        """Keeps news for the next get_events."""
+        """Keeps news for the next get_events, the oldest let go once MAX_EVENTS wait."""
         with self.lock:
+            self.dropped += len(self.events) == MAX_EVENTS
             self.events.append(event)
 
     def send(self, message):
@@ -201,5 +205,9 @@ class Host:
     def take_events(self):
         """The news since the last call, oldest first; there is none left after it."""
         with self.lock:
-            events, self.events = self.events, []
+            events, dropped = list(self.events), self.dropped
+            self.events.clear()
+            self.dropped = 0
+        if dropped:
+            log(f"{dropped} older events were dropped: get_events keeps the latest {MAX_EVENTS}")
         return events

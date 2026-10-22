@@ -350,6 +350,19 @@ class Requests(unittest.TestCase):
         self.assertEqual(list(server.requests), ["r2", "r3"])
 
 
+class Events(unittest.TestCase):
+    def test_news_nobody_takes_is_bounded(self):
+        host = mcp.Host(os.path.join(HERE, "no-such-folder"), None, lambda request: None)
+        for n in range(mcp.MAX_EVENTS + 5):
+            host.note({"event": "tick", "data": n})
+        written = io.StringIO()
+        with contextlib.redirect_stderr(written):
+            events = host.take_events()
+        self.assertEqual([event["data"] for event in events], list(range(5, mcp.MAX_EVENTS + 5)))
+        self.assertIn("5 older events were dropped", written.getvalue())
+        self.assertEqual(host.take_events(), [])
+
+
 class Connecting(unittest.TestCase):
     """Calls on several threads at once share one connection to the host."""
 

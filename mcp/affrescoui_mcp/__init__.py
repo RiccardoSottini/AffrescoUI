@@ -33,7 +33,7 @@ from .document import (
     describe_type, state_types, outline, locate, pruned, find_nodes, pointer_parts, apply_patch,
 )
 from .guide import GUIDE_TOPIC, guide_sections, format_guide
-from .host import TIMEOUT, NO_UNIX_SOCKETS, log, default_socket_dir, check_socket_dir, connect_unix, Host
+from .host import TIMEOUT, MAX_EVENTS, NO_UNIX_SOCKETS, log, default_socket_dir, check_socket_dir, connect_unix, Host
 from .replies import scenarios_report, DENIALS, explain_denial, describe, screen_info, malformed, client_name
 from .repository import ROOT, guide_path, find_cli, repository_path
 from .server import PROTOCOLS, UnknownTool, coordination_tool, Server, main
@@ -42,7 +42,7 @@ from .tools import object_schema, TOOLS, COORDINATION_TOOLS, PROMPTS, SERVE_PROM
 __all__ = [
     "compact", "diff", "changes_since", "by_id", "find_node", "trees", "walk_nodes", "node_type", "short", "summary",
     "TYPE_WORDS", "describe_type", "state_types", "outline", "locate", "pruned", "find_nodes", "pointer_parts",
-    "apply_patch", "GUIDE_TOPIC", "guide_sections", "format_guide", "TIMEOUT", "NO_UNIX_SOCKETS", "log",
+    "apply_patch", "GUIDE_TOPIC", "guide_sections", "format_guide", "TIMEOUT", "MAX_EVENTS", "NO_UNIX_SOCKETS", "log",
     "default_socket_dir", "check_socket_dir", "connect_unix", "Host", "scenarios_report", "DENIALS", "explain_denial",
     "describe", "screen_info", "malformed", "client_name", "ROOT", "guide_path", "find_cli", "repository_path",
     "PROTOCOLS", "UnknownTool", "coordination_tool", "Server", "main", "object_schema", "TOOLS", "COORDINATION_TOOLS",
