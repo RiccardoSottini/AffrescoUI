@@ -92,7 +92,28 @@ std::vector<Item> readList(const json& values, const char* key, const std::strin
 	return items;
 }
 
-/// @brief Sets an editor's find highlight: {text, regex, wholeWord, caseSensitive}, or none.
+/// @brief Runs the find step a find object asks for, once per "request": "step" is first, next, previous, replace or
+/// replaceAll, and "replace" the replacement.
+/// @param editor The editor.
+/// @param find The find object.
+/// @param at Its place, for errors.
+void applyFindStep(TextEditor& editor, const json& find, const std::string& at) {
+	if(!find.contains("step") || !find.contains("request")) return;
+	using Step = TextEditor::FindStep;
+	static const std::array<std::pair<std::string_view, Step>, 5> steps = {
+	    {{"first", Step::First}, {"next", Step::Next}, {"previous", Step::Previous}, {"replace", Step::Replace},
+	     {"replaceAll", Step::ReplaceAll}}};
+	const std::string name = string(find["step"], at + ".step");
+	const auto found = std::ranges::find(steps, std::string_view(name), &std::pair<std::string_view, Step>::first);
+	if(found == steps.end()) fail(at + ".step", "expected first, next, previous, replace or replaceAll");
+	const float request = number(find["request"], at + ".request");
+	if(request < 1) return; // none asked for yet
+	const std::string replacement = find.contains("replace") ? text(find["replace"]) : std::string();
+	static_cast<void>(editor.findStep(found->second, replacement, static_cast<std::uint64_t>(request)));
+}
+
+/// @brief Sets an editor's find highlight: {text, regex, wholeWord, caseSensitive, inSelection}, or none, and runs
+/// its step (applyFindStep()).
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param path The node's place, for errors.
@@ -109,6 +130,8 @@ void applyFind(TextEditor& editor, const json& values, const std::string& path) 
 	                             .caseSensitive = flag("caseSensitive")};
 	// A pattern that doesn't compile highlights nothing: the user may be typing it
 	static_cast<void>(editor.setFind(find.contains("text") ? text(find["text"]) : std::string(), options));
+	editor.setFindInSelection(flag("inSelection"));
+	applyFindStep(editor, find, at);
 }
 
 /// @brief Sets an editor's grammar: a highlighter for the language "grammar" names (or a file name's), its styles in

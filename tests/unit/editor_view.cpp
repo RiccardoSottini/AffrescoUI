@@ -236,6 +236,33 @@ TEST_CASE("editor view: replacing in a read-only editor changes nothing") {
 	CHECK(test.editor.text() == "foo");
 }
 
+TEST_CASE("editor view: find in selection counts, steps and replaces only inside the selection") {
+	ViewWindow test("foo foo\nfoo foo");
+	CHECK_FALSE(test.editor.setFind("foo", {}));
+	CHECK(test.editor.matchCount() == 4);
+	test.press(Key::End, shiftKey); // the first line
+	test.editor.setFindInSelection(true);
+	CHECK(test.editor.matchCount() == 2);
+	CHECK(test.editor.findStep(TextEditor::FindStep::ReplaceAll, "bar", 1));
+	CHECK(test.editor.text() == "bar bar\nfoo foo");
+	CHECK_FALSE(test.editor.findStep(TextEditor::FindStep::ReplaceAll, "bar", 1)); // the same request runs once
+	test.editor.setFindInSelection(false);
+	CHECK(test.editor.matchCount() == 2);
+}
+
+TEST_CASE("editor view: find steps select the first match, then the next and the previous") {
+	ViewWindow test("a1 a2 a3");
+	CHECK_FALSE(test.editor.setFind("a\\d", {.regex = true}));
+	CHECK(test.editor.findStep(TextEditor::FindStep::First, {}, 1));
+	CHECK(test.editor.caret() == TextEditor::Position{0, 2});
+	CHECK(test.editor.findStep(TextEditor::FindStep::Next, {}, 2));
+	CHECK(test.editor.caret() == TextEditor::Position{0, 5});
+	CHECK(test.editor.findStep(TextEditor::FindStep::Previous, {}, 3));
+	CHECK(test.editor.caret() == TextEditor::Position{0, 2});
+	CHECK(test.editor.findStep(TextEditor::FindStep::Replace, "b", 4));
+	CHECK(test.editor.text() == "b a2 a3");
+}
+
 TEST_CASE("editor view: Cmd+Alt+[ folds the caret's block and Cmd+Alt+] unfolds it") {
 	const ViewWindow test("a\n  b\nc");
 	test.press(Key::LeftBracket, superKey | altKey);

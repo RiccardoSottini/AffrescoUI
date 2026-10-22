@@ -212,6 +212,25 @@ public:
 	std::size_t replaceAll(std::string_view replacement);
 	/// @brief How many matches the text has, counted up to maxMatches.
 	[[nodiscard]] std::size_t matchCount() const;
+	/// @brief Whether a find pattern is set (and compiles).
+	[[nodiscard]] bool finding() const noexcept { return find_.valid(); }
+	/// @brief Limits find and replace to the selection, as it is when turned on (an empty selection: no limit).
+	/// @param inSelection true to limit them, false for the whole text.
+	void setFindInSelection(bool inSelection);
+	/// @brief A step of find and replace a find bar asks for.
+	enum class FindStep {
+		First,     ///< The first match from the selection's start (as the pattern is typed).
+		Next,      ///< The next match.
+		Previous,  ///< The previous match.
+		Replace,   ///< replaceNext().
+		ReplaceAll ///< replaceAll().
+	};
+	/// @brief Runs a step once per request: a step whose request was run already does nothing.
+	/// @param step The step.
+	/// @param replacement The replacement, for Replace and ReplaceAll.
+	/// @param request A number that changes for each new step.
+	/// @return Whether it ran.
+	bool findStep(FindStep step, std::string_view replacement, std::uint64_t request);
 
 	/// @brief Sets the font.
 	/// @param font The font, or nullptr for the window's default.
@@ -572,6 +591,11 @@ private:
 	/// @param out Gets each match's column and length, in code points.
 	void lineMatches(std::size_t line, std::size_t from, std::size_t cap,
 	                 std::vector<std::pair<std::size_t, std::size_t>>& out) const;
+	/// @brief Whether a match lies in the find scope (setFindInSelection()), or there is none.
+	/// @param line Its line.
+	/// @param column Its column.
+	/// @param length Its length, in code points.
+	[[nodiscard]] bool inScope(std::size_t line, std::size_t column, std::size_t length) const noexcept;
 	/// @brief Keeps visibleMatches_ the matches of the rows drawn.
 	/// @param firstLine The first line drawn.
 	/// @param lastLine One past the last.
@@ -723,6 +747,8 @@ private:
 	std::string findText_;             ///< Its text.
 	PatternOptions findOptions_;       ///< Its options.
 	std::uint64_t findGeneration_ = 0; ///< Counts setFind() calls, for the cached matches.
+	std::optional<std::pair<Position, Position>> findScope_; ///< See setFindInSelection().
+	std::uint64_t findRequest_ = 0;                          ///< The last request findStep() ran.
 	/// @brief The matches of the rows drawn last: line, column and length.
 	struct VisibleMatch {
 		std::size_t line;   ///< The line.

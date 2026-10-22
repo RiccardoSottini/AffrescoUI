@@ -1697,6 +1697,24 @@
 							},
 							"caseSensitive": {
 								"type": "boolean"
+							},
+							"inSelection": {
+								"type": "boolean"
+							},
+							"replace": {
+								"type": "string"
+							},
+							"step": {
+								"enum": [
+									"first",
+									"next",
+									"previous",
+									"replace",
+									"replaceAll"
+								]
+							},
+							"request": {
+								"type": "number"
 							}
 						}
 					},
