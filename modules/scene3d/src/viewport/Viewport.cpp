@@ -77,6 +77,28 @@ namespace {
 	return ids;
 }
 
+/// @brief A colour from three finite numbers, clamped to 0 to 1.
+/// @param value The array of three numbers. @param fallback When one isn't finite. @return The colour.
+[[nodiscard]] Vec3 arrayColor(const json& value, Vec3 fallback) noexcept {
+	Vec3 color{value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
+	if(!isFinite(color)) return fallback;
+	return {std::clamp(color.x, 0.0f, 1.0f), std::clamp(color.y, 0.0f, 1.0f), std::clamp(color.z, 0.0f, 1.0f)};
+}
+
+/// @brief A colour from `#rrggbb` (anything after it ignored).
+/// @param text The text. @param fallback When it isn't one. @return The colour.
+[[nodiscard]] Vec3 hexColor(const std::string& text, Vec3 fallback) noexcept {
+	if(text.size() < 7 || text[0] != '#') return fallback;
+	Vec3 color;
+	for(int channel = 0; channel < 3; ++channel) {
+		const int high = hexValue(text[static_cast<std::size_t>(1 + channel * 2)]);
+		const int low = hexValue(text[static_cast<std::size_t>(2 + channel * 2)]);
+		if(high < 0 || low < 0) return fallback;
+		color[channel] = static_cast<float>(high * 16 + low) / 255.0f;
+	}
+	return color;
+}
+
 } // namespace
 
 const char* shadingName(Shading shading) noexcept {
@@ -90,22 +112,10 @@ std::optional<Shading> shadingNamed(std::string_view name) noexcept {
 }
 
 Vec3 colorFromJson(const json& value, Vec3 fallback) noexcept {
-	if(value.is_array() && value.size() == 3 && value[0].is_number() && value[1].is_number() && value[2].is_number()) {
-		Vec3 color{value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
-		if(!isFinite(color)) return fallback;
-		return {std::clamp(color.x, 0.0f, 1.0f), std::clamp(color.y, 0.0f, 1.0f), std::clamp(color.z, 0.0f, 1.0f)};
-	}
+	if(value.is_array() && value.size() == 3 && value[0].is_number() && value[1].is_number() && value[2].is_number())
+		return arrayColor(value, fallback);
 	if(!value.is_string()) return fallback;
-	const auto& text = value.get_ref<const std::string&>();
-	if(text.size() < 7 || text[0] != '#') return fallback;
-	Vec3 color;
-	for(int channel = 0; channel < 3; ++channel) {
-		const int high = hexValue(text[static_cast<std::size_t>(1 + channel * 2)]);
-		const int low = hexValue(text[static_cast<std::size_t>(2 + channel * 2)]);
-		if(high < 0 || low < 0) return fallback;
-		color[channel] = static_cast<float>(high * 16 + low) / 255.0f;
-	}
-	return color;
+	return hexColor(value.get_ref<const std::string&>(), fallback);
 }
 
 ViewportSettings viewportSettingsFromJson(const json& params) noexcept {
