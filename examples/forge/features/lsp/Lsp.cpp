@@ -301,14 +301,28 @@ private:
 		const json& offered = server.capabilities.contains(request.kind.capability) ? server.capabilities[request.kind.capability]
 		                                                                            : json();
 		if(offered.is_null() || offered == false) return show(request, std::nullopt, "the language server doesn't offer that");
+		const std::optional<json> params = paramsFor(server, request);
+		if(!params) return show(request, std::nullopt, request.id + " isn't open");
+		call(server.service, std::string(request.kind.method), *params,
+		     [this, &server, request](std::optional<json> result, const std::string& error) {
+			     answered(server, request, std::move(result), error);
+		     });
+	}
+
+	/// @brief A request's params: its document (opened with the server first), its position and its kind's own.
+	/// @param server The server, ready.
+	/// @param request The request.
+	/// @return They, or std::nullopt if its file has no buffer.
+	std::optional<json> paramsFor(Server& server, const Request& request) {
+		if(request.kind.name == "workspaceSymbols") return json{{"query", request.query}};
 		json params = json::object();
 		std::shared_ptr<affresco::TextModel> model;
-		if(!request.id.empty() && request.kind.name != "workspaceSymbols") {
+		if(!request.id.empty()) {
 			model = open(server, request.id, request.languageId);
-			if(!model) return show(request, std::nullopt, request.id + " isn't open");
+			if(!model) return std::nullopt;
 			params["textDocument"] = {{"uri", lsp::uriOf(server.root, request.id)}};
 		}
-		if(request.kind.positioned) {
+		if(request.kind.positioned) { // every kind but workspaceSymbols names a file (request())
 			const std::size_t line = std::min(request.line, model->lineCount() - 1);
 			params["position"] = {{"line", line}, {"character", serverColumn(server, *model, line, request.column)}};
 		}
@@ -316,20 +330,25 @@ private:
 		if(request.kind.name == "references") params["context"] = {{"includeDeclaration", true}};
 		if(request.kind.name == "rename") params["newName"] = request.newName;
 		if(request.kind.name == "format") params["options"] = {{"tabSize", 4}, {"insertSpaces", false}};
-		if(request.kind.name == "workspaceSymbols") params = {{"query", request.query}};
-		call(server.service, std::string(request.kind.method), params,
-		     [this, &server, request](std::optional<json> result, const std::string& error) {
-			     if(!result) return show(request, std::nullopt, error);
-			     if(request.kind.name == "tokens" && result->is_object()) {
-				     const json& provider = server.capabilities["semanticTokensProvider"];
-				     (*result)["legend"] = provider.is_object() && provider.contains("legend") ? provider["legend"] : json();
-			     }
-			     try {
-				     show(request, lsp::normalize(request.kind.name, *result, server.root, request.id, {}, mapper(server)), {});
-			     } catch(const std::exception& failure) {
-				     show(request, std::nullopt, failure.what());
-			     }
-		     });
+		return params;
+	}
+
+	/// @brief Shows a server's answer to a request, in the screen's shape.
+	/// @param server The server.
+	/// @param request The request.
+	/// @param result The result, or nothing if the call failed.
+	/// @param error Why it failed.
+	void answered(Server& server, const Request& request, std::optional<json> result, const std::string& error) {
+		if(!result) return show(request, std::nullopt, error);
+		if(request.kind.name == "tokens" && result->is_object()) {
+			const json& provider = server.capabilities["semanticTokensProvider"];
+			(*result)["legend"] = provider.is_object() && provider.contains("legend") ? provider["legend"] : json();
+		}
+		try {
+			show(request, lsp::normalize(request.kind.name, *result, server.root, request.id, {}, mapper(server)), {});
+		} catch(const std::exception& failure) {
+			show(request, std::nullopt, failure.what());
+		}
 	}
 
 	/// @brief Opens a document with a server (didOpen) if it isn't yet, closing those whose buffers are gone, and
