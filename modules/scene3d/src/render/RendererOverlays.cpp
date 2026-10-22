@@ -108,8 +108,9 @@ void addMarkers(Lines& lines, const FrameView& view) {
 			offset[i] = s * 0.5f;
 			lines.add(position - offset, position + offset, markerColor);
 		}
-		if(node.camera || (node.light && node.light.value().type != LightType::Point))
-			lines.add(position, position + direction * (s * 4.0f), markerColor);
+		const bool aimed =
+		    node.light.transform([](const Light& light) { return light.type != LightType::Point; }).value_or(false);
+		if(node.camera || aimed) lines.add(position, position + direction * (s * 4.0f), markerColor);
 	}
 }
 

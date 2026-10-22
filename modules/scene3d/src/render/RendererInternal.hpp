@@ -92,7 +92,7 @@ private:
 	[[nodiscard]] const GlProgram& programFor(const json* graph);
 	/// @brief Sets the uniforms every mesh in a frame shares. @param view The frame. @param program In use.
 	/// @param shadow The shadow map.
-	void setShared(const FrameView& view, const GlProgram& program, const ShadowMap& shadow) const;
+	static void setShared(const FrameView& view, const GlProgram& program, const ShadowMap& shadow);
 	/// @brief Draws the meshes' edges. @param view The frame.
 	void drawWireframe(const FrameView& view);
 	/// @brief Draws a mesh with one program's position attribute only. @param item It. @param program In use.

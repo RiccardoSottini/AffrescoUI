@@ -16,6 +16,9 @@
 
 using namespace affresco::imaging;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A source that paints each tile one colour from its place, and counts its loads.
@@ -256,3 +259,5 @@ TEST_CASE("imaging tiles: undo restores tiles that came from a source") {
 	CHECK(image.pixel(5, 5) == before);
 	CHECK(step.memoryBytes() >= 2 * tilePixels * 4);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

@@ -106,7 +106,7 @@ ColorProfile::ColorProfile(void* handle) {
 	state->handle = {handle, [](void* profile) { cmsCloseProfile(profile); }};
 	if(handle == nullptr) throw DocumentError("imaging: the colour profile could not be built");
 	if(!usable(handle)) throw DocumentError("imaging: an unsupported colour profile (only RGB, grey and CMYK)");
-	state->model = modelOf(handle).value(); // usable() has checked it
+	state->model = modelOf(handle).value(); // NOLINT(bugprone-unchecked-optional-access): usable() has checked it
 	std::array<char, 256> text{};
 	if(cmsGetProfileInfoASCII(handle, cmsInfoDescription, "en", "US", text.data(), text.size()) > 0)
 		state->name = text.data();

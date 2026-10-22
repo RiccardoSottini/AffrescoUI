@@ -11,6 +11,9 @@
 
 using namespace affresco::imaging;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A 300 by 300 image of four tiles: a red to blue ramp, half transparent on the right, the top left tile empty.
@@ -140,3 +143,5 @@ TEST_CASE("imaging codec: files beyond the limits, broken files and broken profi
 	CHECK_FALSE(ignored.profile);
 	CHECK_FALSE(ignored.warning.empty());
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

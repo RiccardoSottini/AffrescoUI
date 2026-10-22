@@ -23,6 +23,9 @@
 
 using namespace affresco::imaging;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A resident tile of a given size.
@@ -326,3 +329,5 @@ TEST_CASE("imaging canvas: a view far off the document composites nothing") {
 	CHECK(model->statistics.regionWidth > 0);
 	surface.release();
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

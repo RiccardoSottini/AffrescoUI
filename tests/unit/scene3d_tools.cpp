@@ -16,6 +16,9 @@
 using namespace affresco::scene3d;
 using affresco::json;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief Whether two vectors are within a tolerance. @param a One. @param b The other. @param tolerance It.
@@ -280,3 +283,5 @@ TEST_CASE("material graphs refuse wrong kinds, cycles, unknown ops and source te
 	CHECK_FALSE(errors(many).empty());
 	CHECK_FALSE(errors(json::array()).empty());
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

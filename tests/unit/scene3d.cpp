@@ -14,6 +14,9 @@
 
 using namespace affresco::scene3d;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief Whether two vectors are within a tolerance. @param a One. @param b The other. @param tolerance It.
@@ -291,3 +294,5 @@ TEST_CASE("scene3d: an export loads back") {
 	CHECK(near(before.min, after.min, 1e-3f));
 	CHECK(near(before.max, after.max, 1e-3f));
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

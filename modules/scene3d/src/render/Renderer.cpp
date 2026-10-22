@@ -333,7 +333,7 @@ const GlProgram& SceneRenderer::programFor(const json* graph) {
 	return found->second.valid() ? found->second : pbr_;
 }
 
-void SceneRenderer::setShared(const FrameView& view, const GlProgram& program, const ShadowMap& shadow) const {
+void SceneRenderer::setShared(const FrameView& view, const GlProgram& program, const ShadowMap& shadow) {
 	setMatrix(program.uniform("viewProjection"), view.viewProjection);
 	glUniform3f(program.uniform("eye"), view.eye.x, view.eye.y, view.eye.z);
 	glUniform1f(program.uniform("exposure"), view.settings.exposure);

@@ -11,6 +11,9 @@
 
 using namespace affresco::imaging;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A document of a painted layer with a mask, a group holding a layer, and an adjustment on top.
@@ -148,3 +151,5 @@ TEST_CASE("imaging project: damaged and oversized files are refused, a damaged t
 	(void)damaged.document->image(damaged.document->activeLayer()->pixels)->pixel(300, 100);
 	CHECK(damaged.document->listed().size() == 4);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)
