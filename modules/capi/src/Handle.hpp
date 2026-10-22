@@ -11,6 +11,7 @@
 #include "affresco/Screen.hpp"
 
 #include <cstddef>
+#include <cstring>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -87,6 +88,18 @@ void copyOut(std::string_view text, char** out);
 /// @param what Its name.
 /// @throws Failure If it is NULL.
 void require(const void* pointer, std::string_view what);
+
+/// @brief Reads an enum a C caller passed as the int it holds. C allows any int there, but in C++ a value outside the
+/// enum's range is undefined even to compare, so the check that refuses it reads it this way.
+/// @tparam Enum The enum, the size of an int.
+/// @param value What was passed.
+/// @return The int it holds.
+template <typename Enum> int fromC(const Enum& value) noexcept {
+	static_assert(sizeof(Enum) == sizeof(int));
+	int raw = 0;
+	std::memcpy(&raw, &value, sizeof raw);
+	return raw;
+}
 
 /// @brief The work posted to a headless screen, run in afr_screen_step(): its Executor.
 class TaskQueue final : public Executor {

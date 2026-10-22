@@ -9,6 +9,7 @@
 #include <cstring>
 
 using affresco::capi::Failure;
+using affresco::capi::fromC;
 using affresco::capi::guarded;
 using affresco::capi::require;
 
@@ -128,7 +129,7 @@ afr_status afr_screen_mouse(afr_screen* screen, afr_mouse_action action, double 
 		requireFinite(y, "y");
 		if(modifiers < 0 || modifiers > allModifiers) throw Failure{AFR_ERROR_ARGUMENT, "modifiers has unknown bits"};
 		const affresco::Vec2 position{static_cast<float>(x), static_cast<float>(y)};
-		switch(action) {
+		switch(fromC(action)) {
 		case AFR_MOUSE_MOVE:
 			window.routeMouseMove(position);
 			return AFR_OK;
@@ -157,7 +158,8 @@ afr_status afr_screen_key(afr_screen* screen, int key, afr_key_action action, in
 	return guarded([&] {
 		affresco::Window& window = *anyMode(screen).window;
 		if(key < -1 || key > lastKey) throw Failure{AFR_ERROR_ARGUMENT, "key is not a GLFW key code"};
-		if(action != AFR_KEY_RELEASE && action != AFR_KEY_PRESS && action != AFR_KEY_REPEAT)
+		if(const int value = fromC(action);
+		   value != AFR_KEY_RELEASE && value != AFR_KEY_PRESS && value != AFR_KEY_REPEAT)
 			throw Failure{AFR_ERROR_ARGUMENT, "action is not an afr_key_action"};
 		if(modifiers < 0 || modifiers > allModifiers) throw Failure{AFR_ERROR_ARGUMENT, "modifiers has unknown bits"};
 		window.routeKey(

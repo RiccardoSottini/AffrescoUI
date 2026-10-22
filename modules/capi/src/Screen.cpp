@@ -13,6 +13,7 @@
 using affresco::capi::checkedString;
 using affresco::capi::checkedText;
 using affresco::capi::Failure;
+using affresco::capi::fromC;
 using affresco::capi::guarded;
 using affresco::capi::require;
 
@@ -36,7 +37,8 @@ afr_options readOptions(const afr_options* given) {
 		throw Failure{AFR_ERROR_ARGUMENT, "options.size is not one this library knows (use afr_options_init())"};
 	std::memcpy(&options, given, given->size);
 	options.size = sizeof(afr_options);
-	if(options.mode != AFR_MODE_WINDOW && options.mode != AFR_MODE_HEADLESS && options.mode != AFR_MODE_EMBEDDED)
+	if(const int mode = fromC(options.mode);
+	   mode != AFR_MODE_WINDOW && mode != AFR_MODE_HEADLESS && mode != AFR_MODE_EMBEDDED)
 		throw Failure{AFR_ERROR_ARGUMENT, "options.mode is not an afr_mode"};
 	if(options.width < 0 || options.height < 0 || options.width > largestSize || options.height > largestSize)
 		throw Failure{AFR_ERROR_ARGUMENT, "options.width and options.height must be 0 to 16384"};

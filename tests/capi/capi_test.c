@@ -141,6 +141,8 @@ static void testGlobals(void) {
 	options.native_actions = unnamed;
 	CHECK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen) == AFR_ERROR_ARGUMENT);
 	options.native_actions = NULL;
+	options.mode = (afr_mode)9; /* not an afr_mode */
+	CHECK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen) == AFR_ERROR_ARGUMENT);
 	options.mode = AFR_MODE_EMBEDDED; /* no gl_loader */
 	CHECK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen) == AFR_ERROR_ARGUMENT);
 	CHECK(afr_screen_step(NULL, 0) == AFR_ERROR_ARGUMENT);
