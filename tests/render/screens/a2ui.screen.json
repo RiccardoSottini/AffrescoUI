@@ -1,0 +1,288 @@
+{
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Converted from A2UI 0.8",
+	"window": { "title": "A2UI", "width": 480, "height": 640 },
+	"colors": {
+		"background": "#f8fafc",
+		"card": "#ffffff",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"accent": "#2563eb",
+		"onAccent": "#ffffff",
+		"fieldBorder": "#cbd5e1",
+		"divider": "#e2e8f0",
+		"placeholder": "#fef3c7",
+		"placeholderText": "#92400e",
+		"good": "#16a34a",
+		"warning": "#d97706",
+		"attention": "#dc2626"
+	},
+	"state": {
+		"model": {
+			"garden": {
+				"season": "Spring planting starts on Saturday.",
+				"beds": { "_0": { "name": "Bed 1: herbs" }, "_1": { "name": "Bed 2: roots" } }
+			},
+			"form": { "gardener": "Ada", "weekends": true, "rows": 4.0 }
+		},
+		"literals": { "k1": "Sunny plots: tomatoes, beans, {{herbs}}" },
+		"choices": {
+			"crops": [
+				{ "id": "tomato", "label": "Tomatoes" },
+				{ "id": "bean", "label": "Beans" },
+				{ "id": "squash", "label": "Squash" }
+			]
+		}
+	},
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14.0 },
+		"small": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 12.0 },
+		"large": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 18.0 },
+		"title": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 22.0 }
+	},
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{
+				"type": "column",
+				"id": "surface",
+				"fill": 16,
+				"alignItems": "stretch",
+				"scroll": "vertical",
+				"children": [
+					{
+						"type": "column",
+						"id": "content",
+						"gap": 8.0,
+						"alignItems": "stretch",
+						"children": [
+							{
+								"type": "label",
+								"text": "Community garden",
+								"textColor": "@text",
+								"wrap": true,
+								"font": "title",
+								"height": 34.0,
+								"id": "title"
+							},
+							{
+								"type": "label",
+								"text": "{{state.model.garden.season}}",
+								"textColor": "@text",
+								"wrap": true,
+								"font": "default",
+								"height": 23.0,
+								"id": "intro"
+							},
+							{
+								"type": "row",
+								"id": "plots",
+								"gap": 8.0,
+								"alignItems": "start",
+								"children": [
+									{
+										"id": "sun",
+										"height": 66.0,
+										"color": "@card",
+										"radius": 10,
+										"borderWidth": 1,
+										"borderColor": "@divider",
+										"children": [
+											{
+												"type": "label",
+												"text": "{{state.literals.k1}}",
+												"textColor": "@text",
+												"wrap": true,
+												"font": "default",
+												"height": 42.0,
+												"id": "sunText",
+												"fill": 12
+											}
+										],
+										"grow": 1,
+										"basis": 0
+									},
+									{
+										"id": "shade",
+										"height": 66.0,
+										"color": "@card",
+										"radius": 10,
+										"borderWidth": 1,
+										"borderColor": "@divider",
+										"children": [
+											{
+												"type": "label",
+												"text": "Shaded plots: lettuce and mint",
+												"textColor": "@text",
+												"wrap": true,
+												"font": "default",
+												"height": 42.0,
+												"id": "shadeText",
+												"fill": 12
+											}
+										],
+										"grow": 1,
+										"basis": 0
+									}
+								],
+								"height": 66.0
+							},
+							{ "height": 1, "color": "@divider", "id": "rule" },
+							{
+								"type": "column",
+								"id": "beds",
+								"gap": 8.0,
+								"alignItems": "stretch",
+								"children": [
+									{
+										"type": "label",
+										"text": "{{item.name}}",
+										"textColor": "@text",
+										"wrap": true,
+										"font": "small",
+										"height": 21.0,
+										"id": "bed",
+										"repeat": {
+											"for": "item",
+											"in": "{{values(state.model.garden.beds)}}",
+											"index": "index"
+										}
+									}
+								],
+								"height": 50.0
+							},
+							{
+								"type": "column",
+								"id": "name",
+								"gap": 4.0,
+								"alignItems": "stretch",
+								"children": [
+									{
+										"type": "label",
+										"text": "Gardener",
+										"textColor": "@muted",
+										"wrap": true,
+										"font": "small",
+										"height": 21.0
+									},
+									{
+										"type": "textarea",
+										"id": "name_field",
+										"height": 32,
+										"padding": 8,
+										"color": "@card",
+										"textColor": "@text",
+										"borderWidth": 1,
+										"borderColor": "@fieldBorder",
+										"radius": 6,
+										"bind": "state.model.form.gardener"
+									}
+								],
+								"height": 57.0
+							},
+							{
+								"type": "row",
+								"id": "water",
+								"gap": 8.0,
+								"alignItems": "start",
+								"children": [
+									{
+										"type": "checkbox",
+										"id": "water_box",
+										"width": 20,
+										"height": 20,
+										"bind": "state.model.form.weekends"
+									},
+									{
+										"type": "label",
+										"text": "Water on weekends",
+										"textColor": "@text",
+										"wrap": true,
+										"font": "default",
+										"height": 23.0,
+										"grow": 1,
+										"basis": 0
+									}
+								],
+								"height": 23.0
+							},
+							{
+								"type": "list",
+								"id": "crops",
+								"items": "{{state.choices.crops}}",
+								"selection": "multiple",
+								"rowHeight": 28,
+								"height": 84.0,
+								"color": "@card",
+								"borderWidth": 1,
+								"borderColor": "@fieldBorder",
+								"textColor": "@text",
+								"bind": "state.model.form.crops"
+							},
+							{
+								"type": "slider",
+								"id": "rows",
+								"height": 24,
+								"min": 1,
+								"max": 12,
+								"bind": "state.model.form.rows"
+							},
+							{
+								"id": "plant",
+								"height": 39.0,
+								"color": "@accent",
+								"radius": 6,
+								"borderWidth": 1,
+								"borderColor": "@accent",
+								"focusable": true,
+								"role": "button",
+								"cursor": "hand",
+								"children": [
+									{
+										"type": "label",
+										"text": "Reserve a plot",
+										"textColor": "@onAccent",
+										"wrap": true,
+										"font": "default",
+										"height": 23.0,
+										"id": "plantLabel",
+										"fill": 8
+									}
+								],
+								"onClick": [
+									{
+										"emit": "userAction",
+										"data": {
+											"name": "reservePlot",
+											"surfaceId": "garden",
+											"sourceComponentId": "plant",
+											"context": { "gardener": "{{state.model.form.gardener}}" }
+										}
+									}
+								]
+							},
+							{
+								"type": "label",
+								"text": "Unsupported: Video",
+								"textColor": "@placeholderText",
+								"wrap": true,
+								"font": "small",
+								"height": 33.0,
+								"id": "placeholder",
+								"padding": 6,
+								"color": "@placeholder",
+								"radius": 6,
+								"borderWidth": 1,
+								"borderColor": "@warning",
+								"tooltip": "a2ui component 'sensor'"
+							}
+						],
+						"height": 514.0
+					}
+				]
+			}
+		]
+	}
+}

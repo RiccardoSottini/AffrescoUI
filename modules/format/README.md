@@ -17,6 +17,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
 | `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`) |
 | `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
+| `Adapters.hpp` | Other formats (SCREEN_FORMAT.md): `detect`, `fromA2ui` (A2UI 0.8), `fromAdaptiveCard` (Adaptive Cards 1.6) and `convertForeign`, pure functions that give a screen document, its warnings and A2UI's later updates as revisions (`src/adapters/`) |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),

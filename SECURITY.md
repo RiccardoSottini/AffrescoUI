@@ -359,6 +359,15 @@ costs only that message, and its log escapes what isn't printable, as the host's
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
 
+### Other formats
+An A2UI message stream or an Adaptive Card (SCREEN_FORMAT.md, "Other formats") is untrusted input, converted into a
+screen document by pure functions before anything is built: 1 MiB at most, refused before it is parsed, then the JSON
+nesting limit, 32 elements deep and 2,000 elements and messages. The screen it gives is validated like any other.
+Text from the source is never evaluated as an expression: text with `{{` is kept in the state and shown through a
+binding. Links open only as an `emit` of an `https` URL for the host to handle (no `javascript:`, `file:` or other
+schemes); images are relative files without `..`, or `https` sources that load only where the host allows remote
+images. A2UI updates become revisions applied at load, so they pass the same checks as any revision.
+
 ## Limits
 
 Input from peers, revisions and change sets is limited so that one message can't exhaust the stack or loop forever:
@@ -378,6 +387,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
 | `range(n)` | n up to 10,000 |
+| A document in another format (A2UI, Adaptive Cards) | 1 MiB, 32 elements deep, 2,000 elements and messages |
 | `pad(text, width)` | width up to 10,000 |
 | Step lists inside step lists and actions (`if`, `forEach`, `while`, `run`, named handlers) | 32 levels |
 | Components using components | 32 levels |

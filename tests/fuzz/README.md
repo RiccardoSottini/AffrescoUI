@@ -33,6 +33,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `feature_manifest` | A feature's manifest (RFC 0004), to `checkManifest` (`format/src/FeatureManifest.hpp`), and if it passes, its record composed into the Kanban template | Refused with `json::parse_error` or `DocumentError`; a manifest that passes composes into a screen or problems |
 | `catalog_index` | A catalogue's index, signed at start-up by a trusted key made then, to `readCatalog` (`format/src/FeatureCatalog.hpp`) | An index or a `DocumentError`; releases newest first and once each, keys well formed, URLs inside the folder |
 | `signature` | Any text, to the signature parsers (`format/src/FeatureSignatures.hpp`): base64url, public keys, digests, key files, canonical JSON, verifying | Fixed-length parsing gives that length or nothing and writes back as the same text; canonical JSON is its own canonical form; verifying gives the named key or a `DocumentError` |
+| `adapters` | Any text, to `convertForeign` (`format/include/affresco/format/Adapters.hpp`): an A2UI message stream or an Adaptive Card, as the screen loader converts it | Refused with `json::parse_error` or `DocumentError`, or not another format's; a conversion is a screen the format accepts, within the limits |
 
 ## Running them
 
