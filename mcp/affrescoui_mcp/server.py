@@ -15,7 +15,7 @@ from .document import apply_patch, changes_since, compact, find_nodes, locate, o
 from .guide import format_guide
 from .host import NO_UNIX_SOCKETS, Host, default_socket_dir, log
 from .replies import client_name, describe, host_failure, malformed, scenarios_report, screen_info
-from .repository import ROOT, find_cli, guide_path, repository_path
+from .repository import find_cli, guide_path, repository_path
 from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
 
 PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
@@ -148,8 +148,7 @@ class Server:
     def run_scenarios(self, args):
         """Plays a scenarios file (or the agent's own scenarios, on its screen) on the running screen's document,
         with affrescoui test, and reports compactly."""
-        path = str(args.get("file", ""))
-        path = path if os.path.isabs(path) or os.path.exists(path) else os.path.join(ROOT, path)
+        path = repository_path(str(args.get("file", "")))
         if not os.path.basename(path).endswith(".scenarios.json"):  # no other file: affrescoui test's errors
             return "error: file: expected a *.scenarios.json file", True  # would quote its keys to the agent
         with open(path, encoding="utf-8") as file:
@@ -450,6 +449,7 @@ class Server:
             self.error(rid, -32602, f"unknown tool {params.get('name')!r}")
         except Exception as failure:  # no host, it went away, did not answer, ...
             self.result(rid, {"content": [{"type": "text", "text": f"error: {failure}"}], "isError": True})
+
 
 def main():
     """Runs the server: `[--socket DIR] [--launch "command"]`, then JSON-RPC lines on stdin until it closes."""
