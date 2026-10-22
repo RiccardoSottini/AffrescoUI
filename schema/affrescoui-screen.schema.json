@@ -693,7 +693,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, graph, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, graph, timeline, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -716,6 +716,7 @@
 									"table",
 									"path",
 									"graph",
+									"timeline",
 									"outlet"
 								]
 							},
@@ -2027,7 +2028,156 @@
 						]
 					},
 					"selected": {
-						"description": "graph: the selected node's id, or a list of ids"
+						"description": "graph: the selected node's id, or a list of ids; timeline: the selected items' keys"
+					},
+					"tracks": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 10000,
+								"items": {
+									"type": "object",
+									"required": [
+										"id"
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "timeline: the tracks, { id, label, keyframes, clips, tracks, expanded, muted, locked }"
+					},
+					"duration": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 1000000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "timeline: its length in seconds"
+					},
+					"fps": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 1,
+								"maximum": 1000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "timeline: the playhead, in seconds"
+					},
+					"timeFormat": {
+						"anyOf": [
+							{
+								"enum": [
+									"frames",
+									"seconds",
+									"timecode"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"playRange": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number",
+									"minimum": 0
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"markers": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 1000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"snap": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"scale": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 1,
+								"maximum": 10000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "timeline: window units per second, 1 to 10000 (default 100)"
+					},
+					"offset": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"headerWidth": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 2000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"trackHeight": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 12,
+								"maximum": 400
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"clipColor": {
+						"$ref": "#/$defs/v1/color"
 					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
@@ -2113,6 +2263,15 @@
 					"onDelete": {
 						"$ref": "#/$defs/v1/handler"
 					},
+					"onScrub": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onKeyframeMove": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onClipChange": {
+						"$ref": "#/$defs/v1/handler"
+					},
 					"slot": {
 						"const": true,
 						"description": "In a component: where the use's children go"
@@ -2154,6 +2313,7 @@
 									"table",
 									"path",
 									"graph",
+									"timeline",
 									"outlet"
 								]
 							}
@@ -2341,7 +2501,8 @@
 						"$now",
 						"$time",
 						"$fuzzy",
-						"$fuzzySort"
+						"$fuzzySort",
+						"$keyframeValue"
 					]
 				}
 			},

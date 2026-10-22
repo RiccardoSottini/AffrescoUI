@@ -169,6 +169,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerRichTextProperties(registry);
 	registerPathType(registry);
 	registerGraphType(registry);
+	registerTimelineType(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

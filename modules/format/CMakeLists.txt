@@ -13,6 +13,7 @@ affrescoui_module(format
 	src/ExpressionFunctionsItems.cpp
 	src/ExpressionFunctionsTime.cpp
 	src/ExpressionFunctionsFuzzy.cpp
+	src/ExpressionFunctionsKeyframes.cpp
 	src/Value.cpp
 	src/Rules.cpp
 	src/BehaviourLines.cpp
@@ -60,6 +61,7 @@ affrescoui_module(format
 	src/RunsProperty.cpp
 	src/PathType.cpp
 	src/GraphType.cpp
+	src/TimelineType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp

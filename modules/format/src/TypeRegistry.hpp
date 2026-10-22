@@ -275,5 +275,8 @@ void registerPathType(TypeRegistry& registry);
 /// @brief Registers "graph" (GraphType.cpp).
 /// @param registry The registry.
 void registerGraphType(TypeRegistry& registry);
+/// @brief Registers "timeline" (TimelineType.cpp).
+/// @param registry The registry.
+void registerTimelineType(TypeRegistry& registry);
 
 } // namespace affresco::format

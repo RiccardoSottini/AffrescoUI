@@ -286,6 +286,8 @@ src/
                            stroke, the data parsed only when it changes)
                            GraphType.cpp ("graph": nodes, ports and links read within limits, the edits as
                            events for its handlers)
+                           TimelineType.cpp ("timeline": tracks, keyframes, clips and markers read within
+                           limits, scrubs and edits as events for its handlers)
                            register them, IconProperty.cpp the labels' "icon", and RunsProperty.cpp their
                            "runs", "selectable" and "selectionColor" (within limits: 256 runs, 64 Ki characters)
   SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them
