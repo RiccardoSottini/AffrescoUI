@@ -20,6 +20,26 @@ long long epochSeconds(std::chrono::system_clock::time_point time) {
 	return std::chrono::duration_cast<std::chrono::seconds>(time.time_since_epoch()).count();
 }
 
+/// @brief A sign-in an earlier run kept.
+struct Kept {
+	std::string refreshToken; ///< Its refresh token.
+	std::string account;      ///< The account it named.
+};
+
+/// @brief Reads the sign-in an earlier run kept, if it was with the same provider.
+/// @param store Where it was kept.
+/// @param key Its key there.
+/// @param provider The provider now.
+/// @return It, or nullopt if none was kept, it can't be read, or it was with another provider.
+std::optional<Kept> readKept(SecretStore& store, const std::string& key, const identity::Provider& provider) {
+	const auto kept = store.read(key);
+	const json secret = kept ? json::parse(*kept, nullptr, false) : json();
+	if(!secret.is_object() || secret.value("tokenUrl", "") != provider.tokenUrl ||
+	   secret.value("clientId", "") != provider.clientId || !secret["refresh"].is_string())
+		return std::nullopt;
+	return Kept{secret["refresh"].get<std::string>(), secret.value("account", "")};
+}
+
 } // namespace
 
 SignIn::SignIn(Executor& executor, network::Network& network, SignInOptions options)
@@ -54,19 +74,15 @@ void SignIn::declare(const std::vector<std::pair<std::string, identity::Provider
 			stop(*entry);
 			finish(*entry, "the sign-in '" + name + "' was removed");
 		}
-	for(auto& [name, entry] : entries_)
-		if(entry->state == "signedOut" && entry->refreshToken.empty()) {
-			// Resumes a sign-in kept by an earlier run, for the same provider
-			const auto kept = options_.store->read(key(name));
-			const json secret = kept ? json::parse(*kept, nullptr, false) : json();
-			if(!secret.is_object() || secret.value("tokenUrl", "") != entry->provider.tokenUrl ||
-			   secret.value("clientId", "") != entry->provider.clientId || !secret["refresh"].is_string())
-				continue;
-			entry->refreshToken = secret["refresh"].get<std::string>();
-			entry->account = secret.value("account", "");
-			entry->state = "signingIn";
-			refresh(*entry);
-		}
+	for(auto& [name, entry] : entries_) {
+		if(entry->state != "signedOut" || !entry->refreshToken.empty()) continue;
+		auto kept = readKept(*options_.store, key(name), entry->provider);
+		if(!kept) continue;
+		entry->refreshToken = std::move(kept->refreshToken);
+		entry->account = std::move(kept->account);
+		entry->state = "signingIn";
+		refresh(*entry);
+	}
 	changed();
 }
 
