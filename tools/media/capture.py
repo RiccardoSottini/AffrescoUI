@@ -122,9 +122,10 @@ def draw(gallery, build, only=(), first_frames_only=False):
                 yield output, (path if os.path.exists(path) else None), mine
 
 
-def main():
-    """Reads the command line, draws the pictures and writes them smaller; exits with 1 if one is missing."""
-    args, build, out, only, first_frames_only = sys.argv[1:], "build", MEDIA, [], False
+def parse_arguments(args):
+    """Reads the command line: (the build folder, the output folder, the outputs to draw or [] for all, whether to draw
+    only the first frames). Exits with the usage on anything else."""
+    build, out, only, first_frames_only = "build", MEDIA, [], False
     while args:
         arg = args.pop(0)
         if arg == "--build" and args:
@@ -137,7 +138,12 @@ def main():
             first_frames_only = True
         else:
             sys.exit(__doc__)
+    return build, out, only, first_frames_only
 
+
+def main():
+    """Reads the command line, draws the pictures and writes them smaller; exits with 1 if one is missing."""
+    build, out, only, first_frames_only = parse_arguments(sys.argv[1:])
     os.makedirs(out, exist_ok=True)
     total, missing = 0, 0
     for output, captured, problems in draw(load_gallery(), build, only, first_frames_only):
