@@ -47,7 +47,8 @@ std::optional<Options> parseArguments(int argc, const char* const* argv) {
 		else if(value != nullptr && arg == "--socket") options.socketDir = value;
 		else if(value != nullptr && arg == "--data") options.dataDir = value;
 		else {
-			std::cerr << "usage: affrescoui_sinopia [--socket DIR] [--data DIR] | --check FILE.scenarios.json [--out DIR]\n";
+			std::cerr
+			    << "usage: affrescoui_sinopia [--socket DIR] [--data DIR] | --check FILE.scenarios.json [--out DIR]\n";
 			return std::nullopt;
 		}
 	}

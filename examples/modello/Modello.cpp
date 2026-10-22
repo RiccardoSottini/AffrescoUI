@@ -26,8 +26,7 @@ Model::Model(std::filesystem::path samplesFolder, std::filesystem::path dataFold
 std::string primitiveMesh(Primitive primitive) { return std::string("primitive:") + primitiveName(primitive); }
 
 void registerModello(affresco::Screen& screen, const std::shared_ptr<Model>& model) {
-	screen.registerSurface(
-	    "scene", [model] { return makeSceneRenderer(model->assets, model->probe); }, {true});
+	screen.registerSurface("scene", [model] { return makeSceneRenderer(model->assets, model->probe); }, {true});
 	detail::registerViewNatives(screen, model);
 	detail::registerEditNatives(screen, model);
 	detail::registerFileNatives(screen, model);

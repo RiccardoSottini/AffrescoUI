@@ -120,7 +120,9 @@ void checkImage(const Session& session, const std::string& file) {
 		const std::string id = slide.is_object() ? slide.value("id", std::string()) : std::string();
 		const std::size_t look = std::hash<std::string>{}(slide.dump() + std::to_string(width));
 		affresco::Panel* panel = stagePanel(session, id);
-		affresco::Window* window = session.window != nullptr ? session.window : panel != nullptr ? panel->window() : nullptr;
+		affresco::Window* window = session.window != nullptr ? session.window
+		                           : panel != nullptr        ? panel->window()
+		                                                     : nullptr;
 		if(panel == nullptr || window == nullptr || session.thumbnails[id] == look) continue; // no stage for it yet
 		const std::shared_ptr<const affresco::Bitmap> image = window->renderToImage(*panel, 200.0f / width);
 		if(!image) continue;
@@ -197,7 +199,8 @@ void registerNatives(affresco::Screen& screen, const std::shared_ptr<Session>& s
 		const json with = argumentsOf(arguments);
 		const Deck deck = readDeck(with.contains("deck") ? with["deck"] : json(), session->limits);
 		const std::string name = fileName(with.value("name", deck.title)) + ".sinopia.json";
-		const std::filesystem::path folder = session->saveFolder.empty() ? session->folder / "decks" : session->saveFolder;
+		const std::filesystem::path folder =
+		    session->saveFolder.empty() ? session->folder / "decks" : session->saveFolder;
 		std::filesystem::create_directories(folder);
 		std::ofstream output(folder / name, std::ios::binary);
 		output << writeDeck(deck).dump(1, '\t') << '\n';

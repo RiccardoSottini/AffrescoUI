@@ -39,7 +39,8 @@ fs::path sourceFolder(const Model& model, const std::string& source) {
 /// @brief Whether a path names a glTF file by its extension. @param path It. @return true for `.gltf` and `.glb`.
 bool isGltf(const fs::path& path) {
 	std::string extension = path.extension().string();
-	std::ranges::transform(extension, extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	std::ranges::transform(extension, extension.begin(),
+	                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	return extension == ".gltf" || extension == ".glb";
 }
 
@@ -77,9 +78,8 @@ json listFiles(const Model& model) {
 	listFolder(model.samples, "samples", files);
 	listFolder(model.data / "imports", "imports", files);
 	// NOLINTNEXTLINE(modernize-use-ranges): a json array's iterators aren't a range std::ranges::sort takes
-	std::sort(files.begin(), files.end(), [](const json& a, const json& b) {
-		return a["name"].get<std::string>() < b["name"].get<std::string>();
-	});
+	std::sort(files.begin(), files.end(),
+	          [](const json& a, const json& b) { return a["name"].get<std::string>() < b["name"].get<std::string>(); });
 	return {{"files", std::move(files)}};
 }
 
