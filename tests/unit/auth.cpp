@@ -280,8 +280,13 @@ TEST_CASE("auth: a provider's declaration is checked") {
 	                   {"tokenUrl", "https://id.example.com/token"},
 	                   {"clientId", "app"}};
 	CHECK_NOTHROW(static_cast<void>(affresco::Screen::fromString(screen(good))));
+	json loopback = good;
+	loopback["tokenUrl"] = "http://127.0.0.1:8080/token";
+	CHECK_NOTHROW(static_cast<void>(affresco::Screen::fromString(screen(loopback))));
 	for(const auto& [key, value] : std::vector<std::pair<std::string, json>>{
 	        {"tokenUrl", "http://id.example.com/token"},          // plain HTTP off the machine
+	        {"tokenUrl", "http://localhost.example.com/token"},   // a host that only starts like the loopback
+	        {"tokenUrl", "http://127.0.0.1.example.com/token"},   // the same, with digits
 	        {"signInUrl", "https://user@id.example.com/a"},       // a user name in the URL
 	        {"clientId", "two words"},                            // not a word
 	        {"flow", "implicit"},                                 // not a flow it has

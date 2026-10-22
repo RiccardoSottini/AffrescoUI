@@ -2,6 +2,7 @@
 /// @brief openInBrowser (SignIn.hpp): the system's default browser, started without a shell.
 
 #include "affresco/net/SignIn.hpp"
+#include "affresco/net/Url.hpp"
 
 #include "affresco/core/Log.hpp"
 
@@ -23,7 +24,7 @@ extern char** environ; // NOLINT: POSIX declares it for posix_spawn's callers
 namespace affresco::net {
 
 void openInBrowser(const std::string& url) {
-	if(!url.starts_with("https://") && !url.starts_with("http://127.0.0.1") && !url.starts_with("http://localhost")) {
+	if(!isSignInPage(url)) {
 		log(LogLevel::Warning, "AffrescoUI sign-in: won't open a URL that isn't https in the browser");
 		return;
 	}
