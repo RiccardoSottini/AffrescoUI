@@ -1,0 +1,725 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Forge's agent pane and Bottega, checked headless: what the host would send on the channel is given as forgeAgent:* events, and the catalogue as featuresApplyCatalog; the runner has no host to relay to, so a request ends in the channel's error. affrescoui_render_runner agent.scenarios.json",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-agent-show-the-view",
+			"note": "The activity bar's agent entry shows the agent pane in the side bar, in place of the explorer",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "agent"
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-view",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-draft",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#explorer",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-key",
+			"note": "mod+Alt+I shows the agent pane",
+			"steps": [
+				{
+					"key": "mod+alt+i"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "agent"
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-log",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-nothing-to-review",
+			"note": "With no proposal, the review section says so and offers no decision",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"expect": {
+						"state": "agent.connected",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-review-empty",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-proposals",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-review",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-review-title",
+						"text": "REVIEW  0"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-blank-request",
+			"note": "A blank request is not sent",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Type a blank request",
+						"set": {
+							"/state/agent/draft": "   "
+						}
+					}
+				},
+				{
+					"action": "agentAsk"
+				},
+				{
+					"expect": {
+						"state": "agent.asked",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.log",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-ask",
+			"note": "A request is sent on the channel, logged and the draft cleared; with no host here the channel reports it",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Type a request",
+						"set": {
+							"/state/agent/draft": "Make the status bar blue"
+						}
+					}
+				},
+				{
+					"action": "agentAsk"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "agent.asked",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.draft",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"node": "#agent-log",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-hello",
+			"note": "The host's hello marks the pane connected, and closing marks it not",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "forgeAgent:hello",
+					"event": {
+						"type": "hello",
+						"canReview": true
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.connected",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.status",
+						"is": "Connected: agents reach Forge on agent.sock"
+					}
+				},
+				{
+					"action": "forgeAgent:closed",
+					"event": {}
+				},
+				{
+					"expect": {
+						"state": "agent.connected",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-reply",
+			"note": "An agent's reply is logged under the agent's name",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "forgeAgent:reply",
+					"event": {
+						"type": "reply",
+						"from": "agent",
+						"text": "Done: the status bar is blue now."
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.log",
+						"is": [
+							{
+								"kind": "agent",
+								"text": "agent: Done: the status bar is blue now."
+							}
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-relay-error",
+			"note": "When the relay refuses (nobody else connected), the error is logged",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "forgeAgent:error",
+					"event": {
+						"type": "error",
+						"message": "nobody else is connected to receive this request"
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.log",
+						"is": [
+							{
+								"kind": "error",
+								"text": "nobody else is connected to receive this request"
+							}
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-review-arrives",
+			"note": "A new proposal in the host's review is logged once",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "forgeAgent:review",
+					"event": {
+						"type": "review",
+						"proposals": [
+							{
+								"id": 3,
+								"author": "agent",
+								"message": "Blue status bar"
+							}
+						]
+					}
+				},
+				{
+					"action": "forgeAgent:review",
+					"event": {
+						"type": "review",
+						"proposals": [
+							{
+								"id": 3,
+								"author": "agent",
+								"message": "Blue status bar"
+							}
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.seen",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.log",
+						"is": [
+							{
+								"kind": "review",
+								"text": "Proposal #3 from agent is waiting for review"
+							}
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-agent-no-proposal-no-decision",
+			"note": "Accept, reject, preview and the changes tab do nothing with no proposal",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "agentAccept"
+				},
+				{
+					"action": "agentReject"
+				},
+				{
+					"action": "agentPreview"
+				},
+				{
+					"action": "agentOpenChanges"
+				},
+				{
+					"expect": {
+						"state": "agent.rejecting",
+						"is": null
+					}
+				},
+				{
+					"expect": {
+						"state": "agent.log",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-features-show-the-view",
+			"note": "The features entry shows Bottega; with no catalogue service on this host, it says so",
+			"steps": [
+				{
+					"action": "showFeatures"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "features"
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-view",
+						"exists": true
+					}
+				},
+				{
+					"wait": 100
+				},
+				{
+					"expect": {
+						"node": "#features-error",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-features-key",
+			"note": "mod+Shift+X shows Bottega",
+			"steps": [
+				{
+					"key": "mod+shift+x"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "features"
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-list",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-features-catalog",
+			"note": "The catalogue is kept bounded: entries without a plain name are dropped",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "featuresApplyCatalog",
+					"event": {
+						"features": [
+							{
+								"name": "wordCount",
+								"title": "Word Count",
+								"description": "Counts the words of the open file.",
+								"release": "1.2.0",
+								"installed": true,
+								"enabled": true
+							},
+							{
+								"name": "gitBlame",
+								"title": "Git Blame",
+								"description": "Who changed each line.",
+								"release": "0.4.1",
+								"installed": false
+							},
+							{
+								"name": "zenMode",
+								"title": "Zen Mode",
+								"description": "Hides everything but the editor.",
+								"release": "2.0.0",
+								"installed": true,
+								"enabled": false
+							},
+							{
+								"name": "../escape",
+								"title": "Bad"
+							},
+							{
+								"name": "a~b",
+								"title": "Bad"
+							},
+							"not an object",
+							{
+								"title": "No name"
+							}
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "features.catalog",
+						"is": [
+							{
+								"name": "wordCount",
+								"title": "Word Count",
+								"description": "Counts the words of the open file.",
+								"release": "1.2.0",
+								"installed": true,
+								"enabled": true
+							},
+							{
+								"name": "gitBlame",
+								"title": "Git Blame",
+								"description": "Who changed each line.",
+								"release": "0.4.1",
+								"installed": false,
+								"enabled": false
+							},
+							{
+								"name": "zenMode",
+								"title": "Zen Mode",
+								"description": "Hides everything but the editor.",
+								"release": "2.0.0",
+								"installed": true,
+								"enabled": false
+							}
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "features.error",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-features-install",
+			"note": "An uninstalled feature offers Install; on this host the install is refused and the error shown",
+			"steps": [
+				{
+					"action": "showAgent"
+				},
+				{
+					"action": "featuresApplyCatalog",
+					"event": {
+						"features": [
+							{
+								"name": "wordCount",
+								"title": "Word Count",
+								"description": "Counts the words of the open file.",
+								"release": "1.2.0",
+								"installed": true,
+								"enabled": true
+							},
+							{
+								"name": "gitBlame",
+								"title": "Git Blame",
+								"description": "Who changed each line.",
+								"release": "0.4.1",
+								"installed": false
+							},
+							{
+								"name": "zenMode",
+								"title": "Zen Mode",
+								"description": "Hides everything but the editor.",
+								"release": "2.0.0",
+								"installed": true,
+								"enabled": false
+							},
+							{
+								"name": "../escape",
+								"title": "Bad"
+							},
+							{
+								"name": "a~b",
+								"title": "Bad"
+							},
+							"not an object",
+							{
+								"title": "No name"
+							}
+						]
+					}
+				},
+				{
+					"action": "showFeatures"
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Choose a feature",
+						"set": {
+							"/state/features/selected": "gitBlame"
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-install",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-enable",
+						"exists": false
+					}
+				},
+				{
+					"action": "featuresInstall"
+				},
+				{
+					"wait": 100
+				},
+				{
+					"expect": {
+						"node": "#features-error",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-features-disabled",
+			"note": "A disabled feature offers Enable, and its title says so",
+			"steps": [
+				{
+					"action": "featuresApplyCatalog",
+					"event": {
+						"features": [
+							{
+								"name": "wordCount",
+								"title": "Word Count",
+								"description": "Counts the words of the open file.",
+								"release": "1.2.0",
+								"installed": true,
+								"enabled": true
+							},
+							{
+								"name": "gitBlame",
+								"title": "Git Blame",
+								"description": "Who changed each line.",
+								"release": "0.4.1",
+								"installed": false
+							},
+							{
+								"name": "zenMode",
+								"title": "Zen Mode",
+								"description": "Hides everything but the editor.",
+								"release": "2.0.0",
+								"installed": true,
+								"enabled": false
+							},
+							{
+								"name": "../escape",
+								"title": "Bad"
+							},
+							{
+								"name": "a~b",
+								"title": "Bad"
+							},
+							"not an object",
+							{
+								"title": "No name"
+							}
+						]
+					}
+				},
+				{
+					"action": "showFeatures"
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Choose a feature",
+						"set": {
+							"/state/features/selected": "zenMode"
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-enable",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-disable",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-detail-title",
+						"text": "Zen Mode  (disabled)"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-features-filter",
+			"note": "The search narrows the catalogue",
+			"steps": [
+				{
+					"action": "featuresApplyCatalog",
+					"event": {
+						"features": [
+							{
+								"name": "wordCount",
+								"title": "Word Count",
+								"description": "Counts the words of the open file.",
+								"release": "1.2.0",
+								"installed": true,
+								"enabled": true
+							},
+							{
+								"name": "gitBlame",
+								"title": "Git Blame",
+								"description": "Who changed each line.",
+								"release": "0.4.1",
+								"installed": false
+							},
+							{
+								"name": "zenMode",
+								"title": "Zen Mode",
+								"description": "Hides everything but the editor.",
+								"release": "2.0.0",
+								"installed": true,
+								"enabled": false
+							},
+							{
+								"name": "../escape",
+								"title": "Bad"
+							},
+							{
+								"name": "a~b",
+								"title": "Bad"
+							},
+							"not an object",
+							{
+								"title": "No name"
+							}
+						]
+					}
+				},
+				{
+					"action": "showFeatures"
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Search",
+						"set": {
+							"/state/features/filter": "blame"
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#features-list",
+						"exists": true
+					}
+				}
+			]
+		}
+	]
+}

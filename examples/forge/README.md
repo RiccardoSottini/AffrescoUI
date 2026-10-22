@@ -24,6 +24,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
 | `panels` | Problems, output, notifications (toasts and a list), and progress |
 | `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly in C++ (`GitStatus.*`, `LineDiff.*`) |
+| `agent` | The agent pane (Cmd+Alt+I): a request in plain words goes to the connected agents, and their change comes back as a proposal, reviewed here with its changes, evidence (screenshots, scenario results) and a live preview, then accepted or rejected; and Bottega, the Features view (Cmd+Shift+X): the host's catalogue, install, enable and disable |
 
 There are only four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
 - `forge.index`: the open folder as a tree and a flat file list, with file icons.
@@ -38,6 +39,13 @@ program and Forge's own commands only (`GitArguments.*`): status, add and restor
 (the message goes to git's input), the branch list, `switch` to a checked branch name, and `show HEAD:<path>`. Each run
 is given as an array, without a shell, against the open folder's repository (`--git-dir`, `--work-tree`). Its output is
 bounded and parsed by `forge.scm.parseStatus`, `forge.scm.parseBranches` and `forge.scm.diff`.
+
+The agent pane talks to the agents through Forge's own host: a channel to `studio.sock` in Forge's socket folder
+(`--socket`), relayed by the host to the peers on `agent.sock`. Agents hold `ask` permission there, so what one changes
+is a proposal: the pane never applies it, and accepting it names the head the person reviewed, so a proposal that
+changed since is refused. A reply, a proposal's changes and the catalogue are bounded before they are kept. Enabling or
+disabling a feature is a revision on `/features/<name>/enabled` (a name holding `/` or `~` is dropped), so it is
+reviewable and can be undone; installing one is the host's `features` service, which grants what a feature may do.
 
 ## Contribution points
 

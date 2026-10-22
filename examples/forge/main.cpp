@@ -85,6 +85,7 @@ int run(const Options& options) {
 	auto workspace = std::make_shared<forge::Workspace>();
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
+	screen.setSocketDirectory(options.socketDir); // the agent pane's channel reaches Forge's own studio.sock
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {

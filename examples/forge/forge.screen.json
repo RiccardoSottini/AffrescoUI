@@ -19,7 +19,8 @@
 	},
 
 	"include": ["features/themes/themes.json", "features/panels/panels.json", "features/palette/palette.json",
-	            "features/shell/shell.json", "features/scm/scm.json"],
+	            "features/shell/shell.json", "features/scm/scm.json",
+	            "features/agent/agent.json"],
 
 	"theme": "{{state.theme}}",
 
