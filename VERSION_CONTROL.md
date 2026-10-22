@@ -115,6 +115,116 @@ The screen file decides, in a `permissions` section that no revision can change:
 - **Reviewers** (`reviewers`) are the authors who may decide on proposals, set the mode and revoke grants. Without a
   `permissions` section anyone may; with one, only those listed.
 
+### Budgets
+`permissions.budgets` caps how much one author changes at once: the most nodes it may add, remove and change in one
+revision, and in one proposal, which is judged whole when it merges.
+
+```json
+"budgets": [
+  { "author": "agent", "added": 20, "removed": 5, "changed": 50 },
+  { "author": "role:design", "changed": 10, "over": "ask" }
+]
+```
+
+- `author` is a rule's author without a pattern: `*`, a channel, a full name, or a role (`role:design`, below).
+- Nodes are counted by id, before and after, in `root`, `screens` and `templates`: a node is changed when its own
+  keys differ (not its children), however the patch was written.
+- Over a budget the change is refused (`"over": "deny"`, the default) or sent to review (`"over": "ask"`). The reason
+  names the budget: `over the budget "agent: 20 added, 5 removed, 50 changed": 21 new nodes, at most 20`.
+- A budget applies to changes that would apply on their own; a change that already goes to review is judged by its
+  reviewers. Deny rules still come first.
+- At most 64 budgets; each limit is between 0 and 100,000.
+
+### Data rules
+`permissions.data` says which paths in `state` and in the sections an author may read, write, or never touch:
+
+```json
+"data": [
+  { "author": "agent", "read": ["/state/cards", "/state/board"], "write": ["/state/cards"],
+    "never": ["/state/token"] }
+]
+```
+
+- `read`: if given, the only paths of their part (`/state`, `/colors`...) the author reads; its `write` paths are
+  readable too. `write`: if given, the only paths of their part it changes. `never`: paths it neither reads nor
+  changes. Paths are JSON Pointers, `#id` nodes or `*` patterns, as in rules; state is at `/state`.
+- **Writes are judged by effect**, like every rule: a change to a path outside `write`, or to a `never` path, is
+  refused with the rule (`data rule: 'agent' may never touch /state/token`), even when the patch never names it.
+- **Reads are masked.** An author whose reads are limited gets the screen and the state without what it may not read
+  (array elements read as `null`, so positions stay). It can't ask for a diff, export, render, evidence or blame of
+  the whole screen, and proposals it sees list no changes. A revision that names an unreadable path (a `test` or a
+  `copy` from it would tell its value) is refused.
+- At most 64 data rules, each with at most 64 paths of at most 256 bytes.
+
+### Policy tests
+A `*.policy.json` file beside a screen holds example revisions, their authors and what they should get:
+
+```json
+{
+  "screen": "kanban.screen.json",
+  "roles": { "agent/claude-code": "design" },
+  "cases": [
+    { "name": "the agent recolours a card", "revision": { "author": "agent", "set": { "#card1/color": "#1e293b" } },
+      "expect": "allow" },
+    { "name": "21 new panels", "revision": { "author": "agent", "add": { "...": {} } }, "expect": "deny",
+      "reason": "over the budget" }
+  ]
+}
+```
+
+`affrescoui policy test <files> [--json]` judges each revision against the screen as it is (nothing is applied) and
+compares `allow`, `ask` or `deny`, and a part of the reason if given. Exit codes are those of `affrescoui test`: 0 all
+passed, 1 a case failed or a file is malformed. CI runs every `*.policy.json` in the repository, and each template has
+one. The MCP server explains a denial with the rule that matched.
+
+### Roles
+A role says what an author is in this run for (`design`, `data`, `builder`), and rules, budgets and data rules can
+name it as `role:design`.
+
+- **Only the host or a reviewer sets a role** (`setRole`), never a revision, and nobody sets the role of their own
+  channel. An agent can't give itself one.
+- Roles last for the run; a policy test file gives its own (`"roles"`). `role:` never covers a reviewer's decisions
+  or a grant.
+
+```json
+{ "type": "setRole", "id": 7, "author": "agent/claude-code", "role": "design" }
+```
+
+### Leases
+Several agents at once claim the parts they work on, so one doesn't undo another's work:
+
+```json
+{ "type": "lease", "id": 8, "author": "ada", "target": "/state/columns/0", "seconds": 300 }
+{ "type": "leased", "id": 8, "target": "/state/columns/0", "seconds": 300 }
+```
+
+- `target` is an `#id` or a JSON Pointer; `seconds` is 1 to 3600 (300 by default). Asking again renews it;
+  `release` ends it, and so does the holder's connection closing or the time running out.
+- **A revision that changes another holder's part is refused, naming the holder:** `permission denied: 'agent/ada'
+  holds a lease on /state/columns/0; wait for it to end`. Judged by effect, like every rule. A part already leased by
+  someone else, or overlapping one, can't be leased.
+- **A lease can't reach beyond its holder's rules:** a part the holder may not change at all is refused. One name holds
+  leases on one connection only.
+- A reviewer ends anyone's lease (`endLease`, with `target`). Every `review` message carries `coordination`: who is
+  connected and their role, the leases with the seconds left, and the roles. The Studio shows it in its Agents tab,
+  where a reviewer ends a lease or gives a role; the MCP server has `lease_part`, `renew_lease` and `release_part`.
+- At most 256 peers and 256 leases, 16 per holder; targets are at most 256 bytes, holder names 64.
+
+### Usage
+Usage summaries say which controls people use, so whoever improves a screen can see what runs, what fails and what
+nobody touches. They are **off by default**: `affrescoui_host --usage` switches them on, and the host asks the person
+once, on the terminal, whether to count (without a terminal or a "yes", nothing is counted; the answer is kept).
+
+- Counted per node id and action (`onClick`, `onClick:addCard`): runs and errors, the first and last time; the screens
+  navigated to; and, when asked, the controls (nodes with an id and a handler or a `bind`) never used.
+- **Never content:** ids as the document writes them, action and screen names, counts and times. No text, values,
+  state or pictures. Kept only on the device, in `<data folder>/<screen>.usage.json` beside the "persist" state; counts
+  not made for 30 days are dropped.
+- Bounded: 1,024 node and action pairs, 64 screens, names of 1 to 64 printable bytes, counts up to 10^9.
+- **Only a reviewer reads them,** and only while they are on: `getUsage` answers `{ "type": "usage", "usage": {...} }`,
+  `clearUsage` forgets the counts (the consent stays). An agent can't read them, nor grant itself that. The Studio's
+  Agents tab shows them and clears them; the MCP server has `get_usage`.
+
 ## Modes
 A reviewer sets how much they are asked, like Claude Code's permission modes (`affrescoui_host --mode`, the Studio's
 switch, or `setMode` over the live protocol):

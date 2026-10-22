@@ -448,6 +448,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Headers a connection or an operation declares | Names that are HTTP tokens of 64 bytes at most; never `Authorization`, `Proxy-Authorization`, `Cookie`, `Host`, `Content-Length` or `Transfer-Encoding` (credentials come from sign-in, never from the document) |
 | Passes of one GPU surface (`SurfaceFrame::pass`) | 8; a pass and the surface itself at most 4,096 pixels a side; the surface's framebuffer (counted twice, for colour and depth) and its passes 256 MiB in all. Over a limit, the surface is disabled with one logged error |
 | Pointer events a GPU surface holds between two renders | 256; older ones are dropped |
+| Usage summaries (`affrescoui_host --usage`, VERSION_CONTROL.md "Usage"): privacy | Off by default; on only with the host's setting and the person's one-time consent, asked on the terminal (no terminal, no consent). Node ids, action names, screen names, counts and times only: never text, values, the state or pictures. Ids as the document writes them, never evaluated |
+| Usage summaries: where they are kept and who reads them | On the device only, in `<data folder>/<screen>.usage.json` beside the "persist" state; nothing is sent anywhere. Only a peer that may review reads (`getUsage`, MCP `get_usage`) or clears (`clearUsage`) them, and only while they are on: an agent can't grant itself that |
+| Usage summaries: bounds | 1,024 node and action pairs, 64 screens, 1,024 controls listed as never used; names of 1 to 64 printable bytes (others aren't counted); counts stop at 10^9; counts not made for 30 days are dropped; a file over 1 MiB isn't read |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in

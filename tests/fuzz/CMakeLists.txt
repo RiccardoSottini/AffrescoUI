@@ -26,6 +26,7 @@ target_include_directories(affrescoui_fuzz_expression PRIVATE ${PROJECT_SOURCE_D
 affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel)
 affrescoui_fuzzer(delta affrescoui::vcs)
+affrescoui_fuzzer(policy affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(text affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_text PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # detail/Utf8.hpp
 # Where its fonts are: not from __FILE__, which a compiler cache (CCACHE_BASEDIR in CI) makes relative to the build

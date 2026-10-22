@@ -343,6 +343,11 @@ struct Screen::Impl {
 		peer->channel = &channel;
 		peer->session = std::make_unique<channel::Session>(
 		    channel, repository, std::move(author), [this] { return runtime.catalog(); }, &images);
+		peer->session->setUsage([this](bool clear) -> std::optional<json> {
+			if(!runtime.usage.enabled()) return std::nullopt;
+			if(clear) runtime.usage.clear();
+			return runtime.usage.summary(repository.document(), format::Usage::now());
+		});
 
 		// A request in plain words from one peer (e.g. the user's client) is for the others (e.g. an AI agent)
 		peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {
@@ -552,6 +557,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
+	screen.setUsageFile(stateLocation(dataDirectory, path, ".usage.json"));
 	return screen;
 }
 
@@ -664,6 +670,20 @@ void Screen::setStateFile(std::filesystem::path file) {
 	impl_->stateFile = std::move(file);
 	impl_->load();
 }
+
+void Screen::setUsageFile(std::filesystem::path file) { impl_->runtime.usage.setFile(std::move(file)); }
+
+void Screen::setUsageEnabled(bool on) { impl_->runtime.usage.setEnabled(on); }
+
+bool Screen::usageConsented() const { return impl_->runtime.usage.consented(); }
+
+void Screen::giveUsageConsent() { impl_->runtime.usage.giveConsent(); }
+
+std::string Screen::usageJson() {
+	return impl_->runtime.usage.summary(impl_->repository.document(), format::Usage::now()).dump();
+}
+
+void Screen::clearUsage() { impl_->runtime.usage.clear(); }
 
 std::string Screen::catalogJson() const { return impl_->runtime.catalog().dump(); }
 

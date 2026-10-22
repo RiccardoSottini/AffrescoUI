@@ -187,6 +187,17 @@ def delta_seeds():
     return seeds
 
 
+def policy_seeds():
+    """Budgets and data rules with a revision by an agent: the policy target's input (tests/fuzz/policy.cpp)."""
+    rules = {"allow": ["agent"], "budgets": [{"author": "agent", "added": 1, "removed": 1, "changed": 2}],
+             "data": [{"author": "agent", "read": ["/state/board", "/state/cards"], "write": ["/state/cards"],
+                       "never": ["/state/filter"]}]}
+    asked = {"allow": ["agent"], "budgets": [{"author": "role:design", "added": 0, "over": "ask"}],
+             "data": [{"author": "*", "never": ["/state"]}]}
+    return [compact({"permissions": permissions, "revision": revision})
+            for permissions in (rules, asked) for revision in revisions()[:40]]
+
+
 def text_seeds():
     """Every text of the templates and of the rendering check's screens: scripts, emoji, marks, ligatures."""
     seeds = []
@@ -501,6 +512,8 @@ def main():
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
+    write(out, "policy", policy_seeds(),
+          words["revision"] + ["budgets", "data", "read", "write", "never", "over", "role:"])
     write(out, "text", text_seeds(), words["text"])
     write(out, "richtext", richtext_seeds(), words["text"] + ["\x1f", "\x01", "\x02", "\x04", "\x08"])
     write(out, "cli", cli_seeds(), words["cli"])

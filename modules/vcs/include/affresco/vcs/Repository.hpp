@@ -5,6 +5,8 @@
 
 #include "affresco/core/DocumentRules.hpp"
 #include "affresco/core/VersionControl.hpp"
+#include "affresco/vcs/Leases.hpp"
+#include "affresco/vcs/Roles.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -115,6 +117,37 @@ public:
 	/// @param changes The change set.
 	/// @return true if it was.
 	[[nodiscard]] bool hasImported(const json& changes) const;
+
+	/* Policy (VERSION_CONTROL.md, "Budgets" and "Data rules") */
+	/// @brief What the rules say about a revision, without applying it.
+	struct Judgement {
+		std::string decision; ///< "allow", "ask" or "deny" (also for a revision that can't apply).
+		std::string reason;   ///< Why it asks or is denied: the rule, budget or data rule that matched.
+	};
+	/// @brief Judges a revision as submit() would, on main's head, and changes nothing: what policy tests run.
+	/// @param revision The revision, with its "author".
+	/// @return The judgement.
+	[[nodiscard]] Judgement judge(const json& revision) const;
+	[[nodiscard]] std::optional<json> readable(std::string_view author) const override;
+	/// @brief Who plays which role ("role:<name>" in rules), for this run.
+	/// @return The roles.
+	[[nodiscard]] Roles& roles() noexcept { return roles_; }
+	/// @brief Who plays which role, for this run.
+	/// @return The roles.
+	[[nodiscard]] const Roles& roles() const noexcept { return roles_; }
+
+	/* Several agents at once (VERSION_CONTROL.md, "Roles" and "Leases"; LeasesRepository.cpp) */
+	/// @brief The most peers kept at once; more join, but can't lease.
+	static constexpr std::size_t maxPeers = 256;
+	void join(const void* connection, std::string_view author) override;
+	void leave(const void* connection) override;
+	RevisionResult submitFrom(const void* connection, const json& revision) override;
+	std::optional<std::string> lease(const void* connection, std::string_view holder, std::string_view target,
+	                                 int seconds) override;
+	bool release(const void* connection, std::string_view target) override;
+	std::optional<std::string> endLease(std::string_view target, std::string_view by) override;
+	std::optional<std::string> setRole(std::string_view author, std::string_view role, std::string_view by) override;
+	[[nodiscard]] json coordination() const override;
 
 private:
 	/// @brief A commit object. It keeps how its document differs from its first parent's, not the document: every
@@ -316,6 +349,34 @@ private:
 	/// @return The verdict.
 	[[nodiscard]] Verdict evaluate(const json& before, const json& after, const std::string& author,
 	                               bool reviewed) const;
+	/// @brief Refuses a patch that names a path its author may not read (a "test" or "copy" would tell its value).
+	/// @param patch The operations, as submitted.
+	/// @param author Who sends it.
+	/// @throws DocumentError If it names one.
+	void checkReadable(const json& patch, const std::string& author) const;
+	/// @brief A connected peer (join()).
+	struct Peer {
+		const void* connection = nullptr; ///< Its connection.
+		int id = 0;                       ///< Its number, which its leases name.
+		std::string author;               ///< The author it last wrote as.
+	};
+	/// @brief The peer on a connection.
+	/// @param connection The connection.
+	/// @return It, or nullptr.
+	[[nodiscard]] const Peer* peerOn(const void* connection) const;
+	/// @brief Whether a change touches a lease someone else holds: by another connection than the one submitting, or
+	/// with none submitting (a merge, a policy test), by another holder than the author.
+	/// @param before The view before.
+	/// @param after The view after.
+	/// @param author The author.
+	/// @return Why it is refused, naming the holder, or std::nullopt.
+	[[nodiscard]] std::optional<std::string> leaseDenial(const json& before, const json& after,
+	                                                     const std::string& author) const;
+	/// @brief Whether an author's rules let it change a part at all, so it may lease it.
+	/// @param target "#id" or a JSON Pointer.
+	/// @param author The author.
+	/// @return Why not, or std::nullopt.
+	[[nodiscard]] std::optional<std::string> leaseBeyondRules(std::string_view target, const std::string& author);
 	/// @brief A proposal's commits, oldest first, copied.
 	/// @param proposal The proposal.
 	/// @return Its branch's commits.
@@ -514,6 +575,11 @@ private:
 	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
+	Roles roles_;                                   ///< Who plays which role, for this run (never kept in the history).
+	Leases leases_{rules_};                         ///< Parts held by connected peers, for this run.
+	std::vector<Peer> peers_;                       ///< Who is connected, oldest first, at most maxPeers.
+	int nextPeer_ = 1;                              ///< The next peer's number.
+	const void* submitting_ = nullptr;              ///< The connection whose revision is judged now (submitFrom()).
 };
 
 } // namespace affresco::vcs

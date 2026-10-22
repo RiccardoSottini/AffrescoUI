@@ -118,6 +118,11 @@ Exit checkScreen(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit testScreen(std::span<const std::string_view> args);
 
+/// @brief `policy test`: plays `*.policy.json` files' example revisions against their screens' permissions.
+/// @param args The arguments.
+/// @return How it ended.
+Exit policyCommand(std::span<const std::string_view> args);
+
 /// @brief `render`: a picture of a screen's first frame, drawn offscreen.
 /// @param args The arguments.
 /// @return How it ended.

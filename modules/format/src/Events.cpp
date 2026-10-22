@@ -45,6 +45,30 @@ bool runShortForm(Engine& engine, const json& handler, Panel& owner, const json&
 	return true;
 }
 
+/// @brief Runs a handler and counts it for the usage summaries (VERSION_CONTROL.md, "Usage"): the node's id as
+/// written, the handler and the action it names, whether it reported an error, and the screen it led to. Never what
+/// the event or the state hold.
+/// @param engine The runtime; its usage summaries are on.
+/// @param record The panel's record (the handler may rebuild the panel, so it is read first).
+/// @param panel The panel.
+/// @param handler E.g. "onClick".
+/// @param event The event.
+/// @param steps The handler.
+/// @param locals Its variables.
+void runCounted(Engine& engine, const Record& record, Panel& panel, std::string_view handler, const json& event,
+                const json& steps, const Scope& locals) {
+	const json id = record.node ? record.node->own.value("id", json()) : json();
+	const std::string action = std::string(handler) + (steps.is_string() ? ":" + steps.get<std::string>() : "");
+	const std::string screen = engine.document.screen();
+	bool failed = false;
+	const Connection watch = engine.owner.onError.connect([&failed](const std::string&) { failed = true; });
+	engine.runner.handle(steps, panel, event, locals, record.path + "." + std::string(handler));
+	engine.owner.onError.disconnect(watch);
+	const std::int64_t now = Usage::now();
+	if(id.is_string()) engine.owner.usage.ran(id.get<std::string>(), action, failed, now);
+	if(engine.document.screen() != screen) engine.owner.usage.visited(engine.document.screen(), now);
+}
+
 } // namespace
 
 /* Connections */
@@ -332,6 +356,7 @@ void Events::fire(Panel& panel, std::string_view handler, const json& event) {
 	if(!record || record->disabled || !record->handlers.contains(std::string(handler))) return;
 	const json steps = record->handlers[std::string(handler)];
 	const SharedScope locals = record->locals; // the handler may rebuild the panel
+	if(engine_.owner.usage.enabled()) return runCounted(engine_, *record, panel, handler, event, steps, *locals);
 	engine_.runner.handle(steps, panel, event, *locals, record->path + "." + std::string(handler));
 }
 

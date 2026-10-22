@@ -14,6 +14,7 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 |---|---|
 | `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
 | `Leases.hpp` | `Leases`: a part of a document (an `#id` or a pointer) one person holds for a while, bounded; `LeasedRules`: a document's rules plus a deny rule for everyone else per running lease |
+| `Roles.hpp` | `Roles`: the role each author plays for this run (`design`, `data`, `builder`), set by the host or a reviewer, never by a revision; `ruleCovers`: whether a rule's author (`role:<name>` too) covers an author |
 | `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
@@ -103,6 +104,10 @@ src/
   Deltas.hpp / .cpp         exact deltas between documents, applying them safely, JSON Pointer segments
   HistoryStore.hpp / .cpp   the history folder: the lock, atomic writes, bounded reads, packs
   Permissions.hpp / .cpp    how a rule sees a change: by its effect on the paths it covers
+  Policy.hpp / .cpp         budgets and data rules: counting nodes by id, paths an author may read, write or never touch
+  PolicyRepository.cpp      what a read-limited author sees, refusing revisions that name what it may not read
+  Roles.cpp                 the roles of this run, and rules naming them
+  LeasesRepository.cpp      who is connected, the parts they lease, and refusing changes to another holder's part
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
   Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)
 CMakeLists.txt              the affrescoui_vcs target and its sources

@@ -744,6 +744,51 @@ TOOLS = [
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "name": {"type": "string"}})},
 ]
 
+# Several agents at once (VERSION_CONTROL.md, "Leases"): claim a part of the screen while you work on it, so other
+# authors' revisions that touch it are refused; it ends after its seconds, when released, or when you disconnect.
+COORDINATION_TOOLS = [
+    {"name": "lease_part",
+     "description": "Claim a part of the screen (\"#id\" or a JSON Pointer such as /state/columns/0) while you work "
+                    "on it: other authors' revisions that touch it are refused until it ends (after `seconds`, 300 "
+                    "by default, at most 3600; when you release it; or when you disconnect). Refused if someone "
+                    "else holds it or a part inside it, or if your permissions don't let you change it.",
+     "inputSchema": object_schema({"target": {"type": "string"}, "seconds": {"type": "integer"}}, ["target"])},
+    {"name": "renew_lease",
+     "description": "Make a lease you hold last `seconds` (300 by default, at most 3600) from now.",
+     "inputSchema": object_schema({"target": {"type": "string"}, "seconds": {"type": "integer"}}, ["target"])},
+    {"name": "release_part",
+     "description": "End a lease you hold, as soon as you are done with that part.",
+     "inputSchema": object_schema({"target": {"type": "string"}}, ["target"])},
+    {"name": "get_usage",
+     "description": "The screen's usage summaries (VERSION_CONTROL.md, \"Usage\"): per node id and action, how often "
+                    "it ran and failed; the screens visited; the controls never used, over the last 30 days. Only "
+                    "ids, counts and times. Refused unless the host switched them on with the person's consent and "
+                    "your connection may review.",
+     "inputSchema": object_schema(),
+     "annotations": {"readOnlyHint": True}},
+]
+TOOLS += COORDINATION_TOOLS
+
+
+def coordination_tool(host, client, name, args):
+    """Runs a lease tool or get_usage; None if `name` is none of them."""
+    if name == "get_usage":
+        reply = host.request({"type": "getUsage"})
+        if reply.get("type") == "usage":
+            return compact(reply.get("usage")), False
+        return f"refused: {reply.get('error')}", True
+    if name not in ("lease_part", "renew_lease", "release_part"):
+        return None
+    message = {"type": "release" if name == "release_part" else "lease", "author": client,
+               "target": str(args.get("target", ""))}
+    if name != "release_part":
+        message["seconds"] = args.get("seconds", 300)
+    reply = host.request(message)
+    if reply.get("type") in ("leased", "released"):
+        return compact(reply), False
+    return f"refused: {reply.get('error')}", True
+
+
 PROMPTS = [
     {"name": "serve_studio",
      "description": "Work through the change requests people send from the AffrescoUI Studio, one after another."},
@@ -769,6 +814,29 @@ INSTRUCTIONS = (
     "wait for a reviewer's approval in the Studio; get_events tells you the decision.")
 
 
+# Permissions, budgets, data rules, roles and leases (VERSION_CONTROL.md): what a denial means, from the rule it names
+DENIALS = (
+    ("over the budget", "the screen's permissions limit how many nodes you add, remove and change in one revision; "
+                        "split the change into smaller revisions"),
+    ("data rule", "the screen's data rules limit the paths you may read and write; change only the paths they allow"),
+    ("holds a lease", "another author is working on that part of the screen; wait for its lease to end or change "
+                      "another part"),
+    ("(rule \"", "a deny rule of the screen's permissions covers what you changed; leave that part as it is"),
+    ("revisions can't change", "that section is a capability of the app, which no revision changes"),
+)
+
+
+def explain_denial(error):
+    """The error of a refused revision, followed by what the rule it names means, if it is a permission denial."""
+    text = str(error)
+    if "permission denied" not in text:
+        return text
+    for marker, meaning in DENIALS:
+        if marker in text:
+            return f"{text}. The rule that matched: {meaning}."
+    return text
+
+
 def describe(reply):
     kind = reply.get("type")
     if kind == "applied":
@@ -778,7 +846,7 @@ def describe(reply):
         return (f"proposed as proposal {reply.get('proposal')} (head {str(reply.get('commit', ''))[:7]}): a reviewer "
                 f"decides in the Studio. It is not applied yet; get_events will report the decision. Pass "
                 f"proposal={reply.get('proposal')} to submit_revision to add to it."), False
-    return f"rejected, nothing changed: {reply.get('error')}", True
+    return f"rejected, nothing changed: {explain_denial(reply.get('error'))}", True
 
 
 def screen_info(reply):
@@ -1010,6 +1078,9 @@ class Server:
             reply = host.request({"type": "exportChanges", "from": args.get("from", 0),
                                   "name": args.get("name", "changes")})
             return json.dumps(reply.get("changes"), indent=2), False
+        coordinated = coordination_tool(host, self.client, name, args)
+        if coordinated is not None:
+            return coordinated
         raise UnknownTool(name)
 
     def serve(self, line):
