@@ -63,7 +63,8 @@ bool Properties::recordProperty(Panel& panel, Record& record, const KeyValue& pr
 		panel.setAccessibleState(withDisabled(panel.accessibleState(), record.disabled));
 		break;
 	case Slot::Transition:
-		record.transition = transition(value, at);
+		transition(value, at);
+		record.transition = value;
 		break;
 	case Slot::Overlay:
 		overlay(panel, record, value, at, look);
@@ -92,13 +93,12 @@ bool Properties::recordProperty(Panel& panel, Record& record, const KeyValue& pr
 	return true;
 }
 
-const json& Properties::transition(const json& value, const std::string& at) const {
+void Properties::transition(const json& value, const std::string& at) const {
 	for(const auto& [property, ms] : object(value, at).items()) {
 		if(!engine_.types.transitionable(property))
 			fail(std::format("{}.{}", at, property), R"(only "color", "textColor" and "borderColor" can transition)");
 		number(ms, concatenate(at, ".", property));
 	}
-	return value;
 }
 
 std::pair<bool, bool> Properties::scroll(const json& value, const std::string& at) {

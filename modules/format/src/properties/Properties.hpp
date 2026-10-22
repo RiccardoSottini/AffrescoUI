@@ -140,11 +140,10 @@ private:
 	/// @param panel The panel.
 	/// @param look The look.
 	static void finish(Panel& panel, const Look& look);
-	/// @brief Reads "transition": property -> milliseconds, for the properties that can transition.
+	/// @brief Checks "transition": property -> milliseconds, for the properties that can transition.
 	/// @param value The value.
 	/// @param at Its place, for errors.
-	/// @return The value.
-	const json& transition(const json& value, const std::string& at) const;
+	void transition(const json& value, const std::string& at) const;
 	/// @brief Reads "scroll": "vertical", "horizontal", "both", "none", or a boolean (vertical or none).
 	/// @param value The value.
 	/// @param at Its place, for errors.
