@@ -92,6 +92,29 @@ bool plainWord(std::string_view text) {
 	       });
 }
 
+/// @brief The plain words of a list, up to mostWords of them; the others are left out.
+/// @param list A JSON array.
+/// @return The words.
+json plainWords(const json& list) {
+	json words = json::array();
+	for(const json& word : list)
+		if(word.is_string() && plainWord(word.get_ref<const std::string&>()) && words.size() < mostWords)
+			words.push_back(word);
+	return words;
+}
+
+/// @brief The variables of a map whose names and values are plain words, up to mostWords of them.
+/// @param map A JSON object.
+/// @return The variables.
+json plainVariables(const json& map) {
+	json variables = json::object();
+	for(const auto& [name, value] : map.items())
+		if(value.is_string() && plainWord(name) && plainWord(value.get_ref<const std::string&>()) &&
+		   variables.size() < mostWords)
+			variables[name] = value;
+	return variables;
+}
+
 /// @brief Copies the plain keys Forge knows from a configuration to an adapter's arguments: text (`program`, `cwd`),
 /// a flag (`stopOnEntry`), the text list `args` and the text map `env`. Others, and those of the wrong kind, are left
 /// out.
@@ -104,21 +127,10 @@ void copyKnownKeys(const json& configuration, json& arguments) {
 			arguments[key] = *it;
 	if(const auto it = configuration.find("stopOnEntry"); it != configuration.end() && it->is_boolean())
 		arguments["stopOnEntry"] = *it;
-	if(const auto it = configuration.find("args"); it != configuration.end() && it->is_array()) {
-		json words = json::array();
-		for(const json& word : *it)
-			if(word.is_string() && plainWord(word.get_ref<const std::string&>()) && words.size() < mostWords)
-				words.push_back(word);
-		arguments["args"] = std::move(words);
-	}
-	if(const auto it = configuration.find("env"); it != configuration.end() && it->is_object()) {
-		json variables = json::object();
-		for(const auto& [name, value] : it->items())
-			if(value.is_string() && plainWord(name) && plainWord(value.get_ref<const std::string&>()) &&
-			   variables.size() < mostWords)
-				variables[name] = value;
-		arguments["env"] = std::move(variables);
-	}
+	if(const auto it = configuration.find("args"); it != configuration.end() && it->is_array())
+		arguments["args"] = plainWords(*it);
+	if(const auto it = configuration.find("env"); it != configuration.end() && it->is_object())
+		arguments["env"] = plainVariables(*it);
 }
 
 /// @brief The port a debugpy attach names: `port`, or `connect.port`.
@@ -135,39 +147,73 @@ int attachPort(const json& configuration) {
 	return value >= 1 && value <= 65535 ? static_cast<int>(value) : 0;
 }
 
+/// @brief A text key of a configuration.
+/// @param configuration The configuration.
+/// @param key The key.
+/// @return Its text, or "" if it is missing or not text.
+std::string textOf(const json& configuration, const char* key) {
+	const auto it = configuration.find(key);
+	return it != configuration.end() && it->is_string() ? it->get<std::string>() : std::string();
+}
+
+/// @brief The adapter Forge runs for a configuration's `type`.
+/// @param type The type.
+/// @return "lldb", "python", or null for a type Forge doesn't run.
+const char* adapterFor(std::string_view type) {
+	if(type == "lldb" || type == "lldb-dap") return "lldb";
+	if(type == "python" || type == "debugpy") return "python";
+	return nullptr;
+}
+
+/// @brief Copies where a configuration's program runs: debugpy takes `console` itself, lldb-dap a `runInTerminal`
+/// flag for either terminal.
+/// @param configuration The configuration.
+/// @param python Whether the adapter is debugpy.
+/// @param arguments The arguments, to add to.
+void copyConsole(const json& configuration, bool python, json& arguments) {
+	const auto it = configuration.find("console");
+	if(it == configuration.end() || !it->is_string()) return;
+	const bool terminal = *it == "integratedTerminal" || *it == "externalTerminal";
+	if(python) arguments["console"] = terminal ? "integratedTerminal" : "internalConsole";
+	else if(terminal) arguments["runInTerminal"] = true;
+}
+
+/// @brief Adds what a configuration runs to an adapter's arguments: the local port debugpy attaches to, the process
+/// lldb attaches to, or (on launch) nothing, since copyKnownKeys copied the program.
+/// @param configuration The configuration.
+/// @param python Whether the adapter is debugpy.
+/// @param request "launch" or "attach".
+/// @param arguments The arguments, to add to.
+/// @return Whether the configuration names something to run.
+bool addTarget(const json& configuration, bool python, std::string_view request, json& arguments) {
+	if(request != "attach") return arguments.contains("program");
+	if(python) {
+		const int port = attachPort(configuration);
+		if(port == 0) return false;
+		arguments["connect"] = {{"host", "127.0.0.1"}, {"port", port}};
+		return true;
+	}
+	const auto it = configuration.find("pid");
+	if(it == configuration.end() || !it->is_number_integer() || it->get<long long>() <= 0) return false;
+	arguments["pid"] = *it;
+	return true;
+}
+
 /// @brief One configuration as Forge runs it.
 /// @param configuration A launch.json configuration.
 /// @return `{ "name", "type", "request", "arguments" }`, or null if Forge can't run it.
 json configurationFor(const json& configuration) {
 	if(!configuration.is_object()) return nullptr;
-	const std::string type = configuration.value("type", json("")).is_string() ? configuration.value("type", "") : "";
-	const std::string request =
-	    configuration.value("request", json("")).is_string() ? configuration.value("request", "") : "";
-	const char* adapter = type == "lldb" || type == "lldb-dap" ? "lldb"
-	                      : type == "python" || type == "debugpy" ? "python"
-	                                                              : nullptr;
+	const std::string request = textOf(configuration, "request");
+	const char* adapter = adapterFor(textOf(configuration, "type"));
 	if(adapter == nullptr || (request != "launch" && request != "attach")) return nullptr;
-	const json& nameValue = configuration.value("name", json(""));
-	std::string name = nameValue.is_string() && plainWord(nameValue.get_ref<const std::string&>())
-	                       ? nameValue.get<std::string>().substr(0, 200)
-	                       : std::string();
+	const bool python = std::string_view(adapter) == "python";
 	json arguments = json::object();
 	copyKnownKeys(configuration, arguments);
-	const bool python = std::string_view(adapter) == "python";
-	if(const auto it = configuration.find("console"); it != configuration.end() && it->is_string()) {
-		const bool terminal = *it == "integratedTerminal" || *it == "externalTerminal";
-		if(python) arguments["console"] = terminal ? "integratedTerminal" : "internalConsole";
-		else if(terminal) arguments["runInTerminal"] = true;
-	}
-	if(request == "attach" && python) {
-		const int port = attachPort(configuration);
-		if(port == 0) return nullptr;
-		arguments["connect"] = {{"host", "127.0.0.1"}, {"port", port}};
-	} else if(request == "attach") {
-		const auto it = configuration.find("pid");
-		if(it == configuration.end() || !it->is_number_integer() || it->get<long long>() <= 0) return nullptr;
-		arguments["pid"] = *it;
-	} else if(!arguments.contains("program")) return nullptr;
+	copyConsole(configuration, python, arguments);
+	if(!addTarget(configuration, python, request, arguments)) return nullptr;
+	std::string name = textOf(configuration, "name");
+	name = plainWord(name) ? name.substr(0, 200) : std::string();
 	if(name.empty()) name = std::string(adapter) + " " + request;
 	return {{"name", name}, {"type", adapter}, {"request", request}, {"arguments", std::move(arguments)}};
 }
