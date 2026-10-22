@@ -442,7 +442,8 @@ ReviewPolicy reviewPolicyOf(const json& review) {
 	policy.approvals = review.value("approvals", 1);
 	policy.behaviourApprovals = review.value("behaviourApprovals", 0);
 	policy.grantsLast = review.value("grantsLast", std::string());
-	for(const auto& [pattern, names] : review.value("owners", json::object()).items())
+	// A named copy: before C++23 (P2718) a temporary in the range expression ends before the loop's body
+	for(const json owners = review.value("owners", json::object()); const auto& [pattern, names] : owners.items())
 		policy.owners.emplace_back(pattern, names.get<std::vector<std::string>>());
 	return policy;
 }
