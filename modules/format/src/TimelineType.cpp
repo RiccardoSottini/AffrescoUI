@@ -275,11 +275,12 @@ void applyTimeline(Panel& panel, const json& values, const PropertyReader& reade
 	                colorOr("textColor", Color::hex(0xeceef2)), colorOr("accentColor", colors::accent));
 	view->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
 	if(values.contains("time")) view->setGivenTime(secondsOf(values["time"], path + ".time"));
-	if(values.contains("scale") || values.contains("offset")) {
+	// "pixelsPerSecond", not "scale": every panel's "scale" is its transform
+	if(values.contains("pixelsPerSecond") || values.contains("offset")) {
 		TimelineCamera camera;
-		if(values.contains("scale"))
-			camera.scale = numberWithin(values["scale"], path + ".scale", TimelineCamera::minimumScale,
-			                            TimelineCamera::maximumScale);
+		if(values.contains("pixelsPerSecond"))
+			camera.scale = numberWithin(values["pixelsPerSecond"], path + ".pixelsPerSecond",
+			                            TimelineCamera::minimumScale, TimelineCamera::maximumScale);
 		if(values.contains("offset"))
 			camera.offset = numberWithin(values["offset"], path + ".offset", -TimelineView::maximumDuration,
 			                             TimelineView::maximumDuration);
@@ -385,7 +386,7 @@ void registerTimelineType(TypeRegistry& registry) {
 	set->properties = {
 	    {"tracks", ValueKind::Any},         {"markers", ValueKind::Any},       {"duration", ValueKind::Number},
 	    {"fps", ValueKind::Number},         {"playRange", ValueKind::Any},     {"time", ValueKind::Number},
-	    {"timeFormat", ValueKind::Text},    {"snap", ValueKind::Boolean},      {"scale", ValueKind::Number},
+	    {"timeFormat", ValueKind::Text},    {"snap", ValueKind::Boolean},      {"pixelsPerSecond", ValueKind::Number},
 	    {"offset", ValueKind::Number},      {"selected", ValueKind::Any},      {"headerWidth", ValueKind::Number},
 	    {"trackHeight", ValueKind::Number}, {"headerColor", ValueKind::Color}, {"clipColor", ValueKind::Color},
 	    {"textColor", ValueKind::Color},    {"accentColor", ValueKind::Color}, {"font", ValueKind::Font}};

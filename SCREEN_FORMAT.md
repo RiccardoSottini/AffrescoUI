@@ -547,7 +547,7 @@ time, as it is drawn.
 | `playRange` | `[start, end]`, shaded on the ruler, the rest of the lanes dimmed (without it, the whole duration). |
 | `markers` | Times, or `{ time, label }`, marked on the ruler and across the lanes (at most 1,000). |
 | `snap` | Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the play range and the playhead. Alt held at the press leaves it off for that drag. |
-| `scale`, `offset` | The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, `offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, or a drag with the right or middle button) stay until then. |
+| `pixelsPerSecond`, `offset` | The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, `offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, or a drag with the right or middle button) stay until then. |
 | `selected` | The selected items' keys (applied when it changes): a clip's id, or a track's id, `:` and a keyframe's index (`"pos:2"`). A click, Shift and a click, a marquee, or Page Up and Page Down on the keyboard's track changes it and runs `onSelect`; dragging the selection (or Alt and the arrows) runs `onKeyframeMove` and `onClipChange` for each item. |
 | `headerWidth`, `trackHeight` | The headers' column (default 160) and a row's height (`trackHeight`, 12 to 400, default 28). |
 | `headerColor`, `clipColor`, `textColor`, `accentColor`, `font` | The ruler and headers, the clips (a clip's own `color` first), the text and the selection. |

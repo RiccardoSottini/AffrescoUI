@@ -346,6 +346,27 @@ TEST_CASE("render: a marquee selects the items it touches; groups close and the 
 	CHECK(fixture.view->visibleRows() < 20); // only the rows in view
 }
 
+TEST_CASE("format: a timeline's zoom is pixelsPerSecond, and its scale is the transform every panel has") {
+	const ManualClock clock;
+	const auto headless = createHeadlessWindow(600, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(timelineScreen);
+	screen.build(*headless);
+	std::string error;
+	REQUIRE(screen.applyRevision(R"({"set": {"#timeline/pixelsPerSecond": 250}})", &error));
+	headless->render();
+	auto* timeline = dynamic_cast<TimelineView*>(screen.find("timeline"));
+	REQUIRE(timeline);
+	CHECK(timeline->camera().scale == doctest::Approx(250.0));
+	CHECK(timeline->transform().isIdentity()); // a zoom of 250 doesn't draw it 250 times larger
+
+	REQUIRE(screen.applyRevision(R"({"set": {"#timeline/scale": 0.5}})", &error));
+	headless->render();
+	timeline = dynamic_cast<TimelineView*>(screen.find("timeline"));
+	REQUIRE(timeline);
+	CHECK_FALSE(timeline->transform().isIdentity());
+	CHECK(timeline->camera().scale == doctest::Approx(250.0));
+}
+
 TEST_CASE("format: a timeline node scrubs and edits through its handlers, and refuses broken data") {
 	const ManualClock clock;
 	const auto headless = createHeadlessWindow(600, 300, clock);

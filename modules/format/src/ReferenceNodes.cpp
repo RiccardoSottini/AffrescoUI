@@ -753,7 +753,7 @@ constexpr KeyReference nodeTable[] = {
 	 "Whether drags snap (the default): to frames, and within a few pixels to keyframes, clip edges, markers, the "
 	 "play range and the playhead. Alt held at the press leaves it off for that drag.",
 	 "timeline"},
-    {"scale", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 10000}, {"$ref": "#/$defs/v1/dynamic"}],
+    {"pixelsPerSecond", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 10000}, {"$ref": "#/$defs/v1/dynamic"}],
 		"description": "timeline: window units per second, 1 to 10000 (default 100)"})json",
 	 "The camera: window units per second (1 to 10,000, the default 100) and the time at the lanes' left edge, "
 	 "`offset`. They are applied when they change, so the user's own zoom (+ and -) and scroll (the wheel sideways, "
