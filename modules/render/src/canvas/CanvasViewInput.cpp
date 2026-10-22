@@ -10,6 +10,7 @@
 #include <cmath>
 #include <numbers>
 #include <optional>
+#include <ranges>
 
 namespace affresco {
 namespace {
@@ -446,8 +447,8 @@ void CanvasView::finishGuide() {
 
 std::string CanvasView::itemAt(Vec2 position) const {
 	const auto children = this->children();
-	for(auto child = children.rbegin(); child != children.rend(); ++child) {
-		const Panel& panel = **child;
+	for(const auto& child : std::views::reverse(children)) {
+		const Panel& panel = *child;
 		if(!panel.frame().contains(position) || panel.resolvedSize().x <= 0.0f) continue;
 		const auto& standIns = internals_->standIns;
 		const auto standing = std::ranges::find(standIns, &panel, &std::pair<const Panel*, const Panel*>::first);

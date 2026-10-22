@@ -86,8 +86,8 @@ void TableView::buildRows(std::vector<std::size_t>& rows) {
 			if(!std::isnan(x) || !std::isnan(y)) return std::isnan(y) ? !std::isnan(x) : !std::isnan(x) && x < y;
 			return cellOf(items.item(a), column) < cellOf(items.item(b), column);
 		};
-		if(sort_.descending) std::stable_sort(rows.begin(), rows.end(), [&](auto a, auto b) { return before(b, a); });
-		else std::stable_sort(rows.begin(), rows.end(), before);
+		if(sort_.descending) std::ranges::stable_sort(rows, [&](auto a, auto b) { return before(b, a); });
+		else std::ranges::stable_sort(rows, before);
 	}
 	rowOfItem_.resize(size);
 	for(std::size_t row = 0; row < size; ++row) rowOfItem_[rows[row]] = row;

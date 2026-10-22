@@ -100,7 +100,7 @@ void TreeView::viewChanged() {
 	for(std::size_t item = parentOf(itemAt(rows.rowAt(scrollPosition()))); item < model()->size();
 	    item = parentOf(item))
 		stuck_.push_back(item);
-	std::reverse(stuck_.begin(), stuck_.end());
+	std::ranges::reverse(stuck_);
 	if(stuck_.size() > stickyRows_) stuck_.resize(stickyRows_);
 	stuckText_.resize(std::max(stuckText_.size(), stuck_.size()));
 	for(std::size_t i = 0; i < stuck_.size(); ++i) {

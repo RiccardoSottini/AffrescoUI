@@ -114,14 +114,15 @@ void TimelineView::refreshSelected() {
 		std::size_t index = 0;
 		const std::string_view digits = std::string_view(key).substr(colon + 1);
 		if(digits.empty() || digits.size() > 9 ||
-		   !std::all_of(digits.begin(), digits.end(), [](char c) { return c >= '0' && c <= '9'; }))
+		   !std::ranges::all_of(digits, [](char c) { return c >= '0' && c <= '9'; }))
 			continue;
 		for(const char c : digits) index = index * 10 + static_cast<std::size_t>(c - '0');
 		if(index < model_.tracks[track->second].keyframes.size())
 			selectedItems_.push_back({track->second, index, false});
 	}
-	std::sort(selectedItems_.begin(), selectedItems_.end());
-	selectedItems_.erase(std::unique(selectedItems_.begin(), selectedItems_.end()), selectedItems_.end());
+	std::ranges::sort(selectedItems_);
+	const auto [first, last] = std::ranges::unique(selectedItems_);
+	selectedItems_.erase(first, last);
 }
 
 void TimelineView::setCamera(TimelineCamera camera) {
@@ -264,7 +265,7 @@ std::optional<TimelineItem> TimelineView::itemAt(Vec2 point, TimelineEvent::Edge
 }
 
 bool TimelineView::isSelected(const TimelineItem& item) const {
-	return std::binary_search(selectedItems_.begin(), selectedItems_.end(), item);
+	return std::ranges::binary_search(selectedItems_, item);
 }
 
 double TimelineView::itemTime(const TimelineItem& item) const noexcept { return timeOf(model_, item); }

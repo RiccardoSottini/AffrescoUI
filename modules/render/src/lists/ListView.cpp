@@ -11,7 +11,9 @@
 #include <array>
 #include <cmath>
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace affresco {
 
@@ -34,6 +36,14 @@ constexpr float minimumThumb = 16.0f;    ///< The shortest thumb, in pixels.
 	for(std::size_t i = 0; i < prefix.size(); ++i)
 		if(fold(text[i]) != fold(prefix[i])) return false;
 	return true;
+}
+
+/// @brief Sorts ids and drops the repeats, for the selection's binary searches.
+/// @param ids The ids.
+void sortUnique(std::vector<std::string>& ids) {
+	std::ranges::sort(ids);
+	const auto [first, last] = std::ranges::unique(ids);
+	ids.erase(first, last);
 }
 
 /// @brief Draws a rectangle's outline.
@@ -79,11 +89,9 @@ struct KeptItems {
 		if(id == cursorId && !cursorId.empty()) kept.cursor = i;
 		if(id == anchorId && !anchorId.empty()) kept.anchor = i;
 		if(id == topId && !topId.empty()) kept.top = i;
-		if(!selection.empty() && std::binary_search(selection.begin(), selection.end(), id))
-			kept.selection.push_back(id);
+		if(!selection.empty() && std::ranges::binary_search(selection, id)) kept.selection.push_back(id);
 	}
-	std::sort(kept.selection.begin(), kept.selection.end());
-	kept.selection.erase(std::unique(kept.selection.begin(), kept.selection.end()), kept.selection.end());
+	sortUnique(kept.selection);
 	return kept;
 }
 
@@ -150,14 +158,12 @@ void ListView::setModel(std::shared_ptr<const ItemModel> model) {
 }
 
 void ListView::setSelection(std::vector<std::string> ids) {
-	std::sort(ids.begin(), ids.end());
-	ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+	sortUnique(ids);
 	setLook(selection_, std::move(ids));
 }
 
 bool ListView::isSelected(std::string_view id) const noexcept {
-	const auto at = std::lower_bound(selection_.begin(), selection_.end(), id,
-	                                 [](const std::string& a, std::string_view b) { return a < b; });
+	const auto at = std::ranges::lower_bound(selection_, id);
 	return at != selection_.end() && *at == id;
 }
 
@@ -209,7 +215,7 @@ void ListView::rebuildRowsKeeping(std::size_t item, float offset) {
 
 std::size_t ListView::rowOf(std::size_t item) const noexcept {
 	// Lists and trees show their items in the model's order
-	const auto at = std::lower_bound(rows_.begin(), rows_.end(), item);
+	const auto at = std::ranges::lower_bound(rows_, item);
 	return at != rows_.end() && *at == item ? static_cast<std::size_t>(at - rows_.begin()) : rows_.size();
 }
 
@@ -283,8 +289,7 @@ DropTarget ListView::dropTargetAt(Vec2 position) const noexcept {
 void ListView::showDropIndicator(std::optional<DropTarget> target) { setLook(dropIndicator_, target); }
 
 void ListView::changeSelection(std::vector<std::string> ids) {
-	std::sort(ids.begin(), ids.end());
-	ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+	sortUnique(ids);
 	if(ids == selection_) return;
 	selection_ = std::move(ids);
 	invalidatePaint();

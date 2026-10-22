@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <iterator>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -156,8 +157,8 @@ void Window::setDefaultFont(std::shared_ptr<const Font> font) {
 
 Panel* Window::panelAt(Vec2 point) {
 	updateLayout();
-	for(auto it = overlays_.rbegin(); it != overlays_.rend(); ++it) // above everything, the latest on top
-		if(Panel* hit = (*it)->hitTest(point)) return hit;
+	for(const auto& overlay : std::views::reverse(overlays_)) // above everything, the latest on top
+		if(Panel* hit = overlay->hitTest(point)) return hit;
 	return root_.hitTest(point);
 }
 
@@ -322,7 +323,7 @@ void Window::runDeferred() {
 	while(!deferred_.empty()) {
 		std::vector<std::function<void()>> tasks;
 		tasks.swap(deferred_);
-		for(auto& task : tasks) task();
+		for(const auto& task : tasks) task();
 	}
 }
 

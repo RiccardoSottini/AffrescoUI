@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -269,9 +270,9 @@ std::size_t TextEditor::replaceAll(std::string_view replacement) {
 	clearCursors();
 	beginEdit(Edit::Other);
 	// Last first, so the positions before each stay where they were found
-	for(auto it = replacements.rbegin(); it != replacements.rend(); ++it) {
-		erase(it->from, it->to);
-		insert(it->from, it->text);
+	for(const auto& change : std::views::reverse(replacements)) {
+		erase(change.from, change.to);
+		insert(change.from, change.text);
 	}
 	caret_ = anchor_ = clamped(caret_);
 	endEdit();

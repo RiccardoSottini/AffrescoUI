@@ -184,7 +184,7 @@ void Application::runPostedTasks() {
 		const std::lock_guard lock(tasksMutex_);
 		tasks.swap(tasks_);
 	}
-	for(auto& task : tasks) task();
+	for(const auto& task : tasks) task();
 }
 
 void Application::quit() {
