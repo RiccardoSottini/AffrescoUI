@@ -20,19 +20,42 @@ namespace {
 	return tip;
 }
 
+/// @brief The colour the strokes paint unless they say otherwise.
+constexpr Pixel red{1.0f, 0.0f, 0.0f, 1.0f};
+
+/// @brief Lays a stroke's points and finishes it.
+/// @param stroke The stroke.
+/// @param points Its points.
+/// @return The stamps laid.
+std::size_t lay(Stroke& stroke, std::initializer_list<StrokePoint> points) {
+	for(const StrokePoint& point : points) stroke.add(point);
+	stroke.finish();
+	return stroke.stamps();
+}
+
 /// @brief Paints a dab or a line in one stroke.
 /// @param document The document.
 /// @param target The image.
 /// @param tip The tip.
-/// @param mode What it does.
+/// @param points The stroke's points.
+/// @param colour The colour.
+/// @return The stamps laid.
+std::size_t stroke(Document& document, std::uint64_t target, const BrushTip& tip,
+                   std::initializer_list<StrokePoint> points, const Pixel& colour = red) {
+	Stroke stroke(document, target, tip, StrokeMode::paint, colour, "Brush");
+	return lay(stroke, points);
+}
+
+/// @brief Erases a dab or a line in one stroke.
+/// @param document The document.
+/// @param target The image.
+/// @param tip The tip.
 /// @param points The stroke's points.
 /// @return The stamps laid.
-std::size_t stroke(Document& document, std::uint64_t target, const BrushTip& tip, StrokeMode mode,
-                   std::initializer_list<StrokePoint> points, const Pixel& colour = {1.0f, 0.0f, 0.0f, 1.0f}) {
-	Stroke stroke(document, target, tip, mode, colour, "Brush");
-	for(const StrokePoint& point : points) stroke.add(point);
-	stroke.finish();
-	return stroke.stamps();
+std::size_t erase(Document& document, std::uint64_t target, const BrushTip& tip,
+                  std::initializer_list<StrokePoint> points) {
+	Stroke stroke(document, target, tip, StrokeMode::erase, red, "Brush");
+	return lay(stroke, points);
 }
 
 } // namespace
@@ -43,7 +66,7 @@ TEST_CASE("imaging brush: stamps are round, soft by their hardness, and spaced a
 	CHECK(stampCoverage(5.0f, 10.0f, 0.0f) == doctest::Approx(0.5f));
 	Document document(300, 128);
 	const std::uint64_t pixels = document.activeLayer()->pixels;
-	CHECK(stroke(document, pixels, hardTip(20.0f), StrokeMode::paint, {{50.0f, 50.0f}, {150.0f, 50.0f}}) == 21);
+	CHECK(stroke(document, pixels, hardTip(20.0f), {{50.0f, 50.0f}, {150.0f, 50.0f}}) == 21);
 	const Image& image = *document.image(pixels);
 	CHECK(image.pixel(100, 50) == Pixel{1.0f, 0.0f, 0.0f, 1.0f});
 	CHECK(image.pixel(100, 58).alpha == 1.0f);
@@ -52,9 +75,24 @@ TEST_CASE("imaging brush: stamps are round, soft by their hardness, and spaced a
 	CHECK(document.history().steps().size() == 1);
 	BrushTip pressed = hardTip(20.0f);
 	pressed.pressureSize = true;
-	stroke(document, pixels, pressed, StrokeMode::paint, {{250.0f, 100.0f, 0.5f}});
+	stroke(document, pixels, pressed, {{250.0f, 100.0f, 0.5f}});
 	CHECK(image.pixel(250, 100).alpha == 1.0f);
 	CHECK(image.pixel(258, 100).alpha == 0.0f);
+
+	// Points thrown far off the image cost only the dabs near it, and paint what they cross
+	stroke(document, pixels, hardTip(4.0f), {{10.0f, 20.0f}, {1.0e9f, 20.0f}});
+	CHECK(image.pixel(10, 20).alpha == 1.0f);
+	CHECK(image.pixel(299, 20).alpha == 1.0f);
+	stroke(document, pixels, hardTip(4.0f), {{-1.0e12f, 120.0f}, {1.0e12f, 120.0f}});
+	CHECK(image.pixel(0, 120).alpha == 1.0f);
+	CHECK(image.pixel(150, 120).alpha == 1.0f);
+	CHECK(image.pixel(299, 120).alpha == 1.0f);
+	CHECK(image.pixel(150, 110).alpha == 0.0f);
+	CHECK(stroke(document, pixels, hardTip(4.0f), {{1.0e30f, 1.0e30f}, {1.0e30f, 2.0e30f}}) == 1);
+	stroke(document, pixels, hardTip(4.0f), {{-3.0e38f, 3.0e38f}, {3.0e38f, -3.0e38f}}); // across a corner: it ends
+	Stroke last(document, pixels, hardTip(4.0f), StrokeMode::paint, red, "Brush");
+	CHECK(lay(last, {{-3.0e38f, 60.0f}, {3.0e38f, 60.0f}, {20.0f, 100.0f}, {40.0f, 100.0f}}) > 0);
+	CHECK(image.pixel(30, 100).alpha == 1.0f); // the walk after a vast one is spaced as before
 }
 
 TEST_CASE("imaging brush: flow builds up to the opacity, and never past it") {
@@ -70,7 +108,7 @@ TEST_CASE("imaging brush: flow builds up to the opacity, and never past it") {
 	CHECK(image.pixel(30, 30).alpha > 0.45f);
 	CHECK(image.pixel(30, 30).alpha <= 0.51f);
 	one.finish();
-	stroke(document, pixels, tip, StrokeMode::paint, {{30.0f, 30.0f}}, {0.0f, 0.0f, 1.0f, 1.0f});
+	stroke(document, pixels, tip, {{30.0f, 30.0f}}, {0.0f, 0.0f, 1.0f, 1.0f});
 	CHECK(image.pixel(30, 30).alpha > 0.51f); // a new stroke lays more
 }
 
@@ -79,10 +117,10 @@ TEST_CASE("imaging brush: eraser, clone, the selection, masks, quick mask, cance
 	const std::uint64_t pixels = document.activeLayer()->pixels;
 	const Image& image = *document.image(pixels);
 	fillSelection(document, pixels, {0.0f, 1.0f, 0.0f, 1.0f}, 1.0f);
-	stroke(document, pixels, hardTip(10.0f), StrokeMode::erase, {{20.0f, 20.0f}});
+	erase(document, pixels, hardTip(10.0f), {{20.0f, 20.0f}});
 	CHECK(image.pixel(20, 20).alpha == 0.0f);
 	CHECK(image.pixel(40, 20).alpha == 1.0f);
-	stroke(document, pixels, hardTip(10.0f), StrokeMode::paint, {{20.0f, 60.0f}});
+	stroke(document, pixels, hardTip(10.0f), {{20.0f, 60.0f}});
 	{
 		Stroke clone(document, pixels, hardTip(10.0f), StrokeMode::clone, {}, "Clone Stamp");
 		clone.setCloneOffset(-20.0f, 0.0f);
@@ -91,7 +129,7 @@ TEST_CASE("imaging brush: eraser, clone, the selection, masks, quick mask, cance
 	}
 	CHECK(image.pixel(40, 60) == Pixel{1.0f, 0.0f, 0.0f, 1.0f}); // the red dab, copied
 	select(document, "Marquee", rectangleCoverage(512, 256, {300.0f, 0.0f}, {512.0f, 256.0f}), SelectionMode::replace);
-	stroke(document, pixels, hardTip(40.0f), StrokeMode::paint, {{300.0f, 100.0f}});
+	stroke(document, pixels, hardTip(40.0f), {{300.0f, 100.0f}});
 	CHECK(image.pixel(305, 100) == Pixel{1.0f, 0.0f, 0.0f, 1.0f});
 	CHECK(image.pixel(295, 100) == Pixel{0.0f, 1.0f, 0.0f, 1.0f});
 	{
@@ -103,11 +141,10 @@ TEST_CASE("imaging brush: eraser, clone, the selection, masks, quick mask, cance
 	deselect(document);
 	document.addMask(document.activeLayer()->id);
 	const std::uint64_t mask = document.activeLayer()->mask;
-	stroke(document, mask, hardTip(10.0f), StrokeMode::paint, {{100.0f, 100.0f}}, {0.0f, 0.0f, 0.0f, 1.0f});
+	stroke(document, mask, hardTip(10.0f), {{100.0f, 100.0f}}, {0.0f, 0.0f, 0.0f, 1.0f});
 	CHECK(document.image(mask)->pixel(100, 100).alpha == 0.0f);
 	CHECK(document.image(mask)->pixel(120, 100).alpha == 1.0f);
-	stroke(document, Document::selectionId, hardTip(10.0f), StrokeMode::paint, {{50.0f, 50.0f}},
-	       {1.0f, 1.0f, 1.0f, 1.0f});
+	stroke(document, Document::selectionId, hardTip(10.0f), {{50.0f, 50.0f}}, {1.0f, 1.0f, 1.0f, 1.0f});
 	CHECK(document.hasSelection());
 	CHECK(document.selection().pixel(50, 50).alpha == 1.0f);
 	document.changeLayer(document.activeLayer()->id, "Lock", [](Layer& layer) { layer.locks.pixels = true; });
@@ -140,8 +177,7 @@ TEST_CASE("imaging gradient: stops, shapes, presets, and the gradient and bucket
 	CHECK(document.history().steps().back().name == "Gradient");
 	document.undo();
 	fillSelection(document, pixels, {1.0f, 1.0f, 1.0f, 1.0f}, 1.0f);
-	stroke(document, pixels, hardTip(20.0f), StrokeMode::paint, {{50.0f, 50.0f}, {250.0f, 50.0f}},
-	       {0.0f, 0.0f, 0.0f, 1.0f});
+	stroke(document, pixels, hardTip(20.0f), {{50.0f, 50.0f}, {250.0f, 50.0f}}, {0.0f, 0.0f, 0.0f, 1.0f});
 	fillAt(document, pixels, 5, 5, {0.0f, 0.0f, 1.0f, 1.0f}, {}, 1.0f);
 	CHECK(image.pixel(5, 5) == Pixel{0.0f, 0.0f, 1.0f, 1.0f});
 	CHECK(image.pixel(100, 50) == Pixel{0.0f, 0.0f, 0.0f, 1.0f});

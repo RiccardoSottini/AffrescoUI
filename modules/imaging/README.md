@@ -43,6 +43,37 @@ Little CMS 2 for ICC profiles, from `cmake/AffrescoUIColor.cmake`).
   targets (`tests/fuzz/tempera_project.cpp`, `tests/fuzz/icc.cpp`).
 - **Errors are `DocumentError`**, naming the bound or the fault.
 
+## Threading and ownership
+
+- **One thread at a time.** A `Document`, its images and its history are used by one thread at a time (the app's);
+  nothing in the module locks. The canvas renders on the thread that owns the GL context, which is that thread.
+- **A `Document` owns its images;** tiles are `std::shared_ptr<const Tile>`, shared by the images, mips and history
+  steps that point at them, and freed with the last of them. A `TileSource` is owned by its image and reads its tiles
+  on first use (`ProjectTileSource` keeps the project file's bytes alive by a shared pointer).
+- **A `Stroke` is one step:** it begins on construction, commits on `finish`, and cancels when destroyed unfinished.
+- **The host owns the `CanvasModel`; the canvas holds it weakly**, so a closed document leaves an empty canvas, and
+  keeps its GPU tiles in a `TileResidency`, freed with the surface.
+
+## Extension points
+
+- **A blend mode or an adjustment:** the CPU function (`compose/Blend.cpp`, `compose/Adjustment.cpp`) and its GLSL
+  twin (`gpu/CanvasShaders.cpp`), then a case in the GPU test that compares the two.
+- **A filter:** a kernel in `filters/Kernels.cpp` that works on a tile and its halo, and its kind in `Filter.hpp`.
+- **A storage for tiles:** a `TileSource` (`Image.hpp`) that loads a tile by key, or says it provides a mip level.
+- **A bound:** a member of `Limits`, checked where the input is read, and its row in SECURITY.md.
+
+## Sub-folders (`src/`)
+
+| Folder | Holds |
+|---|---|
+| `tiles/` | Tiles, images and their mips (`Image.cpp`), and GPU residency (`Residency.cpp`) |
+| `document/` | The document's layers, masks and selection (`Document.cpp`) and the undo history (`History.cpp`) |
+| `compose/` | Blend modes, adjustments, and the CPU compositor and sampler (`Composite.cpp`) |
+| `paint/` | Brushes, gradients and the bucket, selections, and the shape rasterizer they share (`Rasterize.cpp`) |
+| `filters/` | Filter runs over tiles with a halo (`Filter.cpp`) and their kernels (`Kernels.cpp`) |
+| `io/` | PNG and JPEG (`Codec.cpp`, over stb in `Stb.cpp`), colour profiles (`Color.cpp`) and the project file (`Project.cpp`, `ProjectJson.cpp`) |
+| `gpu/` | The canvas surface (`Canvas.cpp`) and its shaders (`CanvasShaders.cpp`) |
+
 ## Tests
 
 `tests/unit/imaging_*.cpp` (tiles, undo, blend on the CPU and the GPU, selections, colour, project, codec, brushes,

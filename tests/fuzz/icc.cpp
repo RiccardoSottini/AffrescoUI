@@ -29,8 +29,9 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		                                     : ColorTransform(profile, srgb, RenderingIntent::perceptual);
 		const Pixel pixel = transform.apply(Pixel{0.25f, 0.5f, 0.75f, 0.5f});
 		if(pixel.alpha != 0.5f) affresco::fuzz::broken("a conversion leaves alpha alone");
-		if(transform.table(3).size() != 3 * 3 * 3 * 3) affresco::fuzz::broken("a table has side^3 colours");
-	} catch(const affresco::DocumentError&) {
+		if(transform.table(3).size() != std::size_t{3} * 3 * 3 * 3)
+			affresco::fuzz::broken("a table has side^3 colours");
+	} catch(const affresco::DocumentError&) { // NOLINT(bugprone-empty-catch): refusing is the expected outcome
 	}
 	return 0;
 }
