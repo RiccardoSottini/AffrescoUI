@@ -16,7 +16,13 @@
       "unit": "percent",
       "ciThreshold": null,
       "ciReason": "An idle second is wall clock by nature: callgrind counts instructions, not the time a thread sleeps.",
-      "measured": null
+      "measured": {
+        "value": 1.166,
+        "from": "budgets/idle",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "frame",
@@ -31,7 +37,13 @@
       "unit": "ms",
       "ciThreshold": null,
       "ciReason": "The frames are measured as the main thread's CPU time in CI, not under callgrind (software OpenGL makes it too slow).",
-      "measured": null
+      "measured": {
+        "value": 0.438,
+        "from": "frame/14",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "state-change",
@@ -46,7 +58,13 @@
       "limit": 1.0,
       "unit": "ms",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 3.088,
+        "from": "update/400",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "revision",
@@ -60,7 +78,13 @@
       "limit": 2.0,
       "unit": "ms",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 3.232,
+        "from": "revision/kanban/add-button",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "typing",
@@ -75,7 +99,13 @@
       "unit": "ms",
       "ciThreshold": null,
       "ciReason": "A percentile of wall-clock samples: callgrind counts the step's instructions, not a percentile; the step's own count is locked by compare.py as editor/type-100k.",
-      "measured": null
+      "measured": {
+        "value": 3.374,
+        "from": "editor/type-100k",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "scrolling",
@@ -90,7 +120,13 @@
       "unit": "ms",
       "ciThreshold": null,
       "ciReason": "A percentile of wall-clock samples: callgrind counts the step's instructions, not a percentile; the step's own count is locked by compare.py as editor/scroll-1m.",
-      "measured": null
+      "measured": {
+        "value": 2.052,
+        "from": "editor/scroll-1m",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "open-50mb",
@@ -104,7 +140,13 @@
       "limit": 1000.0,
       "unit": "ms",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 245.863,
+        "from": "budgets/open-50mb",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "open-50mb-memory",
@@ -118,7 +160,13 @@
       "limit": 128643200,
       "unit": "bytes",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 213369552,
+        "from": "budgets/open-50mb",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "forge-cold-start",
@@ -132,7 +180,13 @@
       "limit": 300.0,
       "unit": "ms",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 36.386,
+        "from": "budgets/forge-cold-start",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "forge-memory",
@@ -146,7 +200,13 @@
       "limit": 150000000,
       "unit": "bytes",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 188843016,
+        "from": "budgets/forge-10-tabs",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "quick-open",
@@ -160,7 +220,13 @@
       "limit": 30.0,
       "unit": "ms",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 2.499,
+        "from": "fuzzy/100000",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "tree-expand",
@@ -174,7 +240,13 @@
       "limit": 4.0,
       "unit": "ms",
       "ciThreshold": "pending",
-      "measured": null
+      "measured": {
+        "value": 0.163,
+        "from": "views/tree-expand-100k",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "template-outline",
@@ -183,7 +255,13 @@
       "limit": 600,
       "unit": "tokens",
       "ciThreshold": 1272,
-      "measured": null,
+      "measured": {
+        "value": 1272,
+        "from": "studio",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      },
       "ciReason": "Missed: the threshold is the value recorded, so CI fails on growth while the target stays a miss."
     },
     {
@@ -193,7 +271,13 @@
       "limit": 4000,
       "unit": "tokens",
       "ciThreshold": 4000,
-      "measured": null
+      "measured": {
+        "value": 2169,
+        "from": "forge",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "typical-edit",
@@ -202,7 +286,13 @@
       "limit": 40,
       "unit": "tokens",
       "ciThreshold": 40,
-      "measured": null
+      "measured": {
+        "value": 24,
+        "from": "median of 35 canonical edits",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "reread",
@@ -211,7 +301,13 @@
       "limit": 150,
       "unit": "tokens",
       "ciThreshold": 150,
-      "measured": null
+      "measured": {
+        "value": 29,
+        "from": "forge",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     },
     {
       "id": "guide-topic",
@@ -220,7 +316,13 @@
       "limit": 1500,
       "unit": "tokens",
       "ciThreshold": 1669,
-      "measured": null,
+      "measured": {
+        "value": 1669,
+        "from": "Top level",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      },
       "ciReason": "Missed: the threshold is the value recorded, so CI fails on growth while the target stays a miss."
     },
     {
@@ -230,7 +332,13 @@
       "limit": 2000,
       "unit": "tokens",
       "ciThreshold": 2000,
-      "measured": null
+      "measured": {
+        "value": 174,
+        "from": "forge-focus",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "1d60d3f",
+        "date": "2026-10-22"
+      }
     }
   ]
 }
