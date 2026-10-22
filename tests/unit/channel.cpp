@@ -143,6 +143,28 @@ TEST_CASE("channel: a Session sends hello when created") {
 	CHECK(joined["coordination"]["peers"][0].at("author") == "agent");
 }
 
+// Before, the session read the hidden "state" from a const document that hadn't it: undefined behaviour
+TEST_CASE("channel: a peer whose data rules hide the whole state reads an empty one") {
+	const affresco::format::Rules rules;
+	json screen = affresco::test::permissionsScreen();
+	screen["permissions"]["data"] = {{{"author", "agent"}, {"never", {"/state"}}}};
+	affresco::vcs::Repository versions(rules, screen);
+	MemoryChannel channel;
+	const affresco::channel::Session session(channel, versions, "agent");
+
+	REQUIRE_FALSE(channel.sent.empty());
+	const json& hello = channel.sent[0];
+	CHECK(hello.at("type") == "hello");
+	CHECK(hello.at("state") == json::object());
+	CHECK_FALSE(hello.at("document").contains("state"));
+
+	channel.receive(R"({"type": "getDocument", "id": 1})");
+	const json& document = channel.sent.back();
+	CHECK(document.at("type") == "document");
+	CHECK(document.at("state") == json::object());
+	CHECK_FALSE(document.at("document").contains("state"));
+}
+
 TEST_CASE("channel: a message of an unknown type gets an error") {
 	Peer peer;
 	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
