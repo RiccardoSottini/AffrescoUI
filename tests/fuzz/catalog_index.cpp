@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes readCatalog (format/src/FeatureCatalog.hpp): a catalogue's index is untrusted input (RFC 0004).
+/// @brief Fuzzes readCatalog (format/src/features/FeatureCatalog.hpp): a catalogue's index is untrusted input (RFC 0004).
 ///
 /// The input is signed with a key made at start-up and trusted, so it reaches the index's checks past the signature.
 /// It gives an index or a DocumentError; an index's releases are newest first, and its URLs and keys are well formed.

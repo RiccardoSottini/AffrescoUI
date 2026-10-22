@@ -284,7 +284,8 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/syntax.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge modules/format/src modules/render/src)
+	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge
+		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)

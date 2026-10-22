@@ -20,7 +20,7 @@ add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOU
 # lsp.cpp tests the lsp feature's protocol functions
 target_sources(affrescoui_unit_tests PRIVATE ${affrescoui_forge_dir}/features/lsp/LspProtocol.cpp)
 # Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp, Png.hpp and automation's Internal.hpp and PngReader.hpp stay private
-target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
+target_include_directories(affrescoui_unit_tests PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
 	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src
