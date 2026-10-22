@@ -111,56 +111,61 @@ struct PendingFolder {
 	std::size_t depth = 0; ///< How deep it is below the start.
 };
 
-/// @brief Takes one entry of a walked folder: a folder to walk later, or a file to match.
+/// @brief One walk of the folders: what decides which files it takes, and where they go.
+struct Walk {
+	Filters& filters;                     ///< The filters; the walked folders' .gitignore rules are added.
+	const SearchQuery& query;             ///< The limits.
+	std::vector<Candidate>& files;        ///< Gets the files to match.
+	std::vector<PendingFolder> pending{}; ///< The folders still to walk.
+};
+
+/// @brief Takes a walked file if "include" lets it in.
+/// @param path The file.
+/// @param relative It, relative to the root.
+/// @param walk The walk.
+/// @return False if maxFiles is reached, so the walk stops.
+bool takeFile(const fs::path& path, std::string relative, Walk& walk) {
+	if(!walk.filters.include.empty() && !walk.filters.include.matches(splitPath(relative), false)) return true;
+	if(walk.files.size() == walk.query.maxFiles) return false;
+	walk.files.push_back({path, std::move(relative)});
+	return true;
+}
+
+/// @brief Takes one entry of a walked folder: a folder to walk later, or a file to match. Links, special files and
+/// names that aren't UTF-8 are left out.
 /// @param entry The entry.
 /// @param folder The folder it is in.
-/// @param filters The filters.
-/// @param query The limits.
-/// @param pending Gets the folder to walk.
-/// @param files Gets the file.
+/// @param walk The walk.
 /// @return False if maxFiles is reached, so the walk stops.
-bool take(const fs::directory_entry& entry, const PendingFolder& folder, const Filters& filters,
-          const SearchQuery& query, std::vector<PendingFolder>& pending, std::vector<Candidate>& files) {
+bool take(const fs::directory_entry& entry, const PendingFolder& folder, Walk& walk) {
 	std::error_code status;
 	const std::string name = entry.path().filename().string();
 	const fs::file_status kind = entry.symlink_status(status);
 	if(name == ".git" || !isUtf8(name) || status || fs::is_symlink(kind)) return true;
 	const bool isFolder = fs::is_directory(kind);
 	std::string path = joined(folder.relative, name);
-	if((!isFolder && !fs::is_regular_file(kind)) || excluded(filters, path, isFolder)) return true;
-	if(isFolder) {
-		if(folder.depth + 1 < mostDepth) pending.push_back({entry.path(), std::move(path), folder.depth + 1});
-		return true;
-	}
-	if(!filters.include.empty() && !filters.include.matches(splitPath(path), false)) return true;
-	if(files.size() == query.maxFiles) return false;
-	files.push_back({entry.path(), std::move(path)});
+	if((!isFolder && !fs::is_regular_file(kind)) || excluded(walk.filters, path, isFolder)) return true;
+	if(!isFolder) return takeFile(entry.path(), std::move(path), walk);
+	if(folder.depth + 1 < mostDepth) walk.pending.push_back({entry.path(), std::move(path), folder.depth + 1});
 	return true;
 }
 
 /// @brief Walks a folder, depth first without recursion, gathering the files to match.
-/// @param start The folder.
-/// @param relative It, relative to the root.
-/// @param filters The filters; the walked folders' .gitignore rules are added.
-/// @param query The limits.
+/// @param start The folder, relative to the root too.
+/// @param walk The walk.
 /// @param stop Stops the walk.
-/// @param files Gets the files.
-/// @param summary Gets "truncated" if maxFiles is reached.
-void collect(const fs::path& start, const std::string& relative, Filters& filters, const SearchQuery& query,
-             const std::stop_token& stop, std::vector<Candidate>& files, SearchSummary& summary) {
-	std::vector<PendingFolder> pending{{start, relative, 0}};
-	while(!pending.empty() && !stop.stop_requested()) {
-		const PendingFolder folder = std::move(pending.back());
-		pending.pop_back();
-		if(filters.gitignore) readIgnore(folder.path, folder.relative, filters.ignore);
+/// @return False if maxFiles was reached.
+bool collect(PendingFolder start, Walk& walk, const std::stop_token& stop) {
+	walk.pending.push_back(std::move(start));
+	while(!walk.pending.empty() && !stop.stop_requested()) {
+		const PendingFolder folder = std::move(walk.pending.back());
+		walk.pending.pop_back();
+		if(walk.filters.gitignore) readIgnore(folder.path, folder.relative, walk.filters.ignore);
 		std::error_code error;
-		for(fs::directory_iterator entry(folder.path, error), end; !error && entry != end; entry.increment(error)) {
-			if(!take(*entry, folder, filters, query, pending, files)) {
-				summary.truncated = true;
-				return;
-			}
-		}
+		for(fs::directory_iterator entry(folder.path, error), end; !error && entry != end; entry.increment(error))
+			if(!take(*entry, folder, walk)) return false;
 	}
+	return true;
 }
 
 /// @brief Reads a file to match.
@@ -269,32 +274,44 @@ std::size_t threadCount(const SearchQuery& query, std::size_t files) noexcept {
 	return std::max<std::size_t>(1, std::min<std::size_t>(wanted, files));
 }
 
-/// @brief Compiles a query's pattern and globs, and finds its folder.
+/// @brief A query made ready to run: its compiled pattern and globs, and its folder.
+struct Prepared {
+	TextPattern pattern;  ///< The pattern.
+	Filters filters;      ///< The globs, and the .gitignore rules of the folders above the folder.
+	fs::path start;       ///< The folder.
+	std::string relative; ///< It, relative to the root ("" for the root).
+};
+
+/// @brief Reads the .gitignore files of the folders between the root and a folder below it, the folder left out.
+/// @param root The root, canonical.
+/// @param relative The folder, relative to the root.
+/// @param rules Gets their rules.
+void readIgnoresAbove(const fs::path& root, const std::string& relative, IgnoreRules& rules) {
+	const std::vector<std::string_view> names = splitPath(relative);
+	std::string above;
+	for(std::size_t depth = 0; depth < names.size(); above = joined(above, names[depth++]))
+		readIgnore(root / above, above, rules);
+}
+
+/// @brief Compiles a query's pattern and globs, and finds its folder inside the root.
 /// @param root The root.
 /// @param query The query.
-/// @param pattern Gets the pattern.
-/// @param filters Gets the globs, and the .gitignore rules of the folders above the folder.
-/// @param start Gets the folder, and relative it relative to the root.
-/// @param relative See start.
+/// @param prepared Gets the compiled query.
 /// @return An error, or std::nullopt.
-std::optional<std::string> prepare(const fs::path& root, const SearchQuery& query, TextPattern& pattern,
-                                   Filters& filters, fs::path& start, std::string& relative) {
-	if(auto error = pattern.compile(query.pattern, query.options)) return "pattern: " + *error;
-	if(auto error = filters.include.compile(query.include)) return "include: " + *error;
-	if(auto error = filters.exclude.compile(query.exclude)) return "exclude: " + *error;
-	filters.gitignore = query.gitignore;
+std::optional<std::string> prepare(const fs::path& root, const SearchQuery& query, Prepared& prepared) {
+	if(auto error = prepared.pattern.compile(query.pattern, query.options)) return "pattern: " + *error;
+	if(auto error = prepared.filters.include.compile(query.include)) return "include: " + *error;
+	if(auto error = prepared.filters.exclude.compile(query.exclude)) return "exclude: " + *error;
+	prepared.filters.gitignore = query.gitignore;
 	std::error_code error;
 	const fs::path canonical = fs::canonical(root, error);
 	if(error) return "the root can't be read";
 	const std::optional<fs::path> folder = underRoot(canonical, query.folder);
 	if(!folder || !fs::is_directory(*folder, error)) return "folder: not a folder inside the root";
-	start = *folder;
-	relative = folder->lexically_relative(canonical).generic_string();
-	if(relative == ".") relative.clear();
-	const std::vector<std::string_view> names = splitPath(relative);
-	std::string above;
-	for(std::size_t depth = 0; filters.gitignore && depth < names.size(); above = joined(above, names[depth++]))
-		readIgnore(canonical / above, above, filters.ignore);
+	prepared.start = *folder;
+	prepared.relative = folder->lexically_relative(canonical).generic_string();
+	if(prepared.relative == ".") prepared.relative.clear();
+	if(prepared.filters.gitignore) readIgnoresAbove(canonical, prepared.relative, prepared.filters.ignore);
 	return std::nullopt;
 }
 
@@ -305,16 +322,14 @@ std::optional<std::string> searchFiles(const fs::path& root, const SearchQuery& 
 	summary = {};
 	SearchQuery limited = query;
 	limited.maxResults = std::clamp<std::size_t>(query.maxResults, 1, SearchQuery::mostResults);
-	TextPattern pattern;
-	Filters filters;
-	fs::path start;
-	std::string relative;
-	if(auto error = prepare(root, limited, pattern, filters, start, relative)) return error;
+	Prepared prepared;
+	if(auto error = prepare(root, limited, prepared)) return error;
 	if(query.pattern.empty()) return std::nullopt;
 	std::vector<Candidate> files;
-	Shared shared{.pattern = pattern, .query = limited, .files = files, .onFile = onFile, .summary = summary};
+	Shared shared{.pattern = prepared.pattern, .query = limited, .files = files, .onFile = onFile, .summary = summary};
 	const std::stop_callback forward(stop, [&shared] { shared.stop.request_stop(); });
-	collect(start, relative, filters, limited, shared.stop.get_token(), files, summary);
+	Walk walk{.filters = prepared.filters, .query = limited, .files = files};
+	if(!collect({prepared.start, prepared.relative, 0}, walk, shared.stop.get_token())) summary.truncated = true;
 	{
 		std::vector<std::jthread> threads;
 		for(const std::size_t count = threadCount(limited, files.size()); threads.size() < count;)
