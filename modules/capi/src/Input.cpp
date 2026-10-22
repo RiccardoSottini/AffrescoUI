@@ -235,7 +235,7 @@ afr_status afr_screen_render_rgba(afr_screen* screen, int* width, int* height, u
 		afr_screen& handle = anyMode(screen);
 		require(width, "width");
 		require(height, "height");
-		require(rgba, "rgba");
+		require(static_cast<const void*>(rgba), "rgba");
 		*rgba = nullptr;
 		const affresco::Window& window = *handle.window;
 		const int whole = std::max(1, static_cast<int>(std::lround(handle.scale)));
@@ -246,6 +246,7 @@ afr_status afr_screen_render_rgba(afr_screen* screen, int* width, int* height, u
 		    handle.embedding ? handle.embedding->renderPixels(wide, high, scale) : windowPixels(handle, whole);
 		if(pixels.size() != static_cast<std::size_t>(wide) * static_cast<std::size_t>(high) * 4)
 			throw Failure{AFR_ERROR_INTERNAL, "the screen could not be drawn"};
+		// NOLINTNEXTLINE(cppcoreguidelines-no-malloc): handed to C, which frees it with afr_free()
 		auto* copy = static_cast<uint8_t*>(std::malloc(pixels.size()));
 		if(copy == nullptr) throw std::bad_alloc();
 		std::memcpy(copy, pixels.data(), pixels.size());

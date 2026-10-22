@@ -17,8 +17,10 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::capi {
@@ -30,9 +32,13 @@ inline constexpr std::size_t maximumText = std::size_t{1} << 30;
 inline constexpr std::size_t maximumPath = 4096;
 
 /// @brief A failure to report to C: its status and message.
-struct Failure {
-	afr_status status;   ///< What afr_status the call returns.
-	std::string message; ///< What afr_last_error() says.
+struct Failure : std::runtime_error {
+	/// @brief A failure.
+	/// @param status What afr_status the call returns.
+	/// @param message What afr_last_error() says.
+	Failure(afr_status status, const std::string& message) : std::runtime_error(message), status(status) {}
+
+	afr_status status; ///< What afr_status the call returns.
 };
 
 /// @brief Records why the current call failed, for afr_last_error().
@@ -55,7 +61,7 @@ afr_status reportException() noexcept;
 template <typename Body> afr_status guarded(Body&& body) noexcept {
 	try {
 		clearError();
-		return body();
+		return std::forward<Body>(body)();
 	} catch(...) {
 		return reportException();
 	}

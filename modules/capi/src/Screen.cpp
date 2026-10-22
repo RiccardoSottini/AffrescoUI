@@ -95,7 +95,7 @@ WindowSettings windowSettings(const affresco::Screen& screen, const afr_options&
 /// @param handle The screen, its document loaded.
 /// @param options The options.
 void show(afr_screen& handle, const afr_options& options) {
-	affresco::Screen& screen = *handle.screen;
+	affresco::Screen& screen = *handle.screen; // NOLINT(bugprone-unchecked-optional-access): its document is loaded
 	handle.mode = options.mode;
 	handle.scale = options.scale;
 	// GLFW on macOS moves the current folder into an app bundle's resources; a host's relative paths must keep theirs
@@ -126,9 +126,10 @@ void show(afr_screen& handle, const afr_options& options) {
 /// @param out Receives it.
 /// @return AFR_OK.
 afr_status finish(std::unique_ptr<afr_screen> handle, const afr_options& options, afr_screen** out) {
+	affresco::Screen& screen = *handle->screen; // NOLINT(bugprone-unchecked-optional-access): its document is loaded
 	if(options.socket_directory != nullptr) {
 		handle->socketDirectory = checkedString(options.socket_directory, "options.socket_directory", 4096);
-		handle->screen->setSocketDirectory(handle->socketDirectory);
+		screen.setSocketDirectory(handle->socketDirectory);
 	} else {
 		handle->socketDirectory = affresco::Screen::defaultSocketDirectory();
 	}
@@ -138,10 +139,10 @@ afr_status finish(std::unique_ptr<afr_screen> handle, const afr_options& options
 				throw Failure{AFR_ERROR_ARGUMENT, "options.native_actions has too many names"};
 			const std::string_view name = checkedString(options.native_actions[i], "options.native_actions", 256);
 			if(name.empty()) throw Failure{AFR_ERROR_ARGUMENT, "options.native_actions has an empty name"};
-			handle->screen->onAction(std::string(name), [](affresco::Panel&) {});
+			screen.onAction(std::string(name), [](affresco::Panel&) {});
 		}
 	const afr_screen* self = handle.get();
-	handle->screen->onEvent([self](const std::string& eventJson) {
+	screen.onEvent([self](const std::string& eventJson) {
 		if(self->onEvent != nullptr) self->onEvent(self->onEventUser, eventJson.c_str());
 	});
 	show(*handle, options);
@@ -171,6 +172,7 @@ std::string pointerOf(std::string_view path) {
 /// @throws Failure If it is refused.
 afr_status applyAsApplication(afr_screen& handle, const affresco::json& revision) {
 	std::string error;
+	// NOLINTNEXTLINE(bugprone-unchecked-optional-access): engaged from the handle's creation on
 	if(!handle.screen->applyRevision(revision.dump(), &error)) throw Failure{AFR_ERROR_REFUSED, error};
 	return AFR_OK;
 }
@@ -189,7 +191,7 @@ extern "C" {
 
 afr_status afr_screen_create_from_file(const char* path, const afr_options* options, afr_screen** screen) {
 	return guarded([&] {
-		require(screen, "screen");
+		require(static_cast<const void*>(screen), "screen");
 		*screen = nullptr;
 		const std::filesystem::path file = std::filesystem::absolute(checkedString(path, "path", 4096));
 		const afr_options settings = readOptions(options);
@@ -211,7 +213,7 @@ afr_status afr_screen_create_from_file(const char* path, const afr_options* opti
 afr_status afr_screen_create_from_string(const char* json, size_t length, const char* base_directory,
                                          const afr_options* options, afr_screen** screen) {
 	return guarded([&] {
-		require(screen, "screen");
+		require(static_cast<const void*>(screen), "screen");
 		*screen = nullptr;
 		const std::string_view text = checkedText(json, length, "json");
 		std::filesystem::path base;
@@ -247,7 +249,7 @@ afr_status afr_screen_replace_document(afr_screen* screen, const char* json, siz
 afr_status afr_screen_get_state(afr_screen* screen, const char* path, char** json) {
 	return guarded([&] {
 		afr_screen& handle = checked(screen);
-		require(json, "json");
+		require(static_cast<const void*>(json), "json");
 		*json = nullptr;
 		const affresco::json::json_pointer pointer(pointerOf(checkedString(path, "path", affresco::capi::maximumPath)));
 		const affresco::json state = affresco::parseUntrusted(handle.screen->stateJson());
@@ -296,8 +298,8 @@ afr_status afr_screen_on_action(afr_screen* screen, const char* name, afr_action
 		afr_screen& handle = checked(screen);
 		if(callback == nullptr) throw Failure{AFR_ERROR_ARGUMENT, "callback is NULL"};
 		const std::string action(checkedString(name, "name", 256));
-		handle.screen->onAction(action, [callback, user, action](affresco::Panel& sender) {
-			callback(user, action.c_str(), sender.id().c_str());
+		handle.screen->onAction(action, [callback, user, name = action](affresco::Panel& sender) {
+			callback(user, name.c_str(), sender.id().c_str());
 		});
 		return AFR_OK;
 	});

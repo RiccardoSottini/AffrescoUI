@@ -61,6 +61,7 @@ extern "C" {
 #define AFR_VERSION ((AFR_VERSION_MAJOR << 16) | (AFR_VERSION_MINOR << 8) | AFR_VERSION_PATCH)
 
 /** @brief What a function did. */
+/* NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): a C API */
 typedef enum afr_status {
 	AFR_OK = 0,              /**< It succeeded. */
 	AFR_ERROR_ARGUMENT = 1,  /**< An argument is missing, too long, out of range or not valid UTF-8 or JSON. */
@@ -72,6 +73,7 @@ typedef enum afr_status {
 } afr_status;
 
 /** @brief Where a screen is shown. */
+/* NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): a C API */
 typedef enum afr_mode {
 	AFR_MODE_WINDOW = 0, /**< In a window of its own, run by afr_screen_run(). */
 	AFR_MODE_HEADLESS =
@@ -80,6 +82,7 @@ typedef enum afr_mode {
 } afr_mode;
 
 /** @brief A mouse event's kind. */
+/* NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): a C API */
 typedef enum afr_mouse_action {
 	AFR_MOUSE_MOVE = 0,    /**< The pointer moved. */
 	AFR_MOUSE_PRESS = 1,   /**< A button went down. */
@@ -89,6 +92,7 @@ typedef enum afr_mouse_action {
 } afr_mouse_action;
 
 /** @brief A key event's kind (GLFW's values). */
+/* NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): a C API */
 typedef enum afr_key_action {
 	AFR_KEY_RELEASE = 0, /**< The key went up. */
 	AFR_KEY_PRESS = 1,   /**< The key went down. */
@@ -96,6 +100,7 @@ typedef enum afr_key_action {
 } afr_key_action;
 
 /** @brief Modifier bits (GLFW's values). */
+/* NOLINTNEXTLINE(cppcoreguidelines-use-enum-class): a C API */
 enum {
 	AFR_MOD_SHIFT = 0x1,   /**< Shift. */
 	AFR_MOD_CONTROL = 0x2, /**< Control. */
