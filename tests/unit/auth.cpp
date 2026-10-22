@@ -148,6 +148,8 @@ TEST_CASE("auth: no token ever shows in the document, the state, the history or 
 		identity.revokeAccess();
 		REQUIRE(shown.run("me", "/error"));
 		CHECK(shown.executor.runUntil([&identity] { return identity.grants() == 2; }));
+		// The mock counts the grant before the screen has read it: a request in between finds no token
+		REQUIRE(shown.executor.runUntil([&shown] { return shown.auth()["state"] == "signedIn"; }));
 		shown.screen->runAction("me", shown.window->root());
 		REQUIRE(shown.executor.runUntil([&shown] {
 			return stateAt(*shown.screen, "/error").is_null() && shown.auth()["state"] == "signedIn";
