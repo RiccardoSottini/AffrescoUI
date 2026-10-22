@@ -5,7 +5,7 @@
 		"message": "Add a Focus playlist",
 		"add": {
 			"/state/playlists/-": {
-				"name": "Focus", "initials": "FO", "color": "#0891b2", "description": "Calm tracks for deep work.",
+				"name": "Focus", "cover": "images/cover-focus.svg", "description": "Calm tracks for deep work.",
 				"length": "4 min",
 				"tracks": [{ "title": "Quiet Loop", "artist": "Nora Vale", "album": "Redraw", "time": "4:00" }]
 			}

@@ -88,6 +88,13 @@ std::string readFile(const std::filesystem::path& path) {
 	return text.str();
 }
 
+json screenDocument(const std::filesystem::path& file) {
+	const Screen screen = Screen::fromString(readFile(file), file.parent_path());
+	json document = json::parse(screen.documentJson());
+	document["state"] = json::parse(screen.stateJson());
+	return document;
+}
+
 json kanbanWithCards(const std::filesystem::path& directory, int cards) {
 	json document = json::parse(readFile(directory / "kanban.screen.json"));
 	json& columns = document["state"]["columns"];

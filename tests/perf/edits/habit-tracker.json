@@ -1,5 +1,5 @@
 {
-	"change-colour": { "message": "Orange accent", "set": { "/colors/accent": "#ea580c" } },
+	"change-colour": { "message": "Orange accent", "set": { "/tokens/color.accent/light": "#ea580c" } },
 	"rename-label": { "message": "Call the app Habits", "set": { "#logo/text": "Habits" } },
 	"add-habit": {
 		"message": "Add a stretching habit",
