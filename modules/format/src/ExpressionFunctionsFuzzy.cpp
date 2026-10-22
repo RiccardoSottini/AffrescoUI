@@ -47,7 +47,7 @@ template <typename Char> constexpr Char lowered(Char c) noexcept {
 template <typename Char> constexpr bool separates(Char c) noexcept {
 	constexpr std::string_view separators = " \t/\\_-.:,;()[]{}'\"";
 	return static_cast<std::make_unsigned_t<Char>>(c) < 0x80u &&
-	       separators.find(static_cast<char>(c)) != std::string_view::npos;
+	       separators.contains(static_cast<char>(c));
 }
 
 /// @brief The bonus for a match at a position: the start of a word or a camelCase hump.

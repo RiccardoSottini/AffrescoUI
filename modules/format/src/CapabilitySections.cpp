@@ -73,7 +73,7 @@ void checkPersist(const json& value, const std::string& name) {
 /// @return true if it is one.
 bool isDuration(const std::string& text) {
 	return text.size() >= 2 && text.size() <= 7 && text[0] >= '1' && text[0] <= '9' &&
-	       std::string_view("mhd").find(text.back()) != std::string_view::npos &&
+	       std::string_view("mhd").contains(text.back()) &&
 	       std::ranges::all_of(text.substr(0, text.size() - 1), [](char c) { return c >= '0' && c <= '9'; });
 }
 

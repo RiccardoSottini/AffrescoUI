@@ -159,7 +159,7 @@ TEST_CASE("editor view: decorations are clamped, capped per line and move with t
 }
 
 TEST_CASE("editor view: extra cursors type, delete and move together") {
-	ViewWindow test("ab\ncd\nef");
+	const ViewWindow test("ab\ncd\nef");
 	test.press(Key::Down, superKey | altKey);
 	test.press(Key::Down, superKey | altKey);
 	CHECK(test.editor.cursors().size() == 2);
@@ -175,7 +175,7 @@ TEST_CASE("editor view: extra cursors type, delete and move together") {
 }
 
 TEST_CASE("editor view: Cmd+D selects the word, then each next occurrence, wrapping once") {
-	ViewWindow test("cat dog cat\ncat");
+	const ViewWindow test("cat dog cat\ncat");
 	test.press(Key::D, superKey);
 	CHECK(test.editor.cursors().empty());
 	test.press(Key::D, superKey);
@@ -237,7 +237,7 @@ TEST_CASE("editor view: replacing in a read-only editor changes nothing") {
 }
 
 TEST_CASE("editor view: Cmd+Alt+[ folds the caret's block and Cmd+Alt+] unfolds it") {
-	ViewWindow test("a\n  b\nc");
+	const ViewWindow test("a\n  b\nc");
 	test.press(Key::LeftBracket, superKey | altKey);
 	CHECK(test.editor.rowCount() == 2);
 	test.press(Key::RightBracket, superKey | altKey);

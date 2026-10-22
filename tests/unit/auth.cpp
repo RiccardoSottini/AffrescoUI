@@ -257,7 +257,7 @@ TEST_CASE("auth: a kept refresh token signs in again at the next run, with no br
 
 TEST_CASE("auth: revisions can't add a sign-in, nor change a provider") {
 	MockIdentity identity;
-	affresco::format::Rules rules;
+	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, authScreen(identity, "device"));
 	CHECK(repository.submit({{"author", "agent"}, {"add", {{"/actions/again", json::array({{{"signIn", "api"}}})}}}})
 	          .status != affresco::RevisionStatus::Applied);

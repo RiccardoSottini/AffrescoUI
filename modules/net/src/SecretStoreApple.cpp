@@ -40,7 +40,7 @@ public:
 	explicit KeychainSecretStore(std::string service) : service_(std::move(service)) {}
 
 	[[nodiscard]] std::optional<std::string> read(const std::string& key) override {
-		auto query = base(key);
+		const auto query = base(key);
 		CFDictionarySetValue(query.get(), kSecReturnData, kCFBooleanTrue);
 		CFDictionarySetValue(query.get(), kSecMatchLimit, kSecMatchLimitOne);
 		CFTypeRef found = nullptr;
@@ -53,8 +53,8 @@ public:
 	bool write(const std::string& key, const std::string& secret) override {
 		const Owned<CFDataRef> data(CFDataCreate(nullptr, reinterpret_cast<const UInt8*>(secret.data()),
 		                                         static_cast<CFIndex>(secret.size())));
-		auto query = base(key);
-		auto change = Owned<CFMutableDictionaryRef>(CFDictionaryCreateMutable(
+		const auto query = base(key);
+		const auto change = Owned<CFMutableDictionaryRef>(CFDictionaryCreateMutable(
 		    nullptr, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
 		CFDictionarySetValue(change.get(), kSecValueData, data.get());
 		if(SecItemUpdate(query.get(), change.get()) == errSecSuccess) return true;

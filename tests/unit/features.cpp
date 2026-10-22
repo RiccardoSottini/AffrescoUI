@@ -91,7 +91,7 @@ bool refused(const json& manifest, const std::string& text) {
 		affresco::format::checkManifest(manifest, "feature");
 	} catch(const affresco::DocumentError& error) {
 		INFO(error.what());
-		return std::string(error.what()).find(text) != std::string::npos;
+		return std::string(error.what()).contains(text);
 	}
 	return false;
 }

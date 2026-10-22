@@ -436,7 +436,7 @@ void ColorPicker::charEvent(const CharEvent& event) {
 }
 
 void ColorPicker::pickFromWindow(Vec2 position) {
-	Panel* hit = window() ? window()->panelAt(position) : nullptr;
+	const Panel* hit = window() ? window()->panelAt(position) : nullptr;
 	while(hit && hit->color().a <= 0.0f) hit = hit->parent();
 	if(!hit || hit == this) return;
 	changeRgb(detail::toRgb(hit->color()), alpha_);

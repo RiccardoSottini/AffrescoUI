@@ -37,7 +37,7 @@ SignIn::~SignIn() {
 void SignIn::declare(const std::vector<std::pair<std::string, identity::Provider>>& providers) {
 	std::map<std::string, std::unique_ptr<Entry>> next;
 	for(const auto& [name, provider] : providers) {
-		auto found = entries_.find(name);
+		const auto found = entries_.find(name);
 		if(found != entries_.end() && found->second->provider == provider) {
 			next.emplace(name, std::move(found->second));
 			continue;
@@ -197,14 +197,14 @@ void SignIn::post(Entry& entry, const std::string& url, const std::vector<std::p
 	request.headers = {{"Content-Type", "application/x-www-form-urlencoded"}, {"Accept", "application/json"}};
 	request.body = oauth::form(fields);
 	request.maxBodyBytes = oauth::maxResponseBytes;
-	auto shared = std::make_shared<decltype(done)>(std::move(done));
+	const auto shared = std::make_shared<decltype(done)>(std::move(done));
 	// The entry owns the transfer: destroying it (stop(), signOut(), the entry going) cancels the handlers
 	entry.transfer = network_.start(
 	    std::move(request),
 	    {.done = [shared](network::Response response) { (*shared)(std::move(response.body), {}, {}); },
 	     .failed =
 	         [shared](network::Failure failure) {
-		         std::string why = failure.code == "status" ? oauth::errorCode(failure.body) : std::string();
+		         const std::string why = failure.code == "status" ? oauth::errorCode(failure.body) : std::string();
 		         (*shared)(std::nullopt, std::move(failure.body),
 		                   why.empty() ? failure.message : "the provider answered " + why);
 	         },
@@ -264,10 +264,10 @@ void SignIn::stop(Entry& entry) {
 }
 
 void SignIn::finish(Entry& entry, const std::optional<std::string>& error) {
-	auto waiting = std::move(entry.waiting);
+	const auto waiting = std::move(entry.waiting);
 	entry.waiting.clear();
 	changed();
-	for(auto& done : waiting) done(error);
+	for(const auto& done : waiting) done(error);
 }
 
 void SignIn::keep(const Entry& entry) {

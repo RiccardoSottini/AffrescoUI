@@ -139,8 +139,8 @@ affresco::json Buffers::todos() const {
 		while(start <= text.size() && found.size() < limits_.todos) {
 			const std::size_t end = std::min(text.find('\n', start), text.size());
 			const std::string_view row(text.data() + start, end - start);
-			const bool fixme = row.find("FIXME") != std::string_view::npos;
-			if(fixme || row.find("TODO") != std::string_view::npos)
+			const bool fixme = row.contains("FIXME");
+			if(fixme || row.contains("TODO"))
 				found.push_back({{"severity", fixme ? "warning" : "info"},
 				                 {"message", message(row)},
 				                 {"file", id},

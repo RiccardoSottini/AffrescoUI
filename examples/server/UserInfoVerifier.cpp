@@ -81,7 +81,7 @@ std::optional<std::string> UserInfoVerifier::verify(std::string_view token) {
 }
 
 std::optional<std::string> UserInfoVerifier::ask(std::string_view token) {
-	auto answer = std::make_shared<std::promise<std::optional<std::string>>>();
+	const auto answer = std::make_shared<std::promise<std::optional<std::string>>>();
 	std::future<std::optional<std::string>> result = answer->get_future();
 	network::Request request;
 	request.url = userinfo_;

@@ -73,7 +73,7 @@ std::vector<Row> matchMiddle(const std::vector<std::string_view>& before, const 
 /// @param rows The rows.
 void removedFirst(std::vector<Row>& rows) {
 	for(auto start = rows.begin(); start != rows.end();) {
-		auto end = std::find(start, rows.end(), Row::Same);
+		const auto end = std::find(start, rows.end(), Row::Same);
 		std::stable_partition(start, end, [](Row row) { return row == Row::Removed; });
 		start = end == rows.end() ? end : end + 1;
 	}

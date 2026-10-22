@@ -41,11 +41,11 @@ std::optional<std::string> checkPaths(const std::vector<std::string>& arguments,
 bool isBranchName(std::string_view name) noexcept {
 	if(name.empty() || name.size() > longestBranchName || name == "HEAD" || name == "@") return false;
 	if(name.front() == '-' || name.front() == '/' || name.back() == '/' || name.back() == '.') return false;
-	if(name.find("..") != std::string_view::npos || name.find("//") != std::string_view::npos ||
-	   name.find("/.") != std::string_view::npos || name.front() == '.')
+	if(name.contains("..") || name.contains("//") ||
+	   name.contains("/.") || name.front() == '.')
 		return false;
 	if(name.size() >= 5 && name.substr(name.size() - 5) == ".lock") return false;
-	if(name.find(".lock/") != std::string_view::npos) return false;
+	if(name.contains(".lock/")) return false;
 	return std::all_of(name.begin(), name.end(), [](char c) {
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '_' ||
 		       c == '/' || c == '-';

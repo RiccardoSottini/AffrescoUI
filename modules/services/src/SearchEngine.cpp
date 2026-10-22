@@ -315,7 +315,7 @@ std::optional<std::string> searchFiles(const fs::path& root, const SearchQuery& 
 	collect(start, relative, filters, limited, shared.stop.get_token(), files, summary);
 	{
 		std::vector<std::jthread> threads;
-		for(std::size_t count = threadCount(limited, files.size()); threads.size() < count;)
+		for(const std::size_t count = threadCount(limited, files.size()); threads.size() < count;)
 			threads.emplace_back([&shared] { work(shared); });
 	}
 	summary.searched = shared.searched;

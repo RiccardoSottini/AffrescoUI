@@ -68,7 +68,7 @@ void stopListeningToGradient(Panel& panel, Connection connection) {
 } // namespace
 
 void registerGradientType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},
 	                   {"value", ValueKind::Any},
 	                   {"font", ValueKind::Font},

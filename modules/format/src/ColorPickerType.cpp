@@ -91,7 +91,7 @@ void stopListeningToColorPicker(Panel& panel, Connection connection) {
 } // namespace
 
 void registerColorPickerType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {
 	    {"bind", ValueKind::StatePath}, {"value", ValueKind::Color},     {"mode", ValueKind::Text},
 	    {"alpha", ValueKind::Boolean},  {"fields", ValueKind::Boolean},  {"swatches", ValueKind::Any},
