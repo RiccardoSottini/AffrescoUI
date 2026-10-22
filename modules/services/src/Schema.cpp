@@ -20,14 +20,6 @@ bool isWhole(double number) noexcept {
 	return number >= -int64Limit && number < int64Limit && std::trunc(number) == number;
 }
 
-/// @brief A length bound for a message, cut to a whole number: "64".
-/// @param bound The bound.
-/// @return Its text.
-std::string whole(double bound) {
-	return bound >= -int64Limit && bound < int64Limit ? std::to_string(static_cast<long long>(bound))
-	                                                  : json(bound).dump();
-}
-
 /// @brief Whether a value has a type JSON Schema names.
 /// @param value The value.
 /// @param type The name.
@@ -60,31 +52,78 @@ std::optional<std::string> checkKind(const json& schema, const json& value, cons
 	return std::nullopt;
 }
 
+/// @brief A schema's numeric keyword.
+/// @param schema The schema.
+/// @param key The keyword, e.g. "maxLength".
+/// @return Its number, or std::nullopt if it has none.
+std::optional<double> bound(const json& schema, const char* key) {
+	const auto it = schema.find(key);
+	return it != schema.end() && it->is_number() ? std::optional(it->get<double>()) : std::nullopt;
+}
+
+/// @brief A length bound for a message, cut to a whole number: "64".
+/// @param bound The bound.
+/// @return Its text.
+std::string whole(double bound) {
+	return bound >= -int64Limit && bound < int64Limit ? std::to_string(static_cast<long long>(bound))
+	                                                  : json(bound).dump();
+}
+
 /// @brief Checks the bounds: lengths of text, ranges of numbers, sizes of lists.
 /// @param schema The schema.
 /// @param value The value.
 /// @param path Its place.
 /// @return What is wrong, or std::nullopt.
 std::optional<std::string> checkBounds(const json& schema, const json& value, const std::string& path) {
-	const auto bound = [&](const char* key) -> std::optional<double> {
-		const auto it = schema.find(key);
-		return it != schema.end() && it->is_number() ? std::optional(it->get<double>()) : std::nullopt;
-	};
 	if(value.is_string()) {
 		const auto size = static_cast<double>(value.get_ref<const std::string&>().size());
-		if(const auto most = bound("maxLength"); most && size > *most)
+		if(const auto most = bound(schema, "maxLength"); most && size > *most)
 			return path + ": at most " + whole(*most) + " bytes";
-		if(const auto least = bound("minLength"); least && size < *least)
+		if(const auto least = bound(schema, "minLength"); least && size < *least)
 			return path + ": at least " + whole(*least) + " bytes";
 	}
 	if(value.is_number()) {
 		const double number = value.get<double>();
-		if(const auto most = bound("maximum"); most && number > *most) return path + ": at most " + json(*most).dump();
-		if(const auto least = bound("minimum"); least && number < *least) return path + ": at least " + json(*least).dump();
+		if(const auto most = bound(schema, "maximum"); most && number > *most)
+			return path + ": at most " + json(*most).dump();
+		if(const auto least = bound(schema, "minimum"); least && number < *least)
+			return path + ": at least " + json(*least).dump();
 	}
-	if(value.is_array())
-		if(const auto most = bound("maxItems"); most && static_cast<double>(value.size()) > *most)
-			return path + ": at most " + whole(*most) + " items";
+	if(const auto most = bound(schema, "maxItems");
+	   most && value.is_array() && static_cast<double>(value.size()) > *most)
+		return path + ": at most " + whole(*most) + " items";
+	return std::nullopt;
+}
+
+/// @brief Checks that an object has the members a schema's `required` lists.
+/// @param schema The schema.
+/// @param value The object.
+/// @param path Its place.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> checkRequired(const json& schema, const json& value, const std::string& path) {
+	const auto required = schema.find("required");
+	if(required == schema.end() || !required->is_array()) return std::nullopt;
+	for(const json& name : *required)
+		if(name.is_string() && !value.contains(name.get<std::string>()))
+			return path + ": needs \"" + name.get<std::string>() + "\"";
+	return std::nullopt;
+}
+
+/// @brief Checks one member against its `properties` schema, else against `additionalProperties`.
+/// @param schema The object's schema.
+/// @param key The member's key.
+/// @param member The member.
+/// @param place The member's place.
+/// @return What is wrong, or std::nullopt.
+std::optional<std::string> checkMember(const json& schema, const std::string& key, const json& member,
+                                       const std::string& place) {
+	if(const auto properties = schema.find("properties");
+	   properties != schema.end() && properties->is_object() && properties->contains(key))
+		return checkSchema((*properties)[key], member, place);
+	const auto additional = schema.find("additionalProperties");
+	if(additional == schema.end()) return std::nullopt;
+	if(additional->is_boolean() && !additional->get<bool>()) return place + ": unknown key";
+	if(additional->is_object()) return checkSchema(*additional, member, place);
 	return std::nullopt;
 }
 
@@ -94,22 +133,9 @@ std::optional<std::string> checkBounds(const json& schema, const json& value, co
 /// @param path Its place.
 /// @return What is wrong, or std::nullopt.
 std::optional<std::string> checkMembers(const json& schema, const json& value, const std::string& path) {
-	if(const auto required = schema.find("required"); required != schema.end() && required->is_array())
-		for(const json& name : *required)
-			if(name.is_string() && !value.contains(name.get<std::string>()))
-				return path + ": needs \"" + name.get<std::string>() + "\"";
-	const auto properties = schema.find("properties");
-	const auto additional = schema.find("additionalProperties");
-	for(const auto& [key, member] : value.items()) {
-		const std::string place = path + "." + key;
-		if(properties != schema.end() && properties->is_object() && properties->contains(key)) {
-			if(auto problem = checkSchema((*properties)[key], member, place)) return problem;
-		} else if(additional != schema.end()) {
-			if(additional->is_boolean() && !additional->get<bool>()) return place + ": unknown key";
-			if(additional->is_object())
-				if(auto problem = checkSchema(*additional, member, place)) return problem;
-		}
-	}
+	if(auto problem = checkRequired(schema, value, path)) return problem;
+	for(const auto& [key, member] : value.items())
+		if(auto problem = checkMember(schema, key, member, path + "." + key)) return problem;
 	return std::nullopt;
 }
 
