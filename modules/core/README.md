@@ -28,6 +28,7 @@ match text (render, services) link privately.
 | `SecretStore.hpp` | `SecretStore` (`read`, `write`, `erase`, `name`; thread-safe) and `MemorySecretStore`, one kept in memory for tests |
 | `Sha256.hpp` | `sha256::digest`, `sha256::hex`: SHA-256, header-only (version control's object names, the server's token hashes) |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
+| `Portable.hpp` | `environmentVariable`, `utcTime`, `localTime`: the C library calls MSVC and POSIX spell differently, spelled once |
 | `TextPattern.hpp` | `TextPattern` (`compile`, `find`, `expand`), `PatternOptions` (regex, whole word, case), `PatternMatch`, `PatternFind`: plain, whole-word or PCRE2 matching under limits (pattern 4 KiB, 1,000,000 steps, depth 10,000, 8 MiB heap per match); const matching is thread-safe |
 | `TextDiff.hpp` | `diffSequences`, `diffLines`, `splitLines`, `DiffEdit`, `DiffLimits`: Myers' linear-space diff (header only), deletions before insertions in each change; past its limits (20,000,000 steps, distance 100,000) a part becomes one deletion and one insertion |
 
@@ -46,12 +47,17 @@ match text (render, services) link privately.
 - **The log stays one line per message:** `log` escapes control characters, so text from peers can't forge a line
   or reach the terminal as an escape sequence.
 
-## Threads
+## Threads and ownership
 
 Everything here is used on the main thread, except two entry points:
 - `Executor::post` may be called from any thread. It is how other threads hand work to the main thread.
 - `log` may be called from any thread; the sink must cope with that. `setLogSink` is not synchronised: call it before
   the application starts.
+
+Ownership: an implementation of an interface (a `Channel`, a `VersionControl`) is owned by whoever made it, and
+what is handed one by reference only borrows it, so the owner destroys the borrower first. A `Connection` is only an
+id: a slot that captures an object is disconnected (`disconnect(id)`) before that object goes, unless the signal
+goes first.
 
 ## Errors
 
@@ -83,6 +89,9 @@ include/affresco/core/
   Json.hpp            json, DocumentError, parseUntrusted, toText, expect::
   Identity.hpp        Identity: sign-in for the format, and Provider
   Log.hpp             levels, the sink, log()
+  Network.hpp         the Network interface the net module implements
+  Portable.hpp        environment and time calls, portable
+  Services.hpp        the Services interface the services module implements
   TextPattern.hpp     plain, whole-word and PCRE2 patterns, bounded
   TextDiff.hpp        line and sequence diffs, bounded
   ScreenImages.hpp    pictures of the screen for peers

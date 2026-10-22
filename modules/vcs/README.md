@@ -70,10 +70,14 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   and one program at a time writes a history folder (a lock the system releases if the program dies). Version 1
   histories still load.
 
-## Threads
+## Threads and ownership
 
 Main thread only. The repository has no threads of its own; peers reach it through `channel::Session`, which runs on
 the main thread. File writes happen inside the change that causes them.
+
+The `Repository` borrows its `DocumentRules` (they must outlive it) and owns everything else: the commits, the
+proposals, the grants and the history folder's lock, which it holds until it is destroyed. Its observer is
+borrowed too; `setObserver(nullptr)` before the observer goes.
 
 ## Errors
 
@@ -95,22 +99,35 @@ the main thread. File writes happen inside the change that causes them.
 ## Files
 
 ```
-include/affresco/vcs/Repository.hpp   the Repository class
-include/affresco/vcs/ChangeSetRepair.hpp   ChangeSetRepairs
+include/affresco/vcs/
+  Repository.hpp            the Repository class
+  Leases.hpp, Roles.hpp, Presence.hpp, ChangeSetRepair.hpp   what several agents at once add
 src/
-  Repository.cpp            commits, main, proposals, review, permissions in use, change sets
-  ChangeSetRepair.cpp       installing change sets with a proof, asking for repairs, re-recording them once accepted
-  RepositoryReview.cpp      rebasing proposals onto a newer main, approvals and review policies, expiring grants
-  Merge.hpp / .cpp          the three-way JSON merge, lists of nodes merged by id
-  RepositoryHistory.cpp     the history on disk: writing and loading objects and refs
-  RepositoryDocuments.cpp   rebuilding a commit's document from a snapshot and deltas; blame; the live state's undo
-  Deltas.hpp / .cpp         exact deltas between documents, applying them safely, JSON Pointer segments
-  HistoryStore.hpp / .cpp   the history folder: the lock, atomic writes, bounded reads, packs
-  Permissions.hpp / .cpp    how a rule sees a change: by its effect on the paths it covers
-  Policy.hpp / .cpp         budgets and data rules: counting nodes by id, paths an author may read, write or never touch
-  PolicyRepository.cpp      what a read-limited author sees, refusing revisions that name what it may not read
-  Roles.cpp                 the roles of this run, and rules naming them
-  LeasesRepository.cpp      who is connected, the parts they lease, and refusing changes to another holder's part
+  revisions/                a revision, from what it says to a commit on main
+    Revisions.hpp / .cpp    what a revision says: author, message, patch; the commit time
+    Budget.hpp / .cpp       what preparing one revision may cost
+    Deltas.hpp / .cpp       exact deltas between documents, applying them safely, JSON Pointer segments
+    Repository.cpp          commits and main; checking, judging and landing a revision
+    RepositoryDocuments.cpp rebuilding a commit's document from a snapshot and deltas; blame; restore and revert
+  review/                   proposals and what it takes to merge them
+    RepositoryProposals.cpp opening, extending, previewing, accepting and rejecting proposals
+    RepositoryReview.cpp    rebasing proposals onto a newer main, approvals and review policies, expiring grants
+    Merge.hpp / .cpp        the three-way JSON merge, lists of nodes merged by id
+    ChangeSetRepair.cpp     installing change sets with a proof, asking for repairs, re-recording them once accepted
+  permissions/              who may change what
+    Permissions.hpp / .cpp  how a rule sees a change: by its effect on the paths it covers
+    Policy.hpp / .cpp       budgets and data rules: nodes counted by id, paths an author may read, write or never touch
+    PolicyRepository.cpp    rules, reviewers and modes in use; what a read-limited author sees
+    Roles.cpp               the roles of this run, and rules naming them
+  peers/                    who is on the document
+    Leases.cpp              parts of a document one person holds for a while
+    LeasesRepository.cpp    who is connected, the parts they lease, and refusing changes to another holder's part
+    Presence.cpp            who has the document open, and where
+  history/                  the history on disk
+    HistoryStore.hpp / .cpp the history folder: the lock, atomic writes, bounded reads, packs
+    RepositoryHistory.cpp   writing and loading objects and refs, every hash checked
+    RepositoryChanges.cpp   the log, and exporting, checking and importing change sets
+  CompositionProofRevision.hpp / .cpp   the revision that installs a feature from another app
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
   Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)
 CMakeLists.txt              the affrescoui_vcs target and its sources
@@ -128,11 +145,11 @@ const affresco::RevisionResult result = repository.submit(affresco::parseUntrust
 	"author": "agent", "message": "Rename", "patch": [{"op": "replace", "path": "/title", "value": "Notes"}]})"));
 ```
 
-**Add a field to commits or proposals.** Add it to `CommitInfo` or `ProposalInfo` (`core/VersionControl.hpp`) and to
-its protocol JSON there; fill it in `Repository.cpp` (commits) or `RepositoryProposals.cpp` (proposals). If it is
-part of what a commit is, it changes the hash: ask the maintainer first, because existing histories on disk would no
-longer load.
+**Add a field to commits or proposals.** Add it to `CommitInfo` or `ProposalInfo` (`core/VersionControl.hpp`) and to its
+protocol JSON there; fill it in `revisions/Repository.cpp` (commits) or `review/RepositoryProposals.cpp` (proposals). If
+it is part of what a commit is, it changes the hash: ask the maintainer first, because existing histories on disk would
+no longer load.
 
-**Add a permission behaviour.** Rules are judged in `Repository::evaluate` (`PolicyRepository.cpp`) using
-`Permissions.cpp`. Changes to who may do what touch the security model: ask first, update `VERSION_CONTROL.md` and
-`SECURITY.md`, and add unit tests to `tests/unit/vcs.cpp`.
+**Add a permission behaviour.** Rules are judged in `Repository::evaluate` (`permissions/PolicyRepository.cpp`) using
+`permissions/Permissions.cpp`. Changes to who may do what touch the security model: ask first, update
+`VERSION_CONTROL.md` and `SECURITY.md`, and add unit tests to `tests/unit/vcs.cpp`.
