@@ -66,28 +66,31 @@ void addSpan(float left, float right, std::vector<float>& partial, std::vector<f
 	if(last < partial.size()) partial[last] += (right - static_cast<float>(last)) * share;
 }
 
-/// @brief Fills one pixel row's coverage from the edges crossing its scanlines.
-/// @param y The row.
-/// @param edges The edges, sorted by their top.
-/// @param next The first edge not yet active, advanced.
-/// @param active The active edges, changed.
-/// @param crossings Scratch.
-/// @param partial The row's fractions, added to.
-/// @param whole The row's running-sum steps, added to.
-void scanRow(int y, const std::vector<Edge>& edges, std::size_t& next, std::vector<const Edge*>& active,
-             std::vector<float>& crossings, std::vector<float>& partial, std::vector<float>& whole) {
-	for(int sub = 0; sub < subrows; ++sub) {
-		const float scan = static_cast<float>(y) + (static_cast<float>(sub) + 0.5f) / subrows;
-		while(next < edges.size() && edges[next].top <= scan) active.push_back(&edges[next++]);
-		std::erase_if(active, [scan](const Edge* edge) { return edge->bottom <= scan; });
-		crossings.clear();
-		for(const Edge* edge : active)
-			if(edge->top <= scan) crossings.push_back(edge->x + (scan - edge->top) * edge->slope);
-		std::sort(crossings.begin(), crossings.end());
-		for(std::size_t index = 0; index + 1 < crossings.size(); index += 2)
-			addSpan(crossings[index], crossings[index + 1], partial, whole);
+/// @brief The edges as the scan goes down: those it has reached, and those still ahead.
+struct Scanner {
+	std::span<const Edge> edges;     ///< The edges, sorted by their top.
+	std::size_t next = 0;            ///< The first edge not yet active.
+	std::vector<const Edge*> active; ///< The edges the scan is between the top and bottom of.
+	std::vector<float> crossings;    ///< Scratch: where the active edges cross a scanline.
+
+	/// @brief Fills one pixel row's coverage from the edges crossing its scanlines.
+	/// @param y The row, below the last one scanned.
+	/// @param partial The row's fractions, added to.
+	/// @param whole The row's running-sum steps, added to.
+	void scanRow(int y, std::vector<float>& partial, std::vector<float>& whole) {
+		for(int sub = 0; sub < subrows; ++sub) {
+			const float scan = static_cast<float>(y) + (static_cast<float>(sub) + 0.5f) / subrows;
+			while(next < edges.size() && edges[next].top <= scan) active.push_back(&edges[next++]);
+			std::erase_if(active, [scan](const Edge* edge) { return edge->bottom <= scan; });
+			crossings.clear();
+			for(const Edge* edge : active)
+				if(edge->top <= scan) crossings.push_back(edge->x + (scan - edge->top) * edge->slope);
+			std::sort(crossings.begin(), crossings.end());
+			for(std::size_t index = 0; index + 1 < crossings.size(); index += 2)
+				addSpan(crossings[index], crossings[index + 1], partial, whole);
+		}
 	}
-}
+};
 
 /// @brief Writes a row's coverage into its band's tiles, then clears the row.
 /// @param y The row.
@@ -149,12 +152,11 @@ Coverage polygonCoverage(int width, int height, std::span<const Point> points, c
 	const int lastRow = std::clamp(static_cast<int>(std::ceil(bottom)), 0, height);
 	const auto columns = static_cast<std::size_t>((width + tileSize - 1) / tileSize);
 	Band band{std::vector<std::shared_ptr<Tile>>(columns), std::vector<int>(columns, 0)};
-	std::vector<float> partial(static_cast<std::size_t>(width), 0.0f), whole(partial.size() + 1, 0.0f), crossings;
-	std::vector<const Edge*> active;
-	std::size_t next = 0;
+	std::vector<float> partial(static_cast<std::size_t>(width), 0.0f), whole(partial.size() + 1, 0.0f);
+	Scanner scanner{edges, 0, {}, {}};
 	const std::shared_ptr<const Tile> white = Tile::filled(PixelFormat::mask8, {1.0f, 1.0f, 1.0f, 1.0f});
 	for(int y = firstRow; y < lastRow; ++y) {
-		scanRow(y, edges, next, active, crossings, partial, whole);
+		scanner.scanRow(y, partial, whole);
 		storeRow(y, partial, whole, band);
 		if(y % tileSize == tileSize - 1 || y == lastRow - 1)
 			storeBand(y / tileSize, std::min(tileSize, height - (y / tileSize) * tileSize), band, white, coverage);
