@@ -14,6 +14,7 @@
 #include <cmath>
 #include <exception>
 #include <set>
+#include <unordered_map>
 #include <utility>
 
 namespace affresco::scene3d {
@@ -377,13 +378,16 @@ void SceneRenderer::drawSurfaces(const FrameView& view, const ShadowMap& shadow)
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, shadow.texture);
 	const GlProgram* current = nullptr;
+	std::unordered_map<const json*, const GlProgram*> programs; // each graph's text is built once a frame, not per item
 	for(const std::size_t index : view.inView) {
 		const DrawItem& item = view.items[index];
 		const json* graph = nullptr;
 		if(item.material != nullptr && view.settings.shading == Shading::Material)
 			if(const auto found = view.graphs.find(item.material->id); found != view.graphs.end())
 				graph = found->second;
-		const GlProgram& program = programFor(graph);
+		const auto [known, added] = programs.try_emplace(graph, nullptr);
+		if(added) known->second = &programFor(graph);
+		const GlProgram& program = *known->second;
 		if(&program != current) {
 			program.use();
 			setShared(view, program, shadow);
