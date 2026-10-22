@@ -555,6 +555,24 @@ A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole life
 
 An upgrade never changes the publisher, and a feature can never widen a capability or bring a control step.
 
+## Installing across apps
+A feature from another app (a part another app ships, such as Sinopia's slide sorter) installs the same way, with its
+needs bound to what the host offers ([Screen format](SCREEN_FORMAT.md), "Features from another app"):
+- **prove**: `affrescoui check --compose <screen> <feature> [--adapter <file>]`, the MCP tool `check_composition`, or
+  `features.compose {manifest, adapter, source}` binds the needs, checks the composed document and plays the
+  scenarios. A failed proof installs nothing and names each unmet need;
+- **install**: a proven composition is one revision on `/features/<name>` (or `/features`, when the section is
+  missing), its message naming the proof (`Install slideSorter from app:sinopia (proof: slideSorter 1.0.0 from
+  app:sinopia, passed, ...)`) and its record carrying the bindings and the proof with the base commit. It is reviewed
+  under the document's `permissions` like any author's: Tempera proposes what `features` and `agent` write, and a
+  reviewer accepts it in the Studio;
+- **after**: history and blame show the install, and undo or `remove /features/<name>` takes it out. Signatures and
+  trusted publishers apply unchanged to a signed manifest.
+
+Over the channel, the revision's author is the connection's: an agent's install through MCP (`install_feature`) is the
+agent's, an in-screen `features.compose` is `features`'. The Studio's "Install from another app" (Cmd+6) asks the
+agent to read the contributions, write the adapter and submit it, and shows the proof in its reply.
+
 ## Where it lives in the API
 
 | Concept | C++ (`affresco::Screen`, or `VersionControl` via `versions()`) | Live protocol | MCP tool |

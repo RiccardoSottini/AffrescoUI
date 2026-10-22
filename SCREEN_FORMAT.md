@@ -1137,6 +1137,49 @@ revision) ends it. The report is one line per file and one per failure:
 `FAILED add-a-card, step 4: state columns[0].cards.length is 4, expected 5`. Limits: 1,000 scenarios a file, 10,000
 steps a scenario, a `wait` of 10 minutes, 100,000 bytes typed at once.
 
+## Features from another app: needs and adapters
+
+A feature written for one app can be installed into another. Its manifest declares what it **needs** from whatever
+app it is installed into, instead of naming that app's state and actions, and the host declares what it offers: its
+`exports` (each with a `kind` and, for a list, an `item` type) and its `points` (a slot, `dock`, `panel`, `menu` or
+`toolbar`, and the exports it hands to a feature placed there). `affrescoui contributions <screen>` prints both,
+with the installable parts the app ships in `features/*/feature.json`.
+
+```json
+"needs": {
+  "pages":   { "kind": "list", "item": { "id": "string", "name": "string", "image": "image" } },
+  "current": { "kind": "state", "type": "string", "optional": true },
+  "reorder": { "kind": "action", "arguments": { "id": "string", "onto": "string" } },
+  "dock":    { "kind": "slot", "slot": "dock" }
+}
+```
+
+A need's `kind` is `value`, `state`, `list`, `action`, `model`, `surface`, `image`, `slot` or `capability`. The
+feature reads a bound need as `app.<need>` and runs a bound action as `app.<need>`; its views go in the point bound to
+its slot need. A need binds directly to the host's export of the same name and kind, or to its only point of that
+slot. Otherwise an **adapter** binds it:
+
+```json
+{ "format": "affrescoui-adapter", "version": 1, "feature": "slideSorter", "host": "app:tempera",
+  "bind": {
+    "pages":   { "value": "{{map(filter(app.doc.layers, it.depth == 0), {id: it.id, name: it.name, image: it.thumbnail})}}" },
+    "current": { "export": "doc.active" },
+    "reorder": { "action": "layers.move", "with": { "args": { "id": "{{id}}", "onto": "{{onto}}" } } }
+  } }
+```
+
+A binding is one of `{"export": name}`, `{"value": "{{expression}}"}` (reading only the host's exports as
+`app.<export>`), `{"action": export, "with": {...}}` (an action export a point receives, its arguments made from the
+need's), or `{"point": name}`. An adapter is expressions only: no steps, at most 64 bindings, 2,048 characters each,
+8 levels deep and 64 KiB. It can never give a capability: a `capability` need binds only when the host declares it.
+
+`affrescoui check --compose <screen> <feature> [--adapter <file>]` proves the composition: it binds every need, checks
+kinds, slots, ids and imports, refuses a feature that reaches past what it is given or widens permissions or
+capabilities, checks the composed document, then plays the feature's scenarios and the host's on it. The proof
+(`"format": "affrescoui-proof"`) records the bindings, each check, the scenarios and the base commit; a failed one
+names each unmet need and why. An install keeps the record whole on `/features/<name>`, with its `needs`, `bindings`
+and `proof` ([Version control](VERSION_CONTROL.md), "Installing across apps").
+
 ## Other formats
 
 A screen file may instead hold a document in one of two other formats; the screen loader detects it and converts it

@@ -68,6 +68,7 @@ of these and what limits them.
 | What git prints for Forge | Whoever made the repository (file names, branches, contents) | `git_output` |
 | A history folder on disk | Anyone who can write to it, a crash, a full disk | `history`, `delta` |
 | Feature manifests, catalogue indexes, signatures and key files | A catalogue's publisher, or whoever serves it | `feature_manifest`, `catalog_index`, `signature` |
+| Features from another app, their adapters and proofs | Another app's author, an agent or a peer | `composition` |
 | The document server's token file | Whoever can write its folder | `token_file` |
 | A VS Code theme imported into Forge | Whoever published the theme | `vscode_theme` |
 | A document in another format (an A2UI message stream, an Adaptive Card) | Whoever wrote it: an agent, a service, a file | `adapters` |
