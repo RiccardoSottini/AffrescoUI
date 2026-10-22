@@ -233,8 +233,8 @@ captures `this` in one must cancel its timers in its destructor.
 include/affresco/render/   the public headers above
 src/
   window/Application.cpp   the platform, the windows, the event loop, posted tasks
-  window/Window.cpp        input routing, focus, the focus ring, hover, capture, tooltips, timers, deferred tasks,
-                           frames
+  window/Window.cpp        focus, the focus ring, the clipboard, timers, deferred tasks, frames
+  window/WindowInput.cpp   input routing (each event checked first), hover, capture, tooltips, the cursor
   window/Accessibility.cpp roles, accessible names, the tree, values, states, actions, finding by role or id
   Headless.hpp / .cpp      a headless window and a manual clock, for tests (internal)
   Renderer.hpp             detail::Renderer, what a window draws with
@@ -243,8 +243,11 @@ src/
                            FileDialogs.cpp (the OS's file dialogs, through nativefiledialog-extended),
                            Accessibility.hpp (the adapter a window owns) with AccessKitTree (the tree as AccessKit
                            updates, only the changed elements) and AccessibilityMac.mm, AccessibilityWindows.cpp,
-                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF)
-  panel/Panel.cpp          the tree, layout, scrolling, overlays, painting the panel's own shape
+                           AccessibilityLinux.cpp, AccessibilityNone.cpp (AFFRESCOUI_ACCESSIBILITY=OFF),
+                           AccessKitText.hpp (text made safe for AccessKit: valid UTF-8, no NUL),
+                           EmbeddedPlatformGl.cpp (the OpenGL state an embedding saves and restores)
+  panel/Panel.cpp          the tree, scrolling, overlays, painting the panel's own shape
+  panel/PanelLayout.cpp    measuring, anchors, a layout pass's frames and clips; PanelEdges.hpp the edge arithmetic
   panel/Stack.cpp          rows, columns and grids: measured, laid out by layout/, turned into anchors
   layout/                  Flex (lines, grow and shrink within bounds, justification, alignment) and Grid
                            (placement in cells, track sizing): pure functions
@@ -258,12 +261,22 @@ src/
   canvas/CanvasView.cpp    the canvas: content, culling, children placed, painting (items, levels of detail, the
                            selection, guides); CanvasViewInput.cpp its pointer, wheel and keys;
                            SpatialIndex.cpp (a uniform grid, stored flat, rebuilt only when the items change),
-                           Snapping.cpp (the nearest edge or centre within a reach), canvas/Rulers.cpp (steps and ticks)
+                           Snapping.cpp (the nearest edge or centre within a reach), canvas/Rulers.cpp (steps and ticks),
+                           canvas/CanvasViewInternals.hpp (what both sources share)
+  graph/                   GraphView.cpp (layout, culling, hit tests, events), GraphModel.cpp (the link rules,
+                           cycles, the camera), GraphInput.cpp (pointer, wheel, keys), GraphPaint.cpp (the drawing),
+                           GraphShared.hpp (what they share)
+  timeline/                TimelineView.cpp (rows, hit tests, snapping's targets, accessibility), TimelineMath.cpp
+                           (time mapping, ruler steps, formats, easing), TimelineInput.cpp (pointer, wheel, editing),
+                           TimelineKeys.cpp, TimelinePaint.cpp (the drawing), TimelineShared.hpp (what they share)
   vector/                  VectorPath.cpp (parsing, flattening), PathFill.cpp (scanline trapezoids by the fill
                            rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
                            MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:
                            SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
-  editor/TextEditor.cpp    the multi-line editor: input, selection, scrolling, undo through its model
+  editor/TextEditor.cpp    the multi-line editor: editing, selection, scrolling, undo through its model
+  editor/TextEditorInput.cpp
+                           its keys, typed characters and pointer; TextEditorShared.hpp (the word rules and the
+                           modifiers), TextEditorRows.hpp (rows per line, found in O(log n)), TextEditorMinimap.cpp
   editor/TextEditorPaint.cpp
                            its drawing: visible lines in runs of one colour, selection, gutter, caret
   editor/TextEditorView.cpp
@@ -278,6 +291,10 @@ src/
   editor/DiffView.cpp      a diff's rows, numbers and marks in one or two editors, scrolled together
   editor/TextModel.cpp     positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   widgets/Controls.cpp     Toggle and Slider
+  widgets/Calendar.cpp, CivilDate.cpp
+                           the month view, and its calendar arithmetic and ISO 8601 dates and times
+  widgets/Carousel.cpp, CodeInput.cpp
+                           pages turned by arrows, dots, keys and trackpad; a code typed one character per cell
   ColorSpaces.cpp          the colour-space maths
   creative/ColorPicker*.cpp
                            the picker: input, fields and swatches; its drawing (ColorPickerPaint.cpp)
