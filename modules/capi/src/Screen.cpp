@@ -3,6 +3,8 @@
 
 #include "Handle.hpp"
 
+#include <GLFW/glfw3.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -77,6 +79,8 @@ void show(afr_screen& handle, const afr_options& options) {
 	affresco::Screen& screen = *handle.screen;
 	handle.mode = options.mode;
 	handle.scale = options.scale;
+	// GLFW on macOS moves the current folder into an app bundle's resources; a host's relative paths must keep theirs
+	if(options.mode != AFR_MODE_EMBEDDED) glfwInitHint(GLFW_COCOA_CHDIR_RESOURCES, GLFW_FALSE);
 	if(options.mode == AFR_MODE_WINDOW) {
 		handle.application.emplace(affresco::ApplicationOptions{nullptr, options.hidden != 0});
 		handle.window = &screen.createWindow(*handle.application);
@@ -160,7 +164,7 @@ afr_status afr_screen_create_from_file(const char* path, const afr_options* opti
 	return guarded([&] {
 		require(screen, "screen");
 		*screen = nullptr;
-		const std::filesystem::path file(checkedString(path, "path", 4096));
+		const std::filesystem::path file = std::filesystem::absolute(checkedString(path, "path", 4096));
 		const afr_options settings = readOptions(options);
 		auto handle = std::make_unique<afr_screen>();
 		const auto history =
@@ -184,7 +188,8 @@ afr_status afr_screen_create_from_string(const char* json, size_t length, const 
 		*screen = nullptr;
 		const std::string_view text = checkedText(json, length, "json");
 		std::filesystem::path base;
-		if(base_directory != nullptr) base = checkedString(base_directory, "base_directory", 4096);
+		if(base_directory != nullptr)
+			base = std::filesystem::absolute(checkedString(base_directory, "base_directory", 4096));
 		const afr_options settings = readOptions(options);
 		auto handle = std::make_unique<afr_screen>();
 		handle->screen.emplace(affresco::Screen::fromString(text, base));
