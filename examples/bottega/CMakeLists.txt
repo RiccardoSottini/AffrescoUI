@@ -9,7 +9,7 @@ add_executable(affrescoui_bottega main.cpp ${PROJECT_SOURCE_DIR}/tools/affrescou
 target_link_libraries(affrescoui_bottega PRIVATE affrescoui::automation affrescoui::imaging)
 target_include_directories(affrescoui_bottega SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include) # Visualiser.cpp
 target_include_directories(affrescoui_bottega PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared
-	${PROJECT_SOURCE_DIR}/tools/affrescoui ${PROJECT_SOURCE_DIR}/modules/format/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
+	${PROJECT_SOURCE_DIR}/tools/affrescoui $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/screen/src)
 target_compile_options(affrescoui_bottega PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_bottega PRIVATE AFFRESCOUI_CLI_EXAMPLE_TYPES

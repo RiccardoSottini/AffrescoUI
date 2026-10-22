@@ -601,7 +601,7 @@
       "url": "https://github.com/unicode-org/cldr-json",
       "files": [
         {
-          "path": "modules/format/src/LocaleData.cpp",
+          "path": "modules/format/src/locale/LocaleData.cpp",
           "sha256": "346da87123bfe1ea7b1026ce3c249adb21a227b06525c59c82213fb831adca3d"
         }
       ],

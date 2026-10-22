@@ -6,6 +6,6 @@
     "channel": { "lines": 90 }
   },
   "files": {
-    "modules/format/src/Rules.cpp": { "lines": 90 }
+    "modules/format/src/rules/Rules.cpp": { "lines": 90 }
   }
 }
