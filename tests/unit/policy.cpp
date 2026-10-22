@@ -3,8 +3,8 @@
 /// authors and the decision each gets (allow, ask or deny), the reasons, what a limited author reads, and the format.
 
 #include "Helpers.hpp"
-#include "Permissions.hpp"
-#include "Policy.hpp"
+#include "permissions/Permissions.hpp"
+#include "permissions/Policy.hpp"
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>

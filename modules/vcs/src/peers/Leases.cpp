@@ -3,7 +3,7 @@
 
 #include "affresco/vcs/Leases.hpp"
 
-#include "Permissions.hpp"
+#include "permissions/Permissions.hpp"
 
 #include <algorithm>
 #include <iterator>

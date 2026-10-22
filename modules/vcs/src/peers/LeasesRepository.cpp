@@ -4,7 +4,7 @@
 
 #include "affresco/vcs/Repository.hpp"
 
-#include "Permissions.hpp"
+#include "permissions/Permissions.hpp"
 
 #include <algorithm>
 

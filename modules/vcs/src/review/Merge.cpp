@@ -1,7 +1,7 @@
 /// @file
 /// @brief The three-way merge of JSON documents, with lists of nodes keyed by id (Merge.hpp).
 
-#include "Merge.hpp"
+#include "review/Merge.hpp"
 
 #include <algorithm>
 #include <array>

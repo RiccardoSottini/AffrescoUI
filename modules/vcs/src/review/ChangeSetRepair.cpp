@@ -3,7 +3,7 @@
 
 #include "affresco/vcs/ChangeSetRepair.hpp"
 
-#include "Permissions.hpp"
+#include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 

@@ -1,9 +1,9 @@
 /// @file
 /// @brief What preparing one revision may cost.
 
-#include "Budget.hpp"
+#include "revisions/Budget.hpp"
 
-#include "Permissions.hpp"
+#include "permissions/Permissions.hpp"
 
 #include <algorithm>
 #include <vector>

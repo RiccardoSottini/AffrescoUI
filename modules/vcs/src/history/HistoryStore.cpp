@@ -1,7 +1,7 @@
 /// @file
 /// @brief The files of a history kept on disk: the lock, atomic writes and bounded reads.
 
-#include "HistoryStore.hpp"
+#include "history/HistoryStore.hpp"
 
 #include "Sha256.hpp"
 

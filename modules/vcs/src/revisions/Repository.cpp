@@ -4,11 +4,11 @@
 
 #include "affresco/vcs/Repository.hpp"
 
-#include "Budget.hpp"
-#include "Deltas.hpp"
-#include "HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
-#include "Permissions.hpp"
-#include "Policy.hpp"
+#include "revisions/Budget.hpp"
+#include "revisions/Deltas.hpp"
+#include "history/HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
+#include "permissions/Permissions.hpp"
+#include "permissions/Policy.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 

@@ -3,7 +3,7 @@
 /// newer main with it: a clean rebase, a conflict, and lists of nodes merged by id (D15).
 
 #include "Helpers.hpp"
-#include "Merge.hpp" // modules/vcs/src
+#include "review/Merge.hpp" // modules/vcs/src
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>

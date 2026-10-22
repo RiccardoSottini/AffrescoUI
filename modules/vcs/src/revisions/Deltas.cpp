@@ -1,9 +1,9 @@
 /// @file
 /// @brief Deltas between documents, exact for ordered JSON, and applying them safely.
 
-#include "Deltas.hpp"
+#include "revisions/Deltas.hpp"
 
-#include "Permissions.hpp"
+#include "permissions/Permissions.hpp"
 
 #include <algorithm>
 #include <bit>

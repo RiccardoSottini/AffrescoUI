@@ -2,7 +2,7 @@
 /// @brief The effects of a change that permission rules judge: the places a pattern covers, whether a change
 /// touches them, and the area an operation touches.
 
-#include "Permissions.hpp"
+#include "permissions/Permissions.hpp"
 
 #include <algorithm>
 #include <map>

@@ -1,9 +1,9 @@
 /// @file
 /// @brief Budgets and data rules, judged by a change's effect.
 
-#include "Policy.hpp"
+#include "permissions/Policy.hpp"
 
-#include "Permissions.hpp"
+#include "permissions/Permissions.hpp"
 
 #include <algorithm>
 #include <map>

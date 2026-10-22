@@ -5,9 +5,9 @@
 
 #include "affresco/vcs/Repository.hpp"
 
-#include "Budget.hpp"
-#include "Merge.hpp"
-#include "Permissions.hpp"
+#include "revisions/Budget.hpp"
+#include "review/Merge.hpp"
+#include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
 
 #include "affresco/core/Portable.hpp"

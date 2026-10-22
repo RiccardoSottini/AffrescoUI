@@ -3,8 +3,8 @@
 
 #include "affresco/vcs/Repository.hpp"
 
-#include "Permissions.hpp"
-#include "Policy.hpp"
+#include "permissions/Permissions.hpp"
+#include "permissions/Policy.hpp"
 
 #include "affresco/core/Json.hpp"
 

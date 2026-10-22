@@ -4,8 +4,8 @@
 
 #include "affresco/vcs/Repository.hpp"
 
-#include "HistoryStore.hpp"
-#include "Permissions.hpp"
+#include "history/HistoryStore.hpp"
+#include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 
