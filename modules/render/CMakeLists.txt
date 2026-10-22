@@ -111,7 +111,8 @@ target_sources(affrescoui_render PRIVATE src/canvas/CanvasView.cpp src/canvas/Ca
 # The node graph
 target_sources(affrescoui_render PRIVATE src/graph/GraphView.cpp)
 # The timeline
-target_sources(affrescoui_render PRIVATE src/timeline/TimelineView.cpp)
+target_sources(affrescoui_render PRIVATE src/timeline/TimelineView.cpp src/timeline/TimelineInput.cpp
+	src/timeline/TimelineKeys.cpp src/timeline/TimelineMath.cpp src/timeline/TimelinePaint.cpp)
 # The desktop (GLFW) and embedded platforms; the per-OS parts are above
 target_sources(affrescoui_render PRIVATE src/platform/GlfwPlatform.cpp src/platform/EmbeddedPlatform.cpp
 	src/platform/EmbeddedPlatformGl.cpp)
