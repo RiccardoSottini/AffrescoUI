@@ -18,13 +18,14 @@ add_executable(affrescoui_cli main.cpp Cli.cpp ComposeCommand.cpp JsonText.cpp S
 target_sources(affrescoui_cli PRIVATE commands/CheckCommand.cpp commands/FormatCommands.cpp commands/WindowCommands.cpp
 	commands/HistoryCommands.cpp commands/TestCommand.cpp commands/PolicyCommand.cpp commands/SchemaCommand.cpp
 	commands/SignCommand.cpp commands/ImportCommand.cpp commands/MigrateCommand.cpp)
+target_include_directories(affrescoui_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}) # for commands/: Cli.hpp
 set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 target_link_libraries(affrescoui_cli PRIVATE affrescoui::automation) # and through it, the whole library
-# This folder for commands/ (Cli.hpp); SocketDir.hpp (the socket folder's checks) is shared with affrescoui_host;
-# Png.hpp and FeatureSignatures.hpp are the library's
-target_include_directories(affrescoui_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/examples/shared
-	${PROJECT_SOURCE_DIR}/modules/screen/src ${PROJECT_SOURCE_DIR}/modules/format/src ${PROJECT_SOURCE_DIR}/modules/vcs/src)
+# SocketDir.hpp (the socket folder's checks) is shared with affrescoui_host; Png.hpp and FeatureSignatures.hpp are the
+# library's
+target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
+	${PROJECT_SOURCE_DIR}/modules/format/src ${PROJECT_SOURCE_DIR}/modules/vcs/src)
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_VERSION}")
