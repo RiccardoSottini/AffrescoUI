@@ -8,10 +8,12 @@
 #include <affresco/imaging/Composite.hpp>
 #include <affresco/imaging/Project.hpp>
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 
 namespace tempera {
 
@@ -132,8 +134,8 @@ void open(Session& session) {
 /// @param session The session.
 /// @param arguments width, height, sample, format ("rgba8" or "rgba16f").
 void makeNew(Session& session, const json& arguments) {
-	const int width = static_cast<int>(numberOf(arguments, "width", newWidth));
-	const int height = static_cast<int>(numberOf(arguments, "height", newHeight));
+	const int width = wholeOf(arguments, "width", newWidth);
+	const int height = wholeOf(arguments, "height", newHeight);
 	if(width < 1 || height < 1) throw affresco::DocumentError("A document is at least 1 × 1");
 	std::unique_ptr<imaging::Document> document;
 	if(flagOf(arguments, "sample", false)) {
@@ -179,7 +181,9 @@ void moveLayer(Session& session, const json& arguments) {
 	}
 	const auto& siblings = placeIn(layer.parent);
 	const auto index = static_cast<long>(std::find(siblings.begin(), siblings.end(), id) - siblings.begin());
-	const long by = std::lround(numberOf(arguments, "by", 1.0));
+	// Any step past the list's length moves it to an end, so a step this far is the same and can't overflow the sum
+	constexpr double farthest = 1e9;
+	const long by = std::lround(std::clamp(numberOf(arguments, "by", 1.0), -farthest, farthest));
 	// Document::moveLayer places it before the layer at index, counted before it leaves, so up skips one more.
 	document.moveLayer(id, layer.parent, static_cast<std::size_t>(std::max(0L, index + by + (by > 0 ? 1 : 0))));
 }
@@ -254,7 +258,10 @@ void registerHistory(affresco::Screen& screen, const std::weak_ptr<Session>& ses
 	});
 	addNative(screen, "tempera.history", session, [](Session& self, const json& arguments) {
 		settle(self);
-		self.canvas->document().goTo(static_cast<std::size_t>(std::max(0.0, numberOf(arguments, "position", 0.0))));
+		// Past the last step means the last step; clamped first, as the conversion of a huge number is undefined
+		constexpr double farthest = 1e9;
+		const double position = std::clamp(numberOf(arguments, "position", 0.0), 0.0, farthest);
+		self.canvas->document().goTo(static_cast<std::size_t>(position));
 	});
 }
 
@@ -290,11 +297,20 @@ void registerLayers(affresco::Screen& screen, const std::weak_ptr<Session>& sess
 
 } // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a number, which it always reads
 double numberOf(const json& arguments, std::string_view key, double fallback) noexcept {
 	const auto found = arguments.find(key);
 	if(found == arguments.end() || !found->is_number()) return fallback;
 	const double value = found->get<double>();
-	return std::isfinite(value) ? value : fallback;
+	// A document may send any number: narrowing one past a float's range to a float would be undefined
+	constexpr double most = std::numeric_limits<float>::max();
+	return std::isfinite(value) ? std::clamp(value, -most, most) : fallback;
+}
+
+int wholeOf(const json& arguments, std::string_view key, int fallback) noexcept {
+	// Clamped before the conversion, which is undefined for a number past an int's range
+	constexpr double least = std::numeric_limits<int>::min(), most = std::numeric_limits<int>::max();
+	return static_cast<int>(std::clamp(numberOf(arguments, key, fallback), least, most));
 }
 
 std::string textOf(const json& arguments, std::string_view key, std::string_view fallback) {
@@ -302,6 +318,7 @@ std::string textOf(const json& arguments, std::string_view key, std::string_view
 	return found != arguments.end() && found->is_string() ? found->get<std::string>() : std::string(fallback);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): get() is only reached for a boolean, which it always reads
 bool flagOf(const json& arguments, std::string_view key, bool fallback) noexcept {
 	const auto found = arguments.find(key);
 	return found != arguments.end() && found->is_boolean() ? found->get<bool>() : fallback;

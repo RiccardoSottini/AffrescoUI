@@ -47,8 +47,8 @@ constexpr double minimumZoom = 1.0 / 64.0, maximumZoom = 64.0;
 void zoomAt(Session& session, Point at, double factor) {
 	imaging::CanvasView& view = session.view;
 	const double zoom = std::clamp(view.zoom * factor, minimumZoom, maximumZoom);
-	view.x = at.x + (view.x - at.x) * view.zoom / zoom;
-	view.y = at.y + (view.y - at.y) * view.zoom / zoom;
+	view.x = withinReach(at.x + (view.x - at.x) * view.zoom / zoom);
+	view.y = withinReach(at.y + (view.y - at.y) * view.zoom / zoom);
 	view.zoom = zoom;
 }
 
@@ -179,8 +179,8 @@ bool dragTool(Session& session, const imaging::CanvasPointer& event) {
 		return false;
 	case Tool::hand: {
 		const Press& press = session.press;
-		session.view.x = press.view.x - (event.pointer.position.x - press.surfaceX) / press.view.zoom;
-		session.view.y = press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom;
+		session.view.x = withinReach(press.view.x - (event.pointer.position.x - press.surfaceX) / press.view.zoom);
+		session.view.y = withinReach(press.view.y - (event.pointer.position.y - press.surfaceY) / press.view.zoom);
 		return true;
 	}
 	case Tool::eyedropper:
@@ -335,6 +335,11 @@ void copyPlaced(const imaging::Tile& tile, int left, int top, int columns, int r
 }
 
 } // namespace
+
+double withinReach(double coordinate) noexcept {
+	constexpr double farthest = 1e9;
+	return std::clamp(coordinate, -farthest, farthest);
+}
 
 bool applyPointer(Session& session, const imaging::CanvasPointer& event) {
 	const Point at{static_cast<float>(event.x), static_cast<float>(event.y)};

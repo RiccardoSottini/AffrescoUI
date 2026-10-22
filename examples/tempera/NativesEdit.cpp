@@ -35,7 +35,8 @@ constexpr std::size_t mostPoints = 4096;
 	const auto found = arguments.find(key);
 	if(found == arguments.end() || !found->is_object())
 		throw affresco::DocumentError("Missing point " + std::string(key));
-	return {static_cast<float>(numberOf(*found, "x", 0.0)), static_cast<float>(numberOf(*found, "y", 0.0))};
+	return {static_cast<float>(withinReach(numberOf(*found, "x", 0.0))),
+	        static_cast<float>(withinReach(numberOf(*found, "y", 0.0)))};
 }
 
 /// @brief Selects by a shape, a wand click or a colour range; or all, none, the inverse.
@@ -63,21 +64,20 @@ void select(Session& session, const json& arguments) {
 			throw affresco::DocumentError("A polygon needs a list of points");
 		std::vector<imaging::Point> points;
 		for(const json& point : *found)
-			points.push_back(
-			    {static_cast<float>(numberOf(point, "x", 0.0)), static_cast<float>(numberOf(point, "y", 0.0))});
+			points.push_back({static_cast<float>(withinReach(numberOf(point, "x", 0.0))),
+			                  static_cast<float>(withinReach(numberOf(point, "y", 0.0)))});
 		return imaging::select(document, "Polygonal Lasso",
 		                       imaging::polygonCoverage(width, height, points, session.limits), mode);
 	}
 	if(kind == "wand") {
-		const int x = static_cast<int>(numberOf(arguments, "x", 0.0)),
-		          y = static_cast<int>(numberOf(arguments, "y", 0.0));
+		const int x = wholeOf(arguments, "x", 0), y = wholeOf(arguments, "y", 0);
 		return imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, session.settings.sample),
 		                       mode);
 	}
 	if(kind == "colorRange") {
 		const auto colour = colorOf(textOf(arguments, "color", hexOf(session.settings.foreground)));
 		if(!colour) throw affresco::DocumentError("Not a colour");
-		const int fuzziness = std::clamp(static_cast<int>(numberOf(arguments, "fuzziness", 40.0)), 0, 255);
+		const int fuzziness = std::clamp(wholeOf(arguments, "fuzziness", 40), 0, 255);
 		return imaging::select(
 		    document, "Color Range",
 		    imaging::colorRangeCoverage(document, *colour, fuzziness, flagOf(arguments, "allLayers", false)), mode);
@@ -136,8 +136,7 @@ void setBrush(Session& session, const json& arguments) {
 void setSampling(Session& session, const json& arguments) {
 	ToolSettings& settings = session.settings;
 	settings.mode = modeOf(textOf(arguments, "mode"), settings.mode);
-	settings.sample.tolerance =
-	    std::clamp(static_cast<int>(numberOf(arguments, "tolerance", settings.sample.tolerance)), 0, 255);
+	settings.sample.tolerance = std::clamp(wholeOf(arguments, "tolerance", settings.sample.tolerance), 0, 255);
 	settings.sample.contiguous = flagOf(arguments, "contiguous", settings.sample.contiguous);
 	settings.sample.allLayers = flagOf(arguments, "allLayers", settings.sample.allLayers);
 	settings.opacity = std::clamp(
@@ -194,8 +193,8 @@ void playPointer(Session& session, const json& arguments) {
 	for(const json& point : *points) {
 		const std::string kind = textOf(point, "kind", "move");
 		imaging::CanvasPointer event;
-		event.x = numberOf(point, "x", 0.0);
-		event.y = numberOf(point, "y", 0.0);
+		event.x = withinReach(numberOf(point, "x", 0.0));
+		event.y = withinReach(numberOf(point, "y", 0.0));
 		event.pointer.kind = kind == "press"     ? affresco::PointerKind::press
 		                     : kind == "release" ? affresco::PointerKind::release
 		                     : kind == "scroll"  ? affresco::PointerKind::scroll
@@ -205,7 +204,7 @@ void playPointer(Session& session, const json& arguments) {
 		event.pointer.button =
 		    textOf(point, "button") == "right" ? affresco::MouseButton::Right : affresco::MouseButton::Left;
 		event.pointer.scroll = {0.0f, static_cast<float>(numberOf(point, "scroll", 0.0))};
-		session.pressure = std::clamp(static_cast<float>(numberOf(point, "pressure", 1.0)), 0.0f, 1.0f);
+		session.pressure = static_cast<float>(std::clamp(numberOf(point, "pressure", 1.0), 0.0, 1.0));
 		applyPointer(session, event);
 	}
 	session.pressure = 1.0f;
@@ -236,7 +235,7 @@ void playPointer(Session& session, const json& arguments) {
 	filter.kind = *parsed;
 	filter.radius = static_cast<float>(numberOf(arguments, "radius", filter.radius));
 	filter.amount = static_cast<float>(numberOf(arguments, "amount", filter.amount * 100.0) / 100.0);
-	filter.threshold = static_cast<int>(numberOf(arguments, "threshold", filter.threshold));
+	filter.threshold = wholeOf(arguments, "threshold", filter.threshold);
 	filter.angle = static_cast<float>(numberOf(arguments, "angle", filter.angle));
 	filter.distance = static_cast<float>(numberOf(arguments, "distance", filter.distance));
 	filter.monochrome = flagOf(arguments, "monochrome", filter.monochrome);
@@ -331,8 +330,8 @@ void registerEditing(affresco::Screen& screen, const std::shared_ptr<Session>& s
 	          [](Session& self, const json& arguments) { playPointer(self, arguments); });
 	addNative(screen, "tempera.crop", weak, [](Session& self, const json& arguments) {
 		settle(self);
-		crop(self, static_cast<int>(numberOf(arguments, "x", 0.0)), static_cast<int>(numberOf(arguments, "y", 0.0)),
-		     static_cast<int>(numberOf(arguments, "width", 0.0)), static_cast<int>(numberOf(arguments, "height", 0.0)));
+		crop(self, wholeOf(arguments, "x", 0), wholeOf(arguments, "y", 0), wholeOf(arguments, "width", 0),
+		     wholeOf(arguments, "height", 0));
 	});
 	addNative(screen, "tempera.setProfile", weak,
 	          [](Session& self, const json& arguments) { setProfile(self, arguments); });
@@ -346,8 +345,8 @@ void registerEditing(affresco::Screen& screen, const std::shared_ptr<Session>& s
 		self.view.zoom = std::clamp(self.view.zoom * numberOf(arguments, "by", 1.0), 1.0 / 64.0, 64.0);
 		if(const double to = numberOf(arguments, "to", 0.0); to > 0.0)
 			self.view.zoom = std::clamp(to, 1.0 / 64.0, 64.0);
-		self.view.x = numberOf(arguments, "x", self.view.x);
-		self.view.y = numberOf(arguments, "y", self.view.y);
+		self.view.x = withinReach(numberOf(arguments, "x", self.view.x));
+		self.view.y = withinReach(numberOf(arguments, "y", self.view.y));
 	});
 	registerFilters(screen, weak);
 }

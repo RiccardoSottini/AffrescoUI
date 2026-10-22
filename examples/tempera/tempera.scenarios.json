@@ -1690,6 +1690,187 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-numbers-out-of-range",
+			"note": "Numbers far past what a native takes are clamped to the nearest it can use: the view, the options, the wand, the history, the layer order and the crop",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "zoom",
+						"args": {
+							"by": 1e300,
+							"x": 1e300,
+							"y": -1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.view.zoom",
+						"is": 64
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.view.x",
+						"is": 1000000000
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.view.y",
+						"is": -1000000000
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "zoom",
+						"args": {
+							"by": -1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.view.zoom",
+						"is": 0.015625
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"tolerance": 1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.tolerance",
+						"is": 255
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "wand"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 1e300,
+									"y": -1e300,
+									"pressure": 1e300
+								},
+								{
+									"kind": "release",
+									"x": 1e300,
+									"y": -1e300
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "wand",
+							"x": -1e300,
+							"y": 1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": false
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "goToHistory",
+						"args": {
+							"position": 1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "moveLayer",
+						"args": {
+							"by": -1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[2].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "moveLayer",
+						"args": {
+							"by": 1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "crop",
+						"args": {
+							"x": -1e300,
+							"y": -1e300,
+							"width": 1e300,
+							"height": 1e300
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 800
+					}
+				}
+			]
 		}
 	]
 }
