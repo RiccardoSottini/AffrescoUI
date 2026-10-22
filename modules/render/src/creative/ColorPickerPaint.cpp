@@ -1,7 +1,9 @@
 /// @file
-/// @brief ColorPicker's drawing: the plane, the strips, the fields and the swatches, from cached CPU bitmaps.
+/// @brief ColorPicker's drawing: the plane, the strips, the fields and the swatches, from cached CPU bitmaps, and
+/// the font it draws in.
 
 #include "affresco/render/ColorPicker.hpp"
+#include "affresco/render/Window.hpp"
 
 #include "CreativePixels.hpp"
 
@@ -42,6 +44,11 @@ void outline(Painter& painter, const Rect& rect, Color color) {
 }
 
 } // namespace
+
+const Font* ColorPicker::font() const noexcept {
+	if(font_) return font_.get();
+	return window() ? window()->defaultFont() : nullptr;
+}
 
 void ColorPicker::paint(Painter& painter) const {
 	Panel::paint(painter);

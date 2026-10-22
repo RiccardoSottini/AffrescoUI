@@ -342,11 +342,6 @@ void ColorPicker::setColors(Color text, Color accent) {
 	setLook(accent_, accent);
 }
 
-const Font* ColorPicker::font() const noexcept {
-	if(font_) return font_.get();
-	return window() ? window()->defaultFont() : nullptr;
-}
-
 std::string ColorPicker::fieldText(Part field) const {
 	if(!isField(field)) return {};
 	const std::u32string& text = typing_ && field == active_ ? editing_ : texts_[fieldIndex(field)];
