@@ -275,18 +275,18 @@ void main() {
 	vec2 at = ndc * 0.5 + 0.5;
 	vec4 here = texture(mask, at);
 	float selected = 0.0;
-	float active = 0.0;
+	float activeNear = 0.0;
 	for(int x = -2; x <= 2; ++x)
 		for(int y = -2; y <= 2; ++y) {
 			vec2 offset = vec2(float(x), float(y));
 			if(length(offset) > radius + 0.01) continue;
 			vec4 m = texture(mask, at + offset * texel);
 			selected = max(selected, m.r);
-			active = max(active, m.g);
+			activeNear = max(activeNear, m.g);
 		}
 	float edge = max(selected - here.r, 0.0);
 	if(edge <= 0.0) discard;
-	vec3 c = active > 0.5 && here.g < 0.5 ? mix(outlineColor, vec3(1.0), 0.45) : outlineColor;
+	vec3 c = activeNear > 0.5 && here.g < 0.5 ? mix(outlineColor, vec3(1.0), 0.45) : outlineColor;
 	color = vec4(c, 1.0);
 }
 )";
