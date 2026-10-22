@@ -44,6 +44,12 @@ json error(const std::string& what, const json& id = nullptr) {
 	return {{"type", "error"}, {"message", what}, {"id", id}};
 }
 
+/// @brief Whether a message type is the server's own rather than its document Session's.
+/// @param type The type.
+bool isServerMessage(const std::string& type) {
+	return type == "open" || type == "presence" || type == "getPresence" || type == "lease" || type == "release";
+}
+
 /// @brief The document as revisions address it: its live state as "state".
 /// @param repository The repository.
 /// @return The view.
@@ -130,20 +136,10 @@ void DocumentServer::adopt(std::unique_ptr<Channel> socket, std::string author) 
 }
 
 void DocumentServer::handle(Peer& peer, const std::string& line) {
-	if(line.size() > maxServerMessageBytes) {
-		if(peer.session) peer.inner->onMessage(line); // a revision: the Session holds it to its limits
-		else peer.socket->send(error("open a document first").dump());
-		return;
-	}
+	if(line.size() > maxServerMessageBytes) return forward(peer, line); // a revision: the Session holds it to its limits
 	const json message = json::parse(line, nullptr, false);
 	const std::string type = message.is_object() ? text(message, "type") : std::string();
-	const bool ours = type == "open" || type == "presence" || type == "getPresence" || type == "lease" ||
-	                  type == "release";
-	if(!ours) {
-		if(peer.session) peer.inner->onMessage(line);
-		else peer.socket->send(error("open a document first").dump());
-		return;
-	}
+	if(!isServerMessage(type)) return forward(peer, line);
 	const json id = message.contains("id") ? message["id"] : json(nullptr);
 	if(!peer.rate.take(channel::TokenBucket::Clock::now())) {
 		peer.socket->send(error("too many messages: at most 20 a second", id).dump());
@@ -152,6 +148,11 @@ void DocumentServer::handle(Peer& peer, const std::string& line) {
 	if(type == "open") open(peer, message);
 	else if(!peer.document) peer.socket->send(error("open a document first", id).dump());
 	else handleServerMessage(peer, message, type);
+}
+
+void DocumentServer::forward(Peer& peer, const std::string& line) {
+	if(peer.session) peer.inner->onMessage(line);
+	else peer.socket->send(error("open a document first").dump());
 }
 
 void DocumentServer::handleServerMessage(Peer& peer, const json& message, const std::string& type) {

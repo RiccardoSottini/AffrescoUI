@@ -130,6 +130,10 @@ private:
 	/// @param peer The peer.
 	/// @param line The line.
 	void handle(Peer& peer, const std::string& line);
+	/// @brief Passes a line that isn't the server's own to the peer's Session, or answers that none is open yet.
+	/// @param peer The peer.
+	/// @param line The line.
+	void forward(Peer& peer, const std::string& line);
 	/// @brief Handles a server message (presence, getPresence, lease, release) on an opened document.
 	/// @param peer The peer.
 	/// @param message The message.
