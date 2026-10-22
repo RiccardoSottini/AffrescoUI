@@ -199,8 +199,10 @@ private:
 			if(text_.substr(at_).starts_with("offset:")) {
 				at_ += 7;
 				const std::string_view digits = word();
-				if(digits.empty() || !std::ranges::all_of(digits, [](char c) { return std::isdigit(c) != 0; }))
-					return fail("offset: is followed by a whole number");
+				// At most 9 digits: a longer one is out of a double's range, or no offset a count needs
+				if(digits.empty() || digits.size() > 9 ||
+				   !std::ranges::all_of(digits, [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; }))
+					return fail("offset: is followed by a whole number of at most 9 digits");
 				offset = std::stod(std::string(digits));
 			}
 		}
