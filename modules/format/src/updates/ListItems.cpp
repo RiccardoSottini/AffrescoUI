@@ -19,13 +19,52 @@ struct Level {
 	std::string path;               ///< The list's place, for errors.
 };
 
+/// @brief An item's place, for errors.
+/// @param level The list it is in.
+/// @param index Its place there.
+/// @return "path[index]".
+std::string placeOf(const Level& level, std::size_t index) {
+	return concatenate(level.path, "[", std::to_string(index) + "]");
+}
+
+/// @brief Reads an item's cells: its "cells", else its "label", else its id.
+/// @param value The item, an object.
+/// @param place Its place, for errors.
+/// @param item Gets them.
+void readCells(const json& value, const auto& place, ListItem& item) {
+	const auto cells = value.find("cells");
+	if(cells == value.end()) {
+		const auto label = value.find("label");
+		item.cells.push_back(label != value.end() ? text(*label) : item.id);
+		return;
+	}
+	if(!cells->is_array() || cells->empty()) fail(place() + ".cells", "expected a list of texts");
+	if(cells->size() > maxCells) fail(place() + ".cells", "too many cells (at most 256)");
+	item.cells.reserve(cells->size());
+	for(const json& cell : *cells) item.cells.push_back(cell.is_null() ? std::string() : text(cell));
+}
+
+/// @brief Reads an item's "icon" and "iconColor".
+/// @param value The item, an object.
+/// @param place Its place, for errors.
+/// @param item Gets them.
+void readIcon(const json& value, const auto& place, ListItem& item) {
+	if(const auto icon = value.find("icon"); icon != value.end() && icon->is_string())
+		item.icon = icon->get<std::string>();
+	const auto color = value.find("iconColor");
+	if(color == value.end() || color->is_null()) return;
+	if(color->is_string()) item.iconColor = Color::parseHex(color->get<std::string>());
+	if(!item.iconColor) fail(place() + ".iconColor", "expected a hex colour: #rgb, #rrggbb or #rrggbbaa");
+}
+
 /// @brief Reads one item, without its children.
 /// @param value A string, or {id, label, cells, expandable, icon, iconColor}.
 /// @param level The list it is in.
 /// @param index Its place there.
 /// @return The item, its depth and end not set.
 ListItem readItem(const json& value, const Level& level, std::size_t index) {
-	const auto place = [&] { return concatenate(level.path, "[", std::to_string(index) + "]"); };
+	// Made only on an error: most items are fine, and a list can hold a million
+	const auto place = [&] { return placeOf(level, index); };
 	if(value.is_string() || value.is_number()) {
 		std::string id = text(value);
 		ListItem item;
@@ -38,23 +77,25 @@ ListItem readItem(const json& value, const Level& level, std::size_t index) {
 	if(id == value.end() || !(id->is_string() || id->is_number())) fail(place() + ".id", "an item needs an id");
 	ListItem item;
 	item.id = text(*id);
-	if(const auto cells = value.find("cells"); cells != value.end()) {
-		if(!cells->is_array() || cells->empty()) fail(place() + ".cells", "expected a list of texts");
-		if(cells->size() > maxCells) fail(place() + ".cells", "too many cells (at most 256)");
-		item.cells.reserve(cells->size());
-		for(const json& cell : *cells) item.cells.push_back(cell.is_null() ? std::string() : text(cell));
-	} else {
-		const auto label = value.find("label");
-		item.cells.push_back(label != value.end() ? text(*label) : item.id);
-	}
+	readCells(value, place, item);
 	if(const auto expandable = value.find("expandable"); expandable != value.end())
 		item.expandable = boolean(*expandable, place() + ".expandable");
-	if(const auto icon = value.find("icon"); icon != value.end() && icon->is_string()) item.icon = icon->get<std::string>();
-	if(const auto color = value.find("iconColor"); color != value.end() && !color->is_null()) {
-		if(color->is_string()) item.iconColor = Color::parseHex(color->get<std::string>());
-		if(!item.iconColor) fail(place() + ".iconColor", "expected a hex colour: #rgb, #rrggbb or #rrggbbaa");
-	}
+	readIcon(value, place, item);
 	return item;
+}
+
+/// @brief A tree item's children.
+/// @param entry The item.
+/// @param tree Whether the items are a tree's.
+/// @param level The list it is in.
+/// @param index Its place there.
+/// @return Its "children" list, or nullptr if it has none.
+const json* childrenOf(const json& entry, bool tree, const Level& level, std::size_t index) {
+	if(!tree || !entry.is_object()) return nullptr;
+	const auto children = entry.find("children");
+	if(children == entry.end()) return nullptr;
+	if(!children->is_array()) fail(placeOf(level, index) + ".children", "expected a list of items");
+	return &*children;
 }
 
 } // namespace
@@ -78,17 +119,14 @@ std::vector<ListItem> readItems(const json& value, bool tree, const std::string&
 		ListItem item = readItem(entry, level, index);
 		item.depth = static_cast<std::uint32_t>(levels.size() - 1);
 		item.end = items.size() + 1;
-		const auto children = tree && entry.is_object() ? entry.find("children") : entry.end();
-		const bool nests = tree && entry.is_object() && children != entry.end();
-		if(nests && !children->is_array())
-			fail(concatenate(level.path, "[", std::to_string(index) + "].children"), "expected a list of items");
-		if(nests && !children->empty()) item.expandable = true;
+		const json* children = childrenOf(entry, tree, level, index);
+		const bool nests = children != nullptr && !children->empty();
+		if(nests) item.expandable = true;
 		items.push_back(std::move(item));
-		if(!nests || children->empty()) continue;
-		if(levels.size() > maxDepth)
-			fail(concatenate(level.path, "[", std::to_string(index) + "]"), "items nest too deep (at most 256 levels)");
-		std::string childPath = concatenate(level.path, "[", std::to_string(index) + "].children");
-		levels.push_back({&*children, 0, items.size() - 1, std::move(childPath)}); // level is not used after this
+		if(!nests) continue;
+		if(levels.size() > maxDepth) fail(placeOf(level, index), "items nest too deep (at most 256 levels)");
+		levels.push_back(
+		    {children, 0, items.size() - 1, placeOf(level, index) + ".children"}); // level isn't used after
 	}
 	return items;
 }
