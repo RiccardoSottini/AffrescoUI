@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Unit tests for the MCP server's queries, which need no host: the outline (and its depth), one node (and its depth),
-find_nodes, the format guide by topic, the changes a re-read returns, a proposal's evidence, and messages it can't use. ctest "mcp", or:
+find_nodes, the format guide by topic, the changes a re-read returns, a proposal's evidence, composing features from other apps (with a fake affrescoui), and messages it can't use. ctest "mcp", or:
 
     python3 mcp/test_affrescoui_mcp.py
 """
@@ -13,6 +13,7 @@ import socket
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -202,6 +203,62 @@ class Evidence(unittest.TestCase):
         server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
         server.host = self.FakeHost({"type": "rejected", "error": "no proposal 9"})
         self.assertEqual(server.call_tool("get_evidence", {"proposal": 9}), ("error: no proposal 9", True))
+
+
+class Composition(unittest.TestCase):
+    """check_composition and install_feature return the proof's reasons, never the document, and install only what a
+    passed proof made."""
+
+    FAKE_CLI = """#!/usr/bin/env python3
+import json, sys
+args = sys.argv[1:]
+passed = "--adapter" in args
+print("slideSorter 1.0.0 into app:tempera: " + ("proven" if passed else "not proven"))
+if not passed:
+    print("unmet need pages: the host exports no 'pages', and no adapter binds it")
+    sys.exit(1)
+with open(args[args.index("--revision") + 1], "w") as file:
+    json.dump({"author": "features", "message": "Install slideSorter", "set": {"/features": {"slideSorter": {}}}}, file)
+"""
+
+    def server_with(self, folder):
+        cli = os.path.join(folder, "affrescoui")
+        with open(cli, "w", encoding="utf-8") as file:
+            file.write(self.FAKE_CLI)
+        os.chmod(cli, 0o755)
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = Evidence.FakeHost({"type": "proposed", "proposal": 3, "commit": "abcdef0123",
+                                         "document": {"root": {}}, "head": {"id": "abcdef0123"}})
+        return server, cli
+
+    @unittest.skipIf(os.name == "nt", "the fake tool is a script")
+    def test_a_failed_proof_installs_nothing_and_says_why(self):
+        with tempfile.TemporaryDirectory() as folder:
+            server, cli = self.server_with(folder)
+            with unittest.mock.patch.dict(os.environ, {"AFFRESCOUI_CLI": cli}):
+                text, failed = server.call_tool("install_feature", {"screen": "a.screen.json", "feature": "f"})
+        self.assertTrue(failed)
+        self.assertIn("unmet need pages", text)
+        self.assertEqual([message["type"] for message in server.host.asked], ["getDocument"])
+
+    @unittest.skipIf(os.name == "nt", "the fake tool is a script")
+    def test_a_proven_install_is_one_revision_by_this_connection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            server, cli = self.server_with(folder)
+            with unittest.mock.patch.dict(os.environ, {"AFFRESCOUI_CLI": cli}):
+                text, failed = server.call_tool("install_feature", {"screen": "a.screen.json", "feature": "f",
+                                                                    "adapter": {"bind": {}}})
+        self.assertFalse(failed)
+        self.assertTrue(text.startswith("slideSorter 1.0.0 into app:tempera: proven\nproposed as proposal 3"), text)
+        submitted = server.host.asked[1]
+        self.assertEqual(submitted["type"], "revision")
+        self.assertNotIn("author", submitted)  # the host names it
+        self.assertNotIn("root", text)
+
+    def test_only_a_screen_file_is_a_host(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        self.assertEqual(server.call_tool("check_composition", {"screen": "settings.json", "feature": "f"}),
+                         ("error: screen: expected the running app's *.screen.json file", True))
 
 
 class Rereads(unittest.TestCase):
