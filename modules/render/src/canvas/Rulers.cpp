@@ -17,15 +17,16 @@ constexpr float labelSpacing = 64.0f;      ///< Screen units between labelled ti
 constexpr std::size_t maximumTicks = 4096; ///< Ticks a ruler draws at most, whatever its length.
 
 /// @brief Draws the ticks and labels of one ruler.
-/// @param painter The painter.
-/// @param font The labels' font, or nullptr.
+/// @param pen The painter, the labels' font (or nullptr) and the style.
 /// @param ruler The ruler's rectangle, in window units.
 /// @param horizontal The top ruler (ticks along x) or the left one.
 /// @param step The labelled ticks' step.
 /// @param ticks The ticks.
-/// @param style How it looks.
-void paintRuler(Painter& painter, const Font* font, const Rect& ruler, bool horizontal, double step,
-                const std::vector<RulerTick>& ticks, const RulerStyle& style) {
+void paintRuler(const RulerPen& pen, const Rect& ruler, bool horizontal, double step,
+                const std::vector<RulerTick>& ticks) {
+	Painter& painter = pen.painter;
+	const Font* font = pen.font;
+	const RulerStyle& style = pen.style;
 	painter.fillRect(ruler, style.background);
 	const float thickness = horizontal ? ruler.height() : ruler.width();
 	std::array<char32_t, 32> buffer{};
@@ -95,18 +96,17 @@ std::u32string_view rulerLabel(double value, double step, std::array<char32_t, 3
 	return {buffer.data(), length};
 }
 
-void paintRulers(Painter& painter, const Font* font, const Rect& frame, const Camera2D& camera, const RulerStyle& style,
-                 std::vector<RulerTick>& ticks) {
-	const float thickness = std::min({style.thickness, frame.width(), frame.height()});
+void paintRulers(const RulerPen& pen, const Rect& frame, const Camera2D& camera, std::vector<RulerTick>& ticks) {
+	const float thickness = std::min({pen.style.thickness, frame.width(), frame.height()});
 	if(!(thickness > 0.0f)) return;
 	const double step = rulerStep(camera.zoom, labelSpacing);
 	rulerTicks(camera.x + double{thickness} / camera.zoom, camera.zoom, frame.width() - thickness, ticks);
 	for(RulerTick& tick : ticks) tick.screen += thickness;
-	paintRuler(painter, font, {frame.left, frame.top, frame.right, frame.top + thickness}, true, step, ticks, style);
+	paintRuler(pen, {frame.left, frame.top, frame.right, frame.top + thickness}, true, step, ticks);
 	rulerTicks(camera.y + double{thickness} / camera.zoom, camera.zoom, frame.height() - thickness, ticks);
 	for(RulerTick& tick : ticks) tick.screen += thickness;
-	paintRuler(painter, font, {frame.left, frame.top, frame.left + thickness, frame.bottom}, false, step, ticks, style);
-	painter.fillRect({frame.left, frame.top, frame.left + thickness, frame.top + thickness}, style.background);
+	paintRuler(pen, {frame.left, frame.top, frame.left + thickness, frame.bottom}, false, step, ticks);
+	pen.painter.fillRect({frame.left, frame.top, frame.left + thickness, frame.top + thickness}, pen.style.background);
 }
 
 } // namespace affresco

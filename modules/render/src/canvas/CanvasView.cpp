@@ -301,7 +301,8 @@ void CanvasView::paintOver(Painter& painter) const {
 	const Font* font = window() ? window()->defaultFont() : nullptr;
 	for(const auto& candidate : fonts_)
 		if(candidate->pixelHeight() <= 11.0f) font = candidate.get();
-	paintRulers(painter, font, frame(), camera_, RulerStyle{}, internals_->ticks);
+	const RulerStyle style;
+	paintRulers({painter, font, style}, frame(), camera_, internals_->ticks);
 }
 
 void CanvasView::paintSelection(Painter& painter) const {

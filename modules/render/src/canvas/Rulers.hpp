@@ -52,14 +52,18 @@ void rulerTicks(double worldStart, float zoom, float length, std::vector<RulerTi
 /// @return The label, a view into buffer.
 [[nodiscard]] std::u32string_view rulerLabel(double value, double step, std::array<char32_t, 32>& buffer) noexcept;
 
+/// @brief What draws rulers: the painter, the labels' font and the look, which every ruler shares.
+struct RulerPen {
+	Painter& painter;        ///< Where to draw.
+	const Font* font;        ///< The labels' font; nullptr draws ticks only.
+	const RulerStyle& style; ///< How they look.
+};
+
 /// @brief Draws both rulers over a view: the top one, the left one, and the square where they meet.
-/// @param painter The painter.
-/// @param font The labels' font; nullptr draws ticks only.
+/// @param pen The painter, the font and the style.
 /// @param frame The view's frame, in window units.
 /// @param camera The view's camera.
-/// @param style How they look.
 /// @param ticks Scratch storage for the ticks.
-void paintRulers(Painter& painter, const Font* font, const Rect& frame, const Camera2D& camera, const RulerStyle& style,
-                 std::vector<RulerTick>& ticks);
+void paintRulers(const RulerPen& pen, const Rect& frame, const Camera2D& camera, std::vector<RulerTick>& ticks);
 
 } // namespace affresco
