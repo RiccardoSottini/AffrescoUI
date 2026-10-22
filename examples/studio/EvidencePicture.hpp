@@ -40,27 +40,31 @@ inline std::vector<std::uint8_t> fromBase64(std::string_view text) {
 
 /// @brief Draws the changed region's outline on a picture, so a reviewer sees at once what moved.
 /// @param picture The picture, opaque.
-/// @param region `[x, y, width, height]`, in its pixels; nothing is drawn when it's empty.
+/// @param region `[x, y, width, height]`, in its pixels; nothing is drawn when it's empty. It comes from the peer the
+/// Studio is connected to, so it may be anything: the outline is computed in 64 bits and clipped to the picture.
 /// @return Its pixels with the outline, red, green, blue and alpha.
 inline std::vector<std::uint8_t> outlined(const affresco::Bitmap& picture, const std::array<int, 4>& region) {
 	std::vector<std::uint8_t> rgba(picture.pixels().begin(), picture.pixels().end());
 	const auto [x, y, w, h] = region;
 	if(w <= 0 || h <= 0) return rgba;
-	constexpr int thickness = 3;
-	const auto mark = [&](int px, int py) {
-		if(px < 0 || py < 0 || px >= picture.width() || py >= picture.height()) return;
-		const auto at = static_cast<std::size_t>(py * picture.width() + px) * 4;
+	constexpr std::int64_t thickness = 3;
+	const std::int64_t width = picture.width(), height = picture.height();
+	const auto mark = [&](std::int64_t px, std::int64_t py) {
+		if(px < 0 || py < 0 || px >= width || py >= height) return;
+		const auto at = static_cast<std::size_t>(py * width + px) * 4;
 		const std::array<std::uint8_t, 4> magenta = {236, 64, 122, 255};
 		std::ranges::copy(magenta, rgba.begin() + static_cast<std::ptrdiff_t>(at));
 	};
-	for(int t = 1; t <= thickness; ++t) {
-		for(int px = x - t; px < x + w + t; ++px) {
-			mark(px, y - t);
-			mark(px, y + h - 1 + t);
+	const std::int64_t left = x, top = y, right = left + w - 1, bottom = top + h - 1; // the region's edges, inclusive
+	for(std::int64_t t = 1; t <= thickness; ++t) {
+		// only the part of each line inside the picture: a huge region is no slower than one that covers it
+		for(std::int64_t px = std::max(left - t, std::int64_t{0}); px <= std::min(right + t, width - 1); ++px) {
+			mark(px, top - t);
+			mark(px, bottom + t);
 		}
-		for(int py = y - t; py < y + h + t; ++py) {
-			mark(x - t, py);
-			mark(x + w - 1 + t, py);
+		for(std::int64_t py = std::max(top - t, std::int64_t{0}); py <= std::min(bottom + t, height - 1); ++py) {
+			mark(left - t, py);
+			mark(right + t, py);
 		}
 	}
 	return rgba;
