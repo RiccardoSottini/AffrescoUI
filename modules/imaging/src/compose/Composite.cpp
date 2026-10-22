@@ -7,6 +7,46 @@
 
 namespace affresco::imaging {
 
+namespace {
+
+/// @brief An image's tile, if there is the image and it has the tile.
+/// @param image The image, or nullptr.
+/// @param key The tile.
+/// @return The tile, or nullptr (which pixelOf() reads as transparent).
+[[nodiscard]] std::shared_ptr<const Tile> tileOf(const Image* image, const TileKey& key) {
+	return image != nullptr && image->contains(key) ? image->tile(key) : nullptr;
+}
+
+/// @brief A layer's mask, when it has one and it is enabled.
+/// @param document The document.
+/// @param layer The layer.
+/// @return The mask, or nullptr.
+[[nodiscard]] const Image* maskOf(const Document& document, const Layer& layer) {
+	return layer.mask != 0 && layer.maskEnabled ? document.image(layer.mask) : nullptr;
+}
+
+/// @brief A layer's own pixel, before its mask and its blend.
+/// @param layer The layer.
+/// @param pixels A pixel layer's tile, or nullptr.
+/// @param group A group's composited tile (only read for a group).
+/// @param backdrop The pixel below, which an adjustment adjusts.
+/// @param at The pixel's index in the tile.
+/// @return Its tile's pixel, its group's, or the backdrop adjusted.
+[[nodiscard]] Pixel sourceOf(const Layer& layer, const Tile* pixels, const Pixel* group, const Pixel& backdrop,
+                             std::size_t at) {
+	switch(layer.kind) {
+	case LayerKind::pixel:
+		return pixelOf(pixels, static_cast<int>(at % tileSize), static_cast<int>(at / tileSize));
+	case LayerKind::group:
+		return group[at];
+	case LayerKind::adjustment:
+		return adjustPixel(layer.adjustment, backdrop);
+	}
+	return {};
+}
+
+} // namespace
+
 Compositor::Compositor(const Document& document) : document_(document) {
 	const auto depths = static_cast<std::size_t>(std::max(document.limits().groupDepth, 0)) + 2;
 	groups_.resize(depths);
@@ -33,35 +73,22 @@ void Compositor::compositeList(const std::vector<std::uint64_t>& list, const Til
 
 void Compositor::compositeLayer(const Layer& layer, const TileKey& key, std::span<Pixel> backdrop, std::size_t depth) {
 	std::shared_ptr<const Tile> pixels;
-	if(layer.kind == LayerKind::pixel)
-		if(const Image* image = document_.image(layer.pixels); image != nullptr && image->contains(key))
-			pixels = image->tile(key);
-	std::shared_ptr<const Tile> mask;
-	const Image* maskImage = layer.mask != 0 && layer.maskEnabled ? document_.image(layer.mask) : nullptr;
-	if(maskImage != nullptr && maskImage->contains(key)) mask = maskImage->tile(key);
+	if(layer.kind == LayerKind::pixel) pixels = tileOf(document_.image(layer.pixels), key);
+	const Image* maskImage = maskOf(document_, layer);
+	const std::shared_ptr<const Tile> mask = tileOf(maskImage, key);
+	const Pixel* group = nullptr;
 	if(layer.kind == LayerKind::group) {
 		if(depth + 1 >= groups_.size()) return;
-		std::vector<Pixel>& group = groups_[depth + 1];
-		group.assign(tilePixels, Pixel{});
-		compositeList(layer.children, key, group, depth + 1);
+		groups_[depth + 1].assign(tilePixels, Pixel{});
+		compositeList(layer.children, key, groups_[depth + 1], depth + 1);
+		group = groups_[depth + 1].data();
 	}
 	std::vector<float>& base = bases_[depth];
 	for(int y = 0; y < tileSize; ++y)
 		for(int x = 0; x < tileSize; ++x) {
 			const auto at = static_cast<std::size_t>(y * tileSize + x);
 			const float covered = maskImage == nullptr ? 1.0f : pixelOf(mask.get(), x, y).alpha;
-			Pixel source;
-			switch(layer.kind) {
-			case LayerKind::pixel:
-				source = pixelOf(pixels.get(), x, y);
-				break;
-			case LayerKind::group:
-				source = groups_[depth + 1][at];
-				break;
-			case LayerKind::adjustment:
-				source = adjustPixel(layer.adjustment, backdrop[at]);
-				break;
-			}
+			Pixel source = sourceOf(layer, pixels.get(), group, backdrop[at], at);
 			const float own = (layer.kind == LayerKind::adjustment ? 1.0f : source.alpha) * covered;
 			const float coverage = layer.clipped ? base[at] : 1.0f;
 			if(!layer.clipped) base[at] = own;
