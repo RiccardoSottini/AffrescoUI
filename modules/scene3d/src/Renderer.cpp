@@ -266,7 +266,7 @@ void SceneRenderer::pick(const FrameView& view, const SurfacePointer& pointer, c
 	std::array<unsigned char, 4> pixel{};
 	glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel.data());
 	const std::uint32_t number = pixel[0] | (std::uint32_t{pixel[1]} << 8) | (std::uint32_t{pixel[2]} << 16);
-	IdPick result{pointer.position.x / view.scale, pointer.position.y / view.scale, {}};
+	IdPick result{pointer.position.x / view.scale, pointer.position.y / view.scale, {}, pointer.mods.shift()};
 	if(number >= 1 && number <= view.items.size()) result.node = view.items[number - 1].node->id;
 	if(probe_) probe_->pick = std::move(result);
 }

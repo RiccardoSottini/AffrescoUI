@@ -85,6 +85,7 @@ struct SurfacePointer {
 	Vec2 position;                          ///< Where, in pixels from the top-left corner.
 	MouseButton button = MouseButton::Left; ///< press, release: the button.
 	Vec2 scroll;                            ///< scroll: the amount per axis.
+	Mods mods;                              ///< press, release: the modifier keys held.
 };
 
 /// @brief One render(): the size, the time, the parameters, the input since the last one, and offscreen passes.

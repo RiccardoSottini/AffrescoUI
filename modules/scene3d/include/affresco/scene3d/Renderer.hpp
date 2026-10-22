@@ -43,9 +43,10 @@ struct RenderStats {
 
 /// @brief What the id pass found under the pointer at a press.
 struct IdPick {
-	float x = 0.0f;   ///< Where, in window units from the surface's left.
-	float y = 0.0f;   ///< Where, in window units from its top.
-	std::string node; ///< The mesh node there, or empty for none.
+	float x = 0.0f;     ///< Where, in window units from the surface's left.
+	float y = 0.0f;     ///< Where, in window units from its top.
+	std::string node;   ///< The mesh node there, or empty for none.
+	bool shift = false; ///< Whether Shift was held: add to the selection.
 };
 
 /// @brief Shared between a renderer and its host: what it drew and what its id pass found. Not thread-safe: used on
