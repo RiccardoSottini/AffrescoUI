@@ -988,6 +988,7 @@
 		"chip": {
 			"params": { "label": "", "on": false },
 			"node": {
+				"id": "label-label",
 				"type": "label",
 				"text": "{{label}}",
 				"label": "{{label}}",

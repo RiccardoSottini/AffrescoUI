@@ -2912,7 +2912,7 @@
 					"key": "mod+shift+p"
 				},
 				{
-					"wait": 0
+					"wait": 50
 				},
 				{
 					"expect": {
@@ -3285,7 +3285,7 @@
 					"key": "mod+shift+p"
 				},
 				{
-					"wait": 0
+					"wait": 50
 				},
 				{
 					"expect": {
@@ -5243,42 +5243,6 @@
 			"name": "ask-by-keyboard-only",
 			"note": "Tab to the request, type, Cmd+Enter sends",
 			"steps": [
-				{
-					"key": "tab"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"key": "tab"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"key": "tab"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"key": "tab"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"key": "tab"
-				},
-				{
-					"wait": 0
-				},
-				{
-					"key": "tab"
-				},
-				{
-					"wait": 0
-				},
 				{
 					"key": "tab"
 				},

@@ -531,19 +531,19 @@
 			"note": "Ctrl/Cmd+K lists the commands with their keys; typing finds one and Enter runs it",
 			"steps": [
 				{ "key": "mod+k" },
-				{ "wait": 0 },
+				{ "wait": 50 },
 				{ "expect": { "state": "quickPick.open", "is": true } },
 				{ "type": "light and dark" },
 				{ "key": "enter" },
 				{ "expect": { "state": "theme", "is": "dark" } },
 				{ "expect": { "state": "quickPick.open", "is": false } },
 				{ "key": "mod+shift+p" },
-				{ "wait": 0 },
+				{ "wait": 50 },
 				{ "type": "go to stats" },
 				{ "key": "enter" },
 				{ "expect": { "state": "tab", "is": "stats" } },
 				{ "key": "mod+k" },
-				{ "wait": 0 },
+				{ "wait": 50 },
 				{ "key": "escape" },
 				{ "expect": { "state": "quickPick.open", "is": false } }
 			]
