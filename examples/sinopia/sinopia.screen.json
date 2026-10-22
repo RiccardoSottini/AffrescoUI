@@ -1,0 +1,346 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Sinopia, slides and vector documents: a deck (a .sinopia.json file in decks/) loaded into state.deck, drawn from what sinopia.render makes of it, and changed only through sinopia.edit. The hidden stage holds one panel per slide, which thumbnails, PNG and PDF exports and the presented frames are rendered from. Keynote's keys: mod+alt+P presents, the arrows and Space step, B blacks the screen, Escape ends.",
+
+	"include": ["parts/objects.json", "parts/sorter.json", "parts/inspector.json", "parts/presenter.json"],
+
+	"window": { "title": "Sinopia", "width": 1280, "height": 800, "minWidth": 1000, "minHeight": 700 },
+
+	"fonts": {
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 13 }
+	},
+
+	"theme": "{{state.theme}}",
+
+	"colors": {
+		"bg": { "light": "#f3f4f6", "dark": "#18181b" },
+		"panel": { "light": "#ffffff", "dark": "#232326" },
+		"paper": { "light": "#ffffff", "dark": "#2c2c30" },
+		"ink": { "light": "#1f2937", "dark": "#e5e7eb" },
+		"muted": { "light": "#6b7280", "dark": "#9ca3af" },
+		"line": { "light": "#d1d5db", "dark": "#3f3f46" },
+		"hover": { "light": "#e5e7eb", "dark": "#34343a" },
+		"accent": { "light": "#7c3aed", "dark": "#a78bfa" },
+		"accentSoft": { "light": "#ede9fe", "dark": "#3b2a63" },
+		"board": { "light": "#e5e7eb", "dark": "#111113" },
+		"stage": "#111827",
+		"danger": "#dc2626"
+	},
+
+	"styles": {
+		"tool": {
+			"type": "label", "height": 26, "minWidth": 26, "fitText": true, "padding": 5, "radius": 4, "align": "center",
+			"color": "transparent", "textColor": "@ink", "hover": { "color": "@hover" }, "cursor": "hand"
+		},
+		"toolOn": { "style": "tool", "color": "@accentSoft", "textColor": "@accent" },
+		"presentButton": {
+			"type": "label", "height": 36, "fitText": true, "padding": 10, "radius": 6, "align": "center",
+			"color": "#374151", "textColor": "#f9fafb", "hover": { "color": "#4b5563" }, "cursor": "hand"
+		},
+		"presentButtonOn": { "style": "presentButton", "color": "#7c3aed" },
+		"heading": { "type": "label", "height": 22, "textColor": "@muted" }
+	},
+
+	"state": {
+		"theme": "light",
+		"file": "sample.sinopia.json",
+		"deck": null,
+		"render": { "width": 800, "height": 450, "page": [960, 540], "title": "", "slides": [] },
+		"current": 0,
+		"board": { "camera": { "x": -30, "y": -30, "zoom": 0.95 }, "selection": [], "guides": { "vertical": [], "horizontal": [] } },
+		"view": "edit",
+		"side": "slides",
+		"notesDraft": "",
+		"undo": [],
+		"show": { "on": false, "index": 0, "step": 0, "t": 1, "black": false, "kind": "none", "seconds": 0, "audience": null, "shown": null },
+		"exported": null,
+		"saved": null,
+		"error": ""
+	},
+
+	"computed": {
+		"slides": "{{state.render.slides ?? []}}",
+		"slide": "{{computed.slides[state.current]}}",
+		"deckSlide": "{{state.deck.slides[state.current]}}",
+		"selected": "{{map(filter(state.board.selection, slice(it, 0, 2) == 'o:'), slice(it, 2))}}",
+		"object": "{{find(computed.deckSlide.objects ?? [], it.id == computed.selected[0])}}",
+		"shown": "{{computed.slides[state.show.index]}}",
+		"nextShown": "{{find(slice(computed.slides, state.show.index + 1), !it.skip)}}",
+		"previousShown": "{{find(reverse(slice(computed.slides, 0, state.show.index)), !it.skip)}}",
+		"firstShown": "{{find(computed.slides, !it.skip)}}",
+		"stepKind": "{{find(computed.shown.objects ?? [], it.build.order == state.show.step).build.kind ?? 'appear'}}",
+		"timer": "{{pad(floor(state.show.seconds / 60), 2, '0') + ':' + pad(state.show.seconds % 60, 2, '0')}}"
+	},
+
+	"watch": {
+		"state.show.t": [{ "if": "{{state.show.on}}", "then": [{ "run": "mirror" }] }]
+	},
+
+	"actions": {
+		"load": [
+			{ "call": "sinopia.load", "with": { "file": "{{state.file}}" }, "into": "state.deck",
+			  "onError": [{ "set": "state.error", "to": "{{error}}" }],
+			  "then": [{ "set": "state.current", "to": 0 }, { "set": "state.undo", "to": [] }, { "run": "render" }] }
+		],
+		"render": [
+			{ "call": "sinopia.render", "with": { "deck": "{{state.deck}}" }, "into": "state.render",
+			  "onError": [{ "set": "state.error", "to": "{{error}}" }],
+			  "then": [
+				{ "set": "state.notesDraft", "to": "{{computed.slide.notes ?? ''}}" },
+				{ "debounce": 300, "do": [{ "call": "sinopia.thumbnails", "with": { "render": "{{state.render}}" } }] }
+			  ] }
+		],
+		"edit": [
+			{ "call": "sinopia.edit", "with": "{{merge({deck: state.deck, slide: state.current, ids: computed.selected, op: op}, extra ?? {})}}",
+			  "onError": [{ "set": "state.error", "to": "{{error}}" }],
+			  "then": [
+				{ "push": "state.undo", "value": "{{state.deck}}" },
+				{ "if": "{{length(state.undo) > 20}}", "then": [{ "remove": "state.undo", "at": 0 }] },
+				{ "set": "state.deck", "to": "{{result.deck}}" },
+				{ "set": "state.current", "to": "{{result.slide}}" },
+				{ "set": "state.board.selection", "to": "{{map(result.selection, 'o:' + it)}}" },
+				{ "set": "state.error", "to": "" },
+				{ "run": "render" }
+			  ] }
+		],
+		"undo": [
+			{ "if": "{{length(state.undo) > 0}}", "then": [
+				{ "set": "state.deck", "to": "{{state.undo[length(state.undo) - 1]}}" },
+				{ "remove": "state.undo", "at": "{{length(state.undo) - 1}}" },
+				{ "set": "state.board.selection", "to": [] },
+				{ "set": "state.current", "to": "{{min(state.current, length(state.deck.slides) - 1)}}" },
+				{ "run": "render" }
+			] }
+		],
+		"pick": [
+			{ "set": "state.current", "to": "{{index}}" },
+			{ "set": "state.board.selection", "to": [] },
+			{ "set": "state.notesDraft", "to": "{{computed.slide.notes ?? ''}}" }
+		],
+		"moveSlide": [{ "if": "{{from >= 0 && from != to}}", "then": [{ "run": "edit", "with": { "op": "moveSlide", "extra": "{{ {from: from, to: to} }}" } }] }],
+		"addObject": [{ "run": "edit", "with": { "op": "add", "extra": "{{ {kind: kind, text: kind == 'text' ? 'Text' : '', image: kind == 'image' ? 'picture.png' : ''} }}" } }],
+		"addSlide": [{ "run": "edit", "with": { "op": "addSlide", "extra": "{{ {layout: layout} }}" } }],
+		"arrange": [
+			{ "run": "edit", "with": { "op": "{{key == 'edge' ? 'align' : 'reorder'}}", "extra": "{{ {edge: value, how: value, toSlide: length(computed.selected) < 2} }}" } }
+		],
+		"setBuild": [
+			{ "run": "edit", "with": { "op": "set", "extra": "{{ {props: {build: {kind: value, order: value == 'none' ? 0 : computed.object.build.order > 0 ? computed.object.build.order : (computed.slide.builds ?? 0) + 1}}} }}" } }
+		],
+		"setTransition": [
+			{ "run": "edit", "with": { "op": "setSlide", "extra": "{{ {props: {transition: merge(computed.slide.transition, parseJson('{' + json(key) + ':' + json(value) + '}'))}} }}" } }
+		],
+		"setProp": [{ "run": "edit", "with": { "op": "set", "extra": "{{ {props: parseJson('{' + json(key) + ':' + json(value) + '}')} }}" } }],
+		"setSize": [{ "run": "edit", "with": { "op": "setDeck", "extra": "{{ {props: {size: value}} }}" } }],
+		"saveNotes": [
+			{ "if": "{{computed.slide != null && state.notesDraft != computed.slide.notes}}", "then": [
+				{ "run": "edit", "with": { "op": "setSlide", "extra": "{{ {props: {notes: state.notesDraft}} }}" } }
+			] }
+		],
+		"placeObjects": [
+			{ "run": "edit", "with": { "op": "transform", "extra": "{{ {items: map(filter(moved, slice(it.id, 0, 2) == 'o:'), merge(it, {id: slice(it.id, 2)}))} }}" } }
+		],
+		"tick": [{ "if": "{{state.show.on}}", "then": [{ "increment": "state.show.seconds", "by": 1 }] }],
+		"present": [
+			{ "call": "sinopia.thumbnails", "with": { "render": "{{state.render}}" } },
+			{ "set": "state.show", "to": "{{ {on: true, index: computed.slide.skip ? computed.firstShown.index ?? 0 : state.current, step: 0, t: 1, black: false, kind: 'none', seconds: 0, audience: null, shown: null} }}" },
+			{ "call": "sinopia.openAudience", "into": "state.show.audience" },
+			{ "focus": "#presenter" },
+			{ "run": "mirror" }
+		],
+		"nextStep": [
+			{ "if": "{{state.show.step < (computed.shown.builds ?? 0)}}",
+			  "then": [
+				{ "increment": "state.show.step", "by": 1 },
+				{ "set": "state.show.kind", "to": "{{computed.stepKind}}" },
+				{ "run": "play", "with": { "ms": "{{computed.stepKind == 'appear' ? 0 : 400}}" } }
+			  ],
+			  "else": [{ "if": "{{computed.nextShown != null}}", "then": [
+				{ "set": "state.show.kind", "to": "{{computed.nextShown.transition.kind}}" },
+				{ "set": "state.show.index", "to": "{{computed.nextShown.index}}" },
+				{ "set": "state.show.step", "to": 0 },
+				{ "run": "play", "with": { "ms": "{{state.show.kind == 'none' ? 0 : computed.shown.transition.ms}}" } }
+			  ] }] }
+		],
+		"play": [
+			{ "if": "{{ms > 0}}",
+			  "then": [{ "set": "state.show.t", "to": 0 }, { "run": "mirror" }, { "animate": "state.show.t", "to": 1, "ms": "{{ms}}" }],
+			  "else": [{ "set": "state.show.t", "to": 1 }, { "run": "mirror" }] }
+		],
+		"previousStep": [
+			{ "if": "{{state.show.step > 0}}",
+			  "then": [{ "increment": "state.show.step", "by": -1 }, { "set": "state.show.kind", "to": "none" }, { "run": "play", "with": { "ms": 0 } }],
+			  "else": [{ "if": "{{computed.previousShown != null}}", "then": [
+				{ "set": "state.show.step", "to": "{{computed.previousShown.builds}}" },
+				{ "set": "state.show.index", "to": "{{computed.previousShown.index}}" },
+				{ "set": "state.show.kind", "to": "none" },
+				{ "run": "play", "with": { "ms": 0 } }
+			  ] }] }
+		],
+		"toggleBlack": [{ "toggle": "state.show.black" }, { "run": "mirror" }],
+		"stopPresenting": [
+			{ "set": "state.current", "to": "{{state.show.index}}" },
+			{ "set": "state.show.on", "to": false },
+			{ "set": "state.show.black", "to": false },
+			{ "call": "sinopia.closeAudience" },
+			{ "focus": "#board" }
+		],
+		"mirror": [
+			{ "call": "sinopia.mirror", "into": "state.show.shown",
+			  "with": "{{ {slide: computed.shown.id, step: state.show.step, t: state.show.t, black: state.show.black, width: state.render.width, kind: state.show.kind == 'fly' || state.show.kind == 'appear' ? 'none' : state.show.kind} }}" }
+		],
+		"exportPdf": [
+			{ "call": "sinopia.exportPdf", "with": { "render": "{{state.render}}" }, "into": "state.exported",
+			  "onError": [{ "set": "state.error", "to": "{{error}}" }] }
+		],
+		"exportPng": [
+			{ "call": "sinopia.exportPng", "with": { "render": "{{state.render}}" }, "into": "state.exported",
+			  "onError": [{ "set": "state.error", "to": "{{error}}" }] }
+		],
+		"save": [
+			{ "call": "sinopia.save", "with": { "name": "{{state.deck.title}}", "deck": "{{state.deck}}" }, "into": "state.saved",
+			  "onError": [{ "set": "state.error", "to": "{{error}}" }] }
+		],
+		"toggleTheme": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }],
+		"toggleSorter": [{ "set": "state.view", "to": "{{state.view == 'sorter' ? 'edit' : 'sorter'}}" }]
+	},
+
+	"onLoad": "load",
+
+	"keys": {
+		"mod+s": "save",
+		"mod+z": [{ "when": "{{!state.show.on}}", "do": "undo" }],
+		"mod+d": [{ "when": "{{!state.show.on && length(computed.selected) > 0}}", "do": "edit", "with": { "op": "duplicate", "extra": null } }],
+		"backspace": [{ "when": "{{!state.show.on && length(computed.selected) > 0}}", "do": "edit", "with": { "op": "delete", "extra": null } }],
+		"delete": [{ "when": "{{!state.show.on && length(computed.selected) > 0}}", "do": "edit", "with": { "op": "delete", "extra": null } }],
+		"mod+g": [{ "when": "{{!state.show.on}}", "do": "edit", "with": { "op": "group", "extra": null } }],
+		"mod+shift+g": [{ "when": "{{!state.show.on}}", "do": "edit", "with": { "op": "ungroup", "extra": null } }],
+		"mod+shift+f": [{ "when": "{{!state.show.on}}", "do": "edit", "with": { "op": "reorder", "extra": { "how": "front" } } }],
+		"mod+shift+b": [{ "when": "{{!state.show.on}}", "do": "edit", "with": { "op": "reorder", "extra": { "how": "back" } } }],
+		"mod+l": [{ "when": "{{!state.show.on && computed.object != null}}", "do": "edit", "with": { "op": "lock", "extra": { "locked": true } } }],
+		"mod+shift+l": [{ "when": "{{!state.show.on}}", "do": "edit", "with": { "op": "lock", "extra": { "locked": false } } }],
+		"mod+shift+n": [{ "when": "{{!state.show.on}}", "do": "addSlide", "with": { "layout": "content" } }],
+		"mod+alt+p": [{ "when": "{{!state.show.on}}", "do": "present" }],
+		"mod+e": [{ "when": "{{!state.show.on}}", "do": "exportPdf" }],
+		"right": [{ "when": "{{state.show.on}}", "do": "nextStep" }],
+		"down": [{ "when": "{{state.show.on}}", "do": "nextStep" }],
+		"space": [{ "when": "{{state.show.on}}", "do": "nextStep" }],
+		"left": [{ "when": "{{state.show.on}}", "do": "previousStep" }],
+		"up": [{ "when": "{{state.show.on}}", "do": "previousStep" }],
+		"b": [{ "when": "{{state.show.on}}", "do": "toggleBlack" }],
+		"escape": [{ "when": "{{state.show.on}}", "do": "stopPresenting" }]
+	},
+
+	"root": {
+		"id": "root", "color": "@bg",
+		"children": [
+			{
+				"id": "stage", "x": 0, "y": 0, "width": "{{state.render.width}}", "height": "{{state.render.height}}", "color": "transparent",
+				"children": [
+					{ "repeat": { "for": "slide", "in": "{{computed.slides}}", "key": "{{slide.id}}" },
+					  "use": "slidePage", "with": { "slide": "{{slide}}", "prefix": "slide-", "at": "{{slide.index}}" }, "cache": true }
+				]
+			},
+			{
+				"type": "column", "id": "workspace", "fill": 0, "color": "@bg", "alignItems": "stretch",
+				"children": [
+					{ "use": "toolbar" },
+					{ "type": "row", "id": "main", "grow": 1, "color": "transparent", "alignItems": "stretch",
+					  "when": "{{state.view != 'sorter'}}",
+					  "children": [
+						{ "use": "sidebar" },
+						{ "type": "column", "id": "centre", "grow": 1, "color": "transparent", "alignItems": "stretch", "children": [
+							{
+								"type": "canvas", "id": "board", "bind": "state.board", "grow": 1, "focusable": true, "grid": 10, "snap": true,
+								"rulers": true, "color": "@board", "accentColor": "@accent",
+								"onTransform": { "run": "placeObjects", "with": { "moved": "{{event.items}}" } },
+								"children": [
+									{ "id": "page", "x": 0, "y": 0, "width": "{{state.render.width}}", "height": "{{state.render.height}}",
+									  "color": "{{computed.slide.background ?? '#ffffff'}}", "shadow": { "x": 0, "y": 2, "blur": 10, "color": "#00000030" },
+									  "children": [
+										{ "repeat": { "for": "u", "in": "{{computed.slide.under ?? []}}", "key": "{{u.id}}" },
+										  "use": "slideObject", "with": { "o": "{{u}}", "prefix": "pu-" } }
+									  ] },
+									{ "repeat": { "for": "o", "in": "{{computed.slide.objects ?? []}}", "key": "{{o.id}}" },
+									  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "o:" } }
+								]
+							},
+							{ "type": "row", "id": "notes-bar", "height": 40, "gap": 8, "color": "@panel", "alignItems": "center", "children": [
+								{ "type": "label", "id": "notes-label", "width": 60, "height": 28, "text": "Notes", "textColor": "@muted", "padding": 8 },
+								{ "type": "textarea", "id": "notes", "grow": 1, "height": 28, "value": "{{state.notesDraft}}", "placeholder": "Speaker notes",
+								  "onChange": [{ "set": "state.notesDraft", "to": "{{event.value}}" }, { "debounce": 600, "do": "saveNotes" }],
+								  "onSubmit": "saveNotes" }
+							] }
+						] },
+						{ "use": "inspector" }
+					  ] },
+					{ "id": "sorter-view", "grow": 1, "color": "@bg", "when": "{{state.view == 'sorter'}}", "children": [
+						{ "id": "sorter-inner", "fill": 24, "color": "transparent", "children": [
+							{ "use": "slideSorter", "with": { "slides": "{{computed.slides}}", "current": "{{state.current}}", "pick": "pick", "move": "moveSlide" } }
+						] }
+					] },
+					{ "type": "label", "id": "status", "height": 24, "padding": 6, "color": "@panel",
+					  "textColor": "{{state.error != '' ? '@danger' : '@muted'}}",
+					  "text": "{{state.error != '' ? state.error : state.exported != null ? 'Exported ' + (state.exported.file ?? text(state.exported.files) + ' PNG files') : state.saved != null ? 'Saved ' + state.saved.file : text(length(computed.slides)) + ' slides · ' + (state.deck.size ?? '')}}" }
+				]
+			},
+			{ "use": "presenter" }
+		]
+	},
+
+	"components": {
+		"toolbar": {
+			"params": {},
+			"node": {
+				"type": "row", "id": "toolbar", "height": 44, "gap": 4, "alignItems": "center", "color": "@panel",
+				"children": [
+					{ "type": "label", "id": "toolbar-title", "width": 180, "height": 30, "padding": 10, "textColor": "@ink",
+					  "runs": "{{[{text: state.deck.title ?? 'Sinopia', bold: true}]}}" },
+					{ "type": "label", "id": "tool-sorter", "style": "{{state.view == 'sorter' ? 'toolOn' : 'tool'}}", "icon": "layout-grid", "tooltip": "Slide sorter", "onClick": "toggleSorter" },
+					{ "type": "label", "id": "tool-new-slide", "style": "tool", "icon": "file-plus", "tooltip": "New slide (mod+shift+N)", "onClick": { "run": "addSlide", "with": { "layout": "content" } } },
+					{ "type": "label", "id": "tool-duplicate-slide", "style": "tool", "icon": "copy", "tooltip": "Duplicate slide", "onClick": { "run": "edit", "with": { "op": "duplicateSlide", "extra": null } } },
+					{ "type": "label", "id": "tool-delete-slide", "style": "tool", "icon": "trash-2", "tooltip": "Delete slide", "onClick": { "run": "edit", "with": { "op": "deleteSlide", "extra": null } } },
+					{ "id": "toolbar-gap-1", "width": 12, "height": 1, "color": "transparent" },
+					{ "repeat": { "for": "k", "in": "{{[['text', 'type'], ['rect', 'square'], ['ellipse', 'circle'], ['polygon', 'pentagon'], ['star', 'star'], ['line', 'minus'], ['arrow', 'move-right'], ['path', 'pen-tool'], ['image', 'image']]}}" },
+					  "type": "label", "id": "{{'tool-add-' + k[0]}}", "style": "tool", "icon": "{{k[1]}}", "tooltip": "{{'Add ' + k[0]}}",
+					  "onClick": { "run": "addObject", "with": { "kind": "{{k[0]}}" } } },
+					{ "id": "toolbar-gap-2", "grow": 1, "height": 1, "color": "transparent" },
+					{ "type": "label", "id": "tool-undo", "style": "tool", "icon": "undo-2", "tooltip": "Undo (mod+Z)", "onClick": "undo" },
+					{ "type": "label", "id": "tool-theme", "style": "tool", "icon": "{{state.theme == 'light' ? 'moon' : 'sun'}}", "tooltip": "Light or dark", "onClick": "toggleTheme" },
+					{ "type": "label", "id": "tool-save", "style": "tool", "icon": "save", "tooltip": "Save (mod+S)", "onClick": "save" },
+					{ "type": "label", "id": "tool-pdf", "style": "tool", "icon": "file-text", "text": "PDF", "tooltip": "Export a PDF (mod+E)", "onClick": "exportPdf" },
+					{ "type": "label", "id": "tool-png", "style": "tool", "icon": "file-image", "text": "PNG", "tooltip": "Export a PNG per slide", "onClick": "exportPng" },
+					{ "type": "label", "id": "tool-present", "style": "toolOn", "icon": "play", "text": "Present", "tooltip": "Present (mod+alt+P)", "onClick": "present" },
+					{ "id": "toolbar-gap-3", "width": 8, "height": 1, "color": "transparent" }
+				]
+			}
+		},
+		"sidebar": {
+			"params": {},
+			"node": {
+				"type": "column", "id": "sidebar", "width": 200, "color": "@panel", "alignItems": "stretch",
+				"children": [
+					{ "type": "row", "id": "sidebar-tabs", "height": 32, "gap": 2, "color": "transparent", "children": [
+						{ "type": "label", "id": "side-slides", "style": "{{state.side == 'slides' ? 'toolOn' : 'tool'}}", "text": "Slides", "onClick": [{ "set": "state.side", "to": "slides" }] },
+						{ "type": "label", "id": "side-outline", "style": "{{state.side == 'outline' ? 'toolOn' : 'tool'}}", "text": "Outline", "onClick": [{ "set": "state.side", "to": "outline" }] }
+					] },
+					{ "id": "sidebar-body", "grow": 1, "color": "transparent", "children": [
+						{ "id": "slide-list-box", "fill": 0, "color": "transparent", "when": "{{state.side == 'slides'}}", "children": [
+							{ "use": "slideList", "with": { "slides": "{{computed.slides}}", "current": "{{state.current}}", "sections": "{{state.deck.sections ?? []}}",
+							  "pick": "pick", "move": "moveSlide", "width": 160 } }
+						] },
+						{ "type": "column", "id": "outline", "fill": 0, "gap": 6, "scroll": "vertical", "color": "transparent", "when": "{{state.side == 'outline'}}", "children": [
+							{ "repeat": { "for": "s", "in": "{{computed.slides}}", "key": "{{s.id}}" },
+							  "type": "label", "id": "{{'outline-' + s.id}}", "wrap": true, "padding": 6, "radius": 4,
+							  "color": "{{s.index == state.current ? '@accentSoft' : 'transparent'}}", "textColor": "@ink",
+							  "runs": "{{[{text: text(s.index + 1) + '  ' + (s.title == '' ? 'Untitled' : s.title), bold: true}, {text: s.body == '' ? '' : '\n' + s.body, size: 11}]}}",
+							  "onClick": { "run": "pick", "with": { "index": "{{s.index}}" } } }
+						] }
+					] }
+				]
+			}
+		}
+	}
+}

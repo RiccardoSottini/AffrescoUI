@@ -7,6 +7,8 @@ FetchContent_MakeAvailable(doctest)
 
 # Unit tests for the modules that need no window
 file(GLOB affrescoui_unit_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+# second_window.cpp draws (images of panels, second windows): it is a window test, below
+list(REMOVE_ITEM affrescoui_unit_test_files ${CMAKE_CURRENT_SOURCE_DIR}/second_window.cpp)
 # forge.cpp tests the demo IDE's plain C++ (examples/forge), which needs no window
 set(affrescoui_forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp
@@ -30,6 +32,7 @@ target_compile_definitions(affrescoui_unit_tests PRIVATE
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${AFFRESCOUI_GLAD_INCLUDE_DIRS}) # gles.cpp: gl/Shader.hpp
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation affrescoui_vterm) # all modules; screen.cpp loads screens, no window
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::export) # pdf_export.cpp: PDF of a headless window's panels
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}) # build/, where the docs and tools/quality run it
 target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
@@ -50,12 +53,17 @@ target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/mode
 	${PROJECT_SOURCE_DIR}/examples/modello/ModelloView.cpp ${PROJECT_SOURCE_DIR}/examples/modello/ModelloEdit.cpp
 	${PROJECT_SOURCE_DIR}/examples/modello/ModelloFiles.cpp)
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/modello)
+# sinopia_*.cpp test the slides app's deck model, arranging and shapes (examples/sinopia), which need no window
+target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/sinopia/Deck.cpp
+	${PROJECT_SOURCE_DIR}/examples/sinopia/Arrange.cpp ${PROJECT_SOURCE_DIR}/examples/sinopia/ShapeGeometry.cpp)
+target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared)
 add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 # Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers, review
 # steps, shapes, pictures. Helpers.hpp is shared with the unit tests.
 file(GLOB affrescoui_window_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/window/*.cpp)
-add_executable(affrescoui_window_tests ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${affrescoui_window_test_files})
+add_executable(affrescoui_window_tests ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${affrescoui_window_test_files}
+	${CMAKE_CURRENT_SOURCE_DIR}/second_window.cpp)
 # glyphs.cpp draws with render's private gl::QuadRenderer, so it sees render's src and glad
 target_include_directories(affrescoui_window_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 	${PROJECT_SOURCE_DIR}/modules/render/src)

@@ -25,6 +25,7 @@ struct GLFWwindow;
 
 namespace affresco {
 
+class Bitmap;
 class Label;
 
 namespace platform {
@@ -328,6 +329,18 @@ public:
 	/// @param scale Pixels per window unit (2 looks like a Retina display).
 	/// @return false if it couldn't be written, or the window is headless.
 	bool saveScreenshot(const std::filesystem::path& path, int scale);
+
+	/// @brief Draws one panel and its subtree into an image of its own, as a frame from scratch would (nothing retained
+	/// is used or changed): for thumbnails, previews and exports. Laid out first, like a screenshot.
+	///
+	/// The image covers the panel's bounds (its visible area, clipped to its ancestors); the window's other panels,
+	/// overlays and the tooltip are left out. The image is opaque: what the subtree doesn't cover is black. The panel's
+	/// ancestors' transforms aren't applied. See SCREEN_FORMAT.md, "Images of panels".
+	/// @param panel A panel of this window.
+	/// @param scale Pixels per window unit (more than 0).
+	/// @return The image, or nullptr if the window is headless or the panel isn't shown or has no area.
+	/// @throws std::invalid_argument If the image would be past Bitmap::Limits.
+	[[nodiscard]] std::shared_ptr<const Bitmap> renderToImage(Panel& panel, float scale);
 
 	/// @brief The GLFW window, or nullptr for a headless window.
 	[[nodiscard]] GLFWwindow* nativeHandle() const noexcept;

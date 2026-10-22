@@ -138,7 +138,7 @@ function(affrescoui_module name)
 	target_compile_options(affrescoui_${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${AFFRESCOUI_WARNINGS}>)
 endfunction()
 
-foreach(module core render format vcs channel net services screen automation)
+foreach(module core render export format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer
@@ -192,6 +192,14 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_modello PRIVATE affrescoui affrescoui::scene3d)
 	target_compile_options(affrescoui_modello PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_modello PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
+	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
+	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Deck.cpp examples/sinopia/Arrange.cpp
+		examples/sinopia/ShapeGeometry.cpp examples/sinopia/ShapePanel.cpp examples/sinopia/DeckView.cpp
+		examples/sinopia/Edit.cpp examples/sinopia/Transition.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp)
+	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
+	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
+	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
+	target_compile_definitions(affrescoui_sinopia PRIVATE AFFRESCOUI_SINOPIA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (examples/surfaces)
 	add_executable(affrescoui_surfaces examples/surfaces/main.cpp examples/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
@@ -230,6 +238,11 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})
+	endif()
+	if(AFFRESCOUI_BUILD_EXAMPLES)
+		# Sinopia's scenarios, headless: editing, the sorter, exporting and presenting (examples/sinopia/README.md)
+		add_test(NAME sinopia COMMAND affrescoui_sinopia --check
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/sinopia/sinopia.scenarios.json)
 	endif()
 endif()
 

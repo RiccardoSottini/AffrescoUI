@@ -581,6 +581,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | What git prints for Forge (`GitLimits`) | 8 MiB of output, 10,000 files or branches, 4 KiB a path |
 | A VS Code theme Forge imports | An id of 40 characters; only `#rrggbb` and `#rrggbbaa` colours are kept |
 | The document server's token file (`TokenFile`) | 4,096 tokens |
+| A Sinopia deck (`sinopia::DeckLimits`) | A file of 8 MiB; 500 slides, 1,000 objects a slide, master or layout (groups' included), 32 masters and 32 layouts, 200 sections, 64 theme tokens; text of 20,000 bytes and 256 runs an object, notes of 50,000 bytes a slide, pen paths of 64 KiB, ids of 64 bytes; images of 32 MiB and 4,096 pixels a side; numbers clamped, ids made unique. A peer's edit is read again, so the same limits hold |
+| A PDF export (`PdfLimits`) | 2,000 pages, a file of 256 MiB, 64 MiB of embedded fonts and of a page's drawing, 2^26 image pixels in all; Sinopia exports at most 500 pages, and as PNG at most 500 files |
+| Sinopia's audience window | Its keys run only the workspace's `nextStep`, `previousStep`, `toggleBlack` and `stopPresenting` |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in

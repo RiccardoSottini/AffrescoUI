@@ -152,6 +152,19 @@ public:
 	/// @throws std::runtime_error If the window or its context can't be created.
 	[[nodiscard]] virtual std::unique_ptr<NativeWindow> createWindow(const std::string& title, int width,
 	                                                                 int height) = 0;
+	/// @brief Opens a window whose OpenGL context shares its objects (textures, buffers, shaders) with another's.
+	/// The default opens one that shares nothing, for windowing systems with a single window.
+	/// @param title The title.
+	/// @param width In window units.
+	/// @param height In window units.
+	/// @param sharing The other window's handle() (a GLFWwindow*).
+	/// @return The window, its context current.
+	/// @throws std::runtime_error If the window or its context can't be created.
+	[[nodiscard]] virtual std::unique_ptr<NativeWindow> createSharedWindow(const std::string& title, int width,
+	                                                                       int height, void* sharing) {
+		static_cast<void>(sharing);
+		return createWindow(title, width, height);
+	}
 
 	/// @brief Delivers the events that came, waiting for one first if there is none.
 	/// @param timeoutSeconds The longest wait, or std::nullopt to wait until an event comes.

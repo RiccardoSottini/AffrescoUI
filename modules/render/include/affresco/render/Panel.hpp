@@ -329,6 +329,14 @@ public:
 	/// @brief Whether it is an overlay.
 	[[nodiscard]] bool isOverlay() const noexcept { return overlay_; }
 
+	/// @brief Draws this panel's own content, as a frame would, into a painter of another kind (a PDF page, an image):
+	/// paint(), for drawers outside the window's renderer. The caller clips to bounds() and draws the children after.
+	/// @param painter Where it goes.
+	void paintContent(Painter& painter) const { paint(painter); }
+	/// @brief Draws what this panel draws over its children: paintOver(), as paintContent().
+	/// @param painter Where it goes.
+	void paintContentOver(Painter& painter) const { paintOver(painter); }
+
 	/// @brief Sets the text of the tooltip the window shows after the pointer rests on this panel.
 	/// @param text UTF-8; empty for none.
 	void setTooltip(std::string text);

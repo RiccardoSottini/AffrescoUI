@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -201,6 +202,26 @@ public:
 	/// @brief Texture coordinates of a fully covered texel of a coverage page, for solid rectangles.
 	/// @param page The page, below atlasPages().
 	[[nodiscard]] Vec2 whiteTexel(std::size_t page = 0) const noexcept;
+
+	/* Outlines, for vector output (a PDF writer embeds the font files and places glyphs by index) */
+
+	/// @brief A font file of the font or one of its fallbacks, as it was read.
+	struct FaceSource {
+		std::span<const unsigned char> bytes; ///< The whole file (a collection's first font is the one used).
+		float scale = 0.0f;                   ///< Pixels per font unit at this font's size.
+		bool color = false;                   ///< Whether it has colour glyphs (COLR), drawn from the atlas instead.
+	};
+	/// @brief Where a glyph comes from: which face and which of its glyphs.
+	struct GlyphSource {
+		std::size_t face = 0; ///< Index into faceSources().
+		unsigned index = 0;   ///< The glyph's index in that face.
+	};
+	/// @brief The font's files: the font first, then its fallbacks. The bytes stay valid as long as the font.
+	[[nodiscard]] std::vector<FaceSource> faceSources() const;
+	/// @brief Which face and glyph a glyph of this font (from glyph() or shape()) was rasterised from.
+	/// @param glyph A glyph this font returned.
+	/// @return Its source; nullopt for a glyph of another font.
+	[[nodiscard]] std::optional<GlyphSource> glyphSource(const Glyph& glyph) const noexcept;
 
 private:
 	friend class FontCache;

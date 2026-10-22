@@ -1,0 +1,45 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Sinopia's presenter view, over the whole workspace while presenting: the frame the audience sees (the host image present, which sinopia.mirror draws with the transition), the next slide's thumbnail, the notes, a timer and the controls. The audience window shows the same frame; its keys come back here through sinopia.forward.",
+
+	"components": {
+		"presenter": {
+			"params": {},
+			"node": {
+				"id": "presenter", "color": "@stage", "focusable": true,
+				"overlay": { "placement": "window", "open": "state.show.on", "modal": true },
+				"x": 0, "y": 0, "width": "{{window.width}}", "height": "{{window.height}}",
+				"every": { "ms": 1000, "do": "tick" },
+				"let": { "shown": "{{computed.shown}}", "next": "{{computed.nextShown}}" },
+				"children": [
+					{ "type": "label", "id": "presenter-where", "x": 24, "y": 12, "height": 28, "width": 400, "textColor": "#e5e7eb",
+					  "text": "{{'Slide ' + text((shown.index ?? 0) + 1) + ' of ' + text(length(computed.slides)) + ((shown.builds ?? 0) > 0 ? '  ·  build ' + text(state.show.step) + ' of ' + text(shown.builds) : '')}}" },
+					{ "type": "label", "id": "presenter-timer", "anchors": { "right": 24 }, "y": 12, "height": 28, "width": 120, "align": "end",
+					  "textColor": "#e5e7eb", "runs": "{{[{text: computed.timer, size: 20, bold: true}]}}" },
+					{ "id": "presenter-current", "x": 24, "y": 48, "anchors": { "right": 344, "bottom": 72 }, "color": "#000000", "radius": 4,
+					  "children": [{ "type": "image", "id": "presenter-current-image", "fill": 0, "source": "present", "fit": "contain" }] },
+					{ "type": "column", "id": "presenter-side", "width": 296, "anchors": { "right": 24, "top": 48, "bottom": 72 }, "gap": 8, "color": "transparent",
+					  "children": [
+						{ "type": "label", "id": "presenter-next-title", "height": 20, "text": "{{next != null ? 'Next' : 'End of the deck'}}", "textColor": "#9ca3af" },
+						{ "id": "presenter-next", "width": 296, "aspectRatio": "{{state.render.width / max(1, state.render.height)}}", "color": "#000000", "radius": 4,
+						  "children": [{ "type": "image", "id": "presenter-next-image", "fill": 0, "when": "{{next != null}}", "source": "{{'thumb-' + next.id}}", "fit": "contain" }] },
+						{ "type": "label", "id": "presenter-notes-title", "height": 20, "text": "Notes", "textColor": "#9ca3af" },
+						{ "type": "label", "id": "presenter-notes", "grow": 1, "wrap": true, "textColor": "#f9fafb", "align": { "horizontal": "start", "vertical": "start" },
+						  "runs": "{{[{text: shown.notes == '' ? 'No notes' : shown.notes, size: 18}]}}" }
+					] },
+					{ "type": "row", "id": "presenter-controls", "anchors": { "left": 24, "right": 24, "bottom": 20 }, "height": 36, "gap": 8, "color": "transparent",
+					  "children": [
+						{ "type": "label", "id": "presenter-previous", "style": "presentButton", "icon": "chevron-left", "text": "Back", "onClick": "previousStep" },
+						{ "type": "label", "id": "presenter-forward", "style": "presentButton", "icon": "chevron-right", "text": "Next", "onClick": "nextStep" },
+						{ "type": "label", "id": "presenter-black", "style": "{{state.show.black ? 'presentButtonOn' : 'presentButton'}}", "icon": "square", "text": "Black (B)", "onClick": "toggleBlack" },
+						{ "type": "label", "id": "presenter-reset", "style": "presentButton", "icon": "timer-reset", "text": "Reset timer", "onClick": [{ "set": "state.show.seconds", "to": 0 }] },
+						{ "id": "presenter-spacer", "grow": 1, "color": "transparent" },
+						{ "type": "label", "id": "presenter-end", "style": "presentButton", "icon": "x", "text": "End (Esc)", "onClick": "stopPresenting" }
+					] }
+				]
+			}
+		}
+	}
+}

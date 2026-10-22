@@ -94,6 +94,19 @@ Application::~Application() {
 
 Window& Application::createWindow(std::string title, int width, int height) {
 	std::unique_ptr<platform::NativeWindow> native = platform_->createWindow(title, width, height);
+	return adopt(std::move(native), std::move(title), width, height);
+}
+
+Window& Application::createWindow(std::string title, int width, int height, const Window& sharing) {
+	void* handle = sharing.nativeHandle();
+	std::unique_ptr<platform::NativeWindow> native = handle ? platform_->createSharedWindow(title, width, height, handle)
+	                                                        : platform_->createWindow(title, width, height);
+	Window& window = adopt(std::move(native), std::move(title), width, height);
+	if(const auto& font = sharing.defaultFont_) window.setDefaultFont(font);
+	return window;
+}
+
+Window& Application::adopt(std::unique_ptr<platform::NativeWindow> native, std::string title, int width, int height) {
 	std::unique_ptr<detail::Renderer> renderer =
 	    gl::createRenderer(native->procAddressLoader()); // its context is current
 

@@ -1272,6 +1272,19 @@ context, `screen.embed(embedding)`, then each frame `embedding.frame(width, heig
 or `embedding.renderTexture(width, height, scale)` for a texture the host shows where it likes. Its input goes to
 `embedding.window()`. The OpenGL state each call changes is restored before it returns.
 
+**Second windows.** A screen can open in a second window of the same application that shares the first one's
+OpenGL objects and default font: `screen.createWindow(app, mainWindow)` (or `app.createWindow(title, width, height,
+mainWindow)` from code) reads the document's `"window"` as `createWindow(app)` does. Textures, buffers and glyph
+atlases made in one window's context can be used in the other; each window still draws with its own renderer. Hiding
+it (`setVisible(false)`) keeps it for later; closing it closes only it. A presenter view is one: the audience sees a
+second window, the presenter the first.
+
+**Images of panels.** `window.renderToImage(panel, scale)` draws a laid-out panel and its subtree into a bitmap of its
+bounds times `scale`: what a thumbnail, a sorter or a second window shows. The image is opaque (black where nothing
+draws), the panel's own transform is drawn but its ancestors' are not, and a hidden panel, an empty one or a headless
+window gives none. `screen.setImage(name, image)` then shows it in an `image` node, in this window or another: a
+second window that mirrors a panel shows such an image and is given a new one when the panel changes.
+
 **From C and Python.** `affresco/affresco.h` (`modules/capi`) is the same in C, for hosts in other languages: create a
 screen from a file or a string (`afr_options.native_actions` lists the actions the host will answer, so the document's
 check knows them), read and set its state, answer its actions and calls, and show it in a window, headless or

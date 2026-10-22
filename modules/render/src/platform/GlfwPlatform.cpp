@@ -66,9 +66,10 @@ public:
 	/// @param title The title.
 	/// @param width In window units.
 	/// @param height In window units.
+	/// @param sharing A window whose context shares its objects with this one's, or nullptr.
 	/// @throws std::runtime_error If the window or its context can't be created.
-	GlfwWindow(const std::string& title, int width, int height)
-	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr)) {
+	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing = nullptr)
+	    : handle_(glfwCreateWindow(width, height, title.c_str(), nullptr, sharing)) {
 		if(!handle_) throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
 		glfwSwapInterval(1); // vsync: never render faster than the display
@@ -257,6 +258,13 @@ public:
 		hintContext(); // other hints (e.g. GLFW_VISIBLE, set by tests) stay
 		if(hiddenWindows_) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		return std::make_unique<GlfwWindow>(title, width, height);
+	}
+
+	[[nodiscard]] std::unique_ptr<NativeWindow> createSharedWindow(const std::string& title, int width, int height,
+	                                                               void* sharing) override {
+		hintContext();
+		if(hiddenWindows_) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		return std::make_unique<GlfwWindow>(title, width, height, static_cast<GLFWwindow*>(sharing));
 	}
 
 	void waitEvents(std::optional<double> timeoutSeconds) override {

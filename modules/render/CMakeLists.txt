@@ -33,6 +33,7 @@ affrescoui_module(render
 	src/Font.cpp
 	src/FontCache.cpp
 	src/text/FontFace.cpp
+	src/text/FontOutlines.cpp
 	src/text/GlyphAtlas.cpp
 	src/text/LookupSpans.cpp
 	src/text/PlainText.cpp
@@ -45,6 +46,7 @@ affrescoui_module(render
 	src/layout/Grid.cpp
 	src/TextArea.cpp
 	src/Window.cpp
+	src/WindowImage.cpp
 	src/Headless.cpp
 	src/GeometryCache.cpp
 	src/PaintRecorder.cpp
