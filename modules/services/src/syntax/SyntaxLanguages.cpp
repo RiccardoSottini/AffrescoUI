@@ -85,6 +85,23 @@ std::string lower(std::string_view text) {
 	return out;
 }
 
+/// @brief Reads a predicate's arguments after its first capture: another capture, or words.
+/// @param query The query.
+/// @param steps Its steps.
+/// @param count How many.
+/// @param check Gets them.
+void readArguments(const TSQuery* query, const TSQueryPredicateStep* steps, std::uint32_t count, Predicate& check) {
+	for(std::uint32_t i = 2; i < count; ++i) {
+		if(steps[i].type == TSQueryPredicateStepTypeCapture) {
+			check.otherCapture = steps[i].value_id;
+			continue;
+		}
+		std::uint32_t length = 0;
+		const char* word = ts_query_string_value_for_id(query, steps[i].value_id, &length);
+		check.words.emplace_back(word, length);
+	}
+}
+
 /// @brief Reads one predicate (its steps up to a Done step) into a check.
 /// @param query The query.
 /// @param steps Its steps.
@@ -100,14 +117,7 @@ bool readPredicate(const TSQuery* query, const TSQueryPredicateStep* steps, std:
 	check.negated = name.starts_with("not-");
 	if(check.negated) name.remove_prefix(4);
 	check.capture = steps[1].value_id;
-	for(std::uint32_t i = 2; i < count; ++i) {
-		if(steps[i].type == TSQueryPredicateStepTypeCapture) {
-			check.otherCapture = steps[i].value_id;
-			continue;
-		}
-		const char* word = ts_query_string_value_for_id(query, steps[i].value_id, &length);
-		check.words.emplace_back(word, length);
-	}
+	readArguments(query, steps, count, check);
 	if(name == "match?" && check.words.size() == 1) {
 		check.kind = Predicate::Kind::Match;
 		return !check.pattern.compile(check.words[0], {.regex = true, .caseSensitive = true});

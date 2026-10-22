@@ -68,6 +68,38 @@ bool before(TSPoint a, TSPoint b) noexcept { return a.row < b.row || (a.row == b
 /// @param b The other.
 bool same(TSPoint a, TSPoint b) noexcept { return a.row == b.row && a.column == b.column; }
 
+/// @brief Orders captures outer first and keeps one per range: on one range the first pattern wins (a plain variable
+/// loses to any other).
+/// @param found The captures, sorted and thinned in place.
+void keepOnePerRange(std::vector<Found>& found) {
+	std::ranges::stable_sort(found, [](const Found& a, const Found& b) {
+		if(!same(a.start, b.start)) return before(a.start, b.start);
+		if(!same(a.end, b.end)) return before(b.end, a.end);
+		return a.rank < b.rank;
+	});
+	const auto repeat = std::ranges::unique(
+	    found, [](const Found& a, const Found& b) { return same(a.start, b.start) && same(a.end, b.end); });
+	found.erase(repeat.begin(), repeat.end());
+}
+
+/// @brief Cuts captures into one span per row, within the rows asked for.
+/// @param found The captures.
+/// @param first The first row.
+/// @param last The last row.
+/// @param out Gets the spans, in capture order.
+void addSpans(const std::vector<Found>& found, std::uint32_t first, std::uint32_t last, std::vector<SyntaxSpan>& out) {
+	for(const Found& capture : found) {
+		const std::uint32_t from = std::max(capture.start.row, first);
+		const std::uint32_t to = std::min(capture.end.row, last);
+		for(std::uint32_t row = from; row <= to; ++row) {
+			const std::uint32_t start = row == capture.start.row ? capture.start.column : 0;
+			const std::uint32_t end =
+			    row == capture.end.row ? capture.end.column : std::numeric_limits<std::uint32_t>::max();
+			if(start < end) out.push_back({row, start, end, capture.style});
+		}
+	}
+}
+
 } // namespace
 
 /// @brief A document's parser, tree and cursor.
@@ -260,25 +292,8 @@ bool SyntaxDocument::highlight(const SyntaxReader& read, std::uint32_t first, st
 		                 (plain ? 0x10000u : 0u) + match.pattern_index, static_cast<std::uint16_t>(capture.index)});
 	}
 	if(ts_query_cursor_did_exceed_match_limit(state.cursor)) whole = false;
-	// Outer first; on one range the first pattern wins (a plain variable loses to any other)
-	std::ranges::stable_sort(found, [](const Found& a, const Found& b) {
-		if(!same(a.start, b.start)) return before(a.start, b.start);
-		if(!same(a.end, b.end)) return before(b.end, a.end);
-		return a.rank < b.rank;
-	});
-	const auto repeat = std::ranges::unique(
-	    found, [](const Found& a, const Found& b) { return same(a.start, b.start) && same(a.end, b.end); });
-	found.erase(repeat.begin(), repeat.end());
-	for(const Found& capture : found) {
-		const std::uint32_t from = std::max(capture.start.row, first);
-		const std::uint32_t to = std::min(capture.end.row, last);
-		for(std::uint32_t row = from; row <= to; ++row) {
-			const std::uint32_t start = row == capture.start.row ? capture.start.column : 0;
-			const std::uint32_t end =
-			    row == capture.end.row ? capture.end.column : std::numeric_limits<std::uint32_t>::max();
-			if(start < end) out.push_back({row, start, end, capture.style});
-		}
-	}
+	keepOnePerRange(found);
+	addSpans(found, first, last, out);
 	std::ranges::stable_sort(out, {}, &SyntaxSpan::row);
 	return whole;
 }
