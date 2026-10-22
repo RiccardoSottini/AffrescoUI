@@ -284,5 +284,8 @@ void registerGradientType(TypeRegistry& registry);
 /// @brief Registers "curves" (CurvesType.cpp).
 /// @param registry The registry.
 void registerCurvesType(TypeRegistry& registry);
+/// @brief Registers "canvas" (CanvasType.cpp).
+/// @param registry The registry.
+void registerCanvasType(TypeRegistry& registry);
 
 } // namespace affresco::format

@@ -568,6 +568,41 @@ constexpr KeyReference nodeTable[] = {
 		{"type": "null"}, {"$ref": "#/$defs/v1/dynamic"}], "description": "curves: counts drawn behind the curve"})json",
 	 "Counts from dark to light drawn behind the curve, e.g. `\"{{state.histogram}}\"`; at most 1,024.", "curves"},
     {"accentColor", "", "The selected point and tab.", "curves"},
+    {"view", R"json({"anyOf": [{"type": "object", "properties": {"camera": {"type": "object", "properties": {
+		"x": {"type": "number"}, "y": {"type": "number"}, "zoom": {"type": "number", "minimum": 0.01, "maximum": 256}}},
+		"selection": {"type": "array", "maxItems": 10000, "items": {"type": ["string", "number"]}},
+		"guides": {"type": "object", "properties": {"vertical": {"type": "array", "maxItems": 256, "items": {"type": "number"}},
+		"horizontal": {"type": "array", "maxItems": 256, "items": {"type": "number"}}}}}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "canvas: the camera { x, y, zoom }, the selected ids and the guides { vertical, horizontal }"})json",
+	 "The view (`bind` keeps it in a state path, both ways): `{ \"camera\": { \"x\", \"y\", \"zoom\" }, \"selection\": "
+	 "[ids], \"guides\": { \"vertical\": [x], \"horizontal\": [y] } }`, each part only if given. The camera's x and y "
+	 "are the world point at the top-left; the zoom (screen units per world unit) stays within 0.01 and 256. Panning, "
+	 "zooming, selecting and dragging guides out of the rulers run `onChange`; `animate` on `state.<bind>.camera.zoom` "
+	 "(or x, y) moves the camera smoothly.",
+	 "canvas"},
+    {"items", "",
+	 "Items the canvas draws itself, in world units, in drawing order (at most 10,000; an application gives more "
+	 "through a model): `{ \"id\", \"x\", \"y\", \"width\", \"height\", \"rotate\", \"color\", \"borderColor\", "
+	 "\"borderWidth\", \"radius\", \"text\", \"textSize\", \"textColor\" }`. Only those in view are drawn; text too "
+	 "small to read draws as a bar. Children are placed in world units too, by their `x`, `y`, `width` and `height`.",
+	 "canvas"},
+    {"lod", R"json({"anyOf": [{"type": "array", "maxItems": 256, "items": {"type": "object",
+		"required": ["for", "use"], "properties": {"for": {"type": "string"}, "use": {"type": "string"},
+		"below": {"type": "number", "minimum": 0, "maximum": 256}}}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "canvas: levels of detail: below a zoom, the child use stands in for the child for"})json",
+	 "Levels of detail: `[{ \"for\": \"card\", \"below\": 0.25, \"use\": \"cardSmall\" }]`: below that zoom the child "
+	 "`use` (a lighter sibling, by id) is drawn in place of the child `for`.",
+	 "canvas"},
+    {"grid",
+	 R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1000000}, {"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "World units between grid lines (default 0: none); drawn when the lines are far enough apart, and snapped to.",
+	 "canvas"},
+    {"snap", "flag", "Moves and resizes snap to the grid, other items' edges and centres, and guides (default true).",
+	 "canvas"},
+    {"rulers", "flag",
+	 "Rulers along the top and left, in world units; dragging out of one makes a guide (default true).", "canvas"},
+    {"font", "", "The items' text font (default `default`), in a few sizes.", "canvas"},
+    {"accentColor", "", "The selection, the marquee, the handles and the guides.", "canvas"},
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
@@ -597,6 +632,10 @@ constexpr KeyReference nodeTable[] = {
     {"onOpen", "handler", "Enter or a double click on a tree, list or table row: `event.id`.", "events"},
     {"onSort", "handler", "A table header clicked: `event.column`, `descending`.", "events"},
     {"onColumnResize", "handler", "A table column's edge dragged and let go: `event.column`, `width`.", "events"},
+    {"onTransform", "handler",
+	 "Canvas items moved, resized, rotated or nudged: `event.items`, each `{ \"id\", \"x\", \"y\", \"width\", "
+	 "\"height\", \"rotate\" }`, where they should go; the document applies them.",
+	 "events"},
     {"slot", R"json({"const": true, "description": "In a component: where the use's children go"})json", "", ""},
     {"placeholder", R"json({"description": "Text, or a {{binding}}"})json", "", ""},
     {"placeholderColor", "color", "", ""},

@@ -65,6 +65,7 @@ affrescoui_module(format
 	src/ColorPickerType.cpp
 	src/GradientType.cpp
 	src/CurvesType.cpp
+	src/CanvasType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp

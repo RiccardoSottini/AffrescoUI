@@ -45,6 +45,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `ImageView.hpp` | `ImageView`: a panel showing a bitmap, a file or a named image, with `ImageFit` (`contain`, `cover`, `fill`) |
 | `VectorPath.hpp` | `VectorPath`: SVG path data parsed within `VectorPath::Limits` (or built with `moveTo`, `lineTo`, `cubicTo`, `close`) and flattened; `appendFill` (`FillRule`) and `appendStroke` (`StrokeStyle`: width, `LineJoin`, `LineCap`, dashes), the meshes that draw it, within `meshQuadLimit` and `meshWorkLimit` |
 | `PathView.hpp` | `PathView`: a panel drawing a path, filled and stroked, fitted to it through a view box with `ImageFit`; its meshes are built again only when the path, the style or the size changes |
+| `Camera2D.hpp` | `Camera2D`: a pure value (x, y, zoom within 0.01 to 256) mapping world units to screen units: `toScreen`, `toWorld`, `visible`, `zoomedAt` (the point under the pointer stays), `pannedBy`, `fitted` |
+| `CanvasView.hpp` | `CanvasView`: an infinite canvas. Children placed in world units (all in `placeChildren()`, to become a transform); items from a `CanvasItemModel` (up to 1,000,000) culled through a spatial index; levels of detail; pan, zoom at the pointer, `fit`; selection by click, Shift-click and marquee, handles to move, resize and rotate (`onTransform`, the document applies it); snapping to the grid, items and guides, with smart guides; rulers whose ticks follow the zoom, guides dragged from them; `onViewChanged` |
 | `Color.hpp`, `Geometry.hpp`, `Length.hpp` | `Color` (hex in and out), `Vec2`, `Rect`, `Length` with the `_px` and `_pct` literals |
 | `Events.hpp`, `Input.hpp` | The typed events (`KeyEvent`, `MouseButtonEvent`, ...) and the key and button names (GLFW's values) |
 
@@ -203,6 +205,10 @@ src/
   ImageCache.cpp           the worker, the deliveries, the allowed folders, the bound
   ImageView.cpp            showing an image, fitted
   PathView.cpp             showing a vector path, fitted
+  CanvasView.cpp           the canvas: content, culling, children placed, painting (items, levels of detail, the
+                           selection, guides); CanvasViewInput.cpp its pointer, wheel and keys;
+                           SpatialIndex.cpp (a uniform grid, stored flat, rebuilt only when the items change),
+                           Snapping.cpp (the nearest edge or centre within a reach), Rulers.cpp (steps and ticks)
   vector/                  VectorPath.cpp (parsing, flattening), PathFill.cpp (scanline trapezoids by the fill
                            rule, and the fringe), PathStroke.cpp (segments, joins, caps, dashes), VectorMath.hpp,
                            MeshRasterizer (meshes into premultiplied pixels, on the CPU), Svg (the icon subset:

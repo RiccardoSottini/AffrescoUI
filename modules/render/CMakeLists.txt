@@ -55,6 +55,11 @@ affrescoui_module(render
 	src/vector/SvgStyle.cpp
 	src/vector/SvgXml.cpp
 	src/vector/MeshRasterizer.cpp
+	src/CanvasView.cpp
+	src/CanvasViewInput.cpp
+	src/SpatialIndex.cpp
+	src/Snapping.cpp
+	src/Rulers.cpp
 	src/platform/GlfwPlatform.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp

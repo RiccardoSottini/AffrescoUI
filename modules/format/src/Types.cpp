@@ -172,6 +172,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerColorPickerType(registry);
 	registerGradientType(registry);
 	registerCurvesType(registry);
+	registerCanvasType(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",
 	    [] {

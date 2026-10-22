@@ -89,6 +89,8 @@ as the OpenGL driver's, aren't counted.
 | `forge/open` | Forge (`examples/forge`), the demo IDE, parsed with its features, built with its natives, its folder (`tests/render/forge/folder`) indexed, and laid out (`forge.cpp`) |
 | `forge/type`, `forge/switch-tab` | In Forge with two files open, a character typed into the first one, or the other tab shown; the update and the layout |
 | `forge/search`, `forge/palette` | Forge's quick open filtered by a file name; its command palette opened, then filtered |
+| `canvas/pan-100k` | A canvas of 100,000 items panned to a new place, then a frame recorded (all but OpenGL): only the items in view are drawn. A frame at 120 Hz has 8.3 ms |
+| `canvas/pan-1k` | The same with 1,000 items: a lock keeps the 100,000-item pan within 3 times it |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

@@ -153,6 +153,10 @@ struct Group {
 /// @param context Where the fonts are, and the windowing system.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> editorWorkloads(Context& context);
+/// @brief The "canvas" group's workloads (canvas.cpp): a canvas of 100,000 items panned to a new place and drawn, and
+/// the same with 1,000 items, on headless windows.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> canvasWorkloads(Context&);
 
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 

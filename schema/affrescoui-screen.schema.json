@@ -693,7 +693,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, colorPicker, gradient, curves, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, outlet, code, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -719,7 +719,9 @@
 									"colorPicker",
 									"gradient",
 									"curves",
-									"outlet"
+									"canvas",
+									"outlet",
+									"code"
 								]
 							},
 							{
@@ -2060,20 +2062,6 @@
 							}
 						]
 					},
-					"mode": {
-						"anyOf": [
-							{
-								"enum": [
-									"square",
-									"wheel"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "colorPicker: square (default) or wheel"
-					},
 					"alpha": {
 						"$ref": "#/$defs/v1/flag"
 					},
@@ -2130,6 +2118,114 @@
 							}
 						],
 						"description": "curves: counts drawn behind the curve"
+					},
+					"view": {
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"camera": {
+										"type": "object",
+										"properties": {
+											"x": {
+												"type": "number"
+											},
+											"y": {
+												"type": "number"
+											},
+											"zoom": {
+												"type": "number",
+												"minimum": 0.01,
+												"maximum": 256
+											}
+										}
+									},
+									"selection": {
+										"type": "array",
+										"maxItems": 10000,
+										"items": {
+											"type": [
+												"string",
+												"number"
+											]
+										}
+									},
+									"guides": {
+										"type": "object",
+										"properties": {
+											"vertical": {
+												"type": "array",
+												"maxItems": 256,
+												"items": {
+													"type": "number"
+												}
+											},
+											"horizontal": {
+												"type": "array",
+												"maxItems": 256,
+												"items": {
+													"type": "number"
+												}
+											}
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "canvas: the camera { x, y, zoom }, the selected ids and the guides { vertical, horizontal }"
+					},
+					"lod": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 256,
+								"items": {
+									"type": "object",
+									"required": [
+										"for",
+										"use"
+									],
+									"properties": {
+										"for": {
+											"type": "string"
+										},
+										"use": {
+											"type": "string"
+										},
+										"below": {
+											"type": "number",
+											"minimum": 0,
+											"maximum": 256
+										}
+									}
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "canvas: levels of detail: below a zoom, the child use stands in for the child for"
+					},
+					"grid": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 1000000
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"snap": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"rulers": {
+						"$ref": "#/$defs/v1/flag"
 					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
@@ -2200,6 +2296,9 @@
 					"onColumnResize": {
 						"$ref": "#/$defs/v1/handler"
 					},
+					"onTransform": {
+						"$ref": "#/$defs/v1/handler"
+					},
 					"slot": {
 						"const": true,
 						"description": "In a component: where the use's children go"
@@ -2212,7 +2311,10 @@
 					},
 					"checked": {
 						"$ref": "#/$defs/v1/flag"
-					}
+					},
+					"syntax": {},
+					"goTo": {},
+					"buffer": {}
 				},
 				"if": {
 					"required": [
@@ -2244,7 +2346,9 @@
 									"colorPicker",
 									"gradient",
 									"curves",
-									"outlet"
+									"canvas",
+									"outlet",
+									"code"
 								]
 							}
 						}
