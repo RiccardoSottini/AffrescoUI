@@ -279,6 +279,18 @@ TEST_CASE("text pattern: expansion, errors and the limits that stop runaway patt
 	REQUIRE(found.match);
 	CHECK(pattern.expand(subject, *found.match, "$2/${year}") == "05/2024");
 
+	// Found in the security review of wave 6: a replacement repeating a long match had no cap, so a screen's search
+	// replace could ask for gigabytes and end the process
+	TextPattern all;
+	REQUIRE_FALSE(all.compile(".+", {.regex = true}));
+	const std::string line(std::size_t{1} << 20, 'a');
+	const auto whole = all.find(line);
+	REQUIRE(whole.match);
+	CHECK(all.expand(line, *whole.match, "$0$0") == line + line);
+	std::string hundred;
+	for(int i = 0; i < 100; ++i) hundred += "$0"; // 100 MiB
+	CHECK_FALSE(all.expand(line, *whole.match, hundred));
+
 	CHECK(pattern.compile("(", {.regex = true}));
 	CHECK_FALSE(pattern.valid());
 	CHECK(pattern.compile(std::string(TextPattern::maxPatternBytes + 1, 'a'), {}));

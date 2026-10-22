@@ -120,6 +120,7 @@ std::optional<std::string> TextPattern::expand(std::string_view subject, Pattern
 		                                  reinterpret_cast<PCRE2_SPTR>(replacement.data()), replacement.size(),
 		                                  reinterpret_cast<PCRE2_UCHAR*>(out.data()), &length);
 		if(done == PCRE2_ERROR_NOMEMORY) {
+			if(length > maxExpandedBytes) return std::nullopt;
 			out.resize(length); // the length it needs
 			continue;
 		}
