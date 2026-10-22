@@ -67,8 +67,8 @@ affrescoui_module(render
 	src/vector/MeshRasterizer.cpp
 	src/CanvasView.cpp
 	src/CanvasViewInput.cpp
-	src/SpatialIndex.cpp
-	src/Snapping.cpp
+	src/spatial/SpatialIndex.cpp
+	src/spatial/Snapping.cpp
 	src/Rulers.cpp
 	src/platform/GlfwPlatform.cpp
 	src/platform/EmbeddedPlatform.cpp

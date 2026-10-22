@@ -1,7 +1,7 @@
 /// @file
 /// @brief Snapping on a canvas: finding the nearest target on each axis.
 
-#include "Snapping.hpp"
+#include "spatial/Snapping.hpp"
 
 #include <algorithm>
 #include <cmath>

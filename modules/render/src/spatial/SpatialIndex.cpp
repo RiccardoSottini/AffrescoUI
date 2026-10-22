@@ -1,7 +1,7 @@
 /// @file
 /// @brief SpatialIndex: building the grid and querying it.
 
-#include "SpatialIndex.hpp"
+#include "spatial/SpatialIndex.hpp"
 
 #include <algorithm>
 #include <cmath>
