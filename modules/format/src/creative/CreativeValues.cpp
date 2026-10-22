@@ -13,7 +13,7 @@ namespace {
 /// @brief A finite number of a JSON value.
 /// @param value The value.
 /// @return The number, or std::nullopt when it isn't a finite number.
-[[nodiscard]] std::optional<double> finiteNumber(const json& value) noexcept {
+[[nodiscard]] std::optional<double> finiteNumber(const json& value) {
 	if(!value.is_number()) return std::nullopt;
 	const double number = value.get<double>();
 	return std::isfinite(number) ? std::optional(number) : std::nullopt;

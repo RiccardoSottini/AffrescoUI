@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <ranges>
 
 namespace affresco::format {
 
@@ -77,14 +78,10 @@ bool validCatalogName(std::string_view name) noexcept {
 bool localUrl(std::string_view url) noexcept {
 	if(url.empty() || url.size() > maxText || url.front() == '/') return false;
 	if(url.find_first_of(":\\%?#") != std::string_view::npos) return false;
-	std::size_t start = 0;
-	while(start <= url.size()) {
-		const std::size_t end = std::min(url.find('/', start), url.size());
-		const std::string_view part = url.substr(start, end - start);
-		if(part.empty() || part == "." || part == "..") return false;
-		start = end + 1;
-	}
-	return true;
+	return std::ranges::none_of(std::views::split(url, '/'), [](const auto& range) {
+		const std::string_view part(range.begin(), range.end());
+		return part.empty() || part == "." || part == "..";
+	});
 }
 
 /// @brief Reads one release of an index.
