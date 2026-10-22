@@ -279,6 +279,8 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		const std::string written = op.contains("path") && op["path"].is_string() ? op["path"].get<std::string>() : "";
 		const std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
 		const std::string where = std::format("{} ({} {})", at, kind, written);
+		if(kind == "set")
+			static_cast<void>(expect::string(op.value("path", json()), at + ".path")); // normalise reads it
 		resolvePaths(op, kind, after, where, result.touches);
 		result.patch.push_back(normalise(op, patch[i], after));
 		budget.spend(after, op, where);
