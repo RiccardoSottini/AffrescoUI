@@ -2,8 +2,8 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Sign in: three screens (sign in, create an account, signed in), validation with check, a reset dialog, light and dark tokens, no code.",
-	"window": { "title": "Sign in", "width": 960, "height": 720, "minWidth": 600, "minHeight": 640 },
+	"note": "Sign in: sign in, create an account, two-step codes, a password reset, an account page with a session that expires, and a fake OAuth provider (Example ID). A fake server in actions answers, slowly when the Slow network setting is on. Light and dark, English, Italian and Arabic, no code.",
+	"window": { "title": "Sign in", "width": 960, "height": 720, "minWidth": 480, "minHeight": 640 },
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
 		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["iconsSmall"] },
@@ -31,6 +31,9 @@
 		"color.accentText": { "light": "#ffffff", "dark": "#0b1020" },
 		"color.accentSoft": { "light": "#e0e7ff", "dark": "#1e2550" },
 		"color.error": { "light": "#dc2626", "dark": "#f87171" },
+		"color.errorSoft": { "light": "#fef2f2", "dark": "#2a1620" },
+		"color.notice": { "light": "#fffbeb", "dark": "#2a2414" },
+		"color.noticeBorder": { "light": "#fcd34d", "dark": "#a16207" },
 		"color.weak": { "light": "#ef4444", "dark": "#f87171" },
 		"color.fair": { "light": "#f59e0b", "dark": "#fbbf24" },
 		"color.good": { "light": "#6366f1", "dark": "#818cf8" },
@@ -42,47 +45,407 @@
 	},
 	"colors": { "accent": "#6366f1", "accentHover": "#7477f3", "fieldFocused": "#ffffff" },
 	"theme": "{{state.theme}}",
+	"strings": {
+		"default": "en",
+		"locale": "{{state.locale}}",
+		"en": {
+			"windowTitle": "Sign in",
+			"footer": "An AffrescoUI template  ·  every screen, rule and colour is in one JSON file",
+			"welcomeBack": "Welcome back",
+			"signInTo": "Sign in to continue to AffrescoUI",
+			"email": "Email",
+			"emailPlaceholder": "you@example.com",
+			"password": "Password",
+			"passwordPlaceholder": "At least 8 characters",
+			"forgot": "Forgot password?",
+			"remember": "Remember me",
+			"rememberText": "Remember me on this device",
+			"signInButton": "Sign in",
+			"or": "or",
+			"provider": "Continue with Example ID",
+			"providerWaiting": "Waiting for Example ID…",
+			"cancelProvider": "Cancel and use your email",
+			"toCreate": "No account yet? Create one",
+			"enterEmail": "Enter an email address",
+			"min8": "At least 8 characters",
+			"stronger": "Choose a stronger password",
+			"serverError": "{kind, select, noAccount {No account uses this email. Check it, or create one.} wrongPassword {The email or the password is not right.} provider {Example ID could not sign you in: {message}} other {Something went wrong. Try again.}}",
+			"sessionExpired": "Your session expired. Sign in again to go on.",
+			"signInAgain": "Sign in again",
+			"busy": "{what, select, signIn {Signing in…} create {Creating your account…} verify {Checking the code…} resend {Sending a new code…} reset {Sending the link…} setPassword {Saving your new password…} save {Saving your details…} password {Changing your password…} provider {Waiting for Example ID…} other {Please wait…}}",
+			"pleaseWait": "Working, please wait",
+			"createAnAccount": "Create an account",
+			"createCaption": "Free, and it takes a minute",
+			"name": "Name",
+			"namePlaceholder": "Your name",
+			"enterName": "Enter your name",
+			"confirm": "Confirm password",
+			"confirmPlaceholder": "The same password again",
+			"mismatch": "The passwords don't match",
+			"createAccount": "Create account",
+			"backToSignIn": "Back to sign in (Esc)",
+			"weak": "Weak password",
+			"fair": "Fair password",
+			"good": "Good password",
+			"strong": "Strong password",
+			"strengthEmpty": "No password yet",
+			"strengthHint": "Use 12 or more characters: capitals, digits, symbols",
+			"strengthAdd": "Add {list}",
+			"strengthDone": "Looks strong",
+			"missingItem": "{what, select, length {more characters} upper {a capital} lower {a small letter} digit {a digit} symbol {a symbol} other {}}",
+			"welcome": "Welcome, {name}",
+			"twoStepTitle": "Two-step verification",
+			"twoStepCaption": "Enter the 6-digit code we sent to {email}",
+			"code": "One-time code",
+			"demoCode": "Demo account: the code is {code}",
+			"verify": "Verify",
+			"codeError": "{kind, select, short {Enter all 6 digits} wrong {That code is not right. Check it and try again.} other {}}",
+			"resend": "Send a new code",
+			"resendIn": "Send a new code in {n}s",
+			"codeResent": "We sent a new code to {email}",
+			"codeSent": "We sent a code to {email}",
+			"resetTitle": "Reset your password",
+			"resetMessage": "We will email you a link to choose a new one.",
+			"sendLink": "Send link",
+			"cancel": "Cancel",
+			"emailOfAccount": "Enter the email of your account",
+			"linkSent": "We sent a reset link to {email}",
+			"newPasswordTitle": "Choose a new password",
+			"newPasswordCaption": "Open the link we sent to {email}, or enter the code in it",
+			"newPassword": "New password",
+			"setPassword": "Set new password",
+			"passwordChanged": "Your password was changed. Sign in with the new one.",
+			"youreIn": "You're in",
+			"signedInAs": "Signed in as {email}",
+			"signedInWith": "Signed in with Example ID",
+			"staysSignedIn": "This device stays signed in",
+			"signedOutOnClose": "You will be signed out when you close the app",
+			"sessionEnds": "Session ends in {time}",
+			"sessionSoon": "Your session ends in a minute",
+			"stay": "Stay signed in",
+			"sessionExtended": "You stay signed in for 5 more minutes",
+			"saveChanges": "Save changes",
+			"saved": "Your details were saved",
+			"changePassword": "Change password",
+			"changePasswordMessage": "Choose a new password for {email}.",
+			"change": "Change",
+			"changed": "Your password was changed",
+			"twoStep": "Two-step verification",
+			"twoStepState": "{on, select, true {On: a code is asked at every sign-in} other {Off: only the password is asked}}",
+			"twoStepTurned": "{on, select, true {Two-step verification is on} other {Two-step verification is off}}",
+			"signOutButton": "Sign out",
+			"signedOut": "You signed out",
+			"themeTooltip": "{dark, select, true {Switch to light ({key})} other {Switch to dark ({key})}}",
+			"showPassword": "Show the password",
+			"hidePassword": "Hide the password",
+			"language": "Language",
+			"langName": "{code, select, en {English} it {Italiano} ar {العربية} other {}}",
+			"shortcuts": "Keyboard shortcuts",
+			"shortcutsTooltip": "Keyboard shortcuts ({key})",
+			"shortcutsMessage": "These work on every screen.",
+			"close": "Close",
+			"slow": "Slow network",
+			"slowTooltip": "{on, select, true {Slow network (demo): on} other {Slow network (demo): off}}",
+			"command": "{name, select, toggleTheme {Switch light and dark} nextLanguage {Next language} togglePassword {Show or hide the password} openShortcuts {Keyboard shortcuts} toggleSlow {Slow network (demo)} signOut {Sign out} other {}}"
+		},
+		"it": {
+			"windowTitle": "Accedi",
+			"footer": "Un modello AffrescoUI  ·  ogni schermata, regola e colore è in un solo file JSON",
+			"welcomeBack": "Bentornato",
+			"signInTo": "Accedi per continuare su AffrescoUI",
+			"email": "Email",
+			"emailPlaceholder": "tu@example.com",
+			"password": "Password",
+			"passwordPlaceholder": "Almeno 8 caratteri",
+			"forgot": "Password dimenticata?",
+			"remember": "Ricordami",
+			"rememberText": "Ricordami su questo dispositivo",
+			"signInButton": "Accedi",
+			"or": "oppure",
+			"provider": "Continua con Example ID",
+			"providerWaiting": "In attesa di Example ID…",
+			"cancelProvider": "Annulla e usa la tua email",
+			"toCreate": "Non hai un account? Creane uno",
+			"enterEmail": "Inserisci un indirizzo email",
+			"min8": "Almeno 8 caratteri",
+			"stronger": "Scegli una password più sicura",
+			"serverError": "{kind, select, noAccount {Nessun account usa questa email. Controllala o creane uno.} wrongPassword {L'email o la password non sono giuste.} provider {Example ID non è riuscito a farti accedere: {message}} other {Qualcosa è andato storto. Riprova.}}",
+			"sessionExpired": "La sessione è scaduta. Accedi di nuovo per continuare.",
+			"signInAgain": "Accedi di nuovo",
+			"busy": "{what, select, signIn {Accesso in corso…} create {Creazione dell'account…} verify {Verifica del codice…} resend {Invio di un nuovo codice…} reset {Invio del link…} setPassword {Salvataggio della nuova password…} save {Salvataggio dei dati…} password {Cambio della password…} provider {In attesa di Example ID…} other {Attendi…}}",
+			"pleaseWait": "Operazione in corso, attendi",
+			"createAnAccount": "Crea un account",
+			"createCaption": "È gratis e ci vuole un minuto",
+			"name": "Nome",
+			"namePlaceholder": "Il tuo nome",
+			"enterName": "Inserisci il tuo nome",
+			"confirm": "Conferma la password",
+			"confirmPlaceholder": "Di nuovo la stessa password",
+			"mismatch": "Le password non coincidono",
+			"createAccount": "Crea l'account",
+			"backToSignIn": "Torna all'accesso (Esc)",
+			"weak": "Password debole",
+			"fair": "Password discreta",
+			"good": "Password buona",
+			"strong": "Password sicura",
+			"strengthEmpty": "Ancora nessuna password",
+			"strengthHint": "Usa 12 o più caratteri: maiuscole, cifre, simboli",
+			"strengthAdd": "Aggiungi {list}",
+			"strengthDone": "Sembra sicura",
+			"missingItem": "{what, select, length {altri caratteri} upper {una maiuscola} lower {una minuscola} digit {una cifra} symbol {un simbolo} other {}}",
+			"welcome": "Benvenuto, {name}",
+			"twoStepTitle": "Verifica in due passaggi",
+			"twoStepCaption": "Inserisci il codice di 6 cifre inviato a {email}",
+			"code": "Codice monouso",
+			"demoCode": "Account di prova: il codice è {code}",
+			"verify": "Verifica",
+			"codeError": "{kind, select, short {Inserisci tutte le 6 cifre} wrong {Il codice non è giusto. Controllalo e riprova.} other {}}",
+			"resend": "Invia un nuovo codice",
+			"resendIn": "Nuovo codice tra {n} s",
+			"codeResent": "Abbiamo inviato un nuovo codice a {email}",
+			"codeSent": "Abbiamo inviato un codice a {email}",
+			"resetTitle": "Reimposta la password",
+			"resetMessage": "Ti invieremo un link per sceglierne una nuova.",
+			"sendLink": "Invia",
+			"cancel": "Annulla",
+			"emailOfAccount": "Inserisci l'email del tuo account",
+			"linkSent": "Abbiamo inviato un link a {email}",
+			"newPasswordTitle": "Scegli una nuova password",
+			"newPasswordCaption": "Apri il link inviato a {email} o inserisci il suo codice",
+			"newPassword": "Nuova password",
+			"setPassword": "Imposta la password",
+			"passwordChanged": "La password è cambiata. Accedi con quella nuova.",
+			"youreIn": "Hai effettuato l'accesso",
+			"signedInAs": "Accesso come {email}",
+			"signedInWith": "Accesso con Example ID",
+			"staysSignedIn": "Questo dispositivo resta connesso",
+			"signedOutOnClose": "Uscirai quando chiudi l'app",
+			"sessionEnds": "La sessione scade tra {time}",
+			"sessionSoon": "La sessione scade tra un minuto",
+			"stay": "Resta connesso",
+			"sessionExtended": "Resti connesso per altri 5 minuti",
+			"saveChanges": "Salva",
+			"saved": "I tuoi dati sono stati salvati",
+			"changePassword": "Cambia password",
+			"changePasswordMessage": "Scegli una nuova password per {email}.",
+			"change": "Cambia",
+			"changed": "La password è cambiata",
+			"twoStep": "Verifica in due passaggi",
+			"twoStepState": "{on, select, true {Attiva: a ogni accesso si chiede un codice} other {Disattivata: si chiede solo la password}}",
+			"twoStepTurned": "{on, select, true {Verifica in due passaggi attivata} other {Verifica in due passaggi disattivata}}",
+			"signOutButton": "Esci",
+			"signedOut": "Sei uscito",
+			"themeTooltip": "{dark, select, true {Passa al chiaro ({key})} other {Passa allo scuro ({key})}}",
+			"showPassword": "Mostra la password",
+			"hidePassword": "Nascondi la password",
+			"language": "Lingua",
+			"langName": "{code, select, en {English} it {Italiano} ar {العربية} other {}}",
+			"shortcuts": "Scorciatoie da tastiera",
+			"shortcutsTooltip": "Scorciatoie da tastiera ({key})",
+			"shortcutsMessage": "Funzionano in ogni schermata.",
+			"close": "Chiudi",
+			"slow": "Rete lenta",
+			"slowTooltip": "{on, select, true {Rete lenta (prova): attiva} other {Rete lenta (prova): disattivata}}",
+			"command": "{name, select, toggleTheme {Passa tra chiaro e scuro} nextLanguage {Lingua successiva} togglePassword {Mostra o nascondi la password} openShortcuts {Scorciatoie da tastiera} toggleSlow {Rete lenta (prova)} signOut {Esci} other {}}"
+		},
+		"ar": {
+			"windowTitle": "تسجيل الدخول",
+			"footer": "قالب من AffrescoUI  ·  كل شاشة وقاعدة ولون في ملف JSON واحد",
+			"welcomeBack": "مرحبًا بعودتك",
+			"signInTo": "سجّل الدخول للمتابعة إلى AffrescoUI",
+			"email": "البريد الإلكتروني",
+			"emailPlaceholder": "you@example.com",
+			"password": "كلمة المرور",
+			"passwordPlaceholder": "8 أحرف على الأقل",
+			"forgot": "نسيت كلمة المرور؟",
+			"remember": "تذكّرني",
+			"rememberText": "تذكّرني على هذا الجهاز",
+			"signInButton": "تسجيل الدخول",
+			"or": "أو",
+			"provider": "المتابعة باستخدام Example ID",
+			"providerWaiting": "في انتظار Example ID…",
+			"cancelProvider": "إلغاء واستخدام بريدك الإلكتروني",
+			"toCreate": "ليس لديك حساب؟ أنشئ حسابًا",
+			"enterEmail": "أدخل عنوان بريد إلكتروني",
+			"min8": "8 أحرف على الأقل",
+			"stronger": "اختر كلمة مرور أقوى",
+			"serverError": "{kind, select, noAccount {لا يوجد حساب بهذا البريد. تحقّق منه أو أنشئ حسابًا.} wrongPassword {البريد الإلكتروني أو كلمة المرور غير صحيحين.} provider {تعذّر على Example ID تسجيل دخولك: {message}} other {حدث خطأ. حاول مرة أخرى.}}",
+			"sessionExpired": "انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.",
+			"signInAgain": "سجّل الدخول مرة أخرى",
+			"busy": "{what, select, signIn {جارٍ تسجيل الدخول…} create {جارٍ إنشاء حسابك…} verify {جارٍ التحقق من الرمز…} resend {جارٍ إرسال رمز جديد…} reset {جارٍ إرسال الرابط…} setPassword {جارٍ حفظ كلمة المرور الجديدة…} save {جارٍ حفظ بياناتك…} password {جارٍ تغيير كلمة المرور…} provider {في انتظار Example ID…} other {يرجى الانتظار…}}",
+			"pleaseWait": "جارٍ العمل، يرجى الانتظار",
+			"createAnAccount": "إنشاء حساب",
+			"createCaption": "مجاني ويستغرق دقيقة",
+			"name": "الاسم",
+			"namePlaceholder": "اسمك",
+			"enterName": "أدخل اسمك",
+			"confirm": "تأكيد كلمة المرور",
+			"confirmPlaceholder": "كلمة المرور نفسها مرة أخرى",
+			"mismatch": "كلمتا المرور غير متطابقتين",
+			"createAccount": "إنشاء الحساب",
+			"backToSignIn": "العودة إلى تسجيل الدخول (Esc)",
+			"weak": "كلمة مرور ضعيفة",
+			"fair": "كلمة مرور مقبولة",
+			"good": "كلمة مرور جيدة",
+			"strong": "كلمة مرور قوية",
+			"strengthEmpty": "لا توجد كلمة مرور بعد",
+			"strengthHint": "استخدم 12 حرفًا أو أكثر: أحرف كبيرة وأرقام ورموز",
+			"strengthAdd": "أضف {list}",
+			"strengthDone": "تبدو قوية",
+			"missingItem": "{what, select, length {مزيدًا من الأحرف} upper {حرفًا كبيرًا} lower {حرفًا صغيرًا} digit {رقمًا} symbol {رمزًا} other {}}",
+			"welcome": "أهلًا، {name}",
+			"twoStepTitle": "التحقق بخطوتين",
+			"twoStepCaption": "أدخل الرمز المكوّن من 6 أرقام المرسل إلى {email}",
+			"code": "رمز لمرة واحدة",
+			"demoCode": "حساب تجريبي: الرمز هو {code}",
+			"verify": "تحقّق",
+			"codeError": "{kind, select, short {أدخل الأرقام الستة كلها} wrong {الرمز غير صحيح. تحقّق منه وحاول مرة أخرى.} other {}}",
+			"resend": "إرسال رمز جديد",
+			"resendIn": "إرسال رمز جديد بعد {n} ث",
+			"codeResent": "أرسلنا رمزًا جديدًا إلى {email}",
+			"codeSent": "أرسلنا رمزًا إلى {email}",
+			"resetTitle": "إعادة تعيين كلمة المرور",
+			"resetMessage": "سنرسل إليك رابطًا لاختيار كلمة جديدة.",
+			"sendLink": "إرسال",
+			"cancel": "إلغاء",
+			"emailOfAccount": "أدخل البريد الإلكتروني لحسابك",
+			"linkSent": "أرسلنا رابط إعادة التعيين إلى {email}",
+			"newPasswordTitle": "اختر كلمة مرور جديدة",
+			"newPasswordCaption": "افتح الرابط المرسل إلى {email} أو أدخل الرمز الذي فيه",
+			"newPassword": "كلمة المرور الجديدة",
+			"setPassword": "تعيين كلمة المرور",
+			"passwordChanged": "تم تغيير كلمة المرور. سجّل الدخول بالكلمة الجديدة.",
+			"youreIn": "تم تسجيل دخولك",
+			"signedInAs": "تم تسجيل الدخول باسم {email}",
+			"signedInWith": "تم تسجيل الدخول عبر Example ID",
+			"staysSignedIn": "يبقى هذا الجهاز مسجّل الدخول",
+			"signedOutOnClose": "سيتم تسجيل خروجك عند إغلاق التطبيق",
+			"sessionEnds": "تنتهي الجلسة بعد {time}",
+			"sessionSoon": "تنتهي جلستك بعد دقيقة",
+			"stay": "البقاء مسجّلًا",
+			"sessionExtended": "ستبقى مسجّل الدخول 5 دقائق أخرى",
+			"saveChanges": "حفظ",
+			"saved": "تم حفظ بياناتك",
+			"changePassword": "تغيير كلمة المرور",
+			"changePasswordMessage": "اختر كلمة مرور جديدة لـ {email}.",
+			"change": "تغيير",
+			"changed": "تم تغيير كلمة المرور",
+			"twoStep": "التحقق بخطوتين",
+			"twoStepState": "{on, select, true {مفعّل: يُطلب رمز عند كل تسجيل دخول} other {معطّل: تُطلب كلمة المرور فقط}}",
+			"twoStepTurned": "{on, select, true {تم تفعيل التحقق بخطوتين} other {تم تعطيل التحقق بخطوتين}}",
+			"signOutButton": "تسجيل الخروج",
+			"signedOut": "سجّلت الخروج",
+			"themeTooltip": "{dark, select, true {التبديل إلى الفاتح ({key})} other {التبديل إلى الداكن ({key})}}",
+			"showPassword": "إظهار كلمة المرور",
+			"hidePassword": "إخفاء كلمة المرور",
+			"language": "اللغة",
+			"langName": "{code, select, en {English} it {Italiano} ar {العربية} other {}}",
+			"shortcuts": "اختصارات لوحة المفاتيح",
+			"shortcutsTooltip": "اختصارات لوحة المفاتيح ({key})",
+			"shortcutsMessage": "تعمل في كل شاشة.",
+			"close": "إغلاق",
+			"slow": "شبكة بطيئة",
+			"slowTooltip": "{on, select, true {شبكة بطيئة (تجربة): مفعّلة} other {شبكة بطيئة (تجربة): معطّلة}}",
+			"command": "{name, select, toggleTheme {التبديل بين الفاتح والداكن} nextLanguage {اللغة التالية} togglePassword {إظهار كلمة المرور أو إخفاؤها} openShortcuts {اختصارات لوحة المفاتيح} toggleSlow {شبكة بطيئة (تجربة)} signOut {تسجيل الخروج} other {}}"
+		}
+	},
+	"connections": {
+		"exampleId": {
+			"note": "A made-up OAuth 2 provider for the demo: no real client id or secret. Scenarios play its answers as the providerSignedIn and providerFailed actions.",
+			"url": "https://id.example.com/api",
+			"auth": {
+				"flow": "browser",
+				"signInUrl": "https://id.example.com/authorize",
+				"tokenUrl": "https://id.example.com/token",
+				"clientId": "affrescoui-sign-in-demo",
+				"scopes": ["openid", "email", "profile"]
+			}
+		}
+	},
 	"state": {
 		"email": "",
 		"password": "",
+		"confirm": "",
 		"name": "",
 		"submitted": false,
 		"theme": "light",
+		"locale": "en",
 		"focus": "",
 		"showPassword": false,
 		"remember": true,
-		"terms": false,
+		"slow": false,
+		"busy": "",
+		"formError": "",
+		"providerMessage": "",
+		"notice": "",
+		"demoCode": "246810",
+		"accounts": [
+			{ "email": "ada@example.com", "name": "Ada", "password": "", "twoStep": false, "provider": false },
+			{ "email": "sam@example.com", "name": "Sam", "password": "", "twoStep": true, "provider": false }
+		],
+		"user": { "email": "", "name": "", "twoStep": false, "provider": false },
+		"pending": { "email": "", "name": "", "twoStep": false, "provider": false },
+		"code": "",
+		"codeError": "",
+		"resendLeft": 0,
+		"session": { "left": 300, "warned": false },
+		"profile": { "name": "", "email": "", "submitted": false },
+		"change": { "open": false, "password": "", "confirm": "", "submitted": false },
+		"reset": { "email": "", "code": "", "password": "", "confirm": "", "submitted": false, "error": "" },
+		"shortcutsOpen": false,
 		"forgot": { "open": false, "email": "", "error": "" },
-		"toast": { "open": false, "message": "" }
+		"toast": { "open": false, "message": "", "action": "" }
 	},
 	"stateTypes": {
 		"email": { "type": "string" },
 		"password": { "type": "string" },
+		"confirm": { "type": "string" },
 		"name": { "type": "string" },
 		"submitted": { "type": "boolean" },
 		"theme": { "enum": ["light", "dark"] },
+		"locale": { "enum": ["en", "it", "ar"] },
 		"focus": { "type": "string" },
 		"showPassword": { "type": "boolean" },
 		"remember": { "type": "boolean" },
-		"terms": { "type": "boolean" }
+		"slow": { "type": "boolean" },
+		"busy": { "type": "string" },
+		"code": { "type": "string" },
+		"resendLeft": { "type": "number" }
 	},
-	"persist": ["state.theme", "state.remember"],
+	"persist": ["state.theme", "state.remember", "state.locale"],
 	"computed": {
-		"emailValid": "{{contains(state.email, '@') && contains(state.email, '.')}}",
+		"emailValid": "{{isEmail(trim(state.email))}}",
 		"passwordValid": "{{length(state.password) >= 8}}",
-		"strength": "{{length(state.password) == 0 ? 0 : 1 + (length(state.password) >= 8 ? 1 : 0) + (lower(state.password) != state.password ? 1 : 0) + (some(split(state.password, ''), contains('0123456789', it)) ? 1 : 0)}}",
-		"strengthName": "{{['', 'Weak', 'Fair', 'Good', 'Strong'][computed.strength]}}",
+		"strength": "{{merge({ score: 0, label: '', missing: [] }, passwordStrength(state.password))}}",
+		"newPasswordValid": "{{computed.passwordValid && computed.strength.score >= 2}}",
+		"newPasswordMessage": "{{computed.passwordValid ? t('stronger') : t('min8')}}",
+		"confirmValid": "{{state.showPassword || state.confirm == state.password}}",
 		"errors": "{{!state.submitted ? 0 : (computed.emailValid ? 0 : 1) + (computed.passwordValid ? 0 : 1)}}",
-		"initials": "{{upper(slice(length(trim(state.name)) > 0 ? trim(state.name) : state.email, 0, 1))}}"
+		"createErrors": "{{!state.submitted ? 0 : (length(trim(state.name)) > 0 ? 0 : 1) + (computed.emailValid ? 0 : 1) + (computed.newPasswordValid ? 0 : 1) + (computed.confirmValid ? 0 : 1)}}",
+		"account": "{{find(state.accounts, lower(it.email) == lower(trim(state.email)))}}",
+		"initials": "{{upper(slice(length(trim(state.user.name)) > 0 ? trim(state.user.name) : state.user.email, 0, 1))}}",
+		"resetStrength": "{{merge({ score: 0, label: '', missing: [] }, passwordStrength(state.reset.password))}}",
+		"resetValid": "{{length(state.reset.password) >= 8 && computed.resetStrength.score >= 2}}",
+		"resetConfirmValid": "{{state.showPassword || state.reset.confirm == state.reset.password}}",
+		"resetErrors": "{{!state.reset.submitted ? 0 : (computed.resetValid ? 0 : 1) + (computed.resetConfirmValid ? 0 : 1)}}",
+		"changeError": "{{length(state.change.password) < 8 ? t('min8') : merge({ score: 0, label: '', missing: [] }, passwordStrength(state.change.password)).score < 2 ? t('stronger') : !state.showPassword && state.change.confirm != state.change.password ? t('mismatch') : ''}}",
+		"profileErrors": "{{!state.profile.submitted ? 0 : (length(trim(state.profile.name)) > 0 ? 0 : 1) + (isEmail(trim(state.profile.email)) ? 0 : 1)}}",
+		"busyText": "{{state.busy == '' ? '' : t('busy', { what: state.busy })}}",
+		"sessionTime": "{{floor(max(0, state.session.left) / 60) + ':' + pad(max(0, state.session.left) % 60, 2, '0')}}",
+		"shortcuts": "{{map(commands, merge(it, { keyText: slice(join(split(join(split(join(split(join(split('|' + (it.keyLabel ?? ''), '⌃'), 'Ctrl+'), '⌥'), 'Option+'), '⇧'), 'Shift+'), '⌘'), 'Cmd+'), 1) }))}}",
+		"themeKey": "{{find(computed.shortcuts, it.name == 'toggleTheme').keyText}}",
+		"shortcutsKey": "{{find(computed.shortcuts, it.name == 'openShortcuts').keyText}}",
+		"signOutKey": "{{find(computed.shortcuts, it.name == 'signOut').keyText}}"
 	},
 	"styles": {
-		"caption": { "type": "label", "height": 20, "textColor": "@color.muted", "anchors": { "left": 0, "right": 0 } },
+		"caption": { "type": "label", "height": 20, "textColor": "@color.muted", "anchors": { "left": 0, "right": 10 } },
 		"fieldLabel": {
 			"type": "label",
 			"font": "small",
 			"height": 18,
+			"color": "transparent",
 			"textColor": "@color.text",
-			"anchors": { "left": 0, "right": 0 }
+			"anchors": { "left": 0, "right": 10 }
 		},
 		"fieldBox": {
 			"anchors": { "left": 0, "right": 0, "top": 0 },
@@ -113,28 +476,38 @@
 			"textColor": "@color.text",
 			"placeholderColor": "@color.muted"
 		},
-		"inputHidden": { "style": "input", "textColor": "transparent" },
 		"field": {
 			"type": "textarea",
 			"padding": 10,
 			"radius": "@radius.field",
 			"borderWidth": 1,
+			"borderColor": "@color.border",
 			"color": "@color.input",
 			"focused": { "borderColor": "@color.accent" },
 			"textColor": "@color.text",
 			"placeholderColor": "@color.muted"
+		},
+		"code": {
+			"type": "codeInput",
+			"height": 52,
+			"anchors": { "left": 0, "right": 10 },
+			"cellColor": "@color.input",
+			"cellBorderColor": "@color.border",
+			"cellRadius": 8,
+			"cellGap": 8,
+			"textColor": "@color.text"
 		},
 		"title": {
 			"type": "label",
 			"font": "title",
 			"height": 34,
 			"textColor": "@color.text",
-			"anchors": { "left": 0, "right": 0 }
+			"anchors": { "left": 0, "right": 10 }
 		},
 		"primary": {
 			"type": "label",
 			"height": 46,
-			"anchors": { "left": 0, "right": 0 },
+			"anchors": { "left": 0, "right": 10 },
 			"align": "center",
 			"radius": "@radius.field",
 			"color": "@color.accent",
@@ -160,10 +533,12 @@
 		"link": {
 			"type": "label",
 			"height": 30,
-			"anchors": { "left": 0, "right": 0 },
+			"anchors": { "left": 0, "right": 10 },
 			"align": "center",
 			"textColor": "@color.accent",
 			"cursor": "hand",
+			"focusable": true,
+			"role": "link",
 			"hover": { "textColor": "@color.accentPressed" }
 		},
 		"smallLink": {
@@ -172,6 +547,8 @@
 			"textColor": "@color.accent",
 			"cursor": "hand",
 			"fitText": true,
+			"focusable": true,
+			"role": "link",
 			"hover": { "textColor": "@color.accentPressed" }
 		},
 		"iconButton": {
@@ -184,17 +561,33 @@
 			"textColor": "@color.muted",
 			"align": "center",
 			"cursor": "hand",
+			"focusable": true,
+			"role": "button",
 			"hover": { "color": "@color.hover", "textColor": "@color.text" }
 		},
+		"chip": {
+			"type": "label",
+			"font": "small",
+			"width": 36,
+			"height": 32,
+			"radius": 8,
+			"align": "center",
+			"color": "transparent",
+			"textColor": "@color.muted",
+			"cursor": "hand",
+			"focusable": true,
+			"role": "radio",
+			"hover": { "color": "@color.hover", "textColor": "@color.text" }
+		},
+		"chipOn": { "style": "chip", "color": "@color.accentSoft", "textColor": "@color.accent" },
 		"card": {
-			"width": 420,
 			"radius": "@radius.card",
 			"color": "@color.surface",
 			"borderWidth": 1,
 			"borderColor": "@color.border",
 			"shadow": { "y": 12, "blur": 32, "color": "@color.shadow" }
 		},
-		"form": { "type": "column", "fill": 36, "gap": 8 },
+		"form": { "type": "column", "anchors": { "top": 36, "bottom": 36, "left": 36, "right": 26 }, "gap": 8, "scroll": "vertical" },
 		"logo": {
 			"type": "label",
 			"font": "logo",
@@ -208,13 +601,13 @@
 			"textColor": "@color.accentText",
 			"shadow": { "y": 6, "blur": 16, "color": "@color.glow" }
 		},
-		"spacer": { "height": 6, "anchors": { "left": 0, "right": 0 }, "color": "transparent" },
+		"spacer": { "height": 6, "anchors": { "left": 0, "right": 10 }, "color": "transparent" },
 		"checkRow": {
 			"type": "row",
 			"height": 22,
 			"gap": 8,
 			"alignItems": "center",
-			"anchors": { "left": 0, "right": 0 }
+			"anchors": { "left": 0, "right": 10 }
 		},
 		"checkOff": {
 			"type": "label",
@@ -238,26 +631,62 @@
 			"color": "@color.accent",
 			"borderColor": "@color.accent",
 			"textColor": "@color.accentText"
-		}
+		},
+		"alert": {
+			"type": "label",
+			"font": "small",
+			"icon": "circle-alert",
+			"wrap": true,
+			"padding": 8,
+			"radius": 8,
+			"role": "alert",
+			"live": "assertive",
+			"color": "@color.errorSoft",
+			"textColor": "@color.error",
+			"anchors": { "left": 0, "right": 10 }
+		},
+		"inlineError": {
+			"type": "label",
+			"font": "small",
+			"icon": "circle-alert",
+			"height": 18,
+			"role": "alert",
+			"live": "assertive",
+			"textColor": "@color.error",
+			"anchors": { "left": 0, "right": 10 }
+		},
+		"hint": {
+			"type": "label",
+			"font": "small",
+			"height": 18,
+			"textColor": "@color.muted",
+			"anchors": { "left": 0, "right": 10 }
+		},
+		"screen": { "type": "column", "fill": 0, "justify": "center", "alignItems": "center", "color": "transparent" }
 	},
 	"components": {
 		"checkedField": {
-			"note": "A field with an icon and its error under it once the form was submitted; secret ones hide their text behind dots and have an eye to show it. params: bind, content, key, icon, placeholder, valid, message, secret",
+			"note": "A field with an icon, an accessible name and its error under it once its form was submitted (the error is also the field's description, read out as an alert); secret ones show dots and, with eye, a button to show them. params: bind, content, key, icon, name, placeholder, valid, message, submitted, secret, eye, maxLength, submit (the action Enter runs)",
 			"params": {
 				"bind": "",
 				"content": "",
 				"key": "",
 				"icon": "",
+				"name": "",
 				"placeholder": "",
 				"valid": true,
 				"message": "",
-				"secret": false
+				"submitted": false,
+				"secret": false,
+				"eye": false,
+				"maxLength": 0,
+				"submit": ""
 			},
 			"node": {
 				"id": "panel-checked-field",
-				"check": { "value": "{{!state.submitted || valid}}", "rule": "{{value}}", "message": "{{message}}" },
-				"let": { "hidden": "{{secret && !state.showPassword}}", "on": "{{state.focus == key}}" },
-				"anchors": { "left": 0, "right": 0 },
+				"check": { "value": "{{!submitted || valid}}", "rule": "{{value}}", "message": "{{message}}" },
+				"let": { "on": "{{state.focus == key}}" },
+				"anchors": { "left": 0, "right": 10 },
 				"height": "{{error ? 68 : 44}}",
 				"color": "transparent",
 				"children": [
@@ -277,20 +706,16 @@
 								"textColor": "{{on ? '@color.accent' : '@color.muted'}}"
 							},
 							{
-								"id": "field-dots",
-								"type": "label",
-								"text": "{{hidden ? join(map(slice(split(content, ''), 0, 40), '•'), '') : ''}}",
-								"textColor": "@color.text",
-								"align": { "horizontal": "start", "vertical": "center" },
-								"anchors": { "left": 42, "right": 44, "top": 0, "bottom": 0 }
-							},
-							{
 								"id": "textarea-placeholder",
-								"style": "{{hidden ? 'inputHidden' : 'input'}}",
-								"anchors": { "left": 34, "right": "{{secret ? 44 : 8}}", "top": 1, "bottom": 1 },
+								"style": "input",
+								"anchors": { "left": 34, "right": "{{eye ? 44 : 8}}", "top": 1, "bottom": 1 },
 								"placeholder": "{{placeholder}}",
 								"bind": "{{bind}}",
-								"label": "{{placeholder}}",
+								"secret": "{{secret && !state.showPassword}}",
+								"maxLength": "{{maxLength}}",
+								"label": "{{name}}",
+								"description": "{{error || ''}}",
+								"onSubmit": { "if": "{{submit != ''}}", "then": [{ "run": "{{submit}}" }] },
 								"onFocus": { "set": "state.focus", "to": "{{key}}" },
 								"onBlur": {
 									"if": "{{state.focus == key}}",
@@ -299,26 +724,61 @@
 							},
 							{
 								"id": "field-eye",
-								"when": "{{secret}}",
+								"when": "{{eye}}",
 								"style": "iconButton",
 								"font": "iconsSmall",
 								"icon": "{{state.showPassword ? 'eye-off' : 'eye'}}",
 								"anchors": { "right": 6, "top": 6 },
-								"tooltip": "{{state.showPassword ? 'Hide the password' : 'Show the password'}}",
-								"onClick": { "set": "state.showPassword", "to": "{{!state.showPassword}}" }
+								"label": "{{state.showPassword ? t('hidePassword') : t('showPassword')}}",
+								"tooltip": "{{state.showPassword ? t('hidePassword') : t('showPassword')}}",
+								"onClick": "togglePassword"
 							}
 						]
 					},
 					{
 						"id": "label-error",
 						"when": "{{error}}",
-						"type": "label",
-						"font": "small",
-						"icon": "circle-alert",
+						"style": "inlineError",
 						"text": "{{error}}",
-						"textColor": "@color.error",
-						"anchors": { "left": 2, "right": 0, "top": 50 },
-						"height": 18
+						"anchors": { "left": 2, "right": 0, "top": 50 }
+					}
+				]
+			}
+		},
+		"strengthMeter": {
+			"note": "The passwordMeter with the screen's words and colours, and a hint of what would make the password stronger. params: password",
+			"params": { "password": "" },
+			"node": {
+				"id": "strength",
+				"let": { "s": "{{merge({ score: 0, label: '', missing: [] }, passwordStrength(password))}}" },
+				"anchors": { "left": 0, "right": 10 },
+				"height": 52,
+				"color": "transparent",
+				"children": [
+					{
+						"id": "strength-meter",
+						"color": "transparent",
+						"use": "passwordMeter",
+						"with": {
+							"password": "{{password}}",
+							"width": "{{min(420, window.width - 32) - 72}}",
+							"labels": {
+								"empty": "{{t('strengthEmpty')}}",
+								"weak": "{{t('weak')}}",
+								"fair": "{{t('fair')}}",
+								"good": "{{t('good')}}",
+								"strong": "{{t('strong')}}"
+							},
+							"track": "@color.border",
+							"textColor": "@color.muted",
+							"colors": ["@color.weak", "@color.weak", "@color.fair", "@color.good", "@color.strong"]
+						}
+					},
+					{
+						"id": "strength-name",
+						"style": "hint",
+						"anchors": { "left": 0, "right": 0, "top": 32 },
+						"text": "{{length(password) == 0 ? t('strengthHint') : length(s.missing) == 0 ? t('strengthDone') : t('strengthAdd', { list: formatList(map(s.missing, t('missingItem', { what: it })), 'and') })}}"
 					}
 				]
 			}
@@ -327,29 +787,214 @@
 	"actions": {
 		"notify": [
 			{ "note": "with: message. A toast in the corner for a few seconds" },
-			{ "set": "state.toast", "to": { "open": true, "message": "{{message}}" } },
+			{ "set": "state.toast", "to": { "open": true, "message": "{{message}}", "action": "" } },
 			{ "debounce": 4000, "do": [{ "set": "state.toast.open", "to": false }] }
+		],
+		"warnSession": [
+			{ "note": "A toast that offers to stay signed in, for longer than the others" },
+			{ "set": "state.toast", "to": { "open": true, "message": "{{t('sessionSoon')}}", "action": "stay" } },
+			{ "debounce": 4000, "do": [{ "set": "state.toast.open", "to": false }] }
+		],
+		"serverCall": [
+			{ "note": "with: op (the action that answers), what (what is busy). The fake server: answers at once, or after 800 ms when Slow network is on. state.busy marks the busy button and the status line." },
+			{ "if": "{{state.busy != ''}}", "then": [{ "stop": true }] },
+			{ "set": "state.busy", "to": "{{what}}" },
+			{
+				"if": "{{state.slow}}",
+				"then": [{ "after": 800, "do": [{ "set": "state.busy", "to": "" }, { "run": "{{op}}" }] }],
+				"else": [{ "set": "state.busy", "to": "" }, { "run": "{{op}}" }]
+			}
 		],
 		"signIn": [
 			{ "set": "state.submitted", "to": true },
+			{ "set": "state.formError", "to": "" },
 			{ "if": "{{!computed.emailValid || !computed.passwordValid}}", "then": [{ "stop": true }] },
-			{ "set": "state.submitted", "to": false },
-			{ "navigate": "signedIn" }
+			{ "run": "serverCall", "with": { "op": "checkPassword", "what": "signIn" } }
 		],
-		"createAccount": [
-			{ "set": "state.submitted", "to": true },
+		"checkPassword": [
+			{ "if": "{{computed.account == null}}", "then": [{ "set": "state.formError", "to": "noAccount" }, { "stop": true }] },
 			{
-				"if": "{{length(trim(state.name)) == 0 || !computed.emailValid || !computed.passwordValid}}",
-				"then": [{ "stop": true }]
+				"if": "{{computed.account.password != '' && computed.account.password != state.password}}",
+				"then": [{ "set": "state.formError", "to": "wrongPassword" }, { "stop": true }]
 			},
 			{ "set": "state.submitted", "to": false },
-			{ "navigate": "signedIn" },
-			{ "run": "notify", "with": { "message": "Welcome, {{trim(state.name)}}" } }
+			{ "set": "state.pending", "to": "{{computed.account}}" },
+			{ "if": "{{computed.account.twoStep}}", "then": [{ "run": "startTwoStep" }, { "stop": true }] },
+			{ "run": "enter" }
 		],
-		"signOut": [
+		"enter": [
+			{ "note": "Opens the session of state.pending" },
+			{ "set": "state.user", "to": "{{state.pending}}" },
+			{ "set": "state.email", "to": "{{state.pending.email}}" },
 			{ "set": "state.password", "to": "" },
+			{ "set": "state.confirm", "to": "" },
+			{ "set": "state.code", "to": "" },
+			{ "set": "state.formError", "to": "" },
+			{ "set": "state.notice", "to": "" },
+			{ "set": "state.session", "to": { "left": 300, "warned": false } },
+			{ "set": "state.profile", "to": { "name": "{{state.pending.name}}", "email": "{{state.pending.email}}", "submitted": false } },
+			{ "navigate": "signedIn" }
+		],
+		"startTwoStep": [
+			{ "set": "state.code", "to": "" },
+			{ "set": "state.codeError", "to": "" },
+			{ "set": "state.resendLeft", "to": 30 },
+			{ "navigate": "twoStep" },
+			{ "focus": "#twoStepCode" },
+			{ "run": "notify", "with": { "message": "{{t('codeSent', { email: state.pending.email })}}" } }
+		],
+		"codeChanged": [
+			{ "set": "state.codeError", "to": "" },
+			{ "if": "{{length(state.code) == 6}}", "then": [{ "run": "verify" }] }
+		],
+		"verify": [
+			{ "if": "{{length(state.code) < 6}}", "then": [{ "set": "state.codeError", "to": "short" }, { "stop": true }] },
+			{ "run": "serverCall", "with": { "op": "checkCode", "what": "verify" } }
+		],
+		"checkCode": [
+			{
+				"if": "{{state.code != state.demoCode}}",
+				"then": [
+					{ "set": "state.codeError", "to": "wrong" },
+					{ "set": "state.code", "to": "" },
+					{ "focus": "#twoStepCode" },
+					{ "stop": true }
+				]
+			},
+			{ "run": "enter" }
+		],
+		"resend": [
+			{ "if": "{{state.resendLeft > 0}}", "then": [{ "stop": true }] },
+			{ "run": "serverCall", "with": { "op": "codeResent", "what": "resend" } }
+		],
+		"codeResent": [
+			{ "set": "state.resendLeft", "to": 30 },
+			{ "set": "state.code", "to": "" },
+			{ "set": "state.codeError", "to": "" },
+			{ "focus": "#twoStepCode" },
+			{ "run": "notify", "with": { "message": "{{t('codeResent', { email: state.pending.email })}}" } }
+		],
+		"countDown": [{ "if": "{{state.resendLeft > 0}}", "then": [{ "increment": "state.resendLeft", "by": -1 }] }],
+		"createAccount": [
+			{ "set": "state.submitted", "to": true },
+			{ "if": "{{computed.createErrors > 0}}", "then": [{ "stop": true }] },
+			{ "run": "serverCall", "with": { "op": "finishCreate", "what": "create" } }
+		],
+		"finishCreate": [
+			{
+				"set": "state.accounts",
+				"to": "{{concat(filter(state.accounts, lower(it.email) != lower(trim(state.email))), [{ email: trim(state.email), name: trim(state.name), password: state.password, twoStep: false, provider: false }])}}"
+			},
+			{ "set": "state.submitted", "to": false },
+			{ "set": "state.pending", "to": { "email": "{{trim(state.email)}}", "name": "{{trim(state.name)}}", "twoStep": false, "provider": false } },
+			{ "run": "enter" },
+			{ "run": "notify", "with": { "message": "{{t('welcome', { name: trim(state.name) })}}" } }
+		],
+		"providerSignIn": [
+			{ "if": "{{state.busy != ''}}", "then": [{ "stop": true }] },
+			{ "set": "state.formError", "to": "" },
+			{ "set": "state.busy", "to": "provider" },
+			{
+				"signIn": "exampleId",
+				"onDone": [{ "run": "finishProvider", "with": { "email": "{{auth.exampleId.account ?? ''}}", "name": "" } }],
+				"onError": [{ "run": "failProvider", "with": { "message": "{{error.message}}" } }]
+			}
+		],
+		"providerSignedIn": [
+			{ "note": "What Example ID answers after a sign-in, as an event: { account, name }. Scenarios play it." },
+			{ "run": "finishProvider", "with": { "email": "{{event.account ?? ''}}", "name": "{{event.name ?? ''}}" } }
+		],
+		"providerFailed": [
+			{ "note": "What Example ID answers when the sign-in fails, as an event: { message }. Scenarios play it." },
+			{ "run": "failProvider", "with": { "message": "{{event.message ?? ''}}" } }
+		],
+		"finishProvider": [
+			{ "note": "with: email, name. Ignored once cancelled" },
+			{ "if": "{{state.busy != 'provider'}}", "then": [{ "stop": true }] },
+			{ "set": "state.busy", "to": "" },
+			{ "if": "{{!isEmail(email)}}", "then": [{ "run": "failProvider", "with": { "message": "" } }, { "stop": true }] },
+			{
+				"if": "{{find(state.accounts, lower(it.email) == lower(email)) == null}}",
+				"then": [
+					{
+						"push": "state.accounts",
+						"value": { "email": "{{email}}", "name": "{{name != '' ? name : split(email, '@')[0]}}", "password": "", "twoStep": false, "provider": true }
+					}
+				]
+			},
+			{ "set": "state.submitted", "to": false },
+			{
+				"set": "state.pending",
+				"to": "{{merge(find(state.accounts, lower(it.email) == lower(email)), { provider: true, twoStep: false })}}"
+			},
+			{ "run": "enter" }
+		],
+		"failProvider": [
+			{ "note": "with: message" },
+			{ "if": "{{state.busy != 'provider'}}", "then": [{ "stop": true }] },
+			{ "set": "state.busy", "to": "" },
+			{ "set": "state.providerMessage", "to": "{{message}}" },
+			{ "set": "state.formError", "to": "provider" },
+			{ "focus": "#provider" }
+		],
+		"cancelProvider": [
+			{ "set": "state.busy", "to": "" },
+			{ "focus": "#textarea-placeholder" }
+		],
+		"signOut": {
+			"title": "Sign out",
+			"category": "Account",
+			"icon": "log-out",
+			"enablement": "{{screen == 'signedIn'}}",
+			"description": "Ends the session on this device",
+			"do": [
+				{ "if": "{{state.user.provider}}", "then": [{ "signOut": "exampleId" }] },
+				{ "run": "endSession" },
+				{ "run": "notify", "with": { "message": "{{t('signedOut')}}" } }
+			]
+		},
+		"endSession": [
+			{ "set": "state.password", "to": "" },
+			{ "set": "state.confirm", "to": "" },
 			{ "set": "state.showPassword", "to": false },
-			{ "navigate": "signIn" }
+			{ "set": "state.submitted", "to": false },
+			{ "set": "state.change.open", "to": false },
+			{ "set": "state.user", "to": { "email": "", "name": "", "twoStep": false, "provider": false } },
+			{ "navigate": "signInForm" }
+		],
+		"tick": [
+			{ "increment": "state.session.left", "by": -1 },
+			{
+				"if": "{{state.session.left <= 60 && !state.session.warned}}",
+				"then": [{ "set": "state.session.warned", "to": true }, { "run": "warnSession" }]
+			},
+			{ "if": "{{state.session.left <= 0}}", "then": [{ "run": "expireSession" }] }
+		],
+		"expireSession": [
+			{ "if": "{{state.user.provider}}", "then": [{ "signOut": "exampleId" }] },
+			{ "run": "endSession" },
+			{ "set": "state.toast.open", "to": false },
+			{ "set": "state.notice", "to": "expired" },
+			{ "focus": "#signInAgain" }
+		],
+		"staySignedIn": [
+			{ "set": "state.session", "to": { "left": 300, "warned": false } },
+			{ "run": "notify", "with": { "message": "{{t('sessionExtended')}}" } }
+		],
+		"signInAgain": [
+			{ "set": "state.notice", "to": "" },
+			{ "note": "The first field of the screen: its email" },
+			{ "focus": "#textarea-placeholder" }
+		],
+		"goBack": [
+			{ "set": "state.submitted", "to": false },
+			{ "set": "state.codeError", "to": "" },
+			{ "navigate": "signInForm" }
+		],
+		"toCreate": [
+			{ "set": "state.submitted", "to": false },
+			{ "set": "state.formError", "to": "" },
+			{ "navigate": "createAccount" }
 		],
 		"openForgot": [
 			{ "set": "state.forgot", "to": { "open": true, "email": "{{state.email}}", "error": "" } },
@@ -357,55 +1002,206 @@
 		],
 		"sendReset": [
 			{
-				"if": "{{!(contains(state.forgot.email, '@') && contains(state.forgot.email, '.'))}}",
-				"then": [{ "set": "state.forgot.error", "to": "Enter the email of your account" }, { "stop": true }]
+				"if": "{{!isEmail(trim(state.forgot.email))}}",
+				"then": [{ "set": "state.forgot.error", "to": "{{t('emailOfAccount')}}" }, { "stop": true }]
 			},
 			{ "set": "state.forgot.open", "to": false },
-			{ "run": "notify", "with": { "message": "We sent a reset link to {{state.forgot.email}}" } }
+			{
+				"set": "state.reset",
+				"to": { "email": "{{trim(state.forgot.email)}}", "code": "", "password": "", "confirm": "", "submitted": false, "error": "" }
+			},
+			{ "navigate": "reset" },
+			{ "focus": "#resetCode" },
+			{ "run": "notify", "with": { "message": "{{t('linkSent', { email: trim(state.forgot.email) })}}" } }
 		],
 		"closeForgot": [{ "set": "state.forgot.open", "to": false }],
-		"toggleTheme": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }]
+		"setPassword": [
+			{ "set": "state.reset.submitted", "to": true },
+			{ "set": "state.reset.error", "to": "{{length(state.reset.code) < 6 ? 'short' : ''}}" },
+			{ "if": "{{state.reset.error != '' || computed.resetErrors > 0}}", "then": [{ "stop": true }] },
+			{ "run": "serverCall", "with": { "op": "finishReset", "what": "setPassword" } }
+		],
+		"finishReset": [
+			{
+				"if": "{{state.reset.code != state.demoCode}}",
+				"then": [{ "set": "state.reset.error", "to": "wrong" }, { "set": "state.reset.code", "to": "" }, { "focus": "#resetCode" }, { "stop": true }]
+			},
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.reset.email) ? merge(it, { password: state.reset.password }) : it)}}"
+			},
+			{ "set": "state.email", "to": "{{state.reset.email}}" },
+			{ "set": "state.password", "to": "" },
+			{ "set": "state.submitted", "to": false },
+			{ "set": "state.reset", "to": { "email": "", "code": "", "password": "", "confirm": "", "submitted": false, "error": "" } },
+			{ "navigate": "signInForm" },
+			{ "focus": "#textarea-placeholder" },
+			{ "run": "notify", "with": { "message": "{{t('passwordChanged')}}" } }
+		],
+		"saveProfile": [
+			{ "set": "state.profile.submitted", "to": true },
+			{ "if": "{{computed.profileErrors > 0}}", "then": [{ "stop": true }] },
+			{ "run": "serverCall", "with": { "op": "finishSave", "what": "save" } }
+		],
+		"finishSave": [
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { name: trim(state.profile.name), email: trim(state.profile.email) }) : it)}}"
+			},
+			{ "set": "state.user.name", "to": "{{trim(state.profile.name)}}" },
+			{ "set": "state.user.email", "to": "{{trim(state.profile.email)}}" },
+			{ "set": "state.email", "to": "{{trim(state.profile.email)}}" },
+			{ "set": "state.profile.submitted", "to": false },
+			{ "run": "notify", "with": { "message": "{{t('saved')}}" } }
+		],
+		"openChange": [
+			{ "set": "state.change", "to": { "open": true, "password": "", "confirm": "", "submitted": false } },
+			{ "focus": "#newPassword" }
+		],
+		"changePassword": [
+			{ "set": "state.change.submitted", "to": true },
+			{ "set": "state.change.open", "to": true },
+			{ "if": "{{computed.changeError != ''}}", "then": [{ "focus": "#newPassword" }, { "stop": true }] },
+			{ "run": "serverCall", "with": { "op": "finishChange", "what": "password" } }
+		],
+		"finishChange": [
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { password: state.change.password }) : it)}}"
+			},
+			{ "set": "state.change", "to": { "open": false, "password": "", "confirm": "", "submitted": false } },
+			{ "focus": "#changePassword" },
+			{ "run": "notify", "with": { "message": "{{t('changed')}}" } }
+		],
+		"closeChange": [{ "set": "state.change.open", "to": false }, { "focus": "#changePassword" }],
+		"setTwoStep": [
+			{ "note": "with: on" },
+			{ "set": "state.user.twoStep", "to": "{{on}}" },
+			{
+				"set": "state.accounts",
+				"to": "{{map(state.accounts, lower(it.email) == lower(state.user.email) ? merge(it, { twoStep: on }) : it)}}"
+			},
+			{ "run": "notify", "with": { "message": "{{t('twoStepTurned', { on: on })}}" } }
+		],
+		"setLocale": [{ "note": "with: code" }, { "set": "state.locale", "to": "{{code}}" }],
+		"closeShortcuts": [{ "set": "state.shortcutsOpen", "to": false }],
+		"toggleTheme": {
+			"title": "Switch light and dark",
+			"category": "View",
+			"icon": "moon",
+			"do": [{ "set": "state.theme", "to": "{{state.theme == 'light' ? 'dark' : 'light'}}" }]
+		},
+		"nextLanguage": {
+			"title": "Next language",
+			"category": "View",
+			"icon": "languages",
+			"do": [{ "set": "state.locale", "to": "{{state.locale == 'en' ? 'it' : state.locale == 'it' ? 'ar' : 'en'}}" }]
+		},
+		"togglePassword": {
+			"title": "Show or hide the password",
+			"category": "Account",
+			"icon": "eye",
+			"do": [{ "set": "state.showPassword", "to": "{{!state.showPassword}}" }]
+		},
+		"openShortcuts": {
+			"title": "Keyboard shortcuts",
+			"category": "Help",
+			"icon": "keyboard",
+			"do": [{ "set": "state.shortcutsOpen", "to": true }]
+		},
+		"toggleSlow": {
+			"title": "Slow network (demo)",
+			"category": "Help",
+			"icon": "wifi",
+			"description": "The fake server answers after 800 ms, to see the busy states",
+			"do": [{ "set": "state.slow", "to": "{{!state.slow}}" }]
+		}
 	},
-	"keys": { "escape": { "navigate": "back" }, "mod+j": "toggleTheme" },
+	"keys": {
+		"escape": { "when": "{{screen == 'createAccount' || screen == 'twoStep' || screen == 'reset'}}", "do": "goBack" },
+		"mod+j": "toggleTheme",
+		"mod+l": "nextLanguage",
+		"mod+shift+h": "togglePassword",
+		"f1": "openShortcuts",
+		"mod+shift+n": "toggleSlow",
+		"mod+shift+q": "signOut"
+	},
 	"screens": {
-		"signIn": {
+		"signInForm": {
 			"id": "panel-sign-in",
-			"type": "column",
-			"fill": 0,
-			"justify": "center",
-			"alignItems": "center",
-			"color": "transparent",
+			"style": "screen",
 			"children": [
 				{
 					"id": "card",
 					"style": "card",
-					"height": "{{502 + computed.errors * 24}}",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{min(window.height - 116, 584 - (window.height < 700 ? 68 : 0) + computed.errors * 24 + (state.notice != '' ? 66 : 0) + (state.formError != '' ? 56 : 0) + (state.busy == 'provider' ? 38 : 0))}}",
 					"children": [
 						{
 							"id": "stack-form",
 							"style": "form",
 							"children": [
-								{ "id": "logo", "style": "logo" },
-								{ "id": "spacer-logo", "style": "spacer", "height": 4 },
-								{ "id": "label-welcome-back", "style": "title", "text": "Welcome back" },
-								{
-									"id": "label-sign-in-to",
-									"style": "caption",
-									"text": "Sign in to continue to AffrescoUI"
-								},
+								{ "id": "logo", "style": "logo", "when": "{{window.height >= 700}}" },
+								{ "id": "spacer-logo", "style": "spacer", "height": 4, "when": "{{window.height >= 700}}" },
+								{ "id": "label-welcome-back", "style": "title", "text": "{{t('welcomeBack')}}", "role": "heading" },
+								{ "id": "label-sign-in-to", "style": "caption", "text": "{{t('signInTo')}}" },
 								{ "id": "spacer-head", "style": "spacer" },
-								{ "id": "label-email", "style": "fieldLabel", "text": "Email" },
+								{
+									"id": "sessionNotice",
+									"when": "{{state.notice == 'expired'}}",
+									"anchors": { "left": 0, "right": 10 },
+									"height": 58,
+									"radius": 8,
+									"color": "@color.notice",
+									"borderWidth": 1,
+									"borderColor": "@color.noticeBorder",
+									"role": "alert",
+									"live": "assertive",
+									"label": "{{t('sessionExpired')}}",
+									"children": [
+										{
+											"id": "label-session-expired",
+											"type": "label",
+											"font": "small",
+											"icon": "clock",
+											"text": "{{t('sessionExpired')}}",
+											"textColor": "@color.text",
+											"anchors": { "left": 12, "right": 12, "top": 8 },
+											"height": 18
+										},
+										{
+											"id": "signInAgain",
+											"style": "smallLink",
+											"text": "{{t('signInAgain')}}",
+											"anchors": { "left": 12, "top": 32 },
+											"height": 18,
+											"onClick": "signInAgain"
+										}
+									]
+								},
+								{
+									"id": "formError",
+									"when": "{{state.formError != ''}}",
+									"style": "alert",
+									"height": 48,
+									"text": "{{t('serverError', { kind: state.formError, message: state.providerMessage })}}"
+								},
+								{ "id": "label-email", "style": "fieldLabel", "text": "{{t('email')}}" },
 								{
 									"id": "email",
 									"use": "checkedField",
 									"with": {
+										"submit": "signIn",
 										"bind": "state.email",
 										"content": "{{state.email}}",
 										"key": "email",
 										"icon": "mail",
-										"placeholder": "you@example.com",
+										"name": "{{t('email')}}",
+										"placeholder": "{{t('emailPlaceholder')}}",
 										"valid": "{{computed.emailValid}}",
-										"message": "Enter an email address"
+										"message": "{{t('enterEmail')}}",
+										"submitted": "{{state.submitted}}",
+										"maxLength": 254
 									}
 								},
 								{
@@ -413,35 +1209,35 @@
 									"type": "row",
 									"height": 18,
 									"justify": "space-between",
-									"anchors": { "left": 0, "right": 0 },
+									"anchors": { "left": 0, "right": 10 },
 									"children": [
 										{
 											"id": "label-password",
 											"style": "fieldLabel",
 											"anchors": {},
 											"fitText": true,
-											"text": "Password"
+											"text": "{{t('password')}}"
 										},
-										{
-											"id": "forgot",
-											"style": "smallLink",
-											"text": "Forgot password?",
-											"onClick": "openForgot"
-										}
+										{ "id": "forgot", "style": "smallLink", "text": "{{t('forgot')}}", "onClick": "openForgot" }
 									]
 								},
 								{
 									"id": "password",
 									"use": "checkedField",
 									"with": {
+										"submit": "signIn",
 										"bind": "state.password",
 										"content": "{{state.password}}",
 										"key": "password",
 										"icon": "lock",
-										"placeholder": "At least 8 characters",
+										"name": "{{t('password')}}",
+										"placeholder": "{{t('passwordPlaceholder')}}",
 										"valid": "{{computed.passwordValid}}",
-										"message": "At least 8 characters",
-										"secret": true
+										"message": "{{t('min8')}}",
+										"submitted": "{{state.submitted}}",
+										"secret": true,
+										"eye": true,
+										"maxLength": 128
 									}
 								},
 								{
@@ -451,14 +1247,14 @@
 										{
 											"id": "remember",
 											"style": "{{state.remember ? 'checkOn' : 'checkOff'}}",
-											"label": "Remember me",
+											"label": "{{t('remember')}}",
 											"onClick": { "set": "state.remember", "to": "{{!state.remember}}" }
 										},
 										{
 											"id": "label-remember",
 											"type": "label",
 											"font": "small",
-											"text": "Remember me on this device",
+											"text": "{{t('rememberText')}}",
 											"fitText": true,
 											"textColor": "@color.muted",
 											"cursor": "hand",
@@ -470,195 +1266,527 @@
 								{
 									"id": "signIn",
 									"style": "primary",
-									"icon": "log-in",
-									"text": "Sign in",
+									"icon": "{{state.busy == 'signIn' ? 'loader' : 'log-in'}}",
+									"text": "{{state.busy == 'signIn' ? computed.busyText : t('signInButton')}}",
+									"disabled": "{{state.busy != ''}}",
 									"onClick": "signIn"
 								},
 								{
-									"id": "toCreate",
-									"style": "link",
-									"text": "No account yet? Create one",
-									"onClick": [
-										{ "set": "state.submitted", "to": false },
-										{ "navigate": "createAccount" }
+									"id": "row-or",
+									"type": "row",
+									"height": 18,
+									"gap": 10,
+									"alignItems": "center",
+									"anchors": { "left": 0, "right": 10 },
+									"children": [
+										{ "id": "line-or", "grow": 1, "height": 1, "color": "@color.border" },
+										{ "id": "label-or", "type": "label", "font": "small", "fitText": true, "height": 18, "textColor": "@color.muted", "text": "{{t('or')}}" },
+										{ "id": "line-or-2", "grow": 1, "height": 1, "color": "@color.border" }
 									]
-								}
+								},
+								{
+									"id": "provider",
+									"style": "secondary",
+									"icon": "{{state.busy == 'provider' ? 'loader' : 'key-round'}}",
+									"text": "{{state.busy == 'provider' ? t('providerWaiting') : t('provider')}}",
+									"disabled": "{{state.busy != ''}}",
+									"onClick": "providerSignIn"
+								},
+								{
+									"id": "cancelProvider",
+									"when": "{{state.busy == 'provider'}}",
+									"style": "link",
+									"font": "small",
+									"text": "{{t('cancelProvider')}}",
+									"onClick": "cancelProvider"
+								},
+								{ "id": "toCreate", "style": "link", "text": "{{t('toCreate')}}", "onClick": "toCreate" }
 							]
 						}
-					],
-					"keys": { "enter": "signIn" }
+					]
 				}
 			]
 		},
 		"createAccount": {
 			"id": "panel-create-account",
-			"type": "column",
-			"fill": 0,
-			"justify": "center",
-			"alignItems": "center",
-			"color": "transparent",
+			"style": "screen",
 			"children": [
 				{
 					"id": "panel-card",
 					"style": "card",
-					"height": "{{572 + (state.submitted ? (length(trim(state.name)) > 0 ? 0 : 1) + computed.errors : 0) * 24}}",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{min(window.height - 116, 590 - (state.showPassword ? 78 : 0) + computed.createErrors * 24)}}",
 					"children": [
 						{
 							"id": "stack-form-2",
 							"style": "form",
 							"children": [
-								{ "id": "logo-2", "style": "logo" },
-								{ "id": "spacer-logo-2", "style": "spacer", "height": 4 },
-								{ "id": "label-create-an-account", "style": "title", "text": "Create an account" },
-								{
-									"id": "label-create-caption",
-									"style": "caption",
-									"text": "Free, and it takes a minute"
-								},
-								{ "id": "spacer-head-2", "style": "spacer" },
-								{ "id": "label-name", "style": "fieldLabel", "text": "Name" },
+								{ "id": "label-create-an-account", "style": "title", "text": "{{t('createAnAccount')}}", "role": "heading" },
+								{ "id": "label-create-caption", "style": "caption", "text": "{{t('createCaption')}}" },
+								{ "id": "label-name", "style": "fieldLabel", "text": "{{t('name')}}" },
 								{
 									"id": "checked-field-form",
 									"use": "checkedField",
 									"with": {
+										"submit": "createAccount",
 										"bind": "state.name",
 										"content": "{{state.name}}",
 										"key": "name",
 										"icon": "user",
-										"placeholder": "Your name",
+										"name": "{{t('name')}}",
+										"placeholder": "{{t('namePlaceholder')}}",
 										"valid": "{{length(trim(state.name)) > 0}}",
-										"message": "Enter your name"
+										"message": "{{t('enterName')}}",
+										"submitted": "{{state.submitted}}",
+										"maxLength": 60
 									}
 								},
-								{ "id": "label-email-2", "style": "fieldLabel", "text": "Email" },
+								{ "id": "label-email-2", "style": "fieldLabel", "text": "{{t('email')}}" },
 								{
 									"id": "checked-field-form-2",
 									"use": "checkedField",
 									"with": {
+										"submit": "createAccount",
 										"bind": "state.email",
 										"content": "{{state.email}}",
 										"key": "email",
 										"icon": "mail",
-										"placeholder": "you@example.com",
+										"name": "{{t('email')}}",
+										"placeholder": "{{t('emailPlaceholder')}}",
 										"valid": "{{computed.emailValid}}",
-										"message": "Enter an email address"
+										"message": "{{t('enterEmail')}}",
+										"submitted": "{{state.submitted}}",
+										"maxLength": 254
 									}
 								},
-								{ "id": "label-password-2", "style": "fieldLabel", "text": "Password" },
+								{ "id": "label-password-2", "style": "fieldLabel", "text": "{{t('password')}}" },
 								{
 									"id": "checked-field-form-3",
 									"use": "checkedField",
 									"with": {
+										"submit": "createAccount",
 										"bind": "state.password",
 										"content": "{{state.password}}",
 										"key": "password",
 										"icon": "lock",
-										"placeholder": "At least 8 characters",
-										"valid": "{{computed.passwordValid}}",
-										"message": "At least 8 characters",
-										"secret": true
+										"name": "{{t('password')}}",
+										"placeholder": "{{t('passwordPlaceholder')}}",
+										"valid": "{{computed.newPasswordValid}}",
+										"message": "{{computed.newPasswordMessage}}",
+										"submitted": "{{state.submitted}}",
+										"secret": true,
+										"eye": true,
+										"maxLength": 128
+									}
+								},
+								{ "id": "strength-create", "use": "strengthMeter", "with": { "password": "{{state.password}}" } },
+								{ "id": "label-confirm", "when": "{{!state.showPassword}}", "style": "fieldLabel", "text": "{{t('confirm')}}" },
+								{
+									"id": "confirm-password",
+									"when": "{{!state.showPassword}}",
+									"use": "checkedField",
+									"with": {
+										"submit": "createAccount",
+										"bind": "state.confirm",
+										"content": "{{state.confirm}}",
+										"key": "confirm",
+										"icon": "lock-keyhole",
+										"name": "{{t('confirm')}}",
+										"placeholder": "{{t('confirmPlaceholder')}}",
+										"valid": "{{computed.confirmValid}}",
+										"message": "{{t('mismatch')}}",
+										"submitted": "{{state.submitted}}",
+										"secret": true,
+										"maxLength": 128
 									}
 								},
 								{
-									"id": "strength",
-									"type": "row",
-									"gap": 6,
-									"height": 18,
-									"alignItems": "center",
-									"anchors": { "left": 0, "right": 0 },
-									"children": [
-										{
-											"id": "strength-bar",
-											"repeat": { "for": "level", "in": "{{[1, 2, 3, 4]}}" },
-											"width": 54,
-											"height": 5,
-											"radius": 3,
-											"color": "{{computed.strength >= level ? ['', '@color.weak', '@color.fair', '@color.good', '@color.strong'][computed.strength] : '@color.border'}}"
-										},
-										{
-											"id": "strength-name",
-											"type": "label",
-											"font": "small",
-											"fitText": true,
-											"height": 18,
-											"text": "{{length(state.password) == 0 ? 'Use 8 or more characters, a capital and a digit' : computed.strengthName + ' password'}}",
-											"textColor": "@color.muted"
-										}
-									]
-								},
-								{ "id": "spacer-button-2", "style": "spacer", "height": 2 },
-								{
 									"id": "label-create-account",
 									"style": "primary",
-									"icon": "user-plus",
-									"text": "Create account",
+									"icon": "{{state.busy == 'create' ? 'loader' : 'user-plus'}}",
+									"text": "{{state.busy == 'create' ? computed.busyText : t('createAccount')}}",
+									"disabled": "{{state.busy != ''}}",
 									"onClick": "createAccount"
 								},
-								{
-									"id": "label-back-to-sign",
-									"style": "link",
-									"text": "Back to sign in (Esc)",
-									"onClick": { "navigate": "back" }
-								}
+								{ "id": "label-back-to-sign", "style": "link", "text": "{{t('backToSignIn')}}", "onClick": "goBack" }
 							]
 						}
-					],
-					"keys": { "enter": "createAccount" }
+					]
+				}
+			]
+		},
+		"twoStep": {
+			"id": "panel-two-step",
+			"style": "screen",
+			"every": { "ms": 1000, "do": "countDown" },
+			"children": [
+				{
+					"id": "card-two-step",
+					"style": "card",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{min(window.height - 116, 420 + (state.codeError != '' ? 26 : 0))}}",
+					"children": [
+						{
+							"id": "stack-two-step",
+							"style": "form",
+							"children": [
+								{ "id": "label-two-step", "style": "title", "text": "{{t('twoStepTitle')}}", "role": "heading" },
+								{
+									"id": "label-two-step-caption",
+									"style": "caption",
+									"wrap": true,
+									"height": 40,
+									"text": "{{t('twoStepCaption', { email: state.pending.email })}}"
+								},
+								{ "id": "label-code", "style": "fieldLabel", "text": "{{t('code')}}" },
+								{
+									"id": "twoStepCode",
+									"style": "code",
+									"dir": "ltr",
+									"bind": "state.code",
+									"label": "{{t('code')}}",
+									"description": "{{state.codeError == '' ? '' : t('codeError', { kind: state.codeError })}}",
+									"cellBorderColor": "{{state.codeError == '' ? '@color.border' : '@color.error'}}",
+									"onChange": "codeChanged",
+									"onSubmit": "verify"
+								},
+								{
+									"id": "codeError",
+									"when": "{{state.codeError != ''}}",
+									"style": "inlineError",
+									"text": "{{t('codeError', { kind: state.codeError })}}"
+								},
+								{ "id": "demoCode", "style": "hint", "icon": "info", "text": "{{t('demoCode', { code: state.demoCode })}}" },
+								{
+									"id": "verify",
+									"style": "primary",
+									"icon": "{{state.busy == 'verify' ? 'loader' : 'shield-check'}}",
+									"text": "{{state.busy == 'verify' ? computed.busyText : t('verify')}}",
+									"disabled": "{{state.busy != ''}}",
+									"onClick": "verify"
+								},
+								{
+									"id": "resend",
+									"style": "link",
+									"text": "{{state.busy == 'resend' ? computed.busyText : state.resendLeft > 0 ? t('resendIn', { n: state.resendLeft }) : t('resend')}}",
+									"textColor": "{{state.resendLeft > 0 ? '@color.muted' : '@color.accent'}}",
+									"disabled": "{{state.resendLeft > 0 || state.busy != ''}}",
+									"onClick": "resend"
+								},
+								{ "id": "twoStepBack", "style": "link", "text": "{{t('backToSignIn')}}", "onClick": "goBack" }
+							]
+						}
+					]
+				}
+			]
+		},
+		"reset": {
+			"id": "panel-reset",
+			"style": "screen",
+			"children": [
+				{
+					"id": "card-reset",
+					"style": "card",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{min(window.height - 116, 582 - (state.showPassword ? 70 : 0) + (state.reset.error != '' ? 26 : 0) + computed.resetErrors * 24)}}",
+					"children": [
+						{
+							"id": "stack-reset",
+							"style": "form",
+							"children": [
+								{ "id": "label-reset-title", "style": "title", "text": "{{t('newPasswordTitle')}}", "role": "heading" },
+								{
+									"id": "label-reset-caption",
+									"style": "caption",
+									"wrap": true,
+									"height": 40,
+									"text": "{{t('newPasswordCaption', { email: state.reset.email })}}"
+								},
+								{ "id": "label-reset-code", "style": "fieldLabel", "text": "{{t('code')}}" },
+								{
+									"id": "resetCode",
+									"style": "code",
+									"dir": "ltr",
+									"bind": "state.reset.code",
+									"label": "{{t('code')}}",
+									"description": "{{state.reset.error == '' ? '' : t('codeError', { kind: state.reset.error })}}",
+									"cellBorderColor": "{{state.reset.error == '' ? '@color.border' : '@color.error'}}",
+									"onChange": { "set": "state.reset.error", "to": "" },
+									"onSubmit": { "focus": "#textarea-placeholder" }
+								},
+								{
+									"id": "resetCodeError",
+									"when": "{{state.reset.error != ''}}",
+									"style": "inlineError",
+									"text": "{{t('codeError', { kind: state.reset.error })}}"
+								},
+								{ "id": "demoCode-reset", "style": "hint", "icon": "info", "text": "{{t('demoCode', { code: state.demoCode })}}" },
+								{ "id": "label-new-password", "style": "fieldLabel", "text": "{{t('newPassword')}}" },
+								{
+									"id": "reset-password",
+									"use": "checkedField",
+									"with": {
+										"submit": "setPassword",
+										"bind": "state.reset.password",
+										"content": "{{state.reset.password}}",
+										"key": "resetPassword",
+										"icon": "lock",
+										"name": "{{t('newPassword')}}",
+										"placeholder": "{{t('passwordPlaceholder')}}",
+										"valid": "{{computed.resetValid}}",
+										"message": "{{length(state.reset.password) >= 8 ? t('stronger') : t('min8')}}",
+										"submitted": "{{state.reset.submitted}}",
+										"secret": true,
+										"eye": true,
+										"maxLength": 128
+									}
+								},
+								{ "id": "strength-reset", "use": "strengthMeter", "with": { "password": "{{state.reset.password}}" } },
+								{ "id": "label-reset-confirm", "when": "{{!state.showPassword}}", "style": "fieldLabel", "text": "{{t('confirm')}}" },
+								{
+									"id": "reset-confirm",
+									"when": "{{!state.showPassword}}",
+									"use": "checkedField",
+									"with": {
+										"submit": "setPassword",
+										"bind": "state.reset.confirm",
+										"content": "{{state.reset.confirm}}",
+										"key": "resetConfirm",
+										"icon": "lock-keyhole",
+										"name": "{{t('confirm')}}",
+										"placeholder": "{{t('confirmPlaceholder')}}",
+										"valid": "{{computed.resetConfirmValid}}",
+										"message": "{{t('mismatch')}}",
+										"submitted": "{{state.reset.submitted}}",
+										"secret": true,
+										"maxLength": 128
+									}
+								},
+								{
+									"id": "setPassword",
+									"style": "primary",
+									"icon": "{{state.busy == 'setPassword' ? 'loader' : 'key-round'}}",
+									"text": "{{state.busy == 'setPassword' ? computed.busyText : t('setPassword')}}",
+									"disabled": "{{state.busy != ''}}",
+									"onClick": "setPassword"
+								},
+								{ "id": "resetBack", "style": "link", "text": "{{t('backToSignIn')}}", "onClick": "goBack" }
+							]
+						}
+					]
 				}
 			]
 		},
 		"signedIn": {
 			"id": "panel-signed-in",
-			"type": "column",
-			"fill": 0,
-			"justify": "center",
-			"alignItems": "center",
-			"color": "transparent",
+			"style": "screen",
+			"every": { "ms": 1000, "do": "tick" },
 			"children": [
 				{
 					"id": "panel-card-2",
 					"style": "card",
-					"height": 320,
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{min(window.height - 116, 492 + (state.user.provider ? 28 : 0) + computed.profileErrors * 24)}}",
 					"children": [
 						{
 							"id": "stack-form-3",
 							"style": "form",
 							"children": [
 								{
-									"id": "avatar",
-									"type": "label",
-									"font": "title",
-									"text": "{{computed.initials}}",
-									"width": 56,
+									"id": "row-account",
+									"type": "row",
 									"height": 56,
-									"radius": 999,
-									"align": "center",
-									"color": "@color.accentSoft",
-									"textColor": "@color.accent"
+									"gap": 12,
+									"alignItems": "center",
+									"anchors": { "left": 0, "right": 10 },
+									"children": [
+										{
+											"id": "avatar",
+											"type": "label",
+											"font": "title",
+											"text": "{{computed.initials}}",
+											"width": 56,
+											"height": 56,
+											"radius": 999,
+											"align": "center",
+											"color": "@color.accentSoft",
+											"textColor": "@color.accent",
+											"role": "img",
+											"label": "{{state.user.name}}"
+										},
+										{
+											"id": "column-account",
+											"type": "column",
+											"grow": 1,
+											"height": 56,
+											"gap": 2,
+											"children": [
+												{ "id": "label-you-re-in", "style": "title", "text": "{{t('youreIn')}}", "role": "heading" },
+												{ "id": "label-signed-in-as", "style": "caption", "text": "{{t('signedInAs', { email: state.user.email })}}" }
+											]
+										}
+									]
 								},
-								{ "id": "spacer-avatar", "style": "spacer", "height": 4 },
-								{ "id": "label-you-re-in", "style": "title", "text": "You're in" },
 								{
-									"id": "label-signed-in-as",
-									"style": "caption",
-									"text": "Signed in as {{state.email}}"
+									"id": "label-provider",
+									"when": "{{state.user.provider}}",
+									"type": "label",
+									"font": "small",
+									"height": 20,
+									"anchors": { "left": 0, "right": 10 },
+									"icon": "key-round",
+									"textColor": "@color.muted",
+									"text": "{{t('signedInWith')}}"
 								},
 								{
 									"id": "label-remembered",
 									"type": "label",
 									"font": "small",
 									"height": 20,
-									"anchors": { "left": 0, "right": 0 },
+									"anchors": { "left": 0, "right": 10 },
 									"icon": "{{state.remember ? 'shield-check' : 'clock'}}",
 									"textColor": "@color.muted",
-									"text": "{{state.remember ? 'This device stays signed in' : 'You will be signed out when you close the app'}}"
+									"text": "{{state.remember ? t('staysSignedIn') : t('signedOutOnClose')}}"
 								},
-								{ "id": "spacer-signed", "style": "spacer", "height": 16 },
+								{
+									"id": "row-session",
+									"type": "row",
+									"height": 20,
+									"gap": 10,
+									"alignItems": "center",
+									"anchors": { "left": 0, "right": 10 },
+									"children": [
+										{
+											"id": "session",
+											"type": "label",
+											"font": "small",
+											"fitText": true,
+											"height": 20,
+											"icon": "timer",
+											"role": "timer",
+											"textColor": "{{state.session.left <= 60 ? '@color.error' : '@color.muted'}}",
+											"text": "{{t('sessionEnds', { time: computed.sessionTime })}}"
+										},
+										{
+											"id": "staySignedIn",
+											"when": "{{state.session.left <= 60}}",
+											"style": "smallLink",
+											"height": 20,
+											"text": "{{t('stay')}}",
+											"onClick": "staySignedIn"
+										}
+									]
+								},
+								{ "id": "label-account-name", "style": "fieldLabel", "text": "{{t('name')}}" },
+								{
+									"id": "account-name",
+									"use": "checkedField",
+									"with": {
+										"submit": "saveProfile",
+										"bind": "state.profile.name",
+										"content": "{{state.profile.name}}",
+										"key": "accountName",
+										"icon": "user",
+										"name": "{{t('name')}}",
+										"placeholder": "{{t('namePlaceholder')}}",
+										"valid": "{{length(trim(state.profile.name)) > 0}}",
+										"message": "{{t('enterName')}}",
+										"submitted": "{{state.profile.submitted}}",
+										"maxLength": 60
+									}
+								},
+								{ "id": "label-account-email", "style": "fieldLabel", "text": "{{t('email')}}" },
+								{
+									"id": "account-email",
+									"use": "checkedField",
+									"with": {
+										"submit": "saveProfile",
+										"bind": "state.profile.email",
+										"content": "{{state.profile.email}}",
+										"key": "accountEmail",
+										"icon": "mail",
+										"name": "{{t('email')}}",
+										"placeholder": "{{t('emailPlaceholder')}}",
+										"valid": "{{isEmail(trim(state.profile.email))}}",
+										"message": "{{t('enterEmail')}}",
+										"submitted": "{{state.profile.submitted}}",
+										"maxLength": 254
+									}
+								},
+								{
+									"id": "row-account-buttons",
+									"type": "row",
+									"height": 46,
+									"gap": 8,
+									"anchors": { "left": 0, "right": 10 },
+									"children": [
+										{
+											"id": "saveProfile",
+											"style": "primary",
+											"anchors": {},
+											"grow": 1,
+											"icon": "{{state.busy == 'save' ? 'loader' : 'save'}}",
+											"text": "{{state.busy == 'save' ? computed.busyText : t('saveChanges')}}",
+											"disabled": "{{state.busy != ''}}",
+											"onClick": "saveProfile"
+										},
+										{
+											"id": "changePassword",
+											"when": "{{!state.user.provider}}",
+											"style": "secondary",
+											"anchors": {},
+											"grow": 1,
+											"icon": "key-round",
+											"text": "{{t('changePassword')}}",
+											"isOpen": "{{state.change.open}}",
+											"onClick": "openChange"
+										}
+									]
+								},
+								{
+									"id": "row-two-step",
+									"type": "row",
+									"height": 36,
+									"gap": 12,
+									"alignItems": "center",
+									"anchors": { "left": 0, "right": 10 },
+									"children": [
+										{
+											"id": "twoStep",
+											"type": "toggle",
+											"width": 44,
+											"height": 24,
+											"role": "switch",
+											"focusable": true,
+											"label": "{{t('twoStep')}}",
+											"description": "{{t('twoStepState', { on: state.user.twoStep })}}",
+											"checked": "{{state.user.twoStep}}",
+											"activeColor": "@color.accent",
+											"trackColor": "@color.border",
+											"onChange": { "run": "setTwoStep", "with": { "on": "{{event.value}}" } },
+											"keys": {
+												"space": { "run": "setTwoStep", "with": { "on": "{{!state.user.twoStep}}" } },
+												"enter": { "run": "setTwoStep", "with": { "on": "{{!state.user.twoStep}}" } }
+											}
+										},
+										{
+											"id": "column-two-step",
+											"type": "column",
+											"grow": 1,
+											"height": 36,
+											"children": [
+												{ "id": "label-two-step-name", "style": "fieldLabel", "text": "{{t('twoStep')}}" },
+												{ "id": "label-two-step-state", "style": "hint", "text": "{{t('twoStepState', { on: state.user.twoStep })}}" }
+											]
+										}
+									]
+								},
 								{
 									"id": "label-sign-out",
 									"style": "secondary",
 									"icon": "log-out",
-									"text": "Sign out",
+									"text": "{{t('signOutButton')}}",
+									"tooltip": "{{t('signOutButton')}} ({{computed.signOutKey}})",
 									"onClick": "signOut"
 								}
 							]
@@ -691,33 +1819,106 @@
 				"color": "@color.glow2",
 				"shadow": { "blur": 120, "color": "@color.glow2" }
 			},
-			{ "id": "screens", "type": "outlet", "fill": 0 },
+			{ "id": "screens", "dir": "auto", "type": "outlet", "anchors": { "left": 0, "right": 0, "top": 56, "bottom": 44 } },
 			{
-				"id": "themeToggle",
-				"style": "iconButton",
-				"icon": "{{state.theme == 'light' ? 'moon' : 'sun'}}",
-				"anchors": { "right": 20, "top": 18 },
-				"tooltip": "Switch light and dark (Cmd+J)",
-				"onClick": "toggleTheme"
+				"id": "announcer",
+				"dir": "auto",
+				"type": "label",
+				"font": "small",
+				"role": "status",
+				"live": "polite",
+				"label": "{{computed.busyText}}",
+				"icon": "{{state.busy == '' ? '' : 'loader'}}",
+				"text": "{{computed.busyText}}",
+				"textColor": "@color.muted",
+				"anchors": { "left": 20, "top": 22 },
+				"height": 24,
+				"fitText": true
+			},
+			{
+				"id": "topBar",
+				"dir": "auto",
+				"type": "row",
+				"gap": 6,
+				"width": 226,
+				"height": 32,
+				"alignItems": "center",
+				"anchors": { "right": 16, "top": 14 },
+				"children": [
+					{
+						"id": "languages",
+						"type": "row",
+						"role": "radiogroup",
+						"label": "{{t('language')}}",
+						"arrows": "horizontal",
+						"gap": 2,
+						"height": 32,
+						"width": 112,
+						"children": [
+							{
+								"id": "lang",
+								"repeat": { "for": "code", "in": "{{['en', 'it', 'ar']}}" },
+								"style": "{{state.locale == code ? 'chipOn' : 'chip'}}",
+								"text": "{{upper(code)}}",
+								"label": "{{t('langName', { code: code })}}",
+								"tooltip": "{{t('langName', { code: code })}}",
+								"selected": "{{state.locale == code}}",
+								"onClick": { "run": "setLocale", "with": { "code": "{{code}}" } }
+							}
+						]
+					},
+					{
+						"id": "slowToggle",
+						"style": "iconButton",
+						"font": "iconsSmall",
+						"icon": "{{state.slow ? 'snail' : 'wifi'}}",
+						"textColor": "{{state.slow ? '@color.accent' : '@color.muted'}}",
+						"role": "switch",
+						"label": "{{t('slow')}}",
+						"tooltip": "{{t('slowTooltip', { on: state.slow })}}",
+						"selected": "{{state.slow}}",
+						"onClick": "toggleSlow"
+					},
+					{
+						"id": "shortcutsButton",
+						"style": "iconButton",
+						"font": "iconsSmall",
+						"icon": "keyboard",
+						"label": "{{t('shortcuts')}}",
+						"tooltip": "{{t('shortcutsTooltip', { key: computed.shortcutsKey })}}",
+						"isOpen": "{{state.shortcutsOpen}}",
+						"onClick": "openShortcuts"
+					},
+					{
+						"id": "themeToggle",
+						"style": "iconButton",
+						"icon": "{{state.theme == 'light' ? 'moon' : 'sun'}}",
+						"label": "{{t('themeTooltip', { dark: state.theme == 'dark', key: computed.themeKey })}}",
+						"tooltip": "{{t('themeTooltip', { dark: state.theme == 'dark', key: computed.themeKey })}}",
+						"onClick": "toggleTheme"
+					}
+				]
 			},
 			{
 				"id": "footer",
+				"when": "{{window.width >= 640}}",
 				"type": "label",
 				"font": "small",
 				"textColor": "@color.muted",
 				"align": "center",
 				"anchors": { "left": 0, "right": 0, "bottom": 18 },
 				"height": 18,
-				"text": "An AffrescoUI template  ·  every screen, rule and colour is in one JSON file"
+				"text": "{{t('footer')}}"
 			},
 			{
 				"id": "forgotDialog",
+				"dir": "auto",
 				"use": "dialog",
 				"with": {
 					"open": "state.forgot.open",
-					"title": "Reset your password",
-					"message": "We will email you a link to choose a new one.",
-					"width": 420,
+					"title": "{{t('resetTitle')}}",
+					"message": "{{t('resetMessage')}}",
+					"width": "{{min(420, window.width - 32)}}",
 					"height": "{{state.forgot.error == '' ? 196 : 218}}",
 					"color": "@color.surface",
 					"textColor": "@color.text",
@@ -725,8 +1926,8 @@
 					"highlight": "@color.accent",
 					"backdrop": "@color.backdrop",
 					"buttons": [
-						{ "title": "Send link", "run": "sendReset" },
-						{ "title": "Cancel", "run": "closeForgot" }
+						{ "title": "{{t('sendLink')}}", "run": "sendReset" },
+						{ "title": "{{t('cancel')}}", "run": "closeForgot" }
 					]
 				},
 				"children": [
@@ -736,7 +1937,10 @@
 						"anchors": { "left": 20, "right": 20, "top": 76 },
 						"height": 38,
 						"borderColor": "{{state.forgot.error == '' ? '@color.border' : '@color.error'}}",
-						"placeholder": "you@example.com",
+						"placeholder": "{{t('emailPlaceholder')}}",
+						"label": "{{t('email')}}",
+						"description": "{{state.forgot.error}}",
+						"maxLength": 254,
 						"bind": "state.forgot.email",
 						"onChange": { "set": "state.forgot.error", "to": "" },
 						"onSubmit": "sendReset"
@@ -744,25 +1948,166 @@
 					{
 						"id": "forgotError",
 						"when": "{{state.forgot.error != ''}}",
-						"type": "label",
-						"font": "small",
-						"icon": "circle-alert",
+						"style": "inlineError",
 						"text": "{{state.forgot.error}}",
-						"textColor": "@color.error",
-						"anchors": { "left": 22, "right": 20, "top": 120 },
-						"height": 18
+						"anchors": { "left": 22, "right": 20, "top": 120 }
+					}
+				]
+			},
+			{
+				"id": "changeDialog",
+				"dir": "auto",
+				"use": "dialog",
+				"with": {
+					"open": "state.change.open",
+					"title": "{{t('changePassword')}}",
+					"message": "{{t('changePasswordMessage', { email: state.user.email })}}",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{(state.showPassword ? 222 : 268) + (state.change.submitted && computed.changeError != '' ? 24 : 0)}}",
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"backdrop": "@color.backdrop",
+					"buttons": [
+						{ "title": "{{t('change')}}", "run": "changePassword" },
+						{ "title": "{{t('cancel')}}", "run": "closeChange" }
+					]
+				},
+				"children": [
+					{
+						"id": "newPassword",
+						"style": "field",
+						"anchors": { "left": 20, "right": 20, "top": 76 },
+						"height": 38,
+						"secret": "{{!state.showPassword}}",
+						"maxLength": 128,
+						"placeholder": "{{t('newPassword')}}",
+						"label": "{{t('newPassword')}}",
+						"description": "{{state.change.submitted ? computed.changeError : ''}}",
+						"bind": "state.change.password",
+						"keys": { "mod+shift+h": "togglePassword" },
+						"onSubmit": "changePassword"
+					},
+					{
+						"id": "newPasswordConfirm",
+						"when": "{{!state.showPassword}}",
+						"style": "field",
+						"anchors": { "left": 20, "right": 20, "top": 122 },
+						"height": 38,
+						"secret": true,
+						"maxLength": 128,
+						"placeholder": "{{t('confirm')}}",
+						"label": "{{t('confirm')}}",
+						"bind": "state.change.confirm",
+						"onSubmit": "changePassword"
+					},
+					{
+						"id": "change-meter",
+						"color": "transparent",
+						"use": "passwordMeter",
+						"anchors": { "left": 20, "top": "{{state.showPassword ? 124 : 170}}" },
+						"with": {
+							"password": "{{state.change.password}}",
+							"width": "{{min(420, window.width - 32) - 40}}",
+							"labels": {
+								"empty": "{{t('strengthEmpty')}}",
+								"weak": "{{t('weak')}}",
+								"fair": "{{t('fair')}}",
+								"good": "{{t('good')}}",
+								"strong": "{{t('strong')}}"
+							},
+							"track": "@color.border",
+							"textColor": "@color.muted",
+							"colors": ["@color.weak", "@color.weak", "@color.fair", "@color.good", "@color.strong"]
+						}
+					},
+					{
+						"id": "changeError",
+						"when": "{{state.change.submitted && computed.changeError != ''}}",
+						"style": "inlineError",
+						"text": "{{computed.changeError}}",
+						"anchors": { "left": 22, "right": 20, "top": "{{state.showPassword ? 162 : 208}}" }
+					}
+				]
+			},
+			{
+				"id": "shortcutsDialog",
+				"dir": "auto",
+				"use": "dialog",
+				"with": {
+					"open": "state.shortcutsOpen",
+					"title": "{{t('shortcuts')}}",
+					"message": "{{t('shortcutsMessage')}}",
+					"width": "{{min(420, window.width - 32)}}",
+					"height": "{{132 + length(commands) * 28}}",
+					"color": "@color.surface",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"highlight": "@color.accent",
+					"backdrop": "@color.backdrop",
+					"buttons": [{ "title": "{{t('close')}}", "run": "closeShortcuts" }]
+				},
+				"children": [
+					{
+						"id": "shortcutList",
+						"type": "column",
+						"color": "transparent",
+						"role": "list",
+						"label": "{{t('shortcuts')}}",
+						"anchors": { "left": 20, "right": 20, "top": 72 },
+						"height": "{{length(commands) * 28}}",
+						"children": [
+							{
+								"id": "shortcut",
+								"repeat": { "for": "c", "in": "{{computed.shortcuts}}" },
+								"role": "listitem",
+								"label": "{{t('command', { name: c.name })}}, {{c.keyText}}",
+								"anchors": { "left": 0, "right": 0 },
+								"height": 28,
+								"color": "transparent",
+								"children": [
+									{
+										"id": "shortcut-title",
+										"type": "label",
+										"font": "small",
+										"icon": "{{c.icon}}",
+										"text": "{{t('command', { name: c.name })}}",
+										"textColor": "{{c.enabled ? '@color.text' : '@color.muted'}}",
+										"align": { "horizontal": "start", "vertical": "center" },
+										"anchors": { "left": 0, "right": 90, "top": 4 },
+										"height": 20
+									},
+									{
+										"id": "shortcut-key",
+										"type": "label",
+										"font": "small",
+										"dir": "ltr",
+										"text": "{{c.keyText}}",
+										"textColor": "@color.muted",
+										"align": { "horizontal": "end", "vertical": "center" },
+										"anchors": { "right": 0, "top": 4 },
+										"width": 86,
+										"height": 20
+									}
+								]
+							}
+						]
 					}
 				]
 			},
 			{
 				"id": "toast",
+				"dir": "auto",
 				"use": "toast",
 				"with": {
 					"open": "state.toast.open",
 					"message": "{{state.toast.message}}",
+					"width": "{{min(420, window.width - 32)}}",
 					"color": "@color.toast",
 					"textColor": "@color.toastText",
-					"accent": "@color.accent"
+					"accent": "@color.accent",
+					"actions": "{{state.toast.action == 'stay' ? [{ title: t('stay'), run: 'staySignedIn' }] : []}}"
 				}
 			}
 		]
