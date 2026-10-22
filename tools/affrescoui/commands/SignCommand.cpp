@@ -36,8 +36,9 @@ Exit newKey(const std::filesystem::path& file) {
 	std::error_code error;
 	std::filesystem::permissions(file, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
 	                             error);
-	const std::string text = key.toText();
+	std::string text = key.toText();
 	const bool written = !error && std::fwrite(text.data(), 1, text.size(), out) == text.size();
+	format::wipe(text); // as readKey() does: the secret stays in memory no longer than it is needed
 	if(std::fclose(out) != 0 || !written) throw FileProblem(file.string() + ": can't be written");
 	std::cout << key.publisher() << '\n';
 	return Exit::Success;
