@@ -263,7 +263,8 @@ void TextModel::record(Operation operation) {
 			last.inserted += operation.inserted;
 			return;
 		}
-		if(last.inserted == 0 && operation.inserted == 0 && operation.offset + operation.removed.size() == last.offset) {
+		if(last.inserted == 0 && operation.inserted == 0 &&
+		   operation.offset + operation.removed.size() == last.offset) {
 			last.removed.insert(0, operation.removed); // deleting backwards
 			last.offset = operation.offset;
 			return;
