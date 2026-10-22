@@ -156,9 +156,12 @@ private:
 	/// @brief The upgrade request.
 	/// @param key Its Sec-WebSocket-Key.
 	[[nodiscard]] std::string upgradeRequest(const std::string& key) const;
-	/// @brief Encodes the queued messages and sends what the socket takes.
+	/// @brief Sends what the socket takes, encoding the queued messages once the bytes before them are out.
 	/// @return false on an error.
 	bool flush();
+	/// @brief Moves the queued messages into the output, encoded.
+	/// @return Whether there were any.
+	bool encodeQueue();
 	/// @brief Sends bytes before a deadline.
 	/// @param bytes The bytes.
 	/// @param deadline When to give up.
@@ -343,6 +346,19 @@ void ClientSocket::answerClose(std::uint16_t code, std::optional<network::Failur
 }
 
 bool ClientSocket::flush() {
+	for(;;) {
+		// Messages wait in the queue, which send() bounds, until the bytes before them are out: taking them sooner
+		// would let a server that stops reading grow the output without limit
+		if(output_.empty() && !encodeQueue()) return true;
+		std::size_t sent = 0;
+		const CURLcode code = curl_easy_send(easy_.get(), output_.data(), output_.size(), &sent);
+		if(code == CURLE_AGAIN) return true;
+		if(code != CURLE_OK) return false;
+		output_.erase(0, sent);
+	}
+}
+
+bool ClientSocket::encodeQueue() {
 	std::deque<std::string> messages;
 	{
 		const std::scoped_lock lock(mutex_);
@@ -350,14 +366,7 @@ bool ClientSocket::flush() {
 		queuedBytes_ = 0;
 	}
 	for(const auto& message : messages) output_ += encodeFrame(Opcode::Text, message, mask());
-	while(!output_.empty()) {
-		std::size_t sent = 0;
-		const CURLcode code = curl_easy_send(easy_.get(), output_.data(), output_.size(), &sent);
-		if(code == CURLE_AGAIN) return true;
-		if(code != CURLE_OK) return false;
-		output_.erase(0, sent);
-	}
-	return true;
+	return !messages.empty();
 }
 
 bool ClientSocket::sendAll(std::string_view bytes, Clock::time_point deadline) {

@@ -235,3 +235,51 @@ TEST_CASE("net client: a WebSocket to a server that doesn't upgrade fails with i
 	CHECK((*closed)->code == "status");
 	CHECK((*closed)->status == 403);
 }
+
+namespace {
+
+/// @brief Answers a WebSocket upgrade request.
+/// @param connection The connection.
+/// @return Whether the request was an upgrade, and the answer went.
+bool upgrade(tcp::Connection& connection) {
+	auto request = readRequest(connection);
+	auto block = parseHeaderBlock(request.head);
+	const auto key = block ? findHeader(block->headers, "sec-websocket-key") : std::nullopt;
+	return key && connection.send("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+	                              "Sec-WebSocket-Accept: " + acceptKey(*key) + "\r\n\r\n",
+	                              std::chrono::seconds{5});
+}
+
+} // namespace
+
+TEST_CASE("net client: a server that stops reading can't make a WebSocket hold more than its send queue") {
+	std::atomic<bool> done{false};
+	LocalServer server([&](tcp::Connection& connection) {
+		if(!upgrade(connection)) return;
+		while(!done) std::this_thread::sleep_for(std::chrono::milliseconds{10}); // reads nothing
+	});
+	ThreadExecutor executor;
+	ClientOptions options{.proxy = std::string{}};
+	options.maxSendQueueBytes = std::size_t{1} << 20;
+	Client client(executor, options);
+	CHECK_FALSE(client.allow(server.origin()));
+	bool opened = false;
+	auto socket = client.connect(server.origin("ws") + "/", {}, {[&] { opened = true; }, {}, {}});
+	REQUIRE(executor.runUntil([&] { return opened; }));
+	// Before, each message left the queue for an output buffer with no limit, so send() accepted without end
+	const std::string message(std::size_t{64} << 10, 'x');
+	constexpr std::size_t enough = std::size_t{64} << 20;
+	std::size_t accepted = 0;
+	for(int refusals = 0; refusals < 5 && accepted < enough;) {
+		if(socket->send(message)) {
+			accepted += message.size();
+			refusals = 0;
+		} else {
+			++refusals;
+			executor.runFor(std::chrono::milliseconds{50});
+		}
+	}
+	CHECK(accepted < enough);
+	done = true;
+	socket.reset();
+}
