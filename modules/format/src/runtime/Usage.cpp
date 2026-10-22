@@ -61,14 +61,39 @@ json countJson(std::uint64_t runs, std::uint64_t errors, std::int64_t first, std
 	return {{"runs", runs}, {"errors", errors}, {"first", first}, {"last", last}};
 }
 
+/// @brief A saved whole number.
+/// @param saved The saved object.
+/// @param key Its key.
+/// @return It, or 0 if it is missing or not a whole number.
+std::int64_t integerOf(const json& saved, const char* key) {
+	const auto found = saved.find(key);
+	return found != saved.end() && found->is_number_integer() ? found->get<std::int64_t>() : 0;
+}
+
+/// @brief A saved text.
+/// @param saved The saved object.
+/// @param key Its key.
+/// @return It, or "" if it is missing or not a text.
+std::string textOf(const json& saved, const char* key) {
+	const auto found = saved.find(key);
+	return found != saved.end() && found->is_string() ? found->get<std::string>() : std::string();
+}
+
+/// @brief A saved list.
+/// @param saved The saved object.
+/// @param key Its key.
+/// @return It, or an empty list if it is missing or not a list.
+const json& listOf(const json& saved, const char* key) {
+	static const json none = json::array();
+	const auto found = saved.find(key);
+	return found != saved.end() && found->is_array() ? *found : none;
+}
+
 /// @brief Reads a saved count, bounded.
 /// @param saved The saved entry.
 /// @return Its runs, errors, first and last, clamped.
 std::tuple<std::uint64_t, std::uint64_t, std::int64_t, std::int64_t> readCount(const json& saved) {
-	const auto number = [&](const char* key) {
-		const auto found = saved.find(key);
-		return found != saved.end() && found->is_number_integer() ? found->get<std::int64_t>() : 0;
-	};
+	const auto number = [&](const char* key) { return integerOf(saved, key); };
 	const auto runs = static_cast<std::uint64_t>(std::clamp<std::int64_t>(number("runs"), 0, Usage::maxCount));
 	const auto errors = std::min(runs, static_cast<std::uint64_t>(std::max<std::int64_t>(number("errors"), 0)));
 	return {runs, errors, number("first"), number("last")};
@@ -199,28 +224,19 @@ void Usage::save() {
 
 void Usage::load(const json& saved) {
 	if(!saved.is_object()) return;
-	const auto number = [&](const char* key) {
-		const auto found = saved.find(key);
-		return found != saved.end() && found->is_number_integer()
-		           ? std::max<std::int64_t>(found->get<std::int64_t>(), 0)
-				   : 0;
-	};
-	consent_ = number("consent");
-	since_ = number("since");
-	const auto list = [&](const char* key) {
-		return saved.contains(key) && saved[key].is_array() ? saved[key] : json::array();
-	};
-	for(const json& entry : list("actions")) {
+	consent_ = std::max<std::int64_t>(integerOf(saved, "consent"), 0);
+	since_ = std::max<std::int64_t>(integerOf(saved, "since"), 0);
+	for(const json& entry : listOf(saved, "actions")) {
 		if(actions_.size() >= maxEntries || !entry.is_object()) break;
-		const std::string node = entry.value("node", json()).is_string() ? entry["node"].get<std::string>() : "";
-		const std::string action = entry.value("action", json()).is_string() ? entry["action"].get<std::string>() : "";
+		const std::string node = textOf(entry, "node");
+		const std::string action = textOf(entry, "action");
 		if(!countable(node) || !countable(action)) continue;
 		const auto [runs, errors, first, last] = readCount(entry);
 		actions_[Key(node, action)] = {runs, errors, first, last};
 	}
-	for(const json& entry : list("screens")) {
+	for(const json& entry : listOf(saved, "screens")) {
 		if(screens_.size() >= maxScreens || !entry.is_object()) break;
-		const std::string screen = entry.value("screen", json()).is_string() ? entry["screen"].get<std::string>() : "";
+		const std::string screen = textOf(entry, "screen");
 		if(!countable(screen)) continue;
 		const auto [runs, errors, first, last] = readCount(entry);
 		screens_[screen] = {runs, 0, first, last};
