@@ -148,7 +148,7 @@
 						"tracks": "{{state.timelineTracks}}",
 						"duration": 28,
 						"fps": 1,
-						"scale": 32,
+						"pixelsPerSecond": 32,
 						"offset": 0,
 						"time": "{{daysBetween(state.sprintStart, state.today)}}",
 						"markers": [{ "time": 14, "label": "{{t('timeline.sprintEnd')}}" }],
