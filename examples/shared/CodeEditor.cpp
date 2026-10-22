@@ -513,85 +513,155 @@ affresco::json caretEvent(const CodeEditor& editor, Position at) {
 	return event;
 }
 
+/// @brief Makes a "code" node's editor, whose hovers and typing run the actions its properties name.
+/// @param screen The screen that runs them.
+std::unique_ptr<ScreenCodeEditor> makeScreenCodeEditor(affresco::Screen& screen) {
+	auto editor = std::make_unique<ScreenCodeEditor>();
+	ScreenCodeEditor& self = *editor;
+	self.onHoverPosition.connect([&screen, &self](std::optional<Position> at) {
+		if(self.hoverAction.empty()) return;
+		affresco::json event = at ? caretEvent(self, *at) : affresco::json::object();
+		event["over"] = at.has_value();
+		screen.runAction(self.hoverAction, self, event.dump());
+	});
+	self.onTyped.connect([&screen, &self](const std::string& text) {
+		if(self.typeAction.empty()) return;
+		affresco::json event = caretEvent(self, self.caret());
+		event["text"] = text;
+		event["word"] = utf8(self.wordBeforeCaret());
+		screen.runAction(self.typeAction, self, event.dump());
+	});
+	return editor;
+}
+
+/// @brief The action a property names.
+/// @param properties The node's properties.
+/// @param key The property.
+/// @return Its text, or "" if it isn't a string.
+std::string actionOf(const affresco::json& properties, const char* key) {
+	const auto found = properties.find(key);
+	return found != properties.end() && found->is_string() ? found->get<std::string>() : std::string();
+}
+
+/// @brief Applies "popup": while it is true, the popup's keys go to "onPopupKey".
+/// @param screen The screen that runs the action.
+/// @param editor The editor.
+/// @param properties The node's properties.
+void applyPopup(affresco::Screen& screen, ScreenCodeEditor& editor, const affresco::json& properties) {
+	if(const std::string action = actionOf(properties, "onPopupKey");
+	   properties.value("popup", false) && !action.empty())
+		editor.setPopupKeys([&screen, &editor, action](std::string_view key) {
+			screen.runAction(action, editor, affresco::json{{"key", key}}.dump());
+			return true;
+		});
+	else editor.setPopupKeys({});
+}
+
+/// @brief Applies "insert": `{ "text", "before", "request" }` replaces the selection and the code points before the
+/// caret with the text, once per request (a completion).
+/// @param editor The editor.
+/// @param properties The node's properties.
+void applyInsert(ScreenCodeEditor& editor, const affresco::json& properties) {
+	const auto insert = properties.find("insert");
+	if(insert == properties.end() || !insert->is_object() || !(*insert)["text"].is_string()) return;
+	editor.insertAtCaret(affresco::codepointsOf((*insert)["text"].get<std::string>()),
+	                     static_cast<std::size_t>(std::max(0.0, insert->value("before", 0.0))),
+	                     static_cast<long long>(insert->value("request", 0.0)));
+}
+
+/// @brief Applies "buffer": the application's text for that id, shared with every editor showing it.
+/// @param editor The editor.
+/// @param properties The node's properties.
+/// @param buffers The application's texts by id, or an empty function.
+void applyBuffer(ScreenCodeEditor& editor, const affresco::json& properties, const BufferLookup& buffers) {
+	const auto buffer = properties.find("buffer");
+	if(!buffers || buffer == properties.end() || !buffer->is_string()) return;
+	if(auto text = buffers(buffer->get<std::string>()); text && text != editor.sharedModel())
+		editor.setModel(std::move(text));
+}
+
+/// @brief The grammar overlay runs of a "tokens" value: `{ "line", "column", "length", "style" }` each; runs that
+/// aren't objects with a style are skipped.
+/// @param tokens The value.
+std::vector<affresco::format::SyntaxHighlighter::Overlay> overlayRuns(const affresco::json& tokens) {
+	std::vector<affresco::format::SyntaxHighlighter::Overlay> runs;
+	for(const affresco::json& run : tokens.is_array() ? tokens : affresco::json::array()) {
+		if(!run.is_object() || !run.value("style", affresco::json()).is_string()) continue;
+		const auto whole = [&run](const char* key) {
+			return static_cast<std::size_t>(std::max(0.0, run.value(key, 0.0)));
+		};
+		runs.push_back({whole("line"), whole("column"), whole("length"), run["style"].get<std::string>()});
+	}
+	return runs;
+}
+
+/// @brief Applies "tokens": runs over the grammar's colours, given again only when they change (edits move them
+/// meanwhile).
+/// @param editor The editor.
+/// @param properties The node's properties.
+void applyTokens(ScreenCodeEditor& editor, const affresco::json& properties) {
+	affresco::json tokens = properties.value("tokens", affresco::json::array());
+	if(tokens == editor.tokens) return;
+	std::vector<affresco::format::SyntaxHighlighter::Overlay> runs = overlayRuns(tokens);
+	editor.tokens = std::move(tokens);
+	editor.setOverlay(std::move(runs));
+}
+
+/// @brief Applies "goTo": `{ "line": 12, "request": 3 }` moves the caret, once per request (Forge's go to line).
+/// @param editor The editor.
+/// @param properties The node's properties.
+void applyGoTo(ScreenCodeEditor& editor, const affresco::json& properties) {
+	const auto goTo = properties.find("goTo");
+	if(goTo == properties.end() || !goTo->is_object()) return;
+	editor.goToLine(static_cast<std::size_t>(std::max(0.0, goTo->value("line", 1.0))),
+	                static_cast<long long>(goTo->value("request", 0.0)),
+	                static_cast<std::size_t>(std::max(0.0, goTo->value("column", 1.0))));
+}
+
+/// @brief Applies "syntax": a colour for each kind of text.
+/// @param screen The screen, which resolves the colours.
+/// @param editor The editor.
+/// @param properties The node's properties.
+/// @throws std::invalid_argument For a kind it doesn't know, or a value that isn't a colour.
+void applySyntax(const affresco::Screen& screen, ScreenCodeEditor& editor, const affresco::json& properties) {
+	if(!properties.contains("syntax")) return;
+	for(const auto& [name, value] : properties["syntax"].items()) {
+		const auto token = static_cast<std::size_t>(std::ranges::find(tokenNames, name) - tokenNames.begin());
+		if(token == 0 || token == tokenNames.size() || !value.is_string()) // "plain" is "textColor"
+			throw std::invalid_argument("syntax." + name +
+			                            ": expected keyword, type, string, number, comment or heading, with a colour");
+		editor.setTokenColor(static_cast<CodeEditor::Token>(token), screen.resolveColor(value.get<std::string>()));
+	}
+}
+
+/// @brief Applies a "code" node's properties to its editor, in an order that keeps the language before its colours.
+/// @param screen The screen.
+/// @param editor The editor.
+/// @param properties The node's properties.
+/// @param buffers The application's texts by id, or an empty function.
+void applyProperties(affresco::Screen& screen, ScreenCodeEditor& editor, const affresco::json& properties,
+                     const BufferLookup& buffers) {
+	editor.hoverAction = actionOf(properties, "onHover");
+	editor.typeAction = actionOf(properties, "onType");
+	applyPopup(screen, editor, properties);
+	applyInsert(editor, properties);
+	applyBuffer(editor, properties, buffers);
+	editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "");
+	editor.resetTokenColors();
+	applyTokens(editor, properties);
+	applyGoTo(editor, properties);
+	applySyntax(screen, editor, properties);
+}
+
 } // namespace
 
 void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers) {
 	screen.registerType(
-	    "code",
-	    [&screen] {
-		    auto editor = std::make_unique<ScreenCodeEditor>();
-		    ScreenCodeEditor& self = *editor;
-		    self.onHoverPosition.connect([&screen, &self](std::optional<Position> at) {
-			    if(self.hoverAction.empty()) return;
-			    affresco::json event = at ? caretEvent(self, *at) : affresco::json::object();
-			    event["over"] = at.has_value();
-			    screen.runAction(self.hoverAction, self, event.dump());
-		    });
-		    self.onTyped.connect([&screen, &self](const std::string& text) {
-			    if(self.typeAction.empty()) return;
-			    affresco::json event = caretEvent(self, self.caret());
-			    event["text"] = text;
-			    event["word"] = utf8(self.wordBeforeCaret());
-			    screen.runAction(self.typeAction, self, event.dump());
-		    });
-		    return editor;
-	    },
+	    "code", [&screen] { return makeScreenCodeEditor(screen); },
 	    {"language", "syntax", "goTo", "buffer", "onHover", "onType", "popup", "onPopupKey", "insert", "tokens"},
 	    [&screen, buffers = std::move(buffers)](affresco::Panel& panel, const std::string& propertiesJson) {
 		    auto& editor = dynamic_cast<ScreenCodeEditor&>(panel); // the factory above made it
-		    const affresco::json properties = affresco::json::parse(propertiesJson);
-		    const auto actionOf = [&properties](const char* key) {
-			    const auto found = properties.find(key);
-			    return found != properties.end() && found->is_string() ? found->get<std::string>() : std::string();
-		    };
-		    editor.hoverAction = actionOf("onHover");
-		    editor.typeAction = actionOf("onType");
-		    // "popup": the keys go to "onPopupKey" while it is true
-		    if(const std::string action = actionOf("onPopupKey"); properties.value("popup", false) && !action.empty())
-			    editor.setPopupKeys([&screen, &editor, action](std::string_view key) {
-				    screen.runAction(action, editor, affresco::json{{"key", key}}.dump());
-				    return true;
-			    });
-		    else editor.setPopupKeys({});
-		    if(const auto insert = properties.find("insert"); insert != properties.end() && insert->is_object() &&
-		                                                      (*insert)["text"].is_string())
-			    editor.insertAtCaret(affresco::codepointsOf((*insert)["text"].get<std::string>()),
-			                         static_cast<std::size_t>(std::max(0.0, insert->value("before", 0.0))),
-			                         static_cast<long long>(insert->value("request", 0.0)));
-		    // "buffer": the application's text for that id, shared with every editor showing it
-		    if(const auto buffer = properties.find("buffer"); buffers && buffer != properties.end() && buffer->is_string())
-			    if(auto text = buffers(buffer->get<std::string>()); text && text != editor.sharedModel())
-				    editor.setModel(std::move(text));
-		    editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "");
-		    editor.resetTokenColors();
-		    // "tokens": runs over the grammar's colours, given again only when they change (edits move them meanwhile)
-		    if(affresco::json tokens = properties.value("tokens", affresco::json::array()); tokens != editor.tokens) {
-			    std::vector<affresco::format::SyntaxHighlighter::Overlay> runs;
-			    for(const affresco::json& run : tokens.is_array() ? tokens : affresco::json::array()) {
-				    if(!run.is_object() || !run.value("style", affresco::json()).is_string()) continue;
-				    const auto whole = [&run](const char* key) {
-					    return static_cast<std::size_t>(std::max(0.0, run.value(key, 0.0)));
-				    };
-				    runs.push_back({whole("line"), whole("column"), whole("length"), run["style"].get<std::string>()});
-			    }
-			    editor.tokens = std::move(tokens);
-			    editor.setOverlay(std::move(runs));
-		    }
-		    // "goTo": { "line": 12, "request": 3 } moves the caret, once per request (Forge's go to line)
-		    if(const auto goTo = properties.find("goTo"); goTo != properties.end() && goTo->is_object())
-			    editor.goToLine(static_cast<std::size_t>(std::max(0.0, goTo->value("line", 1.0))),
-			                    static_cast<long long>(goTo->value("request", 0.0)),
-			                    static_cast<std::size_t>(std::max(0.0, goTo->value("column", 1.0))));
-		    if(!properties.contains("syntax")) return;
-		    for(const auto& [name, value] : properties["syntax"].items()) {
-			    const auto token = static_cast<std::size_t>(std::ranges::find(tokenNames, name) - tokenNames.begin());
-			    if(token == 0 || token == tokenNames.size() || !value.is_string()) // "plain" is "textColor"
-				    throw std::invalid_argument(
-				        "syntax." + name +
-				        ": expected keyword, type, string, number, comment or heading, with a colour");
-			    editor.setTokenColor(static_cast<CodeEditor::Token>(token),
-				                     screen.resolveColor(value.get<std::string>()));
-		    }
+		    applyProperties(screen, editor, affresco::json::parse(propertiesJson), buffers);
 	    });
 }
 
