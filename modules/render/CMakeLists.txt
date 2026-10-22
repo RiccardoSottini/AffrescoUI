@@ -42,7 +42,7 @@ affrescoui_module(render
 	src/text/PlainText.cpp
 	src/text/Shaping.cpp
 	src/Label.cpp
-	src/RichText.cpp
+	src/text/RichText.cpp
 	src/Panel.cpp
 	src/Stack.cpp
 	src/layout/Flex.cpp
