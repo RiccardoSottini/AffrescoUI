@@ -6,7 +6,6 @@
 #include "TypeRegistry.hpp"
 
 #include "affresco/render/Panel.hpp"
-#include "affresco/render/TimelineView.hpp"
 #include "affresco/render/Transform.hpp"
 
 #include <cmath>
@@ -81,8 +80,7 @@ void registerTransformProperties(TypeRegistry& registry) {
 	                   {"transformOrigin", ValueKind::Any}};
 	set->apply = applyTransform;
 	set->everyUpdate = true; // setTransform() does nothing when it is the same; it also clears keys removed
-	// A timeline's own "scale" is its zoom (TimelineType.cpp), not a transform
-	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TimelineView*>(&panel) == nullptr; };
+	set->appliesTo = [](const Panel&) { return true; }; // every panel; a timeline's zoom is "pixelsPerSecond"
 	registry.addProperties(std::move(set));
 }
 
