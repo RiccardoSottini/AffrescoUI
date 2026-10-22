@@ -1,37 +1,98 @@
 {
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"note": "The Studio's Repairs screen, included by studio.screen.json: the change sets the host installed with a proof, where each stands (applied, needs repair, repairing, repaired, gave up), why, and the repair's proposal, which goes through review like any other. A reviewer retries one that gave up. Cmd+5 opens it.",
-
 	"state": {
 		"repairsOpen": false,
 		"repairRows": []
 	},
-
 	"actions": {
-		"openRepairs": [{ "set": "state.repairsOpen", "to": true }, { "run": "refreshRepairs" }],
-		"refreshRepairs": [{ "send": "host", "data": { "type": "repair" } }],
-		"retryRepair": [
-			{ "note": "with: name" },
-			{ "send": "host", "data": { "type": "repair", "retry": "{{name}}" } }
+		"openRepairs": [
+			{
+				"set": "state.repairsOpen",
+				"to": true
+			},
+			{
+				"run": "refreshRepairs"
+			}
 		],
-		"host:repairs": [{ "set": "state.repairRows", "to": "{{event.changeSets}}" }]
+		"refreshRepairs": [
+			{
+				"send": "host",
+				"data": {
+					"type": "repair"
+				}
+			}
+		],
+		"retryRepair": [
+			{
+				"note": "with: name"
+			},
+			{
+				"if": "{{!state.canReview}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"send": "host",
+				"data": {
+					"type": "repair",
+					"retry": "{{name}}"
+				}
+			}
+		],
+		"host:repairs": [
+			{
+				"set": "state.repairRows",
+				"to": "{{event.changeSets}}"
+			}
+		],
+		"showRepairs": {
+			"title": "Open the repairs",
+			"category": "view",
+			"icon": "wrench",
+			"enablement": "{{state.connected}}",
+			"do": "openRepairs"
+		}
 	},
-
-	"keys": { "mod+5": "openRepairs" },
-
+	"keys": {
+		"mod+5": "showRepairs"
+	},
 	"components": {
 		"repairsDialog": {
-			"params": {},
+			"params": {
+				"open": "state.repairsOpen",
+				"title": "{{t('repairs.title')}}",
+				"message": "{{t('repairs.message')}}",
+				"width": "{{min(560, window.width - 32)}}",
+				"height": 420,
+				"highlight": "@color.accent",
+				"buttons": [
+					{
+						"title": "{{t('dialog.close')}}"
+					}
+				],
+				"color": "@color.card",
+				"textColor": "@color.text",
+				"dimColor": "@color.muted",
+				"backdrop": "@color.backdrop"
+			},
 			"node": {
 				"use": "dialog",
 				"with": {
 					"open": "state.repairsOpen",
-					"title": "Repairs",
-					"message": "Change sets checked against the template; an agent's repair is a proposal to review.",
-					"width": 560,
+					"title": "{{t('repairs.title')}}",
+					"message": "{{t('repairs.message')}}",
+					"width": "{{min(560, window.width - 32)}}",
 					"height": 420,
 					"highlight": "@color.accent",
-					"buttons": [{ "title": "Close" }],
+					"buttons": [
+						{
+							"title": "{{t('dialog.close')}}"
+						}
+					],
 					"color": "@color.card",
 					"textColor": "@color.text",
 					"dimColor": "@color.muted",
@@ -41,7 +102,12 @@
 					{
 						"id": "repairList",
 						"type": "column",
-						"anchors": { "left": 20, "right": 20, "top": 72, "bottom": 56 },
+						"anchors": {
+							"left": 20,
+							"right": 20,
+							"top": 72,
+							"bottom": 56
+						},
 						"scroll": "vertical",
 						"gap": 6,
 						"children": [
@@ -50,10 +116,14 @@
 								"style": "empty",
 								"width": "100%",
 								"height": 48,
-								"text": "No change set with a proof is installed."
+								"text": "{{t('repairs.none')}}",
+								"id": "repairsNone"
 							},
 							{
-								"repeat": { "for": "c", "in": "{{state.repairRows}}" },
+								"repeat": {
+									"for": "c",
+									"in": "{{state.repairRows}}"
+								},
 								"width": "100%",
 								"height": 64,
 								"style": "card",
@@ -61,28 +131,54 @@
 								"children": [
 									{
 										"type": "label",
-										"text": "{{c.name + '  ' + c.status + (c.proposal > 0 ? '  · proposal #' + c.proposal : '')}}",
+										"text": "{{t('repairs.row', {name: c.name, status: t('repairs.status', {status: c.status}), proposal: c.proposal > 0 ? c.proposal : 'none'})}}",
 										"textColor": "@color.text",
-										"anchors": { "left": 12, "top": 8 },
-										"fitText": true
+										"anchors": {
+											"left": 12,
+											"top": 8
+										},
+										"fitText": true,
+										"id": "repairName"
 									},
 									{
 										"style": "caption",
 										"text": "{{c.reason == '' ? c.request : c.reason}}",
-										"anchors": { "left": 12, "right": 100, "top": 30 }
+										"anchors": {
+											"left": 12,
+											"right": 100,
+											"top": 30
+										},
+										"id": "repairReason"
 									},
 									{
-										"when": "{{c.status == 'gaveUp' || c.status == 'needsRepair'}}",
+										"when": "{{state.canReview && (c.status == 'gaveUp' || c.status == 'needsRepair')}}",
 										"style": "smallButton",
-										"anchors": { "right": 10, "top": 18 },
+										"anchors": {
+											"right": 10,
+											"top": 18
+										},
 										"width": 72,
 										"height": 28,
-										"text": "Retry",
-										"onClick": { "run": "retryRepair", "with": { "name": "{{c.name}}" } }
+										"text": "{{t('repairs.retry')}}",
+										"onClick": {
+											"run": "retryRepair",
+											"with": {
+												"name": "{{c.name}}"
+											}
+										},
+										"id": "repairRetry",
+										"label": "{{t('repairs.retry')}}",
+										"focusable": true,
+										"tooltip": "{{t('repairs.retryTip')}}"
 									}
-								]
+								],
+								"id": "repairRow",
+								"role": "listitem",
+								"label": "{{c.name}}"
 							}
-						]
+						],
+						"role": "list",
+						"label": "{{t('repairs.title')}}"
 					}
 				]
 			}
