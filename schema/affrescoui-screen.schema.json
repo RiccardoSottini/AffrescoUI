@@ -2722,7 +2722,7 @@
 								"maximum": 10000
 							},
 							{
-								"$ref": "#/$defs/v1/dynamic"
+								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
 						"description": "timeline: window units per second, 1 to 10000 (default 100)"
