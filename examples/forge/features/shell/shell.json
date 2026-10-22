@@ -166,7 +166,7 @@
 		},
 		"forgeSideBar": {
 			"node": {
-				"type": "column", "id": "side-bar", "color": "@color.sideBar",
+				"type": "column", "id": "side-bar", "point": "sidebar.views", "color": "@color.sideBar",
 				"children": [
 					{ "type": "label", "id": "side-bar-title", "text": "EXPLORER", "textColor": "@color.muted", "width": "100%",
 					  "height": 32, "padding": 12 },
@@ -253,7 +253,7 @@
 		},
 		"forgeStatusBar": {
 			"node": {
-				"type": "row", "id": "status-bar", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
+				"type": "row", "id": "status-bar", "point": "statusBar.right", "width": "100%", "height": 24, "color": "@color.statusBar", "alignItems": "center",
 				"borderWidth": 1, "borderColor": "@color.border", "gap": 4,
 				"children": [
 					{ "type": "label", "id": "status-folder", "icon": "folder", "text": "{{computed.folderName}}", "padding": 6,

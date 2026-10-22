@@ -177,6 +177,24 @@ constexpr KeyReference sectionTable[] = {
 		"reviewers": {"type": "array", "items": {"type": "string"}}}})json",
 	 "Who may change the running screen (see [Version control](VERSION_CONTROL.md)). Revisions can't change it.",
 	 "sections"},
+    {"features", R"json({"type": "object", "description": "Installed features, one record each (rfcs/0004-features.md)",
+		"additionalProperties": {"type": "object", "required": ["release", "enabled", "provides"]}})json",
+	 "`{\"wordCount\": {\"release\": \"1.0.0\", \"enabled\": true, \"order\": 10, \"requires\": {...}, "
+	 "\"provides\": {...}}}`: installed features, each kept whole in its record (with `title`, `source`, `digest` and "
+	 "`publisher`). The runtime merges the enabled ones in `order`, under their names (`state.wordCount`, "
+	 "`wordCount.toggle`); views join the nodes whose `point` they name. Install, enable, disable and remove are "
+	 "revisions on `/features/<name>`. A feature can't bring a capability or a control step.",
+	 "sections"},
+    {"exports", R"json({"type": "object", "description": "Values features read as app.<name>",
+		"additionalProperties": {"type": "object", "required": ["type", "value"]}})json",
+	 "`{\"editor.text\": {\"type\": \"string\", \"value\": \"{{state.text}}\"}}`: values features read as "
+	 "`app.editor.text`.",
+	 "sections"},
+    {"imports", R"json({"type": "object", "description": "Aliases for installed features",
+		"additionalProperties": {"type": "string"}})json",
+	 "`{\"ui\": \"workbench@^1.0.0\"}`: `\"use\": \"ui.panel\"` builds the feature's `workbench.panel`, if its "
+	 "release is in the range.",
+	 "sections"},
     {"$schema", R"json({"type": "string"})json", "", ""},
 };
 

@@ -58,3 +58,19 @@ A theme is a set of variants of the same tokens (`themes.json`), switched by `"t
   `colors` onto Forge's colour tokens (a colour it lacks comes from its `type`), keeps it in `state.themes`, and switches to it.
 - **The file icon theme** maps file names and extensions to Lucide glyphs and colours. Turn it off in the settings
   (`workbench.fileIcons`).
+
+## Features from a catalogue
+
+The four features above are also described as packages: each folder has a `feature.json` (RFC 0004) with its title,
+release and requirements. Two more features ship only as packages: `features/word-count/` (the words of the text being
+edited, in the status bar) and `features/todo-tree/` (the TODO and FIXME comments of the open files; it requires
+`wordCount`).
+
+`catalog/` is a signed catalogue of those two: `index.json` and one signed manifest per release. Forge trusts its
+publisher, `examplePublisher` in `Forge.hpp`, and offers it through the `features` service, so the `installFeature`
+and `upgradeFeature` actions install from it and enabling, disabling or removing one is a revision on
+`/features/<name>`. The catalogue was signed by a throwaway key whose private half was discarded: only its public key
+is in the repository, and only Forge trusts it. To change a manifest, sign the manifests and then the index again with
+a key of your own, `affrescoui sign <file> --key KEYFILE` (make one with `--new-key`), and put its public key in
+`examplePublisher`. `.gitattributes` keeps the signed files byte for byte. `features.scenarios.json` plays the catalogue,
+an install, enabling and disabling, removal, and a feature that requires another.

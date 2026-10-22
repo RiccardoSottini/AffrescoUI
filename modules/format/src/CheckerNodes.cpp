@@ -19,7 +19,7 @@ constexpr auto visualStates = std::to_array<std::string_view>({"hover", "focused
 
 /// Node keys walkNode() reads before the properties, or that are no values.
 constexpr auto nodeKeys = std::to_array<std::string_view>(
-    {"type", "id", "note", "slot", "repeat", "with", "let", "check", "use", "children"});
+    {"type", "id", "note", "slot", "repeat", "with", "let", "check", "use", "children", "point"});
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(

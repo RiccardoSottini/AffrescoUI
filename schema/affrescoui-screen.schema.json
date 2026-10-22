@@ -624,6 +624,36 @@
 					"root": {
 						"$ref": "#/$defs/v1/node",
 						"description": "The window's root panel: it always fills the window"
+					},
+					"features": {
+						"type": "object",
+						"description": "Installed features, one record each (rfcs/0004-features.md)",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"release",
+								"enabled",
+								"provides"
+							]
+						}
+					},
+					"exports": {
+						"type": "object",
+						"description": "Values features read as app.<name>",
+						"additionalProperties": {
+							"type": "object",
+							"required": [
+								"type",
+								"value"
+							]
+						}
+					},
+					"imports": {
+						"type": "object",
+						"description": "Aliases for installed features",
+						"additionalProperties": {
+							"type": "string"
+						}
 					}
 				}
 			},

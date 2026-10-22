@@ -57,7 +57,7 @@ inline constexpr std::array<std::string_view, 5> stateBlocks = {"hover", "focuse
 inline bool structural(const std::string& key) {
 	return key == "children" || key == "repeat" || key == "when" || key == "let" || key == "check" || key == "use" ||
 	       key == "with" || key == "bind" || key == "caret" || key == "keys" || key == "every" || key == "drag" || key == "context" ||
-	       key == "note" || key == "slot" || handlerKey(key);
+	       key == "note" || key == "slot" || key == "point" || handlerKey(key);
 }
 
 /// @brief Joins three pieces of text, allocating once: places for errors ("root", ".", "color") are built on every

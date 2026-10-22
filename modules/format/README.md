@@ -16,6 +16,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing) and `reviewLines` (the service steps a change adds, which always need a reviewer); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
 | `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
@@ -217,8 +218,14 @@ and shows what it decoded.
 ## Files
 
 ```
-include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp
+include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp, Features.hpp
 src/
+  Features.cpp             features (RFC 0004): trusted publishers, catalogues, the install and upgrade revisions
+  Composition.*            the enabled features merged into the screen the runtime builds, with RFC 0004's checks
+  ComposedVersions.*       the document's version control as the runtime sees it, with the enabled features merged in
+  FeatureManifest.*        a feature's manifest: releases and ranges, its shape, features, exports and imports
+  FeatureCatalog.*         catalogue v0: a signed index and its releases' manifests, with every check
+  FeatureSignatures.*      Ed25519 signatures over canonical JSON (RFC 8785), base64url, SHA-512 digests
   Rules.cpp                validation, findNode, permissions, checkChange (control steps, capability sections)
   RulesNodes.cpp           Rules for revisions' nodes and paths: ids for the nodes they add, hints for paths
   NodeIds.cpp              where nodes are, their ids, duplicates, and readable ids for nodes without one

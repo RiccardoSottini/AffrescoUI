@@ -94,10 +94,12 @@ int main(int argc, char** argv) {
 	try {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
-		// As affrescoui_host and affrescoui_forge; Forge's scenarios see forge/folder open, and no file dialog
+		// As affrescoui_host and affrescoui_forge; Forge's scenarios see forge/folder open, its example
+		// catalogue, and no file dialog
 		options.prepare = [](affresco::Screen& screen) {
 			examples::registerCodeEditor(screen);
 			forge::registerNatives(screen, std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER));
+			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
 		};
 		std::vector<std::string> files;
 		if(!readArguments(std::vector<std::string_view>(argv + 1, argv + argc), options, files)) return 2;

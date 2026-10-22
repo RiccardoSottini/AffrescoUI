@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 1,
-	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp.",
+	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp; the features service offers the example catalogue (catalog/).",
 
 	"window": {
 		"title": "Forge", "width": 1200, "height": 760, "minWidth": 800, "minHeight": 500,
@@ -29,6 +29,28 @@
 		"reviewers": ["studio"]
 	},
 
+	"state": { "featureRows": [], "featureStatus": "" },
+
+	"features": {},
+
+	"services": { "features": { "provider": "features" } },
+
+	"actions": {
+		"refreshFeatures": [{ "invoke": "features.catalog", "into": "state.featureRows" }],
+		"installFeature": [
+			{ "note": "event: name. Installs a feature from the example catalogue, by a revision the permissions review" },
+			{ "invoke": "features.install", "with": { "name": "{{event.name}}" },
+			  "onDone": [{ "set": "state.featureStatus", "to": "{{result.status}}" }],
+			  "onError": [{ "set": "state.featureStatus", "to": "{{error.message}}" }] }
+		],
+		"upgradeFeature": [
+			{ "note": "event: name" },
+			{ "invoke": "features.upgrade", "with": { "name": "{{event.name}}" },
+			  "onDone": [{ "set": "state.featureStatus", "to": "{{result.status}}" }],
+			  "onError": [{ "set": "state.featureStatus", "to": "{{error.message}}" }] }
+		]
+	},
+
 	"persist": ["state.layout", "state.theme", "state.themes", "state.settings", "state.iconTheme"],
 
 	"onLoad": [
@@ -36,6 +58,10 @@
 		  "into": "state.folder" }
 	],
 
+	"exports": {
+		"editor.text": { "type": "string", "value": "{{computed.activeDoc.text ?? ''}}", "description": "The text of the editor in focus." },
+		"workspace.files": { "type": "array", "value": "{{map(filter(state.docs, it.kind == 'file'), {id: it.id, name: it.label, text: it.text})}}", "description": "The open files: id, name and text." }
+	},
 	"root": {
 		"id": "root", "color": "@color.editor",
 		"children": [

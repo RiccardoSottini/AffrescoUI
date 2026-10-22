@@ -24,7 +24,7 @@ struct TokenSource {
 };
 
 /// @brief The tokens an imported theme sets, from VS Code's names (code.visualstudio.com/api/references/theme-color).
-const std::array<TokenSource, 21> tokenSources = {{
+constexpr std::array<TokenSource, 21> tokenSources = {{
     {"titleBar", {"titleBar.activeBackground", "editorGroupHeader.tabsBackground"}, {"#3c3c3c", "#dddddd", "#000000"}},
     {"activityBar", {"activityBar.background", "sideBar.background"}, {"#333333", "#2c2c2c", "#000000"}},
     {"sideBar", {"sideBar.background", "editor.background"}, {"#252526", "#f3f3f3", "#000000"}},
@@ -48,6 +48,29 @@ const std::array<TokenSource, 21> tokenSources = {{
     {"text", {"foreground", "sideBar.foreground", "editor.foreground"}, {"#cccccc", "#616161", "#ffffff"}},
 }};
 
+/// @brief Where a string that starts at a quote ends.
+/// @param text The file's text.
+/// @param start The opening quote.
+/// @return The closing quote, or the end of the text for a string that never closes.
+std::size_t stringEnd(std::string_view text, std::size_t start) {
+	std::size_t i = start + 1;
+	for(; i < text.size() && text[i] != '"'; ++i)
+		if(text[i] == '\\') ++i;
+	return i;
+}
+
+/// @brief Where a comment ends, if one starts at a position.
+/// @param text The file's text.
+/// @param i The position.
+/// @return The comment's last character (a line comment keeps its newline), or npos if no comment starts there.
+std::size_t commentEnd(std::string_view text, std::size_t i) {
+	if(text[i] != '/' || i + 1 >= text.size()) return std::string_view::npos;
+	if(text[i + 1] == '/') return std::min(text.find('\n', i), text.size()) - 1;
+	if(text[i + 1] != '*') return std::string_view::npos;
+	const std::size_t end = text.find("*/", i + 2);
+	return end == std::string_view::npos ? text.size() : end + 1;
+}
+
 /// @brief Removes the comments and trailing commas VS Code allows in its JSON files, leaving strings untouched.
 /// @param text The file's text.
 /// @return Plain JSON text (if the rest of it is JSON).
@@ -58,24 +81,20 @@ std::string plainJson(std::string_view text) {
 	for(std::size_t i = 0; i < text.size(); ++i) {
 		const char c = text[i];
 		if(c == '"') {
-			const std::size_t start = i;
-			for(++i; i < text.size() && text[i] != '"'; ++i)
-				if(text[i] == '\\') ++i;
-			out.append(text.substr(start, i - start + 1));
+			const std::size_t end = stringEnd(text, i);
+			out.append(text.substr(i, end - i + 1));
+			i = end;
 			pendingComma = std::string::npos;
-		} else if(c == '/' && i + 1 < text.size() && text[i + 1] == '/') {
-			i = std::min(text.find('\n', i), text.size()) - 1;
-		} else if(c == '/' && i + 1 < text.size() && text[i + 1] == '*') {
-			const std::size_t end = text.find("*/", i + 2);
-			i = end == std::string_view::npos ? text.size() : end + 1;
-		} else if(c == ',') {
-			pendingComma = out.size();
-			out.push_back(c);
-		} else {
-			if((c == '}' || c == ']') && pendingComma != std::string::npos) out[pendingComma] = ' ';
-			if(std::isspace(static_cast<unsigned char>(c)) == 0) pendingComma = std::string::npos;
-			out.push_back(c);
+			continue;
 		}
+		if(const std::size_t end = commentEnd(text, i); end != std::string_view::npos) {
+			i = end;
+			continue;
+		}
+		if((c == '}' || c == ']') && pendingComma != std::string::npos) out[pendingComma] = ' ';
+		if(c == ',') pendingComma = out.size();
+		else if(std::isspace(static_cast<unsigned char>(c)) == 0) pendingComma = std::string::npos;
+		out.push_back(c);
 	}
 	return out;
 }
@@ -97,6 +116,21 @@ std::string colour(const affresco::json& value) {
 		return full;
 	}
 	return text.size() == 7 || text.size() == 9 ? text : "";
+}
+
+/// @brief The colour a theme gives a token: its first key that holds a colour, or the default for its type.
+/// @param colors The theme's `colors`.
+/// @param source The token.
+/// @param type typeIndex() of the theme's type.
+/// @return The colour.
+std::string tokenColour(const affresco::json& colors, const TokenSource& source, std::size_t type) {
+	if(colors.is_object())
+		for(const std::string_view key : source.keys) {
+			const auto it = colors.find(key);
+			if(it == colors.end()) continue;
+			if(std::string value = colour(*it); !value.empty()) return value;
+		}
+	return std::string(source.defaults[type]);
 }
 
 /// @brief Which of a token's defaults a theme type uses.
@@ -140,15 +174,10 @@ affresco::json importVsCodeTheme(std::string_view text, std::string_view fallbac
 	const std::string id = themeId(name);
 
 	affresco::json patch = affresco::json::array();
-	for(const TokenSource& source : tokenSources) {
-		std::string value;
-		for(const std::string_view key : source.keys) {
-			if(colors.is_object() && colors.contains(key)) value = colour(colors[std::string(key)]);
-			if(!value.empty()) break;
-		}
-		if(value.empty()) value = source.defaults[typeIndex(type)];
-		patch.push_back({{"op", "add"}, {"path", "/tokens/color." + std::string(source.token) + "/" + id}, {"value", value}});
-	}
+	for(const TokenSource& source : tokenSources)
+		patch.push_back({{"op", "add"},
+		                 {"path", "/tokens/color." + std::string(source.token) + "/" + id},
+		                 {"value", tokenColour(colors, source, typeIndex(type))}});
 	return {{"id", id}, {"name", name}, {"type", typeIndex(type) == 1 ? "light" : "dark"}, {"patch", std::move(patch)}};
 }
 

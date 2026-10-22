@@ -83,10 +83,11 @@ int run(const Options& options) {
 	                                                     options.dataDir,
 	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
 	examples::registerCodeEditor(screen);
-	auto workspace = std::make_shared<forge::Workspace>();
+	const auto workspace = std::make_shared<forge::Workspace>();
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
 	forge::registerAccounts(screen, !screenshotOnly);
+	forge::addExampleCatalog(screen, assetsDirectory().parent_path() / "forge");
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {
@@ -100,6 +101,10 @@ int run(const Options& options) {
 
 } // namespace
 
+/// @brief Runs Forge.
+/// @param argc The number of arguments.
+/// @param argv The arguments.
+/// @return 0, 1 for an error (written to stderr), or 2 for wrong arguments.
 int main(int argc, char** argv) { // NOLINT(misc-const-correctness): main's own signature
 	try {
 		const std::optional<Options> options = parseArguments(argc, argv);

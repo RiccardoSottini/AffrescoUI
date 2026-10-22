@@ -41,6 +41,6 @@ std::filesystem::path insideFolder(const std::filesystem::path& root, const std:
 /// @return Its text.
 /// @throws std::runtime_error If the path leaves the folder, or the file is missing, too large or can't be read.
 std::string readInFolder(const std::filesystem::path& root, const std::string& relative,
-                         std::size_t maxBytes = 2 * 1024 * 1024);
+                         std::size_t maxBytes = std::size_t{2} * 1024 * 1024);
 
 } // namespace forge

@@ -17,6 +17,7 @@
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
+- feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -376,6 +377,13 @@ def frames_seeds():
             "\x07" + body + "\n{}\r\n", "\x04Content-Length: 999\r\n\r\n"]
 
 
+def feature_seeds():
+    """Forge's feature manifests, and its catalogue's index and manifest copies (examples/forge)."""
+    forge = ROOT / "examples" / "forge"
+    return [path.read_text(encoding="utf-8") for path in sorted(forge.glob("features/*/feature.json"))
+            + sorted(forge.glob("catalog/**/*.json"))]
+
+
 def dictionaries():
     """libFuzzer dictionaries: the words each target's input is made of."""
     # The function registry's rows (ExpressionFunctions*.cpp), their aliases, and the operators the lowering knows
@@ -484,6 +492,11 @@ def main():
     write(out, "websocket", websocket_seeds(), words["websocket"])
     write(out, "frames", frames_seeds(), words["frames"])
     write(out, "peer_handshake", peer_handshake_seeds(), words["peer_handshake"])
+    features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
+                "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
+    write(out, "feature_manifest", feature_seeds(), words["json"] + features)
+    write(out, "catalog_index", feature_seeds(), words["json"] + features)
+    write(out, "signature", feature_seeds() + ["ed25519-secret:", "-_8AEA"], words["json"] + features)
 
 
 if __name__ == "__main__":

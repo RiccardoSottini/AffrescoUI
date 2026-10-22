@@ -281,6 +281,19 @@ a process (the `ProcessChannel` and `StdioChannel` classes are only opened by ho
 or write files, apart from the parts of the state its `persist` section lists, which go to the state file the host
 chose.
 
+### Features and catalogues
+A feature package or a catalogue's index (RFC 0004) is untrusted input, read like a screen file: size limits (an
+index or a manifest over its limit is refused before it is parsed), the JSON nesting limit, and keys and digests
+parsed at their fixed lengths and compared in constant time. Each is signed with Ed25519 (Monocypher) over its
+canonical JSON (RFC 8785); its releases are pinned by SHA-512 digest and size. The host trusts no publisher until its
+code calls `Features::trustPublisher`; a catalogue installs only if its index and each manifest are signed by trusted
+keys, the manifest by the very publisher the index names, and an upgrade never changes the publisher. A release's
+URL is a path inside the catalogue's folder. Whatever is installed is a revision under the document's
+`permissions`, and a feature can't bring a capability (`channels`, `services`, `connections`, `persist`) or a
+control step, so a feature never widens what the app can do. `affrescoui sign --new-key` writes a key only its owner
+can read and never over an existing file; keep keys out of repositories (Forge's example catalogue was signed by a
+key that was then deleted).
+
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
