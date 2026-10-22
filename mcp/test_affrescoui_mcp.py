@@ -6,6 +6,7 @@ find_nodes, the format guide by topic, the changes a re-read returns, a proposal
 """
 
 import contextlib
+import importlib.util
 import io
 import json
 import os
@@ -31,6 +32,16 @@ SCREEN = {
                 {"id": "label-filter", "type": "label", "text": "{{tag}}",
                  "repeat": {"for": "tag", "in": "state.filters"}, "when": "{{tag != 'all'}}"}]}]},
         {"id": "textarea-new-card", "type": "textarea", "bind": "state.newCard", "placeholder": "New card"}]}}
+
+
+class Entry(unittest.TestCase):
+    def test_the_file_clients_run_offers_the_package(self):
+        # tests/perf/tokens.py and benchmarks/agents/run.py load affrescoui_mcp.py by path, outside sys.path
+        spec = importlib.util.spec_from_file_location("affrescoui_mcp_entry", os.path.join(HERE, "affrescoui_mcp.py"))
+        entry = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(entry)
+        for name in mcp.__all__:
+            self.assertIs(getattr(entry, name), getattr(mcp, name), name)
 
 
 class Outline(unittest.TestCase):
