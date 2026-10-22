@@ -76,6 +76,7 @@ std::string readFlow(const json& value, const std::string& at) {
 std::vector<std::string> readScopes(const json& value, const std::string& at) {
 	if(!value.is_array() || value.size() > 32) expect::fail(at, "a list of at most 32 scopes");
 	std::vector<std::string> scopes;
+	scopes.reserve(value.size());
 	for(std::size_t index = 0; index < value.size(); ++index)
 		scopes.push_back(readWord(value[index], 128, at + "." + std::to_string(index)));
 	return scopes;

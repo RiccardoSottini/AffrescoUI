@@ -129,6 +129,7 @@ Built A2uiConverter::container(const json& body, const std::string& id, bool acr
 	const float gap = 8;
 	const float each = across && !ids.empty() ? (width - gap * static_cast<float>(ids.size() - 1)) / static_cast<float>(ids.size()) : width;
 	std::vector<Built> built;
+	built.reserve(ids.size());
 	for(const std::string& child : ids) built.push_back(build(child, std::max(each, 16.0f), scope));
 	return across ? row(out_.uniqueId(id), std::move(built), gap) : column(out_.uniqueId(id), std::move(built), gap);
 }

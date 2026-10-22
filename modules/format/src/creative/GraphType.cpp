@@ -39,7 +39,7 @@ std::string itemPlace(const std::string& path, std::size_t index) { return path 
 /// @throws DocumentError If it isn't a number within the range.
 float numberWithin(const json& value, const std::string& at, double low, double high) {
 	const double read = number(value, at);
-	if(!(read >= low && read <= high))
+	if(std::isnan(read) || read < low || read > high)
 		fail(at, "expected a number from " + text(json(low)) + " to " + text(json(high)));
 	return static_cast<float>(read);
 }

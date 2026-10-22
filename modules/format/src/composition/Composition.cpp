@@ -10,6 +10,7 @@
 #include "affresco/format/NodeIds.hpp"
 
 #include <algorithm>
+#include <array>
 #include <format>
 #include <map>
 #include <set>
@@ -76,7 +77,7 @@ std::optional<std::string> soleExpression(const std::string& value) {
 	if(first == std::string::npos || value.compare(first, 2, "{{") != 0 || last < first + 3 ||
 	   value.compare(last - 1, 2, "}}") != 0)
 		return std::nullopt;
-	const std::string inner = value.substr(first + 2, last - 1 - (first + 2));
+	std::string inner = value.substr(first + 2, last - 1 - (first + 2));
 	if(inner.contains("{{") || inner.contains("}}")) return std::nullopt;
 	return inner;
 }
@@ -552,7 +553,7 @@ std::optional<std::string> findInView(const json& node, const std::string& point
 	if(const auto children = node.find("children"); children != node.end() && children->is_array())
 		for(std::size_t index = 0; index < children->size(); ++index) {
 			const json& child = (*children)[index];
-			const std::string at = std::format("{}/children/{}", pointer, index);
+			std::string at = std::format("{}/children/{}", pointer, index);
 			if(child.is_object() && child.value("id", json()) == id) return at;
 			if(auto found = findInView(child, at, id, depth + 1)) return found;
 		}
@@ -562,10 +563,10 @@ std::optional<std::string> findInView(const json& node, const std::string& point
 } // namespace
 
 bool needsComposition(const json& document) {
-	for(const char* section : {"features", "imports"})
-		if(const auto found = document.find(section); found != document.end() && found->is_object() && !found->empty())
-			return true;
-	return false;
+	return std::ranges::any_of(std::array{"features", "imports"}, [&document](const char* section) {
+		const auto found = document.find(section);
+		return found != document.end() && found->is_object() && !found->empty();
+	});
 }
 
 Composition compose(const json& document) { return Composer(document).run(); }
@@ -585,7 +586,7 @@ std::optional<std::string> findFeatureNode(const json& document, std::string_vie
 			if(!nodes.is_object()) continue;
 			const std::string base = std::format("/features/{}/provides/views/{}", pointerKey(name), pointerKey(point));
 			for(const auto& [key, node] : nodes.items()) {
-				const std::string at = base + "/" + pointerKey(key);
+				std::string at = base + "/" + pointerKey(key);
 				if(key == id) return at;
 				if(auto found = findInView(node, at, id, 0)) return found;
 			}

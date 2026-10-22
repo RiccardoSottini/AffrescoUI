@@ -93,7 +93,8 @@ struct SyntaxHighlighter::State {
 			resolved[style] = true;
 			std::string_view name = styles[style];
 			while(palette && !name.empty()) {
-				if((colors[style] = palette(name))) break;
+				colors[style] = palette(name);
+				if(colors[style]) break;
 				const std::size_t dot = name.rfind('.');
 				name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
 			}

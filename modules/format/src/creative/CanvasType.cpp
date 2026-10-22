@@ -51,7 +51,7 @@ private:
 /// @throws DocumentError If it isn't a number within them.
 float within(const json& value, const std::string& at, float low, float high) {
 	const float read = number(value, at);
-	if(!(read >= low && read <= high))
+	if(std::isnan(read) || read < low || read > high)
 		fail(at, "expected a number from " + text(json(low)) + " to " + text(json(high)));
 	return read;
 }

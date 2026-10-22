@@ -306,7 +306,7 @@ std::string bindingWhy(const json& need, const json& binding, const json& host) 
 std::string adaptAction(const json& need, const json& binding, const json& exports, json& actions,
                         const std::string& key) {
 	const std::string name = binding.value(binding.contains("action") ? "action" : "export", "");
-	const std::string target = exports.contains(name) ? actionTarget(exports[name]) : std::string();
+	std::string target = exports.contains(name) ? actionTarget(exports[name]) : std::string();
 	if(target.empty()) return {};
 	json with = binding.value("with", json::object());
 	if(!binding.contains("action"))

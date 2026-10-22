@@ -18,7 +18,7 @@ namespace affresco::format {
 namespace {
 
 constexpr std::size_t runLimit = 256;             ///< Runs one label may have.
-constexpr std::size_t characterLimit = 64 * 1024; ///< Code points of all of them.
+constexpr std::size_t characterLimit = std::size_t{64} * 1024; ///< Code points of all of them.
 constexpr std::size_t linkLimit = 2048;           ///< Bytes of one link.
 constexpr double smallestSize = 4.0;              ///< A run's smallest "size", in pixels.
 constexpr double largestSize = 256.0;             ///< Its largest.
