@@ -25,7 +25,9 @@ constexpr std::chrono::milliseconds idleSlice{60000};
 PeerConnection::PeerConnection(std::shared_ptr<const Shared> shared, std::unique_ptr<tcp::Connection> connection,
                                Opened opened)
     : shared_(std::move(shared)), connection_(std::move(connection)), opened_(std::move(opened)),
-      frames_(true, shared_->options.maxMessageBytes) {
+      // Until the peer has proven who it is, no message may be longer than the one that proves it: a stranger
+      // can't make the server hold maxMessageBytes (readLoop() raises it once the peer is accepted)
+      frames_(true, std::min(shared_->options.maxMessageBytes, peer::maxAuthMessageBytes)) {
 	writer_ = std::thread([this] { writeLoop(); });
 	reader_ = std::thread([this] { readLoop(); });
 }
@@ -50,14 +52,8 @@ void PeerConnection::readLoop() {
 	const bool accepted = author.has_value();
 	opened_(*this, std::move(author));
 	if(!accepted) return;
-	bool reading = true;
-	while(reading) {
-		while(auto event = frames_.next()) {
-			if(!(reading = handle(std::move(*event)))) break;
-		}
-		if(reading && receive(std::nullopt) != tcp::Received::Data) reading = false;
-		feedFrames();
-	}
+	frames_.raiseLimit(shared_->options.maxMessageBytes);
+	while(handleFrames() && receive(std::nullopt) == tcp::Received::Data) feedFrames();
 	post([](PeerConnection& connection) { connection.onClosed(); });
 }
 
@@ -155,6 +151,12 @@ tcp::Received PeerConnection::receive(std::optional<Clock::time_point> deadline)
 void PeerConnection::feedFrames() {
 	frames_.feed(input_);
 	input_.clear();
+}
+
+bool PeerConnection::handleFrames() {
+	while(auto event = frames_.next())
+		if(!handle(std::move(*event))) return false;
+	return true;
 }
 
 bool PeerConnection::handle(FrameEvent event) {

@@ -178,7 +178,7 @@ std::string refusalResponse(int status, std::string_view reason) {
 }
 
 std::optional<std::string> authToken(std::string_view message) {
-	if(message.size() > maxTokenBytes + 64) return std::nullopt;
+	if(message.size() > maxAuthMessageBytes) return std::nullopt;
 	json value;
 	try {
 		value = parseUntrusted(message);

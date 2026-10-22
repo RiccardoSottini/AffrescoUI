@@ -18,6 +18,9 @@ inline constexpr std::size_t maxHandshakeBytes = std::size_t{16} << 10;
 inline constexpr std::size_t maxHeaderLines = 64;
 /// The longest token a peer may send, in a header or a first message.
 inline constexpr std::size_t maxTokenBytes = std::size_t{8} << 10;
+/// The longest first message, {"type": "auth", "token": "..."}: also the longest message read before the peer has
+/// proven who it is.
+inline constexpr std::size_t maxAuthMessageBytes = maxTokenBytes + 64;
 
 /// @brief What an upgrade request says, or why it is refused.
 struct Upgrade {

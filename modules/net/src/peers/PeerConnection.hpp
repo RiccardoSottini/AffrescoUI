@@ -97,6 +97,9 @@ private:
 	tcp::Received receive(std::optional<Clock::time_point> deadline);
 	/// @brief Moves the bytes received into the frame reader.
 	void feedFrames();
+	/// @brief Handles the frames read so far, once open.
+	/// @return Whether to go on reading.
+	bool handleFrames();
 	/// @brief Handles one frame once open.
 	/// @param event The frame.
 	/// @return Whether to go on reading.

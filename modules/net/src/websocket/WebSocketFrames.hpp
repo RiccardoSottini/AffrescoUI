@@ -4,6 +4,7 @@
 /// @brief The WebSocket protocol (RFC 6455) without the transport: the handshake's keys, encoding frames, and a
 /// reader that turns received bytes into messages, bounded and strict.
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -92,6 +93,10 @@ public:
 	[[nodiscard]] std::optional<FrameEvent> next();
 	/// @brief How many bytes are held, not yet read into an event.
 	[[nodiscard]] std::size_t buffered() const noexcept { return buffer_.size(); }
+	/// @brief Raises the longest message, e.g. once the peer has proven who it is. Never lowers it, so a message being
+	/// read stays within it.
+	/// @param messageLimit The longest message, all its fragments together.
+	void raiseLimit(std::size_t messageLimit) noexcept { maxMessageBytes_ = std::max(maxMessageBytes_, messageLimit); }
 
 private:
 	/// @brief Notes an error and stops reading.
