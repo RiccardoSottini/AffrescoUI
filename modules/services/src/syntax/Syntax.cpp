@@ -1,3 +1,7 @@
+/// @file
+/// @brief SyntaxDocument (affresco/services/Syntax.hpp): tree-sitter parses, re-reading only what an edit changed,
+/// and the highlights, folds and brackets read from the tree, each bounded by SyntaxLimits.
+
 #include "affresco/services/Syntax.hpp"
 
 #include "syntax/SyntaxLanguages.hpp"

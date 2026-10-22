@@ -1,3 +1,7 @@
+/// @file
+/// @brief The built-in languages (SyntaxLanguages.hpp): their grammars and queries, compiled once on first use, and
+/// the query predicates the engine understands.
+
 #include "syntax/SyntaxLanguages.hpp"
 
 #include <algorithm>
