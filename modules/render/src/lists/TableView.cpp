@@ -71,6 +71,7 @@ std::size_t TableView::sortColumn() const noexcept {
 void TableView::buildRows(std::vector<std::size_t>& rows) {
 	const std::size_t size = model() ? model()->size() : 0;
 	rows.resize(size);
+	// NOLINTNEXTLINE(modernize-use-ranges): std::ranges::iota is missing from some supported standard libraries
 	std::iota(rows.begin(), rows.end(), std::size_t{0});
 	const std::size_t column = sortColumn();
 	if(column < columns_.size() && size > 1) {

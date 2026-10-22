@@ -249,11 +249,13 @@ CurvesEditor::Layout CurvesEditor::layout() const noexcept {
 	return out;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header
 Vec2 CurvesEditor::toWindow(const Layout& area, CurvePoint point) const noexcept {
 	return {area.plot.left + static_cast<float>(point.x) * area.plot.width(),
 	        area.plot.bottom - static_cast<float>(point.y) * area.plot.height()};
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header
 CurvePoint CurvesEditor::fromWindow(const Layout& area, Vec2 position) const noexcept {
 	const float width = std::max(area.plot.width(), 1.0f), height = std::max(area.plot.height(), 1.0f);
 	return {(position.x - area.plot.left) / width, (area.plot.bottom - position.y) / height};

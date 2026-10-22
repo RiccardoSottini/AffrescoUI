@@ -323,7 +323,7 @@ void TextEditor::moveRows(long rows, bool extend) {
 	if(preferredX_ < 0.0f) preferredX_ = xOnRow(caret_);
 	const long target = static_cast<long>(rowOf(caret_)) + rows;
 	if(target < 0) return moveCaret({0, 0}, extend, true);
-	if(target >= static_cast<long>(rowCount()))
+	if(std::cmp_greater_equal(target, rowCount()))
 		return moveCaret({lines_.size() - 1, lines_.back().size()}, extend, true);
 	moveCaret(positionOnRow(static_cast<std::size_t>(target), preferredX_), extend, true);
 }

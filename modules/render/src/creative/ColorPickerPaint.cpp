@@ -7,14 +7,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 namespace affresco {
 
 namespace {
 
-constexpr float pi = 3.14159265358979f; ///< Half a turn, in radians.
-constexpr int stripPixels = 128;        ///< The width of a strip's bitmap.
-constexpr int planePixels = 128;        ///< The side of the plane's bitmap.
+constexpr float pi = std::numbers::pi_v<float>; ///< Half a turn, in radians.
+constexpr int stripPixels = 128;                ///< The width of a strip's bitmap.
+constexpr int planePixels = 128;                ///< The side of the plane's bitmap.
 
 /// @brief Outlines the part the keyboard is on.
 /// @param painter Where to draw.

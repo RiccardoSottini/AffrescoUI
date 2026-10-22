@@ -36,7 +36,7 @@ void CodeInput::setGap(float gap) { setLook(gap_, std::max(0.0f, gap)); }
 void CodeInput::setCellRadius(float radius) { setLook(cellRadius_, std::max(0.0f, radius)); }
 
 void CodeInput::paint(Painter& painter) const {
-	Panel::paint(painter);
+	Panel::paint(painter); // NOLINT(bugprone-parent-virtual-call): it draws its own cells, not TextArea's text
 
 	const Rect content = contentRect();
 	const auto cells = static_cast<float>(length_);

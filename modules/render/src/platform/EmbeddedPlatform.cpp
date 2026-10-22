@@ -144,6 +144,7 @@ struct Embedding::Impl {
 
 	/// @brief The target, made by the constructor and kept until the destructor.
 	/// @return It.
+	// NOLINTNEXTLINE(bugprone-unchecked-optional-access): set from the constructor until the destructor
 	gl::EmbeddedTarget& frames() { return target.value(); }
 
 	platform::EmbeddedPlatform platform;            ///< Opens the native window.

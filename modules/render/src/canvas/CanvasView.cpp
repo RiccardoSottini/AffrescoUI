@@ -253,10 +253,12 @@ void CanvasView::paintGrid(Painter& painter) const {
 		const double rest = std::fmod(-static_cast<double>(camera), static_cast<double>(grid_));
 		return static_cast<float>((rest < 0.0 ? rest + grid_ : rest) * camera_.zoom);
 	};
+	// NOLINTBEGIN(bugprone-float-loop-counter): grid lines at float steps; counting them would move the pixels
 	for(float x = first(camera_.x); x <= box.width(); x += spacing)
 		painter.fillRect({box.left + std::round(x), box.top, box.left + std::round(x) + 1.0f, box.bottom}, line);
 	for(float y = first(camera_.y); y <= box.height(); y += spacing)
 		painter.fillRect({box.left, box.top + std::round(y), box.right, box.top + std::round(y) + 1.0f}, line);
+	// NOLINTEND(bugprone-float-loop-counter)
 }
 
 void CanvasView::paintItem(Painter& painter, const CanvasItem& item) const {

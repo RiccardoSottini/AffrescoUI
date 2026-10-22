@@ -22,6 +22,7 @@ constexpr bool continues(char byte) noexcept { return (static_cast<unsigned char
 /// @brief Where UTF-8 text first goes wrong.
 /// @param text The text.
 /// @return The offset of the first invalid sequence, or npos if it is all valid.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr() is called only at offsets inside the text
 std::size_t firstInvalid(std::string_view text) noexcept {
 	constexpr std::uint64_t highBits = 0x8080808080808080u;
 	std::size_t at = 0;
@@ -69,6 +70,7 @@ std::size_t codepoints(std::string_view text) noexcept {
 /// @brief Where text inserted at a position ends.
 /// @param at Where it starts.
 /// @param utf8 The text, valid UTF-8.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr() is called only at offsets inside the text
 TextPosition advance(TextPosition at, std::string_view utf8) noexcept {
 	const std::size_t lastFeed = utf8.rfind('\n');
 	if(lastFeed == std::string_view::npos) return {at.line, at.column + codepoints(utf8)};
@@ -91,7 +93,10 @@ struct Decoder {
 				out.push_back(byte);
 			} else if(continues(c)) {
 				pending = (pending << 6) | (byte & 0x3Fu);
-				if(remaining > 0 && --remaining == 0) out.push_back(pending);
+				if(remaining > 0) {
+					--remaining;
+					if(remaining == 0) out.push_back(pending);
+				}
 			} else {
 				remaining = byte >= 0xF0 ? 3 : byte >= 0xE0 ? 2 : 1;
 				pending = byte & (0x3Fu >> remaining);

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <numbers>
 
 namespace affresco {
 
@@ -22,7 +23,7 @@ constexpr float removeDistance = 24.0f;                       ///< How far off t
 constexpr float partGap = 8.0f;                               ///< The space between the preview and the bar.
 constexpr int previewPixels = 96;                             ///< The side of the preview's bitmap.
 constexpr int barPixels = 256;                                ///< The width of the bar's bitmap.
-constexpr double degreesToRadians = 3.14159265358979 / 180.0; ///< Degrees to radians.
+constexpr double degreesToRadians = std::numbers::pi / 180.0; ///< Degrees to radians.
 
 /// @brief A cache key for a gradient.
 /// @param gradient The gradient.
@@ -169,7 +170,8 @@ GradientEditor::GradientEditor()
 	picker->onFocusChanged.connect([this](bool focused) {
 		if(!focused && !focusWithin()) closePopover(false);
 	});
-	picker_ = &static_cast<ColorPicker&>(popover->addChild(std::move(picker)));
+	picker_ = picker.get();
+	popover->addChild(std::move(picker));
 	popover_ = &addChild(std::move(popover));
 }
 
@@ -310,6 +312,7 @@ std::size_t GradientEditor::stopAt(const Layout& area, Vec2 position) const noex
 	return onHandles || bestDistance <= 3.0f ? best : count; // on the bar, only right on a stop's tick
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header
 double GradientEditor::barPosition(const Layout& area, float x) const noexcept {
 	return area.bar.width() > 0.0f ? std::clamp((x - area.bar.left) / area.bar.width(), 0.0f, 1.0f) : 0.0;
 }

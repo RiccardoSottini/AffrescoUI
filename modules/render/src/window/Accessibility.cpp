@@ -95,7 +95,8 @@ void readText(const Panel& panel, AccessibleNode& node) {
 /// @return The element.
 AccessibleNode element(const Panel& panel, std::string role) {
 	AccessibleNode node;
-	node.panel = const_cast<Panel*>(&panel); // the tree hands out panels to act on, as findByRole() does
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): the tree hands out panels to act on, as findByRole() does
+	node.panel = const_cast<Panel*>(&panel);
 	node.id = accessibleId(panel);
 	node.name = accessibleName(panel);
 	node.description = panel.accessibleDescription();
@@ -186,7 +187,7 @@ std::string accessibleName(const Panel& panel) {
 	return panel.tooltip();
 }
 
-AccessibleNode accessibilityTree(Panel& root) {
+AccessibleNode accessibilityTree(Panel& root) { // NOLINT(misc-const-correctness): the public signature
 	AccessibleNode node;
 	std::size_t count = 0;
 	if(root.isShown()) {

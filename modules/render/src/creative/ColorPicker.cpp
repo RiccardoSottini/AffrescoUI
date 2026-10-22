@@ -10,7 +10,9 @@
 #include <cmath>
 #include <cstdlib>
 #include <format>
+#include <numbers>
 #include <optional>
+#include <utility>
 
 namespace affresco {
 
@@ -173,7 +175,7 @@ struct Arrow {
 [[nodiscard]] std::optional<std::size_t> movedSwatch(std::size_t at, Arrow arrow, std::size_t perRow,
                                                      std::size_t count) noexcept {
 	const long moved = static_cast<long>(at) + arrow.dx - arrow.dy * static_cast<long>(perRow);
-	if(moved < 0 || moved >= static_cast<long>(count)) return std::nullopt;
+	if(moved < 0 || std::cmp_greater_equal(moved, count)) return std::nullopt;
 	return static_cast<std::size_t>(moved);
 }
 
@@ -228,7 +230,7 @@ struct Arrow {
 	}
 	const float radius = plane.width() / 2.0f;
 	const float dx = position.x - (plane.left + radius), dy = position.y - (plane.top + radius);
-	if(dx != 0.0f || dy != 0.0f) hsv.hue = std::fmod(std::atan2(-dy, dx) * 180.0 / 3.14159265358979 + 360.0, 360.0);
+	if(dx != 0.0f || dy != 0.0f) hsv.hue = std::fmod(std::atan2(-dy, dx) * 180.0 / std::numbers::pi + 360.0, 360.0);
 	hsv.saturation = radius > 0.0f ? std::min(1.0f, std::hypot(dx, dy) / radius) : 0.0f;
 	return hsv;
 }
@@ -255,8 +257,7 @@ struct Arrow {
 /// @param strip The strip's box.
 /// @param alpha The alpha strip's box.
 /// @return The part's box (the alpha strip's for another part).
-[[nodiscard]] const Rect& dragBox(ColorPicker::Part part, const Rect& plane, const Rect& strip,
-                                  const Rect& alpha) noexcept {
+[[nodiscard]] Rect dragBox(ColorPicker::Part part, const Rect& plane, const Rect& strip, const Rect& alpha) noexcept {
 	return part == ColorPicker::Part::Plane ? plane : part == ColorPicker::Part::Strip ? strip : alpha;
 }
 
@@ -435,9 +436,11 @@ Color ColorPicker::swatchAt(std::size_t index) const noexcept {
 	return index < swatches_.size() ? swatches_[index] : recent_[index - swatches_.size()];
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header
 Rect ColorPicker::swatchRect(const Layout& area, std::size_t index) const noexcept {
-	const float left = area.swatches.left + static_cast<float>(index % area.perRow) * (swatchSide + swatchGap);
-	const float top = area.swatches.top + static_cast<float>(index / area.perRow) * (swatchSide + swatchGap);
+	const std::size_t column = index % area.perRow, row = index / area.perRow;
+	const float left = area.swatches.left + static_cast<float>(column) * (swatchSide + swatchGap);
+	const float top = area.swatches.top + static_cast<float>(row) * (swatchSide + swatchGap);
 	return {left, top, left + swatchSide, top + swatchSide};
 }
 

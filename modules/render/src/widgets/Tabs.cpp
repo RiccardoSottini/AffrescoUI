@@ -129,7 +129,7 @@ void Tabs::keepInView(std::size_t index) {
 	const Place& place = places_[index];
 	const float width = resolvedSize().x;
 	if(place.left + place.width - scroll_ > width) scroll_ = place.left + place.width - width;
-	if(place.left < scroll_) scroll_ = place.left;
+	scroll_ = std::min(scroll_, place.left);
 	invalidatePaint();
 }
 

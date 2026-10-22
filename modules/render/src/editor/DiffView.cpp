@@ -133,7 +133,9 @@ void DiffView::makeEditors() {
 	const std::size_t count = mode_ == Mode::Split ? 2 : 1;
 	for(std::size_t i = 0; i < count; ++i) {
 		std::unique_ptr<TextEditor> made = factory_ ? factory_(language_) : nullptr;
-		auto& editor = static_cast<TextEditor&>(addChild(made ? std::move(made) : std::make_unique<TextEditor>()));
+		if(!made) made = std::make_unique<TextEditor>();
+		TextEditor& editor = *made;
+		addChild(std::move(made));
 		editor.setReadOnly(true);
 		editor.setWrap(false);
 		editor.setLineNumbers(true);
@@ -171,6 +173,7 @@ void DiffView::refresh() {
 	fill(*original_, std::move(side));
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header
 void DiffView::fill(TextEditor& editor, Side side) const {
 	if(!side.text.empty() && side.text.back() == '\n') side.text.pop_back(); // rows are joined, not ended
 	editor.setText(side.text);

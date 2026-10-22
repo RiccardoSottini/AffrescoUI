@@ -136,6 +136,7 @@ void TextEditor::paintDecorationsAbove(Painter& painter, const Font& font, const
 				const float left = layout.textLeft + rowX(span, from), right = layout.textLeft + rowX(span, to);
 				const float bottom = lineTop(layout, row) + lh - 3.0f;
 				// A zigzag of short steps, two pixels each
+				// NOLINTNEXTLINE(bugprone-float-loop-counter): steps along a row of pixels, ending at its right
 				for(float x = left, up = 0.0f; x < right; x += 2.0f, up = 1.0f - up)
 					painter.fillRect({x, bottom - up, std::min(x + 2.0f, right), bottom - up + 1.0f}, d.color);
 			});

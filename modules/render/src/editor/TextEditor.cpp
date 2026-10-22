@@ -443,7 +443,7 @@ void TextEditor::paste() {
 void TextEditor::selectWord(Position at) {
 	const std::u32string& text = lines_[at.line];
 	const char32_t ref = at.column < text.size() ? text[at.column] : (at.column > 0 ? text[at.column - 1] : U' ');
-	auto same = [ref](char32_t c) {
+	const auto same = [ref](char32_t c) {
 		if(isWord(ref)) return isWord(c);
 		if(isBlank(ref)) return isBlank(c);
 		return !isWord(c) && !isBlank(c);

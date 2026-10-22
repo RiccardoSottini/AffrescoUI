@@ -27,8 +27,8 @@ using graph::portRow;
 using graph::portSlop;
 using graph::rowsOf;
 using graph::sortedById;
-using graph::operator+;
-using graph::operator-;
+using graph::operator+; // NOLINT(misc-unused-using-decls): the point arithmetic below uses it
+using graph::operator-; // NOLINT(misc-unused-using-decls): the point arithmetic below uses it
 
 namespace {
 

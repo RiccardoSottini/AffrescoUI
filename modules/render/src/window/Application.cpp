@@ -26,6 +26,7 @@ namespace affresco {
 
 namespace {
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables): the one-Application rule needs a global
 bool instanceAlive = false; ///< Only one Application may exist.
 
 /// The windows an Application owns.
@@ -172,7 +173,7 @@ void Application::followSystem() {
 
 void Application::post(std::function<void()> task) {
 	{
-		const std::lock_guard lock(tasksMutex_);
+		const std::scoped_lock lock(tasksMutex_);
 		tasks_.push_back(std::move(task));
 	}
 	platform_->wake(); // wake up the event loop's wait
@@ -181,7 +182,7 @@ void Application::post(std::function<void()> task) {
 void Application::runPostedTasks() {
 	std::vector<std::function<void()>> tasks;
 	{
-		const std::lock_guard lock(tasksMutex_);
+		const std::scoped_lock lock(tasksMutex_);
 		tasks.swap(tasks_);
 	}
 	for(const auto& task : tasks) task();

@@ -24,7 +24,7 @@ constexpr bool isLetter(char32_t codepoint) noexcept {
 	const bool asciiLetter = (codepoint >= U'a' && codepoint <= U'z') || (codepoint >= U'A' && codepoint <= U'Z');
 	if(asciiLetter) return true;
 	if(codepoint < 0xC0 || codepoint == 0xD7 || codepoint == 0xF7) return false;
-	return !(codepoint >= 0x2000 && codepoint <= 0x2BFF) && !(codepoint >= 0x3000 && codepoint <= 0x303F);
+	return (codepoint < 0x2000 || codepoint > 0x2BFF) && (codepoint < 0x3000 || codepoint > 0x303F);
 }
 
 /// @brief Whether a key event pastes: V with Command or Control, pressed or repeated.
@@ -124,7 +124,7 @@ void TextArea::focusEvent(bool focused) {
 }
 
 void TextArea::paint(Painter& painter) const {
-	Panel::paint(painter);
+	Panel::paint(painter); // NOLINT(bugprone-parent-virtual-call): it draws its own lines, not Label's text
 
 	const Font* f = font();
 	if(!f) return;

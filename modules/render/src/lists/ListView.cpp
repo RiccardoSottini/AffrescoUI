@@ -265,7 +265,7 @@ void ListView::scrollToRow(std::size_t row) {
 	if(row >= rows_.size()) return;
 	const float top = window_.offsetOf(row), bottom = top + window_.heightOf(row);
 	if(bottom - scroll_ > viewport()) scroll_ = bottom - viewport();
-	if(top < scroll_) scroll_ = top;
+	scroll_ = std::min(scroll_, top);
 	clampScroll();
 	decodeShown();
 	invalidatePaint();
@@ -447,6 +447,7 @@ void ListView::paintRow(Painter& painter, const Font& font, std::size_t row, con
 	painter.drawText(font, shownText(row, 0), {origin.x + shift, baseline}, color);
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): declared in the public header
 float ListView::paintIcon(Painter& painter, const Font& font, const ListItem& item, Vec2 origin, Color color) const {
 	if(item.icon.empty()) return 0.0f;
 	const char32_t glyph = font.codepointNamed(item.icon);

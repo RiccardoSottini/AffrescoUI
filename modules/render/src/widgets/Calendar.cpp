@@ -160,7 +160,8 @@ Calendar::Layout Calendar::layout() const noexcept {
 }
 
 Rect Calendar::dayRect(const Layout& area, int index) const noexcept {
-	const auto column = static_cast<float>(screenColumn(index % 7)), week = static_cast<float>(index / 7);
+	const int weekIndex = index / 7; // whole weeks
+	const auto column = static_cast<float>(screenColumn(index % 7)), week = static_cast<float>(weekIndex);
 	const float left = area.days.left + column * area.cell, top = area.days.top + week * area.row;
 	return {left, top, left + area.cell, top + area.row};
 }
