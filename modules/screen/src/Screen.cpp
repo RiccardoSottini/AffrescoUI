@@ -86,6 +86,18 @@ void mergeObject(json& document, const json& part) {
 	document = std::move(merged);
 }
 
+/// @brief Merges an included file's section into the screen's own section of the same name.
+/// @param section The screen's section, which receives the merge.
+/// @param key Its name: "menus" and "strings" merge one level deeper, menu by menu and locale by locale.
+/// @param part The included file's section.
+void mergeSection(json& section, std::string_view key, const json& part) {
+	if(key == "menus" || key == "strings") // a locale's keys merge, like a menu's items
+		for(const auto& [menu, items] : part.items())
+			if(items.is_object() && section.contains(menu) && section[menu].is_object())
+				mergeObject(section[menu], items);
+	mergeObject(section, part);
+}
+
 /// @brief Merges one included file into a screen: each of its sections comes first and the screen's entries win;
 /// the screen's own root and window (and format and version) are kept, and an include's "$schema" is dropped. Menus
 /// merge one level deeper, menu by menu, so several files can add items to the same menu.
@@ -99,12 +111,7 @@ void mergeInclude(json& document, const json& part) {
 		} else if(!document.contains(key)) {
 			document[key] = value;
 		} else if(value.is_object() && document[key].is_object()) {
-			json& section = document[key];
-			if(key == "menus" || key == "strings") // a locale's keys merge, like a menu's items
-				for(const auto& [menu, items] : value.items())
-					if(items.is_object() && section.contains(menu) && section[menu].is_object())
-						mergeObject(section[menu], items);
-			mergeObject(section, value);
+			mergeSection(document[key], key, value);
 		}
 	}
 }

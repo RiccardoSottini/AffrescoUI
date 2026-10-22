@@ -28,25 +28,33 @@ void Screen::Impl::run(const std::string& action, const json& event) {
 void Screen::Impl::open(DeclaredChannel& channel) {
 	if(!executor) return;
 	if(Window* window = runtime.window(); window && channel.retry) window->cancelTimer(std::exchange(channel.retry, 0));
+	if(!tryConnect(channel)) {
+		retry(channel);
+		return;
+	}
+	watch(channel);
+}
+
+bool Screen::Impl::tryConnect(DeclaredChannel& channel) {
 	if(!channel.url.empty()) {
 		channel.remote = net::connectPeer(*executor, channel.url, channel.token);
-		if(!channel.remote) {
-			run(channel.name + ":closed", {{"type", "closed"},
-			                               {"message", "Can't connect to " + channel.url +
-			                                               ": it takes a wss:// address (ws:// on the loopback) "
-			                                               "and a token from the host"}});
-			retry(channel);
-			return;
-		}
-	} else {
-		try {
-			channel.socket = channel::SocketChannel::connect(*executor, channel.path);
-		} catch(const std::exception& error) {
-			run(channel.name + ":closed", {{"type", "closed"}, {"message", error.what()}});
-			retry(channel);
-			return;
-		}
+		if(channel.remote) return true;
+		run(channel.name + ":closed", {{"type", "closed"},
+		                               {"message", "Can't connect to " + channel.url +
+		                                               ": it takes a wss:// address (ws:// on the loopback) "
+		                                               "and a token from the host"}});
+		return false;
 	}
+	try {
+		channel.socket = channel::SocketChannel::connect(*executor, channel.path);
+	} catch(const std::exception& error) {
+		run(channel.name + ":closed", {{"type", "closed"}, {"message", error.what()}});
+		return false;
+	}
+	return true;
+}
+
+void Screen::Impl::watch(DeclaredChannel& channel) {
 	Channel& connected = channel.remote ? *channel.remote : static_cast<Channel&>(*channel.socket);
 	const std::string name = channel.name;
 	connected.onMessage.connect([this, name](const std::string& line) {

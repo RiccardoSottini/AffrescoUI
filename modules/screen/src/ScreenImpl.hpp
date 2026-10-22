@@ -126,6 +126,16 @@ struct Screen::Impl {
 	/// @param channel The channel.
 	void open(DeclaredChannel& channel);
 
+	/// @brief Connects a declared channel to its socket or remote peer; on failure runs "<name>:closed".
+	/// @param channel The channel, with no connection.
+	/// @return Whether it connected.
+	bool tryConnect(DeclaredChannel& channel);
+
+	/// @brief Runs a newly connected channel's actions: "<name>:open" now, "<name>:<type>" for each message, and
+	/// "<name>:closed" (then a reconnect, if it should) when it closes.
+	/// @param channel The channel, connected.
+	void watch(DeclaredChannel& channel);
+
 	/// @brief Schedules a reconnect, if the channel has "reconnect".
 	/// @param channel The channel.
 	void retry(DeclaredChannel& channel);
