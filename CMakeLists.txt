@@ -131,7 +131,9 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	endforeach()
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
-		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp)
+		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
+		examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitStatus.cpp
+		examples/forge/features/scm/GitArguments.cpp examples/forge/features/scm/LineDiff.cpp)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui)

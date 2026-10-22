@@ -101,9 +101,10 @@ void ServiceRegistry::addRoot(std::string name, const std::filesystem::path& fol
 
 void ServiceRegistry::allowProcess(std::string name, const std::filesystem::path& program,
                                    std::vector<std::string> arguments,
-                                   std::optional<std::vector<std::string>> environment) {
+                                   std::optional<std::vector<std::string>> environment, ProcessShaper shape) {
 	if(!program.is_absolute()) throw std::runtime_error("the program '" + name + "' needs an absolute path");
-	processes_.insert_or_assign(std::move(name), ProcessGrant{program, std::move(arguments), std::move(environment)});
+	processes_.insert_or_assign(std::move(name), ProcessGrant{program, std::move(arguments), std::move(environment),
+	                                                          std::move(shape)});
 }
 
 void ServiceRegistry::setExecutor(Executor* executor) noexcept { executor_ = executor; }

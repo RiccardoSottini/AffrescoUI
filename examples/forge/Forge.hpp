@@ -26,6 +26,7 @@ struct Workspace {
 ///   - `forge.read` `{ "id" }`: the text of one of the folder's files;
 ///   - `forge.importTheme`: asks for a VS Code colour theme and returns it as tokens (ThemeImport.hpp); fails on a
 ///     cancel.
+/// And the source control's (features/scm/Scm.hpp), with git granted.
 /// @param screen The screen.
 /// @param workspace The open folder, which the functions read and change.
 void registerNatives(affresco::Screen& screen, std::shared_ptr<Workspace> workspace);

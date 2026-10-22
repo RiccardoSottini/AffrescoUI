@@ -29,7 +29,9 @@ interface, not on this module.
 
 - **The host grants, the document asks.** A screen names a service and a grant; it can't name a program or a folder.
   `allowProcess` takes an absolute program path and the arguments it starts with; `addRoot` a folder that exists.
-  A declaration naming anything else is refused at load.
+  A declaration naming anything else is refused at load. A call adds arguments (`with.arguments`) only if the host
+  gave the grant a `ProcessShaper`, its own rule that checks them (and may pick the folder the run starts in) on the
+  main thread before the run: without one, such a call is refused. They are always an array, never a shell line.
 - **Revisions can't widen it.** The `services` section is set by the screen file: a revision that changes it is
   refused, and a revision that adds a step using a service is reviewed (it is never applied without a person's
   approval). A revision may only use a declared service's methods that the provider marks revisable.
@@ -37,7 +39,8 @@ interface, not on this module.
   `..` included) before it is used: a path that ends outside the folder is refused.
 - **Every byte read is bounded:** a frame's headers 8 KiB, a body or a line 8 MiB, an error message from a program
   1,000 bytes; a file read or written 8 MiB, a listing 10,000 entries; a `process` line 64 KiB (longer ones arrive in
-  pieces) and its input 1 MiB.
+  pieces), its input 1 MiB, its added arguments 64 of 4 KiB each, and with `collect` its whole output 8 MiB of UTF-8
+  (a run that writes more is ended).
 - **Concurrency is bounded:** per JSON-RPC service 256 calls waiting and 256 subscriptions, and 16 MiB waiting to be
   written; 16 runs at once per `process` or `fs` service; per screen 1,024 calls running, 256 subscriptions, 256
   requests waiting for `respond`; a stream keeps at most 10,000 events.

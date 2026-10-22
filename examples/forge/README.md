@@ -23,6 +23,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `palette` | The command palette (`>`), quick open over the file index, go to line (`:`), and the settings and keybinding pages, generated from the contributions |
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
 | `panels` | Problems, output, notifications (toasts and a list), and progress |
+| `scm` | Source control (Cmd+Shift+G): git's status in staged changes and changes, stage and unstage, commit, branches, a change's diff against HEAD, and its gutter marks; git's output is read strictly in C++ (`GitStatus.*`, `LineDiff.*`) |
 
 There are only four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
 - `forge.index`: the open folder as a tree and a flat file list, with file icons.
@@ -31,6 +32,12 @@ There are only four natives (`Forge.hpp`), for what JSON can't do on its own: th
 - `forge.importTheme`: asks for a VS Code theme and returns it as tokens.
 
 A native's arguments never name a path outside the open folder.
+
+Source control runs git through the `process` service, not a native (`features/scm/Scm.cpp`). The host grants one
+program and Forge's own commands only (`GitArguments.*`): status, add and restore with paths after `--`, `commit -F -`
+(the message goes to git's input), the branch list, `switch` to a checked branch name, and `show HEAD:<path>`. Each run
+is given as an array, without a shell, against the open folder's repository (`--git-dir`, `--work-tree`). Its output is
+bounded and parsed by `forge.scm.parseStatus`, `forge.scm.parseBranches` and `forge.scm.diff`.
 
 ## Contribution points
 

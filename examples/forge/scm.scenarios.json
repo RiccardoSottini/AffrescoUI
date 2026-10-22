@@ -1,0 +1,643 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Forge's source control, checked headless: git's output is given as events (scmApplyStatus, scmApplyBranches, scmCompare), so no repository is needed; tests/unit/forge_scm.cpp runs a real one. affrescoui_render_runner scm.scenarios.json",
+	"screen": "forge.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-scm-show-the-view",
+			"note": "The activity bar's source control entry shows its view in the side bar, in place of the explorer",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "scm"
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#scm-view",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#scm-commit",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#explorer",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-switch-views",
+			"note": "Showing the shown view again hides the side bar; the explorer entry brings the explorer back",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": false
+					}
+				},
+				{
+					"action": "showExplorer"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "explorer"
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#explorer",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#scm-view",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-key",
+			"note": "mod+Shift+G shows source control",
+			"steps": [
+				{
+					"key": "mod+shift+g"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "scm"
+					}
+				},
+				{
+					"expect": {
+						"node": "#scm-changes",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-read-the-status",
+			"note": "git's porcelain v2 status is read in C++: the branch, then each file in the staged list, the changes list or both; an ignored file is in neither",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u0000# branch.upstream origin/main\u0000# branch.ab +2 -1\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u00001 MM N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/both.cpp\u00001 D. N... 100644 000000 000000 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 old.txt\u0000? notes/todo.md\u0000! build/out.o\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.error",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.branch.head",
+						"is": "main"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.branch.upstream",
+						"is": "origin/main"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.branch.ahead",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.branch.behind",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged[0].id",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged[0].label",
+						"is": "main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged[0].detail",
+						"is": "src"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged[0].badge",
+						"is": "M"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged[2].badge",
+						"is": "D"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes[0].id",
+						"is": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes[1].id",
+						"is": "src/both.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes[2].kind",
+						"is": "untracked"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes[2].badge",
+						"is": "U"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.count",
+						"is": 6
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-renamed-and-unmerged",
+			"note": "A rename keeps its old path; a conflict is a change to resolve; a detached HEAD has no upstream",
+			"steps": [
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid (initial)\u0000# branch.head (detached)\u00002 R. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 R100 docs/new name.md\u0000docs/old name.md\u0000u UU N... 100644 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 both.txt\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.branch.head",
+						"is": "(detached)"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged[0].kind",
+						"is": "renamed"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged[0].badge",
+						"is": "R"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.files[0].original",
+						"is": "docs/old name.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes[0].kind",
+						"is": "unmerged"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes[0].badge",
+						"is": "!"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-malformed-status",
+			"note": "Output that isn't git's status is refused, and the view says so",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "1 .M not a status\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.error",
+						"is": "git's output is malformed: an entry has too few fields"
+					}
+				},
+				{
+					"expect": {
+						"node": "#scm-error",
+						"exists": true
+					}
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "? unended"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.error",
+						"is": "git's output is malformed: a record isn't ended"
+					}
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "? /etc/passwd\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.error",
+						"is": "git's output is malformed: a bad path"
+					}
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.error",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.count",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-branches",
+			"note": "The branch list is read from for-each-ref and shown under the changes; the current branch is marked",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyBranches",
+					"event": {
+						"output": " \u0000feature/scm\n*\u0000main\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.showBranches",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.branches.current",
+						"is": "main"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.branches.branches.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.branches.branches[0].id",
+						"is": "feature/scm"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.branches.branches[1].current",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#scm-branch-items",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#scm-new-branch",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-compare",
+			"note": "A change opens as a diff tab: the rows, the counts and the gutter marks the editor will show",
+			"steps": [
+				{
+					"action": "scmCompare",
+					"event": {
+						"path": "src/main.cpp",
+						"original": "a\nb\n",
+						"modified": "a\nB\nc\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].id",
+						"is": "diff:src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].kind",
+						"is": "diff"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].label",
+						"is": "main.cpp (Working Tree)"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "diff:src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.added",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.removed",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.items[1].label",
+						"is": "- b"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.items[2].label",
+						"is": "+ B"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.gutters[0].path",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.gutters[0].marks[0].line",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.gutters[0].marks[0].text",
+						"is": "modified"
+					}
+				},
+				{
+					"expect": {
+						"node": "#diff-rows",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#diff-truncated",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-compare-again",
+			"note": "Comparing the same file again replaces its diff tab and its gutter marks, never doubling them",
+			"steps": [
+				{
+					"action": "scmCompare",
+					"event": {
+						"path": "src/main.cpp",
+						"original": "a\n",
+						"modified": "a\nb\n"
+					}
+				},
+				{
+					"action": "scmCompare",
+					"event": {
+						"path": "src/main.cpp",
+						"original": "a\nb\n",
+						"modified": "a\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.added",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.removed",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.gutters.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.gutters[0].marks[0].text",
+						"is": "deleted"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-new-file",
+			"note": "A file not in HEAD compares against nothing: every line is added",
+			"steps": [
+				{
+					"action": "scmCompare",
+					"event": {
+						"path": "notes/todo.md",
+						"modified": "one\ntwo\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.added",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].diff.removed",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.gutters[0].marks[0].text",
+						"is": "added"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-scm-commit-needs-staged-changes",
+			"note": "Commit asks for staged changes and a message, and doesn't run git without them",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": ""
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Write a commit message",
+						"set": {
+							"/state/scm/message": "Fix it"
+						}
+					}
+				},
+				{
+					"action": "scmCommit"
+				},
+				{
+					"expect": {
+						"state": "scm.message",
+						"is": "Fix it"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				}
+			]
+		}
+	]
+}

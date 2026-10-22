@@ -42,9 +42,11 @@ public:
 	/// @param program The program, an absolute path.
 	/// @param arguments Its arguments.
 	/// @param environment Its whole environment, or std::nullopt for the host's.
+	/// @param shape Checks the arguments a call adds (`with.arguments`) and may set the folder each run starts in; empty
+	/// to refuse every call that adds arguments.
 	/// @throws std::runtime_error If the path isn't absolute.
 	void allowProcess(std::string name, const std::filesystem::path& program, std::vector<std::string> arguments = {},
-	                  std::optional<std::vector<std::string>> environment = std::nullopt);
+	                  std::optional<std::vector<std::string>> environment = std::nullopt, ProcessShaper shape = {});
 	/// @brief Sets the main thread services report to. Without one, no service starts.
 	/// @param executor The executor, or nullptr; it must outlive the registry.
 	void setExecutor(Executor* executor) noexcept;
