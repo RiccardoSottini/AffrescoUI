@@ -23,6 +23,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `palette` | The command palette (`>`), quick open over the file index, go to line (`:`), and the settings and keybinding pages, generated from the contributions |
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
 | `panels` | Problems, output, notifications (toasts and a list), and progress |
+| `explorer` | The side bar's tree, kept current by the file watcher (`Explorer.*`, a `DirectoryModel`), with new file and folder, rename, delete (after a confirm dialog), copy and paste, move by drag and drop, and reveal of the active file, from its context menu, the File menu and the palette |
 
 There are only four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
 - `forge.index`: the open folder as a tree and a flat file list, with file icons.

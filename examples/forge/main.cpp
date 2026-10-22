@@ -11,6 +11,7 @@
 #include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "SocketDir.hpp"
+#include "features/explorer/Explorer.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -85,6 +86,7 @@ int run(const Options& options) {
 	auto workspace = std::make_shared<forge::Workspace>();
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);
+	forge::registerExplorer(screen, workspace, &app);
 	workspace->window = &screen.createWindow(app);
 
 	if(!screenshotOnly) {
