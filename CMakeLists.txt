@@ -54,7 +54,7 @@ FetchContent_MakeAvailable(glfw)
 # fail the build
 set_target_properties(glfw PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
-# nlohmann/json: the documents (format, vcs and channel modules; the rendering engine does without)
+# nlohmann/json: the documents (format, vcs and channel modules; the rendering engine for GPU surfaces' parameters)
 set(AFFRESCOUI_JSON_VERSION 3.11.3)
 set(JSON_Install ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # core/Json.hpp includes it
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v${AFFRESCOUI_JSON_VERSION}/json.tar.xz
@@ -155,6 +155,13 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (examples/surfaces)
+	add_executable(affrescoui_surfaces examples/surfaces/main.cpp examples/surfaces/Surfaces.cpp)
+	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
+	target_link_libraries(affrescoui_surfaces PRIVATE affrescoui)
+	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
+	target_compile_definitions(affrescoui_surfaces PRIVATE
+		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/examples/surfaces/surfaces.screen.json")
 	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp
 	    examples/server/UserInfoVerifier.cpp)

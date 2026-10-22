@@ -120,6 +120,31 @@ constexpr KeyReference nodeTable[] = {
 	 "pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). "
 	 "Default: `false`.",
 	 "look"},
+    {"rotate", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"})json",
+	 "Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `\"rotate\": 8`. Like "
+	 "every transform key it only changes how the node is drawn and hit: its place in the layout, and its siblings', "
+	 "stay. Bind it to a number in the state and an `animate` step turns it. Default: `0`.",
+	 "look"},
+    {"scale", R"json({"anyOf": [{"type": "number"}, {"type": "array", "minItems": 2, "maxItems": 2,
+		"items": {"type": "number"}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "Draws the node scaled, one factor or [x, y], about transformOrigin"})json",
+	 "Draws the node scaled about `transformOrigin`: one factor (`0.9`) or `[x, y]`. Default: `1`.", "look"},
+    {"skew", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "Draws the node skewed, [x, y] in degrees, as CSS skew()"})json",
+	 "Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`.", "look"},
+    {"translate", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "Draws the node moved by [x, y] pixels after layout"})json",
+	 "Draws the node moved by `[x, y]` pixels after layout. The keys compose as CSS does: `translate`, `rotate`, "
+	 "`scale`, then `skew`. Default: `[0, 0]`.",
+	 "look"},
+    {"transformOrigin", R"json({"anyOf": [{"enum": ["center", "top", "bottom", "left", "right", "topLeft", "topRight",
+		"bottomLeft", "bottomRight"]}, {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}],
+		"description": "The point rotate, scale and skew turn about: center, an edge or a corner, or [x%, y%]"})json",
+	 "The point `rotate`, `scale` and `skew` turn about: `\"center\"` (the default), an edge or a corner "
+	 "(`\"top\"`, `\"bottomRight\"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner).",
+	 "look"},
     {"cursor", R"json({"anyOf": [{"enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"]},
 		{"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "`arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`.", "look"},
@@ -141,7 +166,8 @@ constexpr KeyReference nodeTable[] = {
 	 "drawn above everything, unclipped, next to its anchor (default: its parent). Placements: `below`, `below-end`, "
 	 "`above`, `above-end`, `right`, `left`, `center` (in the window), `window` (placed by its own x, y, anchors in "
 	 "the window). `open` is a state path (or a value); with `\"dismiss\": \"outside\"`, a click outside it or Escape "
-	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first focusable "
+	 "sets it to false. `\"modal\": true` traps the focus inside while it is open (Tab cycles in it, the first "
+	 "focusable "
 	 "node inside gets the focus) and gives it back when it closes.",
 	 "look"},
     {"focusable", "flag",
@@ -213,7 +239,8 @@ constexpr KeyReference nodeTable[] = {
 	 R"(`{ "ms": 1000, "do": steps }`: runs while the node exists.)", "behaviour"},
     {"drag", R"json({"type": "object", "additionalProperties": false, "properties": {"data": {}}})json",
 	 "`{ \"data\": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`.", "behaviour"},
-    {"context", R"json({"type": "object", "description": "Keys this node adds to the context variable while it or a child has the focus"})json",
+    {"context",
+	 R"json({"type": "object", "description": "Keys this node adds to the context variable while it or a child has the focus"})json",
 	 "`{ \"editorFocus\": true }`: keys added to the `context` variable while the node or a child has the focus "
 	 "(an inner node wins); `when` clauses read them.",
 	 "behaviour"},
@@ -272,8 +299,7 @@ constexpr KeyReference nodeTable[] = {
 	 "editor"},
     {"caret", R"json({"type": "string",
 		"description": "editor: a state path the editor writes its caret to, as { line, column, selected } (from 1)"})json",
-	 R"(A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1.)",
-	 "editor"},
+	 R"(A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1.)", "editor"},
     {"font", "", "Font and text colour.", "editor"},
     {"textColor", "", "", "editor"},
     {"lineNumbers", R"json({"type": "boolean", "description": "editor: show line numbers in a gutter"})json",
@@ -418,9 +444,24 @@ constexpr KeyReference nodeTable[] = {
 	 "`\"contain\"` (the default: all of it, as large as fits, centred), `\"cover\"` (the whole node, the image's "
 	 "edges cut off) or `\"fill\"` (stretched), like CSS `object-fit`.",
 	 "image"},
+    {"surface", R"json({"anyOf": [{"type": "string"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "surface: the name of a GPU surface the host registered (Screen::registerSurface)"})json",
+	 "The name of a GPU surface the host registered (`Screen::registerSurface(\"cube\", …)`). A document can only "
+	 "name one: it never supplies shader source. A name that isn't registered is an error at the node.",
+	 "surface"},
+    {"params", R"json({"anyOf": [{"type": "object"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "surface: what the surface draws, an object it reads (e.g. a colour, a speed)"})json",
+	 "An object the surface reads each time it draws, e.g. `{ \"speed\": 2 }`: bind its values to the state and it "
+	 "draws again when they change.",
+	 "surface"},
+    {"continuous", "flag",
+	 "`true` draws it every frame (an animation), with the time since the screen started. Default: `false`, drawn "
+	 "only when `params`, its size or its input change.",
+	 "surface"},
     {"direction", "",
 	 R"(`"row"` (the default: panes side by side, vertical sashes) or `"column"` (one above the other).)", "split"},
-    {"value", R"json({"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids; colorPicker: a colour; gradient: { kind, angle, stops }; curves: { points }",
+    {"value",
+	 R"json({"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids; colorPicker: a colour; gradient: { kind, angle, stops }; curves: { points }",
 		"anyOf": [{"type": "number"}, {"type": "string"}, {"type": "array", "maxItems": 100000},
 		{"type": "object"}, {"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "The panes' sizes in pixels, in order (`bind` keeps them in a state path). The last pane takes what is left; "
@@ -462,7 +503,8 @@ constexpr KeyReference nodeTable[] = {
 		{"$ref": "#/$defs/v1/dynamic"}],
 		"description": "list, tree, table: the rows: an id, or { id, label, icon, iconColor, children (tree), expandable (tree), cells (table) }"})json",
 	 "The rows, in order (or a binding such as `\"{{state.files}}\"`): a string (its id and label), or `{ \"id\", "
-	 "\"label\", \"icon\", \"iconColor\" }` (an icon before the label, by name, as a label's `icon`, in a hex colour or "
+	 "\"label\", \"icon\", \"iconColor\" }` (an icon before the label, by name, as a label's `icon`, in a hex colour "
+	 "or "
 	 "the text's); in a `tree`, also `\"children\"` (a list of items) and `\"expandable\"` (a closed node whose "
 	 "children aren't loaded yet: `onExpand` can load them); in a `table`, `\"cells\"`: the texts of the row's "
 	 "columns, in order (at most 256). Only the rows in view are drawn, so a list scrolls through a million items as "
@@ -495,7 +537,8 @@ constexpr KeyReference nodeTable[] = {
     {"rowHeight", R"json({"anyOf": [{"type": "number", "minimum": 1, "maximum": 1000}, {"$ref": "#/$defs/v1/dynamic"}],
 		"description": "list, tree: each row's height in pixels (default 24)"})json",
 	 "Each row's height in pixels (default 24).", "list"},
-    {"font", "", "The rows' font and colours: their text, the selected rows' text and background, and the accent "
+    {"font", "",
+	 "The rows' font and colours: their text, the selected rows' text and background, and the accent "
 	 "(the keyboard cursor, the drop line, a tree's guides).",
 	 "list"},
     {"textColor", "", "", "list"},

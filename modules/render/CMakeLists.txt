@@ -70,10 +70,17 @@ affrescoui_module(render
 	src/gl/QuadRendererCache.cpp
 	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
+	src/gl/Stencil.cpp
+	src/gl/SurfaceGuard.cpp
+	src/gl/SurfacePrelude.cpp
+	src/gl/Surfaces.cpp
+	src/gl/SurfaceView.cpp
 	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include
 	${stb_image_SOURCE_DIR})
-target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw freetype affrescoui_harfbuzz affrescoui_regex)
+# nlohmann_json is public: GpuSurface.hpp hands a surface its document parameters as JSON
+target_link_libraries(affrescoui_render PUBLIC affrescoui::core nlohmann_json::nlohmann_json PRIVATE glfw freetype
+	affrescoui_harfbuzz affrescoui_regex)
 target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
 # What GLFW doesn't do (the colour scheme, native menu bars), per OS: Cocoa on macOS, Win32 on Windows, none elsewhere
 if(APPLE)

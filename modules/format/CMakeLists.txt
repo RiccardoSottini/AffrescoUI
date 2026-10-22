@@ -55,11 +55,13 @@ affrescoui_module(format
 	src/ToggleType.cpp
 	src/SliderType.cpp
 	src/ImageType.cpp
+	src/SurfaceType.cpp
 	src/SplitType.cpp
 	src/TabsType.cpp
 	src/ListItems.cpp
 	src/ListType.cpp
 	src/IconProperty.cpp
+	src/TransformProperties.cpp
 	src/RunsProperty.cpp
 	src/PathType.cpp
 	src/CreativeValues.cpp

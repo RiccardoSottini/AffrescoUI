@@ -71,6 +71,7 @@ public:
 	                                                        platform::PixelSize size) override {
 		Canvas canvas;
 		canvas.resize(size.width, size.height);
+		canvas.addStencil();
 		canvas.bind();
 		beginFrame(size.width, size.height);
 		quads_.drawFromScratch(frame);
@@ -108,6 +109,7 @@ private:
 
 		const int shaders = (refreshed.shapes ? 1 : 0) + (refreshed.color ? 2 : 0);
 		const bool created = target.canvas.resize(size.width, size.height);
+		if(refreshed.transformed) target.canvas.addStencil();
 		bool full = target.full || created || shaders != target.shaders;
 		std::optional<PixelRect> pixels;
 		if(!full && target.damage) {

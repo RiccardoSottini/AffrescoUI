@@ -102,7 +102,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -129,6 +129,11 @@ parent, later siblings on top of earlier ones.
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `visible` | `false` hides the node and its children. |
 | `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). Default: `false`. |
+| `rotate` | Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `"rotate": 8`. Like every transform key it only changes how the node is drawn and hit: its place in the layout, and its siblings', stay. Bind it to a number in the state and an `animate` step turns it. Default: `0`. |
+| `scale` | Draws the node scaled about `transformOrigin`: one factor (`0.9`) or `[x, y]`. Default: `1`. |
+| `skew` | Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`. |
+| `translate` | Draws the node moved by `[x, y]` pixels after layout. The keys compose as CSS does: `translate`, `rotate`, `scale`, then `skew`. Default: `[0, 0]`. |
+| `transformOrigin` | The point `rotate`, `scale` and `skew` turn about: `"center"` (the default), an edge or a corner (`"top"`, `"bottomRight"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner). |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |
@@ -349,6 +354,29 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 ```
 
 Small images (up to 256 pixels a side) share textures, so a list of thumbnails draws in one batch with its text.
+
+### `surface`
+Native GPU drawing the host registered with `Screen::registerSurface`: a shader, a 3D view, a video. The host's code
+draws into a framebuffer of the node's size in pixels, with its own OpenGL state, and the node shows the result like an
+image: clipped, transformed and redrawn only when it changes. The pointer's moves, presses and scrolls on the node reach
+the surface in its own pixels. A surface that raises an OpenGL error is disabled (and logged once); the rest of the
+window draws as before.
+
+<!-- generated: surface -->
+| Key | Meaning |
+|---|---|
+| `surface` | The name of a GPU surface the host registered (`Screen::registerSurface("cube", …)`). A document can only name one: it never supplies shader source. A name that isn't registered is an error at the node. |
+| `params` | An object the surface reads each time it draws, e.g. `{ "speed": 2 }`: bind its values to the state and it draws again when they change. |
+| `continuous` | `true` draws it every frame (an animation), with the time since the screen started. Default: `false`, drawn only when `params`, its size or its input change. |
+<!-- end generated -->
+
+```json
+{ "type": "surface", "surface": "cube", "params": { "speed": "{{state.speed}}" }, "continuous": true,
+  "width": 240, "height": 240, "rotate": 6 }
+```
+
+A document can't supply shader source: it only names what the host registered (see `SECURITY.md` for the limits on
+a surface's passes and memory).
 
 ### `split`
 Its children are panes laid side by side (or one above the other), with a sash between each two: drag a sash to

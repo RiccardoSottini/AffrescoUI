@@ -23,7 +23,13 @@ public:
 	/// @param clip The panel's bounds: what clips its drawing.
 	/// @param outerClip What clips the panel: where its shadow may fall.
 	PaintRecorder(PaintRecord& record, const Rect& clip, const Rect& outerClip) noexcept
-	    : record_(record), clip_(clip), outerClip_(outerClip) {}
+	    : record_(record), clip_(clip), outerClip_(outerClip), shapeClip_(clip) {}
+
+	/// @brief Keeps edges smooth for a panel drawn turned or skewed: rectangles become shapes (anti-aliased by
+	/// distance, which a transform keeps), and shapes may reach a unit past the panel's own edges for their outer ramp
+	/// (not past an edge something else clipped).
+	/// @param frame The panel's frame.
+	void smoothEdges(const Rect& frame) noexcept;
 
 	void fillRect(const Rect& rect, Color color) override;
 	void drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) override;
@@ -31,6 +37,7 @@ public:
 	void strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) override;
 	void drawShadow(const Rect& rect, const CornerRadii& radii, const Shadow& shadow) override;
 	void drawImage(const Bitmap& bitmap, const Rect& rect) override;
+	void drawSurface(const SurfaceView& view, const Rect& rect) override;
 	void fillMesh(std::span<const MeshVertex> quads, Vec2 offset, Color color) override;
 
 private:
@@ -82,6 +89,8 @@ private:
 	PaintRecord& record_; ///< Not owning.
 	Rect clip_;           ///< The panel's bounds.
 	Rect outerClip_;      ///< What clips the panel.
+	Rect shapeClip_;      ///< What clips its shapes: its bounds, or a unit more where smoothEdges() allows.
+	bool smooth_ = false; ///< smoothEdges() was called: rectangles are drawn as shapes.
 };
 
 } // namespace affresco::detail

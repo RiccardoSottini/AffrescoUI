@@ -14,6 +14,9 @@
 #include "features/terminal/Terminal.hpp"
 #include "features/editor/Editor.hpp"
 #include "features/search/Search.hpp"
+#include "surfaces/Surfaces.hpp"
+
+#include <glad/glad.h>
 
 #include <affresco/Screen.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -30,6 +33,17 @@ namespace {
 
 namespace automation = affresco::automation;
 
+/// @brief A surface that fails: it raises a GL error (surfaces.json shows that nothing else changes).
+class BrokenSurface : public affresco::GpuSurface {
+public:
+	/// @brief Clears to red, then enables a capability that doesn't exist (GL_INVALID_ENUM).
+	void render(affresco::SurfaceFrame&) override {
+		glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glEnable(GL_RGBA);
+	}
+};
+
 /// @brief Prints a report the way check.py always has: "same", "golden" or "FAILED" per picture, and the failures of
 /// the other steps.
 /// @param report The report of one file.
@@ -41,7 +55,8 @@ std::size_t print(const automation::Report& report, std::size_t& frames) {
 		for(const automation::Picture& picture : scenario.pictures) {
 			++frames;
 			if(picture.outcome == automation::Picture::Outcome::Same) std::cout << "same    " << picture.name << '\n';
-			else if(picture.outcome == automation::Picture::Outcome::Recorded) std::cout << "golden  " << picture.name << '\n';
+			else if(picture.outcome == automation::Picture::Outcome::Recorded)
+				std::cout << "golden  " << picture.name << '\n';
 		}
 		for(const automation::Failure& failure : scenario.failures) {
 			++failed;
@@ -85,7 +100,8 @@ std::size_t playAll(const std::vector<std::string>& files, const automation::Opt
 		const automation::ScenarioFile scenarios = automation::ScenarioFile::load(file);
 		for(const automation::Scenario& scenario : scenarios.scenarios)
 			if(!names.insert(scenario.name).second)
-				throw affresco::DocumentError("scenario '" + scenario.name + "' is in two files; the second is " + file);
+				throw affresco::DocumentError("scenario '" + scenario.name + "' is in two files; the second is " +
+				                              file);
 		failed += print(automation::run(scenarios, options), frames);
 	}
 	std::cout << frames << " frames, " << failed << " failed\n";
@@ -110,6 +126,9 @@ int main(int argc, char** argv) {
 			forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
 			forge::registerTerminal(screen, nullptr); // no executor: no shell starts
 			forge::addExampleCatalog(screen, AFFRESCOUI_FORGE_DIRECTORY);
+			// The example surfaces at a fixed time, and one that fails (surfaces.json)
+			examples::registerSurfaces(screen, 1.25);
+			screen.registerSurface("broken", [] { return std::make_unique<BrokenSurface>(); });
 			// The inspector's overlay (inspector.json), without its times so that each picture is the same
 			screen.onAction("inspector:on", [&screen](affresco::Panel&) { screen.setInspector(true, false); });
 		};

@@ -16,6 +16,7 @@
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
 
@@ -81,6 +82,13 @@ public:
 	/// @param apply Applies them; may be empty if there are none.
 	void registerType(std::string name, Factory factory, std::vector<std::string> properties = {},
 	                  ApplyProperties apply = {});
+
+	/// @brief Registers a GPU surface that "surface" nodes may name: documents only name the host's surfaces, and never
+	/// supply shader source. Under the name of one already there, it replaces it for panels made from then on.
+	/// @param name Its name.
+	/// @param factory Makes one for each panel that shows it.
+	/// @param options Its framebuffer's options (a depth and stencil buffer).
+	void registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options = {});
 
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.

@@ -27,16 +27,21 @@ Rect reachOf(const Rect& bounds, const PaintRecord& record) noexcept {
 	return record.extent ? unite(bounds, *record.extent) : bounds;
 }
 
+Rect screenReachOf(const PanelGeometry& geometry) noexcept {
+	const Rect reach = reachOf(geometry.key.bounds, geometry.record);
+	return geometry.world.isIdentity() ? reach : geometry.world.boundingBox(reach);
+}
+
 Refreshed GeometryCache::refresh(const Frame& frame) {
 	all_ = frame.paintGeneration != generation_;
 	frameGeneration_ = frame.paintGeneration;
 	damage_.reset();
 
 	const Rect window{0.0f, 0.0f, static_cast<float>(frame.width), static_cast<float>(frame.height)};
-	if(needsVisit(frame.root)) refreshTree(frame.root, window);
+	if(needsVisit(frame.root)) refreshTree(frame.root, window, {}, false);
 	for(Panel* overlay : frame.overlays)
-		if(needsVisit(*overlay)) refreshTree(*overlay, window);
-	if(frame.tooltip && needsVisit(*frame.tooltip)) refreshTree(*frame.tooltip, window);
+		if(needsVisit(*overlay)) refreshTree(*overlay, window, {}, false);
+	if(frame.tooltip && needsVisit(*frame.tooltip)) refreshTree(*frame.tooltip, window, {}, false);
 	compareOverlays(frame);
 
 	// The shaders a full frame would use: what the tree, the overlays and the tooltip draw
@@ -45,6 +50,7 @@ Refreshed GeometryCache::refresh(const Frame& frame) {
 		if(const PanelGeometry* geometry = panel.geometry_.get()) {
 			result.shapes = result.shapes || geometry->subtreeShapes;
 			result.color = result.color || geometry->subtreeColor || geometry->cached;
+			result.transformed = result.transformed || geometry->subtreeTransformed || !geometry->world.isIdentity();
 		}
 	};
 	gather(frame.root);
@@ -60,7 +66,7 @@ bool GeometryCache::needsVisit(const Panel& panel) const noexcept {
 	return all_ || panel.paintStale_ || panel.paintBelow_ || panel.layoutPass_ > lastPass_ || !panel.geometry_;
 }
 
-void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip) {
+void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip, const Affine2& parentWorld, bool moved) {
 	if(!panel.geometry_) {
 		panel.geometry_ = std::make_unique<PanelGeometry>();
 		panel.geometry_->id = nextGeometryId();
@@ -68,50 +74,70 @@ void GeometryCache::refreshTree(Panel& panel, const Rect& outerClip) {
 	PanelGeometry& geometry = *panel.geometry_;
 	const std::uint64_t changesBefore = changes_;
 	const bool marked = panel.paintStale_ || panel.paintBelow_;
-	if(all_ || panel.paintStale_ || panel.layoutPass_ > lastPass_ || !geometry.recorded)
-		refreshPanel(panel, outerClip, geometry);
+	const Affine2 world = panel.transform_.isIdentity() ? parentWorld : parentWorld * panel.localTransform();
+	moved = moved || geometry.world != world;
+	if(all_ || moved || panel.paintStale_ || panel.layoutPass_ > lastPass_ || !geometry.recorded)
+		refreshPanel(panel, outerClip, geometry, world);
 
 	// A hidden panel draws no child: it was damage where it reached, which holds its children
-	geometry.subtreeShapes = geometry.subtreeColor = false;
-	if(panel.shown_) refreshChildren(panel, geometry);
+	geometry.subtreeShapes = geometry.subtreeColor = geometry.subtreeTransformed = false;
+	if(panel.shown_) refreshChildren(panel, geometry, moved);
 	// A cached subtree is drawn again into its texture when anything in it was recorded again or marked
 	if(panel.cached_ && (all_ || marked || changes_ != changesBefore)) ++geometry.subtreeVersion;
 	geometry.cached = panel.shown_ && panel.cached_;
 	panel.paintStale_ = panel.paintBelow_ = false;
 }
 
-void GeometryCache::refreshChildren(Panel& panel, PanelGeometry& geometry) {
+void GeometryCache::refreshChildren(Panel& panel, PanelGeometry& geometry, bool moved) {
 	bool shapes = geometry.recorded && geometry.record.shapes, color = geometry.recorded && geometry.record.color;
+	bool transformed = false;
 	for(const auto& child : panel.children_) {
 		if(child->overlay_) continue; // refreshed from the frame's overlays, unclipped
-		if(needsVisit(*child)) refreshTree(*child, panel.bounds_);
+		if(moved || needsVisit(*child)) {
+			// A transformed child's shadow is clipped in its own space: the box of its parent's bounds seen from there
+			const std::optional<Affine2> inverse =
+			    child->transform_.isIdentity() ? std::nullopt : child->localTransform().inverse();
+			refreshTree(*child, inverse ? inverse->boundingBox(panel.bounds_) : panel.bounds_, geometry.world, moved);
+		}
 		if(const PanelGeometry* below = child->geometry_.get()) {
 			shapes = shapes || below->subtreeShapes;
 			color = color || below->subtreeColor || below->cached; // a cached child is a colour quad
+			transformed = transformed || below->subtreeTransformed || !child->transform_.isIdentity();
 		}
 	}
 	geometry.subtreeShapes = shapes;
 	geometry.subtreeColor = color;
+	geometry.subtreeTransformed = transformed;
 }
 
-void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeometry& geometry) {
-	const PaintKey key{panel.frame_,      panel.bounds_,     outerClip,       panel.scroll_,
-	                   panel.contentMin_, panel.contentMax_, frameGeneration_};
-	if(panel.shown_ && geometry.recorded && !panel.paintStale_ && geometry.key == key) return; // nothing changed
+void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeometry& geometry, const Affine2& world) {
+	const PaintKey key{panel.frame_,      panel.bounds_,     outerClip,        panel.scroll_,
+	                   panel.contentMin_, panel.contentMax_, frameGeneration_, !world.isAxisAligned()};
+	if(panel.shown_ && geometry.recorded && !panel.paintStale_ && geometry.key == key) {
+		if(geometry.world == world) return; // nothing changed
+		// Only its place on screen changed: the same drawing, moved
+		++changes_;
+		addTo(damage_, screenReachOf(geometry));
+		geometry.world = world;
+		addTo(damage_, screenReachOf(geometry));
+		return;
+	}
 
 	++changes_;
-	if(geometry.recorded) addTo(damage_, reachOf(geometry.key.bounds, geometry.record));
+	if(geometry.recorded) addTo(damage_, screenReachOf(geometry));
 	geometry.record.clear();
 	geometry.recorded = false;
+	geometry.world = world;
 	if(!panel.shown_) return;
 
 	PaintRecorder recorder(geometry.record, panel.bounds_, outerClip);
+	if(key.smooth) recorder.smoothEdges(panel.frame_);
 	panel.paint(recorder);
 	geometry.record.overStart = geometry.record.ops.size();
 	panel.paintOver(recorder);
 	geometry.key = key;
 	geometry.recorded = true;
-	addTo(damage_, reachOf(panel.bounds_, geometry.record));
+	addTo(damage_, screenReachOf(geometry));
 }
 
 // Compared by address only: a panel that is gone reported where it was itself, and a new one is recorded and damaged
@@ -125,7 +151,7 @@ void GeometryCache::compareOverlays(const Frame& frame) {
 	above_.clear();
 	for(const Panel* panel : now) {
 		const PanelGeometry* geometry = panel->geometry_.get();
-		const Rect area = geometry && geometry->recorded ? reachOf(panel->bounds_, geometry->record) : Rect{};
+		const Rect area = geometry && geometry->recorded ? screenReachOf(*geometry) : Rect{};
 		above_.emplace_back(panel, area);
 		if(!same) addTo(damage_, area);
 	}

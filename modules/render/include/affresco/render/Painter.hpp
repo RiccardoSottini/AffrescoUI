@@ -13,6 +13,7 @@ namespace affresco {
 
 class Bitmap;
 class Font;
+class SurfaceView;
 
 /// @brief A corner of a quad in a mesh: where it is, and how much of the mesh's colour it takes there.
 struct MeshVertex {
@@ -82,6 +83,15 @@ public:
 	/// @param rect Where it goes, in window units; the part outside the panel is clipped off.
 	virtual void drawImage(const Bitmap& bitmap, const Rect& rect) {
 		static_cast<void>(bitmap);
+		static_cast<void>(rect);
+	}
+
+	/// @brief Draws a panel's GPU surface, its framebuffer stretched to a rectangle. Painters that can't draw surfaces
+	/// draw nothing.
+	/// @param view The panel showing it.
+	/// @param rect Where it goes, in window units; the part outside the panel is clipped off.
+	virtual void drawSurface(const SurfaceView& view, const Rect& rect) {
+		static_cast<void>(view);
 		static_cast<void>(rect);
 	}
 

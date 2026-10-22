@@ -693,7 +693,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, graph, timeline, outlet, code, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -710,6 +710,7 @@
 									"checkbox",
 									"slider",
 									"image",
+									"surface",
 									"split",
 									"tabs",
 									"list",
@@ -980,6 +981,97 @@
 					},
 					"cache": {
 						"$ref": "#/$defs/v1/flag"
+					},
+					"rotate": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"
+					},
+					"scale": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node scaled, one factor or [x, y], about transformOrigin"
+					},
+					"skew": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node skewed, [x, y] in degrees, as CSS skew()"
+					},
+					"translate": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node moved by [x, y] pixels after layout"
+					},
+					"transformOrigin": {
+						"anyOf": [
+							{
+								"enum": [
+									"center",
+									"top",
+									"bottom",
+									"left",
+									"right",
+									"topLeft",
+									"topRight",
+									"bottomLeft",
+									"bottomRight"
+								]
+							},
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "The point rotate, scale and skew turn about: center, an edge or a corner, or [x%, y%]"
 					},
 					"cursor": {
 						"anyOf": [
@@ -1688,6 +1780,31 @@
 							}
 						],
 						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
+					},
+					"surface": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "surface: the name of a GPU surface the host registered (Screen::registerSurface)"
+					},
+					"params": {
+						"anyOf": [
+							{
+								"type": "object"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "surface: what the surface draws, an object it reads (e.g. a colour, a speed)"
+					},
+					"continuous": {
+						"$ref": "#/$defs/v1/flag"
 					},
 					"value": {
 						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids; colorPicker: a colour; gradient: { kind, angle, stops }; curves: { points }",
@@ -2422,19 +2539,6 @@
 							}
 						]
 					},
-					"scale": {
-						"anyOf": [
-							{
-								"type": "number",
-								"minimum": 1,
-								"maximum": 10000
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "timeline: window units per second, 1 to 10000 (default 100)"
-					},
 					"offset": {
 						"anyOf": [
 							{
@@ -2606,6 +2710,7 @@
 									"checkbox",
 									"slider",
 									"image",
+									"surface",
 									"split",
 									"tabs",
 									"list",

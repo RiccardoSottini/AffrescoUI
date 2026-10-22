@@ -7,6 +7,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/ImageCache.hpp"
 #include "affresco/render/Panel.hpp"
 
@@ -168,6 +169,14 @@ struct PropertySet {
 /// of. Unused places are null.
 using PropertySets = std::array<std::shared_ptr<const PropertySet>, 3>;
 
+/// @brief A GPU surface the host registered (Screen::registerSurface): what a "surface" node may name.
+struct RegisteredSurface {
+	SurfaceFactory factory; ///< Makes it.
+	SurfaceOptions options; ///< Its framebuffer's options.
+};
+/// @brief The GPU surfaces the host registered, by name.
+using SurfaceRegistry = std::map<std::string, RegisteredSurface, std::less<>>;
+
 /// @brief A node type: how to create its panel, and its own properties.
 struct NodeType {
 	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a panel of the type.
@@ -231,11 +240,14 @@ public:
 	[[nodiscard]] const std::vector<std::shared_ptr<const PropertySet>>& inherited() const noexcept {
 		return inherited_;
 	}
+	/// @brief The GPU surfaces the host registered, which "surface" nodes name (shared with that type's apply).
+	[[nodiscard]] const std::shared_ptr<SurfaceRegistry>& surfaces() const noexcept { return surfaces_; }
 
 private:
 	std::map<std::string, NodeType, std::less<>> types_;        ///< See types().
 	std::vector<std::string> order_;                            ///< Their names, in the order first added.
 	std::vector<std::shared_ptr<const PropertySet>> inherited_; ///< Sets with appliesTo, in the order added.
+	std::shared_ptr<SurfaceRegistry> surfaces_ = std::make_shared<SurfaceRegistry>(); ///< See surfaces().
 };
 
 /// @brief Registers the built-in node types (Types.cpp, and the widgets' own files).
@@ -257,6 +269,9 @@ void registerDiffType(TypeRegistry& registry);
 /// @brief Registers "image" (ImageType.cpp).
 /// @param registry The registry.
 void registerImageType(TypeRegistry& registry);
+/// @brief Registers "surface" (SurfaceType.cpp).
+/// @param registry The registry.
+void registerSurfaceType(TypeRegistry& registry);
 /// @brief Registers "split" (SplitType.cpp).
 /// @param registry The registry.
 void registerSplitType(TypeRegistry& registry);
@@ -269,6 +284,10 @@ void registerListTypes(TypeRegistry& registry);
 /// @brief Registers "icon", a property of labels (IconProperty.cpp).
 /// @param registry The registry.
 void registerIconProperty(TypeRegistry& registry);
+/// @brief Registers "rotate", "scale", "skew", "translate" and "transformOrigin", properties of every panel
+/// (TransformProperties.cpp).
+/// @param registry The registry.
+void registerTransformProperties(TypeRegistry& registry);
 /// @brief Registers "runs", "selectable" and "selectionColor", properties of labels (RunsProperty.cpp).
 /// @param registry The registry.
 void registerRichTextProperties(TypeRegistry& registry);

@@ -74,21 +74,21 @@ public:
 	}
 
 private:
-	std::mutex mutex_;          ///< Guards target_.
+	std::mutex mutex_;           ///< Guards target_.
 	Executor* target_ = nullptr; ///< See set().
 };
 
 struct Screen::Impl {
-	format::Features features;                                   ///< Catalogues and publishers (RFC 0004); outlives the rest.
-	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
-	RelayExecutor relay;                                         ///< The network's executor.
-	std::unique_ptr<net::Client> network;                        ///< See Screen::network(); outlives the runtime.
-	std::unique_ptr<net::SignIn> signIn;                         ///< The connections' "auth"; outlives the runtime.
-	format::Rules rules;                                         ///< The format's rules.
-	vcs::Repository repository;                                  ///< Document, state, history, review.
-	format::Runtime runtime;                                     ///< Panels and actions.
-	detail::OffscreenImages images{repository, runtime};         ///< Pictures for peers ("render").
-	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
+	format::Features features;                           ///< Catalogues and publishers (RFC 0004); outlives the rest.
+	services::ServiceRegistry services;                  ///< What "services" may use (RFC 0002).
+	RelayExecutor relay;                                 ///< The network's executor.
+	std::unique_ptr<net::Client> network;                ///< See Screen::network(); outlives the runtime.
+	std::unique_ptr<net::SignIn> signIn;                 ///< The connections' "auth"; outlives the runtime.
+	format::Rules rules;                                 ///< The format's rules.
+	vcs::Repository repository;                          ///< Document, state, history, review.
+	format::Runtime runtime;                             ///< Panels and actions.
+	detail::OffscreenImages images{repository, runtime}; ///< Pictures for peers ("render").
+	std::vector<std::unique_ptr<Peer>> peers;            ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
 	std::vector<std::unique_ptr<net::PeerServer>> peerServers;   ///< From listenWebSocket().
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
@@ -545,6 +545,10 @@ void Screen::registerType(std::string name, Factory factory, std::vector<std::st
 	format::Runtime::ApplyProperties forward;
 	if(apply) forward = [apply = std::move(apply)](Panel& panel, const json& own) { apply(panel, own.dump()); };
 	impl_->runtime.registerType(std::move(name), std::move(factory), std::move(properties), std::move(forward));
+}
+
+void Screen::registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options) {
+	impl_->runtime.registerSurface(std::move(name), std::move(factory), options);
 }
 
 void Screen::setPlaceholderTypes(bool enabled) { impl_->runtime.setPlaceholderTypes(enabled); }

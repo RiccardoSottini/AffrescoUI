@@ -37,7 +37,7 @@ Runtime::~Runtime() {
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
 	impl_->calls.cancelAll();      // and what slow calls return would reach it
-	impl_->serviceCalls.cancelAll(); // and so would what services return
+	impl_->serviceCalls.cancelAll();                        // and so would what services return
 	if(impl_->identity) impl_->identity->onStatus(nullptr); // and so would a sign-in
 }
 
@@ -57,6 +57,10 @@ void Runtime::registerType(std::string name, Factory factory, std::vector<std::s
 	};
 	impl_->types.add({std::move(name), "Registered by the application", std::move(factory), std::move(own), true});
 	impl_->document.changeAppearance(); // panels of the type apply its new function at the next update
+}
+
+void Runtime::registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options) {
+	impl_->types.surfaces()->insert_or_assign(std::move(name), RegisteredSurface{std::move(factory), options});
 }
 
 void Runtime::setPlaceholderTypes(bool enabled) { impl_->placeholderTypes = enabled; }
