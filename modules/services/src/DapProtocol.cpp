@@ -49,7 +49,8 @@ json* cutList(json& object, const char* key, std::size_t most) {
 	if(found == object.end() || !found->is_array()) return nullptr;
 	if(found->size() > most) {
 		found->erase(found->begin() + static_cast<std::ptrdiff_t>(most), found->end());
-		object["truncated"] = true;
+		object["truncated"] = true; // can move the members, so the list is found again
+		return &object[key];
 	}
 	return &*found;
 }

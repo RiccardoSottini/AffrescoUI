@@ -188,10 +188,12 @@ TEST_CASE("dap: an adapter's messages are read, bounded and placed against the f
 	// Lists are cut to their limits, and sources placed
 	const std::filesystem::path root = std::filesystem::path("/work");
 	json threads = json::array();
-	for(int index = 0; index < 1500; ++index) threads.push_back({{"id", index}, {"name", "t"}});
+	for(int index = 0; index < 1500; ++index)
+		threads.push_back({{"id", index}, {"name", std::string(dap::longestText + 10, 't')}});
 	const json bounded = dap::boundResponse("threads", {{"threads", threads}}, root);
 	CHECK(bounded["threads"].size() == dap::mostThreads);
 	CHECK(bounded["truncated"] == true);
+	CHECK(bounded["threads"][0]["name"].get<std::string>().size() <= dap::longestText); // cut after the list is
 	json inside = {{"path", "/work/src/a.py"}};
 	dap::place(inside, root);
 	CHECK(inside["inside"] == true);
