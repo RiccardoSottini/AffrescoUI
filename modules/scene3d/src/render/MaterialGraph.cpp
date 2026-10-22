@@ -116,18 +116,19 @@ struct GraphNode {
 /// @brief Text for an error, shortened. @param text It. @return At most 64 characters.
 [[nodiscard]] std::string shown(std::string_view text) { return std::string(text.substr(0, 64)); }
 
-/// @brief A node's value as GLSL. @param node The JSON. @param operation Its operation.
-/// @param errors Receives a problem. @return The literal, or empty for operations without one.
-[[nodiscard]] std::string valueOf(const json& node, const OperationSpec& operation, std::vector<std::string>& errors) {
-	const std::string_view name = operation.name;
-	if(name != "number" && name != "color") return {};
+/// @brief A number node's value as GLSL. @param node The JSON. @param errors Receives a problem.
+/// @return The literal, 0.5 by default.
+[[nodiscard]] std::string numberValue(const json& node, std::vector<std::string>& errors) {
 	const auto found = node.find("value");
-	if(name == "number") {
-		if(found != node.end() && !found->is_number()) errors.push_back("a number node's value must be a number");
-		return literal(found != node.end() && found->is_number() ? found->get<double>() : 0.5);
-	}
+	if(found != node.end() && !found->is_number()) errors.push_back("a number node's value must be a number");
+	return literal(found != node.end() && found->is_number() ? found->get<double>() : 0.5);
+}
+
+/// @brief A colour node's value as GLSL. @param node The JSON. @param errors Receives a problem.
+/// @return The vec3, a light grey by default.
+[[nodiscard]] std::string colorValue(const json& node, std::vector<std::string>& errors) {
 	std::array<double, 3> rgb{0.8, 0.8, 0.8};
-	if(found != node.end()) {
+	if(const auto found = node.find("value"); found != node.end()) {
 		if(!found->is_array() || found->size() != 3 ||
 		   !std::ranges::all_of(*found, [](const json& c) { return c.is_number(); }))
 			errors.push_back("a colour node's value must be three numbers");
@@ -135,6 +136,42 @@ struct GraphNode {
 			for(std::size_t i = 0; i < 3; ++i) rgb[i] = (*found)[i].get<double>();
 	}
 	return "vec3(" + literal(rgb[0]) + ", " + literal(rgb[1]) + ", " + literal(rgb[2]) + ")";
+}
+
+/// @brief A node's value as GLSL. @param node The JSON. @param operation Its operation.
+/// @param errors Receives a problem. @return The literal, or empty for operations without one.
+[[nodiscard]] std::string valueOf(const json& node, const OperationSpec& operation, std::vector<std::string>& errors) {
+	const std::string_view name = operation.name;
+	if(name == "number") return numberValue(node, errors);
+	if(name == "color") return colorValue(node, errors);
+	return {};
+}
+
+/// @brief Reads one node into the nodes. @param node The JSON. @param nodes The nodes so far.
+/// @param errors Receives problems. @param output Receives the output node's id.
+void readNode(const json& node, std::map<std::string, GraphNode, std::less<>>& nodes, std::vector<std::string>& errors,
+              std::string& output) {
+	const auto id = node.is_object() ? node.find("id") : node.end();
+	const auto op = node.is_object() ? node.find("op") : node.end();
+	if(id == node.end() || !id->is_string() || op == node.end() || !op->is_string()) {
+		errors.push_back("every node needs an id and an op");
+		return;
+	}
+	const OperationSpec* operation = operationNamed(op->get<std::string>());
+	const auto& key = id->get_ref<const std::string&>();
+	if(operation == nullptr) {
+		errors.push_back("the node " + shown(key) + " has an unknown op " + shown(op->get<std::string>()));
+		return;
+	}
+	if(nodes.contains(key)) {
+		errors.push_back("two nodes are called " + shown(key));
+		return;
+	}
+	if(std::string_view(operation->name) == "output") {
+		if(!output.empty()) errors.push_back("a graph has one output node");
+		output = key;
+	}
+	nodes.emplace(key, GraphNode{operation, valueOf(node, *operation, errors), {}});
 }
 
 /// @brief Reads the nodes. @param graph The graph. @param limits The limits. @param errors Receives problems.
@@ -148,26 +185,7 @@ readNodes(const json& graph, const MaterialGraphLimits& limits, std::vector<std:
 		return nodes;
 	}
 	if(list->size() > limits.nodes) errors.push_back(std::format("more than {} nodes", limits.nodes));
-	for(const auto& node : *list) {
-		const auto id = node.is_object() ? node.find("id") : node.end();
-		const auto op = node.is_object() ? node.find("op") : node.end();
-		if(id == node.end() || !id->is_string() || op == node.end() || !op->is_string()) {
-			errors.push_back("every node needs an id and an op");
-			continue;
-		}
-		const OperationSpec* operation = operationNamed(op->get<std::string>());
-		const auto& key = id->get_ref<const std::string&>();
-		if(operation == nullptr)
-			errors.push_back("the node " + shown(key) + " has an unknown op " + shown(op->get<std::string>()));
-		else if(nodes.contains(key)) errors.push_back("two nodes are called " + shown(key));
-		else {
-			if(std::string_view(operation->name) == "output") {
-				if(!output.empty()) errors.push_back("a graph has one output node");
-				output = key;
-			}
-			nodes.emplace(key, GraphNode{operation, valueOf(node, *operation, errors), {}});
-		}
-	}
+	for(const auto& node : *list) readNode(node, nodes, errors, output);
 	if(output.empty()) errors.push_back("the graph has no output node");
 	return nodes;
 }
