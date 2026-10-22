@@ -7,7 +7,8 @@
 
 #include "affresco/render/Panel.hpp"
 
-#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 
 namespace affresco::detail {
@@ -158,19 +159,24 @@ void GeometryCache::refreshPanel(Panel& panel, const Rect& outerClip, PanelGeome
 	addTo(damage_, screenReachOf(geometry));
 }
 
-// Compared by address only: a panel that is gone reported where it was itself, and a new one is recorded and damaged
+// Compared by address only: a panel that is gone reported where it was itself, and a new one is recorded and damaged.
+// Walked in place, the overlays then the tooltip: a list of them made here would be an allocation every frame
 void GeometryCache::compareOverlays(const Frame& frame) {
-	std::vector<const Panel*> now(frame.overlays.begin(), frame.overlays.end());
-	if(frame.tooltip) now.push_back(frame.tooltip);
-	const bool same = std::ranges::equal(now, above_, {}, {}, &std::pair<const Panel*, Rect>::first);
+	const std::size_t count = frame.overlays.size() + (frame.tooltip ? 1 : 0);
+	const auto drawnAbove = [&frame](std::size_t index) -> const Panel* {
+		return index < frame.overlays.size() ? frame.overlays[index] : frame.tooltip;
+	};
+	bool same = above_.size() == count;
+	for(std::size_t index = 0; same && index < count; ++index) same = above_[index].first == drawnAbove(index);
 	if(!same)
 		for(const auto& [panel, area] : above_) addTo(damage_, area);
 
-	above_.clear();
-	for(const Panel* panel : now) {
+	above_.resize(count);
+	for(std::size_t index = 0; index < count; ++index) {
+		const Panel* panel = drawnAbove(index);
 		const PanelGeometry* geometry = panel->geometry_.get();
 		const Rect area = geometry && geometry->recorded ? screenReachOf(*geometry) : Rect{};
-		above_.emplace_back(panel, area);
+		above_[index] = {panel, area};
 		if(!same) addTo(damage_, area);
 	}
 }
