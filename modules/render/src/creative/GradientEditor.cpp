@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace affresco {
 
@@ -44,6 +45,70 @@ constexpr double degreesToRadians = 3.14159265358979 / 180.0; ///< Degrees to ra
 	if(!std::isfinite(degrees)) return 0.0;
 	const double wrapped = std::fmod(degrees, 360.0);
 	return wrapped < 0.0 ? wrapped + 360.0 : wrapped;
+}
+
+/// @brief The stop beside the selected one, staying on the ends.
+/// @param selected The selected stop.
+/// @param last The last stop.
+/// @param forward Whether to go right (else left).
+/// @return Its index.
+[[nodiscard]] constexpr std::size_t besideStop(std::size_t selected, std::size_t last, bool forward) noexcept {
+	if(forward) return std::min(selected + 1, last);
+	return selected == 0 ? 0 : selected - 1;
+}
+
+/// @brief Where a new stop goes: halfway to the stop after the selected one, or before it from the last.
+/// @param stops The stops; at least two (see normalizeGradient()).
+/// @param selected The selected stop.
+/// @return Its position, 0..1.
+[[nodiscard]] double newStopAt(const std::vector<GradientStop>& stops, std::size_t selected) noexcept {
+	if(selected + 1 < stops.size()) return (stops[selected].at + stops[selected + 1].at) / 2.0;
+	return (stops[selected - 1].at + stops[selected].at) / 2.0;
+}
+
+/// @brief What a key does to a gradient beyond its stops.
+enum class GradientCommand : std::uint8_t {
+	None,      ///< Nothing.
+	Add,       ///< Adds a stop after the selected one.
+	Remove,    ///< Removes the selected stop.
+	Open,      ///< Opens the selected stop's colour.
+	Kind,      ///< Switches between linear and radial.
+	AngleDown, ///< Turns the angle back 15 degrees.
+	AngleUp,   ///< Turns it on 15 degrees.
+};
+
+/// @brief The command a key gives.
+/// @param key The key.
+/// @return The command, or None.
+[[nodiscard]] constexpr GradientCommand gradientCommandOf(Key key) noexcept {
+	switch(key) {
+	case Key::Insert:
+	case Key::Equal:
+	case Key::KeypadAdd:
+		return GradientCommand::Add;
+	case Key::Delete:
+	case Key::Backspace:
+		return GradientCommand::Remove;
+	case Key::Enter:
+	case Key::KeypadEnter:
+	case Key::Space:
+		return GradientCommand::Open;
+	case Key::K:
+		return GradientCommand::Kind;
+	case Key::LeftBracket:
+		return GradientCommand::AngleDown;
+	case Key::RightBracket:
+		return GradientCommand::AngleUp;
+	default:
+		return GradientCommand::None;
+	}
+}
+
+/// @brief The other kind of gradient.
+/// @param kind Linear or radial.
+/// @return Radial or linear.
+[[nodiscard]] constexpr Gradient::Kind otherKind(Gradient::Kind kind) noexcept {
+	return kind == Gradient::Kind::Linear ? Gradient::Kind::Radial : Gradient::Kind::Linear;
 }
 
 } // namespace
@@ -257,7 +322,7 @@ bool GradientEditor::stopKey(const KeyEvent& event) {
 	case Key::Right: {
 		const int direction = event.key == Key::Right ? 1 : -1;
 		if(shift) moveStop(selected_, gradient_.stops[selected_].at + direction * 0.01);
-		else selectStop(direction > 0 ? std::min(selected_ + 1, last) : (selected_ == 0 ? 0 : selected_ - 1));
+		else selectStop(besideStop(selected_, last, direction > 0));
 		return true;
 	}
 	case Key::Up:
@@ -278,35 +343,26 @@ bool GradientEditor::stopKey(const KeyEvent& event) {
 
 void GradientEditor::keyEvent(const KeyEvent& event) {
 	if(event.action == Action::Release || stopKey(event)) return Panel::keyEvent(event);
-	switch(event.key) {
-	case Key::Insert:
-	case Key::Equal:
-	case Key::KeypadAdd: {
-		const auto& stops = gradient_.stops;
-		const double at = selected_ + 1 < stops.size() ? (stops[selected_].at + stops[selected_ + 1].at) / 2.0
-		                                               : (stops[selected_ - 1].at + stops[selected_].at) / 2.0;
-		static_cast<void>(addStop(at)); // full: nothing to add
+	switch(gradientCommandOf(event.key)) {
+	case GradientCommand::Add:
+		static_cast<void>(addStop(newStopAt(gradient_.stops, selected_))); // full: nothing to add
 		return;
-	}
-	case Key::Delete:
-	case Key::Backspace:
+	case GradientCommand::Remove:
 		static_cast<void>(removeStop(selected_));
 		return;
-	case Key::Enter:
-	case Key::KeypadEnter:
-	case Key::Space:
+	case GradientCommand::Open:
 		openPopover();
 		return;
-	case Key::K:
-		changeKind(gradient_.kind == Gradient::Kind::Linear ? Gradient::Kind::Radial : Gradient::Kind::Linear);
+	case GradientCommand::Kind:
+		changeKind(otherKind(gradient_.kind));
 		return;
-	case Key::LeftBracket:
+	case GradientCommand::AngleDown:
 		changeAngle(gradient_.angle - 15.0);
 		return;
-	case Key::RightBracket:
+	case GradientCommand::AngleUp:
 		changeAngle(gradient_.angle + 15.0);
 		return;
-	default:
+	case GradientCommand::None:
 		Panel::keyEvent(event);
 	}
 }
