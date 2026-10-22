@@ -291,6 +291,11 @@ public:
 	void endPreview();
 	/// @brief The proposal being previewed, if any.
 	[[nodiscard]] std::optional<int> previewedProposal() const noexcept;
+	/// @brief Sets how a proposal's evidence ("getEvidence", VERSION_CONTROL.md) plays the screen's scenarios: given
+	/// the proposal's document as JSON text, returns `[{"name", "passed", "message"}]` as JSON text. Without one, the
+	/// evidence has no scenarios. affrescoui_host plays the screen's `.scenarios.json` (modules/automation).
+	/// @param check The check, or an empty function.
+	void setScenarioCheck(std::function<std::string(const std::string& documentJson)> check);
 
 	/* History */
 

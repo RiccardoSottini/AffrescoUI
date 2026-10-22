@@ -200,6 +200,10 @@ Grants are allow rules, so `ask` and `deny` still win.
   deny rules are checked again at the merge.
 - **Grants can expire** (`"for"` on an accept, capped by `grantsLast`). An expired grant no longer allows; it stays in
   the history until revoked.
+- **Evidence is the host's.** A proposal's pictures, changed region, behaviour lines, scenario results and changed
+  texts are gathered by the host when a reviewer asks (`getEvidence`), from the proposal as it is then; a revision
+  carrying `evidence` or `behaviour` is refused. The scenarios are played headless, on a screen connected to nobody,
+  and gathering is rate limited like `render`.
 
 ### You accept what you saw
 An author can keep pushing commits to its open proposal. Every approval must name the proposal's head commit (at

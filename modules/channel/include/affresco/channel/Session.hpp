@@ -111,6 +111,11 @@ private:
 	/// @param in The message: `proposal` (optional) and `scale` (1 by default, at most ScreenImages::maxScale).
 	/// @throws DocumentError If it is malformed, over the rate of pictures, or the picture can't be drawn.
 	void sendImage(const Incoming& in);
+	/// @brief Answers "getEvidence" with what a proposal does, gathered by the host (VERSION_CONTROL.md, "Evidence"):
+	/// `{"type": "evidence", "proposal", "evidence": {"before", "after", "region", "behaviour", "scenarios"}}`.
+	/// @param in The message: `proposal`, and `scale` as for render.
+	/// @throws DocumentError If it is malformed, over the rate of pictures, or the evidence can't be gathered.
+	void sendEvidence(const Incoming& in);
 	/// @brief Handles blame: `{"type": "blame", "target": "#board"}` gives the commit on main that last changed it.
 	/// @param in The message.
 	/// @return false if it isn't one.

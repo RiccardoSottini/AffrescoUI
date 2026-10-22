@@ -19,6 +19,7 @@
 #include "SocketDir.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/automation/Scenarios.hpp>
 
 #include <cstdlib>
 #include <format>
@@ -42,6 +43,43 @@ bool environmentHas(const char* name) {
 #else
 	return std::getenv(name) != nullptr;
 #endif
+}
+
+/// @brief Lets a proposal's evidence play the screen's scenarios (`<name>.scenarios.json` beside `<name>.screen.json`)
+/// on the proposal: those that draw no picture, headless, on a screen connected to nobody.
+/// @param screen The screen.
+/// @param file Its file.
+void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::path& file) {
+	const std::string name = file.filename().string();
+	if(!name.ends_with(".screen.json")) return;
+	const std::filesystem::path scenarios =
+	    file.parent_path() /
+	    (name.substr(0, name.size() - std::string_view(".screen.json").size()) + ".scenarios.json");
+	if(!std::filesystem::exists(scenarios)) return;
+	screen.setScenarioCheck([scenarios](const std::string& document) {
+		namespace automation = affresco::automation;
+		affresco::json results = affresco::json::array();
+		try {
+			const automation::ScenarioFile file = automation::ScenarioFile::load(scenarios);
+			automation::Options options;
+			options.document = document;
+			options.pictures = false;
+			options.prepare = [](affresco::Screen& played) { examples::registerCodeEditor(played); };
+			for(const automation::Scenario& scenario : file.scenarios)
+				if(!scenario.needsPictures) options.only.push_back(scenario.name);
+			if(options.only.empty()) return results.dump(); // all of them draw
+			for(const automation::ScenarioResult& result : automation::run(file, options).scenarios) {
+				std::string message;
+				for(const automation::Failure& failure : result.failures)
+					message +=
+					    (message.empty() ? "" : "; ") + std::format("step {}: {}", failure.step, failure.problem);
+				results.push_back({{"name", result.name}, {"passed", result.passed()}, {"message", message}});
+			}
+		} catch(const std::exception& error) { // the scenarios file itself is malformed
+			results = {{{"name", scenarios.filename().string()}, {"passed", false}, {"message", error.what()}}};
+		}
+		return results.dump();
+	});
 }
 
 /// @brief Applies the --plugin change sets, skipping those the screen's history already has from an earlier start.
@@ -145,6 +183,7 @@ int run(const Options& options) {
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	screen.createWindow(app);
 	applyPlugins(screen, options.plugins);
+	checkScenariosForEvidence(screen, screenFile(options.file));
 
 	if(!screenshotOnly) {
 		createSocketDir(options.socketDir);

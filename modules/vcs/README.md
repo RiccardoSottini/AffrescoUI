@@ -56,6 +56,8 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A review policy is met before a merge** (`DocumentRules::permissions().review`): approvals from distinct reviewers,
   more for behaviour changes (`DocumentRules::behaviourLines`), and one from an owner of each owned part changed. It
   is read from main when each approval arrives. Grants may carry `expires`; expired ones no longer allow.
+- **Evidence is never the author's:** a revision carrying `evidence` or `behaviour` is refused; the host gathers both
+  (VERSION_CONTROL.md, "Evidence").
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
 - **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every

@@ -200,6 +200,7 @@
 		"grants": [],
 		"proposals": [],
 		"previewing": null,
+		"evidence": null,
 		"history": [],
 		"log": [],
 		"draft": "",
@@ -343,6 +344,8 @@
 	},
 	"computed": {
 		"current": "{{find(state.proposals, it.id == state.selected) ?? (len(state.proposals) > 0 ? state.proposals[0] : null)}}",
+		"evidence": "{{state.evidence != null && computed.current != null && state.evidence.proposal == computed.current.id ? state.evidence : null}}",
+		"diffs": "{{computed.evidence == null ? [] : map(computed.evidence.texts, {type: 'diff', node: it.node, original: it.original, modified: it.modified, mode: 'split', language: it.language})}}",
 		"entry": "{{find(state.history, it.number == state.historyPick) ?? (len(state.history) > 0 ? state.history[len(state.history) - 1] : null)}}",
 		"tabs": "{{[{id: 'review', label: len(state.proposals) > 0 ? 'Review (' + len(state.proposals) + ')' : 'Review', closable: false}, {id: 'history', label: 'History', closable: false}, {id: 'rules', label: len(state.grants) > 0 ? 'Rules (' + len(state.grants) + ')' : 'Rules', closable: false}]}}"
 	},
@@ -818,6 +821,40 @@
 			{
 				"set": "state.grants",
 				"to": "{{event.grants}}"
+			}
+		],
+		"host:evidence": [
+			{
+				"set": "state.evidence",
+				"to": "{{merge({proposal: event.proposal, scale: event.scale}, {region: event.evidence.region, behaviour: event.evidence.behaviour, scenarios: event.evidence.scenarios, texts: event.evidence.texts ?? []})}}"
+			},
+			{
+				"call": "showEvidence",
+				"with": {
+					"before": "{{event.evidence.before}}",
+					"after": "{{event.evidence.after}}",
+					"region": "{{event.evidence.region}}"
+				},
+				"onError": [
+					{
+						"set": "state.status",
+						"to": "Evidence: {{error}}"
+					}
+				]
+			}
+		],
+		"gatherEvidence": [
+			{
+				"if": "{{computed.current != null && empty(computed.current.conflicts)}}",
+				"then": [
+					{
+						"send": "host",
+						"data": {
+							"type": "getEvidence",
+							"proposal": "{{computed.current.id}}"
+						}
+					}
+				]
 			}
 		],
 		"host:history": [
@@ -1426,10 +1463,15 @@
 												"selectedTextColor": "@color.text",
 												"selectedBackground": "@color.accentSoft",
 												"accentColor": "@color.accent",
-												"onChange": {
-													"set": "state.selected",
-													"to": "{{number(event.value)}}"
-												}
+												"onChange": [
+													{
+														"set": "state.selected",
+														"to": "{{number(event.value)}}"
+													},
+													{
+														"run": "gatherEvidence"
+													}
+												]
 											},
 											{
 												"id": "proposal",
@@ -1528,6 +1570,218 @@
 																	"horizontal": "start",
 																	"vertical": "center"
 																}
+															},
+															{
+																"id": "evidenceBar",
+																"note": "A proposal's evidence (VERSION_CONTROL.md): drawn and played by the host, never supplied by its author",
+																"color": "transparent",
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 30,
+																"children": [
+																	{
+																		"id": "label-evidence",
+																		"style": "caption",
+																		"text": "{{computed.evidence == null ? 'Evidence: pictures, behaviour and scenarios, gathered by the host' : 'Evidence, gathered by the host'}}",
+																		"anchors": {
+																			"left": 0,
+																			"right": 96,
+																			"top": 8
+																		},
+																		"fitText": false,
+																		"height": 16
+																	},
+																	{
+																		"id": "label-gather-evidence",
+																		"style": "smallButton",
+																		"text": "{{computed.evidence == null ? 'Gather' : 'Again'}}",
+																		"icon": "camera",
+																		"anchors": {
+																			"right": 0,
+																			"top": 2
+																		},
+																		"width": 88,
+																		"tooltip": "Draw main and the proposal, and play the screen's scenarios on it",
+																		"onClick": "gatherEvidence"
+																	}
+																]
+															},
+															{
+																"id": "evidencePictures",
+																"when": "{{computed.evidence != null}}",
+																"color": "@color.card",
+																"radius": 4,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 168,
+																"children": [
+																	{
+																		"id": "image-evidence-before",
+																		"type": "image",
+																		"source": "evidenceBefore",
+																		"fit": "contain",
+																		"anchors": {
+																			"left": 6,
+																			"right": "50%",
+																			"top": 24,
+																			"bottom": 6
+																		}
+																	},
+																	{
+																		"id": "image-evidence-after",
+																		"type": "image",
+																		"source": "evidenceAfter",
+																		"fit": "contain",
+																		"anchors": {
+																			"left": "50%",
+																			"right": 6,
+																			"top": 24,
+																			"bottom": 6
+																		}
+																	},
+																	{
+																		"id": "label-evidence-before",
+																		"style": "caption",
+																		"text": "Before: main",
+																		"anchors": {
+																			"left": 8,
+																			"top": 4
+																		}
+																	},
+																	{
+																		"id": "label-evidence-after",
+																		"style": "caption",
+																		"text": "{{computed.evidence.region[2] == 0 ? 'After: no pixel changed' : 'After: changed ' + computed.evidence.region[2] + ' × ' + computed.evidence.region[3] + ' at ' + computed.evidence.region[0] + ', ' + computed.evidence.region[1]}}",
+																		"anchors": {
+																			"left": "50%",
+																			"top": 4
+																		}
+																	}
+																]
+															},
+															{
+																"id": "label-evidence-behaviour",
+																"when": "{{computed.evidence != null}}",
+																"repeat": {
+																	"for": "b",
+																	"in": "computed.evidence.behaviour"
+																},
+																"type": "label",
+																"font": "symbols",
+																"text": "Behaviour: {{b}}",
+																"textColor": "@color.text",
+																"color": "@color.accentSoft",
+																"radius": 4,
+																"padding": 6,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 26,
+																"align": {
+																	"horizontal": "start",
+																	"vertical": "center"
+																}
+															},
+															{
+																"id": "label-evidence-scenario",
+																"when": "{{computed.evidence != null}}",
+																"repeat": {
+																	"for": "r",
+																	"in": "computed.evidence.scenarios"
+																},
+																"type": "label",
+																"font": "symbols",
+																"text": "{{r.passed ? 'Passed' : 'Failed'}}: {{r.name}}{{empty(r.message) ? '' : '  ·  ' + r.message}}",
+																"textColor": "@color.text",
+																"color": "{{r.passed ? '@color.card' : '@color.bad'}}",
+																"radius": 4,
+																"padding": 6,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 26,
+																"align": {
+																	"horizontal": "start",
+																	"vertical": "center"
+																}
+															},
+															{
+																"id": "diff",
+																"note": "A text the proposal changes, split: the data is 8.4c's diff view ({type: 'diff', original, modified, mode, language}), drawn with two labels until that node type exists",
+																"repeat": {
+																	"for": "d",
+																	"in": "computed.diffs"
+																},
+																"color": "@color.card",
+																"radius": 4,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 96,
+																"children": [
+																	{
+																		"id": "label-diff-node",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{d.node}}  ·  {{d.language}}",
+																		"textColor": "@color.muted",
+																		"anchors": {
+																			"left": 8,
+																			"right": 8,
+																			"top": 6
+																		},
+																		"height": 18
+																	},
+																	{
+																		"id": "label-diff-original",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{d.original}}",
+																		"textColor": "@color.text",
+																		"color": "@color.cardRaised",
+																		"radius": 4,
+																		"padding": 6,
+																		"wrap": true,
+																		"anchors": {
+																			"left": 8,
+																			"right": "50%",
+																			"top": 28,
+																			"bottom": 6
+																		},
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "start"
+																		}
+																	},
+																	{
+																		"id": "label-diff-modified",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{d.modified}}",
+																		"textColor": "@color.text",
+																		"color": "@color.accentSoft",
+																		"radius": 4,
+																		"padding": 6,
+																		"wrap": true,
+																		"anchors": {
+																			"left": "50%",
+																			"right": 8,
+																			"top": 28,
+																			"bottom": 6
+																		},
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "start"
+																		}
+																	}
+																]
 															}
 														]
 													},

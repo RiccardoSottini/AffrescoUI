@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Unit tests for the MCP server's queries, which need no host: the outline (and its depth), one node (and its depth),
-find_nodes, the format guide by topic, the changes a re-read returns, and messages it can't use. ctest "mcp", or:
+find_nodes, the format guide by topic, the changes a re-read returns, a proposal's evidence, and messages it can't use. ctest "mcp", or:
 
     python3 mcp/test_affrescoui_mcp.py
 """
@@ -166,6 +166,42 @@ class Scenarios(unittest.TestCase):
                 json.dump({"token": "not for the agent"}, file)
             self.assertEqual(server.run_scenarios({"file": other}),
                              ("error: file: expected a *.scenarios.json file", True))
+
+
+class Evidence(unittest.TestCase):
+    """get_evidence shows what the host gathered, and nothing it didn't."""
+
+    class FakeHost:
+        def __init__(self, reply):
+            self.reply, self.asked = reply, []
+
+        def request(self, message):
+            self.asked.append(message)
+            return self.reply
+
+    def test_both_pictures_then_the_facts(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        picture = {"format": "png", "data": "iVBORw==", "width": 4, "height": 3}
+        server.host = self.FakeHost({"type": "evidence", "proposal": 2, "revision": 7, "scale": 1, "evidence": {
+            "before": picture, "after": picture, "region": [1, 1, 2, 1], "behaviour": ["adds onClick of #title"],
+            "scenarios": [{"name": "opens", "passed": False, "message": "step 1: no #title"}],
+            "texts": [{"node": "#title", "original": "A", "modified": "B", "language": "text"}]}})
+        blocks, failed = server.call_tool("get_evidence", {"proposal": 2, "scale": 2})
+        self.assertFalse(failed)
+        self.assertEqual(server.host.asked, [{"type": "getEvidence", "proposal": 2, "scale": 2}])
+        self.assertEqual([block["type"] for block in blocks], ["text", "image", "text", "image", "text"])
+        self.assertEqual(blocks[0]["text"], "before: 4x3 pixels")
+        self.assertEqual(blocks[1], {"type": "image", "data": "iVBORw==", "mimeType": "image/png"})
+        facts = json.loads(blocks[4]["text"])
+        self.assertEqual(facts["region"], [1, 1, 2, 1])
+        self.assertEqual(facts["behaviour"], ["adds onClick of #title"])
+        self.assertFalse(facts["scenarios"][0]["passed"])
+        self.assertEqual(facts["texts"][0]["modified"], "B")
+
+    def test_an_error_is_an_error(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = self.FakeHost({"type": "rejected", "error": "no proposal 9"})
+        self.assertEqual(server.call_tool("get_evidence", {"proposal": 9}), ("error: no proposal 9", True))
 
 
 class Rereads(unittest.TestCase):

@@ -471,6 +471,9 @@ RevisionResult Repository::submit(const json& revision) {
 	const int number = mainHead().number;
 	try {
 		expect::object(revision, "revision");
+		// Evidence is what the host draws and plays itself: an author naming any of it is trying to forge it
+		for(const char* key : {"evidence", "behaviour"})
+			if(revision.contains(key)) fail(std::string("revision.") + key, "the host gathers it itself");
 		const std::string author = authorOf(revision);
 		if(revision.contains("proposal")) return push(revision, author);
 

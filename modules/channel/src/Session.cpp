@@ -333,6 +333,8 @@ bool Session::handleQuery(const Incoming& in) {
 		      {"id", in.id}});
 	} else if(in.type == "render") {
 		sendImage(in);
+	} else if(in.type == "getEvidence") {
+		sendEvidence(in);
 	} else {
 		return false;
 	}
@@ -379,6 +381,41 @@ void Session::sendImage(const Incoming& in) {
 	      {"height", image.height},
 	      {"scale", request.scale},
 	      {"proposal", request.proposal ? json(*request.proposal) : json()},
+	      {"revision", versions_.head().number},
+	      {"id", in.id}});
+}
+
+void Session::sendEvidence(const Incoming& in) {
+	const json& m = in.message;
+	const int proposal = proposalOf(in);
+	const int scale =
+	    m.contains("scale") && !m["scale"].is_null() ? expect::integer(m["scale"], "getEvidence.scale") : 1;
+	if(scale < 1 || scale > ScreenImages::maxScale)
+		expect::fail("getEvidence.scale", "expected 1 to " + std::to_string(ScreenImages::maxScale));
+	if(!images_) expect::fail("getEvidence", "this host draws no pictures");
+	// Two pictures and the scenarios played: at the rate of pictures
+	if(!pictureRate_.take(TokenBucket::Clock::now())) {
+		const std::string what = "too many pictures: at most " + toText(limits_.revisionsPerMinute) + " a minute";
+		overLimit(what);
+		throw DocumentError(what);
+	}
+
+	Evidence evidence;
+	if(const std::optional<std::string> error = images_->evidence(proposal, scale, evidence))
+		throw DocumentError(*error);
+	const auto picture = [](const Image& image) {
+		return json{{"format", "png"}, {"data", toBase64(image.png)}, {"width", image.width}, {"height", image.height}};
+	};
+	send({{"type", "evidence"},
+	      {"proposal", proposal},
+	      {"evidence",
+	       {{"before", picture(evidence.before)},
+	        {"after", picture(evidence.after)},
+	        {"region", evidence.region},
+	        {"behaviour", evidence.behaviour},
+	        {"scenarios", evidence.scenarios},
+	        {"texts", evidence.texts}}},
+	      {"scale", scale},
 	      {"revision", versions_.head().number},
 	      {"id", in.id}});
 }

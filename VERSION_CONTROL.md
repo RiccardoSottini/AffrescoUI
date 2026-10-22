@@ -213,6 +213,33 @@ conflict.
   can't be accepted until its author pushes again (which rebuilds the branch on the current `main`); it can be
   rejected.
 
+### Evidence
+A reviewer can ask the host for a proposal's **evidence** (`{"type": "getEvidence", "proposal": 3, "scale": 1}`), and
+gets it back as `evidence`:
+
+```json
+"evidence": {
+  "before": {"format": "png", "data": "...", "width": 1280, "height": 800},
+  "after": {"format": "png", "data": "...", "width": 1280, "height": 800},
+  "region": [x, y, w, h],
+  "behaviour": ["adds onClick of #title"],
+  "scenarios": [{"name": "opens", "passed": true, "message": ""}],
+  "texts": [{"node": "#title", "original": "Tasks", "modified": "Today", "language": "text"}]
+}
+```
+
+- `before` and `after` are the screen drawn on `main` and as accepting would leave it, off screen; `region` is the
+  smallest rectangle (in those pictures' pixels) holding every pixel that differs, `[0, 0, 0, 0]` when none does.
+- `behaviour` is the proposal's lines of behaviour change (as in "Review policies").
+- `scenarios` are the results of the screen's scenarios (`<name>.scenarios.json` beside the screen) played on the
+  proposal's document, headless: those that need no pictures. The host decides whether to play any.
+- `texts` lists each text the proposal changes, added or removes, by node, for a diff view (the Studio shows them side
+  by side).
+
+**The host gathers all of it itself**, when asked, from the proposal as it is now: a revision that carries
+`evidence` or `behaviour` is refused, so an author can never supply or forge it. Gathering draws two pictures, so it
+counts against the same rate as `render`.
+
 ## What keeps it safe
 - **Nobody approves their own change.** Agents aren't reviewers, the MCP server has no accept tool, revisions can't
   create review controls, and a reviewer can't accept a proposal from its own channel.
@@ -230,6 +257,8 @@ conflict.
   commits too), at most 100,000 values copied by its `copy` operations in all (a copy of a list into itself doubles
   it), and no object given more than 10,000 members. A screen file may hold a wider object: a revision may change
   it, not widen it.
+- **Evidence comes from the host.** Pictures, behaviour lines and scenario results are gathered by the host from the
+  proposal itself; a revision can't carry any.
 - **Merges never guess:** a proposal that no longer applies to `main` is closed with the reason, and a revert whose
   parts changed later is refused as a conflict.
 

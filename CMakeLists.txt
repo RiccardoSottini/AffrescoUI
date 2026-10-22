@@ -129,6 +129,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		target_compile_options(affrescoui_${example} PRIVATE ${AFFRESCOUI_WARNINGS})
 		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 	endforeach()
+	target_link_libraries(affrescoui_host PRIVATE affrescoui::automation) # a proposal's evidence plays its scenarios
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
 		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp)

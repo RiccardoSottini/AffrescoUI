@@ -233,6 +233,24 @@
 				{ "expect": { "node": "#label-conflict-proposal", "text": "proposal: \"Sprint 12\"" } },
 				{ "expect": { "node": "#label-conflict-main", "text": "main: removed", "nth": 1 } }
 			]
+		},
+		{
+			"name": "a-proposal-shows-its-evidence",
+			"note": "The host's answer to getEvidence: before and after, the changed region, behaviour lines, scenario results and the texts it changes, split",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 5, "head": { "short": "b2c3d4e" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 5, "head": { "short": "b2c3d4e" }, "document": {}, "state": {}, "proposals": [{ "id": 4, "branch": "proposal/4", "author": "claude", "message": "Count the clicks", "base": "a1b2c3d", "head": "f6a7b8c", "short": "f6a7b8c", "commits": 1, "operations": 2, "touches": ["/root/children/1"], "remember": [], "changes": ["set #title/text \"Clicks\"", "set #title/onClick [...]"], "reason": "", "time": 1760000000, "conflicts": [], "approvals": [], "policy": "1 approval", "behaviour": ["adds onClick of #title"]}], "previewing": null, "mode": "default", "grants": [], "you": "riccardo", "canReview": true} },
+				{ "expect": { "node": "#label-evidence", "text": "Evidence: pictures, behaviour and scenarios, gathered by the host" } },
+				{ "expect": { "node": "#evidencePictures", "exists": false} },
+				{ "action": "host:evidence", "event": { "type": "evidence", "proposal": 4, "evidence": { "before": { "format": "png", "data": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAIAAAA7ljmRAAAADklEQVR4nGMQQQIMODkANv8C0TEREeAAAAAASUVORK5CYII=", "width": 4, "height": 3}, "after": { "format": "png", "data": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAIAAAA7ljmRAAAADklEQVR4nGPQQAIMODkAbdcFoUpsLq4AAAAASUVORK5CYII=", "width": 4, "height": 3}, "region": [1, 0, 2, 3], "behaviour": ["adds onClick of #title"], "scenarios": [{ "name": "opens", "passed": true, "message": "" }, { "name": "counts", "passed": false, "message": "step 2: #count shows 0" }], "texts": [{ "node": "#title", "original": "Tasks", "modified": "Clicks", "language": "text" }]}, "scale": 1, "revision": 5} },
+				{ "expect": { "node": "#label-evidence", "text": "Evidence, gathered by the host" } },
+				{ "expect": { "node": "#label-evidence-after", "text": "After: changed 2 × 3 at 1, 0" } },
+				{ "expect": { "node": "#label-evidence-behaviour", "text": "Behaviour: adds onClick of #title" } },
+				{ "expect": { "node": "#label-evidence-scenario", "text": "Passed: opens" } },
+				{ "expect": { "node": "#label-evidence-scenario", "text": "Failed: counts  ·  step 2: #count shows 0", "nth": 1} },
+				{ "expect": { "node": "#label-diff-original", "text": "Tasks" } },
+				{ "expect": { "node": "#label-diff-modified", "text": "Clicks" } }
+			]
 		}
 	]
 }
