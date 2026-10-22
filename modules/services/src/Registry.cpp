@@ -86,6 +86,7 @@ ServiceRegistry::ServiceRegistry() {
 	add(makeWatchProvider());
 	add(makePtyProvider());
 	add(makeSearchProvider());
+	add(makeSyntaxProvider());
 }
 
 ServiceRegistry::~ServiceRegistry() { entries_.clear(); }
