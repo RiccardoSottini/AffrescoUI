@@ -76,6 +76,11 @@ public:
 	/// @brief How many draw calls the last frame made, for Window::frameStatistics().
 	/// @return The count, or 0 if this renderer doesn't count them.
 	[[nodiscard]] virtual std::size_t drawCalls() const noexcept { return 0; }
+
+	/// @brief Sets where draw() copies each frame: the window's own framebuffer (0, the default), or one an embedding
+	/// owns (see affresco/render/Embedding.hpp).
+	/// @param framebuffer An OpenGL framebuffer name in this renderer's context.
+	virtual void setOutputFramebuffer(unsigned framebuffer) noexcept { static_cast<void>(framebuffer); }
 };
 
 } // namespace detail

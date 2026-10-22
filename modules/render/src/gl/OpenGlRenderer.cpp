@@ -52,7 +52,7 @@ class OpenGlRenderer final : public detail::Renderer {
 public:
 	void draw(const detail::Frame& frame, platform::PixelSize size) override {
 		render(screen_, frame, size);
-		screen_.canvas.copyToWindow();
+		screen_.canvas.copyToWindow(output_);
 	}
 
 	[[nodiscard]] std::vector<std::uint8_t> readBack(platform::PixelSize size) override {
@@ -60,6 +60,8 @@ public:
 	}
 
 	[[nodiscard]] std::size_t drawCalls() const noexcept override { return quads_.drawCalls(); }
+
+	void setOutputFramebuffer(unsigned framebuffer) noexcept override { output_ = framebuffer; }
 
 	[[nodiscard]] std::vector<std::uint8_t> drawOffscreen(const detail::Frame& frame,
 	                                                      platform::PixelSize size) override {
@@ -133,6 +135,7 @@ private:
 	QuadRenderer quads_; ///< Draws the panels.
 	Target screen_;      ///< The window's frames, copied to the window.
 	Target offscreen_;   ///< Screenshots at a fixed scale.
+	unsigned output_ = 0; ///< Where the window's frames are copied: see setOutputFramebuffer().
 };
 
 } // namespace

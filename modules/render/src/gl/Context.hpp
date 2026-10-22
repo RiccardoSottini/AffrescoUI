@@ -69,7 +69,8 @@ public:
 	/// @return Tightly packed 8-bit RGB, top row first.
 	[[nodiscard]] std::vector<std::uint8_t> pixels() const;
 	/// @brief Copies it to the window's back buffer, then draws into the window again.
-	void copyToWindow() const;
+	/// @param target The framebuffer to copy to: the window's (0), or an embedding's.
+	void copyToWindow(unsigned target = 0) const;
 
 private:
 	int width_ = 0, height_ = 0; ///< In pixels.

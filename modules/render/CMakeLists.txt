@@ -56,6 +56,8 @@ affrescoui_module(render
 	src/vector/SvgXml.cpp
 	src/vector/MeshRasterizer.cpp
 	src/platform/GlfwPlatform.cpp
+	src/platform/EmbeddedPlatform.cpp
+	src/platform/EmbeddedPlatformGl.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp

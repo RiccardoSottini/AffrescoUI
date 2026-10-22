@@ -16,6 +16,7 @@
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
+#include "affresco/render/Embedding.hpp"
 #include "affresco/render/Font.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
@@ -133,6 +134,12 @@ public:
 	/// @return The window.
 	/// @throws ScreenError If the screen can't be built.
 	Window& createWindow(Application& app);
+
+	/// @brief Builds the screen into an embedding's window, inside the host's OpenGL context: its slow calls,
+	/// services and channels post their results to the embedding, which runs them on the host's thread.
+	/// @param embedding The embedding (outlives the Screen).
+	/// @throws ScreenError If the screen can't be built.
+	void embed(Embedding& embedding);
 
 	/// @brief Loads the fonts, then builds "root" into a window's root panel.
 	/// @param window The window.
