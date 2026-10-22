@@ -60,7 +60,7 @@ void stopListeningToToggle(Panel& panel, Connection connection) {
 } // namespace
 
 void registerToggleTypes(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},
 	                   {"checked", ValueKind::Boolean},
 	                   {"activeColor", ValueKind::Color},

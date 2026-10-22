@@ -328,7 +328,7 @@ network::Handlers Connections::handlers(std::uint64_t number, const std::optiona
 	network::Handlers out;
 	out.done = [this, alive, number, result](network::Response response) {
 		if(!alive.lock()) return;
-		Running* running = unended(number);
+		const Running* running = unended(number);
 		if(!running) return;
 		if(const auto at = connections_.find(running->connection); at != connections_.end()) {
 			at->second.online = true;
@@ -339,7 +339,7 @@ network::Handlers Connections::handlers(std::uint64_t number, const std::optiona
 	};
 	out.failed = [this, alive, number](network::Failure failure) {
 		if(!alive.lock()) return;
-		Running* running = unended(number);
+		const Running* running = unended(number);
 		if(!running) return;
 		if(const auto at = connections_.find(running->connection); at != connections_.end()) {
 			at->second.online = failure.code == "status";
@@ -355,7 +355,7 @@ network::Handlers Connections::handlers(std::uint64_t number, const std::optiona
 	if(stream)
 		out.event = [this, alive, number](network::StreamEvent event) {
 			if(!alive.lock()) return;
-			if(Running* running = unended(number))
+			if(const Running* running = unended(number))
 				running->call->event({{"type", event.type}, {"data", parseBody(event.data)}, {"id", event.id}});
 		};
 	return out;

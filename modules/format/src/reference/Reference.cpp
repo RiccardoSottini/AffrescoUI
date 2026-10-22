@@ -102,7 +102,7 @@ std::string stepsAbout(const StepRegistry& registry) {
 			std::string& text = step.listed ? listed : review;
 			text += (text.empty() ? "" : ", ") + step.name;
 			for(std::size_t i = 0; i < step.keys.size(); ++i) text += (i == 0 ? "(+" : ", ") + step.keys[i];
-			if(!step.keys.empty()) text += ")";
+			if(!step.keys.empty()) text += ')';
 		}
 	}
 	return review.empty() ? listed : listed + "; review: " + review;

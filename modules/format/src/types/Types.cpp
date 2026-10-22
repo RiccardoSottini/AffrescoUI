@@ -119,7 +119,7 @@ void addCore(TypeRegistry& registry, std::string name, std::string about, NodeTy
 /// @brief Adds the text types: label and textarea.
 /// @param registry The registry.
 void registerTextTypes(TypeRegistry& registry) {
-	auto label = std::make_shared<PropertySet>();
+	const auto label = std::make_shared<PropertySet>();
 	label->properties = textProperties();
 	label->properties.push_back({"icon", ValueKind::Text}); // applied by IconProperty.cpp, listed here for the catalog
 	// Applied by RunsProperty.cpp, listed here for the catalog
@@ -128,7 +128,7 @@ void registerTextTypes(TypeRegistry& registry) {
 	label->properties.push_back({"selectionColor", ValueKind::Color});
 	addCore(registry, "label", "Text", [] { return std::make_unique<Label>(); }, label);
 
-	auto textarea = std::make_shared<PropertySet>();
+	const auto textarea = std::make_shared<PropertySet>();
 	textarea->properties = textProperties();
 	for(PropertySpec spec : std::initializer_list<PropertySpec>{{"placeholder", ValueKind::Text},
 	                                                            {"placeholderColor", ValueKind::Color},

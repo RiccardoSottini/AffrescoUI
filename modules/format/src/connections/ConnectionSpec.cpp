@@ -43,7 +43,7 @@ void knownKey(const std::string& key, const std::array<std::string_view, N>& all
 /// @param at Its place.
 void checkName(const std::string& name, const std::string& at) {
 	if(name.empty() || name.size() > 64 || name.contains('.') || name.contains(':') || name.contains("{{"))
-		expect::fail(at, "a name of 1 to 64 characters, with no \".\", \":\" or {{ }}");
+		expect::fail(at, R"(a name of 1 to 64 characters, with no ".", ":" or {{ }})");
 }
 
 /// @brief Reads a whole number in a range.
@@ -106,7 +106,7 @@ json readMock(const json& value, const std::string& at) {
 std::string readPath(const json& value, const std::string& at) {
 	const std::string path = expect::string(value, at);
 	if(!path.starts_with('/') || path.contains("{{") || path.find_first_of("?# \r\n") != std::string::npos)
-		expect::fail(at, "a path starts with \"/\", with {name} for a value: \"/projects/{id}\" (no ?, # or spaces)");
+		expect::fail(at, R"(a path starts with "/", with {name} for a value: "/projects/{id}" (no ?, # or spaces))");
 	for(std::size_t open = path.find('{'); open != std::string::npos; open = path.find('{', open + 1)) {
 		const std::size_t close = path.find('}', open);
 		const std::string_view name = std::string_view(path).substr(open + 1, close - open - 1);
@@ -140,12 +140,12 @@ void readEffect(const json& definition, Operation& operation, const std::string&
 	operation.effect = reads ? services::Effect::Read : services::Effect::Write;
 	if(definition.contains("effect")) {
 		const std::string effect = expect::string(definition["effect"], at + ".effect");
-		if(effect != "read" && effect != "write") expect::fail(at + ".effect", "\"read\" or \"write\"");
+		if(effect != "read" && effect != "write") expect::fail(at + ".effect", R"("read" or "write")");
 		operation.effect = effect == "read" ? services::Effect::Read : services::Effect::Write;
 	}
 	if(definition.contains("stream")) {
 		const std::string stream = expect::string(definition["stream"], at + ".stream");
-		if(stream != "events" && stream != "lines") expect::fail(at + ".stream", "\"events\" or \"lines\"");
+		if(stream != "events" && stream != "lines") expect::fail(at + ".stream", R"("events" or "lines")");
 		operation.stream = stream == "events" ? network::Stream::Events : network::Stream::Lines;
 	}
 }
@@ -195,7 +195,7 @@ Operation readOperation(const json& definition, const std::string& at) {
 void readOperations(const json& definition, ConnectionSpec& connection, const std::string& at) {
 	const char* key = connection.socket ? "messages" : "operations";
 	if(definition.contains(connection.socket ? "operations" : "messages"))
-		expect::fail(at, connection.socket ? "a WebSocket (ws://, wss://) has \"messages\", not \"operations\""
+		expect::fail(at, connection.socket ? R"(a WebSocket (ws://, wss://) has "messages", not "operations")"
 		                                   : "\"messages\" are for a WebSocket (ws://, wss://)");
 	if(!definition.contains(key)) return;
 	const json& list = expect::object(definition[key], at + "." + key);

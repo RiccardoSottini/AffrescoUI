@@ -150,7 +150,7 @@ json dropAt(Panel& panel, const Vec2* position) {
 } // namespace
 
 void registerTabsType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},
 	                   {"value", ValueKind::Text},
 	                   {"tabs", ValueKind::Any},

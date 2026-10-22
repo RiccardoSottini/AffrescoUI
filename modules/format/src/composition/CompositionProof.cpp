@@ -190,10 +190,10 @@ void textProblems(const std::string& name, const std::string& text, const json& 
 	for(const std::string_view expression : found.expressions) try {
 			getsIn(detail::parse(expression, place), paths);
 		} catch(const DocumentError& error) {
-			problems.push_back(error.what());
+			problems.emplace_back(error.what());
 		}
 	for(const auto& names : paths)
-		if(std::string why = pathWhy(name, names, needs); !why.empty())
+		if(const std::string why = pathWhy(name, names, needs); !why.empty())
 			problems.push_back(concatenate(place, ": ", why));
 }
 
@@ -226,7 +226,7 @@ bool namesAction(const std::string& key, const std::string& place) {
 void targetProblems(const std::string& name, const std::string& text, const json& needs, const std::string& place,
                     std::vector<std::string>& problems) {
 	if(!placeholders(text).expressions.empty()) problems.push_back(place + ": a computed action");
-	else if(std::string why = runWhy(name, text, needs); !why.empty()) problems.push_back(place + ": " + why);
+	else if(const std::string why = runWhy(name, text, needs); !why.empty()) problems.push_back(place + ": " + why);
 }
 
 /// @brief What an isolation walk checks against, and where its problems go.
@@ -313,7 +313,7 @@ ProvenComposition proveComposition(const ProofInputs& inputs, const ScenarioRunn
 	proven.record = recordFor(inputs.manifest, inputs.source, inputs.digest, inputs.publisher, nextOrder(inputs.host));
 	proven.record["bindings"] = bound.bindings;
 	proven.document = inputs.host;
-	bool passed = addCheck(proof, "composition", [&]() -> std::vector<std::string> {
+	bool passed = addCheck(proof, "composition", [&] -> std::vector<std::string> {
 		if(inputs.host.contains("features") && inputs.host["features"].contains(name))
 			return {std::format("the host already has a feature '{}'", name)};
 		proven.document["features"][name] = proven.record;

@@ -28,9 +28,9 @@ bool commandKey(std::string_view key) { return std::ranges::find(commandKeys, ke
 /// @brief The platform, as `context.platform` names it.
 /// @return "mac", "windows" or "linux".
 std::string_view platform() {
-#if defined(__APPLE__)
+#ifdef __APPLE__
 	return "mac";
-#elif defined(_WIN32)
+#elifdef _WIN32
 	return "windows";
 #else
 	return "linux";
@@ -107,6 +107,7 @@ json keybindingsOf(Engine& engine) {
 	json nodes = json::array();
 	for(const auto& [panel, record] : engine.reconciler.records())
 		if(!panel->id().empty()) addBindings(nodes, record.keys, "#" + panel->id(), actions);
+	// NOLINTNEXTLINE(modernize-use-ranges): json's iterators don't model the ranges concepts
 	std::sort(nodes.begin(), nodes.end(), [](const json& a, const json& b) {
 		return std::tie(a["scope"].get_ref<const std::string&>(), a["key"].get_ref<const std::string&>()) <
 		       std::tie(b["scope"].get_ref<const std::string&>(), b["key"].get_ref<const std::string&>());
@@ -142,6 +143,7 @@ json commandsOf(Engine& engine) {
 				}
 		list.push_back(std::move(command));
 	}
+	// NOLINTNEXTLINE(modernize-use-ranges): json's iterators don't model the ranges concepts
 	std::stable_sort(list.begin(), list.end(), [](const json& a, const json& b) {
 		return std::tie(a["category"].get_ref<const std::string&>(), a["title"].get_ref<const std::string&>()) <
 		       std::tie(b["category"].get_ref<const std::string&>(), b["title"].get_ref<const std::string&>());
@@ -245,6 +247,7 @@ json menuEntry(const std::string& key, const json& item, const std::unordered_ma
 /// @param kept The items, each with its "order", which it drops.
 /// @return The menu.
 json grouped(json kept) {
+	// NOLINTNEXTLINE(modernize-use-ranges): json's iterators don't model the ranges concepts
 	std::stable_sort(kept.begin(), kept.end(), [](const json& a, const json& b) {
 		return std::tuple(a["group"].get_ref<const std::string&>(), a["order"].get<double>(),
 		                  a["name"].get_ref<const std::string&>()) <

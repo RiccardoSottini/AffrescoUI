@@ -291,7 +291,7 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setPosition(px(0.0f), px(0.0f));
 	panel.setSize(px(0.0f), px(0.0f));
 	panel.setMinSize(px(0.0f), px(0.0f));
-	for(Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.clearAnchor(e);
+	for(const Edge e : {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right}) panel.clearAnchor(e);
 	panel.setVisible(true);
 	panel.setColor(record.defaultColor);
 	panel.setCornerRadii({});

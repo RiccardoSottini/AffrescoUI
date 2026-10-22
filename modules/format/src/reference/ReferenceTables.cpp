@@ -67,7 +67,7 @@ std::string tableText(const Engine& engine, std::string_view table) {
 			names.clear();
 			about = key.about;
 		}
-		if(key.name.find("…") != std::string_view::npos || std::ranges::find(known, key.name) != known.end())
+		if(key.name.contains("…") || std::ranges::find(known, key.name) != known.end())
 			names += (names.empty() ? "`" : ", `") + std::string(key.name) + "`";
 	}
 	addRow(engine, text, names, about);

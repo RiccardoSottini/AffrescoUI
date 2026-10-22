@@ -49,10 +49,10 @@ void checkServices(const json& value, const std::string& name) {
 	for(const auto& [service, definition] : expect::object(value, name).items()) {
 		const std::string at = std::format("{}.{}", name, service);
 		if(service.empty() || service.contains('.') || service.contains(':'))
-			expect::fail(at, "a service's name has no \".\" or \":\"");
+			expect::fail(at, R"(a service's name has no "." or ":")");
 		expect::object(definition, at);
 		if(!definition.contains("provider") || !definition["provider"].is_string())
-			expect::fail(at, "a service needs a \"provider\", e.g. \"jsonrpc\", \"process\" or \"fs\"");
+			expect::fail(at, R"(a service needs a "provider", e.g. "jsonrpc", "process" or "fs")");
 		checkLiteral(definition, at);
 	}
 }
@@ -85,7 +85,7 @@ void checkOwners(const json& value, const std::string& at) {
 	for(const auto& [pattern, owners] : expect::object(value, at).items()) {
 		const std::string where = concatenate(at, ".", pattern);
 		if(!parsePermissionRule("*(" + pattern + ")"))
-			expect::fail(where, "expected a JSON Pointer or \"#id\" path, e.g. \"#board\"");
+			expect::fail(where, R"(expected a JSON Pointer or "#id" path, e.g. "#board")");
 		if(!owners.is_array() || owners.empty()) expect::fail(where, "expected a list of author names");
 		for(std::size_t i = 0; i < owners.size(); ++i)
 			(void)expect::string(owners[i], where + "[" + std::to_string(i) + "]");
@@ -102,7 +102,7 @@ void checkReview(const json& value, const std::string& name) {
 			if(!item.is_number_integer() || item.get<long long>() < 1 || item.get<long long>() > 20)
 				expect::fail(at, "expected a number of approvals from 1 to 20");
 		} else if(key == "grantsLast") {
-			if(!isDuration(expect::string(item, at))) expect::fail(at, "expected a duration, e.g. \"8h\" or \"7d\"");
+			if(!isDuration(expect::string(item, at))) expect::fail(at, R"(expected a duration, e.g. "8h" or "7d")");
 		} else if(key == "owners") {
 			checkOwners(item, at);
 		} else expect::fail(at, "unknown property (expected approvals, behaviourApprovals, owners or grantsLast)");
@@ -115,7 +115,7 @@ void checkReview(const json& value, const std::string& name) {
 void checkPolicyAuthor(const json& item, const std::string& at) {
 	if(!item.contains("author") || !item["author"].is_string() || item["author"].get<std::string>().contains('(') ||
 	   !parsePermissionRule(item["author"].get<std::string>()))
-		expect::fail(at + ".author", "expected an author, a channel, \"*\" or \"role:<name>\", e.g. \"agent\"");
+		expect::fail(at + ".author", R"(expected an author, a channel, "*" or "role:<name>", e.g. "agent")");
 }
 
 /// @brief One budget of "permissions.budgets".
@@ -130,7 +130,7 @@ void checkBudget(const json& budget, const std::string& at) {
 				expect::fail(where, "expected a number of nodes from 0 to 100000");
 			limited = true;
 		} else if(key == "over") {
-			if(item != "ask" && item != "deny") expect::fail(where, "expected \"ask\" or \"deny\"");
+			if(item != "ask" && item != "deny") expect::fail(where, R"(expected "ask" or "deny")");
 		} else if(key != "author")
 			expect::fail(where, "unknown property (expected author, added, removed, changed or over)");
 	}

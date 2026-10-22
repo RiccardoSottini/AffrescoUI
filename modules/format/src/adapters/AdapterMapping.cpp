@@ -71,7 +71,7 @@ void checkText(const std::string& text, const std::string& place) {
 void checkBinding(const json& binding, const std::string& place) {
 	expect::object(binding, place);
 	const std::string form = formOf(binding);
-	if(form.empty()) fail(place, "expected one of \"export\", \"value\", \"action\", \"point\" or \"capability\"");
+	if(form.empty()) fail(place, R"(expected one of "export", "value", "action", "point" or "capability")");
 	for(const auto& [key, value] : binding.items())
 		if(key != form && !(key == "with" && form == "action") && key != "note")
 			fail(concatenate(place, ".", key),
@@ -279,7 +279,7 @@ std::string bindingWhy(const json& need, const json& binding, const json& host) 
 	const std::string target = binding[form].get<std::string>();
 	if(form == "export") {
 		if(!exports.contains(target)) return std::format("the host exports no '{}'", target);
-		if(std::string why = contractMismatch(need, exports[target]); !why.empty())
+		if(const std::string why = contractMismatch(need, exports[target]); !why.empty())
 			return "the host's '" + target + "' " + why;
 		return kind == "action" ? actionWhy(target, host) : std::string();
 	}

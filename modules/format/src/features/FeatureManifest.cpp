@@ -470,7 +470,7 @@ void checkImportsSection(const json& section, const std::string& name) {
 		const std::string text = expect::string(entry, concatenate(name, ".", alias));
 		const auto parts = splitImport(text);
 		if(!parts || !validFeatureName(parts->first) || !validRange(parts->second))
-			fail(concatenate(name, ".", alias), "expected \"<feature>@<range>\", e.g. \"workbench@^1.0.0\"");
+			fail(concatenate(name, ".", alias), R"(expected "<feature>@<range>", e.g. "workbench@^1.0.0")");
 	}
 }
 

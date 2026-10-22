@@ -61,9 +61,9 @@ std::string readWord(const json& value, std::size_t limit, const std::string& at
 /// @return "browser" (the default) or "device".
 std::string readFlow(const json& value, const std::string& at) {
 	const std::string flow = value.contains("flow") ? expect::string(value["flow"], at + ".flow") : "browser";
-	if(flow != "browser" && flow != "device") expect::fail(at + ".flow", "\"browser\" (the default) or \"device\"");
+	if(flow != "browser" && flow != "device") expect::fail(at + ".flow", R"("browser" (the default) or "device")");
 	if(!value.contains("tokenUrl") || !value.contains("clientId"))
-		expect::fail(at, "a sign-in needs a \"tokenUrl\" and a \"clientId\"");
+		expect::fail(at, R"(a sign-in needs a "tokenUrl" and a "clientId")");
 	const char* needed = flow == "browser" ? "signInUrl" : "deviceUrl";
 	if(!value.contains(needed)) expect::fail(at, "the " + flow + " flow needs a \"" + needed + "\"");
 	return flow;

@@ -145,7 +145,7 @@ void Properties::overlay(Panel& panel, Record& record, const json& value, const 
 	if(overlay.contains("open")) overlayOpen(record, overlay["open"], at + ".open", look);
 	if(overlay.contains("dismiss")) {
 		if(string(overlay["dismiss"], at + ".dismiss") != "outside") fail(at + ".dismiss", "expected \"outside\"");
-		if(!record.overlayOpen) fail(at + ".dismiss", "needs \"open\" to be a state path, e.g. \"state.menuOpen\"");
+		if(!record.overlayOpen) fail(at + ".dismiss", R"(needs "open" to be a state path, e.g. "state.menuOpen")");
 		record.dismissOutside = true;
 	}
 	record.modal = overlay.contains("modal") && boolean(overlay["modal"], at + ".modal");
@@ -201,7 +201,7 @@ bool Properties::stackProperty(Stack& stack, Slot slot, const json& value, const
 	if(slot == Slot::Gap) stack.setGap(number(value, at));
 	else if(slot == Slot::Direction) {
 		const std::string direction = string(value, at);
-		if(direction != "row" && direction != "column") fail(at, "expected \"row\" or \"column\"");
+		if(direction != "row" && direction != "column") fail(at, R"(expected "row" or "column")");
 		stack.setDirection(direction == "row" ? Direction::Row : Direction::Column);
 	} else if(slot == Slot::Wrap) stack.setWrap(boolean(value, at));
 	else return false;

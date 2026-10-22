@@ -117,7 +117,7 @@ void checkNeedTarget(const json& need, const std::string& kind, const std::strin
 	if(kind == "capability") {
 		const std::string capability = need.contains("capability") ? expect::string(need["capability"], place) : "";
 		if(!capability.starts_with("services.") && !capability.starts_with("connections."))
-			fail(place + ".capability", "expected \"services.<name>\" or \"connections.<name>\"");
+			fail(place + ".capability", R"(expected "services.<name>" or "connections.<name>")");
 	} else if(need.contains("capability")) fail(place + ".capability", "only a capability need has one");
 }
 

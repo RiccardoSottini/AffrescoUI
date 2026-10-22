@@ -72,7 +72,7 @@ void stopListeningToCarousel(Panel& panel, Connection connection) {
 } // namespace
 
 void registerCarouselType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath}, {"index", ValueKind::Number},
 	                   {"loop", ValueKind::Boolean},   {"arrowButtons", ValueKind::Boolean},
 	                   {"dots", ValueKind::Boolean},   {"arrowColor", ValueKind::Color},

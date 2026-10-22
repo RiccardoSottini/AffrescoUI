@@ -68,7 +68,7 @@ void stopListeningToSlider(Panel& panel, Connection connection) {
 } // namespace
 
 void registerSliderType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},    {"value", ValueKind::Number},
 	                   {"min", ValueKind::Number},        {"max", ValueKind::Number},
 	                   {"step", ValueKind::Number},       {"trackColor", ValueKind::Color},

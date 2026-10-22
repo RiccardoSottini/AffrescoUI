@@ -134,7 +134,7 @@ void applyLevels(CanvasView& canvas, const json& values, const std::string& path
 			const json& level = object(given[i], at);
 			const std::string child = level.contains("for") ? text(level["for"]) : std::string();
 			const std::string use = level.contains("use") ? text(level["use"]) : std::string();
-			if(child.empty() || use.empty()) fail(at, "a level needs \"for\" and \"use\": the ids of two children");
+			if(child.empty() || use.empty()) fail(at, R"(a level needs "for" and "use": the ids of two children)");
 			const float below = within(level.value("below", json(0)), at + ".below", 0.0f, Camera2D::maximumZoom);
 			const auto found =
 			    std::ranges::find(wanted, child, &std::pair<std::string, std::vector<CanvasLevel>>::first);

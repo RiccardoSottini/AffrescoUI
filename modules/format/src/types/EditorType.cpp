@@ -62,6 +62,7 @@ EditorDecoration readDecoration(const json& value, const PropertyReader& reader,
 	using Kind = EditorDecoration::Kind;
 	static constexpr std::array<std::pair<const char*, Kind>, 4> kinds = {
 	    {{"background", Kind::Background}, {"squiggle", Kind::Squiggle}, {"gutter", Kind::Gutter}, {"inline", Kind::Inline}}};
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find_if(kinds, [&kind](const auto& k) { return kind == k.first; });
 	if(found == kinds.end()) fail(path + ".kind", "expected background, squiggle, gutter or inline");
 	d.kind = found->second;
@@ -104,6 +105,7 @@ void applyFindStep(TextEditor& editor, const json& find, const std::string& at) 
 	    {{"first", Step::First}, {"next", Step::Next}, {"previous", Step::Previous}, {"replace", Step::Replace},
 	     {"replaceAll", Step::ReplaceAll}}};
 	const std::string name = string(find["step"], at + ".step");
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find(steps, std::string_view(name), &std::pair<std::string_view, Step>::first);
 	if(found == steps.end()) fail(at + ".step", "expected first, next, previous, replace or replaceAll");
 	const float request = number(find["request"], at + ".request");
@@ -330,7 +332,7 @@ void stopListeningToEditorEvents(Panel& panel, const EventConnections& connectio
 } // namespace
 
 void registerEditorType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},        {"text", ValueKind::Text},
 	                   {"caret", ValueKind::StatePath},       {"font", ValueKind::Font},
 	                   {"textColor", ValueKind::Color},       {"lineNumbers", ValueKind::Boolean},

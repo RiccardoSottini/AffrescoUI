@@ -134,7 +134,7 @@ void A2uiConverter::surfaceUpdate(const json& update, const std::string& at) {
 		out_.enter(place, 1);
 		if(!entry.is_object() || !entry.contains("id") || !entry.contains("component") ||
 		   !entry["component"].is_object() || entry["component"].size() != 1)
-			fail(place, "expected {\"id\", \"component\": {\"Type\": {...}}}");
+			fail(place, R"(expected {"id", "component": {"Type": {...}}})");
 		components_[expect::string(entry["id"], place + ".id")] = entry["component"];
 	}
 	if(!document_) return;

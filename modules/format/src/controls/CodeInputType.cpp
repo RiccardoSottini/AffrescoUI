@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace affresco::format {
 
@@ -26,7 +27,7 @@ void applyCodeInput(Panel& panel, const json& values, const PropertyReader& read
 	int length = 6;
 	if(values.contains("length")) {
 		length = integer(values["length"], path + ".length");
-		if(length < 1 || length > static_cast<int>(CodeInput::mostCells)) fail(path + ".length", "expected 1 to 12");
+		if(length < 1 || std::cmp_greater(length, CodeInput::mostCells)) fail(path + ".length", "expected 1 to 12");
 	}
 	input->setLength(static_cast<std::size_t>(length));
 	const auto colorOr = [&](const char* key, Color fallback) {
@@ -42,7 +43,7 @@ void applyCodeInput(Panel& panel, const json& values, const PropertyReader& read
 } // namespace
 
 void registerCodeInputType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	// A text area's keys (the runtime applies them), then its own
 	set->properties = {{"text", ValueKind::Text},         {"textColor", ValueKind::Color, true, true},
 	                   {"font", ValueKind::Font},         {"padding", ValueKind::Number},

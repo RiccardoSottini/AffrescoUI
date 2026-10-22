@@ -398,7 +398,7 @@ constexpr KeyReference typeTable[] = {
 	 "graph"},
     {"kindColors", R"json({"anyOf": [{"type": "object", "maxProperties": 64, "additionalProperties": {"$ref": "#/$defs/v2/color"}},
 		{"$ref": "#/$defs/v2/dynamic"}], "description": "graph: each port kind's colour"})json",
-	 "Each kind's colour, `{ \"float\": \"#a3e635\" }` (at most 64): its ports and the links from them.", "graph"},
+	 R"(Each kind's colour, `{ "float": "#a3e635" }` (at most 64): its ports and the links from them.)", "graph"},
     {"nodeColor", "color", "The nodes' box and header; their text and the selection's colours are `textColor` and "
 	 "`accentColor`.",
 	 "graph"},

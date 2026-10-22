@@ -143,10 +143,10 @@ void idsIn(const json& node, std::vector<std::string>& ids, int depth = 0) {
 void pointsIn(const json& node, const std::string& pointer, std::map<std::string, std::string, std::less<>>& points,
               std::vector<std::string>& problems, int depth = 0) {
 	if(depth > maxNesting || !node.is_object()) return;
-	if(const auto point = node.find("point"); point != node.end() && point->is_string())
-		if(!points.emplace(point->get<std::string>(), pointer).second)
-			problems.push_back(std::format("{}.point: the contribution point '{}' is declared twice", placeOf(pointer),
-			                               point->get<std::string>()));
+	if(const auto point = node.find("point");
+	   point != node.end() && point->is_string() && !points.emplace(point->get<std::string>(), pointer).second)
+		problems.push_back(std::format("{}.point: the contribution point '{}' is declared twice", placeOf(pointer),
+		                               point->get<std::string>()));
 	if(const auto children = node.find("children"); children != node.end() && children->is_array())
 		for(std::size_t index = 0; index < children->size(); ++index)
 			pointsIn((*children)[index], std::format("{}/children/{}", pointer, index), points, problems, depth + 1);

@@ -129,8 +129,7 @@ void applyList(Panel& panel, const json& values, const PropertyReader& reader, c
 	applyTreeOrTable(*list, values, path);
 	list->setSelectionMode(values.contains("selection") ? readSelectionMode(values["selection"], path + ".selection")
 	                                                    : SelectionMode::Single);
-	list->setRowHeight(
-	    values.contains("rowHeight") ? static_cast<float>(number(values["rowHeight"], path + ".rowHeight")) : 24.0f);
+	list->setRowHeight(values.contains("rowHeight") ? number(values["rowHeight"], path + ".rowHeight") : 24.0f);
 	list->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
 	list->setColors(colorOr("textColor", colors::black), colorOr("selectedTextColor", colors::white),
 	                colorOr("selectedBackground", colors::accent), colorOr("accentColor", colors::accent));
