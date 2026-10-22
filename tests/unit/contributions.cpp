@@ -173,6 +173,14 @@ TEST_CASE("contributions: points and typed exports are checked and printed") {
 	CHECK(text.contains("slideSorter"));
 }
 
+// Found by fuzzing (tests/fuzz, composition): a manifest nobody checked, or one whose need was a word, reached
+// contributionsText as is, and its json type_error stopped the program
+TEST_CASE("contributions: a part is listed only from a manifest whose needs check") {
+	CHECK(throwsWith([] { (void)format::partOf(json()); }, "manifest"));
+	CHECK(throwsWith([] { (void)format::partOf(json::parse(R"({"name": "a", "needs": {"pages": "list"}})")); },
+	                 "manifest.needs.pages"));
+}
+
 TEST_CASE("contributions: needs are named and typed") {
 	CHECK_NOTHROW(format::checkManifest(sorter(), "slideSorter"));
 	CHECK(throwsWith([] { format::checkNeeds(json::parse(R"({"x": {"kind": "magic"}})"), "needs"); }, "kind"));

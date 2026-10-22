@@ -247,6 +247,8 @@ std::set<std::string, std::less<>> grantedActions(const json& document) {
 }
 
 json partOf(const json& manifest) {
+	expect::object(manifest, "manifest");
+	if(const auto needs = manifest.find("needs"); needs != manifest.end()) checkNeeds(*needs, "manifest.needs");
 	json part = {{"name", manifest.value("name", "")},
 	             {"release", manifest.value("release", "")},
 	             {"title", manifest.value("title", "")},

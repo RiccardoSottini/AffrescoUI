@@ -71,6 +71,7 @@ void checkNeeds(const json& needs, const std::string& place);
 /// @brief An installable part as a catalogue lists it: name, release, title, needs and the points it fills.
 /// @param manifest A checked manifest.
 /// @return `{ "name", "release", "title", "needs": {...}, "views": [<point or need>] }`.
+/// @throws DocumentError If it isn't an object, or its needs don't check (a manifest nobody checked).
 [[nodiscard]] json partOf(const json& manifest);
 
 /// @brief A document's contributions: its points with what each receives, and its typed exports.
