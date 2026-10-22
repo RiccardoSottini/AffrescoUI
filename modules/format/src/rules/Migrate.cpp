@@ -230,13 +230,19 @@ private:
 			if(document && std::ranges::find(dataSections, key) != dataSections.end()) continue;
 			std::string at = pointer;
 			appendKey(at, key);
-			if(key == "styles" && document && member.is_object()) {
-				styles(member, at);
-				continue;
-			}
-			if(key == "revision" && member.is_object()) compactEdits(member, at);
-			value(member, at, key == "screen" && member.is_object());
+			child(key, member, at, document);
 		}
+	}
+
+	/// @brief Migrates a member of an object: a screen's styles, a revision's compact edits, any other value.
+	/// @param key Its key.
+	/// @param member Its value.
+	/// @param pointer Its JSON Pointer.
+	/// @param document Whether the object is a whole screen.
+	void child(const std::string& key, json& member, const std::string& pointer, bool document) {
+		if(key == "styles" && document && member.is_object()) return styles(member, pointer);
+		if(key == "revision" && member.is_object()) compactEdits(member, pointer);
+		value(member, pointer, key == "screen" && member.is_object());
 	}
 
 	/// @brief Renames a row's, a column's or a stack's version 1 keys ("from", and a stack's "align").
