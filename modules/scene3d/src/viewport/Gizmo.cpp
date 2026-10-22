@@ -108,16 +108,16 @@ constexpr std::array<std::pair<GizmoAxis, const char*>, 8> axisNames{{{GizmoAxis
 	return onPlaneHandle(gizmo, handle, ray);
 }
 
-/// @brief A translation drag. @param gizmo The gizmo. @param axis The constraint. @param start The press's ray.
-/// @param current The ray now. @param step The snap. @return The offset, or nothing.
-[[nodiscard]] std::optional<Vec3> translation(const Gizmo& gizmo, GizmoAxis axis, const Ray& start, const Ray& current,
-                                              float step) noexcept {
-	if(const int index = axisIndex(axis); index >= 0) {
-		const Vec3 a = gizmo.axis(index);
-		const auto t0 = closestOnLine(start, gizmo.origin, a), t1 = closestOnLine(current, gizmo.origin, a);
-		if(!t0 || !t1) return std::nullopt;
-		return a * snapped(*t1 - *t0, step);
-	}
+/// @brief The unit vector along a world axis. @param k 0, 1 or 2. @return It.
+[[nodiscard]] Vec3 worldAxis(int k) noexcept {
+	return Vec3{k == 0 ? 1.0f : 0.0f, k == 1 ? 1.0f : 0.0f, k == 2 ? 1.0f : 0.0f};
+}
+
+/// @brief A translation drag in a plane: one of the gizmo's, or the view's (snapped along the world's axes).
+/// @param gizmo The gizmo. @param axis The plane, or View. @param start The press's ray. @param current The ray now.
+/// @param step The snap. @return The offset, or nothing.
+[[nodiscard]] std::optional<Vec3> planeTranslation(const Gizmo& gizmo, GizmoAxis axis, const Ray& start,
+                                                   const Ray& current, float step) noexcept {
 	const auto [i, j] = planeAxes(axis);
 	const Vec3 normal = i >= 0 ? cross(gizmo.axis(i), gizmo.axis(j)) : start.direction;
 	const auto h0 = onPlane(gizmo.origin, normal, start), h1 = onPlane(gizmo.origin, normal, current);
@@ -125,10 +125,22 @@ constexpr std::array<std::pair<GizmoAxis, const char*>, 8> axisNames{{{GizmoAxis
 	const Vec3 d = *h1 - *h0;
 	Vec3 result;
 	for(int k = 0; k < 3; ++k) {
-		const Vec3 a = i >= 0 ? gizmo.axis(k) : Vec3{k == 0 ? 1.0f : 0.0f, k == 1 ? 1.0f : 0.0f, k == 2 ? 1.0f : 0.0f};
+		const Vec3 a = i >= 0 ? gizmo.axis(k) : worldAxis(k);
 		if(i < 0 || k == i || k == j) result = result + a * snapped(dot(d, a), step);
 	}
 	return result;
+}
+
+/// @brief A translation drag. @param gizmo The gizmo. @param axis The constraint. @param start The press's ray.
+/// @param current The ray now. @param step The snap. @return The offset, or nothing.
+[[nodiscard]] std::optional<Vec3> translation(const Gizmo& gizmo, GizmoAxis axis, const Ray& start, const Ray& current,
+                                              float step) noexcept {
+	const int index = axisIndex(axis);
+	if(index < 0) return planeTranslation(gizmo, axis, start, current, step);
+	const Vec3 a = gizmo.axis(index);
+	const auto t0 = closestOnLine(start, gizmo.origin, a), t1 = closestOnLine(current, gizmo.origin, a);
+	if(!t0 || !t1) return std::nullopt;
+	return a * snapped(*t1 - *t0, step);
 }
 
 /// @brief A rotation drag. @param gizmo The gizmo. @param axis X, Y, Z or View. @param start The press's ray.
