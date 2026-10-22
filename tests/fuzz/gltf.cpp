@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes the glTF loader (modules/scene3d/src/Gltf*.cpp): Modello imports `.gltf` and `.glb` files a user
+/// @brief Fuzzes the glTF loader (modules/scene3d/src/gltf/): Modello imports `.gltf` and `.glb` files a user
 /// drops in its imports folder, so a damaged or hostile one must be refused with an error, never crash, read past its
 /// bytes or go over its limits.
 ///

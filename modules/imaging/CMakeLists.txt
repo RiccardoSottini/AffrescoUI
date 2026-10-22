@@ -12,11 +12,20 @@ FetchContent_Declare(stb_image_write
 	DOWNLOAD_NO_EXTRACT TRUE)
 FetchContent_MakeAvailable(stb_image_write)
 affrescoui_module(imaging
-	src/Tile.cpp
-	src/Image.cpp
-	src/History.cpp src/Blend.cpp src/Adjustment.cpp src/Document.cpp src/Composite.cpp src/Rasterize.cpp src/Selection.cpp src/Kernels.cpp src/Filter.cpp src/Brush.cpp
-	src/Gradient.cpp src/Color.cpp src/Stb.cpp src/Codec.cpp src/ProjectJson.cpp src/Project.cpp
-	src/Residency.cpp src/CanvasShaders.cpp src/Canvas.cpp
+	# tiles: sparse copy-on-write tiles, the Image grid of them, and GPU residency of their textures
+	src/tiles/Tile.cpp src/tiles/Image.cpp src/tiles/Residency.cpp
+	# document: layers, groups and masks, and undo by tile differences
+	src/document/Document.cpp src/document/History.cpp
+	# compose: blend modes, adjustment layers, and the CPU compositor
+	src/compose/Blend.cpp src/compose/Adjustment.cpp src/compose/Composite.cpp
+	# paint: rasterized shapes, selections, brush strokes and gradients
+	src/paint/Rasterize.cpp src/paint/Selection.cpp src/paint/Brush.cpp src/paint/Gradient.cpp
+	# filters: convolution kernels and the filters built on them
+	src/filters/Kernels.cpp src/filters/Filter.cpp
+	# io: colour profiles, PNG and JPEG codecs (stb), and the project file format
+	src/io/Color.cpp src/io/Stb.cpp src/io/Codec.cpp src/io/ProjectJson.cpp src/io/Project.cpp
+	# gpu: the canvas shaders and the CanvasSurface that composites on the GPU
+	src/gpu/CanvasShaders.cpp src/gpu/Canvas.cpp
 	${AFFRESCOUI_LCMS2_SOURCES})
 target_include_directories(affrescoui_imaging SYSTEM PRIVATE ${stb_image_SOURCE_DIR} ${stb_image_write_SOURCE_DIR}
 	${AFFRESCOUI_LCMS2_INCLUDE_DIR} ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
