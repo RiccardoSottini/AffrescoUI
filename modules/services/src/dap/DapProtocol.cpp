@@ -103,6 +103,20 @@ void substituteFolder(json& value, const std::string& folder, int depth = 0) {
 	}
 }
 
+/// @brief Why the adapter refused a request: the `format` of the body's `error`, else the response's `message`,
+/// else a sentence naming the command.
+/// @param message The response message.
+/// @param response The response read from it.
+/// @return The reason, bounded and UTF-8.
+std::string refusal(const json& message, const Response& response) {
+	const json& body = response.body;
+	const bool formatted = body.is_object() && body.contains("error") && body["error"].is_object() &&
+	                       body["error"].contains("format");
+	std::string reason = formatted ? textOf(body["error"]["format"], "") : textOf(message.value("message", json()), "");
+	if(reason.empty()) reason = "the debug adapter refused '" + cut(response.command, 100) + "'";
+	return reason;
+}
+
 /// @brief Reads the members every response has.
 /// @param message The message.
 /// @return The response, or why it is malformed.
@@ -119,16 +133,27 @@ Message readResponse(const json& message) {
 	                  success->get<bool>(),
 	                  {},
 	                  message.value("body", json())};
-	if(!response.success) {
-		const json* error =
-		    response.body.is_object() && response.body.contains("error") ? &response.body["error"] : nullptr;
-		response.message = error && error->is_object() && error->contains("format")
-		                       ? textOf((*error)["format"], "")
-		                       : textOf(message.value("message", json()), "");
-		if(response.message.empty())
-			response.message = "the debug adapter refused '" + cut(response.command, 100) + "'";
-	}
+	if(!response.success) response.message = refusal(message, response);
 	return response;
+}
+
+/// @brief Reads the members an event has besides those every message has.
+/// @param message The message.
+/// @return The event, or why it is malformed.
+Message readEvent(const json& message) {
+	const auto event = message.find("event");
+	if(event == message.end() || !event->is_string()) return std::string("an event has no name");
+	return Event{event->get<std::string>(), message.value("body", json())};
+}
+
+/// @brief Reads the members a reverse request (from the adapter) has besides those every message has.
+/// @param message The message.
+/// @param seq Its sequence number.
+/// @return The request, or why it is malformed.
+Message readRequest(const json& message, std::int64_t seq) {
+	const auto command = message.find("command");
+	if(command == message.end() || !command->is_string()) return std::string("a request has no command");
+	return Request{seq, command->get<std::string>(), message.value("arguments", json())};
 }
 
 } // namespace
@@ -153,16 +178,8 @@ Message readMessage(std::string_view body) {
 	if(seq == message.end() || !seq->is_number_integer()) return std::string("a message has no seq");
 	const std::string& kind = type->get_ref<const std::string&>();
 	if(kind == "response") return readResponse(message);
-	if(kind == "event") {
-		const auto event = message.find("event");
-		if(event == message.end() || !event->is_string()) return std::string("an event has no name");
-		return Event{event->get<std::string>(), message.value("body", json())};
-	}
-	if(kind == "request") {
-		const auto command = message.find("command");
-		if(command == message.end() || !command->is_string()) return std::string("a request has no command");
-		return Request{seq->get<std::int64_t>(), command->get<std::string>(), message.value("arguments", json())};
-	}
+	if(kind == "event") return readEvent(message);
+	if(kind == "request") return readRequest(message, seq->get<std::int64_t>());
 	return std::string("a message's type isn't request, response or event");
 }
 
@@ -282,6 +299,41 @@ json boundEvent(std::string_view event, json body, const std::filesystem::path& 
 	return body;
 }
 
+namespace {
+
+/// @brief Makes a relative `source.path` of a request's arguments absolute, under the granted folder.
+/// @param arguments The arguments (changed in place).
+/// @param root The granted folder (canonical), or empty.
+/// @return Why the request is refused (a relative path with no folder, or one that leaves it), or std::nullopt.
+std::optional<std::string> resolveSourcePath(json& arguments, const std::filesystem::path& root) {
+	const auto source = arguments.find("source");
+	if(source == arguments.end() || !source->is_object()) return std::nullopt;
+	const auto path = source->find("path");
+	if(path == source->end() || !path->is_string()) return std::nullopt;
+	const std::string& text = path->get_ref<const std::string&>();
+	if(std::filesystem::path(std::u8string(text.begin(), text.end())).is_absolute()) return std::nullopt;
+	if(root.empty()) return "a relative source path needs the service to have a root";
+	const std::optional<std::filesystem::path> inside = underRoot(root, text);
+	if(!inside) return "the source path " + cut(text, 200) + " leaves the folder";
+	const std::u8string absolute = inside->u8string();
+	*path = std::string(absolute.begin(), absolute.end());
+	return std::nullopt;
+}
+
+/// @brief Makes a `variables` or `stackTrace` request ask for one page at most, so an answer stays bounded.
+/// @param command The command.
+/// @param arguments Its arguments (changed in place).
+void limitPage(std::string_view command, json& arguments) {
+	const char* page = command == "variables" ? "count" : command == "stackTrace" ? "levels" : nullptr;
+	if(!page) return;
+	const json asked = arguments.value(page, json());
+	const std::int64_t most = command == "variables" ? std::int64_t{mostVariables} : std::int64_t{mostFrames};
+	if(!asked.is_number_integer() || asked.get<std::int64_t>() <= 0 || asked.get<std::int64_t>() > most)
+		arguments[page] = most;
+}
+
+} // namespace
+
 std::optional<std::string> prepareArguments(std::string_view command, json& arguments,
                                             const std::filesystem::path& root) {
 	if(!arguments.is_object()) return std::nullopt;
@@ -289,28 +341,8 @@ std::optional<std::string> prepareArguments(std::string_view command, json& argu
 		const std::u8string folder = root.u8string();
 		substituteFolder(arguments, std::string(folder.begin(), folder.end()));
 	}
-	if(const auto source = arguments.find("source"); source != arguments.end() && source->is_object()) {
-		const auto path = source->find("path");
-		if(path != source->end() && path->is_string()) {
-			const std::filesystem::path given{
-			    std::u8string(path->get_ref<const std::string&>().begin(), path->get_ref<const std::string&>().end())};
-			if(!given.is_absolute()) {
-				if(root.empty()) return "a relative source path needs the service to have a root";
-				const std::optional<std::filesystem::path> inside =
-				    underRoot(root, path->get_ref<const std::string&>());
-				if(!inside) return "the source path " + cut(path->get<std::string>(), 200) + " leaves the folder";
-				const std::u8string absolute = inside->u8string();
-				*path = std::string(absolute.begin(), absolute.end());
-			}
-		}
-	}
-	const char* page = command == "variables" ? "count" : command == "stackTrace" ? "levels" : nullptr;
-	if(page) {
-		const json asked = arguments.value(page, json());
-		const std::int64_t most = command == "variables" ? std::int64_t{mostVariables} : std::int64_t{mostFrames};
-		if(!asked.is_number_integer() || asked.get<std::int64_t>() <= 0 || asked.get<std::int64_t>() > most)
-			arguments[page] = most;
-	}
+	if(std::optional<std::string> refused = resolveSourcePath(arguments, root)) return refused;
+	limitPage(command, arguments);
 	return std::nullopt;
 }
 
