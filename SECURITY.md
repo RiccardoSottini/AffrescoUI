@@ -191,7 +191,8 @@ Grants are allow rules, so `ask` and `deny` still win.
 
 ### Review policies, rebases and expiring grants
 - **Policies** (`permissions.review`) are part of the screen's permissions, which no revision can change. An approval
-  counts once per reviewer and never from the author's own channel; the policy is read from `main` when each approval
+  counts once per channel, whatever names the channel gives its users ("studio/anna" and "studio/bob" are one
+  approval: only the channel is the host's word), and never from the author's own channel; the policy is read from `main` when each approval
   arrives, and applied to the change as it would merge then.
 - **A rebase can't bypass a policy.** A proposal rebased onto a newer `main` keeps its approvals only if replaying its
   commits gives exactly the three-way merge, that is, the changes that were reviewed. Otherwise its approvals are
@@ -356,6 +357,18 @@ costs only that message, and its log escapes what isn't printable, as the host's
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
 
+### Forge's search and source control
+
+Forge (examples/forge) works on a folder the person opens, which may come from anywhere. Its search walks only that
+folder, follows no symbolic link out of it, and skips binary files; a replacement is written only to a regular file
+inside it, through a new file renamed over the old one, so a link planted in the folder is replaced, never written
+through. A pattern is at most 4 KiB, a replacement text 64 KiB, and what one replacement expands to 64 MiB; PCRE2
+runs with match and depth limits. Its source control runs the `git` the host allows (`allowProcess`) with a fixed
+argument vector per command (`status`, `add`, `restore`, `commit -F -`, `switch`, `show --no-textconv`, ...): paths
+are literal pathspecs after `--`, never options, and a commit message goes on standard input. git runs with the
+repository's hooks, file-system monitor and commit signing turned off (`-c core.hooksPath=...`), since the folder's
+`.git` may name programs to run.
+
 ## Limits
 
 Input from peers, revisions and change sets is limited so that one message can't exhaust the stack or loop forever:
@@ -421,6 +434,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Tabs a strip reads, panes a split reads | 10,000 tabs and 1,000 panes (more are ignored); a split's sizes 0 to 1,000,000 pixels |
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |
 | Slow calls (`Screen::onAsyncCall`) running or waiting for a worker at once | 64; more end with an error (`onError`) |
+| A curves editor's plot (`curves`) | 4,096 columns, however wide the node: a wider plot draws each column wider |
 | A vector path (`path` nodes and SVG files) | Coordinates up to 1,000,000 either sign (a contour scaled past 10^12 on screen isn't drawn), 64 dash and gap lengths, 65,536 points flattened, 65,536 quads and 16 Mi edge visits a fill or stroke makes (past them, the rest isn't drawn) |
 | A response body, a server-sent event or line of a stream, or a WebSocket message the `net` module receives (`Request::maxBodyBytes`) | 8 MiB by default; a larger one fails with `tooLarge` (a WebSocket is closed with 1009) |
 | A response's headers, or a WebSocket handshake's answer | 64 KiB and 256 lines |
@@ -456,7 +470,8 @@ settings takes a fraction of a second, not minutes.
 A document's numbers are floats of any size, and a size, an index or a step count computed from one is clamped before
 it becomes an integer, since a float past the integer's range makes the conversion undefined behaviour. A `tabIndex`
 of `1e30` is the last in the tab order, a list `1e30` pixels tall pages to its last row, and a curve under a view box
-a millionth of a pixel wide is drawn with at most 64 lines a bend. A call's `timeout` is cancelled when the call ends
+a millionth of a pixel wide is drawn with at most 64 lines a bend. A sign-in provider's `expires_in` and `interval`
+are clamped the same way. A call's `timeout` is cancelled when the call ends
 first, so many short calls with long timeouts leave no timers behind.
 
 Log messages are escaped before they reach the log sink: control characters become `\n`, `\x1b` and so on, the C1
