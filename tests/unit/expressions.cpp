@@ -242,6 +242,17 @@ const std::vector<Case> cases = {
     {"{{fuzzySort(state.items, 'z')}}", json::array(), {}},
     {"{{fuzzySort(state.items, 'b')[0].item}}", "b", {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
+    // Dates, "YYYY-MM-DD": tests/unit/date_civil.cpp has the calendar arithmetic
+    {"{{isDate(today())}}", true, {}},
+    {"{{addDays('2024-02-28', 2)}}", "2024-03-01", {}},
+    {"{{addMonths('2025-01-31', 1)}}", "2025-02-28", {}},
+    {"{{daysBetween('2026-10-22', '2026-12-25')}}", 64, {}},
+    {"{{weekday('2026-10-22')}}", 4, {}},
+    {"{{daysInMonth('2024-02-10')}}", 29, {}},
+    {"{{dateOf(86400000)}}", "1970-01-02", {}},
+    {"{{dateMs('1970-01-02')}}", 86400000, {}},
+    {"{{addDays('not a date', 1)}}", nullptr, {}},
+    {"{{isDate('2026-02-30')}}", false, {}},
     // The creative controls' values: tests/unit/creative_controls.cpp has the curves and the colours
     {"{{curve(1, 0.5)}}", {}, "test.$curve: expected a list of points or a curves value"},
     {"{{gradientColor('#000000ff', 0)}}", {}, "test.$gradientColor: expected a gradient"},

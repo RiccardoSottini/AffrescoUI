@@ -312,5 +312,8 @@ void registerGraphType(TypeRegistry& registry);
 /// @brief Registers "timeline" (TimelineType.cpp).
 /// @param registry The registry.
 void registerTimelineType(TypeRegistry& registry);
+/// @brief Registers "calendar" (CalendarType.cpp).
+/// @param registry The registry.
+void registerCalendarType(TypeRegistry& registry);
 
 } // namespace affresco::format
