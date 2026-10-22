@@ -17,21 +17,23 @@ void signIn(const Running& s) {
 	if(!engine.identity) fail(s.where, "this host has no sign-in");
 	const json onDone = s.step.value("onDone", json()), onError = s.step.value("onError", json());
 	auto succeeded = s.steps.later(onDone, s.sender, s.event, snapshot(s.locals), s.where + ".onDone");
+	// Both tasks are made now, while the sender is alive: a task finds it again by its record, or runs from the root.
+	// The error goes into a scope of its own that the failure task reads once it is filled.
 	const SharedScope locals = snapshot(s.locals);
-	const std::string where = s.where + ".onError";
+	const auto failure = std::make_shared<const Scope>(Scope{locals.get(), locals, json::object(), {}, {}});
+	auto failed = s.steps.later(onError, s.sender, s.event, failure, s.where + ".onError");
 	engine.identity->signIn(name, [&engine, alive = std::weak_ptr<bool>(engine.alive), succeeded = std::move(succeeded),
-	                               done = !onDone.is_null(), onError, name, sender = &s.sender, event = s.event,
-	                               locals, where](std::optional<std::string> error) {
+	                               failed = std::move(failed), done = !onDone.is_null(), failing = !onError.is_null(),
+	                               failure, name](std::optional<std::string> error) {
 		if(!alive.lock()) return; // the screen went away while signing in
 		if(!error) {
 			if(done) succeeded();
 			return;
 		}
 		engine.report("AffrescoUI screen: sign-in to '" + name + "': " + *error);
-		if(onError.is_null()) return;
-		const auto scope = std::make_shared<const Scope>(
-		    Scope{locals.get(), locals, json{{"error", {{"code", "signIn"}, {"message", *error}}}}, {}, {}});
-		engine.runner.later(onError, *sender, event, scope, where)();
+		if(!failing) return;
+		failure->vars = json{{"error", {{"code", "signIn"}, {"message", *error}}}};
+		failed();
 	});
 }
 
