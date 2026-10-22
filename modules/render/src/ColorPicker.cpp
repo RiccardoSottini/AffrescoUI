@@ -176,6 +176,7 @@ void ColorPicker::setSwatches(std::span<const Color> swatches) {
 	if(std::ranges::equal(kept, swatches_)) return;
 	swatches_.assign(kept.begin(), kept.end());
 	swatch_ = std::min(swatch_, swatchCount() == 0 ? 0 : swatchCount() - 1);
+	if(!hasPart(active_)) active_ = Part::Plane; // no swatch left for Enter to pick
 	invalidatePaint();
 }
 

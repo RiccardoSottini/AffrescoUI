@@ -186,6 +186,23 @@ TEST_CASE("ColorPicker: fields, value, swatches and recent colours") {
 	picker.setSwatches(swatches); // kept to maxSwatches
 }
 
+TEST_CASE("ColorPicker: the swatches part goes away with the last swatch") {
+	struct Picker : ColorPicker {
+		using ColorPicker::keyEvent;
+	} picker;
+	const std::vector<Color> swatches(3, colors::white);
+	picker.setSwatches(swatches);
+	for(int step = 0; step < 16 && picker.activePart() != ColorPicker::Part::Swatches; ++step)
+		picker.keyEvent({Key::Tab, 0, Action::Press, Mods{}});
+	REQUIRE(picker.activePart() == ColorPicker::Part::Swatches);
+
+	picker.setSwatches({}); // no recent colour either: nothing for Enter to pick
+	CHECK(picker.activePart() == ColorPicker::Part::Plane);
+	picker.setValue(colors::black);
+	picker.keyEvent({Key::Enter, 0, Action::Press, Mods{}});
+	CHECK(picker.value().r == doctest::Approx(0.0f));
+}
+
 TEST_CASE("creative values: JSON round trips and lenient reading") {
 	CHECK(format::colorToJson(Color{1.0f, 0.0f, 0.0f, 1.0f}) == "#ff0000ff");
 	CHECK(format::colorFromJson("#00ff00") == Color{0.0f, 1.0f, 0.0f, 1.0f});
