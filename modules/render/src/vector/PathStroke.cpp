@@ -20,6 +20,10 @@ using vector::times;
 namespace {
 
 constexpr std::size_t polygonLimit = 64; ///< The most corners a piece of stroke has (a circle's).
+/// @brief The most ends of dashes and gaps a stroke walks. Dashes of no length draw nothing with butt caps, so a
+/// pattern of them would never fill the mesh: past this, about a frame's time, the dashes end. Real dashes fill it long
+/// before.
+constexpr std::size_t dashWorkLimit = std::size_t{1} << 20;
 
 /// @brief Draws convex polygons into a mesh: fan quads inside, fringe quads on the edges asked for.
 class PolygonWriter {
@@ -124,6 +128,9 @@ public:
 	Stroker(const StrokeStyle& style, std::vector<MeshVertex>& mesh, float feather)
 	    : style_(style), half_(style.width / 2.0f), writer_(mesh, feather) {}
 
+	/// @brief Tells whether the mesh is full, so that nothing more is drawn.
+	[[nodiscard]] bool full() const noexcept { return writer_.full(); }
+
 	/// @brief Strokes a run of points.
 	/// @param points Its points, no two in a row equal.
 	/// @param closed Whether it is a loop.
@@ -218,37 +225,50 @@ private:
 	return pattern;
 }
 
-/// @brief Cuts a contour into its dashes.
-/// @param contour The contour.
+/// @brief Copies a run of points, each point that repeats the one before it left out.
+/// @param points The points.
+/// @param run Where the run goes, replacing what it held.
+void withoutRepeats(std::span<const Vec2> points, std::vector<Vec2>& run) {
+	run.clear();
+	for(const Vec2 point : points)
+		if(run.empty() || !(run.back() == point)) run.push_back(point);
+}
+
+/// @brief Cuts a contour into its dashes and strokes each, within the work left to the stroke.
+/// @param stroker What draws them.
+/// @param contour The contour, with two points at least.
 /// @param pattern The dash pattern (even, valid).
-/// @return The dashes, open runs of points.
-[[nodiscard]] std::vector<std::vector<Vec2>> dashesOf(const VectorPath::Contour& contour,
-                                                      std::span<const float> pattern) {
-	std::vector<std::vector<Vec2>> dashes;
+/// @param work The ends of dashes and gaps the stroke has walked, counted on: past dashWorkLimit, the dashes end there.
+void strokeDashes(Stroker& stroker, const VectorPath::Contour& contour, std::span<const float> pattern,
+                  std::size_t& work) {
+	std::vector<Vec2> current{contour.points.front()}, run; // reused: a dash allocates nothing
+	const auto draw = [&] {
+		withoutRepeats(current, run);
+		stroker.run(run, false);
+	};
 	std::size_t phase = 0;
 	float left = pattern[0];
-	std::vector<Vec2> current{contour.points.front()};
 	const std::size_t segments = contour.closed ? contour.points.size() : contour.points.size() - 1;
 	for(std::size_t index = 0; index < segments; ++index) {
 		Vec2 from = contour.points[index];
 		const Vec2 to = contour.points[(index + 1) % contour.points.size()];
 		float remaining = vector::length(minus(to, from));
 		while(remaining > left) { // the dash or gap ends within this segment
+			if(++work > dashWorkLimit || stroker.full()) return;
 			from = plus(from, times(minus(to, from), left / remaining));
 			remaining -= left;
 			if(phase % 2 == 0) {
 				current.push_back(from);
-				dashes.push_back(std::move(current));
+				draw();
 			}
-			current = {from};
+			current.assign(1, from);
 			phase = (phase + 1) % pattern.size();
 			left = pattern[phase];
 		}
 		left -= remaining;
 		if(phase % 2 == 0) current.push_back(to);
 	}
-	if(phase % 2 == 0 && current.size() > 1) dashes.push_back(std::move(current));
-	return dashes;
+	if(phase % 2 == 0 && current.size() > 1) draw();
 }
 
 /// @brief The length of a contour, closed or not.
@@ -269,21 +289,12 @@ bool strokable(std::span<const VectorPath::Contour> contours, const StrokeStyle&
 	return style.width > 0.0f && std::isfinite(style.width) && vector::finite(contours);
 }
 
-/// @brief A run of points with each point that repeats the one before it left out.
-/// @param points The points.
-/// @return The run.
-[[nodiscard]] std::vector<Vec2> withoutRepeats(std::span<const Vec2> points) {
-	std::vector<Vec2> run;
-	for(const Vec2 point : points)
-		if(run.empty() || !(run.back() == point)) run.push_back(point);
-	return run;
-}
-
 /// @brief Strokes one contour, whole or cut into its dashes.
 /// @param stroker What draws it.
 /// @param contour The contour, with a point at least.
 /// @param style The stroke.
-void strokeContour(Stroker& stroker, const VectorPath::Contour& contour, const StrokeStyle& style) {
+/// @param work The ends of dashes and gaps the stroke has walked (see strokeDashes).
+void strokeContour(Stroker& stroker, const VectorPath::Contour& contour, const StrokeStyle& style, std::size_t& work) {
 	// A closed contour whose last point is its first is one point shorter
 	std::span<const Vec2> points = contour.points;
 	if(contour.closed && points.size() > 1 && points.back() == points.front()) points = points.first(points.size() - 1);
@@ -293,8 +304,7 @@ void strokeContour(Stroker& stroker, const VectorPath::Contour& contour, const S
 		stroker.run(points, contour.closed && points.size() > 2);
 		return;
 	}
-	const VectorPath::Contour trimmed{{points.begin(), points.end()}, contour.closed};
-	for(const std::vector<Vec2>& dash : dashesOf(trimmed, pattern)) stroker.run(withoutRepeats(dash), false);
+	strokeDashes(stroker, {{points.begin(), points.end()}, contour.closed}, pattern, work);
 }
 
 } // namespace
@@ -303,8 +313,13 @@ void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeSty
                   std::vector<MeshVertex>& mesh, float feather) {
 	if(!strokable(contours, style)) return;
 	Stroker stroker(style, mesh, std::min(std::max(feather, 0.0f), 4.0f));
-	for(const VectorPath::Contour& contour : contours)
-		if(!contour.points.empty()) strokeContour(stroker, contour, style);
+	// Bounded across contours: a dense pattern (SVG's stroke-dasharray has no length limit) or dashes of no length,
+	// which draw nothing with butt caps, would otherwise walk without end, even with the mesh full
+	std::size_t work = 0;
+	for(const VectorPath::Contour& contour : contours) {
+		if(stroker.full() || work > dashWorkLimit) return;
+		if(!contour.points.empty()) strokeContour(stroker, contour, style, work);
+	}
 }
 
 } // namespace affresco

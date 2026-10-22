@@ -210,6 +210,27 @@ TEST_CASE("render: fills and strokes stop at the quad limit, drawing whole piece
 	CHECK(stroke.size() / 4 > affresco::meshQuadLimit - 200); // drawn in part, up to the limit
 }
 
+TEST_CASE("render: dashing a stroke is bounded across its contours, whatever its pattern") {
+	// Dashes of no length draw nothing with butt caps, so a pattern of them never fills the mesh: a long line walked
+	// through millions of them, and every contour after it did too, for seconds or minutes, drawing nothing
+	StrokeStyle style;
+	style.width = 1.0f;
+	style.dash.assign(62, 0.0f);
+	style.dash.insert(style.dash.end(), {1.0f, 1.0f});
+	const VectorPath::Contour longLine{{{0.0f, 0.0f}, {100000.0f, 0.0f}}, false};
+	const VectorPath::Contour shortLine{{{0.0f, 10.0f}, {10.0f, 10.0f}}, false};
+	std::vector<MeshVertex> alone, followed;
+	affresco::appendStroke(std::vector{longLine}, style, alone, 1.0f);
+	affresco::appendStroke(std::vector<VectorPath::Contour>(1000, longLine), style, followed, 1.0f);
+	CHECK(!alone.empty());
+	CHECK(alone.size() / 4 < affresco::meshQuadLimit); // the work ended it, not the mesh
+	CHECK(followed.size() == alone.size());            // the contours after it walk nothing
+
+	followed.clear();
+	affresco::appendStroke(std::vector{longLine, shortLine}, style, followed, 1.0f);
+	CHECK(followed.size() == alone.size());
+}
+
 TEST_CASE("render: a path scaled past the float range draws nothing, and its dashes end") {
 	// A huge scale (a tiny view box) turns the points infinite, and the line between two of them NaN long
 	const VectorPath path = VectorPath::parse("M0 0 L1e6 0 L1e6 1");
