@@ -19,9 +19,9 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
-		"small": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
-		"icons": { "file": "../assets/fonts/Lucide.ttf", "size": 14 }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 14 }
 	},
 
 	"tokens": {

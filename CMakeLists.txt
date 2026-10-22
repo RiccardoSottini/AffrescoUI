@@ -188,7 +188,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	set(AFFRESCOUI_MODELLO_SOURCES examples/modello/Modello.cpp examples/modello/ModelloView.cpp
 		examples/modello/ModelloEdit.cpp examples/modello/ModelloFiles.cpp)
 	add_executable(affrescoui_modello examples/modello/main.cpp ${AFFRESCOUI_MODELLO_SOURCES})
-	target_include_directories(affrescoui_modello PRIVATE examples examples/modello)
+	target_include_directories(affrescoui_modello PRIVATE examples/shared examples/modello)
 	target_link_libraries(affrescoui_modello PRIVATE affrescoui affrescoui::scene3d)
 	target_compile_options(affrescoui_modello PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_modello PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")

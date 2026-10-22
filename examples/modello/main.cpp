@@ -75,7 +75,7 @@ int run(const Options& options) {
 	affresco::Application app;
 	const bool screenshotOnly = firstFrameOnly();
 	using History = affresco::Screen::History;
-	const std::filesystem::path folder = assetsDirectory().parent_path() / "modello";
+	const std::filesystem::path folder = assetsDirectory() / "modello";
 	affresco::Screen screen = affresco::Screen::fromFile(folder / "modello.screen.json", options.dataDir,
 	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
 	modello::registerModello(screen, std::make_shared<modello::Model>(folder / "samples", options.dataDir));
