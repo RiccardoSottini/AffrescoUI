@@ -5,6 +5,7 @@
 
 #include <CoreServices/CoreServices.h>
 
+#include <array>
 #include <stdexcept>
 
 namespace affresco::services {
@@ -22,8 +23,8 @@ public:
 	EventStreamBackend(const std::filesystem::path& root, WatchSink sink, std::chrono::milliseconds latency)
 	    : sink_(std::move(sink)), queue_(dispatch_queue_create("affrescoui.watch", DISPATCH_QUEUE_SERIAL)) {
 		CFStringRef path = CFStringCreateWithFileSystemRepresentation(kCFAllocatorDefault, root.c_str());
-		const void* paths[] = {path};
-		CFArrayRef array = CFArrayCreate(kCFAllocatorDefault, paths, 1, &kCFTypeArrayCallBacks);
+		std::array<const void*, 1> paths{path};
+		CFArrayRef array = CFArrayCreate(kCFAllocatorDefault, paths.data(), 1, &kCFTypeArrayCallBacks);
 		FSEventStreamContext context{0, this, nullptr, nullptr, nullptr};
 		constexpr FSEventStreamCreateFlags flags =
 		    kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer | kFSEventStreamCreateFlagWatchRoot;
@@ -65,7 +66,7 @@ private:
 	/// @param paths Their paths (C strings).
 	/// @param flags Their flags.
 	static void received(ConstFSEventStreamRef /*stream*/, void* info, std::size_t count, void* paths,
-	                     const FSEventStreamEventFlags flags[], const FSEventStreamEventId /*ids*/[]) {
+	                     const FSEventStreamEventFlags* flags, const FSEventStreamEventId* /*ids*/) {
 		const auto& self = *static_cast<EventStreamBackend*>(info);
 		const auto* const* names = static_cast<const char* const*>(paths);
 		constexpr FSEventStreamEventFlags lost =

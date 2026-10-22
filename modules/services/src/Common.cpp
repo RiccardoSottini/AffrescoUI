@@ -3,6 +3,7 @@
 
 #include "Providers.hpp"
 
+#include <array>
 #include <cstdint>
 #include <system_error>
 
@@ -25,6 +26,7 @@ constexpr std::size_t sequenceLength(std::uint8_t lead) noexcept {
 /// form (not overlong), at most U+10FFFF and not a surrogate.
 /// @param sequence The sequence, as long as its lead byte says.
 /// @return Whether it does.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr(1) of a non-empty sequence never throws
 constexpr bool isScalar(std::string_view sequence) noexcept {
 	const auto lead = static_cast<std::uint8_t>(sequence.front());
 	std::uint32_t codepoint = sequence.size() == 1 ? lead : lead & (0xFFu >> (sequence.size() + 1));
@@ -33,7 +35,7 @@ constexpr bool isScalar(std::string_view sequence) noexcept {
 		if((byte >> 6) != 0x2) return false;
 		codepoint = (codepoint << 6) | (byte & 0x3Fu);
 	}
-	constexpr std::uint32_t smallest[] = {0, 0, 0x80, 0x800, 0x10000};
+	constexpr std::array<std::uint32_t, 5> smallest{0, 0, 0x80, 0x800, 0x10000};
 	return codepoint >= smallest[sequence.size()] && codepoint <= 0x10FFFF &&
 	       (codepoint < 0xD800 || codepoint > 0xDFFF);
 }
@@ -68,13 +70,14 @@ std::optional<std::filesystem::path> underRoot(const std::filesystem::path& root
 	const std::filesystem::path given{std::u8string(relative.begin(), relative.end())};
 	if(given.is_absolute() || given.has_root_name() || given.has_root_directory()) return std::nullopt;
 	std::error_code error;
-	const std::filesystem::path resolved = std::filesystem::weakly_canonical(root / given, error);
+	std::filesystem::path resolved = std::filesystem::weakly_canonical(root / given, error);
 	if(error) return std::nullopt;
 	const std::filesystem::path inside = resolved.lexically_relative(root);
 	if(inside.empty() || *inside.begin() == "..") return std::nullopt;
 	return resolved;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): substr() from an index inside the bytes never throws
 bool isUtf8(std::string_view bytes) noexcept {
 	std::size_t index = 0;
 	while(index < bytes.size()) {
@@ -93,6 +96,7 @@ EitherStop::EitherStop(const std::stop_token& first, const std::stop_token& seco
 
 bool EitherStop::requested() const noexcept { return fired_.load(); }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): a stop callback must not throw, and the actions given don't
 void EitherStop::fire() noexcept {
 	if(fired_.exchange(true)) return;
 	if(action_) action_();

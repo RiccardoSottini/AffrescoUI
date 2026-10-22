@@ -4,6 +4,7 @@
 #include "process/Process.hpp"
 #include "Providers.hpp"
 
+#include <array>
 #include <stdexcept>
 #include <variant>
 
@@ -82,9 +83,9 @@ private:
 /// @return Whether the collected output fits.
 [[nodiscard]] bool readOutput(ChildProcess& running, bool collect, LineEvents& lines, Collected& collected) {
 	bool fits = true;
-	char buffer[16384];
-	for(std::ptrdiff_t count; (count = running.read(buffer, sizeof buffer)) > 0;) {
-		const std::string_view bytes(buffer, static_cast<std::size_t>(count));
+	std::array<char, 16384> buffer{};
+	for(std::ptrdiff_t count; (count = running.read(buffer.data(), buffer.size())) > 0;) {
+		const std::string_view bytes(buffer.data(), static_cast<std::size_t>(count));
 		if(!collect) lines.add(bytes);
 		else if(fits && !collected.add(bytes)) {
 			fits = false;
@@ -195,6 +196,7 @@ public:
 		         "each output line is an event {line}; {code}, or {code, output} with collect (8 MiB of UTF-8 at most)"}};
 	}
 	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
+		// NOLINTNEXTLINE(bugprone-unchecked-optional-access): its configuration schema requires a process
 		const ProcessGrant& grant = *context.grant.process;
 		return std::make_unique<ProcessService>(
 		    grant, Launch{grant.program, grant.arguments, context.grant.root, grant.environment});

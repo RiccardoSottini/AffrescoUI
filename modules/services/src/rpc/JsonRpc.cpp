@@ -8,6 +8,7 @@
 #include "process/Process.hpp"
 #include "Providers.hpp"
 
+#include <array>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -195,11 +196,11 @@ private:
 
 	/// @brief Reads the program's messages until it ends or breaks the protocol.
 	void readLoop() {
-		char buffer[65536];
+		std::array<char, 65536> buffer{};
 		std::vector<std::string> bodies;
-		for(std::ptrdiff_t count; (count = child_->read(buffer, sizeof buffer)) > 0;) {
+		for(std::ptrdiff_t count; (count = child_->read(buffer.data(), buffer.size())) > 0;) {
 			bodies.clear();
-			if(auto problem = reader_.feed(std::string_view(buffer, static_cast<std::size_t>(count)), bodies))
+			if(auto problem = reader_.feed(std::string_view(buffer.data(), static_cast<std::size_t>(count)), bodies))
 				return close("the service broke the protocol: " + *problem);
 			for(const std::string& body : bodies)
 				if(auto problem = handle(body)) return close("the service broke the protocol: " + *problem);
@@ -284,9 +285,9 @@ private:
 	void request(const json& id, std::string method, json params) {
 		const std::weak_ptr<Link> weak = link_;
 		context_.request(std::move(method), std::move(params),
-		                 [weak, id](const std::optional<json>& value, const std::string& error) {
+		                 [weak, requestId = id](const std::optional<json>& value, const std::string& error) {
 			                 if(const std::shared_ptr<Link> link = weak.lock())
-				                 (void)link->send(response(id, value, error));
+				                 (void)link->send(response(requestId, value, error));
 		                 });
 	}
 
@@ -363,6 +364,7 @@ public:
 	}
 	bool takesUnlistedMethods() const noexcept override { return true; }
 	std::unique_ptr<Service> create(const json& configuration, ServiceContext context) override {
+		// NOLINTNEXTLINE(bugprone-unchecked-optional-access): its configuration schema requires a process
 		const ProcessGrant& grant = *context.grant.process;
 		const Launch launch{grant.program, grant.arguments, context.grant.root, grant.environment};
 		const Framing framing =

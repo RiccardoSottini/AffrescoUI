@@ -8,6 +8,7 @@
 #include "affresco/services/Schema.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <expected>
@@ -21,7 +22,7 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 /// @brief The keys of a declaration that are the registry's, not the provider's.
-constexpr std::string_view sharedKeys[] = {"provider", "start", "restart"};
+constexpr std::array<std::string_view, 3> sharedKeys{"provider", "start", "restart"};
 
 /// @brief Lists a map's keys for a message: "a, b", or "none".
 /// @param map The map.
@@ -50,9 +51,7 @@ bool isWord(std::string_view name) noexcept {
 	if(name.empty() || name.size() > 64) return false;
 	const auto letter = [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); };
 	if(!letter(name.front())) return false;
-	for(const char c : name)
-		if(!letter(c) && !(c >= '0' && c <= '9') && c != '_') return false;
-	return true;
+	return std::ranges::all_of(name, [&letter](char c) { return letter(c) || (c >= '0' && c <= '9') || c == '_'; });
 }
 
 /// @brief Reads a declaration's `start` and `restart`.
@@ -65,7 +64,7 @@ bool isWord(std::string_view name) noexcept {
 std::optional<std::string> readLife(const std::string& place, const json& declaration, bool& startOnLoad, int& after,
                                     int& times) {
 	if(const auto start = declaration.find("start"); start != declaration.end()) {
-		if(*start != "onDemand" && *start != "onLoad") return place + ".start: must be \"onDemand\" or \"onLoad\"";
+		if(*start != "onDemand" && *start != "onLoad") return place + R"(.start: must be "onDemand" or "onLoad")";
 		startOnLoad = *start == "onLoad";
 	}
 	if(const auto restart = declaration.find("restart"); restart != declaration.end()) {
@@ -103,7 +102,7 @@ findProvider(const std::map<std::string, std::unique_ptr<Provider>, std::less<>>
 json configurationOf(const json& declaration) {
 	json configuration = json::object();
 	for(const auto& [key, value] : declaration.items())
-		if(std::ranges::find(sharedKeys, key) == std::end(sharedKeys)) configuration[key] = value;
+		if(std::ranges::find(sharedKeys, key) == sharedKeys.end()) configuration[key] = value;
 	return configuration;
 }
 
@@ -187,6 +186,7 @@ struct ServiceRegistry::Entry {
 	std::unique_ptr<Service> service;                             ///< The running service, or nullptr.
 };
 
+// NOLINTNEXTLINE(performance-unnecessary-value-param): a virtual; overrides that keep the call take it by value
 std::optional<std::string> Service::subscribe(const std::string& stream, std::shared_ptr<Call> /*call*/) {
 	return "it has no stream '" + stream + "'";
 }

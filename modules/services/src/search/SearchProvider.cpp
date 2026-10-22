@@ -55,7 +55,7 @@ void find(const std::filesystem::path& root, const std::stop_token& stop, Call& 
 	std::stop_source source;
 	const EitherStop stopping(call.stopToken(), stop, [&source] { source.request_stop(); });
 	SearchSummary summary;
-	const auto onFile = [&call](SearchFile&& file) {
+	const auto onFile = [&call](SearchFile file) {
 		json matches = json::array();
 		for(const SearchMatch& match : file.matches) matches.push_back(matchJson(match));
 		call.event({{"file", std::move(file.path)}, {"matches", std::move(matches)}});

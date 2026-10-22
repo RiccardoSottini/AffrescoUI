@@ -39,7 +39,7 @@ struct Input {
 /// @param byte Where to read.
 /// @param at The same place as a point.
 /// @param bytes Gets how many bytes the chunk has.
-// NOLINTNEXTLINE(readability-non-const-parameter): tree-sitter's TSInput.read type
+// NOLINTNEXTLINE(readability-non-const-parameter, misc-const-correctness): tree-sitter's TSInput.read type
 const char* readInput(void* payload, std::uint32_t byte, TSPoint at, std::uint32_t* bytes) {
 	const auto& input = *static_cast<const Input*>(payload);
 	if(byte >= input.size) {
@@ -53,7 +53,7 @@ const char* readInput(void* payload, std::uint32_t byte, TSPoint at, std::uint32
 
 /// @brief tree-sitter's progress callback: true (stop) past the deadline.
 /// @param state Its payload is the deadline.
-// NOLINTNEXTLINE(readability-non-const-parameter): tree-sitter's progress callback type
+// NOLINTNEXTLINE(readability-non-const-parameter, misc-const-correctness): tree-sitter's progress callback type
 bool pastDeadline(TSParseState* state) { return Clock::now() > *static_cast<const Clock::time_point*>(state->payload); }
 
 /// @brief A capture found by highlight(), before it is cut into lines.
@@ -110,6 +110,12 @@ void addSpans(const std::vector<Found>& found, std::uint32_t first, std::uint32_
 
 /// @brief A document's parser, tree and cursor.
 struct SyntaxDocument::State {
+	State() = default;
+	State(const State&) = delete; // it owns tree-sitter's objects
+	State& operator=(const State&) = delete;
+	State(State&&) = delete;
+	State& operator=(State&&) = delete;
+
 	/// @brief Frees what tree-sitter allocated.
 	~State() {
 		if(tree) ts_tree_delete(tree);
@@ -260,7 +266,7 @@ SyntaxParse SyntaxDocument::parse(const SyntaxReader& read, std::size_t size, st
 		TSRange* ranges = ts_tree_get_changed_ranges(state.tree, next, &count);
 		for(std::uint32_t i = 0; i < count; ++i)
 			changed->push_back({ranges[i].start_point.row, ranges[i].end_point.row});
-		std::free(ranges);
+		std::free(ranges); // NOLINT(cppcoreguidelines-no-malloc): tree-sitter malloc'd it for the caller to free
 		changed->insert(changed->end(), state.edited.begin(), state.edited.end());
 	} else if(changed) {
 		changed->push_back({0, ts_node_end_point(ts_tree_root_node(next)).row});
@@ -377,7 +383,7 @@ std::string SyntaxDocument::tree() const {
 	if(!state_->tree) return {};
 	char* text = ts_node_string(ts_tree_root_node(state_->tree));
 	std::string out(text);
-	std::free(text);
+	std::free(text); // NOLINT(cppcoreguidelines-no-malloc): tree-sitter malloc'd it for the caller to free
 	return out;
 }
 

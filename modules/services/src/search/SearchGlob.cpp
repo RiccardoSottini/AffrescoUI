@@ -99,6 +99,7 @@ std::vector<Element> readElements(std::string_view text) {
 /// @param name The name.
 /// @param at The byte.
 /// @return The bytes, or 0 if it doesn't match.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr() from a byte inside the name never throws
 std::size_t consume(const Element& element, std::string_view name, std::size_t at) noexcept {
 	if(element.kind == Element::Kind::Literal)
 		return name.substr(at).starts_with(element.literal) ? element.literal.size() : 0;
@@ -141,6 +142,7 @@ bool matchName(const std::vector<Element>& elements, std::string_view name) noex
 /// @brief Drops the spaces around a text.
 /// @param text The text.
 /// @return It, trimmed.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr() from a position found in the text never throws
 std::string_view trim(std::string_view text) noexcept {
 	const std::size_t first = text.find_first_not_of(" \t\r");
 	if(first == std::string_view::npos) return {};

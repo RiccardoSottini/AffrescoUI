@@ -89,7 +89,7 @@ private:
 /// @brief The rules of the `.gitignore` files met so far, each applying under the folder it was in.
 class IgnoreRules {
 public:
-	static constexpr std::size_t maxFileBytes = 64 * 1024; ///< A .gitignore read, at most (the rest is ignored).
+	static constexpr std::size_t maxFileBytes = 65536; ///< A .gitignore read, at most (64 KiB; the rest is ignored).
 	static constexpr std::size_t maxRules = 10000;         ///< Rules kept, at most (later ones are dropped).
 
 	/// @brief Adds the rules of one file: comments (`#`), `!` to include again, a trailing '/' for folders only.

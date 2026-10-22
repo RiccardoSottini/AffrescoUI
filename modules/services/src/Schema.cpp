@@ -151,7 +151,7 @@ std::optional<std::string> checkMember(const json& schema, const std::string& ke
 std::optional<std::string> checkMembers(const json& schema, const json& value, const std::string& path) {
 	if(auto problem = checkRequired(schema, value, path)) return problem;
 	for(const auto& [key, member] : value.items())
-		if(auto problem = checkMember(schema, key, member, path + "." + key)) return problem;
+		if(auto problem = checkMember(schema, key, member, std::string(path).append(".").append(key))) return problem;
 	return std::nullopt;
 }
 

@@ -9,6 +9,7 @@
 #include "rpc/Framing.hpp"
 #include "Providers.hpp"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <condition_variable>
@@ -203,12 +204,12 @@ private:
 
 	/// @brief Reads the adapter's messages until it ends or breaks the protocol.
 	void readLoop() {
-		char buffer[65536];
+		std::array<char, 65536> buffer{};
 		std::vector<std::string> bodies;
 		FrameReader reader(Framing::ContentLength, dapFrames);
-		for(std::ptrdiff_t count; (count = transport_->read(buffer, sizeof buffer)) > 0;) {
+		for(std::ptrdiff_t count; (count = transport_->read(buffer.data(), buffer.size())) > 0;) {
 			bodies.clear();
-			if(auto problem = reader.feed(std::string_view(buffer, static_cast<std::size_t>(count)), bodies))
+			if(auto problem = reader.feed(std::string_view(buffer.data(), static_cast<std::size_t>(count)), bodies))
 				return close("the debug adapter broke the protocol: " + *problem);
 			for(const std::string& body : bodies)
 				if(auto problem = handle(body)) return close("the debug adapter broke the protocol: " + *problem);
@@ -247,7 +248,7 @@ private:
 			answered = std::move(found->second);
 			link_->waiting.erase(found);
 			if(answered->command == "initialize" && response.success && response.body.is_object())
-				link_->supportsCancel = response.body.value("supportsCancelRequest", false) == true;
+				link_->supportsCancel = response.body.value("supportsCancelRequest", false);
 		}
 		Call& call = *answered->call;
 		if(!response.success)
@@ -293,7 +294,7 @@ private:
 	/// back, if the link still exists.
 	/// @param request The request.
 	void request(dap::Request request) {
-		if(std::find(reverseRequests.begin(), reverseRequests.end(), request.command) == reverseRequests.end()) {
+		if(std::ranges::find(reverseRequests, request.command) == reverseRequests.end()) {
 			(void)link_->send(dap::responseMessage(0, request, std::nullopt, "not supported"));
 			return;
 		}
@@ -398,6 +399,7 @@ public:
 		const Commands commands;
 		const json object = {{"type", "object"}};
 		std::vector<MethodSpec> specs;
+		specs.reserve(commands.reads.size() + commands.runs.size() + commands.writes.size() + commands.events.size());
 		for(const std::string_view name : commands.reads)
 			specs.push_back({std::string(name), Effect::Read, true, false, object, {}});
 		for(const std::string_view name : commands.runs)

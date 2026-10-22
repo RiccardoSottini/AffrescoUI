@@ -35,6 +35,7 @@ struct DirectoryOptions {
 /// (posted through the Executor), and onChange tells which ones: Inserted and Removed ranges for files and folders
 /// that came and went, Changed for a new size, Reset after the first listing and a rescan. Symbolic links are listed
 /// but never followed. Invariants: main thread only; at most DirectoryOptions::mostEntries rows.
+// NOLINTNEXTLINE(misc-multiple-inheritance): enable_shared_from_this is a mixin, for its threads' weak references
 class DirectoryModel final : public DataModel, public std::enable_shared_from_this<DirectoryModel> {
 	struct Key {}; ///< Keeps the constructor for open().
 

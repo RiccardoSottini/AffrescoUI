@@ -204,7 +204,7 @@ void DirectoryModel::start() {
 	if(options_.watch) try {
 			worker.watcher =
 			    std::make_unique<Watcher>(root_, WatchOptions{options_.debounce, options_.ignore}, resolve);
-		} catch(const std::exception&) { // listed once, not watched: watching() says so
+		} catch(const std::exception&) { // NOLINT(bugprone-empty-catch): listed once, not watched: watching() says so
 		}
 	worker.thread = std::jthread([&worker](const std::stop_token& stop) { worker.run(stop); });
 	worker.push(worker.rescan);
@@ -244,6 +244,7 @@ bool DirectoryModel::watching() const noexcept { return worker_ && worker_->watc
 
 void DirectoryModel::rescan() { worker_->push(worker_->rescan); }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): substr(0, n) never throws
 bool DirectoryModel::before(const Entry& first, const Entry& second) noexcept {
 	std::string_view one = first.path, other = second.path;
 	for(;;) {
@@ -340,8 +341,8 @@ void DirectoryModel::insertAll(std::vector<Entry> entries) {
 
 void DirectoryModel::listLater(const std::string& path) {
 	worker_->push([model = weak_from_this(), &executor = executor_, root = root_, options = options_,
-	               path](const std::stop_token& stop) {
-		postTo(executor, model, [listing = listTree(root, path, options, stop)](DirectoryModel& self) mutable {
+	               folder = path](const std::stop_token& stop) {
+		postTo(executor, model, [listing = listTree(root, folder, options, stop)](DirectoryModel& self) mutable {
 			if(listing.truncated) self.truncated_ = true;
 			self.insertAll(std::move(listing.entries));
 		});

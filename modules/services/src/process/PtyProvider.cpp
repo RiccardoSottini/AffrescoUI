@@ -6,6 +6,7 @@
 #include "process/Pty.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -146,11 +147,11 @@ private:
 		const EitherStop stopping(call_->stopToken(), stop, [&terminal] { (void)terminal.end(); });
 		call_->event({{"session", id}});
 		std::string carry;
-		char buffer[largestRead];
+		std::array<char, largestRead> buffer{};
 		auto window = std::chrono::steady_clock::now();
 		std::size_t streamed = 0;
-		for(std::size_t count; (count = terminal.read(buffer, sizeof buffer)) > 0;) {
-			if(std::string text = takeTerminalText(carry, std::string_view(buffer, count)); !text.empty())
+		for(std::size_t count; (count = terminal.read(buffer.data(), buffer.size())) > 0;) {
+			if(std::string text = takeTerminalText(carry, std::string_view(buffer.data(), count)); !text.empty())
 				call_->event({{"data", std::move(text)}});
 			streamed += count;
 			if(streamed >= bytesPerSecond / 10) { // at most a tenth of the second's bytes each tenth of a second
@@ -270,6 +271,7 @@ public:
 		         "signals the program on an open terminal: {}"}};
 	}
 	std::unique_ptr<Service> create(const json& /*configuration*/, ServiceContext context) override {
+		// NOLINTNEXTLINE(bugprone-unchecked-optional-access): its configuration schema requires a process
 		const ProcessGrant& grant = *context.grant.process;
 		return std::make_unique<PtyService>(
 		    Launch{grant.program, grant.arguments, context.grant.root, grant.environment});

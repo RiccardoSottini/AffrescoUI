@@ -5,6 +5,7 @@
 #include "process/Pty.hpp"
 
 #include <algorithm>
+#include <array>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -355,8 +356,8 @@ std::unique_ptr<PseudoTerminal> PseudoTerminal::start(const Launch& launch, Term
 	std::signal(SIGPIPE, SIG_IGN); // a write to a terminal that closed must fail, not end the app
 	ExecArguments exec(launch);
 	auto platform = std::make_unique<Platform>();
-	int wake[2] = {-1, -1};
-	if(pipe(wake) != 0) throw std::runtime_error("could not create a pipe");
+	std::array<int, 2> wake{-1, -1};
+	if(pipe(wake.data()) != 0) throw std::runtime_error("could not create a pipe");
 	platform->wakeRead = wake[0];
 	platform->wakeWrite = wake[1];
 	for(const int fd : wake) fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -387,8 +388,8 @@ bool PseudoTerminal::write(std::string_view bytes) {
 
 std::size_t PseudoTerminal::read(char* buffer, std::size_t size) {
 	while(true) {
-		pollfd watched[2] = {{platform_->terminal, POLLIN, 0}, {platform_->wakeRead, POLLIN, 0}};
-		if(poll(watched, 2, -1) < 0) {
+		std::array<pollfd, 2> watched{{{platform_->terminal, POLLIN, 0}, {platform_->wakeRead, POLLIN, 0}}};
+		if(poll(watched.data(), 2, -1) < 0) {
 			if(errno == EINTR) continue;
 			return 0;
 		}

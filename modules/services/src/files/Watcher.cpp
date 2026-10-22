@@ -39,6 +39,7 @@ private:
 /// @param glob The glob.
 /// @param at The token's position.
 /// @return 2 for `**`, else 1.
+// NOLINTNEXTLINE(bugprone-exception-escape): substr() from a position inside the glob never throws
 std::size_t tokenWidth(std::string_view glob, std::size_t at) noexcept {
 	return glob.substr(at).starts_with("**") ? 2 : 1;
 }
@@ -116,6 +117,7 @@ bool matchFrom(std::string_view glob, std::string_view text, unsigned char* stat
 
 } // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape): substr() from a position up to the path's end never throws
 bool globMatches(std::string_view glob, std::string_view path) noexcept {
 	try {
 		GlobStates states(glob);
@@ -138,13 +140,13 @@ bool ignoredBy(const std::vector<std::string>& globs, std::string_view path) noe
 std::string genericUtf8(const std::filesystem::path& path) {
 	const std::u8string text = path.generic_u8string();
 	std::string bytes(text.size(), '\0');
-	std::transform(text.begin(), text.end(), bytes.begin(), [](char8_t unit) { return static_cast<char>(unit); });
+	std::ranges::transform(text, bytes.begin(), [](char8_t unit) { return static_cast<char>(unit); });
 	return bytes;
 }
 
 std::filesystem::path pathFromUtf8(std::string_view text) {
 	std::u8string units(text.size(), u8'\0');
-	std::transform(text.begin(), text.end(), units.begin(), [](char byte) { return static_cast<char8_t>(byte); });
+	std::ranges::transform(text, units.begin(), [](char byte) { return static_cast<char8_t>(byte); });
 	return std::filesystem::path(units);
 }
 
