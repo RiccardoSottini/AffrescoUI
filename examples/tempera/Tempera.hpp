@@ -87,6 +87,8 @@ struct Session {
 	/// @brief A session with a blank document.
 	/// @param limits The bounds of everything opened or made.
 	explicit Session(const imaging::Limits& limits);
+	/// @brief Ends the stroke and the preview, and takes back what the canvas holds of the session (its pointer
+	/// callback and the display transform): the canvas is shared with the surface, which may outlive it.
 	~Session();
 	Session(const Session&) = delete;
 	Session& operator=(const Session&) = delete;
