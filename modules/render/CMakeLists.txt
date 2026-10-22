@@ -12,6 +12,7 @@ affrescoui_module(render
 	src/TextEditor.cpp
 	src/TextEditorCursors.cpp
 	src/TextEditorFind.cpp
+	src/TextEditorMinimap.cpp
 	src/TextEditorPaint.cpp
 	src/TextEditorPaintView.cpp
 	src/TextEditorView.cpp

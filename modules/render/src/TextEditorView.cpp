@@ -5,6 +5,7 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include "TextEditorRows.hpp"
+#include "detail/Utf8.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -53,6 +54,11 @@ void TextEditor::setComposition(std::u32string text) {
 	if(text.size() > maxCompositionLength) text.resize(maxCompositionLength);
 	composition_ = std::move(text);
 	invalidatePaint();
+}
+
+void TextEditor::setComposition(std::string_view text) {
+	std::u32string decoded = detail::fromUtf8(text);
+	if(decoded != composition_) setComposition(std::move(decoded));
 }
 
 void TextEditor::setBracketMatching(bool shown) {
@@ -156,7 +162,7 @@ void TextEditor::unfoldAround(std::size_t line) {
 float TextEditor::wrapWidth() const noexcept {
 	const Font* f = font();
 	const float least = f ? f->glyph(U'M').advance * 4.0f : 40.0f;
-	return std::max(frame().width() - gutterWidth() - 16.0f - scrollBarWidth, least);
+	return std::max(frame().width() - gutterWidth() - 16.0f - scrollBarWidth - minimapWidth(), least);
 }
 
 void TextEditor::lineBreaks(std::size_t line, std::vector<std::size_t>& starts) const {
@@ -401,7 +407,7 @@ void TextEditor::clampScroll() {
 	// Like most code editors, the last line can scroll up to the top
 	const float maxY = std::max(contentHeight - lineHeight() - textPadding, 0.0f);
 	const float widest = f ? widestLine(*f) : 0.0f;
-	const float textWidth = frame().width() - gutterWidth() - 16.0f;
+	const float textWidth = frame().width() - gutterWidth() - 16.0f - minimapWidth();
 	const float maxX = wrap_ ? 0.0f : std::max(widest - textWidth, 0.0f);
 	scroll_.x = std::clamp(scroll_.x, 0.0f, maxX);
 	scroll_.y = std::clamp(scroll_.y, 0.0f, maxY);

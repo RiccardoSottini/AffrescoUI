@@ -562,6 +562,7 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 	Panel::mouseButtonEvent(event);
 	hoverAt(std::nullopt);
 	if(event.button != MouseButton::Left) return;
+	if(minimapPress(event.position, event.action != Action::Release)) return;
 	if(event.action == Action::Release) {
 		dragging_ = columnDragging_ = false;
 		return;
@@ -602,6 +603,7 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 void TextEditor::mouseMoveEvent(const MouseMoveEvent& event) {
 	Panel::mouseMoveEvent(event);
 	if(columnDragging_) return selectColumn(columnFrom_, event.position);
+	if(minimapDrag(event.position)) return;
 	if(!dragging_ && !onWordHovered.empty()) {
 		const Position at = positionAt(event.position);
 		const std::u32string& text = lines_[at.line];
@@ -636,7 +638,7 @@ void TextEditor::hoverEvent(bool hovered) {
 }
 
 void TextEditor::focusEvent(bool focused) {
-	if(!focused) dragging_ = columnDragging_ = false;
+	if(!focused) dragging_ = columnDragging_ = minimapDragging_ = false;
 	invalidatePaint(); // the caret appears or disappears
 	Panel::focusEvent(focused);
 }

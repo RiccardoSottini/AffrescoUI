@@ -182,7 +182,8 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 	});
 }
 
-/// @brief Sets an editor's view: wrap, folds, decorations, find, brackets, indentGuides and readOnly.
+/// @brief Sets an editor's view: wrap, folds, decorations, find, brackets, indentGuides, minimap, composition and
+/// readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -192,6 +193,8 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 	editor.setWrap(flag("wrap"));
 	editor.setBracketMatching(flag("brackets"));
 	editor.setIndentGuides(flag("indentGuides"));
+	editor.setMinimap(flag("minimap"));
+	editor.setComposition(std::string_view(values.contains("composition") ? text(values["composition"]) : std::string()));
 	editor.setReadOnly(flag("readOnly"));
 	// Folds the user made stay until the document gives others
 	if(values.contains("folds"))
@@ -328,7 +331,8 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"brackets", ValueKind::Boolean},      {"indentGuides", ValueKind::Boolean},
 	                   {"readOnly", ValueKind::Boolean},      {"guideColor", ValueKind::Color},
 	                   {"matchColor", ValueKind::Color},      {"bracketColor", ValueKind::Color},
-	                   {"grammar", ValueKind::Text}};
+	                   {"grammar", ValueKind::Text},          {"minimap", ValueKind::Boolean},
+	                   {"composition", ValueKind::Text}};
 	set->apply = applyEditor;
 	set->everyUpdate = true; // colours follow the theme
 	set->appliesTo = [](const Panel& panel) { return dynamic_cast<const TextEditor*>(&panel) != nullptr; };

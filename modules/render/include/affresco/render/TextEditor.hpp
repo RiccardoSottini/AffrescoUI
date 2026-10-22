@@ -167,12 +167,19 @@ public:
 	/// @brief Shows text being composed by an input method at the caret, underlined, without editing (empty: none).
 	/// @param text The composed text (at most maxCompositionLength code points are shown).
 	void setComposition(std::u32string text);
+	/// @brief Shows text being composed by an input method, given in UTF-8: see setComposition(std::u32string).
+	/// @param text The composed text, in UTF-8.
+	void setComposition(std::string_view text);
 	/// @brief Shows the matching bracket of one next to the caret.
 	/// @param shown true to show it.
 	void setBracketMatching(bool shown);
 	/// @brief Draws a thin line at each indentation level.
 	/// @param shown true to draw them.
 	void setIndentGuides(bool shown);
+	/// @brief Shows a minimap at the right: an overview of the rows, with the visible ones marked, that scrolls the
+	/// editor when pressed or dragged.
+	/// @param shown true to show it.
+	void setMinimap(bool shown);
 
 	/* Decorations and cursors: TextEditorCursors.cpp */
 
@@ -403,6 +410,7 @@ protected:
 private:
 	static constexpr float textPadding = 6.0f;      ///< Space above the first line, in pixels.
 	static constexpr float scrollBarWidth = 4.0f;   ///< Thickness of the scroll bar, in pixels.
+	static constexpr float minimapSize = 60.0f;     ///< Width of the minimap, in pixels.
 	static constexpr std::size_t exactWidth = 4096; ///< Up to this many lines, the widest is measured, not estimated.
 
 	/// @brief One row on screen: a line, or the part of a wrapped line between two columns.
@@ -663,6 +671,28 @@ private:
 	/// @param painter The painter.
 	/// @param layout The frame's layout.
 	void paintCaretAndScrollBar(Painter& painter, const Layout& layout) const;
+
+	/* The minimap: TextEditorMinimap.cpp */
+
+	/// @brief The width the minimap takes from the text (0: none).
+	[[nodiscard]] float minimapWidth() const noexcept;
+	/// @brief Where the minimap is drawn.
+	[[nodiscard]] Rect minimapFrame() const noexcept;
+	/// @brief Pixels the minimap is scrolled, when its rows don't fit.
+	[[nodiscard]] float minimapOffset() const noexcept;
+	/// @brief Draws the minimap, if shown.
+	/// @param painter The painter.
+	/// @param layout The frame's layout.
+	void paintMinimap(Painter& painter, const Layout& layout) const;
+	/// @brief Starts or ends scrolling by the minimap.
+	/// @param position The pointer.
+	/// @param pressed true for a press, false for a release.
+	/// @return true if the minimap took the event.
+	bool minimapPress(Vec2 position, bool pressed);
+	/// @brief Scrolls while the minimap is dragged.
+	/// @param position The pointer.
+	/// @return true if the minimap took the event.
+	bool minimapDrag(Vec2 position);
 	/// @brief Draws what goes behind the text: background decorations, find matches, brackets, extra selections.
 	/// @param painter The painter.
 	/// @param font The font.
@@ -763,6 +793,8 @@ private:
 	bool brackets_ = false;      ///< See setBracketMatching().
 	bool guides_ = false;        ///< See setIndentGuides().
 	std::u32string composition_; ///< See setComposition().
+	bool minimap_ = false;         ///< See setMinimap().
+	bool minimapDragging_ = false; ///< A press on the minimap is scrolling.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

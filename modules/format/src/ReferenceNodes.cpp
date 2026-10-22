@@ -366,6 +366,12 @@ constexpr KeyReference nodeTable[] = {
 	 "editor"},
     {"brackets", "flag", "`true` highlights the bracket that pairs with the one at the caret.", "editor"},
     {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"minimap", "flag",
+	 "`true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or "
+	 "dragging it scrolls.",
+	 "editor"},
+    {"composition", R"json({"description": "Text, or a {{binding}}"})json",
+	 "Text an input method is composing, shown underlined at the caret without editing (empty: none).", "editor"},
     {"readOnly", "flag", "`true`: the user can select, find and fold, but not edit.", "editor"},
     {"guideColor", "color", "The indentation guides, find's matches and the paired brackets.", "editor"},
     {"matchColor", "color", "", "editor"},

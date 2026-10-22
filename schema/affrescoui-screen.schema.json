@@ -1727,6 +1727,12 @@
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"minimap": {
+						"$ref": "#/$defs/v2/flag"
+					},
+					"composition": {
+						"description": "Text, or a {{binding}}"
+					},
 					"readOnly": {
 						"$ref": "#/$defs/v2/flag"
 					},
@@ -2604,9 +2610,6 @@
 					},
 					"headerColor": {
 						"$ref": "#/$defs/v2/color"
-					},
-					"minimap": {
-						"$ref": "#/$defs/v2/flag"
 					},
 					"zoom": {
 						"anyOf": [
