@@ -86,6 +86,22 @@ detail::FlexItem flexItem(Panel& child, bool row, Vec2 size, std::optional<Cross
 	return item;
 }
 
+/// @brief The edges a direction places children from: along it, and across it.
+struct FlowEdges {
+	Edge start;      ///< Where it starts along.
+	Edge end;        ///< Where it ends along.
+	Edge crossStart; ///< Where it starts across.
+	Edge crossEnd;   ///< Where it ends across.
+};
+
+/// @brief The edges of a row or a column.
+/// @param row Whether it is a row.
+/// @return Left to right and top to bottom for a row; top to bottom and left to right for a column.
+constexpr FlowEdges flowEdges(bool row) noexcept {
+	if(row) return {Edge::Left, Edge::Right, Edge::Top, Edge::Bottom};
+	return {Edge::Top, Edge::Bottom, Edge::Left, Edge::Right};
+}
+
 } // namespace
 
 Stack::Stack() { setColor(colors::transparent); }
@@ -114,8 +130,7 @@ void Stack::setWrap(bool wrap) { setProperty(wrap_, wrap); }
 
 void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
-	const Edge start = row ? Edge::Left : Edge::Top, end = row ? Edge::Right : Edge::Bottom;
-	const Edge crossStart = row ? Edge::Top : Edge::Left, crossEnd = row ? Edge::Bottom : Edge::Right;
+	const auto [start, end, crossStart, crossEnd] = flowEdges(row);
 	const Vec2 size = resolvedSize();
 	const std::vector<Panel*> children = placed(*this);
 

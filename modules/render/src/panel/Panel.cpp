@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -54,6 +55,30 @@ constexpr float scrollBarWidth = 4.0f; ///< Thickness of the scroll bar, in pixe
 float bounded(Length size, Length minimum, const std::optional<Length>& maximum, float reference) noexcept {
 	const float own = size.resolve(reference);
 	return std::max(maximum ? std::min(own, maximum->resolve(reference)) : own, minimum.resolve(reference));
+}
+
+/// @brief How far a scrollable panel's content reaches, as if unscrolled, relative to its frame.
+struct ContentExtent {
+	Vec2 min; ///< Its top-left corner: 0 or less.
+	Vec2 max; ///< Its bottom-right corner: 0 or more.
+};
+
+/// @brief The extent of the shown children that are not overlays.
+/// @param children The children.
+/// @param frame The panel's frame.
+/// @param scroll The panel's scroll offset.
+/// @return The extent, which always holds the origin.
+ContentExtent contentExtent(std::span<const std::unique_ptr<Panel>> children, const Rect& frame, Vec2 scroll) noexcept {
+	ContentExtent extent;
+	for(const auto& child : children) {
+		if(child->isOverlay() || !child->isVisible()) continue;
+		const Rect& f = child->frame();
+		extent.min = {std::min(extent.min.x, f.left + scroll.x - frame.left),
+		              std::min(extent.min.y, f.top + scroll.y - frame.top)};
+		extent.max = {std::max(extent.max.x, f.right + scroll.x - frame.left),
+		              std::max(extent.max.y, f.bottom + scroll.y - frame.top)};
+	}
+	return extent;
 }
 
 } // namespace
@@ -515,15 +540,9 @@ void Panel::layoutChildren() {
 	if(!isScrollable()) return;
 
 	// The content's extent, as if unscrolled; an offset the content no longer allows is pulled back
-	contentMin_ = contentMax_ = Vec2{};
-	for(const auto& child : children_) {
-		if(child->overlay_ || !child->visible_) continue;
-		const Rect& f = child->frame_;
-		contentMin_ = {std::min(contentMin_.x, f.left + scroll_.x - frame_.left),
-		               std::min(contentMin_.y, f.top + scroll_.y - frame_.top)};
-		contentMax_ = {std::max(contentMax_.x, f.right + scroll_.x - frame_.left),
-		               std::max(contentMax_.y, f.bottom + scroll_.y - frame_.top)};
-	}
+	const ContentExtent extent = contentExtent(children_, frame_, scroll_);
+	contentMin_ = extent.min;
+	contentMax_ = extent.max;
 	if(scrollBy({0.0f, 0.0f})) pass();
 }
 
