@@ -6,7 +6,9 @@
 
 #include "affresco/core/DocumentRules.hpp"
 
+#include <algorithm>
 #include <format>
+#include <string_view>
 
 namespace affresco::format {
 
@@ -66,14 +68,51 @@ void checkPersist(const json& value, const std::string& name) {
 	}
 }
 
-/// @brief "permissions": allow, ask and deny rules, and the reviewers.
+/// @brief Tells whether a text is a duration: a whole number of minutes, hours or days ("30m", "8h", "7d").
+/// @param text The text.
+/// @return true if it is one.
+bool isDuration(const std::string& text) {
+	return text.size() >= 2 && text.size() <= 7 && text[0] >= '1' && text[0] <= '9' &&
+	       std::string_view("mhd").find(text.back()) != std::string_view::npos &&
+	       std::ranges::all_of(text.substr(0, text.size() - 1), [](char c) { return c >= '0' && c <= '9'; });
+}
+
+/// @brief "permissions.review": the review policy (VERSION_CONTROL.md, "Review policies").
+/// @param value The value.
+/// @param name "permissions.review".
+void checkReview(const json& value, const std::string& name) {
+	for(const auto& [key, item] : expect::object(value, name).items()) {
+		const std::string at = std::format("{}.{}", name, key);
+		if(key == "approvals" || key == "behaviourApprovals") {
+			if(!item.is_number_integer() || item.get<long long>() < 1 || item.get<long long>() > 20)
+				expect::fail(at, "expected a number of approvals from 1 to 20");
+		} else if(key == "grantsLast") {
+			if(!isDuration(expect::string(item, at))) expect::fail(at, "expected a duration, e.g. \"8h\" or \"7d\"");
+		} else if(key == "owners") {
+			for(const auto& [pattern, owners] : expect::object(item, at).items()) {
+				const std::string where = at + "." + pattern;
+				if(!parsePermissionRule("*(" + pattern + ")"))
+					expect::fail(where, "expected a JSON Pointer or \"#id\" path, e.g. \"#board\"");
+				if(!owners.is_array() || owners.empty()) expect::fail(where, "expected a list of author names");
+				for(std::size_t i = 0; i < owners.size(); ++i)
+					(void)expect::string(owners[i], where + "[" + std::to_string(i) + "]");
+			}
+		} else expect::fail(at, "unknown property (expected approvals, behaviourApprovals, owners or grantsLast)");
+	}
+}
+
+/// @brief "permissions": allow, ask and deny rules, the reviewers and the review policy.
 /// @param value The value.
 /// @param name "permissions".
 void checkPermissions(const json& value, const std::string& name) {
 	for(const auto& [key, list] : expect::object(value, name).items()) {
 		const std::string at = std::format("{}.{}", name, key);
+		if(key == "review") {
+			checkReview(list, at);
+			continue;
+		}
 		if(key != "allow" && key != "ask" && key != "deny" && key != "reviewers")
-			expect::fail(at, "unknown property (expected allow, ask, deny or reviewers)");
+			expect::fail(at, "unknown property (expected allow, ask, deny, reviewers or review)");
 		if(!list.is_array())
 			expect::fail(at, key == "reviewers" ? "expected a list of author names" : "expected a list of rules");
 		for(std::size_t i = 0; i < list.size(); ++i) {

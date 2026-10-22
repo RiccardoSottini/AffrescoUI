@@ -392,6 +392,24 @@ std::optional<std::string> Rules::findNode(const json& doc, std::string_view nod
 	return findNodeWithId(doc, nodeId);
 }
 
+namespace {
+
+/// @brief Reads "permissions.review" (checked by the permissions section).
+/// @param review The value, or null.
+/// @return The policy; the defaults where a key is missing.
+ReviewPolicy reviewPolicyOf(const json& review) {
+	ReviewPolicy policy;
+	if(!review.is_object()) return policy;
+	policy.approvals = review.value("approvals", 1);
+	policy.behaviourApprovals = review.value("behaviourApprovals", 0);
+	policy.grantsLast = review.value("grantsLast", std::string());
+	for(const auto& [pattern, names] : review.value("owners", json::object()).items())
+		policy.owners.emplace_back(pattern, names.get<std::vector<std::string>>());
+	return policy;
+}
+
+} // namespace
+
 // "permissions" as rules, plus every node with "locked": true denied to everyone
 Permissions Rules::permissions(const json& doc) const {
 	Permissions result;
@@ -407,6 +425,7 @@ Permissions Rules::permissions(const json& doc) const {
 		read("deny", result.deny);
 		for(const json& name : section.value("reviewers", json::array()))
 			result.reviewers.push_back(name.get<std::string>());
+		result.review = reviewPolicyOf(section.value("review", json()));
 	}
 
 	std::function<void(const json&)> collect = [&](const json& node) {

@@ -100,6 +100,13 @@ public:
 	/// @return The lines, e.g. "uses files.write (writes: ...)".
 	[[nodiscard]] std::vector<std::string> reviewLines(const json& before, const json& after) const override;
 
+	/// @brief One line for each part of the screen's behaviour the change adds, removes or changes: actions, shortcuts,
+	/// watches, onLoad, computed values, and each node's handlers, steps and bindings (BehaviourLines.cpp).
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @return The lines, e.g. "changes the action 'save'", "adds onClick to #addCard".
+	[[nodiscard]] std::vector<std::string> behaviourLines(const json& before, const json& after) const override;
+
 private:
 	std::set<std::string, std::less<>> nativeActions_; ///< From addNativeAction().
 	std::shared_ptr<const SectionRegistry> sections_;  ///< The sections; shared by copies, never changed.

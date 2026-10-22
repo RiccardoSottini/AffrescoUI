@@ -220,6 +220,19 @@
 				{ "key": "mod+1" },
 				{ "expect": { "node": "#reviewPage", "exists": true } }
 			]
+		},
+		{
+			"name": "a-conflict-shows-the-merge-view",
+			"note": "A proposal that conflicts with main shows main's and the proposal's values instead of its changes",
+			"steps": [
+				{ "action": "host:hello", "event": { "revision": 5, "head": { "short": "b2c3d4e" }, "you": "riccardo", "canReview": true, "mode": "default" } },
+				{ "action": "host:document", "event": { "revision": 5, "head": { "short": "b2c3d4e" }, "document": {}, "state": {}, "proposals": [{ "id": 3, "branch": "proposal/3", "author": "claude", "message": "Rename the board", "base": "a1b2c3d", "head": "e4f5a6b", "short": "e4f5a6b", "commits": 1, "operations": 2, "touches": ["/root/children/0"], "remember": [], "changes": ["set #boardName/text \"Sprint 12\"", "set #boardName/color \"@color.accent\""], "reason": "conflicts with main at #boardName/text, #boardName/color: its author must push again", "time": 1760000000, "conflicts": [{ "path": "#boardName/text", "reason": "changed on main and in the proposal", "base": "Q4", "main": "Q4 planning", "proposal": "Sprint 12" }, { "path": "#boardName/color", "reason": "removed on main, changed in the proposal", "base": "@color.text", "main": null, "proposal": "@color.accent" }], "approvals": [], "policy": "1 approval", "behaviour": [] }], "previewing": null, "mode": "default", "grants": [], "you": "riccardo", "canReview": true } },
+				{ "expect": { "node": "#label-changes", "text": "Conflicts with main: its author must push again" } },
+				{ "expect": { "node": "#changes", "exists": false } },
+				{ "expect": { "node": "#label-conflict-main", "text": "main: \"Q4 planning\"" } },
+				{ "expect": { "node": "#label-conflict-proposal", "text": "proposal: \"Sprint 12\"" } },
+				{ "expect": { "node": "#label-conflict-main", "text": "main: removed", "nth": 1 } }
+			]
 		}
 	]
 }

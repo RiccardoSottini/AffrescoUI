@@ -189,6 +189,18 @@ from approving itself:
 allow" adds a grant for exactly what the accepted proposal touched, for its author's channel, until the host quits.
 Grants are allow rules, so `ask` and `deny` still win.
 
+### Review policies, rebases and expiring grants
+- **Policies** (`permissions.review`) are part of the screen's permissions, which no revision can change. An approval
+  counts once per reviewer and never from the author's own channel; the policy is read from `main` when each approval
+  arrives, and applied to the change as it would merge then.
+- **A rebase can't bypass a policy.** A proposal rebased onto a newer `main` keeps its approvals only if replaying its
+  commits gives exactly the three-way merge, that is, the changes that were reviewed. Otherwise its approvals are
+  dismissed, and approvals that name an older head are refused. A proposal with conflicts can't be accepted.
+- **A merge never applies more than was reviewed.** What merges is the proposal's reviewed changes on top of `main`;
+  deny rules are checked again at the merge.
+- **Grants can expire** (`"for"` on an accept, capped by `grantsLast`). An expired grant no longer allows; it stays in
+  the history until revoked.
+
 ### You accept what you saw
 An author can keep pushing commits to its open proposal. Every approval must name the proposal's head commit (at
 least its first 7 characters): the version the reviewer looked at. If the author pushed since, the approval is

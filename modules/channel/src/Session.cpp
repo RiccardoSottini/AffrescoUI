@@ -261,8 +261,9 @@ std::optional<std::string> Session::decide(const Incoming& in) {
 		// The peer says which version it approves: the branch may move while the reviewer looks at it
 		if(!m.contains("head") || !m["head"].is_string())
 			expect::fail("accept.head", "expected the proposal's head commit: the version you reviewed");
+		const std::string duration = m.contains("for") ? expect::string(m["for"], "accept.for") : "";
 		return versions_.accept(proposalOf(in),
-		                        {in.author, m["head"].get<std::string>(), m.value("dontAskAgain", false)});
+		                        {in.author, m["head"].get<std::string>(), m.value("dontAskAgain", false), duration});
 	}
 	if(in.type == "reject") {
 		const int proposal = proposalOf(in);

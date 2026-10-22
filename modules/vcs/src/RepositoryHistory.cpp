@@ -131,7 +131,8 @@ std::vector<Grant> grantsOf(const json& grants) {
 		expectGrantRule(rule, where + ".rule");
 		result.push_back({std::move(rule), expect::string(grant.at("grantedBy"), where + ".grantedBy"),
 		                  expect::integer(grant.at("proposal"), where + ".proposal"),
-		                  expect::string(grant.at("time"), where + ".time")});
+		                  expect::string(grant.at("time"), where + ".time"),
+		                  grant.contains("expires") ? expect::string(grant["expires"], where + ".expires") : ""});
 	}
 	return result;
 }
@@ -300,6 +301,16 @@ Repository::Proposal Repository::readProposal(const json& entry, const std::stri
 	proposal.remember = strings(entry.at("remember"), where + ".remember");
 	for(const std::string& rule : proposal.remember) expectGrantRule(rule, where + ".remember");
 	proposal.reason = expect::string(entry.at("reason"), where + ".reason");
+	// Review at scale: optional, so histories written before it still load (and older hosts ignore them)
+	if(entry.contains("approvals")) proposal.approvals = strings(entry["approvals"], where + ".approvals");
+	if(entry.contains("reviewedHeads")) {
+		for(const std::string& head : strings(entry["reviewedHeads"], where + ".reviewedHeads"))
+			proposal.reviewedHeads.push_back(commitId(head, where + ".reviewedHeads"));
+	}
+	if(entry.contains("conflicts")) {
+		if(!entry["conflicts"].is_array()) expect::fail(where + ".conflicts", "expected a list");
+		proposal.conflicts = entry["conflicts"];
+	}
 	return proposal;
 }
 
@@ -425,6 +436,8 @@ void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 		                        ? std::vector<std::string>()
 		                        : rememberedRules(proposal.author, next.touches, verdict.askedByRule);
 		proposal.touches = next.touches;
+		proposal.behaviour = rules_.behaviourLines(next.before, next.after);
+		proposal.policy = reviewNeeds(next.before, next.after, {}).first;
 	} catch(const DocumentError&) {
 		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies
 	}
@@ -465,7 +478,10 @@ json Repository::refsJson() const {
 		                     {"head", p.head},
 		                     {"touches", p.touches},
 		                     {"remember", p.remember},
-		                     {"reason", p.reason}});
+		                     {"reason", p.reason},
+		                     {"approvals", p.approvals},
+		                     {"reviewedHeads", p.reviewedHeads},
+		                     {"conflicts", p.conflicts}});
 	json grants = json::array();
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
 	return {{"format", historyFormat},

@@ -1487,7 +1487,7 @@
 													{
 														"id": "label-changes",
 														"style": "caption",
-														"text": "Changes",
+														"text": "{{empty(computed.current.conflicts) ? 'Changes' : 'Conflicts with main: its author must push again'}}",
 														"anchors": {
 															"left": 16,
 															"top": 70
@@ -1495,6 +1495,7 @@
 													},
 													{
 														"id": "changes",
+														"when": "{{empty(computed.current.conflicts)}}",
 														"type": "stack",
 														"gap": 4,
 														"anchors": {
@@ -1527,6 +1528,91 @@
 																	"horizontal": "start",
 																	"vertical": "center"
 																}
+															}
+														]
+													},
+													{
+														"id": "mergeView",
+														"note": "A conflicted proposal: per conflict, main's value and the proposal's, side by side",
+														"when": "{{!empty(computed.current.conflicts)}}",
+														"type": "stack",
+														"gap": 6,
+														"anchors": {
+															"left": 16,
+															"right": 16,
+															"top": 90,
+															"bottom": 60
+														},
+														"scroll": "vertical",
+														"children": [
+															{
+																"id": "conflict",
+																"repeat": {
+																	"for": "k",
+																	"in": "computed.current.conflicts"
+																},
+																"color": "@color.card",
+																"radius": 4,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 72,
+																"children": [
+																	{
+																		"id": "label-conflict-path",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{k.path}}  ·  {{k.reason}}",
+																		"textColor": "@color.text",
+																		"anchors": {
+																			"left": 8,
+																			"right": 8,
+																			"top": 6
+																		},
+																		"height": 18
+																	},
+																	{
+																		"id": "label-conflict-main",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "main: {{k.main == null ? 'removed' : json(k.main)}}",
+																		"textColor": "@color.text",
+																		"color": "@color.cardRaised",
+																		"radius": 4,
+																		"padding": 6,
+																		"anchors": {
+																			"left": 8,
+																			"right": "50%",
+																			"top": 30
+																		},
+																		"height": 34,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "center"
+																		}
+																	},
+																	{
+																		"id": "label-conflict-proposal",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "proposal: {{k.proposal == null ? 'removed' : json(k.proposal)}}",
+																		"textColor": "@color.text",
+																		"color": "@color.accentSoft",
+																		"radius": 4,
+																		"padding": 6,
+																		"anchors": {
+																			"left": "50%",
+																			"right": 8,
+																			"top": 30
+																		},
+																		"height": 34,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "center"
+																		}
+																	}
+																]
 															}
 														]
 													},
