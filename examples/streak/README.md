@@ -10,7 +10,7 @@ Habits to tick, a heatmap, charts, a day-by-day history and notes, kept on disk 
 | File | What it is |
 |---|---|
 | `habit-tracker.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `habit-tracker.scenarios.json` | Its scenarios (`affrescoui test`; the rendering check plays them too) |
+| `habit-tracker.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `habit-tracker.screen.json` | The screen document |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).

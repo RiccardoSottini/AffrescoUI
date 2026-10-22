@@ -12,7 +12,7 @@ Boards as tabs, swimlanes, a table and a timeline of every card, a card drawer, 
 | `board.json` | Its board logic, included: undo, the activity feed, work-in-progress limits, keyboard moves, the drawer's edits, presence |
 | `drawer.json` | The card drawer, included: notes, due date, labels, assignees, checklist, comments, attachments |
 | `kanban.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `kanban.scenarios.json` | Its scenarios (`affrescoui test`; the rendering check plays them too) |
+| `kanban.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `kanban.screen.json` | The screen document |
 | `strings.json` | Its string tables: English, Italian and Arabic |
 | `views.json` | Its other views, included: insights, swimlanes, the timeline, the settings |

@@ -10,7 +10,7 @@ A menu bar, an explorer tree, editor tabs, quick open, a command palette, proble
 | File | What it is |
 |---|---|
 | `code-editor.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `code-editor.scenarios.json` | Its scenarios (`affrescoui test`; the rendering check plays them too) |
+| `code-editor.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `code-editor.screen.json` | The screen document |
 
 Its `code` type is the host's, in [`../shared/CodeEditor.cpp`](../shared/CodeEditor.cpp).

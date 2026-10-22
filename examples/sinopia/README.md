@@ -10,6 +10,7 @@ window.
 cmake --build build --target affrescoui_sinopia
 ./build/affrescoui_sinopia --socket out/s --data out/data   # the workspace, with decks/sample.sinopia.json
 ./build/affrescoui_sinopia --check examples/sinopia/sinopia.scenarios.json   # the scenarios, headless (ctest: sinopia)
+./build/affrescoui_sinopia --check examples/sinopia/sinopia.scenarios.json --out out/shots   # and their captures
 ```
 
 ## The workspace
