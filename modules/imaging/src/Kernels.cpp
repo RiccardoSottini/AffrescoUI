@@ -31,7 +31,8 @@ void boxPass(std::vector<float>& data, int side, int radius, std::size_t step, s
 			std::copy_n(start + static_cast<std::size_t>(at) * step, 4, &line[static_cast<std::size_t>(at) * 4]);
 		for(int channel = 0; channel < 4; ++channel) {
 			const auto sample = [&](int at) {
-				return line[static_cast<std::size_t>(std::clamp(at, 0, side - 1)) * 4 + static_cast<std::size_t>(channel)];
+				return line[static_cast<std::size_t>(std::clamp(at, 0, side - 1)) * 4 +
+				            static_cast<std::size_t>(channel)];
 			};
 			float sum = 0.0f;
 			for(int at = -radius; at <= radius; ++at) sum += sample(at);
@@ -55,7 +56,8 @@ void addBilinear(const std::vector<float>& region, int side, float x, float y, s
 	const float across = x - static_cast<float>(left), down = y - static_cast<float>(top);
 	const auto at = [&](int px, int py) { return static_cast<std::size_t>(py * side + px) * 4; };
 	for(std::size_t channel = 0; channel < 4; ++channel) {
-		const float above = region[at(left, top) + channel] * (1.0f - across) + region[at(left + 1, top) + channel] * across;
+		const float above =
+		    region[at(left, top) + channel] * (1.0f - across) + region[at(left + 1, top) + channel] * across;
 		const float below =
 		    region[at(left, top + 1) + channel] * (1.0f - across) + region[at(left + 1, top + 1) + channel] * across;
 		out[channel] += above * (1.0f - down) + below * down;
@@ -71,9 +73,9 @@ std::array<int, 3> gaussianBoxes(float sigma) noexcept {
 	if(lower % 2 == 0) --lower;
 	const int upper = lower + 2;
 	const float lowerFloat = static_cast<float>(lower);
-	const int lowerCount = static_cast<int>(std::round((12.0f * sigma * sigma - count * lowerFloat * lowerFloat -
-	                                                    4.0f * count * lowerFloat - 3.0f * count) /
-	                                                   (-4.0f * lowerFloat - 4.0f)));
+	const int lowerCount = static_cast<int>(std::round(
+	    (12.0f * sigma * sigma - count * lowerFloat * lowerFloat - 4.0f * count * lowerFloat - 3.0f * count) /
+	    (-4.0f * lowerFloat - 4.0f)));
 	std::array<int, 3> radii{};
 	for(int index = 0; index < count; ++index)
 		radii[static_cast<std::size_t>(index)] = std::max(0, ((index < lowerCount ? lower : upper) - 1) / 2);
@@ -110,7 +112,8 @@ void motionBlur(const std::vector<float>& region, int side, int halo, float angl
 
 float noise(std::uint32_t seed, int x, int y, int channel) noexcept {
 	std::uint32_t hash = seed * 0x9e3779b9u ^ static_cast<std::uint32_t>(x) * 0x85ebca6bu ^
-	                     static_cast<std::uint32_t>(y) * 0xc2b2ae35u ^ static_cast<std::uint32_t>(channel) * 0x27d4eb2fu;
+	                     static_cast<std::uint32_t>(y) * 0xc2b2ae35u ^
+	                     static_cast<std::uint32_t>(channel) * 0x27d4eb2fu;
 	hash ^= hash >> 16, hash *= 0x7feb352du, hash ^= hash >> 15, hash *= 0x846ca68bu, hash ^= hash >> 16;
 	return static_cast<float>(hash >> 8) / static_cast<float>(1u << 23) - 1.0f;
 }

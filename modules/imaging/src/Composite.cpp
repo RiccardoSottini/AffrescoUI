@@ -52,9 +52,15 @@ void Compositor::compositeLayer(const Layer& layer, const TileKey& key, std::spa
 			const float covered = maskImage == nullptr ? 1.0f : pixelOf(mask.get(), x, y).alpha;
 			Pixel source;
 			switch(layer.kind) {
-			case LayerKind::pixel: source = pixelOf(pixels.get(), x, y); break;
-			case LayerKind::group: source = groups_[depth + 1][at]; break;
-			case LayerKind::adjustment: source = adjustPixel(layer.adjustment, backdrop[at]); break;
+			case LayerKind::pixel:
+				source = pixelOf(pixels.get(), x, y);
+				break;
+			case LayerKind::group:
+				source = groups_[depth + 1][at];
+				break;
+			case LayerKind::adjustment:
+				source = adjustPixel(layer.adjustment, backdrop[at]);
+				break;
 			}
 			const float own = (layer.kind == LayerKind::adjustment ? 1.0f : source.alpha) * covered;
 			const float coverage = layer.clipped ? base[at] : 1.0f;
@@ -106,7 +112,8 @@ std::vector<std::uint8_t> flatten(const Document& document, int level, int x, in
 	std::vector<std::uint8_t> out(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4, 0);
 	Compositor compositor(document);
 	std::vector<Pixel> tile(tilePixels);
-	const int levelWidth = std::max(1, document.width() >> level), levelHeight = std::max(1, document.height() >> level);
+	const int levelWidth = std::max(1, document.width() >> level),
+	          levelHeight = std::max(1, document.height() >> level);
 	const int right = std::min(x + width, levelWidth), bottom = std::min(y + height, levelHeight);
 	for(int row = std::max(y, 0) / tileSize; row * tileSize < bottom; ++row)
 		for(int column = std::max(x, 0) / tileSize; column * tileSize < right; ++column) {
@@ -114,9 +121,11 @@ std::vector<std::uint8_t> flatten(const Document& document, int level, int x, in
 			const int top = std::max(row * tileSize, y), left = std::max(column * tileSize, x);
 			for(int py = top; py < std::min((row + 1) * tileSize, bottom); ++py)
 				for(int px = left; px < std::min((column + 1) * tileSize, right); ++px) {
-					const Pixel& pixel = tile[static_cast<std::size_t>((py - row * tileSize) * tileSize + px - column * tileSize)];
+					const Pixel& pixel =
+					    tile[static_cast<std::size_t>((py - row * tileSize) * tileSize + px - column * tileSize)];
 					std::uint8_t* to = &out[(static_cast<std::size_t>(py - y) * static_cast<std::size_t>(width) +
-					                         static_cast<std::size_t>(px - x)) * 4];
+					                         static_cast<std::size_t>(px - x)) *
+					                        4];
 					to[0] = byteFromUnit(pixel.red), to[1] = byteFromUnit(pixel.green);
 					to[2] = byteFromUnit(pixel.blue), to[3] = byteFromUnit(pixel.alpha);
 				}
@@ -143,8 +152,8 @@ std::vector<std::uint8_t> thumbnail(const Document& document, std::uint64_t imag
 		for(int x = 0; x < fittedWidth; ++x) {
 			const int sx = std::min(width - 1, static_cast<int>((static_cast<float>(x) + 0.5f) * scale));
 			const int sy = std::min(height - 1, static_cast<int>((static_cast<float>(y) + 0.5f) * scale));
-			std::uint8_t* to = &out[static_cast<std::size_t>(((y + (side - fittedHeight) / 2) * side + x +
-			                                                  (side - fittedWidth) / 2) * 4)];
+			std::uint8_t* to = &out[static_cast<std::size_t>(
+			    ((y + (side - fittedHeight) / 2) * side + x + (side - fittedWidth) / 2) * 4)];
 			if(source == nullptr) {
 				std::copy_n(&top[static_cast<std::size_t>((sy * width + sx) * 4)], 4, to);
 				continue;

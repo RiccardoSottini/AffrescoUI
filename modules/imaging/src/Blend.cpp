@@ -16,20 +16,26 @@ namespace {
 /// @param source The layer's channel.
 [[nodiscard]] float separable(BlendMode mode, float backdrop, float source) noexcept {
 	switch(mode) {
-	case BlendMode::multiply: return backdrop * source;
-	case BlendMode::screen: return backdrop + source - backdrop * source;
+	case BlendMode::multiply:
+		return backdrop * source;
+	case BlendMode::screen:
+		return backdrop + source - backdrop * source;
 	case BlendMode::overlay:
 		return backdrop <= 0.5f ? 2.0f * backdrop * source : 1.0f - 2.0f * (1.0f - backdrop) * (1.0f - source);
 	case BlendMode::softLight: {
 		if(source <= 0.5f) return backdrop - (1.0f - 2.0f * source) * backdrop * (1.0f - backdrop);
-		const float curve = backdrop <= 0.25f ? ((16.0f * backdrop - 12.0f) * backdrop + 4.0f) * backdrop
-		                                      : std::sqrt(backdrop);
+		const float curve =
+		    backdrop <= 0.25f ? ((16.0f * backdrop - 12.0f) * backdrop + 4.0f) * backdrop : std::sqrt(backdrop);
 		return backdrop + (2.0f * source - 1.0f) * (curve - backdrop);
 	}
-	case BlendMode::darken: return std::min(backdrop, source);
-	case BlendMode::lighten: return std::max(backdrop, source);
-	case BlendMode::difference: return std::abs(backdrop - source);
-	default: return source;
+	case BlendMode::darken:
+		return std::min(backdrop, source);
+	case BlendMode::lighten:
+		return std::max(backdrop, source);
+	case BlendMode::difference:
+		return std::abs(backdrop - source);
+	default:
+		return source;
 	}
 }
 
@@ -89,8 +95,8 @@ namespace {
 
 const std::array<std::string_view, blendModeCount>& blendModeNames() noexcept {
 	static constexpr std::array<std::string_view, blendModeCount> names{
-	    "normal",     "multiply", "screen",     "overlay", "soft-light", "darken",
-	    "lighten",    "difference", "hue",      "saturation", "color",   "luminosity"};
+	    "normal",  "multiply",   "screen", "overlay",    "soft-light", "darken",
+	    "lighten", "difference", "hue",    "saturation", "color",      "luminosity"};
 	return names;
 }
 
@@ -105,11 +111,14 @@ std::optional<BlendMode> blendModeOf(std::string_view name) noexcept {
 
 Pixel blendColors(BlendMode mode, const Pixel& backdrop, const Pixel& source) noexcept {
 	switch(mode) {
-	case BlendMode::hue: return setLuminosity(setSaturation(source, saturationOf(backdrop)), luminosity(backdrop));
+	case BlendMode::hue:
+		return setLuminosity(setSaturation(source, saturationOf(backdrop)), luminosity(backdrop));
 	case BlendMode::saturation:
 		return setLuminosity(setSaturation(backdrop, saturationOf(source)), luminosity(backdrop));
-	case BlendMode::color: return setLuminosity(source, luminosity(backdrop));
-	case BlendMode::luminosity: return setLuminosity(backdrop, luminosity(source));
+	case BlendMode::color:
+		return setLuminosity(source, luminosity(backdrop));
+	case BlendMode::luminosity:
+		return setLuminosity(backdrop, luminosity(source));
 	default:
 		return {separable(mode, backdrop.red, source.red), separable(mode, backdrop.green, source.green),
 		        separable(mode, backdrop.blue, source.blue), 1.0f};

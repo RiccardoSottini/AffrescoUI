@@ -40,8 +40,8 @@ namespace {
 	const float width = x1 - x0;
 	if(width <= 0.0f) return y1;
 	const float t = (input - x0) / width, t2 = t * t, t3 = t2 * t;
-	return clamped((2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * width * slope(index - 1) +
-	               (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * width * slope(index));
+	return clamped((2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * width * slope(index - 1) + (-2 * t3 + 3 * t2) * y1 +
+	               (t3 - t2) * width * slope(index));
 }
 
 /// @brief One channel through a per-channel adjustment.
@@ -55,7 +55,8 @@ namespace {
 		const float normal = std::pow(clamped((value - adjustment.inputBlack) / range), 1.0f / adjustment.gamma);
 		return adjustment.outputBlack + normal * (adjustment.outputWhite - adjustment.outputBlack);
 	}
-	case AdjustmentKind::curves: return curveAt(adjustment.curve, value);
+	case AdjustmentKind::curves:
+		return curveAt(adjustment.curve, value);
 	case AdjustmentKind::colorBalance: // midtones: strongest at 0.5, none at black and white
 		return clamped(value + adjustment.balance[channel] * 0.5f * 4.0f * value * (1.0f - value));
 	case AdjustmentKind::brightnessContrast: {
@@ -63,8 +64,10 @@ namespace {
 		                                                 : 1.0f + adjustment.contrast;
 		return clamped((value + adjustment.brightness * 0.5f - 0.5f) * factor + 0.5f);
 	}
-	case AdjustmentKind::invert: return 1.0f - value;
-	default: return value;
+	case AdjustmentKind::invert:
+		return 1.0f - value;
+	default:
+		return value;
 	}
 }
 
@@ -113,15 +116,16 @@ void Gradient::normalize() {
 		stop.color = {clamped(stop.color.red), clamped(stop.color.green), clamped(stop.color.blue),
 		              clamped(stop.color.alpha)};
 	}
-	std::stable_sort(stops.begin(), stops.end(),
-	                 [](const GradientStop& left, const GradientStop& right) { return left.position < right.position; });
+	std::stable_sort(stops.begin(), stops.end(), [](const GradientStop& left, const GradientStop& right) {
+		return left.position < right.position;
+	});
 	if(stops.empty()) stops.push_back({0.0f, {0.0f, 0.0f, 0.0f, 1.0f}});
 }
 
 const std::array<std::string_view, adjustmentKindCount>& adjustmentKindNames() noexcept {
 	static constexpr std::array<std::string_view, adjustmentKindCount> names{
-	    "levels", "curves", "hue-saturation", "color-balance", "brightness-contrast", "invert", "threshold",
-	    "gradient-map"};
+	    "levels", "curves",    "hue-saturation", "color-balance", "brightness-contrast",
+	    "invert", "threshold", "gradient-map"};
 	return names;
 }
 
@@ -143,7 +147,8 @@ void Adjustment::normalize() {
 		input = clamped(input);
 		output = clamped(output);
 	}
-	std::stable_sort(curve.begin(), curve.end(), [](const auto& left, const auto& right) { return left.first < right.first; });
+	std::stable_sort(curve.begin(), curve.end(),
+	                 [](const auto& left, const auto& right) { return left.first < right.first; });
 	if(curve.size() < 2) curve = {{0.0f, 0.0f}, {1.0f, 1.0f}};
 	hue = std::isfinite(hue) ? std::clamp(hue, -180.0f, 180.0f) : 0.0f;
 	auto unit = [](float& value) { value = std::isfinite(value) ? std::clamp(value, -1.0f, 1.0f) : 0.0f; };
@@ -158,10 +163,13 @@ void Adjustment::normalize() {
 
 AdjustmentShader adjustmentShader(const Adjustment& adjustment) noexcept {
 	switch(adjustment.kind) {
-	case AdjustmentKind::hueSaturation: return AdjustmentShader::hueSaturation;
+	case AdjustmentKind::hueSaturation:
+		return AdjustmentShader::hueSaturation;
 	case AdjustmentKind::threshold:
-	case AdjustmentKind::gradientMap: return AdjustmentShader::byLuminosity;
-	default: return AdjustmentShader::perChannel;
+	case AdjustmentKind::gradientMap:
+		return AdjustmentShader::byLuminosity;
+	default:
+		return AdjustmentShader::perChannel;
 	}
 }
 
@@ -170,25 +178,26 @@ std::array<std::uint8_t, 256 * 4> adjustmentTable(const Adjustment& adjustment) 
 	for(std::size_t index = 0; index < 256; ++index) {
 		const float value = static_cast<float>(index) / 255.0f;
 		const Pixel grey{value, value, value, 1.0f};
-		const Pixel out = adjustmentShader(adjustment) == AdjustmentShader::hueSaturation
-		                      ? grey
-		                      : adjustPixel(adjustment, grey);
+		const Pixel out =
+		    adjustmentShader(adjustment) == AdjustmentShader::hueSaturation ? grey : adjustPixel(adjustment, grey);
 		const std::array<float, 4> channels{
 		    adjustmentShader(adjustment) == AdjustmentShader::perChannel ? adjustChannel(adjustment, 0, value)
-		                                                                 : out.red,
+			                                                             : out.red,
 		    adjustmentShader(adjustment) == AdjustmentShader::perChannel ? adjustChannel(adjustment, 1, value)
-		                                                                 : out.green,
+			                                                             : out.green,
 		    adjustmentShader(adjustment) == AdjustmentShader::perChannel ? adjustChannel(adjustment, 2, value)
-		                                                                 : out.blue,
+			                                                             : out.blue,
 		    adjustment.kind == AdjustmentKind::gradientMap ? adjustment.gradient.at(value).alpha : 1.0f};
-		for(std::size_t channel = 0; channel < 4; ++channel) table[index * 4 + channel] = byteFromUnit(channels[channel]);
+		for(std::size_t channel = 0; channel < 4; ++channel)
+			table[index * 4 + channel] = byteFromUnit(channels[channel]);
 	}
 	return table;
 }
 
 Pixel adjustPixel(const Adjustment& adjustment, const Pixel& pixel) noexcept {
 	switch(adjustment.kind) {
-	case AdjustmentKind::hueSaturation: return hueSaturation(adjustment, pixel);
+	case AdjustmentKind::hueSaturation:
+		return hueSaturation(adjustment, pixel);
 	case AdjustmentKind::threshold: {
 		const float value = luminosityOf(pixel) >= adjustment.level ? 1.0f : 0.0f;
 		return {value, value, value, pixel.alpha};

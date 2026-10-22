@@ -78,10 +78,10 @@ private:
 	/// @brief An entry: the key and the tile.
 	using Entry = std::pair<ResidentKey, Resident>;
 
-	std::size_t budget_;                                                                 ///< See budget().
-	std::size_t bytes_ = 0;                                                              ///< See bytes().
-	std::uint64_t evictions_ = 0;                                                        ///< See evictions().
-	std::list<Entry> order_;                                                             ///< The most recent first.
+	std::size_t budget_;                                                                   ///< See budget().
+	std::size_t bytes_ = 0;                                                                ///< See bytes().
+	std::uint64_t evictions_ = 0;                                                          ///< See evictions().
+	std::list<Entry> order_;                                                               ///< The most recent first.
 	std::unordered_map<ResidentKey, std::list<Entry>::iterator, ResidentKeyHash> entries_; ///< By key.
 };
 

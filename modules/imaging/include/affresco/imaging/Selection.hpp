@@ -76,8 +76,7 @@ struct SampleOptions {
 /// @param colour The colour.
 /// @param fuzziness The difference of a channel where the selection reaches 0, 1 to 255.
 /// @param allLayers The flattened image rather than the active layer.
-[[nodiscard]] Coverage colorRangeCoverage(const Document& document, const Pixel& colour, int fuzziness,
-                                          bool allLayers);
+[[nodiscard]] Coverage colorRangeCoverage(const Document& document, const Pixel& colour, int fuzziness, bool allLayers);
 
 /// @brief Combines a coverage with a document's selection as one undoable step.
 /// @param document The document.
@@ -102,7 +101,8 @@ void invertSelection(Document& document);
 /// @param selection The selection's image.
 [[nodiscard]] bool selectsAnything(const Image& selection);
 
-/// @brief The selection's bounds in pixels, by its tiles (empty when nothing is selected).
+/// @brief The selection's bounds in pixels, the smallest rectangle holding every covered pixel (empty when nothing is
+/// selected).
 /// @param document The document.
 /// @return x, y, width and height.
 [[nodiscard]] std::array<int, 4> selectionBounds(const Document& document);

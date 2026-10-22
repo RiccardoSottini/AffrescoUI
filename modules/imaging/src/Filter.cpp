@@ -15,8 +15,7 @@ namespace affresco::imaging {
 
 namespace {
 
-constexpr std::array<std::string_view, 5> names{"gaussian-blur", "sharpen", "unsharp-mask", "add-noise",
-                                                "motion-blur"};
+constexpr std::array<std::string_view, 5> names{"gaussian-blur", "sharpen", "unsharp-mask", "add-noise", "motion-blur"};
 
 /// @brief The step's name of a filter.
 /// @param kind The filter.
@@ -58,8 +57,10 @@ void Filter::normalize(const Limits& limits) noexcept {
 int haloOf(const Filter& filter) noexcept {
 	const Filter effective = sharpenedAs(filter);
 	switch(effective.kind) {
-	case FilterKind::addNoise: return 0;
-	case FilterKind::motionBlur: return static_cast<int>(std::ceil(effective.distance / 2.0f)) + 2;
+	case FilterKind::addNoise:
+		return 0;
+	case FilterKind::motionBlur:
+		return static_cast<int>(std::ceil(effective.distance / 2.0f)) + 2;
 	default: {
 		int halo = 0;
 		for(const int radius : kernels::gaussianBoxes(effective.radius)) halo += radius;
@@ -125,7 +126,8 @@ bool FilterRun::readRegion(int column, int row) {
 		std::shared_ptr<const Tile> tile;
 		for(int x = 0; x < side; ++x) {
 			const int imageX = std::clamp(column * tileSize - halo_ + x, 0, image.width() - 1);
-			if(imageX / tileSize != tileColumn) tileColumn = imageX / tileSize, tile = original(tileColumn, imageY / tileSize);
+			if(imageX / tileSize != tileColumn)
+				tileColumn = imageX / tileSize, tile = original(tileColumn, imageY / tileSize);
 			const Pixel pixel = pixelOf(tile.get(), imageX % tileSize, imageY % tileSize);
 			const float alpha = premultiply ? pixel.alpha : 1.0f;
 			float* to = &region_[static_cast<std::size_t>(y * side + x) * 4];

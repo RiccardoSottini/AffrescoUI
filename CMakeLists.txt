@@ -189,6 +189,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_surfaces PRIVATE
 		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/examples/surfaces/surfaces.screen.json")
+	# Tempera, an image editor on the imaging module (examples/tempera/README.md)
+	add_subdirectory(examples/tempera)
 	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp
 	    examples/server/UserInfoVerifier.cpp)

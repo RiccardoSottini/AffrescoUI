@@ -37,13 +37,13 @@ enum class FilterKind : std::uint8_t {
 /// @brief A filter and its settings.
 struct Filter {
 	FilterKind kind = FilterKind::gaussianBlur; ///< What it does.
-	float radius = 2.0f;      ///< gaussianBlur, unsharpMask: the blur's standard deviation in pixels.
-	float amount = 1.0f;      ///< unsharpMask: 0 to 5 (500 %); addNoise: 0 to 1.
-	int threshold = 0;        ///< unsharpMask: the smallest difference sharpened, 0 to 255.
-	float angle = 0.0f;       ///< motionBlur: degrees, anticlockwise from across.
-	float distance = 10.0f;   ///< motionBlur: pixels.
-	bool monochrome = false;  ///< addNoise: the same noise in each channel.
-	std::uint32_t seed = 1;   ///< addNoise: the noise's seed.
+	float radius = 2.0f;                        ///< gaussianBlur, unsharpMask: the blur's standard deviation in pixels.
+	float amount = 1.0f;                        ///< unsharpMask: 0 to 5 (500 %); addNoise: 0 to 1.
+	int threshold = 0;                          ///< unsharpMask: the smallest difference sharpened, 0 to 255.
+	float angle = 0.0f;                         ///< motionBlur: degrees, anticlockwise from across.
+	float distance = 10.0f;                     ///< motionBlur: pixels.
+	bool monochrome = false;                    ///< addNoise: the same noise in each channel.
+	std::uint32_t seed = 1;                     ///< addNoise: the noise's seed.
 
 	/// @brief Clamps the settings into their ranges and the limits.
 	/// @param limits The limits (filterRadius bounds the radius and the distance).
@@ -107,16 +107,16 @@ private:
 	/// @return Whether anything in it isn't transparent.
 	bool readRegion(int column, int row);
 
-	Document* document_;                                    ///< The document, null once finished.
-	std::uint64_t target_;                                  ///< The image filtered.
-	Filter filter_;                                         ///< The filter.
-	int halo_;                                              ///< haloOf(filter_).
-	std::set<std::pair<int, int>> done_;                    ///< The tiles filtered.
+	Document* document_;                 ///< The document, null once finished.
+	std::uint64_t target_;               ///< The image filtered.
+	Filter filter_;                      ///< The filter.
+	int halo_;                           ///< haloOf(filter_).
+	std::set<std::pair<int, int>> done_; ///< The tiles filtered.
 	std::unordered_map<TileKey, std::shared_ptr<const Tile>, TileKeyHash> originals_; ///< Tiles before the run.
-	std::vector<float> region_;                             ///< A tile and its halo, premultiplied RGBA.
-	std::vector<float> scratch_;                            ///< The kernels' scratch.
-	std::vector<float> before_;                             ///< A tile before filtering, premultiplied RGBA.
-	std::vector<float> after_;                              ///< The tile filtered, premultiplied RGBA.
+	std::vector<float> region_;  ///< A tile and its halo, premultiplied RGBA.
+	std::vector<float> scratch_; ///< The kernels' scratch.
+	std::vector<float> before_;  ///< A tile before filtering, premultiplied RGBA.
+	std::vector<float> after_;   ///< The tile filtered, premultiplied RGBA.
 };
 
 /// @brief Applies a filter to a layer as one step (within the selection when there is one).

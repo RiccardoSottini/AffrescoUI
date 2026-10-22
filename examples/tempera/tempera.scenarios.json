@@ -1,0 +1,1665 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"note": "Tempera, checked headless against the sample document (1200 × 800: Sky, Sun, Hills). The canvas is driven through the pointer action in document pixels. affrescoui_tempera_scenarios tempera.scenarios.json",
+	"screen": "tempera.screen.json",
+	"scenarios": [
+		{
+			"name": "tempera-opens-the-sample",
+			"note": "The sample opens with three layers, Hills active and a clean history",
+			"steps": [
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"node": "#status-size",
+						"text": "1200 × 800 px"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.active",
+						"is": "7"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[2].name",
+						"is": "Sky"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-name-7",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-tool-keys",
+			"note": "The Photoshop keys choose the tools",
+			"steps": [
+				{
+					"key": "v"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "move"
+					}
+				},
+				{
+					"key": "m"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "marquee"
+					}
+				},
+				{
+					"key": "shift+m"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "ellipse"
+					}
+				},
+				{
+					"key": "l"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "lasso"
+					}
+				},
+				{
+					"key": "w"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "wand"
+					}
+				},
+				{
+					"key": "b"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "brush"
+					}
+				},
+				{
+					"key": "e"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "eraser"
+					}
+				},
+				{
+					"key": "g"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "gradient"
+					}
+				},
+				{
+					"key": "i"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "eyedropper"
+					}
+				},
+				{
+					"key": "h"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "hand"
+					}
+				},
+				{
+					"key": "z"
+				},
+				{
+					"expect": {
+						"state": "doc.tool",
+						"is": "zoom"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-brush-paints",
+			"note": "A brush stroke paints the foreground, which the eyedropper then reads back",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "addLayer",
+						"args": {
+							"kind": "pixel"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#ff0000",
+							"size": 40,
+							"hardness": 100
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "brush"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 100,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 200,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 300,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 300,
+									"y": 100,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Brush"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#000000"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "eyedropper"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 200,
+									"y": 100,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 200,
+									"y": 100,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#ff0000"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-undo-redo",
+			"note": "mod+Z undoes a step and mod+shift+Z redoes it",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "addLayer",
+						"args": {
+							"kind": "pixel"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Layer 7"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canRedo",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+shift+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Layer 7"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-history-jump",
+			"note": "Choosing an older step in History goes back to it, and the later steps stay to redo",
+			"steps": [
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "doc.position",
+						"is": 2
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "goToHistory",
+						"args": {
+							"position": 0
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.position",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canRedo",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].id",
+						"is": "2"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-new-layer-and-group",
+			"note": "New layer, group, duplicate and delete change the layer list",
+			"steps": [
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills copy"
+					}
+				},
+				{
+					"action": "deleteActive"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "pixel"
+					}
+				},
+				{
+					"key": "mod+g"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "group"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-visibility",
+			"note": "The eye hides a layer",
+			"steps": [
+				{
+					"wait": 50
+				},
+				{
+					"click": "#layer-eye-5"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].visible",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Layer Visibility"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-opacity-and-blend",
+			"note": "Opacity and blend mode of the active layer",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "setLayer",
+						"args": {
+							"opacity": 40
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].opacity",
+						"is": 40
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setLayer",
+						"args": {
+							"blend": "multiply"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].blend",
+						"is": "multiply"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Opacity Change"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-reorder",
+			"note": "mod+down and mod+up move the active layer through the stack, and dragging a layer takes another's place",
+			"steps": [
+				{
+					"key": "mod+down"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"key": "mod+up"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"drag": "#layer-7",
+					"to": "#layer-5"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Hills"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Sun"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-locks",
+			"note": "Locking pixels keeps a brush from painting",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "setLayer",
+						"args": {
+							"lockPixels": true
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].lockPixels",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "brush"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 600,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 150,
+									"y": 600,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 150,
+									"y": 600,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.message",
+						"is": "The layer's pixels are locked"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.position",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-adjustment-layer",
+			"note": "An adjustment layer goes above the active layer",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "addLayer",
+						"args": {
+							"kind": "invert"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].kind",
+						"is": "adjustment"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "invert"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-mask-and-clipping",
+			"note": "A layer mask and a clipping mask",
+			"steps": [
+				{
+					"action": "addLayerMask"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].mask",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#layer-mask-7",
+						"exists": true
+					}
+				},
+				{
+					"action": "deleteLayerMask"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].mask",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"key": "mod+alt+g"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].clipped",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-rectangle-and-ellipse",
+			"note": "Rectangle and ellipse selections, added and subtracted",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 100,
+								"y": 100
+							},
+							"to": {
+								"x": 300,
+								"y": 200
+							}
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							100,
+							100,
+							200,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "ellipse",
+							"mode": "add",
+							"from": {
+								"x": 400,
+								"y": 100
+							},
+							"to": {
+								"x": 500,
+								"y": 200
+							}
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							100,
+							100,
+							400,
+							100
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"mode": "subtract",
+							"from": {
+								"x": 380,
+								"y": 0
+							},
+							"to": {
+								"x": 600,
+								"y": 300
+							}
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							100,
+							100,
+							200,
+							100
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[3].label",
+						"is": "Rectangular Marquee"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-polygon-and-intersect",
+			"note": "A polygon selection intersected with a rectangle",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "polygon",
+							"points": [
+								{
+									"x": 0,
+									"y": 0
+								},
+								{
+									"x": 400,
+									"y": 0
+								},
+								{
+									"x": 400,
+									"y": 400
+								},
+								{
+									"x": 0,
+									"y": 400
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							400,
+							400
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"mode": "intersect",
+							"from": {
+								"x": 200,
+								"y": 200
+							},
+							"to": {
+								"x": 600,
+								"y": 600
+							}
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							200,
+							200,
+							200,
+							200
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Polygonal Lasso"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-wand-and-colour-range",
+			"note": "The magic wand and colour range",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"allLayers": true
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "wand",
+							"x": 600,
+							"y": 20
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Magic Wand"
+					}
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": false
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "eyedropper"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 600,
+									"y": 20,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 600,
+									"y": 20,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "colorRange"
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[3].label",
+						"is": "Color Range"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-feather-and-invert",
+			"note": "Feather and inverse change the selection",
+			"steps": [
+				{
+					"key": "mod+a"
+				},
+				{
+					"expect": {
+						"state": "doc.bounds",
+						"is": [
+							0,
+							0,
+							1200,
+							800
+						]
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 100,
+								"y": 100
+							},
+							"to": {
+								"x": 300,
+								"y": 300
+							}
+						}
+					}
+				},
+				{
+					"action": "featherSelection"
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+shift+i"
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"expect": {
+						"state": "doc.selection",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-quick-mask",
+			"note": "Q toggles the quick mask",
+			"steps": [
+				{
+					"key": "q"
+				},
+				{
+					"expect": {
+						"state": "doc.options.quickMask",
+						"is": true
+					}
+				},
+				{
+					"key": "q"
+				},
+				{
+					"expect": {
+						"state": "doc.options.quickMask",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-fill",
+			"note": "alt+Backspace fills the selection with the foreground",
+			"steps": [
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 0,
+								"y": 0
+							},
+							"to": {
+								"x": 100,
+								"y": 100
+							}
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#00ff00"
+						}
+					}
+				},
+				{
+					"key": "alt+backspace"
+				},
+				{
+					"key": "mod+d"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#000000"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "eyedropper"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 50,
+									"y": 50,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#00ff00"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-gradient",
+			"note": "A gradient drag fills the layer",
+			"steps": [
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "gradient"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 0,
+									"y": 0,
+									"pressure": 1
+								},
+								{
+									"kind": "move",
+									"x": 1200,
+									"y": 0,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 1200,
+									"y": 0,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "setTool",
+						"args": {
+							"tool": "eyedropper"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 0,
+									"y": 400,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 0,
+									"y": 400,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#000000"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 1199,
+									"y": 400,
+									"pressure": 1
+								},
+								{
+									"kind": "release",
+									"x": 1199,
+									"y": 400,
+									"pressure": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#ffffff"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-filter-preview",
+			"note": "A filter previews live; discarding leaves the pixels and the history alone",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "showFilter",
+						"args": {
+							"kind": "gaussian-blur"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#filter-dialog",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.previewing",
+						"is": true
+					}
+				},
+				{
+					"action": "discardFilter"
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.previewing",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-filter-commit",
+			"note": "Applying a filter adds a history step",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "showFilter",
+						"args": {
+							"kind": "unsharp-mask"
+						}
+					}
+				},
+				{
+					"action": "commitFilter"
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-zoom",
+			"note": "Zoom keys and the status bar",
+			"steps": [
+				{
+					"key": "mod+1"
+				},
+				{
+					"expect": {
+						"node": "#status-zoom",
+						"text": "100%"
+					}
+				},
+				{
+					"key": "mod+equal"
+				},
+				{
+					"expect": {
+						"node": "#status-zoom",
+						"text": "200%"
+					}
+				},
+				{
+					"key": "mod+minus"
+				},
+				{
+					"key": "mod+minus"
+				},
+				{
+					"expect": {
+						"node": "#status-zoom",
+						"text": "50%"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-rulers-and-guides",
+			"note": "Rulers toggle, and guides are added and cleared",
+			"steps": [
+				{
+					"key": "mod+r"
+				},
+				{
+					"expect": {
+						"state": "view.rulers",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+r"
+				},
+				{
+					"expect": {
+						"state": "view.rulers",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "addGuide",
+						"args": {
+							"axis": "vertical",
+							"at": 120.4
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "guides.vertical",
+						"is": [
+							120
+						]
+					}
+				},
+				{
+					"expect": {
+						"node": "#guide-v",
+						"exists": true
+					}
+				},
+				{
+					"action": "clearGuides"
+				},
+				{
+					"expect": {
+						"state": "guides.vertical",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-theme",
+			"note": "The theme switches between dark and light",
+			"steps": [
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-profiles",
+			"note": "Working space and soft proofing show in the status bar",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "setProfile",
+						"args": {
+							"working": "displayP3"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.profile",
+						"is": "Display P3"
+					}
+				},
+				{
+					"key": "mod+y"
+				},
+				{
+					"expect": {
+						"state": "doc.proof",
+						"is": "Grey, sRGB curve"
+					}
+				},
+				{
+					"expect": {
+						"node": "#status-profile",
+						"text": "Display P3 (proof: Grey, sRGB curve)"
+					}
+				},
+				{
+					"key": "mod+y"
+				},
+				{
+					"expect": {
+						"state": "doc.proof",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-new-document",
+			"note": "The New dialog creates a blank document",
+			"steps": [
+				{
+					"key": "mod+n"
+				},
+				{
+					"expect": {
+						"state": "newDoc.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#new-dialog",
+						"exists": true
+					}
+				},
+				{
+					"action": "createDocument"
+				},
+				{
+					"expect": {
+						"state": "newDoc.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Background"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-crop",
+			"note": "Crop to selection resizes the document",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "rectangle",
+							"from": {
+								"x": 100,
+								"y": 50
+							},
+							"to": {
+								"x": 500,
+								"y": 350
+							}
+						}
+					}
+				},
+				{
+					"action": "cropToSelection"
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 400
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 300
+					}
+				},
+				{
+					"expect": {
+						"node": "#status-size",
+						"text": "400 × 300 px"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-colours",
+			"note": "D resets and X swaps the colours",
+			"steps": [
+				{
+					"action": "perform",
+					"event": {
+						"run": "setOptions",
+						"args": {
+							"foreground": "#123456"
+						}
+					}
+				},
+				{
+					"key": "d"
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#000000"
+					}
+				},
+				{
+					"key": "x"
+				},
+				{
+					"expect": {
+						"state": "doc.foreground",
+						"is": "#ffffff"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.background",
+						"is": "#000000"
+					}
+				},
+				{
+					"key": "period"
+				},
+				{
+					"expect": {
+						"state": "doc.options.size",
+						"is": 26
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-agent-adds-a-filter-panel",
+			"note": "An agent proposes a Filters panel; it waits for review, and once accepted its buttons open the filter dialog",
+			"steps": [
+				{
+					"action": "agentProposesFilterPanel"
+				},
+				{
+					"expect": {
+						"node": "#filter-panel",
+						"exists": false
+					}
+				},
+				{
+					"action": "acceptAgentProposal"
+				},
+				{
+					"expect": {
+						"node": "#filter-panel",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#filter-panel-motion-blur",
+						"exists": true
+					}
+				},
+				{
+					"click": "#filter-panel-motion-blur"
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.kind",
+						"is": "motion-blur"
+					}
+				}
+			]
+		}
+	]
+}

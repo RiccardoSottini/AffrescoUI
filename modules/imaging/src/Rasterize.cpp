@@ -173,9 +173,8 @@ Coverage ellipseCoverage(int width, int height, Point from, Point to) {
 	if(!std::isfinite(radiusX) || !std::isfinite(radiusY)) return {};
 	// Corners close enough that the polygon strays from the ellipse by under a tenth of a pixel
 	const float radius = std::min(std::max(radiusX, radiusY), 1e6f);
-	const int count = std::clamp(static_cast<int>(std::ceil(std::numbers::pi_v<float> / std::sqrt(0.2f / std::max(
-	                                                                                    radius, 1.0f)))),
-	                             16, 8192);
+	const int count = std::clamp(
+	    static_cast<int>(std::ceil(std::numbers::pi_v<float> / std::sqrt(0.2f / std::max(radius, 1.0f)))), 16, 8192);
 	std::vector<Point> corners(static_cast<std::size_t>(count));
 	for(int index = 0; index < count; ++index) {
 		const float angle = 2.0f * std::numbers::pi_v<float> * static_cast<float>(index) / static_cast<float>(count);

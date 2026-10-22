@@ -65,21 +65,21 @@ inline constexpr std::size_t adjustmentKindCount = 8;
 struct Adjustment {
 	static constexpr std::size_t maxCurvePoints = 16; ///< The most points of a curve.
 
-	AdjustmentKind kind = AdjustmentKind::invert; ///< What it does.
-	float inputBlack = 0.0f;                      ///< levels: the input that becomes black.
-	float inputWhite = 1.0f;                      ///< levels: the input that becomes white.
-	float gamma = 1.0f;                           ///< levels: the midtones' gamma, 0.1 to 10.
-	float outputBlack = 0.0f;                     ///< levels: the darkest output.
-	float outputWhite = 1.0f;                     ///< levels: the lightest output.
+	AdjustmentKind kind = AdjustmentKind::invert;                           ///< What it does.
+	float inputBlack = 0.0f;                                                ///< levels: the input that becomes black.
+	float inputWhite = 1.0f;                                                ///< levels: the input that becomes white.
+	float gamma = 1.0f;                                                     ///< levels: the midtones' gamma, 0.1 to 10.
+	float outputBlack = 0.0f;                                               ///< levels: the darkest output.
+	float outputWhite = 1.0f;                                               ///< levels: the lightest output.
 	std::vector<std::pair<float, float>> curve{{0.0f, 0.0f}, {1.0f, 1.0f}}; ///< curves: points (in, out), by in.
-	float hue = 0.0f;                             ///< hueSaturation: degrees, -180 to 180.
-	float saturation = 0.0f;                      ///< hueSaturation: -1 (grey) to 1 (twice).
-	float lightness = 0.0f;                       ///< hueSaturation: -1 (black) to 1 (white).
-	std::array<float, 3> balance{};               ///< colorBalance: cyan-red, magenta-green, yellow-blue, -1 to 1.
-	float brightness = 0.0f;                      ///< brightnessContrast: -1 to 1.
-	float contrast = 0.0f;                        ///< brightnessContrast: -1 to 1.
-	float level = 0.5f;                           ///< threshold: the luminosity that becomes white.
-	Gradient gradient;                            ///< gradientMap: from the darkest to the lightest.
+	float hue = 0.0f;                                                       ///< hueSaturation: degrees, -180 to 180.
+	float saturation = 0.0f;                                                ///< hueSaturation: -1 (grey) to 1 (twice).
+	float lightness = 0.0f;                                                 ///< hueSaturation: -1 (black) to 1 (white).
+	std::array<float, 3> balance{}; ///< colorBalance: cyan-red, magenta-green, yellow-blue, -1 to 1.
+	float brightness = 0.0f;        ///< brightnessContrast: -1 to 1.
+	float contrast = 0.0f;          ///< brightnessContrast: -1 to 1.
+	float level = 0.5f;             ///< threshold: the luminosity that becomes white.
+	Gradient gradient;              ///< gradientMap: from the darkest to the lightest.
 
 	/// @brief Clamps every setting to its range and sorts the curve.
 	void normalize();

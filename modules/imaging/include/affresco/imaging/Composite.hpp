@@ -43,9 +43,9 @@ private:
 	/// @param depth The layer's depth.
 	void compositeLayer(const Layer& layer, const TileKey& key, std::span<Pixel> backdrop, std::size_t depth);
 
-	const Document& document_;                ///< The document.
-	std::vector<std::vector<Pixel>> groups_;  ///< A group's own pixels, per depth.
-	std::vector<std::vector<float>> bases_;   ///< The clipping base's alpha, per depth.
+	const Document& document_;               ///< The document.
+	std::vector<std::vector<Pixel>> groups_; ///< A group's own pixels, per depth.
+	std::vector<std::vector<float>> bases_;  ///< The clipping base's alpha, per depth.
 };
 
 /// @brief Reads pixels one at a time from a layer's image or the flattened document, keeping the tiles it read last.
@@ -78,12 +78,12 @@ private:
 
 	static constexpr std::size_t kept = 16; ///< The tiles kept.
 
-	const Document& document_; ///< The document.
-	const Image* image_;       ///< The image, or null for the flattened document.
-	Compositor compositor_;    ///< Flattens tiles.
+	const Document& document_;   ///< The document.
+	const Image* image_;         ///< The image, or null for the flattened document.
+	Compositor compositor_;      ///< Flattens tiles.
 	std::vector<Entry> entries_; ///< The tiles kept.
-	std::uint64_t clock_ = 0;  ///< Counts reads.
-	std::size_t last_ = 0;     ///< The entry read last.
+	std::uint64_t clock_ = 0;    ///< Counts reads.
+	std::size_t last_ = 0;       ///< The entry read last.
 };
 
 /// @brief A region of a document flattened into rgba8, straight alpha.

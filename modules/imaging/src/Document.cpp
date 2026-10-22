@@ -67,8 +67,7 @@ int depthOf(const Structure& structure, std::uint64_t id) noexcept {
 }
 
 Document::Document(int width, int height, const Limits& limits, PixelFormat format)
-    : width_(width), height_(height), format_(format), limits_(limits),
-      history_(limits.undoBytes, limits.undoSteps) {
+    : width_(width), height_(height), format_(format), limits_(limits), history_(limits.undoBytes, limits.undoSteps) {
 	if(format == PixelFormat::mask8) throw DocumentError("imaging: a document's layers are rgba8 or rgba16f");
 	try {
 		selection_ = std::make_shared<Image>(width, height, PixelFormat::mask8, limits);
@@ -278,7 +277,8 @@ void Document::deleteLayer(std::uint64_t id) {
 		auto& list = listOf(structure, layer.parent);
 		const auto place = std::find(list.begin(), list.end(), id);
 		const std::uint64_t parent = layer.parent;
-		const std::uint64_t below = place != list.begin() ? *(place - 1) : (place + 1 != list.end() ? *(place + 1) : parent);
+		const std::uint64_t below =
+		    place != list.begin() ? *(place - 1) : (place + 1 != list.end() ? *(place + 1) : parent);
 		list.erase(place);
 		erase(id);
 		if(structure.active == id || !structure.layers.contains(structure.active)) structure.active = below;
@@ -415,8 +415,10 @@ bool Document::redo() {
 }
 
 void Document::goTo(std::size_t position) {
-	while(history_.position() > position && undo()) {}
-	while(history_.position() < position && redo()) {}
+	while(history_.position() > position && undo()) {
+	}
+	while(history_.position() < position && redo()) {
+	}
 }
 
 } // namespace affresco::imaging

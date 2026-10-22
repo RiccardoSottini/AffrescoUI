@@ -46,9 +46,12 @@ constexpr std::size_t pooled = 32;
 /// @param format The pixel format.
 [[nodiscard]] std::array<GLenum, 3> glFormatOf(PixelFormat format) noexcept {
 	switch(format) {
-	case PixelFormat::rgba16f: return {GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT};
-	case PixelFormat::mask8: return {GL_R8, GL_RED, GL_UNSIGNED_BYTE};
-	default: return {GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE};
+	case PixelFormat::rgba16f:
+		return {GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT};
+	case PixelFormat::mask8:
+		return {GL_R8, GL_RED, GL_UNSIGNED_BYTE};
+	default:
+		return {GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE};
 	}
 }
 
@@ -412,7 +415,8 @@ void CanvasSurface::present(const SurfaceFrame& frame, const Region& region, con
 	glUniform1f(at(program, "zoom"), static_cast<float>(view.zoom));
 	glUniform1f(at(program, "levelScale"), static_cast<float>(std::ldexp(1.0, region.level)));
 	glUniform1f(at(program, "time"), static_cast<float>(std::fmod(frame.time, 3600.0)));
-	glUniform1f(at(program, "displaySide"), model.displayTable().empty() ? 0.0f : static_cast<float>(model.displaySide()));
+	glUniform1f(at(program, "displaySide"),
+	            model.displayTable().empty() ? 0.0f : static_cast<float>(model.displaySide()));
 	glUniform1i(at(program, "nearest"), view.zoom >= 2.0 ? 1 : 0);
 	glUniform1i(at(program, "checker"), flagOf(params, "checker", true) ? 1 : 0);
 	const bool selection = model.document().hasSelection();

@@ -87,7 +87,8 @@ void write32(std::vector<std::uint8_t>& out, std::uint32_t value) {
 		const std::uint8_t marker = file[at + 1];
 		if(marker == 0xda || marker == 0xd9) break; // the scan, or the end
 		const std::size_t length = static_cast<std::size_t>(file[at + 2]) << 8 | file[at + 3];
-		if(length < 2 || length > file.size() - at - 2) throw DocumentError("imaging: a JPEG segment runs past the end");
+		if(length < 2 || length > file.size() - at - 2)
+			throw DocumentError("imaging: a JPEG segment runs past the end");
 		const std::span<const std::uint8_t> data = file.subspan(at + 4, length - 2);
 		at += length + 2;
 		if(marker != 0xe2 || data.size() < iccMarker.size() + 2 ||
@@ -102,7 +103,8 @@ void write32(std::vector<std::uint8_t>& out, std::uint32_t value) {
 		if(total > limits.profileBytes) throw DocumentError("imaging: the embedded colour profile is too big");
 	}
 	if(parts.empty()) return std::nullopt;
-	if(static_cast<int>(parts.size()) != count) throw DocumentError("imaging: the embedded colour profile is incomplete");
+	if(static_cast<int>(parts.size()) != count)
+		throw DocumentError("imaging: the embedded colour profile is incomplete");
 	std::vector<std::uint8_t> bytes;
 	bytes.reserve(total);
 	for(const auto& [sequence, part] : parts) bytes.insert(bytes.end(), part.begin(), part.end());
@@ -131,8 +133,9 @@ void checkSize(const stb::Header& header, const Limits& limits) {
 	const int left = column * tileSize, top = row * tileSize;
 	const int right = std::min(left + tileSize, decoded.width), bottom = std::min(top + tileSize, decoded.height);
 	for(int y = top; y < bottom; ++y) {
-		const std::size_t start = (static_cast<std::size_t>(y) * static_cast<std::size_t>(decoded.width) +
-		                           static_cast<std::size_t>(left)) * 4;
+		const std::size_t start =
+		    (static_cast<std::size_t>(y) * static_cast<std::size_t>(decoded.width) + static_cast<std::size_t>(left)) *
+		    4;
 		if(format == PixelFormat::rgba8) {
 			std::memcpy(tile->bytes().data() + static_cast<std::size_t>(y - top) * tileSize * 4,
 			            decoded.bytes8.data() + start, static_cast<std::size_t>(right - left) * 4);
@@ -140,8 +143,7 @@ void checkSize(const stb::Header& header, const Limits& limits) {
 		}
 		for(int x = left; x < right; ++x) {
 			const std::uint16_t* at = decoded.bytes16.data() + start + static_cast<std::size_t>(x - left) * 4;
-			tile->setPixel(x - left, y - top,
-			               {at[0] / 65535.0f, at[1] / 65535.0f, at[2] / 65535.0f, at[3] / 65535.0f});
+			tile->setPixel(x - left, y - top, {at[0] / 65535.0f, at[1] / 65535.0f, at[2] / 65535.0f, at[3] / 65535.0f});
 		}
 	}
 	return tile->empty() ? nullptr : tile;
@@ -157,11 +159,13 @@ void checkSize(const stb::Header& header, const Limits& limits) {
 			const std::shared_ptr<const Tile> tile = image.tile({0, column, row});
 			if(!tile) continue;
 			const int left = column * tileSize, top = row * tileSize;
-			const int right = std::min(left + tileSize, image.width()), bottom = std::min(top + tileSize, image.height());
+			const int right = std::min(left + tileSize, image.width()),
+			          bottom = std::min(top + tileSize, image.height());
 			for(int y = top; y < bottom; ++y)
 				for(int x = left; x < right; ++x) {
 					const Pixel pixel = tile->pixel(x - left, y - top);
-					std::uint8_t* at = rgba.data() + (static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)) * 4;
+					std::uint8_t* at =
+					    rgba.data() + (static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)) * 4;
 					at[0] = byteFromUnit(pixel.red), at[1] = byteFromUnit(pixel.green);
 					at[2] = byteFromUnit(pixel.blue), at[3] = byteFromUnit(pixel.alpha);
 				}
@@ -189,15 +193,16 @@ void embedInPng(std::vector<std::uint8_t>& png, std::span<const std::uint8_t> pr
 /// @param profile The profile's bytes.
 void embedInJpeg(std::vector<std::uint8_t>& jpeg, std::span<const std::uint8_t> profile) {
 	std::size_t at = 2;
-	if(jpeg.size() > 6 && jpeg[2] == 0xff && jpeg[3] == 0xe0) at += 2 + (static_cast<std::size_t>(jpeg[4]) << 8 | jpeg[5]);
+	if(jpeg.size() > 6 && jpeg[2] == 0xff && jpeg[3] == 0xe0)
+		at += 2 + (static_cast<std::size_t>(jpeg[4]) << 8 | jpeg[5]);
 	const std::size_t count = (profile.size() + jpegSegmentData - 1) / jpegSegmentData;
 	std::vector<std::uint8_t> segments;
 	for(std::size_t part = 0; part < count; ++part) {
 		const std::span<const std::uint8_t> data =
 		    profile.subspan(part * jpegSegmentData, std::min(jpegSegmentData, profile.size() - part * jpegSegmentData));
 		const std::size_t length = 2 + iccMarker.size() + 2 + data.size();
-		segments.insert(segments.end(), {0xff, 0xe2, static_cast<std::uint8_t>(length >> 8),
-		                                 static_cast<std::uint8_t>(length)});
+		segments.insert(segments.end(),
+		                {0xff, 0xe2, static_cast<std::uint8_t>(length >> 8), static_cast<std::uint8_t>(length)});
 		segments.insert(segments.end(), iccMarker.begin(), iccMarker.end());
 		segments.insert(segments.end(), {static_cast<std::uint8_t>(part + 1), static_cast<std::uint8_t>(count)});
 		segments.insert(segments.end(), data.begin(), data.end());

@@ -24,9 +24,9 @@ enum class ImageFileFormat : std::uint8_t {
 
 /// @brief A decoded file.
 struct DecodedImage {
-	std::shared_ptr<Image> image;       ///< Its pixels, straight alpha.
+	std::shared_ptr<Image> image;        ///< Its pixels, straight alpha.
 	std::optional<ColorProfile> profile; ///< Its embedded profile; none means sRGB.
-	std::string warning;                ///< Why an embedded profile was ignored, or empty.
+	std::string warning;                 ///< Why an embedded profile was ignored, or empty.
 };
 
 /// @brief What a file is, by its first bytes.

@@ -98,17 +98,18 @@ public:
 	/// @brief Counts the display table's changes.
 	[[nodiscard]] std::uint64_t displayVersion() const noexcept { return displayVersion_; }
 
-	/// @brief Tools: each pointer event over a canvas, in order, before it draws. Owned here, so it goes with the model.
+	/// @brief Tools: each pointer event over a canvas, in order, before it draws. Owned here, so it goes with the
+	/// model.
 	std::function<void(const CanvasPointer&)> onPointer;
 	CanvasStatistics statistics; ///< What the canvas drew last (one canvas per model reports here).
 	CanvasView view;             ///< The view the canvas drew last.
 
 private:
-	std::unique_ptr<Document> document_;  ///< See document().
-	std::uint64_t generation_ = 0;        ///< See generation().
-	std::vector<float> displayTable_;     ///< See displayTable().
-	int displaySide_ = 0;                 ///< See displaySide().
-	std::uint64_t displayVersion_ = 0;    ///< See displayVersion().
+	std::unique_ptr<Document> document_; ///< See document().
+	std::uint64_t generation_ = 0;       ///< See generation().
+	std::vector<float> displayTable_;    ///< See displayTable().
+	int displaySide_ = 0;                ///< See displaySide().
+	std::uint64_t displayVersion_ = 0;   ///< See displayVersion().
 };
 
 /// @brief The canvas: composites the model's document on the GPU (CanvasModel describes the parameters).
@@ -174,18 +175,18 @@ private:
 	/// @brief Frees every resident tile's texture.
 	void dropResident();
 
-	std::weak_ptr<CanvasModel> model_;        ///< The model.
-	unsigned vertexArray_ = 0;                ///< The empty vertex array the triangles need.
-	unsigned layerProgram_ = 0;               ///< Composites a layer (or writes its coverage).
-	unsigned displayProgram_ = 0;             ///< Shows the composite.
-	unsigned tableTexture_ = 0;               ///< An adjustment's 256-entry table.
-	unsigned displayTexture_ = 0;             ///< The display table, a 3D texture.
-	std::uint64_t displayVersion_ = 0;        ///< The display table's version uploaded.
-	std::uint64_t generation_ = 0;            ///< The model's generation the residency is of.
-	TileResidency residency_{0};              ///< The resident tiles.
+	std::weak_ptr<CanvasModel> model_;          ///< The model.
+	unsigned vertexArray_ = 0;                  ///< The empty vertex array the triangles need.
+	unsigned layerProgram_ = 0;                 ///< Composites a layer (or writes its coverage).
+	unsigned displayProgram_ = 0;               ///< Shows the composite.
+	unsigned tableTexture_ = 0;                 ///< An adjustment's 256-entry table.
+	unsigned displayTexture_ = 0;               ///< The display table, a 3D texture.
+	std::uint64_t displayVersion_ = 0;          ///< The display table's version uploaded.
+	std::uint64_t generation_ = 0;              ///< The model's generation the residency is of.
+	TileResidency residency_{0};                ///< The resident tiles.
 	std::array<std::vector<unsigned>, 3> pool_; ///< Textures evicted, kept for reuse, by PixelFormat.
-	std::vector<Resident> evicted_;           ///< Scratch for the residency's evictions.
-	std::uint64_t uploads_ = 0;               ///< Tiles uploaded.
+	std::vector<Resident> evicted_;             ///< Scratch for the residency's evictions.
+	std::uint64_t uploads_ = 0;                 ///< Tiles uploaded.
 };
 
 /// @brief Makes canvases of a model, for Screen::registerSurface.

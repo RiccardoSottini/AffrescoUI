@@ -60,12 +60,12 @@ struct Layer {
 
 /// @brief Everything about a document but its pixels: what a structure step of the history snapshots.
 struct Structure {
-	std::map<std::uint64_t, Layer> layers;                          ///< The layers, by id.
-	std::vector<std::uint64_t> root;                                ///< The top level's layers, the bottom first.
-	std::uint64_t active = 0;                                       ///< The layer edited, or 0.
-	bool selection = false;                                         ///< Whether a selection is active.
+	std::map<std::uint64_t, Layer> layers;                            ///< The layers, by id.
+	std::vector<std::uint64_t> root;                                  ///< The top level's layers, the bottom first.
+	std::uint64_t active = 0;                                         ///< The layer edited, or 0.
+	bool selection = false;                                           ///< Whether a selection is active.
 	std::unordered_map<std::uint64_t, std::shared_ptr<Image>> images; ///< Layers' images and masks, by id.
-	std::uint64_t nextId = 2;                                       ///< The next id given (1 is the selection's).
+	std::uint64_t nextId = 2;                                         ///< The next id given (1 is the selection's).
 };
 
 /// @brief A layered image and its history.
@@ -227,15 +227,15 @@ private:
 	/// @param after Whether to the step's after (redo) or before (undo).
 	void apply(const HistoryStep& step, bool after);
 
-	int width_;                         ///< See width().
-	int height_;                        ///< See height().
-	PixelFormat format_;                ///< See format().
-	Limits limits_;                     ///< See limits().
-	Structure structure_;               ///< See structure().
-	std::shared_ptr<Image> selection_;  ///< See selection().
-	History history_;                   ///< See history().
-	std::optional<Editing> editing_;    ///< The open pixel step.
-	std::uint64_t revision_ = 0;        ///< See revision().
+	int width_;                        ///< See width().
+	int height_;                       ///< See height().
+	PixelFormat format_;               ///< See format().
+	Limits limits_;                    ///< See limits().
+	Structure structure_;              ///< See structure().
+	std::shared_ptr<Image> selection_; ///< See selection().
+	History history_;                  ///< See history().
+	std::optional<Editing> editing_;   ///< The open pixel step.
+	std::uint64_t revision_ = 0;       ///< See revision().
 };
 
 /// @brief The depth of a layer: 0 at the top level, 1 in a group, 2 in a group in a group.

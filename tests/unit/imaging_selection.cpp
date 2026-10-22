@@ -96,7 +96,7 @@ TEST_CASE("imaging selection: modes combine, invert, deselect, and undo") {
 	       SelectionMode::intersect);
 	CHECK(selectedAt(document, 55, 55) == 0);
 	CHECK(selectedAt(document, 70, 70) == 255);
-	CHECK(selectionBounds(document) == std::array<int, 4>{0, 0, 300, 300});
+	CHECK(selectionBounds(document) == std::array<int, 4>{60, 60, 240, 240}); // to the pixel, not the tile
 	invertSelection(document);
 	CHECK(selectedAt(document, 70, 70) == 0);
 	CHECK(selectedAt(document, 150, 150) == 255);

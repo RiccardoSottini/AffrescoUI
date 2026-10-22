@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -30,6 +31,32 @@ namespace {
 	return active->pixels;
 }
 
+/// @brief The covered pixels of a selection tile, scanning in from each edge until a covered pixel.
+/// @param tile A mask8 tile.
+/// @return Left, top, right and bottom (exclusive) within the tile, or nothing when it covers nothing.
+[[nodiscard]] std::optional<std::array<int, 4>> coveredBounds(const Tile& tile) {
+	const auto bytes = tile.bytes();
+	const auto covered = [&](int x, int y) { return bytes[static_cast<std::size_t>(y * tileSize + x)] != 0; };
+	const auto rowCovered = [&](int y) {
+		for(int x = 0; x < tileSize; ++x)
+			if(covered(x, y)) return true;
+		return false;
+	};
+	int top = 0, bottom = tileSize;
+	while(top < tileSize && !rowCovered(top)) ++top;
+	if(top == tileSize) return std::nullopt;
+	while(!rowCovered(bottom - 1)) --bottom;
+	const auto columnCovered = [&](int x) {
+		for(int y = top; y < bottom; ++y)
+			if(covered(x, y)) return true;
+		return false;
+	};
+	int left = 0, right = tileSize;
+	while(!columnCovered(left)) ++left;
+	while(!columnCovered(right - 1)) --right;
+	return std::array<int, 4>{left, top, right, bottom};
+}
+
 /// @brief Marks the filled pixels of a contiguous fill, making their tiles.
 class Marks {
 public:
@@ -39,8 +66,8 @@ public:
 	/// @brief Whether a pixel is marked.
 	[[nodiscard]] bool marked(int x, int y) const {
 		const auto found = tiles_.find({x / tileSize, y / tileSize});
-		return found != tiles_.end() && found->second->bytes()[static_cast<std::size_t>(
-		                                    (y % tileSize) * tileSize + x % tileSize)] != 0;
+		return found != tiles_.end() &&
+		       found->second->bytes()[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)] != 0;
 	}
 
 	/// @brief Marks a pixel.
@@ -61,9 +88,9 @@ public:
 	}
 
 private:
-	const Limits& limits_;                                         ///< The limits.
+	const Limits& limits_;                                       ///< The limits.
 	std::map<std::pair<int, int>, std::shared_ptr<Tile>> tiles_; ///< The marked tiles.
-	std::size_t count_ = 0;                                        ///< The pixels marked.
+	std::size_t count_ = 0;                                      ///< The pixels marked.
 };
 
 /// @brief A scanline flood fill from a pixel over the pixels like it.
@@ -101,8 +128,8 @@ private:
 /// @param document The document.
 /// @param sampler What is sampled.
 /// @param selects The selection of a pixel, 0 to 1.
-template<typename Selects> [[nodiscard]] Coverage byPixel(const Document& document, Sampler& sampler,
-                                                          const Selects& selects) {
+template <typename Selects>
+[[nodiscard]] Coverage byPixel(const Document& document, Sampler& sampler, const Selects& selects) {
 	Coverage coverage;
 	const Image& shape = document.selection();
 	for(int row = 0; row < shape.rows(); ++row)
@@ -135,9 +162,15 @@ template<typename Selects> [[nodiscard]] Coverage byPixel(const Document& docume
 		const std::uint8_t was = old->bytes()[at], with = added->bytes()[at];
 		std::uint8_t& to = tile->bytes()[at];
 		switch(mode) {
-		case SelectionMode::add: to = std::max(was, with); break;
-		case SelectionMode::subtract: to = std::min(was, static_cast<std::uint8_t>(255 - with)); break;
-		default: to = std::min(was, with); break;
+		case SelectionMode::add:
+			to = std::max(was, with);
+			break;
+		case SelectionMode::subtract:
+			to = std::min(was, static_cast<std::uint8_t>(255 - with));
+			break;
+		default:
+			to = std::min(was, with);
+			break;
 		}
 		any = any || to != 0;
 	}
@@ -175,8 +208,8 @@ void select(Document& document, const std::string& name, const Coverage& coverag
 		if(!selection.contains({0, column, row})) continue;
 		const std::shared_ptr<const Tile> there = selection.tile({0, column, row});
 		const auto found = coverage.find({column, row});
-		std::shared_ptr<const Tile> tile = combine(document.hasSelection() ? there : nullptr,
-		                                           found != coverage.end() ? found->second : nullptr, mode);
+		std::shared_ptr<const Tile> tile =
+		    combine(document.hasSelection() ? there : nullptr, found != coverage.end() ? found->second : nullptr, mode);
 		if(tile != there) document.replaceTile(Document::selectionId, column, row, std::move(tile));
 	}
 	document.commit(selectsAnything(selection));
@@ -227,12 +260,16 @@ std::array<int, 4> selectionBounds(const Document& document) {
 	if(!document.hasSelection()) return {0, 0, 0, 0};
 	int left = document.width(), top = document.height(), right = 0, bottom = 0;
 	for(const TileKey& key : document.selection().writtenTiles()) {
-		if(!document.selection().tile(key)) continue;
-		left = std::min(left, key.column * tileSize), top = std::min(top, key.row * tileSize);
-		right = std::max(right, std::min(document.width(), (key.column + 1) * tileSize));
-		bottom = std::max(bottom, std::min(document.height(), (key.row + 1) * tileSize));
+		const auto tile = document.selection().tile(key);
+		if(!tile) continue;
+		const std::optional<std::array<int, 4>> inside = coveredBounds(*tile);
+		if(!inside) continue;
+		const int x = key.column * tileSize, y = key.row * tileSize;
+		left = std::min(left, x + (*inside)[0]), top = std::min(top, y + (*inside)[1]);
+		right = std::max(right, std::min(document.width(), x + (*inside)[2]));
+		bottom = std::max(bottom, std::min(document.height(), y + (*inside)[3]));
 	}
-	if(right <= left) return {0, 0, 0, 0};
+	if(right <= left || bottom <= top) return {0, 0, 0, 0};
 	return {left, top, right - left, bottom - top};
 }
 
