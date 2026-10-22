@@ -114,7 +114,11 @@ Value formatListValue(const Call& call) {
 	if(kind != "and" && kind != "or") call.fail(R"(the kind is "and" or "or")");
 	std::vector<std::string> items;
 	items.reserve(call[0].size());
-	for(std::size_t i = 0; i < call[0].size(); ++i) items.push_back(call[0].item(i).toText());
+	std::string all; // only measured: the list, written, is longer than its items together
+	for(std::size_t i = 0; i < call[0].size(); ++i) {
+		items.push_back(call[0].item(i).toText());
+		call.appendText(all, items.back());
+	}
 	return Value::fromText(formatList(localeOf(call), items, kind == "or"));
 }
 

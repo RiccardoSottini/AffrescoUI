@@ -17,6 +17,10 @@
 
 namespace affresco::format {
 
+/// @brief The longest text an expression builds (a template, `join`, `+`, `t`, ...): 64 MiB, as much as one event may
+/// write into the state. Longer is an error, found before the memory for it is taken.
+inline constexpr std::size_t textLimit = 64u << 20;
+
 /// @brief A value of an expression: null, a boolean, a number, a text, a list or an object.
 ///
 /// Cheap to copy: numbers and texts of up to 16 bytes are stored inline; longer texts, lists and objects share

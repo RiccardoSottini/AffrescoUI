@@ -162,6 +162,15 @@ TEST_CASE("i18n: malformed messages are refused, with where") {
 	CHECK(read == std::vector<std::string>{"a", "b"});
 }
 
+TEST_CASE("i18n: a short message can't repeat a long parameter into a huge text") {
+	// 100 copies of 1 MiB would be 100 MiB: past the longest text an expression builds, so the message is shown as is
+	std::string message;
+	for(int i = 0; i < 100; ++i) message += "{p}";
+	const Value values = parameters({{"p", Value::fromText(std::string(1u << 20, 'a'))}});
+	CHECK(affresco::format::formatMessage(message, values, findLocale("en")) == message);
+	CHECK(affresco::format::formatMessage("{p}{p}", values, findLocale("en")).size() == 2u << 20);
+}
+
 TEST_CASE("i18n: numbers, percents and currencies in the locale's way") {
 	using affresco::format::detail::formatCurrency;
 	using affresco::format::detail::formatNumber;

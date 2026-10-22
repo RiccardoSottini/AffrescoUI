@@ -188,6 +188,20 @@ const std::vector<Case> cases = {
     // Text that fails to parse may be read as a path, whose brackets were read without the limit, to a crash
     {"{{" + nestedPaths(20000) + "}}", {}, "nested too deeply"},
     {{{"$path", nestedPaths(20000)}}, {}, "nested too deeply"},
+    // A text an expression builds is at most 64 MiB: a join of joins could ask for gigabytes (here ~69 MB, ~42 MB)
+    {"{{length(join(range(500), join(range(10000), 'aaaaaaaaaa')))}}", {}, "text too long (more than 64 MiB)"},
+    {"{{join(range(300), join(range(10000), 'aaaaaaaaaa'))}}{{join(range(300), join(range(10000), 'aaaaaaaaaa'))}}",
+     {},
+     "text too long"},
+    {"{{length(concat(join(range(300), join(range(10000), 'aaaaaaaaaa')), join(range(300), join(range(10000), "
+     "'aaaaaaaaaa'))))}}",
+     {},
+     "text too long"},
+    {"{{length(join(range(300), join(range(10000), 'aaaaaaaaaa')) + join(range(300), join(range(10000), "
+     "'aaaaaaaaaa')))}}",
+     {},
+     "text too long"},
+    {"{{length(join(range(300), join(range(10000), 'aaaaaaaaaa')))}}", 41525910, {}},
     // A "$path" that isn't text was a json::type_error, which the runtime doesn't catch: now it is a document error
     {J(R"({"$path": 5})"), {}, "test.$path: expected a path written as text"},
     // `||` and `&&` give an operand, like JavaScript (D1): the first that decides, else the last

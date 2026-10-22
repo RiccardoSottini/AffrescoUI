@@ -174,6 +174,18 @@ public:
 	/// @return Its value.
 	/// @throws DocumentError If it is invalid.
 	[[nodiscard]] Value run(const Node& node, const Place& place);
+	/// @brief Spends operations from the work budget, if there is one.
+	/// @param operations How many.
+	/// @param place Its place, for the error.
+	/// @throws DocumentError If the budget has fewer left.
+	void spend(std::size_t operations, const Place& place);
+	/// @brief Spends for a value a function or a template has built: one operation per item or field, or per 64 bytes
+	/// of text.
+	/// @param value It.
+	/// @param place Its place, for the error.
+	/// @return It.
+	/// @throws DocumentError If the budget has fewer left.
+	[[nodiscard]] Value built(Value value, const Place& place);
 	/// @brief Evaluates a node with an item of a list in scope as `it`, and its position as `index`.
 	/// @param node The node.
 	/// @param place Its place.
@@ -212,6 +224,12 @@ public:
 	/// @param message What is wrong.
 	/// @throws DocumentError Always.
 	[[noreturn]] static void fail(const Place& place, const std::string& message);
+	/// @brief Adds a piece to a text being built, which stays within textLimit.
+	/// @param text The text.
+	/// @param piece What it gets.
+	/// @param place Its place, for the error.
+	/// @throws DocumentError If the text would be longer.
+	static void appendText(std::string& text, std::string_view piece, const Place& place);
 
 private:
 	/// @brief An item of a list function, in scope as `it` and `index`.

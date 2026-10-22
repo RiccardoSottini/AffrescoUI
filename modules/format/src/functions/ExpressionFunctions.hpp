@@ -74,6 +74,11 @@ public:
 	/// @param message What is wrong.
 	/// @throws DocumentError Always.
 	[[noreturn]] void fail(const std::string& message) const;
+	/// @brief Adds a piece to a text the function builds, which stays within textLimit.
+	/// @param text The text.
+	/// @param piece What it gets.
+	/// @throws DocumentError If the text would be longer.
+	void appendText(std::string& text, std::string_view piece) const;
 	/// @brief The translations and locale of the document evaluated.
 	/// @return They, or nullptr (a tool's evaluation: English, no keys).
 	[[nodiscard]] const Strings* strings() const noexcept;

@@ -27,7 +27,7 @@ template <typename Operation> Value fold(const Call& call, Operation operation) 
 Value add(const Call& call) {
 	if(std::ranges::any_of(call.values(), &Value::isText)) {
 		std::string result;
-		for(const Value& part : call.values()) result += part.toText();
+		for(const Value& part : call.values()) call.appendText(result, part.toText());
 		return Value::fromText(std::move(result));
 	}
 	return fold(call, [](double a, double b) { return a + b; });

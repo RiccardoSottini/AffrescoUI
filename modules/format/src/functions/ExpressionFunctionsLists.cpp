@@ -31,7 +31,7 @@ Value concat(const Call& call) {
 		return Value::fromList(std::move(items));
 	}
 	std::string result;
-	for(const Value& part : call.values()) result += part.toText();
+	for(const Value& part : call.values()) call.appendText(result, part.toText());
 	return Value::fromText(std::move(result));
 }
 
@@ -44,8 +44,8 @@ Value join(const Call& call) {
 	const std::string separator = call[1].toText();
 	std::string result;
 	for(std::size_t i = 0; i < call[0].size(); ++i) {
-		if(!result.empty()) result += separator;
-		result += call[0].item(i).toText();
+		if(!result.empty()) call.appendText(result, separator);
+		call.appendText(result, call[0].item(i).toText());
 	}
 	return Value::fromText(std::move(result));
 }

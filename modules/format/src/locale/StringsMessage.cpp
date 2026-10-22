@@ -104,6 +104,8 @@ private:
 			else if(character == '#' && pound != nullptr) out += *pound, ++at_;
 			else if(character == '\'') quote(out);
 			else out += character, ++at_;
+			// Each argument can write a long parameter: a short message can repeat it into a huge text
+			if(out.size() > textLimit) fail(std::format("the text is longer than {} MiB", textLimit >> 20));
 		}
 		if(depth > 0) fail("a '{' is never closed");
 	}

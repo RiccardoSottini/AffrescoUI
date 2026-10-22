@@ -145,6 +145,13 @@ std::string Place::text() const {
 
 void Machine::fail(const Place& place, const std::string& message) { expect::fail(place.text(), message); }
 
+void Machine::appendText(std::string& text, std::string_view piece, const Place& place) {
+	// A few operations can build a long text (a join of joins): its length is limited, not only the work
+	if(piece.size() > textLimit - text.size())
+		fail(place, "text too long (more than " + std::to_string(textLimit >> 20) + " MiB)");
+	text += piece;
+}
+
 /* Calls */
 
 std::size_t Call::size() const noexcept {
@@ -165,6 +172,8 @@ Value Call::evaluateFor(std::size_t index, const Value& item, std::size_t positi
 }
 
 void Call::fail(const std::string& message) const { Machine::fail(at_, message); }
+
+void Call::appendText(std::string& text, std::string_view piece) const { Machine::appendText(text, piece, at_); }
 
 const Strings* Call::strings() const noexcept { return machine_.context().strings; }
 
@@ -189,13 +198,28 @@ json Machine::evaluateDocument(const json& value, const Place& place) {
 	return value;
 }
 
-Value Machine::run(const Node& node, const Place& place) {
-	if(WorkBudget* budget = context_.budget) {
-		if(budget->operations == 0)
-			fail(place, "the event did more than " + std::to_string(operationsPerEvent) +
-			                " operations, its work budget: what was running stopped");
-		--budget->operations;
+// NOLINTNEXTLINE(readability-make-member-function-const): it spends the event's budget, which the machine holds
+void Machine::spend(std::size_t operations, const Place& place) {
+	WorkBudget* budget = context_.budget;
+	if(budget == nullptr) return;
+	if(budget->operations < operations) {
+		budget->operations = 0; // spent: what follows in the event stops too
+		fail(place, "the event did more than " + std::to_string(operationsPerEvent) +
+		                " operations, its work budget: what was running stopped");
 	}
+	budget->operations -= operations;
+}
+
+Value Machine::built(Value value, const Place& place) {
+	// What a function builds costs its size, so a loop can't fill memory in a few operations
+	constexpr std::size_t bytesPerOperation = 64;
+	if(value.isText()) spend(value.text().size() / bytesPerOperation, place);
+	else spend(value.size(), place);
+	return value;
+}
+
+Value Machine::run(const Node& node, const Place& place) {
+	spend(1, place);
 	switch(node.kind) {
 	case Node::Kind::Literal:
 		return node.value;
@@ -244,10 +268,10 @@ Value Machine::call(const Node& node, const Place& place) {
 	const std::span<Value> values = arguments.items();
 	for(std::size_t i = 0; i < values.size(); ++i) values[i] = run(node.children[i], node.indexed ? Place(at, i) : at);
 	if(!function) fail(at, "unknown operator '" + node.label + "'");
-	if(function->takes == Takes::One) return function->apply(Call(*this, node, at, values));
+	if(function->takes == Takes::One) return built(function->apply(Call(*this, node, at, values)), at);
 	if(function->spreads && values.size() == 1 && values[0].isList()) return spread(*function, node, at, values[0]);
 	if(!takesCount(*function, values.size())) fail(at, arityProblem(*function));
-	return function->apply(Call(*this, node, at, values));
+	return built(function->apply(Call(*this, node, at, values)), at);
 }
 
 Value Machine::decide(const Function& function, const Node& node, const Place& at) {
@@ -261,7 +285,7 @@ Value Machine::spread(const Function& function, const Node& node, const Place& a
 	items.reserve(list.size());
 	for(std::size_t i = 0; i < list.size(); ++i) items.push_back(list.item(i));
 	if(items.size() < function.fewest) fail(at, arityProblem(function));
-	return function.apply(Call(*this, node, at, items));
+	return built(function.apply(Call(*this, node, at, items)), at);
 }
 
 Value Machine::get(const Node& node, const Place& place) {
@@ -401,11 +425,11 @@ Value Machine::runTemplate(const Template& shape, const Place& place) {
 
 	std::string result;
 	for(const Template::Piece& piece : shape.pieces) {
-		result += piece.text;
-		if(piece.expression) result += run(piece.expression->program, place).toText();
+		appendText(result, piece.text, place);
+		if(piece.expression) appendText(result, run(piece.expression->program, place).toText(), place);
 	}
 	if(shape.failure) std::rethrow_exception(shape.failure); // after the placeholders before it, as they come
-	return Value::fromText(std::move(result));
+	return built(Value::fromText(std::move(result)), place);
 }
 
 std::vector<Value> Machine::segments(std::string_view path, const Place& place) {
