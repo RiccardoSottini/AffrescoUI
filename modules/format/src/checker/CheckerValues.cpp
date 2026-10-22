@@ -116,8 +116,10 @@ bool itemsAppeared(const Shape& before, const Shape& after) {
 /// @param at The shape there.
 /// @param value What is written.
 /// @param change How.
+/// @param work What the check may still copy.
 /// @return What was learnt.
-Learning assignHere(Shape& at, const Shape& value, Change change) {
+Learning assignHere(Shape& at, const Shape& value, Change change, Work& work) {
+	if(!work.pay(at)) return Learning::nothing;
 	Shape after = at;
 	if(change == Change::push && at.is_array()) addItem(after, value);
 	else if(change == Change::push) after = anything; // pushing onto something that isn't a list
@@ -145,17 +147,19 @@ std::optional<Shape> fixedResult(std::string_view name) {
 /// @param i The key reached.
 /// @param value What is written.
 /// @param change How.
+/// @param work What the check may still copy.
 /// @return What was learnt (another pass may then find more, or less).
-Learning assign(Shape& at, const std::vector<PathKey>& keys, std::size_t i, const Shape& value, Change change) {
+Learning assign(Shape& at, const std::vector<PathKey>& keys, std::size_t i, const Shape& value, Change change,
+                Work& work) {
 	if(at.is_null() || change == Change::none) return Learning::nothing;
-	if(i == keys.size()) return assignHere(at, value, change);
+	if(i == keys.size()) return assignHere(at, value, change, work);
 	const PathKey& key = keys[i];
 	if(key.name.is_string() && at.is_object()) {
 		const auto it = at.find(key.name.get<std::string>());
-		if(it != at.end()) return assign(*it, keys, i + 1, value, change);
+		if(it != at.end()) return assign(*it, keys, i + 1, value, change, work);
 		at[key.name.get<std::string>()] = created(keys, i + 1, value, change);
 	} else if(!key.name.is_string() && at.is_array()) {
-		if(!at.empty()) return assign(at[0], keys, i + 1, value, change);
+		if(!at.empty()) return assign(at[0], keys, i + 1, value, change, work);
 		at.push_back(created(keys, i + 1, value, change));
 		return Learning::items;
 	} else {
@@ -354,6 +358,10 @@ Shape Checker::walkKeys(const Shape& start, std::string described, const std::ve
 		described += "[" + (key.name.is_null() ? describe(key.expression) : key.name.dump()) + "]";
 		shape = &itemOf(*shape);
 	}
+	if(!work_.pay(*shape)) { // a state written into itself, again and again
+		exhausted_ = true;
+		return anything;
+	}
 	return *shape;
 }
 
@@ -479,7 +487,8 @@ void Checker::write(const json& target, const Shape& value, Change change, const
 	if(levels > static_cast<std::size_t>(maxDocumentNesting)) return;
 	const bool tooDeep =
 	    levels + static_cast<std::size_t>(nestingDepth(value)) > static_cast<std::size_t>(maxDocumentNesting);
-	learnt_ = std::max(learnt_, assign(state_, *keys, 1, tooDeep ? anything : value, change));
+	learnt_ = std::max(learnt_, assign(state_, *keys, 1, tooDeep ? anything : value, change, work_));
+	if(work_.over()) exhausted_ = true;
 }
 
 } // namespace affresco::format::checker

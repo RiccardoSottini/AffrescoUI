@@ -451,7 +451,8 @@ private:
 	std::map<std::string, Shape, std::less<>> computedShapes_;
 	std::vector<std::string> computing_; ///< Computed values being checked (finds circles).
 	std::size_t visits_ = 0;             ///< Visits so far (maxVisits).
-	bool exhausted_ = false;             ///< maxVisits was passed.
+	Work work_;                          ///< Shape nodes it may still copy.
+	bool exhausted_ = false;             ///< maxVisits or maxShapeWork was passed.
 	std::size_t hints_ = 0;              ///< Hints made in this pass (maxHints).
 	int nodeDepth_ = 0;                  ///< Nodes inside each other now (maxDepth).
 	int actionDepth_ = 0;                ///< Actions inside each other now (maxActionDepth).

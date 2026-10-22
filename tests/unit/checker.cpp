@@ -467,6 +467,17 @@ TEST_CASE("checker: a place too deep for the state is not followed" * doctest::t
 	    lines(screen(R"("state": {"a": 1}, "actions": {"go": )" + wraps + R"(}, "root": {"type": "panel"})")).empty());
 }
 
+// Each step that writes the state into the state doubled what the checker copied: forty of them took more memory than
+// a computer has
+TEST_CASE("checker: a document that copies too much is too large to check" * doctest::timeout(5)) {
+	const std::string copies = repeated(R"({"set": "state.x$", "to": "{{state}}"})", 40, '[', ']');
+	const json document =
+	    screen(R"("state": {"s": 1}, "actions": {"go": )" + copies + R"(}, "root": {"type": "panel"})");
+	CHECK_FALSE(affresco::format::check(document, document["state"]));
+	const std::string few = repeated(R"({"set": "state.x$", "to": "{{state}}"})", 10, '[', ']');
+	CHECK(lines(screen(R"("state": {"s": 1}, "actions": {"go": )" + few + R"(}, "root": {"type": "panel"})")).empty());
+}
+
 // Before, every finding compared its name with every name there is: 8,000 typos against a state of 8,000 keys took
 // 5.8 seconds to refuse, and a revision may hold far more of both
 TEST_CASE("checker: only the first findings of a pass get a hint, each against the first thousand names") {

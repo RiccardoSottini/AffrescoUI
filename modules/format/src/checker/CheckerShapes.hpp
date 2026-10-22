@@ -34,6 +34,9 @@ inline const Shape single = true; ///< Text, a number or a boolean.
 [[nodiscard]] inline Shape caretShape() { return {{"line", true}, {"column", true}, {"selected", true}}; }
 
 inline constexpr std::size_t maxVisits = 1000000; ///< Nodes, steps and values a check visits before giving up.
+/// Shape nodes a check copies before giving up: a step that writes the state into the state doubles what it may
+/// hold, so a few dozen such steps would copy more than memory holds (the largest screens tested copy 40,000).
+inline constexpr std::size_t maxShapeWork = 4000000;
 /// Findings a pass gives a hint ("did you mean ..."): a hint compares the name with every name that exists, so a
 /// revision with many findings against a large state would otherwise cost their product. The first are listed.
 inline constexpr std::size_t maxHints = 50;
@@ -43,6 +46,22 @@ inline constexpr std::string_view openScope = "*"; ///< A variable that lets any
 
 /// `$if`, `$and`, `$or` and `$coalesce`: operators that give one of their arguments.
 inline constexpr auto choiceOperators = std::to_array<std::string_view>({"$if", "$and", "$or", "$coalesce"});
+
+/// @brief The shape nodes a check may still copy, maxShapeWork in all.
+class Work {
+public:
+	/// @brief Pays for copying a shape, counting its nodes without recursion.
+	/// @param shape The shape.
+	/// @return false once the check has copied maxShapeWork nodes (then always): it gives up.
+	[[nodiscard]] bool pay(const Shape& shape);
+	/// @brief Tells whether the check copied too much.
+	/// @return true once pay() has refused.
+	[[nodiscard]] bool over() const { return over_; }
+
+private:
+	std::size_t left_ = maxShapeWork; ///< Nodes it may still copy.
+	bool over_ = false;               ///< It copied more.
+};
 
 /// @brief Tells whether a list of names has one.
 /// @param names The list.

@@ -65,6 +65,21 @@ void mergeInto(Shape& into, const Shape& other) {
 	}
 }
 
+bool Work::pay(const Shape& shape) {
+	if(over_) return false;
+	std::size_t nodes = 0;
+	std::vector<const Shape*> pending{&shape};
+	while(!pending.empty() && !over_) {
+		const Shape* node = pending.back();
+		pending.pop_back();
+		over_ = ++nodes > left_;
+		if(node->is_structured())
+			for(const Shape& inside : *node) pending.push_back(&inside);
+	}
+	left_ -= over_ ? left_ : nodes;
+	return !over_;
+}
+
 Shape merge(Shape a, const Shape& b) {
 	mergeInto(a, b);
 	return a;
