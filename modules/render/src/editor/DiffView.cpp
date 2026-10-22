@@ -22,6 +22,7 @@ constexpr std::size_t characterGap = 2;       ///< Kept characters between two c
 
 /// @brief A line's code points, as numbers for diffSequences().
 /// @param line The line, UTF-8.
+/// @return Its code points.
 std::vector<std::uint32_t> codePoints(std::string_view line) {
 	const std::u32string decoded = detail::fromUtf8(line);
 	return {decoded.begin(), decoded.end()};
@@ -43,6 +44,42 @@ void background(std::vector<EditorDecoration>& decorations, std::size_t row, std
 	}
 	decorations.push_back(
 	    {.line = row, .endLine = row + count - 1, .kind = EditorDecoration::Kind::Background, .color = color});
+}
+
+/// @brief A change in the line script: the lines deleted, facing the lines inserted.
+struct Change {
+	std::size_t original = 0; ///< The first deleted line, in the original.
+	std::size_t deleted = 0;  ///< How many lines are deleted.
+	std::size_t modified = 0; ///< The first inserted line, in the modified text.
+	std::size_t inserted = 0; ///< How many lines are inserted.
+};
+
+/// @brief Reads the change at an edit that isn't Equal: a deletion followed by an insertion replaces those lines.
+/// @param edits The script.
+/// @param e The edit's index; moved on to the insertion when it is read with the deletion.
+/// @return The change.
+Change changeAt(const std::vector<DiffEdit>& edits, std::size_t& e) noexcept {
+	const DiffEdit& edit = edits[e];
+	if(edit.kind == DiffEdit::Kind::Insert) return {.modified = edit.modified, .inserted = edit.count};
+	Change change{.original = edit.original, .deleted = edit.count};
+	if(change.deleted > 0 && e + 1 < edits.size() && edits[e + 1].kind == DiffEdit::Kind::Insert) {
+		const DiffEdit& insert = edits[++e];
+		change.modified = insert.modified;
+		change.inserted = insert.count;
+	}
+	return change;
+}
+
+/// @brief Whether a changed run is marked with the last one: on the same row, a few kept characters after it.
+/// @param decorations The side's decorations.
+/// @param first The first of them this line pair added.
+/// @param row The run's row.
+/// @param column The run's first column.
+/// @return true if the last decoration should be lengthened to cover it.
+bool continuesLast(const std::vector<EditorDecoration>& decorations, std::size_t first, std::size_t row,
+                   std::size_t column) noexcept {
+	return decorations.size() > first && decorations.back().line == row &&
+	       column - decorations.back().endColumn <= characterGap;
 }
 
 } // namespace
@@ -158,22 +195,20 @@ void DiffView::buildSplit(Side& left, Side& right) const {
 			continue;
 		}
 		// A change: the deleted lines facing the inserted ones, the shorter side padded with blank rows
-		const std::size_t deleted = edit.kind == DiffEdit::Kind::Delete ? edit.count : 0;
-		const bool replaced = deleted > 0 && e + 1 < edits_.size() && edits_[e + 1].kind == DiffEdit::Kind::Insert;
-		const DiffEdit* insert = edit.kind == DiffEdit::Kind::Insert ? &edit : replaced ? &edits_[++e] : nullptr;
-		const std::size_t inserted = insert ? insert->count : 0, rows = std::max(deleted, inserted);
+		const Change change = changeAt(edits_, e);
+		const std::size_t deleted = change.deleted, inserted = change.inserted, rows = std::max(deleted, inserted);
 		const std::size_t leftStart = left.rows, rightStart = right.rows;
 		background(left.decorations, leftStart, deleted, colors_.deleted);
 		background(left.decorations, leftStart + deleted, rows - deleted, colors_.filler);
 		background(right.decorations, rightStart, inserted, colors_.inserted);
 		background(right.decorations, rightStart + inserted, rows - inserted, colors_.filler);
 		for(std::size_t k = 0; k < rows; ++k) {
-			if(k < deleted) add(left, originalLines_[edit.original + k], edit.original + k + 1);
+			if(k < deleted) add(left, originalLines_[change.original + k], change.original + k + 1);
 			else add(left, {}, 0);
-			if(k < inserted) add(right, modifiedLines_[insert->modified + k], insert->modified + k + 1);
+			if(k < inserted) add(right, modifiedLines_[change.modified + k], change.modified + k + 1);
 			else add(right, {}, 0);
 			if(k < deleted && k < inserted)
-				markCharacters(originalLines_[edit.original + k], modifiedLines_[insert->modified + k], left,
+				markCharacters(originalLines_[change.original + k], modifiedLines_[change.modified + k], left,
 				               leftStart + k, right, rightStart + k, pairs);
 		}
 	}
@@ -192,16 +227,14 @@ void DiffView::buildInline(Side& side) const {
 			for(std::size_t k = 0; k < edit.count; ++k) add(modifiedLines_[edit.modified + k], edit.modified + k + 1);
 			continue;
 		}
-		const std::size_t deleted = edit.kind == DiffEdit::Kind::Delete ? edit.count : 0;
-		const bool replaced = deleted > 0 && e + 1 < edits_.size() && edits_[e + 1].kind == DiffEdit::Kind::Insert;
-		const DiffEdit* insert = edit.kind == DiffEdit::Kind::Insert ? &edit : replaced ? &edits_[++e] : nullptr;
-		const std::size_t inserted = insert ? insert->count : 0, deletedStart = side.rows;
+		const Change change = changeAt(edits_, e);
+		const std::size_t deleted = change.deleted, inserted = change.inserted, deletedStart = side.rows;
 		background(side.decorations, deletedStart, deleted, colors_.deleted);
 		background(side.decorations, deletedStart + deleted, inserted, colors_.inserted);
-		for(std::size_t k = 0; k < deleted; ++k) add(originalLines_[edit.original + k], edit.original + k + 1);
-		for(std::size_t k = 0; k < inserted; ++k) add(modifiedLines_[insert->modified + k], insert->modified + k + 1);
+		for(std::size_t k = 0; k < deleted; ++k) add(originalLines_[change.original + k], change.original + k + 1);
+		for(std::size_t k = 0; k < inserted; ++k) add(modifiedLines_[change.modified + k], change.modified + k + 1);
 		for(std::size_t k = 0; k < std::min(deleted, inserted); ++k)
-			markCharacters(originalLines_[edit.original + k], modifiedLines_[insert->modified + k], side,
+			markCharacters(originalLines_[change.original + k], modifiedLines_[change.modified + k], side,
 			               deletedStart + k, side, deletedStart + deleted + k, pairs);
 	}
 }
@@ -220,8 +253,7 @@ void DiffView::markCharacters(std::string_view from, std::string_view to, Side& 
 		const std::size_t row = deleted ? fromRow : toRow, column = deleted ? edit.original : edit.modified;
 		// A change a few characters after the last one is marked with it: "int" to "long" keeps "n" by chance
 		const std::size_t first = deleted ? fromFirst : toFirst;
-		if(side.decorations.size() > first && side.decorations.back().line == row &&
-		   column - side.decorations.back().endColumn <= characterGap) {
+		if(continuesLast(side.decorations, first, row, column)) {
 			side.decorations.back().endColumn = column + edit.count;
 			continue;
 		}
