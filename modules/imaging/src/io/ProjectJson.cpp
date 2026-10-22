@@ -76,6 +76,27 @@ void readLists(const json& value, Adjustment& adjustment) {
 	}
 }
 
+/// @brief Reads a layer's kind. @param value The layer. @return The kind; throws if there is none it knows.
+[[nodiscard]] LayerKind kindIn(const json& value) {
+	const auto kind = value.find("kind");
+	const auto named = kind != value.end() && kind->is_string()
+	                       ? std::find(kindNames.begin(), kindNames.end(), kind->get<std::string>())
+	                       : kindNames.end();
+	if(named == kindNames.end()) project::malformed("has a layer of no known kind");
+	return static_cast<LayerKind>(named - kindNames.begin());
+}
+
+/// @brief Reads a layer's blend mode, normal when absent.
+/// @param value The layer. @return The mode; throws if it is one it doesn't know.
+[[nodiscard]] BlendMode blendIn(const json& value) {
+	const auto blend = value.find("blend");
+	const auto mode = blend == value.end() ? std::optional<BlendMode>(BlendMode::normal)
+	                  : blend->is_string() ? blendModeOf(blend->get<std::string>())
+	                                       : std::nullopt;
+	if(!mode) project::malformed("has a layer of no known blend mode");
+	return *mode;
+}
+
 } // namespace
 
 json adjustmentToJson(const Adjustment& adjustment) {
@@ -154,24 +175,14 @@ json layerSettingsToJson(const Layer& layer) {
 
 void readLayerSettings(const json& value, Layer& layer) {
 	if(!value.is_object()) malformed("has a layer that is not an object");
-	const auto kind = value.find("kind");
-	const auto named = kind != value.end() && kind->is_string()
-	                       ? std::find(kindNames.begin(), kindNames.end(), kind->get<std::string>())
-	                       : kindNames.end();
-	if(named == kindNames.end()) malformed("has a layer of no known kind");
-	layer.kind = static_cast<LayerKind>(named - kindNames.begin());
+	layer.kind = kindIn(value);
 	const auto name = value.find("name");
 	if(name == value.end() || !name->is_string() || name->get<std::string>().size() > 255)
 		malformed("has a layer without a name of at most 255 bytes");
 	layer.name = name->get<std::string>();
 	layer.visible = booleanIn(value, "visible", true);
 	layer.opacity = std::clamp(numberIn(value, "opacity", 1.0f), 0.0f, 1.0f);
-	const auto blend = value.find("blend");
-	const auto mode = blend == value.end() ? std::optional<BlendMode>(BlendMode::normal)
-	                  : blend->is_string() ? blendModeOf(blend->get<std::string>())
-	                                       : std::nullopt;
-	if(!mode) malformed("has a layer of no known blend mode");
-	layer.blend = *mode;
+	layer.blend = blendIn(value);
 	if(const auto locks = value.find("locks"); locks != value.end()) {
 		if(!locks->is_object()) malformed("has locks that are not an object");
 		layer.locks = {booleanIn(*locks, "pixels", false), booleanIn(*locks, "position", false),
