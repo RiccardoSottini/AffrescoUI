@@ -73,6 +73,27 @@ private:
 	std::string output_; ///< The output so far.
 };
 
+/// @brief Reads a run's output until the program closes it: as line events, or collected. A run that says too much
+/// to collect is ended, and the rest of its output read and dropped.
+/// @param running The program.
+/// @param collect Whether the output is collected rather than sent as lines.
+/// @param lines Gets the lines.
+/// @param collected Gets the output.
+/// @return Whether the collected output fits.
+[[nodiscard]] bool readOutput(ChildProcess& running, bool collect, LineEvents& lines, Collected& collected) {
+	bool fits = true;
+	char buffer[16384];
+	for(std::ptrdiff_t count; (count = running.read(buffer, sizeof buffer)) > 0;) {
+		const std::string_view bytes(buffer, static_cast<std::size_t>(count));
+		if(!collect) lines.add(bytes);
+		else if(fits && !collected.add(bytes)) {
+			fits = false;
+			(void)running.end();
+		}
+	}
+	return fits;
+}
+
 /// @brief Runs the program once for a call: on its worker thread; the call or the service stopping ends it.
 /// @param launch What to run.
 /// @param stop The worker's stop token.
@@ -94,16 +115,7 @@ void runOnce(const Launch& launch, const std::stop_token& stop, Call& call) {
 	const bool collect = call.arguments().is_object() && call.arguments().value("collect", false);
 	LineEvents lines(call);
 	Collected collected;
-	bool fits = true;
-	char buffer[16384];
-	for(std::ptrdiff_t count; (count = running.read(buffer, sizeof buffer)) > 0;) {
-		const std::string_view bytes(buffer, static_cast<std::size_t>(count));
-		if(!collect) lines.add(bytes);
-		else if(fits && !collected.add(bytes)) { // a run that says too much is ended
-			fits = false;
-			(void)running.end();
-		}
-	}
+	const bool fits = readOutput(running, collect, lines, collected);
 	writer.join();
 	if(!fits) return call.fail("tooLarge", "the program wrote more than 8 MiB");
 	if(stopping.requested()) return call.fail("cancelled", "the run was stopped");

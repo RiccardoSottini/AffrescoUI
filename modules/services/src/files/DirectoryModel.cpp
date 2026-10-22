@@ -110,6 +110,22 @@ template <typename Work> void postTo(Executor& executor, std::weak_ptr<Directory
 	});
 }
 
+/// @brief Whether a new entry has a place in a model's rows: at the root, or in a folder the rows have or that
+/// comes in with it. An entry whose folder is gone (or became a file) is dropped.
+/// @param model The model.
+/// @param path The entry's path.
+/// @param keptFolders The folders coming in with it.
+/// @return Whether it has.
+[[nodiscard]] bool hasPlace(const DirectoryModel& model, const std::string& path,
+                            const std::unordered_set<std::string>& keptFolders) {
+	const std::size_t slash = path.rfind('/');
+	if(slash == std::string::npos || slash == 0) return true;
+	const std::string folder = path.substr(0, slash);
+	if(keptFolders.contains(folder)) return true;
+	const std::optional<std::size_t> parent = model.find(folder);
+	return parent && model.entry(*parent).kind == Kind::Folder;
+}
+
 } // namespace
 
 /// @brief The model's thread, its queue of jobs, and its watcher.
@@ -300,12 +316,7 @@ void DirectoryModel::insertAll(std::vector<Entry> entries) {
 	std::unordered_set<std::string> keptFolders;
 	std::vector<std::pair<std::size_t, std::vector<Entry>>> runs; // where in the rows, and what goes there
 	for(Entry& entry : entries) {
-		const std::size_t slash = entry.path.rfind('/');
-		const std::string folder = slash == std::string::npos ? std::string() : entry.path.substr(0, slash);
-		const std::optional<std::size_t> parent = folder.empty() ? std::nullopt : find(folder);
-		const bool placed =
-		    folder.empty() || keptFolders.contains(folder) || (parent && entries_[*parent].kind == Kind::Folder);
-		if(!placed || find(entry.path)) continue;
+		if(!hasPlace(*this, entry.path, keptFolders) || find(entry.path)) continue;
 		if(entries_.size() + keptFolders.size() + runs.size() >= options_.mostEntries) {
 			truncated_ = true;
 			break;
