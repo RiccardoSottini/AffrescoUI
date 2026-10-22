@@ -140,6 +140,7 @@ endfunction()
 foreach(module core render format vcs channel net services screen automation)
 	add_subdirectory(modules/${module})
 endforeach()
+add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer
 if(AFFRESCOUI_BUILD_CAPI)
 	add_subdirectory(modules/capi) # the C API, on top of the others
 endif()

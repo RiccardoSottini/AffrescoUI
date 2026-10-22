@@ -40,6 +40,10 @@ target_compile_definitions(affrescoui_unit_tests PRIVATE
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/server/DocumentServer.cpp
 	${PROJECT_SOURCE_DIR}/examples/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/examples/server/UserInfoVerifier.cpp)
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/server)
+# scene3d*.cpp test the 3D module on Modello's sample models (examples/modello/samples)
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::scene3d)
+target_compile_definitions(affrescoui_unit_tests PRIVATE
+	AFFRESCOUI_MODELLO_SAMPLES="${PROJECT_SOURCE_DIR}/examples/modello/samples")
 add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 # Tests that need a window (an OpenGL context), so a display or Xvfb, like the rendering check: timers, review
