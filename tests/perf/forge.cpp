@@ -1,10 +1,17 @@
 /// @file
 /// @brief The "forge" group: Forge (examples/forge), the demo IDE, loaded as affrescoui_forge loads it, with its
 /// natives and tests/render/forge/folder open. It measures opening the project, typing, switching tabs, searching for a
-/// file and the command palette, each with its update and layout.
+/// file, the command palette, the find bar, the secondary side bar and the minimap, each with its update and layout.
 
 #include "Bench.hpp"
+#include "CodeEditor.hpp"
 #include "Forge.hpp"
+#include "features/debug/Debug.hpp"
+#include "features/editor/Editor.hpp"
+#include "features/explorer/Explorer.hpp"
+#include "features/lsp/Lsp.hpp"
+#include "features/search/Search.hpp"
+#include "features/terminal/Terminal.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -23,8 +30,8 @@ namespace {
 /// @return examples/forge.
 std::filesystem::path forgeDirectory(const Context& context) { return context.examples() / "forge"; }
 
-/// @brief Forge's screen document, with three bench actions merged in for what a person does through a binding (typing
-/// into the editor, typing into the quick pick) and that no action of Forge's takes from an event.
+/// @brief Forge's screen document, with four bench actions merged in for what a person does through a binding (typing
+/// into the editor, typing into the quick pick or the find bar) and that no action of Forge's takes from an event.
 /// @param context The context.
 /// @return The document, as text.
 std::string forgeDocument(const Context& context) {
@@ -33,17 +40,28 @@ std::string forgeDocument(const Context& context) {
 	document["actions"]["benchQuery"] = json::parse(
 	    R"([{"set": "state.quickPick.query", "to": "{{event.query}}"}, {"set": "state.quickPick.open", "to": true}])");
 	document["actions"]["benchClose"] = json::parse(R"([{"set": "state.quickPick.open", "to": false}])");
+	document["actions"]["benchFind"] = json::parse(
+	    R"([{"set": "state.findBar.text", "to": "{{event.text}}"}, {"run": "findStep", "with": {"step": "first"}}])");
 	return document.dump();
 }
 
-/// @brief Builds Forge into a window, with its natives and the fixed folder open, and lays it out.
+/// @brief Builds Forge into a window, with its natives as the scenarios have them (no executor: no server, shell or
+/// adapter starts) and the fixed folder open, and lays it out.
 /// @param context The context.
 /// @param text The document (forgeDocument()).
 /// @param window An empty window.
 /// @return The screen and its window.
 LoadedScreen buildForge(Context& context, const std::string& text, Window& window) {
 	Screen& screen = context.create(text, forgeDirectory(context));
-	forge::registerNatives(screen, std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER, &window));
+	const auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER, &window);
+	examples::registerCodeEditor(screen);
+	forge::registerNatives(screen, workspace);
+	forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), nullptr);
+	forge::registerSearch(screen, workspace);
+	forge::registerExplorer(screen, workspace, nullptr);
+	forge::grantTerminal(screen, AFFRESCOUI_FORGE_FOLDER);
+	forge::registerTerminal(screen, nullptr);
+	forge::registerDebug(screen, workspace, false);
 	screen.build(window); // its onLoad indexes the folder
 	static_cast<void>(window.panelAt({}));
 	return {screen, window};
@@ -72,7 +90,29 @@ Workload openWorkload(Context& context, const std::shared_ptr<const std::string>
 	return workload;
 }
 
-/// @brief "forge/type", "forge/switch-tab", "forge/search" and "forge/palette", on one Forge with both of the folder's
+/// @brief "forge/find", "forge/secondary-side-bar" and "forge/minimap", on a Forge with a file open.
+/// @param loaded Forge.
+/// @param run The runs so far, shared by the workloads.
+/// @return The workloads.
+std::vector<Workload> workbenchWorkloads(const LoadedScreen& loaded, const std::shared_ptr<int>& run) {
+	std::vector<Workload> workloads;
+	Workload find{.name = "forge/find", .runs = 15}; // the find bar, counting the matches of a new text
+	find.prepare = [loaded] { runAndLayOut(loaded, "openFind", json::object()); };
+	find.step = [loaded, run] { runAndLayOut(loaded, "benchFind", {{"text", ++*run % 2 ? "include" : "main"}}); };
+	workloads.push_back(std::move(find));
+
+	Workload side{.name = "forge/secondary-side-bar", .runs = 15}; // shown or hidden, with its outline
+	side.prepare = [loaded] { runAndLayOut(loaded, "closeFind", json::object()); };
+	side.step = [loaded] { runAndLayOut(loaded, "toggleSecondarySidebar", json::object()); };
+	workloads.push_back(std::move(side));
+
+	Workload minimap{.name = "forge/minimap", .runs = 15}; // the editor's minimap, shown or hidden
+	minimap.step = [loaded] { runAndLayOut(loaded, "toggleMinimap", json::object()); };
+	workloads.push_back(std::move(minimap));
+	return workloads;
+}
+
+/// @brief "forge/type", "forge/switch-tab", "forge/search", "forge/palette" and workbenchWorkloads(), on one Forge with both of the folder's
 /// files open.
 /// @param context The context.
 /// @param text The document.
@@ -109,6 +149,7 @@ std::vector<Workload> sessionWorkloads(Context& context, const std::string& text
 		runAndLayOut(loaded, "benchQuery", {{"query", ">toggle"}});
 	};
 	workloads.push_back(std::move(palette));
+	std::ranges::move(workbenchWorkloads(loaded, run), std::back_inserter(workloads));
 	return workloads;
 }
 
