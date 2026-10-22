@@ -108,6 +108,9 @@ inline constexpr std::size_t maxComputedDepth = 32;
 /// Panels built inside each other before giving up. A document alone stays far below it (maxNesting levels of JSON
 /// hold half as many nodes); a component or a screen that holds itself (an outlet) would recurse without end.
 inline constexpr int maxNodeDepth = maxNesting;
+/// Panels one screen builds before giving up, about 900 MB: components and repeats inside each other multiply (a
+/// component that uses another twice, 25 levels down, would build 2^25), and the depth limits don't bound that.
+inline constexpr std::size_t maxPanels = 250000;
 inline constexpr double frameMs = 16.0;           ///< Animation frame period.
 inline constexpr double doubleClickSeconds = 0.4; ///< Two clicks closer than this are a double click.
 inline constexpr float dragThreshold = 4.0f;      ///< Pixels the pointer moves before a press becomes a drag.

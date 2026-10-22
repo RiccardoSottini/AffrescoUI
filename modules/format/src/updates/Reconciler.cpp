@@ -126,6 +126,9 @@ Panel* Reconciler::reusable(Panel& panel, std::size_t index, const Item& item, c
 }
 
 Panel& Reconciler::make(Panel& panel, std::size_t index, const Item& item, const std::string& type) {
+	if(records_.size() >= maxPanels)
+		fail(item.path,
+		     std::format("more than {} panels (components or repeats inside each other multiply)", maxPanels));
 	if(index < panel.children().size()) {
 		forgetSubtree(*panel.children()[index]);
 		++statistics_.panelsCreated;

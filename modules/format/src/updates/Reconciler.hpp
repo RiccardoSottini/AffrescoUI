@@ -166,6 +166,7 @@ private:
 	/// @param item The child.
 	/// @param type Its type.
 	/// @return The new panel.
+	/// @throws DocumentError If the screen already has maxPanels panels.
 	Panel& make(Panel& panel, std::size_t index, const Item& item, const std::string& type);
 	/// @brief Updates a kept panel built from the same node with the same variables: only what reads the changes.
 	/// @param kept The panel.
