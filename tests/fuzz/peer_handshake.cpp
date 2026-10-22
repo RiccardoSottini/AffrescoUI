@@ -1,6 +1,6 @@
 /// @file
-/// @brief Fuzzes a remote peer's opening on the server side (modules/net/src/peers/PeerHandshake.hpp): the upgrade request
-/// and the first "auth" message.
+/// @brief Fuzzes a remote peer's opening on the server side (modules/net/src/peers/PeerHandshake.hpp): the upgrade
+/// request and the first "auth" message.
 ///
 /// The first byte picks what is read (bit 0: the upgrade request, else a first message); the rest is the bytes. A
 /// refusal carries a known status and never the token; an accepted request has a key; a token is never empty or over

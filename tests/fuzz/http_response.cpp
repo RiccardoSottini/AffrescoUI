@@ -1,6 +1,6 @@
 /// @file
-/// @brief Fuzzes the parsers of what an HTTP server answers (modules/net/src/http/Http.hpp): status lines, header lines,
-/// header blocks (the WebSocket handshake) and Retry-After values, all read from any server a screen may reach.
+/// @brief Fuzzes the parsers of what an HTTP server answers (modules/net/src/http/Http.hpp): status lines, header
+/// lines, header blocks (the WebSocket handshake) and Retry-After values, all read from any server a screen may reach.
 ///
 /// The input is a response head. A parsed status is 100..999; parsed header names are lower-case tokens; a block
 /// holds at most the header limit and no value with a line feed; a retry delay is within 0..1 hour.

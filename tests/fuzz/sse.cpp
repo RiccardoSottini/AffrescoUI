@@ -1,6 +1,6 @@
 /// @file
-/// @brief Fuzzes the stream parsers (modules/net/src/http/Streams.hpp): server-sent events and line streams, the bodies a
-/// server streams to a screen, cut into chunks at any place.
+/// @brief Fuzzes the stream parsers (modules/net/src/http/Streams.hpp): server-sent events and line streams, the bodies
+/// a server streams to a screen, cut into chunks at any place.
 ///
 /// The first byte picks where chunks are cut; the rest is the body. Every event delivered is within the limit, a line
 /// has no line break, and once a parser refuses (over its limit) the stream ends there.

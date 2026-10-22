@@ -1,6 +1,6 @@
 /// @file
-/// @brief Fuzzes the frame reader (modules/services/src/rpc/Framing.hpp): what a service process writes, framed LSP's way
-/// (Content-Length) or one message per line, cut into pieces at any place.
+/// @brief Fuzzes the frame reader (modules/services/src/rpc/Framing.hpp): what a service process writes, framed LSP's
+/// way (Content-Length) or one message per line, cut into pieces at any place.
 ///
 /// The first byte picks the framing (its lowest bit) and where pieces are cut; the rest is the stream. Every body is
 /// within the limit, a line has no line break, and once the reader refuses it gives the same reason and no body after.

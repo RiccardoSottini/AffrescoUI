@@ -110,8 +110,8 @@ void substituteFolder(json& value, const std::string& folder, int depth = 0) {
 /// @return The reason, bounded and UTF-8.
 std::string refusal(const json& message, const Response& response) {
 	const json& body = response.body;
-	const bool formatted = body.is_object() && body.contains("error") && body["error"].is_object() &&
-	                       body["error"].contains("format");
+	const bool formatted =
+	    body.is_object() && body.contains("error") && body["error"].is_object() && body["error"].contains("format");
 	std::string reason = formatted ? textOf(body["error"]["format"], "") : textOf(message.value("message", json()), "");
 	if(reason.empty()) reason = "the debug adapter refused '" + cut(response.command, 100) + "'";
 	return reason;

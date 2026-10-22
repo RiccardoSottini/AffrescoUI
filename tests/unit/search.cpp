@@ -514,8 +514,8 @@ TEST_CASE("search: fs writes nothing through a link planted beside the file, and
 	folder.write("work/a.txt", "a needle\n");
 	elsewhere.write("target", "untouched");
 	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "work" / "a.txt.affrescoui-writing");
-	std::filesystem::permissions(folder.path / "work" / "a.txt", std::filesystem::perms::owner_read |
-	                                                                 std::filesystem::perms::owner_write);
+	std::filesystem::permissions(folder.path / "work" / "a.txt",
+	                             std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
 	PumpedExecutor executor;
 	const affresco::detail::ManualClock clock;
 	const auto window = affresco::detail::createHeadlessWindow(200, 100, clock);

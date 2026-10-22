@@ -162,8 +162,8 @@ TEST_CASE("remote peers: before its token, a peer can't send more than a token's
 	REQUIRE(stranger.answer.starts_with("HTTP/1.1 101"));
 	// The header of a 1 MiB message, and a little of it: before, the server took up to maxMessageBytes from anyone
 	// who could connect, and closed only once the time for the token was up (1008)
-	const std::string big = encodeFrame(Opcode::Text, std::string(std::size_t{1} << 20, 'x'),
-	                                    std::array<std::uint8_t, 4>{1, 2, 3, 4});
+	const std::string big =
+	    encodeFrame(Opcode::Text, std::string(std::size_t{1} << 20, 'x'), std::array<std::uint8_t, 4>{1, 2, 3, 4});
 	CHECK(stranger.connection->send(std::string_view(big).substr(0, 14 + 64), 1s));
 	auto frame = nextFrame(stranger);
 	REQUIRE(frame);
