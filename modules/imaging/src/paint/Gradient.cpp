@@ -26,6 +26,54 @@ struct Place {
 	const Tile* coverage = nullptr; ///< How much of each pixel, or null for all of it.
 };
 
+/// @brief A pixel with a colour laid over it: blended, or on a mask its grey moved towards the colour's.
+/// @param under The pixel.
+/// @param laid The colour, its alpha the opacity laid.
+/// @param mask Whether the image is a mask.
+/// @return The pixel after.
+[[nodiscard]] Pixel laidOver(const Pixel& under, const Pixel& laid, bool mask) noexcept {
+	if(!mask) return blendPixels(under, laid, BlendMode::normal, 1.0f);
+	const float grey = clamped(0.2126f * laid.red + 0.7152f * laid.green + 0.0722f * laid.blue);
+	const float value = under.alpha + (grey - under.alpha) * laid.alpha;
+	return {value, value, value, value};
+}
+
+/// @brief The opacity laid at a pixel of a tile, by its coverage and then its selection (in that order, as floats).
+/// @param alpha The colour's opacity.
+/// @param place The tile.
+/// @param selection The selection's tile, or null for no selection.
+/// @param at The pixel's index in the tile.
+/// @return The opacity.
+[[nodiscard]] float coveredAt(float alpha, const Place& place, const Tile* selection, std::size_t at) noexcept {
+	if(place.coverage) alpha *= unitFromByte(place.coverage->bytes()[at]);
+	if(selection) alpha *= unitFromByte(selection->bytes()[at]);
+	return alpha;
+}
+
+/// @brief A tile of an image with a colour per pixel laid over it, within the image.
+/// @param image The image.
+/// @param place The tile.
+/// @param selection The selection's tile, or null for no selection.
+/// @param source The colour at a pixel (x, y), its alpha the opacity laid.
+/// @return The new tile.
+template <typename Source>
+[[nodiscard]] std::shared_ptr<Tile> laidTile(const Image& image, const Place& place, const Tile* selection,
+                                             const Source& source) {
+	const bool mask = image.format() == PixelFormat::mask8;
+	const std::shared_ptr<const Tile> original = image.tile({0, place.column, place.row});
+	auto tile = original ? std::make_shared<Tile>(*original) : std::make_shared<Tile>(image.format());
+	const int width = std::min(tileSize, image.width() - place.column * tileSize);
+	const int height = std::min(tileSize, image.height() - place.row * tileSize);
+	for(int y = 0; y < height; ++y)
+		for(int x = 0; x < width; ++x) {
+			Pixel laid = source(place.column * tileSize + x, place.row * tileSize + y);
+			laid.alpha = coveredAt(laid.alpha, place, selection, static_cast<std::size_t>(y * tileSize + x));
+			if(laid.alpha <= 0.0f) continue;
+			tile->setPixel(x, y, laidOver(tile->pixel(x, y), laid, mask));
+		}
+	return tile;
+}
+
 /// @brief Lays a colour per pixel over tiles of a layer as one step.
 /// @param document The document.
 /// @param target The image.
@@ -39,30 +87,13 @@ void lay(Document& document, std::uint64_t target, const std::string& name, cons
 	if(const auto refused = document.paintable(target); refused) throw DocumentError(*refused);
 	const Image* image = document.image(target);
 	if(image == nullptr) throw DocumentError("imaging: no image to fill");
-	const bool mask = image->format() == PixelFormat::mask8;
 	const bool selected = document.hasSelection() && target != Document::selectionId;
 	document.begin(name);
 	for(const Place& place : places) {
 		const std::shared_ptr<const Tile> selection =
 		    selected ? document.selection().tile({0, place.column, place.row}) : nullptr;
 		if(selected && !selection) continue;
-		const std::shared_ptr<const Tile> original = image->tile({0, place.column, place.row});
-		auto tile = original ? std::make_shared<Tile>(*original) : std::make_shared<Tile>(image->format());
-		const int width = std::min(tileSize, image->width() - place.column * tileSize);
-		const int height = std::min(tileSize, image->height() - place.row * tileSize);
-		for(int y = 0; y < height; ++y)
-			for(int x = 0; x < width; ++x) {
-				const auto at = static_cast<std::size_t>(y * tileSize + x);
-				Pixel laid = source(place.column * tileSize + x, place.row * tileSize + y);
-				if(place.coverage) laid.alpha *= unitFromByte(place.coverage->bytes()[at]);
-				if(selection) laid.alpha *= unitFromByte(selection->bytes()[at]);
-				if(laid.alpha <= 0.0f) continue;
-				const Pixel under = tile->pixel(x, y);
-				const float grey = clamped(0.2126f * laid.red + 0.7152f * laid.green + 0.0722f * laid.blue);
-				const float value = under.alpha + (grey - under.alpha) * laid.alpha;
-				tile->setPixel(
-				    x, y, mask ? Pixel{value, value, value, value} : blendPixels(under, laid, BlendMode::normal, 1.0f));
-			}
+		auto tile = laidTile(*image, place, selection.get(), source);
 		document.replaceTile(target, place.column, place.row, tile->empty() ? nullptr : std::move(tile));
 	}
 	document.commit(target == Document::selectionId ? std::optional<bool>(selectsAnything(document.selection()))
