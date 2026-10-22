@@ -101,6 +101,10 @@ private:
 	/// @param payload Its payload, unmasked.
 	/// @return An event, or nullopt for a fragment that doesn't end its message.
 	std::optional<FrameEvent> frame(Opcode opcode, bool final, std::string payload);
+	/// @brief Handles a close frame: the peer's code (1005 if none) and its reason, after which nothing is read.
+	/// @param payload Its payload, unmasked.
+	/// @return The close event, or an error for a payload of one byte or a reason that isn't UTF-8.
+	FrameEvent closeFrame(std::string_view payload);
 
 	bool expectMasked_;          ///< See the constructor.
 	std::size_t maxMessageBytes_; ///< See the constructor.

@@ -12,6 +12,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <format>
 #include <vector>
 
 using namespace affresco;
@@ -107,6 +108,19 @@ TEST_CASE("net: line streams deliver each line, and the last one at the end") {
 	parser.finish();
 	CHECK(lines == std::vector<std::string>{"{\"a\":1}", "{\"b\":2}", "{\"c\":3}"});
 	CHECK_FALSE(parser.feed(std::string(20, 'x')));
+}
+
+TEST_CASE("net: SHA-1 matches the standard's examples, over one block and many") {
+	const auto hex = [](std::string_view bytes) {
+		std::string text;
+		for(const auto byte : sha1(bytes)) text += std::format("{:02x}", byte);
+		return text;
+	};
+	CHECK(hex("") == "da39a3ee5e6b4b0d3255bfef95601890afd80709");
+	CHECK(hex("abc") == "a9993e364706816aba3e25717850c26c9cd0d89d");
+	CHECK(hex("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq") ==
+	      "84983e441c3bd26ebaae4aa1f95129e5e54670f1");
+	CHECK(hex(std::string(1000000, 'a')) == "34aa973cd4c4daa4f61eeb2bdbad27316534016f");
 }
 
 TEST_CASE("net: WebSocket frames round-trip, fragments join, and limits close") {

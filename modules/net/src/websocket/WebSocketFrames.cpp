@@ -53,6 +53,73 @@ std::optional<FrameHeader> readHeader(std::string_view bytes) noexcept {
 /// @param opcode The opcode.
 bool isKnown(std::uint8_t opcode) noexcept { return opcode <= 0x2 || (opcode >= 0x8 && opcode <= 0xa); }
 
+/// @brief Why a frame is refused from its header alone.
+struct Refusal {
+	std::uint16_t code; ///< The close code to send.
+	const char* reason; ///< Why.
+};
+
+/// @brief Checks a frame's header before its payload is read.
+/// @param header The header.
+/// @param expectMasked Whether frames must be masked (from a client) or must not be (from a server).
+/// @param room How many more bytes the message being read may take.
+/// @return Why it is refused, or nullopt.
+std::optional<Refusal> checkHeader(const FrameHeader& header, bool expectMasked, std::size_t room) noexcept {
+	if(header.reserved != 0 || !isKnown(header.opcode)) return Refusal{1002, "a frame the protocol doesn't define"};
+	if(header.masked != expectMasked) return Refusal{1002, expectMasked ? "an unmasked frame" : "a masked frame"};
+	const bool control = header.opcode >= 0x8;
+	if(control && (header.length > 125 || !header.final))
+		return Refusal{1002, "a control frame too long or fragmented"};
+	// Compared with the room left rather than by adding: a 64-bit length near its maximum would wrap the sum
+	if(!control && header.length > room) return Refusal{1009, "a message too large"};
+	return std::nullopt;
+}
+
+/// @brief Unmasks a payload in place.
+/// @param payload The payload.
+/// @param mask The masking key.
+void unmask(std::string& payload, const std::array<std::uint8_t, 4>& mask) noexcept {
+	for(std::size_t i = 0; i < payload.size(); ++i)
+		payload[i] = static_cast<char>(static_cast<std::uint8_t>(payload[i]) ^ mask[i % 4]);
+}
+
+/// @brief SHA-1's function of a round.
+/// @param round The round, 0 to 79.
+/// @param b The state's second word.
+/// @param c Its third.
+/// @param d Its fourth.
+constexpr std::uint32_t roundFunction(std::size_t round, std::uint32_t b, std::uint32_t c, std::uint32_t d) noexcept {
+	if(round < 20) return (b & c) | (~b & d);
+	if(round >= 40 && round < 60) return (b & c) | (b & d) | (c & d);
+	return b ^ c ^ d;
+}
+
+/// @brief Mixes one 64-byte block into SHA-1's state.
+/// @param state The state.
+/// @param block The block.
+void compress(std::array<std::uint32_t, 5>& state, std::string_view block) noexcept {
+	static constexpr std::array<std::uint32_t, 4> constants{0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6};
+	std::array<std::uint32_t, 80> words{};
+	for(std::size_t i = 0; i < 16; ++i)
+		for(std::size_t j = 0; j < 4; ++j) words[i] = (words[i] << 8) | static_cast<std::uint8_t>(block[i * 4 + j]);
+	for(std::size_t i = 16; i < 80; ++i)
+		words[i] = std::rotl(words[i - 3] ^ words[i - 8] ^ words[i - 14] ^ words[i - 16], 1);
+	auto [a, b, c, d, e] = state;
+	for(std::size_t i = 0; i < 80; ++i) {
+		const std::uint32_t next = std::rotl(a, 5) + roundFunction(i, b, c, d) + e + constants[i / 20] + words[i];
+		e = d;
+		d = c;
+		c = std::rotl(b, 30);
+		b = a;
+		a = next;
+	}
+	state[0] += a;
+	state[1] += b;
+	state[2] += c;
+	state[3] += d;
+	state[4] += e;
+}
+
 /// @brief The length of a UTF-8 sequence from its first byte, and the smallest code point it may encode.
 /// @param lead The first byte.
 /// @param minimum Receives the smallest code point.
@@ -90,30 +157,8 @@ std::array<std::uint8_t, 20> sha1(std::string_view bytes) {
 	message += static_cast<char>(0x80);
 	while(message.size() % 64 != 56) message += '\0';
 	for(int shift = 56; shift >= 0; shift -= 8) message += static_cast<char>((bits >> shift) & 0xff);
-	for(std::size_t block = 0; block < message.size(); block += 64) {
-		std::array<std::uint32_t, 80> words{};
-		for(std::size_t i = 0; i < 16; ++i)
-			for(std::size_t j = 0; j < 4; ++j)
-				words[i] = (words[i] << 8) | static_cast<std::uint8_t>(message[block + i * 4 + j]);
-		for(std::size_t i = 16; i < 80; ++i)
-			words[i] = std::rotl(words[i - 3] ^ words[i - 8] ^ words[i - 14] ^ words[i - 16], 1);
-		auto [a, b, c, d, e] = state;
-		for(std::size_t i = 0; i < 80; ++i) {
-			const std::uint32_t f = i < 20 ? (b & c) | (~b & d) : i < 40 ? b ^ c ^ d : i < 60 ? (b & c) | (b & d) | (c & d) : b ^ c ^ d;
-			const std::uint32_t k = i < 20 ? 0x5a827999 : i < 40 ? 0x6ed9eba1 : i < 60 ? 0x8f1bbcdc : 0xca62c1d6;
-			const std::uint32_t next = std::rotl(a, 5) + f + e + k + words[i];
-			e = d;
-			d = c;
-			c = std::rotl(b, 30);
-			b = a;
-			a = next;
-		}
-		state[0] += a;
-		state[1] += b;
-		state[2] += c;
-		state[3] += d;
-		state[4] += e;
-	}
+	for(std::size_t block = 0; block < message.size(); block += 64)
+		compress(state, std::string_view(message).substr(block, 64));
 	std::array<std::uint8_t, 20> digest{};
 	for(std::size_t i = 0; i < 20; ++i) digest[i] = static_cast<std::uint8_t>(state[i / 4] >> (24 - 8 * (i % 4)));
 	return digest;
@@ -164,19 +209,14 @@ std::optional<FrameEvent> FrameReader::next() {
 	while(!failed_) {
 		const auto header = readHeader(buffer_);
 		if(!header) return std::nullopt;
-		if(header->reserved != 0 || !isKnown(header->opcode)) return fail(1002, "a frame the protocol doesn't define");
-		if(header->masked != expectMasked_) return fail(1002, expectMasked_ ? "an unmasked frame" : "a masked frame");
-		const bool control = header->opcode >= 0x8;
-		if(control && (header->length > 125 || !header->final)) return fail(1002, "a control frame too long or fragmented");
-		// Compared without adding: a 64-bit length near its maximum would wrap the sum (message_ is within the limit)
-		if(!control && header->length > maxMessageBytes_ - message_.size()) return fail(1009, "a message too large");
+		// message_ is within the limit, so the room left doesn't wrap
+		if(const auto refusal = checkHeader(*header, expectMasked_, maxMessageBytes_ - message_.size()))
+			return fail(refusal->code, refusal->reason);
 		const auto length = static_cast<std::size_t>(header->length);
 		if(buffer_.size() < header->size + length) return std::nullopt;
 		std::string payload = buffer_.substr(header->size, length);
 		buffer_.erase(0, header->size + length);
-		if(header->masked)
-			for(std::size_t i = 0; i < payload.size(); ++i)
-				payload[i] = static_cast<char>(static_cast<std::uint8_t>(payload[i]) ^ header->mask[i % 4]);
+		if(header->masked) unmask(payload, header->mask);
 		if(auto event = frame(static_cast<Opcode>(header->opcode), header->final, std::move(payload))) return event;
 	}
 	return std::nullopt;
@@ -186,16 +226,8 @@ std::optional<FrameEvent> FrameReader::frame(Opcode opcode, bool final, std::str
 	switch(opcode) {
 	case Opcode::Ping: return FrameEvent{FrameEvent::Kind::Ping, std::move(payload), 0};
 	case Opcode::Pong: return FrameEvent{FrameEvent::Kind::Pong, {}, 0};
-	case Opcode::Close: {
-		if(payload.size() == 1) return fail(1002, "a close frame of one byte");
-		const std::uint16_t code = payload.size() >= 2
-		                               ? static_cast<std::uint16_t>((static_cast<std::uint8_t>(payload[0]) << 8) | static_cast<std::uint8_t>(payload[1]))
-		                               : std::uint16_t{1005};
-		std::string reason = payload.size() > 2 ? payload.substr(2) : std::string{};
-		if(!isUtf8(reason)) return fail(1007, "a close reason that isn't UTF-8");
-		failed_ = true; // nothing is read after a close
-		return FrameEvent{FrameEvent::Kind::Close, std::move(reason), code};
-	}
+	case Opcode::Close:
+		return closeFrame(payload);
 	case Opcode::Binary: return fail(1003, "binary messages aren't accepted");
 	case Opcode::Text:
 		if(inMessage_) return fail(1002, "a new message inside a fragmented one");
@@ -211,6 +243,18 @@ std::optional<FrameEvent> FrameReader::frame(Opcode opcode, bool final, std::str
 	if(inMessage_) return std::nullopt;
 	if(!isUtf8(message_)) return fail(1007, "a text message that isn't UTF-8");
 	return FrameEvent{FrameEvent::Kind::Message, std::exchange(message_, {}), 0};
+}
+
+FrameEvent FrameReader::closeFrame(std::string_view payload) {
+	if(payload.size() == 1) return fail(1002, "a close frame of one byte");
+	const std::uint16_t code = payload.size() >= 2
+	                               ? static_cast<std::uint16_t>((static_cast<std::uint8_t>(payload[0]) << 8) |
+	                                                            static_cast<std::uint8_t>(payload[1]))
+	                               : std::uint16_t{1005};
+	std::string reason(payload.size() > 2 ? payload.substr(2) : std::string_view{});
+	if(!isUtf8(reason)) return fail(1007, "a close reason that isn't UTF-8");
+	failed_ = true; // nothing is read after a close
+	return FrameEvent{FrameEvent::Kind::Close, std::move(reason), code};
 }
 
 bool isUtf8(std::string_view text) noexcept {

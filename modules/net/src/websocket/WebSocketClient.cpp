@@ -139,6 +139,17 @@ private:
 	/// @param end Receives the connection's end, if this was it.
 	/// @return Whether the connection goes on.
 	bool handle(FrameEvent event, std::optional<network::Failure>& end);
+	/// @brief Passes a message to the main thread, unless too many are waiting there.
+	/// @param message The message, taken only if passed.
+	/// @return Whether it was passed.
+	bool deliver(std::string& message);
+	/// @brief Answers the server's close frame and notes why the connection ended.
+	/// @param code The server's close code, 0 if it gave none.
+	/// @param end Receives a failure unless the close was normal.
+	void answerClose(std::uint16_t code, std::optional<network::Failure>& end);
+	/// @brief The upgrade request.
+	/// @param key Its Sec-WebSocket-Key.
+	[[nodiscard]] std::string upgradeRequest(const std::string& key) const;
 	/// @brief Encodes the queued messages and sends what the socket takes.
 	/// @return false on an error.
 	bool flush();
@@ -214,13 +225,9 @@ std::optional<network::Failure> ClientSocket::handshake(const std::stop_token& s
 	std::string nonce(16, '\0');
 	for(char& byte : nonce) byte = static_cast<char>(device() & 0xffU);
 	const std::string key = base64(nonce);
-	std::string request = "GET " + url_.target + " HTTP/1.1\r\nHost: " + url_.authority() +
-	                      "\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: " + key +
-	                      "\r\nSec-WebSocket-Version: 13\r\n";
-	for(const auto& [name, value] : headers_) request += name + ": " + value + "\r\n";
-	request += "\r\n";
 	const auto deadline = Clock::now() + openTimeout;
-	if(!sendAll(request, deadline)) return network::Failure{"network", "The upgrade request couldn't be sent.", 0, {}};
+	if(!sendAll(upgradeRequest(key), deadline))
+		return network::Failure{"network", "The upgrade request couldn't be sent.", 0, {}};
 	std::string answer;
 	std::size_t end = std::string::npos;
 	while((end = answer.find("\r\n\r\n")) == std::string::npos) {
@@ -242,6 +249,14 @@ std::optional<network::Failure> ClientSocket::handshake(const std::stop_token& s
 	if(auto failure = checkAnswer(*block, key)) return failure;
 	reader_.feed(std::string_view{answer}.substr(end + 4)); // frames sent right after the answer
 	return std::nullopt;
+}
+
+std::string ClientSocket::upgradeRequest(const std::string& key) const {
+	std::string request = "GET " + url_.target + " HTTP/1.1\r\nHost: " + url_.authority() +
+	                      "\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: " + key +
+	                      "\r\nSec-WebSocket-Version: 13\r\n";
+	for(const auto& [name, value] : headers_) request += name + ": " + value + "\r\n";
+	return request + "\r\n";
 }
 
 std::optional<network::Failure> ClientSocket::checkAnswer(const HeaderBlock& block, const std::string& key) {
@@ -287,34 +302,39 @@ std::optional<network::Failure> ClientSocket::receive() {
 bool ClientSocket::handle(FrameEvent event, std::optional<network::Failure>& end) {
 	switch(event.kind) {
 	case FrameEvent::Kind::Message:
-		if(delivery_->undelivered > options_.maxUndelivered) {
-			event = {FrameEvent::Kind::Error, "Messages arrive faster than they are handled.", 1008};
-			break;
-		}
-		++delivery_->undelivered;
-		executor_.post([delivery = delivery_, message = std::move(event.data)]() mutable {
-			--delivery->undelivered;
-			if(delivery->cancelled || !delivery->handlers.message) return;
-			auto handleMessage = delivery->handlers.message; // a copy: the handler may destroy the connection
-			handleMessage(std::move(message));
-		});
-		return true;
+		if(deliver(event.data)) return true;
+		event = {FrameEvent::Kind::Error, "Messages arrive faster than they are handled.", 1008};
+		break;
 	case FrameEvent::Kind::Ping: output_ += encodeFrame(Opcode::Pong, event.data, mask()); return true;
 	case FrameEvent::Kind::Pong: return true;
-	case FrameEvent::Kind::Close: {
-		const std::uint16_t code = event.code;
-		output_ += encodeFrame(Opcode::Close, code == 0 ? std::string{} : closePayload(code, ""), mask());
-		static_cast<void>(sendAll(output_, Clock::now() + closeTimeout));
-		if(code != 0 && code != 1000)
-			end = network::Failure{"network", "The server closed the connection (" + std::to_string(code) + ").", 0, {}};
+	case FrameEvent::Kind::Close:
+		answerClose(event.code, end);
 		return false;
-	}
 	case FrameEvent::Kind::Error: break;
 	}
 	output_ += encodeFrame(Opcode::Close, closePayload(event.code, event.data), mask());
 	static_cast<void>(sendAll(output_, Clock::now() + closeTimeout));
 	end = network::Failure{event.code == 1009 ? "tooLarge" : "protocol", event.data, 0, {}};
 	return false;
+}
+
+bool ClientSocket::deliver(std::string& message) {
+	if(delivery_->undelivered > options_.maxUndelivered) return false;
+	++delivery_->undelivered;
+	executor_.post([delivery = delivery_, message = std::move(message)]() mutable {
+		--delivery->undelivered;
+		if(delivery->cancelled || !delivery->handlers.message) return;
+		auto handleMessage = delivery->handlers.message; // a copy: the handler may destroy the connection
+		handleMessage(std::move(message));
+	});
+	return true;
+}
+
+void ClientSocket::answerClose(std::uint16_t code, std::optional<network::Failure>& end) {
+	output_ += encodeFrame(Opcode::Close, code == 0 ? std::string{} : closePayload(code, ""), mask());
+	static_cast<void>(sendAll(output_, Clock::now() + closeTimeout));
+	if(code != 0 && code != 1000)
+		end = network::Failure{"network", "The server closed the connection (" + std::to_string(code) + ").", 0, {}};
 }
 
 bool ClientSocket::flush() {
