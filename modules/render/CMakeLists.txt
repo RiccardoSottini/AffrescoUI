@@ -88,9 +88,10 @@ affrescoui_file_dialogs(affrescoui_render)
 
 # widgets: the views, the windows and the platform, one line per sub-folder of src/
 # The window, the application loop and the accessibility tree they publish
-target_sources(affrescoui_render PRIVATE src/window/Accessibility.cpp src/window/Application.cpp src/window/Window.cpp)
+target_sources(affrescoui_render PRIVATE src/window/Accessibility.cpp src/window/Application.cpp src/window/Window.cpp
+	src/window/WindowInput.cpp)
 # The panel tree: layout, hit tests, transforms; and the stack
-target_sources(affrescoui_render PRIVATE src/panel/Panel.cpp src/panel/Stack.cpp)
+target_sources(affrescoui_render PRIVATE src/panel/Panel.cpp src/panel/PanelLayout.cpp src/panel/Stack.cpp)
 # The small widgets: labels, fields, controls, dates, tabs, splits, images and paths
 target_sources(affrescoui_render PRIVATE src/widgets/Calendar.cpp src/widgets/Carousel.cpp src/widgets/CivilDate.cpp
 	src/widgets/CodeInput.cpp src/widgets/Controls.cpp src/widgets/ImageView.cpp src/widgets/Label.cpp
