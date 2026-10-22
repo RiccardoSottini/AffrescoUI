@@ -4,6 +4,7 @@
 
 #include "files/Watcher.hpp"
 
+#include <fcntl.h>
 #include <poll.h>
 #include <sys/inotify.h>
 #include <unistd.h>
@@ -48,7 +49,9 @@ public:
 	/// @throws std::runtime_error If inotify can't start.
 	InotifyBackend(const std::filesystem::path& root, WatchSink sink)
 	    : sink_(std::move(sink)), inotify_(inotify_init1(IN_NONBLOCK | IN_CLOEXEC)) {
-		if(inotify_.value < 0 || pipe(stopPipe_.data()) != 0) throw std::runtime_error("the folder can't be watched");
+		// Close-on-exec like inotify's descriptor: a program the host starts must not hold the pipe open
+		if(inotify_.value < 0 || pipe2(stopPipe_.data(), O_CLOEXEC) != 0)
+			throw std::runtime_error("the folder can't be watched");
 		wake_ = std::make_unique<Descriptor>(stopPipe_[1]);
 		sleep_ = std::make_unique<Descriptor>(stopPipe_[0]);
 		if(!watchTree(root)) throw std::runtime_error("the folder can't be watched");
