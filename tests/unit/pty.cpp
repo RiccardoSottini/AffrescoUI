@@ -111,7 +111,7 @@ struct ShellService {
 	/// @param script What the shell runs.
 	explicit ShellService(const std::string& script) {
 		const affresco::services::Grant grant{
-		    {}, "", affresco::services::ProcessGrant{"/bin/sh", {"-c", script}, {}}, "sh"};
+		    {}, "", affresco::services::ProcessGrant{"/bin/sh", {"-c", script}, {}, {}}, "sh"};
 		service = provider->create({{"process", "sh"}}, {executor, grant, {}, {}});
 	}
 	/// @brief Invokes a method.
