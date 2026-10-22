@@ -180,7 +180,8 @@ Shape Checker::shapeOf(const json& value, const Scope& scope, const std::string&
 		if(value.empty()) return anything;
 		Shape fields = Shape::object();
 		for(const auto& [key, item] : value.items()) // all different: each goes at the end, without looking
-			fields.get_ref<Shape::object_t&>().emplace_back(key, shapeOf(item, scope, std::format("{}.{}", place, key)));
+			fields.get_ref<Shape::object_t&>().emplace_back(key,
+			                                                shapeOf(item, scope, std::format("{}.{}", place, key)));
 		return fields;
 	}
 	if(value.is_array()) {
