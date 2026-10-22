@@ -28,6 +28,8 @@ struct DeckLimits {
 	std::size_t idBytes = 64;               ///< The longest id or name.
 	std::size_t imageFileBytes = 32u << 20; ///< The largest image file placed on a slide.
 	int imageSide = 4096;                   ///< The widest and tallest image placed on a slide, in pixels.
+	std::size_t fileBytes = 8u << 20;       ///< The largest deck file read.
+	std::size_t exportPages = 500;          ///< The most pages a PDF or PNG export writes (the PDF's own limits too).
 };
 
 /// @brief A run of rich text.
@@ -173,6 +175,11 @@ struct Deck {
 /// @param deck The deck.
 /// @return It.
 [[nodiscard]] affresco::json writeDeck(const Deck& deck);
+
+/// @brief Writes one object as JSON, every value included (as writeDeck() does).
+/// @param object The object.
+/// @return It.
+[[nodiscard]] affresco::json writeObject(const SlideObject& object);
 
 /// @brief The size of a deck's slides in slide units: 800 wide for slides, pages fitted into 800 by 600.
 /// @param deck The deck.

@@ -378,9 +378,31 @@ Deck Reader::deck(const json& value) {
 	return deck;
 }
 
-/// @brief Writes an object.
-/// @param object The object.
-/// @return It as JSON.
+/// @brief Writes a list of objects.
+/// @param objects The objects.
+/// @return Them as JSON.
+json writeObjects(const std::vector<SlideObject>& objects) {
+	json list = json::array();
+	for(const SlideObject& object : objects) list.push_back(writeObject(object));
+	return list;
+}
+
+/// @brief Writes masters or layouts.
+/// @param masters They.
+/// @return Them as JSON.
+json writeMasters(const std::vector<Master>& masters) {
+	json list = json::array();
+	for(const Master& master : masters)
+		list.push_back({{"id", master.id},
+		                {"name", master.name},
+		                {"master", master.master},
+		                {"background", master.background},
+		                {"objects", writeObjects(master.objects)}});
+	return list;
+}
+
+} // namespace
+
 json writeObject(const SlideObject& object) {
 	json runs = json::array();
 	for(const TextRun& run : object.runs)
@@ -430,31 +452,6 @@ json writeObject(const SlideObject& object) {
 		                   {"color", object.shadow->color}};
 	return value;
 }
-
-/// @brief Writes a list of objects.
-/// @param objects The objects.
-/// @return Them as JSON.
-json writeObjects(const std::vector<SlideObject>& objects) {
-	json list = json::array();
-	for(const SlideObject& object : objects) list.push_back(writeObject(object));
-	return list;
-}
-
-/// @brief Writes masters or layouts.
-/// @param masters They.
-/// @return Them as JSON.
-json writeMasters(const std::vector<Master>& masters) {
-	json list = json::array();
-	for(const Master& master : masters)
-		list.push_back({{"id", master.id},
-		                {"name", master.name},
-		                {"master", master.master},
-		                {"background", master.background},
-		                {"objects", writeObjects(master.objects)}});
-	return list;
-}
-
-} // namespace
 
 Deck readDeck(const json& value, const DeckLimits& limits) { return Reader(limits).deck(value); }
 
