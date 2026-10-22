@@ -200,9 +200,12 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_modello PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_modello PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
-	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Deck.cpp examples/sinopia/Arrange.cpp
-		examples/sinopia/ShapeGeometry.cpp examples/sinopia/ShapePanel.cpp examples/sinopia/DeckView.cpp
-		examples/sinopia/Edit.cpp examples/sinopia/Transition.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp)
+	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
+		# deck/: the deck model, read, checked, edited and arranged without a window
+		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Edit.cpp examples/sinopia/deck/Arrange.cpp
+		# drawing/: slides, shapes and transitions turned into pixels and paths, and the shape panel
+		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/ShapeGeometry.cpp
+		examples/sinopia/drawing/ShapePanel.cpp examples/sinopia/drawing/Transition.cpp)
 	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
 	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})

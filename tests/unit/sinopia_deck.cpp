@@ -2,8 +2,8 @@
 /// @brief Sinopia's deck model (examples/sinopia): reading and writing a deck, its limits, ids, theme tokens, page
 /// sizes, text autofit and slides made from layouts.
 
-#include <sinopia/Deck.hpp>
-#include <sinopia/ShapeGeometry.hpp>
+#include <sinopia/deck/Deck.hpp>
+#include <sinopia/drawing/ShapeGeometry.hpp>
 
 #include <affresco/render/VectorPath.hpp>
 

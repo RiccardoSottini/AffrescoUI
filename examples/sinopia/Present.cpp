@@ -3,7 +3,7 @@
 /// the frames it mirrors, with the slide transitions blended between them.
 
 #include "Sinopia.hpp"
-#include "Transition.hpp"
+#include "drawing/Transition.hpp"
 
 #include <algorithm>
 #include <array>

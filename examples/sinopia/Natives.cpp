@@ -1,10 +1,10 @@
 /// @file
 /// @brief Sinopia's deck natives: loading, saving, drawing and editing decks, thumbnails, and PDF and PNG exports.
 
-#include "DeckView.hpp"
-#include "Edit.hpp"
 #include "Png.hpp"
 #include "Sinopia.hpp"
+#include "deck/Edit.hpp"
+#include "drawing/DeckView.hpp"
 
 #include <affresco/export/PdfDocument.hpp>
 

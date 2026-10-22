@@ -7,7 +7,7 @@
 
 #include "Fuzz.hpp"
 
-#include "Deck.hpp"
+#include "deck/Deck.hpp"
 
 #include <cstddef>
 #include <cstdint>

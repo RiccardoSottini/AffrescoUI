@@ -9,9 +9,9 @@
 // agent.sock). --check plays the scenarios headless, with the natives registered, and prints the report; with --out,
 // their pictures are drawn and captures are saved in DIR (tools/media/capture.py).
 
-#include "SocketDir.hpp"
-#include "ShapePanel.hpp"
 #include "Sinopia.hpp"
+#include "SocketDir.hpp"
+#include "drawing/ShapePanel.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
