@@ -31,6 +31,16 @@ struct KeyReference {
 /// @return The keys, in the order of the tables.
 [[nodiscard]] std::span<const KeyReference> nodeKeys();
 
+/// @brief The keys the node types add, from the editor's to the timeline's: nodeKeys()'s middle part
+/// (ReferenceNodeTypes.cpp).
+/// @return The keys, in the order of the tables.
+[[nodiscard]] std::span<const KeyReference> nodeTypeKeys();
+
+/// @brief The events, the form's and the carousel's keys, and the keys no table lists: nodeKeys()'s last part
+/// (ReferenceNodeEvents.cpp).
+/// @return The keys, in the order of the tables.
+[[nodiscard]] std::span<const KeyReference> nodeEventKeys();
+
 /// @brief The top-level sections (ReferenceSections.cpp).
 /// @return The sections, in the order of the table.
 [[nodiscard]] std::span<const KeyReference> sectionKeys();
