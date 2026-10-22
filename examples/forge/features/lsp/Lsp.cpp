@@ -3,12 +3,12 @@
 
 #include "features/lsp/Lsp.hpp"
 
+#include "features/lsp/LspCall.hpp"
 #include "features/lsp/LspProtocol.hpp"
 #include "features/palette/FileIndex.hpp"
 
 #include <affresco/core/Json.hpp>
 
-#include <atomic>
 #include <cstdlib>
 #include <fstream>
 #include <functional>
@@ -16,7 +16,6 @@
 #include <optional>
 #include <sstream>
 #include <stdexcept>
-#include <stop_token>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -28,66 +27,16 @@ namespace forge {
 namespace {
 
 using affresco::json;
-namespace services = affresco::services;
+using lsp::codePointsOf;
+using lsp::positionArgument;
+using lsp::ServerCall;
+using lsp::textArgument;
+using lsp::utf16Units;
 
 constexpr std::size_t mostWaiting = 64;    ///< Requests kept while a server initializes.
 constexpr std::size_t mostChanges = 1000;  ///< Changes kept before a document is sent whole instead.
 constexpr std::size_t longestName = 256;   ///< Bytes of a rename's new name, or a symbol query.
 constexpr std::size_t largestFile = std::size_t{8} << 20; ///< A file forge.lsp.apply edits on disk, at most 8 MiB.
-
-/// @brief A call to a server whose answer is handled on the main thread, while the client is alive.
-class ServerCall final : public services::Call {
-public:
-	/// @brief Gets the result, or no result and the error.
-	using Done = std::function<void(std::optional<json> result, const std::string& error)>;
-	/// @brief Gets one event of a subscription.
-	using Events = std::function<void(const json& event)>;
-
-	/// @brief A call.
-	/// @param arguments The params sent.
-	/// @param executor The main thread; nullptr drops what arrives.
-	/// @param alive The client's guard.
-	/// @param done Gets the result (may be empty).
-	/// @param events Gets a subscription's events (may be empty).
-	ServerCall(json arguments, affresco::Executor* executor, std::weak_ptr<bool> alive, Done done, Events events = {})
-	    : arguments_(std::move(arguments)), executor_(executor), alive_(std::move(alive)), done_(std::move(done)),
-	      events_(std::move(events)) {}
-
-	const json& arguments() const noexcept override { return arguments_; }
-	std::stop_token stopToken() const noexcept override { return stop_.get_token(); }
-	void progress(json) override {}
-	void event(json event) override {
-		if(!events_ || ended_ || stop_.stop_requested()) return;
-		post([events = events_, event = std::move(event)] { events(event); });
-	}
-	void finish(json result) override {
-		if(ended_.exchange(true) || !done_) return;
-		post([done = done_, result = std::move(result)] { done(result, {}); });
-	}
-	void fail(std::string, std::string message, json) override {
-		if(ended_.exchange(true) || !done_) return;
-		post([done = done_, message = std::move(message)] { done(std::nullopt, message); });
-	}
-	/// @brief Asks the service to stop it (a subscription of a server that is reset).
-	void stop() { stop_.request_stop(); }
-
-private:
-	/// @brief Runs a task on the main thread, if the client is still alive then.
-	/// @param task The task.
-	void post(std::function<void()> task) {
-		if(executor_) executor_->post([alive = alive_, task = std::move(task)] {
-			if(alive.lock()) task();
-		});
-	}
-
-	json arguments_;                   ///< See arguments().
-	affresco::Executor* executor_;     ///< See the constructor.
-	std::weak_ptr<bool> alive_;        ///< See the constructor.
-	Done done_;                        ///< See the constructor.
-	Events events_;                    ///< See the constructor.
-	std::stop_source stop_;            ///< See stopToken().
-	std::atomic<bool> ended_ = false;  ///< After finish() or fail().
-};
 
 /// @brief What a request kind asks a server.
 struct Kind {
@@ -116,49 +65,6 @@ const json tokenTypes = {"namespace", "type",     "class",    "enum",      "inte
                          "parameter", "variable", "property", "enumMember", "event",    "function", "method",
                          "macro",     "keyword",  "modifier", "comment",   "string",    "number",   "regexp",
                          "operator",  "decorator", "concept"};
-
-/// @brief A text argument of a call.
-/// @param with The arguments.
-/// @param key The argument.
-/// @param bytes At most this long.
-/// @return It, or "".
-/// @throws std::runtime_error If it is longer.
-std::string textArgument(const json& with, const char* key, std::size_t bytes) {
-	const json& value = with.is_object() && with.contains(key) ? with[key] : json();
-	if(!value.is_string()) return {};
-	if(value.get_ref<const std::string&>().size() > bytes) throw std::runtime_error(std::string(key) + " is too long");
-	return value.get<std::string>();
-}
-
-/// @brief A positive number argument of a call.
-/// @param with The arguments.
-/// @param key The argument.
-/// @return It, or 1 if it isn't one.
-std::size_t positionArgument(const json& with, const char* key) {
-	const json& value = with.is_object() && with.contains(key) ? with[key] : json();
-	return value.is_number_unsigned() && value.get<std::size_t>() > 0 ? std::min(value.get<std::size_t>(), std::size_t{1} << 30)
-	                                                                  : 1;
-}
-
-/// @brief UTF-16 units of the first code points of a line.
-/// @param line The line.
-/// @param columns How many code points.
-/// @return Their units.
-std::size_t utf16Units(std::u32string_view line, std::size_t columns) {
-	std::size_t units = 0;
-	for(std::size_t i = 0; i < std::min(columns, line.size()); ++i) units += line[i] > 0xFFFF ? 2 : 1;
-	return units + (columns > line.size() ? columns - line.size() : 0);
-}
-
-/// @brief The code points of a line that make up a number of UTF-16 units.
-/// @param line The line.
-/// @param units The units.
-/// @return The code points (a unit inside a pair counts its whole code point).
-std::size_t codePointsOf(std::u32string_view line, std::size_t units) {
-	std::size_t i = 0;
-	for(std::size_t at = 0; i < line.size() && at < units; ++i) at += line[i] > 0xFFFF ? 2 : 1;
-	return i + (units > utf16Units(line, line.size()) ? units - utf16Units(line, line.size()) : 0);
-}
 
 /// @brief The language servers of one screen, and what each knows of the open documents.
 class Client {
