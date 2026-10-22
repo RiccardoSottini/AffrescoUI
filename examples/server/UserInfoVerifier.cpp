@@ -34,18 +34,26 @@ bool validSubject(std::string_view subject) noexcept {
 	       std::ranges::all_of(subject, [](char c) { return c > ' ' && c < 127; });
 }
 
+/// @brief Allows the client to reach the userinfo endpoint, if it is one it may reach.
+/// @param client The client.
+/// @param userinfo The endpoint's URL.
+/// @throws std::runtime_error If it isn't an http(s) URL, or the client refuses it.
+void allowEndpoint(net::Client& client, std::string_view userinfo) {
+	const auto url = net::parseUrl(userinfo);
+	if(!url || (url->scheme != "https" && url->scheme != "http"))
+		throw std::runtime_error("--userinfo is the provider's userinfo endpoint, an https:// URL");
+	if(const auto refused = client.allow(url->origin())) throw std::runtime_error("--userinfo: " + *refused);
+	// Plain http only on the loopback: the allowlist takes any origin, a request checks the scheme
+	if(const auto refused = client.check(userinfo)) throw std::runtime_error("--userinfo: " + *refused);
+}
+
 } // namespace
 
 UserInfoVerifier::UserInfoVerifier(std::string_view userinfo, const std::filesystem::path& people,
                                    net::ClientOptions options)
     : userinfo_(userinfo), executor_(std::make_unique<Inline>()),
       client_(std::make_unique<net::Client>(*executor_, std::move(options))) {
-	const auto url = net::parseUrl(userinfo);
-	if(!url || (url->scheme != "https" && url->scheme != "http"))
-		throw std::runtime_error("--userinfo is the provider's userinfo endpoint, an https:// URL");
-	if(const auto refused = client_->allow(url->origin())) throw std::runtime_error("--userinfo: " + *refused);
-	// Plain http only on the loopback: the allowlist takes any origin, a request checks the scheme
-	if(const auto refused = client_->check(userinfo)) throw std::runtime_error("--userinfo: " + *refused);
+	allowEndpoint(*client_, userinfo);
 	std::ifstream file(people);
 	if(!file) throw std::runtime_error("can't read the people file " + people.string());
 	std::string line;
