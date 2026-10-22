@@ -521,6 +521,28 @@
 			},
 			"expect": "deny",
 			"reason": "can't change \"permissions\""
+		},
+		{
+			"name": "no one moves where the habits sync",
+			"revision": {
+				"author": "studio",
+				"set": {
+					"/connections/streakServer/url": "ws://127.0.0.1:7421/live"
+				}
+			},
+			"expect": "deny",
+			"reason": "can't change \"connections\""
+		},
+		{
+			"name": "nor does an agent",
+			"revision": {
+				"author": "agent/claude-code",
+				"set": {
+					"/connections/streakServer/messages/open/document": "~elsewhere"
+				}
+			},
+			"expect": "deny",
+			"reason": "can't change \"connections\""
 		}
 	]
 }
