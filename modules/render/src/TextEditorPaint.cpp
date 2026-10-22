@@ -1,11 +1,9 @@
 /// @file
-/// @brief TextEditor drawing: the visible lines in runs of one colour, the selection, the gutter, the caret and the
-/// scroll bar.
+/// @brief TextEditor drawing: the visible rows in runs of one colour, the selections, the gutter, the caret and the
+/// scroll bar (what goes under and over the text is in TextEditorPaintView.cpp).
 
 #include "affresco/render/Painter.hpp"
 #include "affresco/render/TextEditor.hpp"
-
-#include "detail/Utf8.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -31,88 +29,170 @@ void TextEditor::paint(Painter& painter) const {
 	                    .firstTop = box.top + textPadding - scroll_.y,
 	                    .baseline = std::round((lh - f->lineHeight()) / 2.0f + f->ascent()),
 	                    .first = first,
-	                    .last = std::min(lines_.size(), first + visibleLines() + 3)};
+	                    .last = std::min(rowCount(), first + visibleLines() + 3)};
+	if(layout.first >= layout.last) return paintGutter(painter, *f, layout);
+	const std::size_t firstLine = rowSpan(layout.first).line, lastLine = rowSpan(layout.last - 1).line + 1;
+
+	if(const std::size_t caretRow = rowOf(caret_); !hasSelection() && caretRow >= layout.first && caretRow < layout.last) {
+		const float top = lineTop(layout, caretRow);
+		painter.fillRect({box.left, top, box.right, top + lh}, lineColor_);
+	}
+	paintUnder(painter, *f, layout);
 
 	// The colouring state (e.g. an open block comment) may come from above the visible lines: each line's is kept, so
-	// they are coloured from the last one known
+	// they are coloured from the last one known (folded lines whose state is known are skipped)
 	if(states_.empty()) states_.push_back(0);
-	std::size_t line = std::min(states_.size() - 1, layout.first);
+	std::size_t line = std::min(states_.size() - 1, firstLine);
 	int state = states_[line];
-	std::vector<Color> colors;
-	std::vector<std::pair<std::size_t, float>> runs;
-	for(; line < layout.last; ++line) {
+	while(line < lastLine) {
 		const std::u32string& text = lines_[line];
-		colors.resize(text.size());
-		colorLine(text, state, colors);
+		colors_.resize(text.size());
+		colorLine(text, state, colors_);
 		if(line + 1 == states_.size()) states_.push_back(state);
-		if(line >= layout.first) paintLine(painter, *f, layout, line, colors, runs);
+		if(line >= firstLine && !hidden(line))
+			for(std::size_t row = std::max(rowOf({line, 0}), layout.first); row < layout.last; ++row) {
+				const RowSpan span = rowSpan(row);
+				if(span.line != line) break;
+				paintLine(painter, *f, layout, span, row);
+			}
+		const std::size_t next = nextShown(line);
+		++line;
+		if(next > line && next < states_.size()) {
+			line = next;
+			state = states_[next];
+		}
 	}
 
+	paintAbove(painter, *f, layout);
 	paintGutter(painter, *f, layout);
 	paintCaretAndScrollBar(painter, layout);
 }
 
-float TextEditor::lineTop(const Layout& layout, std::size_t line) noexcept {
-	return std::round(layout.firstTop + static_cast<float>(line) * layout.lineHeight);
+float TextEditor::lineTop(const Layout& layout, std::size_t row) noexcept {
+	return std::round(layout.firstTop + static_cast<float>(row) * layout.lineHeight);
 }
 
-void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& layout, std::size_t line,
-                           const std::vector<Color>& colors, std::vector<std::pair<std::size_t, float>>& runs) const {
+void TextEditor::paintLine(Painter& painter, const Font& font, const Layout& layout, RowSpan span,
+                           std::size_t row) const {
 	const Rect& box = frame();
-	const float top = lineTop(layout, line), lh = layout.lineHeight;
-	const std::u32string& text = lines_[line];
+	const float top = lineTop(layout, row);
+	const std::u32string& text = lines_[span.line];
 
-	if(line == caret_.line && !hasSelection()) painter.fillRect({box.left, top, box.right, top + lh}, lineColor_);
-	paintSelection(painter, font, layout, line);
+	paintSelection(painter, font, layout, span, row, selection());
+	// The extra cursors are sorted and apart: those that reach this line come together
+	const auto reaches = std::ranges::lower_bound(cursors_, Position{span.line, 0}, {},
+	                                              [](const EditorSelection& s) { return std::max(s.anchor, s.caret); });
+	for(auto it = reaches; it != cursors_.end() && std::min(it->anchor, it->caret).line <= span.line; ++it)
+		paintSelection(painter, font, layout, span, row, std::minmax(it->anchor, it->caret));
 
 	// Runs of one colour, each shaped on its own, where the whole line's shaping puts them (so the caret matches).
-	// Their widths are read first: drawing a run shapes it, which may drop the line's shaping from the cache
-	const std::vector<float>& advances = font.shape(text).advances;
-	if(advances.size() < text.size()) return; // out of memory: Font::shape() gave nothing
-	runs.clear();
-	for(std::size_t start = 0; start < text.size();) {
+	// Their places are read first: drawing a run shapes it, which may drop the line's shaping from the cache
+	const Font::ShapedText& shaped = font.shape(text);
+	if(shaped.advances.size() < text.size() || shaped.carets.size() <= span.end) return; // out of memory
+	// Left to right, a run starts where the one before it ends; otherwise (bidirectional text) at its leftmost caret
+	const bool leftToRight = std::ranges::is_sorted(shaped.carets);
+	const float origin = wrap_ ? shaped.carets[span.start] : 0.0f;
+	runs_.clear();
+	float pen = 0.0f;
+	for(std::size_t start = span.start; start < span.end;) {
 		std::size_t end = start + 1;
-		while(end < text.size() && colors[end] == colors[start]) ++end;
-		float width = 0.0f;
-		for(std::size_t i = start; i < end; ++i) width += advances[i];
-		runs.emplace_back(end, width);
-		start = end;
-	}
-	float pen = layout.textLeft;
-	std::size_t start = 0;
-	for(const auto& [end, width] : runs) {
-		if(pen + width >= box.left + layout.gutter && pen <= box.right)
-			painter.drawText(font, std::u32string_view(text).substr(start, end - start), {pen, top + layout.baseline},
-			                 colors[start]);
+		while(end < span.end && colors_[end] == colors_[start]) ++end;
+		float width = 0.0f, left = shaped.carets[start];
+		for(std::size_t i = start; i < end; ++i) {
+			width += shaped.advances[i];
+			left = std::min(left, shaped.carets[i + 1]);
+		}
+		runs_.push_back({end, leftToRight ? pen : left - origin, width});
 		pen += width;
 		start = end;
 	}
+	std::size_t start = span.start;
+	for(const auto& [end, x, width] : runs_) {
+		const float left = layout.textLeft + x;
+		if(left + width >= box.left + layout.gutter && left <= box.right)
+			painter.drawText(font, std::u32string_view(text).substr(start, end - start), {left, top + layout.baseline},
+			                 colors_[start]);
+		start = end;
+	}
 }
 
-void TextEditor::paintSelection(Painter& painter, const Font& font, const Layout& layout, std::size_t line) const {
-	const auto [from, to] = selection();
-	if(!hasSelection() || line < from.line || line > to.line) return;
-
-	const float top = lineTop(layout, line);
-	const float left = line == from.line ? columnX(line, from.column) : 0.0f;
+void TextEditor::paintSelection(Painter& painter, const Font& /*font*/, const Layout& layout, RowSpan span,
+                                std::size_t row, std::pair<Position, Position> selection) const {
+	const auto [from, to] = selection;
+	if(from == to || span.line < from.line || span.line > to.line) return;
+	const bool lastRow = span.end == lines_[span.line].size();
+	if(span.line == from.line && (from.column > span.end || (!lastRow && from.column == span.end))) return;
+	if(span.line == to.line && to.column < span.start) return;
+	const std::size_t start = span.line == from.line ? std::max(from.column, span.start) : span.start;
+	const std::size_t end = span.line == to.line ? std::min(to.column, span.end) : span.end;
 	// A selected line break shows as a space's width
-	const float right =
-	    line == to.line ? columnX(line, to.column) : font.measure(lines_[line]) + font.glyph(U' ').advance;
-	painter.fillRect({layout.textLeft + std::min(left, right), top, layout.textLeft + std::max(left, right),
-	                  top + layout.lineHeight},
-	                 selectionColor_);
+	const bool lineBreak = span.line != to.line && lastRow;
+	if(start >= end && !lineBreak) return;
+	paintColumns(painter, layout, span, row, {start, lineBreak ? end + 1 : end}, selectionColor_);
+}
+
+void TextEditor::paintColumns(Painter& painter, const Layout& layout, RowSpan span, std::size_t row,
+                              std::pair<std::size_t, std::size_t> columns, Color color) const {
+	const Font* f = font();
+	if(!f) return;
+	const std::u32string& text = lines_[span.line];
+	const bool lineBreak = columns.second > span.end;
+	const std::size_t end = std::min(columns.second, span.end);
+	// Measured before the carets are read: measuring may drop the line's shaping from the cache
+	const float measured = lineBreak && !wrap_ ? f->measure(text) : 0.0f;
+	const float space = lineBreak ? f->glyph(U' ').advance : 0.0f;
+	const std::vector<float>& carets = f->shape(text).carets;
+	if(carets.empty()) return;
+	const auto x = [&carets](std::size_t column) { return carets[std::min(column, carets.size() - 1)]; };
+	const float origin = wrap_ ? x(span.start) : 0.0f;
+	const float top = lineTop(layout, row), bottom = top + layout.lineHeight;
+	const auto fill = [&](float a, float b) {
+		painter.fillRect({layout.textLeft + std::min(a, b), top, layout.textLeft + std::max(a, b), bottom}, color);
+	};
+	const float breakLeft = wrap_ ? x(span.end) - origin : measured;
+	if(std::ranges::is_sorted(carets)) {
+		const float right = lineBreak ? breakLeft + space : x(end) - origin;
+		return fill(x(columns.first) - origin, right);
+	}
+	// Bidirectional text: each code point where it is drawn
+	for(std::size_t column = columns.first; column < end; ++column) fill(x(column) - origin, x(column + 1) - origin);
+	if(lineBreak) fill(breakLeft, breakLeft + space);
 }
 
 void TextEditor::paintGutter(Painter& painter, const Font& font, const Layout& layout) const {
 	// The gutter covers text scrolled under it
 	const Rect& box = frame();
 	if(color().a > 0.0f) painter.fillRect({box.left, box.top, box.left + layout.gutter - 8.0f, box.bottom}, color());
-	if(!lineNumbers_) return;
-	for(std::size_t line = layout.first; line < layout.last; ++line) {
-		const std::u32string number = detail::fromUtf8(std::to_string(line + 1));
-		const float x = std::round(box.left + layout.gutter - 20.0f - font.measure(number));
-		painter.drawText(font, number, {x, lineTop(layout, line) + layout.baseline},
-		                 line == caret_.line ? activeLineNumberColor_ : lineNumberColor_);
+	for(std::size_t row = layout.first; row < layout.last; ++row) {
+		const RowSpan span = rowSpan(row);
+		if(span.start != 0) continue; // a wrapped line's label is on its first row
+		const float top = lineTop(layout, row);
+		if(lineNumbers_) {
+			lineLabel(span.line, label_);
+			const float x = std::round(box.left + layout.gutter - 20.0f - font.measure(label_));
+			painter.drawText(font, label_, {x, top + layout.baseline},
+			                 span.line == caret_.line ? activeLineNumberColor_ : lineNumberColor_);
+		}
+		// A folded line's marker: a short bar where the gutter ends
+		if(viewActive() && nextShown(span.line) > span.line + 1) {
+			const float x = box.left + layout.gutter - 14.0f;
+			painter.fillRoundedRect({x, top + 5.0f, x + 3.0f, top + layout.lineHeight - 5.0f}, CornerRadii::all(1.5f),
+			                        activeLineNumberColor_);
+		}
+	}
+	// Gutter icons, on their first line
+	const auto from = std::ranges::lower_bound(decorations_, rowSpan(std::min(layout.first, rowCount() - 1)).line, {},
+	                                           &EditorDecoration::line);
+	for(auto it = from; it != decorations_.end() && rowOf({it->line, 0}) < layout.last; ++it) {
+		if(it->kind != EditorDecoration::Kind::Gutter || hidden(it->line)) continue;
+		const float top = lineTop(layout, rowOf({it->line, 0}));
+		if(it->icon != 0) {
+			painter.drawText(font, std::u32string_view(&it->icon, 1), {box.left + 2.0f, top + layout.baseline}, it->color);
+			continue;
+		}
+		const float middle = top + layout.lineHeight / 2.0f;
+		painter.fillRoundedRect({box.left + 3.0f, middle - 3.0f, box.left + 9.0f, middle + 3.0f}, CornerRadii::all(3.0f),
+		                        it->color);
 	}
 }
 
@@ -120,15 +200,16 @@ void TextEditor::paintCaretAndScrollBar(Painter& painter, const Layout& layout) 
 	const Rect& box = frame();
 	const float lh = layout.lineHeight;
 	if(hasFocus()) {
-		const float x = std::round(layout.textLeft + columnX(caret_.line, caret_.column));
-		const float top = lineTop(layout, caret_.line);
+		const float x = std::round(layout.textLeft + xOnRow(caret_));
+		const float top = lineTop(layout, rowOf(caret_));
 		if(x >= box.left + layout.gutter - 8.0f)
 			painter.fillRect({x, top + 1.0f, x + 2.0f, top + lh - 1.0f}, caretColor_);
 	}
 
 	// A scroll bar thumb as long as the visible share of the text
-	const float content = static_cast<float>(lines_.size()) * lh + box.height() - lh;
-	if(static_cast<float>(lines_.size()) * lh + textPadding > box.height()) {
+	const float rows = static_cast<float>(rowCount());
+	const float content = rows * lh + box.height() - lh;
+	if(rows * lh + textPadding > box.height()) {
 		const float length = std::max(box.height() * box.height() / content, 16.0f);
 		const float top = box.top + scroll_.y / (content - box.height()) * (box.height() - length);
 		painter.fillRect({box.right - scrollBarWidth - 2.0f, top, box.right - 2.0f, top + length},

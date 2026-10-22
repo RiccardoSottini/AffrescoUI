@@ -1,5 +1,5 @@
 {
-	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400; the limits leave room for runners and callgrind.",
+	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400;, editor/type-100k 3.4 of editor/type-1k, editor/scroll-1m 1.0 of editor/scroll-10k; the limits leave room for runners and callgrind.",
 	"locks": [
 		{
 			"name": "layout/5000/change",
@@ -18,6 +18,18 @@
 			"of": "frame/400",
 			"atMost": 0.8,
 			"why": "a frame where nothing but the caret changed reuses the cached draw list"
+		},
+		{
+			"name": "editor/type-100k",
+			"of": "editor/type-1k",
+			"atMost": 6,
+			"why": "a key typed in a long file redraws only the visible lines: the file's length barely counts"
+		},
+		{
+			"name": "editor/scroll-1m",
+			"of": "editor/scroll-10k",
+			"atMost": 2,
+			"why": "a scrolled frame finds its rows by index, not by walking the lines above"
 		}
 	]
 }

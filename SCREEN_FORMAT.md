@@ -211,6 +211,14 @@ Tabs become 4 spaces. Applications build richer editors on it (syntax colours, c
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
 | `lineColor`, `selectionColor`, `caretColor` | The caret's line background, the selection, the caret. |
 | `autofocus`, `onChange` | Focus when built; `event.value` is the new text. |
+| `wrap` | `true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once. |
+| `folds` | Folded ranges, `[{ "line", "endLine" }]` from 0: the lines after `line` up to `endLine` are hidden behind it. The user folds and unfolds with the gutter or Cmd+Alt+[ and ]; the document's folds replace theirs only when they change, and leaving the key out keeps them. At most 10,000. |
+| `decorations` | `[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: `background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most 10,000 and 8 on a line; inline text is cut at 256 characters. |
+| `find` | `{ "text", "regex", "wholeWord", "caseSensitive" }`: highlights the matches of `text` (plain, or a PCRE2 pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select the next and previous. A pattern that doesn't compile highlights nothing. |
+| `brackets` | `true` highlights the bracket that pairs with the one at the caret. |
+| `indentGuides` | `true` draws a line at each indentation level. |
+| `readOnly` | `true`: the user can select, find and fold, but not edit. |
+| `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
 <!-- end generated -->
 
 ### `row`, `column`, `stack`, `grid`

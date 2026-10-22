@@ -283,6 +283,40 @@ constexpr KeyReference nodeTable[] = {
     {"caretColor", "color", "", "editor"},
     {"autofocus", R"json({"type": "boolean"})json", "Focus when built; `event.value` is the new text.", "editor"},
     {"onChange", "handler", "", "editor"},
+    {"wrap", "", "`true` wraps lines at the width (at spaces, else anywhere); the gutter numbers each line once.",
+	 "editor"},
+    {"folds", R"json({"type": "array", "maxItems": 100000, "description": "editor: folded line ranges, { line, endLine } from 0",
+		"items": {"type": "object", "properties": {"line": {"type": "number", "minimum": 0},
+		"endLine": {"type": "number", "minimum": 0}}}})json",
+	 R"(Folded ranges, `[{ "line", "endLine" }]` from 0: the lines after `line` up to `endLine` are hidden behind it. )"
+	 "The user folds and unfolds with the gutter or Cmd+Alt+[ and ]; the document's folds replace theirs only when "
+	 "they change, and leaving the key out keeps them. At most 10,000.",
+	 "editor"},
+    {"decorations",
+	 R"json({"type": "array", "maxItems": 100000, "description": "editor: backgrounds, squiggles, gutter icons and inline text on lines (from 0)",
+		"items": {"type": "object", "properties": {"line": {"type": "number", "minimum": 0},
+		"endLine": {"type": "number", "minimum": 0}, "column": {"type": "number", "minimum": 0},
+		"endColumn": {"type": "number", "minimum": 0},
+		"kind": {"enum": ["background", "squiggle", "gutter", "inline"]}, "color": {"$ref": "#/$defs/v1/color"},
+		"icon": {"type": "string"}, "text": {"type": "string"}}}})json",
+	 R"(`[{ "line", "endLine", "column", "endColumn", "kind", "color", "icon", "text" }]`, lines and columns from 0: )"
+	 "`background` tints the lines, `squiggle` underlines the columns (or the whole lines) with a wave, `gutter` "
+	 "draws `icon` (its first character) beside the line, `inline` writes `text` after the line's end. At most "
+	 "10,000 and 8 on a line; inline text is cut at 256 characters.",
+	 "editor"},
+    {"find", R"json({"type": "object", "description": "editor: highlights the matches of a pattern; Cmd+G and Cmd+Shift+G go to the next and previous",
+		"properties": {"text": {"type": "string"}, "regex": {"type": "boolean"}, "wholeWord": {"type": "boolean"},
+		"caseSensitive": {"type": "boolean"}}})json",
+	 R"(`{ "text", "regex", "wholeWord", "caseSensitive" }`: highlights the matches of `text` (plain, or a PCRE2 )"
+	 "pattern with `regex`, matched line by line within match and depth limits); Cmd+G and Cmd+Shift+G select "
+	 "the next and previous. A pattern that doesn't compile highlights nothing.",
+	 "editor"},
+    {"brackets", "flag", "`true` highlights the bracket that pairs with the one at the caret.", "editor"},
+    {"indentGuides", "flag", "`true` draws a line at each indentation level.", "editor"},
+    {"readOnly", "flag", "`true`: the user can select, find and fold, but not edit.", "editor"},
+    {"guideColor", "color", "The indentation guides, find's matches and the paired brackets.", "editor"},
+    {"matchColor", "color", "", "editor"},
+    {"bracketColor", "color", "", "editor"},
     {"gap", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "Pixels between children (and between lines, when it wraps).", "stack"},
     {"rowGap",

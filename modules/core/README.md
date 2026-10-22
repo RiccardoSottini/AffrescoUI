@@ -5,7 +5,9 @@ implementation. The rendering engine posts work through an `Executor`, the live 
 through `VersionControl`, version control learns what a document means through `DocumentRules`, and peers arrive on a
 `Channel`. It also holds what every module shares: `Signal`, the JSON type with its safe parser and typed readers,
 and the log. It is headers only (`affrescoui::core`, an `INTERFACE` target) and has no dependency of its own: the JSON
-headers come with nlohmann/json, which only the modules that use documents link.
+headers come with nlohmann/json, which only the modules that use documents link. The one exception is
+`TextPattern`, compiled with PCRE2 into `affrescoui::regex` (`cmake/AffrescoUIRegex.cmake`), which the modules that
+match text (render, services) link privately.
 
 ## Public headers (`include/affresco/core/`)
 
@@ -23,6 +25,7 @@ headers come with nlohmann/json, which only the modules that use documents link.
 | `Network.hpp` | `network::Network` (`allow`, `check`, `start`, `connect`): what the `net` module offers to the others; `Request`, `Response`, `Failure`, `StreamEvent`, `Handlers`, `Transfer`, `WebSocket`, `SocketHandlers` |
 | `Services.hpp` | `services::Services` (`load`, `method`, `invoke`, `subscribe`, `status`, `onStatus`, `onRequest`): what the `services` module offers to the others; `Call` (one call or subscription: `arguments`, `stopToken`, `progress`, `event`, `finish`, `fail`), `MethodSpec`, `Effect`, `RequestHandler` |
 | `Log.hpp` | `LogLevel`, `log`, `setLogSink`: every console message of the library goes through one sink |
+| `TextPattern.hpp` | `TextPattern` (`compile`, `find`, `expand`), `PatternOptions` (regex, whole word, case), `PatternMatch`, `PatternFind`: plain, whole-word or PCRE2 matching under limits (pattern 4 KiB, 1,000,000 steps, depth 10,000, 8 MiB heap per match); const matching is thread-safe |
 
 ## Invariants
 
@@ -75,9 +78,11 @@ include/affresco/core/
   CallProgress.hpp    a slow call's cancellation, progress and partial results
   Json.hpp            json, DocumentError, parseUntrusted, toText, expect::
   Log.hpp             levels, the sink, log()
+  TextPattern.hpp     plain, whole-word and PCRE2 patterns, bounded
   ScreenImages.hpp    pictures of the screen for peers
   Signal.hpp          Signal and Connection
   VersionControl.hpp  VersionControl, VersionObserver and their value types
+src/TextPattern.cpp   TextPattern over PCRE2 (built into affrescoui::regex)
 CMakeLists.txt        the affrescoui_core INTERFACE target
 ```
 

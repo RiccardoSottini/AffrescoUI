@@ -23,7 +23,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
 | `RichText.hpp` | `TextRun` (a part of a text with its own font, colour, link or inline icon) and `TextLayout` (runs broken into lines across styles, hit testing, carets) |
 | `TextArea.hpp` | `TextArea`: a single-line input |
-| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`) |
+| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`). Word wrap (`setWrap`), folding (`fold`, `unfold`, `toggleFold`, `setFolds`, `offerFolds`), decorations (`EditorDecoration`: background, squiggle, gutter icon, inline text), extra cursors and column selection (`addCursor`, Cmd/Ctrl+D, Cmd+Alt+Up/Down, Alt+drag), find and replace (`setFind`, `findNext`, `replaceNext`, `replaceAll`, `matchCount`; Cmd/Ctrl+G), bracket matching, indentation guides and an IME composition (`setComposition`) |
 | `TextModel.hpp` | `TextModel`: UTF-8 text of any size as a piece tree, with a line index (`line`, `offsetOf`, `positionOf`), O(log n) edits, undo as operations (`beginStep`, `endStep`, `undo`) and `onChanged` (`TextChange`); `TextLines`, its lines decoded and kept for reading again |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
 | `Split.hpp` | `Split`: panes along a row or a column with sashes between them; sizes within minimums, the last pane taking the rest; dragged, reset by a double click or Home, moved by the arrow keys (PageUp and PageDown pick a sash); `onSizesChanged` |
@@ -135,7 +135,12 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   in a treap with the bytes and line feeds under each node, so an edit or finding a line costs O(log n). A 50 MB
   text opens in under a second, an edit takes under 50 µs, and memory stays under 1.5 times the text
   (`tests/unit/text_model.cpp`). The editor decodes and colours only the visible lines (the colouring state of each
-  line above them is kept), and past 4,096 lines estimates its width from the longest line.
+  line above them is kept), and past 4,096 lines estimates its width from the longest line. Wrapped or folded, it
+  keeps a row index (a line's first row, by binary search), so scrolling a million lines costs the same as ten
+  thousand (`tests/perf/editor.cpp`: typing in 100,000 lines and scrolling 1,000,000, both well within 8 ms).
+- **Editor bounds:** at most 10,000 cursors, 10,000 decorations (8 starting on a line, inline text 256 code points),
+  10,000 folds, 10,000 matches counted or replaced and 10,000 highlighted, 1,000 on a line; bracket matching reads at
+  most 100,000 code points and Cmd+D 100,000 lines. Find runs line by line, under `TextPattern`'s limits.
 
 ## Threads
 
@@ -197,6 +202,11 @@ src/
                            SvgXml reads the tags, SvgStyle the presentation attributes, Svg.cpp draws them)
   TextEditor.cpp           the multi-line editor: input, selection, scrolling, undo through its model
   TextEditorPaint.cpp      its drawing: visible lines in runs of one colour, selection, gutter, caret
+  TextEditorView.cpp       wrapping and its row index, folds, scrolling, and how edits move folds and decorations
+  TextEditorCursors.cpp    extra cursors, column selection, Cmd+D, decorations, the view's keys
+  TextEditorFind.cpp       find and replace line by line, bracket matching
+  TextEditorPaintView.cpp  what is drawn under and over the text: decorations, matches, brackets, guides, the
+                           extra carets, the composition
   TextModel.cpp            positions over the piece tree, UTF-8 checked as it comes in, undo as operations
   Controls.cpp             Toggle and Slider
   Split.cpp, Tabs.cpp      panes with sashes, and a strip of tabs

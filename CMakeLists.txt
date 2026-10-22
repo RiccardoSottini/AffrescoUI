@@ -83,6 +83,9 @@ else()
 		-Wnon-virtual-dtor -Woverloaded-virtual)
 endif()
 
+# PCRE2 and affresco::TextPattern: the regular expressions of the editor's find and the search service
+include(cmake/AffrescoUIRegex.cmake)
+
 # The library is a set of modules, each its own target. They depend on each other only as shown here; anything
 # crossing a module boundary goes through the interfaces in core (ARCHITECTURE.md). Each module lists its sources in
 # modules/<name>/CMakeLists.txt, so a new file touches only its own module's list.
@@ -169,7 +172,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp examples/CodeEditor.cpp)
+		tests/perf/scaling_engine.cpp tests/perf/editor.cpp examples/CodeEditor.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)

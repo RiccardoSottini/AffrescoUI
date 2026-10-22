@@ -84,6 +84,8 @@ as the OpenGL driver's, aren't counted.
 | `views/list-scroll-100k` | A list of 100,000 rows scrolled to a new place, then a frame: only the rows in view are drawn |
 | `views/table-sort-100k` | A table of 100,000 rows sorted by a column of numbers, descending or ascending (each run does both) |
 | `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
+| `editor/type-1k`, `editor/type-100k` | A key typed (a letter, then a backspace, in turn) in the middle of a file of 1,000 or 100,000 lines, then a frame drawn without presenting it, in a hidden window: 200 operations per run, each timed. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over 8 ms fails (roadmap item 8.4b) |
+| `editor/scroll-10k`, `editor/scroll-1m` | A file of 10,000 or 1,000,000 lines scrolled to a new place, then a frame drawn without presenting it. With `AFFRESCOUI_PERF_BUDGETS` set, a run whose 99th percentile is over a 120 Hz frame (8.3 ms) fails |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

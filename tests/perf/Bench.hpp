@@ -107,7 +107,8 @@ struct Group {
 	GroupFactory create; ///< Creates them (the setup, such as windows, happens here).
 };
 
-/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp).
+/// @brief The groups that need a window: load, update, revision, layout and frame (screens.cpp), and editor
+/// (editor.cpp).
 /// @return The groups.
 [[nodiscard]] std::vector<Group> screenGroups();
 
@@ -125,6 +126,12 @@ struct Group {
 /// and a 100,000-row list scrolled to a new place and drawn, on headless windows.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> viewWorkloads(Context&);
+
+/// @brief The "editor" group's workloads (editor.cpp): typing in 1,000 and 100,000 lines and scrolling 10,000 and
+/// 1,000,000 on hidden windows, each operation drawn, with 99th-percentile budgets checked when AFFRESCOUI_PERF_BUDGETS is set.
+/// @param context Where the fonts are, and the windowing system.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> editorWorkloads(Context& context);
 
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 

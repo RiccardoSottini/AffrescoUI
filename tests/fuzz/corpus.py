@@ -312,6 +312,17 @@ def text_model_seeds():
             b"".join(insert(index % 3, index, "ab\n") for index in range(40)) + bytes([1, 3, 0, 30, 5]) + b"\x02" * 8]
 
 
+def find_pattern_seeds():
+    """Options byte (1 regex, 2 whole word, 4 case-sensitive), pattern, zero, replacement, zero, subject."""
+    def seed(options, pattern, replacement, subject):
+        return bytes([options]) + "\0".join([pattern, replacement, subject]).encode("utf-8")
+    return [seed(0, "foo", "bar", "foo food Foo"), seed(2, "foo", "x", "foo food foo_bar"),
+            seed(1, r"(\w+) (foo)\b", "$2 $1", "a foo, b food"), seed(5, "^", "", "line"),
+            seed(1, "(a+)+$", "", "a" * 64 + "b"), seed(1, "(?<year>\\d{4})", "${year}$$", "in 2026 and 1999"),
+            seed(3, "caf\u00e9", "cafe", "un caf\u00e9, CAF\u00c9"), bytes([1]) + b"(\\x{d800}|.)\0\0\xff\xc3(\xed\xa0\x80",
+            seed(1, "((((((((((x))))))))))*", "$10", "xxxx")]
+
+
 def scenario_seeds():
     """Every scenarios file: the templates' own and the rendering check's, as they are."""
     paths = sorted(SCREENS.glob("*.scenarios.json")) + sorted((ROOT / "tests" / "render" / "scenarios").glob("*.json"))
@@ -427,6 +438,8 @@ def dictionaries():
                                "Sec-WebSocket-Key", "Sec-WebSocket-Version", "13", "Origin", "Authorization",
                                "Bearer ", '"type"', '"auth"', '"token"'],
             "websocket": ["\x81", "\x01", "\x80", "\x88", "\x89", "\x8a", "\x7e", "\x7f", "\x03\xe8"],
+            "find_pattern": ["\x00", "\x01", "\x03", "\x05", "(", ")", "(?", "*", "+?", "{2,}", "\\b", "\\w", "\\d",
+                             "[^", "]", "|", "$1", "${", "}", "$$", "\\p{L}", "(?i)", "(?s)", "\u00e9"],
             "text_model": ["\x00", "\x01", "\x02", "\x03", "\x04", "\x08", "\n", "\u00e9", "\u20ac", "\U0001F600"]}
 
 
@@ -477,6 +490,7 @@ def main():
     write(out, "image", image_seeds(), words["image"])
     write(out, "path", path_seeds(), words["path"])
     write(out, "text_model", text_model_seeds(), words["text_model"])
+    write(out, "find_pattern", find_pattern_seeds(), words["find_pattern"])
     write(out, "scenarios", scenario_seeds(), words["scenarios"])
     write(out, "png", png_seeds(), words["png"])
     write(out, "http_response", http_response_seeds(), words["http_response"])
