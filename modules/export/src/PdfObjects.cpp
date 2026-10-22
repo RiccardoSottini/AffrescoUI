@@ -4,6 +4,7 @@
 #include "PdfObjects.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <stdexcept>
 #include <string>
@@ -57,9 +58,9 @@ std::vector<std::uint8_t> PdfObjects::finish(std::uint32_t root, std::uint32_t i
 	append("xref\n0 " + std::to_string(offsets_.size() + 1) + "\n0000000000 65535 f\r\n");
 	for(const std::size_t offset : offsets_) {
 		if(offset == 0) throw std::runtime_error("PDF object reserved but not defined");
-		char entry[21];
-		std::snprintf(entry, sizeof entry, "%010zu 00000 n\r\n", offset); // 20 bytes each, end of line included
-		append(entry);
+		std::array<char, 21> entry{};
+		std::snprintf(entry.data(), entry.size(), "%010zu 00000 n\r\n", offset); // 20 bytes each, end of line included
+		append(entry.data());
 	}
 	append("trailer\n<< /Size " + std::to_string(offsets_.size() + 1) + " /Root " + std::to_string(root) +
 	       " 0 R /Info " + std::to_string(info) + " 0 R >>\nstartxref\n" + std::to_string(table) + "\n%%EOF\n");

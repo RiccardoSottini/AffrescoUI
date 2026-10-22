@@ -79,15 +79,15 @@ float signedArea(std::span<const Vec2> points) noexcept {
 /// @param out Where it goes.
 /// @param codepoint The code point.
 void appendUtf16(std::string& out, std::uint32_t codepoint) {
-	char unit[5];
+	std::array<char, 5> unit{};
 	if(codepoint >= 0x10000) {
 		codepoint -= 0x10000;
-		std::snprintf(unit, sizeof unit, "%04X", static_cast<unsigned>(0xD800 + (codepoint >> 10)));
-		out += unit;
+		std::snprintf(unit.data(), unit.size(), "%04X", static_cast<unsigned>(0xD800 + (codepoint >> 10)));
+		out += unit.data();
 		codepoint = 0xDC00 + (codepoint & 0x3FF);
 	}
-	std::snprintf(unit, sizeof unit, "%04X", static_cast<unsigned>(codepoint));
-	out += unit;
+	std::snprintf(unit.data(), unit.size(), "%04X", static_cast<unsigned>(codepoint));
+	out += unit.data();
 }
 
 /// @brief How many continuation bytes follow a UTF-8 lead byte.
@@ -122,10 +122,10 @@ std::uint32_t decodeUtf8(std::string_view text, std::size_t& at) noexcept {
 
 void appendNumber(std::string& out, double value) {
 	const double rounded = std::isfinite(value) ? std::round(value * 1000.0) / 1000.0 : 0.0;
-	char text[48];
-	const auto result =
-	    std::to_chars(text, text + sizeof text, rounded == 0.0 ? 0.0 : rounded, std::chars_format::fixed, 3);
-	std::string_view number(text, static_cast<std::size_t>(result.ptr - text));
+	std::array<char, 48> text{};
+	const auto result = std::to_chars(text.data(), text.data() + text.size(), rounded == 0.0 ? 0.0 : rounded,
+	                                  std::chars_format::fixed, 3);
+	std::string_view number(text.data(), static_cast<std::size_t>(result.ptr - text.data()));
 	while(number.back() == '0') number.remove_suffix(1);
 	if(number.back() == '.') number.remove_suffix(1);
 	out += number;
