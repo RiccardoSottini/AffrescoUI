@@ -64,6 +64,44 @@ void Compositor::compositeLayer(const Layer& layer, const TileKey& key, std::spa
 		}
 }
 
+Sampler::Sampler(const Document& document, std::uint64_t image)
+    : document_(document), image_(image != 0 ? document.image(image) : nullptr), compositor_(document) {
+	entries_.resize(kept);
+}
+
+Pixel Sampler::at(int x, int y) {
+	if(x < 0 || y < 0 || x >= document_.width() || y >= document_.height()) return {};
+	const Entry& last = entries_[last_];
+	if(last.column == x / tileSize && last.row == y / tileSize)
+		return last.pixels[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)];
+	return tile(x / tileSize, y / tileSize)[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)];
+}
+
+std::span<const Pixel> Sampler::tile(int column, int row) {
+	++clock_;
+	std::size_t oldest = 0;
+	for(std::size_t index = 0; index < entries_.size(); ++index) {
+		Entry& entry = entries_[index];
+		if(entry.column == column && entry.row == row) {
+			entry.used = clock_, last_ = index;
+			return entry.pixels;
+		}
+		if(entry.used < entries_[oldest].used) oldest = index;
+	}
+	Entry& entry = entries_[oldest];
+	entry.column = column, entry.row = row, entry.used = clock_, last_ = oldest;
+	entry.pixels.resize(tilePixels);
+	if(image_ == nullptr) {
+		compositor_.composite({0, column, row}, entry.pixels);
+		return entry.pixels;
+	}
+	const std::shared_ptr<const Tile> source = image_->tile({0, column, row});
+	for(int y = 0; y < tileSize; ++y)
+		for(int x = 0; x < tileSize; ++x)
+			entry.pixels[static_cast<std::size_t>(y * tileSize + x)] = pixelOf(source.get(), x, y);
+	return entry.pixels;
+}
+
 std::vector<std::uint8_t> flatten(const Document& document, int level, int x, int y, int width, int height) {
 	std::vector<std::uint8_t> out(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4, 0);
 	Compositor compositor(document);

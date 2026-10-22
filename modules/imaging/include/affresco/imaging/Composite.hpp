@@ -48,6 +48,44 @@ private:
 	std::vector<std::vector<float>> bases_;   ///< The clipping base's alpha, per depth.
 };
 
+/// @brief Reads pixels one at a time from a layer's image or the flattened document, keeping the tiles it read last.
+class Sampler {
+public:
+	/// @brief A sampler of an image, or of every layer flattened.
+	/// @param document The document, which must outlive the sampler and not change while it is used.
+	/// @param image The image's id, or 0 for the flattened document.
+	Sampler(const Document& document, std::uint64_t image);
+
+	/// @brief The colour at a pixel (transparent outside the image).
+	/// @param x Across.
+	/// @param y Down.
+	[[nodiscard]] Pixel at(int x, int y);
+
+	/// @brief One whole tile's pixels.
+	/// @param column The tile's column.
+	/// @param row The tile's row.
+	/// @return tilePixels pixels, valid until the next call.
+	[[nodiscard]] std::span<const Pixel> tile(int column, int row);
+
+private:
+	/// @brief A tile read.
+	struct Entry {
+		int column = -1;           ///< Its column.
+		int row = -1;              ///< Its row.
+		std::uint64_t used = 0;    ///< When it was last read.
+		std::vector<Pixel> pixels; ///< Its pixels.
+	};
+
+	static constexpr std::size_t kept = 16; ///< The tiles kept.
+
+	const Document& document_; ///< The document.
+	const Image* image_;       ///< The image, or null for the flattened document.
+	Compositor compositor_;    ///< Flattens tiles.
+	std::vector<Entry> entries_; ///< The tiles kept.
+	std::uint64_t clock_ = 0;  ///< Counts reads.
+	std::size_t last_ = 0;     ///< The entry read last.
+};
+
 /// @brief A region of a document flattened into rgba8, straight alpha.
 /// @param document The document.
 /// @param level The mip level (the region in that level's pixels).
