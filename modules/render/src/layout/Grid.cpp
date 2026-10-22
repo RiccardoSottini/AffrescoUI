@@ -4,6 +4,7 @@
 #include "layout/Grid.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
 #include <optional>
 
@@ -30,9 +31,10 @@ public:
 	/// @param area The area.
 	void take(const GridArea& area) {
 		if(rows() < area.row + area.rowSpan) taken_.resize((area.row + area.rowSpan) * columns_, 0);
+		// A row's cells are contiguous: filled as runs, a child spanning the whole grid costs 1000 fills, not a
+		// million stores (a document of thousands of them took seconds to lay out)
 		for(std::size_t row = area.row; row < area.row + area.rowSpan; ++row)
-			for(std::size_t column = area.column; column < area.column + area.columnSpan; ++column)
-				taken_[row * columns_ + column] = 1;
+			std::fill_n(taken_.begin() + static_cast<std::ptrdiff_t>(row * columns_ + area.column), area.columnSpan, 1);
 	}
 
 	/// @brief The rows that have a taken cell, or come before one.
