@@ -23,12 +23,17 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `palette` | The command palette (`>`), quick open over the file index, go to line (`:`), and the settings and keybinding pages, generated from the contributions |
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
 | `panels` | Problems, output, notifications (toasts and a list), and progress |
+| `editor` | File buffers kept natively, never in the state (`Buffers.*`, `Editor.*`), shared by every group; preview tabs (a click in the explorer, replaced by the next), dirty markers, Save (`mod+s`), Save All (`mod+alt+s`), Revert File and Keep Editor; Problems read from the buffers. Files of a million lines open in about 0.1 s |
 
-There are only four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
+The shell has four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.
 - `forge.index`: the open folder as a tree and a flat file list, with file icons.
 - `forge.openFolder`: asks the OS for a folder (`Window::chooseFiles`).
 - `forge.read`: reads a file inside the open folder.
 - `forge.importTheme`: asks for a VS Code theme and returns it as tokens.
+
+The editor feature adds `forge.open`, `forge.save`, `forge.saveAll`, `forge.revert`, `forge.close` and `forge.todos`
+(`features/editor/Editor.hpp`) for the buffers, and the `code` type's `"buffer": id`. A save writes a file beside the
+old one, then renames it over it.
 
 A native's arguments never name a path outside the open folder.
 

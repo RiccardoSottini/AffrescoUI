@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 1,
-	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp.",
+	"note": "Forge, a demo IDE. This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json) contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The natives (forge.index, forge.openFolder, forge.read, forge.importTheme) are in Forge.cpp, the editor's buffers in features/editor/Editor.cpp.",
 
 	"window": {
 		"title": "Forge", "width": 1200, "height": 760, "minWidth": 800, "minHeight": 500,
@@ -18,7 +18,7 @@
 		"code": { "file": "../assets/fonts/JetBrainsMono-Regular.ttf", "size": 13, "fallback": ["icons"] }
 	},
 
-	"include": ["features/themes/themes.json", "features/panels/panels.json", "features/palette/palette.json",
+	"include": ["features/editor/editor.json", "features/themes/themes.json", "features/panels/panels.json", "features/palette/palette.json",
 	            "features/shell/shell.json"],
 
 	"theme": "{{state.theme}}",

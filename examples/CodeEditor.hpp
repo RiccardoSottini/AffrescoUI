@@ -9,6 +9,8 @@
 
 #include <array>
 #include <cstddef>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -148,9 +150,15 @@ private:
 	std::array<affresco::Color, 7> tokenColors_; ///< Indexed by Token (Plain unused).
 };
 
-/// @brief Registers the "code" type on a screen: a CodeEditor with the properties of "editor", plus "language" and
-/// "syntax" (`{ "keyword", "type", "string", "number", "comment", "heading" }`: a colour each).
+/// @brief Finds the text an application keeps for an id (e.g. Forge's open files), for "buffer".
+using BufferLookup = std::function<std::shared_ptr<affresco::TextModel>(std::string_view id)>;
+
+/// @brief Registers the "code" type on a screen: a CodeEditor with the properties of "editor", plus "language",
+/// "syntax" (`{ "keyword", "type", "string", "number", "comment", "heading" }`: a colour each), "goTo" and, with a
+/// lookup, "buffer": the id of a text the application keeps, which the editor then edits in place of "text" (so a
+/// large file never passes through the screen's state).
 /// @param screen The screen, before it is built; it must not move afterwards (the type reads its colours).
-void registerCodeEditor(affresco::Screen& screen);
+/// @param buffers Finds the text for "buffer" (empty: "buffer" is ignored); registering again replaces it.
+void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers = {});
 
 } // namespace examples

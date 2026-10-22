@@ -9,6 +9,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace examples {
 
@@ -652,12 +653,16 @@ void CodeEditor::goToLine(std::size_t line, long long request) {
 
 /* Registration */
 
-void registerCodeEditor(affresco::Screen& screen) {
+void registerCodeEditor(affresco::Screen& screen, BufferLookup buffers) {
 	screen.registerType(
-	    "code", [] { return std::make_unique<CodeEditor>(); }, {"language", "syntax", "goTo"},
-	    [&screen](affresco::Panel& panel, const std::string& propertiesJson) {
+	    "code", [] { return std::make_unique<CodeEditor>(); }, {"language", "syntax", "goTo", "buffer"},
+	    [&screen, buffers = std::move(buffers)](affresco::Panel& panel, const std::string& propertiesJson) {
 		    auto& editor = dynamic_cast<CodeEditor&>(panel); // the factory above made it
 		    const affresco::json properties = affresco::json::parse(propertiesJson);
+		    // "buffer": the application's text for that id, shared with every editor showing it
+		    if(const auto buffer = properties.find("buffer"); buffers && buffer != properties.end() && buffer->is_string())
+			    if(auto text = buffers(buffer->get<std::string>()); text && text != editor.sharedModel())
+				    editor.setModel(std::move(text));
 		    editor.setLanguage(properties.contains("language") ? properties["language"].get<std::string>() : "");
 		    editor.resetTokenColors();
 		    // "goTo": { "line": 12, "request": 3 } moves the caret, once per request (Forge's go to line)
