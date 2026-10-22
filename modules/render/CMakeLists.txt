@@ -3,10 +3,60 @@
 # (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
-	src/Accessibility.cpp
-	src/Application.cpp
+	# paint/: what a frame records per panel and replays, behind the Renderer interface
+	src/paint/PaintRecorder.cpp
+	src/paint/GeometryCache.cpp
+	src/paint/WindowImage.cpp
+	# gl/: the OpenGL backend that replays recorded geometry as batched quads
+	src/gl/OpenGlRenderer.cpp
+	src/gl/Context.cpp
+	src/gl/ImageTextures.cpp
+	src/gl/QuadRenderer.cpp
+	src/gl/QuadRendererCache.cpp
+	src/gl/SubtreeTextures.cpp
+	src/gl/Shader.cpp
+	src/gl/Stencil.cpp
+	# gl/surfaces/: panels that draw with their own GL code, inside guarded state
+	src/gl/surfaces/SurfaceGuard.cpp
+	src/gl/surfaces/SurfacePrelude.cpp
+	src/gl/surfaces/Surfaces.cpp
+	src/gl/surfaces/SurfaceView.cpp
+	# font/: font files, faces, glyph lookups and outlines, the glyph atlas and the font cache
+	src/font/Font.cpp
+	src/font/FontCache.cpp
+	src/font/FontFace.cpp
+	src/font/FontOutlines.cpp
+	src/font/GlyphAtlas.cpp
+	src/font/LookupSpans.cpp
+	# text/: shaping, line layout, rich text and the piece tree that stores long texts
+	src/text/PieceTree.cpp
+	src/text/PlainText.cpp
+	src/text/Shaping.cpp
+	src/text/RichText.cpp
+	# vector/: paths, their fill and stroke, SVG and the mesh rasterizer
+	src/vector/VectorPath.cpp
+	src/vector/PathFill.cpp
+	src/vector/PathStroke.cpp
+	src/vector/Svg.cpp
+	src/vector/SvgStyle.cpp
+	src/vector/SvgXml.cpp
+	src/vector/MeshRasterizer.cpp
+	# layout/: the flex and grid layouts of panels
+	src/layout/Flex.cpp
+	src/layout/Grid.cpp
+	# image/: image decoding and caching, colours and colour spaces
 	src/image/Bitmap.cpp
 	src/image/ImageCache.cpp
+	src/image/Color.cpp
+	src/image/ColorSpaces.cpp
+	# spatial/: the spatial index and snapping of canvases
+	src/spatial/SpatialIndex.cpp
+	src/spatial/Snapping.cpp
+	# headless rendering: a window drawn offscreen, for tests, screenshots and agents
+	src/Headless.cpp
+	# widgets
+	src/Accessibility.cpp
+	src/Application.cpp
 	src/ImageView.cpp
 	src/DiffView.cpp
 	src/TextEditor.cpp
@@ -17,9 +67,6 @@ affrescoui_module(render
 	src/TextEditorPaintView.cpp
 	src/TextEditorView.cpp
 	src/TextModel.cpp
-	src/text/PieceTree.cpp
-	src/image/Color.cpp
-	src/image/ColorSpaces.cpp
 	src/ColorPicker.cpp
 	src/ColorPickerPaint.cpp
 	src/CurvesEditor.cpp
@@ -33,58 +80,22 @@ affrescoui_module(render
 	src/ListView.cpp
 	src/TreeView.cpp
 	src/TableView.cpp
-	src/font/Font.cpp
-	src/font/FontCache.cpp
-	src/font/FontFace.cpp
-	src/font/FontOutlines.cpp
-	src/font/GlyphAtlas.cpp
-	src/font/LookupSpans.cpp
-	src/text/PlainText.cpp
-	src/text/Shaping.cpp
 	src/Label.cpp
-	src/text/RichText.cpp
 	src/Panel.cpp
 	src/Stack.cpp
-	src/layout/Flex.cpp
-	src/layout/Grid.cpp
 	src/TextArea.cpp
 	src/Window.cpp
-	src/paint/WindowImage.cpp
-	src/Headless.cpp
-	src/paint/GeometryCache.cpp
-	src/paint/PaintRecorder.cpp
 	src/PathView.cpp
 	src/GraphView.cpp
 	src/TimelineView.cpp
 	src/CodeInput.cpp
 	src/Carousel.cpp
-	src/vector/VectorPath.cpp
-	src/vector/PathFill.cpp
-	src/vector/PathStroke.cpp
-	src/vector/Svg.cpp
-	src/vector/SvgStyle.cpp
-	src/vector/SvgXml.cpp
-	src/vector/MeshRasterizer.cpp
 	src/CanvasView.cpp
 	src/CanvasViewInput.cpp
-	src/spatial/SpatialIndex.cpp
-	src/spatial/Snapping.cpp
 	src/Rulers.cpp
 	src/platform/GlfwPlatform.cpp
 	src/platform/EmbeddedPlatform.cpp
-	src/platform/EmbeddedPlatformGl.cpp
-	src/gl/OpenGlRenderer.cpp
-	src/gl/Context.cpp
-	src/gl/ImageTextures.cpp
-	src/gl/QuadRenderer.cpp
-	src/gl/QuadRendererCache.cpp
-	src/gl/SubtreeTextures.cpp
-	src/gl/Shader.cpp
-	src/gl/Stencil.cpp
-	src/gl/surfaces/SurfaceGuard.cpp
-	src/gl/surfaces/SurfacePrelude.cpp
-	src/gl/surfaces/Surfaces.cpp
-	src/gl/surfaces/SurfaceView.cpp)
+	src/platform/EmbeddedPlatformGl.cpp)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${stb_image_SOURCE_DIR})
 affrescoui_gl_backend(affrescoui_render) # the glad loader of AFFRESCOUI_GL_BACKEND (cmake/AffrescoUIAngle.cmake)
 # nlohmann_json is public: GpuSurface.hpp hands a surface its document parameters as JSON
