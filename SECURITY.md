@@ -590,6 +590,13 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A Sinopia deck (`sinopia::DeckLimits`) | A file of 8 MiB; 500 slides, 1,000 objects a slide, master or layout (groups' included), 32 masters and 32 layouts, 200 sections, 64 theme tokens; text of 20,000 bytes and 256 runs an object, notes of 50,000 bytes a slide, pen paths of 64 KiB, ids of 64 bytes; images of 32 MiB and 4,096 pixels a side; numbers clamped, ids made unique. A peer's edit is read again, so the same limits hold |
 | A PDF export (`PdfLimits`) | 2,000 pages, a file of 256 MiB, 64 MiB of embedded fonts and of a page's drawing, 2^26 image pixels in all; Sinopia exports at most 500 pages, and as PNG at most 500 files |
 | Sinopia's audience window | Its keys run only the workspace's `nextStep`, `previousStep`, `toggleBlack` and `stopPresenting` |
+| An image of `modules/imaging` (`imaging::Limits`) | 32,768 pixels across and down, and a gigapixel; 256 layers and groups, groups 2 deep |
+| Memory of an image's tiles (`imaging::Limits`) | 512 MiB of loaded tiles and mips per image on the CPU (the least recently used go), 256 MiB of resident tiles per view on the GPU |
+| Tempera's undo history (`imaging::Limits`) | 200 steps and 512 MiB of changed tiles; the oldest steps go first |
+| Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
+| A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down, checked from the header before decoding |
+| A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
+| An ICC profile (lcms2, `tests/fuzz/icc.cpp`) | 4 MiB; only a device or colour-space profile of RGB, grey or CMYK over XYZ or Lab is kept, and a conversion that can't be built is refused |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in

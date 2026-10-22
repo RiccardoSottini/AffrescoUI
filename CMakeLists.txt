@@ -142,6 +142,7 @@ foreach(module core render export format vcs channel net services screen automat
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer
+add_subdirectory(modules/imaging) # imaging: tiles, layers, colour, for image editors (uses render)
 if(AFFRESCOUI_BUILD_CAPI)
 	add_subdirectory(modules/capi) # the C API, on top of the others
 endif()
@@ -207,6 +208,8 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_surfaces PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_surfaces PRIVATE
 		AFFRESCOUI_SURFACES_SCREEN="${CMAKE_CURRENT_SOURCE_DIR}/examples/surfaces/surfaces.screen.json")
+	# Tempera, an image editor on the imaging module (examples/tempera/README.md)
+	add_subdirectory(examples/tempera)
 	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
 	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp
 	    examples/server/UserInfoVerifier.cpp)
@@ -228,6 +231,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
+	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::imaging) # tests/unit/imaging_*.cpp
 	if(AFFRESCOUI_BUILD_CAPI)
 		add_subdirectory(tests/capi) # the C API's test, compiled as C
 	endif()
@@ -264,11 +268,13 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
 		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/shared/CodeEditor.cpp tests/perf/buffers.cpp
 		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp ${AFFRESCOUI_FORGE_SOURCES}
-		tests/perf/syntax.cpp)
+		tests/perf/syntax.cpp
+		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples/shared examples/forge modules/format/src modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples"
 		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf"
