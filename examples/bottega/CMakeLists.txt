@@ -4,8 +4,10 @@ set(AFFRESCOUI_BOTTEGA_TEMPERA ${PROJECT_SOURCE_DIR}/examples/tempera)
 add_executable(affrescoui_bottega main.cpp ${PROJECT_SOURCE_DIR}/tools/affrescoui/Cli.cpp
 	${PROJECT_SOURCE_DIR}/tools/affrescoui/ComposeCommand.cpp ${AFFRESCOUI_BOTTEGA_TEMPERA}/Session.cpp
 	${AFFRESCOUI_BOTTEGA_TEMPERA}/Tools.cpp ${AFFRESCOUI_BOTTEGA_TEMPERA}/Natives.cpp
-	${AFFRESCOUI_BOTTEGA_TEMPERA}/NativesEdit.cpp ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp)
+	${AFFRESCOUI_BOTTEGA_TEMPERA}/NativesEdit.cpp ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp
+	${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp) # Cli.cpp registers the Tempo template's visualiser
 target_link_libraries(affrescoui_bottega PRIVATE affrescoui::automation affrescoui::imaging)
+target_include_directories(affrescoui_bottega SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include) # Visualiser.cpp
 target_include_directories(affrescoui_bottega PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared
 	${PROJECT_SOURCE_DIR}/tools/affrescoui ${PROJECT_SOURCE_DIR}/modules/format/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/screen/src)
