@@ -120,6 +120,29 @@ void shiftColumn(Position& position, std::size_t line, std::size_t at, long chan
 	    static_cast<std::size_t>(std::max(static_cast<long>(at), static_cast<long>(position.column) + change));
 }
 
+/// @brief The editor's language for a grammar: the C-like grammars are Language::Cpp, and CMake (which has no
+/// grammar) goes by its name.
+/// @param grammar The grammar's canonical name, "" if there is none.
+/// @param name The language's name, in lower case.
+CodeEditor::Language languageOf(std::string_view grammar, std::string_view name) noexcept {
+	using Language = CodeEditor::Language;
+	if(grammar == "c" || grammar == "cpp" || grammar == "javascript" || grammar == "typescript") return Language::Cpp;
+	if(grammar == "json") return Language::Json;
+	if(grammar == "python") return Language::Python;
+	if(grammar == "markdown") return Language::Markdown;
+	return name == "cmake" ? Language::CMake : Language::Plain;
+}
+
+/// @brief Whether an open popup takes a key: one of its keys (popupKeyName()) without modifiers, which it handled.
+/// @param popupKeys The popup's handler (CodeEditor::setPopupKeys()), empty while there is no popup.
+/// @param event A key press or repeat.
+bool popupTakes(const std::function<bool(std::string_view)>& popupKeys, const affresco::KeyEvent& event) {
+	const affresco::Mods m = event.mods;
+	if(!popupKeys || m.super() || m.control() || m.alt() || m.shift()) return false;
+	const std::string_view key = popupKeyName(event.key);
+	return !key.empty() && popupKeys(key);
+}
+
 } // namespace
 
 CodeEditor::CodeEditor() { resetTokenColors(); }
@@ -129,13 +152,7 @@ void CodeEditor::setLanguage(std::string_view name) {
 	std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	// A grammar colours (and folds) where one exists; the language still picks the comment marker
 	const std::string grammar = affresco::format::SyntaxHighlighter::canonical(lower);
-	const Language language = grammar == "c" || grammar == "cpp" || grammar == "javascript" || grammar == "typescript"
-	                              ? Language::Cpp
-	                          : grammar == "json"     ? Language::Json
-	                          : grammar == "python"   ? Language::Python
-	                          : grammar == "markdown" ? Language::Markdown
-	                          : lower == "cmake"      ? Language::CMake
-	                                                  : Language::Plain;
+	const Language language = languageOf(grammar, lower);
 	const auto* current = dynamic_cast<affresco::format::SyntaxHighlighter*>(highlighter());
 	if(language == language_ && (current ? current->language() : std::string()) == grammar) return;
 	language_ = language;
@@ -309,12 +326,11 @@ void CodeEditor::keyEvent(const affresco::KeyEvent& event) {
 	if(event.action == affresco::Action::Release) return TextEditor::keyEvent(event);
 	const affresco::Mods m = event.mods;
 	const bool command = m.super() || m.control();
-	if(popupKeys_ && !command && !m.alt() && !m.shift())
-		if(const std::string_view key = popupKeyName(event.key); !key.empty() && popupKeys_(key)) {
-			// NOLINTNEXTLINE(bugprone-parent-virtual-call): the popup took the key, and the signals still fire
-			Panel::keyEvent(event);
-			return;
-		}
+	if(popupTakes(popupKeys_, event)) {
+		// NOLINTNEXTLINE(bugprone-parent-virtual-call): the popup took the key, and the signals still fire
+		Panel::keyEvent(event);
+		return;
+	}
 	const std::uint64_t before = model().version();
 	const bool handled =
 	    runShortcut(event) || (event.key == Key::Backspace && !command && !m.alt() && deleteEmptyPair());
