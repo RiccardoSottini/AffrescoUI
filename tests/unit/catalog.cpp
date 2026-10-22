@@ -11,7 +11,9 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <fstream>
+#include <limits>
 #include <random>
 #include <string>
 #include <string_view>
@@ -187,6 +189,24 @@ TEST_CASE("catalog: a signed feature installs from a local catalogue, and upgrad
 	REQUIRE_MESSAGE(upgraded.status == RevisionStatus::Applied, upgraded.error);
 	CHECK(repository.document()["features"]["wordCount"]["release"] == "1.1.0");
 	CHECK(repository.document()["features"]["wordCount"]["enabled"] == false);
+}
+
+TEST_CASE("catalog: an install goes after the last feature, whatever order a peer wrote") {
+	const SigningKey publisher = SigningKey::generate();
+	Catalog catalog;
+	catalog.add(wordCount(), publisher);
+	affresco::format::Features features;
+	features.trustPublisher(publisher.publisher());
+	features.addCatalog(catalog.publish(publisher));
+	for(const json& order : {json(std::numeric_limits<int>::max()), json(std::numeric_limits<std::int64_t>::max()),
+	                         json("first"), json(-5)}) {
+		INFO(order.dump());
+		json document = app();
+		document["features"]["other"] = {{"order", order}};
+		const json install = features.installRevision(document, "wordCount", "", "features");
+		const json& record = install["set"]["/features/wordCount"];
+		CHECK(record["order"].get<int>() >= 10); // after the last one, never wrapped around (an overflow once)
+	}
 }
 
 TEST_CASE("catalog: a tampered package is refused with the reason") {
