@@ -40,6 +40,7 @@ void applySwatches(ColorPicker& picker, const json* given, const PropertyReader&
 void applyColorPicker(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
 	auto* picker = dynamic_cast<ColorPicker*>(&panel);
 	if(!picker) return;
+	if(panel.accessibleRole().empty()) panel.setAccessibleRole("group"); // a composite control to assistive tools
 	const auto colorOr = [&](const char* key, Color fallback) {
 		return values.contains(key) ? reader.color(values[key], path + "." + key) : fallback;
 	};

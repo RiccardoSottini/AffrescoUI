@@ -1,0 +1,32 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "creative",
+			"screen": "creative.screen.json",
+			"note": "Colour picker, gradient and curves: drag in the square, type a hex value, add and move a stop, move a curve point",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "drag": [60, 50], "to": [150, 90], "moves": 4 },
+				{ "key": "tab" },
+				{ "key": "tab" },
+				{ "key": "tab" },
+				{ "type": "#3366cc" },
+				{ "key": "enter" },
+				{ "expect": { "state": "color", "is": "#3366ccff" } },
+				{ "expect": { "node": { "role": "group", "name": "Fill colour" }, "property": "focused", "is": true } },
+				{ "expect": { "image": "picker" } },
+				{ "click": [360, 158] },
+				{ "drag": [360, 173], "to": [408, 173], "moves": 4 },
+				{ "expect": { "state": "gradient.stops.length", "is": 3 } },
+				{ "expect": { "image": "gradient" } },
+				{ "click": [550, 119] },
+				{ "drag": [550, 119], "to": [550, 90], "moves": 4 },
+				{ "expect": { "state": "curve.points.length", "is": 3 } },
+				{ "expect": { "image": "curves" } }
+			]
+		}
+	]
+}

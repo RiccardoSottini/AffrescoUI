@@ -45,6 +45,7 @@ void applyHistogram(CurvesEditor& editor, const json* given, const std::string& 
 void applyCurves(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
 	auto* editor = dynamic_cast<CurvesEditor*>(&panel);
 	if(!editor) return;
+	if(panel.accessibleRole().empty()) panel.setAccessibleRole("group"); // a composite control to assistive tools
 	const auto colorOr = [&](const char* key, Color fallback) {
 		return values.contains(key) ? reader.color(values[key], path + "." + key) : fallback;
 	};

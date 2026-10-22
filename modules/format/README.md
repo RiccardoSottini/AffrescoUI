@@ -41,7 +41,7 @@ Each subsystem's header says its role, its invariants and its callers:
 
 | Registry | Registers | From |
 |---|---|---|
-| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
+| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`, `ColorPickerType.cpp`, `GradientType.cpp`, `CurvesType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
 | `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
@@ -238,7 +238,8 @@ src/
   ExpressionParser.*       the parser: an expression's text into its JSON operator tree
   ExpressionLower.cpp      lowering an operator tree once into typed nodes
   ExpressionMachine.*      the typed nodes and the machine that runs them: calls, paths, variables, templates
-  ExpressionFunctions.*    the function registry; ExpressionFunctions<Group>.cpp hold its tables
+  ExpressionFunctions.*    the function registry; ExpressionFunctions<Group>.cpp hold its tables (Color:
+                           curve() and gradientColor())
   Value.hpp / .cpp         the values expressions compute with: inline short texts, shared lists and objects
   Runtime.cpp              the public API, forwarding to the engine
   Engine.hpp / .cpp        the composition root: registries and subsystems
@@ -283,7 +284,8 @@ src/
   TypeRegistry.*           node types; Types.cpp, EditorType.cpp, ToggleType.cpp, SliderType.cpp, ImageType.cpp,
                            SplitType.cpp, TabsType.cpp, ListType.cpp (list and tree; ListItems.* reads their
                            items within limits, without recursion), PathType.cpp ("path": d, viewBox, fill and
-                           stroke, the data parsed only when it changes)
+                           stroke, the data parsed only when it changes), ColorPickerType.cpp, GradientType.cpp,
+                           CurvesType.cpp (the creative controls; CreativeValues.* reads and writes their values)
                            register them, IconProperty.cpp the labels' "icon", and RunsProperty.cpp their
                            "runs", "selectable" and "selectionColor" (within limits: 256 runs, 64 Ki characters)
   SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them
