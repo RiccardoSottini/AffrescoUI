@@ -40,7 +40,10 @@ public:
 	ScopedVariable& operator=(const ScopedVariable&) = delete;
 
 	/// @brief Puts the old value back.
-	~ScopedVariable() { set(old_.value_or("")); }
+	~ScopedVariable() {
+		if(old_) set(*old_);
+		else set({});
+	}
 
 private:
 	/// @brief Reads the variable.
@@ -60,7 +63,7 @@ private:
 
 	/// @brief Sets or unsets the variable.
 	/// @param value The value; empty to unset it.
-	void set(const std::string& value) const {
+	void set(const std::string& value) const noexcept {
 #ifdef _WIN32
 		_putenv_s(name_.c_str(), value.c_str()); // an empty value unsets it
 #else

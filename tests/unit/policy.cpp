@@ -11,6 +11,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <string>
 
 using affresco::json;
@@ -79,7 +80,7 @@ TEST_CASE("policy: budgets and data rules decide allow, ask or deny") {
 	const json removeTwo =
 	    json::array({{{"op", "remove"}, {"path", "#card1"}}, {{"op", "remove"}, {"path", "#card2"}}});
 	const json colorTitle = {{"op", "replace"}, {"path", "#title/text"}, {"value", "Done"}};
-	const Row table[] = {
+	const auto table = std::to_array<Row>({
 	    {"within the agent's rules and budget", addPanels("agent/claude-code", 2), "allow", ""},
 	    {"one panel over the agent's budget", addPanels("agent/claude-code", 3), "deny",
 		 "over the budget \"agent: 2 added, 1 removed, 3 changed\""},
@@ -101,7 +102,7 @@ TEST_CASE("policy: budgets and data rules decide allow, ask or deny") {
 	    {"no budget for the studio", addPanels("studio", 5), "allow", ""},
 	    {"the data rule is the agent's only", single("studio", replaceSecret), "allow", ""},
 	    {"no rule allows it", single("human/ann", colorTitle), "ask", "no rule allows"},
-	};
+	});
 	for(const Row& row : table) {
 		const std::string name = row.name;
 		CAPTURE(name);
@@ -114,10 +115,11 @@ TEST_CASE("policy: budgets and data rules decide allow, ask or deny") {
 	const json before = affresco::vcs::detail::view(budgetScreen(), budgetScreen()["state"]);
 	json after = before;
 	after["state"]["secret"] = "t";
-	const auto denied = affresco::vcs::detail::dataDenial(rules, affresco::vcs::detail::policyOf(budgetScreen()),
-	                                                      before, after, {"agent", repository.roles()});
-	REQUIRE(denied);
-	CHECK(denied->find("may never touch /state/secret") != std::string::npos);
+	const std::string denied = affresco::vcs::detail::dataDenial(rules, affresco::vcs::detail::policyOf(budgetScreen()),
+	                                                             before, after, {"agent", repository.roles()})
+	                               .value_or("");
+	REQUIRE_FALSE(denied.empty());
+	CHECK(denied.find("may never touch /state/secret") != std::string::npos);
 	// judge() changes nothing
 	CHECK(repository.document() == budgetScreen());
 }
@@ -144,13 +146,13 @@ TEST_CASE("policy: rules name roles, which only the host or a reviewer sets") {
 TEST_CASE("policy: a limited author reads only its paths, and a submit naming another is refused") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, budgetScreen());
-	const std::optional<json> view = repository.readable("agent/claude-code");
-	REQUIRE(view);
-	CHECK((*view)["state"]["count"] == 0);
-	CHECK((*view)["state"]["cards"] == json({1, 2}));
-	CHECK_FALSE((*view)["state"].contains("secret"));
-	CHECK_FALSE((*view)["state"].contains("theme"));
-	CHECK((*view)["root"]["id"] == "main");
+	const json view = repository.readable("agent/claude-code").value_or(json());
+	REQUIRE(view.is_object());
+	CHECK(view["state"]["count"] == 0);
+	CHECK(view["state"]["cards"] == json({1, 2}));
+	CHECK_FALSE(view["state"].contains("secret"));
+	CHECK_FALSE(view["state"].contains("theme"));
+	CHECK(view["root"]["id"] == "main");
 	CHECK_FALSE(repository.readable("studio"));
 
 	const affresco::RevisionResult refused =

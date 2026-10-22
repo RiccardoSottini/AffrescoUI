@@ -95,8 +95,8 @@ TEST_CASE("render to image: nothing for a hidden panel, nor in a headless window
 TEST_CASE("second window: shares the first one's context objects and default font") {
 	affresco::Application app({nullptr, true});
 	affresco::Screen first = affresco::Screen::fromString(boardScreen);
-	affresco::Window& main = first.createWindow(app);
-	affresco::Window& audience = app.createWindow("audience", 160, 90, main);
+	const affresco::Window& main = first.createWindow(app);
+	const affresco::Window& audience = app.createWindow("audience", 160, 90, main);
 	CHECK(audience.defaultFont() == main.defaultFont());
 
 	// A texture made in the first window's context is a texture in the second's
