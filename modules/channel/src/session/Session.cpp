@@ -51,38 +51,62 @@ std::string typeOf(const json& message) {
 	return message.contains("type") && message["type"].is_string() ? message["type"].get<std::string>() : "";
 }
 
+/// @brief Tells whether a message is relayed to the other peers as it is: a request, a reply or a repair.
+/// @param type The message's type.
+/// @return true if it is.
+bool relayed(std::string_view type) noexcept { return type == "request" || type == "reply" || type == "repair"; }
+
+/// @brief Who asks for a lease or a role: the session, its channel and its author.
+struct Asker {
+	VersionControl& versions;   ///< The document's version control.
+	const void* connection;     ///< The session asking, which its leases name.
+	const std::string& channel; ///< The session's channel ("agent"): who may review.
+	const std::string& author;  ///< Who asks, as the session names it ("agent/claude-code").
+};
+
+/// @brief A refusal.
+/// @param error Why.
+/// @return The answer, without its "id".
+json refused(const std::string& error) { return {{"type", "rejected"}, {"error", error}}; }
+
+/// @brief Answers lease and release: a peer leases and releases parts for itself.
+/// @param asker Who asks.
+/// @param type "lease" or "release".
+/// @param target The part.
+/// @param message The message.
+/// @return The answer, without its "id".
+json ownLease(const Asker& asker, const std::string& type, const std::string& target, const json& message) {
+	if(type == "release") {
+		if(asker.versions.release(asker.connection, target)) return {{"type", "released"}, {"target", target}};
+		return refused("you hold no lease on " + target);
+	}
+	const json seconds = message.value("seconds", json(300));
+	const int duration = seconds.is_number_integer()
+	                         ? static_cast<int>(std::clamp<std::int64_t>(seconds.get<std::int64_t>(), 1, 3600))
+	                         : 300;
+	if(const auto error = asker.versions.lease(asker.connection, asker.author, target, duration))
+		return refused(*error);
+	return {{"type", "leased"}, {"target", target}, {"seconds", duration}};
+}
+
 /// @brief Answers lease, release, endLease and setRole (VERSION_CONTROL.md, "Leases" and "Roles"): a peer leases and
 /// releases parts for itself; only a reviewer ends another's lease or sets a role, and nobody sets their own.
-/// @param versions The document's version control.
-/// @param connection The session asking, which its leases name.
-/// @param channel The session's channel ("agent"): who may review.
-/// @param author Who asks, as the session names it ("agent/claude-code").
+/// @param asker Who asks.
 /// @param type The message's type.
 /// @param message The message.
 /// @return The answer, without its "id", or std::nullopt if it is none of those.
-std::optional<json> coordinate(VersionControl& versions, const void* connection, const std::string& channel,
-                               const std::string& author, const std::string& type, const json& message) {
+std::optional<json> coordinate(const Asker& asker, const std::string& type, const json& message) {
 	if(type != "lease" && type != "release" && type != "endLease" && type != "setRole") return std::nullopt;
-	const auto refused = [](const std::string& error) { return json{{"type", "rejected"}, {"error", error}}; };
 	const std::string target =
 	    type == "setRole" ? "" : expect::string(message.value("target", json()), type + ".target");
-	if(type == "release") {
-		if(versions.release(connection, target)) return json{{"type", "released"}, {"target", target}};
-		return refused("you hold no lease on " + target);
-	}
-	if(type == "lease") {
-		const json seconds = message.value("seconds", json(300));
-		const int duration = seconds.is_number_integer()
-		                         ? static_cast<int>(std::clamp<std::int64_t>(seconds.get<std::int64_t>(), 1, 3600))
-		                         : 300;
-		if(const auto error = versions.lease(connection, author, target, duration)) return refused(*error);
-		return json{{"type", "leased"}, {"target", target}, {"seconds", duration}};
-	}
-	if(!versions.mayReview(channel)) return refused("permission denied: '" + channel + "' may not review changes");
+	if(type == "release" || type == "lease") return ownLease(asker, type, target, message);
+	if(!asker.versions.mayReview(asker.channel))
+		return refused("permission denied: '" + asker.channel + "' may not review changes");
 	const std::optional<std::string> error =
-	    type == "endLease" ? versions.endLease(target, author)
-		                   : versions.setRole(expect::string(message.value("author", json()), "setRole.author"),
-		                                      expect::string(message.value("role", json()), "setRole.role"), author);
+	    type == "endLease"
+	        ? asker.versions.endLease(target, asker.author)
+	        : asker.versions.setRole(expect::string(message.value("author", json()), "setRole.author"),
+	                                 expect::string(message.value("role", json()), "setRole.role"), asker.author);
 	return error ? refused(*error) : json{{"type", "done"}};
 }
 
@@ -103,6 +127,55 @@ std::optional<json> usageAnswer(const Session::UsageSummary& usage, const Versio
 		return json{{"type", "rejected"},
 		            {"error", "usage summaries are off: the host switches them on, with the person's consent"}};
 	return json{{"type", "usage"}, {"usage", *summary}};
+}
+
+/// @brief Answers the messages about leases, roles and usage summaries (coordinate(), usageAnswer()).
+/// @param asker Who asks.
+/// @param usage The usage summaries (may be empty: off).
+/// @param type The message's type.
+/// @param message The message.
+/// @return The answer, without its "id", or std::nullopt if it is none of those.
+std::optional<json> coordinationAnswer(const Asker& asker, const Session::UsageSummary& usage, const std::string& type,
+                                       const json& message) {
+	if(std::optional<json> answer = coordinate(asker, type, message)) return answer;
+	return usageAnswer(usage, asker.versions, asker.channel, type);
+}
+
+/// @brief Tells whether a peer asks for a read it may not make: one showing the document whole, while its data rules
+/// limit its reads.
+/// @param versions The document's version control.
+/// @param channel The session's channel, whose data rules apply.
+/// @param type The message's type.
+/// @return true if it does.
+bool readsTooMuch(const VersionControl& versions, const std::string& channel, std::string_view type) {
+	return showsWhole(type) && versions.readable(channel);
+}
+
+/// @brief The newest commits on main a "getHistory" asks for (like `git log -n`), oldest first.
+/// @param versions The document's version control.
+/// @param message The message: its "limit", or all without one.
+/// @return The entries.
+json historyOf(const VersionControl& versions, const json& message) {
+	const std::vector<CommitInfo> log = versions.log();
+	// Read as a double: a peer's 1e20 converted to an int would be undefined behaviour
+	const double limit = message.value("limit", 0.0);
+	const std::size_t skip =
+	    limit >= 1 && limit < static_cast<double>(log.size()) ? log.size() - static_cast<std::size_t>(limit) : 0;
+	json entries = json::array();
+	for(std::size_t i = skip; i < log.size(); ++i) entries.push_back(toJson(log[i]));
+	return entries;
+}
+
+/// @brief What a "diff" asks for: a proposal against main's head, or any two commits (default: the previous one
+/// against HEAD).
+/// @param versions The document's version control.
+/// @param message The message.
+/// @return The patch.
+/// @throws DocumentError If it names neither a proposal nor commits there are.
+json diffOf(VersionControl& versions, const json& message) {
+	return message.contains("proposal")
+	           ? versions.proposalDiff(expect::integer(message["proposal"], "diff.proposal"))
+			   : versions.diff(message.value("from", json("HEAD~1")), message.value("to", json("HEAD")));
 }
 
 } // namespace
@@ -197,14 +270,13 @@ void Session::handle(const std::string& line) {
 	const Incoming in{m, typeOf(m), m.value("id", json()), authorOf(m)};
 
 	try {
-		if(in.type == "request" || in.type == "reply" || in.type == "repair") {
+		if(relayed(in.type)) {
 			json relayed = m;
 			relayed["from"] = in.author;
 			onRelay(relayed);
-		} else if(showsWhole(in.type) && versions_.readable(author_)) {
+		} else if(readsTooMuch(versions_, author_, in.type)) {
 			expect::fail(in.type, "permission denied: the data rules let '" + author_ + "' read only some paths");
-		} else if(auto answer = coordinate(versions_, this, author_, in.author, in.type, m);
-		          answer || (answer = usageAnswer(usage_, versions_, author_, in.type))) {
+		} else if(const auto answer = coordinationAnswer({versions_, this, author_, in.author}, usage_, in.type, m)) {
 			json reply = *answer;
 			reply["revision"] = versions_.head().number;
 			reply["id"] = in.id;
@@ -399,21 +471,10 @@ bool Session::handleQuery(const Incoming& in) {
 	} else if(in.type == "getCatalog") {
 		send({{"type", "catalog"}, {"catalog", catalog_ ? catalog_() : json::object()}, {"id", in.id}});
 	} else if(in.type == "getHistory") {
-		// The newest "limit" commits on main (like `git log -n`), oldest first; all without one
-		const std::vector<CommitInfo> log = versions_.log();
-		// Read as a double: a peer's 1e20 converted to an int would be undefined behaviour
-		const double limit = m.value("limit", 0.0);
-		const std::size_t skip =
-		    limit >= 1 && limit < static_cast<double>(log.size()) ? log.size() - static_cast<std::size_t>(limit) : 0;
-		json entries = json::array();
-		for(std::size_t i = skip; i < log.size(); ++i) entries.push_back(toJson(log[i]));
+		const json entries = historyOf(versions_, m);
 		send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", in.id}});
 	} else if(in.type == "diff") {
-		// A proposal against main's head, or any two commits (default: the previous one against HEAD)
-		const json patch =
-		    m.contains("proposal")
-		        ? versions_.proposalDiff(expect::integer(m["proposal"], "diff.proposal"))
-		        : versions_.diff(m.value("from", json("HEAD~1")), m.value("to", json("HEAD")));
+		const json patch = diffOf(versions_, m);
 		send({{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", in.id}});
 	} else if(in.type == "exportChanges") {
 		send({{"type", "changes"},
