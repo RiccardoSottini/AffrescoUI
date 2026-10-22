@@ -95,8 +95,7 @@ void PieceTree::insert(std::size_t offset, std::string_view bytes) {
 	if(bytes.empty()) return;
 	auto [left, right] = split(root_, std::min(offset, size()));
 	std::uint32_t middle = none;
-	if(bytes.size() < largeInsert)
-		middle = appendSmall(left, bytes);
+	if(bytes.size() < largeInsert) middle = appendSmall(left, bytes);
 	else
 		for(std::size_t at = 0; at < bytes.size(); at += largeBuffer) {
 			const std::string_view chunk = bytes.substr(at, largeBuffer);

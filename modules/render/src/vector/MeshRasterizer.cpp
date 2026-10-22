@@ -13,7 +13,9 @@ namespace affresco::vector {
 namespace {
 
 /// @brief Twice the signed area of the triangle a, b, p: positive when p is left of a→b (in pixel axes, y down).
-[[nodiscard]] float edgeAt(Vec2 a, Vec2 b, Vec2 p) noexcept { return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x); }
+[[nodiscard]] float edgeAt(Vec2 a, Vec2 b, Vec2 p) noexcept {
+	return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+}
 
 /// @brief Whether a pixel exactly on an edge belongs to the triangle: only on its top and left edges, so a pixel two
 /// triangles share is drawn once.
@@ -79,7 +81,7 @@ void Canvas::triangle(const std::array<MeshVertex, 3>& corners, const std::array
 	std::array<float, 3> coverage{corners[0].coverage, corners[1].coverage, corners[2].coverage};
 	float area = edgeAt(p[0], p[1], p[2]);
 	if(!(std::abs(area) > 1.0e-6f)) return; // also drops NaN
-	if(area < 0.0f) { // one winding, so the edge rule holds
+	if(area < 0.0f) {                       // one winding, so the edge rule holds
 		std::swap(p[1], p[2]);
 		std::swap(coverage[1], coverage[2]);
 		area = -area;

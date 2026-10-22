@@ -1,6 +1,6 @@
 /// @file
-/// @brief Bitmap: decoding SVG icons (vector/Svg.hpp), and PNG and JPEG with stb_image (compiled here, PNG and JPEG only, no file access of its own),
-/// within limits checked before any pixel is decoded.
+/// @brief Bitmap: decoding SVG icons (vector/Svg.hpp), and PNG and JPEG with stb_image (compiled here, PNG and JPEG
+/// only, no file access of its own), within limits checked before any pixel is decoded.
 
 #include "affresco/render/Bitmap.hpp"
 

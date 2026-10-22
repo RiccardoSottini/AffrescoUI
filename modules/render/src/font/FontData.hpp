@@ -151,8 +151,8 @@ struct Font::Data {
 	/// @brief Gives the strong runs and the numbers their level and the way each pulls the neutral runs beside it.
 	/// @param base Whether the line goes right to left.
 	void resolveStrongRuns(bool base) noexcept;
-	/// @brief Gives the neutral runs their level, after resolveStrongRuns(): the way of the runs on both sides when they
-	/// agree, else the line's (N1, N2).
+	/// @brief Gives the neutral runs their level, after resolveStrongRuns(): the way of the runs on both sides when
+	/// they agree, else the line's (N1, N2).
 	/// @param base Whether the line goes right to left.
 	void resolveNeutralRuns(bool base) noexcept;
 	/// @brief Splits the runs of a text that has right-to-left runs where numbers and spaces start and end.

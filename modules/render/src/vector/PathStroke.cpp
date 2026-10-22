@@ -51,10 +51,12 @@ public:
 	/// @brief Draws a circle (a polygon fine enough for its size), fringed all round.
 	void circle(Vec2 center, float radius) {
 		const float step = radius > 0.25f ? 2.0f * std::acos(1.0f - 0.25f / radius) : std::numbers::pi_v<float>;
-		const auto count = static_cast<std::size_t>(std::clamp(std::ceil(2.0f * std::numbers::pi_v<float> / step), 8.0f, 64.0f));
+		const auto count =
+		    static_cast<std::size_t>(std::clamp(std::ceil(2.0f * std::numbers::pi_v<float> / step), 8.0f, 64.0f));
 		std::array<Vec2, polygonLimit> corners{};
 		for(std::size_t index = 0; index < count; ++index) {
-			const float angle = 2.0f * std::numbers::pi_v<float> * static_cast<float>(index) / static_cast<float>(count);
+			const float angle =
+			    2.0f * std::numbers::pi_v<float> * static_cast<float>(index) / static_cast<float>(count);
 			corners[index] = {center.x + radius * std::cos(angle), center.y + radius * std::sin(angle)};
 		}
 		std::array<bool, polygonLimit> fringed{};
@@ -77,11 +79,13 @@ private:
 	[[nodiscard]] static std::array<Vec2, polygonLimit> outwardNormals(std::span<const Vec2> corners) {
 		const std::size_t count = corners.size();
 		float area = 0.0f;
-		for(std::size_t index = 0; index < count; ++index) area += vector::cross(corners[index], corners[(index + 1) % count]);
+		for(std::size_t index = 0; index < count; ++index)
+			area += vector::cross(corners[index], corners[(index + 1) % count]);
 		const float sign = area > 0.0f ? -1.0f : 1.0f; // outside is on the right of a counter-clockwise polygon
 		std::array<Vec2, polygonLimit> normals{};
 		for(std::size_t index = 0; index < count; ++index)
-			normals[index] = times(vector::leftOf(vector::normalized(minus(corners[(index + 1) % count], corners[index]))), sign);
+			normals[index] =
+			    times(vector::leftOf(vector::normalized(minus(corners[(index + 1) % count], corners[index]))), sign);
 		return normals;
 	}
 
@@ -97,7 +101,8 @@ private:
 			const Vec2 start = offset(normals[index], fringed[previous] ? normals[previous] : normals[index]);
 			const Vec2 end = offset(normals[index], fringed[next] ? normals[next] : normals[index]);
 			vector::pushQuad(mesh_, {MeshVertex{corners[index]}, MeshVertex{corners[next]},
-			                         MeshVertex{plus(corners[next], end), 0.0f}, MeshVertex{plus(corners[index], start), 0.0f}});
+			                         MeshVertex{plus(corners[next], end), 0.0f},
+			                         MeshVertex{plus(corners[index], start), 0.0f}});
 		}
 	}
 
@@ -131,8 +136,7 @@ public:
 		for(std::size_t index = 0; index < segments && !writer_.full(); ++index) {
 			const bool first = !closed && index == 0, last = !closed && index + 1 == segments;
 			segment(points[index], points[(index + 1) % points.size()], first, last);
-			if(!last)
-				join(points[index], points[(index + 1) % points.size()], points[(index + 2) % points.size()]);
+			if(!last) join(points[index], points[(index + 1) % points.size()], points[(index + 2) % points.size()]);
 		}
 		if(closed) return;
 		cap(points[0], vector::normalized(minus(points[0], points[1])));
@@ -218,7 +222,8 @@ private:
 /// @param contour The contour.
 /// @param pattern The dash pattern (even, valid).
 /// @return The dashes, open runs of points.
-[[nodiscard]] std::vector<std::vector<Vec2>> dashesOf(const VectorPath::Contour& contour, std::span<const float> pattern) {
+[[nodiscard]] std::vector<std::vector<Vec2>> dashesOf(const VectorPath::Contour& contour,
+                                                      std::span<const float> pattern) {
 	std::vector<std::vector<Vec2>> dashes;
 	std::size_t phase = 0;
 	float left = pattern[0];
@@ -282,7 +287,8 @@ void strokeContour(Stroker& stroker, const VectorPath::Contour& contour, const S
 	// A closed contour whose last point is its first is one point shorter
 	std::span<const Vec2> points = contour.points;
 	if(contour.closed && points.size() > 1 && points.back() == points.front()) points = points.first(points.size() - 1);
-	const std::vector<float> pattern = style.dash.empty() ? std::vector<float>{} : dashPattern(style.dash, lengthOf(contour));
+	const std::vector<float> pattern =
+	    style.dash.empty() ? std::vector<float>{} : dashPattern(style.dash, lengthOf(contour));
 	if(pattern.empty() || points.size() == 1) {
 		stroker.run(points, contour.closed && points.size() > 2);
 		return;
@@ -293,8 +299,8 @@ void strokeContour(Stroker& stroker, const VectorPath::Contour& contour, const S
 
 } // namespace
 
-void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeStyle& style, std::vector<MeshVertex>& mesh,
-                  float feather) {
+void appendStroke(std::span<const VectorPath::Contour> contours, const StrokeStyle& style,
+                  std::vector<MeshVertex>& mesh, float feather) {
 	if(!strokable(contours, style)) return;
 	Stroker stroker(style, mesh, std::min(std::max(feather, 0.0f), 4.0f));
 	for(const VectorPath::Contour& contour : contours)

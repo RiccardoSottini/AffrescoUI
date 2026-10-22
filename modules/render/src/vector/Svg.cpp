@@ -19,15 +19,16 @@ namespace affresco::vector {
 
 namespace {
 
-constexpr std::size_t byteLimit = std::size_t{1} << 20;    ///< The largest document.
-constexpr std::size_t elementLimit = 4096;                 ///< The most elements.
-constexpr std::size_t depthLimit = 32;                     ///< The deepest nesting.
-constexpr float sideLimit = 2048.0f;                       ///< The longest side of the image, in pixels.
-constexpr std::size_t workLimit = std::size_t{1} << 26;    ///< The most pixels the canvas visits.
-constexpr float circleHandle = 0.5523f;                    ///< Where a quarter circle's cubic handles are, in radii.
-constexpr std::array<std::string_view, 13> skippedElements{ ///< Elements whose contents aren't drawn.
-    "defs",  "clipPath", "mask",  "symbol", "linearGradient", "radialGradient", "pattern",
-    "marker", "text",    "style", "title",  "desc",           "metadata"};
+constexpr std::size_t byteLimit = std::size_t{1} << 20; ///< The largest document.
+constexpr std::size_t elementLimit = 4096;              ///< The most elements.
+constexpr std::size_t depthLimit = 32;                  ///< The deepest nesting.
+constexpr float sideLimit = 2048.0f;                    ///< The longest side of the image, in pixels.
+constexpr std::size_t workLimit = std::size_t{1} << 26; ///< The most pixels the canvas visits.
+constexpr float circleHandle = 0.5523f;                 ///< Where a quarter circle's cubic handles are, in radii.
+/// @brief Elements whose contents aren't drawn.
+constexpr std::array<std::string_view, 13> skippedElements{
+    "defs",   "clipPath", "mask",  "symbol", "linearGradient", "radialGradient", "pattern",
+    "marker", "text",     "style", "title",  "desc",           "metadata"};
 
 /// @brief A number attribute.
 /// @param tag The element.
@@ -185,8 +186,8 @@ private:
 Renderer::Renderer(XmlReader& reader, const XmlTag& root) : reader_(reader), canvas_(canvasFor(root)) {
 	const std::vector<float> viewBox = svgNumbers(root.attribute("viewBox").value_or(""));
 	SvgStyle style;
-	style.transform = rootTransform(
-	    root, viewBox, {static_cast<float>(canvas_.width()), static_cast<float>(canvas_.height())});
+	style.transform =
+	    rootTransform(root, viewBox, {static_cast<float>(canvas_.width()), static_cast<float>(canvas_.height())});
 	style.apply(root);
 	if(!root.selfClosing) styles_.push_back(std::move(style));
 }
@@ -224,8 +225,8 @@ void Renderer::draw(const VectorPath& path, const SvgStyle& style) {
 	if(style.fill && style.fill->a * style.opacity * style.fillOpacity > 0.0f) {
 		mesh_.clear();
 		appendFill(contours, style.fillRule, mesh_);
-		canvas_.fill(mesh_, {style.fill->r, style.fill->g, style.fill->b,
-		                     style.fill->a * style.opacity * style.fillOpacity});
+		canvas_.fill(mesh_,
+		             {style.fill->r, style.fill->g, style.fill->b, style.fill->a * style.opacity * style.fillOpacity});
 	}
 	if(style.stroke && style.stroke->a * style.opacity * style.strokeOpacity > 0.0f && style.line.width > 0.0f) {
 		const float scale = std::sqrt(std::abs(style.transform.scale.x * style.transform.scale.y));
@@ -249,7 +250,8 @@ bool looksLikeSvg(std::span<const std::uint8_t> bytes) {
 }
 
 std::shared_ptr<const Bitmap> rasterizeSvg(std::span<const std::uint8_t> bytes, const Bitmap::Limits& limits) {
-	if(bytes.size() > std::min(byteLimit, limits.fileBytes)) throw std::runtime_error("AffrescoUI: SVG larger than allowed");
+	if(bytes.size() > std::min(byteLimit, limits.fileBytes))
+		throw std::runtime_error("AffrescoUI: SVG larger than allowed");
 	const std::string_view text(reinterpret_cast<const char*>(bytes.data()), bytes.size());
 	XmlReader reader(text);
 	std::optional<XmlTag> root = reader.next();

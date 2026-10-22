@@ -91,7 +91,8 @@ public:
 		for(int step = 1; step <= steps; ++step) {
 			const float t = static_cast<float>(step) / static_cast<float>(steps), u = 1.0f - t;
 			const float a = u * u * u, b = 3.0f * u * u * t, c = 3.0f * u * t * t, d = t * t * t;
-			add({a * from.x + b * first.x + c * second.x + d * end.x, a * from.y + b * first.y + c * second.y + d * end.y});
+			add({a * from.x + b * first.x + c * second.x + d * end.x,
+			     a * from.y + b * first.y + c * second.y + d * end.y});
 		}
 	}
 
@@ -178,8 +179,7 @@ public:
 		char command = 0;
 		while(skipSpace(), at_ < data_.size()) {
 			command = nextCommand(command);
-			if(++commands_ > limits_.commands)
-				fail("more than " + std::to_string(limits_.commands) + " commands");
+			if(++commands_ > limits_.commands) fail("more than " + std::to_string(limits_.commands) + " commands");
 			runCommand(command);
 			// Pairs after a move are lines
 			if(command == 'M') command = 'L';
@@ -204,17 +204,38 @@ private:
 		const bool relative = std::islower(static_cast<unsigned char>(command)) != 0;
 		const Vec2 base = relative ? current_ : Vec2{};
 		switch(std::toupper(static_cast<unsigned char>(command))) {
-		case 'M': moveTo(plus(base, pair())); break;
-		case 'L': lineTo(plus(base, pair())); break;
-		case 'H': lineTo({base.x + number(), current_.y}); break;
-		case 'V': lineTo({current_.x, base.y + number()}); break;
-		case 'C': runCubic(base, false); break;
-		case 'S': runCubic(base, true); break;
-		case 'Q': runQuadratic(base, false); break;
-		case 'T': runQuadratic(base, true); break;
-		case 'A': runArc(base); break;
-		case 'Z': close(); break;
-		default: fail(std::string("unknown command '") + command + "'");
+		case 'M':
+			moveTo(plus(base, pair()));
+			break;
+		case 'L':
+			lineTo(plus(base, pair()));
+			break;
+		case 'H':
+			lineTo({base.x + number(), current_.y});
+			break;
+		case 'V':
+			lineTo({current_.x, base.y + number()});
+			break;
+		case 'C':
+			runCubic(base, false);
+			break;
+		case 'S':
+			runCubic(base, true);
+			break;
+		case 'Q':
+			runQuadratic(base, false);
+			break;
+		case 'T':
+			runQuadratic(base, true);
+			break;
+		case 'A':
+			runArc(base);
+			break;
+		case 'Z':
+			close();
+			break;
+		default:
+			fail(std::string("unknown command '") + command + "'");
 		}
 	}
 
@@ -262,8 +283,8 @@ private:
 	void runQuadratic(Vec2 base, bool smooth) {
 		const Vec2 control = smooth ? reflected(Curve::quadratic) : plus(base, pair());
 		const Vec2 end = plus(base, pair()), from = current_;
-		addCubic(plus(from, times(minus(control, from), 2.0f / 3.0f)), plus(end, times(minus(control, end), 2.0f / 3.0f)),
-		         end);
+		addCubic(plus(from, times(minus(control, from), 2.0f / 3.0f)),
+		         plus(end, times(minus(control, end), 2.0f / 3.0f)), end);
 		control_ = control;
 		curve_ = Curve::quadratic;
 	}
@@ -297,10 +318,10 @@ private:
 
 	/// @brief An SVG arc's shape, as A gives it.
 	struct Arc {
-		Vec2 radii;          ///< The ellipse's radii, not negative.
-		float degrees = 0;   ///< The ellipse's rotation, in degrees.
-		bool large = false;  ///< Whether the arc takes the long way round.
-		bool sweep = false;  ///< Whether the arc turns at positive angles.
+		Vec2 radii;         ///< The ellipse's radii, not negative.
+		float degrees = 0;  ///< The ellipse's rotation, in degrees.
+		bool large = false; ///< Whether the arc takes the long way round.
+		bool sweep = false; ///< Whether the arc turns at positive angles.
 	};
 
 	/// @brief The digits of a number: the value they make without the point, and where the point goes.
@@ -337,16 +358,16 @@ private:
 	/// @param message What went wrong.
 	[[noreturn]] void fail(const std::string& message) const;
 
-	std::string_view data_;           ///< The data.
-	VectorPath::Limits limits_;       ///< What is accepted.
-	std::size_t at_ = 0;              ///< Where reading is.
-	std::size_t commands_ = 0;        ///< Commands read.
-	VectorPath path_;                 ///< The path so far.
-	Vec2 current_{};                  ///< The current point.
-	Vec2 start_{};                    ///< Where the contour started.
-	Vec2 control_{};                  ///< The last curve's last control point.
-	Curve curve_ = Curve::none;       ///< The kind of the last command, if a curve.
-	bool closed_ = false;             ///< Whether the last command was Z.
+	std::string_view data_;     ///< The data.
+	VectorPath::Limits limits_; ///< What is accepted.
+	std::size_t at_ = 0;        ///< Where reading is.
+	std::size_t commands_ = 0;  ///< Commands read.
+	VectorPath path_;           ///< The path so far.
+	Vec2 current_{};            ///< The current point.
+	Vec2 start_{};              ///< Where the contour started.
+	Vec2 control_{};            ///< The last curve's last control point.
+	Curve curve_ = Curve::none; ///< The kind of the last command, if a curve.
+	bool closed_ = false;       ///< Whether the last command was Z.
 };
 
 void PathParser::appendArc(Vec2 from, const Arc& arc, Vec2 to) {
@@ -385,12 +406,13 @@ void PathParser::appendArc(Vec2 from, const Arc& arc, Vec2 to) {
 
 void PathParser::appendArcSegments(Vec2 center, Vec2 radii, float rotation, float startAngle, float sweepAngle) {
 	// Each piece of at most a quarter turn is one cubic curve, its handles 4/3 tan(angle / 4) long
-	const int pieces = std::clamp(static_cast<int>(std::ceil(std::abs(sweepAngle) / (std::numbers::pi_v<float> / 2.0f))),
-	                              1, 4);
+	const int pieces =
+	    std::clamp(static_cast<int>(std::ceil(std::abs(sweepAngle) / (std::numbers::pi_v<float> / 2.0f))), 1, 4);
 	const float step = sweepAngle / static_cast<float>(pieces), handle = 4.0f / 3.0f * std::tan(step / 4.0f);
 	const float cosine = std::cos(rotation), sine = std::sin(rotation);
 	const auto onEllipse = [&](float x, float y) {
-		return Vec2{center.x + cosine * radii.x * x - sine * radii.y * y, center.y + sine * radii.x * x + cosine * radii.y * y};
+		return Vec2{center.x + cosine * radii.x * x - sine * radii.y * y,
+		            center.y + sine * radii.x * x + cosine * radii.y * y};
 	};
 	float angle = startAngle;
 	for(int piece = 0; piece < pieces; ++piece) {
@@ -403,8 +425,7 @@ void PathParser::appendArcSegments(Vec2 center, Vec2 radii, float rotation, floa
 }
 
 void PathParser::skipSpace() noexcept {
-	while(at_ < data_.size() && (std::isspace(static_cast<unsigned char>(data_[at_])) != 0 || data_[at_] == ','))
-		++at_;
+	while(at_ < data_.size() && (std::isspace(static_cast<unsigned char>(data_[at_])) != 0 || data_[at_] == ',')) ++at_;
 }
 
 Vec2 PathParser::pair() {

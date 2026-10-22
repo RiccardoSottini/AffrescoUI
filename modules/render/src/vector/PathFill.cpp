@@ -139,13 +139,13 @@ private:
 		}
 	}
 
-	FillRule rule_;                ///< Which points are inside.
+	FillRule rule_;                 ///< Which points are inside.
 	std::vector<MeshVertex>& mesh_; ///< Where the quads go.
-	std::vector<Edge> edges_;      ///< Every edge, by its top.
-	std::vector<float> heights_;   ///< Every point's height, once each, in order.
-	std::vector<Edge> active_;     ///< The edges across the current band.
-	std::vector<Span> spans_;      ///< The active edges across the current piece of band.
-	std::size_t work_ = 0;         ///< Edge visits so far.
+	std::vector<Edge> edges_;       ///< Every edge, by its top.
+	std::vector<float> heights_;    ///< Every point's height, once each, in order.
+	std::vector<Edge> active_;      ///< The edges across the current band.
+	std::vector<Span> spans_;       ///< The active edges across the current piece of band.
+	std::size_t work_ = 0;          ///< Edge visits so far.
 };
 
 /// @brief How many times contours wind around a point.
@@ -169,7 +169,8 @@ private:
 	std::size_t longest = 0;
 	float longestLength = -1.0f;
 	for(std::size_t index = 0; index < contour.points.size(); ++index) {
-		const float size = vector::length(minus(contour.points[(index + 1) % contour.points.size()], contour.points[index]));
+		const float size =
+		    vector::length(minus(contour.points[(index + 1) % contour.points.size()], contour.points[index]));
 		if(size > longestLength) {
 			longestLength = size;
 			longest = index;
@@ -177,7 +178,8 @@ private:
 	}
 	const Vec2 from = contour.points[longest], to = contour.points[(longest + 1) % contour.points.size()];
 	const Vec2 middle = times(plus(from, to), 0.5f);
-	const Vec2 probe = plus(middle, times(vector::leftOf(vector::normalized(minus(to, from))), std::min(0.01f, longestLength)));
+	const Vec2 probe =
+	    plus(middle, times(vector::leftOf(vector::normalized(minus(to, from))), std::min(0.01f, longestLength)));
 	return isInside(windingAt(contours, probe), rule);
 }
 

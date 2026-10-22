@@ -265,9 +265,7 @@ void Font::Data::splitNumbers(std::u32string_view text) {
 	runs = std::move(split);
 }
 
-bool Font::Data::Run::isStrong() const noexcept {
-	return isOwnScript(script) && !number;
-}
+bool Font::Data::Run::isStrong() const noexcept { return isOwnScript(script) && !number; }
 
 bool Font::Data::Run::hasRightToLeftScript() const noexcept {
 	return hb_script_get_horizontal_direction(script) == HB_DIRECTION_RTL;
