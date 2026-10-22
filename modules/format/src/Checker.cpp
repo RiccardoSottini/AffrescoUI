@@ -307,7 +307,13 @@ void Checker::refer(std::string_view kind, const char* sectionName, const std::s
 	if(definition(sectionName, name)) return;
 	if(std::string_view(sectionName) == "colors" && definition("tokens", name)) return; // a colour token
 	report(place, "unknown " + std::string(kind) + " '" + std::string(prefix) + name + "'",
-	       hint([&] { return hintFor(name, definedNames(sectionName), prefix, "defined:"); }));
+	       hint([&] {
+		       std::vector<std::string> names = definedNames(sectionName);
+		       if(std::string_view(sectionName) == "colors") // the colour tokens are named too
+			       for(std::string& token : definedNames("tokens"))
+				       if(token.starts_with("color.")) names.push_back(std::move(token));
+		       return hintFor(name, names, prefix, "defined:");
+	       }));
 }
 
 } // namespace checker
