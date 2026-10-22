@@ -9,7 +9,11 @@
 #include <cctype>
 #include <charconv>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
+#include <iterator>
+#include <unordered_map>
+#include <utility>
 
 namespace affresco::format::detail {
 
@@ -308,15 +312,21 @@ private:
 	/// @return The node.
 	json object() {
 		json fields = json::object();
+		json::object_t& entries = fields.get_ref<json::object_t&>();
+		std::unordered_map<std::string, std::size_t> at; // a key's entry: finding it in the object costs its size
 		if(!accept("}")) {
 			do {
 				skip();
-				const std::string key =
-				    position_ < text_.size() && (text_[position_] == '\'' || text_[position_] == '"')
-				        ? quoted(text_[position_])
-				        : name(true);
+				std::string key = position_ < text_.size() && (text_[position_] == '\'' || text_[position_] == '"')
+				                      ? quoted(text_[position_])
+				                      : name(true);
 				expect(":");
-				fields[key] = ternary();
+				json value = ternary();
+				if(const auto [it, added] = at.try_emplace(key, entries.size()); added)
+					entries.emplace_back(std::move(key), std::move(value));
+				else
+					std::next(entries.begin(), static_cast<std::ptrdiff_t>(it->second))->second =
+					    std::move(value); // a key written again keeps its place
 			} while(accept(","));
 			expect("}");
 		}

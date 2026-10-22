@@ -604,6 +604,30 @@ TEST_CASE("format: values are small, cheap to copy, and read JSON in place") {
 	      "[\"\xEF\xBF\xBD\"]"); // JSON: replaced
 }
 
+// An object written in an expression found each of its keys among those before it, when it was read and again each
+// time it was made, and so did merge(): one of a hundred thousand keys took seconds, at each frame that showed it
+TEST_CASE("format: an object of many keys is made at the cost of its size" * doctest::timeout(5)) {
+	std::string keys;
+	for(int i = 0; i < 100000; ++i) keys += (i ? ", k" : "k") + std::to_string(i) + ": " + std::to_string(i);
+	CHECK(evaluate("{{ ({" + keys + "}).k99999 }}") == 99999);                     // made once, when compiled
+	CHECK(evaluate("{{ ({" + keys + ", count: state.count}).k99999 }}") == 99999); // made when evaluated
+	CHECK(evaluate("{{ merge({" + keys + "}, {k5: 'five'}).k5 }}") == "five");
+
+	// A key written again keeps its first place and takes its last value, among a few keys and among many
+	CHECK(evaluate("{{ {a: 1, b: 2, a: state.count} }}").dump() == R"({"a":3,"b":2})");
+	std::string many = "{";
+	for(int i = 0; i < 20; ++i) many += "k" + std::to_string(i) + ": " + std::to_string(i) + ", ";
+	const json written = evaluate("{{ " + many + "k3: 'again', k0: state.count} }}");
+	REQUIRE(written.size() == 20);
+	CHECK(written.begin().key() == "k0");
+	CHECK(written["k0"] == 3);
+	CHECK(std::next(written.begin(), 3).key() == "k3");
+	CHECK(written["k3"] == "again");
+	CHECK(evaluate("{{ merge(" + many + "k3: 1}, {k3: 2, z: 0}) }}")
+	          .dump()
+	          .starts_with(R"({"k0":0,"k1":1,"k2":2,"k3":2,)"));
+}
+
 TEST_CASE("format: an expression still running survives the compile cache being cleared under it") {
 	// Reading computed.<name> may compile and evaluate other expressions, which can fill the cache and clear it
 	static const json state = {{"count", 3}}, window = json::object(), revision = 0, event = json::object(),

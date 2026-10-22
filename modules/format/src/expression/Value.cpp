@@ -7,6 +7,8 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <string_view>
+#include <unordered_map>
 #include <variant>
 
 namespace affresco::format {
@@ -21,6 +23,8 @@ namespace {
 
 /// The longest text a Value holds inline.
 constexpr std::size_t inlineCapacity = 16;
+/// Fields from which an object being made finds a key by an index instead of looking through those it has.
+constexpr std::size_t indexedFields = 16;
 
 } // namespace
 
@@ -72,11 +76,20 @@ Value Value::fromList(std::vector<Value> items) {
 Value Value::fromObject(std::vector<Field> fields) {
 	// As a JSON object (ordered_json) sets keys: in the order they come, a key set again keeping its first place
 	std::vector<Field> unique;
-	unique.reserve(fields.size());
+	unique.reserve(fields.size()); // never moves: the index views the keys where they are
+	const bool indexed = fields.size() >= indexedFields;
+	std::unordered_map<std::string_view, std::size_t> at; // where each key is, when looking costs their number
 	for(Field& field : fields) {
-		const auto same = std::ranges::find(unique, field.key, &Field::key);
-		if(same != unique.end()) same->value = std::move(field.value);
-		else unique.push_back(std::move(field));
+		Field* same = nullptr;
+		if(!indexed) {
+			if(const auto it = std::ranges::find(unique, field.key, &Field::key); it != unique.end()) same = &*it;
+		} else if(const auto it = at.find(field.key); it != at.end()) same = &unique[it->second];
+		if(same) {
+			same->value = std::move(field.value);
+			continue;
+		}
+		unique.push_back(std::move(field));
+		if(indexed) at.emplace(unique.back().key, unique.size() - 1);
 	}
 	Value result;
 	result.holding_ = Holding::Object;
