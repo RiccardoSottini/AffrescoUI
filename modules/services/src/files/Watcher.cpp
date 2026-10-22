@@ -4,49 +4,115 @@
 #include "files/Watcher.hpp"
 
 #include <algorithm>
+#include <array>
+#include <new>
 
 namespace affresco::services {
 
 namespace {
 
-/// @brief Matches a glob against a text from their starts (`*` and `?` stop at `/`, `**` doesn't).
-/// @param glob The rest of the glob.
-/// @param text The rest of the text.
-/// @return Whether all of the text matches all of the glob.
-bool matchFrom(std::string_view glob, std::string_view text) noexcept {
-	while(!glob.empty()) {
-		if(glob.starts_with("**")) {
-			glob.remove_prefix(2);
-			if(glob.starts_with('/') && matchFrom(glob.substr(1), text)) return true; // "a/**/b" matches "a/b"
-			for(std::size_t i = 0; i <= text.size(); ++i)
-				if(matchFrom(glob, text.substr(i))) return true;
-			return false;
-		}
-		if(glob.front() == '*') {
-			glob.remove_prefix(1);
-			for(std::size_t i = 0; i <= text.size(); ++i) {
-				if(matchFrom(glob, text.substr(i))) return true;
-				if(i < text.size() && text[i] == '/') return false;
-			}
-			return false;
-		}
-		if(text.empty() || (glob.front() == '?' ? text.front() == '/' : glob.front() != text.front())) return false;
-		glob.remove_prefix(1);
-		text.remove_prefix(1);
+/// @brief A state the text read so far can be in: at the start of one of the glob's tokens.
+constexpr unsigned char reached = 1;
+/// @brief A `**` entered without reading anything inside it yet: only then may the `/` after it be skipped.
+constexpr unsigned char entered = 2;
+
+/// @brief The states of one glob, one byte per position: on the stack for the globs screens give (at most 200 bytes).
+class GlobStates {
+public:
+	/// @brief Room for the states of a glob.
+	/// @param glob The glob.
+	/// @throws std::bad_alloc For a glob longer than the room on the stack, if memory runs out.
+	explicit GlobStates(std::string_view glob) {
+		if(glob.size() >= small_.size()) large_.resize(glob.size() + 1);
 	}
-	return text.empty();
+
+	/// @brief The states, one per position of the glob and one past its end.
+	/// @return Their first.
+	unsigned char* data() noexcept { return large_.empty() ? small_.data() : large_.data(); }
+
+private:
+	std::array<unsigned char, 256> small_{}; ///< The states of a short glob.
+	std::vector<unsigned char> large_;       ///< The states of a long one; empty for a short one.
+};
+
+/// @brief The width of the token at a position of a glob.
+/// @param glob The glob.
+/// @param at The token's position.
+/// @return 2 for `**`, else 1.
+std::size_t tokenWidth(std::string_view glob, std::size_t at) noexcept {
+	return glob.substr(at).starts_with("**") ? 2 : 1;
+}
+
+/// @brief Adds the states reachable without reading: past a `*` or `**` (both match nothing), and past the `/` after
+/// a `**` just entered ("a/**/b" matches "a/b").
+/// @param glob The glob.
+/// @param states Its states.
+void close(std::string_view glob, unsigned char* states) noexcept {
+	for(std::size_t at = 0; at < glob.size(); ++at) {
+		if((states[at] & reached) == 0 || glob[at] != '*') continue;
+		const std::size_t next = at + tokenWidth(glob, at);
+		states[next] |= reached | entered;
+		if(next == at + 2 && (states[at] & entered) != 0 && next < glob.size() && glob[next] == '/')
+			states[next + 1] |= reached | entered;
+	}
+}
+
+/// @brief Reads one byte of the text: each state stays (in a `*` or `**`) or moves past the token the byte matches.
+/// Positions go from last to first, so each reads its predecessor before that is overwritten.
+/// @param glob The glob.
+/// @param states Its states, updated.
+/// @param byte The byte.
+/// @return Whether any state is left: if none, the text can't match.
+bool step(std::string_view glob, unsigned char* states, char byte) noexcept {
+	bool any = false;
+	for(std::size_t at = glob.size() + 1; at-- > 0;) {
+		unsigned char now = 0;
+		if(at < glob.size() && (states[at] & reached) != 0 && glob[at] == '*' &&
+		   (tokenWidth(glob, at) == 2 || byte != '/'))
+			now |= reached;
+		if(at > 0 && (states[at - 1] & reached) != 0) {
+			const char token = glob[at - 1];
+			if(token != '*' && (token == '?' ? byte != '/' : token == byte)) now |= reached | entered;
+		}
+		states[at] = now;
+		any = any || now != 0;
+	}
+	return any;
+}
+
+/// @brief Matches a glob against a text from their starts (`*` and `?` stop at `/`, `**` doesn't). The glob runs as
+/// a set of states, one per position, so the time is the glob's length times the text's, whatever the glob: a
+/// backtracking matcher takes exponential time on globs such as "*a*a*a*a*a*b", which screens could give.
+/// @param glob The glob.
+/// @param text The text.
+/// @param states Room for the glob's states (GlobStates).
+/// @return Whether all of the text matches all of the glob.
+bool matchFrom(std::string_view glob, std::string_view text, unsigned char* states) noexcept {
+	std::fill_n(states, glob.size() + 1, 0);
+	states[0] = reached | entered;
+	close(glob, states);
+	for(const char byte : text) {
+		if(!step(glob, states, byte)) return false;
+		close(glob, states);
+	}
+	return (states[glob.size()] & reached) != 0;
 }
 
 } // namespace
 
 bool globMatches(std::string_view glob, std::string_view path) noexcept {
-	if(glob.contains('/')) return matchFrom(glob, path);
-	for(std::size_t start = 0; start <= path.size();) {
-		const std::size_t end = std::min(path.find('/', start), path.size());
-		if(matchFrom(glob, path.substr(start, end - start))) return true;
-		start = end + 1;
+	try {
+		GlobStates states(glob);
+		if(glob.contains('/')) return matchFrom(glob, path, states.data());
+		for(std::size_t start = 0; start <= path.size();) {
+			const std::size_t end = std::min(path.find('/', start), path.size());
+			if(matchFrom(glob, path.substr(start, end - start), states.data())) return true;
+			start = end + 1;
+		}
+		return false;
+	} catch(const std::bad_alloc&) {
+		return false; // the path isn't ignored: watching more is safer than missing a change
 	}
-	return false;
 }
 
 bool ignoredBy(const std::vector<std::string>& globs, std::string_view path) noexcept {
