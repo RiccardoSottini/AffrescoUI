@@ -141,6 +141,19 @@ std::optional<std::size_t> positionIn(const std::vector<Panel*>& panels, const P
 	return std::nullopt;
 }
 
+/// @brief Tells whether a command key is held: Cmd, or Ctrl.
+/// @param mods The modifiers.
+/// @return true if one is.
+bool commandHeld(Mods mods) { return mods.super() || mods.control(); }
+
+/// @brief Tells whether Tab moves the focus: without Cmd, Ctrl or Alt, and not in a code editor (it indents).
+/// @param from The focused panel, or nullptr.
+/// @param mods The modifiers.
+/// @return true if it does.
+bool tabMovesFocus(const Panel* from, Mods mods) {
+	return !commandHeld(mods) && !mods.alt() && !dynamic_cast<const TextEditor*>(from);
+}
+
 /// @brief Tells whether a key clicks a focusable node: Enter, the keypad's Enter or Space.
 /// @param key The key.
 /// @return true if it does.
@@ -276,27 +289,29 @@ bool Events::keyClick(Panel& panel) {
 bool Events::navigate(Panel* from, const KeyEvent& event) {
 	if(event.action == affresco::Action::Release || !engine_.window) return false;
 	const Mods mods = event.mods;
-	const bool command = mods.super() || mods.control();
-
-	// a colour picker that took Tab moved to its next part, and keeps the focus
-	if(event.key == Key::Tab && !keyResolved_ && dynamic_cast<const ColorPicker*>(from)) return false;
-	// Tab and Shift+Tab, in the open modal overlay if any (a code editor keeps Tab for indenting)
-	if(event.key == Key::Tab && !command && !mods.alt() && !dynamic_cast<const TextEditor*>(from))
-		return tabFocus(from, mods.shift());
-	if(isTextInput(from)) return false; // a text input keeps the other keys for typing
-
-	// Alt+letter: the mnemonic's node, anywhere in the open modal overlay if any, lists too
-	const char letter = letterOf(event.key);
-	if(letter && mods.alt() && !command) {
-		Panel& scope = modalScope();
-		Panel* found = findMnemonic(engine_.reconciler, scope, scope, letter);
-		return found && keyClick(*found);
+	if(event.key == Key::Tab) {
+		// a colour picker that took Tab moved to its next part, and keeps the focus
+		if(!keyResolved_ && dynamic_cast<const ColorPicker*>(from)) return false;
+		// Tab and Shift+Tab, in the open modal overlay if any
+		if(tabMovesFocus(from, mods)) return tabFocus(from, mods.shift());
 	}
+	if(isTextInput(from)) return false; // a text input keeps the other keys for typing
+	const char letter = letterOf(event.key);
+	if(letter && mods.alt() && !commandHeld(mods)) return pressMnemonic(letter);
+	if(!from || commandHeld(mods) || mods.alt() || mods.shift()) return false;
+	return plainKey(*from, event.key, letter);
+}
 
-	if(!from || command || mods.alt() || mods.shift()) return false;
-	const Record* own = engine_.reconciler.recordOf(from);
-	if(own && own->focusable && clicksWith(event.key)) return keyClick(*from);
-	return moveInList(*from, event.key, letter);
+bool Events::pressMnemonic(char letter) {
+	Panel& scope = modalScope();
+	Panel* found = findMnemonic(engine_.reconciler, scope, scope, letter);
+	return found && keyClick(*found);
+}
+
+bool Events::plainKey(Panel& from, Key key, char letter) {
+	const Record* own = engine_.reconciler.recordOf(&from);
+	if(own && own->focusable && clicksWith(key)) return keyClick(from);
+	return moveInList(from, key, letter);
 }
 
 bool Events::tabFocus(Panel* from, bool back) {

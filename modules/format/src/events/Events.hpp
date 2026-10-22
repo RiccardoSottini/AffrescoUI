@@ -181,6 +181,18 @@ private:
 	/// @param back true for Shift+Tab.
 	/// @return true if there was a tab stop to move to.
 	bool tabFocus(Panel* from, bool back);
+	/// @brief Clicks the node of a mnemonic letter (Alt+letter), anywhere in the open modal overlay if any, lists
+	/// too.
+	/// @param letter The letter.
+	/// @return true if its "onClick" ran.
+	bool pressMnemonic(char letter);
+	/// @brief Handles a key pressed without modifiers on the focused panel: Enter and Space click a focusable one, the
+	/// other keys move in its list.
+	/// @param from The focused panel.
+	/// @param key The key.
+	/// @param letter The key's letter, for a mnemonic, or '\0'.
+	/// @return true if it did something.
+	bool plainKey(Panel& from, Key key, char letter);
 	/// @brief Moves the focus inside the nearest "arrows" node above a panel with an arrow, Home or End, or clicks
 	/// its item with a mnemonic.
 	/// @param from The focused panel.
