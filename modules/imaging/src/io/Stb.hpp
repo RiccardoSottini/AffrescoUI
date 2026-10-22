@@ -49,11 +49,24 @@ struct Decoded {
 /// @return The stream.
 [[nodiscard]] std::vector<std::uint8_t> deflate(std::span<const std::uint8_t> bytes);
 
+/// @brief Whether stb_image_write's int arithmetic holds a PNG of a size: (4 * width + 1) * height filtered bytes.
+/// @param width The width.
+/// @param height The height.
+/// @return true if so.
+[[nodiscard]] bool pngFits(int width, int height) noexcept;
+
+/// @brief Whether stb_image_write's int arithmetic holds a JPEG of a size: 4 * width * height bytes, and sides that
+/// fit the 16 bits of its header.
+/// @param width The width.
+/// @param height The height.
+/// @return true if so.
+[[nodiscard]] bool jpegFits(int width, int height) noexcept;
+
 /// @brief Encodes RGBA (8 bits, straight alpha) as a PNG.
 /// @param rgba width * height * 4 bytes.
 /// @param width The width.
 /// @param height The height.
-/// @return The file, or empty if stb failed.
+/// @return The file, or empty if stb failed or it doesn't fit (pngFits()).
 [[nodiscard]] std::vector<std::uint8_t> writePng(std::span<const std::uint8_t> rgba, int width, int height);
 
 /// @brief Encodes RGBA (8 bits; alpha dropped) as a baseline JPEG.
@@ -61,7 +74,7 @@ struct Decoded {
 /// @param width The width.
 /// @param height The height.
 /// @param quality 1 to 100.
-/// @return The file, or empty if stb failed.
+/// @return The file, or empty if stb failed or it doesn't fit (jpegFits()).
 [[nodiscard]] std::vector<std::uint8_t> writeJpeg(std::span<const std::uint8_t> rgba, int width, int height,
                                                   int quality);
 

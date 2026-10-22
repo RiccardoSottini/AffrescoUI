@@ -134,14 +134,28 @@ std::vector<std::uint8_t> deflate(std::span<const std::uint8_t> bytes) {
 	return out;
 }
 
+bool pngFits(int width, int height) noexcept {
+	if(width <= 0 || height <= 0) return false;
+	const auto filtered = (std::size_t{4} * static_cast<std::size_t>(width) + 1) * static_cast<std::size_t>(height);
+	return filtered <= static_cast<std::size_t>(INT_MAX);
+}
+
+bool jpegFits(int width, int height) noexcept {
+	if(width <= 0 || height <= 0 || width > 0xffff || height > 0xffff) return false;
+	return std::size_t{4} * static_cast<std::size_t>(width) * static_cast<std::size_t>(height) <=
+	       static_cast<std::size_t>(INT_MAX);
+}
+
 std::vector<std::uint8_t> writePng(std::span<const std::uint8_t> rgba, int width, int height) {
 	std::vector<std::uint8_t> out;
+	if(!pngFits(width, height)) return out;
 	if(stbi_write_png_to_func(append, &out, width, height, 4, rgba.data(), width * 4) == 0) out.clear();
 	return out;
 }
 
 std::vector<std::uint8_t> writeJpeg(std::span<const std::uint8_t> rgba, int width, int height, int quality) {
 	std::vector<std::uint8_t> out;
+	if(!jpegFits(width, height)) return out;
 	if(stbi_write_jpg_to_func(append, &out, width, height, 4, rgba.data(), std::clamp(quality, 1, 100)) == 0)
 		out.clear();
 	return out;

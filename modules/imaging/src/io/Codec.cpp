@@ -276,6 +276,10 @@ DecodedImage decodeImageFile(std::span<const std::uint8_t> file, const Limits& l
 
 std::vector<std::uint8_t> encodeImageFile(const Image& image, ImageFileFormat format,
                                           const std::optional<ColorProfile>& profile, int quality) {
+	// Before the pixels are gathered, so a size stb can't write costs nothing
+	const bool fits = format == ImageFileFormat::png ? stb::pngFits(image.width(), image.height())
+	                                                 : stb::jpegFits(image.width(), image.height());
+	if(!fits) throw DocumentError("imaging: the image could not be encoded");
 	const std::vector<std::uint8_t> rgba = rgbaOf(image);
 	std::vector<std::uint8_t> file = format == ImageFileFormat::png
 	                                     ? stb::writePng(rgba, image.width(), image.height())

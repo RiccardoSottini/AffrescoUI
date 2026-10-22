@@ -88,6 +88,12 @@ TEST_CASE("imaging codec: files beyond the limits, broken files and broken profi
 	const DecodedImage warned = decodeImageFile(png, small);
 	CHECK_FALSE(warned.profile);
 	CHECK_FALSE(warned.warning.empty());
+	// Sizes past what the encoder's arithmetic holds are refused before any pixel is gathered
+	const Image huge(32768, 32768, PixelFormat::rgba8);
+	CHECK_THROWS_AS((void)encodeImageFile(huge, ImageFileFormat::png, std::nullopt), affresco::DocumentError);
+	CHECK_THROWS_AS((void)encodeImageFile(huge, ImageFileFormat::jpeg, std::nullopt), affresco::DocumentError);
+	const Image wide(32768, 8, PixelFormat::rgba8);
+	CHECK_FALSE(encodeImageFile(wide, ImageFileFormat::png, std::nullopt).empty());
 	std::vector<std::uint8_t> broken = png;
 	broken[33 + 8 + 5] ^= 0xff; // the iCCP chunk's zlib header
 	const DecodedImage ignored = decodeImageFile(broken, {});
