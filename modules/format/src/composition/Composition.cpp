@@ -184,8 +184,12 @@ public:
 		screen_.erase("points");
 		// Points may sit in components too: an app's status bar is often one (Forge's is).
 		for(const auto& [pointer, tree] : nodeTrees(screen_)) pointsIn(*tree, pointer, points_, problems_);
-		if(const auto exports = document.find("exports"); exports != document.end() && exports->is_object())
-			exports_ = *exports;
+		// Composition runs before the document is checked (the checker reads the composed screen), so it reads only
+		// the parts that pass their own checks: a revision can't stop the app with a malformed feature.
+		keepValidFeatures();
+		exports_ = validSection("exports", checkExportsSection);
+		imports_ = validSection("imports", checkImportsSection);
+		if(!targetsAreObjects()) features_.clear();
 		for(const std::string& id : nodeIds(screen_)) ids_.insert(id);
 		if(const auto keys = screen_.find("keys"); keys != screen_.end() && keys->is_object())
 			for(const auto& [key, handler] : keys->items()) keyOwners_.emplace(key, "the app");
@@ -195,7 +199,7 @@ public:
 	/// @return The screen and the problems.
 	Composition run() && {
 		for(const std::string& name : mergeOrder()) {
-			const json& record = document_["features"][name];
+			const json& record = *features_.at(name);
 			const std::string place = "features." + name;
 			const std::size_t before = problems_.size();
 			AdaptedFeature adapted = adaptFeature(name, record, exports_); // its needs bound (AdapterMapping.hpp)
@@ -211,19 +215,76 @@ public:
 	}
 
 private:
+	/// @brief Keeps the document's feature records that pass checkFeatureRecord(); each other one is a problem.
+	void keepValidFeatures() {
+		const auto features = document_.find("features");
+		if(features == document_.end()) return;
+		if(!features->is_object()) {
+			problem("features", "expected an object");
+			return;
+		}
+		for(const auto& [name, record] : features->items()) try {
+				checkFeatureRecord(name, record, "features." + name);
+				features_.emplace(name, &record);
+			} catch(const DocumentError& error) {
+				problems_.emplace_back(error.what());
+			}
+	}
+
+	/// @brief One of the document's sections composition reads, if it passes its check.
+	/// @param section Its name.
+	/// @param check Its check (FeatureManifest.hpp).
+	/// @return It, or an empty object if it is missing or fails its check (a problem then).
+	json validSection(const char* section, void (*check)(const json&, const std::string&)) {
+		const auto found = document_.find(section);
+		if(found == document_.end()) return json::object();
+		try {
+			check(*found, section);
+			return *found;
+		} catch(const DocumentError& error) {
+			problems_.emplace_back(error.what());
+			return json::object();
+		}
+	}
+
+	/// @brief Tells whether the app's sections features merge into are objects, its menus included.
+	/// @return true if they are; otherwise a problem says which isn't.
+	bool targetsAreObjects() {
+		for(const std::string_view section : {"state", "computed", "keys", "menus"})
+			if(!objectOrMissing(section)) return false;
+		for(const std::string_view section : prefixedSections)
+			if(!objectOrMissing(section)) return false;
+		if(const auto menus = screen_.find("menus"); menus != screen_.end())
+			for(const auto& [menu, items] : menus->items())
+				if(!items.is_object()) {
+					problem("menus." + menu, "expected an object, so no feature merges");
+					return false;
+				}
+		return true;
+	}
+
+	/// @brief Tells whether a section of the app is an object, or missing.
+	/// @param section Its name.
+	/// @return true if it is; otherwise a problem says so.
+	bool objectOrMissing(std::string_view section) {
+		const auto found = screen_.find(section);
+		if(found == screen_.end() || found->is_object()) return true;
+		problem(std::string(section), "expected an object, so no feature merges");
+		return false;
+	}
+
 	/// @brief The enabled features in the order they merge: by "order", then name, each after the ones it requires.
 	/// A dependency that isn't enabled, or a cycle, is a problem and leaves its features out.
 	/// @return Their names.
 	std::vector<std::string> mergeOrder() {
 		std::vector<std::pair<std::pair<long long, std::string>, std::vector<std::string>>> waiting;
-		if(const auto features = document_.find("features"); features != document_.end() && features->is_object())
-			for(const auto& [name, record] : features->items()) {
-				if(!record.value("enabled", false)) continue;
-				std::vector<std::string> needs;
-				if(const auto wanted = record.find("requires"); wanted != record.end() && wanted->contains("features"))
-					for(const auto& [other, range] : (*wanted)["features"].items()) needs.push_back(other);
-				waiting.push_back({{record.value("order", 0LL), name}, std::move(needs)});
-			}
+		for(const auto& [name, record] : features_) {
+			if(!record->value("enabled", false)) continue;
+			std::vector<std::string> needs;
+			if(const auto wanted = record->find("requires"); wanted != record->end() && wanted->contains("features"))
+				for(const auto& [other, range] : (*wanted)["features"].items()) needs.push_back(other);
+			waiting.push_back({{record->value("order", 0LL), name}, std::move(needs)});
+		}
 		std::ranges::sort(waiting);
 		std::vector<std::string> order;
 		std::set<std::string, std::less<>> placed;
@@ -249,8 +310,8 @@ private:
 	/// @param name Its name.
 	/// @return true if it does.
 	bool enabled(const std::string& name) const {
-		const auto features = document_.find("features");
-		return features != document_.end() && features->contains(name) && (*features)[name].value("enabled", false);
+		const auto found = features_.find(name);
+		return found != features_.end() && found->second->value("enabled", false);
 	}
 
 	/// @brief Adds a problem.
@@ -425,10 +486,9 @@ private:
 	/// @brief Resolves the imports: each alias names a merged feature in its range, and its components' uses are
 	/// renamed.
 	void resolve() {
-		const auto imports = document_.find("imports");
-		if(imports == document_.end() || !imports->is_object() || imports->empty()) return;
+		if(imports_.empty()) return;
 		std::map<std::string, std::string, std::less<>> aliases;
-		for(const auto& [alias, text] : imports->items()) {
+		for(const auto& [alias, text] : imports_.items()) {
 			const auto parts = splitImport(text.get<std::string>());
 			if(!parts || !merged_.contains(parts->first)) {
 				problem("imports." + alias, std::format("the feature '{}' isn't installed", parts ? parts->first : ""));
@@ -446,7 +506,9 @@ private:
 
 	const json& document_;                                         ///< The document.
 	json screen_;                                                  ///< The screen being composed.
+	std::map<std::string, const json*, std::less<>> features_;     ///< The valid feature records, in the document.
 	json exports_ = json::object();                                ///< The app's exports, then the features'.
+	json imports_ = json::object();                                ///< The app's imports, if valid.
 	std::map<std::string, std::string, std::less<>> points_;       ///< Point to node pointer.
 	std::set<std::string, std::less<>> ids_;                       ///< Node ids taken.
 	std::map<std::string, std::string, std::less<>> keyOwners_;    ///< Key to who binds it, for messages.

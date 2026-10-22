@@ -226,6 +226,56 @@ TEST_CASE("features: a chain of features can't grow the exports without bound") 
 	CHECK_FALSE(text.contains("features.double14.provides"));
 }
 
+TEST_CASE("features: a malformed feature is a problem, never a crash") {
+	// Composition runs before the document's check: each part it reads must be checked by composition itself.
+	json document = app();
+	const json valid = affresco::format::recordFor(package("word-count"), "revision", "", "", 10);
+	SUBCASE("a record that isn't an object") { document["features"]["wordCount"] = 5; }
+	SUBCASE("enabled that isn't a boolean") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["enabled"] = "yes";
+	}
+	SUBCASE("an order that isn't a number") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["order"] = "first";
+	}
+	SUBCASE("a required export without a type") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["requires"]["exports"]["editor.text"] = json::object();
+	}
+	SUBCASE("a required point that isn't a string") {
+		document["features"]["wordCount"] = valid;
+		document["features"]["wordCount"]["requires"]["points"] = json::array({5});
+	}
+	SUBCASE("a features section that isn't an object") { document["features"] = json::array({1}); }
+	SUBCASE("an export that isn't an object") {
+		document["features"]["wordCount"] = valid;
+		document["exports"]["editor.text"] = 5;
+	}
+	SUBCASE("an import that isn't a string") { document["imports"] = {{"wc", 5}}; }
+	SUBCASE("a section features merge into that isn't an object") {
+		document["features"]["wordCount"] = valid;
+		document["keys"] = json::array({1});
+	}
+	SUBCASE("a menu that isn't an object") {
+		document["features"]["wordCount"] = valid;
+		document["menus"]["view"] = 5;
+	}
+	affresco::format::Composition composition;
+	REQUIRE_NOTHROW(composition = affresco::format::compose(document));
+	CHECK_FALSE(composition.problems.empty());
+	CHECK_FALSE(composition.screen.contains("features"));
+
+	const affresco::format::Rules rules; // a revision that brings one is refused, with the checker's reason
+	affresco::vcs::Repository repository(rules, app());
+	json changes = json::object();
+	for(const auto& [key, value] : document.items())
+		if(value != repository.document().value(key, json())) changes["/" + key] = value;
+	affresco::RevisionResult result;
+	REQUIRE_NOTHROW(result = repository.submit({{"author", "studio"}, {"set", changes}}));
+	CHECK(result.status == RevisionStatus::Rejected);
+}
+
 TEST_CASE("features: two packages install, are disabled, enabled and removed by revision, each step undoable") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, app());
