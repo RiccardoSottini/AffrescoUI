@@ -220,7 +220,7 @@ void Font::Data::shapeRuns(std::u32string_view text, ShapedText& shaped) {
 	std::vector<std::size_t> order(runs.size());
 	for(std::size_t run = 0; run < runs.size(); ++run) order[run] = run;
 	const auto highest = std::ranges::max(runs, {}, &Run::level).level;
-	for(int level = highest; level >= 1; --level) {
+	for(auto level = highest; level > 0; --level) {
 		for(std::size_t first = 0; first < order.size();) {
 			if(runs[order[first]].level < level) {
 				++first;

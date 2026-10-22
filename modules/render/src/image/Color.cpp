@@ -37,7 +37,7 @@ std::optional<Color> Color::parseHex(std::string_view text) {
 		if(digits[i] < 0) return std::nullopt;
 	}
 
-	auto byte = [&](std::size_t index) {
+	const auto byte = [&](std::size_t index) {
 		const int value = text.size() == 3 ? digits[index] * 17 : digits[index * 2] * 16 + digits[index * 2 + 1];
 		return static_cast<float>(value) / 255.0f;
 	};

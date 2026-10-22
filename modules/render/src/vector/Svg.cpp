@@ -90,7 +90,7 @@ constexpr std::array<std::string_view, 13> skippedElements{
 [[nodiscard]] VectorPath roundShape(const XmlTag& tag) {
 	const bool circle = tag.name == "circle";
 	const Vec2 radius{numberOf(tag, circle ? "r" : "rx"), numberOf(tag, circle ? "r" : "ry")};
-	if(!(radius.x > 0.0f && radius.y > 0.0f)) return {};
+	if(!(radius.x > 0.0f) || !(radius.y > 0.0f)) return {};
 	return ellipse({numberOf(tag, "cx"), numberOf(tag, "cy")}, radius);
 }
 

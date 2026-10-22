@@ -29,7 +29,7 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 // stb_image casts what these macros return in C style, and GCC reports it where they are defined (here, outside the
 // system header), so the warning is off from the definitions to the end of the include (MSVC has no such warning,
 // and warns about pragmas it doesn't know).
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
@@ -45,16 +45,16 @@ void* growWithin(void* pointer, std::size_t bytes) noexcept {
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <climits>
 #include <cstddef>
 #include <fstream>
-#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -104,10 +104,9 @@ std::vector<std::uint8_t> premultiplied(std::span<const std::uint8_t> rgba) {
 /// @param bytes The image file's bytes.
 /// @return Whether the bytes are a PNG whose first IDAT chunk has no data.
 bool emptyFirstImageData(std::span<const std::uint8_t> bytes) noexcept {
-	static constexpr std::uint8_t signature[] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
-	if(bytes.size() < sizeof signature || !std::equal(std::begin(signature), std::end(signature), bytes.begin()))
-		return false;
-	std::size_t at = sizeof signature;
+	static constexpr std::array<std::uint8_t, 8> signature{0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+	if(bytes.size() < signature.size() || !std::equal(signature.begin(), signature.end(), bytes.begin())) return false;
+	std::size_t at = signature.size();
 	while(bytes.size() - at >= 8) { // a length and a type
 		std::uint32_t length = 0;
 		for(std::size_t i = 0; i < 4; ++i) length = (length << 8) | bytes[at + i];

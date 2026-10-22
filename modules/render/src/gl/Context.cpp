@@ -11,7 +11,7 @@
 namespace affresco::gl {
 
 bool loadFunctions(ProcAddressLoader loader) {
-#if defined(AFFRESCOUI_GLES3)
+#ifdef AFFRESCOUI_GLES3
 	return gladLoadGLES2Loader(loader) != 0;
 #else
 	return gladLoadGLLoader(loader) != 0;

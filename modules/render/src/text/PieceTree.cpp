@@ -125,8 +125,8 @@ void PieceTree::update(std::uint32_t node) noexcept {
 
 PieceTree::Piece PieceTree::makePiece(std::uint32_t buffer, std::size_t start, std::size_t length) {
 	const std::vector<std::uint32_t>& breaks = buffers_[buffer].breaks;
-	const auto first = std::lower_bound(breaks.begin(), breaks.end(), start);
-	const auto last = std::lower_bound(first, breaks.end(), start + length);
+	const auto first = std::ranges::lower_bound(breaks, start);
+	const auto last = std::ranges::lower_bound(first, breaks.end(), start + length);
 	return {buffer, static_cast<std::uint32_t>(start), static_cast<std::uint32_t>(length),
 	        static_cast<std::uint32_t>(first - breaks.begin()), static_cast<std::uint32_t>(last - first)};
 }
