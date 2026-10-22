@@ -213,7 +213,8 @@ public:
 	/// @brief The font of labels that don't have their own, or nullptr.
 	[[nodiscard]] const Font* defaultFont() const noexcept { return defaultFont_.get(); }
 
-	/// @brief The system clipboard's text, as UTF-8 (a headless window keeps a clipboard of its own).
+	/// @brief The system clipboard's text, as UTF-8 (a headless window keeps a clipboard of its own): at most its first
+	/// 64 MiB, cut where a character starts.
 	[[nodiscard]] std::string clipboardText() const;
 	/// @brief Sets the system clipboard's text (a headless window keeps a clipboard of its own).
 	/// @param utf8 UTF-8 text.

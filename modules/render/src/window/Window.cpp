@@ -16,13 +16,33 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <ranges>
+#include <string>
 #include <utility>
 #include <vector>
 
 namespace affresco {
+
+namespace {
+
+constexpr std::size_t maxClipboard = std::size_t{64} << 20U; ///< The most bytes a paste reads from the clipboard.
+
+/// @brief Cuts clipboard text to maxClipboard bytes, at the start of a character so none is split.
+/// @param text The clipboard's text.
+/// @return The text, or its first part.
+std::string capped(std::string text) {
+	if(text.size() <= maxClipboard) return text;
+	std::size_t end = maxClipboard;
+	// Back over continuation bytes (10xxxxxx), at most the three of a four-byte character
+	for(int i = 0; i < 3 && (static_cast<unsigned char>(text[end]) & 0xC0U) == 0x80U; ++i) --end;
+	text.resize(end);
+	return text;
+}
+
+} // namespace
 
 platform::NativeWindow& platform::NativeWindow::of(Window& window) { return *window.native_; }
 
@@ -143,7 +163,7 @@ void Window::setFocusRing(std::optional<FocusRing> ring) {
 	requestLayout();
 }
 
-std::string Window::clipboardText() const { return native_ ? native_->clipboardText() : clipboard_; }
+std::string Window::clipboardText() const { return capped(native_ ? native_->clipboardText() : clipboard_); }
 
 void Window::setClipboardText(const std::string& utf8) {
 	if(native_) native_->setClipboardText(utf8);

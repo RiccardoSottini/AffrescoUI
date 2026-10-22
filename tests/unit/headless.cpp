@@ -290,3 +290,18 @@ TEST_CASE("render: a drop leaves out the paths a screen can't take, and too many
 	REQUIRE(drops.size() == 2);
 	CHECK(drops[1].size() == 4096);
 }
+
+TEST_CASE("render: a paste reads at most 64 MiB of the clipboard, and never half a character") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	constexpr std::size_t cap = std::size_t{64} << 20U;
+	window->setClipboardText(std::string(cap, 'a'));
+	CHECK(window->clipboardText().size() == cap);
+
+	std::string text(cap - 1, 'a');
+	text += "\xE2\x82\xAC"; // a euro sign across the cut
+	window->setClipboardText(text);
+	const std::string read = window->clipboardText();
+	CHECK(read.size() == cap - 1);
+	CHECK(read.back() == 'a');
+}
