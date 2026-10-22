@@ -66,17 +66,14 @@ public:
 	/// @brief Mips are made from the tiles.
 	[[nodiscard]] bool providesLevel(int /*level*/) const override { return false; }
 
-	/// @brief Inflates a tile: null when absent, or damaged (counted).
+	/// @brief Inflates a tile: null when absent or damaged.
 	/// @param key Which.
 	[[nodiscard]] std::shared_ptr<const Tile> load(const TileKey& key) override {
 		const auto found = blobs_.find(key);
 		if(key.level != 0 || found == blobs_.end()) return nullptr;
 		const std::size_t size = tilePixels * bytesPerPixel(format_);
 		auto bytes = stb::inflate(raw(found->second), size);
-		if(!bytes || bytes->size() != size) {
-			++damaged_;
-			return nullptr;
-		}
+		if(!bytes || bytes->size() != size) return nullptr;
 		return std::make_shared<const Tile>(format_, std::move(*bytes));
 	}
 
@@ -87,15 +84,12 @@ public:
 	}
 	/// @brief Where each tile is.
 	[[nodiscard]] const BlobMap& blobs() const noexcept { return blobs_; }
-	/// @brief The damaged tiles met so far.
-	[[nodiscard]] std::size_t damaged() const noexcept { return damaged_; }
 
 private:
 	std::shared_ptr<const std::vector<std::uint8_t>> file_; ///< The file.
 	std::size_t base_;                                      ///< Where its blobs start.
 	PixelFormat format_;                                    ///< The tiles' format.
 	BlobMap blobs_;                                         ///< Where each tile is.
-	std::size_t damaged_ = 0;                               ///< See damaged().
 };
 
 /// @brief Gathers the blobs of a file being saved.
