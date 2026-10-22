@@ -37,7 +37,7 @@ constexpr std::array<std::pair<Key, std::string_view>, 20> namedKeys = {{{Key::E
                                                                          {Key::Slash, "slash"}}};
 
 /// The modifier keys, in the order a shortcut writes them.
-enum Modifier { Command, Control, Alt, Shift };
+enum Modifier { Command, Control, Alt, Shift }; // NOLINT(cppcoreguidelines-use-enum-class): it indexes held[]
 
 /// "mod" is the platform's own: cmd on macOS, ctrl elsewhere.
 #ifdef __APPLE__
@@ -97,7 +97,7 @@ std::string pressLabel(std::string_view press) {
 	for(const auto& [name, label] : keyLabels)
 		if(key == name) key = label;
 	if(!key.empty()) key[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(key[0])));
-	const auto has = [&](std::string_view name) { return mods.find(name) != std::string_view::npos; };
+	const auto has = [&](std::string_view name) { return mods.contains(name); };
 #ifdef __APPLE__
 	return std::string(has("ctrl+") ? "⌃" : "") + (has("alt+") ? "⌥" : "") + (has("shift+") ? "⇧" : "") +
 	       (has("cmd+") ? "⌘" : "") + key;

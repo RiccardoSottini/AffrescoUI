@@ -139,7 +139,7 @@ void Events::dragOver(Vec2 at) {
 		}
 	// A widget target shows where the drop would go (one that handles drops on itself already does)
 	const DragHooks* hooks = dragHooks(engine_.reconciler.recordOf(over));
-	if(hooks && hooks->dropAt && !(hooks->ownDrops && over == press_.source)) {
+	if(hooks && hooks->dropAt && (!hooks->ownDrops || over != press_.source)) {
 		const Vec2 there = over->toLocal(engine_.window->pointer()).value_or(at); // in the target's space
 		static_cast<void>(hooks->dropAt(*over, &there));
 	}

@@ -9,6 +9,7 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -106,7 +107,7 @@ std::vector<Panel*> focusablesIn(Reconciler& reconciler, const Panel* focused, P
 } // namespace
 
 void Events::modal(Panel& overlay, bool open) {
-	Window* window = engine_.window;
+	const Window* window = engine_.window;
 	if(!window) return;
 	if(open) {
 		Panel* focused = window->focusedPanel();
@@ -119,7 +120,7 @@ void Events::modal(Panel& overlay, bool open) {
 	Panel* previous = it->previous;
 	modals_.erase(it);
 	bool inside = focusLater_.pending && focusLater_.scope == &overlay;
-	for(Panel* p = window->focusedPanel(); p && !inside; p = p->parent()) inside = p == &overlay;
+	for(const Panel* p = window->focusedPanel(); p && !inside; p = p->parent()) inside = p == &overlay;
 	if(inside) focusLater(previous, nullptr);
 }
 
@@ -150,8 +151,8 @@ std::vector<Panel*> Events::focusables(Panel& scope, bool list) {
 }
 
 Panel& Events::modalScope() {
-	for(auto it = modals_.rbegin(); it != modals_.rend(); ++it)
-		if(it->overlay->isShown()) return *it->overlay;
+	for(const Modal& modal : std::views::reverse(modals_))
+		if(modal.overlay->isShown()) return *modal.overlay;
 	return engine_.window->root();
 }
 

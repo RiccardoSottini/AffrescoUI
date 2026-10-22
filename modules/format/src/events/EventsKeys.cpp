@@ -12,6 +12,7 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -105,9 +106,9 @@ bool typesKey(const Panel* from, const KeyEvent& event, std::string_view name, b
 /// @return true if one does.
 bool startsChord(const json& keys, std::string_view prefix, bool normalise) {
 	if(!keys.is_object()) return false;
-	for(const auto& [written, handler] : keys.items())
-		if((normalise ? normalizeChord(written) : written).starts_with(prefix)) return true;
-	return false;
+	return std::ranges::any_of(keys.items(), [&](const auto& entry) {
+		return (normalise ? normalizeChord(entry.key()) : entry.key()).starts_with(prefix);
+	});
 }
 
 /// @brief The letter of a key from A to Z, for mnemonics.
@@ -220,6 +221,7 @@ bool Events::runDocumentKeys(const std::string& press, bool& waits) {
 	const json& document = engine_.versions.document();
 	if(!document.contains("keys") || !document["keys"].is_object() || !engine_.window) return false;
 	waits = waits || startsChord(document["keys"], press + " ", true);
+	// NOLINTNEXTLINE(readability-use-anyofallof): runs the bindings until one handles the press
 	for(const auto& [written, handler] : document["keys"].items()) {
 		if(normalizeChord(written) != press) continue;
 		const json copy = handler;
@@ -246,7 +248,8 @@ bool Events::runBinding(const json& handler, Panel& owner, const Scope& locals, 
 			Scope scope{&locals, nullptr, json::object(), {}, {}};
 			if(binding.contains("with") && binding["with"].is_object())
 				for(const auto& [key, value] : binding["with"].items())
-					scope.vars[key] = engine_.document.evaluate(value, locals, event, at + ".with." + key);
+					scope.vars[key] =
+					    engine_.document.evaluate(value, locals, event, std::format("{}.with.{}", at, key));
 			engine_.runner.handle(run, owner, event, scope, at + ".do");
 			return true;
 		} catch(const DocumentError& error) {
@@ -261,9 +264,9 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	if(event.action == affresco::Action::Release) return;
 
 	// Enter in a text area submits
-	if(auto* textArea = dynamic_cast<TextArea*>(&panel); textArea &&
-	                                                     (event.key == Key::Enter || event.key == Key::KeypadEnter) &&
-	                                                     event.action == affresco::Action::Press)
+	if(const auto* textArea = dynamic_cast<const TextArea*>(&panel);
+	   textArea && (event.key == Key::Enter || event.key == Key::KeypadEnter) &&
+	   event.action == affresco::Action::Press)
 		fire(panel, "onSubmit", {{"type", "submit"}, {"text", textArea->text()}});
 
 	// Keys ("keys") on the focused panel, its ancestors and the document, in one walk (the window's hook skips it)
