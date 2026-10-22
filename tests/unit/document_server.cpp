@@ -165,6 +165,16 @@ TEST_CASE("document server: leases overlap, renew, end and are bounded") {
 		    leases.acquire(many, "/state/n" + std::to_string(i), "ada", 1, 60s, now)));
 	CHECK(std::holds_alternative<Refusal>(leases.acquire(many, "/state/n16", "ada", 1, 60s, now))); // 16 each
 	CHECK(std::holds_alternative<vcs::Lease>(leases.acquire(many, "/state/n16", "bo", 2, 60s, now)));
+
+	// One connection that names a new holder for each lease still holds 16 at most
+	vcs::Leases rotated(rules);
+	for(int i = 0; i < 16; ++i)
+		CHECK(std::holds_alternative<vcs::Lease>(
+		    rotated.acquire(many, "/state/n" + std::to_string(i), "ada/" + std::to_string(i), 1, 60s, now)));
+	CHECK(std::get<Refusal>(rotated.acquire(many, "/state/n16", "ada/16", 1, 60s, now)) ==
+	      "one person or connection holds at most 16 leases");
+	CHECK(std::holds_alternative<vcs::Lease>(rotated.acquire(many, "/state/n0", "ada/0", 1, 120s, now))); // renews
+	CHECK(std::holds_alternative<vcs::Lease>(rotated.acquire(many, "/state/n16", "bo", 2, 60s, now)));
 }
 
 TEST_CASE("document server: a lease denies everyone but its holder, judged by the change's effect") {

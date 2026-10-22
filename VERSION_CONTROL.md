@@ -208,7 +208,7 @@ Several agents at once claim the parts they work on, so one doesn't undo another
 - A reviewer ends anyone's lease (`endLease`, with `target`). Every `review` message carries `coordination`: who is
   connected and their role, the leases with the seconds left, and the roles. The Studio shows it in its Agents tab,
   where a reviewer ends a lease or gives a role; the MCP server has `lease_part`, `renew_lease` and `release_part`.
-- At most 256 peers and 256 leases, 16 per holder; targets are at most 256 bytes, holder names 64.
+- At most 256 peers and 256 leases, 16 per holder and 16 per connection; targets are at most 256 bytes, holder names 64.
 
 ### Usage
 Usage summaries say which controls people use, so whoever improves a screen can see what runs, what fails and what
