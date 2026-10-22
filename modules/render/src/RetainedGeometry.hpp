@@ -5,6 +5,7 @@
 /// (detail::PaintRecord), and what that drawing depended on (detail::PaintKey). Plain data: no OpenGL here.
 
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Transform.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -91,6 +92,7 @@ struct PaintKey {
 	Vec2 scroll;                  ///< Its scroll offset (the scroll bar).
 	Vec2 contentMin, contentMax;  ///< Its children's extent (the scroll bar).
 	std::uint64_t generation = 0; ///< The window's paint generation (Window::invalidate() starts a new one).
+	bool smooth = false;          ///< Drawn turned or skewed: its rectangles are shapes, so their edges stay smooth.
 
 	/// @brief Equal when every member is equal.
 	bool operator==(const PaintKey&) const = default;
@@ -106,6 +108,8 @@ struct PanelGeometry {
 	bool cached = false;              ///< It is shown and cached (Panel::setCached()): drawn as one colour quad.
 	std::uint64_t id = 0;             ///< Unique among geometries: names its subtree's texture.
 	std::uint64_t subtreeVersion = 0; ///< For a cached panel: changes when its subtree's drawing may have.
+	Affine2 world;                    ///< Where its drawing goes on screen (Panel::worldTransform()) when refreshed.
+	bool subtreeTransformed = false;  ///< A descendant (not an overlay) has a transform of its own.
 };
 
 /// @brief Whether two rectangles overlap (touching edges don't).

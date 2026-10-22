@@ -973,6 +973,97 @@
 					"cache": {
 						"$ref": "#/$defs/v1/flag"
 					},
+					"rotate": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"
+					},
+					"scale": {
+						"anyOf": [
+							{
+								"type": "number"
+							},
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node scaled, one factor or [x, y], about transformOrigin"
+					},
+					"skew": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node skewed, [x, y] in degrees, as CSS skew()"
+					},
+					"translate": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "Draws the node moved by [x, y] pixels after layout"
+					},
+					"transformOrigin": {
+						"anyOf": [
+							{
+								"enum": [
+									"center",
+									"top",
+									"bottom",
+									"left",
+									"right",
+									"topLeft",
+									"topRight",
+									"bottomLeft",
+									"bottomRight"
+								]
+							},
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "The point rotate, scale and skew turn about: center, an edge or a corner, or [x%, y%]"
+					},
 					"cursor": {
 						"anyOf": [
 							{

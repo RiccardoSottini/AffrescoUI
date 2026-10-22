@@ -166,6 +166,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerTabsType(registry);
 	registerListTypes(registry);
 	registerIconProperty(registry);
+	registerTransformProperties(registry);
 	registerRichTextProperties(registry);
 	registerPathType(registry);
 	addCore(

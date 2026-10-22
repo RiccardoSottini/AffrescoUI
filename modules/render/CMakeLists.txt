@@ -53,6 +53,7 @@ affrescoui_module(render
 	src/gl/QuadRendererCache.cpp
 	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
+	src/gl/Stencil.cpp
 	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
 target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include
 	${stb_image_SOURCE_DIR})

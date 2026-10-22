@@ -400,6 +400,7 @@ void Events::dropped(const Press& ended, Vec2 at) {
 	const Record* target = engine_.reconciler.recordOf(ended.over);
 	if(!target) return;
 	setFlag(ended.over, &Record::dragOver, false);
+	if(engine_.window) at = ended.over->toLocal(engine_.window->pointer()).value_or(at); // in the target's space
 	json drop = pointerEvent("drop", *ended.over, at);
 	if(const DragHooks* hooks = dragHooks(target); hooks && hooks->dropAt) {
 		const bool own = hooks->ownDrops && ended.over == ended.source; // e.g. a tab strip reorders itself
@@ -484,8 +485,10 @@ void Events::dragOver(Vec2 at) {
 		}
 	// A widget target shows where the drop would go (one that handles drops on itself already does)
 	const DragHooks* hooks = dragHooks(engine_.reconciler.recordOf(over));
-	if(hooks && hooks->dropAt && !(hooks->ownDrops && over == press_.source))
-		static_cast<void>(hooks->dropAt(*over, &at));
+	if(hooks && hooks->dropAt && !(hooks->ownDrops && over == press_.source)) {
+		const Vec2 there = over->toLocal(engine_.window->pointer()).value_or(at); // in the target's space
+		static_cast<void>(hooks->dropAt(*over, &there));
+	}
 	if(over == press_.over) return;
 	if(const DragHooks* left = dragHooks(engine_.reconciler.recordOf(press_.over)); left && left->dropAt)
 		static_cast<void>(left->dropAt(*press_.over, nullptr));

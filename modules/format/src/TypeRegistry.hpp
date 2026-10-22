@@ -266,6 +266,10 @@ void registerListTypes(TypeRegistry& registry);
 /// @brief Registers "icon", a property of labels (IconProperty.cpp).
 /// @param registry The registry.
 void registerIconProperty(TypeRegistry& registry);
+/// @brief Registers "rotate", "scale", "skew", "translate" and "transformOrigin", properties of every panel
+/// (TransformProperties.cpp).
+/// @param registry The registry.
+void registerTransformProperties(TypeRegistry& registry);
 /// @brief Registers "runs", "selectable" and "selectionColor", properties of labels (RunsProperty.cpp).
 /// @param registry The registry.
 void registerRichTextProperties(TypeRegistry& registry);

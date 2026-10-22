@@ -120,6 +120,31 @@ constexpr KeyReference nodeTable[] = {
 	 "pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). "
 	 "Default: `false`.",
 	 "look"},
+    {"rotate", R"json({"anyOf": [{"type": "number"}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "Draws the node turned, in degrees clockwise, about transformOrigin; layout doesn't change"})json",
+	 "Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `\"rotate\": 8`. Like "
+	 "every transform key it only changes how the node is drawn and hit: its place in the layout, and its siblings', "
+	 "stay. Bind it to a number in the state and an `animate` step turns it. Default: `0`.",
+	 "look"},
+    {"scale", R"json({"anyOf": [{"type": "number"}, {"type": "array", "minItems": 2, "maxItems": 2,
+		"items": {"type": "number"}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "Draws the node scaled, one factor or [x, y], about transformOrigin"})json",
+	 "Draws the node scaled about `transformOrigin`: one factor (`0.9`) or `[x, y]`. Default: `1`.", "look"},
+    {"skew", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "Draws the node skewed, [x, y] in degrees, as CSS skew()"})json",
+	 "Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`.", "look"},
+    {"translate", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "Draws the node moved by [x, y] pixels after layout"})json",
+	 "Draws the node moved by `[x, y]` pixels after layout. The keys compose as CSS does: `translate`, `rotate`, "
+	 "`scale`, then `skew`. Default: `[0, 0]`.",
+	 "look"},
+    {"transformOrigin", R"json({"anyOf": [{"enum": ["center", "top", "bottom", "left", "right", "topLeft", "topRight",
+		"bottomLeft", "bottomRight"]}, {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}],
+		"description": "The point rotate, scale and skew turn about: center, an edge or a corner, or [x%, y%]"})json",
+	 "The point `rotate`, `scale` and `skew` turn about: `\"center\"` (the default), an edge or a corner "
+	 "(`\"top\"`, `\"bottomRight\"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner).",
+	 "look"},
     {"cursor", R"json({"anyOf": [{"enum": ["arrow", "ibeam", "hand", "resize-horizontal", "resize-vertical"]},
 		{"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "`arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`.", "look"},

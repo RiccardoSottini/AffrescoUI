@@ -57,6 +57,7 @@ affrescoui_module(format
 	src/ListItems.cpp
 	src/ListType.cpp
 	src/IconProperty.cpp
+	src/TransformProperties.cpp
 	src/RunsProperty.cpp
 	src/PathType.cpp
 	src/Events.cpp

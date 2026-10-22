@@ -129,6 +129,11 @@ parent, later siblings on top of earlier ones.
 | `shadow` | `{ "x": 0, "y": 4, "blur": 12, "color": "#00000040" }`, like CSS box-shadow: the node's shape, moved by `x` and `y` and blurred by `blur` (a Gaussian with a standard deviation of `blur / 2`), drawn under the node. Every key is optional; `color` defaults to `#00000040`. A shadow can fall outside the node, but it is clipped by the parent, like the node itself. |
 | `visible` | `false` hides the node and its children. |
 | `cache` | `true` keeps the node and its children drawn in a texture, drawn as one quad each frame until something in them changes. Worth it for a large part of a screen that rarely changes (a sidebar, a chart); it looks the same (a pixel of its own translucent edge, such as a rounded corner, may be one level of 255 off). Default: `false`. |
+| `rotate` | Draws the node and its children turned, in degrees clockwise, about `transformOrigin`: `"rotate": 8`. Like every transform key it only changes how the node is drawn and hit: its place in the layout, and its siblings', stay. Bind it to a number in the state and an `animate` step turns it. Default: `0`. |
+| `scale` | Draws the node scaled about `transformOrigin`: one factor (`0.9`) or `[x, y]`. Default: `1`. |
+| `skew` | Draws the node skewed, `[x, y]` in degrees, as CSS `skew()`: `[-12, 0]` slants it. Default: `[0, 0]`. |
+| `translate` | Draws the node moved by `[x, y]` pixels after layout. The keys compose as CSS does: `translate`, `rotate`, `scale`, then `skew`. Default: `[0, 0]`. |
+| `transformOrigin` | The point `rotate`, `scale` and `skew` turn about: `"center"` (the default), an edge or a corner (`"top"`, `"bottomRight"`), or `[x%, y%]` of the node's size (`[0, 100]` is the bottom-left corner). |
 | `cursor` | `arrow`, `ibeam`, `hand`, `resize-horizontal`, `resize-vertical`. |
 | `tooltip` | Text shown after the pointer rests on the node. |
 | `disabled` | `true`: no events (hover styling still applies). |

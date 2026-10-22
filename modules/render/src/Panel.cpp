@@ -458,11 +458,13 @@ void Panel::placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bo
 
 	frame_ = rect;
 
-	// Clip to the parent
-	rect.top = std::max(rect.top, clip.top);
-	rect.bottom = std::min(rect.bottom, clip.bottom);
-	rect.left = std::max(rect.left, clip.left);
-	rect.right = std::min(rect.right, clip.right);
+	// Clip to the parent; a transformed panel to the parent's clip brought into its space (exact when the transform
+	// keeps rectangles, else that area's bounding box, which the renderer narrows with a stencil)
+	const Rect within = transform_.isIdentity() ? clip : clipInSpace(clip);
+	rect.top = std::max(rect.top, within.top);
+	rect.bottom = std::min(rect.bottom, within.bottom);
+	rect.left = std::max(rect.left, within.left);
+	rect.right = std::min(rect.right, within.right);
 
 	bounds_ = rect;
 	shown_ = parentShown && visible_ && rect.bottom >= rect.top && rect.right >= rect.left;
@@ -501,8 +503,15 @@ void Panel::layoutChildren() {
 	if(scrollBy({0.0f, 0.0f})) pass();
 }
 
+// A rotated panel's bounds are a bounding box: the parent already checked the point is inside its own bounds
 Panel* Panel::hitTest(Vec2 point) noexcept {
-	if(!shown_ || !bounds_.contains(point)) return nullptr;
+	if(!shown_) return nullptr;
+	if(!transform_.isIdentity()) {
+		const std::optional<Affine2> inverse = localTransform().inverse();
+		if(!inverse) return nullptr; // flattened: never hit
+		point = inverse->apply(point);
+	}
+	if(!bounds_.contains(point)) return nullptr;
 
 	for(const auto& child : std::views::reverse(children_)) {
 		if(child->overlay_) continue; // hit-tested by the window, above everything
@@ -510,6 +519,42 @@ Panel* Panel::hitTest(Vec2 point) noexcept {
 	}
 
 	return this;
+}
+
+Rect Panel::clipInSpace(const Rect& clip) const noexcept {
+	const std::optional<Affine2> inverse = localTransform().inverse();
+	return inverse ? inverse->boundingBox(clip) : frame_; // flattened: it draws nothing anyway
+}
+
+void Panel::setTransform(const Affine2& transform, Vec2 origin) {
+	setProperty(transform_, transform);
+	setProperty(transformOrigin_, origin);
+}
+
+Affine2 Panel::localTransform() const noexcept {
+	if(transform_.isIdentity()) return {};
+	return transform_.about({frame_.left + transformOrigin_.x * size_.x, frame_.top + transformOrigin_.y * size_.y});
+}
+
+Affine2 Panel::worldTransform() const noexcept {
+	Affine2 world = localTransform();
+	for(const Panel* panel = this; !panel->overlay_ && panel->parent_;) {
+		panel = panel->parent_;
+		if(!panel->transform_.isIdentity()) world = panel->localTransform() * world;
+	}
+	return world;
+}
+
+std::optional<Vec2> Panel::toLocal(Vec2 point) const noexcept {
+	const Affine2 world = worldTransform();
+	if(world.isIdentity()) return point;
+	const std::optional<Affine2> inverse = world.inverse();
+	return inverse ? std::optional<Vec2>{inverse->apply(point)} : std::nullopt;
+}
+
+Rect Panel::screenBounds() const noexcept {
+	const Affine2 world = worldTransform();
+	return world.isIdentity() ? bounds_ : world.boundingBox(bounds_);
 }
 
 // Square corners keep the plain fill, so panels without the new properties look exactly as they always have

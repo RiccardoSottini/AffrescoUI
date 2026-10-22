@@ -1,0 +1,64 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "Transforms, for the rendering check: a card turned with its text and rounded border (and a button on it, clicked through its transform), a list scaled up and clipped by its parent, skewed text, and a turned panel that clips a child larger than itself (the stencil).",
+
+	"window": { "title": "Transforms", "width": 560, "height": 320 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 }
+	},
+
+	"colors": { "background": "#f8fafc", "card": "#ffffff", "frame": "#cbd5e1", "text": "#0f172a", "accent": "#7c3aed" },
+
+	"styles": {
+		"row": { "type": "label", "width": "100%", "height": 28, "padding": 6, "color": "@card", "textColor": "@text", "radius": 6 }
+	},
+
+	"state": { "clicked": "Click me" },
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{
+				"id": "card", "x": 40, "y": 60, "width": 160, "height": 110, "radius": 12,
+				"color": "@card", "borderWidth": 1, "borderColor": "@frame", "rotate": -12,
+				"children": [
+					{ "type": "label", "id": "title", "x": 14, "y": 14, "width": 136, "height": 24,
+						"textColor": "@text", "text": "A turned card" },
+					{ "type": "label", "id": "button", "x": 14, "y": 62, "width": 120, "height": 32, "padding": 7,
+						"radius": 8, "color": "@accent", "textColor": "#ffffff", "text": "{{state.clicked}}",
+						"onClick": { "set": "state.clicked", "to": "Clicked" } }
+				]
+			},
+			{
+				"id": "viewport", "x": 240, "y": 30, "width": 130, "height": 150, "color": "#e2e8f0", "radius": 8,
+				"children": [
+					{
+						"type": "column", "id": "list", "x": 10, "y": 10, "width": 110, "height": 170, "gap": 6,
+						"scale": 1.4, "transformOrigin": "topLeft",
+						"children": [
+							{ "style": "row", "text": "One" },
+							{ "style": "row", "text": "Two" },
+							{ "style": "row", "text": "Three" },
+							{ "style": "row", "text": "Four" },
+							{ "style": "row", "text": "Five" }
+						]
+					}
+				]
+			},
+			{ "type": "label", "id": "skewed", "x": 400, "y": 40, "width": 130, "height": 40, "padding": 10,
+				"color": "#fde68a", "textColor": "@text", "text": "Skewed text", "skew": [-20, 0] },
+			{
+				"id": "window", "x": 410, "y": 150, "width": 110, "height": 110, "color": "#cbd5e1", "rotate": 30,
+				"children": [
+					{ "id": "inside", "x": -30, "y": 30, "width": 170, "height": 50, "color": "#f97316", "radius": 6 }
+				]
+			},
+			{ "type": "label", "id": "moved", "x": 40, "y": 230, "width": 160, "height": 36, "padding": 9, "radius": 8,
+				"color": "#0f766e", "textColor": "#ffffff", "text": "Moved after layout", "translate": [30, 20] }
+		]
+	}
+}

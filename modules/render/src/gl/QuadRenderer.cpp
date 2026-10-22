@@ -207,6 +207,7 @@ void QuadRenderer::startFrame() {
 	vertices_.clear();
 	batches_.clear();
 	drawCalls_ = 0;
+	clipDepth_ = 0;
 	std::erase_if(fontTextures_, [](const auto& entry) { return entry.second.font.expired(); });
 	images_.collect();
 }
@@ -232,9 +233,9 @@ void QuadRenderer::drawFromScratch(const detail::Frame& frame) {
 	startFrame();
 	scratchShapes_ = scratchColor_ = false;
 	const Rect window{0.0f, 0.0f, static_cast<float>(frame.width), static_cast<float>(frame.height)};
-	scratchTree(frame.root, window, 0);
-	for(const Panel* overlay : frame.overlays) scratchTree(*overlay, window, 0);
-	if(frame.tooltip) scratchTree(*frame.tooltip, window, 0);
+	scratchTree(frame.root, window, 0, {});
+	for(const Panel* overlay : frame.overlays) scratchTree(*overlay, window, 0, {});
+	if(frame.tooltip) scratchTree(*frame.tooltip, window, 0, {});
 	submit(frame.width, frame.height, scratchShapes_, scratchColor_);
 }
 
@@ -258,9 +259,11 @@ void QuadRenderer::submit(int width, int height, bool shapes, bool color) {
 		shader.height = height;
 	}
 
+	bool clips = false;
 	for(const Batch& batch : batches_) {
 		if(batch.font) updateFontTexture(*batch.font, batch.page, AtlasKind::coverage);
 		if(batch.colorFont) updateFontTexture(*batch.colorFont, batch.colorPage, AtlasKind::color);
+		clips = clips || batch.clip != ClipStep::none;
 	}
 
 	glBindVertexArray(vertexArray_.id());
@@ -271,7 +274,9 @@ void QuadRenderer::submit(int width, int height, bool shapes, bool color) {
 	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices_.size() * sizeof(detail::Vertex)), vertices_.data(),
 	             GL_STREAM_DRAW);
 
+	if(clips) stencil_.start();
 	drawBatches(color);
+	if(clips) stencil_.finish();
 	glBindVertexArray(0);
 }
 
@@ -285,8 +290,10 @@ void QuadRenderer::drawBatches(bool color) {
 			glActiveTexture(GL_TEXTURE0);
 		}
 		glBindTexture(GL_TEXTURE_2D, batch.texture);
+		if(batch.clip != ClipStep::none) stencil_.beginStep(batch.clip);
 		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(batch.quadCount * indicesPerQuad), GL_UNSIGNED_INT,
 		               reinterpret_cast<const void*>(batch.firstQuad * indicesPerQuad * sizeof(GLuint)));
+		if(batch.clip != ClipStep::none) stencil_.endStep(batch.clip);
 		++drawCalls_;
 	}
 }
@@ -297,34 +304,77 @@ void QuadRenderer::replayTree(const Panel& panel) {
 	if(!panel.isShown()) return; // hidden panels hide their whole subtree
 	const detail::PanelGeometry* geometry = panel.geometry_.get();
 	if(!geometry || !geometry->recorded) return;
-	if(region_ && !detail::overlaps(*region_, detail::reachOf(panel.bounds(), geometry->record))) return;
-	if(geometry->cached && replayCached(panel, *geometry)) return;
+	if(region_ && !detail::overlaps(*region_, detail::screenReachOf(*geometry))) return;
+	// A texture holds a subtree as laid out: one drawn transformed, or holding transforms, is drawn directly
+	const bool plain = geometry->world.isIdentity() && !geometry->subtreeTransformed;
+	if(geometry->cached && plain && replayCached(panel, *geometry)) return;
 	replayContent(panel, geometry->record);
 }
 
 void QuadRenderer::replayContent(const Panel& panel, const detail::PaintRecord& record) {
+	const Affine2 world = panel.geometry_->world;
+	world_ = world;
 	replay(record, 0, record.overStart);
-	for(const auto& child : panel.children())
-		if(!child->isOverlay()) replayTree(*child); // overlays are drawn after the whole tree
+	for(const auto& child : panel.children()) {
+		if(child->isOverlay()) continue; // overlays are drawn after the whole tree
+		const bool clipped = clipChild(panel, *child, world, ClipStep::push);
+		replayTree(*child);
+		if(clipped) clipChild(panel, *child, world, ClipStep::pop);
+	}
+	world_ = world;
 	replay(record, record.overStart, record.ops.size());
 }
 
-void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::size_t depth) {
+void QuadRenderer::scratchTree(const Panel& panel, const Rect& outerClip, std::size_t depth,
+                               const Affine2& parentWorld) {
 	if(!panel.isShown()) return;
 	if(scratch_.size() <= depth) scratch_.emplace_back();
 	detail::PaintRecord& record = scratch_[depth];
 	record.clear();
+	const Affine2 world = panel.transform().isIdentity() ? parentWorld : parentWorld * panel.localTransform();
 	detail::PaintRecorder recorder(record, panel.bounds(), outerClip);
+	if(!world.isAxisAligned()) recorder.smoothEdges(panel.frame());
 	panel.paint(recorder);
 	record.overStart = record.ops.size();
 	panel.paintOver(recorder);
 	scratchShapes_ = scratchShapes_ || record.shapes;
 	scratchColor_ = scratchColor_ || record.color;
 
+	world_ = world;
 	replay(record, 0, record.overStart);
-	for(const auto& child : panel.children())
-		if(!child->isOverlay()) scratchTree(*child, panel.bounds(), depth + 1);
+	for(const auto& child : panel.children()) {
+		if(child->isOverlay()) continue;
+		const bool clipped = clipChild(panel, *child, world, ClipStep::push);
+		const std::optional<Affine2> inverse =
+		    child->transform().isIdentity() ? std::nullopt : child->localTransform().inverse();
+		scratchTree(*child, inverse ? inverse->boundingBox(panel.bounds()) : panel.bounds(), depth + 1, world);
+		if(clipped) clipChild(panel, *child, world, ClipStep::pop);
+	}
+	world_ = world;
 	replay(record, record.overStart, record.ops.size());
+}
+
+// The clip is one white quad in a batch of its own, then the batch in use carries on in a new one
+bool QuadRenderer::clipChild(const Panel& parent, const Panel& child, const Affine2& parentWorld, ClipStep step) {
+	if(!child.isShown() || child.transform().isAxisAligned()) return false;
+	if(step == ClipStep::push && clipDepth_ >= maxClipDepth) return false;
+	if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
+	Batch resume = batches_.back();
+	const std::size_t first = vertices_.size() / detail::verticesPerQuad;
+	batches_.push_back({whiteTexture_.id(), {0.5f, 0.5f}, first, 1});
+	batches_.back().clip = step;
+	const Rect& bounds = parent.bounds();
+	const std::uint16_t half = toUnorm16(0.5f);
+	for(const Vec2 corner : {Vec2{bounds.left, bounds.top}, Vec2{bounds.right, bounds.top},
+	                         Vec2{bounds.right, bounds.bottom}, Vec2{bounds.left, bounds.bottom}}) {
+		const Vec2 at = parentWorld.apply(corner);
+		vertices_.push_back({at.x, at.y, half, half, 255, 255, 255, 255, 0.0f, 0.0f, 0, 0, 0, 0});
+	}
+	resume.firstQuad = first + 1;
+	resume.quadCount = 0;
+	batches_.push_back(resume);
+	clipDepth_ = step == ClipStep::push ? clipDepth_ + 1 : clipDepth_ - 1;
+	return true;
 }
 
 // The steps change the batches as drawing directly did: fills take the white texel of the texture in use, and text
@@ -368,9 +418,19 @@ void QuadRenderer::addQuads(const detail::PaintRecord& record, const detail::Pai
                             const Rect* within) {
 	const Vec2 texel = batches_.back().white;
 	const std::uint16_t u = toUnorm16(texel.x), v = toUnorm16(texel.y);
+	const bool transformed = !world_.isIdentity();
+	std::array<detail::Vertex, detail::verticesPerQuad> placed{};
 	for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
-		const auto corners =
-		    std::span(record.vertices).subspan(quad * detail::verticesPerQuad, detail::verticesPerQuad);
+		auto corners = std::span(record.vertices).subspan(quad * detail::verticesPerQuad, detail::verticesPerQuad);
+		if(transformed) { // the shapes' distances stay in the panel's units: the shader measures them per pixel
+			std::ranges::copy(corners, placed.begin());
+			for(detail::Vertex& vertex : placed) {
+				const Vec2 at = world_.apply({vertex.x, vertex.y});
+				vertex.x = at.x;
+				vertex.y = at.y;
+			}
+			corners = placed;
+		}
 		if(region_ && !detail::overlaps(*region_, detail::boundsOf(corners))) continue;
 		for(detail::Vertex vertex : corners) {
 			if(white) {

@@ -27,6 +27,16 @@ namespace {
 constexpr double tooltipDelayMs = 600.0; ///< How long the pointer rests before a tooltip shows.
 constexpr float scrollSpeed = 24.0f;     ///< Pixels per wheel step.
 
+/// @brief A pointer event as a panel hears it: its position in the panel's layout space (through its transforms).
+/// @tparam Event An event with a position.
+/// @param panel The panel.
+/// @param event The event, in window units.
+/// @return The event, moved; unchanged for a panel without transforms or one they flatten.
+template <typename Event> Event inSpaceOf(const Panel& panel, Event event) noexcept {
+	event.position = panel.toLocal(event.position).value_or(event.position);
+	return event;
+}
+
 } // namespace
 
 platform::NativeWindow& platform::NativeWindow::of(Window& window) { return *window.native_; }
@@ -456,7 +466,7 @@ void Window::routeMouseMove(Vec2 position) {
 	setHovered(panelAt(position));
 
 	const MouseMoveEvent event{position};
-	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(event);
+	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(inSpaceOf(*target, event));
 	onMouseMove(event);
 
 	if(--routing_ == 0) runDeferred();
@@ -479,7 +489,7 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 		if(!grabbed_) grabbed_ = hit;
 	}
 
-	if(Panel* target = grabbed_ ? grabbed_ : hit) target->mouseButtonEvent(event);
+	if(Panel* target = grabbed_ ? grabbed_ : hit) target->mouseButtonEvent(inSpaceOf(*target, event));
 
 	if(event.action == Action::Release) {
 		grabbed_ = nullptr;
@@ -495,7 +505,7 @@ void Window::routeScroll(const ScrollEvent& event) {
 	++routing_;
 	// The panel under the pointer hears it; the nearest scrollable one (it or an ancestor) scrolls
 	if(Panel* target = panelAt(event.position)) {
-		target->scrollEvent(event);
+		target->scrollEvent(inSpaceOf(*target, event));
 		for(Panel* panel = target; panel; panel = panel->parent_)
 			if(panel->scrollContent({-event.offset.x * scrollSpeed, -event.offset.y * scrollSpeed}))
 				break;
@@ -543,7 +553,7 @@ void Window::runChosen(std::function<void()> run) {
 void Window::forget(const Panel& panel) noexcept {
 	++treeGeneration_; // an anchor may have found it
 	if(panel.geometry_ && panel.geometry_->recorded) { // where it drew is damage
-		detail::addTo(damage_, detail::reachOf(panel.geometry_->key.bounds, panel.geometry_->record));
+		detail::addTo(damage_, detail::screenReachOf(*panel.geometry_));
 		requestFrame();
 	}
 	if(focused_ == &panel) {

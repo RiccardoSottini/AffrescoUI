@@ -75,6 +75,7 @@ private:
 	int width_ = 0, height_ = 0; ///< In pixels.
 	unsigned framebuffer_ = 0;   ///< The framebuffer object; 0 before the first resize().
 	unsigned color_ = 0;         ///< Its colour renderbuffer.
+	unsigned depthStencil_ = 0;  ///< Its depth and stencil renderbuffer.
 };
 
 } // namespace affresco::gl

@@ -9,6 +9,7 @@
 #include "affresco/render/Layout.hpp"
 #include "affresco/render/Length.hpp"
 #include "affresco/render/Painter.hpp"
+#include "affresco/render/Transform.hpp"
 #include "affresco/core/Signal.hpp"
 
 #include <array>
@@ -341,6 +342,29 @@ public:
 	void setCached(bool cached) { setLook(cached_, cached); }
 	/// @brief The flag set by setCached().
 	[[nodiscard]] bool isCached() const noexcept { return cached_; }
+	/// @brief Transforms how the panel and its subtree are painted, as CSS transform: layout keeps the untransformed
+	/// frame, while drawing, hit-testing and pointer positions go through it. It composes with the ancestors'
+	/// transforms (an overlay has only its own).
+	/// @param transform The transform (Affine2::compose()), about the origin.
+	/// @param origin Where it applies, as a share of the frame's size: {0.5, 0.5} is the centre.
+	void setTransform(const Affine2& transform, Vec2 origin = {0.5f, 0.5f});
+	/// @brief The transform set by setTransform(); the identity by default.
+	[[nodiscard]] const Affine2& transform() const noexcept { return transform_; }
+	/// @brief Where the transform applies, as a share of the frame's size.
+	[[nodiscard]] Vec2 transformOrigin() const noexcept { return transformOrigin_; }
+	/// @brief The transform about its origin: from this panel's layout space into its parent's.
+	/// @return The identity when it has none.
+	[[nodiscard]] Affine2 localTransform() const noexcept;
+	/// @brief From this panel's layout space (where frame() and bounds() are) into the window.
+	/// @return Its own and its ancestors' local transforms; an overlay's own only.
+	[[nodiscard]] Affine2 worldTransform() const noexcept;
+	/// @brief A window point in this panel's layout space, as its pointer events give it.
+	/// @param point In window units.
+	/// @return The point; nullopt when a transform flattens the panel (a scale of 0).
+	[[nodiscard]] std::optional<Vec2> toLocal(Vec2 point) const noexcept;
+	/// @brief The visible area on screen: bounds() through worldTransform(), as its bounding box.
+	/// @return In window units.
+	[[nodiscard]] Rect screenBounds() const noexcept;
 
 	/// @brief Shows or hides the panel and its subtree.
 	/// @param visible false to hide it from drawing, hit-testing and stacks.
@@ -383,8 +407,9 @@ public:
 	/// @return The width.
 	[[nodiscard]] float measuredWidth(float reference);
 
-	/// @brief Finds the deepest shown panel at a point; later siblings are on top.
-	/// @param point In window units.
+	/// @brief Finds the deepest shown panel at a point; later siblings are on top. Each level maps the point through
+	/// its inverse transform; a panel a transform flattens is never hit.
+	/// @param point In the parent's layout space: window units for a root or an overlay.
 	/// @return This panel or a descendant, or nullptr.
 	[[nodiscard]] Panel* hitTest(Vec2 point) noexcept;
 
@@ -509,6 +534,10 @@ private:
 	/// @param parentSize See layout().
 	/// @param parentShown See layout().
 	void placeFrame(const Rect& origin, const Rect& clip, Vec2 parentSize, bool parentShown);
+	/// @brief The parent's clip brought into this panel's layout space through the inverse of its transform.
+	/// @param clip The parent's clip, in the parent's layout space.
+	/// @return Its bounding box there; the frame when the transform flattens the panel.
+	[[nodiscard]] Rect clipInSpace(const Rect& clip) const noexcept;
 	/// @brief The positions of a panel's two edges on one axis, if anchored.
 	struct AnchoredEdges {
 		std::optional<float> start{}; ///< Top or left.
@@ -641,6 +670,8 @@ private:
 	Shadow shadow_;                                       ///< See shadow().
 	bool visible_ = true;                                 ///< See setVisible().
 	bool cached_ = false;                                 ///< See setCached().
+	Affine2 transform_;                                   ///< See transform().
+	Vec2 transformOrigin_{0.5f, 0.5f};                    ///< See transformOrigin().
 	Cursor cursor_ = Cursor::Arrow;                       ///< See setCursor().
 	std::string tooltip_;                                 ///< See tooltip().
 	std::string role_;                                    ///< See accessibleRole().
