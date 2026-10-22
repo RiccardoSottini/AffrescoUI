@@ -23,11 +23,9 @@ import json
 import os
 import shutil
 import socket
-import struct
 import subprocess
 import sys
 import tempfile
-import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -36,44 +34,14 @@ with open(os.path.join(EXAMPLES, "templates.json"), encoding="utf-8") as templat
     TEMPLATE_FOLDERS = {os.path.join(EXAMPLES, folder) for folder in json.load(templates_file)["templates"].values()}
 KANBAN = os.path.join(EXAMPLES, "flow")  # the Kanban template's folder
 RENDER_SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios")
+sys.path.insert(0, os.path.join(ROOT, "tools", "media"))
+import pngfile  # noqa: E402 (tools/media/: reads the PNGs the tool and the runner write)
 
 
 def template_files(pattern):
     """The templates' files that match the pattern, from each one's folder (examples/templates.json), by name."""
     files = [path for folder in TEMPLATE_FOLDERS for path in glob.glob(os.path.join(folder, pattern))]
     return sorted(files, key=os.path.basename)
-
-
-def read_png(path):
-    """An 8-bit RGB PNG (any row filter), as the tool and the runner write them: (width, height, RGB bytes)."""
-    with open(path, "rb") as file:
-        data = file.read()
-    position, idat = 8, b""
-    while position < len(data):
-        length, kind = struct.unpack(">I4s", data[position:position + 8])
-        body = data[position + 8:position + 8 + length]
-        if kind == b"IHDR":
-            width, height = struct.unpack(">II", body[:8])
-        elif kind == b"IDAT":
-            idat += body
-        position += 12 + length
-    raw, stride, out = zlib.decompress(idat), width * 3, bytearray()
-    previous = bytearray(stride)
-    for y in range(height):
-        kind, row = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
-        for i in range(stride if kind else 0):
-            left, up = row[i - 3] if i >= 3 else 0, previous[i]
-            corner = previous[i - 3] if i >= 3 else 0
-            if kind == 4:
-                p = left + up - corner
-                pa, pb, pc = abs(p - left), abs(p - up), abs(p - corner)
-                predicted = left if pa <= pb and pa <= pc else up if pb <= pc else corner
-            else:
-                predicted = {1: left, 2: up, 3: (left + up) // 2}[kind]
-            row[i] = (row[i] + predicted) & 255
-        out += row
-        previous = row
-    return width, height, bytes(out)
 
 
 def render_scenarios():
@@ -140,10 +108,10 @@ class Checker:
             json.dump(first, file)
         if subprocess.run([self.runner, "--out", frames, scenarios_file], capture_output=True).returncode != 0:
             return self.expect(False, f"the runner failed on {scenario['name']}")
-        expected = read_png(os.path.join(frames, f"{scenario['name']}-first.png"))
+        expected = pngfile.read(os.path.join(frames, f"{scenario['name']}-first.png"))[:3]
         out = os.path.join(self.scratch, scenario["name"] + ".png")
         self.run("render", path, "-o", out, "--scale", str(scenario.get("scale", 1)))
-        self.expect(read_png(out) == expected, f"render {scenario['name']}: not the runner's first frame")
+        self.expect(pngfile.read(out)[:3] == expected, f"render {scenario['name']}: not the runner's first frame")
 
     def test(self, path):
         """A template's scenarios pass (their captures written to a scratch folder); a failing one and a malformed file
