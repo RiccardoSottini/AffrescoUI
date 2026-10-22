@@ -241,3 +241,33 @@ TEST_CASE("format: an application's type gets the built-in widget's properties a
 	window->render();
 	CHECK(applied.back() == R"({"language":"rust"})");
 }
+
+// Every node's events are a fixed list; an application's type may list events of its own ("onType"), which then
+// go to its apply function like its other properties, and an unknown event still fails
+TEST_CASE("format: an application's type gets the events it lists as its own") {
+	const affresco::detail::ManualClock clock;
+	const auto window = affresco::detail::createHeadlessWindow(400, 300, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"actions": { "typed": [{ "set": "state.typed", "to": true }] },
+		"root": { "type": "panel", "children": [
+			{ "type": "notes", "id": "notes", "onType": "typed", "onClick": "typed" }
+		] }
+	})json");
+	std::vector<std::string> applied;
+	screen.registerType(
+	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"onType"},
+	    [&](affresco::Panel&, const std::string& properties) { applied.push_back(properties); });
+	screen.build(*window);
+	window->render();
+	REQUIRE(screen.find("notes"));
+	CHECK(applied == std::vector<std::string>{R"({"onType":"typed"})"}); // onClick stays every node's event
+
+	affresco::Screen unknown = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 1,
+		"root": { "type": "panel", "children": [{ "type": "notes", "onPopupKey": "typed" }] }
+	})json");
+	unknown.registerType(
+	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"onType"}, [](auto&, const auto&) {});
+	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onPopupKey: unknown event"));
+}
