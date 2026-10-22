@@ -113,7 +113,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -560,6 +560,26 @@ time, as it is drawn.
   "onKeyframeMove": [ { "set": "state.tracks", "to": "{{map(state.tracks, it.id == event.track ? merge(it, { keyframes: map(it.keyframes, index == event.index ? merge(it, { time: event.time }) : it) }) : it)}}" } ] }
 ```
 
+### `calendar`
+A month of days to pick a date from. A header shows the month and year between a previous and a next button, a row
+names the days of the week, and six weeks of days follow; days outside the range show disabled, today is outlined and
+marked days carry a dot. The keyboard does it all: the arrows move a day or a week (mirrored right to left), Page Up
+and Page Down a month (with Shift, a year), Home and End to the week's ends, and Enter or Space picks the day. Its role
+is `grid`. Dates are ISO 8601 texts, `"YYYY-MM-DD"` (see Dates).
+
+- `value` (or `bind`): the picked date; a pick runs `onChange` with `event.value`.
+- `min`, `max`: the first and last days that can be picked; `today`: the day outlined (the document gives it, so a
+  screenshot doesn't change from day to day; `today()` is the system's).
+- `marked`: the days with a dot. `firstDayOfWeek`: 0 for Sunday to 6 for Saturday (default 1, Monday).
+- `monthNames` (twelve, January first) and `dayNames` (seven, short, Sunday first): the locale's words, usually from
+  `t()`; missing ones stay English.
+- `font`, `textColor`, `accentColor` (the picked day, the keyboard's ring and the dots), `onAccentColor`.
+
+```json
+{ "type": "calendar", "bind": "state.due", "today": "2026-10-22", "min": "2026-01-01", "focusable": true,
+  "dayNames": "{{split(t('calendar.days'), ',')}}", "onChange": [ { "log": "due {{event.value}}" } ] }
+```
+
 ### `path`
 A vector shape from SVG path data, filled and stroked, fitted to the node (like an icon or a chart line). It is
 drawn anti-aliased in the same batch as the panels and text around it, and its meshes are built again only when its
@@ -787,6 +807,17 @@ A screen's text can come in several languages. The `strings` section holds, per 
   then case). The data covers en, it, fr, de, es, pt, ja, zh, ar and he; another language formats as English.
 - **Direction:** Arabic and Hebrew are right to left; nodes with `"dir": "auto"` follow it.
 - **The checker** reports a `t()` key no locale has and parameters a message doesn't read or that aren't given.
+
+### Dates
+
+Calendar dates are ISO 8601 texts, `"YYYY-MM-DD"`, from year 1 to 9999, so they sort as text, compare with `<` and
+are stored in the state as they are shown to a `calendar`. The functions give null for a text that isn't a date:
+- `today()`: the local date. Screens that must render the same every day give "today" in the state instead.
+- `addDays(date, n)` and `addMonths(date, n)` (the day kept within the month: January 31 plus one month is the last
+  day of February); `daysBetween(from, to)`, negative if `to` is earlier.
+- `weekday(date)` (0 for Sunday to 6 for Saturday) and `daysInMonth(date)`.
+- `dateOf(ms)` (the UTC date a time falls on) and `dateMs(date)` (its midnight, UTC), to use `formatDate(ms, style,
+  'utc')`; `isDate(text)`.
 
 ## Events
 
