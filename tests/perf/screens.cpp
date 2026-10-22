@@ -426,7 +426,8 @@ std::vector<Group> screenGroups() {
 	        {"layout", layoutWorkloads},
 	        {"frame", frameWorkloads},
 	        {"editor", editorWorkloads},
-	        {"forge", forgeWorkloads}};
+	        {"forge", forgeWorkloads},
+	        {"budgets", budgetWorkloads}};
 }
 
 } // namespace affresco::bench

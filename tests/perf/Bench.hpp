@@ -26,6 +26,7 @@ struct Workload {
 	bool cpuTime = false;            ///< Measure the main thread's CPU time instead of the wall clock.
 	std::function<void()> prepare{}; ///< Gets a run ready, e.g. a fresh repository; may be empty.
 	std::function<void()> step{};    ///< The measured work.
+	std::function<void(json&)> report{}; ///< Adds fields to the result after the runs, e.g. a percentile or memory.
 };
 
 /// @brief A screen loaded the way affrescoui_host loads one, and its window. Both live as long as the Context.
@@ -153,6 +154,12 @@ struct Group {
 /// @param context Where the fonts are, and the windowing system.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> editorWorkloads(Context& context);
+
+/// @brief The "budgets" group's workloads (budgets.cpp): the budgets no other workload measures, an idle second, a
+/// 50 MB file opened, Forge started cold and Forge with 10 tabs and a terminal (BENCHMARKS.md).
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> budgetWorkloads(Context& context);
 
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 

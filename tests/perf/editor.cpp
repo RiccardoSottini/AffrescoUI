@@ -25,8 +25,8 @@
 namespace affresco::bench {
 namespace {
 
-constexpr int samplesPerStep = 200;  ///< Operations one step times.
-constexpr double typingBudget = 8.0; ///< Key to frame, 99th percentile, in milliseconds.
+constexpr int samplesPerStep = 200;            ///< Operations one step times.
+constexpr double typingBudget = 8.0;           ///< Key to frame, 99th percentile, in milliseconds.
 constexpr double frameBudget = 1000.0 / 120.0; ///< A scrolled frame, 99th percentile, in milliseconds.
 
 /// @brief A hidden window holding one focused editor.
@@ -66,17 +66,30 @@ double percentile99(std::vector<double>& samples) {
 /// @param name The workload, for the error.
 /// @param budget The budget in milliseconds.
 /// @param operation One operation.
-void timed(const std::string& name, double budget, const std::function<void()>& operation) {
+/// @param kept Receives the durations, for the workload's "p99" over all its runs.
+void timed(const std::string& name, double budget, const std::function<void()>& operation, std::vector<double>& kept) {
 	std::vector<double> samples(samplesPerStep);
 	for(double& sample : samples) {
 		const auto start = std::chrono::steady_clock::now();
 		operation();
 		sample = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 	}
+	kept.insert(kept.end(), samples.begin(), samples.end());
 	if(std::getenv("AFFRESCOUI_PERF_BUDGETS") == nullptr) return;
 	if(const double p99 = percentile99(samples); p99 > budget)
 		throw std::runtime_error(name + ": 99th percentile " + std::to_string(p99) + " ms, over its budget of " +
 		                         std::to_string(budget) + " ms");
+}
+
+/// @brief Adds "p99", the 99th percentile of every measured operation in the workload's unit, to its result.
+/// @param workload The workload; its steps keep their durations in samples.
+/// @param samples Where they are kept; the warm-up's first samplesPerStep are left out.
+void reportPercentile(Workload& workload, const std::shared_ptr<std::vector<double>>& samples) {
+	workload.report = [samples](json& result) {
+		std::vector<double> measured(samples->begin() + std::min<std::ptrdiff_t>(samplesPerStep, std::ssize(*samples)),
+		                             samples->end());
+		if(!measured.empty()) result["p99"] = std::round(percentile99(measured) * 1e3 * 1e3) / 1e3; // ms to us
+	};
 }
 
 /// @brief A key typed then drawn, in the middle of a file, a word at a time so the text keeps its shape.
@@ -91,15 +104,22 @@ Workload typing(Context& context, std::size_t lines, std::string name) {
 		throw std::runtime_error(name + ": no line to type in");
 	view->window->routeKey({Key::Right, 0, Action::Press, Mods{0}});
 	const auto typed = std::make_shared<int>(0);
-	return {.name = name, .unit = "us", .runs = 5, .operations = samplesPerStep, .step = [view, typed, name] {
-		        timed(name, typingBudget, [&] {
+	const auto samples = std::make_shared<std::vector<double>>();
+	Workload workload{
+	    .name = name, .unit = "us", .runs = 5, .operations = samplesPerStep, .step = [view, typed, name, samples] {
+		    timed(
+		        name, typingBudget,
+		        [&] {
 			        // Typed then erased, so every run sees the same file
 			        const bool erase = ++*typed % 2 == 0;
 			        if(erase) view->window->routeKey({Key::Backspace, 0, Action::Press, Mods{0}});
 			        else view->window->routeChar({U'x'});
 			        detail::renderWithoutPresenting(*view->window);
-		        });
-	        }};
+		        },
+		        *samples);
+	    }};
+	reportPercentile(workload, samples);
+	return workload;
 }
 
 /// @brief A frame scrolled by a prime number of pixels (a new place every time) then drawn.
@@ -110,13 +130,23 @@ Workload scrolling(Context& context, std::size_t lines, std::string name) {
 	const auto view = std::make_shared<EditorView>(context, lines);
 	const auto offset = std::make_shared<float>(0.0f);
 	const float height = static_cast<float>(lines) * 16.0f; // under the text's height: setScroll() clamps
-	return {.name = name, .unit = "us", .runs = 5, .operations = samplesPerStep, .step = [view, offset, height, name] {
-		        timed(name, frameBudget, [&] {
-			        *offset = std::fmod(*offset + 7919.0f, height);
-			        view->editor->setScroll({0.0f, *offset});
-			        detail::renderWithoutPresenting(*view->window);
-		        });
-	        }};
+	const auto samples = std::make_shared<std::vector<double>>();
+	Workload workload{.name = name,
+	                  .unit = "us",
+	                  .runs = 5,
+	                  .operations = samplesPerStep,
+	                  .step = [view, offset, height, name, samples] {
+		                  timed(
+		                      name, frameBudget,
+		                      [&] {
+			                      *offset = std::fmod(*offset + 7919.0f, height);
+			                      view->editor->setScroll({0.0f, *offset});
+			                      detail::renderWithoutPresenting(*view->window);
+		                      },
+		                      *samples);
+	                  }};
+	reportPercentile(workload, samples);
+	return workload;
 }
 
 } // namespace

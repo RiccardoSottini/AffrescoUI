@@ -8,6 +8,10 @@
 With --callgrind, the program runs under callgrind with instrumentation off, and turns it on only for each workload's
 measured run; each run's counts are dumped under the workload's name. The value becomes the instructions per
 operation. Instruction counts barely change from run to run, so CI compares them instead of the wall clock.
+
+With --budgets, it measures the budgets of BENCHMARKS.md instead (budgets.py, budgets.json): --markdown prints their
+tables, --record writes the values into budgets.json, and --from DIR checks CI's measurements in DIR against the
+thresholds, failing above one.
 """
 
 import argparse
@@ -73,6 +77,26 @@ def run_callgrind(bench, passed):
     return results, process.returncode
 
 
+def run_budgets(args, bench):
+    """--budgets: measures the budgets (or checks a folder of CI's measurements against them) and prints them."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import budgets
+    loaded = budgets.load()
+    if args.from_folder:
+        failures = budgets.check(loaded, args.from_folder)
+        for failure in failures:
+            print("BUDGET EXCEEDED " + failure)
+        sys.exit(1 if failures else 0)
+    values = budgets.measure(loaded, bench)
+    if args.record:
+        budgets.record(loaded, values)
+    if args.markdown:
+        sys.stdout.write(budgets.markdown(loaded, values))
+    else:
+        for row in budgets.rows(loaded, values):
+            print("  ".join(str(cell) for cell in row))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--build", default=os.path.join(ROOT, "build"), help="the build directory")
@@ -82,11 +106,19 @@ def main():
     parser.add_argument("--scaling", choices=("small", "large"), help="the scaling workloads instead (scaling.py)")
     parser.add_argument("--callgrind", action="store_true", help="count instructions with callgrind")
     parser.add_argument("--out", help="write the results here instead of to stdout")
+    parser.add_argument("--budgets", action="store_true", help="measure the budgets of BENCHMARKS.md (budgets.json)")
+    parser.add_argument("--markdown", action="store_true", help="with --budgets: print BENCHMARKS.md's tables")
+    parser.add_argument("--record", action="store_true", help="with --budgets: write the values into budgets.json")
+    parser.add_argument("--from", dest="from_folder", help="with --budgets: check CI's measurements in this folder")
     args = parser.parse_args()
 
     bench = os.path.join(args.build, "affrescoui_bench")
+    if args.budgets and args.from_folder:
+        run_budgets(args, bench)
     if not os.path.exists(bench):
         sys.exit(f"run.py: no {bench}: configure with -DAFFRESCOUI_BUILD_BENCHMARKS=ON and build affrescoui_bench")
+    if args.budgets:
+        return run_budgets(args, bench)
     if args.callgrind:
         results, status = run_callgrind(bench, bench_arguments(args))
     else:

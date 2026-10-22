@@ -123,6 +123,40 @@ The canonical edits are typical agent requests: change a colour, rename a label,
 a button with its action, move a card, remove a node, and add an item or a node to each template. The `revision`
 workloads apply every one of them, so an edit that no longer applies fails the benchmark instead of being counted.
 
+## Budgets
+
+The budgets are the targets of [BENCHMARKS.md](../../BENCHMARKS.md): speed, memory and tokens. `budgets.json` lists
+them. For each one it gives the target, the workloads or token counts that measure it, the CI threshold, and the last
+measured value with its machine, commit and date. `budgets.py` measures and checks them through `run.py`:
+
+```sh
+python3 tests/perf/run.py --build build-release --budgets              # each budget, met or missed
+python3 tests/perf/run.py --build build-release --budgets --markdown   # BENCHMARKS.md's tables
+python3 tests/perf/run.py --build build-release --budgets --record     # writes the values into budgets.json
+python3 tests/perf/run.py --budgets --from "$out/head"                 # CI: fails above a threshold
+```
+
+The `budgets` group measures what no other workload does:
+
+- `budgets/idle`: one second of the Kanban template's event loop with nothing happening. `processMs` is the CPU time
+  of every thread in that second.
+- `budgets/open-50mb`: a 50 MiB file opened in Forge's buffers.
+- `budgets/forge-cold-start`: Forge from its document to its first frame.
+- `budgets/forge-10-tabs`: Forge with 10 files open in tabs and a terminal that starts no shell. Each run switches tab
+  and draws.
+
+The memory budgets read `residentBytes`: the process's footprint on macOS and its resident set on Linux. `run.py` runs
+each of them in a process of its own. The typing and scrolling budgets read the `p99` of their samples.
+
+CI fails a budget only above its `ciThreshold`:
+
+- **A number** is in what CI measures: instructions per operation under callgrind, or tokens.
+- **`"pending"`** waits for a Linux callgrind run to set it.
+- **`null`** gives its reason in `ciReason`, for example a wall-clock or percentile budget.
+
+A target never moves, and a miss stays a miss. The threshold of a missed token budget is the value it was recorded at,
+so the number can only get better.
+
 ## Scaling
 
 A 3% threshold catches a change that makes one size slower. It misses a change that makes the cost grow faster with

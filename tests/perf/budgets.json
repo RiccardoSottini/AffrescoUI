@@ -1,0 +1,236 @@
+{
+  "format": "affrescoui-budgets",
+  "version": 1,
+  "note": "The budgets of BENCHMARKS.md. run.py --budgets measures them; --record writes 'measured'. ciThreshold: what CI fails above, in the unit CI measures (tokens; instructions under callgrind). 'pending' needs a Linux callgrind run to be set; null has its reason in ciReason. A missed token budget's ciThreshold is its recorded value (a ratchet); a met one's is its target.",
+  "targets": [
+    {
+      "id": "idle-cpu",
+      "budget": "Idle CPU: 0%",
+      "source": "bench",
+      "workloads": [
+        "budgets/idle"
+      ],
+      "field": "processMs",
+      "aggregate": "max",
+      "limit": 0.0,
+      "unit": "percent",
+      "ciThreshold": null,
+      "ciReason": "An idle second is wall clock by nature: callgrind counts instructions, not the time a thread sleeps.",
+      "measured": null
+    },
+    {
+      "id": "frame",
+      "budget": "A full frame: 1 ms at most",
+      "source": "bench",
+      "workloads": [
+        "frame/14"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 1.0,
+      "unit": "ms",
+      "ciThreshold": null,
+      "ciReason": "The frames are measured as the main thread's CPU time in CI, not under callgrind (software OpenGL makes it too slow).",
+      "measured": null
+    },
+    {
+      "id": "state-change",
+      "budget": "One state change: 1 ms at most at any size, a 50,000-panel screen included",
+      "source": "bench",
+      "workloads": [
+        "update/400",
+        "update/panels-50000"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 1.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "revision",
+      "budget": "A revision applied and reconciled: 2 ms at most",
+      "source": "bench",
+      "workloads": [
+        "revision/"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 2.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "typing",
+      "budget": "Typing in a 100,000-line file: 8 ms at most from key to frame, at p99",
+      "source": "bench",
+      "workloads": [
+        "editor/type-100k"
+      ],
+      "field": "p99",
+      "aggregate": "max",
+      "limit": 8.0,
+      "unit": "ms",
+      "ciThreshold": null,
+      "ciReason": "A percentile of wall-clock samples: callgrind counts the step's instructions, not a percentile; the step's own count is locked by compare.py as editor/type-100k.",
+      "measured": null
+    },
+    {
+      "id": "scrolling",
+      "budget": "Scrolling a 1,000,000-line file at 120 Hz (8.33 ms a frame at p99)",
+      "source": "bench",
+      "workloads": [
+        "editor/scroll-1m"
+      ],
+      "field": "p99",
+      "aggregate": "max",
+      "limit": 8.333,
+      "unit": "ms",
+      "ciThreshold": null,
+      "ciReason": "A percentile of wall-clock samples: callgrind counts the step's instructions, not a percentile; the step's own count is locked by compare.py as editor/scroll-1m.",
+      "measured": null
+    },
+    {
+      "id": "open-50mb",
+      "budget": "Opening a 50 MB file: 1 s at most",
+      "source": "bench",
+      "workloads": [
+        "budgets/open-50mb"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 1000.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "open-50mb-memory",
+      "budget": "Opening a 50 MB file: memory at most 1.5 times the file plus 50 MB",
+      "source": "bench",
+      "workloads": [
+        "budgets/open-50mb"
+      ],
+      "field": "residentBytes",
+      "aggregate": "max",
+      "limit": 128643200,
+      "unit": "bytes",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "forge-cold-start",
+      "budget": "Forge cold start to interactive: 300 ms at most",
+      "source": "bench",
+      "workloads": [
+        "budgets/forge-cold-start"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 300.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "forge-memory",
+      "budget": "Forge with 10 tabs and a terminal: 150 MB at most",
+      "source": "bench",
+      "workloads": [
+        "budgets/forge-10-tabs"
+      ],
+      "field": "residentBytes",
+      "aggregate": "max",
+      "limit": 150000000,
+      "unit": "bytes",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "quick-open",
+      "budget": "Quick open over 100,000 files: 30 ms at most per keystroke",
+      "source": "bench",
+      "workloads": [
+        "fuzzy/100000"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 30.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "tree-expand",
+      "budget": "Expanding a 100,000-node tree: 4 ms at most",
+      "source": "bench",
+      "workloads": [
+        "views/tree-expand-100k"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 4.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": null
+    },
+    {
+      "id": "template-outline",
+      "budget": "A template's outline: 600 tokens at most",
+      "source": "tokens",
+      "limit": 600,
+      "unit": "tokens",
+      "ciThreshold": 1272,
+      "measured": null,
+      "ciReason": "Missed: the threshold is the value recorded, so CI fails on growth while the target stays a miss."
+    },
+    {
+      "id": "forge-outline",
+      "budget": "Forge's outline: 4,000 tokens at most",
+      "source": "tokens",
+      "limit": 4000,
+      "unit": "tokens",
+      "ciThreshold": 4000,
+      "measured": null
+    },
+    {
+      "id": "typical-edit",
+      "budget": "A typical edit: 40 output tokens at most (the median canonical edit)",
+      "source": "tokens",
+      "limit": 40,
+      "unit": "tokens",
+      "ciThreshold": 40,
+      "measured": null
+    },
+    {
+      "id": "reread",
+      "budget": "A re-read after one commit: 150 tokens at most",
+      "source": "tokens",
+      "limit": 150,
+      "unit": "tokens",
+      "ciThreshold": 150,
+      "measured": null
+    },
+    {
+      "id": "guide-topic",
+      "budget": "The format guide: 1,500 tokens at most per topic",
+      "source": "tokens",
+      "limit": 1500,
+      "unit": "tokens",
+      "ciThreshold": 1669,
+      "measured": null,
+      "ciReason": "Missed: the threshold is the value recorded, so CI fails on growth while the target stays a miss."
+    },
+    {
+      "id": "feature-request",
+      "budget": "A whole feature request: 2,000 output tokens at most (the oracle's feature tasks)",
+      "source": "tokens",
+      "limit": 2000,
+      "unit": "tokens",
+      "ciThreshold": 2000,
+      "measured": null
+    }
+  ]
+}

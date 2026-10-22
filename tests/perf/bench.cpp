@@ -215,13 +215,15 @@ affresco::json measure(const Workload& workload, const Options& options) {
 		allocations.push_back(static_cast<double>(affresco::bench::allocationCount() - allocationsBefore) / operations);
 		retained.push_back(static_cast<double>(affresco::bench::liveBytes() - bytesBefore) / operations);
 	}
-	return {{"name", workload.name},
-	        {"value", rounded(median(times) / nanosecondsIn(workload.unit), 3)},
-	        {"unit", workload.unit},
-	        {"runs", runs},
-	        {"operations", workload.operations},
-	        {"allocations", rounded(median(allocations), 2)},
-	        {"retainedBytes", rounded(median(retained), 1)}};
+	affresco::json result{{"name", workload.name},
+	                      {"value", rounded(median(times) / nanosecondsIn(workload.unit), 3)},
+	                      {"unit", workload.unit},
+	                      {"runs", runs},
+	                      {"operations", workload.operations},
+	                      {"allocations", rounded(median(allocations), 2)},
+	                      {"retainedBytes", rounded(median(retained), 1)}};
+	if(workload.report) workload.report(result);
+	return result;
 }
 
 /// @brief Runs the selected workloads of every group, printing each result as it comes.
