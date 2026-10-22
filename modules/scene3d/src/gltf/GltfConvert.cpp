@@ -59,6 +59,32 @@ void checkTotal(std::size_t total, std::size_t limit, const char* what) {
 	if(total > limit) throw GltfError("glTF: more than " + std::to_string(limit) + " " + what);
 }
 
+/// @brief Whether a vertex attribute is there, of a type, one per vertex, and readable.
+/// @param context The load. @param accessor The attribute, or null. @param type Its type. @param count The vertices.
+/// @param what Names it in a warning. @return Whether to read it.
+[[nodiscard]] bool usable(GltfContext& context, const cgltf_accessor* accessor, cgltf_type type, std::size_t count,
+                          const std::string& what) {
+	return accessor != nullptr && accessor->type == type && accessor->count == count &&
+	       readable(context, accessor, what);
+}
+
+/// @brief Reads a primitive's indices, or numbers its vertices in order when it has none.
+/// @param context The load. @param primitive It. @param count Its vertices. @param where Names it in warnings.
+/// @param indices Receives the indices. @return false when its indices are unreadable (a warning says why).
+[[nodiscard]] bool readIndices(GltfContext& context, const cgltf_primitive& primitive, std::size_t count,
+                               const std::string& where, std::vector<std::uint32_t>& indices) {
+	if(primitive.indices == nullptr) {
+		indices.resize(count);
+		std::iota(indices.begin(), indices.end(), std::uint32_t{0});
+		return true;
+	}
+	if(!readable(context, primitive.indices, where + " indices")) return false;
+	indices.resize(primitive.indices->count);
+	for(std::size_t i = 0; i < indices.size(); ++i)
+		indices[i] = static_cast<std::uint32_t>(cgltf_accessor_read_index(primitive.indices, i));
+	return true;
+}
+
 /// @brief Reads a primitive's vertices and indices; the counts are checked first.
 /// @param primitive It. @param position Its positions, readable. @param totals Vertices and indices so far.
 /// @param limits The limits. @param context The load. @param where Names it in warnings.
@@ -77,27 +103,17 @@ void checkTotal(std::size_t total, std::size_t limit, const char* what) {
 	for(std::size_t i = 0; i + 2 < points.size(); i += 3)
 		mesh.positions.push_back({points[i], points[i + 1], points[i + 2]});
 	const auto* normal = attribute(primitive, cgltf_attribute_type_normal);
-	if(normal != nullptr && normal->type == cgltf_type_vec3 && normal->count == count &&
-	   readable(context, normal, where + " normals")) {
+	if(usable(context, normal, cgltf_type_vec3, count, where + " normals")) {
 		const auto values = floats(*normal);
 		for(std::size_t i = 0; i + 2 < values.size(); i += 3)
 			mesh.normals.push_back({values[i], values[i + 1], values[i + 2]});
 	}
 	const auto* uv = attribute(primitive, cgltf_attribute_type_texcoord);
-	if(uv != nullptr && uv->type == cgltf_type_vec2 && uv->count == count &&
-	   readable(context, uv, where + " texture coordinates")) {
+	if(usable(context, uv, cgltf_type_vec2, count, where + " texture coordinates")) {
 		const auto values = floats(*uv);
 		for(std::size_t i = 0; i + 1 < values.size(); i += 2) mesh.texCoords.push_back({values[i], values[i + 1]});
 	}
-	if(primitive.indices != nullptr) {
-		if(!readable(context, primitive.indices, where + " indices")) return std::nullopt;
-		mesh.indices.resize(primitive.indices->count);
-		for(std::size_t i = 0; i < mesh.indices.size(); ++i)
-			mesh.indices[i] = static_cast<std::uint32_t>(cgltf_accessor_read_index(primitive.indices, i));
-	} else {
-		mesh.indices.resize(count);
-		std::iota(mesh.indices.begin(), mesh.indices.end(), std::uint32_t{0});
-	}
+	if(!readIndices(context, primitive, count, where, mesh.indices)) return std::nullopt;
 	return mesh;
 }
 
