@@ -41,14 +41,14 @@ struct SearchMatch {
 	std::size_t line = 0;   ///< Its line, from 1.
 	std::size_t column = 0; ///< Its first byte in the line, from 0.
 	std::size_t length = 0; ///< Its bytes (to the end of the line, at most, in the preview).
-	std::string text;       ///< Its line, or the part around it (at most 240 bytes, cut at code points).
+	std::string text{};     ///< Its line, or the part around it (at most 240 bytes, cut at code points).
 	std::size_t at = 0;     ///< Where the match starts in text.
 };
 
 /// @brief The matches of one file.
 struct SearchFile {
 	std::string path;                 ///< Relative to the root, with '/'.
-	std::vector<SearchMatch> matches; ///< In order.
+	std::vector<SearchMatch> matches{}; ///< In order.
 };
 
 /// @brief What a search did.

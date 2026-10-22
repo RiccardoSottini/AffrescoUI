@@ -47,8 +47,8 @@ struct Shared {
 	const std::vector<Candidate>& files;             ///< What they match.
 	const std::function<void(SearchFile&&)>& onFile; ///< Where results go, under mutex.
 	SearchSummary& summary;                          ///< Its files and matches, under mutex.
-	std::stop_source stop;                           ///< Stops them all.
-	std::mutex mutex;                                ///< Guards onFile and summary.
+	std::stop_source stop{};                         ///< Stops them all.
+	std::mutex mutex{};                              ///< Guards onFile and summary.
 	std::atomic<std::size_t> next{0};                ///< The next file to take.
 	std::atomic<std::size_t> taken{0};               ///< Matches taken towards maxResults.
 	std::atomic<std::size_t> searched{0};            ///< See SearchSummary.

@@ -24,14 +24,14 @@ public:
 		/// @brief What it matches.
 		enum class Kind { Literal, Any, Star, Class };
 		Kind kind = Kind::Literal;                         ///< See Kind.
-		std::string literal;                               ///< A Literal's bytes.
-		std::vector<std::pair<char32_t, char32_t>> ranges; ///< A Class's code point ranges, inclusive.
+		std::string literal{};                             ///< A Literal's bytes.
+		std::vector<std::pair<char32_t, char32_t>> ranges{}; ///< A Class's code point ranges, inclusive.
 		bool negated = false;                              ///< A Class that matches what isn't in its ranges.
 	};
 	/// @brief One segment: `**`, or elements matched against one name.
 	struct Segment {
 		bool globstar = false;         ///< `**`: any number of names, none included.
-		std::vector<Element> elements; ///< The others'.
+		std::vector<Element> elements{}; ///< The others'.
 	};
 
 	/// @brief Compiles a glob. A glob without '/' (other than a trailing one) matches a name at any depth; one with a
