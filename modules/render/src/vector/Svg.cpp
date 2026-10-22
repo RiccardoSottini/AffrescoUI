@@ -83,6 +83,26 @@ constexpr std::array<std::string_view, 13> skippedElements{ ///< Elements whose 
 	return path;
 }
 
+/// @brief A circle (radius r) or an ellipse (radii rx and ry).
+/// @param tag The circle or ellipse element.
+/// @return Its path, empty unless both radii are positive.
+[[nodiscard]] VectorPath roundShape(const XmlTag& tag) {
+	const bool circle = tag.name == "circle";
+	const Vec2 radius{numberOf(tag, circle ? "r" : "rx"), numberOf(tag, circle ? "r" : "ry")};
+	if(!(radius.x > 0.0f && radius.y > 0.0f)) return {};
+	return ellipse({numberOf(tag, "cx"), numberOf(tag, "cy")}, radius);
+}
+
+/// @brief A polyline or a polygon: its points are path data's implicit lines after a move.
+/// @param tag The polyline or polygon element.
+/// @return Its path, empty if it has no points.
+/// @throws std::invalid_argument If its points are broken.
+[[nodiscard]] VectorPath pointsShape(const XmlTag& tag) {
+	const std::string_view points = tag.attribute("points").value_or("");
+	if(points.find_first_not_of(" \t\r\n,") == std::string_view::npos) return {};
+	return VectorPath::parse("M" + std::string(points) + (tag.name == "polygon" ? "Z" : ""));
+}
+
 /// @brief The path a shape element draws.
 /// @param tag The element.
 /// @return The path, empty if the element isn't a shape or draws nothing.
@@ -91,26 +111,14 @@ constexpr std::array<std::string_view, 13> skippedElements{ ///< Elements whose 
 	const std::string_view name = tag.name;
 	if(name == "path") return VectorPath::parse(tag.attribute("d").value_or(""));
 	if(name == "rect") return rectangle(tag);
-	if(name == "circle") {
-		const float radius = numberOf(tag, "r");
-		return radius > 0.0f ? ellipse({numberOf(tag, "cx"), numberOf(tag, "cy")}, {radius, radius}) : VectorPath{};
-	}
-	if(name == "ellipse") {
-		const Vec2 radius{numberOf(tag, "rx"), numberOf(tag, "ry")};
-		return radius.x > 0.0f && radius.y > 0.0f ? ellipse({numberOf(tag, "cx"), numberOf(tag, "cy")}, radius)
-		                                          : VectorPath{};
-	}
+	if(name == "circle" || name == "ellipse") return roundShape(tag);
 	if(name == "line") {
 		VectorPath path;
 		path.moveTo({numberOf(tag, "x1"), numberOf(tag, "y1")});
 		path.lineTo({numberOf(tag, "x2"), numberOf(tag, "y2")});
 		return path;
 	}
-	if(name == "polyline" || name == "polygon") { // points are path data's implicit lines after a move
-		const std::string_view points = tag.attribute("points").value_or("");
-		if(points.find_first_not_of(" \t\r\n,") == std::string_view::npos) return {};
-		return VectorPath::parse("M" + std::string(points) + (name == "polygon" ? "Z" : ""));
-	}
+	if(name == "polyline" || name == "polygon") return pointsShape(tag);
 	return {};
 }
 
