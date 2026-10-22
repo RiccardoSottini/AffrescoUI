@@ -134,6 +134,29 @@ void applyFind(TextEditor& editor, const json& values, const std::string& path) 
 	applyFindStep(editor, find, at);
 }
 
+/// @brief A highlighter's palette: each style's colour from "@syntax.<style>", or its nearest parent style's.
+/// @param styles The highlighter's styles.
+/// @param reader Reads colours.
+/// @param at The grammar's place, for errors.
+/// @return The colours by style; a style with no colour of its own or its parents' is left out.
+std::map<std::string, Color, std::less<>> paletteOf(const std::vector<std::string>& styles,
+                                                    const PropertyReader& reader, const std::string& at) {
+	std::map<std::string, Color, std::less<>> palette;
+	for(const std::string& style : styles)
+		for(std::string_view name = style; !name.empty();) {
+			if(palette.contains(name)) break;
+			try {
+				palette.emplace(name, reader.color("@syntax." + std::string(name), at));
+				break;
+			} catch(const DocumentError&) {
+				// no such token: the parent style's, if any
+			}
+			const std::size_t dot = name.rfind('.');
+			name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
+		}
+	return palette;
+}
+
 /// @brief Sets an editor's grammar: a highlighter for the language "grammar" names (or a file name's), its styles in
 /// the colours "@syntax.<style>" gives (or its parent style's), or none. Only a highlighter this key installed is
 /// replaced or removed: a subclass may install its own.
@@ -163,19 +186,7 @@ void applyGrammar(TextEditor& editor, const json& values, const PropertyReader& 
 		editor.setHighlighter(std::move(made));
 	}
 	// Resolved now, in the current theme: the reader lives only through this update
-	std::map<std::string, Color, std::less<>> palette;
-	for(const std::string& style : current->styles())
-		for(std::string_view name = style; !name.empty();) {
-			if(palette.contains(name)) break;
-			try {
-				palette.emplace(name, reader.color("@syntax." + std::string(name), path + ".grammar"));
-				break;
-			} catch(const DocumentError&) {
-				// no such token: the parent style's, if any
-			}
-			const std::size_t dot = name.rfind('.');
-			name = dot == std::string_view::npos ? std::string_view() : name.substr(0, dot);
-		}
+	auto palette = paletteOf(current->styles(), reader, path + ".grammar");
 	current->setPalette([palette = std::move(palette)](std::string_view style) -> std::optional<Color> {
 		const auto found = palette.find(style);
 		return found == palette.end() ? std::nullopt : std::optional(found->second);

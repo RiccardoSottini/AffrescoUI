@@ -116,13 +116,9 @@ void addCore(TypeRegistry& registry, std::string name, std::string about, NodeTy
 	registry.add({std::move(name), std::move(about), std::move(create), std::move(own), false});
 }
 
-} // namespace
-
-void registerBuiltInTypes(TypeRegistry& registry) {
-	addCore(
-	    registry, "panel", "A rectangle; children are placed by their anchors",
-	    [] { return std::make_unique<Panel>(); }, withLayoutItems(commonProperties()));
-
+/// @brief Adds the text types: label and textarea.
+/// @param registry The registry.
+void registerTextTypes(TypeRegistry& registry) {
 	auto label = std::make_shared<PropertySet>();
 	label->properties = textProperties();
 	label->properties.push_back({"icon", ValueKind::Text}); // applied by IconProperty.cpp, listed here for the catalog
@@ -141,9 +137,11 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	                                                            {"autofocus", ValueKind::Boolean}})
 		textarea->properties.push_back(std::move(spec));
 	addCore(registry, "textarea", "A single-line text input", [] { return std::make_unique<TextArea>(); }, textarea);
-	registerEditorType(registry);
-	registerDiffType(registry);
+}
 
+/// @brief Adds the layout types: stack, row, column and grid.
+/// @param registry The registry.
+void registerStackTypes(TypeRegistry& registry) {
 	const auto column = [] { return std::make_unique<Stack>(); };
 	addCore(registry, "stack", "Children in a column or a row", column,
 	        stackProperties({{"gap", ValueKind::Number},
@@ -162,6 +160,20 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	addCore(
 	    registry, "grid", "Children in columns and rows of tracks", [] { return std::make_unique<Grid>(); },
 	    gridProperties());
+}
+
+} // namespace
+
+void registerBuiltInTypes(TypeRegistry& registry) {
+	addCore(
+	    registry, "panel", "A rectangle; children are placed by their anchors",
+	    [] { return std::make_unique<Panel>(); }, withLayoutItems(commonProperties()));
+
+	registerTextTypes(registry);
+	registerEditorType(registry);
+	registerDiffType(registry);
+
+	registerStackTypes(registry);
 	registerToggleTypes(registry);
 	registerSliderType(registry);
 	registerImageType(registry);

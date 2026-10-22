@@ -9,7 +9,9 @@
 #include "affresco/render/TextArea.hpp"
 
 #include <algorithm>
+#include <array>
 #include <format>
+#include <string_view>
 
 namespace affresco::format {
 
@@ -20,6 +22,9 @@ constexpr std::size_t characterLimit = 64 * 1024; ///< Code points of all of the
 constexpr std::size_t linkLimit = 2048;           ///< Bytes of one link.
 constexpr double smallestSize = 4.0;              ///< A run's smallest "size", in pixels.
 constexpr double largestSize = 256.0;             ///< Its largest.
+
+/// @brief The keys a run object may have.
+constexpr std::array<std::string_view, 8> runKeys = {"text", "icon", "font", "size", "bold", "italic", "color", "link"};
 
 /// @brief A run's font: the one it names or the label's, in the size and style it asks for.
 /// @param run The run.
@@ -59,8 +64,7 @@ TextRun readRun(const json& run, const Label& label, const PropertyReader& reade
 		return result;
 	}
 	for(const auto& [key, value] : run.items())
-		if(key != "text" && key != "icon" && key != "font" && key != "size" && key != "bold" && key != "italic" &&
-		   key != "color" && key != "link")
+		if(!std::ranges::contains(runKeys, key))
 			fail(at + "." + key, "unknown run property (expected text, icon, font, size, bold, italic, color or link)");
 	if(run.contains("text")) result.text = codepointsOf(text(run["text"]));
 	if(run.contains("icon")) result.icon = string(run["icon"], at + ".icon");
