@@ -8,7 +8,9 @@
 #include "detail/Utf8.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <optional>
 #include <utility>
 
 namespace affresco {
@@ -25,6 +27,7 @@ constexpr float minimumThumb = 16.0f;    ///< The shortest thumb, in pixels.
 /// @brief Whether text starts with a prefix, ignoring the case of ASCII letters.
 /// @param text UTF-8 text.
 /// @param prefix UTF-8 text.
+/// @return true if it does.
 [[nodiscard]] bool startsWithFolded(std::string_view text, std::string_view prefix) noexcept {
 	if(prefix.size() > text.size()) return false;
 	const auto fold = [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; };
@@ -45,35 +48,105 @@ void outline(Painter& painter, const Rect& area, float width, Color color) {
 	painter.fillRect({area.right - width, area.top, area.right, area.bottom}, color);
 }
 
+/// @brief An item's id, safely.
+/// @param model The model, or nullptr.
+/// @param index The item's index.
+/// @return Its id, or "" when there is no such item.
+[[nodiscard]] std::string idAt(const ItemModel* model, std::size_t index) {
+	return model && index < model->size() ? model->item(index).id : std::string();
+}
+
+/// @brief The items a list keeps by id across a change of model: its cursor, its anchor and its top row.
+struct KeptItems {
+	std::size_t cursor = 0;             ///< The cursor's item, or the model's size.
+	std::size_t anchor = 0;             ///< The anchor's item, or the model's size.
+	std::size_t top = 0;                ///< The top row's item, or the model's size.
+	std::vector<std::string> selection; ///< The selected ids still in the model, sorted, without repeats.
+};
+
+/// @brief Finds a list's items by id in a new model, in one pass (an id found twice: its last item).
+/// @param model The new model, or nullptr.
+/// @param ids The cursor's, the anchor's and the top row's ids ("": none).
+/// @param selection The selected ids, sorted.
+/// @return Where they are.
+[[nodiscard]] KeptItems keptIn(const ItemModel* model, const std::array<std::string, 3>& ids,
+                               const std::vector<std::string>& selection) {
+	const std::size_t size = model ? model->size() : 0;
+	const auto& [cursorId, anchorId, topId] = ids;
+	KeptItems kept{size, size, size, {}};
+	for(std::size_t i = 0; i < size; ++i) {
+		const std::string& id = model->item(i).id;
+		if(id == cursorId && !cursorId.empty()) kept.cursor = i;
+		if(id == anchorId && !anchorId.empty()) kept.anchor = i;
+		if(id == topId && !topId.empty()) kept.top = i;
+		if(!selection.empty() && std::binary_search(selection.begin(), selection.end(), id))
+			kept.selection.push_back(id);
+	}
+	std::sort(kept.selection.begin(), kept.selection.end());
+	kept.selection.erase(std::unique(kept.selection.begin(), kept.selection.end()), kept.selection.end());
+	return kept;
+}
+
+/// @brief The row a key moving up goes to.
+/// @param row The cursor's row, or count when it has none.
+/// @param count The rows.
+/// @param by How many rows the key moves.
+/// @return The row; the first from none.
+[[nodiscard]] constexpr std::size_t rowUp(std::size_t row, std::size_t count, std::size_t by) noexcept {
+	return row >= count || row < by ? 0 : row - by;
+}
+
+/// @brief The row a key moving down goes to.
+/// @param row The cursor's row, or count when it has none.
+/// @param count The rows; at least one.
+/// @param by How many rows the key moves.
+/// @return The row; the first from none.
+[[nodiscard]] constexpr std::size_t rowDown(std::size_t row, std::size_t count, std::size_t by) noexcept {
+	return row >= count ? 0 : std::min(row + by, count - 1);
+}
+
+/// @brief The row a navigation key moves the cursor to.
+/// @param key The key.
+/// @param row The cursor's row, or count when it has none.
+/// @param count The rows; at least one.
+/// @param page The rows a page holds; at least one.
+/// @return The row, or nothing for another key.
+[[nodiscard]] constexpr std::optional<std::size_t> steppedRow(Key key, std::size_t row, std::size_t count,
+                                                              std::size_t page) noexcept {
+	switch(key) {
+	case Key::Up:
+		return rowUp(row, count, 1);
+	case Key::Down:
+		return rowDown(row, count, 1);
+	case Key::PageUp:
+		return rowUp(row, count, page);
+	case Key::PageDown:
+		return rowDown(row, count, page);
+	case Key::Home:
+		return 0;
+	case Key::End:
+		return count - 1;
+	default:
+		return std::nullopt;
+	}
+}
+
 } // namespace
 
 ListView::ListView() { setColor(colors::white); }
 
 void ListView::setModel(std::shared_ptr<const ItemModel> model) {
 	if(model == model_) return;
-	const auto idOf = [this](std::size_t index) {
-		return model_ && index < model_->size() ? model_->item(index).id : std::string();
-	};
 	const std::size_t topRow = rows_.empty() || scroll_ <= 0.0f ? rows_.size() : window_.rowAt(scroll_);
-	const std::string topId = topRow < rows_.size() ? idOf(rows_[topRow]) : std::string();
+	const std::string topId = topRow < rows_.size() ? idAt(model_.get(), rows_[topRow]) : std::string();
 	const float topOffset = topRow < rows_.size() ? scroll_ - window_.offsetOf(topRow) : 0.0f;
-	const std::string cursorId = idOf(cursor_), anchorId = idOf(anchor_);
+	const std::array<std::string, 3> ids{idAt(model_.get(), cursor_), idAt(model_.get(), anchor_), topId};
 	model_ = std::move(model);
-	const std::size_t size = model_ ? model_->size() : 0;
-	cursor_ = anchor_ = size;
-	std::size_t top = size;
-	std::vector<std::string> kept;
-	for(std::size_t i = 0; i < size; ++i) {
-		const std::string& id = model_->item(i).id;
-		if(id == cursorId && !cursorId.empty()) cursor_ = i;
-		if(id == anchorId && !anchorId.empty()) anchor_ = i;
-		if(id == topId && !topId.empty()) top = i;
-		if(!selection_.empty() && std::binary_search(selection_.begin(), selection_.end(), id)) kept.push_back(id);
-	}
-	std::sort(kept.begin(), kept.end());
-	kept.erase(std::unique(kept.begin(), kept.end()), kept.end());
-	selection_ = std::move(kept);
-	rebuildRowsKeeping(top, topOffset);
+	KeptItems kept = keptIn(model_.get(), ids, selection_);
+	cursor_ = kept.cursor;
+	anchor_ = kept.anchor;
+	selection_ = std::move(kept.selection);
+	rebuildRowsKeeping(kept.top, topOffset);
 }
 
 void ListView::setSelection(std::vector<std::string> ids) {
@@ -272,18 +345,11 @@ void ListView::keyEvent(const KeyEvent& event) {
 	// Alt with a key is left to the node's "keys" (e.g. Alt+Up to move a row)
 	if(count > 0 && event.action != Action::Release && !event.mods.alt() && !rowKey(event)) {
 		const std::size_t row = rowOf(cursor_);
-		const bool none = row >= count;
 		// At most the row count before the cast: a list 1e30 tall is past size_t's range, where the cast is undefined
 		const float rows = std::min(std::max(1.0f, viewport() / rowHeight_), static_cast<float>(count));
 		const auto page = static_cast<std::size_t>(rows);
-		const Mods shift{event.mods.bits & 0x0001};
-		if(event.key == Key::Up) moveCursor(none || row == 0 ? 0 : row - 1, shift);
-		else if(event.key == Key::Down) moveCursor(none ? 0 : std::min(row + 1, count - 1), shift);
-		else if(event.key == Key::PageUp) moveCursor(none || row < page ? 0 : row - page, shift);
-		else if(event.key == Key::PageDown) moveCursor(none ? 0 : std::min(row + page, count - 1), shift);
-		else if(event.key == Key::Home) moveCursor(0, shift);
-		else if(event.key == Key::End) moveCursor(count - 1, shift);
-		else if((event.key == Key::Enter || event.key == Key::KeypadEnter) && !none) {
+		if(const auto to = steppedRow(event.key, row, count, page)) moveCursor(*to, Mods{event.mods.bits & 0x0001});
+		else if((event.key == Key::Enter || event.key == Key::KeypadEnter) && row < count) {
 			const std::string id = model_->item(cursor_).id;
 			onOpened(id);
 		}
