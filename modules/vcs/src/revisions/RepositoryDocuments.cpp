@@ -138,6 +138,38 @@ std::string partOf(const json& state, const std::string& path) {
 	return list && list->is_array() ? holder : path;
 }
 
+/// @brief The part of a document a reverted operation must find as its commit left it: its path, or the list that
+/// holds it, since adding or removing an item moves the ones after it.
+/// @param then The document as the commit left it.
+/// @param op The operation of the revert.
+/// @return The part's JSON Pointer.
+std::string revertedPart(const json& then, const json& op) {
+	const json::json_pointer path(op["path"].get<std::string>());
+	const json* container = detail::locate(then, path.parent_pointer().to_string());
+	if(!path.empty() && (path.back() == "-" || (container && container->is_array())))
+		return path.parent_pointer().to_string();
+	return path.to_string();
+}
+
+/// @brief Tells whether a part of a document is as a commit left it, inside the same nodes (each node around it
+/// keeps its id).
+/// @param head The document now.
+/// @param then The document as the commit left it.
+/// @param part The part's JSON Pointer.
+/// @return true if it is.
+bool unchangedSince(const json& head, const json& then, const std::string& part) {
+	auto same = [&](const std::string& pointer) {
+		const json *now = detail::locate(head, pointer), *before = detail::locate(then, pointer);
+		return now && before ? *now == *before : now == before;
+	};
+	bool unchanged = same(part);
+	for(json::json_pointer prefix(part); unchanged && !prefix.empty(); prefix = prefix.parent_pointer()) {
+		const json* node = detail::locate(then, prefix.to_string());
+		if(node && node->is_object() && node->contains("id")) unchanged = same(prefix.to_string() + "/id");
+	}
+	return unchanged;
+}
+
 } // namespace
 
 // Only revisions that reach the live state can change it: what actions change between commits isn't a commit's
@@ -263,25 +295,9 @@ json Repository::revertRevision(const json& revision, std::string_view author) c
 }
 
 void Repository::checkDocumentRevert(const Commit& target, const json& then, const json& patch) const {
-	const json& head = mainDocument();
-	auto same = [&](const std::string& pointer) {
-		const json *now = detail::locate(head, pointer), *before = detail::locate(then, pointer);
-		return now && before ? *now == *before : now == before;
-	};
 	for(const json& op : patch) {
-		const json::json_pointer path(op["path"].get<std::string>());
-		std::string checked = path.to_string();
-		const json* container = detail::locate(then, path.parent_pointer().to_string());
-		if(!path.empty() && (path.back() == "-" || (container && container->is_array())))
-			checked = path.parent_pointer().to_string();
-
-		// The part must be as the commit left it, inside the same nodes
-		bool unchanged = same(checked);
-		for(json::json_pointer prefix(checked); unchanged && !prefix.empty(); prefix = prefix.parent_pointer()) {
-			const json* node = detail::locate(then, prefix.to_string());
-			if(node && node->is_object() && node->contains("id")) unchanged = same(prefix.to_string() + "/id");
-		}
-		if(!unchanged)
+		const std::string checked = revertedPart(then, op);
+		if(!unchangedSince(mainDocument(), then, checked))
 			fail("revert", "conflict: " + (checked.empty() ? std::string("the screen") : checked) + " changed after " +
 			                   describe(target) + "; restore an earlier revision instead");
 	}
