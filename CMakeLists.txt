@@ -161,6 +161,9 @@ set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/pa
 	examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
 	examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
 	examples/forge/features/terminal/TerminalModel.cpp examples/forge/features/debug/Debug.cpp)
+# The terminal's sessions and widget (examples/forge/features/terminal)
+list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/terminal/TerminalSessions.cpp
+	examples/forge/features/terminal/TerminalView.cpp)
 # The lsp feature (examples/forge/features/lsp)
 list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspProtocol.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)

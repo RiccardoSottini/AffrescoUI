@@ -16,6 +16,8 @@ add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/example
 	${PROJECT_SOURCE_DIR}/examples/tempo/Visualiser.cpp
 	${forge_dir}/features/debug/Debug.cpp)
 target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/lsp/Lsp.cpp ${forge_dir}/features/lsp/LspProtocol.cpp)
+target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/terminal/TerminalSessions.cpp
+	${forge_dir}/features/terminal/TerminalView.cpp)
 # examples: surfaces/Surfaces.hpp; examples/shared: CodeEditor.hpp and the other shared headers
 target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples
 	${PROJECT_SOURCE_DIR}/examples/shared ${forge_dir})
