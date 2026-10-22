@@ -51,6 +51,9 @@ public:
 	/// @param offset The first byte.
 	/// @param length How many bytes; fewer if the text ends first.
 	/// @param visit Called with each part, as a std::string_view.
+	/// @note @p visit is called once per piece, so it is passed on as itself rather than forwarded (a decoder keeps its
+	/// state across the pieces).
+	// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 	template <typename Visit> void read(std::size_t offset, std::size_t length, Visit&& visit) const {
 		if(length > 0) readRange(root_, 0, offset, offset + length, visit);
 	}

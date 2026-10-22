@@ -60,6 +60,7 @@ std::size_t PieceTree::lineFeedsBefore(std::size_t offset) const noexcept {
 	return count;
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only the path's growth throws, if memory runs out, which ends the program
 std::size_t PieceTree::longestLine() const noexcept {
 	std::size_t longest = 0, run = 0;
 	std::vector<std::uint32_t> path;
@@ -173,6 +174,7 @@ void PieceTree::append(std::uint32_t buffer, std::string_view bytes) {
 	target.bytes.append(bytes);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only the free list's growth throws, if memory runs out (ends the program)
 void PieceTree::dropUse(std::uint32_t buffer) noexcept {
 	Buffer& used = buffers_[buffer];
 	if(--used.pieces > 0 || buffer == shared_) return;
@@ -181,6 +183,7 @@ void PieceTree::dropUse(std::uint32_t buffer) noexcept {
 	freeBuffers_.push_back(buffer);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only the free lists' growth throws, if memory runs out (ends the program)
 void PieceTree::release(std::uint32_t node) noexcept {
 	if(node == none) return;
 	release(nodes_[node].left);
