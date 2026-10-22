@@ -37,15 +37,27 @@ constexpr int elementArrayBuffer = 34963;  ///< ELEMENT_ARRAY_BUFFER.
 }
 
 /// @brief The file being written: its JSON and its buffer.
+/// @brief What an accessor's elements are: their glTF type, the 4-byte components in one, and the components' type.
+struct Layout {
+	const char* type;       ///< "SCALAR", "VEC2", "VEC3" or "VEC4".
+	std::size_t components; ///< Per element.
+	int componentType;      ///< FLOAT or UNSIGNED_INT.
+};
+
+constexpr Layout floats1{"SCALAR", 1, floatComponent};        ///< Times.
+constexpr Layout floats2{"VEC2", 2, floatComponent};          ///< Texture coordinates.
+constexpr Layout floats3{"VEC3", 3, floatComponent};          ///< Positions, normals, translations and scales.
+constexpr Layout floats4{"VEC4", 4, floatComponent};          ///< Rotations.
+constexpr Layout indices1{"SCALAR", 1, unsignedIntComponent}; ///< Triangle indices.
+
 class Writer {
 public:
 	/// @brief Adds an accessor over new bytes.
-	/// @param data The bytes' first element. @param count Elements. @param type "SCALAR", "VEC2", "VEC3" or "VEC4".
-	/// @param components Per element. @param componentType FLOAT or UNSIGNED_INT. @param target The view's target,
-	/// or 0.
+	/// @param data The bytes' first element. @param count Elements. @param layout What an element is.
+	/// @param target The view's target, or 0.
 	/// @return The accessor's index, to which "min" and "max" may be added.
-	std::size_t accessor(const void* data, std::size_t count, const char* type, std::size_t components,
-	                     int componentType, int target) {
+	std::size_t accessor(const void* data, std::size_t count, const Layout& layout, int target) {
+		const auto [type, components, componentType] = layout;
 		const std::size_t bytes = count * components * 4;
 		const std::size_t offset = buffer_.size();
 		buffer_.resize(offset + bytes);
@@ -78,20 +90,17 @@ private:
 /// @param material The material's index, or -1. @return The mesh's index.
 std::size_t writeMesh(Writer& writer, const MeshData& mesh, int material) {
 	json attributes;
-	const auto position =
-	    writer.accessor(mesh.positions.data(), mesh.positions.size(), "VEC3", 3, floatComponent, arrayBuffer);
+	const auto position = writer.accessor(mesh.positions.data(), mesh.positions.size(), floats3, arrayBuffer);
 	writer.root["accessors"][position]["min"] = toJson(mesh.bounds.min);
 	writer.root["accessors"][position]["max"] = toJson(mesh.bounds.max);
 	attributes["POSITION"] = position;
 	if(mesh.normals.size() == mesh.positions.size())
-		attributes["NORMAL"] =
-		    writer.accessor(mesh.normals.data(), mesh.normals.size(), "VEC3", 3, floatComponent, arrayBuffer);
+		attributes["NORMAL"] = writer.accessor(mesh.normals.data(), mesh.normals.size(), floats3, arrayBuffer);
 	if(mesh.texCoords.size() == mesh.positions.size())
-		attributes["TEXCOORD_0"] =
-		    writer.accessor(mesh.texCoords.data(), mesh.texCoords.size(), "VEC2", 2, floatComponent, arrayBuffer);
-	json primitive{{"attributes", attributes},
-	               {"indices", writer.accessor(mesh.indices.data(), mesh.indices.size(), "SCALAR", 1,
-	                                           unsignedIntComponent, elementArrayBuffer)}};
+		attributes["TEXCOORD_0"] = writer.accessor(mesh.texCoords.data(), mesh.texCoords.size(), floats2, arrayBuffer);
+	json primitive{
+	    {"attributes", attributes},
+	    {"indices", writer.accessor(mesh.indices.data(), mesh.indices.size(), indices1, elementArrayBuffer)}};
 	if(material >= 0) primitive["material"] = material;
 	writer.root["meshes"].push_back({{"primitives", json::array({primitive})}});
 	return writer.root["meshes"].size() - 1;
@@ -175,12 +184,12 @@ void writeAnimations(Writer& writer, const std::vector<AnimationClip>& animation
 		for(const auto& track : clip.tracks) {
 			const auto node = nodes.find(track.node);
 			if(node == nodes.end() || track.times.empty()) continue;
-			const auto input = writer.accessor(track.times.data(), track.times.size(), "SCALAR", 1, floatComponent, 0);
+			const auto input = writer.accessor(track.times.data(), track.times.size(), floats1, 0);
 			writer.root["accessors"][input]["min"] = {track.times.front()};
 			writer.root["accessors"][input]["max"] = {track.times.back()};
 			const std::size_t width = track.width();
-			const auto output = writer.accessor(track.values.data(), track.values.size() / width,
-			                                    width == 4 ? "VEC4" : "VEC3", width, floatComponent, 0);
+			const auto output =
+			    writer.accessor(track.values.data(), track.values.size() / width, width == 4 ? floats4 : floats3, 0);
 			samplers.push_back({{"input", input},
 			                    {"output", output},
 			                    {"interpolation", track.interpolation == Interpolation::Step    ? "STEP"
