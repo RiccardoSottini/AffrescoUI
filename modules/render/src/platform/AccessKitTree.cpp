@@ -3,6 +3,7 @@
 /// it, the roles mapped to AccessKit's, and the queued actions.
 
 #include "platform/AccessKitTree.hpp"
+#include "platform/AccessKitText.hpp"
 
 #include "affresco/render/Window.hpp"
 
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <string>
 #include <utility>
 
 namespace affresco::platform {
@@ -103,21 +105,6 @@ bool same(const FlatNode& a, const FlatNode& b) {
 	       x.state == y.state && x.selection == y.selection && x.bounds == y.bounds && x.actions == y.actions;
 }
 
-/// @brief The UTF-8 length of each code point of a text, as AccessKit counts a text run's characters.
-/// @param text The text.
-/// @return The lengths.
-std::vector<std::uint8_t> characterLengths(std::string_view text) {
-	std::vector<std::uint8_t> lengths;
-	for(std::size_t index = 0; index < text.size();) {
-		const auto lead = static_cast<unsigned char>(text[index]);
-		std::size_t length = lead < 0x80u ? 1 : lead < 0xE0u ? 2 : lead < 0xF0u ? 3 : 4;
-		length = std::min(length, text.size() - index);
-		lengths.push_back(static_cast<std::uint8_t>(length));
-		index += length;
-	}
-	return lengths;
-}
-
 /// @brief Sets a node's states: checked, range, expanded, selected, disabled, live.
 /// @param node The AccessKit node.
 /// @param element The element.
@@ -203,17 +190,21 @@ bool AccessKitTree::readChanges() {
 accesskit_node* AccessKitTree::build(const FlatNode& flat) const {
 	const AccessibleNode& element = flat.node;
 	accesskit_node* node = accesskit_node_new(flat.textRun ? ACCESSKIT_ROLE_TEXT_RUN : roleOf(element.role));
-	if(element.role == "text") accesskit_node_set_value(node, element.name.c_str()); // a label's text is its value
-	else if(!element.name.empty()) accesskit_node_set_label(node, element.name.c_str());
-	if(!element.description.empty()) accesskit_node_set_description(node, element.description.c_str());
-	if(!element.value.empty() || flat.textRun) accesskit_node_set_value(node, element.value.c_str());
+	// What a panel gives may not be valid UTF-8, or may hold a NUL that would cut AccessKit's C string short
+	const std::string name = accessKitText(element.name), value = accessKitText(element.value);
+	if(element.role == "text") accesskit_node_set_value(node, name.c_str()); // a label's text is its value
+	else if(!name.empty()) accesskit_node_set_label(node, name.c_str());
+	if(!element.description.empty()) accesskit_node_set_description(node, accessKitText(element.description).c_str());
+	if(!value.empty() || flat.textRun) accesskit_node_set_value(node, value.c_str());
 	if(flat.textRun) {
-		const std::vector<std::uint8_t> lengths = characterLengths(element.value);
+		const std::vector<std::uint8_t> lengths = characterLengths(value);
 		accesskit_node_set_character_lengths(node, lengths.size(), lengths.data());
 	}
 	if(element.selection) {
-		const accesskit_text_position anchor{element.id + 1, element.selection->first};
-		const accesskit_text_position focus{element.id + 1, element.selection->second};
+		// In the characters of the run inside it, which holds the same value: none past its end
+		const std::size_t characters = characterLengths(value).size();
+		const accesskit_text_position anchor{element.id + 1, std::min(element.selection->first, characters)};
+		const accesskit_text_position focus{element.id + 1, std::min(element.selection->second, characters)};
 		accesskit_node_set_text_selection(node, accesskit_text_selection{anchor, focus});
 	}
 	setStates(node, element);
