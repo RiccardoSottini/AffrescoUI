@@ -13,6 +13,7 @@ import os
 import socket
 import sys
 import tempfile
+import threading
 import unittest
 import unittest.mock
 
@@ -334,6 +335,40 @@ class Malformed(unittest.TestCase):
         self.assertEqual(host.take_events(), [{"mode": "plan", "grants": ["r"]},
                                               {"event": "�", "data": None}, {"error": "m"}])
         self.assertIsNone(host.sock)  # the next call connects again
+
+
+
+class Connecting(unittest.TestCase):
+    """Calls on several threads at once share one connection to the host."""
+
+    @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "the host is reached through AF_UNIX")
+    def test_calls_that_find_no_connection_at_once_make_one(self):
+        with tempfile.TemporaryDirectory(dir="/tmp") as folder:  # short: a socket's path has a length limit
+            listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            listener.bind(os.path.join(folder, "agent.sock"))
+            listener.listen(16)
+            host = mcp.Host(folder, None, lambda request: None)
+            start = threading.Barrier(8)
+
+            def call():
+                start.wait()
+                host.ensure()
+
+            with contextlib.redirect_stderr(io.StringIO()):
+                callers = [threading.Thread(target=call) for _ in range(8)]
+                for caller in callers:
+                    caller.start()
+                for caller in callers:
+                    caller.join()
+            listener.settimeout(0.5)
+            accepted = []
+            with contextlib.suppress(socket.timeout):
+                while True:
+                    accepted.append(listener.accept()[0])
+            for connection in accepted:
+                connection.close()
+            listener.close()
+            self.assertEqual(len(accepted), 1)
 
 
 if __name__ == "__main__":

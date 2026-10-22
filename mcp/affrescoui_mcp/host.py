@@ -69,6 +69,7 @@ class Host:
         self.on_request = on_request
         self.sock = None
         self.lock = threading.Lock()
+        self.connecting = threading.Lock()  # held while connecting (and launching), apart from self.lock
         self.ids = itertools.count(1)
         self.waiting = {}  # request id -> [threading.Event, reply]
         self.events = []   # what happened since the agent last asked
@@ -76,21 +77,24 @@ class Host:
 
     def ensure(self):
         """Connects to the host unless connected, starting it first with --launch when none listens; a RuntimeError
-        says why there is no host."""
-        with self.lock:
-            if self.sock:
-                return
-        # Before --launch: a host this Python can't reach would be started again on every call
-        if not hasattr(socket, "AF_UNIX"):  # CPython on Windows, so far (python/cpython#77589)
-            raise RuntimeError(NO_UNIX_SOCKETS)
-        if not os.path.exists(self.path) and self.launch:
-            self.start()
-        check_socket_dir(os.path.dirname(self.path))
-        sock = connect_unix(self.path)
-        with self.lock:
-            self.sock = sock
-        threading.Thread(target=self.read, args=(sock,), daemon=True).start()
-        log(f"connected to {self.path}")
+        says why there is no host. Calls that find no connection at once wait for one of them to make it: each
+        would otherwise connect (and launch a host) of its own, and all but the last connection would stay open,
+        each with its reader, for nothing."""
+        with self.connecting:
+            with self.lock:
+                if self.sock:
+                    return
+            # Before --launch: a host this Python can't reach would be started again on every call
+            if not hasattr(socket, "AF_UNIX"):  # CPython on Windows, so far (python/cpython#77589)
+                raise RuntimeError(NO_UNIX_SOCKETS)
+            if not os.path.exists(self.path) and self.launch:
+                self.start()
+            check_socket_dir(os.path.dirname(self.path))
+            sock = connect_unix(self.path)
+            with self.lock:
+                self.sock = sock
+            threading.Thread(target=self.read, args=(sock,), daemon=True).start()
+            log(f"connected to {self.path}")
 
     def start(self):
         """Starts the --launch command and waits up to 5 seconds for its socket to appear."""
