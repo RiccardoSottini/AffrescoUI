@@ -44,6 +44,8 @@ UserInfoVerifier::UserInfoVerifier(std::string_view userinfo, const std::filesys
 	if(!url || (url->scheme != "https" && url->scheme != "http"))
 		throw std::runtime_error("--userinfo is the provider's userinfo endpoint, an https:// URL");
 	if(const auto refused = client_->allow(url->origin())) throw std::runtime_error("--userinfo: " + *refused);
+	// Plain http only on the loopback: the allowlist takes any origin, a request checks the scheme
+	if(const auto refused = client_->check(userinfo)) throw std::runtime_error("--userinfo: " + *refused);
 	std::ifstream file(people);
 	if(!file) throw std::runtime_error("can't read the people file " + people.string());
 	std::string line;
