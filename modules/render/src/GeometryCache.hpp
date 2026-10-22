@@ -23,6 +23,7 @@ struct Refreshed {
 	std::optional<Rect> damage; ///< What changed on screen, in window units, besides what the window reported.
 	bool shapes = false;        ///< A shown panel draws shapes: the frame needs the shader with shapes.
 	bool color = false;         ///< A shown panel uses colour pages: the frame needs the shader with colour glyphs.
+	bool transformed = false;   ///< A shown panel has a transform: the frame may clip with the stencil.
 };
 
 /// @brief Keeps each panel's recorded drawing up to date, frame after frame.

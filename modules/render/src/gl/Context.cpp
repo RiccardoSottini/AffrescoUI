@@ -63,14 +63,13 @@ Canvas::~Canvas() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDeleteFramebuffers(1, &framebuffer_);
 	glDeleteRenderbuffers(1, &color_);
-	glDeleteRenderbuffers(1, &depthStencil_);
+	if(depthStencil_ != 0) glDeleteRenderbuffers(1, &depthStencil_);
 }
 
 bool Canvas::resize(int width, int height) {
 	if(framebuffer_ != 0 && width == width_ && height == height_) return false;
 	if(framebuffer_ == 0) {
 		glGenRenderbuffers(1, &color_);
-		glGenRenderbuffers(1, &depthStencil_);
 		glGenFramebuffers(1, &framebuffer_);
 	}
 	width_ = width;
@@ -79,11 +78,22 @@ bool Canvas::resize(int width, int height) {
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color_);
-	// The stencil holds the clips of turned and skewed panels (gl::StencilClips)
-	glBindRenderbuffer(GL_RENDERBUFFER, depthStencil_);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthStencil_);
+	if(depthStencil_ != 0) storeStencil();
 	return true;
+}
+
+// Only once a frame has a transform: with one attached, some drivers allocate on every frame
+void Canvas::addStencil() {
+	if(depthStencil_ != 0 || framebuffer_ == 0) return;
+	glGenRenderbuffers(1, &depthStencil_);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+	storeStencil();
+}
+
+void Canvas::storeStencil() const {
+	glBindRenderbuffer(GL_RENDERBUFFER, depthStencil_);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width_, height_);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthStencil_);
 }
 
 void Canvas::bind() const { glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); }

@@ -50,6 +50,7 @@ Refreshed GeometryCache::refresh(const Frame& frame) {
 		if(const PanelGeometry* geometry = panel.geometry_.get()) {
 			result.shapes = result.shapes || geometry->subtreeShapes;
 			result.color = result.color || geometry->subtreeColor || geometry->cached;
+			result.transformed = result.transformed || geometry->subtreeTransformed || !geometry->world.isIdentity();
 		}
 	};
 	gather(frame.root);
