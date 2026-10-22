@@ -48,7 +48,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 
 	affresco::TextPattern compiled;
 	const bool failed = compiled.compile(pattern, options).has_value();
-	if(failed == compiled.valid()) affresco::fuzz::broken("a pattern compiles or gives an error, not both");
+	if(pattern.empty() ? failed || compiled.valid() : failed == compiled.valid()) // an empty one matches nothing
+		affresco::fuzz::broken("a pattern compiles or gives an error, not both");
 	if(!compiled.valid()) return 0;
 	if(pattern.size() > affresco::TextPattern::maxPatternBytes) affresco::fuzz::broken("long patterns are refused");
 

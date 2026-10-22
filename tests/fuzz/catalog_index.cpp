@@ -39,7 +39,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 					affresco::fuzz::broken("releases are newest first, each once");
 			for(const affresco::format::CatalogRelease& release : feature.releases)
 				if(!affresco::format::parsePublicKey(release.publisher) || release.url.empty() ||
-				   release.url.front() == '/' || release.url.contains(".."))
+				   release.url.front() == '/' || ("/" + release.url + "/").contains("/../"))
 					affresco::fuzz::broken("a release's key is a key and its URL stays in the folder");
 		}
 	} catch(const json::parse_error&) {
