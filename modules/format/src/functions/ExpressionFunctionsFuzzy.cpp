@@ -239,7 +239,9 @@ Value fuzzySort(const Call& call) {
 	const std::string key = call.size() > 2 && !call[2].isNull() ? call[2].toText() : std::string();
 	std::size_t limit = list.size();
 	if(call.size() > 3 && !call[3].isNull())
-		limit = static_cast<std::size_t>(std::clamp<double>(call.number(3), 0.0, static_cast<double>(limit)));
+		// Saturated: a limit that isn't a number (infinity minus infinity) is 0, not a cast with no defined result
+		limit = static_cast<std::size_t>(
+		    std::clamp<std::int64_t>(saturated(call.number(3)), 0, static_cast<std::int64_t>(limit)));
 
 	std::vector<Candidate> candidates;
 	std::vector<std::size_t> positions;

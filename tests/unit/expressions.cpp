@@ -36,6 +36,13 @@ std::string parentheses(int depth) {
 	return std::string(n, '(') + "1" + std::string(n, ')');
 }
 
+/// @brief An expression whose value is infinity: two large numbers multiplied (literals have no exponents).
+/// @return It.
+std::string infinity() {
+	const std::string large = "1" + std::string(300, '0') + ".0";
+	return "(" + large + " * " + large + ")";
+}
+
 /// @brief Paths nested inside the brackets of paths, as paths were written before expressions.
 /// @param depth How many.
 /// @return E.g. "state.items[state.items[0]]" for 2.
@@ -268,6 +275,11 @@ const std::vector<Case> cases = {
     {"{{fuzzy('z', 'abc')}}", nullptr, {}},
     {"{{fuzzySort(state.items, 'z')}}", json::array(), {}},
     {"{{fuzzySort(state.items, 'b')[0].item}}", "b", {}},
+    // A limit that isn't a number (infinity minus infinity) gives nothing: it was cast with no defined result
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, " + infinity() + " - " + infinity() + "))}}", 0, {}},
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, " + infinity() + "))}}", 3, {}},
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, 2.7))}}", 2, {}},
+    {"{{length(fuzzySort(['a', 'ab', 'abc'], 'a', null, -1))}}", 0, {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
     // Dates, "YYYY-MM-DD": tests/unit/date_civil.cpp has the calendar arithmetic
     {"{{isDate(today())}}", true, {}},
