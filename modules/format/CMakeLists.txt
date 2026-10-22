@@ -90,9 +90,10 @@ target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/cr
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp
 	src/creative/TimelineType.cpp src/creative/PathType.cpp)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
-target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/PropertyValues.cpp
-	src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp src/properties/TransformProperties.cpp
-	src/properties/TextFieldProperties.cpp src/properties/IconProperty.cpp src/properties/RunsProperty.cpp)
+target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
+	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
+	src/properties/TransformProperties.cpp src/properties/TextFieldProperties.cpp src/properties/IconProperty.cpp
+	src/properties/RunsProperty.cpp)
 # reference: the reference of nodes, sections and tables (the schema, SCREEN_FORMAT.md) and the catalog
 target_sources(affrescoui_format PRIVATE src/reference/Reference.cpp src/reference/ReferenceNodes.cpp
 	src/reference/ReferenceNodeTypes.cpp src/reference/ReferenceNodeEvents.cpp

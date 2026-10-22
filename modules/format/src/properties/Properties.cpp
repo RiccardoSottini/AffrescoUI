@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <format>
 
 namespace affresco::format {
@@ -145,7 +144,7 @@ Properties::Behaviour Properties::readBehaviour(Panel& panel, Record& record) co
 		at.assign(record.path).append(".").append(property.key);
 		const json& value = CompiledNode::valueOf(property, record.values);
 		if(property.slot != Slot::Handler)
-			readBehaviourKey(panel, record, property.key, {property.slot, value, at, node.hasId}, behaviour);
+			readBehaviourKey(panel, record, property.key, {property.slot, value, at}, behaviour);
 		else if(!typeEvent(record, property.key)) readHandler(panel, record, property.key, value, at);
 	}
 	return behaviour;
@@ -171,7 +170,7 @@ void Properties::readHandler(const Panel& panel, Record& record, const std::stri
 
 void Properties::readBehaviourKey(const Panel& panel, Record& record, std::string_view key, const KeyValue& property,
                                   Behaviour& behaviour) const {
-	const auto& [slot, value, at, hasId] = property;
+	const auto& [slot, value, at] = property;
 	if(slot == Slot::Bind) {
 		if(!bindable(panel, record))
 			fail(at, "only text areas, text editors and widgets with a value (toggles, checkboxes, sliders, splits, "
@@ -191,7 +190,7 @@ void Properties::readBehaviourKey(const Panel& panel, Record& record, std::strin
 		behaviour.everyMs = everyPeriod(record, value, at);
 	} else if(key == "autofocus") {
 		behaviour.autofocus = boolean(value, at);
-	} else if(key == "locked" && boolean(value, at) && !hasId) {
+	} else if(key == "locked" && boolean(value, at) && !record.node->hasId) {
 		fail(at, "a locked node needs an \"id\"");
 	}
 }
@@ -307,7 +306,12 @@ void Properties::reset(Panel& panel, Record& record) {
 	panel.setAccessibleLabel({});
 	panel.setAccessibleDescription({});
 	panel.clearOverlay();
+	resetWidget(panel, record);
+	panel.setAccessibleState({});
+	resetRecord(record);
+}
 
+void Properties::resetWidget(Panel& panel, const Record& record) {
 	if(auto* label = dynamic_cast<Label*>(&panel)) {
 		label->setFont(nullptr);
 		label->setTextColor(colors::black);
@@ -330,9 +334,10 @@ void Properties::reset(Panel& panel, Record& record) {
 		grid->setColumns(2);
 		grid->setGap(0.0f);
 	}
+}
 
+void Properties::resetRecord(Record& record) {
 	record.disabled = false;
-	panel.setAccessibleState({});
 	record.transition = json::object();
 	record.overlayOpen.reset();
 	record.dismissOutside = false;
@@ -359,15 +364,13 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 		if(slot == Slot::Value) continue; // applied with the values (showValue()) or the behaviour
 		const json& value = withTokens(engine_.document, slot, *pointer, token);
 		at.assign(record.path).append(".").append(key);
-		if(commonProperty(panel, record, slot, value, at, look) || shapeProperty(panel, slot, value, at, look) ||
-		   accessibleStateProperty(panel, slot, value, at))
-			continue;
+		const KeyValue property{slot, value, at};
+		if(panelProperty(panel, record, property, look)) continue;
 		if(isRoot) fail(at, "not allowed on the root, which always fills the window");
-		if((slot == Slot::Layout && layoutProperty(panel, key, value, at)) || widgetProperty(look, slot, value, at) ||
-		   registeredProperty(record, key, value, look))
-			continue;
+		if(typeProperty(panel, record, key, property, look)) continue;
 		const std::string removed = removedKeyHint(look.stack ? "stack" : "", key);
-		fail(at, "unknown property '" + std::string(key) + "' for this type" + (removed.empty() ? "" : " (" + removed + ")"));
+		fail(at, "unknown property '" + std::string(key) + "' for this type" +
+		             (removed.empty() ? "" : " (" + removed + ")"));
 	}
 
 	applySets(panel, record, look);
@@ -375,6 +378,19 @@ void Properties::applyVisual(Panel& panel, Record& record, const Visual& propert
 	finish(panel, look);
 	if(panel.accessibleRole().empty() && record.focusable && record.handlers.contains("onClick"))
 		panel.setAccessibleRole("button"); // what it is to a person, and to scenarios looking for it by role
+}
+
+bool Properties::panelProperty(Panel& panel, Record& record, const KeyValue& property, Look& look) const {
+	const auto& [slot, value, at] = property;
+	return commonProperty(panel, record, property, look) || shapeProperty(panel, slot, value, at, look) ||
+	       accessibleStateProperty(panel, slot, value, at);
+}
+
+bool Properties::typeProperty(Panel& panel, const Record& record, std::string_view key, const KeyValue& property,
+                              Look& look) const {
+	const auto& [slot, value, at] = property;
+	return (slot == Slot::Layout && layoutProperty(panel, key, value, at)) || widgetProperty(look, slot, value, at) ||
+	       registeredProperty(record, key, value, look);
 }
 
 void Properties::finish(Panel& panel, const Look& look) {
@@ -408,194 +424,12 @@ void Properties::applySets(Panel& panel, Record& record, const Look& look) const
 	}
 }
 
-bool Properties::commonProperty(Panel& panel, Record& record, Slot slot, const json& value, const std::string& at,
-                                Look& look) const {
-	switch(slot) {
-	case Slot::Id:
-		panel.setId(string(value, at));
-		break;
-	case Slot::Color:
-		look.background = color(value, at);
-		break;
-	case Slot::Visible:
-		panel.setVisible(boolean(value, at));
-		break;
-	case Slot::Cursor:
-		panel.setCursor(cursor(value, at));
-		break;
-	case Slot::Tooltip:
-		panel.setTooltip(text(value));
-		break;
-	case Slot::Role:
-		panel.setAccessibleRole(text(value));
-		break;
-	case Slot::Label:
-		panel.setAccessibleLabel(text(value));
-		break;
-	case Slot::Description:
-		panel.setAccessibleDescription(text(value));
-		break;
-	case Slot::Disabled:
-		record.disabled = boolean(value, at);
-		panel.setAccessibleState(withDisabled(panel.accessibleState(), record.disabled));
-		break;
-	case Slot::Transition:
-		record.transition = transition(value, at);
-		break;
-	case Slot::Scroll:
-		look.scroll = scroll(value, at);
-		break;
-	case Slot::Overlay:
-		overlay(panel, record, value, at, look);
-		break;
-	case Slot::Focusable:
-		record.focusable = boolean(value, at);
-		break;
-	case Slot::TabIndex:
-		// Clamped before the cast: a number past int's range (1e30) would be undefined behaviour
-		record.tabIndex = static_cast<int>(std::clamp(number(value, at), -1.0f, 1.0e9f));
-		break;
-	case Slot::Arrows:
-		record.arrows = string(value, at);
-		if(record.arrows != "vertical" && record.arrows != "horizontal" && record.arrows != "both")
-			fail(at, R"(expected "vertical", "horizontal" or "both")");
-		break;
-	case Slot::Mnemonic: {
-		const std::string letter = text(value);
-		record.mnemonic = letter.empty() ? '\0'
-		                                 : static_cast<char>(std::tolower(static_cast<unsigned char>(letter.front())));
-		break;
-	}
-	default:
-		return false;
-	}
-	return true;
-}
-
-const json& Properties::transition(const json& value, const std::string& at) const {
-	for(const auto& [property, ms] : object(value, at).items()) {
-		if(!engine_.types.transitionable(property))
-			fail(std::format("{}.{}", at, property), R"(only "color", "textColor" and "borderColor" can transition)");
-		number(ms, concatenate(at, ".", property));
-	}
-	return value;
-}
-
-std::pair<bool, bool> Properties::scroll(const json& value, const std::string& at) {
-	const std::string mode = value.is_boolean() ? (value.get<bool>() ? "vertical" : "none") : string(value, at);
-	if(mode != "vertical" && mode != "horizontal" && mode != "both" && mode != "none")
-		fail(at, R"(expected "vertical", "horizontal", "both" or "none")");
-	return {mode == "horizontal" || mode == "both", mode == "vertical" || mode == "both"};
-}
-
 void Properties::transitionLook(Panel& panel, Record& record, const Look& look, const std::array<Color, 3>& shown) {
 	Scheduler& scheduler = engine_.scheduler;
 	if(look.background) scheduler.transitionColor(panel, record, "color", shown[0], *look.background);
 	if(look.label && look.foreground) scheduler.transitionColor(panel, record, "textColor", shown[1], *look.foreground);
 	// Always, so a border colour that goes away (a state ends, a revision removes it) also ends a running transition
 	scheduler.transitionColor(panel, record, "borderColor", shown[2], look.border.value_or(colors::black));
-}
-
-bool Properties::shapeProperty(Panel& panel, Slot slot, const json& value, const std::string& at, Look& look) const {
-	switch(slot) {
-	case Slot::Radius:
-		panel.setCornerRadii(radii(value, at));
-		break;
-	case Slot::BorderWidth:
-		panel.setBorder(pixels(value, at), panel.borderColor());
-		break;
-	case Slot::BorderColor:
-		look.border = color(value, at);
-		break; // set last, as it may transition
-	case Slot::Shadow:
-		panel.setShadow(engine_.document.shadow(value, at));
-		break;
-	case Slot::Cache:
-		panel.setCached(boolean(value, at));
-		break;
-	default:
-		return false;
-	}
-	return true;
-}
-
-void Properties::overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const {
-	const json& overlay = object(value, at);
-	for(const auto& [k, v] : overlay.items())
-		if(k != "anchor" && k != "placement" && k != "open" && k != "dismiss" && k != "modal")
-			fail(at + "." + k, "unknown property (expected anchor, placement, open, dismiss or modal)");
-	std::string anchor = overlay.contains("anchor") ? string(overlay["anchor"], at + ".anchor") : "";
-	if(anchor.starts_with('#')) anchor.erase(0, 1);
-	record.overlayAnchor = anchor;
-	panel.setOverlay(anchor, overlay.contains("placement") ? placement(overlay["placement"], at + ".placement")
-	                                                       : Placement::Below);
-	if(overlay.contains("open")) {
-		const json& open = overlay["open"];
-		if(open.is_string()) { // a state path, so a click outside can close it
-			record.overlayOpen = open.get<std::string>();
-			look.overlayOpen = truthy(format::lookup(
-			    open.get<std::string>(), engine_.document.context(*record.locals, json::object()), at + ".open"));
-		} else {
-			look.overlayOpen = truthy(open);
-		}
-	}
-	if(overlay.contains("dismiss")) {
-		if(string(overlay["dismiss"], at + ".dismiss") != "outside") fail(at + ".dismiss", "expected \"outside\"");
-		if(!record.overlayOpen) fail(at + ".dismiss", "needs \"open\" to be a state path, e.g. \"state.menuOpen\"");
-		record.dismissOutside = true;
-	}
-	// A modal overlay traps the focus while it is open, and gives it back when it closes
-	record.modal = overlay.contains("modal") && boolean(overlay["modal"], at + ".modal");
-	if((record.modal && look.overlayOpen.value_or(true)) != record.modalShown) {
-		record.modalShown = !record.modalShown;
-		engine_.events.modal(panel, record.modalShown);
-	}
-}
-
-bool Properties::widgetProperty(Look& look, Slot slot, const json& value, const std::string& at) const {
-	return (look.label && textProperty(look, slot, value, at)) ||
-	       (look.stack && stackProperty(*look.stack, slot, value, at)) ||
-	       (look.grid && gridProperty(*look.grid, slot, value, at));
-}
-
-// Labels and text areas
-bool Properties::textProperty(Look& look, Slot slot, const json& value, const std::string& at) const {
-	Label& label = *look.label;
-	if(slot == Slot::TextColor) look.foreground = color(value, at);
-	else if(slot == Slot::Padding) label.setPadding(number(value, at));
-	else if(slot == Slot::Wrap) label.setWrap(boolean(value, at));
-	else if(slot == Slot::Font) label.setFont(font(value, at));
-	else if(slot == Slot::Align && value.is_string()) label.setAlignment(align(value, at), align(value, at));
-	else if(slot == Slot::Align) {
-		object(value, at);
-		label.setAlignment(align(value.value("horizontal", json("start")), at + ".horizontal"),
-		                   align(value.value("vertical", json("start")), at + ".vertical"));
-	} else if(slot == Slot::FitText && value.is_boolean()) label.setFitToText(value.get<bool>());
-	else if(slot == Slot::FitText)
-		label.setFitToText(true, number(object(value, at).value("maxWidth", json()), at + ".maxWidth"));
-	else if(look.textArea && slot == Slot::Placeholder) look.textArea->setPlaceholder(text(value));
-	else if(look.textArea && slot == Slot::PlaceholderColor) look.textArea->setPlaceholderColor(color(value, at));
-	else return false;
-	return true;
-}
-
-// Rows and columns
-bool Properties::stackProperty(Stack& stack, Slot slot, const json& value, const std::string& at) {
-	if(slot == Slot::Gap) stack.setGap(number(value, at));
-	else if(slot == Slot::Direction) {
-		const std::string direction = string(value, at);
-		if(direction != "row" && direction != "column") fail(at, "expected \"row\" or \"column\"");
-		stack.setDirection(direction == "row" ? Direction::Row : Direction::Column);
-	} else if(slot == Slot::Wrap) stack.setWrap(boolean(value, at));
-	else return false;
-	return true;
-}
-
-bool Properties::gridProperty(Grid& grid, Slot slot, const json& value, const std::string& at) {
-	if(slot == Slot::Columns) grid.setColumns(gridTracks(value, at));
-	else if(slot == Slot::Gap) grid.setGap(number(value, at));
-	else return false;
-	return true;
 }
 
 } // namespace affresco::format

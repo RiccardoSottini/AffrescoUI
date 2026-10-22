@@ -101,7 +101,6 @@ private:
 		Slot slot;             ///< What it sets.
 		const json& value;     ///< Its value.
 		const std::string& at; ///< Its place, for errors.
-		bool hasId;            ///< Whether the node has an "id".
 	};
 
 	/// @brief Reads the behaviour keys of the record's node into it: handlers, "bind", "caret", "keys", "drag".
@@ -181,21 +180,58 @@ private:
 	/// @param properties From visual().
 	/// @param isRoot Whether it is the window's root.
 	void applyVisual(Panel& panel, Record& record, const Visual& properties, bool isRoot);
+	/// @brief Applies a property every panel has: common, shape or accessible state.
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param property The property.
+	/// @param look Collects values set at the end.
+	/// @return false if it isn't one of these.
+	/// @throws DocumentError If the value is malformed.
+	bool panelProperty(Panel& panel, Record& record, const KeyValue& property, Look& look) const;
+	/// @brief Applies a property only some panels have: layout, a core widget type's, or a property set's.
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param key The property's key.
+	/// @param property The property.
+	/// @param look Collects values set at the end.
+	/// @return false if the panel's type has no such property.
+	/// @throws DocumentError If the value is malformed.
+	bool typeProperty(Panel& panel, const Record& record, std::string_view key, const KeyValue& property,
+	                  Look& look) const;
 	/// @brief Restores a panel's defaults, so properties no longer in the document disappear.
 	/// @param panel The panel.
 	/// @param record Its record.
 	static void reset(Panel& panel, Record& record);
+	/// @brief Restores the defaults of the core widget types' properties: labels, text areas, rows, columns, grids.
+	/// @param panel The panel.
+	/// @param record Its record, for its type.
+	static void resetWidget(Panel& panel, const Record& record);
+	/// @brief Restores the record's defaults that its node's properties set.
+	/// @param record The record.
+	static void resetRecord(Record& record);
 	/// @brief Applies a property every panel has (id, color, visible, cursor, tooltip, disabled, transition, scroll,
-	/// overlay).
+	/// overlay); this and the other property groups are in CommonProperties.cpp.
 	/// @param panel The panel.
 	/// @param record Its record.
-	/// @param slot The property.
-	/// @param value Its value.
-	/// @param at Its place, for errors.
+	/// @param property The property.
 	/// @param look Collects values set at the end.
 	/// @return false if it isn't one of these.
-	bool commonProperty(Panel& panel, Record& record, Slot slot, const json& value, const std::string& at,
-	                    Look& look) const;
+	bool commonProperty(Panel& panel, Record& record, const KeyValue& property, Look& look) const;
+	/// @brief Applies one of commonProperty()'s that only the panel takes: id, color, visible, cursor, tooltip, role,
+	/// label, description, scroll.
+	/// @param panel The panel.
+	/// @param property The property.
+	/// @param look Collects values set at the end.
+	/// @return false if it isn't one of these.
+	bool panelOnlyProperty(Panel& panel, const KeyValue& property, Look& look) const;
+	/// @brief Applies one of commonProperty()'s that the record keeps: disabled, transition, overlay, focusable,
+	/// tabIndex, arrows, mnemonic.
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param property The property.
+	/// @param look Collects values set at the end.
+	/// @return false if it isn't one of these.
+	bool recordProperty(Panel& panel, Record& record, const KeyValue& property, Look& look) const;
 	/// @brief Applies a property of every panel's shape: radius, borderWidth, borderColor or shadow.
 	/// @param panel The panel.
 	/// @param slot The property.
@@ -212,6 +248,17 @@ private:
 	/// @param at Its place, for errors.
 	/// @param look Gets whether it is open.
 	void overlay(Panel& panel, Record& record, const json& value, const std::string& at, Look& look) const;
+	/// @brief Reads an overlay's "open": a state path, which a click outside can then close, or a value.
+	/// @param record The panel's record, which keeps the path.
+	/// @param open The value.
+	/// @param at Its place, for errors.
+	/// @param look Gets whether it is open.
+	void overlayOpen(Record& record, const json& open, const std::string& at, Look& look) const;
+	/// @brief Traps the focus in a modal overlay while it is open, and gives it back when it closes.
+	/// @param panel The panel.
+	/// @param record Its record, with "modal" read.
+	/// @param look Whether it is open.
+	void showModal(Panel& panel, Record& record, const Look& look) const;
 	/// @brief Applies a property of labels, text areas, rows, columns or grids.
 	/// @param look The panel as each type, and the values set at the end.
 	/// @param slot The property.
