@@ -23,7 +23,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `Label.hpp` | `Label`: text with padding, alignment, wrap, and fit to text; an icon before it (`setIcon`, a glyph named in its font: `Font::codepointNamed`); rich text (`setRuns`), links (`onLink`) and selection with copy (`setSelectable`) |
 | `RichText.hpp` | `TextRun` (a part of a text with its own font, colour, link or inline icon) and `TextLayout` (runs broken into lines across styles, hit testing, carets) |
 | `TextArea.hpp` | `TextArea`: a single-line input |
-| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`). Word wrap (`setWrap`), folding (`fold`, `unfold`, `toggleFold`, `setFolds`, `offerFolds`), decorations (`EditorDecoration`: background, squiggle, gutter icon, inline text), extra cursors and column selection (`addCursor`, Cmd/Ctrl+D, Cmd+Alt+Up/Down, Alt+drag), find and replace (`setFind`, `findNext`, `replaceNext`, `replaceAll`, `matchCount`; Cmd/Ctrl+G), bracket matching, indentation guides and an IME composition (`setComposition`); `setLineLabels` numbers rows its own way |
+| `TextEditor.hpp` | `TextEditor`: multi-line editing, undo, clipboard, a gutter; a colouring hook for subclasses; its text is a `TextModel` (`model()`); an `EditorHighlighter` (`setHighlighter`) colours lines, folds and pairs brackets as it follows the model's edits. Word wrap (`setWrap`), folding (`fold`, `unfold`, `toggleFold`, `setFolds`, `offerFolds`), decorations (`EditorDecoration`: background, squiggle, gutter icon, inline text), extra cursors and column selection (`addCursor`, Cmd/Ctrl+D, Cmd+Alt+Up/Down, Alt+drag), find and replace (`setFind`, `findNext`, `replaceNext`, `replaceAll`, `matchCount`; Cmd/Ctrl+G), bracket matching, indentation guides and an IME composition (`setComposition`); `setLineLabels` numbers rows its own way |
 | `DiffView.hpp` | `DiffView`: two texts compared in read-only editors, side by side (rows aligned, scrolled together) or inline (`setMode`), each text's line numbers, changed lines and characters marked (`DiffColors`); an `EditorFactory` gives syntax-coloured editors |
 | `TextModel.hpp` | `TextModel`: UTF-8 text of any size as a piece tree, with a line index (`line`, `offsetOf`, `positionOf`), O(log n) edits, undo as operations (`beginStep`, `endStep`, `undo`) and `onChanged` (`TextChange`); `TextLines`, its lines decoded and kept for reading again |
 | `Controls.hpp` | `Toggle` (a switch or a checkbox) and `Slider` |
@@ -172,6 +172,8 @@ captures `this` in one must cancel its timers in its destructor.
   or through the signals (`onKey`, `onMouseButton`, ...).
 - **Text editors:** `TextEditor`'s protected editing API and its `colorLine` hook let an application add a language
   without changing the library (`examples/CodeEditor.*` adds syntax colours that way).
+- **Highlighters:** an `EditorHighlighter` (`TextEditor::setHighlighter`) is told of every edit and colours each
+  line; it may answer folds and bracket pairs too (the format's `SyntaxHighlighter` does, on tree-sitter).
 - **Another platform or renderer:** implement `platform::Platform` and `NativeWindow`, or `detail::Renderer`
   (internal interfaces, kept small: 7.8 builds damage tracking on the renderer).
 - **File dialogs:** `Window::setFileDialogHandler` answers `chooseFiles` with an application's own dialog, or a

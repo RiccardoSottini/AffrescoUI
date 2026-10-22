@@ -319,6 +319,12 @@ constexpr KeyReference nodeTable[] = {
     {"guideColor", "color", "The indentation guides, find's matches and the paired brackets.", "editor"},
     {"matchColor", "color", "", "editor"},
     {"bracketColor", "color", "", "editor"},
+    {"grammar", R"json({"type": "string", "description": "editor: the language that colours, folds and pairs brackets (e.g. cpp, or a file name)"})json",
+	 "The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, "
+	 "`typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. "
+	 "Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` "
+	 "falls back to `@syntax.keyword`). Left out, plain text.",
+	 "editor"},
     {"original", R"json({"type": "string", "description": "diff: the text compared from"})json",
 	 "The text compared from (lines split at `\\n`, a `\\r` before it dropped).", "diff"},
     {"modified", R"json({"type": "string", "description": "diff: the text compared to"})json", "The text compared to.",

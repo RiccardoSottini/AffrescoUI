@@ -148,6 +148,11 @@ struct Group {
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> searchWorkloads(Context&);
 
+/// @brief The "syntax" group's workloads (syntax.cpp): a 100,000-line C++ file parsed and highlighted, and one
+/// keystroke in it parsed again and its screen highlighted, with a budget checked when AFFRESCOUI_PERF_BUDGETS is set.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> syntaxWorkloads(Context&);
+
 /// @brief The "editor" group's workloads (editor.cpp): typing in 1,000 and 100,000 lines and scrolling 10,000 and
 /// 1,000,000 on hidden windows, each operation drawn, with 99th-percentile budgets checked when AFFRESCOUI_PERF_BUDGETS is set.
 /// @param context Where the fonts are, and the windowing system.

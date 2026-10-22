@@ -1457,6 +1457,10 @@
 					"bracketColor": {
 						"$ref": "#/$defs/v1/color"
 					},
+					"grammar": {
+						"type": "string",
+						"description": "editor: the language that colours, folds and pairs brackets (e.g. cpp, or a file name)"
+					},
 					"original": {
 						"type": "string",
 						"description": "diff: the text compared from"

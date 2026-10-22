@@ -73,3 +73,4 @@ affrescoui_fuzzer(catalog_index affrescoui::format)
 target_include_directories(affrescoui_fuzz_catalog_index PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
 affrescoui_fuzzer(signature affrescoui::format)
 target_include_directories(affrescoui_fuzz_signature PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src)
+affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

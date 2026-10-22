@@ -66,6 +66,12 @@
 			"of": "forge/open",
 			"atMost": 0.3,
 			"why": "opening and filtering Forge's command palette builds the palette alone"
+		},
+		{
+			"name": "syntax/type-100k",
+			"of": "syntax/open-100k",
+			"atMost": 0.05,
+			"why": "a keystroke in a 100,000-line file parses again only what it changed and highlights one screen"
 		}
 	]
 }
