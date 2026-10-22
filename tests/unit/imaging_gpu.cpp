@@ -108,7 +108,7 @@ private:
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, read.data());
 	std::vector<std::uint8_t> flipped(read.size());
-	const auto row = static_cast<std::size_t>(width * 4);
+	const auto row = static_cast<std::size_t>(width) * 4;
 	for(std::size_t y = 0; std::cmp_less(y, height); ++y)
 		std::copy_n(read.begin() + static_cast<std::ptrdiff_t>((static_cast<std::size_t>(height) - 1 - y) * row), row,
 		            flipped.begin() + static_cast<std::ptrdiff_t>(y * row));
@@ -215,7 +215,7 @@ TEST_CASE("imaging residency: within the budget, least recently used evicted fir
 	CHECK(evicted.empty());
 	const std::optional<Resident> forgotten = residency.forget(keyAt(3));
 	REQUIRE(forgotten);
-	CHECK(forgotten->texture == 4);
+	CHECK(forgotten.value().texture == 4);
 	CHECK(residency.bytes() == 200);
 	CHECK_FALSE(residency.forget(keyAt(3)));
 	CHECK_FALSE(residency.admit(keyAt(5), resident(5, 301), evicted)); // over the budget alone

@@ -96,7 +96,7 @@ TEST_CASE("imaging tiles: a tile holds each format") {
 	CHECK(mask.pixel(0, 0).alpha == 1.0f);
 	const auto filled = Tile::filled(PixelFormat::rgba8, {0.0f, 0.0f, 1.0f, 1.0f});
 	REQUIRE(filled->uniform());
-	CHECK(filled->uniform()->blue == 1.0f);
+	CHECK(filled->uniform().value().blue == 1.0f);
 	CHECK(convertTile(mask, PixelFormat::rgba8)->pixel(0, 0) == Pixel{1.0f, 1.0f, 1.0f, 1.0f});
 	CHECK_THROWS_AS(Tile(PixelFormat::rgba8, std::vector<std::uint8_t>(10)), std::invalid_argument);
 }

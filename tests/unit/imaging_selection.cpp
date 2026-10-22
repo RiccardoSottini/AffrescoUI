@@ -22,7 +22,8 @@ namespace {
 [[nodiscard]] int valueAt(const Coverage& coverage, int x, int y) {
 	const auto found = coverage.find({x / tileSize, y / tileSize});
 	if(found == coverage.end()) return 0;
-	return found->second->bytes()[static_cast<std::size_t>((y % tileSize) * tileSize + x % tileSize)];
+	return found->second
+	    ->bytes()[static_cast<std::size_t>(y % tileSize) * tileSize + static_cast<std::size_t>(x % tileSize)];
 }
 
 /// @brief The selection's value at a pixel, 0 to 255.

@@ -41,7 +41,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		} catch(const affresco::DocumentError&) {
 			affresco::fuzz::broken("a project saved again opens");
 		}
-	} catch(const affresco::DocumentError&) {
+	} catch(const affresco::DocumentError&) { // NOLINT(bugprone-empty-catch): refusing is the expected outcome
 	}
 	return 0;
 }

@@ -50,7 +50,7 @@ TEST_CASE("scene3d: matrices, projection and inverse") {
 	CHECK(near(move.transformDirection({1, 0, 0}), {1, 0, 0}));
 	const auto inverse = move.inverse();
 	REQUIRE(inverse);
-	CHECK(near(inverse->transformPoint({1, 2, 3}), {0, 0, 0}));
+	CHECK(near(inverse.value().transformPoint({1, 2, 3}), {0, 0, 0}));
 	CHECK_FALSE(Mat4::scaling({0, 1, 1}).inverse());
 	const Mat4 view = Mat4::lookAt({0, 0, 5}, {0, 0, 0}, {0, 1, 0});
 	CHECK(near(view.transformPoint({0, 0, 0}), {0, 0, -5}));
@@ -68,9 +68,9 @@ TEST_CASE("scene3d: TRS composes and decomposes") {
 	transform.scale = {2, 3, 0.5f};
 	const auto back = Transform::decompose(transform.matrix());
 	REQUIRE(back);
-	CHECK(near(back->translation, transform.translation));
-	CHECK(near(back->scale, transform.scale));
-	CHECK(near(back->rotation.rotate({1, 2, 3}), transform.rotation.rotate({1, 2, 3})));
+	CHECK(near(back.value().translation, transform.translation));
+	CHECK(near(back.value().scale, transform.scale));
+	CHECK(near(back.value().rotation.rotate({1, 2, 3}), transform.rotation.rotate({1, 2, 3})));
 	CHECK_FALSE(Transform::decompose(Mat4::scaling({0, 0, 0})));
 }
 
@@ -171,10 +171,10 @@ TEST_CASE("scene3d: the scene round-trips through JSON and refuses bad members")
 TEST_CASE("scene3d: tracks sample step, linear and cubic keys") {
 	Track track{.node = "box", .path = TrackPath::Translation, .times = {0, 1}, .values = {0, 0, 0, 2, 4, 6}};
 	CHECK(track.validate().empty());
-	CHECK((*track.sample(0.5f))[1] == doctest::Approx(2.0f));
-	CHECK((*track.sample(5.0f))[2] == doctest::Approx(6.0f));
+	CHECK(track.sample(0.5f).value()[1] == doctest::Approx(2.0f));
+	CHECK(track.sample(5.0f).value()[2] == doctest::Approx(6.0f));
 	track.interpolation = Interpolation::Step;
-	CHECK((*track.sample(0.9f))[0] == doctest::Approx(0.0f));
+	CHECK(track.sample(0.9f).value()[0] == doctest::Approx(0.0f));
 	setKey(track, 0.5f, {1, 1, 1, 0});
 	CHECK(track.times.size() == 3);
 	CHECK(track.times[1] == doctest::Approx(0.5f));

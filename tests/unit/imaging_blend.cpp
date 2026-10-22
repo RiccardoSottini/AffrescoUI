@@ -107,8 +107,8 @@ TEST_CASE("imaging adjustments: settings are clamped and tables follow the formu
 	CHECK(levels.gamma == 10.0f);
 	const auto table = adjustmentTable(levels);
 	CHECK(table[0] == 0);
-	CHECK(table[255 * 4] == 255);
-	CHECK(table[100 * 4] == byteFromUnit(adjustPixel(levels, {100.0f / 255.0f, 0.0f, 0.0f, 1.0f}).red));
+	CHECK(table[std::size_t{255} * 4] == 255);
+	CHECK(table[std::size_t{100} * 4] == byteFromUnit(adjustPixel(levels, {100.0f / 255.0f, 0.0f, 0.0f, 1.0f}).red));
 	CHECK(adjustmentShader(levels) == AdjustmentShader::perChannel);
 
 	Adjustment curves;

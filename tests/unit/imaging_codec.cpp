@@ -66,7 +66,7 @@ TEST_CASE("imaging codec: PNG round-trips pixels and an embedded profile") {
 	REQUIRE(decoded.image);
 	CHECK(decoded.warning.empty());
 	REQUIRE(decoded.profile);
-	CHECK(*decoded.profile == p3);
+	CHECK(decoded.profile.value() == p3);
 	CHECK(decoded.image->format() == PixelFormat::rgba8);
 	CHECK(decoded.image->width() == 300);
 	for(const auto& [x, y] : {std::pair{0, 0}, {150, 270}, {299, 299}, {290, 10}})
@@ -81,7 +81,7 @@ TEST_CASE("imaging codec: JPEG keeps a profile, and 16 bits decode to half float
 	const ColorProfile wide = ColorProfile::wideRgb();
 	const DecodedImage jpeg = decodeImageFile(encodeImageFile(image, ImageFileFormat::jpeg, wide, 95), {});
 	REQUIRE(jpeg.profile);
-	CHECK(*jpeg.profile == wide);
+	CHECK(jpeg.profile.value() == wide);
 	CHECK(jpeg.image->pixel(0, 0).alpha == 1.0f); // JPEG has no alpha
 	CHECK(std::abs(jpeg.image->pixel(150, 270).red - image.pixel(150, 270).red) < 0.05f);
 	const std::vector<std::uint8_t> split = encodeImageFile(image, ImageFileFormat::jpeg, std::nullopt);

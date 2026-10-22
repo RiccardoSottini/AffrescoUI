@@ -60,14 +60,14 @@ TEST_CASE("the orbit camera places its eye, projects and casts rays") {
 	CHECK(near(centre.direction, {0, 0, -1}));
 	const auto at = camera.project({0, 0, 0}, 800, 600);
 	REQUIRE(at);
-	CHECK(at->first == doctest::Approx(400));
-	CHECK(at->second == doctest::Approx(300));
+	CHECK(at.value().first == doctest::Approx(400));
+	CHECK(at.value().second == doctest::Approx(300));
 	CHECK_FALSE(camera.project({0, 0, 10}, 800, 600));
 	camera.snap(StandardView::Top);
 	CHECK(near(camera.eye(), {0, 5, 0}));
 	const auto above = camera.project({1, 0, 0}, 800, 600);
 	REQUIRE(above);
-	CHECK(above->first > 400.0f); // +x stays to the right looking down
+	CHECK(above.value().first > 400.0f); // +x stays to the right looking down
 	camera.snap(StandardView::Right);
 	CHECK(near(camera.eye(), {5, 0, 0}));
 }
@@ -79,7 +79,7 @@ TEST_CASE("the orbit camera orbits, pans under the pointer, zooms and frames") {
 	const auto after = camera.project({0, 0, 0}, 800, 600);
 	REQUIRE(before);
 	REQUIRE(after);
-	CHECK(after->first - before->first == doctest::Approx(10).epsilon(0.01));
+	CHECK(after.value().first - before.value().first == doctest::Approx(10).epsilon(0.01));
 	camera.orbit(0, 10000);
 	CHECK(camera.pitch == doctest::Approx(std::numbers::pi_v<float> / 2));
 	const float distance = camera.distance;
@@ -93,8 +93,8 @@ TEST_CASE("the orbit camera orbits, pans under the pointer, zooms and frames") {
 	for(const Vec3 corner : {box.min, box.max}) {
 		const auto at = camera.project(corner, 600, 600);
 		REQUIRE(at);
-		CHECK(at->first >= 0.0f);
-		CHECK(at->first <= 600.0f);
+		CHECK(at.value().first >= 0.0f);
+		CHECK(at.value().first <= 600.0f);
 	}
 	camera.lens.orthographic = true;
 	const Ray a = camera.rayThrough(10, 10, 600, 600), b = camera.rayThrough(500, 400, 600, 600);
@@ -123,17 +123,17 @@ TEST_CASE("ray picking finds the nearest visible mesh") {
 	Scene scene = cubes({{0, 0, 0}, {0, 0, -5}, {5, 0, 0}}, assets);
 	const auto hit = pickNode(scene, assets, rayFrom({0, 0, 10}, {0, 0, 0}));
 	REQUIRE(hit);
-	CHECK(hit->node == "a");
-	CHECK(hit->distance == doctest::Approx(9.0f));
-	CHECK(near(hit->point, {0, 0, 1}));
+	CHECK(hit.value().node == "a");
+	CHECK(hit.value().distance == doctest::Approx(9.0f));
+	CHECK(near(hit.value().point, {0, 0, 1}));
 	scene.nodes[0].visible = false;
-	CHECK(pickNode(scene, assets, rayFrom({0, 0, 10}, {0, 0, 0}))->node == "b");
+	CHECK(pickNode(scene, assets, rayFrom({0, 0, 10}, {0, 0, 0})).value().node == "b");
 	scene.nodes[1].parent = "a"; // a hidden parent hides its children
 	scene.nodes[1].transform.translation = {0, 0, -5};
 	CHECK_FALSE(pickNode(scene, assets, rayFrom({0, 0, 10}, {0, 0, 0})));
 	CHECK_FALSE(pickNode(scene, assets, rayFrom({0, 10, 10}, {0, 20, 0})));
 	scene.nodes[2].transform.scale = {3, 3, 3};
-	CHECK(pickNode(scene, assets, rayFrom({5, 2.9f, 10}, {5, 2.9f, 0}))->node == "c");
+	CHECK(pickNode(scene, assets, rayFrom({5, 2.9f, 10}, {5, 2.9f, 0})).value().node == "c");
 }
 
 TEST_CASE("box select takes the meshes whose centre is inside") {
@@ -173,30 +173,31 @@ TEST_CASE("gizmo drags translate, rotate and scale with constraints and snapping
 	const Ray start = rayFrom({0.5f, 0, 10}, {0.5f, 0, 0});
 	const auto moved = dragGizmo(gizmo, GizmoAxis::X, start, rayFrom({2.2f, 1, 10}, {2.2f, 1, 0}), {});
 	REQUIRE(moved);
-	CHECK(near(moved->translation, {1.7f, 0, 0}));
+	CHECK(near(moved.value().translation, {1.7f, 0, 0}));
 	const auto snappedMove = dragGizmo(gizmo, GizmoAxis::X, start, rayFrom({2.2f, 1, 10}, {2.2f, 1, 0}), {0.5f, 0, 0});
-	CHECK(near(snappedMove->translation, {1.5f, 0, 0}));
+	CHECK(near(snappedMove.value().translation, {1.5f, 0, 0}));
 	const auto inPlane = dragGizmo(gizmo, GizmoAxis::XY, start, rayFrom({1.5f, 2, 10}, {1.5f, 2, 0}), {});
-	CHECK(near(inPlane->translation, {1, 2, 0}));
+	CHECK(near(inPlane.value().translation, {1, 2, 0}));
 	CHECK_FALSE(dragGizmo(gizmo, GizmoAxis::None, start, start, {}));
 
 	gizmo.mode = GizmoMode::Rotate;
 	const auto turned =
 	    dragGizmo(gizmo, GizmoAxis::Y, rayFrom({1, 10, 0}, {1, 0, 0}), rayFrom({0, 10, -1}, {0, 0, -1}), {});
 	REQUIRE(turned);
-	CHECK(near(turned->rotation.rotate({1, 0, 0}), {0, 0, -1}));
+	CHECK(near(turned.value().rotation.rotate({1, 0, 0}), {0, 0, -1}));
 	const auto snappedTurn = dragGizmo(gizmo, GizmoAxis::Y, rayFrom({1, 10, 0}, {1, 0, 0}),
 	                                   rayFrom({0.9f, 10, -1}, {0.9f, 0, -1}), {0, radians(15), 0});
-	CHECK(near(snappedTurn->rotation.rotate({1, 0, 0}), Quat::fromAxisAngle({0, 1, 0}, radians(45)).rotate({1, 0, 0})));
+	CHECK(near(snappedTurn.value().rotation.rotate({1, 0, 0}),
+	           Quat::fromAxisAngle({0, 1, 0}, radians(45)).rotate({1, 0, 0})));
 
 	gizmo.mode = GizmoMode::Scale;
 	const auto scaled =
 	    dragGizmo(gizmo, GizmoAxis::Z, rayFrom({10, 0, 0.5f}, {0, 0, 0.5f}), rayFrom({10, 0, 1}, {0, 0, 1}), {});
 	REQUIRE(scaled);
-	CHECK(near(scaled->scale, {1, 1, 2}));
+	CHECK(near(scaled.value().scale, {1, 1, 2}));
 	const auto uniform = dragGizmo(gizmo, GizmoAxis::View, rayFrom({0.5f, 0, 10}, {0.5f, 0, 0}),
 	                               rayFrom({1.5f, 0, 10}, {1.5f, 0, 0}), {});
-	CHECK(near(uniform->scale, {3, 3, 3}));
+	CHECK(near(uniform.value().scale, {3, 3, 3}));
 }
 
 TEST_CASE("typed numbers and deltas apply through the hierarchy") {
@@ -254,7 +255,7 @@ TEST_CASE("material graphs compile from fixed snippets") {
 }
 
 TEST_CASE("material graphs refuse wrong kinds, cycles, unknown ops and source text") {
-	const auto errors = [](json graph) { return compileMaterialGraph(graph).errors; };
+	const auto errors = [](const json& graph) { return compileMaterialGraph(graph).errors; };
 	const json output = node("output", "out");
 	CHECK_FALSE(errors({{"nodes", json::array()}}).empty()); // no output
 	CHECK_FALSE(errors({{"nodes", {output, output}}}).empty());

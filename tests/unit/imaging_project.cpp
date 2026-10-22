@@ -64,7 +64,7 @@ TEST_CASE("imaging project: layers, masks, groups, adjustments and the profile r
 	const LoadedProject loaded = load(file);
 	const Document& opened = *loaded.document;
 	REQUIRE(loaded.profile);
-	CHECK(loaded.profile->name() == "Display P3");
+	CHECK(loaded.profile.value().name() == "Display P3");
 	CHECK(opened.history().steps().empty());
 	CHECK(opened.width() == 600);
 	REQUIRE(opened.listed().size() == 4);

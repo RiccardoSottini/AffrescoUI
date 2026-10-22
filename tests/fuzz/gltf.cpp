@@ -54,7 +54,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 			affresco::fuzz::broken("a loaded file stays within its limits");
 		for(const scene3d::Node& node : loaded.scene.nodes)
 			if(!node.id.starts_with("f_")) affresco::fuzz::broken("every id a file makes carries the import's prefix");
-	} catch(const std::exception&) {
+	} catch(const std::exception&) { // NOLINT(bugprone-empty-catch): refusing is the expected outcome
 		// refused, as a damaged file should be (GltfError, or a texture that would not decode)
 	}
 	return 0;
