@@ -769,6 +769,29 @@ INSTRUCTIONS = (
     "wait for a reviewer's approval in the Studio; get_events tells you the decision.")
 
 
+# Permissions, budgets, data rules, roles and leases (VERSION_CONTROL.md): what a denial means, from the rule it names
+DENIALS = (
+    ("over the budget", "the screen's permissions limit how many nodes you add, remove and change in one revision; "
+                        "split the change into smaller revisions"),
+    ("data rule", "the screen's data rules limit the paths you may read and write; change only the paths they allow"),
+    ("holds a lease", "another author is working on that part of the screen; wait for its lease to end or change "
+                      "another part"),
+    ("(rule \"", "a deny rule of the screen's permissions covers what you changed; leave that part as it is"),
+    ("revisions can't change", "that section is a capability of the app, which no revision changes"),
+)
+
+
+def explain_denial(error):
+    """The error of a refused revision, followed by what the rule it names means, if it is a permission denial."""
+    text = str(error)
+    if "permission denied" not in text:
+        return text
+    for marker, meaning in DENIALS:
+        if marker in text:
+            return f"{text}. The rule that matched: {meaning}."
+    return text
+
+
 def describe(reply):
     kind = reply.get("type")
     if kind == "applied":
@@ -778,7 +801,7 @@ def describe(reply):
         return (f"proposed as proposal {reply.get('proposal')} (head {str(reply.get('commit', ''))[:7]}): a reviewer "
                 f"decides in the Studio. It is not applied yet; get_events will report the decision. Pass "
                 f"proposal={reply.get('proposal')} to submit_revision to add to it."), False
-    return f"rejected, nothing changed: {reply.get('error')}", True
+    return f"rejected, nothing changed: {explain_denial(reply.get('error'))}", True
 
 
 def screen_info(reply):

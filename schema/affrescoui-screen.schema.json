@@ -649,6 +649,85 @@
 										"pattern": "^[1-9][0-9]{0,5}[mhd]$"
 									}
 								}
+							},
+							"budgets": {
+								"type": "array",
+								"maxItems": 64,
+								"description": "The most nodes an author changes in one revision.",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"required": [
+										"author"
+									],
+									"properties": {
+										"author": {
+											"type": "string"
+										},
+										"added": {
+											"type": "integer",
+											"minimum": 0,
+											"maximum": 100000
+										},
+										"removed": {
+											"type": "integer",
+											"minimum": 0,
+											"maximum": 100000
+										},
+										"changed": {
+											"type": "integer",
+											"minimum": 0,
+											"maximum": 100000
+										},
+										"over": {
+											"enum": [
+												"ask",
+												"deny"
+											]
+										}
+									}
+								}
+							},
+							"data": {
+								"type": "array",
+								"maxItems": 64,
+								"description": "The paths an author may read, write or never touch.",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"required": [
+										"author"
+									],
+									"properties": {
+										"author": {
+											"type": "string"
+										},
+										"read": {
+											"type": "array",
+											"maxItems": 64,
+											"items": {
+												"type": "string",
+												"pattern": "^/"
+											}
+										},
+										"write": {
+											"type": "array",
+											"maxItems": 64,
+											"items": {
+												"type": "string",
+												"pattern": "^/"
+											}
+										},
+										"never": {
+											"type": "array",
+											"maxItems": 64,
+											"items": {
+												"type": "string",
+												"pattern": "^/"
+											}
+										}
+									}
+								}
 							}
 						}
 					},
@@ -693,7 +772,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, outlet, code, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, diff, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, colorPicker, gradient, curves, canvas, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -720,8 +799,7 @@
 									"gradient",
 									"curves",
 									"canvas",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							},
 							{
@@ -2311,10 +2389,7 @@
 					},
 					"checked": {
 						"$ref": "#/$defs/v1/flag"
-					},
-					"syntax": {},
-					"goTo": {},
-					"buffer": {}
+					}
 				},
 				"if": {
 					"required": [
@@ -2347,8 +2422,7 @@
 									"gradient",
 									"curves",
 									"canvas",
-									"outlet",
-									"code"
+									"outlet"
 								]
 							}
 						}

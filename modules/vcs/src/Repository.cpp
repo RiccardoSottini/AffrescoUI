@@ -8,12 +8,14 @@
 #include "Deltas.hpp"
 #include "HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
 #include "Permissions.hpp"
+#include "Policy.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 
 #include "affresco/core/Portable.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <ctime>
 #include <utility>
@@ -380,13 +382,19 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
                                          bool reviewed) const {
 	using Kind = Verdict::Kind;
 	const Permissions permissions = rules_.permissions(mainDocument());
+	const detail::Policy policy = detail::policyOf(mainDocument());
+	const auto covers = [&](const PermissionRule& rule) { return ruleCovers(rule.author, author, roles_); };
 
 	for(const PermissionRule& rule : permissions.deny)
-		if(detail::authorMatches(rule.author, author) && detail::changes(rules_, before, after, rule.pattern))
+		if(covers(rule) && detail::changes(rules_, before, after, rule.pattern))
 			return {Kind::Deny, "permission denied: '" + author + "' may not change " +
 			                        (rule.pattern.empty() ? std::string("this screen") : rule.pattern) + " (rule \"" +
 			                        rule.text + "\")"};
+	if(const auto denied = detail::dataDenial(rules_, policy, before, after, author, roles_))
+		return {Kind::Deny, "permission denied: " + *denied};
 	if(!reviewed) return {Kind::Allow, {}};
+	if(const auto over = detail::overBudget(policy, before, after, author, roles_))
+		return {over->deny ? Kind::Deny : Kind::Ask, (over->deny ? "permission denied: " : "") + over->reason, true};
 	if(const std::vector<std::string> lines = rules_.reviewLines(before, after); !lines.empty()) {
 		std::string reason = "always reviewed:";
 		for(std::size_t i = 0; i < lines.size(); ++i) reason += (i ? "; " : " ") + lines[i];
@@ -395,7 +403,7 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 	if(!permissions.configured) return {Kind::Allow, {}};
 
 	for(const PermissionRule& rule : permissions.ask)
-		if(detail::authorMatches(rule.author, author) && detail::changes(rules_, before, after, rule.pattern))
+		if(covers(rule) && detail::changes(rules_, before, after, rule.pattern))
 			return {Kind::Ask, "the rule \"" + rule.text + "\" asks for review", true};
 
 	if(mode_ == Mode::Plan && !mayReview(author))
@@ -403,7 +411,7 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 
 	std::vector<std::string> allowed;
 	for(const PermissionRule& rule : permissions.allow)
-		if(detail::authorMatches(rule.author, author)) allowed.push_back(rule.pattern);
+		if(covers(rule)) allowed.push_back(rule.pattern);
 	for(const Grant& grant : grants_)
 		if(const auto rule = parsePermissionRule(grant.rule);
 		   rule && !expired(grant) && detail::authorMatches(rule->author, author))
@@ -475,6 +483,7 @@ RevisionResult Repository::submit(const json& revision) {
 		for(const char* key : {"evidence", "behaviour"})
 			if(revision.contains(key)) fail(std::string("revision.") + key, "the host gathers it itself");
 		const std::string author = authorOf(revision);
+		checkReadable(patchOf(revision), author);
 		if(revision.contains("proposal")) return push(revision, author);
 
 		checkParent(revision);
@@ -518,6 +527,21 @@ RevisionResult Repository::submit(const json& revision) {
 		return {RevisionStatus::Applied, landed.number, landed.id, 0, {}};
 	} catch(const DocumentError& error) {
 		return {RevisionStatus::Rejected, number, {}, 0, error.what()};
+	}
+}
+
+// As submit() judges a new revision, on main's head; one that can't apply is denied, with the reason
+Repository::Judgement Repository::judge(const json& revision) const {
+	try {
+		expect::object(revision, "revision");
+		const std::string author = authorOf(revision);
+		checkReadable(patchOf(revision), author);
+		const Prepared next = prepare(patchOf(revision), mainDocument(), committedState());
+		const Verdict verdict = evaluate(next.before, next.after, author, true);
+		static constexpr std::array<const char*, 3> decisions = {"allow", "ask", "deny"};
+		return {decisions.at(static_cast<std::size_t>(verdict.kind)), verdict.reason};
+	} catch(const DocumentError& error) {
+		return {"deny", error.what()};
 	}
 }
 

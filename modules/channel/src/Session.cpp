@@ -35,6 +35,15 @@ std::string toBase64(std::string_view bytes) {
 	return text;
 }
 
+/// @brief Tells whether a read shows the document whole, which a peer whose data rules limit its reads may not make.
+/// @param type The message's type.
+/// @return true for diff, exportChanges, render, getEvidence and blame.
+bool showsWhole(std::string_view type) noexcept {
+	static constexpr std::array<std::string_view, 5> reads = {"diff", "exportChanges", "render", "getEvidence",
+	                                                          "blame"};
+	return std::ranges::find(reads, type) != reads.end();
+}
+
 /// @brief A message's "type", read without throwing.
 /// @param message The message, an object.
 /// @return It, or "" if it has none or it isn't text.
@@ -75,13 +84,15 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
 		if(!images_ || !images_->rendering()) send(reviewState());
 	});
 
-	// Introduce ourselves: whoever is on the other end gets the full picture to work from
+	// Introduce ourselves: whoever is on the other end gets the full picture to work from (the part its data rules let
+	// it read, VERSION_CONTROL.md "Data rules")
+	const std::optional<json> readable = versions_.readable(author_);
 	send({{"type", "hello"},
 	      {"format", "affrescoui-screen"},
 	      {"revision", versions_.head().number},
 	      {"head", toJson(versions_.head())},
-	      {"document", versions_.document()},
-	      {"state", versions_.state()},
+	      {"document", readable ? *readable : versions_.document()},
+	      {"state", readable ? (*readable)["state"] : versions_.state()},
 	      {"mode", toString(versions_.mode())},
 	      {"you", author_},
 	      {"canReview", versions_.mayReview(author_)}});
@@ -96,14 +107,16 @@ Session::~Session() {
 
 // Error texts can quote what the peer sent, bytes that aren't UTF-8 included (a parse error shows the bytes it read),
 // and dump() throws on those by default: they are replaced with U+FFFD instead, so answering never fails
-void Session::send(const json& message) {
-	channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace));
-}
+void Session::send(const json& message) { channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace)); }
 
 // Open proposals, the one being previewed, the mode and the "don't ask again" grants
 json Session::reviewState() const {
 	json proposals = json::array(), grants = json::array();
 	for(const ProposalInfo& p : versions_.proposals()) proposals.push_back(toJson(p));
+	// What a proposal changes can show values a peer's data rules hide from it
+	if(versions_.readable(author_))
+		for(json& p : proposals)
+			for(const char* key : {"changes", "touches", "conflicts", "behaviour"}) p.erase(key);
 	for(const Grant& g : versions_.grants()) grants.push_back(toJson(g));
 	const auto previewing = versions_.previewing();
 	return {{"type", "review"},
@@ -129,6 +142,8 @@ void Session::handle(const std::string& line) {
 			json relayed = m;
 			relayed["from"] = in.author;
 			onRelay(relayed);
+		} else if(showsWhole(in.type) && versions_.readable(author_)) {
+			expect::fail(in.type, "permission denied: the data rules let '" + author_ + "' read only some paths");
 		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in)) {
 			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
@@ -303,11 +318,12 @@ bool Session::handleQuery(const Incoming& in) {
 
 	if(in.type == "getDocument") {
 		const json state = reviewState();
+		const std::optional<json> readable = versions_.readable(author_);
 		send({{"type", "document"},
 		      {"revision", versions_.head().number},
 		      {"head", toJson(versions_.head())},
-		      {"document", versions_.document()},
-		      {"state", versions_.state()},
+		      {"document", readable ? *readable : versions_.document()},
+		      {"state", readable ? (*readable)["state"] : versions_.state()},
 		      {"proposals", state["proposals"]},
 		      {"previewing", state["previewing"]},
 		      {"mode", state["mode"]},
@@ -329,10 +345,9 @@ bool Session::handleQuery(const Incoming& in) {
 		send({{"type", "history"}, {"entries", entries}, {"revision", versions_.head().number}, {"id", in.id}});
 	} else if(in.type == "diff") {
 		// A proposal against main's head, or any two commits (default: the previous one against HEAD)
-		const json patch =
-		    m.contains("proposal")
-		        ? versions_.proposalDiff(expect::integer(m["proposal"], "diff.proposal"))
-		        : versions_.diff(m.value("from", json("HEAD~1")), m.value("to", json("HEAD")));
+		const json patch = m.contains("proposal")
+		                       ? versions_.proposalDiff(expect::integer(m["proposal"], "diff.proposal"))
+		                       : versions_.diff(m.value("from", json("HEAD~1")), m.value("to", json("HEAD")));
 		send({{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", in.id}});
 	} else if(in.type == "exportChanges") {
 		send({{"type", "changes"},

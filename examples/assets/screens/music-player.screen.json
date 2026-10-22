@@ -41,7 +41,8 @@
 		"allow": ["studio"],
 		"ask": ["agent(/actions)"],
 		"deny": ["*(#statusBar)"],
-		"reviewers": ["studio"]
+		"reviewers": ["studio"],
+		"budgets": [{"author": "agent", "added": 20, "removed": 5, "changed": 50}]
 	},
 
 	"state": {

@@ -115,6 +115,68 @@ The screen file decides, in a `permissions` section that no revision can change:
 - **Reviewers** (`reviewers`) are the authors who may decide on proposals, set the mode and revoke grants. Without a
   `permissions` section anyone may; with one, only those listed.
 
+### Budgets
+`permissions.budgets` caps how much one author changes at once: the most nodes it may add, remove and change in one
+revision, and in one proposal, which is judged whole when it merges.
+
+```json
+"budgets": [
+  { "author": "agent", "added": 20, "removed": 5, "changed": 50 },
+  { "author": "role:design", "changed": 10, "over": "ask" }
+]
+```
+
+- `author` is a rule's author without a pattern: `*`, a channel, a full name, or a role (`role:design`, below).
+- Nodes are counted by id, before and after, in `root`, `screens` and `templates`: a node is changed when its own
+  keys differ (not its children), however the patch was written.
+- Over a budget the change is refused (`"over": "deny"`, the default) or sent to review (`"over": "ask"`). The reason
+  names the budget: `over the budget "agent: 20 added, 5 removed, 50 changed": 21 new nodes, at most 20`.
+- A budget applies to changes that would apply on their own; a change that already goes to review is judged by its
+  reviewers. Deny rules still come first.
+- At most 64 budgets; each limit is between 0 and 100,000.
+
+### Data rules
+`permissions.data` says which paths in `state` and in the sections an author may read, write, or never touch:
+
+```json
+"data": [
+  { "author": "agent", "read": ["/state/cards", "/state/board"], "write": ["/state/cards"],
+    "never": ["/state/token"] }
+]
+```
+
+- `read`: if given, the only paths of their part (`/state`, `/colors`...) the author reads; its `write` paths are
+  readable too. `write`: if given, the only paths of their part it changes. `never`: paths it neither reads nor
+  changes. Paths are JSON Pointers, `#id` nodes or `*` patterns, as in rules; state is at `/state`.
+- **Writes are judged by effect**, like every rule: a change to a path outside `write`, or to a `never` path, is
+  refused with the rule (`data rule: 'agent' may never touch /state/token`), even when the patch never names it.
+- **Reads are masked.** An author whose reads are limited gets the screen and the state without what it may not read
+  (array elements read as `null`, so positions stay). It can't ask for a diff, export, render, evidence or blame of
+  the whole screen, and proposals it sees list no changes. A revision that names an unreadable path (a `test` or a
+  `copy` from it would tell its value) is refused.
+- At most 64 data rules, each with at most 64 paths of at most 256 bytes.
+
+### Policy tests
+A `*.policy.json` file beside a screen holds example revisions, their authors and what they should get:
+
+```json
+{
+  "screen": "kanban.screen.json",
+  "roles": { "agent/claude-code": "design" },
+  "cases": [
+    { "name": "the agent recolours a card", "revision": { "author": "agent", "set": { "#card1/color": "#1e293b" } },
+      "expect": "allow" },
+    { "name": "21 new panels", "revision": { "author": "agent", "add": { "...": {} } }, "expect": "deny",
+      "reason": "over the budget" }
+  ]
+}
+```
+
+`affrescoui policy test <files> [--json]` judges each revision against the screen as it is (nothing is applied) and
+compares `allow`, `ask` or `deny`, and a part of the reason if given. Exit codes are those of `affrescoui test`: 0 all
+passed, 1 a case failed or a file is malformed. CI runs every `*.policy.json` in the repository, and each template has
+one. The MCP server explains a denial with the rule that matched.
+
 ## Modes
 A reviewer sets how much they are asked, like Claude Code's permission modes (`affrescoui_host --mode`, the Studio's
 switch, or `setMode` over the live protocol):

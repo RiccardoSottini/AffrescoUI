@@ -5,6 +5,7 @@
 
 #include "affresco/core/DocumentRules.hpp"
 #include "affresco/core/VersionControl.hpp"
+#include "affresco/vcs/Roles.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -115,6 +116,24 @@ public:
 	/// @param changes The change set.
 	/// @return true if it was.
 	[[nodiscard]] bool hasImported(const json& changes) const;
+
+	/* Policy (VERSION_CONTROL.md, "Budgets" and "Data rules") */
+	/// @brief What the rules say about a revision, without applying it.
+	struct Judgement {
+		std::string decision; ///< "allow", "ask" or "deny" (also for a revision that can't apply).
+		std::string reason;   ///< Why it asks or is denied: the rule, budget or data rule that matched.
+	};
+	/// @brief Judges a revision as submit() would, on main's head, and changes nothing: what policy tests run.
+	/// @param revision The revision, with its "author".
+	/// @return The judgement.
+	[[nodiscard]] Judgement judge(const json& revision) const;
+	[[nodiscard]] std::optional<json> readable(std::string_view author) const override;
+	/// @brief Who plays which role ("role:<name>" in rules), for this run.
+	/// @return The roles.
+	[[nodiscard]] Roles& roles() noexcept { return roles_; }
+	/// @brief Who plays which role, for this run.
+	/// @return The roles.
+	[[nodiscard]] const Roles& roles() const noexcept { return roles_; }
 
 private:
 	/// @brief A commit object. It keeps how its document differs from its first parent's, not the document: every
@@ -316,6 +335,11 @@ private:
 	/// @return The verdict.
 	[[nodiscard]] Verdict evaluate(const json& before, const json& after, const std::string& author,
 	                               bool reviewed) const;
+	/// @brief Refuses a patch that names a path its author may not read (a "test" or "copy" would tell its value).
+	/// @param patch The operations, as submitted.
+	/// @param author Who sends it.
+	/// @throws DocumentError If it names one.
+	void checkReadable(const json& patch, const std::string& author) const;
 	/// @brief A proposal's commits, oldest first, copied.
 	/// @param proposal The proposal.
 	/// @return Its branch's commits.
@@ -514,6 +538,7 @@ private:
 	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
+	Roles roles_;                                   ///< Who plays which role, for this run (never kept in the history).
 };
 
 } // namespace affresco::vcs

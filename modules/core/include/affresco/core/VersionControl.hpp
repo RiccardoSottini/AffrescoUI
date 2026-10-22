@@ -260,6 +260,15 @@ public:
 	/// @return The error, or std::nullopt if every revision applied.
 	virtual std::optional<std::string> importChanges(const json& changes) = 0;
 
+	/* Data rules (VERSION_CONTROL.md, "Data rules") */
+	/// @brief The document as an author may read it, if its data rules limit what it reads.
+	/// @param author The author.
+	/// @return The document with the live state as its "state", the parts it may not read left out; std::nullopt if
+	/// it reads everything (the default).
+	[[nodiscard]] virtual std::optional<json> readable([[maybe_unused]] std::string_view author) const {
+		return std::nullopt;
+	}
+
 	/* Notifications, e.g. for every connected peer (the VersionObserver is for the one that renders) */
 
 	Signal<const Decision&> onDecision; ///< A reviewer accepted or rejected a proposal.
