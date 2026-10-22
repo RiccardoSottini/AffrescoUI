@@ -9,6 +9,7 @@
 #include "gl/GlObjects.hpp"
 #include "gl/ImageTextures.hpp"
 #include "gl/Stencil.hpp"
+#include "gl/Surfaces.hpp"
 #include "gl/SubtreeTextures.hpp"
 
 #include "affresco/render/Font.hpp"
@@ -241,6 +242,7 @@ private:
 	detail::GeometryCache cache_;                                  ///< The panels' geometry, frame after frame.
 	ImageTextures images_;                                         ///< The images drawn.
 	SubtreeTextures subtrees_;                                     ///< The cached subtrees' textures.
+	Surfaces surfaces_;                                            ///< The GPU surfaces drawn.
 
 	// Per frame, reused so steady-state frames don't allocate
 	std::vector<detail::Vertex> vertices_;    ///< 4 per quad.

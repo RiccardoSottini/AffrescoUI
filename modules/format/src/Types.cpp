@@ -162,6 +162,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerToggleTypes(registry);
 	registerSliderType(registry);
 	registerImageType(registry);
+	registerSurfaceType(registry);
 	registerSplitType(registry);
 	registerTabsType(registry);
 	registerListTypes(registry);

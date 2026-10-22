@@ -92,7 +92,7 @@ void PaintRecorder::beginStep(PaintStep step, const Font* font, std::uint32_t pa
 		return;
 	const auto firstQuad = static_cast<std::uint32_t>(record_.vertices.size() / verticesPerQuad);
 	record_.ops.push_back({step, page, font, firstQuad, 0});
-	if(step == PaintStep::colorGlyph || step == PaintStep::image) record_.color = true;
+	if(step == PaintStep::colorGlyph || step == PaintStep::image || step == PaintStep::surface) record_.color = true;
 }
 
 void PaintRecorder::addQuad(const std::array<Vertex, 4>& corners) {
@@ -180,6 +180,13 @@ void PaintRecorder::drawImage(const Bitmap& bitmap, const Rect& rect) {
 	beginStep(PaintStep::image);
 	record_.ops.back().bitmap = &bitmap;
 	pushQuad(rect, {0.0f, 0.0f, 1.0f, 1.0f}, colors::white, QuadKind::colorGlyph);
+}
+
+// The framebuffer's bottom row (v = 0) is the rectangle's bottom
+void PaintRecorder::drawSurface(const SurfaceView& view, const Rect& rect) {
+	beginStep(PaintStep::surface);
+	record_.ops.back().surface = &view;
+	pushQuad(rect, {0.0f, 1.0f, 1.0f, 0.0f}, colors::white, QuadKind::colorGlyph);
 }
 
 // Clips the quad to the panel (adjusting the texture coordinates to match) and adds it

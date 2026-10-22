@@ -210,6 +210,7 @@ void QuadRenderer::startFrame() {
 	clipDepth_ = 0;
 	std::erase_if(fontTextures_, [](const auto& entry) { return entry.second.font.expired(); });
 	images_.collect();
+	surfaces_.collect();
 }
 
 void QuadRenderer::draw(const detail::Frame& frame, const std::optional<Rect>& region, bool shapes, bool color) {
@@ -407,6 +408,14 @@ void QuadRenderer::replay(const detail::PaintRecord& record, std::size_t first, 
 			const ImageTextures::Placement placed = images_.place(*op.bitmap);
 			useColorTexture(placed.texture, nullptr, 0);
 			addQuads(record, op, false, &placed.uv);
+			break;
+		}
+		case PaintStep::surface: { // drawn into its framebuffer first if it changed; nothing if it failed
+			const GLuint texture = surfaces_.place(op.surface->state());
+			if(texture == 0) break;
+			if(batches_.empty()) useTexture(whiteTexture_.id(), {0.5f, 0.5f});
+			useColorTexture(texture, nullptr, 0);
+			addQuads(record, op, false);
 			break;
 		}
 		}

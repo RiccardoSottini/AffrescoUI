@@ -17,6 +17,7 @@
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
 #include "affresco/format/Features.hpp"
@@ -121,6 +122,13 @@ public:
 	/// @param apply Applies them; may be empty if there are none.
 	void registerType(std::string name, Factory factory, std::vector<std::string> properties = {},
 	                  ApplyProperties apply = {});
+
+	/// @brief Registers a GPU surface that "surface" nodes may name (GpuSurface.hpp): the file only names it and gives
+	/// it "params"; it never supplies shader source.
+	/// @param name Its name.
+	/// @param factory Makes one for each panel that shows it.
+	/// @param options Its framebuffer's options (a depth and stencil buffer).
+	void registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options = {});
 
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
@@ -414,7 +422,7 @@ public:
 	/// @param options Origins and limits.
 	/// @return The port listened on.
 	/// @throws std::runtime_error See above.
-	template<std::derived_from<net::TokenVerifier> Verifier>
+	template <std::derived_from<net::TokenVerifier> Verifier>
 	std::uint16_t listenWebSocket(Executor& executor, std::string_view address, Verifier verifier,
 	                              net::PeerServerOptions options = {}) {
 		return listenWebSocket(executor, address, std::make_shared<Verifier>(std::move(verifier)), std::move(options));

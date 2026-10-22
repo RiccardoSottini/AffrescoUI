@@ -37,6 +37,7 @@ public:
 	void strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) override;
 	void drawShadow(const Rect& rect, const CornerRadii& radii, const Shadow& shadow) override;
 	void drawImage(const Bitmap& bitmap, const Rect& rect) override;
+	void drawSurface(const SurfaceView& view, const Rect& rect) override;
 	void fillMesh(std::span<const MeshVertex> quads, Vec2 offset, Color color) override;
 
 private:

@@ -1,0 +1,37 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 1,
+	"note": "GPU surfaces, for the rendering check: a depth-tested cube turned and clipped by its parent, a shader surface turned and scaled, a two-pass blur, and a surface that fails (a GL error) between two labels. The runner registers the example surfaces at a fixed time.",
+
+	"window": { "title": "Surfaces", "width": 560, "height": 320 },
+
+	"fonts": {
+		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 }
+	},
+
+	"colors": { "background": "#f8fafc", "frame": "#e2e8f0", "text": "#0f172a" },
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{
+				"id": "frame", "x": 30, "y": 40, "width": 220, "height": 200, "color": "@frame", "radius": 8,
+				"children": [
+					{ "type": "surface", "id": "cube", "surface": "cube", "params": { "angle": 30 },
+						"x": 70, "y": 50, "width": 180, "height": 180, "color": "#334155", "rotate": 20 }
+				]
+			},
+			{ "type": "surface", "id": "plasma", "surface": "plasma", "x": 290, "y": 40, "width": 110, "height": 110,
+				"rotate": -10, "scale": 1.1 },
+			{ "type": "surface", "id": "blur", "surface": "blur", "params": { "radius": 5 },
+				"x": 430, "y": 40, "width": 110, "height": 110 },
+			{ "type": "label", "id": "left", "x": 290, "y": 210, "width": 80, "height": 30, "textColor": "@text",
+				"text": "Before" },
+			{ "type": "surface", "id": "broken", "surface": "broken", "x": 370, "y": 190, "width": 80, "height": 70 },
+			{ "type": "label", "id": "right", "x": 460, "y": 210, "width": 80, "height": 30, "textColor": "@text",
+				"text": "After" }
+		]
+	}
+}

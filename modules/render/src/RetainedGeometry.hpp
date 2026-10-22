@@ -16,6 +16,7 @@
 namespace affresco {
 
 class Bitmap;
+class SurfaceView;
 class Font;
 
 namespace detail {
@@ -50,16 +51,18 @@ enum class PaintStep : std::uint8_t {
 	glyphs,     ///< Glyphs of coverage from one atlas page of the text's font.
 	colorGlyph, ///< A colour glyph from one colour page of the text's font.
 	image,      ///< An image: its texture on the colour unit, next to the coverage page in use.
+	surface,    ///< A GPU surface: drawn into its framebuffer if it changed, whose texture is then used as an image's.
 };
 
 /// @brief One step of a recorded drawing, and the quads it adds.
 struct PaintOp {
-	PaintStep step = PaintStep::fill; ///< What it does.
-	std::uint32_t page = 0;           ///< glyphs, colorGlyph: the atlas page.
-	const Font* font = nullptr;       ///< text, glyphs, colorGlyph: the font (alive while the panel holds it).
-	std::uint32_t firstQuad = 0;      ///< Its first quad in the record's vertices.
-	std::uint32_t quads = 0;          ///< Its quads (0 when all were clipped away: the step still changes batches).
-	const Bitmap* bitmap = nullptr;   ///< image: the image (alive while the panel holds it).
+	PaintStep step = PaintStep::fill;     ///< What it does.
+	std::uint32_t page = 0;               ///< glyphs, colorGlyph: the atlas page.
+	const Font* font = nullptr;           ///< text, glyphs, colorGlyph: the font (alive while the panel holds it).
+	std::uint32_t firstQuad = 0;          ///< Its first quad in the record's vertices.
+	std::uint32_t quads = 0;              ///< Its quads (0 when all were clipped away: the step still changes batches).
+	const Bitmap* bitmap = nullptr;       ///< image: the image (alive while the panel holds it).
+	const SurfaceView* surface = nullptr; ///< surface: the panel showing it (alive while the record is).
 };
 
 /// @brief What a panel's paint() and paintOver() drew: the quads, already clipped, and the steps that place them in

@@ -7,8 +7,11 @@ set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/examples/CodeEditor.cpp ${forge_dir}/Forge.cpp
 	${forge_dir}/features/palette/FileIndex.cpp ${forge_dir}/features/themes/ThemeImport.cpp
 	${forge_dir}/features/themes/IconTheme.cpp ${forge_dir}/features/explorer/Explorer.cpp
-	${forge_dir}/features/terminal/Terminal.cpp ${forge_dir}/features/terminal/TerminalModel.cpp)
+	${forge_dir}/features/terminal/Terminal.cpp ${forge_dir}/features/terminal/TerminalModel.cpp
+	${PROJECT_SOURCE_DIR}/examples/surfaces/Surfaces.cpp)
 target_include_directories(affrescoui_render_runner PRIVATE ${PROJECT_SOURCE_DIR}/examples ${forge_dir})
+# The example surfaces, and a failing one, draw with OpenGL (surfaces.json)
+target_include_directories(affrescoui_render_runner SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include)
 target_compile_definitions(affrescoui_render_runner PRIVATE
 	AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/forge/folder" AFFRESCOUI_FORGE_DIRECTORY="${forge_dir}")
 target_link_libraries(affrescoui_render_runner PRIVATE affrescoui::automation affrescoui_vterm)

@@ -102,7 +102,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -284,6 +284,29 @@ picture appears when it is ready (a picture of the screen, `render`, waits for e
 ```
 
 Small images (up to 256 pixels a side) share textures, so a list of thumbnails draws in one batch with its text.
+
+### `surface`
+Native GPU drawing the host registered with `Screen::registerSurface`: a shader, a 3D view, a video. The host's code
+draws into a framebuffer of the node's size in pixels, with its own OpenGL state, and the node shows the result like an
+image: clipped, transformed and redrawn only when it changes. The pointer's moves, presses and scrolls on the node reach
+the surface in its own pixels. A surface that raises an OpenGL error is disabled (and logged once); the rest of the
+window draws as before.
+
+<!-- generated: surface -->
+| Key | Meaning |
+|---|---|
+| `surface` | The name of a GPU surface the host registered (`Screen::registerSurface("cube", …)`). A document can only name one: it never supplies shader source. A name that isn't registered is an error at the node. |
+| `params` | An object the surface reads each time it draws, e.g. `{ "speed": 2 }`: bind its values to the state and it draws again when they change. |
+| `continuous` | `true` draws it every frame (an animation), with the time since the screen started. Default: `false`, drawn only when `params`, its size or its input change. |
+<!-- end generated -->
+
+```json
+{ "type": "surface", "surface": "cube", "params": { "speed": "{{state.speed}}" }, "continuous": true,
+  "width": 240, "height": 240, "rotate": 6 }
+```
+
+A document can't supply shader source: it only names what the host registered (see `SECURITY.md` for the limits on
+a surface's passes and memory).
 
 ### `split`
 Its children are panes laid side by side (or one above the other), with a sash between each two: drag a sash to

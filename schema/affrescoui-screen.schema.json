@@ -693,7 +693,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, surface, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -709,6 +709,7 @@
 									"checkbox",
 									"slider",
 									"image",
+									"surface",
 									"split",
 									"tabs",
 									"list",
@@ -1650,6 +1651,31 @@
 						],
 						"description": "image and path: contain (default), cover or fill, like CSS object-fit"
 					},
+					"surface": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "surface: the name of a GPU surface the host registered (Screen::registerSurface)"
+					},
+					"params": {
+						"anyOf": [
+							{
+								"type": "object"
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "surface: what the surface draws, an object it reads (e.g. a colour, a speed)"
+					},
+					"continuous": {
+						"$ref": "#/$defs/v1/flag"
+					},
 					"value": {
 						"description": "slider: a number; split: the panes' sizes; tabs: the active tab's id; list, tree: the selected id or ids",
 						"anyOf": [
@@ -2125,6 +2151,7 @@
 									"checkbox",
 									"slider",
 									"image",
+									"surface",
 									"split",
 									"tabs",
 									"list",

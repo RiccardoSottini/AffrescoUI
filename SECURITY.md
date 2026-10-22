@@ -316,7 +316,8 @@ the sender's own claim. Any peer can send one.
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
 or write files, apart from the parts of the state its `persist` section lists, which go to the state file the host
-chose.
+chose. A `surface` node only names a GPU surface the host registered (`Screen::registerSurface`) and gives it
+parameters: a document never supplies shader source or GPU code.
 
 ### Features and catalogues
 A feature package or a catalogue's index (RFC 0004) is untrusted input, read like a screen file: size limits (an
@@ -445,6 +446,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A screen's `connections` | 64 connections, 256 operations and messages each; a `timeout` of 10 minutes at most (30 s by default), `retry.times` 5 at most |
 | Requests one connection starts (`request`, `subscribe`) | 50 a second; more fail with `refused`. Each also has the `net` module's limits above |
 | Headers a connection or an operation declares | Names that are HTTP tokens of 64 bytes at most; never `Authorization`, `Proxy-Authorization`, `Cookie`, `Host`, `Content-Length` or `Transfer-Encoding` (credentials come from sign-in, never from the document) |
+| Passes of one GPU surface (`SurfaceFrame::pass`) | 8; a pass and the surface itself at most 4,096 pixels a side; the surface's framebuffer (counted twice, for colour and depth) and its passes 256 MiB in all. Over a limit, the surface is disabled with one logged error |
+| Pointer events a GPU surface holds between two renders | 256; older ones are dropped |
 
 A revision's operations are applied before any permission rule judges them, so the limits on revisions above
 hold for every peer, whatever the rules allow it. JSON from outside the app (`parseUntrusted`) is read in time in
