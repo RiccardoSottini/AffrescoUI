@@ -69,8 +69,8 @@ include(cmake/AffrescoUINetwork.cmake)
 
 # Monocypher: the Ed25519 signatures of features and catalogues (RFC 0004, decision D12)
 include(cmake/AffrescoUISignatures.cmake)
-# libvterm: the terminal emulator of Forge's terminal panel, which the examples and the tests build
-if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS)
+# libvterm: the terminal emulator of Forge's terminal panel, which the examples, the tests and the benchmarks build
+if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS OR AFFRESCOUI_BUILD_BENCHMARKS)
 	include(cmake/AffrescoUITerminal.cmake)
 endif()
 
