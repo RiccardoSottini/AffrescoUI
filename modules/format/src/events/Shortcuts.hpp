@@ -32,11 +32,6 @@ namespace affresco::format {
 /// @return The normalised chord, its presses joined by one space.
 [[nodiscard]] std::string normalizeChord(std::string_view text);
 
-/// @brief The presses of a normalised chord.
-/// @param chord The chord, as normalizeChord() writes it.
-/// @return How many presses it has: 1 for a single press.
-[[nodiscard]] std::size_t chordLength(std::string_view chord);
-
 /// @brief A normalised chord as people read it: "⌘K ⌘S" on macOS, "Ctrl+K Ctrl+S" elsewhere.
 /// @param chord The chord, as normalizeChord() writes it.
 /// @return Its label.

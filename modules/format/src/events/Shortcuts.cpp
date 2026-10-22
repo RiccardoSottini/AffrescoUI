@@ -167,10 +167,6 @@ std::string normalizeChord(std::string_view text) {
 	return chord;
 }
 
-std::size_t chordLength(std::string_view chord) {
-	return chord.empty() ? 0 : static_cast<std::size_t>(std::ranges::count(chord, ' ')) + 1;
-}
-
 std::string keyLabel(std::string_view chord) {
 	std::string label;
 	for(std::size_t at = 0; at <= chord.size();) {

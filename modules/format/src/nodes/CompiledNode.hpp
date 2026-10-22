@@ -20,11 +20,6 @@ namespace affresco::format {
 /// @brief A node to build: shared, so a repeat's items don't each copy their template (and its children).
 using NodeRef = std::shared_ptr<const json>;
 
-/// @brief Refers to a node of the document without copying it (the document outlives an update).
-/// @param node The node.
-/// @return The reference.
-inline NodeRef borrow(const json& node) { return NodeRef(NodeRef(), &node); }
-
 /// @brief What a property of a node sets, decided when the node is compiled: the update then dispatches on it
 /// instead of comparing the key's text.
 enum class Slot : std::uint8_t {
