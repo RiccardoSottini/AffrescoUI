@@ -37,13 +37,18 @@ bool nameCharacter(char c) {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.';
 }
 
-/// @brief Replaces every whole `app.<name>` in a text.
+/// @brief Replaces every whole `app.<name>` in a text, building the result in one pass.
 /// @param text The text.
 /// @param name The export's name ("editor.text").
 /// @param expression What it stands for.
-/// @return The text, changed.
-std::string replaceName(std::string text, const std::string& name, const std::string& expression) {
+/// @param room How many bytes the replacements may still add, lowered by what they add.
+/// @return The text, changed, or std::nullopt if the replacements would add more than `room`.
+std::optional<std::string> replaceName(std::string text, const std::string& name, const std::string& expression,
+                                       std::size_t& room) {
 	const std::string target = "app." + name;
+	const std::size_t added = expression.size() > target.size() ? expression.size() - target.size() : 0;
+	std::string result;
+	std::size_t copied = 0;
 	for(std::size_t at = text.find(target); at != std::string::npos; at = text.find(target, at)) {
 		const std::size_t end = at + target.size();
 		if((at > 0 && nameCharacter(text[at - 1])) || (end < text.size() && nameCharacter(text[end]) && text[end] != '.') ||
@@ -51,10 +56,14 @@ std::string replaceName(std::string text, const std::string& name, const std::st
 			at = end;
 			continue;
 		}
-		text.replace(at, target.size(), expression);
-		at += expression.size();
+		if(added > room) return std::nullopt;
+		room -= added;
+		result.append(text, copied, at - copied).append(expression);
+		copied = at = end;
 	}
-	return text;
+	if(copied == 0) return text;
+	result.append(text, copied);
+	return result;
 }
 
 /// @brief The expression inside "{{...}}".
@@ -75,19 +84,26 @@ std::optional<std::string> soleExpression(const std::string& value) {
 /// the bare expression in a path ("in": "app.workspace.files").
 /// @param value The value, changed in place.
 /// @param exports The exports, longest names first.
+/// @param room How many bytes the replacements may still add, lowered by what they add.
 /// @param depth How deep the walk is, bounded by maxNesting.
-void replaceExports(json& value, const std::vector<std::pair<std::string, std::string>>& exports, int depth = 0) {
-	if(depth > maxNesting) return;
+/// @return false if the replacements would add more than `room` (the value is then partly replaced).
+bool replaceExports(json& value, const std::vector<std::pair<std::string, std::string>>& exports, std::size_t& room,
+                    int depth = 0) {
+	if(depth > maxNesting) return true;
 	if(value.is_structured()) {
-		for(auto& item : value) replaceExports(item, exports, depth + 1);
-		return;
+		for(auto& item : value)
+			if(!replaceExports(item, exports, room, depth + 1)) return false;
+		return true;
 	}
-	if(!value.is_string() || !value.get_ref<const std::string&>().contains("app.")) return;
-	std::string text = value.get<std::string>();
-	const bool expression = text.contains("{{");
-	for(const auto& [name, replacement] : exports)
-		text = replaceName(std::move(text), name, expression ? "(" + replacement + ")" : replacement);
-	value = std::move(text);
+	if(!value.is_string() || !value.get_ref<const std::string&>().contains("app.")) return true;
+	std::optional<std::string> text = value.get<std::string>();
+	const bool expression = text->contains("{{");
+	for(const auto& [name, replacement] : exports) {
+		text = replaceName(std::move(*text), name, expression ? "(" + replacement + ")" : replacement, room);
+		if(!text) return false;
+	}
+	value = std::move(*text);
+	return true;
 }
 
 /// @brief Gives every `"use": "<alias>.<component>"` in a value the feature's name instead of the alias.
@@ -334,8 +350,14 @@ private:
 	/// @param adapted What it provides with its bindings applied, and what its needs stand for.
 	void merge(const std::string& name, const json& record, AdaptedFeature adapted) {
 		json provides = std::move(adapted.provides);
-		replaceExports(provides, adapted.replacements);
-		replaceExports(provides, exportsByLength());
+		// A feature's exports join exports_ expanded, so a later feature that uses one many times would multiply its
+		// text, and a chain of them would double it at each step: what the expansions add is bounded per feature.
+		std::size_t room = maxManifestBytes;
+		if(!replaceExports(provides, adapted.replacements, room) || !replaceExports(provides, exportsByLength(), room)) {
+			problem(std::format("features.{}.provides", name),
+			        std::format("its uses of the exports grow it by more than {} bytes", maxManifestBytes));
+			return;
+		}
 		if(provides.contains("state")) screen_["state"][name] = provides["state"];
 		if(provides.contains("computed") && !provides["computed"].empty()) mergeComputed(name, provides["computed"]);
 		for(const std::string_view section : prefixedSections)

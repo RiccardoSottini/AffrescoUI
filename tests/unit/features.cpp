@@ -202,6 +202,30 @@ TEST_CASE("features: what keeps a feature out is named with its place") {
 	}
 }
 
+TEST_CASE("features: a chain of features can't grow the exports without bound") {
+	// Each feature exports its predecessor's export twice, so the expressions double from one to the next: without a
+	// bound, thirty of them would compose a screen of gigabytes.
+	json document = app();
+	for(int index = 0; index < 30; ++index) {
+		const std::string name = "double" + std::to_string(index);
+		const std::string previous = index == 0 ? "editor.text" : "double" + std::to_string(index - 1) + ".text";
+		json manifest = {{"format", "affrescoui-feature"},
+		                 {"version", 2},
+		                 {"name", name},
+		                 {"release", "1.0.0"},
+		                 {"title", name},
+		                 {"requires", {{"format", 2}, {"exports", {{previous, {{"type", "string"}}}}}}},
+		                 {"provides",
+		                  {{"exports",
+		                    {{"text", {{"type", "string"}, {"value", "{{app." + previous + " + app." + previous + "}}"}}}}}}}};
+		document["features"][name] = affresco::format::recordFor(manifest, "revision", "", "", index);
+	}
+	const std::string text = problems(document);
+	INFO(text);
+	CHECK(text.contains("features.double15.provides: its uses of the exports grow it by more than 1048576 bytes"));
+	CHECK_FALSE(text.contains("features.double14.provides"));
+}
+
 TEST_CASE("features: two packages install, are disabled, enabled and removed by revision, each step undoable") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, app());
