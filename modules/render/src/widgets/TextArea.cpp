@@ -9,6 +9,44 @@
 
 namespace affresco {
 
+namespace {
+
+/// @brief Whether a character is an ASCII digit.
+/// @param codepoint The character.
+/// @return true for 0 to 9.
+constexpr bool isDigit(char32_t codepoint) noexcept { return codepoint >= U'0' && codepoint <= U'9'; }
+
+/// @brief Whether a character is a letter: an ASCII one, or any past Latin-1's symbols that isn't punctuation we
+/// know (the general and CJK punctuation, the arrows, the symbols and the box drawing).
+/// @param codepoint The character.
+/// @return true if it counts as a letter.
+constexpr bool isLetter(char32_t codepoint) noexcept {
+	const bool asciiLetter = (codepoint >= U'a' && codepoint <= U'z') || (codepoint >= U'A' && codepoint <= U'Z');
+	if(asciiLetter) return true;
+	if(codepoint < 0xC0 || codepoint == 0xD7 || codepoint == 0xF7) return false;
+	return !(codepoint >= 0x2000 && codepoint <= 0x2BFF) && !(codepoint >= 0x3000 && codepoint <= 0x303F);
+}
+
+/// @brief Whether a key event pastes: V with Command or Control, pressed or repeated.
+/// @param event The event.
+/// @return true if it pastes.
+bool isPaste(const KeyEvent& event) noexcept {
+	return event.key == Key::V && event.action != Action::Release && (event.mods.super() || event.mods.control());
+}
+
+/// @brief Clipboard text as one line: its line breaks and tabs become spaces.
+/// @param utf8 The text.
+/// @return The line.
+std::u32string pastedLine(std::string_view utf8) {
+	std::u32string pasted = detail::fromUtf8(utf8);
+	std::ranges::replace(pasted, U'\n', U' ');
+	std::ranges::replace(pasted, U'\r', U' ');
+	std::ranges::replace(pasted, U'\t', U' ');
+	return pasted;
+}
+
+} // namespace
+
 TextArea::TextArea() {
 	setColor(colors::white);
 	setCursor(Cursor::IBeam);
@@ -33,21 +71,15 @@ void TextArea::setSecret(bool secret) {
 }
 
 bool TextArea::accepts(char32_t codepoint) const noexcept {
-	const bool digit = codepoint >= U'0' && codepoint <= U'9';
-	// Letters: ASCII ones, and any character past Latin-1's symbols that isn't a digit or punctuation we know
-	const bool asciiLetter = (codepoint >= U'a' && codepoint <= U'z') || (codepoint >= U'A' && codepoint <= U'Z');
-	const bool letter =
-	    asciiLetter || (codepoint >= 0xC0 && codepoint != 0xD7 && codepoint != 0xF7 &&
-		                !(codepoint >= 0x2000 && codepoint <= 0x2BFF) && !(codepoint >= 0x3000 && codepoint <= 0x303F));
 	switch(accept_) {
 	case Accept::Any:
 		return true;
 	case Accept::Digits:
-		return digit;
+		return isDigit(codepoint);
 	case Accept::Letters:
-		return letter;
+		return isLetter(codepoint);
 	case Accept::Alphanumeric:
-		return digit || letter;
+		return isDigit(codepoint) || isLetter(codepoint);
 	}
 	return true;
 }
@@ -73,13 +105,7 @@ void TextArea::keyEvent(const KeyEvent& event) {
 		onTextChanged(text());
 	}
 
-	const bool paste =
-	    event.key == Key::V && event.action != Action::Release && (event.mods.super() || event.mods.control());
-	if(paste && window()) {
-		std::u32string pasted = detail::fromUtf8(window()->clipboardText());
-		std::ranges::replace_if(pasted, [](char32_t c) { return c == U'\n' || c == U'\r' || c == U'\t'; }, U' ');
-		if(insert(pasted)) onTextChanged(text());
-	}
+	if(isPaste(event) && window() && insert(pastedLine(window()->clipboardText()))) onTextChanged(text());
 
 	if(secret_ && event.key == Key::C) return; // a secret is never copied
 	Label::keyEvent(event);

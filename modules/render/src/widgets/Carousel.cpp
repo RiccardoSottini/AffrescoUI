@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <optional>
 
 namespace affresco {
 
@@ -26,6 +27,20 @@ constexpr std::size_t mostDots = 40; ///< Beyond this many pages, no dots are dr
 float dotCentre(std::size_t index, std::size_t count, float width) noexcept {
 	const float row = static_cast<float>(count) * dotSize + static_cast<float>(count - 1) * dotGap;
 	return (width - row) / 2.0f + static_cast<float>(index) * (dotSize + dotGap) + dotSize / 2.0f;
+}
+
+/// @brief The dot under a point of the dots' strip.
+/// @param x The point's x, from the carousel's left edge.
+/// @param count The number of dots.
+/// @param width The carousel's width.
+/// @param rightToLeft Whether the dots run right to left.
+/// @return The dot, or nothing between and around them.
+std::optional<std::size_t> dotAt(float x, std::size_t count, float width, bool rightToLeft) noexcept {
+	for(std::size_t dot = 0; dot < count; ++dot) {
+		const float centre = dotCentre(rightToLeft ? count - 1 - dot : dot, count, width);
+		if(std::abs(x - centre) <= (dotSize + dotGap) / 2.0f) return dot;
+	}
+	return std::nullopt;
 }
 
 } // namespace
@@ -121,11 +136,8 @@ int Carousel::controlAt(Vec2 position) const noexcept {
 	}
 	const std::size_t count = pageCount();
 	if(!dots_ || count == 0 || count > mostDots || y < box.height() - strip) return 0;
-	for(std::size_t dot = 0; dot < count; ++dot) {
-		const float centre = dotCentre(rightToLeft() ? count - 1 - dot : dot, count, box.width());
-		if(std::abs(x - centre) <= (dotSize + dotGap) / 2.0f) return static_cast<int>(dot) + 2;
-	}
-	return 0;
+	const std::optional<std::size_t> dot = dotAt(x, count, box.width(), rightToLeft());
+	return dot ? static_cast<int>(*dot) + 2 : 0;
 }
 
 void Carousel::mouseButtonEvent(const MouseButtonEvent& event) {

@@ -28,6 +28,27 @@ std::vector<Panel*> panesOf(const Panel& panel) {
 	return result;
 }
 
+/// @brief How far an arrow key moves a sash: back with Left or Up, on with Right or Down, along the split.
+/// @param key The key.
+/// @param row Whether the panes are in a row.
+/// @param step How far a key moves it.
+/// @return The move, or 0 for another key.
+constexpr float sashMove(Key key, bool row, float step) noexcept {
+	if(key == (row ? Key::Left : Key::Up)) return -step;
+	if(key == (row ? Key::Right : Key::Down)) return step;
+	return 0.0f;
+}
+
+/// @brief The sash before or after another, wrapping around.
+/// @param at The sash.
+/// @param sashes How many there are; at least one.
+/// @param forward Whether to take the one after.
+/// @return Its index.
+constexpr std::size_t cycledSash(std::size_t at, std::size_t sashes, bool forward) noexcept {
+	if(forward) return (at + 1) % sashes;
+	return at == 0 ? sashes - 1 : at - 1;
+}
+
 } // namespace
 
 Split::Split(Direction direction) : direction_(direction) {
@@ -184,10 +205,9 @@ void Split::keyEvent(const KeyEvent& event) {
 		const bool row = direction_ == Direction::Row;
 		const float step = event.mods.shift() ? bigKeyStep : keyStep;
 		activeSash_ = std::min(activeSash_, sashes - 1);
-		if(event.key == (row ? Key::Left : Key::Up)) moveSash(activeSash_, -step);
-		else if(event.key == (row ? Key::Right : Key::Down)) moveSash(activeSash_, step);
-		else if(event.key == Key::PageUp) activeSash_ = activeSash_ == 0 ? sashes - 1 : activeSash_ - 1;
-		else if(event.key == Key::PageDown) activeSash_ = (activeSash_ + 1) % sashes;
+		if(const float move = sashMove(event.key, row, step); move != 0.0f) moveSash(activeSash_, move);
+		else if(event.key == Key::PageUp || event.key == Key::PageDown)
+			activeSash_ = cycledSash(activeSash_, sashes, event.key == Key::PageDown);
 		else if(event.key == Key::Home) reset();
 		invalidatePaint();
 	}

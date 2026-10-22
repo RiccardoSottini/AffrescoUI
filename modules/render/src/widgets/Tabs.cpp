@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace affresco {
 
@@ -24,6 +25,40 @@ constexpr char32_t closeMark = U'×';
 /// @brief Whether a tab has room for a close button or a marker.
 /// @param tab The tab.
 [[nodiscard]] bool hasButton(const Tab& tab) noexcept { return tab.closable || tab.marker; }
+
+/// @brief Whether a mouse button event is the left button doing something.
+/// @param event The event.
+/// @param action What it should do.
+/// @return true if it is.
+constexpr bool isLeft(const MouseButtonEvent& event, Action action) noexcept {
+	return event.button == MouseButton::Left && event.action == action;
+}
+
+/// @brief Where a moved tab goes, from where it was dropped: the place counts the moved tab, the result doesn't.
+/// @param to The place it was dropped at, among all the tabs.
+/// @param from Where it was.
+/// @return Its index once moved.
+constexpr std::size_t withoutMoved(std::size_t to, std::size_t from) noexcept { return to > from ? to - 1 : to; }
+
+/// @brief The tab a key moves the active one to.
+/// @param key The key.
+/// @param active The active tab's index, or count if there is none.
+/// @param count How many tabs there are; at least one.
+/// @return Its index, or nothing for another key.
+constexpr std::optional<std::size_t> steppedTab(Key key, std::size_t active, std::size_t count) noexcept {
+	switch(key) {
+	case Key::Left:
+		return active == 0 || active >= count ? 0 : active - 1;
+	case Key::Right:
+		return active >= count ? 0 : std::min(active + 1, count - 1);
+	case Key::Home:
+		return 0;
+	case Key::End:
+		return count - 1;
+	default:
+		return std::nullopt;
+	}
+}
 
 } // namespace
 
@@ -132,18 +167,17 @@ void Tabs::activate(std::size_t index) {
 }
 
 void Tabs::mouseButtonEvent(const MouseButtonEvent& event) {
-	if(event.button == MouseButton::Left && event.action == Action::Press) {
+	if(isLeft(event, Action::Press)) {
 		pressed_ = tabAt(event.position);
 		pressX_ = event.position.x;
 		reordering_ = false;
 		if(pressed_ < tabs_.size() && !onCloseButton(pressed_, event.position)) activate(pressed_);
-	} else if(event.button == MouseButton::Left && event.action == Action::Release && pressed_ < tabs_.size()) {
+	} else if(isLeft(event, Action::Release) && pressed_ < tabs_.size()) {
 		const std::size_t from = pressed_;
 		pressed_ = tabs_.size();
 		if(reordering_) {
 			reordering_ = false;
-			std::size_t to = insertionAt(event.position);
-			if(to > from) --to; // counted without the moved tab
+			const std::size_t to = withoutMoved(insertionAt(event.position), from);
 			showDropIndicator(std::nullopt);
 			// Outside the strip it isn't a reorder (it may be a drop on another strip)
 			if(to != from && frame().contains(event.position)) onMoved(TabMove{tabs_[from].id, from, to});
@@ -179,10 +213,7 @@ void Tabs::hoverEvent(bool hovered) {
 void Tabs::keyEvent(const KeyEvent& event) {
 	const std::size_t active = activeIndex(), count = tabs_.size();
 	if(count > 0 && event.action != Action::Release) {
-		if(event.key == Key::Left) activate(active == 0 || active >= count ? 0 : active - 1);
-		else if(event.key == Key::Right) activate(active >= count ? 0 : std::min(active + 1, count - 1));
-		else if(event.key == Key::Home) activate(0);
-		else if(event.key == Key::End) activate(count - 1);
+		if(const std::optional<std::size_t> to = steppedTab(event.key, active, count)) activate(*to);
 		else if(event.key == Key::Delete && active < count && tabs_[active].closable) {
 			const std::string id = tabs_[active].id;
 			onCloseRequested(id);

@@ -46,6 +46,15 @@ void centred(Painter& painter, const Font& font, std::u32string_view text, const
 	painter.drawText(font, text, {std::round(rect.left + (rect.width() - width) / 2.0f), baseline}, color);
 }
 
+/// @brief How opaque a day's number is: faint when it can't be picked, dimmer outside the month shown.
+/// @param enabled Whether it can be picked.
+/// @param inMonth Whether it is in the month shown.
+/// @return The alpha its colour is multiplied by.
+constexpr float dayAlpha(bool enabled, bool inMonth) noexcept {
+	if(!enabled) return 0.25f;
+	return inMonth ? 1.0f : 0.45f;
+}
+
 } // namespace
 
 Calendar::Calendar() {
@@ -245,17 +254,18 @@ void Calendar::paintDay(Painter& painter, const Layout& area, int index) const {
 	const Rect spot{disc.left, disc.top, disc.left + side, disc.top + side};
 	const CornerRadii round = CornerRadii::all(side / 2.0f);
 	const bool picked = value_ == day, enabled = isEnabled(day), inMonth = day.month == focused_.month;
+	const Color mark = picked ? onAccent_ : accent_; // what is drawn over the accent, or in it
 	if(picked) painter.fillRoundedRect(spot, round, accent_);
 	if(today_ == day && !picked) painter.strokeRoundedRect(spot, round, 1.0f, text_.withAlpha(0.5f));
-	if(hasFocus() && focused_ == day) painter.strokeRoundedRect(spot, round, 2.0f, picked ? onAccent_ : accent_);
+	if(hasFocus() && focused_ == day) painter.strokeRoundedRect(spot, round, 2.0f, mark);
 	if(std::ranges::binary_search(marked_, day)) {
 		const float dot = 2.0f, middle = std::round(cell.left + cell.width() / 2.0f);
 		painter.fillRoundedRect({middle - dot, spot.bottom - 3.0f * dot, middle + dot, spot.bottom - dot},
-		                        CornerRadii::all(dot), picked ? onAccent_ : accent_);
+		                        CornerRadii::all(dot), mark);
 	}
 	const Font* text = font();
 	if(!text) return;
-	const float alpha = !enabled ? 0.25f : inMonth ? 1.0f : 0.45f;
+	const float alpha = dayAlpha(enabled, inMonth);
 	centred(painter, *text, numberText(day.day), cell, picked ? onAccent_ : text_.withAlpha(text_.a * alpha));
 }
 

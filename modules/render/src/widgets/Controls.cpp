@@ -3,8 +3,42 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace affresco {
+
+namespace {
+
+/// @brief Where a key moves a slider's value: a step with the arrows, ten with the page keys, an end with Home and End.
+/// @param key The key.
+/// @param value The value.
+/// @param step The step.
+/// @param minimum The minimum.
+/// @param maximum The maximum.
+/// @return The value it asks for, or nothing for another key.
+constexpr std::optional<double> keyedValue(Key key, double value, double step, double minimum,
+                                           double maximum) noexcept {
+	switch(key) {
+	case Key::Right:
+	case Key::Up:
+		return value + step;
+	case Key::Left:
+	case Key::Down:
+		return value - step;
+	case Key::PageUp:
+		return value + step * 10.0;
+	case Key::PageDown:
+		return value - step * 10.0;
+	case Key::Home:
+		return minimum;
+	case Key::End:
+		return maximum;
+	default:
+		return std::nullopt;
+	}
+}
+
+} // namespace
 
 /* Toggle */
 
@@ -95,14 +129,8 @@ void Slider::change(double value) {
 
 void Slider::keyEvent(const KeyEvent& event) {
 	const double step = step_ > 0.0 ? step_ : (maximum_ - minimum_) / 100.0;
-	if(event.action != Action::Release && !event.mods.alt() && !event.mods.control() && !event.mods.super()) {
-		if(event.key == Key::Right || event.key == Key::Up) change(value_ + step);
-		else if(event.key == Key::Left || event.key == Key::Down) change(value_ - step);
-		else if(event.key == Key::PageUp) change(value_ + step * 10.0);
-		else if(event.key == Key::PageDown) change(value_ - step * 10.0);
-		else if(event.key == Key::Home) change(minimum_);
-		else if(event.key == Key::End) change(maximum_);
-	}
+	if(event.action != Action::Release && !event.mods.alt() && !event.mods.control() && !event.mods.super())
+		if(const std::optional<double> value = keyedValue(event.key, value_, step, minimum_, maximum_)) change(*value);
 	Panel::keyEvent(event);
 }
 
