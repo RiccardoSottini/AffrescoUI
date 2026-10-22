@@ -84,6 +84,9 @@ as the OpenGL driver's, aren't counted.
 | `views/list-scroll-100k` | A list of 100,000 rows scrolled to a new place, then a frame: only the rows in view are drawn |
 | `views/table-sort-100k` | A table of 100,000 rows sorted by a column of numbers, descending or ascending (each run does both) |
 | `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
+| `forge/open` | Forge (`examples/forge`), the demo IDE, parsed with its features, built with its natives, its folder (`tests/render/forge/folder`) indexed, and laid out (`forge.cpp`) |
+| `forge/type`, `forge/switch-tab` | In Forge with two files open, a character typed into the first one, or the other tab shown; the update and the layout |
+| `forge/search`, `forge/palette` | Forge's quick open filtered by a file name; its command palette opened, then filtered |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

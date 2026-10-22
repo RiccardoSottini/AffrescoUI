@@ -1,5 +1,5 @@
 {
-	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400; the limits leave room for runners and callgrind.",
+	"note": "Gains locked in (compare.py): each workload must cost at most atMost times another of the same run, in the same unit. Measured on macOS (wall clock) when set: layout/5000/change 0.007 of layout/5000, frame/blink/400/drawn 0.21 of frame/400, frame/blink/400 0.46 of frame/400; the limits leave room for runners and callgrind. forge/type 0.036, forge/switch-tab 0.037 and forge/palette 0.071 of forge/open.",
 	"locks": [
 		{
 			"name": "layout/5000/change",
@@ -18,6 +18,24 @@
 			"of": "frame/400",
 			"atMost": 0.8,
 			"why": "a frame where nothing but the caret changed reuses the cached draw list"
+		},
+		{
+			"name": "forge/type",
+			"of": "forge/open",
+			"atMost": 0.15,
+			"why": "a character typed into Forge's editor updates what reads that file, not the workbench"
+		},
+		{
+			"name": "forge/switch-tab",
+			"of": "forge/open",
+			"atMost": 0.15,
+			"why": "switching Forge's tab rebuilds one editor group, not the workbench"
+		},
+		{
+			"name": "forge/palette",
+			"of": "forge/open",
+			"atMost": 0.3,
+			"why": "opening and filtering Forge's command palette builds the palette alone"
 		}
 	]
 }

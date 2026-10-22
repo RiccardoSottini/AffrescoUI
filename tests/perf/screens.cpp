@@ -419,12 +419,9 @@ std::vector<Workload> frameWorkloads(Context& context) {
 } // namespace
 
 std::vector<Group> screenGroups() {
-	return {{"load", loadWorkloads},
-	        {"build", buildWorkloads},
-	        {"update", updateWorkloads},
-	        {"revision", revisionWorkloads},
-	        {"layout", layoutWorkloads},
-	        {"frame", frameWorkloads}};
+	return {{"load", loadWorkloads},         {"build", buildWorkloads},   {"update", updateWorkloads},
+	        {"revision", revisionWorkloads}, {"layout", layoutWorkloads}, {"frame", frameWorkloads},
+	        {"forge", forgeWorkloads}};
 }
 
 } // namespace affresco::bench

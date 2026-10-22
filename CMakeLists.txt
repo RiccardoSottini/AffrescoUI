@@ -118,6 +118,11 @@ if(AFFRESCOUI_INSTALL)
 	include(cmake/AffrescoUIInstall.cmake)
 endif()
 
+# Forge's natives, which the benchmark builds too (without the examples)
+set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
+	examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
+	examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitStatus.cpp
+	examples/forge/features/scm/GitArguments.cpp examples/forge/features/scm/LineDiff.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_host renders a screen and accepts peers; affrescoui_studio is a client for it (itself an AffrescoUI screen)
 	foreach(example host studio)
@@ -130,10 +135,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		target_compile_definitions(affrescoui_${example} PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 	endforeach()
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
-	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
-		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-		examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitStatus.cpp
-		examples/forge/features/scm/GitArguments.cpp examples/forge/features/scm/LineDiff.cpp)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui)
@@ -171,14 +172,15 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp examples/CodeEditor.cpp)
+		tests/perf/scaling_engine.cpp examples/CodeEditor.cpp tests/perf/forge.cpp ${AFFRESCOUI_FORGE_SOURCES})
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src modules/render/src)
+	target_include_directories(affrescoui_bench PRIVATE examples modules/format/src modules/render/src examples/forge)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets"
-		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf")
+		AFFRESCOUI_PERF_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/perf"
+		AFFRESCOUI_FORGE_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}/tests/render/forge/folder")
 	set_target_properties(affrescoui_bench PROPERTIES CXX_EXTENSIONS OFF)
 	target_compile_options(affrescoui_bench PRIVATE ${AFFRESCOUI_WARNINGS})
 endif()
