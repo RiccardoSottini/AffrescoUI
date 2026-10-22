@@ -270,25 +270,6 @@ TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 		document->changeLayer(group, "Opacity", [](Layer& layer) { layer.opacity = 0.6f; });
 		CHECK(compare(std::make_shared<CanvasModel>(std::move(document))).largest <= 3);
 	}
-	SUBCASE("every adjustment") {
-		for(std::size_t kind = 0; kind < adjustmentKindCount; ++kind) {
-			auto document = painted();
-			(void)addPainted(*document, "Top", {20, 10, 290, 190});
-			Adjustment adjustment;
-			adjustment.kind = static_cast<AdjustmentKind>(kind);
-			adjustment.gamma = 1.6f, adjustment.curve = {{0.0f, 0.1f}, {0.5f, 0.7f}, {1.0f, 0.9f}};
-			adjustment.hue = 40.0f, adjustment.saturation = 0.3f, adjustment.lightness = 0.1f;
-			adjustment.balance = {0.3f, -0.2f, 0.1f}, adjustment.brightness = 0.1f, adjustment.contrast = 0.2f;
-			adjustment.gradient.stops = {{0.0f, {0.1f, 0.0f, 0.4f, 1.0f}}, {1.0f, {1.0f, 0.9f, 0.3f, 1.0f}}};
-			const std::uint64_t id = document->addAdjustment("Adjustment", adjustment);
-			document->changeLayer(id, "Opacity", [](Layer& layer) { layer.opacity = 0.7f; });
-			INFO("adjustment ", kind);
-			const Difference difference = compare(std::make_shared<CanvasModel>(std::move(document)));
-			// A threshold flips where the half-float pass and the CPU's floats round the luminosity either side
-			if(adjustment.kind == AdjustmentKind::threshold) CHECK(difference.pixels <= 300 * 200 / 1000);
-			else CHECK(difference.largest <= 3);
-		}
-	}
 	SUBCASE("a coarser mip level, and a budget smaller than the tiles") {
 		auto document = painted();
 		(void)addPainted(*document, "Top", {20, 10, 290, 190});
@@ -301,6 +282,28 @@ TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 		CHECK(compare(model).largest <= 3);
 		CHECK(model->statistics.evictions > 0);
 		CHECK(model->statistics.residentBytes <= small.gpuBytes);
+	}
+}
+
+TEST_CASE("imaging canvas: the GPU matches the CPU compositor on every adjustment") {
+	std::optional<affresco::Application> application;
+	if(!openContext(application)) return;
+	for(std::size_t kind = 0; kind < adjustmentKindCount; ++kind) {
+		auto document = painted();
+		(void)addPainted(*document, "Top", {20, 10, 290, 190});
+		Adjustment adjustment;
+		adjustment.kind = static_cast<AdjustmentKind>(kind);
+		adjustment.gamma = 1.6f, adjustment.curve = {{0.0f, 0.1f}, {0.5f, 0.7f}, {1.0f, 0.9f}};
+		adjustment.hue = 40.0f, adjustment.saturation = 0.3f, adjustment.lightness = 0.1f;
+		adjustment.balance = {0.3f, -0.2f, 0.1f}, adjustment.brightness = 0.1f, adjustment.contrast = 0.2f;
+		adjustment.gradient.stops = {{0.0f, {0.1f, 0.0f, 0.4f, 1.0f}}, {1.0f, {1.0f, 0.9f, 0.3f, 1.0f}}};
+		const std::uint64_t id = document->addAdjustment("Adjustment", adjustment);
+		document->changeLayer(id, "Opacity", [](Layer& layer) { layer.opacity = 0.7f; });
+		INFO("adjustment ", kind);
+		const Difference difference = compare(std::make_shared<CanvasModel>(std::move(document)));
+		// A threshold flips where the half-float pass and the CPU's floats round the luminosity either side
+		if(adjustment.kind == AdjustmentKind::threshold) CHECK(difference.pixels <= 300 * 200 / 1000);
+		else CHECK(difference.largest <= 3);
 	}
 }
 
