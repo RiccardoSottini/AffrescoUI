@@ -149,6 +149,16 @@ private:
 	/// @param coverage Where it is.
 	/// @return Whether it does, or nothing if it can't be read.
 	[[nodiscard]] std::optional<bool> coverageLive(std::size_t coverage);
+	/// @brief Whether a coverage table of format 1 (a list of glyphs) holds a candidate.
+	/// @param coverage Where it is.
+	/// @param count How many glyphs it lists.
+	/// @return Whether it does, or nothing if it can't be read.
+	[[nodiscard]] std::optional<bool> listedCoverageLive(std::size_t coverage, std::size_t count) const;
+	/// @brief Whether a coverage table of format 2 (ranges of glyphs) holds a candidate.
+	/// @param coverage Where it is.
+	/// @param count How many ranges it lists.
+	/// @return Whether it does, or nothing if it can't be read.
+	[[nodiscard]] std::optional<bool> rangedCoverageLive(std::size_t coverage, std::size_t count) const;
 	/// @brief The classes candidates have in a class definition, sorted (0 for those it doesn't list).
 	/// @param classes Where it is.
 	/// @return The classes, or nothing if it can't be read.
