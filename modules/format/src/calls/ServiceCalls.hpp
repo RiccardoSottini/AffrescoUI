@@ -109,6 +109,7 @@ private:
 		json event;                                 ///< The event it was started by.
 		SharedScope locals;                         ///< Variables.
 		std::string where;                          ///< The step's place.
+		std::uint64_t timeout = 0;                  ///< Its "timeout" timer, or 0 for none.
 	};
 
 	/// @brief A service's request waiting for "respond".

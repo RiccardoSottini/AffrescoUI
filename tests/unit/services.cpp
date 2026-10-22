@@ -145,6 +145,30 @@ TEST_CASE("services: a screen invokes the prototype JSON-RPC server, and reads a
 	CHECK(stateAt(screen, "/local") == "inside");
 }
 
+TEST_CASE("services: a call that ends, or fails, before its timeout leaves no timer behind") {
+	const TemporaryFolder folder;
+	writeText(folder.path / "work" / "note.txt", "inside");
+	PumpedExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(serviceScreen);
+	screen.services().addRoot("work", folder.path / "work");
+	screen.setExecutor(&executor);
+	screen.build(*window);
+	window->render();
+	REQUIRE_FALSE(window->secondsToNextTimer());
+
+	screen.runAction("local", window->root());
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/local") == "inside"; }));
+	CHECK_FALSE(window->secondsToNextTimer()); // each call's timeout stayed, every frame looking at them
+	screen.runAction("escape", window->root());
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/denied") != ""; }));
+	CHECK_FALSE(window->secondsToNextTimer());
+	screen.runAction("read", window->root()); // a process the host didn't allow
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/error") != ""; }));
+	CHECK_FALSE(window->secondsToNextTimer());
+}
+
 TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	using affresco::services::FrameReader;
 	using affresco::services::Framing;

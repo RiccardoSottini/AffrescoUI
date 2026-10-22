@@ -254,8 +254,9 @@ bool ServiceCalls::start(const Running& s, bool stream) {
 		job->fail("busy", stream ? "too many subscriptions (at most 256)" : "too many calls running (at most 1024)",
 		          nullptr);
 	else launch(number, name, stream, connection, *job);
-	if(!stream && engine_.window)
-		engine_.scheduler.once(timeout, [this, number, alive = std::weak_ptr<bool>(alive_)] {
+	const auto started = pending_.find(number); // a service may have ended it already
+	if(!stream && engine_.window && started != pending_.end())
+		started->second.timeout = engine_.scheduler.once(timeout, [this, number, alive = std::weak_ptr<bool>(alive_)] {
 			if(alive.lock()) failCall(number, errorOf("timeout", "the call took too long"));
 		});
 	if(!executor_) deliver(number); // what a service reported before it returned; nothing after
@@ -409,6 +410,7 @@ ServiceCalls::Pending ServiceCalls::finish(std::map<std::uint64_t, Pending>::ite
 	Pending call = std::move(it->second);
 	pending_.erase(it);
 	call.job->stop();
+	if(call.timeout) engine_.scheduler.cancelOnce(call.timeout); // or each frame would look at it
 	if(call.loading) write(*call.loading, false, call.where + ".loading");
 	if(call.progress) write(*call.progress, nullptr, call.where + ".progress");
 	return call;
