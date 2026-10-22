@@ -12,6 +12,8 @@
 #include <array>
 #include <cctype>
 #include <optional>
+#include <string_view>
+#include <unordered_set>
 
 namespace affresco::format {
 
@@ -307,20 +309,26 @@ private:
 	/// @param pointer Their JSON Pointer.
 	/// @param kind Which kind they are.
 	void editPaths(json& edits, const std::string& pointer, std::string_view kind) {
-		json renamed = json::object();
-		for(auto& [key, member] : edits.items()) {
+		// An ordered object finds a key by looking at each one, so the keys are looked up in a set and the result is
+		// built in order: no two of its keys are the same, as a key is renamed only to one that isn't there.
+		auto& members = edits.get_ref<json::object_t&>();
+		std::unordered_set<std::string_view> keys;
+		for(const auto& [key, member] : members) keys.insert(key);
+		json::object_t renamed;
+		renamed.reserve(members.size());
+		for(auto& [key, member] : members) {
 			std::string at = pointer;
 			appendKey(at, key);
 			value(member, at); // here, while its pointer is the one the text has
 			if(kind == "move") pathValue(member, at);
 			const auto to = renamedPath(key);
-			const bool renames = to && !edits.contains(*to);
+			const bool renames = to && !keys.contains(*to);
 			if(renames)
 				rewrites_.push_back({Rewrite::Kind::Rename, at, *to, json(),
 				                     placeOf(pointer) + ": \"" + key + "\" is \"" + *to + "\" in version 2"});
-			renamed[renames ? *to : key] = std::move(member);
+			renamed.emplace_back(renames ? *to : key, std::move(member));
 		}
-		edits = std::move(renamed);
+		members = std::move(renamed);
 	}
 
 	/// @brief Migrates a value that is a path: one that ends in a node's or a style's "from" ends in "justify".

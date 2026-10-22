@@ -74,8 +74,32 @@ TEST_CASE("migrate: renames keep ids, key order and data; quoted text and text o
 	CHECK(rewrites.front().message.find("in version 2") != std::string::npos);
 }
 
+TEST_CASE("migrate: a revision's many compact edits keep their order, in time that grows with them" *
+          doctest::timeout(5)) {
+	std::string text = "{"; // parsed, as building it with operator[] would itself take quadratic time
+	for(int i = 0; i < 200000; ++i) {
+		text += "\"/k" + std::to_string(i) + "\": " + std::to_string(i) + ",";
+		if(i == 1000) text += R"("#toolbar/from": "end",)";
+		if(i == 2000) text += R"("#panel/from": "start", "#panel/justify": "end",)"; // "#panel/from" stays
+	}
+	text.back() = '}';
+	const json set = affresco::parseUntrusted(text);
+	json scenario = {
+	    {"format", "affrescoui-scenarios"}, {"version", 1}, {"steps", json::array({{{"revision", {{"set", set}}}}})}};
+	const std::vector<Rewrite> rewrites = migrate(scenario);
+	const json& migrated = scenario["steps"][0]["revision"]["set"];
+	REQUIRE(migrated.size() == set.size());
+	auto expected = set.begin();
+	for(auto it = migrated.begin(); it != migrated.end(); ++it, ++expected) {
+		REQUIRE(it.key() == (expected.key() == "#toolbar/from" ? "#toolbar/justify" : expected.key()));
+		REQUIRE(it.value() == expected.value());
+	}
+	CHECK(rewrites.size() == 2); // the rename and the version
+}
+
 TEST_CASE("migrate: a stack with both keys keeps \"justify\", and other documents are left") {
-	json both = {{"format", "affrescoui-screen"}, {"version", 1},
+	json both = {{"format", "affrescoui-screen"},
+	             {"version", 1},
 	             {"root", {{"type", "stack"}, {"align", "end"}, {"justify", "start"}}}};
 	const std::vector<Rewrite> rewrites = migrate(both);
 	REQUIRE(rewrites.size() == 2);
