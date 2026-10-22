@@ -298,6 +298,21 @@ a program can't set the window title unless the node's `allowTitle` is true (and
 only. Its scrollback is bounded (10,000 lines at most). Forge grants the user's login shell, started in the open
 folder; the screen document only names the service.
 
+### Debug adapters
+
+A debug adapter is an untrusted program. The `dap` provider starts only one the host allowed (`allowProcess`), and
+reads what it sends as bounded Content-Length frames: headers of 8 KiB and a message of 4 MiB at most (a larger one
+closes the session), checked JSON, and the lists and texts inside cut to the limits below before the screen sees them.
+Requests wait for their own response with a timeout and can be cancelled; at most 256 wait, and 16 MiB waits to be
+written. A source the adapter names is placed against the granted folder: a path under it gets `inside: true`, any
+other `inside: false`, and Forge opens a frame outside the folder only after a confirm, read-only, through the
+adapter's `source` request. A relative path in a request that leaves the folder is refused. If the adapter crashes or
+exits, every waiting request ends and the session ends with one message. The only reverse requests are
+`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds itself
+(`forge.debug.commandLine`): every word single-quoted, the working folder inside the open one, no control characters,
+and it runs in the terminal's shell under that shell's grant. Forge grants `lldb-dap` and `python3 -m
+debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
@@ -417,6 +432,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Design tokens (`tokens`) | 4,096 tokens, 32 themes, aliases 16 deep (a circle is an error); more is refused |
 | Sizes and styles of fonts one document derives (rich text runs) | 32 |
 | One label's rich text (`runs`) | 256 runs, 64 Ki code points in all, 2,048 bytes a link |
+| One debug adapter message (`dap`) | Headers of 8 KiB, a message of 4 MiB (a larger one ends the session); 256 requests waiting, 16 MiB waiting to be written |
+| What one debug adapter answer gives the screen (`DapProtocol.hpp`) | 1,000 threads, 500 frames, 1,000 variables or scopes a page, 10,000 breakpoints, 500 completions; 4,096 bytes a value, 1,000 bytes a name, message or path |
+| A debug adapter's output events | 200 a second and 1 MiB a second, 64 KiB each; the ones dropped are counted and said once. Forge's debug console keeps 2,000 lines and 100 history entries, and its variables 5,000 rows |
 | Items a list, a tree or a table reads | 1,000,000 items, trees 256 deep, 256 cells an item, 256 columns of 10,000 pixels at most, 16 sticky folders |
 | Tabs a strip reads, panes a split reads | 10,000 tabs and 1,000 panes (more are ignored); a split's sizes 0 to 1,000,000 pixels |
 | A menu inside menus (`menus`, contributed items) | 8 levels: deeper submenus are left out |

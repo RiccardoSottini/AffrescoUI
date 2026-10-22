@@ -169,6 +169,10 @@
 					  "align": "center", "cursor": "hand", "tooltip": "Source Control (Cmd+Shift+G)",
 					  "textColor": "{{state.layout.sidebar && state.sideView == 'scm' ? '@color.text' : '@color.muted'}}",
 					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showSourceControl" } },
+					{ "type": "label", "id": "activity-debug", "icon": "bug", "font": "iconsLarge", "width": 48, "height": 48,
+					  "align": "center", "cursor": "hand", "tooltip": "Run and Debug (Cmd+Shift+D)",
+					  "textColor": "{{state.layout.sidebar && state.sideView == 'debug' ? '@color.text' : '@color.muted'}}",
+					  "hover": { "textColor": "@color.text" }, "onClick": { "run": "showDebug" } },
 					{ "type": "label", "id": "activity-agent", "icon": "bot", "font": "iconsLarge", "width": 48, "height": 48,
 					  "align": "center", "cursor": "hand", "tooltip": "Agent (Cmd+Alt+I)",
 					  "textColor": "{{state.layout.sidebar && state.sideView == 'agent' ? '@color.text' : '@color.muted'}}",
@@ -189,6 +193,7 @@
 				"type": "column", "id": "side-bar", "point": "sidebar.views", "color": "@color.sideBar",
 				"children": [
 					{ "when": "{{state.sideView == 'scm'}}", "use": "forgeScmView" },
+					{ "when": "{{state.sideView == 'debug'}}", "use": "forgeDebugView" },
 					{ "when": "{{state.sideView == 'agent'}}", "use": "forgeAgentView" },
 					{ "when": "{{state.sideView == 'features'}}", "use": "forgeFeaturesView" },
 					{ "type": "label", "id": "side-bar-title", "when": "{{state.sideView == 'explorer'}}", "text": "EXPLORER", "textColor": "@color.muted", "width": "100%",

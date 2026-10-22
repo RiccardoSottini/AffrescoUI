@@ -279,6 +279,13 @@
 										"lineColor": "@color.hover",
 										"selectionColor": "@color.selection",
 										"caretColor": "@color.text",
+										"decorations": "{{map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark)}}",
+										"caret": "state.debug.caret",
+										"onGutterClick": { "run": "debugGutterClick", "with": { "path": "{{state.docs[d].id}}" } },
+										"onWordHover": { "run": "debugHover", "with": { "path": "{{state.docs[d].id}}" } },
+										"keys": { "f5": "debugContinueOrStart", "shift+f5": "debugStop", "mod+shift+f5": "debugRestart",
+										          "f6": "debugPause", "f9": "debugToggleBreakpointAtCaret", "f10": "debugStepOver",
+										          "f11": "debugStepInto", "shift+f11": "debugStepOut" },
 										"syntax": {
 											"keyword": "@syntax.keyword",
 											"type": "@syntax.type",
@@ -290,7 +297,8 @@
 									},
 									{ "when": "{{state.docs[d].kind == 'settings'}}", "use": "forgeSettingsPage" },
 									{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" },
-									{ "when": "{{state.docs[d].kind == 'search'}}", "use": "forgeSearchPage" }
+									{ "when": "{{state.docs[d].kind == 'search'}}", "use": "forgeSearchPage" },
+									{ "when": "{{state.docs[d].kind == 'debugSource'}}", "use": "forgeDebugSource", "with": { "doc": "{{state.docs[d]}}" } }
 								]
 							}
 						]

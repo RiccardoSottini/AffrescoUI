@@ -16,6 +16,7 @@
 #include "features/accounts/Accounts.hpp"
 #include "features/explorer/Explorer.hpp"
 #include "features/terminal/Terminal.hpp"
+#include "features/debug/Debug.hpp"
 
 #include <affresco/affresco.hpp>
 
@@ -97,6 +98,7 @@ int run(const Options& options) {
 	forge::registerTerminal(screen, &app);
 	forge::registerEditor(screen, workspace);
 	forge::registerSearch(screen, workspace);
+	forge::registerDebug(screen, workspace);
 	screen.setSocketDirectory(options.socketDir); // the agent pane's channel reaches Forge's own studio.sock
 	workspace->window = &screen.createWindow(app);
 
