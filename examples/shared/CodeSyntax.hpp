@@ -2,14 +2,15 @@
 
 /// @file
 /// @brief The CodeEditor's own lexers: C++ (and the C-like languages), JSON, CMake and Markdown, for the editors that
-/// have no tree-sitter grammar for them. Only CodeEditor.cpp includes it: it is a header so that every target that
-/// compiles CodeEditor.cpp by name builds it unchanged.
+/// have no tree-sitter grammar for them, and the code point helpers they share with CodeNode.hpp. Only CodeEditor.cpp
+/// includes it: it is a header so that every target that compiles CodeEditor.cpp by name builds it unchanged.
 
 #include "CodeEditor.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -31,6 +32,29 @@ inline bool isDigit(char32_t c) noexcept { return c >= U'0' && c <= U'9'; }
 /// @brief Whether a code point is a space or a tab.
 /// @param c The code point.
 inline bool isBlank(char32_t c) noexcept { return c == U' ' || c == U'\t'; }
+
+/// @brief Encodes text as UTF-8.
+/// @param text Code points.
+inline std::string utf8(std::u32string_view text) {
+	std::string out;
+	for(const char32_t c : text) {
+		if(c < 0x80) out.push_back(static_cast<char>(c));
+		else if(c < 0x800) {
+			out.push_back(static_cast<char>(0xC0 | (c >> 6)));
+			out.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+		} else if(c < 0x10000) {
+			out.push_back(static_cast<char>(0xE0 | (c >> 12)));
+			out.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
+			out.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+		} else {
+			out.push_back(static_cast<char>(0xF0 | (c >> 18)));
+			out.push_back(static_cast<char>(0x80 | ((c >> 12) & 0x3F)));
+			out.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
+			out.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+		}
+	}
+	return out;
+}
 
 /// @brief Whether a word is in a sorted list.
 /// @param list The list, sorted.
