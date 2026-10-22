@@ -188,7 +188,10 @@ struct TerminalCallbacks {
 		else if(property == VTERM_PROP_TITLE && model.allowTitle_) {
 			if(value->string.initial) model.title_.clear();
 			const std::size_t room = mostTitleBytes - std::min(mostTitleBytes, model.title_.size());
-			model.title_.append(value->string.str, std::min<std::size_t>(value->string.len, room));
+			std::size_t take = std::min<std::size_t>(value->string.len, room);
+			while(take > 0 && take < value->string.len && (value->string.str[take] & 0xC0) == 0x80)
+				--take; // a cut title ends on a whole character
+			model.title_.append(value->string.str, take);
 		}
 		return 1;
 	}

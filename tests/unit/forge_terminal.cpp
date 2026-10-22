@@ -75,6 +75,14 @@ TEST_CASE("forge terminal: the title only when allowed, and clipboard writes are
 	CHECK(model.lineText(0).empty());
 	model.setAllowTitle(false);
 	CHECK(model.title().empty());
+
+	// A title past the limit is cut on a whole character, so it stays UTF-8
+	model.setAllowTitle(true);
+	std::string longTitle = "\x1b]2;x";
+	for(int i = 0; i < 200; ++i) longTitle += "\xC3\xA9";
+	model.write(longTitle + "\x07");
+	CHECK(model.title().size() == 255);
+	CHECK(static_cast<unsigned char>(model.title().back()) == 0xA9);
 }
 
 TEST_CASE("forge terminal: a wide character covers two columns") {
