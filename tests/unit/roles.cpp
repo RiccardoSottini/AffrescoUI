@@ -15,11 +15,11 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <ranges>
 #include <sstream>
 #include <string>
 
 using affresco::json;
-using affresco::RevisionStatus;
 using affresco::channel::Session;
 using affresco::test::MemoryChannel;
 
@@ -57,8 +57,8 @@ struct Peer {
 	json ask(json message) {
 		message["id"] = 1;
 		channel.receive(message.dump());
-		for(auto each = channel.sent.rbegin(); each != channel.sent.rend(); ++each)
-			if(each->value("id", json()) == 1) return *each;
+		for(const json& each : std::views::reverse(channel.sent))
+			if(each.value("id", json()) == 1) return each;
 		return {};
 	}
 };

@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -45,7 +45,7 @@ public:
 	/// @param task The task.
 	void post(std::function<void()> task) override {
 		{
-			const std::lock_guard lock(mutex_);
+			const std::scoped_lock lock(mutex_);
 			tasks_.push_back(std::move(task));
 		}
 		ready_.notify_one();
@@ -105,7 +105,7 @@ struct Server {
 	SocketServer server;                            ///< Listens.
 };
 
-#if defined(_WIN32)
+#ifdef _WIN32
 /// @brief Whether a SID is this process's user.
 /// @param sid The SID.
 /// @return false also if the user can't be read.
@@ -126,7 +126,7 @@ bool isThisUser(PSID sid) {
 /// @return On POSIX, mode 0600; on Windows, an access list that inherits nothing from the folder and has one entry,
 /// which allows this user.
 bool onlyForThisUser(const std::filesystem::path& path) {
-#if defined(_WIN32)
+#ifdef _WIN32
 	const HANDLE file = CreateFileW(path.c_str(), READ_CONTROL, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 	                                nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
 	                                nullptr);

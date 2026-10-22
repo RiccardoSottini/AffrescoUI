@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cstddef>
 #include <ctime>
+#include <format>
 #include <functional>
 #include <stdexcept>
 #include <string>
@@ -91,8 +92,9 @@ TEST_CASE("core: parseUntrusted refuses a number longer than maxNumberLength, ou
 	CHECK(affresco::parseUntrusted("[" + std::string(40, '1') + "]").size() == 1);
 	CHECK(affresco::parseUntrusted("[-1.2345678901234567e-308, 18446744073709551615]")[1] == 18446744073709551615u);
 	const std::string digits(100, '1');
-	CHECK(affresco::parseUntrusted("{\"" + digits + "\": \"\\\"" + digits + "\"}").size() == 1);
-	CHECK(affresco::parseUntrusted("/* " + digits + " */ [1] // " + digits, true) == affresco::json::parse("[1]"));
+	CHECK(affresco::parseUntrusted(std::format(R"({{"{}": "\"{}"}})", digits, digits)).size() == 1);
+	CHECK(affresco::parseUntrusted(std::format("/* {} */ [1] // {}", digits, digits), true) ==
+	      affresco::json::parse("[1]"));
 }
 
 // Found by fuzzing (tests/fuzz, json): nlohmann::json throws out_of_range for these, which callers let through

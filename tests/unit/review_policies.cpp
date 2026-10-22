@@ -10,6 +10,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <filesystem>
 #include <string>
 
@@ -40,9 +41,9 @@ std::string utcIn(long long seconds) {
 	const std::time_t then = std::time(nullptr) + static_cast<std::time_t>(seconds);
 	std::tm parts{};
 	gmtime_r(&then, &parts);
-	char text[32];
-	std::strftime(text, sizeof(text), "%Y-%m-%dT%H:%M:%SZ", &parts);
-	return text;
+	std::array<char, 32> text{};
+	std::strftime(text.data(), text.size(), "%Y-%m-%dT%H:%M:%SZ", &parts);
+	return text.data();
 }
 
 } // namespace
@@ -127,9 +128,10 @@ TEST_CASE("review policy: an author never approves its own proposal, whatever it
 	const affresco::RevisionResult proposed =
 	    repository.submit({{"author", "agent/one"}, {"set", {{"#title/text", "Today"}}}});
 	REQUIRE(proposed.status == RevisionStatus::Proposed);
-	const auto refused = repository.accept(proposed.proposal, {"agent/two", proposed.commit, false});
-	REQUIRE(refused);
-	CHECK(refused->find("may not accept its own proposal") != std::string::npos);
+	const std::string refused =
+	    repository.accept(proposed.proposal, {"agent/two", proposed.commit, false}).value_or("");
+	REQUIRE_FALSE(refused.empty());
+	CHECK(refused.find("may not accept its own proposal") != std::string::npos);
 	CHECK(repository.proposals()[0].approvals.empty());
 }
 
@@ -170,9 +172,10 @@ TEST_CASE("review policy: a rebase that changes what a proposal does dismisses i
 	            .status == RevisionStatus::Applied);
 	REQUIRE(repository.proposals().size() == 1);
 	CHECK(repository.proposals()[0].approvals.empty());
-	const auto refused = repository.accept(proposed.proposal, {"human/carol", proposed.commit, false});
-	REQUIRE(refused); // the head bob and carol saw is no longer what it merges
-	CHECK(refused->find("changed since you reviewed it") != std::string::npos);
+	const std::string refused =
+	    repository.accept(proposed.proposal, {"human/carol", proposed.commit, false}).value_or("");
+	REQUIRE_FALSE(refused.empty()); // the head bob and carol saw is no longer what it merges
+	CHECK(refused.find("changed since you reviewed it") != std::string::npos);
 }
 
 TEST_CASE("review policy: grants expire, at most when the policy says") {
@@ -186,9 +189,10 @@ TEST_CASE("review policy: grants expire, at most when the policy says") {
 		    repository.submit({{"author", "agent"}, {"set", {{"#title/text", "Today"}}}});
 		REQUIRE(proposed.status == RevisionStatus::Proposed);
 
-		const auto bad = repository.accept(proposed.proposal, {"studio", proposed.commit, true, "forever"});
-		REQUIRE(bad);
-		CHECK(bad->find("is not a duration for grants") != std::string::npos);
+		const std::string bad =
+		    repository.accept(proposed.proposal, {"studio", proposed.commit, true, "forever"}).value_or("");
+		REQUIRE_FALSE(bad.empty());
+		CHECK(bad.find("is not a duration for grants") != std::string::npos);
 
 		REQUIRE_FALSE(repository.accept(proposed.proposal, {"studio", proposed.commit, true, "7d"}));
 		REQUIRE(repository.grants().size() == 1);

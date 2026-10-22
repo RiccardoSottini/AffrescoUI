@@ -29,6 +29,7 @@ TEST_CASE("secret store: memory keeps, reads and forgets secrets by key") {
 TEST_CASE("secret store: memory may be used from several threads at once") {
 	affresco::MemorySecretStore store;
 	std::vector<std::thread> threads;
+	threads.reserve(4);
 	for(int t = 0; t < 4; ++t)
 		threads.emplace_back([&store, t] {
 			const std::string key = "affrescoui/test/" + std::to_string(t);

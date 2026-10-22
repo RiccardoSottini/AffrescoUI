@@ -25,6 +25,7 @@ public:
 /// is emptied all the same: the tasks run so far never run again, and the rest are dropped, as with a local batch.
 /// @param tasks The batch.
 inline void runTasks(std::vector<std::function<void()>>& tasks) {
+	// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions): a scope guard, never copied or moved
 	struct Emptied {
 		std::vector<std::function<void()>>& tasks; ///< The batch.
 		/// @brief Empties it, on return or on a throw.

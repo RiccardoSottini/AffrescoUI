@@ -188,6 +188,23 @@ TEST_CASE("vcs: a revision that adds inside a number, a string or a boolean is r
 	CHECK(repository.state() == json{{"list", {{{"count", 0}}, {{"x", 1}}}}});
 }
 
+// Before, a "set" without a path threw json::type_error out of submit(), which promises a result instead
+TEST_CASE("vcs: an operation without a path, or with one that isn't a string, is refused") {
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, permissionsScreen());
+
+	for(const json& op : {json{{"op", "set"}, {"value", 1}}, json{{"op", "set"}, {"path", 5}, {"value", 1}},
+	                      json{{"op", "add"}, {"value", 1}}, json{{"op", "replace"}, {"path", nullptr}}}) {
+		CAPTURE(op.dump());
+		affresco::RevisionResult result;
+		REQUIRE_NOTHROW(result = repository.submit({{"author", "studio"}, {"patch", json::array({op})}}));
+		CHECK(result.status == RevisionStatus::Rejected);
+		CHECK(result.error.starts_with("AffrescoUI screen: revision.patch[0]"));
+	}
+	CHECK(repository.head().number == 0);
+	CHECK(repository.document() == permissionsScreen());
+}
+
 TEST_CASE("vcs: a proposal that no longer applies is closed with the whole reason") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, permissionsScreen());

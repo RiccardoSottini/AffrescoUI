@@ -3,7 +3,7 @@
 /// the "getEvidence" answer and its contract, and an author never supplying any of it.
 
 #include "Helpers.hpp"
-#include "ProposalEvidence.hpp" // modules/screen/src
+#include "pictures/ProposalEvidence.hpp" // modules/screen/src
 
 #include <affresco/channel/Session.hpp>
 #include <affresco/core/ScreenImages.hpp>
@@ -37,7 +37,11 @@ RgbImage blank(int width, int height) {
 /// @param image The picture.
 /// @param x Its column.
 /// @param y Its row.
-void paint(RgbImage& image, int x, int y) { image.rgb[static_cast<std::size_t>((y * image.width + x) * 3 + 1)] = 255; }
+void paint(RgbImage& image, int x, int y) {
+	const auto pixel =
+	    static_cast<std::size_t>(y) * static_cast<std::size_t>(image.width) + static_cast<std::size_t>(x);
+	image.rgb[pixel * 3 + 1] = 255;
+}
 
 /// @brief Evidence without a window: the repository's own behaviour lines, a fixed picture and one scenario, as a
 /// host would gather them.
@@ -47,7 +51,8 @@ public:
 	/// @param versions The document; must outlive this object.
 	explicit FakeEvidence(affresco::VersionControl& versions) : versions_(versions) {}
 
-	[[nodiscard]] std::optional<std::string> render(const affresco::ImageRequest&, affresco::Image&) override {
+	[[nodiscard]] std::optional<std::string> render(const affresco::ImageRequest& /*request*/,
+	                                                affresco::Image& /*image*/) override {
 		return "no pictures here";
 	}
 	[[nodiscard]] bool rendering() const noexcept override { return false; }
@@ -111,7 +116,8 @@ TEST_CASE("evidence: an author can't supply any of it with a revision") {
 
 	// A host without evidence says so
 	struct NoEvidence final : affresco::ScreenImages {
-		[[nodiscard]] std::optional<std::string> render(const affresco::ImageRequest&, affresco::Image&) override {
+		[[nodiscard]] std::optional<std::string> render(const affresco::ImageRequest& /*request*/,
+		                                                affresco::Image& /*image*/) override {
 			return std::nullopt;
 		}
 		[[nodiscard]] bool rendering() const noexcept override { return false; }
