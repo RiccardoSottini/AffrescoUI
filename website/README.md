@@ -34,7 +34,7 @@ those of the last build).
 ## Adding a recipe
 
 Write `recipes/<name>.screen.json` with `"$schema": "../../schema/affrescoui-screen.schema.json"` and fonts from
-`../../examples/assets/fonts/`, check it with `affrescoui check`, look at `affrescoui render`, and include it in a page:
+`../../examples/shared/fonts/`, check it with `affrescoui check`, look at `affrescoui render`, and include it in a page:
 
 ````md
 ```json

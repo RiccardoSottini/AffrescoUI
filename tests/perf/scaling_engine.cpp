@@ -32,7 +32,7 @@ namespace {
 std::vector<Workload> checkerWorkloads(Context& context, bool large) {
 	const auto rules = std::make_shared<const format::Rules>();
 	return perSize(scalingSizes(16, large), [&context, rules](int cards) {
-		const auto document = std::make_shared<const json>(kanbanWithCards(context.screens(), cards));
+		const auto document = std::make_shared<const json>(kanbanWithCards(context.templateFolder("kanban"), cards));
 		Workload workload{.name = scalingName("checker", cards), .runs = 5};
 		workload.step = [rules, document] {
 			rules->validate(*document);
@@ -76,7 +76,9 @@ struct History {
 /// @brief The Kanban template, as read from its file.
 /// @param context The context.
 /// @return The document.
-json kanban(const Context& context) { return json::parse(readFile(context.screens() / "kanban.screen.json")); }
+json kanban(const Context& context) {
+	return json::parse(readFile(context.templateFolder("kanban") / "kanban.screen.json"));
+}
 
 /// @brief "scaling/history/commit/<n>": 16 more commits on a history of n, per commit; retainedBytes is what one keeps.
 /// @param context The context.
@@ -266,7 +268,7 @@ std::vector<Workload> expressionWorkloads(Context& /*context*/, bool large) {
 /// @param context The context.
 /// @return The font.
 std::shared_ptr<const Font> textFont(const Context& context) {
-	const std::filesystem::path fonts = context.screens().parent_path() / "fonts";
+	const std::filesystem::path fonts = context.examples() / "shared" / "fonts";
 	const std::array<std::filesystem::path, 1> fallbacks{fonts / "Lucide.ttf"};
 	return Font::load(fonts / "Roboto-Regular.ttf", 15.0f, fallbacks);
 }
@@ -408,7 +410,7 @@ struct EditorWindow {
 /// @return Three workloads per size.
 std::vector<Workload> editorWorkloads(Context& context, bool large) {
 	const std::shared_ptr<const Font> font =
-	    Font::load(context.screens().parent_path() / "fonts" / "JetBrainsMono-Regular.ttf", 14.0f);
+	    Font::load(context.examples() / "shared" / "fonts" / "JetBrainsMono-Regular.ttf", 14.0f);
 	std::vector<Workload> workloads;
 	for(const int lines : scalingSizes(64, large)) {
 		const auto open = std::make_shared<EditorWindow>(font, lines);

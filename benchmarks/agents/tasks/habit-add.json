@@ -1,7 +1,7 @@
 {
 	"id": "habit-add",
 	"level": "edit",
-	"screen": "examples/assets/screens/habit-tracker.screen.json",
+	"screen": "examples/streak/habit-tracker.screen.json",
 	"request": "Add the habit \"Stretch for 10 minutes\", not done today, with no streak yet, colored #0ea5e9.",
 	"scenarios": [
 		{

@@ -58,18 +58,25 @@ function(affrescoui_web_program target environment)
 endfunction()
 
 # Makes the programs the site and the checks use, once the root CMakeLists.txt has defined them: the host and the
-# Studio for the page (the examples' assets preloaded as /assets, so no path of the machine that built them is in the
-# site), and the command-line tool for Node, on the machine's own files (NODERAWFS), to play the scenarios. Forge and
-# the document server need processes, a terminal and a listening socket: they aren't built for a browser.
+# Studio for the page (the templates' folders and examples/shared preloaded under /assets, without their C++ sources,
+# so no path of the machine that built them is in the site), and the command-line tool for Node, on the machine's own
+# files (NODERAWFS), to play the scenarios. Forge and the document server need processes, a terminal and a listening
+# socket: they aren't built for a browser.
 function(affrescoui_web_programs)
 	if(TARGET affrescoui_host)
+		affrescoui_template_folders(folders)
+		list(REMOVE_DUPLICATES folders)
 		foreach(program affrescoui_host affrescoui_studio)
 			affrescoui_web_program(${program} web)
 			get_target_property(definitions ${program} COMPILE_DEFINITIONS)
 			list(FILTER definitions EXCLUDE REGEX "^AFFRESCOUI_EXAMPLES_ASSETS=")
 			set_property(TARGET ${program} PROPERTY COMPILE_DEFINITIONS ${definitions}
 				[[AFFRESCOUI_EXAMPLES_ASSETS="/assets"]])
-			target_link_options(${program} PRIVATE --preload-file ${PROJECT_SOURCE_DIR}/examples/assets@/assets)
+			foreach(folder ${folders} shared)
+				target_link_options(${program} PRIVATE
+					"SHELL:--preload-file ${PROJECT_SOURCE_DIR}/examples/${folder}@/assets/${folder}")
+			endforeach()
+			target_link_options(${program} PRIVATE "SHELL:--exclude-file *.cpp" "SHELL:--exclude-file *.hpp")
 		endforeach()
 		set_target_properties(affrescoui_forge affrescoui_server PROPERTIES EXCLUDE_FROM_ALL ON)
 	endif()

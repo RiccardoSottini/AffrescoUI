@@ -29,7 +29,7 @@ const affresco::Font& font() {
 	static const std::shared_ptr<const affresco::Font> loaded = [] {
 		// In the checkout, wherever the target runs from
 		const std::filesystem::path root = AFFRESCOUI_FUZZ_CHECKOUT;
-		const std::filesystem::path fonts = root / "examples/assets/fonts", subsets = root / "tests/render/fonts";
+		const std::filesystem::path fonts = root / "examples/shared/fonts", subsets = root / "tests/render/fonts";
 		const std::array fallbacks{subsets / "NotoSansArabic-Subset.ttf", subsets / "NotoSansDevanagari-Subset.ttf",
 		                           subsets / "NotoSansSC-Subset.ttf", subsets / "TwemojiMozilla-Subset.ttf"};
 		return affresco::Font::load(fonts / "Roboto-Regular.ttf", 16.0f, fallbacks);

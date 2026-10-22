@@ -43,7 +43,7 @@ requests depend on the interface, not on this module.
   `authTimeout`) passes the `TokenVerifier`, its `Origin`, if any, is in `allowedOrigins`, and the server has room
   (`maxPeers`, and the per-address connection rate). Anything else is refused with a reason and logged without the
   token. The server listens on the loopback unless `allowRemote` is set, and has no TLS of its own (a proxy in front
-  does it: `examples/deploy/Caddyfile`). Limits: `SECURITY.md`.
+  does it: `examples/server/deploy/Caddyfile`). Limits: `SECURITY.md`.
 - **Tokens stay in `SignIn`.** Its `status()` holds a state, an account, an expiry and, during the device flow, the
   code to type; never a token. The refresh token goes to the `SecretStore` (in memory unless the application passes
   `systemSecretStore`), and logs name the provider, never a value. The browser flow sends a PKCE S256 challenge, a

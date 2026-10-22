@@ -31,8 +31,17 @@ import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-SCREENS = os.path.join(ROOT, "examples", "assets", "screens")
+EXAMPLES = os.path.join(ROOT, "examples")
+with open(os.path.join(EXAMPLES, "templates.json"), encoding="utf-8") as templates_file:
+    TEMPLATE_FOLDERS = {os.path.join(EXAMPLES, folder) for folder in json.load(templates_file)["templates"].values()}
+KANBAN = os.path.join(EXAMPLES, "flow")  # the Kanban template's folder
 RENDER_SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios")
+
+
+def template_files(pattern):
+    """The templates' files that match the pattern, from each one's folder (examples/templates.json), by name."""
+    files = [path for folder in TEMPLATE_FOLDERS for path in glob.glob(os.path.join(folder, pattern))]
+    return sorted(files, key=os.path.basename)
 
 
 def read_png(path):
@@ -143,13 +152,13 @@ class Checker:
         self.expect(report["failed"] == 0 and report["passed"] >= 5, f"test --json {path}: {report}")
         wrong = os.path.join(self.scratch, "wrong.scenarios.json")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 2, "screens": SCREENS, "screen": "kanban.screen.json", "scenarios": [
+            json.dump({"version": 2, "screens": KANBAN, "screen": "kanban.screen.json", "scenarios": [
                 {"name": "wrong", "steps": [{"expect": {"state": "board", "is": "Not the board"}}]}]}, file)
         output = self.run("test", wrong, expect=1)
         self.expect('FAILED wrong, step 1: state board is "Product launch", expected "Not the board"' in output,
                     f"test: a failing expectation: {output}")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 2, "screens": SCREENS, "screen": "kanban.screen.json",
+            json.dump({"version": 2, "screens": KANBAN, "screen": "kanban.screen.json",
                        "scenarios": [{"name": "a", "steps": [{"clik": "#card"}]}]}, file)
         self.run("test", wrong, expect=1)
 
@@ -212,7 +221,7 @@ def main():
 
     with tempfile.TemporaryDirectory(prefix="affrescoui-cli-") as scratch:
         checker = Checker(build, scratch)
-        templates = sorted(glob.glob(os.path.join(SCREENS, "*.screen.json")))
+        templates = template_files("*.screen.json")
         for path in templates:
             name = os.path.basename(path)[:-len(".screen.json")]
             checker.check(path)
@@ -220,11 +229,11 @@ def main():
         for screens, scenario in [] if headless else render_scenarios():
             path = os.path.normpath(os.path.join(screens, scenario["screen"]))
             # The templates' first frames: scenarios that expect a picture before any step, on a shipped template
-            if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) == os.path.normpath(SCREENS):
+            if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) in TEMPLATE_FOLDERS:
                 checker.render(screens, scenario, path)
-        for path in sorted(glob.glob(os.path.join(SCREENS, "*.scenarios.json"))):
+        for path in template_files("*.scenarios.json"):
             checker.test(path)
-        checker.history(os.path.join(SCREENS, "kanban.screen.json"))
+        checker.history(os.path.join(KANBAN, "kanban.screen.json"))
 
         checker.run("check", expect=2)                                  # no file
         checker.run("render", templates[0], expect=2)                  # no -o

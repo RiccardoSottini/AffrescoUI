@@ -24,10 +24,11 @@ The build is Release. It makes `affrescoui_host` and `affrescoui_studio` for the
 `affrescoui` for Node, which plays the templates' scenarios on the same WebAssembly:
 
 ```sh
-node build-web/affrescoui.js test examples/assets/screens/kanban.scenarios.json
+node build-web/affrescoui.js test examples/flow/kanban.scenarios.json
 ```
 
-`examples/assets` is preloaded into each program as `/assets` (the `.data` file next to its `.wasm`).
+The templates' folders (`examples/templates.json`) and `examples/shared` are preloaded into each program under `/assets`
+(`/assets/flow`, `/assets/shared`, ..., without their C++ sources), in the `.data` file next to its `.wasm`.
 
 Measured with emsdk 6.0.10 (Release, `gzip -9`):
 
@@ -63,7 +64,7 @@ server (`affresco::net::PeerServer`, `modules/net/README.md`), such as the docum
 affrescoui_server --folder screens --listen 127.0.0.1:7420 --origin https://your-site.example
 ```
 
-- Off the loopback, the server needs `--allow-remote` and TLS in front of it (`examples/deploy/`, Caddy or nginx),
+- Off the loopback, the server needs `--allow-remote` and TLS in front of it (`examples/server/deploy/`, Caddy or nginx),
   so the page connects with `wss://`. `ws://` is accepted on the loopback only, by the page's policy and by the
   library.
 - `--origin` names the site's origin: the server refuses an upgrade from any other page.

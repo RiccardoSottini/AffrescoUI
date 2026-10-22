@@ -11,11 +11,11 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
-		"title": { "file": "../assets/fonts/Roboto-Regular.ttf", "size": 28 },
-		"icons": { "file": "../assets/fonts/Lucide.ttf", "size": 13 },
-		"iconsLarge": { "file": "../assets/fonts/Lucide.ttf", "size": 22 },
-		"code": { "file": "../assets/fonts/JetBrainsMono-Regular.ttf", "size": 13, "fallback": ["icons"] }
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
+		"title": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 28 },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 13 },
+		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 22 },
+		"code": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 13, "fallback": ["icons"] }
 	},
 
 	"include": ["features/editor/editor.json", "features/themes/themes.json", "features/panels/panels.json",

@@ -91,7 +91,9 @@ jobs:
       - name: Command-line tool and MCP queries # tools/affrescoui/check.py, mcp/test_affrescoui_mcp.py
         run: xvfb-run -a -s "-screen 0 1920x1080x24" ctest --test-dir build -R "cli|mcp" --output-on-failure
       - name: The scenarios # affrescoui test, headless: what each template does, and where the rendering check's screens put each node
-        run: build/affrescoui test examples/assets/screens/*.scenarios.json tests/render/screens/*.scenarios.json
+        run: >
+          build/affrescoui test examples/{code-editor,flow,haven,sign-in,streak,studio,tempo}/*.scenarios.json
+          tests/render/screens/*.scenarios.json
       - name: The policy tests # affrescoui policy test: each *.policy.json's example revisions get the expected decision
         run: build/affrescoui policy test $(git ls-files '*.policy.json')
       - name: Every file is format version 2 # affrescoui migrate --check: SCREEN_FORMAT.md, "Migrating from version 1"

@@ -1,0 +1,2672 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"include": ["studio-features.json", "studio-repairs.json"],
+	"note": "The AffrescoUI Studio: the person's client for a running host. Layout, behaviour and the connection are all in this file. Ask and direct changes on the left; on the right, tabs for the review queue (a list of proposals and the chosen one's details), the history of main, and the approval rules. Cmd+1, 2 and 3 switch the tabs, Cmd+J light and dark, Cmd+Z undoes.",
+	"window": {
+		"title": "AffrescoUI Studio",
+		"width": 1100,
+		"height": 760,
+		"minWidth": 920,
+		"minHeight": 640
+	},
+	"fonts": {
+		"default": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 14,
+			"fallback": ["icons", "symbols"]
+		},
+		"small": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 12,
+			"fallback": ["iconsSmall", "symbols"]
+		},
+		"heading": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 16,
+			"fallback": ["icons"]
+		},
+		"title": {
+			"file": "../shared/fonts/Roboto-Regular.ttf",
+			"size": 20,
+			"fallback": ["iconsLarge"]
+		},
+		"icons": {
+			"file": "../shared/fonts/Lucide.ttf",
+			"size": 16
+		},
+		"iconsSmall": {
+			"file": "../shared/fonts/Lucide.ttf",
+			"size": 13
+		},
+		"iconsLarge": {
+			"file": "../shared/fonts/Lucide.ttf",
+			"size": 24
+		},
+		"symbols": {
+			"file": "../shared/fonts/JetBrainsMono-Regular.ttf",
+			"size": 12
+		}
+	},
+	"theme": "{{state.theme}}",
+	"tokens": {
+		"radius.card": 10,
+		"radius.chip": 6,
+		"color.background": {
+			"light": "#eef1f6",
+			"dark": "#0b1020"
+		},
+		"color.card": {
+			"light": "#ffffff",
+			"dark": "#131a2e"
+		},
+		"color.cardRaised": {
+			"light": "#f5f7fb",
+			"dark": "#1b2440"
+		},
+		"color.border": {
+			"light": "#dbe1ea",
+			"dark": "#232d4b"
+		},
+		"color.text": {
+			"light": "#0f172a",
+			"dark": "#e2e8f0"
+		},
+		"color.muted": {
+			"light": "#64748b",
+			"dark": "#7c89a8"
+		},
+		"color.input": {
+			"light": "#f5f7fb",
+			"dark": "#0e1426"
+		},
+		"color.inputFocused": {
+			"light": "#eef2ff",
+			"dark": "#18213d"
+		},
+		"color.accent": {
+			"light": "#4f46e5",
+			"dark": "#6366f1"
+		},
+		"color.accentHover": {
+			"light": "#6366f1",
+			"dark": "#7c7ff5"
+		},
+		"color.accentPressed": {
+			"light": "#4338ca",
+			"dark": "#4f46e5"
+		},
+		"color.accentSoft": {
+			"light": "#e0e7ff",
+			"dark": "#272f5a"
+		},
+		"color.good": {
+			"light": "#16a34a",
+			"dark": "#22c55e"
+		},
+		"color.goodHover": {
+			"light": "#22c55e",
+			"dark": "#4ade80"
+		},
+		"color.goodText": {
+			"light": "#ffffff",
+			"dark": "#052e16"
+		},
+		"color.bad": {
+			"light": "#dc2626",
+			"dark": "#ef4444"
+		},
+		"color.badHover": {
+			"light": "#ef4444",
+			"dark": "#f87171"
+		},
+		"color.neutral": {
+			"light": "#e5e9f0",
+			"dark": "#2a3556"
+		},
+		"color.neutralHover": {
+			"light": "#d5dbe5",
+			"dark": "#35426b"
+		},
+		"color.hover": {
+			"light": "#eef1f6",
+			"dark": "#1b2440"
+		},
+		"color.backdrop": {
+			"light": "#0f172a66",
+			"dark": "#00000099"
+		},
+		"color.logYou": {
+			"light": "#4338ca",
+			"dark": "#a5b4fc"
+		},
+		"color.logAi": {
+			"light": "#0f766e",
+			"dark": "#5eead4"
+		},
+		"color.logCommit": {
+			"light": "#334155",
+			"dark": "#cbd5e1"
+		},
+		"color.logReview": {
+			"light": "#b45309",
+			"dark": "#fcd34d"
+		},
+		"color.logError": {
+			"light": "#b91c1c",
+			"dark": "#fca5a5"
+		},
+		"color.logSystem": {
+			"light": "#64748b",
+			"dark": "#7c89a8"
+		}
+	},
+	"channels": {
+		"host": {
+			"socket": "studio.sock",
+			"reconnect": {
+				"after": 2000
+			}
+		}
+	},
+	"persist": ["state.theme", "state.sizes"],
+	"state": {
+		"theme": "dark",
+		"tab": "review",
+		"sizes": [560],
+		"selected": null,
+		"historyPick": null,
+		"rejecting": {
+			"open": false,
+			"id": 0,
+			"message": ""
+		},
+		"changing": {
+			"open": false,
+			"kind": "revert",
+			"number": 0,
+			"message": ""
+		},
+		"toast": {
+			"open": false,
+			"message": ""
+		},
+		"connected": false,
+		"status": "Connecting to the host...",
+		"canReview": false,
+		"revision": 0,
+		"head": "",
+		"mode": "default",
+		"grants": [],
+		"inspecting": false,
+		"proposals": [],
+		"previewing": null,
+		"evidence": null,
+		"history": [],
+		"log": [],
+		"draft": "",
+		"patch": "",
+		"modes": [
+			{
+				"mode": "default",
+				"label": "Ask first",
+				"width": 96
+			},
+			{
+				"mode": "acceptEdits",
+				"label": "Accept edits",
+				"width": 112
+			},
+			{
+				"mode": "plan",
+				"label": "Plan",
+				"width": 72
+			}
+		],
+		"modeHelp": {
+			"default": "Ask first: AI changes no rule allows wait here for you.",
+			"acceptEdits": "Accept edits: AI changes apply right away, unless a rule always asks.",
+			"plan": "Plan: the AI can only propose, even where it is allowed."
+		},
+		"logColors": {
+			"you": "@color.logYou",
+			"ai": "@color.logAi",
+			"commit": "@color.logCommit",
+			"review": "@color.logReview",
+			"error": "@color.logError"
+		},
+		"coordination": {
+			"peers": [],
+			"leases": [],
+			"roles": {}
+		},
+		"roleDraft": "",
+		"usage": null
+	},
+	"stateTypes": {
+		"theme": {
+			"enum": ["light", "dark"]
+		},
+		"tab": {
+			"enum": ["review", "history", "rules", "agents"]
+		},
+		"sizes": {
+			"type": "array"
+		},
+		"selected": {
+			"type": ["number", "null"]
+		},
+		"historyPick": {
+			"type": ["number", "null"]
+		},
+		"connected": {
+			"type": "boolean"
+		},
+		"status": {
+			"type": "string"
+		},
+		"canReview": {
+			"type": "boolean"
+		},
+		"revision": {
+			"type": "number"
+		},
+		"head": {
+			"type": "string"
+		},
+		"mode": {
+			"enum": ["default", "acceptEdits", "plan"]
+		},
+		"grants": {
+			"type": "array"
+		},
+		"proposals": {
+			"type": "array"
+		},
+		"previewing": {
+			"type": ["number", "null"]
+		},
+		"history": {
+			"type": "array"
+		},
+		"log": {
+			"type": "array"
+		},
+		"draft": {
+			"type": "string"
+		},
+		"patch": {
+			"type": "string"
+		},
+		"modes": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"mode": {
+						"type": "string"
+					},
+					"label": {
+						"type": "string"
+					},
+					"width": {
+						"type": "number"
+					}
+				}
+			}
+		},
+		"modeHelp": {
+			"type": "object",
+			"properties": {
+				"default": {
+					"type": "string"
+				},
+				"acceptEdits": {
+					"type": "string"
+				},
+				"plan": {
+					"type": "string"
+				}
+			}
+		},
+		"logColors": {
+			"type": "object",
+			"properties": {
+				"you": {
+					"type": "string"
+				},
+				"ai": {
+					"type": "string"
+				},
+				"commit": {
+					"type": "string"
+				},
+				"review": {
+					"type": "string"
+				},
+				"error": {
+					"type": "string"
+				}
+			}
+		},
+		"coordination": {
+			"type": "object"
+		},
+		"roleDraft": {
+			"type": "string"
+		},
+		"usage": {
+			"type": ["object", "null"]
+		}
+	},
+	"computed": {
+		"current": "{{find(state.proposals, it.id == state.selected) ?? (length(state.proposals) > 0 ? state.proposals[0] : null)}}",
+		"evidence": "{{state.evidence != null && computed.current != null && state.evidence.proposal == computed.current.id ? state.evidence : null}}",
+		"diffs": "{{computed.evidence == null ? [] : map(computed.evidence.texts, {type: 'diff', node: it.node, original: it.original, modified: it.modified, mode: 'split', language: it.language})}}",
+		"entry": "{{find(state.history, it.number == state.historyPick) ?? (length(state.history) > 0 ? state.history[length(state.history) - 1] : null)}}",
+		"tabs": "{{concat([{id: 'review', label: length(state.proposals) > 0 ? 'Review (' + length(state.proposals) + ')' : 'Review', closable: false}, {id: 'history', label: 'History', closable: false}, {id: 'rules', label: length(state.grants) > 0 ? 'Rules (' + length(state.grants) + ')' : 'Rules', closable: false}], empty(state.coordination.peers) ? [] : [{id: 'agents', label: 'Agents (' + length(state.coordination.peers) + ')', closable: false}])}}"
+	},
+	"styles": {
+		"card": {
+			"color": "@color.card",
+			"radius": "@radius.card",
+			"borderWidth": 1,
+			"borderColor": "@color.border"
+		},
+		"cardTitle": {
+			"type": "label",
+			"font": "heading",
+			"textColor": "@color.text",
+			"anchors": {
+				"left": 20,
+				"top": 16
+			},
+			"fitText": true
+		},
+		"caption": {
+			"type": "label",
+			"font": "small",
+			"textColor": "@color.muted",
+			"fitText": true
+		},
+		"input": {
+			"type": "textarea",
+			"height": 40,
+			"padding": 12,
+			"radius": "@radius.chip",
+			"borderWidth": 1,
+			"borderColor": "@color.border",
+			"color": "@color.input",
+			"focused": {
+				"color": "@color.inputFocused",
+				"borderColor": "@color.accent"
+			},
+			"textColor": "@color.text",
+			"placeholderColor": "@color.muted"
+		},
+		"button": {
+			"type": "label",
+			"align": "center",
+			"radius": "@radius.chip",
+			"color": "@color.accent",
+			"hover": {
+				"color": "@color.accentHover"
+			},
+			"pressed": {
+				"color": "@color.accentPressed"
+			},
+			"textColor": "#ffffff",
+			"cursor": "hand"
+		},
+		"smallButton": {
+			"type": "label",
+			"font": "small",
+			"align": "center",
+			"height": 28,
+			"radius": "@radius.chip",
+			"color": "@color.neutral",
+			"hover": {
+				"color": "@color.neutralHover"
+			},
+			"textColor": "@color.text",
+			"cursor": "hand"
+		},
+		"goodButton": {
+			"style": "smallButton",
+			"color": "@color.good",
+			"hover": {
+				"color": "@color.goodHover"
+			},
+			"textColor": "@color.goodText"
+		},
+		"badButton": {
+			"style": "smallButton",
+			"color": "@color.bad",
+			"hover": {
+				"color": "@color.badHover"
+			},
+			"textColor": "#ffffff"
+		},
+		"iconButton": {
+			"type": "label",
+			"text": "",
+			"width": 32,
+			"height": 32,
+			"radius": 8,
+			"color": "transparent",
+			"textColor": "@color.muted",
+			"align": "center",
+			"cursor": "hand",
+			"hover": {
+				"color": "@color.hover",
+				"textColor": "@color.text"
+			}
+		},
+		"empty": {
+			"type": "label",
+			"textColor": "@color.muted",
+			"align": "center",
+			"wrap": true
+		}
+	},
+	"actions": {
+		"ask": [
+			{
+				"if": "{{length(trim(state.draft)) == 0}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"send": "host",
+				"data": {
+					"type": "request",
+					"id": "request-{{length(state.log)}}",
+					"text": "{{state.draft}}"
+				}
+			},
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "you",
+					"text": "You: {{state.draft}}"
+				}
+			},
+			{
+				"set": "state.draft",
+				"to": ""
+			}
+		],
+		"applyPatch": [
+			{
+				"note": "A JSON Patch [...] or compact edits {\"set\": {...}}, as typed"
+			},
+			{
+				"if": "{{length(trim(state.patch)) == 0}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{type(parseJson(state.patch)) == 'list'}}",
+				"then": [
+					{
+						"send": "host",
+						"data": {
+							"type": "revision",
+							"message": "Direct change from the Studio",
+							"patch": "{{parseJson(state.patch)}}"
+						}
+					}
+				],
+				"else": [
+					{
+						"if": "{{type(parseJson(state.patch)) == 'object'}}",
+						"then": [
+							{
+								"send": "host",
+								"data": "{{merge({ type: 'revision', message: 'Direct change from the Studio' }, parseJson(state.patch))}}"
+							}
+						],
+						"else": [
+							{
+								"push": "state.log",
+								"value": {
+									"kind": "error",
+									"text": "Not JSON: a patch [{\"op\": ...}] or edits {\"set\": {...}}"
+								}
+							},
+							{
+								"stop": true
+							}
+						]
+					}
+				]
+			},
+			{
+				"set": "state.patch",
+				"to": ""
+			}
+		],
+		"refreshHistory": [
+			{
+				"send": "host",
+				"data": {
+					"type": "getHistory",
+					"limit": 50
+				}
+			}
+		],
+		"notify": [
+			{
+				"note": "with: message. A toast in the corner for a few seconds"
+			},
+			{
+				"set": "state.toast",
+				"to": {
+					"open": true,
+					"message": "{{message}}"
+				}
+			},
+			{
+				"debounce": 4000,
+				"do": [
+					{
+						"set": "state.toast.open",
+						"to": false
+					}
+				]
+			}
+		],
+		"toggleInspector": [
+			{
+				"note": "The host's debug overlay: the panel under the pointer, frame statistics and an event trace"
+			},
+			{
+				"send": "host",
+				"data": {
+					"type": "inspect",
+					"on": "{{!state.inspecting}}"
+				}
+			},
+			{
+				"set": "state.inspecting",
+				"to": "{{!state.inspecting}}"
+			}
+		],
+		"toggleTheme": [
+			{
+				"set": "state.theme",
+				"to": "{{state.theme == 'light' ? 'dark' : 'light'}}"
+			}
+		],
+		"accept": [
+			{
+				"note": "with: always. Accepts the chosen proposal at the head that was reviewed"
+			},
+			{
+				"if": "{{computed.current == null}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{always}}",
+				"then": [
+					{
+						"send": "host",
+						"data": {
+							"type": "accept",
+							"proposal": "{{computed.current.id}}",
+							"head": "{{computed.current.head}}",
+							"dontAskAgain": true
+						}
+					}
+				],
+				"else": [
+					{
+						"send": "host",
+						"data": {
+							"type": "accept",
+							"proposal": "{{computed.current.id}}",
+							"head": "{{computed.current.head}}"
+						}
+					}
+				]
+			}
+		],
+		"togglePreview": [
+			{
+				"if": "{{computed.current == null}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{computed.current.id == state.previewing}}",
+				"then": [
+					{
+						"send": "host",
+						"data": {
+							"type": "endPreview"
+						}
+					}
+				],
+				"else": [
+					{
+						"send": "host",
+						"data": {
+							"type": "preview",
+							"proposal": "{{computed.current.id}}"
+						}
+					}
+				]
+			}
+		],
+		"askReject": [
+			{
+				"if": "{{computed.current == null}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.rejecting",
+				"to": {
+					"open": true,
+					"id": "{{computed.current.id}}",
+					"message": "{{computed.current.message}}"
+				}
+			}
+		],
+		"reject": [
+			{
+				"send": "host",
+				"data": {
+					"type": "reject",
+					"proposal": "{{state.rejecting.id}}"
+				}
+			},
+			{
+				"set": "state.rejecting.open",
+				"to": false
+			}
+		],
+		"closeReject": [
+			{
+				"set": "state.rejecting.open",
+				"to": false
+			}
+		],
+		"askHistory": [
+			{
+				"note": "with: kind, revert or restore. Asks before changing main"
+			},
+			{
+				"if": "{{computed.entry == null}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"set": "state.changing",
+				"to": {
+					"open": true,
+					"kind": "{{kind}}",
+					"number": "{{computed.entry.number}}",
+					"message": "{{computed.entry.message}}"
+				}
+			}
+		],
+		"changeHistory": [
+			{
+				"if": "{{state.changing.kind == 'revert'}}",
+				"then": [
+					{
+						"send": "host",
+						"data": {
+							"type": "revert",
+							"revision": "{{state.changing.number}}"
+						}
+					}
+				],
+				"else": [
+					{
+						"send": "host",
+						"data": {
+							"type": "restore",
+							"revision": "{{state.changing.number}}"
+						}
+					}
+				]
+			},
+			{
+				"set": "state.changing.open",
+				"to": false
+			}
+		],
+		"closeHistory": [
+			{
+				"set": "state.changing.open",
+				"to": false
+			}
+		],
+		"host:hello": [
+			{
+				"set": "state.connected",
+				"to": true
+			},
+			{
+				"set": "state.canReview",
+				"to": "{{event.canReview}}"
+			},
+			{
+				"set": "state.revision",
+				"to": "{{event.revision}}"
+			},
+			{
+				"set": "state.head",
+				"to": "{{event.head.short}}"
+			},
+			{
+				"set": "state.status",
+				"to": "Connected as '{{event.you}}'"
+			},
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "system",
+					"text": "Connected to the host, at revision {{event.revision}} ({{event.head.short}})"
+				}
+			},
+			{
+				"send": "host",
+				"data": {
+					"type": "getDocument"
+				}
+			},
+			{
+				"run": "refreshHistory"
+			}
+		],
+		"host:document": [
+			{
+				"set": "state.proposals",
+				"to": "{{event.proposals}}"
+			},
+			{
+				"set": "state.previewing",
+				"to": "{{event.previewing}}"
+			},
+			{
+				"set": "state.mode",
+				"to": "{{event.mode}}"
+			},
+			{
+				"set": "state.grants",
+				"to": "{{event.grants}}"
+			},
+			{
+				"set": "state.revision",
+				"to": "{{event.revision}}"
+			},
+			{
+				"set": "state.head",
+				"to": "{{event.head.short}}"
+			}
+		],
+		"host:review": [
+			{
+				"if": "{{length(event.proposals) > length(state.proposals)}}",
+				"then": [
+					{
+						"run": "notify",
+						"with": {
+							"message": "New proposal #{{event.proposals[length(event.proposals) - 1].id}} from {{event.proposals[length(event.proposals) - 1].author}}"
+						}
+					}
+				]
+			},
+			{
+				"set": "state.proposals",
+				"to": "{{event.proposals}}"
+			},
+			{
+				"set": "state.previewing",
+				"to": "{{event.previewing}}"
+			},
+			{
+				"set": "state.mode",
+				"to": "{{event.mode}}"
+			},
+			{
+				"set": "state.grants",
+				"to": "{{event.grants}}"
+			},
+			{
+				"set": "state.coordination",
+				"to": "{{event.coordination ?? {peers: [], leases: [], roles: {}} }}"
+			}
+		],
+		"host:evidence": [
+			{
+				"set": "state.evidence",
+				"to": "{{merge({proposal: event.proposal, scale: event.scale}, {region: event.evidence.region, behaviour: event.evidence.behaviour, scenarios: event.evidence.scenarios, texts: event.evidence.texts ?? []})}}"
+			},
+			{
+				"call": "showEvidence",
+				"with": {
+					"before": "{{event.evidence.before}}",
+					"after": "{{event.evidence.after}}",
+					"region": "{{event.evidence.region}}"
+				},
+				"onError": [
+					{
+						"set": "state.status",
+						"to": "Evidence: {{error}}"
+					}
+				]
+			}
+		],
+		"gatherEvidence": [
+			{
+				"if": "{{computed.current != null && empty(computed.current.conflicts)}}",
+				"then": [
+					{
+						"send": "host",
+						"data": {
+							"type": "getEvidence",
+							"proposal": "{{computed.current.id}}"
+						}
+					}
+				]
+			}
+		],
+		"host:history": [
+			{
+				"set": "state.history",
+				"to": "{{event.entries}}"
+			}
+		],
+		"host:committed": [
+			{
+				"set": "state.revision",
+				"to": "{{event.revision}}"
+			},
+			{
+				"set": "state.head",
+				"to": "{{event.short}}"
+			},
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "commit",
+					"text": "Revision {{event.revision}} ({{event.short}}) by {{event.author}}: {{event.message}}"
+				}
+			},
+			{
+				"run": "refreshHistory"
+			}
+		],
+		"host:applied": [
+			{
+				"if": "{{event.proposal != null}}",
+				"then": [
+					{
+						"push": "state.log",
+						"value": {
+							"kind": "review",
+							"text": "Proposal #{{event.proposal}} merged"
+						}
+					},
+					{
+						"run": "notify",
+						"with": {
+							"message": "Proposal #{{event.proposal}} merged"
+						}
+					}
+				]
+			}
+		],
+		"host:proposed": [
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "review",
+					"text": "Waiting for review as proposal #{{event.proposal}}"
+				}
+			}
+		],
+		"host:rejected": [
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "error",
+					"text": "{{event.proposal != null ? 'Proposal #' + event.proposal + ' rejected: ' + event.error : 'Rejected: ' + event.error}}"
+				}
+			}
+		],
+		"host:usage": [
+			{
+				"set": "state.usage",
+				"to": "{{event.usage}}"
+			}
+		],
+		"host:reply": [
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "ai",
+					"text": "{{event.from}}: {{event.text}}"
+				}
+			}
+		],
+		"host:error": [
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "error",
+					"text": "{{event.message}}"
+				}
+			}
+		],
+		"host:event": [
+			{
+				"push": "state.log",
+				"value": {
+					"kind": "system",
+					"text": "The app emitted '{{event.name}}'"
+				}
+			}
+		],
+		"host:closed": [
+			{
+				"if": "{{state.connected}}",
+				"then": [
+					{
+						"push": "state.log",
+						"value": {
+							"kind": "error",
+							"text": "{{event.message}}"
+						}
+					}
+				]
+			},
+			{
+				"set": "state.connected",
+				"to": false
+			},
+			{
+				"set": "state.status",
+				"to": "Not connected: start affrescoui_host (retrying every 2 s)"
+			}
+		],
+		"host:open": [
+			{
+				"set": "state.status",
+				"to": "Connected, waiting for the host"
+			}
+		]
+	},
+	"keys": {
+		"mod+enter": "ask",
+		"mod+z": {
+			"send": "host",
+			"data": {
+				"type": "undo"
+			}
+		},
+		"mod+1": {
+			"set": "state.tab",
+			"to": "review"
+		},
+		"mod+2": {
+			"set": "state.tab",
+			"to": "history"
+		},
+		"mod+3": {
+			"set": "state.tab",
+			"to": "rules"
+		},
+		"mod+4": {
+			"set": "state.tab",
+			"to": "agents"
+		},
+		"mod+j": "toggleTheme"
+	},
+	"root": {
+		"id": "panel-root",
+		"color": "@color.background",
+		"children": [
+			{
+				"id": "header",
+				"anchors": {
+					"left": 0,
+					"right": 0,
+					"top": 0
+				},
+				"height": 60,
+				"color": "@color.card",
+				"borderWidth": 0,
+				"children": [
+					{
+						"id": "logo",
+						"type": "label",
+						"font": "iconsLarge",
+						"icon": "git-pull-request-arrow",
+						"textColor": "@color.accent",
+						"anchors": {
+							"left": 20,
+							"top": 14
+						},
+						"width": 32,
+						"height": 32,
+						"align": "center"
+					},
+					{
+						"type": "label",
+						"text": "AffrescoUI Studio",
+						"font": "title",
+						"textColor": "@color.text",
+						"anchors": {
+							"left": 60,
+							"top": 0,
+							"bottom": 0
+						},
+						"width": 190,
+						"align": {
+							"horizontal": "start",
+							"vertical": "center"
+						},
+						"id": "title"
+					},
+					{
+						"anchors": {
+							"left": 258,
+							"top": 26
+						},
+						"width": 8,
+						"height": 8,
+						"radius": 4,
+						"color": "{{state.connected ? '@color.good' : '@color.bad'}}",
+						"id": "connection",
+						"tooltip": "{{state.connected ? 'Connected' : 'Not connected'}}"
+					},
+					{
+						"type": "label",
+						"text": "{{state.status}}",
+						"textColor": "@color.muted",
+						"anchors": {
+							"left": 276,
+							"top": 0,
+							"bottom": 0,
+							"right": 380
+						},
+						"align": {
+							"horizontal": "start",
+							"vertical": "center"
+						},
+						"id": "status"
+					},
+					{
+						"id": "label-reconnect",
+						"when": "{{!state.connected}}",
+						"style": "smallButton",
+						"text": "Reconnect",
+						"anchors": {
+							"right": 64,
+							"top": 16
+						},
+						"width": 96,
+						"onClick": [
+							{
+								"connect": "host"
+							}
+						]
+					},
+					{
+						"id": "label-main-revision-revision",
+						"when": "{{state.connected}}",
+						"type": "label",
+						"text": "main  ·  revision {{state.revision}}  ·  {{state.head}}",
+						"font": "small",
+						"textColor": "@color.text",
+						"color": "@color.cardRaised",
+						"radius": 14,
+						"borderWidth": 1,
+						"borderColor": "@color.border",
+						"anchors": {
+							"right": 64,
+							"top": 16
+						},
+						"width": 230,
+						"height": 28,
+						"align": "center",
+						"tooltip": "The branch, revision and commit the app runs"
+					},
+					{
+						"id": "inspectorToggle",
+						"when": "{{state.connected && state.canReview}}",
+						"style": "iconButton",
+						"icon": "search",
+						"font": "icons",
+						"textColor": "{{state.inspecting ? '@color.accent' : '@color.muted'}}",
+						"anchors": {
+							"right": 302,
+							"top": 14
+						},
+						"tooltip": "Inspect the app: the panel under the pointer, frame times, events",
+						"onClick": "toggleInspector"
+					},
+					{
+						"id": "themeToggle",
+						"style": "iconButton",
+						"icon": "{{state.theme == 'light' ? 'moon' : 'sun'}}",
+						"font": "icons",
+						"anchors": {
+							"right": 20,
+							"top": 14
+						},
+						"tooltip": "Switch light and dark (Cmd+J)",
+						"onClick": "toggleTheme"
+					},
+					{
+						"id": "headerLine",
+						"anchors": {
+							"left": 0,
+							"right": 0,
+							"bottom": 0
+						},
+						"height": 1,
+						"color": "@color.border"
+					}
+				]
+			},
+			{
+				"id": "body",
+				"type": "split",
+				"anchors": {
+					"left": 0,
+					"right": 0,
+					"top": 60,
+					"bottom": 0
+				},
+				"bind": "state.sizes",
+				"defaultSizes": [560],
+				"minSize": [420, 420],
+				"sashSize": 4,
+				"sashColor": "transparent",
+				"sashActiveColor": "@color.accent",
+				"children": [
+					{
+						"id": "left",
+						"color": "transparent",
+						"children": [
+							{
+								"id": "askCard",
+								"style": "card",
+								"anchors": {
+									"left": 20,
+									"right": 10,
+									"top": 20
+								},
+								"height": 132,
+								"children": [
+									{
+										"id": "label-ask-the-ai",
+										"style": "cardTitle",
+										"text": "Ask the AI"
+									},
+									{
+										"id": "label-describe-a-change",
+										"style": "caption",
+										"text": "Describe a change in plain words. An AI agent connected through MCP builds it.",
+										"anchors": {
+											"left": 20,
+											"top": 42
+										}
+									},
+									{
+										"id": "draft",
+										"style": "input",
+										"anchors": {
+											"left": 20,
+											"right": 112,
+											"top": 72
+										},
+										"placeholder": "e.g. add a Blocked column, or switch to a dark theme",
+										"bind": "state.draft",
+										"onSubmit": "ask",
+										"autofocus": true
+									},
+									{
+										"id": "label-send",
+										"style": "button",
+										"text": "Send",
+										"icon": "send",
+										"anchors": {
+											"right": 20,
+											"top": 72
+										},
+										"width": 80,
+										"height": 40,
+										"onClick": "ask"
+									}
+								]
+							},
+							{
+								"id": "patchCard",
+								"style": "card",
+								"anchors": {
+									"left": 20,
+									"right": 10,
+									"top": 168
+								},
+								"height": 132,
+								"children": [
+									{
+										"id": "label-direct-change",
+										"style": "cardTitle",
+										"text": "Direct change"
+									},
+									{
+										"id": "label-a-json-patch",
+										"style": "caption",
+										"text": "A JSON Patch, or edits like {\"set\": {\"#boardName/text\": \"Q4\"}}, applied as you. Paste with Cmd+V.",
+										"anchors": {
+											"left": 20,
+											"top": 42
+										}
+									},
+									{
+										"id": "patch",
+										"style": "input",
+										"anchors": {
+											"left": 20,
+											"right": 112,
+											"top": 72
+										},
+										"placeholder": "{\"set\": {\"/colors/accent\": \"#e11d48\"}}",
+										"bind": "state.patch",
+										"onSubmit": "applyPatch"
+									},
+									{
+										"id": "label-apply",
+										"style": "button",
+										"text": "Apply",
+										"icon": "check",
+										"anchors": {
+											"right": 20,
+											"top": 72
+										},
+										"width": 80,
+										"height": 40,
+										"onClick": "applyPatch"
+									}
+								]
+							},
+							{
+								"id": "activityCard",
+								"style": "card",
+								"anchors": {
+									"left": 20,
+									"right": 10,
+									"top": 316,
+									"bottom": 20
+								},
+								"children": [
+									{
+										"id": "label-activity",
+										"style": "cardTitle",
+										"text": "Activity"
+									},
+									{
+										"id": "label-clear-log",
+										"when": "{{length(state.log) > 0}}",
+										"style": "smallButton",
+										"text": "Clear",
+										"anchors": {
+											"right": 20,
+											"top": 14
+										},
+										"width": 60,
+										"tooltip": "Clear the activity log",
+										"onClick": {
+											"set": "state.log",
+											"to": []
+										}
+									},
+									{
+										"id": "logEmpty",
+										"when": "{{length(state.log) == 0}}",
+										"style": "empty",
+										"text": "Requests, replies, commits and reviews show here.",
+										"anchors": {
+											"left": 20,
+											"right": 20,
+											"top": 48,
+											"bottom": 16
+										}
+									},
+									{
+										"id": "log",
+										"type": "stack",
+										"gap": 8,
+										"anchors": {
+											"left": 20,
+											"right": 20,
+											"top": 52,
+											"bottom": 16
+										},
+										"children": [
+											{
+												"id": "label-entry-text",
+												"repeat": {
+													"for": "entry",
+													"in": "state.log"
+												},
+												"type": "label",
+												"text": "{{entry.text}}",
+												"anchors": {
+													"left": 0
+												},
+												"wrap": true,
+												"fitText": {
+													"maxWidth": 520
+												},
+												"textColor": "{{state.logColors[entry.kind] ?? '@color.logSystem'}}"
+											}
+										],
+										"justify": "end",
+										"scroll": "vertical"
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "right",
+						"color": "transparent",
+						"children": [
+							{
+								"id": "reviewCard",
+								"style": "card",
+								"anchors": {
+									"left": 10,
+									"right": 20,
+									"top": 20,
+									"bottom": 20
+								},
+								"children": [
+									{
+										"id": "tabs",
+										"type": "tabs",
+										"anchors": {
+											"left": 12,
+											"right": 12,
+											"top": 8
+										},
+										"height": 36,
+										"tabs": "{{computed.tabs}}",
+										"value": "{{state.tab}}",
+										"color": "transparent",
+										"textColor": "@color.muted",
+										"activeTextColor": "@color.text",
+										"activeBackground": "@color.cardRaised",
+										"accentColor": "@color.accent",
+										"onChange": {
+											"set": "state.tab",
+											"to": "{{event.value}}"
+										}
+									},
+									{
+										"id": "tabsLine",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 44
+										},
+										"height": 1,
+										"color": "@color.border"
+									},
+									{
+										"id": "reviewPage",
+										"when": "{{state.tab == 'review'}}",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 52,
+											"bottom": 0
+										},
+										"color": "transparent",
+										"children": [
+											{
+												"id": "reviewEmpty",
+												"when": "{{length(state.proposals) == 0}}",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 40,
+													"bottom": 40
+												},
+												"color": "transparent",
+												"children": [
+													{
+														"id": "reviewEmptyIcon",
+														"type": "label",
+														"font": "iconsLarge",
+														"icon": "inbox",
+														"textColor": "@color.muted",
+														"anchors": {
+															"left": 0,
+															"right": 0,
+															"top": 80
+														},
+														"height": 32,
+														"align": "center"
+													},
+													{
+														"id": "label-nothing-to-review",
+														"type": "label",
+														"text": "Nothing to review",
+														"font": "heading",
+														"textColor": "@color.text",
+														"anchors": {
+															"left": 0,
+															"right": 0,
+															"top": 124
+														},
+														"height": 22,
+														"align": "center"
+													},
+													{
+														"id": "label-nothing-help",
+														"style": "empty",
+														"font": "small",
+														"fitText": false,
+														"text": "{{state.canReview || !state.connected ? 'Changes that need your approval wait here.' : 'This connection can not review changes.'}}",
+														"anchors": {
+															"left": 0,
+															"right": 0,
+															"top": 152
+														},
+														"height": 18
+													}
+												]
+											},
+											{
+												"id": "proposals",
+												"when": "{{length(state.proposals) > 0}}",
+												"type": "list",
+												"anchors": {
+													"left": 12,
+													"right": 12,
+													"top": 0
+												},
+												"height": "{{min(8 + 44 * length(state.proposals), 184)}}",
+												"color": "transparent",
+												"rowHeight": 44,
+												"items": "{{map(state.proposals, {id: text(it.id), label: (it.id == state.previewing ? '◉  ' : '') + '#' + it.id + '  ' + it.message + '   ·   ' + it.author})}}",
+												"value": "{{computed.current != null ? text(computed.current.id) : ''}}",
+												"textColor": "@color.text",
+												"selectedTextColor": "@color.text",
+												"selectedBackground": "@color.accentSoft",
+												"accentColor": "@color.accent",
+												"onChange": [
+													{
+														"set": "state.selected",
+														"to": "{{number(event.value)}}"
+													},
+													{
+														"run": "gatherEvidence"
+													}
+												]
+											},
+											{
+												"id": "proposal",
+												"when": "{{computed.current != null}}",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": "{{min(8 + 44 * length(state.proposals), 184) + 12}}",
+													"bottom": 20
+												},
+												"color": "{{computed.current.id == state.previewing ? '@color.accentSoft' : '@color.cardRaised'}}",
+												"radius": "@radius.card",
+												"borderWidth": 1,
+												"borderColor": "@color.border",
+												"children": [
+													{
+														"id": "label-p-id-p",
+														"style": "caption",
+														"text": "#{{computed.current.id}}  ·  {{computed.current.author}}  ·  {{plural(computed.current.commits, 'commit')}}, {{plural(computed.current.operations, 'change')}}  ·  {{computed.current.short}}",
+														"anchors": {
+															"left": 16,
+															"top": 14
+														}
+													},
+													{
+														"id": "label-previewing",
+														"when": "{{computed.current.id == state.previewing}}",
+														"type": "label",
+														"font": "small",
+														"text": "Previewing",
+														"textColor": "#ffffff",
+														"color": "@color.accent",
+														"radius": 10,
+														"anchors": {
+															"right": 16,
+															"top": 11
+														},
+														"width": 80,
+														"height": 20,
+														"align": "center"
+													},
+													{
+														"id": "label-p-message",
+														"type": "label",
+														"text": "{{computed.current.message}}",
+														"font": "heading",
+														"textColor": "@color.text",
+														"anchors": {
+															"left": 16,
+															"right": 16,
+															"top": 36
+														},
+														"height": 22
+													},
+													{
+														"id": "label-changes",
+														"style": "caption",
+														"text": "{{empty(computed.current.conflicts) ? 'Changes' : 'Conflicts with main: its author must push again'}}",
+														"anchors": {
+															"left": 16,
+															"top": 70
+														}
+													},
+													{
+														"id": "changes",
+														"when": "{{empty(computed.current.conflicts)}}",
+														"type": "stack",
+														"gap": 4,
+														"anchors": {
+															"left": 16,
+															"right": 16,
+															"top": 90,
+															"bottom": "{{empty(computed.current.remember) ? 60 : 84}}"
+														},
+														"scroll": "vertical",
+														"children": [
+															{
+																"id": "change",
+																"repeat": {
+																	"for": "c",
+																	"in": "computed.current.changes"
+																},
+																"type": "label",
+																"font": "symbols",
+																"text": "{{c}}",
+																"textColor": "@color.text",
+																"color": "@color.card",
+																"radius": 4,
+																"padding": 6,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 26,
+																"align": {
+																	"horizontal": "start",
+																	"vertical": "center"
+																}
+															},
+															{
+																"id": "evidenceBar",
+																"note": "A proposal's evidence (VERSION_CONTROL.md): drawn and played by the host, never supplied by its author",
+																"color": "transparent",
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 30,
+																"children": [
+																	{
+																		"id": "label-evidence",
+																		"style": "caption",
+																		"text": "{{computed.evidence == null ? 'Evidence: pictures, behaviour and scenarios, gathered by the host' : 'Evidence, gathered by the host'}}",
+																		"anchors": {
+																			"left": 0,
+																			"right": 96,
+																			"top": 8
+																		},
+																		"fitText": false,
+																		"height": 16
+																	},
+																	{
+																		"id": "label-gather-evidence",
+																		"style": "smallButton",
+																		"text": "{{computed.evidence == null ? 'Gather' : 'Again'}}",
+																		"icon": "camera",
+																		"anchors": {
+																			"right": 0,
+																			"top": 2
+																		},
+																		"width": 88,
+																		"tooltip": "Draw main and the proposal, and play the screen's scenarios on it",
+																		"onClick": "gatherEvidence"
+																	}
+																]
+															},
+															{
+																"id": "evidencePictures",
+																"when": "{{computed.evidence != null}}",
+																"color": "@color.card",
+																"radius": 4,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 168,
+																"children": [
+																	{
+																		"id": "image-evidence-before",
+																		"type": "image",
+																		"source": "evidenceBefore",
+																		"fit": "contain",
+																		"anchors": {
+																			"left": 6,
+																			"right": "50%",
+																			"top": 24,
+																			"bottom": 6
+																		}
+																	},
+																	{
+																		"id": "image-evidence-after",
+																		"type": "image",
+																		"source": "evidenceAfter",
+																		"fit": "contain",
+																		"anchors": {
+																			"left": "50%",
+																			"right": 6,
+																			"top": 24,
+																			"bottom": 6
+																		}
+																	},
+																	{
+																		"id": "label-evidence-before",
+																		"style": "caption",
+																		"text": "Before: main",
+																		"anchors": {
+																			"left": 8,
+																			"top": 4
+																		}
+																	},
+																	{
+																		"id": "label-evidence-after",
+																		"style": "caption",
+																		"text": "{{computed.evidence.region[2] == 0 ? 'After: no pixel changed' : 'After: changed ' + computed.evidence.region[2] + ' × ' + computed.evidence.region[3] + ' at ' + computed.evidence.region[0] + ', ' + computed.evidence.region[1]}}",
+																		"anchors": {
+																			"left": "50%",
+																			"top": 4
+																		}
+																	}
+																]
+															},
+															{
+																"id": "label-evidence-behaviour",
+																"when": "{{computed.evidence != null}}",
+																"repeat": {
+																	"for": "b",
+																	"in": "computed.evidence.behaviour"
+																},
+																"type": "label",
+																"font": "symbols",
+																"text": "Behaviour: {{b}}",
+																"textColor": "@color.text",
+																"color": "@color.accentSoft",
+																"radius": 4,
+																"padding": 6,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 26,
+																"align": {
+																	"horizontal": "start",
+																	"vertical": "center"
+																}
+															},
+															{
+																"id": "label-evidence-scenario",
+																"when": "{{computed.evidence != null}}",
+																"repeat": {
+																	"for": "r",
+																	"in": "computed.evidence.scenarios"
+																},
+																"type": "label",
+																"font": "symbols",
+																"text": "{{r.passed ? 'Passed' : 'Failed'}}: {{r.name}}{{empty(r.message) ? '' : '  ·  ' + r.message}}",
+																"textColor": "@color.text",
+																"color": "{{r.passed ? '@color.card' : '@color.bad'}}",
+																"radius": 4,
+																"padding": 6,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 26,
+																"align": {
+																	"horizontal": "start",
+																	"vertical": "center"
+																}
+															},
+															{
+																"id": "diff",
+																"note": "A text the proposal changes, split: the data is 8.4c's diff view ({type: 'diff', original, modified, mode, language}), drawn with two labels until that node type exists",
+																"repeat": {
+																	"for": "d",
+																	"in": "computed.diffs"
+																},
+																"color": "@color.card",
+																"radius": 4,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 96,
+																"children": [
+																	{
+																		"id": "label-diff-node",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{d.node}}  ·  {{d.language}}",
+																		"textColor": "@color.muted",
+																		"anchors": {
+																			"left": 8,
+																			"right": 8,
+																			"top": 6
+																		},
+																		"height": 18
+																	},
+																	{
+																		"id": "label-diff-original",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{d.original}}",
+																		"textColor": "@color.text",
+																		"color": "@color.cardRaised",
+																		"radius": 4,
+																		"padding": 6,
+																		"wrap": true,
+																		"anchors": {
+																			"left": 8,
+																			"right": "50%",
+																			"top": 28,
+																			"bottom": 6
+																		},
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "start"
+																		}
+																	},
+																	{
+																		"id": "label-diff-modified",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{d.modified}}",
+																		"textColor": "@color.text",
+																		"color": "@color.accentSoft",
+																		"radius": 4,
+																		"padding": 6,
+																		"wrap": true,
+																		"anchors": {
+																			"left": "50%",
+																			"right": 8,
+																			"top": 28,
+																			"bottom": 6
+																		},
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "start"
+																		}
+																	}
+																]
+															}
+														]
+													},
+													{
+														"id": "mergeView",
+														"note": "A conflicted proposal: per conflict, main's value and the proposal's, side by side",
+														"when": "{{!empty(computed.current.conflicts)}}",
+														"type": "stack",
+														"gap": 6,
+														"anchors": {
+															"left": 16,
+															"right": 16,
+															"top": 90,
+															"bottom": 60
+														},
+														"scroll": "vertical",
+														"children": [
+															{
+																"id": "conflict",
+																"repeat": {
+																	"for": "k",
+																	"in": "computed.current.conflicts"
+																},
+																"color": "@color.card",
+																"radius": 4,
+																"anchors": {
+																	"left": 0,
+																	"right": 0
+																},
+																"height": 72,
+																"children": [
+																	{
+																		"id": "label-conflict-path",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "{{k.path}}  ·  {{k.reason}}",
+																		"textColor": "@color.text",
+																		"anchors": {
+																			"left": 8,
+																			"right": 8,
+																			"top": 6
+																		},
+																		"height": 18
+																	},
+																	{
+																		"id": "label-conflict-main",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "main: {{k.main == null ? 'removed' : json(k.main)}}",
+																		"textColor": "@color.text",
+																		"color": "@color.cardRaised",
+																		"radius": 4,
+																		"padding": 6,
+																		"anchors": {
+																			"left": 8,
+																			"right": "50%",
+																			"top": 30
+																		},
+																		"height": 34,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "center"
+																		}
+																	},
+																	{
+																		"id": "label-conflict-proposal",
+																		"type": "label",
+																		"font": "symbols",
+																		"text": "proposal: {{k.proposal == null ? 'removed' : json(k.proposal)}}",
+																		"textColor": "@color.text",
+																		"color": "@color.accentSoft",
+																		"radius": 4,
+																		"padding": 6,
+																		"anchors": {
+																			"left": "50%",
+																			"right": 8,
+																			"top": 30
+																		},
+																		"height": 34,
+																		"align": {
+																			"horizontal": "start",
+																			"vertical": "center"
+																		}
+																	}
+																]
+															}
+														]
+													},
+													{
+														"id": "label-remember",
+														"when": "{{!empty(computed.current.remember)}}",
+														"style": "caption",
+														"text": "Always allow stops asking for: {{join(computed.current.remember, ', ')}}",
+														"anchors": {
+															"left": 16,
+															"right": 16,
+															"bottom": 58
+														},
+														"fitText": false,
+														"height": 16
+													},
+													{
+														"id": "label-previewed-end-preview",
+														"style": "smallButton",
+														"text": "{{computed.current.id == state.previewing ? 'End preview' : 'Preview'}}",
+														"icon": "{{computed.current.id == state.previewing ? 'eye-off' : 'eye'}}",
+														"anchors": {
+															"left": 16,
+															"bottom": 16
+														},
+														"width": 104,
+														"tooltip": "Show the change in the running app before deciding",
+														"onClick": "togglePreview"
+													},
+													{
+														"id": "label-accept",
+														"style": "goodButton",
+														"text": "Accept",
+														"icon": "check",
+														"anchors": {
+															"left": 128,
+															"bottom": 16
+														},
+														"width": 80,
+														"onClick": {
+															"run": "accept",
+															"with": {
+																"always": false
+															}
+														}
+													},
+													{
+														"id": "label-always-allow",
+														"when": "{{!empty(computed.current.remember)}}",
+														"style": "goodButton",
+														"text": "Always allow",
+														"anchors": {
+															"left": 216,
+															"bottom": 16
+														},
+														"width": 100,
+														"onClick": {
+															"run": "accept",
+															"with": {
+																"always": true
+															}
+														},
+														"tooltip": "Don't ask again for: {{join(computed.current.remember, ', ')}}"
+													},
+													{
+														"id": "label-reject",
+														"style": "badButton",
+														"text": "Reject",
+														"icon": "x",
+														"anchors": {
+															"right": 16,
+															"bottom": 16
+														},
+														"width": 80,
+														"onClick": "askReject"
+													}
+												]
+											}
+										]
+									},
+									{
+										"id": "historyPage",
+										"when": "{{state.tab == 'history'}}",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 52,
+											"bottom": 0
+										},
+										"color": "transparent",
+										"children": [
+											{
+												"id": "label-history",
+												"style": "caption",
+												"text": "{{plural(length(state.history), 'commit')}} on main, newest first",
+												"anchors": {
+													"left": 20,
+													"top": 8
+												}
+											},
+											{
+												"id": "label-undo",
+												"style": "smallButton",
+												"text": "Undo",
+												"icon": "undo-2",
+												"anchors": {
+													"right": 20,
+													"top": 0
+												},
+												"width": 76,
+												"onClick": [
+													{
+														"send": "host",
+														"data": {
+															"type": "undo"
+														}
+													}
+												],
+												"tooltip": "Cmd+Z"
+											},
+											{
+												"id": "history",
+												"type": "table",
+												"anchors": {
+													"left": 12,
+													"right": 12,
+													"top": 40,
+													"bottom": 128
+												},
+												"color": "transparent",
+												"rowHeight": 30,
+												"items": "{{map(reverse(state.history), {id: text(it.number), cells: [it.number, it.short, it.author, it.message, it.committer != it.author ? it.committer : '']})}}",
+												"value": "{{computed.entry != null ? text(computed.entry.number) : ''}}",
+												"columns": [
+													{
+														"id": "number",
+														"title": "#",
+														"width": 36
+													},
+													{
+														"id": "short",
+														"title": "Commit",
+														"width": 72
+													},
+													{
+														"id": "author",
+														"title": "Author",
+														"width": 80
+													},
+													{
+														"id": "message",
+														"title": "Message",
+														"width": 180
+													},
+													{
+														"id": "approved",
+														"title": "Approved by",
+														"width": 96
+													}
+												],
+												"textColor": "@color.text",
+												"selectedTextColor": "@color.text",
+												"selectedBackground": "@color.accentSoft",
+												"accentColor": "@color.accent",
+												"onChange": {
+													"set": "state.historyPick",
+													"to": "{{number(event.value)}}"
+												}
+											},
+											{
+												"id": "entry",
+												"when": "{{computed.entry != null}}",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"bottom": 20
+												},
+												"height": 96,
+												"color": "@color.cardRaised",
+												"radius": "@radius.card",
+												"borderWidth": 1,
+												"borderColor": "@color.border",
+												"children": [
+													{
+														"id": "label-entry-number-entry",
+														"style": "caption",
+														"text": "{{computed.entry.number}}  ·  {{computed.entry.short}}{{computed.entry.committer != computed.entry.author ? '  ·  approved by ' + computed.entry.committer : ''}}{{computed.entry.number == state.revision ? '  ·  current' : ''}}",
+														"anchors": {
+															"left": 16,
+															"top": 12
+														}
+													},
+													{
+														"id": "label-entry-author-entry",
+														"type": "label",
+														"text": "{{computed.entry.author}}: {{computed.entry.message}}",
+														"textColor": "@color.text",
+														"anchors": {
+															"left": 16,
+															"right": 16,
+															"top": 32
+														},
+														"height": 18
+													},
+													{
+														"id": "label-revert",
+														"when": "{{computed.entry.number > 0}}",
+														"style": "smallButton",
+														"text": "Revert",
+														"anchors": {
+															"left": 16,
+															"bottom": 14
+														},
+														"width": 72,
+														"tooltip": "A new commit that undoes this one",
+														"onClick": {
+															"run": "askHistory",
+															"with": {
+																"kind": "revert"
+															}
+														}
+													},
+													{
+														"id": "label-restore",
+														"when": "{{computed.entry.number != state.revision}}",
+														"style": "smallButton",
+														"text": "Restore",
+														"anchors": {
+															"left": 96,
+															"bottom": 14
+														},
+														"width": 72,
+														"tooltip": "A new commit that brings the app back to this one",
+														"onClick": {
+															"run": "askHistory",
+															"with": {
+																"kind": "restore"
+															}
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"id": "rulesPage",
+										"when": "{{state.tab == 'rules'}}",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 52,
+											"bottom": 0
+										},
+										"color": "transparent",
+										"children": [
+											{
+												"id": "label-mode",
+												"type": "label",
+												"font": "heading",
+												"text": "Approval mode",
+												"textColor": "@color.text",
+												"anchors": {
+													"left": 20,
+													"top": 8
+												},
+												"fitText": true
+											},
+											{
+												"id": "mode",
+												"type": "row",
+												"gap": 4,
+												"anchors": {
+													"left": 20,
+													"top": 40
+												},
+												"width": 330,
+												"height": 32,
+												"children": [
+													{
+														"id": "label-m-label",
+														"repeat": {
+															"for": "m",
+															"in": "state.modes"
+														},
+														"style": "smallButton",
+														"height": 32,
+														"text": "{{m.label}}",
+														"width": "{{m.width}}",
+														"color": "{{state.mode == m.mode ? '@color.accent' : '@color.neutral'}}",
+														"textColor": "{{state.mode == m.mode ? '#ffffff' : '@color.text'}}",
+														"onClick": {
+															"send": "host",
+															"data": {
+																"type": "setMode",
+																"mode": "{{m.mode}}"
+															}
+														}
+													}
+												]
+											},
+											{
+												"id": "label-mode-help-mode",
+												"style": "caption",
+												"text": "{{state.modeHelp[state.mode]}}",
+												"anchors": {
+													"left": 20,
+													"top": 84
+												}
+											},
+											{
+												"id": "label-grants",
+												"type": "label",
+												"font": "heading",
+												"text": "Don't ask again",
+												"textColor": "@color.text",
+												"anchors": {
+													"left": 20,
+													"top": 128
+												},
+												"fitText": true
+											},
+											{
+												"id": "label-grants-help",
+												"style": "caption",
+												"text": "{{length(state.grants) == 0 ? 'No rules yet: Always allow on a proposal adds one.' : 'Changes these rules match apply without asking.'}}",
+												"anchors": {
+													"left": 20,
+													"top": 154
+												}
+											},
+											{
+												"id": "grants",
+												"type": "stack",
+												"gap": 6,
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 182,
+													"bottom": 20
+												},
+												"color": "transparent",
+												"scroll": "vertical",
+												"children": [
+													{
+														"id": "panel-g",
+														"repeat": {
+															"for": "g",
+															"in": "state.grants"
+														},
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"height": 52,
+														"color": "@color.cardRaised",
+														"radius": "@radius.chip",
+														"borderWidth": 1,
+														"borderColor": "@color.border",
+														"children": [
+															{
+																"id": "label-don-t-ask",
+																"type": "label",
+																"text": "Don't ask again: {{g.rule}}",
+																"textColor": "@color.logReview",
+																"anchors": {
+																	"left": 12,
+																	"right": 92,
+																	"top": 8
+																},
+																"height": 18
+															},
+															{
+																"id": "label-granted-by",
+																"style": "caption",
+																"text": "Granted by {{g.grantedBy}}{{g.proposal != null ? ' on proposal #' + g.proposal : ''}}",
+																"anchors": {
+																	"left": 12,
+																	"top": 28
+																}
+															},
+															{
+																"id": "label-revoke",
+																"style": "smallButton",
+																"text": "Revoke",
+																"anchors": {
+																	"right": 12,
+																	"top": 12
+																},
+																"width": 68,
+																"onClick": [
+																	{
+																		"send": "host",
+																		"data": {
+																			"type": "revoke",
+																			"rule": "{{g.rule}}"
+																		}
+																	}
+																]
+															}
+														]
+													}
+												]
+											}
+										]
+									},
+									{
+										"id": "agentsPage",
+										"when": "{{state.tab == 'agents'}}",
+										"anchors": {
+											"left": 0,
+											"right": 0,
+											"top": 52,
+											"bottom": 0
+										},
+										"color": "transparent",
+										"children": [
+											{
+												"id": "label-who",
+												"type": "label",
+												"font": "heading",
+												"text": "Who is connected",
+												"textColor": "@color.text",
+												"anchors": {
+													"left": 20,
+													"top": 8
+												},
+												"fitText": true
+											},
+											{
+												"id": "label-who-hint",
+												"style": "caption",
+												"text": "{{empty(state.coordination.peers) ? 'Nobody is connected.' : 'Each peer, its role, the parts it leases and its proposals. Roles are given by a reviewer, never by the agent.'}}",
+												"anchors": {
+													"left": 20,
+													"top": 36
+												}
+											},
+											{
+												"id": "label-get-usage",
+												"style": "smallButton",
+												"text": "Usage summary",
+												"anchors": {
+													"right": 132,
+													"top": 6
+												},
+												"width": 104,
+												"when": "{{state.canReview}}",
+												"onClick": [
+													{
+														"send": "host",
+														"data": {
+															"type": "getUsage"
+														}
+													}
+												]
+											},
+											{
+												"id": "label-clear-usage",
+												"style": "smallButton",
+												"text": "Clear usage",
+												"anchors": {
+													"right": 20,
+													"top": 6
+												},
+												"width": 104,
+												"when": "{{state.canReview}}",
+												"onClick": [
+													{
+														"send": "host",
+														"data": {
+															"type": "clearUsage"
+														}
+													}
+												]
+											},
+											{
+												"id": "label-usage",
+												"style": "caption",
+												"text": "Usage: {{length(state.usage.actions)}} actions, {{length(state.usage.screens)}} screens, {{length(state.usage.untouched)}} controls never used",
+												"anchors": {
+													"right": 252,
+													"top": 12
+												},
+												"fitText": true,
+												"when": "{{state.usage != null && state.canReview}}"
+											},
+											{
+												"id": "roleDraft",
+												"style": "input",
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 60
+												},
+												"placeholder": "A role to give, e.g. design",
+												"bind": "state.roleDraft",
+												"when": "{{state.canReview}}"
+											},
+											{
+												"id": "peers",
+												"type": "stack",
+												"gap": 6,
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"top": 104,
+													"bottom": 140
+												},
+												"color": "transparent",
+												"scroll": "vertical",
+												"children": [
+													{
+														"id": "panel-peer",
+														"repeat": {
+															"for": "p",
+															"in": "state.coordination.peers"
+														},
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"height": 72,
+														"color": "@color.cardRaised",
+														"radius": "@radius.chip",
+														"borderWidth": 1,
+														"borderColor": "@color.border",
+														"children": [
+															{
+																"id": "label-peer",
+																"type": "label",
+																"text": "{{p.author}}{{empty(p.role) ? '' : ' (' + p.role + ')'}}",
+																"textColor": "@color.text",
+																"anchors": {
+																	"left": 12,
+																	"right": 200,
+																	"top": 8
+																},
+																"height": 18
+															},
+															{
+																"id": "label-peer-leases",
+																"style": "caption",
+																"text": "{{empty(p.leases) ? 'Leases nothing' : 'Leases ' + join(p.leases, ', ')}}",
+																"anchors": {
+																	"left": 12,
+																	"top": 28
+																}
+															},
+															{
+																"id": "label-peer-work",
+																"style": "caption",
+																"text": "{{plural(count(state.proposals, it.author == p.author), 'open proposal')}}, {{plural(count(state.proposals, it.author == p.author && !empty(it.conflicts)), 'conflict')}}",
+																"anchors": {
+																	"left": 12,
+																	"top": 48
+																}
+															},
+															{
+																"id": "label-set-role",
+																"style": "smallButton",
+																"text": "Give role",
+																"anchors": {
+																	"right": 12,
+																	"top": 10
+																},
+																"width": 88,
+																"when": "{{state.canReview}}",
+																"onClick": [
+																	{
+																		"send": "host",
+																		"data": {
+																			"type": "setRole",
+																			"author": "{{p.author}}",
+																			"role": "{{trim(state.roleDraft)}}"
+																		}
+																	}
+																]
+															}
+														]
+													}
+												]
+											},
+											{
+												"id": "label-leases",
+												"type": "label",
+												"font": "heading",
+												"text": "Leases",
+												"textColor": "@color.text",
+												"anchors": {
+													"left": 20,
+													"bottom": 108
+												},
+												"fitText": true
+											},
+											{
+												"id": "leases",
+												"type": "stack",
+												"gap": 6,
+												"anchors": {
+													"left": 20,
+													"right": 20,
+													"bottom": 12
+												},
+												"height": 92,
+												"color": "transparent",
+												"scroll": "vertical",
+												"children": [
+													{
+														"id": "panel-lease",
+														"repeat": {
+															"for": "l",
+															"in": "state.coordination.leases"
+														},
+														"anchors": {
+															"left": 0,
+															"right": 0
+														},
+														"height": 40,
+														"color": "@color.cardRaised",
+														"radius": "@radius.chip",
+														"borderWidth": 1,
+														"borderColor": "@color.border",
+														"children": [
+															{
+																"id": "label-lease",
+																"type": "label",
+																"text": "{{l.target}}: {{l.holder}}, {{l.seconds}} s left",
+																"textColor": "@color.text",
+																"anchors": {
+																	"left": 12,
+																	"right": 112,
+																	"top": 11
+																},
+																"height": 18
+															},
+															{
+																"id": "label-end-lease",
+																"style": "smallButton",
+																"text": "End lease",
+																"anchors": {
+																	"right": 12,
+																	"top": 6
+																},
+																"width": 88,
+																"when": "{{state.canReview}}",
+																"onClick": [
+																	{
+																		"send": "host",
+																		"data": {
+																			"type": "endLease",
+																			"target": "{{l.target}}"
+																		}
+																	}
+																]
+															}
+														]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "featuresDialog",
+				"use": "featuresDialog"
+			},
+			{
+				"id": "repairsDialog",
+				"use": "repairsDialog"
+			},
+			{
+				"id": "rejectDialog",
+				"use": "dialog",
+				"with": {
+					"open": "state.rejecting.open",
+					"title": "Reject proposal #{{state.rejecting.id}}?",
+					"message": "“{{state.rejecting.message}}” is dropped and the app stays as it is.",
+					"width": 440,
+					"height": 160,
+					"highlight": "@color.bad",
+					"buttons": [
+						{
+							"title": "Reject",
+							"run": "reject"
+						},
+						{
+							"title": "Cancel",
+							"run": "closeReject"
+						}
+					],
+					"color": "@color.card",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"backdrop": "@color.backdrop"
+				}
+			},
+			{
+				"id": "historyDialog",
+				"use": "dialog",
+				"with": {
+					"open": "state.changing.open",
+					"title": "{{state.changing.kind == 'revert' ? 'Revert' : 'Restore'}} revision {{state.changing.number}}?",
+					"message": "{{state.changing.kind == 'revert' ? 'A new commit undoes “' + state.changing.message + '”.' : 'A new commit brings the app back to how it was at this revision.'}}",
+					"width": 460,
+					"height": 160,
+					"highlight": "@color.accent",
+					"buttons": [
+						{
+							"title": "{{state.changing.kind == 'revert' ? 'Revert' : 'Restore'}}",
+							"run": "changeHistory"
+						},
+						{
+							"title": "Cancel",
+							"run": "closeHistory"
+						}
+					],
+					"color": "@color.card",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"backdrop": "@color.backdrop"
+				}
+			},
+			{
+				"id": "toast",
+				"use": "toast",
+				"with": {
+					"open": "state.toast.open",
+					"message": "{{state.toast.message}}",
+					"color": "@color.cardRaised",
+					"textColor": "@color.text",
+					"accent": "@color.accent"
+				}
+			}
+		]
+	}
+}

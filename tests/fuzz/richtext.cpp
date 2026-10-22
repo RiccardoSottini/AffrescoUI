@@ -29,7 +29,7 @@ std::shared_ptr<const affresco::Font> font(unsigned variant) {
 	static const std::array<std::shared_ptr<const affresco::Font>, 8> loaded = [] {
 		// In the checkout, wherever the target runs from
 		const std::filesystem::path file =
-		    std::filesystem::path(AFFRESCOUI_FUZZ_CHECKOUT) / "examples/assets/fonts/Roboto-Regular.ttf";
+		    std::filesystem::path(AFFRESCOUI_FUZZ_CHECKOUT) / "examples/shared/fonts/Roboto-Regular.ttf";
 		std::array<std::shared_ptr<const affresco::Font>, 8> fonts;
 		for(unsigned index = 0; index < fonts.size(); ++index)
 			fonts[index] = affresco::Font::load(file, (index & 2u) != 0 ? 28.0f : 16.0f, {},

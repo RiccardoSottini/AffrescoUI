@@ -6,7 +6,7 @@
 
 	"window": { "title": "Diff", "width": 640, "height": 360 },
 
-	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"fonts": { "default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
 
 	"colors": { "background": "#ffffff", "bar": "#f1f5f9", "text": "#0f172a", "code": "#e2e8f0", "deleted": "#ef444430",
 		"inserted": "#22c55e30" },

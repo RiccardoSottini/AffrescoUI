@@ -25,7 +25,7 @@ namespace {
 /// @brief Forge's example catalogue (examples/forge/catalog), signed by a key whose private half was discarded.
 /// @return Its folder.
 std::filesystem::path exampleCatalog() {
-	return std::filesystem::path(AFFRESCOUI_SCREENS_DIRECTORY) / ".." / ".." / "forge" / "catalog";
+	return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "forge" / "catalog";
 }
 
 /// @brief The example catalogue's publisher, as Forge trusts it (Forge.hpp).
@@ -34,7 +34,7 @@ constexpr std::string_view examplePublisher = "ed25519:wvzomDMyk9aPCGQCvTzNPugq4
 /// @brief Forge's word count package, unsigned.
 /// @return Its manifest.
 json wordCount() {
-	std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/../../forge/features/word-count/feature.json");
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/forge/features/word-count/feature.json");
 	REQUIRE(file);
 	json manifest = json::parse(file);
 	manifest.erase("signature");

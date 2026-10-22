@@ -111,9 +111,20 @@ def with_includes(document, folder, depth=0):
     return merged
 
 
+def template_files(root):
+    """The templates' screen files, in name order: from examples/templates.json, or, in a root from before it, the
+    one folder that held them."""
+    listing = os.path.join(root, "examples", "templates.json")
+    if not os.path.exists(listing):
+        return sorted(glob.glob(os.path.join(root, "examples", "assets", "screens", "*" + SUFFIX)))
+    with open(listing, encoding="utf-8") as file:
+        templates = json.load(file)["templates"]
+    return [os.path.join(root, "examples", templates[name], name + SUFFIX) for name in sorted(templates)]
+
+
 def screens(root):
     """The documents agents read, as (name, document): every template, then Forge with its features merged in."""
-    for path in sorted(glob.glob(os.path.join(root, "examples", "assets", "screens", "*" + SUFFIX))):
+    for path in template_files(root):
         with open(path, encoding="utf-8") as screen:
             yield os.path.basename(path)[:-len(SUFFIX)], json.load(screen)
     forge = os.path.join(root, "examples", "forge", "forge" + SUFFIX)

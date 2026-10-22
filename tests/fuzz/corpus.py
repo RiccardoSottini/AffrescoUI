@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes the seed corpora and dictionaries of the fuzz targets (README.md), from the sources they stand for.
 
-- json:       the templates in examples/assets/screens, the JSON examples in the docs, nesting at the limit;
+- json:       the templates (examples/templates.json), the JSON examples in the docs, nesting at the limit;
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
 - revision:   the revisions in the docs, and edits of every kind to the Kanban template's nodes and state;
 - delta:      the Kanban template and changed copies of it (keys reordered, a node added), with deltas to apply;
@@ -41,9 +41,9 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SCREENS = ROOT / "examples" / "assets" / "screens"
+EXAMPLES = ROOT / "examples"
 DOCS = [ROOT / "SCREEN_FORMAT.md", ROOT / "VERSION_CONTROL.md"]
-KANBAN = SCREENS / "kanban.screen.json"
+KANBAN = EXAMPLES / "flow" / "kanban.screen.json"
 MAX_NESTING = 256  # maxNesting in modules/core/include/affresco/core/Json.hpp
 
 # Values for the fields the protocol table names, and the fields of the messages it lists without them
@@ -53,6 +53,13 @@ FIELD_VALUES = {"revision": "HEAD~1", "proposal": 1, "head": "", "dontAskAgain":
                 "patch": [{"op": "replace", "path": "#statusText/text", "value": "Saved"}]}
 MORE_FIELDS = {"revert": ["revision"], "reject": ["proposal", "reason"], "preview": ["proposal"], "setMode": ["mode"],
                "revoke": ["rule"]}
+
+
+def templates(pattern):
+    """The templates' files that match the pattern, from each one's folder (examples/templates.json), by name."""
+    folders = set(json.loads((EXAMPLES / "templates.json").read_text(encoding="utf-8"))["templates"].values())
+    files = [path for folder in folders for path in (EXAMPLES / folder).glob(pattern)]
+    return sorted(files, key=lambda path: path.name)
 
 
 def compact(value):
@@ -82,7 +89,7 @@ def walk(value):
 
 def json_seeds():
     """The json target's seeds."""
-    seeds = [path.read_text(encoding="utf-8") for path in sorted(SCREENS.glob("*.json"))]
+    seeds = [path.read_text(encoding="utf-8") for path in templates("*.json")]
     seeds += [json.dumps(block, indent=1) for block in doc_blocks()]
     seeds.append("[" * MAX_NESTING + "]" * MAX_NESTING)  # the deepest accepted
     seeds.append("[" * (MAX_NESTING + 1) + "]" * (MAX_NESTING + 1))  # one too deep
@@ -92,11 +99,11 @@ def json_seeds():
 
 def expression_seeds():
     """The expression target's seeds: insides of {{ }} as they are, operators as JSON."""
-    texts = [path.read_text(encoding="utf-8") for path in sorted(SCREENS.glob("*.json"))]
+    texts = [path.read_text(encoding="utf-8") for path in templates("*.json")]
     texts.append(DOCS[0].read_text(encoding="utf-8"))
     seeds = {inner.strip() for text in texts for inner in re.findall(r"\{\{(.*?)\}\}", text, re.S)}
     seeds = {seed.replace('\\"', '"') for seed in seeds if seed}
-    for path in sorted(SCREENS.glob("*.json")):
+    for path in templates("*.json"):
         for value in walk(json.loads(path.read_text(encoding="utf-8"))):
             if isinstance(value, dict) and len(value) == 1 and next(iter(value)).startswith("$"):
                 seeds.add(compact(value))
@@ -209,7 +216,7 @@ def policy_seeds():
 def text_seeds():
     """Every text of the templates and of the rendering check's screens: scripts, emoji, marks, ligatures."""
     seeds = []
-    for path in sorted(SCREENS.glob("*.screen.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json")):
+    for path in templates("*.screen.json") + sorted((ROOT / "tests" / "render" / "screens").glob("*.json")):
         seeds += [value for value in walk(json.loads(path.read_text(encoding="utf-8"))) if isinstance(value, str)]
     return list(dict.fromkeys(seed for seed in seeds if seed.strip() and "{{" not in seed))
 
@@ -239,7 +246,7 @@ def layout_seeds():
 
 def cli_seeds():
     """Screen files as written (tabs, blank lines, members on one line), and nodes without ids for `ids` to name."""
-    files = sorted(SCREENS.glob("*.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
+    files = templates("*.json") + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
     seeds = [path.read_text(encoding="utf-8") for path in files]
     seeds.append('{\n\t"format": "affrescoui-screen",\n\n\t"version": 2,\n\t"root": { "children": [{ "type": "label", '
                  '"text": "{{state.title}}" }, {\n\t\t"type": "row", "children": [] }] }\n}\n')
@@ -258,7 +265,7 @@ def action_seeds():
     """The actions target's seeds: every action and inline handler of the templates, and steps that spend a whole
     work budget (loops, nested lists, a value that doubles)."""
     seeds = []
-    for path in sorted(SCREENS.glob("*.screen.json")):
+    for path in templates("*.screen.json"):
         document = json.loads(path.read_text(encoding="utf-8"))
         seeds += [compact(steps) for steps in document.get("actions", {}).values()]
         for value in walk(document.get("root", {})):
@@ -289,7 +296,7 @@ def font_tables(path):
 
 def lookups_seeds():
     """The GSUB (first byte 0) and GPOS (first byte 1) tables of the fonts the examples and the check use."""
-    fonts = sorted((ROOT / "examples/assets/fonts").glob("*.ttf")) + sorted((ROOT / "tests/render/fonts").glob("*.ttf"))
+    fonts = sorted((ROOT / "examples/shared/fonts").glob("*.ttf")) + sorted((ROOT / "tests/render/fonts").glob("*.ttf"))
     seeds = []
     for path in fonts:
         tables = font_tables(path)
@@ -309,8 +316,8 @@ def image_seeds():
 def path_seeds():
     """Path data as the path target reads it: a drawing byte (rule, join, cap, dash, scale), then the data. Every "d"
     of the templates, the rendering check's screens and the charts, and a few that push the limits."""
-    files = sorted(SCREENS.glob("*.json")) + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
-    files.append(ROOT / "examples" / "assets" / "components" / "charts.json")
+    files = templates("*.json") + sorted((ROOT / "tests" / "render" / "screens").glob("*.json"))
+    files.append(EXAMPLES / "shared" / "components" / "charts.json")
     data = [value["d"] for path in files for value in walk(json.loads(path.read_text(encoding="utf-8")))
             if isinstance(value, dict) and isinstance(value.get("d"), str) and "{{" not in value["d"]]
     data += ["M0 0 L10 0 L5 8 Z", "M0 0h10v10h-10z m2 2 h6 v6 h-6 z", "M10 80 C 30 10, 70 10, 90 80 S 150 150 180 80",
@@ -355,7 +362,7 @@ def search_glob_seeds():
 
 def scenario_seeds():
     """Every scenarios file: the templates' own and the rendering check's, as they are."""
-    paths = sorted(SCREENS.glob("*.scenarios.json")) + sorted((ROOT / "tests" / "render" / "scenarios").glob("*.json"))
+    paths = templates("*.scenarios.json") + sorted((ROOT / "tests" / "render" / "scenarios").glob("*.json"))
     return [path.read_text(encoding="utf-8") for path in paths]
 
 

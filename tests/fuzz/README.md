@@ -147,7 +147,7 @@ artifact, in a folder named after its target.
 |---|---|
 | `json.cpp`, `expression.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `vscode_theme.cpp` and the others named above | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the Kanban template, `broken()` |
-| `corpus.py` | Writes the seeds and dictionaries: from the templates in `examples/assets/screens/`, the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
+| `corpus.py` | Writes the seeds and dictionaries: from the templates (`examples/templates.json`), the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |
 
 To add a target, for a new kind of input: a `<name>.cpp` with `LLVMFuzzerTestOneInput`, one `affrescoui_fuzzer()`

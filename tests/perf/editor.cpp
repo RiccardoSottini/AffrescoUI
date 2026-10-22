@@ -40,7 +40,7 @@ struct EditorView {
 	EditorView(Context& context, std::size_t lines)
 	    : window(&context.openWindow({{"window", {{"width", 1200}, {"height", 900}}}})) {
 		editor = &window->root().add<TextEditor>();
-		editor->setFont(Font::load(context.screens().parent_path() / "fonts" / "Roboto-Regular.ttf", 14.0f));
+		editor->setFont(Font::load(context.examples() / "shared" / "fonts" / "Roboto-Regular.ttf", 14.0f));
 		editor->setSize(px(1200), px(900));
 		std::string text;
 		text.reserve(lines * 40);

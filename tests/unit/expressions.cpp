@@ -489,7 +489,7 @@ TEST_CASE("format: the registry lists every function once, with what the catalog
 }
 
 TEST_CASE("format: SCREEN_FORMAT.md lists the functions of the registry") {
-	std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/../../../SCREEN_FORMAT.md");
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/../SCREEN_FORMAT.md");
 	REQUIRE(file);
 	const std::string guide{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 	const std::string expected = affresco::format::functionGuide();

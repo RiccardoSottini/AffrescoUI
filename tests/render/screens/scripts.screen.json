@@ -7,10 +7,10 @@
 	"window": { "title": "Scripts", "width": 760, "height": 560 },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["arabic", "devanagari", "chinese", "korean", "emoji"] },
-		"large": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 30, "fallback": ["arabic", "emoji"] },
-		"japanese": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["kana"] },
-		"mono": { "file": "../../../examples/assets/fonts/JetBrainsMono-Regular.ttf", "size": 16, "fallback": ["emoji"] },
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["arabic", "devanagari", "chinese", "korean", "emoji"] },
+		"large": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 30, "fallback": ["arabic", "emoji"] },
+		"japanese": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 17, "fallback": ["kana"] },
+		"mono": { "file": "../../../examples/shared/fonts/JetBrainsMono-Regular.ttf", "size": 16, "fallback": ["emoji"] },
 		"arabic": { "file": "../fonts/NotoSansArabic-Subset.ttf", "size": 17 },
 		"devanagari": { "file": "../fonts/NotoSansDevanagari-Subset.ttf", "size": 17 },
 		"chinese": { "file": "../fonts/NotoSansSC-Subset.ttf", "size": 17 },

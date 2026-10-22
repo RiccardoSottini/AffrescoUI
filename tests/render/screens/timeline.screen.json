@@ -6,7 +6,7 @@
 
 	"window": { "title": "Timeline", "width": 640, "height": 160 },
 
-	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 13 } },
+	"fonts": { "default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 13 } },
 
 	"colors": { "background": "#111827", "header": "#1f2937", "clip": "#2563eb", "text": "#f9fafb",
 		"accent": "#f59e0b" },

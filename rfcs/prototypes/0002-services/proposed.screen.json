@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "RFC 0002 in the proposed syntax (it doesn't load today): a file tree read from a host data model, find in files streamed from a search service, and a language server's diagnostics, each a service the screen declares and the host grants.",
 	"window": { "title": "Services (proposed)", "width": 1100, "height": 700 },
-	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"fonts": { "default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
 	"services": {
 		"files": { "provider": "fs", "root": "workspace", "note": "Read, write and list inside the root the host named 'workspace'; its tree is the model models.files.tree." },
 		"search": { "provider": "search", "root": "workspace" },

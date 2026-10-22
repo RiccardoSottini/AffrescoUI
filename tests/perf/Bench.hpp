@@ -41,12 +41,16 @@ struct LoadedScreen {
 class Context {
 public:
 	/// @brief Sets where the inputs are.
-	/// @param screens The template screens (examples/assets/screens).
+	/// @param examples The examples, with the templates' folders (examples/templates.json).
 	/// @param edits The canonical agent edits (tests/perf/edits).
-	Context(std::filesystem::path screens, std::filesystem::path edits);
+	Context(std::filesystem::path examples, std::filesystem::path edits);
 
-	/// @brief The template screens' directory.
-	[[nodiscard]] const std::filesystem::path& screens() const noexcept { return screens_; }
+	/// @brief The examples' directory.
+	[[nodiscard]] const std::filesystem::path& examples() const noexcept { return examples_; }
+	/// @brief A template's folder, where its screen is.
+	/// @param name E.g. "kanban".
+	/// @return E.g. examples/flow.
+	[[nodiscard]] std::filesystem::path templateFolder(const std::string& name) const;
 	/// @brief The canonical edits' directory.
 	[[nodiscard]] const std::filesystem::path& edits() const noexcept { return edits_; }
 
@@ -85,7 +89,7 @@ private:
 	/// @param screen The screen, not yet built.
 	static void configure(Screen& screen);
 
-	std::filesystem::path screens_, edits_;       ///< See screens() and edits().
+	std::filesystem::path examples_, edits_;      ///< See examples() and edits().
 	std::optional<Application> application_;      ///< Started by application().
 	std::vector<std::unique_ptr<Screen>> loaded_; ///< Built or loaded so far; they go before the Application.
 };
@@ -221,13 +225,8 @@ template <class Create> [[nodiscard]] std::vector<Workload> perSize(const std::v
 /// @throws std::runtime_error If it can't be read.
 [[nodiscard]] std::string readFile(const std::filesystem::path& path);
 
-/// @brief The template screens, by name ("kanban" for kanban.screen.json), in name order.
-/// @param directory Where they are.
-/// @return Their names.
-[[nodiscard]] std::vector<std::string> templateNames(const std::filesystem::path& directory);
-
 /// @brief The Kanban template with its four columns filled to a number of cards, by copying its own cards in turn.
-/// @param directory The template screens' directory.
+/// @param directory The Kanban template's folder.
 /// @param cards The cards in total; the template's own count, 12, leaves it as it is.
 /// @return The document.
 [[nodiscard]] json kanbanWithCards(const std::filesystem::path& directory, int cards);

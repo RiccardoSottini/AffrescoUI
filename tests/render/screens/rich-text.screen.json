@@ -9,8 +9,8 @@
 	"state": { "link": "none yet" },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons"] },
-		"icons": { "file": "../../../examples/assets/fonts/Lucide.ttf", "size": 16 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 16, "fallback": ["icons"] },
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
 	},
 
 	"colors": { "background": "#f8fafc", "text": "#0f172a", "accent": "#7c3aed", "danger": "#dc2626" },

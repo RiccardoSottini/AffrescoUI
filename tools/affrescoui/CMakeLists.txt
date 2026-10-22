@@ -18,14 +18,14 @@ set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTEN
 target_link_libraries(affrescoui_cli PRIVATE affrescoui::automation) # and through it, the whole library
 # SocketDir.hpp (the socket folder's checks) is shared with affrescoui_host; Png.hpp and FeatureSignatures.hpp are the
 # library's
-target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/modules/screen/src
+target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared ${PROJECT_SOURCE_DIR}/modules/screen/src
 	${PROJECT_SOURCE_DIR}/modules/format/src)
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_VERSION}")
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# The example apps' own types, as affrescoui_host has them, so their templates run and render the same
-	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/CodeEditor.cpp)
+	target_sources(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp)
 	target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_CLI_EXAMPLE_TYPES)
 endif()
 

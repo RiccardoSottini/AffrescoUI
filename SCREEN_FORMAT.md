@@ -208,7 +208,7 @@ only for the elements that changed.
 | `align` | One value for both axes, or `{ "horizontal", "vertical" }`. |
 | `wrap` | Break lines that don't fit the width. |
 | `fitText` | `true` or `{ "maxWidth" }`: the label sizes itself to its text (plus padding). |
-| `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/assets/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
+| `icon` | An icon before the text, by name: `"search"`, `"arrow-left"`. A glyph of that name in the label's font or its fallbacks, drawn in `textColor` with a space before the text (alone if there is no text). A name no font has shows nothing. Give the text font an icon font as a fallback (`"fallback": ["icons"]`) and icons are drawn at the text's size, in the same batch; or give an icon-only label the icon font itself, at its own size. The examples ship Lucide (`examples/shared/fonts/Lucide.ttf`, 1,890 icons: https://lucide.dev/icons). Not on text areas. |
 | `mirror` | Right to left (`dir`), draw the icon mirrored: `left` and `right` swap in its name (`"chevron-left"` draws `"chevron-right"`), when the font has that one. For arrows and chevrons that point the reading way. |
 | `runs` | Rich text instead of `text`: a list of parts, each text or `{ "text", "bold", "italic", "size", "font", "color", "link", "icon" }`. `font` names a font of `fonts` (default: the label's); `bold`, `italic` and `size` (4 to 256 pixels) make a variant of it (at most 32 per document). A part with `link` is underlined and a press on it runs `onLink`; `icon` draws a named glyph inline, as `icon` does. Lines wrap at spaces across parts. At most 256 parts and 65,536 characters. Not on text areas. |
 | `selectable` | The user can select the text with the mouse and copy it with Cmd/Ctrl+C (Cmd/Ctrl+A selects it all); icons are left out of the copy. |
@@ -231,7 +231,7 @@ A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and
 Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends), Shift to extend; Enter keeps the
 indentation; Tab/Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. The caret's line is highlighted; the wheel scrolls.
 Tabs become 4 spaces. Applications build richer editors on it (syntax colours, commands): see
-`examples/CodeEditor.cpp`, the Forge template's `code` type.
+`examples/shared/CodeEditor.cpp`, the Forge template's `code` type.
 Forge's `code` type adds keys for features at the caret, such as a language server's (`features/lsp/`):
 `onHover` (event `{ over, line, column, x, y, top }` when the code point under the resting mouse changes), `onType`
 (event `{ text, line, column, word, x, y, top }` after each typed character or deletion), `popup` and `onPopupKey`
@@ -587,7 +587,7 @@ data or its size changes.
 
 An `image` can also show an SVG file (`.svg`, at most 1 MiB): paths and basic shapes with solid fills and strokes,
 rasterised at twice the size it declares. Gradients, text, masks, filters and rotations aren't drawn.
-`examples/assets/components/charts.json` has line, bar and area charts built on `path`, to `include`.
+`examples/shared/components/charts.json` has line, bar and area charts built on `path`, to `include`.
 
 ### `canvas`
 An infinite canvas, as in whiteboards and design tools: its children and its `items` are placed in world units and
@@ -1260,11 +1260,11 @@ its values, the theme, the colours, the fonts, or a new version of the document.
 panel directly (`screen.find("logo")->setColor(...)`) stays until one of those changes, then the document's values
 replace it. To keep a change, make it in the document (state, or a revision), or in a registered type's apply function.
 
-See the templates in `examples/assets/screens/`: `kanban` (the one `affrescoui_host` opens: rows, components, drag and
-drop, a popover), `smart-home` (themes, computed values, switches and sliders, animations), `music-player` (a playback
-timer, seeking), `code-editor` (an application type built on `editor`, tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`,
-`persist`), `sign-in` (screens, navigation, `check`), and `studio` (the Studio client: its whole UI, behaviour and
-connection).
+See the templates, a folder each in `examples/` ([`examples/README.md`](examples/README.md)): `kanban` (the one
+`affrescoui_host` opens: rows, components, drag and drop, a popover), `smart-home` (themes, computed values, switches
+and sliders, animations), `music-player` (a playback timer, seeking), `code-editor` (an application type built on
+`editor`, tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`, `persist`), `sign-in`
+(screens, navigation, `check`), and `studio` (the Studio client: its whole UI, behaviour and connection).
 
 **Inside the host's OpenGL.** A host that has its own window and context (a game, a 3D tool) embeds the screen
 instead of giving it a window: `affresco::Embedding embedding(loader, clock, "Title", 800, 600)` in the current

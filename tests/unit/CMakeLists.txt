@@ -22,9 +22,10 @@ target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/m
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
 	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src
-	${PROJECT_SOURCE_DIR}/modules/services/src ${affrescoui_forge_dir})
+	${PROJECT_SOURCE_DIR}/modules/services/src ${affrescoui_forge_dir}
+	${PROJECT_SOURCE_DIR}/examples/shared) # Templates.hpp
 target_compile_definitions(affrescoui_unit_tests PRIVATE
-	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
+	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/shared/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${AFFRESCOUI_GLAD_INCLUDE_DIRS}) # gles.cpp: gl/Shader.hpp
@@ -34,7 +35,7 @@ set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
 target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 # The checker's tests read the shipped templates, which must have no findings
 target_compile_definitions(affrescoui_unit_tests PRIVATE
-	AFFRESCOUI_SCREENS_DIRECTORY="${PROJECT_SOURCE_DIR}/examples/assets/screens"
+	AFFRESCOUI_EXAMPLES_DIRECTORY="${PROJECT_SOURCE_DIR}/examples"
 	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes") # services.cpp starts the JSON-RPC prototype
 # document_server.cpp tests the document server (examples/server), which needs no window
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples/server/DocumentServer.cpp
@@ -52,7 +53,7 @@ target_include_directories(affrescoui_window_tests PRIVATE ${CMAKE_CURRENT_SOURC
 target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
 	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES> ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
 target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE
-	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/assets/fonts"
+	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/shared/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_link_libraries(affrescoui_window_tests PRIVATE affrescoui::automation) # and through it, the library
 set_target_properties(affrescoui_window_tests PROPERTIES CXX_EXTENSIONS OFF

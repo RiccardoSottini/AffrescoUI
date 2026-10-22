@@ -65,7 +65,7 @@ std::vector<Workload> graphWorkloads(Context& context) {
 	const auto headless = std::make_shared<HeadlessGraph>();
 	auto& view = headless->window->root().add<RecordedGraph>();
 	view.setSize(px(1280), px(800));
-	view.setFont(Font::load(context.screens().parent_path() / "fonts" / "Roboto-Regular.ttf", 13.0f));
+	view.setFont(Font::load(context.examples() / "shared" / "fonts" / "Roboto-Regular.ttf", 13.0f));
 	const auto record = std::make_shared<detail::PaintRecord>();
 	const auto model = std::make_shared<const GraphModel>(manyNodes());
 	view.setModel(*model);

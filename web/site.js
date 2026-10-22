@@ -6,7 +6,7 @@
  */
 "use strict";
 
-/** The programs a page may start, and the screens the host may show (the folder the site preloads as /assets). */
+/** The programs a page may start, and the screens and folders the host may show (the site preloads them in /assets). */
 const affrescoPrograms = new Set(["affrescoui_host", "affrescoui_studio"]);
 const affrescoScreenName = /^[a-z][a-z0-9-]{0,63}$/;
 
@@ -25,14 +25,16 @@ function affrescoStatus(text) {
  */
 function affrescoStart() {
 	const program = document.body.dataset.program || "";
+	const folder = document.body.dataset.folder || "";
 	const screen = document.body.dataset.screen || "";
-	if (!affrescoPrograms.has(program) || (screen !== "" && !affrescoScreenName.test(screen))) {
+	const named = affrescoScreenName.test(screen) && affrescoScreenName.test(folder);
+	if (!affrescoPrograms.has(program) || (screen !== "" && !named)) {
 		affrescoStatus("This page names no program of the site.");
 		return;
 	}
 	window.Module = {
 		canvas: document.getElementById("canvas"),
-		arguments: screen === "" ? [] : ["/assets/screens/" + screen + ".screen.json"],
+		arguments: screen === "" ? [] : ["/assets/" + folder + "/" + screen + ".screen.json"],
 		print: (text) => console.log(text),
 		printErr: (text) => console.warn(text),
 		setStatus: (text) => affrescoStatus(text || "Running."),

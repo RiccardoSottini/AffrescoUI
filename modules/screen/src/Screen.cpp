@@ -640,7 +640,7 @@ std::filesystem::path Screen::defaultSocketDirectory() {
 	return std::filesystem::temp_directory_path() / "affrescoui" / "sockets"; // per user too: %LOCALAPPDATA%\Temp
 #else
 	// In /tmp, so that socket paths stay within their limit of about 100 bytes. The uid keeps users apart, and the
-	// examples refuse the folder if another user made it first (examples/SocketDir.hpp).
+	// examples refuse the folder if another user made it first (examples/shared/SocketDir.hpp).
 	return std::filesystem::path("/tmp") / ("affrescoui-" + std::to_string(getuid()));
 #endif
 }

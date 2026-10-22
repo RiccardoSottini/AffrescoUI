@@ -4,6 +4,7 @@
 
 #include "Checker.hpp"
 #include "Expression.hpp"
+#include "Templates.hpp"
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
@@ -12,6 +13,7 @@
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <set>
@@ -63,11 +65,12 @@ void checkAll(const std::vector<Case>& cases) {
 	}
 }
 
-/// @brief Reads a template from examples/assets/screens.
+/// @brief Reads a template from its folder in examples.
 /// @param name E.g. "kanban".
 /// @return The document.
 json screenTemplate(const std::string& name) {
-	const std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/" + name + ".screen.json");
+	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
+	const std::ifstream file(directory / (name + ".screen.json"));
 	REQUIRE(file);
 	std::stringstream content;
 	content << file.rdbuf();
@@ -75,7 +78,7 @@ json screenTemplate(const std::string& name) {
 	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning.
 	if(const auto includes = document.find("include"); includes != document.end()) {
 		for(const json& include : *includes) {
-			const std::ifstream part(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/" + include.get<std::string>());
+			const std::ifstream part(directory / include.get<std::string>());
 			REQUIRE(part);
 			std::stringstream partContent;
 			partContent << part.rdbuf();
@@ -89,7 +92,7 @@ json screenTemplate(const std::string& name) {
 	return document;
 }
 
-/// The templates in examples/assets/screens.
+/// The templates (examples/templates.json).
 constexpr auto templates = std::to_array<const char*>(
     {"kanban", "smart-home", "music-player", "code-editor", "habit-tracker", "sign-in", "studio"});
 

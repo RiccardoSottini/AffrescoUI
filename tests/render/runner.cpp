@@ -4,7 +4,7 @@
 ///
 /// Usage: affrescoui_render_runner [--goldens DIR] [--out DIR] [--update] [--only NAME] FILE...
 ///
-/// Each file is one area's (scenarios/kanban.json, ...), or a template's own scenarios (examples/assets/screens/
+/// Each file is one area's (scenarios/kanban.json, ...), or a template's own scenarios (examples/<folder>/
 /// *.scenarios.json). A picture with no golden image yet is recorded from this run; --update records them all.
 /// Frames that differ are written to --out with a diff (changed pixels in red). Exits with 1 if anything failed.
 

@@ -142,7 +142,7 @@ Workload loadWorkload(const json& document) {
 } // namespace
 
 std::vector<Workload> historyWorkloads(const Context& context) {
-	const json document = json::parse(readFile(context.screens() / "kanban.screen.json"));
+	const json document = json::parse(readFile(context.templateFolder("kanban") / "kanban.screen.json"));
 	const auto large = std::make_shared<History>(document, largeHistory); // the commit runs add to it: blame reads all
 	std::vector<Workload> workloads;
 	workloads.push_back(commitWorkload(std::make_shared<History>(document, 100), 100));

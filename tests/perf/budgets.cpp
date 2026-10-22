@@ -118,8 +118,8 @@ Workload idleWorkload(Context& context) {
 	Workload workload{.name = "budgets/idle", .unit = "ms", .runs = 3, .cpuTime = true};
 	workload.prepare = [&context, loaded] {
 		if(!*loaded)
-			loaded->emplace(
-			    context.load(json::parse(readFile(context.screens() / "kanban.screen.json")), context.screens()));
+			loaded->emplace(context.load(json::parse(readFile(context.templateFolder("kanban") / "kanban.screen.json")),
+			                             context.templateFolder("kanban")));
 		detail::renderWithoutPresenting((*loaded)->window);
 	};
 	workload.step = [&context, processMs] {
@@ -169,7 +169,7 @@ Workload openWorkload() {
 /// @param folder The folder.
 /// @return The screen and its window.
 LoadedScreen startForge(Context& context, const std::filesystem::path& folder) {
-	const std::filesystem::path directory = context.screens().parent_path().parent_path() / "forge";
+	const std::filesystem::path directory = context.examples() / "forge";
 	const std::string text = readFile(directory / "forge.screen.json");
 	Window& window = context.openWindow(json::parse(text));
 	Screen& screen = context.create(text, directory);

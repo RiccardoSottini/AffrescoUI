@@ -1,7 +1,7 @@
 {
 	"id": "smart-home-lights-off",
 	"level": "feature",
-	"screen": "examples/assets/screens/smart-home.screen.json",
+	"screen": "examples/haven/smart-home.screen.json",
 	"request": "Add an \"All off\" button with the id allLightsOff to the Lights card that switches off every light of the room shown.",
 	"scenarios": [
 		{

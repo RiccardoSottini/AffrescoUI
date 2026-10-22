@@ -3,7 +3,7 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 	"window": { "title": "Search", "width": 400, "height": 300 },
-	"fonts": { "default": { "file": "../../examples/assets/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
 	"state": {
 		"query": "",
 		"applied": "",

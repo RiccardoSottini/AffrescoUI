@@ -150,7 +150,7 @@ jobs:
         run: |
           cd affrescoui-*/
           ./affrescoui --version
-          for screen in assets/screens/*.screen.json; do ./affrescoui check "$screen"; done
+          for screen in assets/*/*.screen.json; do ./affrescoui check "$screen"; done
       - name: Universal (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -166,7 +166,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
           cd affrescoui-*/
           AFFRESCOUI_SCREENSHOT=kanban.ppm xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui_host
-          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/screens/kanban.screen.json -o kanban.png
+          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/flow/kanban.screen.json -o kanban.png
           test -s kanban.ppm && test -s kanban.png
 
   release:

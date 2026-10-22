@@ -24,7 +24,7 @@
 	},
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": "@type.body" }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": "@type.body" }
 	},
 
 	"styles": {
