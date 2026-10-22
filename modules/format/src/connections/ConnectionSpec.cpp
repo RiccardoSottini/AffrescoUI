@@ -117,28 +117,24 @@ std::string readPath(const json& value, const std::string& at) {
 	return path;
 }
 
-/// @brief Reads one HTTP operation.
-/// @param definition Its definition.
-/// @param connection The connection's URL scheme is http(s).
-/// @param at Its place.
-/// @return It.
-Operation readOperation(const json& definition, const std::string& at) {
-	static constexpr std::array<std::string_view, 11> keys = {"method", "path",   "query",  "body",   "form", "headers",
-	                                                          "effect", "stream", "result", "timeout", "mock"};
-	expect::object(definition, at);
-	Operation operation;
-	for(const auto& [key, item] : definition.items()) knownKey(key, keys, at);
-	if(!definition.contains("path")) expect::fail(at, "an operation needs a \"path\"");
-	operation.path = readPath(definition["path"], at + ".path");
-	operation.method = definition.contains("method") ? expect::string(definition["method"], at + ".method") : "GET";
-	if(!std::ranges::contains(std::array<std::string_view, 6>{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"},
-	                          operation.method))
+/// @brief Reads an operation's method: GET when it has none.
+/// @param definition The operation's definition.
+/// @param at The operation's place.
+/// @return The method.
+std::string readMethod(const json& definition, const std::string& at) {
+	const std::string method =
+	    definition.contains("method") ? expect::string(definition["method"], at + ".method") : "GET";
+	if(!std::ranges::contains(std::array<std::string_view, 6>{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"}, method))
 		expect::fail(at + ".method", "GET, HEAD, POST, PUT, PATCH or DELETE");
-	if(definition.contains("query")) operation.query = expect::object(definition["query"], at + ".query");
-	operation.value = definition.value("body", json());
-	operation.form = definition.contains("form") && expect::boolean(definition["form"], at + ".form");
-	if(operation.form && !operation.value.is_object()) expect::fail(at + ".form", "a form body is an object");
-	if(definition.contains("headers")) operation.headers = readHeaders(definition["headers"], at + ".headers");
+	return method;
+}
+
+/// @brief Reads what an operation does and how it answers: its `effect` (by default, read for GET and HEAD) and its
+/// `stream`.
+/// @param definition The operation's definition.
+/// @param operation The operation, its method read, which receives them.
+/// @param at The operation's place.
+void readEffect(const json& definition, Operation& operation, const std::string& at) {
 	const bool reads = operation.method == "GET" || operation.method == "HEAD";
 	operation.effect = reads ? services::Effect::Read : services::Effect::Write;
 	if(definition.contains("effect")) {
@@ -151,9 +147,40 @@ Operation readOperation(const json& definition, const std::string& at) {
 		if(stream != "events" && stream != "lines") expect::fail(at + ".stream", "\"events\" or \"lines\"");
 		operation.stream = stream == "events" ? network::Stream::Events : network::Stream::Lines;
 	}
-	if(definition.contains("result")) try {
-			operation.result = json::json_pointer(expect::string(definition["result"], at + ".result"));
-		} catch(const json::exception&) { expect::fail(at + ".result", "a JSON Pointer into the body: \"/data\""); }
+}
+
+/// @brief Reads an operation's `result`: where in the body its value is.
+/// @param value The value.
+/// @param at Its place.
+/// @return The JSON Pointer.
+json::json_pointer readResult(const json& value, const std::string& at) {
+	try {
+		return json::json_pointer(expect::string(value, at));
+	} catch(const json::exception&) {
+		expect::fail(at, "a JSON Pointer into the body: \"/data\"");
+	}
+}
+
+/// @brief Reads one HTTP operation.
+/// @param definition Its definition.
+/// @param at Its place.
+/// @return It.
+Operation readOperation(const json& definition, const std::string& at) {
+	static constexpr std::array<std::string_view, 11> keys = {"method", "path",   "query",  "body",   "form", "headers",
+	                                                          "effect", "stream", "result", "timeout", "mock"};
+	expect::object(definition, at);
+	Operation operation;
+	for(const auto& [key, item] : definition.items()) knownKey(key, keys, at);
+	if(!definition.contains("path")) expect::fail(at, "an operation needs a \"path\"");
+	operation.path = readPath(definition["path"], at + ".path");
+	operation.method = readMethod(definition, at);
+	if(definition.contains("query")) operation.query = expect::object(definition["query"], at + ".query");
+	operation.value = definition.value("body", json());
+	operation.form = definition.contains("form") && expect::boolean(definition["form"], at + ".form");
+	if(operation.form && !operation.value.is_object()) expect::fail(at + ".form", "a form body is an object");
+	if(definition.contains("headers")) operation.headers = readHeaders(definition["headers"], at + ".headers");
+	readEffect(definition, operation, at);
+	if(definition.contains("result")) operation.result = readResult(definition["result"], at + ".result");
 	if(definition.contains("timeout"))
 		operation.timeout = bounded(definition["timeout"], 1, maxConnectionTimeout, at + ".timeout");
 	if(definition.contains("mock")) operation.mock = readMock(definition["mock"], at + ".mock");
@@ -204,6 +231,39 @@ void readUrl(const json& value, ConnectionSpec& connection, const std::string& a
 	while(connection.url.ends_with('/')) connection.url.pop_back(); // the paths start with "/"
 }
 
+/// @brief Reads a connection's `auth`: how it signs in, or the name of the connection whose sign-in it shares.
+/// @param value The value.
+/// @param connection The connection, which receives its provider.
+/// @param at Its place.
+void readAuth(const json& value, ConnectionSpec& connection, const std::string& at) {
+	if(!value.is_object() && !value.is_string())
+		expect::fail(at, "how to sign in, or the name of the connection whose sign-in it shares");
+	if(value.is_object()) connection.provider = readProvider(value, at);
+}
+
+/// @brief Reads a connection's `retry`: `{times, after}`.
+/// @param value The value.
+/// @param connection The connection, which receives it.
+/// @param at Its place.
+void readRetry(const json& value, ConnectionSpec& connection, const std::string& at) {
+	const json& retry = expect::object(value, at);
+	for(const auto& [key, item] : retry.items()) knownKey(key, std::array<std::string_view, 2>{"times", "after"}, at);
+	connection.retries = retry.contains("times") ? bounded(retry["times"], 0, maxRetries, at + ".times") : 1;
+	if(retry.contains("after")) connection.retryAfter = bounded(retry["after"], 1, 60000, at + ".after");
+}
+
+/// @brief Reads a WebSocket's `reconnect`: true, false, or `{after}`.
+/// @param value The value.
+/// @param connection The connection, its URL read, which receives it.
+/// @param at Its place.
+void readReconnect(const json& value, ConnectionSpec& connection, const std::string& at) {
+	if(!connection.socket) expect::fail(at, "only a WebSocket (ws://, wss://) reconnects");
+	if(value.is_boolean()) connection.reconnect = value.get<bool>() ? defaultReconnect : 0;
+	else if(value.is_object() && value.size() == 1 && value.contains("after"))
+		connection.reconnect = bounded(value["after"], 100, 3600000, at + ".after");
+	else expect::fail(at, "true, or { \"after\": milliseconds }");
+}
+
 /// @brief Reads one connection.
 /// @param definition Its definition.
 /// @param name Its name.
@@ -218,28 +278,12 @@ ConnectionSpec readConnection(const json& definition, const std::string& name, c
 	connection.name = name;
 	if(!definition.contains("url")) expect::fail(at, "a connection needs a \"url\"");
 	readUrl(definition["url"], connection, at + ".url");
-	if(definition.contains("auth") && !definition["auth"].is_object() && !definition["auth"].is_string())
-		expect::fail(at + ".auth", "how to sign in, or the name of the connection whose sign-in it shares");
-	if(definition.contains("auth") && definition["auth"].is_object())
-		connection.provider = readProvider(definition["auth"], at + ".auth");
+	if(definition.contains("auth")) readAuth(definition["auth"], connection, at + ".auth");
 	if(definition.contains("headers")) connection.headers = readHeaders(definition["headers"], at + ".headers");
 	if(definition.contains("timeout"))
 		connection.timeout = bounded(definition["timeout"], 1, maxConnectionTimeout, at + ".timeout");
-	if(definition.contains("retry")) {
-		const json& retry = expect::object(definition["retry"], at + ".retry");
-		for(const auto& [key, item] : retry.items())
-			knownKey(key, std::array<std::string_view, 2>{"times", "after"}, at + ".retry");
-		connection.retries = retry.contains("times") ? bounded(retry["times"], 0, maxRetries, at + ".retry.times") : 1;
-		if(retry.contains("after")) connection.retryAfter = bounded(retry["after"], 1, 60000, at + ".retry.after");
-	}
-	if(definition.contains("reconnect")) {
-		const json& reconnect = definition["reconnect"];
-		if(!connection.socket) expect::fail(at + ".reconnect", "only a WebSocket (ws://, wss://) reconnects");
-		if(reconnect.is_boolean()) connection.reconnect = reconnect.get<bool>() ? defaultReconnect : 0;
-		else if(reconnect.is_object() && reconnect.size() == 1 && reconnect.contains("after"))
-			connection.reconnect = bounded(reconnect["after"], 100, 3600000, at + ".reconnect.after");
-		else expect::fail(at + ".reconnect", "true, or { \"after\": milliseconds }");
-	}
+	if(definition.contains("retry")) readRetry(definition["retry"], connection, at + ".retry");
+	if(definition.contains("reconnect")) readReconnect(definition["reconnect"], connection, at + ".reconnect");
 	readOperations(definition, connection, at);
 	return connection;
 }

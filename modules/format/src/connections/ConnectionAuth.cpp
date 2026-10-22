@@ -53,6 +53,32 @@ std::string readWord(const json& value, std::size_t limit, const std::string& at
 	return word;
 }
 
+/// @brief Reads a provider's flow and checks that it has the URLs that flow needs.
+/// @param value The provider's declaration.
+/// @param at Its place.
+/// @return "browser" (the default) or "device".
+std::string readFlow(const json& value, const std::string& at) {
+	const std::string flow = value.contains("flow") ? expect::string(value["flow"], at + ".flow") : "browser";
+	if(flow != "browser" && flow != "device") expect::fail(at + ".flow", "\"browser\" (the default) or \"device\"");
+	if(!value.contains("tokenUrl") || !value.contains("clientId"))
+		expect::fail(at, "a sign-in needs a \"tokenUrl\" and a \"clientId\"");
+	const char* needed = flow == "browser" ? "signInUrl" : "deviceUrl";
+	if(!value.contains(needed)) expect::fail(at, "the " + flow + " flow needs a \"" + needed + "\"");
+	return flow;
+}
+
+/// @brief Reads a provider's scopes: at most 32 words.
+/// @param value The value.
+/// @param at Its place.
+/// @return The scopes.
+std::vector<std::string> readScopes(const json& value, const std::string& at) {
+	if(!value.is_array() || value.size() > 32) expect::fail(at, "a list of at most 32 scopes");
+	std::vector<std::string> scopes;
+	for(std::size_t index = 0; index < value.size(); ++index)
+		scopes.push_back(readWord(value[index], 128, at + "." + std::to_string(index)));
+	return scopes;
+}
+
 } // namespace
 
 identity::Provider readProvider(const json& value, const std::string& at) {
@@ -63,24 +89,13 @@ identity::Provider readProvider(const json& value, const std::string& at) {
 		if(std::ranges::find(keys, key) == keys.end())
 			expect::fail(at + "." + key, "unknown property (expected flow, signInUrl, deviceUrl, tokenUrl, clientId, "
 			                             "scopes, issuer, note; never a client secret)");
-	if(value.contains("flow")) provider.flow = expect::string(value["flow"], at + ".flow");
-	if(provider.flow != "browser" && provider.flow != "device")
-		expect::fail(at + ".flow", "\"browser\" (the default) or \"device\"");
-	if(!value.contains("tokenUrl") || !value.contains("clientId"))
-		expect::fail(at, "a sign-in needs a \"tokenUrl\" and a \"clientId\"");
-	const char* needed = provider.flow == "browser" ? "signInUrl" : "deviceUrl";
-	if(!value.contains(needed)) expect::fail(at, std::string("the ") + provider.flow + " flow needs a \"" + needed + "\"");
+	provider.flow = readFlow(value, at);
 	if(value.contains("signInUrl")) provider.signInUrl = readEndpoint(value["signInUrl"], at + ".signInUrl");
 	if(value.contains("deviceUrl")) provider.deviceUrl = readEndpoint(value["deviceUrl"], at + ".deviceUrl");
 	provider.tokenUrl = readEndpoint(value["tokenUrl"], at + ".tokenUrl");
 	provider.clientId = readWord(value["clientId"], 256, at + ".clientId");
 	if(value.contains("issuer")) provider.issuer = readEndpoint(value["issuer"], at + ".issuer");
-	if(value.contains("scopes")) {
-		const json& scopes = value["scopes"];
-		if(!scopes.is_array() || scopes.size() > 32) expect::fail(at + ".scopes", "a list of at most 32 scopes");
-		for(std::size_t index = 0; index < scopes.size(); ++index)
-			provider.scopes.push_back(readWord(scopes[index], 128, at + ".scopes." + std::to_string(index)));
-	}
+	if(value.contains("scopes")) provider.scopes = readScopes(value["scopes"], at + ".scopes");
 	if(value.contains("note")) static_cast<void>(expect::string(value["note"], at + ".note"));
 	return provider;
 }

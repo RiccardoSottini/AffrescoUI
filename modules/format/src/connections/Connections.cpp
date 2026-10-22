@@ -136,6 +136,25 @@ bool actionType(const std::string& type) {
 	});
 }
 
+/// @brief Reads a message received on a socket, if it names an action.
+/// @param text The message.
+/// @return It, when it is a JSON object whose "type" can name an action other than "open", "closed" and "error";
+/// else nothing.
+std::optional<json> namingMessage(const std::string& text) {
+	json message;
+	try {
+		message = parseUntrusted(text);
+	} catch(const json::exception&) {
+		return std::nullopt; // a message that isn't JSON names no action
+	} catch(const DocumentError&) {
+		return std::nullopt;
+	}
+	if(!message.is_object() || !message["type"].is_string()) return std::nullopt;
+	const std::string type = message["type"].get<std::string>();
+	if(!actionType(type) || type == "open" || type == "closed" || type == "error") return std::nullopt;
+	return message;
+}
+
 } // namespace
 
 Connections::~Connections() {
@@ -307,38 +326,42 @@ network::Handlers Connections::handlers(std::uint64_t number, const std::optiona
 	network::Handlers out;
 	out.done = [this, alive, number, result](network::Response response) {
 		if(!alive.lock()) return;
-		const auto it = running_.find(number);
-		if(it == running_.end() || it->second.ended) return;
-		if(const auto at = connections_.find(it->second.connection); at != connections_.end()) {
+		Running* running = unended(number);
+		if(!running) return;
+		if(const auto at = connections_.find(running->connection); at != connections_.end()) {
 			at->second.online = true;
 			at->second.error.reset();
 		}
-		it->second.call->finish(pick(parseBody(response.body), result));
+		running->call->finish(pick(parseBody(response.body), result));
 		end(number);
 	};
 	out.failed = [this, alive, number](network::Failure failure) {
 		if(!alive.lock()) return;
-		const auto it = running_.find(number);
-		if(it == running_.end() || it->second.ended) return;
-		if(const auto at = connections_.find(it->second.connection); at != connections_.end()) {
+		Running* running = unended(number);
+		if(!running) return;
+		if(const auto at = connections_.find(running->connection); at != connections_.end()) {
 			at->second.online = failure.code == "status";
 			at->second.error = failure.message;
 			// a refused token: the sign-in refreshes once, else signs out
 			if(failure.status == 401 && engine_.identity && !at->second.spec.authName.empty())
 				engine_.identity->refused(at->second.spec.authName);
 		}
-		it->second.call->fail(failure.code, failure.message,
-		                      {{"status", failure.status}, {"body", parseBody(failure.body)}});
+		running->call->fail(failure.code, failure.message,
+		                    {{"status", failure.status}, {"body", parseBody(failure.body)}});
 		end(number);
 	};
 	if(stream)
 		out.event = [this, alive, number](network::StreamEvent event) {
 			if(!alive.lock()) return;
-			const auto it = running_.find(number);
-			if(it == running_.end() || it->second.ended) return;
-			it->second.call->event({{"type", event.type}, {"data", parseBody(event.data)}, {"id", event.id}});
+			if(Running* running = unended(number))
+				running->call->event({{"type", event.type}, {"data", parseBody(event.data)}, {"id", event.id}});
 		};
 	return out;
+}
+
+Connections::Running* Connections::unended(std::uint64_t number) {
+	const auto it = running_.find(number);
+	return it == running_.end() || it->second.ended ? nullptr : &it->second;
 }
 
 void Connections::sendMessage(Live& live, const Operation& operation, services::Call& call) {
@@ -393,10 +416,10 @@ bool Connections::admit(Live& live) {
 }
 
 void Connections::end(std::uint64_t number) {
-	const auto it = running_.find(number);
-	if(it == running_.end() || it->second.ended) return;
-	it->second.ended = true;
-	if(const auto live = connections_.find(it->second.connection); live != connections_.end() && live->second.pending)
+	Running* running = unended(number);
+	if(!running) return;
+	running->ended = true;
+	if(const auto live = connections_.find(running->connection); live != connections_.end() && live->second.pending)
 		--live->second.pending;
 	engine_.scheduler.defer([this, number, alive = std::weak_ptr<bool>(alive_)] {
 		if(alive.lock()) running_.erase(number); // destroying the transfer cancels it, if it still runs
@@ -413,7 +436,11 @@ void Connections::open(Live& live) {
 		return;
 	}
 	live.state = "connecting";
-	const std::string name = live.spec.name;
+	live.socket = network_->connect(live.spec.url, std::move(headers), socketHandlers(live.spec.name));
+	changed();
+}
+
+network::SocketHandlers Connections::socketHandlers(const std::string& name) {
 	const std::uint64_t generation = generation_;
 	const auto alive = std::weak_ptr<bool>(alive_);
 	network::SocketHandlers events;
@@ -426,25 +453,14 @@ void Connections::open(Live& live) {
 		changed();
 		runAction(name, "open", json::object());
 	};
-	events.message = [this, alive, name, generation](std::string text) {
+	events.message = [this, alive, name, generation](const std::string& text) {
 		if(!alive.lock() || !find(name, generation) || text.size() > maxMessageBytes) return;
-		json message;
-		try {
-			message = parseUntrusted(text);
-		} catch(const json::exception&) {
-			return; // a message that isn't JSON names no action
-		} catch(const DocumentError&) {
-			return;
-		}
-		if(!message.is_object() || !message["type"].is_string()) return;
-		const std::string type = message["type"].get<std::string>();
-		if(actionType(type) && type != "open" && type != "closed" && type != "error") runAction(name, type, message);
+		if(const auto message = namingMessage(text)) runAction(name, (*message)["type"].get<std::string>(), *message);
 	};
 	events.closed = [this, alive, name, generation](std::optional<network::Failure> failure) {
 		if(alive.lock() && find(name, generation)) closed(name, failure);
 	};
-	live.socket = network_->connect(live.spec.url, std::move(headers), std::move(events));
-	changed();
+	return events;
 }
 
 void Connections::closed(const std::string& name, const std::optional<network::Failure>& failure) {

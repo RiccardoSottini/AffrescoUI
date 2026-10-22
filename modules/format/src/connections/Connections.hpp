@@ -127,6 +127,10 @@ private:
 	/// @return The handlers.
 	[[nodiscard]] network::Handlers handlers(std::uint64_t number, const std::optional<json::json_pointer>& result,
 	                                         bool stream);
+	/// @brief Finds a request that still waits for its answer.
+	/// @param number The request.
+	/// @return It, or nullptr once it ended or was forgotten.
+	[[nodiscard]] Running* unended(std::uint64_t number);
 	/// @brief Sends a message over its connection's socket.
 	/// @param live The connection.
 	/// @param operation The message.
@@ -149,6 +153,10 @@ private:
 	/// @brief Opens a connection's WebSocket.
 	/// @param live The connection.
 	void open(Live& live);
+	/// @brief The handlers of a connection's WebSocket: its "open" action, its messages' actions, and its closing.
+	/// @param name The connection.
+	/// @return The handlers, which do nothing once the connections are loaded again.
+	[[nodiscard]] network::SocketHandlers socketHandlers(const std::string& name);
 	/// @brief Handles a connection's WebSocket closing: its ":error" and ":closed" actions, then a reconnect if it asks.
 	/// @param name The connection.
 	/// @param failure Why, or nothing for a clean close.
