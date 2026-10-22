@@ -97,6 +97,35 @@ TEST_CASE("format: \"after\" runs once, and \"debounce\" only after the last of 
 	CHECK_FALSE(s.window->secondsToNextTimer());
 }
 
+TEST_CASE("format: an \"after\" too long or not a number waits as long as a delay may, or runs at once") {
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "big": 1e300, "ran": 0 },
+		"actions": {
+			"huge": [{ "after": "{{state.big * 10}}", "do": [{ "increment": "state.ran" }] }],
+			"nan": [{ "after": "{{state.big * 10 - state.big * 10}}", "do": [{ "increment": "state.ran" }] }]
+		},
+		"root": { "type": "panel" } })json");
+	s.run("huge");
+	const auto wait = s.window->secondsToNextTimer();
+	REQUIRE(wait);
+	CHECK(*wait == doctest::Approx(2147483.647)); // a timer that never runs would stay on the window for good
+	s.screen.runAction("nan", s.window->root());
+	s.advance(0.0);
+	CHECK(s.state("ran") == 1);
+}
+
+TEST_CASE("format: at most 10000 \"after\" steps wait at once; one more is an error") {
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "ran": 0 },
+		"actions": {
+			"many": [{ "forEach": "{{range(6000)}}", "do": [{ "after": 10, "do": [{ "increment": "state.ran" }] }] }]
+		},
+		"root": { "type": "panel" } })json");
+	s.run("many");
+	s.run("many"); // each frame looks at every timer waiting
+	s.advance(10.0);
+	CHECK(s.state("ran") == 10000);
+	CHECK_FALSE(s.window->secondsToNextTimer());
+}
+
 TEST_CASE("format: an animation started again replaces the one running") {
 	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "x": 0 },
 		"actions": {

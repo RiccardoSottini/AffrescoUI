@@ -47,7 +47,7 @@ struct Running {
 	[[nodiscard]] json list(const json& source, const std::string& at) const;
 	/// @brief A duration under a key, never negative.
 	/// @param key The key.
-	/// @return Milliseconds.
+	/// @return Milliseconds, at most Scheduler::maxDelayMs; 0 for NaN.
 	[[nodiscard]] double milliseconds(const char* key) const;
 	/// @brief Runs nested steps with the same sender and event.
 	/// @param nested The steps.

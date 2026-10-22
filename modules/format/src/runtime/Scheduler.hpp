@@ -8,6 +8,7 @@
 
 #include "affresco/render/Panel.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -32,6 +33,9 @@ public:
 	/// @param engine The runtime; outlives this object.
 	explicit Scheduler(Engine& engine) : engine_(engine) {}
 
+	static constexpr double maxDelayMs = 2147483647.0; ///< The longest delay, about 24.8 days (as in web browsers).
+	static constexpr std::size_t maxWaiting = 10000;   ///< One-off timers waiting at once.
+
 	Scheduler(const Scheduler&) = delete;
 	Scheduler& operator=(const Scheduler&) = delete;
 	Scheduler(Scheduler&&) = delete;
@@ -47,6 +51,9 @@ public:
 	/// @param task The work.
 	/// @return An id for cancelOnce().
 	std::uint64_t once(double delayMs, std::function<void()> task);
+	/// @brief How many timers once() set are waiting.
+	/// @return Their number, at most a few more than maxWaiting.
+	[[nodiscard]] std::size_t waiting() const noexcept { return once_.size(); }
 	/// @brief Cancels a timer once() set, unless it has run or is running.
 	/// @param id From once().
 	void cancelOnce(std::uint64_t id);

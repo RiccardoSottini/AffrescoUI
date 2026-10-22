@@ -7,6 +7,7 @@
 #include "Settings.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace affresco::format {
 
@@ -33,7 +34,11 @@ json Running::list(const json& source, const std::string& at) const {
 }
 
 double Running::milliseconds(const char* key) const {
-	return std::max(static_cast<double>(number(value(key), where + "." + key)), 0.0);
+	const json ms = value(key);
+	const double exact = ms.is_number() ? ms.get<double>() : 0.0;
+	// A timer that never runs (NaN, infinity, or past what the window's clock can tell apart) would stay for good
+	if(!(exact < Scheduler::maxDelayMs)) return std::isnan(exact) ? 0.0 : Scheduler::maxDelayMs;
+	return std::max(static_cast<double>(number(ms, where + "." + key)), 0.0);
 }
 
 bool Running::run(const json& nested, const Scope& scope, const std::string& at) const {

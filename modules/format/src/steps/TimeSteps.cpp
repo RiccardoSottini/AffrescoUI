@@ -4,6 +4,7 @@
 #include "Engine.hpp"
 
 #include <cstdint>
+#include <string>
 
 namespace affresco::format {
 
@@ -17,6 +18,8 @@ void later(const Running& s) {
 	if(!s.step.contains("do")) fail(s.where, "needs \"do\": the steps to run");
 	Engine& engine = s.steps.engine();
 	if(!engine.window) return;
+	if(!debounce && engine.scheduler.waiting() >= Scheduler::maxWaiting) // each frame looks at every one
+		fail(s.where, "too many \"after\" steps waiting (at most " + std::to_string(Scheduler::maxWaiting) + ")");
 	auto task = s.steps.later(s.step["do"], s.sender, s.event, snapshot(s.locals), s.where + ".do");
 	if(debounce) {
 		const std::string key = s.where + "@" + std::to_string(reinterpret_cast<std::uintptr_t>(&s.sender));
