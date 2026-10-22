@@ -53,19 +53,34 @@ struct Editing {
 	}
 };
 
-/// @brief An id no object of a list (nor a group's child) has yet: the prefix and the first free number.
+/// @brief The ids a list's objects and their groups' children have.
 /// @param objects The objects.
-/// @param prefix The prefix.
-/// @return It.
-[[nodiscard]] std::string freeId(const std::vector<SlideObject>& objects, const std::string& prefix) {
+/// @return They.
+[[nodiscard]] std::set<std::string> takenIds(const std::vector<SlideObject>& objects) {
 	std::set<std::string> taken;
 	for(const SlideObject& object : objects) {
 		taken.insert(object.id);
 		for(const SlideObject& child : object.children) taken.insert(child.id);
 	}
+	return taken;
+}
+
+/// @brief An id not taken yet: the prefix and the first free number.
+/// @param taken The ids taken.
+/// @param prefix The prefix.
+/// @return It.
+[[nodiscard]] std::string freeId(const std::set<std::string>& taken, const std::string& prefix) {
 	std::size_t n = 1;
 	while(taken.contains(prefix + std::to_string(n))) ++n;
 	return prefix + std::to_string(n);
+}
+
+/// @brief An id no object of a list (nor a group's child) has yet.
+/// @param objects The objects.
+/// @param prefix The prefix.
+/// @return It.
+[[nodiscard]] std::string freeId(const std::vector<SlideObject>& objects, const std::string& prefix) {
+	return freeId(takenIds(objects), prefix);
 }
 
 /// @brief An id no slide of the deck has yet.
@@ -121,6 +136,7 @@ void addObject(Editing& editing) {
 /// @param editing The edit.
 void duplicateObjects(Editing& editing) {
 	std::vector<SlideObject> copies;
+	std::set<std::string> taken = takenIds(editing.objects()); // and the copies' as they are made
 	editing.selection.clear();
 	for(const SlideObject& object : editing.objects()) {
 		if(!std::ranges::contains(editing.ids, object.id)) continue;
@@ -128,10 +144,12 @@ void duplicateObjects(Editing& editing) {
 		copy.x += 20.0f;
 		copy.y += 20.0f;
 		copy.locked = false;
-		std::vector<SlideObject> taken = editing.objects();
-		taken.insert(taken.end(), copies.begin(), copies.end());
 		copy.id = freeId(taken, object.kind);
-		for(SlideObject& child : copy.children) child.id = copy.id + "-" + child.id;
+		taken.insert(copy.id);
+		for(SlideObject& child : copy.children) {
+			child.id = copy.id + "-" + child.id;
+			taken.insert(child.id);
+		}
 		editing.selection.push_back(copy.id);
 		copies.push_back(std::move(copy));
 	}

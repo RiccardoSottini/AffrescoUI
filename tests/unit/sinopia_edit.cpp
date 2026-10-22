@@ -79,3 +79,17 @@ TEST_CASE("sinopia: numbers past what a float holds are clamped, not converted")
 	CHECK(sinopia::floatAt(json::object(), "x", 7.0f) == 7.0f);
 	CHECK_THROWS_AS((void)sinopia::floatAt(json({{"x", "far"}}), "x", 7.0f), json::type_error);
 }
+
+TEST_CASE("sinopia: duplicated objects take the first free ids, and a group's children follow its copy") {
+	json edit = editOf("duplicate");
+	edit["deck"]["slides"][0]["objects"] = json::parse(R"([{"id": "rect1", "kind": "rect", "x": 10, "locked": true},
+		{"id": "rect2", "kind": "rect"}, {"id": "group1", "kind": "group", "children": [{"id": "c", "kind": "rect"}]}])");
+	edit["ids"] = {"rect1", "rect2", "group1"};
+	const json result = editDeck(edit);
+	CHECK(result["selection"] == json({"rect3", "rect4", "group2"}));
+	const json& objects = result["deck"]["slides"][0]["objects"];
+	REQUIRE(objects.size() == 6);
+	CHECK(objects[3]["x"] == 30);
+	CHECK_FALSE(objects[3].value("locked", false));
+	CHECK(objects[5]["children"][0]["id"] == "group2-c");
+}
