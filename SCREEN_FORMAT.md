@@ -102,7 +102,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `graph`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -355,6 +355,40 @@ top stays in place.
   "onExpand": [ { "set": "state.open", "to": "{{event.expanded ? concat(state.open, [event.id]) : filter(state.open, it != event.id)}}" } ] }
 ```
 
+### `graph`
+A node editor: boxes with input and output ports, joined by curves, over a grid, with a minimap. The nodes and links
+come from the node (`nodes`, `links`, usually bound to state) and the graph changes nothing itself: what the user does
+runs the node's handlers, whose steps change the state. Dragging from a port draws a curve to the pointer and rings the
+ports it may join (the same `kind`, or `"any"`; not a link already there, nor past a port's `links`; a cycle only with
+`"cycles": true`): letting go on one runs `onConnect`, on empty space `onLinkDrop`. Dragging a linked input picks its
+last link up: `onDisconnect` runs, then `onConnect` if it is dropped on another port. Nodes drag, with Shift for more
+and a marquee from empty space (`onSelect`, `onMove`); Delete runs `onDelete`. The keyboard does it all: Page Up and
+Page Down pick a node, the arrows move the selection, `[` and `]` pick a port, Enter on two ports links them, Shift+
+Delete removes a port's links, + and - zoom, Home puts the view back. Off-screen nodes aren't drawn or laid out, so a
+graph of thousands drags as fast as one of ten. The colours are `nodeColor`, `headerColor`, `textColor`,
+`accentColor` (the selection) and `kindColors`, the font `font`.
+
+<!-- generated: graph -->
+| Key | Meaning |
+|---|---|
+| `nodes` | The nodes, usually from state: `{ id, title, x, y, width, bodyHeight, inputs, outputs }` (at most 10,000, ids unique). A port is an id, or `{ id, label, kind, links }`: links join ports of the same `kind` (or either `"any"`, the default), and `links` is how many it takes (0, the default, for any number); at most 64 inputs and 64 outputs. The node's children, made with `repeat` like the nodes, are their bodies: child i sits under node i's ports, `bodyHeight` tall (0, the default, for none), hidden when the node is off screen or the zoom below 0.5. |
+| `links` | The links, `{ from, output, to, input }`: a node's output to a node's input (at most 50,000). The graph changes nothing itself: its handlers change the state. |
+| `cycles` | Whether a link may close a cycle (a node linked to itself included); `false`, the default, refuses it. |
+| `kindColors` | Each kind's colour, `{ "float": "#a3e635" }` (at most 64): its ports and the links from them. |
+| `nodeColor`, `headerColor` | The nodes' box and header; their text and the selection's colours are `textColor` and `accentColor`. |
+| `minimap` | Whether the minimap shows, at the bottom right (the default): a press or a drag there moves the view. |
+| `zoom`, `pan` | The camera: the zoom (0.1 to 4, the default 1) and where the graph's origin is in the view, `[x, y]`. They are applied when they change, so the user's own zoom (+ and -) and pan (the wheel, or a drag with the right or middle button) stay until then. |
+| `selected` | The selected nodes' ids (applied when it changes); a click, Shift and a click, or a marquee changes the selection and runs `onSelect`. |
+<!-- end generated -->
+
+```json
+{ "type": "graph", "id": "material", "nodes": "{{state.nodes}}", "links": "{{state.links}}",
+  "kindColors": { "color": "#f472b6", "float": "#a3e635" },
+  "onConnect": [ { "set": "state.links", "to": "{{concat(state.links, [{ from: event.from, output: event.output, to: event.to, input: event.input }])}}" } ],
+  "onDisconnect": [ { "set": "state.links", "to": "{{filter(state.links, index != event.index)}}" } ],
+  "onMove": [ { "set": "state.nodes", "to": "{{map(state.nodes, contains(event.ids, it.id) ? merge(it, { x: it.x + event.dx, y: it.y + event.dy }) : it)}}" } ] }
+```
+
 ### `path`
 A vector shape from SVG path data, filled and stroked, fitted to the node (like an icon or a chart line). It is
 drawn anti-aliased in the same batch as the panels and text around it, and its meshes are built again only when its
@@ -533,11 +567,16 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onLink` | A press on a part of `runs` with a link: `event.link`. |
 | `onShow`, `onHide` | The node was built, or removed (by `when`, `repeat` or a revision). |
 | `onClose` | A tab's close button or Delete: `event.id`. |
-| `onMove` | A tab dragged along its strip: `event.id`, `from`, `to`. |
+| `onMove` | A tab dragged along its strip: `event.id`, `from`, `to`; a graph's nodes dragged or moved with the arrows: `event.ids`, `dx`, `dy` (in graph units) and `nodes`, each `{ id, index, x, y }`. |
 | `onExpand` | A tree row opened or closed: `event.id`, `expanded`. |
 | `onOpen` | Enter or a double click on a tree, list or table row: `event.id`. |
 | `onSort` | A table header clicked: `event.column`, `descending`. |
 | `onColumnResize` | A table column's edge dragged and let go: `event.column`, `width`. |
+| `onConnect` | A graph's link made, by a drag from a port or Enter on two ports: `event.from`, `output`, `to`, `input`. |
+| `onDisconnect` | A graph's link removed (Shift+Delete on its port) or its end picked up: `event.index`, `from`, `output`, `to`, `input`. Moving an end runs `onDisconnect` then `onConnect`. |
+| `onLinkDrop` | A graph's link dropped on empty space: `event.node`, `port`, `output` (whether it started at an output), `x`, `y` (in graph units), e.g. to add a node there. |
+| `onSelect` | A graph's selection changed: `event.ids`. |
+| `onDelete` | Delete or Backspace on a graph: `event.ids`, the selected nodes. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it

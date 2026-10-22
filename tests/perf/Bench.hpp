@@ -131,6 +131,11 @@ struct Group {
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> watchWorkloads(Context&);
 
+/// @brief The "graph" group's workloads (graph.cpp): a 1,000-node graph set and drawn, and one of its nodes dragged
+/// (a frame per pointer move), on a headless window.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> graphWorkloads(Context&);
+
 /* Scaling (scaling_screens.cpp, scaling_engine.cpp): "scaling/<area>/<n>", the same work at sizes that double */
 
 /// @brief The sizes an area is measured at: 5 that double from the smallest, 7 at night.

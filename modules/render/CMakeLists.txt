@@ -38,6 +38,7 @@ affrescoui_module(render
 	src/GeometryCache.cpp
 	src/PaintRecorder.cpp
 	src/PathView.cpp
+	src/GraphView.cpp
 	src/vector/VectorPath.cpp
 	src/vector/PathFill.cpp
 	src/vector/PathStroke.cpp

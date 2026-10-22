@@ -482,6 +482,47 @@ constexpr KeyReference nodeTable[] = {
     {"strokeDash", R"json({"anyOf": [{"type": "array", "maxItems": 64, "items": {"type": "number", "minimum": 0}},
 		{"$ref": "#/$defs/v1/dynamic"}]})json",
 	 "Dash and gap lengths, repeated, e.g. `[6, 3]` (at most 64); without it the outline is solid.", "path"},
+    {"nodes", R"json({"anyOf": [{"type": "array", "maxItems": 10000, "items": {"type": "object", "required": ["id"]}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "graph: the nodes, { id, title, x, y, width, bodyHeight, inputs, outputs }"})json",
+	 "The nodes, usually from state: `{ id, title, x, y, width, bodyHeight, inputs, outputs }` (at most 10,000, ids "
+	 "unique). A port is an id, or `{ id, label, kind, links }`: links join ports of the same `kind` (or either "
+	 "`\"any\"`, the default), and `links` is how many it takes (0, the default, for any number); at most 64 inputs "
+	 "and 64 outputs. The node's children, made with `repeat` like the nodes, are their bodies: child i sits under "
+	 "node i's ports, `bodyHeight` tall (0, the default, for none), hidden when the node is off screen or the zoom "
+	 "below 0.5.",
+	 "graph"},
+    {"links", R"json({"anyOf": [{"type": "array", "maxItems": 50000, "items": {"type": "object",
+		"required": ["from", "output", "to", "input"]}}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "graph: the links, { from, output, to, input }"})json",
+	 "The links, `{ from, output, to, input }`: a node's output to a node's input (at most 50,000). The graph changes "
+	 "nothing itself: its handlers change the state.",
+	 "graph"},
+    {"cycles", "flag", "Whether a link may close a cycle (a node linked to itself included); `false`, the default, "
+	 "refuses it.",
+	 "graph"},
+    {"kindColors", R"json({"anyOf": [{"type": "object", "maxProperties": 64, "additionalProperties": {"$ref": "#/$defs/v1/color"}},
+		{"$ref": "#/$defs/v1/dynamic"}], "description": "graph: each port kind's colour"})json",
+	 "Each kind's colour, `{ \"float\": \"#a3e635\" }` (at most 64): its ports and the links from them.", "graph"},
+    {"nodeColor", "color", "The nodes' box and header; their text and the selection's colours are `textColor` and "
+	 "`accentColor`.",
+	 "graph"},
+    {"headerColor", "color", "", "graph"},
+    {"minimap", "flag", "Whether the minimap shows, at the bottom right (the default): a press or a drag there moves "
+	 "the view.",
+	 "graph"},
+    {"zoom", R"json({"anyOf": [{"type": "number", "minimum": 0.1, "maximum": 4}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "graph: window units per graph unit, 0.1 to 4 (default 1)"})json",
+	 "The camera: the zoom (0.1 to 4, the default 1) and where the graph's origin is in the view, `[x, y]`. They are "
+	 "applied when they change, so the user's own zoom (+ and -) and pan (the wheel, or a drag with the right or "
+	 "middle button) stay until then.",
+	 "graph"},
+    {"pan", R"json({"anyOf": [{"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+		{"$ref": "#/$defs/v1/dynamic"}]})json",
+	 "", "graph"},
+    {"selected", R"json({"description": "graph: the selected node's id, or a list of ids"})json",
+	 "The selected nodes' ids (applied when it changes); a click, Shift and a click, or a marquee changes the "
+	 "selection and runs `onSelect`.",
+	 "graph"},
     {"onClick", "handler", "Left click, two clicks on the same node, right click.", "events"},
     {"onDoubleClick", "handler", "", "events"},
     {"onContextMenu", "handler", "", "events"},
@@ -506,11 +547,27 @@ constexpr KeyReference nodeTable[] = {
     {"onShow", "handler", "The node was built, or removed (by `when`, `repeat` or a revision).", "events"},
     {"onHide", "handler", "", "events"},
     {"onClose", "handler", "A tab's close button or Delete: `event.id`.", "events"},
-    {"onMove", "handler", "A tab dragged along its strip: `event.id`, `from`, `to`.", "events"},
+    {"onMove", "handler",
+	 "A tab dragged along its strip: `event.id`, `from`, `to`; a graph's nodes dragged or moved with the arrows: "
+	 "`event.ids`, `dx`, `dy` (in graph units) and `nodes`, each `{ id, index, x, y }`.",
+	 "events"},
     {"onExpand", "handler", "A tree row opened or closed: `event.id`, `expanded`.", "events"},
     {"onOpen", "handler", "Enter or a double click on a tree, list or table row: `event.id`.", "events"},
     {"onSort", "handler", "A table header clicked: `event.column`, `descending`.", "events"},
     {"onColumnResize", "handler", "A table column's edge dragged and let go: `event.column`, `width`.", "events"},
+    {"onConnect", "handler",
+	 "A graph's link made, by a drag from a port or Enter on two ports: `event.from`, `output`, `to`, `input`.",
+	 "events"},
+    {"onDisconnect", "handler",
+	 "A graph's link removed (Shift+Delete on its port) or its end picked up: `event.index`, `from`, `output`, `to`, "
+	 "`input`. Moving an end runs `onDisconnect` then `onConnect`.",
+	 "events"},
+    {"onLinkDrop", "handler",
+	 "A graph's link dropped on empty space: `event.node`, `port`, `output` (whether it started at an output), `x`, "
+	 "`y` (in graph units), e.g. to add a node there.",
+	 "events"},
+    {"onSelect", "handler", "A graph's selection changed: `event.ids`.", "events"},
+    {"onDelete", "handler", "Delete or Backspace on a graph: `event.ids`, the selected nodes.", "events"},
     {"slot", R"json({"const": true, "description": "In a component: where the use's children go"})json", "", ""},
     {"placeholder", R"json({"description": "Text, or a {{binding}}"})json", "", ""},
     {"placeholderColor", "color", "", ""},

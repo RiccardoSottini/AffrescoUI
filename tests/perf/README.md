@@ -84,6 +84,8 @@ as the OpenGL driver's, aren't counted.
 | `views/list-scroll-100k` | A list of 100,000 rows scrolled to a new place, then a frame: only the rows in view are drawn |
 | `views/table-sort-100k` | A table of 100,000 rows sorted by a column of numbers, descending or ascending (each run does both) |
 | `views/table-scroll-100k` | That table scrolled to a new place, then a frame |
+| `graph/1000` | A 1,000-node graph (a grid, each node linked to the next) set, laid out and painted into a record |
+| `graph/1000/drag` | One of its nodes dragged by its header: a frame (laid out and painted) per pointer move |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 

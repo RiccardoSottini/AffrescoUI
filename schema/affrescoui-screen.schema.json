@@ -693,7 +693,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, outlet, or a type the application registers (which may add properties of its own)",
+						"description": "panel (default), label, textarea, editor, stack, row, column, grid, toggle, checkbox, slider, image, split, tabs, list, tree, table, path, graph, outlet, or a type the application registers (which may add properties of its own)",
 						"anyOf": [
 							{
 								"enum": [
@@ -715,6 +715,7 @@
 									"tree",
 									"table",
 									"path",
+									"graph",
 									"outlet"
 								]
 							},
@@ -1931,6 +1932,103 @@
 							}
 						]
 					},
+					"nodes": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 10000,
+								"items": {
+									"type": "object",
+									"required": [
+										"id"
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "graph: the nodes, { id, title, x, y, width, bodyHeight, inputs, outputs }"
+					},
+					"links": {
+						"anyOf": [
+							{
+								"type": "array",
+								"maxItems": 50000,
+								"items": {
+									"type": "object",
+									"required": [
+										"from",
+										"output",
+										"to",
+										"input"
+									]
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "graph: the links, { from, output, to, input }"
+					},
+					"cycles": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"kindColors": {
+						"anyOf": [
+							{
+								"type": "object",
+								"maxProperties": 64,
+								"additionalProperties": {
+									"$ref": "#/$defs/v1/color"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "graph: each port kind's colour"
+					},
+					"nodeColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"headerColor": {
+						"$ref": "#/$defs/v1/color"
+					},
+					"minimap": {
+						"$ref": "#/$defs/v1/flag"
+					},
+					"zoom": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0.1,
+								"maximum": 4
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						],
+						"description": "graph: window units per graph unit, 0.1 to 4 (default 1)"
+					},
+					"pan": {
+						"anyOf": [
+							{
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
+						]
+					},
+					"selected": {
+						"description": "graph: the selected node's id, or a list of ids"
+					},
 					"onClick": {
 						"$ref": "#/$defs/v1/handler"
 					},
@@ -2000,6 +2098,21 @@
 					"onColumnResize": {
 						"$ref": "#/$defs/v1/handler"
 					},
+					"onConnect": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onDisconnect": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onLinkDrop": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onSelect": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onDelete": {
+						"$ref": "#/$defs/v1/handler"
+					},
 					"slot": {
 						"const": true,
 						"description": "In a component: where the use's children go"
@@ -2040,6 +2153,7 @@
 									"tree",
 									"table",
 									"path",
+									"graph",
 									"outlet"
 								]
 							}

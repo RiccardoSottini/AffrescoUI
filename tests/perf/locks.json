@@ -24,6 +24,12 @@
 			"of": "watch/100000",
 			"atMost": 0.5,
 			"why": "one changed file in a watched 100,000-file folder updates one row, never a new listing (0.14 on macOS)"
+		},
+		{
+			"name": "graph/1000/drag",
+			"of": "graph/1000",
+			"atMost": 1.0,
+			"why": "a frame of a node dragged in a 1,000-node graph never costs more than setting the whole graph and drawing it (0.73 on macOS, 0.17 ms a frame)"
 		}
 	]
 }

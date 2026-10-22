@@ -59,6 +59,7 @@ affrescoui_module(format
 	src/IconProperty.cpp
 	src/RunsProperty.cpp
 	src/PathType.cpp
+	src/GraphType.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp
