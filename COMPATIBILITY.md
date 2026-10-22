@@ -22,7 +22,8 @@ Every file says which format version it was written for (`"version": 2`). The cu
 - **A key is deprecated before it is removed.** The checker warns about a deprecated key for at least one minor
   release before the version that removes it. The warning names the replacement.
 - **A history isn't rewritten.** When a new version arrives, the commits already on disk stay as they were recorded.
-  A screen whose head is older gets one commit on top that holds the migration ([VERSION_CONTROL.md](VERSION_CONTROL.md)).
+  A screen whose head is older gets one commit on top that holds the migration
+  ([SCREEN_FORMAT.md](SCREEN_FORMAT.md#migrating-from-version-1)).
 - **Signed files stay as signed.** A feature package or a catalogue index is migrated in memory after its signature is
   checked. `affrescoui migrate` leaves a signed file as it is, because rewriting it would break the signature.
 - Before 1.0, the version changes only for a consolidation like version 2. From 1.0, a new format version comes only
