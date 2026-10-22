@@ -11,8 +11,8 @@ file(GLOB affrescoui_unit_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DI
 set(affrescoui_forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
 add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp
 	${affrescoui_forge_dir}/features/palette/FileIndex.cpp ${affrescoui_forge_dir}/features/themes/ThemeImport.cpp
-	/features/themes/IconTheme.cpp /features/terminal/TerminalModel.cpp
-	/features/editor/Buffers.cpp /features/search/Search.cpp)
+	${affrescoui_forge_dir}/features/themes/IconTheme.cpp ${affrescoui_forge_dir}/features/terminal/TerminalModel.cpp
+	${affrescoui_forge_dir}/features/editor/Buffers.cpp ${affrescoui_forge_dir}/features/search/Search.cpp)
 # Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp, Png.hpp and automation's Internal.hpp and PngReader.hpp stay private
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
