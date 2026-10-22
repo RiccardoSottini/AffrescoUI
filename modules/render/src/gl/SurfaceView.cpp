@@ -64,7 +64,6 @@ void SurfaceView::paint(Painter& painter) const {
 	Panel::paint(painter);
 	const Rect& rect = frame();
 	state_->size = {rect.width(), rect.height()};
-	state_->scale = window() ? window()->contentScale() : 1.0f;
 	if(state_->time == 0.0 && window()) state_->time = window()->clock().seconds();
 	painter.drawSurface(*this, rect);
 	if(state_->continuous) scheduleNext();

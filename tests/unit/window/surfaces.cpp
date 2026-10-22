@@ -17,6 +17,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -219,4 +220,22 @@ TEST_CASE("surfaces: the pass limits hold") {
 		REQUIRE(errors.size() == 1);
 		CHECK(errors.front() == "AffrescoUI: surface 'test' disabled: a surface's passes are over 256 MiB");
 	}
+}
+
+TEST_CASE("surfaces: a picture at a fixed scale draws its surfaces at that scale, whatever the display's") {
+	affresco::Application app;
+	affresco::Window& window = hiddenWindow(app);
+	std::vector<float> scales;
+	auto& view = window.root().add<affresco::SurfaceView>();
+	view.setSurface("probe", [&scales] {
+		return std::make_unique<FunctionSurface>([&scales](SurfaceFrame& frame) { scales.push_back(frame.scale); });
+	});
+	view.setSize(affresco::px(40.0f), affresco::px(40.0f));
+	const std::filesystem::path picture = std::filesystem::temp_directory_path() / "affrescoui-surface-scale.ppm";
+	REQUIRE(window.saveScreenshot(picture, 2));
+	REQUIRE_FALSE(scales.empty());
+	CHECK(scales.back() == 2.0f);
+	REQUIRE(window.saveScreenshot(picture, 1));
+	CHECK(scales.back() == 1.0f);
+	std::filesystem::remove(picture);
 }
