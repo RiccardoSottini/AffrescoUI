@@ -5,8 +5,8 @@
 #include "affresco/render/Window.hpp"
 #include "affresco/render/Label.hpp"
 
-#include "GeometryCache.hpp"
-#include "RetainedGeometry.hpp"
+#include "paint/GeometryCache.hpp"
+#include "paint/RetainedGeometry.hpp"
 #include "detail/Utf8.hpp"
 #include "platform/Platform.hpp"
 
