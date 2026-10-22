@@ -155,6 +155,21 @@ std::vector<Grant> grantsOf(const json& grants) {
 	return result;
 }
 
+/// @brief main's commits, oldest first: the first parents from its head (each landed on the one before it).
+/// @tparam Commits The commits by id (a template, as Repository::Commit is private).
+/// @param objects The commits.
+/// @param head main's head.
+/// @return Their ids, revision 0 first.
+template <typename Commits> std::vector<std::string> firstParents(const Commits& objects, const std::string& head) {
+	std::vector<std::string> main;
+	for(const auto* commit = &objects.at(head);; commit = &objects.at(commit->parents.front())) {
+		main.push_back(commit->id);
+		if(commit->parents.empty()) break;
+	}
+	std::ranges::reverse(main);
+	return main;
+}
+
 /// @brief Refuses to write an object that loading would refuse (parseUntrusted()'s limit): the history on disk would
 /// be damaged for good. A screen file can nest deeper, since it isn't read with that limit.
 /// @param value The object.
@@ -209,13 +224,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	std::unordered_map<std::string, Commit> objects = readCommits(store, std::move(heads));
 	store.forgetUnread();
 
-	// main is the first parents from its head: every commit landed on the one before it
-	std::vector<std::string> main;
-	for(const Commit* commit = &objects.at(refs.main);; commit = &objects.at(commit->parents.front())) {
-		main.push_back(commit->id);
-		if(commit->parents.empty()) break;
-	}
-	std::ranges::reverse(main);
+	std::vector<std::string> main = firstParents(objects, refs.main);
 	// A history begun on a version 1 screen began on this one, if the screen file was migrated since
 	json original = *objects.at(main.front()).snapshot;
 	static_cast<void>(rules_.upgrade(original));
