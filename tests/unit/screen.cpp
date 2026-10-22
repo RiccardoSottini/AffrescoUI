@@ -4,6 +4,7 @@
 
 #include <affresco/Screen.hpp>
 
+#include "StateFile.hpp"                // modules/screen/src
 #include "features/FeaturesService.hpp" // modules/screen/src
 
 #include <doctest/doctest.h>
@@ -12,6 +13,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <optional>
 #include <memory>
 #include <string>
@@ -176,3 +178,23 @@ TEST_CASE("screen: a task queued by a screen that has ended does nothing, while 
 	CHECK_FALSE(affresco::detail::screenAlive(guard));
 	CHECK_FALSE(affresco::detail::screenAlive(std::weak_ptr<bool>()));
 }
+
+#ifndef _WIN32
+// Before, a new state file was created as the process's umask allows, most often readable by every user
+TEST_CASE("screen: a new state file is readable by its owner only, and one already there keeps its permissions") {
+	const TemporaryFolder folder;
+	namespace fs = std::filesystem;
+	const fs::path created = folder.path / "new.state.json";
+	REQUIRE(affresco::detail::writeStateFile(created, "{}\n"));
+	CHECK(fs::status(created).permissions() == (fs::perms::owner_read | fs::perms::owner_write));
+
+	const fs::path existing = folder.path / "old.state.json";
+	write(existing, "{ \"/count\": 1 }");
+	fs::permissions(existing, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read);
+	REQUIRE(affresco::detail::writeStateFile(existing, "{}\n"));
+	CHECK(fs::status(existing).permissions() ==
+	      (fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read));
+	std::ifstream in(existing);
+	CHECK(std::string(std::istreambuf_iterator<char>(in), {}) == "{}\n");
+}
+#endif

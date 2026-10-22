@@ -2,6 +2,7 @@
 /// @brief affresco::Screen::Impl: how the screen's modules are put together, its "persist" state file and its peers.
 
 #include "ScreenImpl.hpp"
+#include "StateFile.hpp"
 #include "features/FeaturesService.hpp"
 
 #include "affresco/core/Log.hpp"
@@ -107,14 +108,12 @@ void Screen::Impl::save() {
 	if(now == saved) return;
 	std::error_code error;
 	std::filesystem::create_directories(stateFile.parent_path(), error);
-	std::ofstream out(stateFile);
-	if(!out) {
+	if(!detail::writeStateFile(stateFile, now.dump(2) + '\n')) {
 		std::ostringstream message; // a path prints quoted, as it always has
 		message << "AffrescoUI screen: could not write " << stateFile;
 		affresco::log(LogLevel::Error, message.str());
 		return;
 	}
-	out << now.dump(2) << '\n';
 	saved = std::move(now);
 }
 
