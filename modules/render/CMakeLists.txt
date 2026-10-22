@@ -12,6 +12,7 @@ affrescoui_module(render
 	src/TextModel.cpp
 	src/text/PieceTree.cpp
 	src/Color.cpp
+	src/ColorSpaces.cpp
 	src/Controls.cpp
 	src/Split.cpp
 	src/Tabs.cpp
