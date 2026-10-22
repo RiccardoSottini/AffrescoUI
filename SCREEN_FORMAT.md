@@ -718,7 +718,9 @@ Wherever a value is expected it can be computed:
   `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`,
   `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
   `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
-  `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`;
+  `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
+  `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
+  `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
