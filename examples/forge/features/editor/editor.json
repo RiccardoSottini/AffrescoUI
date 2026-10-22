@@ -244,7 +244,7 @@
 								"activeTextColor": "@color.text",
 								"activeBackground": "@color.tabActive",
 								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
-								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id)}))}}",
+								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky}))}}",
 								"onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } },
 								"drag": {},
 								"onDrop": { "run": "moveTabToGroup", "with": { "id": "{{event.data.id}}", "to": "{{gi}}", "at": "{{event.index}}" } },

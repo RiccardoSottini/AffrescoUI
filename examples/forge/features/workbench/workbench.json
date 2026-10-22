@@ -89,6 +89,20 @@
 		"focusSecondGroup": { "title": "Focus Second Editor Group", "category": "View",
 			"enablement": "{{length(state.groups) > 1}}",
 			"do": [{ "set": "state.activeGroup", "to": 1 }] },
+		"pinEditor": { "title": "Pin Editor", "category": "View", "icon": "pin",
+			"description": "Keep the active editor at the start of its group, without a close button; Close Other Editors leaves it open.",
+			"enablement": "{{some(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active && !it.sticky)}}",
+			"do": [{ "set": "state.groups[state.activeGroup].tabs",
+			          "to": "{{concat(map(filter(state.groups[state.activeGroup].tabs, it.sticky || it.id == state.groups[state.activeGroup].active), merge(it, {sticky: true, preview: false})), filter(state.groups[state.activeGroup].tabs, !it.sticky && it.id != state.groups[state.activeGroup].active))}}" }] },
+		"unpinEditor": { "title": "Unpin Editor", "category": "View", "icon": "pin-off",
+			"enablement": "{{some(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active && it.sticky)}}",
+			"do": [{ "set": "state.groups[state.activeGroup].tabs",
+			          "to": "{{concat(filter(state.groups[state.activeGroup].tabs, it.sticky && it.id != state.groups[state.activeGroup].active), map(filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active), merge(it, {sticky: false})), filter(state.groups[state.activeGroup].tabs, !it.sticky && it.id != state.groups[state.activeGroup].active))}}" }] },
+		"closeOtherEditors": { "title": "Close Other Editors", "category": "View",
+			"description": "Close the active group's editors but the active one and the pinned ones.",
+			"enablement": "{{some(state.groups[state.activeGroup].tabs, it.id != state.groups[state.activeGroup].active && !it.sticky)}}",
+			"do": [{ "forEach": "{{filter(state.groups[state.activeGroup].tabs, it.id != state.groups[state.activeGroup].active && !it.sticky)}}", "as": "tab",
+			          "do": [{ "run": "closeTab", "with": { "gi": "{{state.activeGroup}}", "id": "{{tab.id}}" } }] }] },
 
 		"openSettingsJson": { "title": "Open Settings (JSON)", "category": "Preferences", "icon": "braces",
 			"description": "The settings you changed, as JSON: edit them and Apply.",
@@ -113,7 +127,10 @@
 		"mod+ctrl+left": "moveEditorToPreviousGroup",
 		"ctrl+r": "openRecent",
 		"mod+1": "focusFirstGroup",
-		"mod+2": "focusSecondGroup"
+		"mod+2": "focusSecondGroup",
+		"mod+k shift+enter": "pinEditor",
+		"mod+k mod+shift+enter": "unpinEditor",
+		"mod+k u": "closeOtherEditors"
 	},
 
 	"menus": {
@@ -125,6 +142,9 @@
 			"secondary": { "run": "toggleSecondarySidebar", "group": "2_layout", "order": 2 },
 			"moveNext": { "run": "moveEditorToNextGroup", "group": "3_groups", "order": 1 },
 			"movePrevious": { "run": "moveEditorToPreviousGroup", "group": "3_groups", "order": 2 },
+			"pin": { "run": "pinEditor", "group": "3_groups", "order": 3 },
+			"unpin": { "run": "unpinEditor", "group": "3_groups", "order": 4 },
+			"closeOthers": { "run": "closeOtherEditors", "group": "3_groups", "order": 5 },
 			"minimap": { "run": "toggleMinimap", "group": "4_editor", "order": 2 },
 			"breadcrumbs": { "run": "toggleBreadcrumbs", "group": "4_editor", "order": 3 }
 		},

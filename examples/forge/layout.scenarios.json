@@ -123,6 +123,46 @@
 			]
 		},
 		{
+			"name": "forge-layout-pin-editor",
+			"note": "Pin Editor moves the tab to the start of its group, without a close button, and a preview it pins is kept",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "pinEditor" },
+				{ "expect": { "state": "groups[0].tabs[0].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "groups[0].tabs[0].sticky", "is": true } },
+				{ "expect": { "state": "groups[0].tabs[1].id", "is": "README.md" } }
+			]
+		},
+		{
+			"name": "forge-layout-unpin-editor",
+			"note": "Unpin Editor puts the tab after the pinned ones",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "pinEditor" },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "pinEditor" },
+				{ "action": "unpinEditor" },
+				{ "expect": { "state": "groups[0].tabs[0].id", "is": "README.md" } },
+				{ "expect": { "state": "groups[0].tabs[1].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "groups[0].tabs[1].sticky", "is": false } }
+			]
+		},
+		{
+			"name": "forge-layout-close-other-editors",
+			"note": "Close Other Editors keeps the active editor and the pinned ones",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "pinEditor" },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "openSettings" },
+				{ "action": "closeOtherEditors" },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 2 } },
+				{ "expect": { "state": "groups[0].tabs[0].id", "is": "README.md" } },
+				{ "expect": { "state": "groups[0].tabs[1].id", "is": "forge:settings" } }
+			]
+		},
+		{
 			"name": "forge-layout-breadcrumbs",
 			"note": "The breadcrumbs show the file's folders and name, and the symbol at the caret",
 			"steps": [
