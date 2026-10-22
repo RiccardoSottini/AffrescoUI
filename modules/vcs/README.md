@@ -13,6 +13,8 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | Header | Offers |
 |---|---|
 | `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
+| `Leases.hpp` | `Leases`: a part of a document (an `#id` or a pointer) one person holds for a while, bounded; `LeasedRules`: a document's rules plus a deny rule for everyone else per running lease |
+| `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
 `core/DocumentRules.hpp`.

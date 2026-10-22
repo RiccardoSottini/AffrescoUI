@@ -246,6 +246,17 @@ stored token. `signIn` and `signOut` are control steps: a revision can't add or 
 they don't run while a proposal is previewed. The id token is read for its claims (account, expiry) from the token
 endpoint over TLS, not verified as a signature: it decides what is shown, never what is allowed.
 
+### The document server
+
+`affrescoui_server` (examples/server) accepts no peer without a token: its `TokenFile` keeps each token's SHA-256 and
+a name, so the file reveals no token; a token is 256 bits from the system's random source, shown once when added, and
+checked by hashing it and comparing it with every entry in constant time. It listens on the loopback unless told
+otherwise, and is meant to sit behind a proxy that terminates TLS (examples/deploy). The token's name is the author
+of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
+that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
+document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,
+never used to decide anything. Leases, presence entries and the server's messages are all bounded (examples/server).
+
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
 `AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
