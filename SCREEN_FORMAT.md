@@ -978,3 +978,16 @@ drop, a popover), `smart-home` (themes, computed values, switches and sliders, a
 timer, seeking), `code-editor` (an application type built on `editor`, tabs, a terminal, a Cmd+P palette), `habit-tracker` (validation-free forms, `watch`,
 `persist`), `sign-in` (screens, navigation, `check`), and `studio` (the Studio client: its whole UI, behaviour and
 connection).
+
+**Inside the host's OpenGL.** A host that has its own window and context (a game, a 3D tool) embeds the screen
+instead of giving it a window: `affresco::Embedding embedding(loader, clock, "Title", 800, 600)` in the current
+context, `screen.embed(embedding)`, then each frame `embedding.frame(width, height, scale, 0)` over the host's picture,
+or `embedding.renderTexture(width, height, scale)` for a texture the host shows where it likes. Its input goes to
+`embedding.window()`. The OpenGL state each call changes is restored before it returns.
+
+**From C and Python.** `affresco/affresco.h` (`modules/capi`) is the same in C, for hosts in other languages: create a
+screen from a file or a string (`afr_options.native_actions` lists the actions the host will answer, so the document's
+check knows them), read and set its state, answer its actions and calls, and show it in a window, headless or
+embedded. `bindings/python` wraps it: `Screen.from_file(...)`, `screen.state["count"] = 3`, `@screen.on_action("save")`,
+`screen.render_png("out.png")`. A native call is still reached only when the host grants it, and a change from the host
+is a revision the document's rules decide.

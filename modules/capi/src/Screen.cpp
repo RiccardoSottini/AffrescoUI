@@ -21,6 +21,9 @@ namespace {
 /// @brief The largest window, in window units or pixels.
 constexpr int largestSize = affresco::Embedding::maximumSize;
 
+/// @brief The most names options.native_actions may list.
+constexpr std::size_t maximumNativeActions = 4096;
+
 /// @brief Reads the host's options, of this version or an older one (a smaller size), checking each.
 /// @param given The host's, or NULL.
 /// @return The options.
@@ -113,6 +116,14 @@ afr_status finish(std::unique_ptr<afr_screen> handle, const afr_options& options
 	} else {
 		handle->socketDirectory = affresco::Screen::defaultSocketDirectory();
 	}
+	if(options.native_actions != nullptr) // known from now on; afr_screen_on_action() gives each its callback
+		for(std::size_t i = 0; options.native_actions[i] != nullptr; ++i) {
+			if(i == maximumNativeActions)
+				throw Failure{AFR_ERROR_ARGUMENT, "options.native_actions has too many names"};
+			const std::string_view name = checkedString(options.native_actions[i], "options.native_actions", 256);
+			if(name.empty()) throw Failure{AFR_ERROR_ARGUMENT, "options.native_actions has an empty name"};
+			handle->screen->onAction(std::string(name), [](affresco::Panel&) {});
+		}
 	afr_screen* self = handle.get();
 	handle->screen->onEvent([self](const std::string& eventJson) {
 		if(self->onEvent != nullptr) self->onEvent(self->onEventUser, eventJson.c_str());

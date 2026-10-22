@@ -136,6 +136,11 @@ static void testGlobals(void) {
 	options.scale = NAN;
 	CHECK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen) == AFR_ERROR_ARGUMENT);
 	options.scale = 1.0f;
+	options.mode = AFR_MODE_HEADLESS;
+	static const char* const unnamed[] = {"", NULL}; /* an action needs a name */
+	options.native_actions = unnamed;
+	CHECK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen) == AFR_ERROR_ARGUMENT);
+	options.native_actions = NULL;
 	options.mode = AFR_MODE_EMBEDDED; /* no gl_loader */
 	CHECK(afr_screen_create_from_string(document, sizeof document - 1, NULL, &options, &screen) == AFR_ERROR_ARGUMENT);
 	CHECK(afr_screen_step(NULL, 0) == AFR_ERROR_ARGUMENT);
@@ -241,6 +246,8 @@ static void testHeadless(const char* folder) {
 	options.history_in_memory = 1;
 	options.scale = 2.0f;
 	options.socket_directory = folder;
+	static const char* const natives[] = {"hostAction", NULL}; /* answered by registerCallbacks() */
+	options.native_actions = natives;
 	afr_screen* screen = NULL;
 	CHECK_OK(afr_screen_create_from_file(path, &options, &screen));
 	if(screen == NULL) return;

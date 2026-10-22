@@ -48,5 +48,5 @@ def screen(sockets):
     @param sockets The folder for its sockets.
     @return The screen.
     """
-    with Screen.from_string(DOCUMENT, socket_directory=sockets) as made:
+    with Screen.from_string(DOCUMENT, socket_directory=sockets, native_actions=["hostAction"]) as made:
         yield made

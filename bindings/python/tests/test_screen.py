@@ -121,7 +121,8 @@ def test_files_and_errors(tmp_path, sockets):
     """Screens load from files at a scale; bad documents and options raise; a closed screen refuses calls."""
     path = tmp_path / "test.screen.json"
     path.write_text(json.dumps(DOCUMENT))
-    with Screen.from_file(path, scale=2, history_in_memory=1, socket_directory=sockets) as screen:
+    with Screen.from_file(path, scale=2, history_in_memory=1, socket_directory=sockets,
+                          native_actions=["hostAction"]) as screen:
         width, height, _ = screen.render_rgba()
         assert (width, height) == (400, 240)
         screen.listen("py-test.sock", "agent")

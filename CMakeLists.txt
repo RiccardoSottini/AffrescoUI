@@ -170,6 +170,15 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	add_executable(affrescoui_server examples/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
 	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})
+	if(AFFRESCOUI_BUILD_CAPI)
+		# A host's own GLFW and OpenGL app, with a screen over its scene or on a turning quad (examples/embed/README.md)
+		add_executable(affrescoui_embed examples/embed/main.cpp)
+		target_link_libraries(affrescoui_embed PRIVATE affrescoui::capi) # GLFW and glad come with it
+		target_include_directories(affrescoui_embed SYSTEM PRIVATE external/glad/include
+			$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
+		target_compile_options(affrescoui_embed PRIVATE ${AFFRESCOUI_WARNINGS})
+		target_compile_definitions(affrescoui_embed PRIVATE AFFRESCOUI_EMBED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/embed")
+	endif()
 endif()
 
 if(AFFRESCOUI_BUILD_TESTS)

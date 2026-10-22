@@ -55,6 +55,7 @@ class Options(ctypes.Structure):
         ("scale", ctypes.c_float),
         ("hidden", ctypes.c_int),
         ("gl_loader", GL_LOADER),
+        ("native_actions", ctypes.POINTER(ctypes.c_char_p)),
     ]
 
 

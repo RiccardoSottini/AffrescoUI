@@ -28,7 +28,8 @@ def main(picture: str) -> None:
 
     @param picture Where to write the picture after the third click.
     """
-    with tempfile.TemporaryDirectory() as scratch, Screen.from_string(DOCUMENT, socket_directory=scratch) as screen:
+    with tempfile.TemporaryDirectory() as scratch, Screen.from_string(DOCUMENT, socket_directory=scratch,
+                                                                       native_actions=["reset"]) as screen:
         @screen.on_call("describe")
         def describe(arguments):
             return f"clicked {arguments['n']} times"

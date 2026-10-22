@@ -118,6 +118,9 @@ typedef struct afr_options {
 	float scale;                  /**< Headless: pixels per window unit for afr_screen_render_rgba(), whole (1). */
 	int hidden;                   /**< Window: nonzero opens it hidden (tests). */
 	afr_gl_loader gl_loader;      /**< Embedded: the host's function loader (required). */
+	/** The native actions the host will register with afr_screen_on_action(), NULL-terminated, or NULL: the document is
+	 *  checked when the screen is created, and names it runs that aren't defined or listed here are reported. */
+	const char* const* native_actions;
 } afr_options;
 
 /** @brief A screen: a document, its state and what shows it. Opaque. */

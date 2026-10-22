@@ -13,7 +13,7 @@ AFFRESCOUI_LIBRARY=build/modules/capi/libaffresco.dylib PYTHONPATH=bindings/pyth
 ```python
 from affrescoui import Screen
 
-with Screen.from_file("app.screen.json") as screen:      # headless by default; mode="window" to show it
+with Screen.from_file("app.screen.json", native_actions=["save"]) as screen:  # headless; mode="window" shows it
     @screen.on_action("save")
     def save(sender):                                       # "onClick": "save" with no document action of that name
         print("save from", sender)
@@ -31,7 +31,7 @@ with Screen.from_file("app.screen.json") as screen:      # headless by default; 
 
 | Piece | What |
 |---|---|
-| `Screen.from_file`, `from_string` | `mode` ("headless", "window", "embedded") and the options as keywords: `socket_directory`, `data_directory`, `history_in_memory`, `width`, `height`, `scale`, `hidden` |
+| `Screen.from_file`, `from_string` | `mode` ("headless", "window", "embedded") and the options as keywords: `socket_directory`, `data_directory`, `history_in_memory`, `width`, `height`, `scale`, `hidden`, `native_actions` (the names `on_action` will answer: the document is checked when it loads) |
 | `screen.state[path]` | Read and set by dotted path or JSON Pointer; `get`, `in`, `all()` |
 | `replace_document`, `submit_revision` | The whole document; a revision, whose result (`applied`, `proposed`, `rejected`) is returned |
 | `on_action`, `on_event`, `on_call` | Decorators; exceptions in them are printed, never passed into the library |

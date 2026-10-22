@@ -86,7 +86,8 @@ def _options(mode: str, **values: Any) -> _native.Options:
     """Builds afr_options from keyword arguments.
 
     @param mode "window", "headless" or "embedded".
-    @param values socket_directory, data_directory, history_in_memory, width, height, scale, hidden.
+    @param values socket_directory, data_directory, history_in_memory, width, height, scale, hidden; native_actions,
+        the names of the actions the host will answer with on_action (the document is checked when it is loaded).
     @return The options.
     @throws ValueError For an unknown mode or option.
     """
@@ -98,7 +99,11 @@ def _options(mode: str, **values: Any) -> _native.Options:
     for name, value in values.items():
         if value is None:
             continue
-        if name in ("socket_directory", "data_directory"):
+        if name == "native_actions":
+            names = [str(action).encode("utf-8") for action in value]
+            value = (ctypes.c_char_p * (len(names) + 1))(*names, None)
+            options._names = value  # kept alive with the options
+        elif name in ("socket_directory", "data_directory"):
             value = str(value).encode("utf-8")
         elif name not in ("history_in_memory", "width", "height", "scale", "hidden"):
             raise ValueError(f"unknown option {name!r}")

@@ -32,10 +32,13 @@ headless (time and input driven by the host, pictures as RGBA), or embedded in t
   document's deny rules still apply; `afr_screen_submit_revision` is reviewed like any other; a native call is only
   reached if the host granted it with `afr_screen_on_call`; peers on `afr_screen_listen` are authored as the name the
   host gives, which is required.
+- **Native actions are named first.** A screen is checked and built when it is created, before the host can register
+  its actions, so `afr_options.native_actions` lists the names it will answer (otherwise the check reports them as
+  unknown); `afr_screen_on_action()` then gives each its callback.
 - **Embedding saves the host's GL state.** `afr_screen_frame` and `_render_texture` save and restore the state they
   touch (the list is in `affresco.h`) and set their own defaults while drawing.
 
 ## Tests
 
 `tests/capi` calls every function from C11 with strict warnings: headless, in a hidden window, embedded in a context of
-its own, and the argument checks. `ctest -R capi` runs it.
+its own, and the argument checks. `ctest -R capi` runs it. `examples/embed` is a host using it in its own OpenGL.
