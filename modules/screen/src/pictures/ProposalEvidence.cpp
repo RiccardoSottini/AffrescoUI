@@ -84,10 +84,9 @@ std::optional<std::string> OffscreenImages::evidence(int proposal, int scale, Ev
 	const auto it = std::ranges::find(open, proposal, &ProposalInfo::id);
 	if(it == open.end()) return "AffrescoUI screen: no proposal " + std::to_string(proposal);
 
-	RgbImage before, after;
-	json main;
-	std::string document;
-	if(std::optional<std::string> error = drawBoth(proposal, scale, before, after, main, document)) return error;
+	Comparison drawn;
+	if(std::optional<std::string> error = drawBoth(proposal, scale, drawn)) return error;
+	const auto& [before, after, main, document] = drawn;
 	evidence.before = {encodePng(before.width, before.height, before.rgb), before.width, before.height};
 	evidence.after = {encodePng(after.width, after.height, after.rgb), after.width, after.height};
 	evidence.region = changedRegion(before, after);

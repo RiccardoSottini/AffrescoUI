@@ -7,9 +7,11 @@
 #include "affresco/render/Window.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <exception>
 #include <memory>
+#include <string_view>
 #include <utility>
 
 namespace affresco::detail {
@@ -44,36 +46,22 @@ std::string bounds(const Rect& rect) {
 /// @param key The key.
 /// @return Its name, or "a key".
 std::string keyName(Key key) {
-	switch(key) {
-	case Key::Escape:
-		return "Escape";
-	case Key::Enter:
-		return "Enter";
-	case Key::Tab:
-		return "Tab";
-	case Key::Backspace:
-		return "Backspace";
-	case Key::Delete:
-		return "Delete";
-	case Key::Right:
-		return "Right";
-	case Key::Left:
-		return "Left";
-	case Key::Down:
-		return "Down";
-	case Key::Up:
-		return "Up";
-	case Key::PageUp:
-		return "PageUp";
-	case Key::PageDown:
-		return "PageDown";
-	case Key::Home:
-		return "Home";
-	case Key::End:
-		return "End";
-	default:
-		return "a key";
-	}
+	using Named = std::pair<Key, std::string_view>;
+	static constexpr std::array<Named, 13> names{{{Key::Escape, "Escape"},
+	                                              {Key::Enter, "Enter"},
+	                                              {Key::Tab, "Tab"},
+	                                              {Key::Backspace, "Backspace"},
+	                                              {Key::Delete, "Delete"},
+	                                              {Key::Right, "Right"},
+	                                              {Key::Left, "Left"},
+	                                              {Key::Down, "Down"},
+	                                              {Key::Up, "Up"},
+	                                              {Key::PageUp, "PageUp"},
+	                                              {Key::PageDown, "PageDown"},
+	                                              {Key::Home, "Home"},
+	                                              {Key::End, "End"}}};
+	const auto found = std::ranges::find(names, key, &Named::first);
+	return std::string(found == names.end() ? "a key" : found->second);
 }
 
 /// @brief Joins lines.

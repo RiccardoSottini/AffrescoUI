@@ -112,8 +112,7 @@ std::optional<std::string> OffscreenImages::drawPixels(int scale, RgbImage& pixe
 	return std::nullopt;
 }
 
-std::optional<std::string> OffscreenImages::drawBoth(int proposal, int scale, RgbImage& before, RgbImage& after,
-                                                     json& main, std::string& document) {
+std::optional<std::string> OffscreenImages::drawBoth(int proposal, int scale, Comparison& drawn) {
 	if(!runtime_.window()) return "AffrescoUI screen: evidence: the screen has no window yet";
 	if(rendering_) return "AffrescoUI screen: evidence: already drawing a picture";
 	runtime_.window()->runDeferredTasks(); // as render(): main's tasks run on main
@@ -122,11 +121,11 @@ std::optional<std::string> OffscreenImages::drawBoth(int proposal, int scale, Rg
 	runtime_.setHandlersSuspended(true);
 	putBack.switched = true;
 	if(std::optional<std::string> error = show(std::nullopt)) return error;
-	if(std::optional<std::string> error = drawPixels(scale, before)) return error;
-	main = versions_.document();
+	if(std::optional<std::string> error = drawPixels(scale, drawn.before)) return error;
+	drawn.main = versions_.document();
 	if(std::optional<std::string> error = show(proposal)) return error;
-	document = versions_.document().dump(); // while previewed, the document is the proposal's
-	return drawPixels(scale, after);
+	drawn.document = versions_.document().dump(); // while previewed, the document is the proposal's
+	return drawPixels(scale, drawn.after);
 }
 
 } // namespace affresco::detail

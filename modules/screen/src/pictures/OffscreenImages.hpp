@@ -65,22 +65,25 @@ private:
 	/// @param pixels Receives the picture.
 	/// @return An error, or std::nullopt.
 	std::optional<std::string> drawPixels(int scale, RgbImage& pixels) const;
+	/// @brief Main and a proposal, drawn one after the other (drawBoth()).
+	struct Comparison {
+		RgbImage before;      ///< Main.
+		RgbImage after;       ///< The proposal.
+		json main;            ///< Main's document.
+		std::string document; ///< The proposal's document, as JSON text.
+	};
 	/// @brief Draws main and a proposal, one after the other, and puts back what the person sees.
 	/// @param proposal The proposal.
 	/// @param scale Pixels per window unit.
-	/// @param before Receives main.
-	/// @param after Receives the proposal.
-	/// @param main Receives main's document.
-	/// @param document Receives the proposal's document, as JSON text.
+	/// @param drawn Receives both.
 	/// @return An error, or std::nullopt.
-	std::optional<std::string> drawBoth(int proposal, int scale, RgbImage& before, RgbImage& after, json& main,
-	                                    std::string& document);
+	std::optional<std::string> drawBoth(int proposal, int scale, Comparison& drawn);
 
-	VersionControl& versions_;       ///< The document.
-	format::Runtime& runtime_;       ///< Has the window.
-	bool rendering_ = false;         ///< See rendering().
-	ScenarioCheck scenarioCheck_;    ///< See setScenarioCheck().
-	Inspector inspector_;            ///< See inspect().
+	VersionControl& versions_;    ///< The document.
+	format::Runtime& runtime_;    ///< Has the window.
+	bool rendering_ = false;      ///< See rendering().
+	ScenarioCheck scenarioCheck_; ///< See setScenarioCheck().
+	Inspector inspector_;         ///< See inspect().
 };
 
 } // namespace affresco::detail
