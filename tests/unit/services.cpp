@@ -183,6 +183,14 @@ TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	bodies.clear();
 	CHECK(over.feed("abcde\n", bodies));
 	CHECK(bodies.empty());
+
+	// Lines in pieces: the bytes searched before aren't searched again, and the next line starts afresh
+	FrameReader pieces(Framing::Lines, {64, 8});
+	bodies.clear();
+	for(const char* piece : {"ab", "c", "de\r", "\nf", "g", "\n", "h"}) CHECK_FALSE(pieces.feed(piece, bodies));
+	CHECK(bodies == std::vector<std::string>{"abcde", "fg"});
+	CHECK_FALSE(pieces.feed("12345678", bodies)); // "h" and 7 bytes: the limit and room for a '\r'
+	CHECK(pieces.feed("9", bodies));
 }
 
 TEST_CASE("services: a registry refuses what the host didn't grant") {

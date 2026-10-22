@@ -105,12 +105,15 @@ std::optional<std::string> FrameReader::takeContentLength(std::vector<std::strin
 std::optional<std::string> FrameReader::takeLines(std::vector<std::string>& bodies) {
 	while(true) {
 		const std::string_view unread = std::string_view(buffer_).substr(start_);
-		const std::size_t end = unread.find('\n');
+		// Only the bytes not searched before: a long line arriving in small pieces is searched once, not once a piece
+		const std::size_t end = unread.find('\n', scanned_);
 		if(end == std::string_view::npos) { // room for the line's body and a '\r' before its '\n'
 			if(unread.size() > limits_.messageBytes + 1)
 				return "a line over " + std::to_string(limits_.messageBytes) + " bytes";
+			scanned_ = unread.size();
 			return std::nullopt;
 		}
+		scanned_ = 0;
 		std::string_view line = unread.substr(0, end);
 		if(line.ends_with('\r')) line.remove_suffix(1);
 		if(line.size() > limits_.messageBytes) return "a line over " + std::to_string(limits_.messageBytes) + " bytes";

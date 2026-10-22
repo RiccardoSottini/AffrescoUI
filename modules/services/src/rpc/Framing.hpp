@@ -53,6 +53,7 @@ private:
 	FrameLimits limits_;                ///< See the constructor.
 	std::string buffer_;                ///< Bytes not yet part of a complete frame.
 	std::size_t start_ = 0;             ///< Where the unread bytes of buffer_ begin.
+	std::size_t scanned_ = 0;           ///< How many unread bytes takeLines() searched, finding no line break.
 	std::optional<std::size_t> length_; ///< The body length of the frame being read, once its headers are.
 	std::optional<std::string> broken_; ///< Why the stream is malformed, once it is.
 };
