@@ -47,6 +47,11 @@ void applyDelta(json& document, const json& patch, const std::string& where);
 /// @throws DocumentError If it doesn't start with '/'.
 [[nodiscard]] std::vector<std::string> segmentsOf(std::string_view pointer);
 
+/// @brief Escapes an object key for a JSON Pointer (RFC 6901).
+/// @param key The key.
+/// @return It, with '~' as "~0" and '/' as "~1".
+[[nodiscard]] std::string escapeKey(std::string_view key);
+
 /// @brief Writes segments as a JSON Pointer, escaping '~' and '/'.
 /// @param segments The segments.
 /// @return The pointer.

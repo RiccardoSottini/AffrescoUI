@@ -4,6 +4,8 @@
 
 #include "permissions/Permissions.hpp"
 
+#include "revisions/Deltas.hpp"
+
 #include <algorithm>
 #include <map>
 #include <set>
@@ -41,19 +43,6 @@ std::string join(const std::vector<std::string>& segments, std::size_t count) {
 	return pointer;
 }
 
-/// @brief Escapes an object key for a JSON Pointer.
-/// @param key The key.
-/// @return '~' as "~0", '/' as "~1".
-std::string escape(std::string_view key) {
-	std::string escaped;
-	for(const char c : key) {
-		if(c == '~') escaped += "~0";
-		else if(c == '/') escaped += "~1";
-		else escaped += c;
-	}
-	return escaped;
-}
-
 /// @brief One place a pattern covers.
 struct Place {
 	std::string name;    ///< As the pattern names it: "#id/..." stays "#id/...", so moved nodes compare alike.
@@ -74,7 +63,7 @@ void expandSegment(const json& view, const Place& place, const std::string& segm
 	const json* value = locate(view, place.pointer);
 	if(value && value->is_object()) {
 		for(const auto& [key, item] : value->items())
-			next.push_back({place.name + "/" + escape(key), place.pointer + "/" + escape(key)});
+			next.push_back({place.name + "/" + escapeKey(key), place.pointer + "/" + escapeKey(key)});
 	} else if(value && value->is_array()) {
 		for(std::size_t i = 0; i < value->size(); ++i)
 			next.push_back({place.name + "/" + std::to_string(i), place.pointer + "/" + std::to_string(i)});

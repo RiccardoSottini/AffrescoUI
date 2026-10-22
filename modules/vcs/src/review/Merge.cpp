@@ -3,6 +3,8 @@
 
 #include "review/Merge.hpp"
 
+#include "revisions/Deltas.hpp"
+
 #include <algorithm>
 #include <array>
 #include <iterator>
@@ -72,15 +74,6 @@ Side itemOf(const json& list, const std::string& id) {
 	return it == list.end() ? nullptr : &*it;
 }
 
-/// @brief Escapes a key for a JSON Pointer.
-/// @param key The key.
-/// @return It with '~' as "~0" and '/' as "~1".
-std::string escaped(const std::string& key) {
-	std::string result;
-	for(const char c : key) result += c == '~' ? "~0" : c == '/' ? "~1" : std::string(1, c);
-	return result;
-}
-
 /// @brief Records a conflict.
 /// @param conflicts The list.
 /// @param path Where.
@@ -127,7 +120,7 @@ json mergeObject(const json& base, const json& main, const json& proposal, const
 	json merged = json::object();
 	for(const std::string& key : keys) {
 		std::optional<json> value =
-		    mergeValue(find(base, key), find(main, key), find(proposal, key), path + "/" + escaped(key), conflicts);
+		    mergeValue(find(base, key), find(main, key), find(proposal, key), path + "/" + escapeKey(key), conflicts);
 		if(value) merged[key] = std::move(*value);
 	}
 	return merged;

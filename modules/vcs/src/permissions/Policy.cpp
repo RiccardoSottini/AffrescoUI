@@ -4,6 +4,7 @@
 #include "permissions/Policy.hpp"
 
 #include "permissions/Permissions.hpp"
+#include "revisions/Deltas.hpp"
 
 #include <algorithm>
 #include <map>
@@ -29,15 +30,6 @@ Segments segmentsOf(std::string_view pointer) {
 	}
 	if(segments.size() == 1 && segments[0].empty()) segments.clear();
 	return segments;
-}
-
-/// @brief Escapes an object key for a JSON Pointer.
-/// @param key The key.
-/// @return '~' as "~0", '/' as "~1".
-std::string escape(std::string_view key) {
-	std::string escaped;
-	for(const char c : key) escaped += c == '~' ? "~0" : c == '/' ? "~1" : std::string(1, c);
-	return escaped;
 }
 
 /// @brief Where a path is against a pattern.
@@ -162,7 +154,7 @@ json filteredItems(const json& value, Segments& path, const Filter& filter) {
 		return result;
 	}
 	for(const auto& [key, item] : value.items()) {
-		path.push_back(escape(key));
+		path.push_back(escapeKey(key));
 		if(std::optional<json> kept = filtered(item, path, filter)) result[key] = std::move(*kept);
 		path.pop_back();
 	}
@@ -254,7 +246,7 @@ std::map<std::string, const json*> nodesOf(const json& view) {
 	for(const char* section : {"/screens", "/templates"})
 		if(const json* all = locate(view, section); all && all->is_object())
 			for(const auto& [name, node] : all->items())
-				collectNodes(node, std::string(section) + "/" + escape(name), nodes);
+				collectNodes(node, std::string(section) + "/" + escapeKey(name), nodes);
 	return nodes;
 }
 
@@ -390,7 +382,7 @@ json readableView(const Policy& policy, const json& view, std::string_view autho
 	const std::vector<Segments> keep = segmentsOf(applied.read), drop = segmentsOf(applied.never);
 	json result = json::object();
 	for(const auto& [key, value] : view.items()) {
-		Segments path{escape(key)};
+		Segments path{escapeKey(key)};
 		const bool limited = readLimitedIn(applied, path[0]);
 		if(std::optional<json> kept = filtered(value, path, {limited ? &keep : nullptr, drop}))
 			result[key] = std::move(*kept);

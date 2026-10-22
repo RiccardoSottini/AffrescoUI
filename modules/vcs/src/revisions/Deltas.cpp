@@ -15,16 +15,23 @@ using expect::fail;
 
 namespace {
 
-/// @brief Appends an object's key to a JSON Pointer, escaping '~' as "~0" and '/' as "~1".
-/// @param path The pointer.
+/// @brief Appends an object's key to text, escaping '~' as "~0" and '/' as "~1".
+/// @param text The text.
 /// @param key The key.
+void appendEscaped(std::string& text, std::string_view key) {
+	for(const char c : key) {
+		if(c == '~') text += "~0";
+		else if(c == '/') text += "~1";
+		else text += c;
+	}
+}
+
+/// @brief Appends an object's key to a JSON Pointer.
+/// @param path The pointer.
+/// @param key The key, escaped as it is appended.
 void appendKey(std::string& path, std::string_view key) {
 	path += '/';
-	for(const char c : key) {
-		if(c == '~') path += "~0";
-		else if(c == '/') path += "~1";
-		else path += c;
-	}
+	appendEscaped(path, key);
 }
 
 /// @brief Appends a list position to a JSON Pointer.
@@ -225,6 +232,12 @@ std::vector<std::string> segmentsOf(std::string_view pointer) {
 		}
 	}
 	return segments;
+}
+
+std::string escapeKey(std::string_view key) {
+	std::string escaped;
+	appendEscaped(escaped, key);
+	return escaped;
 }
 
 std::string pointerOf(const std::vector<std::string>& segments) {
