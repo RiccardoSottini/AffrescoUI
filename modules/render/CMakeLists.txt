@@ -109,7 +109,8 @@ target_sources(affrescoui_render PRIVATE src/creative/ColorPicker.cpp src/creati
 # The infinite canvas and its rulers
 target_sources(affrescoui_render PRIVATE src/canvas/CanvasView.cpp src/canvas/CanvasViewInput.cpp src/canvas/Rulers.cpp)
 # The node graph
-target_sources(affrescoui_render PRIVATE src/graph/GraphView.cpp)
+target_sources(affrescoui_render PRIVATE src/graph/GraphView.cpp src/graph/GraphModel.cpp src/graph/GraphInput.cpp
+	src/graph/GraphPaint.cpp)
 # The timeline
 target_sources(affrescoui_render PRIVATE src/timeline/TimelineView.cpp src/timeline/TimelineInput.cpp
 	src/timeline/TimelineKeys.cpp src/timeline/TimelineMath.cpp src/timeline/TimelinePaint.cpp)
