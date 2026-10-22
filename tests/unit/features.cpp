@@ -135,6 +135,12 @@ TEST_CASE("features: a manifest can never widen a capability") {
 		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"if": "{{true}}", "then": [{"call": "x"}]}])");
 		CHECK(refused(manifest, "'call'"));
 	}
+	SUBCASE("a sign-in step") { // it reaches a provider in the person's name
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"signIn": "api"}])");
+		CHECK(refused(manifest, "'signIn'"));
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"signOut": "api"}])");
+		CHECK(refused(manifest, "'signOut'"));
+	}
 	SUBCASE("a node id outside the namespace") {
 		manifest["provides"]["views"]["statusBar.right"]["label"] = manifest["provides"]["views"]["statusBar.right"]
 		                                                                    ["wordCount-label"];
