@@ -61,7 +61,7 @@ public:
 		const auto found = sessions_.find(id);
 		return found == sessions_.end() ? nullptr : found->second.get();
 	}
-	void send(TerminalSession& session, std::string bytes);
+	void send(TerminalSession& session, const std::string& bytes);
 	void resize(TerminalSession& session, int rows, int columns);
 	void close(const std::string& id);
 	void clear(const std::string& id);

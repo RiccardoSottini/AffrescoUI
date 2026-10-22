@@ -47,7 +47,7 @@ void grantLanguageServers(affresco::Screen& screen);
 /// @param workspace The open folder.
 /// @param buffers The open files' texts (registerEditor()).
 /// @param executor The main thread, which the servers' answers are posted to; nullptr for none (no server starts).
-void registerLsp(affresco::Screen& screen, std::shared_ptr<Workspace> workspace, std::shared_ptr<Buffers> buffers,
-                 affresco::Executor* executor);
+void registerLsp(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace,
+                 std::shared_ptr<Buffers> buffers, affresco::Executor* executor);
 
 } // namespace forge

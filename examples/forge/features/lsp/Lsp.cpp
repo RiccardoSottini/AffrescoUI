@@ -9,6 +9,7 @@
 
 #include <affresco/core/Json.hpp>
 
+#include <array>
 #include <cstdlib>
 #include <functional>
 #include <map>
@@ -44,7 +45,7 @@ struct Kind {
 };
 
 /// @brief The request kinds forge.lsp.request knows.
-constexpr Kind kinds[] = {
+constexpr std::array<Kind, 10> kinds = {{
     {"hover", "textDocument/hover", "hoverProvider", true},
     {"completion", "textDocument/completion", "completionProvider", true},
     {"signature", "textDocument/signatureHelp", "signatureHelpProvider", true},
@@ -55,7 +56,7 @@ constexpr Kind kinds[] = {
     {"symbols", "textDocument/documentSymbol", "documentSymbolProvider", false},
     {"workspaceSymbols", "workspace/symbol", "workspaceSymbolProvider", false},
     {"tokens", "textDocument/semanticTokens/full", "semanticTokensProvider", false},
-};
+}};
 
 /// @brief The semantic token types Forge asks servers for (those styleOfToken() knows, and the common rest).
 const json tokenTypes = {"namespace", "type",     "class",    "enum",      "interface", "struct",   "typeParameter",
@@ -108,8 +109,9 @@ public:
 			return {{"pending", true}};
 		}
 		Server& entry = this->server(server["service"].get<std::string>());
-		whenReady(entry, [this, &entry, request] { send(entry, request); },
-		          [this, request](const std::string& error) { show(request, std::nullopt, error); });
+		whenReady(
+		    entry, [this, &entry, request = request] { send(entry, request); },
+		    [this, request = request](const std::string& error) { show(request, std::nullopt, error); });
 		return {{"pending", true}};
 	}
 
@@ -174,7 +176,7 @@ private:
 
 	/// @brief Forgets what a server knew (it crashed, or the client ends).
 	/// @param server The server.
-	void reset(Server& server) {
+	static void reset(Server& server) {
 		for(auto& [id, document] : server.documents)
 			if(const auto model = document.model.lock()) model->onChanged.disconnect(document.connection);
 		server.documents.clear();
@@ -304,7 +306,7 @@ private:
 		const std::optional<json> params = paramsFor(server, request);
 		if(!params) return show(request, std::nullopt, request.id + " isn't open");
 		call(server.service, std::string(request.kind.method), *params,
-		     [this, &server, request](std::optional<json> result, const std::string& error) {
+		     [this, &server, request = request](std::optional<json> result, const std::string& error) {
 			     answered(server, request, std::move(result), error);
 		     });
 	}
@@ -365,7 +367,7 @@ private:
 			notify(server.service, "textDocument/didClose", {{"textDocument", {{"uri", lsp::uriOf(server.root, entry.first)}}}});
 			return true;
 		});
-		const std::shared_ptr<affresco::TextModel> model = buffers_->find(id);
+		std::shared_ptr<affresco::TextModel> model = buffers_->find(id);
 		if(!model) return nullptr;
 		if(const auto found = server.documents.find(id); found != server.documents.end()) {
 			flush(server, id);
@@ -374,7 +376,7 @@ private:
 		Document& document = server.documents[id];
 		document.model = model;
 		document.connection = model->onChanged.connect(
-		    [this, &server, id](const affresco::TextChange& change) { changed(server, id, change); });
+		    [this, &server, id = id](const affresco::TextChange& change) { changed(server, id, change); });
 		notify(server.service, "textDocument/didOpen",
 		       {{"textDocument",
 		         {{"uri", lsp::uriOf(server.root, id)}, {"languageId", languageId}, {"version", 1}, {"text", model->text()}}}});
@@ -399,7 +401,7 @@ private:
 			                            {"text", model->textIn(change.from, change.newEnd)}});
 		if(document.posted || !executor_) return;
 		document.posted = true;
-		executor_->post([this, alive = std::weak_ptr<bool>(alive_), &server, id] {
+		executor_->post([this, alive = std::weak_ptr<bool>(alive_), &server, id = id] {
 			if(alive.lock()) flush(server, id);
 		});
 	}
@@ -485,7 +487,7 @@ private:
 	/// @param params Its params.
 	/// @param done Gets the answer, on the main thread (or now, if it can't be sent).
 	void call(const std::string& service, const std::string& method, json params, ServerCall::Done done) {
-		auto pending = std::make_shared<ServerCall>(std::move(params), executor_, alive_, done);
+		auto pending = std::make_shared<ServerCall>(std::move(params), executor_, alive_, std::move(done));
 		if(auto problem = screen_.services().invoke(service, method, std::move(pending))) done(std::nullopt, *problem);
 	}
 
@@ -528,15 +530,15 @@ std::filesystem::path findProgram(std::string_view name) {
 }
 
 void grantLanguageServers(affresco::Screen& screen) {
-	const std::pair<const char*, std::vector<std::string>> servers[] = {
-	    {"clangd", {}}, {"pyright-langserver", {"--stdio"}}, {"typescript-language-server", {"--stdio"}}};
+	const std::array<std::pair<const char*, std::vector<std::string>>, 3> servers = {
+	    {{"clangd", {}}, {"pyright-langserver", {"--stdio"}}, {"typescript-language-server", {"--stdio"}}}};
 	for(const auto& [name, arguments] : servers)
 		if(const std::filesystem::path program = findProgram(name); !program.empty())
 			screen.services().allowProcess(name, program, arguments);
 }
 
-void registerLsp(affresco::Screen& screen, std::shared_ptr<Workspace> workspace, std::shared_ptr<Buffers> buffers,
-                 affresco::Executor* executor) {
+void registerLsp(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace,
+                 std::shared_ptr<Buffers> buffers, affresco::Executor* executor) {
 	const auto client = std::make_shared<Client>(screen, workspace, buffers, executor);
 	screen.onCall("forge.lsp.request", [client](const std::string& arguments) {
 		return client->request(affresco::parseUntrusted(arguments)).dump();

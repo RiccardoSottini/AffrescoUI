@@ -28,7 +28,7 @@ namespace {
 /// @brief The service the terminals run on, as terminal.json declares it.
 constexpr std::string_view serviceName = "terminal";
 /// @brief The most bytes one `write` call carries (the provider takes at most 64 KiB characters).
-constexpr std::size_t mostWriteBytes = 16 * 1024;
+constexpr std::size_t mostWriteBytes = std::size_t{16} * 1024;
 /// @brief The status of a terminal in a host that starts no program.
 constexpr std::string_view notStarted = "Terminals start when Forge runs.";
 
@@ -51,7 +51,7 @@ public:
 	/// @brief Requested when the session closes.
 	[[nodiscard]] std::stop_token stopToken() const noexcept override { return stop_; }
 	/// @brief The provider reports none.
-	void progress(json) override {}
+	void progress(json /*progress*/) override {}
 	/// @brief Takes `{session}` or `{data}` to the session.
 	/// @param event The event.
 	void event(json event) override {
@@ -69,7 +69,7 @@ public:
 	}
 	/// @brief The program couldn't start, or was ended.
 	/// @param message Why.
-	void fail(std::string, std::string message, json) override {
+	void fail(std::string /*code*/, std::string message, json /*data*/) override {
 		post([message = std::move(message)](TerminalSessions& sessions, std::uint64_t serial) {
 			sessions.ended(serial, std::nullopt, message);
 		});
@@ -102,13 +102,13 @@ public:
 	/// @brief Never requested.
 	[[nodiscard]] std::stop_token stopToken() const noexcept override { return {}; }
 	/// @brief Ignored.
-	void progress(json) override {}
+	void progress(json /*progress*/) override {}
 	/// @brief Ignored.
-	void event(json) override {}
+	void event(json /*event*/) override {}
 	/// @brief Ignored.
-	void finish(json) override {}
+	void finish(json /*result*/) override {}
 	/// @brief Ignored: the session's own call says when the terminal ends.
-	void fail(std::string, std::string, json) override {}
+	void fail(std::string /*code*/, std::string /*message*/, json /*data*/) override {}
 
 private:
 	json arguments_; ///< See arguments().
@@ -140,7 +140,7 @@ TerminalSession* TerminalSessions::attach(const std::string& id, TerminalView& v
 		auto made = std::make_unique<TerminalSession>();
 		made->model = std::make_unique<TerminalModel>(rows, columns);
 		session = sessions_.emplace(id, std::move(made)).first->second.get();
-		if(auto queued = queued_.extract(id)) session->pendingInput = std::move(queued.mapped());
+		if(const auto queued = queued_.extract(id)) session->pendingInput = std::move(queued.mapped());
 	}
 	session->view = &view;
 	resize(*session, rows, columns);
@@ -175,7 +175,7 @@ void TerminalSessions::start(TerminalSession& session) {
 /// @brief Sends bytes to a session's program, or keeps them (bounded) until its pty is open.
 /// @param session The session.
 /// @param bytes Typed keys and replies to the program's queries.
-void TerminalSessions::send(TerminalSession& session, std::string bytes) {
+void TerminalSessions::send(TerminalSession& session, const std::string& bytes) {
 	if(bytes.empty()) return;
 	if(!session.pty) {
 		if(session.pendingInput.size() + bytes.size() <= mostPendingOutput) session.pendingInput += bytes;

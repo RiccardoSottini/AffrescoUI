@@ -94,10 +94,11 @@ std::optional<std::string> Buffers::open(const fs::path& root, const std::string
 	if(path.empty()) return "the file isn't inside the open folder";
 	std::string text;
 	if(auto error = readFile(path, limits_.fileBytes, text)) return *error + ": " + id;
-	Buffer buffer{.text = std::make_shared<affresco::TextModel>(), .path = path, .label = path.filename().string()};
+	Buffer buffer{
+	    .text = std::make_shared<affresco::TextModel>(), .path = path, .label = path.filename().string(), .saved = {}};
 	buffer.text->assign(text);
 	markSaved(buffer);
-	buffer.connection = buffer.text->onChanged.connect([this, id](const affresco::TextChange&) { changed(id); });
+	buffer.connection = buffer.text->onChanged.connect([this, id = id](const affresco::TextChange&) { changed(id); });
 	buffers_.emplace(id, std::move(buffer));
 	refreshModel();
 	return std::nullopt;

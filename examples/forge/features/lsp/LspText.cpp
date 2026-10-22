@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <string_view>
 #include <system_error>
 
 namespace forge::lsp {
@@ -125,7 +126,7 @@ std::string uriOf(const fs::path& root, std::string_view id) {
 	if(path.size() > 1 && path.back() == '/') path.pop_back();
 	if(path.empty() || path.front() != '/') path.insert(path.begin(), '/'); // C:/x becomes /C:/x
 	std::string uri = "file://";
-	constexpr char digits[] = "0123456789ABCDEF";
+	constexpr std::string_view digits = "0123456789ABCDEF";
 	for(const char c : path) {
 		const auto byte = static_cast<unsigned char>(c);
 		if(isUnescaped(c)) uri += c;

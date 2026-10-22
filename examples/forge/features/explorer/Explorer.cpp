@@ -75,6 +75,7 @@ std::vector<ExplorerEntry> listNow(const fs::path& root) {
 	}
 	std::ranges::sort(found, DirectoryModel::before);
 	std::vector<ExplorerEntry> entries;
+	entries.reserve(found.size());
 	for(DirectoryModel::Entry& entry : found)
 		entries.push_back({std::move(entry.path), entry.kind == DirectoryModel::Kind::Folder});
 	return entries;

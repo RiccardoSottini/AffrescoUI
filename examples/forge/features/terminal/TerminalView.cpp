@@ -46,9 +46,9 @@ void TerminalView::apply(const affresco::Screen& screen, const json& properties)
 	font_ = fontName.empty() ? nullptr : screen.font(fontName);
 	textColor_ = screen.resolveColor(properties.value("textColor", std::string("#cccccc")));
 	cursorColor_ = screen.resolveColor(properties.value("cursorColor", std::string("#aeafad")));
-	scrollback_ = std::min(
-	    mostScrollbackLines,
-	    static_cast<std::size_t>(std::max(0.0, properties.value("scrollback", double(defaultScrollbackLines)))));
+	scrollback_ = std::min(mostScrollbackLines,
+	                       static_cast<std::size_t>(std::max(
+	                           0.0, properties.value("scrollback", static_cast<double>(defaultScrollbackLines)))));
 	allowTitle_ = properties.value("allowTitle", false);
 	if(TerminalSession* shown = session()) configure(*shown->model);
 	invalidate();

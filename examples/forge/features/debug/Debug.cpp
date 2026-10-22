@@ -248,9 +248,10 @@ const std::string& wordOf(const json& value, std::string_view what) {
 /// @throws std::runtime_error If it leaves root.
 fs::path workingFolder(const fs::path& root, const json& request) {
 	std::error_code error;
-	const fs::path base = fs::weakly_canonical(root, error);
+	fs::path base = fs::weakly_canonical(root, error);
 	if(error || base.empty()) throw std::runtime_error("the debugger has no folder");
 	const auto it = request.is_object() ? request.find("cwd") : request.end();
+	// NOLINTNEXTLINE(readability-container-size-empty): a JSON string is never empty() to nlohmann::json
 	if(!request.is_object() || it == request.end() || it->is_null() || *it == "") return base;
 	const fs::path folder = fs::weakly_canonical(base / fs::path(wordOf(*it, "folder")), error);
 	const fs::path relative = folder.lexically_relative(base);
@@ -298,7 +299,7 @@ std::optional<std::string> taskWord(const json& value) {
 	constexpr std::string_view folderVariable = "${workspaceFolder}";
 	for(std::size_t at = word.find(folderVariable); at != std::string::npos; at = word.find(folderVariable, at + 1))
 		word.replace(at, folderVariable.size(), ".");
-	if(word.find("${") != std::string::npos) return std::nullopt;
+	if(word.contains("${")) return std::nullopt;
 	return word;
 }
 
@@ -344,7 +345,8 @@ json taskFor(const json& task) {
 	const std::optional<std::string> line = taskLine(task, *command);
 	if(!line) return nullptr;
 	const json label = task.value("label", json());
-	const bool named = label.is_string() && plainWord(label.get_ref<const std::string&>()) && label != "";
+	const bool named = label.is_string() && plainWord(label.get_ref<const std::string&>()) &&
+	                   !label.get_ref<const std::string&>().empty();
 	return {{"label", named ? label.get<std::string>() : *command}, {"line", *line}, {"group", taskGroup(task)}};
 }
 
@@ -396,7 +398,7 @@ std::string terminalCommandLine(const fs::path& root, const json& request) {
 	return line;
 }
 
-void registerDebug(affresco::Screen& screen, std::shared_ptr<Workspace> workspace, bool grantAdapters) {
+void registerDebug(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace, bool grantAdapters) {
 	if(const fs::path lldb = findProgram("lldb-dap"); grantAdapters && !lldb.empty())
 		screen.services().allowProcess("lldb-dap", lldb);
 	if(const fs::path python = findProgram("python3"); grantAdapters && !python.empty())
@@ -407,7 +409,7 @@ void registerDebug(affresco::Screen& screen, std::shared_ptr<Workspace> workspac
 	screen.onCall("forge.debug.launchConfigurations",
 	              [workspace](const std::string&) { return launchConfigurations(workspace->root).dump(); });
 	screen.onCall("forge.tasks.list", [workspace](const std::string&) { return taskList(workspace->root).dump(); });
-	screen.onCall("forge.debug.commandLine", [folder](const std::string& arguments) {
+	screen.onCall("forge.debug.commandLine", [folder = folder](const std::string& arguments) {
 		const json request = affresco::parseUntrusted(arguments);
 		if(!request.is_object()) throw std::runtime_error("the adapter's request is not an object");
 		return json{{"line", terminalCommandLine(folder, request)}}.dump();

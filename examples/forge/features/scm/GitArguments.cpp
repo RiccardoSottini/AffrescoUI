@@ -94,13 +94,13 @@ bool breaksRefRules(std::string_view name) noexcept {
 
 bool isBranchName(std::string_view name) noexcept {
 	if(name.empty() || name.size() > longestBranchName || name == "HEAD" || name == "@") return false;
-	return !breaksRefRules(name) && std::all_of(name.begin(), name.end(), isBranchCharacter);
+	return !breaksRefRules(name) && std::ranges::all_of(name, isBranchCharacter);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): start never passes the end, so substr() doesn't throw
 bool isFolderPath(std::string_view path) noexcept {
 	if(path.empty() || path.size() > longestPath || path.front() == '/') return false;
-	if(std::any_of(path.begin(), path.end(),
-	               [](char c) { return static_cast<unsigned char>(c) < 0x20 || c == 0x7f || c == '\\'; }))
+	if(std::ranges::any_of(path, [](char c) { return static_cast<unsigned char>(c) < 0x20 || c == 0x7f || c == '\\'; }))
 		return false;
 	if(path.size() >= 2 && path[1] == ':') return false; // a drive, on Windows
 	for(std::size_t start = 0; start <= path.size();) { // no ".." step

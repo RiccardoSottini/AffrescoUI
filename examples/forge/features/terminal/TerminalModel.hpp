@@ -50,7 +50,7 @@ constexpr std::size_t defaultScrollbackLines = 1000;
 /// @brief The most scrollback lines a terminal keeps.
 constexpr std::size_t mostScrollbackLines = 10000;
 /// @brief The most bytes of replies (to the program's queries, and typed keys) waiting for takeOutput().
-constexpr std::size_t mostPendingOutput = 64 * 1024;
+constexpr std::size_t mostPendingOutput = std::size_t{64} * 1024;
 
 /// @brief A VT terminal's screen: feeds it the bytes a program writes, turns keys into the bytes it reads.
 ///

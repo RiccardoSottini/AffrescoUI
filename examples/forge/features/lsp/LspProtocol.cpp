@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <format>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -118,8 +119,8 @@ constexpr std::array<std::string_view, 25> completionKinds = {
 template <std::size_t N> std::string kindName(const std::array<std::string_view, N>& names, const json& kind) {
 	if(!kind.is_number_integer()) return {};
 	const long long value = kind.get<long long>();
-	return value >= 1 && value <= static_cast<long long>(N) ? std::string(names[static_cast<std::size_t>(value - 1)])
-	                                                        : std::string();
+	return value >= 1 && std::cmp_less_equal(value, N) ? std::string(names[static_cast<std::size_t>(value - 1)])
+	                                                   : std::string();
 }
 
 /// @brief Markdown or plain text from a hover's or an item's documentation.
@@ -435,7 +436,7 @@ json diagnostics(const json& params, const fs::path& root, const Limits& limits,
 			const std::string message = text(diagnostic, "message", limits.text);
 			const std::string origin = text(diagnostic, "source", 64);
 			items.push_back({{"severity", severity},
-			                 {"message", origin.empty() ? message : message + " (" + origin + ")"},
+			                 {"message", origin.empty() ? message : std::format("{} ({})", message, origin)},
 			                 {"file", *id},
 			                 {"label", fileName(*id)},
 			                 {"line", span.line + 1},

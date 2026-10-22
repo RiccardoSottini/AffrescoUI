@@ -64,6 +64,7 @@ affresco::PatternOptions optionsOf(const json& arguments) {
 /// @param arguments The arguments.
 /// @return Them.
 /// @throws std::runtime_error If they aren't an object.
+// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): its callers pass the call's arguments, which outlive it
 const json& objectOf(const json& arguments) {
 	if(!arguments.is_object()) throw std::runtime_error("expected an object of arguments");
 	return arguments;
@@ -249,7 +250,7 @@ json replaceInFolder(const fs::path& root, const json& arguments, const SearchLi
 	        {"failed", std::move(failed)}};
 }
 
-void registerSearch(affresco::Screen& screen, std::shared_ptr<Workspace> workspace) {
+void registerSearch(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
 	// The folder the next search looks in, taken on the main thread, where openFolder changes the workspace
 	struct Scope {
 		std::mutex mutex; ///< Guards root.

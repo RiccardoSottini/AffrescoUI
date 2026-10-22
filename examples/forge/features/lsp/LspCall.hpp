@@ -41,7 +41,7 @@ public:
 
 	const affresco::json& arguments() const noexcept override { return arguments_; }
 	std::stop_token stopToken() const noexcept override { return stop_.get_token(); }
-	void progress(affresco::json) override {}
+	void progress(affresco::json /*progress*/) override {}
 	void event(affresco::json event) override {
 		if(!events_ || ended_ || stop_.stop_requested()) return;
 		post([events = events_, event = std::move(event)] { events(event); });
@@ -50,7 +50,7 @@ public:
 		if(ended_.exchange(true) || !done_) return;
 		post([done = done_, result = std::move(result)] { done(result, {}); });
 	}
-	void fail(std::string, std::string message, affresco::json) override {
+	void fail(std::string /*code*/, std::string message, affresco::json /*data*/) override {
 		if(ended_.exchange(true) || !done_) return;
 		post([done = done_, message = std::move(message)] { done(std::nullopt, message); });
 	}
