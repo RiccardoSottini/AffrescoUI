@@ -24,8 +24,9 @@ bool isRoleName(std::string_view role) noexcept {
 } // namespace
 
 std::optional<std::string> Roles::set(std::string_view author, std::string_view role) {
-	if(author.empty() || author.size() > maxNameBytes || author == "*" || author.find_first_of("() :") != author.npos)
-		return std::string("a role is given to an author or a channel, e.g. \"agent\" or \"agent/claude-code\"");
+	if(author.empty() || author.size() > maxNameBytes || author == "*" ||
+	   author.find_first_of("() :") != std::string_view::npos)
+		return std::string(R"(a role is given to an author or a channel, e.g. "agent" or "agent/claude-code")");
 	const auto same = std::ranges::find_if(roles_, [&](const auto& entry) { return entry.first == author; });
 	if(role.empty()) {
 		if(same != roles_.end()) roles_.erase(same);

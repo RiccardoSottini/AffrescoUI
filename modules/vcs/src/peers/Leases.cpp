@@ -39,7 +39,7 @@ std::optional<std::string> resolve(const DocumentRules& rules, const json& docum
 /// @return Why, or std::nullopt if it is well formed.
 std::optional<std::string> malformed(std::string_view target, std::chrono::seconds duration) {
 	if(target.empty() || target.size() > Leases::maxTargetBytes || target.contains('*'))
-		return "a lease names one part: \"#id\" or a JSON Pointer, without \"*\"";
+		return R"(a lease names one part: "#id" or a JSON Pointer, without "*")";
 	if(duration.count() <= 0 || duration > Leases::maxDuration) return "a lease lasts 1 to 3600 seconds";
 	return std::nullopt;
 }

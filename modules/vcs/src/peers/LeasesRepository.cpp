@@ -97,12 +97,11 @@ std::optional<std::string> Repository::lease(const void* connection, std::string
 bool Repository::release(const void* connection, std::string_view target) {
 	const Peer* peer = peerOn(connection);
 	if(!peer) return false;
-	for(const Lease& each : leases_.active(Leases::Clock::now()))
-		if(each.peer == peer->id && each.target == target && leases_.release(target, each.holder)) {
-			onReviewChanged();
-			return true;
-		}
-	return false;
+	const bool released = std::ranges::any_of(leases_.active(Leases::Clock::now()), [&](const Lease& each) {
+		return each.peer == peer->id && each.target == target && leases_.release(target, each.holder);
+	});
+	if(released) onReviewChanged();
+	return released;
 }
 
 std::optional<std::string> Repository::endLease(std::string_view target, std::string_view by) {

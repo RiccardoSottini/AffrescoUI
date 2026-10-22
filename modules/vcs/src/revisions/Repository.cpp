@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <format>
 #include <utility>
 
 namespace affresco::vcs {
@@ -126,13 +127,13 @@ const Repository::Commit& Repository::store(Commit commit, const json& document,
 const Repository::Commit& Repository::find(const json& revision) const {
 	if(revision.is_number_integer()) {
 		const auto n = revision.get<long long>();
-		if(n < 0 || n >= static_cast<long long>(main_.size()))
+		if(n < 0 || std::cmp_greater_equal(n, main_.size()))
 			fail("revision", "no revision " + std::to_string(n) + " (main is at revision " +
 			                     std::to_string(main_.size() - 1) + ")");
 		return objects_.at(main_[static_cast<std::size_t>(n)]);
 	}
 	if(!revision.is_string())
-		fail("revision", "expected a revision number or a commit (an id, \"HEAD~1\", \"main\", \"proposal/2\")");
+		fail("revision", R"(expected a revision number or a commit (an id, "HEAD~1", "main", "proposal/2"))");
 
 	std::string name = revision.get<std::string>();
 	const std::size_t back = stepsBack(name);
@@ -273,10 +274,11 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	result.before = detail::view(document, state);
 	json after = result.before;
 	for(std::size_t i = 0; i < patch.size(); ++i) {
-		json op = expect::object(patch[i], "revision.patch[" + std::to_string(i) + "]");
+		const std::string at = std::format("revision.patch[{}]", i);
+		json op = expect::object(patch[i], at);
 		const std::string written = op.contains("path") && op["path"].is_string() ? op["path"].get<std::string>() : "";
 		const std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
-		const std::string where = "revision.patch[" + std::to_string(i) + "] (" + kind + " " + written + ")";
+		const std::string where = std::format("{} ({} {})", at, kind, written);
 		resolvePaths(op, kind, after, where, result.touches);
 		result.patch.push_back(normalise(op, patch[i], after));
 		budget.spend(after, op, where);

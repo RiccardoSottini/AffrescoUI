@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <format>
 #include <limits>
 
 namespace affresco::vcs {
@@ -73,7 +74,8 @@ bool Repository::rebase(Proposal& proposal) {
 		bool exact = false;
 		try {
 			exact = replay(rebased, branchOf(proposal)) == merged.merged;
-		} catch(const DocumentError&) { // its operations no longer apply as written: the merge does
+		} catch(const DocumentError&) {
+			exact = false; // its operations no longer apply as written: the merge does
 		}
 		try {
 			if(exact) rebased.reviewedHeads.push_back(proposal.head);
@@ -140,7 +142,8 @@ std::optional<std::string> Repository::checkApproval(const Proposal& proposal, c
 			(void)prepare(proposal.patch, mainDocument(), committedState());
 			return name + " conflicts with main at " + pathsOf(proposal.conflicts) +
 			       ": its author must push again (or reject it)";
-		} catch(const DocumentError&) { // accept() closes it, saying why it no longer applies
+		} catch(const DocumentError&) {
+			return std::nullopt; // accept() closes it, saying why it no longer applies
 		}
 	return std::nullopt;
 }
@@ -176,8 +179,11 @@ std::pair<std::string, std::string> Repository::reviewNeeds(const json& before, 
 	for(const auto& [pattern, owners] : policy.owners) {
 		if(!detail::changes(rules_, before, after, pattern)) continue;
 		std::string names;
-		for(const std::string& owner : owners) names += (names.empty() ? "" : ", ") + owner;
-		const std::string owner = "an owner of " + pattern + " (" + names + ")";
+		for(const std::string& owner : owners) {
+			if(!names.empty()) names += ", ";
+			names += owner;
+		}
+		const std::string owner = std::format("an owner of {} ({})", pattern, names);
 		asks += ", one from " + owner;
 		const bool approved = std::ranges::any_of(approvals, [&](const std::string& reviewer) {
 			return std::ranges::any_of(owners,

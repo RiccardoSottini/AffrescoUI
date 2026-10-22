@@ -10,6 +10,7 @@
 #include <iterator>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -79,7 +80,7 @@ Side itemOf(const json& list, const std::string& id) {
 /// @param path Where.
 /// @param reason What happened on each side.
 /// @param sides The base, main and the proposal.
-void conflict(json& conflicts, const std::string& path, const std::string& reason, const std::array<Side, 3>& sides) {
+void conflict(json& conflicts, const std::string& path, std::string_view reason, const std::array<Side, 3>& sides) {
 	const auto value = [](Side side) { return side ? *side : json(); };
 	conflicts.push_back({{"path", path.empty() ? "/" : path},
 	                     {"reason", reason},
@@ -92,7 +93,7 @@ void conflict(json& conflicts, const std::string& path, const std::string& reaso
 /// @param main main's value.
 /// @param proposal The proposal's value.
 /// @return e.g. "removed on main, changed in the proposal".
-std::string reasonOf(Side main, Side proposal) {
+std::string_view reasonOf(Side main, Side proposal) {
 	if(!main) return "removed on main, changed in the proposal";
 	if(!proposal) return "changed on main, removed in the proposal";
 	return "changed on main and in the proposal";

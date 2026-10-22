@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <map>
 #include <tuple>
+#include <utility>
 
 namespace affresco::vcs::detail {
 
@@ -88,6 +89,7 @@ Applied appliedTo(const Policy& policy, std::string_view author, const Roles& ro
 /// @return Their segments.
 std::vector<Segments> segmentsOf(const std::vector<std::string>& patterns) {
 	std::vector<Segments> all;
+	all.reserve(patterns.size());
 	for(const std::string& pattern : patterns) all.push_back(segmentsOf(pattern));
 	return all;
 }
@@ -345,7 +347,7 @@ std::optional<PolicyVerdict> overBudget(const Policy& policy, const json& before
 		for(const auto& [count, limit, name] : {std::tuple{counts->added, budget.added, "new nodes"},
 		                                        std::tuple{counts->removed, budget.removed, "removals"},
 		                                        std::tuple{counts->changed, budget.changed, "changed nodes"}})
-			if(limit >= 0 && count > static_cast<std::size_t>(limit))
+			if(limit >= 0 && std::cmp_greater(count, limit))
 				return PolicyVerdict{budget.deny, "over the budget \"" + describe(budget) +
 				                                      "\": " + std::to_string(count) + " " + name + ", at most " +
 				                                      std::to_string(limit)};

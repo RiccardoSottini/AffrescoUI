@@ -158,7 +158,7 @@ std::string revertedPart(const json& then, const json& op) {
 /// @param part The part's JSON Pointer.
 /// @return true if it is.
 bool unchangedSince(const json& head, const json& then, const std::string& part) {
-	auto same = [&](const std::string& pointer) {
+	const auto same = [&](const std::string& pointer) {
 		const json *now = detail::locate(head, pointer), *before = detail::locate(then, pointer);
 		return now && before ? *now == *before : now == before;
 	};

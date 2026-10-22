@@ -34,6 +34,7 @@ json currentChanges(const DocumentRules& rules, const json& changes) {
 
 std::vector<CommitInfo> Repository::log() const {
 	std::vector<CommitInfo> result;
+	result.reserve(main_.size());
 	for(const std::string& id : main_) result.push_back(info(objects_.at(id)));
 	return result;
 }
