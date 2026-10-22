@@ -12,6 +12,14 @@
 
 namespace affresco::detail {
 
+/// @brief Tells whether a Screen still exists, from its guard.
+/// @param guard The Screen's guard.
+/// @return false once the Screen ends: the flag is read, since other tasks still queued may keep it from expiring.
+[[nodiscard]] inline bool screenAlive(const std::weak_ptr<bool>& guard) {
+	const std::shared_ptr<bool> flag = guard.lock();
+	return flag && *flag;
+}
+
 /// @brief Makes the `features` provider of a Screen.
 /// @param features The host's catalogues and trusted publishers; outlives the provider.
 /// @param repository The Screen's document; its revisions are reviewed as the document's "permissions" say.

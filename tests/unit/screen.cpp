@@ -4,6 +4,8 @@
 
 #include <affresco/Screen.hpp>
 
+#include "features/FeaturesService.hpp" // modules/screen/src
+
 #include <doctest/doctest.h>
 
 #include <cstddef>
@@ -158,4 +160,19 @@ TEST_CASE("screen: a screen nested deeper than the limit is refused, not parsed"
 	CHECK_NOTHROW((void)affresco::Screen::fromString(screenNestedIn(100)));
 	CHECK_THROWS_WITH_AS((void)affresco::Screen::fromString(screenNestedIn(200000)),
 	                     doctest::Contains("nested more than 256 levels deep"), affresco::ScreenError);
+}
+
+// Before, a submission queued by the features service checked only that the guard had expired, and other tasks still
+// queued keep it from expiring: after the Screen ended, the submission reached its repository, already destroyed
+TEST_CASE("screen: a task queued by a screen that has ended does nothing, while other queued tasks hold its guard") {
+	auto alive = std::make_shared<bool>(true);
+	const std::weak_ptr<bool> guard = alive;
+	CHECK(affresco::detail::screenAlive(guard));
+
+	const std::shared_ptr<bool> heldByAnotherTask = alive;
+	*alive = false; // the Screen's destructor
+	alive.reset();
+	CHECK_FALSE(guard.expired());
+	CHECK_FALSE(affresco::detail::screenAlive(guard));
+	CHECK_FALSE(affresco::detail::screenAlive(std::weak_ptr<bool>()));
 }

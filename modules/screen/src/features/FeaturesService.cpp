@@ -69,7 +69,7 @@ public:
 		}
 		// Submitted after the step that called it, never in the middle of one
 		executor_.post([&repository = repository_, alive = alive_, revision = std::move(revision), call] {
-			if(alive.expired()) return;
+			if(!screenAlive(alive)) return;
 			const RevisionResult result = repository.submit(revision);
 			if(result.status == RevisionStatus::Rejected) call->fail("rejected", result.error);
 			else call->finish(describe(result));
