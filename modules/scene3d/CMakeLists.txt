@@ -17,7 +17,12 @@ affrescoui_module(scene3d
 	src/Picking.cpp
 	src/Gizmo.cpp
 	src/MaterialGraph.cpp
+	src/Viewport.cpp
+	src/GlProgram.cpp
+	src/GpuResources.cpp
+	src/Renderer.cpp
+	src/RendererOverlays.cpp
 	src/Cgltf.cpp)
 set_source_files_properties(src/Cgltf.cpp PROPERTIES COMPILE_OPTIONS $<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w> SKIP_LINTING ON)
-target_include_directories(affrescoui_scene3d SYSTEM PRIVATE ${cgltf_SOURCE_DIR})
+target_include_directories(affrescoui_scene3d SYSTEM PRIVATE ${cgltf_SOURCE_DIR} ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
 target_link_libraries(affrescoui_scene3d PUBLIC affrescoui::render affrescoui::core nlohmann_json::nlohmann_json)
