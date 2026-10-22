@@ -85,7 +85,7 @@ TEST_CASE("format: validate accepts the capability sections when well formed, an
 	    // permissions
 	    {"permissions: not an object", "/permissions", json::array(), "permissions: expected an object"},
 	    {"permissions: an unknown key", "/permissions/grant", json::array({"agent"}),
-	     "permissions.grant: unknown property (expected allow, ask, deny or reviewers)"},
+	     "permissions.grant: unknown property (expected allow, ask, deny, reviewers or review)"},
 	    {"permissions: rules not in a list", "/permissions/allow", "studio", "permissions.allow: expected a list of rules"},
 	    {"permissions: reviewers not in a list", "/permissions/reviewers", "studio",
 	     "permissions.reviewers: expected a list of author names"},
@@ -102,7 +102,7 @@ TEST_CASE("format: validate accepts the capability sections when well formed, an
 		CAPTURE(change.what);
 		const std::string error = errorOf([&] { rules.validate(changed(change)); });
 		if(change.error.empty()) CHECK(error == "");
-		else CHECK(error.find(change.error) != std::string::npos);
+		else CHECK_MESSAGE(error.find(change.error) != std::string::npos, error);
 	}
 }
 
@@ -146,6 +146,6 @@ TEST_CASE("format: checkChange refuses every revision that changes a capability 
 			rules.checkChange(screenWithCapabilities(), changed(change));
 		});
 		if(change.error.empty()) CHECK(error == "");
-		else CHECK(error.find(change.error) != std::string::npos);
+		else CHECK_MESSAGE(error.find(change.error) != std::string::npos, error);
 	}
 }

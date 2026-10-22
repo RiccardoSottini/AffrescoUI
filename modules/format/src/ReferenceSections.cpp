@@ -121,7 +121,7 @@ constexpr KeyReference sectionTable[] = {
 		"additionalProperties": false, "properties": {"socket": {"type": "string"},
 		"note": {"type": "string"}, "reconnect": {"anyOf": [{"type": "boolean"}, {"type": "number"},
 		{"type": "object", "properties": {"after": {"type": "number"}}}]}}}})json",
-	 "Programs the screen talks to (see Channels). A capability: revisions can't change it.", "sections"},
+	 "Programs the screen talks to (see Channels). A capability: revisions can't change it.", "capabilities"},
     {"services", R"json({"type": "object", "maxProperties": 64,
 		"description": "Services the screen uses (RFC 0002), each {\"provider\": ...}. Revisions can't change it.",
 		"additionalProperties": {"type": "object", "required": ["provider"],
@@ -129,7 +129,7 @@ constexpr KeyReference sectionTable[] = {
 	 "`{\"files\": {\"provider\": \"fs\", \"root\": \"workspace\"}}`: services that `invoke` and `subscribe` "
 	 "steps talk to, read by the application's providers (`jsonrpc`, `process`, `fs`); their status is the `services` "
 	 "variable. A capability: revisions can't change it.",
-	 "sections"},
+	 "capabilities"},
     {"connections", R"json({"type": "object", "maxProperties": 64,
 		"description": "Servers the screen talks to over HTTP or WebSocket (RFC 0003), and what it may ask them. Revisions can't change it.",
 		"additionalProperties": {"type": "object", "required": ["url"], "additionalProperties": false,
@@ -160,11 +160,11 @@ constexpr KeyReference sectionTable[] = {
 	 "OAuth 2 provider (`flow` `browser` or `device`, `signInUrl` or `deviceUrl`, `tokenUrl`, `clientId`, `scopes`), "
 	 "a string names another connection's; the `signIn` step signs in, the host adds the token, and `auth.<name>` is "
 	 "`{state, account, expires, error}`, never a token. A capability: revisions use its operations, never add them.",
-	 "sections"},
+	 "capabilities"},
     {"persist", R"json({"type": "array", "items": {"type": "string", "pattern": "^state\\."},
 		"description": "State paths kept on disk. Revisions can't change it."})json",
 	 "`[\"state.habits\", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it.",
-	 "sections"},
+	 "capabilities"},
     {"include", R"json({"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]})json",
 	 "`[\"parts/sidebar.json\", ...]`: files merged in at load, section by section (this file's entries win; `menus` "
 	 "menu by menu, so several files add to one menu).",
@@ -182,7 +182,7 @@ constexpr KeyReference sectionTable[] = {
 		"owners": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
 		"grantsLast": {"type": "string", "pattern": "^[1-9][0-9]{0,5}[mhd]$"}}}}})json",
 	 "Who may change the running screen (see [Version control](VERSION_CONTROL.md)). Revisions can't change it.",
-	 "sections"},
+	 "capabilities"},
     {"features", R"json({"type": "object", "description": "Installed features, one record each (rfcs/0004-features.md)",
 		"additionalProperties": {"type": "object", "required": ["release", "enabled", "provides"]}})json",
 	 "`{\"wordCount\": {\"release\": \"1.0.0\", \"enabled\": true, \"order\": 10, \"requires\": {...}, "
@@ -190,17 +190,17 @@ constexpr KeyReference sectionTable[] = {
 	 "`publisher`). The runtime merges the enabled ones in `order`, under their names (`state.wordCount`, "
 	 "`wordCount.toggle`); views join the nodes whose `point` they name. Install, enable, disable and remove are "
 	 "revisions on `/features/<name>`. A feature can't bring a capability or a control step.",
-	 "sections"},
+	 "capabilities"},
     {"exports", R"json({"type": "object", "description": "Values features read as app.<name>",
 		"additionalProperties": {"type": "object", "required": ["type", "value"]}})json",
 	 "`{\"editor.text\": {\"type\": \"string\", \"value\": \"{{state.text}}\"}}`: values features read as "
 	 "`app.editor.text`.",
-	 "sections"},
+	 "capabilities"},
     {"imports", R"json({"type": "object", "description": "Aliases for installed features",
 		"additionalProperties": {"type": "string"}})json",
 	 "`{\"ui\": \"workbench@^1.0.0\"}`: `\"use\": \"ui.panel\"` builds the feature's `workbench.panel`, if its "
 	 "release is in the range.",
-	 "sections"},
+	 "capabilities"},
     {"$schema", R"json({"type": "string"})json", "", ""},
 };
 

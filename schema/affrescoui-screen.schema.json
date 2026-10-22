@@ -652,10 +652,6 @@
 							}
 						}
 					},
-					"root": {
-						"$ref": "#/$defs/v1/node",
-						"description": "The window's root panel: it always fills the window"
-					},
 					"features": {
 						"type": "object",
 						"description": "Installed features, one record each (rfcs/0004-features.md)",
@@ -685,6 +681,10 @@
 						"additionalProperties": {
 							"type": "string"
 						}
+					},
+					"root": {
+						"$ref": "#/$defs/v1/node",
+						"description": "The window's root panel: it always fills the window"
 					}
 				}
 			},
@@ -1155,6 +1155,10 @@
 						"type": "object",
 						"description": "A component's parameters"
 					},
+					"point": {
+						"type": "string",
+						"description": "A contribution point features add views to"
+					},
 					"check": {
 						"type": "object",
 						"additionalProperties": false,
@@ -1466,11 +1470,20 @@
 						"description": "diff: the text compared to"
 					},
 					"mode": {
-						"enum": [
-							"split",
-							"inline"
+						"anyOf": [
+							{
+								"enum": [
+									"split",
+									"inline",
+									"square",
+									"wheel"
+								]
+							},
+							{
+								"$ref": "#/$defs/v1/dynamic"
+							}
 						],
-						"description": "diff: side by side (default) or inline"
+						"description": "diff: split (default) or inline; colorPicker: square (default) or wheel"
 					},
 					"language": {
 						"type": "string",
@@ -2059,20 +2072,6 @@
 								"$ref": "#/$defs/v1/dynamic"
 							}
 						]
-					},
-					"mode": {
-						"anyOf": [
-							{
-								"enum": [
-									"square",
-									"wheel"
-								]
-							},
-							{
-								"$ref": "#/$defs/v1/dynamic"
-							}
-						],
-						"description": "colorPicker: square (default) or wheel"
 					},
 					"alpha": {
 						"$ref": "#/$defs/v1/flag"
