@@ -30,6 +30,9 @@ namespace affresco::services {
 [[nodiscard]] std::unique_ptr<Provider> makeWatchProvider();
 /// @brief The `pty` provider: a granted program on a terminal of its own; its output is streamed, what is typed sent.
 [[nodiscard]] std::unique_ptr<Provider> makePtyProvider();
+/// @brief The `dap` provider: a granted debug adapter (or one on a loopback port), spoken to in the Debug Adapter
+/// Protocol.
+[[nodiscard]] std::unique_ptr<Provider> makeDapProvider();
 
 /// @brief Takes the text from terminal output that arrives in pieces (a split sequence waits for the next piece;
 /// bytes that aren't UTF-8 become U+FFFD).
