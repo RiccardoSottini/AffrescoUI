@@ -25,6 +25,7 @@ Usage: tests/fuzz/corpus.py [--out build/fuzz-corpus]  ->  <out>/<target>/ and <
 """
 
 import argparse
+import base64
 import json
 import re
 import shutil
@@ -390,6 +391,17 @@ def peer_handshake_seeds():
             '\x00{"type": "auth", "token": ""}', '\x00{"type": "hello"}']
 
 
+def oauth_seeds():
+    """Loopback redirect queries, base64url, and token, device and error answers of a provider."""
+    claims = base64.urlsafe_b64encode(json.dumps({"iss": "https://issuer.example", "aud": "", "exp": 4102444800,
+                                                  "nonce": "nonce", "sub": "someone"}).encode()).rstrip(b"=").decode()
+    return ["state=s&code=c", "code=c%2Bd&state=s&state=t", "error=access_denied&state=s", "c3RhdGU",
+            '{"access_token":"a","token_type":"Bearer","expires_in":3600,"refresh_token":"r"}',
+            '{"access_token":"a","token_type":"bearer","expires_in":1e300,"id_token":"eyJhbGciOiJub25lIn0.%s."}' % claims,
+            '{"device_code":"d","user_code":"ABCD-EFGH","verification_uri":"https://issuer.example/device",'
+            '"interval":5,"expires_in":-1}', '{"error":"authorization_pending"}']
+
+
 def frames_seeds():
     """Content-Length frames (even first byte) and lines (odd first byte), cut into pieces of a few sizes."""
     body = '{"jsonrpc":"2.0","id":1,"result":{}}'
@@ -455,6 +467,9 @@ def dictionaries():
             "peer_handshake": ["GET ", " HTTP/1.1", "\r\n", "\r\n\r\n", ": ", "Upgrade", "websocket", "Connection",
                                "Sec-WebSocket-Key", "Sec-WebSocket-Version", "13", "Origin", "Authorization",
                                "Bearer ", '"type"', '"auth"', '"token"'],
+            "oauth": ["state=", "code=", "error=", "&", "%2B", '"access_token"', '"token_type"', '"Bearer"',
+                      '"expires_in"', '"refresh_token"', '"id_token"', '"device_code"', '"user_code"',
+                      '"verification_uri"', '"interval"', '"error"', "1e300", "."],
             "websocket": ["\x81", "\x01", "\x80", "\x88", "\x89", "\x8a", "\x7e", "\x7f", "\x03\xe8"],
             "find_pattern": ["\x00", "\x01", "\x03", "\x05", "(", ")", "(?", "*", "+?", "{2,}", "\\b", "\\w", "\\d",
                              "[^", "]", "|", "$1", "${", "}", "$$", "\\p{L}", "(?i)", "(?s)", "\u00e9"],
@@ -518,6 +533,7 @@ def main():
     write(out, "sse", sse_seeds(), words["sse"])
     write(out, "websocket", websocket_seeds(), words["websocket"])
     write(out, "frames", frames_seeds(), words["frames"])
+    write(out, "oauth", oauth_seeds(), words["oauth"])
     write(out, "peer_handshake", peer_handshake_seeds(), words["peer_handshake"])
     features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
                 "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
