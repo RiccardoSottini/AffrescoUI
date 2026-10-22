@@ -18,6 +18,9 @@ option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
 option(AFFRESCOUI_BUILD_TOOLS "Build the affrescoui command-line tool (tools/affrescoui)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_CAPI "Build the C API (modules/capi) and its test (tests/capi)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_CAPI_SHARED "Also build the C API as one shared library, libaffresco (bindings/python loads it)" OFF)
+if(AFFRESCOUI_BUILD_TESTS)
+	enable_testing() # before any add_subdirectory: a subdirectory added earlier keeps its tests from ctest
+endif()
 if(AFFRESCOUI_BUILD_CAPI_SHARED)
 	set(AFFRESCOUI_BUILD_CAPI ON CACHE BOOL "" FORCE)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON) # before the dependencies: the static libraries go into the shared one
@@ -235,7 +238,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 endif()
 
 if(AFFRESCOUI_BUILD_TESTS)
-	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::imaging) # tests/unit/imaging_*.cpp
