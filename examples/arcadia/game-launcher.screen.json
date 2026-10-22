@@ -3,10 +3,10 @@
 	"format": "affrescoui-screen",
 	"version": 2,
 
-	"note": "Arcadia: a game launcher. A library of games with covers, collections and filters, details, play stats and a settings page. Built from the public docs only; see README.md next to it.",
+	"note": "Arcadia: a game launcher. A library of games with covers, collections, filters and sorting, a page per game with a screenshot carousel, achievements and news, friends with their presence, a downloads queue that advances over time, play stats and a settings page, in English, Italian and Arabic, dark or light. Built from the public docs only; see README.md next to it.",
 
 	"window": {
-		"title": "Arcadia: a game launcher built with AffrescoUI",
+		"title": "Arcadia",
 		"width": 1280,
 		"height": 800,
 		"minWidth": 960,
@@ -38,18 +38,484 @@
 		"color.surface": { "dark": "#171a21", "light": "#ffffff" },
 		"color.raised": { "dark": "#222633", "light": "#eceef3" },
 		"color.border": { "dark": "#2a2f3b", "light": "#e2e4ea" },
+		"color.none": "transparent",
 		"color.text": { "dark": "#e8eaf0", "light": "#16181d" },
 		"color.muted": { "dark": "#8a92a6", "light": "#6b7180" },
 		"color.accent": "#7c5cff",
 		"color.accentHover": "#9479ff",
 		"color.accentSoft": { "dark": "#2a2452", "light": "#ebe6ff" },
 		"color.good": "#30a46c",
+		"color.warn": "#f5a524",
 		"color.danger": "#e5484d",
 		"color.chart": { "dark": "#7c5cff", "light": "#6a4cf0" },
 		"color.chartFill": { "dark": "#7c5cff55", "light": "#7c5cff40" }
 	},
 
 	"theme": "{{settings.appearance.theme}}",
+
+	"strings": {
+		"default": "en",
+		"locale": "{{settings.appearance.language}}",
+		"en": {
+			"app.name": "Arcadia",
+			"tab.library": "Library",
+			"tab.friends": "Friends",
+			"tab.downloads": "Downloads",
+			"tab.stats": "Play stats",
+			"tab.settings": "Settings",
+			"a11y.views": "Views",
+			"search.placeholder": "Filter the library",
+			"palette": "Commands",
+			"palette.tip": "Show all commands",
+			"more": "More",
+			"collections": "COLLECTIONS",
+			"coll.all": "All games  {n}",
+			"coll.installed": "Installed  {n}",
+			"coll.favourites": "Favourites  {n}",
+			"coll.genres": "Genres",
+			"genre": "{g, select, Action {Action} Adventure {Adventure} Racing {Racing} RPG {RPG} Strategy {Strategy} other {{g}}}",
+			"library.count": "{n, plural, =0 {No games} one {# game} other {# games}}",
+			"library.matching": "  matching “{query}”",
+			"sort.label": "Sort the library",
+			"sort": "{by, select, name {Name} recent {Recent} other {Playtime}}",
+			"view.covers": "Covers",
+			"view.table": "Table",
+			"a11y.grid": "Games, {title} selected",
+			"notInstalled": "Not installed",
+			"card.meta": "{genre}  ·  {hours} h",
+			"col.title": "Title",
+			"col.genre": "Genre",
+			"col.hours": "Hours",
+			"col.last": "Last played",
+			"col.status": "Status",
+			"status.installed": "Installed",
+			"size.gb": "{size} GB",
+			"today": "Today",
+			"store": "Store page ",
+			"open": "Game page",
+			"play": "Play",
+			"install": "Install  {size} GB",
+			"install.queued": "In the queue",
+			"install.downloading": "Downloading  {p, number, percent}",
+			"install.paused": "Paused  {p, number, percent}",
+			"favourite": "Favourite",
+			"favourite.add": "Add to favourites",
+			"uninstall": "Uninstall",
+			"hours": "{hours} h",
+			"played": "played",
+			"lastPlayed": "last played",
+			"week.heading": "THIS WEEK  ·  {hours} h",
+			"day": "{d, select, mon {Mon} tue {Tue} wed {Wed} thu {Thu} fri {Fri} sat {Sat} other {Sun}}",
+			"stat.total": "played in all",
+			"stat.week": "this week",
+			"stat.installed": "installed",
+			"stat.installedValue": "{n} / {total}",
+			"stat.top": "most played",
+			"stats.perGame": "HOURS PER GAME",
+			"stats.week": "THIS WEEK, ALL GAMES",
+			"stats.sessions": "RECENT SESSIONS",
+			"session.row": "{title}  ·  {duration}  ·  {date}",
+			"duration.h": "{h} h",
+			"duration.m": "{m} min",
+			"toast.launching": "Launching {title}…",
+			"toast.queued": "{title} was added to the downloads",
+			"toast.ready": "{title} is installed and ready to play",
+			"toast.uninstalled": "{title} was uninstalled",
+			"toast.store": "The store page for {title} would open here",
+			"toast.invited": "{name} was invited to play",
+			"toast.joining": "Joining {name} in {game}…",
+			"toast.sent": "{name} will see your message",
+			"toast.paused": "Downloads paused",
+			"toast.resumed": "Downloads resumed",
+			"toast.cancelled": "{title} was taken out of the downloads",
+			"uninstall.title": "Uninstall {title}?",
+			"uninstall.message": "This frees {size} GB. Your saves and play time stay.",
+			"remove": "Remove",
+			"cancel": "Cancel",
+			"qp.games": "Go to a game (type > for commands)",
+			"qp.commands": "Run a command",
+			"cat": "{c, select, Game {Game} View {View} Downloads {Downloads} other {{c}}}",
+			"cmd.play": "Play",
+			"cmd.install": "Install",
+			"cmd.toggleFavourite": "Toggle favourite",
+			"cmd.uninstall": "Uninstall…",
+			"cmd.openGame": "Open the game page",
+			"cmd.back": "Back to the library",
+			"cmd.showLibrary": "Show the library",
+			"cmd.showFriends": "Show friends",
+			"cmd.showDownloads": "Show downloads",
+			"cmd.showStats": "Show play stats",
+			"cmd.showSettings": "Open settings",
+			"cmd.gridView": "Show covers",
+			"cmd.tableView": "Show a table",
+			"cmd.toggleTheme": "Toggle light and dark",
+			"cmd.nextLanguage": "Switch the language",
+			"cmd.cycleSort": "Change the sort order",
+			"cmd.focusSearch": "Filter the library",
+			"cmd.goToGame": "Go to a game…",
+			"cmd.commandPalette": "Show all commands",
+			"cmd.pauseAll": "Pause all downloads",
+			"cmd.resumeAll": "Resume all downloads",
+			"back": "Back",
+			"a11y.shots": "Screenshots of {title}",
+			"shot": "{k, select, cover {Cover art} vista {The world} city {A town at night} other {Far above}}",
+			"shot.counter": "{n} of {total}",
+			"ach.heading": "ACHIEVEMENTS",
+			"ach.count": "{n} of {total} unlocked",
+			"ach.name": "{id, select, first {First steps} explorer {Explorer} collector {Collector} speed {Quick hands} friend {Better together} other {Master}}",
+			"ach.desc": "{id, select, first {Finish the opening chapter.} explorer {Find every hidden place on the map.} collector {Gather one of everything.} speed {Finish a chapter in under an hour.} friend {Play a session with a friend.} other {Finish on the hardest setting.}}",
+			"ach.state": "{name}, {on, select, yes {unlocked} other {locked}}",
+			"news.heading": "NEWS",
+			"news.item": "{kind, select, patch {Update {version} is out, with fixes and balance changes} event {A weekend event starts, with double rewards} other {The soundtrack is on sale this week}}",
+			"news.none": "No news for this game yet",
+			"friends.heading": "FRIENDS",
+			"friends.online": "{n, plural, =0 {Nobody online} other {# online}}",
+			"friends.showOffline": "Show friends who are offline",
+			"presence": "{p, select, online {Online} ingame {Playing {game}} away {Away} other {Offline}}",
+			"friend.row": "{name}  ·  {status}",
+			"friend.pick": "Pick a friend to see what they are up to",
+			"friend.join": "Join game",
+			"friend.invite": "Invite to play",
+			"friend.message": "Say hello",
+			"friend.send": "Send",
+			"friend.count": "{n} / {max}",
+			"dl.heading": "DOWNLOADS",
+			"dl.summary": "{n, plural, =0 {Nothing in the queue} one {# game in the queue} other {# games in the queue}}  ·  {speed} MB/s",
+			"dl.empty": "Nothing is downloading. Install a game from the library.",
+			"dl.status": "{s, select, downloading {Downloading} queued {In the queue} other {Paused}}",
+			"dl.size": "{done} of {size} GB",
+			"dl.pause": "Pause",
+			"dl.resume": "Resume",
+			"dl.cancel": "Cancel",
+			"dl.up": "Move up",
+			"dl.pauseAll": "Pause all",
+			"dl.resumeAll": "Resume all",
+			"a11y.progress": "{title}, {p, number, percent}",
+			"set.appearance": "APPEARANCE",
+			"set.theme": "Theme",
+			"set.theme.desc": "Dark or light colours for the whole launcher.",
+			"theme.dark": "Dark",
+			"theme.light": "Light",
+			"set.language": "Language",
+			"set.language.desc": "The language of the launcher; Arabic reads right to left.",
+			"set.library": "LIBRARY",
+			"set.coverSize": "Cover size",
+			"set.coverSize.desc": "The width of a cover in the library: {n} px.",
+			"set.sortBy": "Sort the library by",
+			"set.sortBy.desc": "Name from A to Z, the most recently played, or the most hours.",
+			"set.showUninstalled": "Show games that aren't installed",
+			"set.showUninstalled.desc": "List every game you own, installed or not.",
+			"set.downloads": "DOWNLOADS",
+			"set.speed": "Download speed",
+			"set.speed.desc": "At most {speed} MB/s.",
+			"set.launcher": "LAUNCHER",
+			"set.confirmUninstall": "Ask before uninstalling",
+			"set.confirmUninstall.desc": "Show a confirmation before a game is removed from this computer.",
+			"set.reset": "Reset all settings",
+			"lang.en": "English",
+			"lang.it": "Italiano",
+			"lang.ar": "العربية"
+		},
+		"it": {
+			"tab.library": "Libreria",
+			"tab.friends": "Amici",
+			"tab.downloads": "Download",
+			"tab.stats": "Statistiche",
+			"tab.settings": "Impostazioni",
+			"a11y.views": "Viste",
+			"search.placeholder": "Filtra la libreria",
+			"palette": "Comandi",
+			"palette.tip": "Mostra tutti i comandi",
+			"more": "Altro",
+			"collections": "RACCOLTE",
+			"coll.all": "Tutti i giochi  {n}",
+			"coll.installed": "Installati  {n}",
+			"coll.favourites": "Preferiti  {n}",
+			"coll.genres": "Generi",
+			"genre": "{g, select, Action {Azione} Adventure {Avventura} Racing {Corse} RPG {GdR} Strategy {Strategia} other {{g}}}",
+			"library.count": "{n, plural, =0 {Nessun gioco} one {# gioco} other {# giochi}}",
+			"library.matching": "  per “{query}”",
+			"sort.label": "Ordina la libreria",
+			"sort": "{by, select, name {Nome} recent {Recenti} other {Ore}}",
+			"view.covers": "Copertine",
+			"view.table": "Tabella",
+			"a11y.grid": "Giochi, selezionato {title}",
+			"notInstalled": "Non installato",
+			"card.meta": "{genre}  ·  {hours} h",
+			"col.title": "Titolo",
+			"col.genre": "Genere",
+			"col.hours": "Ore",
+			"col.last": "Ultima partita",
+			"col.status": "Stato",
+			"status.installed": "Installato",
+			"today": "Oggi",
+			"store": "Pagina del negozio ",
+			"open": "Pagina del gioco",
+			"play": "Gioca",
+			"install": "Installa  {size} GB",
+			"install.queued": "In coda",
+			"install.downloading": "Download  {p, number, percent}",
+			"install.paused": "In pausa  {p, number, percent}",
+			"favourite": "Preferito",
+			"favourite.add": "Aggiungi ai preferiti",
+			"uninstall": "Disinstalla",
+			"played": "giocate",
+			"lastPlayed": "ultima partita",
+			"week.heading": "QUESTA SETTIMANA  ·  {hours} h",
+			"day": "{d, select, mon {Lun} tue {Mar} wed {Mer} thu {Gio} fri {Ven} sat {Sab} other {Dom}}",
+			"stat.total": "giocate in tutto",
+			"stat.week": "questa settimana",
+			"stat.installed": "installati",
+			"stat.top": "il più giocato",
+			"stats.perGame": "ORE PER GIOCO",
+			"stats.week": "QUESTA SETTIMANA, TUTTI I GIOCHI",
+			"stats.sessions": "SESSIONI RECENTI",
+			"toast.launching": "Avvio di {title}…",
+			"toast.queued": "{title} è stato aggiunto ai download",
+			"toast.ready": "{title} è installato e pronto",
+			"toast.uninstalled": "{title} è stato disinstallato",
+			"toast.store": "Qui si aprirebbe la pagina del negozio di {title}",
+			"toast.invited": "Hai invitato {name} a giocare",
+			"toast.joining": "Ti unisci a {name} in {game}…",
+			"toast.sent": "{name} vedrà il tuo messaggio",
+			"toast.paused": "Download in pausa",
+			"toast.resumed": "Download ripresi",
+			"toast.cancelled": "{title} è stato tolto dai download",
+			"uninstall.title": "Disinstallare {title}?",
+			"uninstall.message": "Libera {size} GB. I salvataggi e le ore di gioco restano.",
+			"remove": "Rimuovi",
+			"cancel": "Annulla",
+			"qp.games": "Vai a un gioco (scrivi > per i comandi)",
+			"qp.commands": "Esegui un comando",
+			"cat": "{c, select, Game {Gioco} View {Vista} Downloads {Download} other {{c}}}",
+			"cmd.play": "Gioca",
+			"cmd.install": "Installa",
+			"cmd.toggleFavourite": "Aggiungi o togli dai preferiti",
+			"cmd.uninstall": "Disinstalla…",
+			"cmd.openGame": "Apri la pagina del gioco",
+			"cmd.back": "Torna alla libreria",
+			"cmd.showLibrary": "Mostra la libreria",
+			"cmd.showFriends": "Mostra gli amici",
+			"cmd.showDownloads": "Mostra i download",
+			"cmd.showStats": "Mostra le statistiche",
+			"cmd.showSettings": "Apri le impostazioni",
+			"cmd.gridView": "Mostra le copertine",
+			"cmd.tableView": "Mostra una tabella",
+			"cmd.toggleTheme": "Alterna chiaro e scuro",
+			"cmd.nextLanguage": "Cambia lingua",
+			"cmd.cycleSort": "Cambia l'ordinamento",
+			"cmd.focusSearch": "Filtra la libreria",
+			"cmd.goToGame": "Vai a un gioco…",
+			"cmd.commandPalette": "Mostra tutti i comandi",
+			"cmd.pauseAll": "Metti in pausa i download",
+			"cmd.resumeAll": "Riprendi i download",
+			"back": "Indietro",
+			"a11y.shots": "Immagini di {title}",
+			"shot": "{k, select, cover {Copertina} vista {Il mondo} city {Una città di notte} other {Dall'alto}}",
+			"shot.counter": "{n} di {total}",
+			"ach.heading": "OBIETTIVI",
+			"ach.count": "{n} di {total} sbloccati",
+			"ach.name": "{id, select, first {Primi passi} explorer {Esploratore} collector {Collezionista} speed {Mani veloci} friend {Meglio in due} other {Maestro}}",
+			"ach.desc": "{id, select, first {Finisci il capitolo iniziale.} explorer {Trova ogni luogo nascosto della mappa.} collector {Raccogli uno di tutto.} speed {Finisci un capitolo in meno di un'ora.} friend {Gioca una sessione con un amico.} other {Finisci alla difficoltà più alta.}}",
+			"ach.state": "{name}, {on, select, yes {sbloccato} other {bloccato}}",
+			"news.heading": "NOTIZIE",
+			"news.item": "{kind, select, patch {È uscito l'aggiornamento {version}, con correzioni e bilanciamenti} event {Inizia un evento del fine settimana, con ricompense doppie} other {La colonna sonora è in saldo questa settimana}}",
+			"news.none": "Ancora nessuna notizia per questo gioco",
+			"friends.heading": "AMICI",
+			"friends.online": "{n, plural, =0 {Nessuno online} other {# online}}",
+			"friends.showOffline": "Mostra gli amici offline",
+			"presence": "{p, select, online {Online} ingame {Gioca a {game}} away {Assente} other {Offline}}",
+			"friend.pick": "Scegli un amico per vedere cosa fa",
+			"friend.join": "Unisciti",
+			"friend.invite": "Invita a giocare",
+			"friend.message": "Saluta",
+			"friend.send": "Invia",
+			"dl.heading": "DOWNLOAD",
+			"dl.summary": "{n, plural, =0 {Coda vuota} one {# gioco in coda} other {# giochi in coda}}  ·  {speed} MB/s",
+			"dl.empty": "Nessun download in corso. Installa un gioco dalla libreria.",
+			"dl.status": "{s, select, downloading {Download in corso} queued {In coda} other {In pausa}}",
+			"dl.size": "{done} di {size} GB",
+			"dl.pause": "Pausa",
+			"dl.resume": "Riprendi",
+			"dl.cancel": "Annulla",
+			"dl.up": "Sposta su",
+			"dl.pauseAll": "Pausa a tutti",
+			"dl.resumeAll": "Riprendi tutti",
+			"set.appearance": "ASPETTO",
+			"set.theme": "Tema",
+			"set.theme.desc": "Colori scuri o chiari per tutta l'applicazione.",
+			"theme.dark": "Scuro",
+			"theme.light": "Chiaro",
+			"set.language": "Lingua",
+			"set.language.desc": "La lingua dell'applicazione; l'arabo si legge da destra a sinistra.",
+			"set.library": "LIBRERIA",
+			"set.coverSize": "Dimensione delle copertine",
+			"set.coverSize.desc": "La larghezza di una copertina nella libreria: {n} px.",
+			"set.sortBy": "Ordina la libreria per",
+			"set.sortBy.desc": "Nome dalla A alla Z, i giocati più di recente o le ore.",
+			"set.showUninstalled": "Mostra i giochi non installati",
+			"set.showUninstalled.desc": "Elenca tutti i tuoi giochi, installati o no.",
+			"set.downloads": "DOWNLOAD",
+			"set.speed": "Velocità di download",
+			"set.speed.desc": "Al massimo {speed} MB/s.",
+			"set.launcher": "APPLICAZIONE",
+			"set.confirmUninstall": "Chiedi prima di disinstallare",
+			"set.confirmUninstall.desc": "Chiedi conferma prima di rimuovere un gioco da questo computer.",
+			"set.reset": "Ripristina le impostazioni"
+		},
+		"ar": {
+			"app.name": "أركاديا",
+			"tab.library": "المكتبة",
+			"tab.friends": "الأصدقاء",
+			"tab.downloads": "التنزيلات",
+			"tab.stats": "إحصاءات اللعب",
+			"tab.settings": "الإعدادات",
+			"a11y.views": "العروض",
+			"search.placeholder": "تصفية المكتبة",
+			"palette": "الأوامر",
+			"palette.tip": "عرض كل الأوامر",
+			"more": "المزيد",
+			"collections": "المجموعات",
+			"coll.all": "كل الألعاب  {n}",
+			"coll.installed": "المثبتة  {n}",
+			"coll.favourites": "المفضلة  {n}",
+			"coll.genres": "الأنواع",
+			"genre": "{g, select, Action {حركة} Adventure {مغامرة} Racing {سباق} RPG {تقمص أدوار} Strategy {استراتيجية} other {{g}}}",
+			"library.count": "{n, plural, zero {لا ألعاب} one {لعبة واحدة} two {لعبتان} few {# ألعاب} many {# لعبة} other {# لعبة}}",
+			"library.matching": "  تطابق “{query}”",
+			"sort.label": "ترتيب المكتبة",
+			"sort": "{by, select, name {الاسم} recent {الأحدث} other {وقت اللعب}}",
+			"view.covers": "الأغلفة",
+			"view.table": "جدول",
+			"a11y.grid": "الألعاب، المحددة {title}",
+			"notInstalled": "غير مثبتة",
+			"card.meta": "{genre}  ·  {hours} س",
+			"col.title": "العنوان",
+			"col.genre": "النوع",
+			"col.hours": "الساعات",
+			"col.last": "آخر لعب",
+			"col.status": "الحالة",
+			"status.installed": "مثبتة",
+			"size.gb": "{size} غ.ب",
+			"today": "اليوم",
+			"store": "صفحة المتجر ",
+			"open": "صفحة اللعبة",
+			"play": "العب",
+			"install": "تثبيت  {size} غ.ب",
+			"install.queued": "في قائمة الانتظار",
+			"install.downloading": "جارٍ التنزيل  {p, number, percent}",
+			"install.paused": "متوقف  {p, number, percent}",
+			"favourite": "مفضلة",
+			"favourite.add": "أضف إلى المفضلة",
+			"uninstall": "إزالة التثبيت",
+			"hours": "{hours} س",
+			"played": "من اللعب",
+			"lastPlayed": "آخر لعب",
+			"week.heading": "هذا الأسبوع  ·  {hours} س",
+			"day": "{d, select, mon {الاثنين} tue {الثلاثاء} wed {الأربعاء} thu {الخميس} fri {الجمعة} sat {السبت} other {الأحد}}",
+			"stat.total": "من اللعب إجمالًا",
+			"stat.week": "هذا الأسبوع",
+			"stat.installed": "مثبتة",
+			"stat.top": "الأكثر لعبًا",
+			"stats.perGame": "الساعات لكل لعبة",
+			"stats.week": "هذا الأسبوع، كل الألعاب",
+			"stats.sessions": "الجلسات الأخيرة",
+			"duration.h": "{h} س",
+			"duration.m": "{m} د",
+			"toast.launching": "جارٍ تشغيل {title}…",
+			"toast.queued": "أضيفت {title} إلى التنزيلات",
+			"toast.ready": "{title} مثبتة وجاهزة للعب",
+			"toast.uninstalled": "أزيل تثبيت {title}",
+			"toast.store": "ستفتح هنا صفحة المتجر للعبة {title}",
+			"toast.invited": "دُعي {name} إلى اللعب",
+			"toast.joining": "الانضمام إلى {name} في {game}…",
+			"toast.sent": "سيرى {name} رسالتك",
+			"toast.paused": "توقفت التنزيلات مؤقتًا",
+			"toast.resumed": "استؤنفت التنزيلات",
+			"toast.cancelled": "أزيلت {title} من التنزيلات",
+			"uninstall.title": "إزالة تثبيت {title}؟",
+			"uninstall.message": "سيحرر هذا {size} غ.ب. تبقى ملفات الحفظ ووقت اللعب.",
+			"remove": "إزالة",
+			"cancel": "إلغاء",
+			"qp.games": "انتقل إلى لعبة (اكتب > للأوامر)",
+			"qp.commands": "نفّذ أمرًا",
+			"cat": "{c, select, Game {اللعبة} View {العرض} Downloads {التنزيلات} other {{c}}}",
+			"cmd.play": "العب",
+			"cmd.install": "تثبيت",
+			"cmd.toggleFavourite": "تبديل المفضلة",
+			"cmd.uninstall": "إزالة التثبيت…",
+			"cmd.openGame": "افتح صفحة اللعبة",
+			"cmd.back": "العودة إلى المكتبة",
+			"cmd.showLibrary": "اعرض المكتبة",
+			"cmd.showFriends": "اعرض الأصدقاء",
+			"cmd.showDownloads": "اعرض التنزيلات",
+			"cmd.showStats": "اعرض إحصاءات اللعب",
+			"cmd.showSettings": "افتح الإعدادات",
+			"cmd.gridView": "اعرض الأغلفة",
+			"cmd.tableView": "اعرض جدولًا",
+			"cmd.toggleTheme": "بدّل بين الفاتح والداكن",
+			"cmd.nextLanguage": "غيّر اللغة",
+			"cmd.cycleSort": "غيّر الترتيب",
+			"cmd.focusSearch": "صفِّ المكتبة",
+			"cmd.goToGame": "انتقل إلى لعبة…",
+			"cmd.commandPalette": "اعرض كل الأوامر",
+			"cmd.pauseAll": "أوقف كل التنزيلات مؤقتًا",
+			"cmd.resumeAll": "استأنف كل التنزيلات",
+			"back": "رجوع",
+			"a11y.shots": "لقطات من {title}",
+			"shot": "{k, select, cover {الغلاف} vista {العالم} city {مدينة في الليل} other {من الأعلى}}",
+			"shot.counter": "{n} من {total}",
+			"ach.heading": "الإنجازات",
+			"ach.count": "{n} من {total} مفتوحة",
+			"ach.name": "{id, select, first {الخطوات الأولى} explorer {المستكشف} collector {الجامع} speed {اليد السريعة} friend {معًا أفضل} other {المحترف}}",
+			"ach.desc": "{id, select, first {أنهِ الفصل الأول.} explorer {اعثر على كل مكان مخفي في الخريطة.} collector {اجمع قطعة من كل شيء.} speed {أنهِ فصلًا في أقل من ساعة.} friend {العب جلسة مع صديق.} other {أنهِ اللعبة في أصعب مستوى.}}",
+			"ach.state": "{name}، {on, select, yes {مفتوح} other {مقفل}}",
+			"news.heading": "الأخبار",
+			"news.item": "{kind, select, patch {صدر التحديث {version} مع إصلاحات وتوازن} event {يبدأ حدث نهاية الأسبوع مع مكافآت مضاعفة} other {الموسيقى التصويرية بسعر مخفض هذا الأسبوع}}",
+			"news.none": "لا أخبار لهذه اللعبة بعد",
+			"friends.heading": "الأصدقاء",
+			"friends.online": "{n, plural, zero {لا أحد متصل} other {# متصل}}",
+			"friends.showOffline": "اعرض الأصدقاء غير المتصلين",
+			"presence": "{p, select, online {متصل} ingame {يلعب {game}} away {بعيد} other {غير متصل}}",
+			"friend.pick": "اختر صديقًا لترى ما يفعله",
+			"friend.join": "انضم إلى اللعبة",
+			"friend.invite": "ادعُ إلى اللعب",
+			"friend.message": "قل مرحبًا",
+			"friend.send": "إرسال",
+			"dl.heading": "التنزيلات",
+			"dl.summary": "{n, plural, zero {لا شيء في القائمة} one {لعبة واحدة في القائمة} two {لعبتان في القائمة} few {# ألعاب في القائمة} many {# لعبة في القائمة} other {# لعبة في القائمة}}  ·  {speed} م.ب/ث",
+			"dl.empty": "لا شيء يُنزَّل. ثبّت لعبة من المكتبة.",
+			"dl.status": "{s, select, downloading {جارٍ التنزيل} queued {في قائمة الانتظار} other {متوقف مؤقتًا}}",
+			"dl.size": "{done} من {size} غ.ب",
+			"dl.pause": "إيقاف مؤقت",
+			"dl.resume": "استئناف",
+			"dl.cancel": "إلغاء",
+			"dl.up": "انقل لأعلى",
+			"dl.pauseAll": "أوقف الكل",
+			"dl.resumeAll": "استأنف الكل",
+			"set.appearance": "المظهر",
+			"set.theme": "السمة",
+			"set.theme.desc": "ألوان داكنة أو فاتحة للتطبيق كله.",
+			"theme.dark": "داكنة",
+			"theme.light": "فاتحة",
+			"set.language": "اللغة",
+			"set.language.desc": "لغة التطبيق؛ العربية تُقرأ من اليمين إلى اليسار.",
+			"set.library": "المكتبة",
+			"set.coverSize": "حجم الغلاف",
+			"set.coverSize.desc": "عرض الغلاف في المكتبة: {n} بكسل.",
+			"set.sortBy": "رتّب المكتبة حسب",
+			"set.sortBy.desc": "الاسم أبجديًا، أو الأحدث لعبًا، أو الأكثر ساعات.",
+			"set.showUninstalled": "اعرض الألعاب غير المثبتة",
+			"set.showUninstalled.desc": "اعرض كل ألعابك، مثبتة أو لا.",
+			"set.downloads": "التنزيلات",
+			"set.speed": "سرعة التنزيل",
+			"set.speed.desc": "{speed} م.ب/ث على الأكثر.",
+			"set.launcher": "التطبيق",
+			"set.confirmUninstall": "اسأل قبل إزالة التثبيت",
+			"set.confirmUninstall.desc": "اطلب تأكيدًا قبل إزالة لعبة من هذا الحاسوب.",
+			"set.reset": "أعد كل الإعدادات"
+		}
+	},
 
 	"styles": {
 		"button": {
@@ -63,8 +529,8 @@
 			"textColor": "@color.text",
 			"cursor": "hand",
 			"focusable": true,
-			"hover": { "color": "@color.border" },
-			"transition": { "color": 120 }
+			"role": "button",
+			"hover": { "color": "@color.border" }
 		},
 		"primary": {
 			"style": "button",
@@ -72,6 +538,22 @@
 			"textColor": "#ffffff",
 			"hover": { "color": "@color.accentHover" }
 		},
+		"iconButton": { "style": "button", "width": 32, "padding": 0, "fitText": false },
+		"chip": {
+			"type": "label",
+			"height": 28,
+			"padding": 10,
+			"fitText": true,
+			"align": "center",
+			"radius": 14,
+			"color": "@color.raised",
+			"textColor": "@color.muted",
+			"cursor": "hand",
+			"focusable": true,
+			"role": "radio",
+			"hover": { "textColor": "@color.text" }
+		},
+		"chipOn": { "style": "chip", "color": "@color.accentSoft", "textColor": "@color.text" },
 		"muted": { "type": "label", "font": "small", "textColor": "@color.muted" },
 		"heading": { "type": "label", "font": "small", "textColor": "@color.muted", "height": 20, "fitText": true },
 		"card": { "color": "@color.surface", "radius": "@radius.card", "borderWidth": 1, "borderColor": "@color.border" }
@@ -84,9 +566,23 @@
 				"style": "card",
 				"height": 88,
 				"grow": 1,
+				"basis": 0,
 				"children": [
-					{ "id": "stat-value", "type": "label", "font": "big", "text": "{{value}}", "textColor": "@color.text", "anchors": { "left": 16, "top": 12 }, "fitText": true },
+					{ "id": "stat-value", "type": "label", "font": "big", "text": "{{value}}", "textColor": "@color.text", "anchors": { "left": 16, "top": 12, "right": 16 }, "height": 36 },
 					{ "id": "stat-caption", "type": "label", "style": "muted", "icon": "{{icon}}", "text": "{{caption}}", "anchors": { "left": 16, "bottom": 12 }, "fitText": true }
+				]
+			}
+		},
+		"settingRow": {
+			"params": { "title": "", "description": "" },
+			"node": {
+				"height": 64,
+				"anchors": { "left": 0, "right": 0 },
+				"color": "transparent",
+				"children": [
+					{ "id": "setting-title", "type": "label", "text": "{{title}}", "textColor": "@color.text", "anchors": { "left": 0, "right": 320, "top": 10 }, "height": 20 },
+					{ "id": "setting-description", "style": "muted", "wrap": true, "text": "{{description}}", "anchors": { "left": 0, "right": 320, "top": 32 }, "height": 30 },
+					{ "id": "setting-control", "type": "row", "anchors": { "right": 0, "top": 0, "bottom": 0 }, "width": 300, "justify": "end", "alignItems": "center", "gap": "@space.s", "children": [{ "slot": true }] }
 				]
 			}
 		}
@@ -100,14 +596,16 @@
 
 	"settings": {
 		"appearance.theme": { "type": "string", "enum": ["dark", "light"], "default": "dark", "title": "Theme", "description": "Dark or light colours for the whole launcher." },
+		"appearance.language": { "type": "string", "enum": ["en", "it", "ar"], "default": "en", "title": "Language", "description": "English, Italian or Arabic (right to left)." },
 		"library.coverSize": { "type": "number", "minimum": 120, "maximum": 220, "default": 150, "title": "Cover size", "description": "The width of a cover in the library grid, in pixels." },
 		"library.showUninstalled": { "type": "boolean", "default": true, "title": "Show games that aren't installed", "description": "List every game you own, installed or not." },
-		"library.sortBy": { "type": "string", "enum": ["title", "hours"], "default": "title", "title": "Sort the library by", "description": "Title, A to Z, or the hours played, most first." },
+		"library.sortBy": { "type": "string", "enum": ["name", "recent", "playtime"], "default": "name", "title": "Sort the library by", "description": "Name from A to Z, the most recently played, or the most hours." },
+		"downloads.speed": { "type": "number", "minimum": 100, "maximum": 1000, "default": 400, "title": "Download speed", "description": "The most megabytes a second the downloads take." },
 		"launcher.confirmUninstall": { "type": "boolean", "default": true, "title": "Ask before uninstalling", "description": "Show a confirmation before a game is removed from this computer." }
 	},
 
 	"stateTypes": {
-		"view": { "enum": ["library", "stats", "settings"] },
+		"view": { "enum": ["library", "game", "friends", "downloads", "stats", "settings"] },
 		"layout": { "enum": ["grid", "table"] },
 		"games": {
 			"type": "array",
@@ -117,16 +615,44 @@
 				"properties": {
 					"id": { "type": "string" },
 					"title": { "type": "string" },
-					"genre": { "type": "string" },
+					"genre": { "enum": ["Action", "Adventure", "Racing", "RPG", "Strategy"] },
 					"developer": { "type": "string" },
 					"cover": { "type": "string" },
 					"hours": { "type": "number", "minimum": 0 },
-					"lastPlayed": { "type": "string" },
+					"lastPlayed": { "type": "number", "note": "Milliseconds since 1970, UTC." },
 					"installed": { "type": "boolean" },
 					"favourite": { "type": "boolean" },
 					"sizeGb": { "type": "number" },
 					"week": { "type": "array", "items": { "type": "number" } },
-					"blurb": { "type": "string" }
+					"blurb": { "type": "string" },
+					"colors": { "type": "array", "items": { "type": "string" } },
+					"achievements": { "type": "array", "items": { "type": "string" } }
+				}
+			}
+		},
+		"downloads": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["id", "size", "done", "status"],
+				"properties": {
+					"id": { "type": "string" },
+					"size": { "type": "number" },
+					"done": { "type": "number", "minimum": 0 },
+					"status": { "enum": ["downloading", "queued", "paused"] }
+				}
+			}
+		},
+		"friends": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["id", "name", "presence"],
+				"properties": {
+					"id": { "type": "string" },
+					"name": { "type": "string" },
+					"presence": { "enum": ["online", "ingame", "away", "offline"] },
+					"game": { "type": ["string", "null"] }
 				}
 			}
 		}
@@ -138,7 +664,8 @@
 		"filter": "all",
 		"query": "",
 		"selected": "starfall",
-		"sizes": [210, 640],
+		"shot": 0,
+		"sizes": null,
 		"expanded": ["genres"],
 		"sort": null,
 		"viewMenu": false,
@@ -146,42 +673,97 @@
 		"ctx": { "x": 0, "y": 0 },
 		"confirm": false,
 		"toast": { "open": false, "message": "", "progress": null },
-		"settingsQuery": "",
 		"quickPick": { "open": false, "query": "", "index": 0, "top": 0, "recent": [] },
 		"settings": {},
+		"today": 1792540800000,
 		"genres": ["Action", "Adventure", "Racing", "RPG", "Strategy"],
-		"weekDays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+		"weekDays": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+		"shots": ["cover", "vista", "city", "orbit"],
+		"sortModes": ["name", "recent", "playtime"],
+		"themes": ["dark", "light"],
+		"languages": ["en", "it", "ar"],
+		"achievementList": [
+			{ "id": "first", "icon": "flag" },
+			{ "id": "explorer", "icon": "map" },
+			{ "id": "collector", "icon": "gem" },
+			{ "id": "speed", "icon": "timer" },
+			{ "id": "friend", "icon": "users" },
+			{ "id": "master", "icon": "crown" }
+		],
 		"games": [
-			{ "id": "starfall", "title": "Starfall Odyssey", "genre": "RPG", "developer": "Lantern Works", "cover": "covers/starfall.svg", "hours": 86.5, "lastPlayed": "20 Oct", "installed": true, "favourite": true, "sizeGb": 48.2, "week": [1.5, 2, 0, 3, 1, 4.5, 2], "blurb": "Chart a course through a dying galaxy, recruit a crew of misfits and decide which stars go dark." },
-			{ "id": "ember", "title": "Ember Knights", "genre": "Action", "developer": "Forge & Feather", "cover": "covers/ember.svg", "hours": 41, "lastPlayed": "18 Oct", "installed": true, "favourite": false, "sizeGb": 12.6, "week": [0, 1, 1.5, 0, 2, 3, 0.5], "blurb": "A fast co-op brawler: three knights, one burning keep, no second chances." },
-			{ "id": "tidebreaker", "title": "Tidebreaker", "genre": "Adventure", "developer": "Low Tide", "cover": "covers/tidebreaker.svg", "hours": 23.5, "lastPlayed": "12 Oct", "installed": true, "favourite": true, "sizeGb": 9.1, "week": [0, 0, 0.5, 0, 0, 1, 0], "blurb": "Sail a patched-up boat between drowned islands and read the sea to find the way home." },
-			{ "id": "neon", "title": "Neon Drift", "genre": "Racing", "developer": "Gridline", "cover": "covers/neon.svg", "hours": 64, "lastPlayed": "19 Oct", "installed": true, "favourite": false, "sizeGb": 22.4, "week": [2, 1, 2.5, 1.5, 0, 2, 3], "blurb": "Night races on endless synth highways, tuned to the beat of the soundtrack." },
-			{ "id": "mossheart", "title": "Mossheart", "genre": "Adventure", "developer": "Small Grove", "cover": "covers/mossheart.svg", "hours": 12, "lastPlayed": "3 Oct", "installed": false, "favourite": false, "sizeGb": 4.3, "week": [0, 0, 0, 0, 0, 0, 0], "blurb": "A quiet forest tale about a golem who wakes up covered in moss and wants to know why." },
-			{ "id": "ironhollow", "title": "Iron Hollow", "genre": "Strategy", "developer": "Blackrock Games", "cover": "covers/ironhollow.svg", "hours": 132, "lastPlayed": "17 Oct", "installed": true, "favourite": true, "sizeGb": 31, "week": [3, 2, 0, 4, 2.5, 0, 5], "blurb": "Build a mining town under the mountain and keep it alive through forty winters." },
-			{ "id": "skyward", "title": "Skyward Isles", "genre": "RPG", "developer": "Lantern Works", "cover": "covers/skyward.svg", "hours": 7.5, "lastPlayed": "28 Sep", "installed": false, "favourite": false, "sizeGb": 36.8, "week": [0, 0, 0, 0, 0, 0, 0], "blurb": "Floating islands, airships and a sky that falls one piece at a time." },
-			{ "id": "quietorbit", "title": "Quiet Orbit", "genre": "Strategy", "developer": "Halfmoon", "cover": "covers/quietorbit.svg", "hours": 19, "lastPlayed": "15 Oct", "installed": true, "favourite": false, "sizeGb": 2.7, "week": [1, 0, 0.5, 0, 1, 0, 0], "blurb": "Run a space station for one hundred days, where every decision costs oxygen." }
+			{ "id": "starfall", "title": "Starfall Odyssey", "genre": "RPG", "developer": "Lantern Works", "cover": "covers/starfall.svg", "hours": 86.5, "lastPlayed": 1792454400000, "installed": true, "favourite": true, "sizeGb": 48.2, "week": [1.5, 2, 0, 3, 1, 4.5, 2], "blurb": "Chart a course through a dying galaxy, recruit a crew of misfits and decide which stars go dark.", "colors": ["#1b1f4b", "#f2c14e"], "achievements": ["first", "explorer", "collector", "friend"] },
+			{ "id": "ember", "title": "Ember Knights", "genre": "Action", "developer": "Forge & Feather", "cover": "covers/ember.svg", "hours": 41, "lastPlayed": 1792281600000, "installed": true, "favourite": false, "sizeGb": 12.6, "week": [0, 1, 1.5, 0, 2, 3, 0.5], "blurb": "A fast co-op brawler: three knights, one burning keep, no second chances.", "colors": ["#3a1410", "#ff7a3d"], "achievements": ["first", "speed", "friend"] },
+			{ "id": "tidebreaker", "title": "Tidebreaker", "genre": "Adventure", "developer": "Low Tide", "cover": "covers/tidebreaker.svg", "hours": 23.5, "lastPlayed": 1791763200000, "installed": true, "favourite": true, "sizeGb": 9.1, "week": [0, 0, 0.5, 0, 0, 1, 0], "blurb": "Sail a patched-up boat between drowned islands and read the sea to find the way home.", "colors": ["#0e3b4f", "#5ad1e6"], "achievements": ["first", "explorer"] },
+			{ "id": "neon", "title": "Neon Drift", "genre": "Racing", "developer": "Gridline", "cover": "covers/neon.svg", "hours": 64, "lastPlayed": 1792368000000, "installed": true, "favourite": false, "sizeGb": 22.4, "week": [2, 1, 2.5, 1.5, 0, 2, 3], "blurb": "Night races on endless synth highways, tuned to the beat of the soundtrack.", "colors": ["#1a0f3a", "#ff3ea5"], "achievements": ["first", "speed", "collector", "friend", "master"] },
+			{ "id": "mossheart", "title": "Mossheart", "genre": "Adventure", "developer": "Small Grove", "cover": "covers/mossheart.svg", "hours": 12, "lastPlayed": 1790985600000, "installed": false, "favourite": false, "sizeGb": 4.3, "week": [0, 0, 0, 0, 0, 0, 0], "blurb": "A quiet forest tale about a golem who wakes up covered in moss and wants to know why.", "colors": ["#1f3a1f", "#8fd16a"], "achievements": ["first"] },
+			{ "id": "ironhollow", "title": "Iron Hollow", "genre": "Strategy", "developer": "Blackrock Games", "cover": "covers/ironhollow.svg", "hours": 132, "lastPlayed": 1792195200000, "installed": true, "favourite": true, "sizeGb": 31, "week": [3, 2, 0, 4, 2.5, 0, 5], "blurb": "Build a mining town under the mountain and keep it alive through forty winters.", "colors": ["#2b2420", "#c9a36b"], "achievements": ["first", "explorer", "collector", "speed", "friend", "master"] },
+			{ "id": "skyward", "title": "Skyward Isles", "genre": "RPG", "developer": "Lantern Works", "cover": "covers/skyward.svg", "hours": 7.5, "lastPlayed": 1790553600000, "installed": false, "favourite": false, "sizeGb": 36.8, "week": [0, 0, 0, 0, 0, 0, 0], "blurb": "Floating islands, airships and a sky that falls one piece at a time.", "colors": ["#2a4a7a", "#f4e3b2"], "achievements": [] },
+			{ "id": "quietorbit", "title": "Quiet Orbit", "genre": "Strategy", "developer": "Halfmoon", "cover": "covers/quietorbit.svg", "hours": 19, "lastPlayed": 1792022400000, "installed": true, "favourite": false, "sizeGb": 2.7, "week": [1, 0, 0.5, 0, 1, 0, 0], "blurb": "Run a space station for one hundred days, where every decision costs oxygen.", "colors": ["#0b1020", "#9aa8ff"], "achievements": ["first", "collector"] }
+		],
+		"news": [
+			{ "id": "n1", "game": "starfall", "kind": "patch", "version": "1.4", "at": 1792368000000 },
+			{ "id": "n2", "game": "starfall", "kind": "event", "version": "", "at": 1791936000000 },
+			{ "id": "n3", "game": "neon", "kind": "sale", "version": "", "at": 1792108800000 },
+			{ "id": "n4", "game": "ironhollow", "kind": "patch", "version": "2.1", "at": 1791590400000 },
+			{ "id": "n5", "game": "tidebreaker", "kind": "event", "version": "", "at": 1791331200000 },
+			{ "id": "n6", "game": "ember", "kind": "patch", "version": "1.0.3", "at": 1790812800000 },
+			{ "id": "n7", "game": "quietorbit", "kind": "sale", "version": "", "at": 1792022400000 },
+			{ "id": "n8", "game": "starfall", "kind": "sale", "version": "", "at": 1790812800000 }
+		],
+		"friends": [
+			{ "id": "f1", "name": "MossyGolem", "presence": "ingame", "game": "Neon Drift" },
+			{ "id": "f2", "name": "NightDrifter", "presence": "online", "game": null },
+			{ "id": "f3", "name": "StarFinch", "presence": "away", "game": null },
+			{ "id": "f4", "name": "KeepBurner", "presence": "ingame", "game": "Iron Hollow" },
+			{ "id": "f5", "name": "TideReader", "presence": "offline", "game": null },
+			{ "id": "f6", "name": "OrbitKeeper", "presence": "online", "game": null },
+			{ "id": "f7", "name": "LanternFox", "presence": "offline", "game": null },
+			{ "id": "f8", "name": "QuietComet", "presence": "away", "game": null },
+			{ "id": "f9", "name": "IronMole", "presence": "ingame", "game": "Starfall Odyssey" }
+		],
+		"friend": null,
+		"showOffline": false,
+		"message": "",
+		"downloads": [
+			{ "id": "skyward", "size": 36.8, "done": 12.4, "status": "paused" }
 		],
 		"sessions": [
-			{ "id": "s1", "label": "Starfall Odyssey  ·  2 h  ·  Sun 20 Oct" },
-			{ "id": "s2", "label": "Neon Drift  ·  3 h  ·  Sat 19 Oct" },
-			{ "id": "s3", "label": "Ember Knights  ·  30 min  ·  Fri 18 Oct" },
-			{ "id": "s4", "label": "Iron Hollow  ·  5 h  ·  Thu 17 Oct" },
-			{ "id": "s5", "label": "Quiet Orbit  ·  1 h  ·  Tue 15 Oct" },
-			{ "id": "s6", "label": "Tidebreaker  ·  1 h  ·  Sat 12 Oct" }
+			{ "id": "s1", "title": "Starfall Odyssey", "minutes": 120, "at": 1792454400000 },
+			{ "id": "s2", "title": "Neon Drift", "minutes": 180, "at": 1792368000000 },
+			{ "id": "s3", "title": "Ember Knights", "minutes": 30, "at": 1792281600000 },
+			{ "id": "s4", "title": "Iron Hollow", "minutes": 300, "at": 1792195200000 },
+			{ "id": "s5", "title": "Quiet Orbit", "minutes": 60, "at": 1792022400000 },
+			{ "id": "s6", "title": "Tidebreaker", "minutes": 60, "at": 1791763200000 }
 		]
 	},
 
 	"computed": {
+		"rtl": "{{slice(locale, 0, 2) == 'ar' || slice(locale, 0, 2) == 'he'}}",
 		"matches": "{{filter(state.games, (state.filter == 'all' || (state.filter == 'installed' && it.installed) || (state.filter == 'favourites' && it.favourite) || it.genre == state.filter) && (empty(state.query) || fuzzy(state.query, it.title) != null) && (settings.library.showUninstalled || it.installed))}}",
-		"visible": "{{settings.library.sortBy == 'hours' ? sort(computed.matches, it.hours, 'desc') : sort(computed.matches, it.title)}}",
+		"visible": "{{settings.library.sortBy == 'playtime' ? sort(computed.matches, it.hours, 'desc') : settings.library.sortBy == 'recent' ? sort(computed.matches, it.lastPlayed, 'desc') : sort(computed.matches, it.title)}}",
+		"index": "{{indexOf(map(computed.visible, it.id), state.selected)}}",
+		"cols": "{{max(1, floor((nodes['library-main'].width - 40 + 20) / (settings.library.coverSize + 20)))}}",
 		"game": "{{find(state.games, it.id == state.selected)}}",
+		"download": "{{find(state.downloads, it.id == state.selected)}}",
+		"lastPlayed": "{{computed.game.lastPlayed == state.today ? t('today') : formatDate(computed.game.lastPlayed, 'd MMM', 'utc')}}",
 		"totalHours": "{{sum(state.games, it.hours)}}",
 		"installedCount": "{{count(state.games, it.installed)}}",
-		"weekTotals": "{{map(state.weekDays, sum(map(state.games, it.week), 0))}}",
 		"weekHours": "{{[sum(state.games, it.week[0]), sum(state.games, it.week[1]), sum(state.games, it.week[2]), sum(state.games, it.week[3]), sum(state.games, it.week[4]), sum(state.games, it.week[5]), sum(state.games, it.week[6])]}}",
 		"byHours": "{{sort(state.games, it.hours, 'desc')}}",
-		"collections": "{{[{ id: 'all', label: 'All games  ' + length(state.games) }, { id: 'installed', label: 'Installed  ' + computed.installedCount }, { id: 'favourites', label: 'Favourites  ' + count(state.games, it.favourite) }, { id: 'genres', label: 'Genres', children: map(state.genres, { id: it, label: it }) }]}}",
-		"rows": "{{map(computed.visible, { id: it.id, cells: [it.title, it.genre, it.hours, it.lastPlayed, it.installed ? 'Installed' : fixed(it.sizeGb, 1) + ' GB'] })}}"
+		"collections": "{{[{ id: 'all', label: t('coll.all', { n: length(state.games) }) }, { id: 'installed', label: t('coll.installed', { n: computed.installedCount }) }, { id: 'favourites', label: t('coll.favourites', { n: count(state.games, it.favourite) }) }, { id: 'genres', label: t('coll.genres'), children: map(state.genres, { id: it, label: t('genre', { g: it }) }) }]}}",
+		"rows": "{{map(computed.visible, { id: it.id, cells: [it.title, t('genre', { g: it.genre }), formatNumber(it.hours), it.lastPlayed == state.today ? t('today') : formatDate(it.lastPlayed, 'd MMM', 'utc'), it.installed ? t('status.installed') : t('size.gb', { size: it.sizeGb })] })}}",
+		"sessionItems": "{{map(state.sessions, { id: it.id, label: t('session.row', { title: it.title, duration: it.minutes >= 60 ? t('duration.h', { h: it.minutes / 60 }) : t('duration.m', { m: it.minutes }), date: formatDate(it.at, 'EEE d MMM', 'utc') }) })}}",
+		"unlocked": "{{count(state.achievementList, contains(computed.game.achievements, it.id))}}",
+		"gameNews": "{{sort(filter(state.news, it.game == state.selected), it.at, 'desc')}}",
+		"shown": "{{sort(filter(state.friends, state.showOffline || it.presence != 'offline'), text(indexOf(['ingame', 'online', 'away', 'offline'], it.presence)) + lower(it.name))}}",
+		"friendItems": "{{map(computed.shown, { id: it.id, label: t('friend.row', { name: it.name, status: t('presence', { p: it.presence, game: it.game ?? '' }) }), icon: 'circle', iconColor: it.presence == 'ingame' ? '#7c5cff' : it.presence == 'online' ? '#30a46c' : it.presence == 'away' ? '#f5a524' : '#8a92a6' })}}",
+		"online": "{{count(state.friends, it.presence != 'offline')}}",
+		"friend": "{{find(state.friends, it.id == state.friend)}}",
+		"active": "{{some(state.downloads, it.status == 'downloading')}}",
+		"firstQueued": "{{indexOf(map(state.downloads, it.status), 'queued')}}",
+		"gameMenu": "{{map(menus.game, it.separator ? it : merge(it, { title: t('cmd.' + it.run) }))}}",
+		"viewMenu": "{{map(menus.view, it.separator ? it : merge(it, { title: t('cmd.' + it.run) }))}}",
+		"commandItems": "{{map(commands, merge(it, { title: t('cmd.' + it.name), detail: t('cat', { c: it.category }) }))}}"
 	},
 
 	"actions": {
@@ -195,22 +777,22 @@
 				{ "forEach": "state.games", "as": "g", "index": "i", "do": [
 					{ "if": "{{g.id == state.selected}}", "then": [
 						{ "increment": "state.games[i].hours", "by": 0.5 },
-						{ "set": "state.games[i].lastPlayed", "to": "Today" }
+						{ "set": "state.games[i].lastPlayed", "to": "{{state.today}}" }
 					] }
 				] },
-				{ "run": "notify", "with": { "message": "Launching {{computed.game.title}}…", "loading": true } }
+				{ "run": "notify", "with": { "message": "{{t('toast.launching', { title: computed.game.title })}}", "loading": true } }
 			]
 		},
 		"install": {
 			"title": "Install",
 			"category": "Game",
 			"icon": "download",
-			"enablement": "{{!computed.game.installed}}",
+			"enablement": "{{!computed.game.installed && !computed.download}}",
+			"description": "Add the selected game to the downloads queue.",
 			"do": [
-				{ "forEach": "state.games", "as": "g", "index": "i", "do": [
-					{ "if": "{{g.id == state.selected}}", "then": [{ "set": "state.games[i].installed", "to": true }] }
-				] },
-				{ "run": "notify", "with": { "message": "Installing {{computed.game.title}} ({{fixed(computed.game.sizeGb, 1)}} GB)", "loading": true } }
+				{ "push": "state.downloads", "value": { "id": "{{computed.game.id}}", "size": "{{computed.game.sizeGb}}", "done": 0, "status": "queued" } },
+				{ "run": "promote" },
+				{ "run": "notify", "with": { "message": "{{t('toast.queued', { title: computed.game.title })}}", "loading": false } }
 			]
 		},
 		"toggleFavourite": {
@@ -232,19 +814,122 @@
 				{ "if": "{{settings.launcher.confirmUninstall}}", "then": [{ "set": "state.confirm", "to": true }], "else": [{ "run": "removeGame" }] }
 			]
 		},
+		"openGame": {
+			"title": "Open the game page",
+			"category": "Game",
+			"icon": "panel-top",
+			"enablement": "{{computed.game != null}}",
+			"do": [
+				{ "set": "state.shot", "to": 0 },
+				{ "set": "state.view", "to": "game" },
+				{ "focus": "#shots" }
+			]
+		},
+		"back": {
+			"title": "Back to the library",
+			"category": "View",
+			"icon": "arrow-left",
+			"enablement": "{{state.view == 'game'}}",
+			"do": [
+				{ "set": "state.view", "to": "library" },
+				{ "focus": "#cover-grid" }
+			]
+		},
 		"removeGame": [
 			{ "set": "state.confirm", "to": false },
 			{ "forEach": "state.games", "as": "g", "index": "i", "do": [
 				{ "if": "{{g.id == state.selected}}", "then": [{ "set": "state.games[i].installed", "to": false }] }
 			] },
-			{ "run": "notify", "with": { "message": "{{computed.game.title}} was uninstalled", "loading": false } }
+			{ "run": "notify", "with": { "message": "{{t('toast.uninstalled', { title: computed.game.title })}}", "loading": false } }
 		],
 		"notify": [
 			{ "set": "state.toast", "to": { "open": true, "message": "{{message}}", "progress": "{{loading ? 0 : null}}" } },
 			{ "if": "{{loading}}", "then": [{ "animate": "state.toast.progress", "to": 1, "ms": 1200, "easing": "out" }] },
 			{ "debounce": 2400, "do": [{ "set": "state.toast.open", "to": false }] }
 		],
+		"selectAt": [
+			{ "if": "{{length(computed.visible) > 0}}", "then": [
+				{ "set": "state.selected", "to": "{{computed.visible[clamp(at, 0, length(computed.visible) - 1)].id}}" }
+			] }
+		],
+		"promote": [
+			{ "if": "{{!computed.active && computed.firstQueued >= 0}}", "then": [
+				{ "run": "setStatus", "with": { "at": "{{computed.firstQueued}}", "status": "downloading" } }
+			] }
+		],
+		"setStatus": [{ "set": "state.downloads[at].status", "to": "{{status}}" }],
+		"tick": [
+			{ "forEach": "state.downloads", "as": "d", "index": "i", "do": [
+				{ "if": "{{d.status == 'downloading'}}", "then": [
+					{ "set": "state.downloads[i].done", "to": "{{min(d.size, d.done + settings.downloads.speed / 4000)}}" }
+				] }
+			] },
+			{ "if": "{{some(state.downloads, it.status == 'downloading' && it.done >= it.size)}}", "then": [
+				{ "run": "finishDownload", "with": { "id": "{{find(state.downloads, it.status == 'downloading' && it.done >= it.size).id}}" } }
+			] }
+		],
+		"finishDownload": [
+			{ "forEach": "state.games", "as": "g", "index": "i", "do": [
+				{ "if": "{{g.id == id}}", "then": [{ "set": "state.games[i].installed", "to": true }] }
+			] },
+			{ "set": "state.downloads", "to": "{{filter(state.downloads, it.id != id)}}" },
+			{ "run": "promote" },
+			{ "run": "notify", "with": { "message": "{{t('toast.ready', { title: find(state.games, it.id == id).title })}}", "loading": false } }
+		],
+		"pauseDownload": [
+			{ "forEach": "state.downloads", "as": "d", "index": "i", "do": [
+				{ "if": "{{d.id == id}}", "then": [{ "set": "state.downloads[i].status", "to": "paused" }] }
+			] },
+			{ "run": "promote" }
+		],
+		"resumeDownload": [
+			{ "forEach": "state.downloads", "as": "d", "index": "i", "do": [
+				{ "if": "{{d.id == id}}", "then": [{ "set": "state.downloads[i].status", "to": "queued" }] }
+			] },
+			{ "run": "promote" }
+		],
+		"cancelDownload": [
+			{ "set": "state.downloads", "to": "{{filter(state.downloads, it.id != id)}}" },
+			{ "run": "promote" },
+			{ "run": "notify", "with": { "message": "{{t('toast.cancelled', { title: find(state.games, it.id == id).title })}}", "loading": false } }
+		],
+		"moveUp": [
+			{ "if": "{{at > 0}}", "then": [
+				{ "set": "state.downloads", "to": "{{concat(slice(state.downloads, 0, at - 1), [state.downloads[at], state.downloads[at - 1]], slice(state.downloads, at + 1))}}" }
+			] }
+		],
+		"pauseAll": {
+			"title": "Pause all downloads",
+			"category": "Downloads",
+			"icon": "pause",
+			"enablement": "{{some(state.downloads, it.status != 'paused')}}",
+			"do": [
+				{ "set": "state.downloads", "to": "{{map(state.downloads, merge(it, { status: 'paused' }))}}" },
+				{ "run": "notify", "with": { "message": "{{t('toast.paused')}}", "loading": false } }
+			]
+		},
+		"resumeAll": {
+			"title": "Resume all downloads",
+			"category": "Downloads",
+			"icon": "play",
+			"enablement": "{{some(state.downloads, it.status == 'paused')}}",
+			"do": [
+				{ "set": "state.downloads", "to": "{{map(state.downloads, merge(it, { status: it.status == 'paused' ? 'queued' : it.status }))}}" },
+				{ "run": "promote" },
+				{ "run": "notify", "with": { "message": "{{t('toast.resumed')}}", "loading": false } }
+			]
+		},
+		"inviteFriend": [{ "run": "notify", "with": { "message": "{{t('toast.invited', { name: computed.friend.name })}}", "loading": false } }],
+		"joinFriend": [{ "run": "notify", "with": { "message": "{{t('toast.joining', { name: computed.friend.name, game: computed.friend.game })}}", "loading": true } }],
+		"sendMessage": [
+			{ "if": "{{!empty(trim(state.message))}}", "then": [
+				{ "run": "notify", "with": { "message": "{{t('toast.sent', { name: computed.friend.name })}}", "loading": false } },
+				{ "set": "state.message", "to": "" }
+			] }
+		],
 		"showLibrary": { "title": "Show the library", "category": "View", "icon": "library", "do": [{ "set": "state.view", "to": "library" }] },
+		"showFriends": { "title": "Show friends", "category": "View", "icon": "users", "do": [{ "set": "state.view", "to": "friends" }] },
+		"showDownloads": { "title": "Show downloads", "category": "View", "icon": "download", "do": [{ "set": "state.view", "to": "downloads" }] },
 		"showStats": { "title": "Show play stats", "category": "View", "icon": "chart-column", "do": [{ "set": "state.view", "to": "stats" }] },
 		"showSettings": { "title": "Open settings", "category": "View", "icon": "settings", "do": [{ "set": "state.view", "to": "settings" }] },
 		"gridView": { "title": "Show covers", "category": "View", "icon": "layout-grid", "do": [{ "set": "state.layout", "to": "grid" }] },
@@ -254,6 +939,24 @@
 			"category": "View",
 			"icon": "sun-moon",
 			"do": [{ "set": "settings.appearance.theme", "to": "{{settings.appearance.theme == 'dark' ? 'light' : 'dark'}}" }]
+		},
+		"nextLanguage": {
+			"title": "Switch the language",
+			"category": "View",
+			"icon": "languages",
+			"do": [{ "set": "settings.appearance.language", "to": "{{settings.appearance.language == 'en' ? 'it' : settings.appearance.language == 'it' ? 'ar' : 'en'}}" }]
+		},
+		"cycleSort": {
+			"title": "Change the sort order",
+			"category": "View",
+			"icon": "arrow-down-up",
+			"do": [{ "set": "settings.library.sortBy", "to": "{{settings.library.sortBy == 'name' ? 'recent' : settings.library.sortBy == 'recent' ? 'playtime' : 'name'}}" }]
+		},
+		"focusSearch": {
+			"title": "Filter the library",
+			"category": "View",
+			"icon": "search",
+			"do": [{ "set": "state.view", "to": "library" }, { "focus": "#search" }]
 		},
 		"goToGame": {
 			"title": "Go to a game…",
@@ -269,14 +972,15 @@
 		},
 		"pickGame": [
 			{ "set": "state.selected", "to": "{{item.id}}" },
-			{ "set": "state.view", "to": "library" }
+			{ "set": "state.shot", "to": 0 },
+			{ "set": "state.view", "to": "game" }
 		],
 		"runCommand": [{ "run": "{{item.name}}" }],
 		"openContextMenu": [
 			{ "set": "state.ctx", "to": { "x": "{{event.x}}", "y": "{{event.y}}" } },
 			{ "set": "state.ctxOpen", "to": true }
 		],
-		"openStore": [{ "run": "notify", "with": { "message": "The store page for {{computed.game.title}} would open here", "loading": false } }]
+		"openStore": [{ "run": "notify", "with": { "message": "{{t('toast.store', { title: computed.game.title })}}", "loading": false } }]
 	},
 
 	"keys": {
@@ -285,25 +989,41 @@
 		"mod+1": "showLibrary",
 		"mod+2": "showStats",
 		"mod+3": "showSettings",
+		"mod+4": "showFriends",
+		"mod+5": "showDownloads",
+		"mod+f": "focusSearch",
 		"mod+enter": "play",
 		"mod+d": "toggleFavourite",
-		"mod+k mod+t": "toggleTheme"
+		"mod+shift+d": [
+			{ "when": "{{some(state.downloads, it.status != 'paused')}}", "do": "pauseAll" },
+			{ "do": "resumeAll" }
+		],
+		"alt+left": "back",
+		"escape": { "when": "{{state.view == 'game'}}", "do": "back" },
+		"mod+k mod+t": "toggleTheme",
+		"mod+k mod+l": "nextLanguage",
+		"mod+k mod+s": "cycleSort"
 	},
 
 	"menus": {
 		"game": {
 			"play": { "run": "play", "group": "1_play", "order": 1 },
 			"install": { "run": "install", "group": "1_play", "order": 2, "when": "{{!computed.game.installed}}" },
+			"open": { "run": "openGame", "group": "1_play", "order": 3 },
 			"favourite": { "run": "toggleFavourite", "group": "2_library" },
 			"uninstall": { "run": "uninstall", "group": "3_danger", "when": "{{computed.game.installed}}" }
 		},
 		"view": {
 			"library": { "run": "showLibrary", "group": "1_views", "order": 1 },
-			"stats": { "run": "showStats", "group": "1_views", "order": 2 },
-			"settings": { "run": "showSettings", "group": "1_views", "order": 3 },
+			"friends": { "run": "showFriends", "group": "1_views", "order": 2 },
+			"downloads": { "run": "showDownloads", "group": "1_views", "order": 3 },
+			"stats": { "run": "showStats", "group": "1_views", "order": 4 },
+			"settings": { "run": "showSettings", "group": "1_views", "order": 5 },
 			"grid": { "run": "gridView", "group": "2_layout", "order": 1 },
 			"table": { "run": "tableView", "group": "2_layout", "order": 2 },
-			"theme": { "run": "toggleTheme", "group": "3_look" },
+			"sort": { "run": "cycleSort", "group": "2_layout", "order": 3 },
+			"theme": { "run": "toggleTheme", "group": "3_look", "order": 1 },
+			"language": { "run": "nextLanguage", "group": "3_look", "order": 2 },
 			"palette": { "run": "commandPalette", "group": "4_go", "order": 1 },
 			"go": { "run": "goToGame", "group": "4_go", "order": 2 }
 		}
@@ -314,437 +1034,866 @@
 		"color": "@color.bg",
 		"children": [
 			{
-				"id": "top-bar",
-				"type": "row",
-				"anchors": { "left": 0, "right": 0, "top": 0 },
-				"height": 56,
-				"color": "@color.surface",
-				"alignItems": "center",
-				"gap": "@space.m",
-				"children": [
-					{ "id": "top-bar-start", "width": 4, "height": 1, "color": "transparent" },
-					{ "id": "logo", "type": "label", "font": "title", "icon": "gamepad-2", "text": "Arcadia", "textColor": "@color.text", "fitText": true, "height": 32 },
-					{
-						"id": "view-tabs",
-						"type": "tabs",
-						"width": 330,
-						"height": 40,
-						"tabs": [
-							{ "id": "library", "label": "Library", "closable": false },
-							{ "id": "stats", "label": "Play stats", "closable": false },
-							{ "id": "settings", "label": "Settings", "closable": false }
-						],
-						"bind": "state.view",
-						"color": "@color.surface",
-						"textColor": "@color.muted",
-						"activeTextColor": "@color.text",
-						"activeBackground": "@color.raised",
-						"accentColor": "@color.accent"
-					},
-					{ "id": "top-bar-spacer", "grow": 1, "height": 1, "color": "transparent" },
-					{
-						"id": "search",
-						"type": "textarea",
-						"width": 240,
-						"height": 32,
-						"padding": 10,
-						"radius": "@radius.s",
-						"color": "@color.raised",
-						"textColor": "@color.text",
-						"placeholder": "Filter the library",
-						"placeholderColor": "@color.muted",
-						"bind": "state.query",
-						"keys": { "escape": [{ "set": "state.query", "to": "" }] }
-					},
-					{ "id": "palette-button", "style": "button", "icon": "command", "text": "Commands", "tooltip": "Show all commands (mod+shift+P)", "onClick": "commandPalette" },
-					{
-						"id": "view-menu-button",
-						"style": "button",
-						"icon": "ellipsis",
-						"tooltip": "More",
-						"role": "button",
-						"label": "More",
-						"onClick": [{ "toggle": "state.viewMenu" }],
-						"children": [
-							{ "id": "view-menu", "use": "menu", "with": { "items": "{{menus.view}}", "open": "state.viewMenu", "placement": "below-end", "width": 240, "color": "@color.surface", "textColor": "@color.text", "dimColor": "@color.muted", "highlight": "@color.accentSoft" } }
-						]
-					},
-					{ "id": "top-bar-end", "width": 4, "height": 1, "color": "transparent" }
-				]
-			},
-			{ "id": "top-bar-line", "anchors": { "left": 0, "right": 0, "top": 56 }, "height": 1, "color": "@color.border" },
-
-			{
-				"id": "library",
-				"when": "{{state.view == 'library'}}",
-				"type": "split",
-				"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
+				"id": "app-body",
+				"dir": "auto",
+				"fill": 0,
 				"color": "transparent",
-				"bind": "state.sizes",
-				"defaultSizes": [210, 640],
-				"minSize": [160, 360, 280],
-				"sashSize": 1,
-				"sashColor": "@color.border",
-				"sashActiveColor": "@color.accent",
 				"children": [
 					{
-						"id": "sidebar",
+						"id": "top-bar",
+						"type": "row",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 56,
 						"color": "@color.surface",
+						"alignItems": "center",
+						"gap": "@space.m",
 						"children": [
-							{ "id": "sidebar-heading", "style": "heading", "text": "COLLECTIONS", "anchors": { "left": 16, "top": 16, "right": 16 } },
+							{ "id": "top-bar-start", "width": 4, "height": 1, "color": "transparent" },
+							{ "id": "logo", "type": "label", "font": "title", "icon": "gamepad-2", "text": "{{window.width < 1200 ? '' : t('app.name')}}", "label": "{{t('app.name')}}", "textColor": "@color.text", "fitText": true, "height": 32 },
 							{
-								"id": "collections",
-								"type": "tree",
-								"anchors": { "left": 8, "right": 8, "top": 44, "bottom": 8 },
-								"items": "{{computed.collections}}",
-								"expanded": "{{state.expanded}}",
-								"bind": "state.filter",
-								"rowHeight": 30,
-								"color": "transparent",
+								"id": "view-tabs",
+								"type": "tabs",
+								"width": 500,
+								"height": 40,
+								"role": "tablist",
+								"label": "{{t('a11y.views')}}",
+								"tabs": "{{[{ id: 'library', label: t('tab.library'), closable: false }, { id: 'friends', label: t('tab.friends'), closable: false }, { id: 'downloads', label: t('tab.downloads'), closable: false }, { id: 'stats', label: t('tab.stats'), closable: false }, { id: 'settings', label: t('tab.settings'), closable: false }]}}",
+								"value": "{{state.view == 'game' ? 'library' : state.view}}",
+								"onChange": [{ "set": "state.view", "to": "{{event.value}}" }],
+								"color": "@color.surface",
+								"textColor": "@color.muted",
+								"activeTextColor": "@color.text",
+								"activeBackground": "@color.raised",
+								"accentColor": "@color.accent"
+							},
+							{ "id": "top-bar-spacer", "grow": 1, "height": 1, "color": "transparent" },
+							{
+								"id": "search",
+								"type": "textarea",
+								"width": "{{window.width < 1200 ? 160 : 240}}",
+								"height": 32,
+								"padding": 10,
+								"radius": "@radius.s",
+								"color": "@color.raised",
 								"textColor": "@color.text",
-								"selectedTextColor": "@color.text",
-								"selectedBackground": "@color.accentSoft",
-								"accentColor": "@color.accent",
-								"onExpand": [{ "set": "state.expanded", "to": "{{event.expanded ? concat(state.expanded, [event.id]) : filter(state.expanded, it != event.id)}}" }]
-							}
+								"placeholder": "{{t('search.placeholder')}}",
+								"placeholderColor": "@color.muted",
+								"label": "{{t('search.placeholder')}}",
+								"maxLength": 40,
+								"bind": "state.query",
+								"onChange": [{ "if": "{{state.view != 'library'}}", "then": [{ "set": "state.view", "to": "library" }] }],
+								"keys": { "escape": [{ "set": "state.query", "to": "" }], "down": [{ "if": "{{computed.index < 0 && !empty(computed.visible)}}", "then": [{ "run": "selectAt", "with": { "at": 0 } }] }, { "focus": "#cover-grid" }] }
+							},
+							{ "id": "palette-button", "style": "{{window.width < 1200 ? 'iconButton' : 'button'}}", "icon": "command", "text": "{{window.width < 1200 ? '' : t('palette')}}", "label": "{{t('palette.tip')}}", "tooltip": "{{t('palette.tip')}}", "onClick": "commandPalette" },
+							{
+								"id": "view-menu-button",
+								"style": "iconButton",
+								"icon": "ellipsis",
+								"tooltip": "{{t('more')}}",
+								"label": "{{t('more')}}",
+								"isOpen": "{{state.viewMenu}}",
+								"onClick": [{ "toggle": "state.viewMenu" }],
+								"children": [
+									{ "id": "view-menu", "use": "menu", "with": { "items": "{{computed.viewMenu}}", "open": "state.viewMenu", "placement": "below-end", "width": 260, "color": "@color.surface", "textColor": "@color.text", "dimColor": "@color.muted", "highlight": "@color.accentSoft" } }
+								]
+							},
+							{ "id": "top-bar-end", "width": 4, "height": 1, "color": "transparent" }
 						]
 					},
+					{ "id": "top-bar-line", "anchors": { "left": 0, "right": 0, "top": 56 }, "height": 1, "color": "@color.border" },
+
 					{
-						"id": "library-main",
+						"id": "library",
+						"when": "{{state.view == 'library'}}",
+						"type": "split",
+						"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
 						"color": "transparent",
+						"value": "{{state.sizes ?? [210, max(360, window.width - 640)]}}",
+						"onChange": [{ "set": "state.sizes", "to": "{{event.value}}" }],
+						"defaultSizes": [210, 640],
+						"minSize": [160, 360, 280],
+						"sashSize": 1,
+						"sashColor": "@color.{{computed.rtl ? 'none' : 'border'}}",
+						"sashActiveColor": "@color.accent",
 						"children": [
 							{
-								"id": "library-toolbar",
-								"type": "row",
-								"anchors": { "left": 20, "right": 20, "top": 12 },
-								"height": 36,
-								"alignItems": "center",
-								"gap": "@space.s",
+								"id": "sidebar",
+								"color": "@color.surface",
 								"children": [
+									{ "id": "sidebar-heading", "style": "heading", "text": "{{t('collections')}}", "anchors": { "left": 16, "top": 16, "right": 16 } },
 									{
-										"id": "library-count",
-										"type": "label",
-										"fitText": true,
-										"height": 24,
+										"id": "collections",
+										"type": "tree",
+										"anchors": { "left": 8, "right": 8, "top": 44, "bottom": 8 },
+										"label": "{{t('collections')}}",
+										"items": "{{computed.collections}}",
+										"expanded": "{{state.expanded}}",
+										"bind": "state.filter",
+										"rowHeight": 30,
+										"color": "transparent",
 										"textColor": "@color.text",
-										"runs": [
-											{ "text": "{{plural(length(computed.visible), 'game')}}", "bold": true },
-											{ "text": "{{empty(state.query) ? '' : '  matching “' + state.query + '”'}}", "color": "@color.muted" }
-										]
-									},
-									{ "id": "library-toolbar-spacer", "grow": 1, "height": 1, "color": "transparent" },
-									{ "id": "grid-button", "style": "button", "icon": "layout-grid", "tooltip": "Covers", "label": "Covers", "role": "button", "color": "{{state.layout == 'grid' ? '@color.accentSoft' : '@color.raised'}}", "onClick": "gridView" },
-									{ "id": "table-button", "style": "button", "icon": "table", "tooltip": "Table", "label": "Table", "role": "button", "color": "{{state.layout == 'table' ? '@color.accentSoft' : '@color.raised'}}", "onClick": "tableView" }
+										"selectedTextColor": "@color.text",
+										"selectedBackground": "@color.accentSoft",
+										"accentColor": "@color.accent",
+										"onExpand": [{ "set": "state.expanded", "to": "{{event.expanded ? concat(state.expanded, [event.id]) : filter(state.expanded, it != event.id)}}" }]
+									}
 								]
 							},
 							{
-								"id": "covers",
-								"when": "{{state.layout == 'grid'}}",
-								"anchors": { "left": 0, "right": 0, "top": 56, "bottom": 0 },
+								"id": "library-main",
 								"color": "transparent",
+								"children": [
+									{
+										"id": "library-toolbar",
+										"type": "row",
+										"anchors": { "left": 20, "right": 20, "top": 12 },
+										"height": 36,
+										"alignItems": "center",
+										"gap": "@space.s",
+										"children": [
+											{
+												"id": "library-count",
+												"type": "label",
+												"grow": 1,
+												"basis": 0,
+												"height": 24,
+												"textColor": "@color.text",
+												"runs": [
+													{ "text": "{{t('library.count', { n: length(computed.visible) })}}", "bold": true },
+													{ "text": "{{empty(state.query) ? '' : t('library.matching', { query: state.query })}}", "color": "@color.muted" }
+												]
+											},
+											{
+												"id": "sort-chips",
+												"type": "row",
+												"width": 250,
+												"height": 32,
+												"gap": 4,
+												"alignItems": "center",
+												"role": "radiogroup",
+												"label": "{{t('sort.label')}}",
+												"arrows": "horizontal",
+												"children": [
+													{ "id": "sort-chip-{{by}}", "repeat": { "for": "by", "in": "state.sortModes" }, "style": "{{settings.library.sortBy == by ? 'chipOn' : 'chip'}}", "text": "{{t('sort', { by: by })}}", "selected": "{{settings.library.sortBy == by}}", "onClick": [{ "set": "settings.library.sortBy", "to": "{{by}}" }] }
+												]
+											},
+											{ "id": "grid-button", "style": "iconButton", "icon": "layout-grid", "tooltip": "{{t('view.covers')}}", "label": "{{t('view.covers')}}", "selected": "{{state.layout == 'grid'}}", "color": "{{state.layout == 'grid' ? '@color.accentSoft' : '@color.raised'}}", "onClick": "gridView" },
+											{ "id": "table-button", "style": "iconButton", "icon": "table", "tooltip": "{{t('view.table')}}", "label": "{{t('view.table')}}", "selected": "{{state.layout == 'table'}}", "color": "{{state.layout == 'table' ? '@color.accentSoft' : '@color.raised'}}", "onClick": "tableView" }
+										]
+									},
+									{
+										"id": "covers",
+										"when": "{{state.layout == 'grid'}}",
+										"anchors": { "left": 0, "right": 0, "top": 56, "bottom": 0 },
+										"color": "transparent",
+										"scroll": "vertical",
+										"children": [
+											{
+												"id": "cover-grid",
+												"type": "row",
+												"wrap": true,
+												"gap": "@space.l",
+												"anchors": { "left": 20, "right": 20, "top": 4 },
+												"height": "{{ceil(length(computed.visible) / computed.cols) * (settings.library.coverSize * 4 / 3 + 72) + 8}}",
+												"focusable": true,
+												"role": "listbox",
+												"label": "{{t('a11y.grid', { title: computed.game.title ?? '' })}}",
+												"keys": {
+													"left": [{ "run": "selectAt", "with": { "at": "{{computed.index < 0 ? 0 : computed.index + (computed.rtl ? 1 : -1)}}" } }],
+													"right": [{ "run": "selectAt", "with": { "at": "{{computed.index < 0 ? 0 : computed.index + (computed.rtl ? -1 : 1)}}" } }],
+													"up": [{ "run": "selectAt", "with": { "at": "{{computed.index < 0 ? 0 : computed.index - computed.cols >= 0 ? computed.index - computed.cols : computed.index}}" } }],
+													"down": [{ "run": "selectAt", "with": { "at": "{{computed.index < 0 ? 0 : computed.index + computed.cols < length(computed.visible) ? computed.index + computed.cols : computed.index}}" } }],
+													"home": [{ "run": "selectAt", "with": { "at": 0 } }],
+													"end": [{ "run": "selectAt", "with": { "at": "{{length(computed.visible) - 1}}" } }],
+													"enter": "openGame",
+													"space": "openGame"
+												},
+												"children": [
+													{
+														"id": "game-card",
+														"repeat": { "for": "game", "in": "computed.visible", "key": "{{game.id}}" },
+														"type": "column",
+														"width": "{{settings.library.coverSize}}",
+														"height": "{{settings.library.coverSize * 4 / 3 + 52}}",
+														"gap": 6,
+														"color": "transparent",
+														"role": "button",
+														"label": "{{game.title}}",
+														"selected": "{{game.id == state.selected}}",
+														"cursor": "hand",
+														"onClick": [{ "set": "state.selected", "to": "{{game.id}}" }, { "focus": "#cover-grid" }],
+														"onDoubleClick": [{ "set": "state.selected", "to": "{{game.id}}" }, { "run": "play" }],
+														"onContextMenu": [{ "set": "state.selected", "to": "{{game.id}}" }, { "run": "openContextMenu" }],
+														"children": [
+															{
+																"id": "game-cover-frame",
+																"width": "{{settings.library.coverSize}}",
+																"height": "{{settings.library.coverSize * 4 / 3}}",
+																"radius": "@radius.card",
+																"color": "@color.raised",
+																"borderWidth": "{{game.id == state.selected ? 3 : 0}}",
+																"borderColor": "@color.accent",
+																"shadow": { "y": 6, "blur": 14, "color": "#00000050" },
+																"children": [
+																	{ "id": "game-cover", "type": "image", "file": "{{game.cover}}", "fit": "cover", "fill": "{{game.id == state.selected ? 3 : 0}}", "label": "{{game.title}}" },
+																	{ "id": "game-fav", "when": "{{game.favourite}}", "type": "label", "font": "icons", "icon": "heart", "textColor": "#ff6b8a", "anchors": { "right": 10, "top": 8 }, "fitText": true, "label": "{{t('favourite')}}" },
+																	{ "id": "game-not-installed", "when": "{{!game.installed}}", "type": "label", "font": "small", "icon": "cloud-download", "text": "{{t('notInstalled')}}", "textColor": "#ffffff", "color": "#000000a0", "radius": 4, "padding": 6, "fitText": true, "anchors": { "left": 8, "bottom": 8 } }
+																]
+															},
+															{ "id": "game-title", "type": "label", "text": "{{game.title}}", "textColor": "@color.text", "width": "{{settings.library.coverSize}}", "height": 18 },
+															{ "id": "game-meta", "style": "muted", "text": "{{t('card.meta', { genre: t('genre', { g: game.genre }), hours: game.hours })}}", "width": "{{settings.library.coverSize}}", "height": 16 }
+														]
+													}
+												]
+											}
+										]
+									},
+									{
+										"id": "games-table",
+										"when": "{{state.layout == 'table'}}",
+										"type": "table",
+										"anchors": { "left": 20, "right": 20, "top": 56, "bottom": 20 },
+										"label": "{{t('tab.library')}}",
+										"columns": "{{[{ id: 'title', title: t('col.title'), width: 200 }, { id: 'genre', title: t('col.genre'), width: 110 }, { id: 'hours', title: t('col.hours'), width: 70 }, { id: 'last', title: t('col.last'), width: 110 }, { id: 'status', title: t('col.status'), width: 110 }]}}",
+										"items": "{{computed.rows}}",
+										"bind": "state.selected",
+										"sort": "{{state.sort}}",
+										"rowHeight": 30,
+										"color": "@color.surface",
+										"radius": "@radius.s",
+										"textColor": "@color.text",
+										"selectedTextColor": "@color.text",
+										"selectedBackground": "@color.accentSoft",
+										"accentColor": "@color.accent",
+										"onOpen": "play",
+										"onSort": [{ "set": "state.sort", "to": { "column": "{{event.column}}", "descending": "{{event.descending}}" } }],
+										"onContextMenu": "openContextMenu"
+									}
+								]
+							},
+							{
+								"id": "details",
+								"color": "@color.surface",
 								"scroll": "vertical",
 								"children": [
 									{
-										"id": "cover-grid",
-										"type": "row",
-										"wrap": true,
-										"gap": "@space.l",
-										"anchors": { "left": 20, "right": 20, "top": 4 },
-										"height": "{{(floor(length(computed.visible) / max(1, floor((nodes['library-main'].width - 40 + 20) / (settings.library.coverSize + 20)))) + 1) * (settings.library.coverSize * 4 / 3 + 72)}}",
+										"id": "details-column",
+										"type": "column",
+										"anchors": { "left": 20, "right": 20, "top": 20 },
+										"height": 760,
+										"gap": "@space.m",
 										"children": [
+											{ "id": "details-cover", "type": "image", "file": "{{computed.game.cover}}", "fit": "cover", "height": 200, "anchors": { "left": 0, "right": 0 }, "radius": "@radius.card", "label": "{{computed.game.title}}" },
+											{ "id": "details-title", "type": "label", "font": "title", "text": "{{computed.game.title}}", "textColor": "@color.text", "height": 30, "anchors": { "left": 0, "right": 0 } },
 											{
-												"id": "game-card",
-												"repeat": { "for": "game", "in": "computed.visible", "key": "{{game.id}}" },
-												"type": "column",
-												"width": "{{settings.library.coverSize}}",
-												"height": "{{settings.library.coverSize * 4 / 3 + 52}}",
-												"gap": 6,
-												"color": "transparent",
-												"focusable": true,
-												"role": "button",
-												"label": "{{game.title}}",
-												"cursor": "hand",
-												"onClick": [{ "set": "state.selected", "to": "{{game.id}}" }],
-												"onDoubleClick": [{ "set": "state.selected", "to": "{{game.id}}" }, { "run": "play" }],
-												"onContextMenu": [{ "set": "state.selected", "to": "{{game.id}}" }, { "run": "openContextMenu" }],
+												"id": "details-byline",
+												"type": "label",
+												"height": 20,
+												"anchors": { "left": 0, "right": 0 },
+												"textColor": "@color.muted",
+												"runs": [
+													{ "text": "{{computed.game.developer}}", "bold": true, "color": "@color.text" },
+													{ "text": "  ·  {{t('genre', { g: computed.game.genre })}}  ·  " },
+													{ "text": "{{t('store')}}", "link": "store", "color": "@color.accent" },
+													{ "icon": "external-link", "link": "store", "color": "@color.accent" }
+												],
+												"onLink": "openStore"
+											},
+											{ "id": "details-blurb", "type": "label", "wrap": true, "text": "{{computed.game.blurb}}", "textColor": "@color.text", "height": 60, "anchors": { "left": 0, "right": 0 } },
+											{
+												"id": "details-actions",
+												"type": "row",
+												"height": 36,
+												"gap": "@space.s",
+												"anchors": { "left": 0, "right": 0 },
 												"children": [
+													{ "id": "play-button", "when": "{{computed.game.installed}}", "style": "primary", "icon": "play", "text": "{{t('play')}}", "height": 36, "onClick": "play" },
 													{
-														"id": "game-cover-frame",
-														"width": "{{settings.library.coverSize}}",
-														"height": "{{settings.library.coverSize * 4 / 3}}",
-														"radius": "@radius.card",
-														"color": "@color.raised",
-														"borderWidth": "{{game.id == state.selected ? 3 : 0}}",
-														"borderColor": "@color.accent",
-														"shadow": { "y": 6, "blur": 14, "color": "#00000050" },
-														"children": [
-															{ "id": "game-cover", "type": "image", "file": "{{game.cover}}", "fit": "cover", "fill": "{{game.id == state.selected ? 3 : 0}}" },
-															{ "id": "game-fav", "when": "{{game.favourite}}", "type": "label", "font": "icons", "icon": "heart", "textColor": "#ff6b8a", "anchors": { "right": 10, "top": 8 }, "fitText": true },
-															{ "id": "game-not-installed", "when": "{{!game.installed}}", "type": "label", "font": "small", "icon": "cloud-download", "text": "Not installed", "textColor": "#ffffff", "color": "#000000a0", "radius": 4, "padding": 6, "fitText": true, "anchors": { "left": 8, "bottom": 8 } }
-														]
+														"id": "install-button",
+														"when": "{{!computed.game.installed}}",
+														"style": "primary",
+														"icon": "{{computed.download ? 'hourglass' : 'download'}}",
+														"text": "{{!computed.download ? t('install', { size: computed.game.sizeGb }) : computed.download.status == 'downloading' ? t('install.downloading', { p: computed.download.done / computed.download.size }) : computed.download.status == 'paused' ? t('install.paused', { p: computed.download.done / computed.download.size }) : t('install.queued')}}",
+														"height": 36,
+														"onClick": [{ "if": "{{computed.download}}", "then": [{ "run": "showDownloads" }], "else": [{ "run": "install" }] }]
 													},
-													{ "id": "game-title", "type": "label", "text": "{{game.title}}", "textColor": "@color.text", "width": "{{settings.library.coverSize}}", "height": 18 },
-													{ "id": "game-meta", "style": "muted", "text": "{{game.genre}}  ·  {{game.hours}} h", "width": "{{settings.library.coverSize}}", "height": 16 }
+													{ "id": "open-button", "style": "iconButton", "height": 36, "width": 36, "icon": "panel-top", "tooltip": "{{t('open')}}", "label": "{{t('open')}}", "onClick": "openGame" },
+													{ "id": "favourite-button", "style": "iconButton", "height": 36, "width": 36, "icon": "heart", "tooltip": "{{computed.game.favourite ? t('favourite') : t('favourite.add')}}", "label": "{{t('favourite')}}", "checked": "{{computed.game.favourite}}", "role": "checkbox", "textColor": "{{computed.game.favourite ? '#ff6b8a' : '@color.text'}}", "onClick": "toggleFavourite" },
+													{ "id": "uninstall-button", "when": "{{computed.game.installed}}", "style": "iconButton", "height": 36, "width": 36, "icon": "trash-2", "tooltip": "{{t('uninstall')}}", "label": "{{t('uninstall')}}", "onClick": "uninstall" }
+												]
+											},
+											{
+												"id": "details-stats",
+												"type": "row",
+												"height": 64,
+												"gap": "@space.s",
+												"anchors": { "left": 0, "right": 0 },
+												"children": [
+													{ "id": "details-hours", "style": "card", "grow": 1, "basis": 0, "height": 64, "children": [
+														{ "id": "details-hours-value", "type": "label", "font": "title", "text": "{{t('hours', { hours: computed.game.hours })}}", "textColor": "@color.text", "anchors": { "left": 12, "top": 8 }, "fitText": true },
+														{ "id": "details-hours-caption", "style": "muted", "text": "{{t('played')}}", "anchors": { "left": 12, "bottom": 8 }, "fitText": true }
+													] },
+													{ "id": "details-last", "style": "card", "grow": 1, "basis": 0, "height": 64, "children": [
+														{ "id": "details-last-value", "type": "label", "font": "title", "text": "{{computed.lastPlayed}}", "textColor": "@color.text", "anchors": { "left": 12, "top": 8 }, "fitText": true },
+														{ "id": "details-last-caption", "style": "muted", "text": "{{t('lastPlayed')}}", "anchors": { "left": 12, "bottom": 8 }, "fitText": true }
+													] }
+												]
+											},
+											{ "id": "details-week-heading", "style": "heading", "text": "{{t('week.heading', { hours: sum(computed.game.week) })}}", "anchors": { "left": 0, "right": 0 } },
+											{ "id": "details-week-chart", "use": "areaChart", "with": { "values": "{{computed.game.week}}", "top": 6, "color": "@color.chartFill" }, "height": 80, "anchors": { "left": 0, "right": 0 } },
+											{
+												"id": "details-week-days",
+												"type": "row",
+												"height": 16,
+												"justify": "space-between",
+												"anchors": { "left": 0, "right": 0 },
+												"children": [
+													{ "id": "details-week-day", "repeat": { "for": "day", "in": "state.weekDays" }, "style": "muted", "text": "{{t('day', { d: day })}}", "fitText": true }
 												]
 											}
 										]
 									}
 								]
-							},
-							{
-								"id": "games-table",
-								"when": "{{state.layout == 'table'}}",
-								"type": "table",
-								"anchors": { "left": 20, "right": 20, "top": 56, "bottom": 20 },
-								"columns": [
-									{ "id": "title", "title": "Title", "width": 220 },
-									{ "id": "genre", "title": "Genre", "width": 110 },
-									{ "id": "hours", "title": "Hours", "width": 80 },
-									{ "id": "last", "title": "Last played", "width": 110 },
-									{ "id": "status", "title": "Status", "width": 110 }
-								],
-								"items": "{{computed.rows}}",
-								"bind": "state.selected",
-								"sort": "{{state.sort}}",
-								"rowHeight": 30,
-								"color": "@color.surface",
-								"radius": "@radius.s",
-								"textColor": "@color.text",
-								"selectedTextColor": "@color.text",
-								"selectedBackground": "@color.accentSoft",
-								"accentColor": "@color.accent",
-								"onOpen": "play",
-								"onSort": [{ "set": "state.sort", "to": { "column": "{{event.column}}", "descending": "{{event.descending}}" } }],
-								"onContextMenu": "openContextMenu"
 							}
 						]
 					},
+
 					{
-						"id": "details",
-						"color": "@color.surface",
+						"id": "game-page",
+						"when": "{{state.view == 'game'}}",
+						"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
+						"color": "transparent",
 						"scroll": "vertical",
 						"children": [
 							{
-								"id": "details-column",
+								"id": "game-page-column",
 								"type": "column",
-								"anchors": { "left": 20, "right": 20, "top": 20 },
-								"height": 760,
-								"gap": "@space.m",
+								"anchors": { "left": 32, "right": 32, "top": 20 },
+								"height": 720,
+								"gap": "@space.l",
 								"children": [
-									{ "id": "details-cover", "type": "image", "file": "{{computed.game.cover}}", "fit": "cover", "height": 200, "anchors": { "left": 0, "right": 0 }, "radius": "@radius.card" },
-									{ "id": "details-title", "type": "label", "font": "title", "text": "{{computed.game.title}}", "textColor": "@color.text", "height": 30, "anchors": { "left": 0, "right": 0 } },
 									{
-										"id": "details-byline",
-										"type": "label",
-										"height": 20,
-										"anchors": { "left": 0, "right": 0 },
-										"textColor": "@color.muted",
-										"runs": [
-											{ "text": "{{computed.game.developer}}", "bold": true, "color": "@color.text" },
-											{ "text": "  ·  {{computed.game.genre}}  ·  " },
-											{ "text": "Store page ", "link": "store", "color": "@color.accent" },
-											{ "icon": "external-link", "link": "store", "color": "@color.accent" }
-										],
-										"onLink": "openStore"
-									},
-									{ "id": "details-blurb", "type": "label", "wrap": true, "text": "{{computed.game.blurb}}", "textColor": "@color.text", "height": 60, "anchors": { "left": 0, "right": 0 } },
-									{
-										"id": "details-actions",
+										"id": "game-page-header",
 										"type": "row",
-										"height": 36,
-										"gap": "@space.s",
 										"anchors": { "left": 0, "right": 0 },
+										"height": 40,
+										"gap": "@space.m",
+										"alignItems": "center",
 										"children": [
-											{ "id": "play-button", "when": "{{computed.game.installed}}", "style": "primary", "icon": "play", "text": "Play", "height": 36, "onClick": "play" },
-											{ "id": "install-button", "when": "{{!computed.game.installed}}", "style": "primary", "icon": "download", "text": "Install  {{fixed(computed.game.sizeGb, 1)}} GB", "height": 36, "onClick": "install" },
-											{ "id": "favourite-button", "style": "button", "height": 36, "icon": "heart", "text": "{{computed.game.favourite ? 'Favourite' : 'Add to favourites'}}", "textColor": "{{computed.game.favourite ? '#ff6b8a' : '@color.text'}}", "onClick": "toggleFavourite" },
-											{ "id": "uninstall-button", "when": "{{computed.game.installed}}", "style": "button", "height": 36, "icon": "trash-2", "tooltip": "Uninstall", "label": "Uninstall", "onClick": "uninstall" }
+											{ "id": "game-back-button", "style": "iconButton", "icon": "arrow-left", "mirror": true, "tooltip": "{{t('back')}}", "label": "{{t('back')}}", "onClick": "back" },
+											{ "id": "game-page-title", "type": "label", "font": "title", "text": "{{computed.game.title}}", "textColor": "@color.text", "height": 32, "grow": 1, "basis": 0 },
+											{ "id": "game-play-button", "when": "{{computed.game.installed}}", "style": "primary", "icon": "play", "text": "{{t('play')}}", "height": 36, "onClick": "play" },
+											{
+												"id": "game-install-button",
+												"when": "{{!computed.game.installed}}",
+												"style": "primary",
+												"icon": "{{computed.download ? 'hourglass' : 'download'}}",
+												"text": "{{!computed.download ? t('install', { size: computed.game.sizeGb }) : computed.download.status == 'downloading' ? t('install.downloading', { p: computed.download.done / computed.download.size }) : computed.download.status == 'paused' ? t('install.paused', { p: computed.download.done / computed.download.size }) : t('install.queued')}}",
+												"height": 36,
+												"onClick": [{ "if": "{{computed.download}}", "then": [{ "run": "showDownloads" }], "else": [{ "run": "install" }] }]
+											},
+											{ "id": "game-favourite-button", "style": "iconButton", "height": 36, "width": 36, "icon": "heart", "tooltip": "{{computed.game.favourite ? t('favourite') : t('favourite.add')}}", "label": "{{t('favourite')}}", "role": "checkbox", "checked": "{{computed.game.favourite}}", "textColor": "{{computed.game.favourite ? '#ff6b8a' : '@color.text'}}", "onClick": "toggleFavourite" }
 										]
 									},
 									{
-										"id": "details-stats",
+										"id": "game-page-body",
 										"type": "row",
-										"height": 64,
-										"gap": "@space.s",
 										"anchors": { "left": 0, "right": 0 },
+										"height": 640,
+										"gap": 24,
 										"children": [
-											{ "id": "details-hours", "style": "card", "grow": 1, "height": 64, "children": [
-												{ "id": "details-hours-value", "type": "label", "font": "title", "text": "{{computed.game.hours}} h", "textColor": "@color.text", "anchors": { "left": 12, "top": 8 }, "fitText": true },
-												{ "id": "details-hours-caption", "style": "muted", "text": "played", "anchors": { "left": 12, "bottom": 8 }, "fitText": true }
-											] },
-											{ "id": "details-last", "style": "card", "grow": 1, "height": 64, "children": [
-												{ "id": "details-last-value", "type": "label", "font": "title", "text": "{{computed.game.lastPlayed}}", "textColor": "@color.text", "anchors": { "left": 12, "top": 8 }, "fitText": true },
-												{ "id": "details-last-caption", "style": "muted", "text": "last played", "anchors": { "left": 12, "bottom": 8 }, "fitText": true }
-											] }
-										]
-									},
-									{ "id": "details-week-heading", "style": "heading", "text": "THIS WEEK  ·  {{sum(computed.game.week)}} h", "anchors": { "left": 0, "right": 0 } },
-									{ "id": "details-week-chart", "use": "areaChart", "with": { "values": "{{computed.game.week}}", "top": 6, "color": "@color.chartFill" }, "height": 80, "anchors": { "left": 0, "right": 0 } },
-									{
-										"id": "details-week-days",
-										"type": "row",
-										"height": 16,
-										"justify": "space-between",
-										"anchors": { "left": 0, "right": 0 },
-										"children": [
-											{ "id": "details-week-day", "repeat": { "for": "day", "in": "state.weekDays" }, "style": "muted", "text": "{{day}}", "fitText": true }
+											{
+												"id": "game-page-main",
+												"type": "column",
+												"grow": 1,
+												"basis": 0,
+												"height": 640,
+												"gap": "@space.m",
+												"children": [
+													{
+														"id": "shots",
+														"type": "carousel",
+														"anchors": { "left": 0, "right": 0 },
+														"height": 320,
+														"bind": "state.shot",
+														"loop": true,
+														"focusable": true,
+														"label": "{{t('a11y.shots', { title: computed.game.title })}}",
+														"description": "{{t('shot', { k: state.shots[state.shot] })}}",
+														"color": "@color.surface",
+														"radius": "@radius.card",
+														"arrowColor": "@color.text",
+														"dotColor": "@color.border",
+														"activeColor": "@color.accent",
+														"children": [
+															{ "id": "shot-cover", "color": "{{computed.game.colors[0]}}", "radius": "@radius.s", "children": [
+																{ "id": "shot-cover-image", "type": "image", "file": "{{computed.game.cover}}", "fit": "contain", "fill": 12, "label": "{{t('shot', { k: 'cover' })}}" }
+															] },
+															{ "id": "shot-vista", "color": "{{computed.game.colors[0]}}", "radius": "@radius.s", "role": "img", "label": "{{t('shot', { k: 'vista' })}}", "children": [
+																{ "id": "shot-vista-sun", "type": "path", "fill": 0, "viewBox": "0 0 400 200", "fit": "fill", "d": "M 276 60 A 24 24 0 1 0 324 60 A 24 24 0 1 0 276 60 Z", "fillColor": "{{computed.game.colors[1]}}" },
+																{ "id": "shot-vista-hills", "type": "path", "fill": 0, "viewBox": "0 0 400 200", "fit": "fill", "d": "M 0 200 L 0 150 L 80 90 L 140 150 L 220 50 L 300 140 L 350 100 L 400 160 L 400 200 Z", "fillColor": "#00000066", "stroke": "{{computed.game.colors[1]}}", "strokeWidth": 2, "strokeJoin": "round" }
+															] },
+															{ "id": "shot-city", "color": "{{computed.game.colors[0]}}", "radius": "@radius.s", "role": "img", "label": "{{t('shot', { k: 'city' })}}", "children": [
+																{ "id": "shot-city-skyline", "type": "path", "fill": 0, "viewBox": "0 0 400 200", "fit": "fill", "d": "M 0 200 V 120 H 40 V 80 H 80 V 130 H 110 V 60 H 150 V 110 H 190 V 90 H 230 V 140 H 260 V 70 H 300 V 120 H 340 V 100 H 400 V 200 Z", "fillColor": "#00000080" },
+																{ "id": "shot-city-windows", "type": "path", "fill": 0, "viewBox": "0 0 400 200", "fit": "fill", "d": "M 50 95 h 8 v 8 h -8 Z M 120 75 h 8 v 8 h -8 Z M 132 95 h 8 v 8 h -8 Z M 200 105 h 8 v 8 h -8 Z M 270 85 h 8 v 8 h -8 Z M 282 100 h 8 v 8 h -8 Z M 355 115 h 8 v 8 h -8 Z", "fillColor": "{{computed.game.colors[1]}}" }
+															] },
+															{ "id": "shot-orbit", "color": "{{computed.game.colors[0]}}", "radius": "@radius.s", "role": "img", "label": "{{t('shot', { k: 'orbit' })}}", "children": [
+																{ "id": "shot-orbit-planet", "type": "path", "fill": 0, "viewBox": "0 0 400 200", "fit": "contain", "d": "M 150 100 A 50 50 0 1 0 250 100 A 50 50 0 1 0 150 100 Z", "fillColor": "{{computed.game.colors[1]}}" },
+																{ "id": "shot-orbit-ring", "type": "path", "fill": 0, "viewBox": "0 0 400 200", "fit": "contain", "d": "M 110 112 A 92 22 -12 1 0 290 88 A 92 22 -12 1 0 110 112 Z", "stroke": "#ffffffaa", "strokeWidth": 3 }
+															] }
+														]
+													},
+													{
+														"id": "shot-caption",
+														"type": "label",
+														"anchors": { "left": 0, "right": 0 },
+														"height": 20,
+														"textColor": "@color.muted",
+														"runs": [
+															{ "text": "{{t('shot', { k: state.shots[state.shot] })}}", "color": "@color.text" },
+															{ "text": "  ·  {{t('shot.counter', { n: state.shot + 1, total: length(state.shots) })}}" }
+														]
+													},
+													{ "id": "game-page-blurb", "type": "label", "wrap": true, "text": "{{computed.game.blurb}}", "textColor": "@color.text", "height": 40, "anchors": { "left": 0, "right": 0 } },
+													{ "id": "news-heading", "style": "heading", "text": "{{t('news.heading')}}", "anchors": { "left": 0, "right": 0 } },
+													{ "id": "news-none", "when": "{{empty(computed.gameNews)}}", "style": "muted", "text": "{{t('news.none')}}", "height": 24, "anchors": { "left": 0, "right": 0 } },
+													{
+														"id": "news-list",
+														"type": "column",
+														"role": "list",
+														"label": "{{t('news.heading')}}",
+														"anchors": { "left": 0, "right": 0 },
+														"height": "{{length(computed.gameNews) * 48}}",
+														"gap": 8,
+														"children": [
+															{
+																"id": "news-item",
+																"repeat": { "for": "n", "in": "computed.gameNews", "key": "{{n.id}}" },
+																"style": "card",
+																"role": "listitem",
+																"anchors": { "left": 0, "right": 0 },
+																"height": 40,
+																"children": [
+																	{ "id": "news-date", "style": "muted", "text": "{{formatDate(n.at, 'd MMM', 'utc')}}", "anchors": { "left": 12, "top": 12 }, "width": 64, "height": 16 },
+																	{ "id": "news-text", "type": "label", "text": "{{t('news.item', { kind: n.kind, version: n.version })}}", "textColor": "@color.text", "anchors": { "left": 84, "right": 12, "top": 11 }, "height": 18 }
+																]
+															}
+														]
+													}
+												]
+											},
+											{
+												"id": "achievements",
+												"style": "card",
+												"width": 320,
+												"height": 420,
+												"children": [
+													{ "id": "achievements-heading", "style": "heading", "text": "{{t('ach.heading')}}", "anchors": { "left": 16, "top": 14 } },
+													{ "id": "achievements-count", "type": "label", "text": "{{t('ach.count', { n: computed.unlocked, total: length(state.achievementList) })}}", "textColor": "@color.text", "anchors": { "left": 16, "right": 16, "top": 38 }, "height": 20 },
+													{ "id": "achievements-track", "anchors": { "left": 16, "right": 16, "top": 64 }, "height": 6, "radius": 3, "color": "@color.raised", "role": "progressbar", "label": "{{t('ach.count', { n: computed.unlocked, total: length(state.achievementList) })}}", "children": [
+														{ "id": "achievements-fill", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{computed.unlocked * 100 / length(state.achievementList)}}%", "radius": 3, "color": "@color.accent" }
+													] },
+													{
+														"id": "achievement-list",
+														"type": "column",
+														"role": "list",
+														"label": "{{t('ach.heading')}}",
+														"anchors": { "left": 16, "right": 16, "top": 84 },
+														"height": 324,
+														"gap": 4,
+														"children": [
+															{
+																"id": "achievement",
+																"repeat": { "for": "a", "in": "state.achievementList", "key": "{{a.id}}" },
+																"let": { "on": "{{contains(computed.game.achievements, a.id)}}" },
+																"role": "listitem",
+																"label": "{{t('ach.state', { name: t('ach.name', { id: a.id }), on: on ? 'yes' : 'no' })}}",
+																"anchors": { "left": 0, "right": 0 },
+																"height": 50,
+																"color": "transparent",
+																"children": [
+																	{ "id": "achievement-icon", "width": 36, "height": 36, "anchors": { "left": 0, "top": 7 }, "radius": 18, "color": "{{on ? '@color.accentSoft' : '@color.raised'}}", "children": [
+																		{ "id": "achievement-glyph", "type": "label", "font": "icons", "icon": "{{on ? a.icon : 'lock'}}", "textColor": "{{on ? '@color.accent' : '@color.muted'}}", "align": "center", "fill": 0 }
+																	] },
+																	{ "id": "achievement-name", "type": "label", "text": "{{t('ach.name', { id: a.id })}}", "textColor": "{{on ? '@color.text' : '@color.muted'}}", "anchors": { "left": 48, "right": 0, "top": 7 }, "height": 18 },
+																	{ "id": "achievement-desc", "style": "muted", "text": "{{t('ach.desc', { id: a.id })}}", "anchors": { "left": 48, "right": 0, "top": 27 }, "height": 16 }
+																]
+															}
+														]
+													}
+												]
+											}
 										]
 									}
 								]
 							}
 						]
-					}
-				]
-			},
+					},
 
-			{
-				"id": "stats",
-				"when": "{{state.view == 'stats'}}",
-				"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
-				"color": "transparent",
-				"scroll": "vertical",
-				"children": [
 					{
-						"id": "stats-column",
-						"type": "column",
-						"anchors": { "left": 32, "right": 32, "top": 24 },
-						"height": 700,
-						"gap": "@space.l",
+						"id": "friends",
+						"when": "{{state.view == 'friends'}}",
+						"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
+						"color": "transparent",
 						"children": [
 							{
-								"id": "stats-cards",
-								"type": "row",
-								"height": 88,
-								"gap": "@space.l",
-								"anchors": { "left": 0, "right": 0 },
+								"id": "friends-side",
+								"anchors": { "left": 0, "top": 0, "bottom": 0 },
+								"width": 340,
+								"color": "@color.surface",
 								"children": [
-									{ "id": "stat-total", "use": "statCard", "with": { "value": "{{round(computed.totalHours)}} h", "caption": "played in all", "icon": "clock" } },
-									{ "id": "stat-week", "use": "statCard", "with": { "value": "{{sum(computed.weekHours)}} h", "caption": "this week", "icon": "calendar" } },
-									{ "id": "stat-installed", "use": "statCard", "with": { "value": "{{computed.installedCount}} / {{length(state.games)}}", "caption": "installed", "icon": "hard-drive" } },
-									{ "id": "stat-top", "use": "statCard", "with": { "value": "{{computed.byHours[0].title}}", "caption": "most played", "icon": "trophy" } }
+									{ "id": "friends-heading", "style": "heading", "text": "{{t('friends.heading')}}", "anchors": { "left": 16, "top": 16 } },
+									{ "id": "friends-online", "type": "label", "text": "{{t('friends.online', { n: computed.online })}}", "textColor": "@color.good", "anchors": { "right": 16, "top": 16 }, "fitText": true, "height": 20, "live": "polite" },
+									{
+										"id": "friends-list",
+										"type": "list",
+										"anchors": { "left": 8, "right": 8, "top": 44, "bottom": 52 },
+										"label": "{{t('friends.heading')}}",
+										"items": "{{computed.friendItems}}",
+										"bind": "state.friend",
+										"rowHeight": 36,
+										"color": "transparent",
+										"textColor": "@color.text",
+										"selectedTextColor": "@color.text",
+										"selectedBackground": "@color.accentSoft",
+										"accentColor": "@color.accent",
+										"onOpen": [{ "focus": "#friend-message" }]
+									},
+									{ "id": "friends-offline-line", "anchors": { "left": 0, "right": 0, "bottom": 52 }, "height": 1, "color": "@color.border" },
+									{ "id": "show-offline", "type": "checkbox", "anchors": { "left": 16, "bottom": 17 }, "width": 18, "height": 18, "bind": "state.showOffline", "label": "{{t('friends.showOffline')}}", "activeColor": "@color.accent", "trackColor": "@color.border", "knobColor": "@color.surface" },
+									{ "id": "show-offline-label", "type": "label", "text": "{{t('friends.showOffline')}}", "textColor": "@color.text", "anchors": { "left": 44, "right": 16, "bottom": 16 }, "height": 20, "cursor": "hand", "onClick": [{ "toggle": "state.showOffline" }] }
 								]
 							},
+							{ "id": "friends-line", "anchors": { "left": 340, "top": 0, "bottom": 0 }, "width": 1, "color": "@color.border" },
 							{
-								"id": "stats-charts",
-								"type": "row",
-								"height": 280,
-								"gap": "@space.l",
-								"anchors": { "left": 0, "right": 0 },
+								"id": "friend-detail",
+								"anchors": { "left": 341, "right": 0, "top": 0, "bottom": 0 },
+								"color": "transparent",
 								"children": [
+									{ "id": "friend-empty", "when": "{{computed.friend == null}}", "type": "label", "icon": "users", "text": "{{t('friend.pick')}}", "textColor": "@color.muted", "align": "center", "fill": 0 },
 									{
-										"id": "hours-card",
+										"id": "friend-card",
+										"when": "{{computed.friend != null}}",
 										"style": "card",
-										"grow": 1,
-										"height": 280,
+										"anchors": { "left": 32, "right": 32, "top": 32 },
+										"height": 236,
 										"children": [
-											{ "id": "hours-heading", "style": "heading", "text": "HOURS PER GAME", "anchors": { "left": 16, "top": 14 } },
-											{ "id": "hours-chart", "use": "barChart", "with": { "values": "{{map(computed.byHours, it.hours)}}", "color": "@color.chart", "gap": 0.35 }, "anchors": { "left": 16, "right": 16, "top": 44, "bottom": 56 } },
+											{ "id": "friend-avatar", "anchors": { "left": 24, "top": 24 }, "width": 64, "height": 64, "radius": 32, "color": "@color.accentSoft", "children": [
+												{ "id": "friend-initial", "type": "label", "font": "title", "text": "{{slice(computed.friend.name, 0, 1)}}", "textColor": "@color.accent", "align": "center", "fill": 0 }
+											] },
+											{ "id": "friend-name", "type": "label", "font": "title", "text": "{{computed.friend.name}}", "textColor": "@color.text", "anchors": { "left": 104, "right": 24, "top": 26 }, "height": 28 },
+											{ "id": "friend-presence", "type": "label", "icon": "circle", "text": "{{t('presence', { p: computed.friend.presence, game: computed.friend.game ?? '' })}}", "textColor": "{{computed.friend.presence == 'ingame' ? '@color.accent' : computed.friend.presence == 'online' ? '@color.good' : computed.friend.presence == 'away' ? '@color.warn' : '@color.muted'}}", "anchors": { "left": 104, "right": 24, "top": 60 }, "height": 20 },
 											{
-												"id": "hours-legend",
+												"id": "friend-actions",
 												"type": "row",
-												"anchors": { "left": 16, "right": 16, "bottom": 16 },
-												"height": 32,
+												"anchors": { "left": 24, "right": 24, "top": 108 },
+												"height": 36,
+												"gap": "@space.s",
 												"children": [
-													{ "id": "hours-legend-item", "repeat": { "for": "g", "in": "computed.byHours" }, "type": "label", "font": "small", "wrap": true, "align": "center", "grow": 1, "basis": 0, "height": 32, "text": "{{g.title}}", "textColor": "@color.muted" }
+													{ "id": "friend-join-button", "when": "{{computed.friend.presence == 'ingame'}}", "style": "primary", "icon": "log-in", "text": "{{t('friend.join')}}", "height": 36, "onClick": "joinFriend" },
+													{ "id": "friend-invite-button", "when": "{{computed.friend.presence == 'online' || computed.friend.presence == 'away'}}", "style": "primary", "icon": "send", "text": "{{t('friend.invite')}}", "height": 36, "onClick": "inviteFriend" }
 												]
-											}
-										]
-									},
-									{
-										"id": "week-card",
-										"style": "card",
-										"grow": 1,
-										"height": 280,
-										"children": [
-											{ "id": "week-heading", "style": "heading", "text": "THIS WEEK, ALL GAMES", "anchors": { "left": 16, "top": 14 } },
-											{ "id": "week-area", "use": "areaChart", "with": { "values": "{{computed.weekHours}}", "color": "@color.chartFill" }, "anchors": { "left": 16, "right": 16, "top": 44, "bottom": 40 } },
-											{ "id": "week-line", "use": "lineChart", "with": { "values": "{{computed.weekHours}}", "color": "@color.chart", "lineWidth": 2.5 }, "anchors": { "left": 16, "right": 16, "top": 44, "bottom": 40 } },
+											},
 											{
-												"id": "week-days",
+												"id": "friend-message-row",
 												"type": "row",
-												"anchors": { "left": 16, "right": 16, "bottom": 14 },
-												"height": 16,
-												"justify": "space-between",
+												"anchors": { "left": 24, "right": 24, "top": 164 },
+												"height": 36,
+												"gap": "@space.s",
+												"alignItems": "center",
 												"children": [
-													{ "id": "week-day", "repeat": { "for": "day", "in": "state.weekDays" }, "style": "muted", "text": "{{day}}", "fitText": true }
+													{ "id": "friend-message", "type": "textarea", "grow": 1, "basis": 0, "height": 36, "padding": 10, "radius": "@radius.s", "color": "@color.raised", "textColor": "@color.text", "placeholder": "{{t('friend.message')}}", "placeholderColor": "@color.muted", "label": "{{t('friend.message')}}", "maxLength": 80, "bind": "state.message", "onSubmit": "sendMessage" },
+													{ "id": "friend-message-count", "style": "muted", "text": "{{t('friend.count', { n: length(split(state.message, '')), max: 80 })}}", "fitText": true, "height": 16 },
+													{ "id": "friend-send-button", "style": "button", "icon": "send", "text": "{{t('friend.send')}}", "height": 36, "disabled": "{{empty(trim(state.message))}}", "onClick": "sendMessage" }
 												]
 											}
 										]
 									}
 								]
-							},
-							{ "id": "sessions-heading", "style": "heading", "text": "RECENT SESSIONS", "anchors": { "left": 0, "right": 0 } },
-							{
-								"id": "sessions",
-								"type": "list",
-								"height": 200,
-								"anchors": { "left": 0, "right": 0 },
-								"items": "{{state.sessions}}",
-								"rowHeight": 32,
-								"selection": "none",
-								"color": "@color.surface",
-								"radius": "@radius.s",
-								"textColor": "@color.text",
-								"accentColor": "@color.accent"
 							}
 						]
-					}
-				]
-			},
+					},
 
-			{
-				"id": "settings",
-				"when": "{{state.view == 'settings'}}",
-				"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
-				"color": "@color.bg",
-				"children": [
 					{
-						"id": "settings-page",
-						"use": "settingsPage",
-						"with": { "query": "state.settingsQuery", "color": "@color.surface", "textColor": "@color.text", "dimColor": "@color.muted", "accent": "@color.accent", "field": "@color.raised" },
-						"anchors": { "left": 32, "right": 32, "top": 24, "bottom": 24 }
+						"id": "downloads",
+						"when": "{{state.view == 'downloads'}}",
+						"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
+						"color": "transparent",
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "downloads-column",
+								"type": "column",
+								"anchors": { "left": 32, "right": 32, "top": 24 },
+								"height": "{{80 + max(1, length(state.downloads)) * 88}}",
+								"gap": "@space.m",
+								"children": [
+									{
+										"id": "downloads-header",
+										"type": "row",
+										"anchors": { "left": 0, "right": 0 },
+										"height": 36,
+										"gap": "@space.m",
+										"alignItems": "center",
+										"children": [
+											{ "id": "downloads-heading", "style": "heading", "text": "{{t('dl.heading')}}" },
+											{ "id": "downloads-summary", "type": "label", "text": "{{t('dl.summary', { n: length(state.downloads), speed: settings.downloads.speed })}}", "textColor": "@color.text", "grow": 1, "basis": 0, "height": 20 },
+											{ "id": "downloads-pause-all", "when": "{{some(state.downloads, it.status != 'paused')}}", "style": "button", "icon": "pause", "text": "{{t('dl.pauseAll')}}", "onClick": "pauseAll" },
+											{ "id": "downloads-resume-all", "when": "{{some(state.downloads, it.status == 'paused')}}", "style": "button", "icon": "play", "text": "{{t('dl.resumeAll')}}", "onClick": "resumeAll" }
+										]
+									},
+									{ "id": "downloads-empty", "when": "{{empty(state.downloads)}}", "type": "label", "icon": "inbox", "text": "{{t('dl.empty')}}", "textColor": "@color.muted", "anchors": { "left": 0, "right": 0 }, "height": 76, "align": "center" },
+									{
+										"id": "download-list",
+										"type": "column",
+										"role": "list",
+										"label": "{{t('dl.heading')}}",
+										"anchors": { "left": 0, "right": 0 },
+										"height": "{{length(state.downloads) * 88}}",
+										"gap": "@space.m",
+										"children": [
+											{
+												"id": "download-row",
+												"repeat": { "for": "d", "in": "state.downloads", "index": "i", "key": "{{d.id}}" },
+												"let": { "g": "{{find(state.games, it.id == d.id)}}", "p": "{{d.done / d.size}}" },
+												"style": "card",
+												"role": "listitem",
+												"label": "{{g.title}}",
+												"anchors": { "left": 0, "right": 0 },
+												"height": 76,
+												"children": [
+													{ "id": "download-cover", "type": "image", "file": "{{g.cover}}", "fit": "cover", "anchors": { "left": 12, "top": 10 }, "width": 42, "height": 56, "radius": 4, "label": "{{g.title}}" },
+													{ "id": "download-title", "type": "label", "text": "{{g.title}}", "textColor": "@color.text", "anchors": { "left": 68, "top": 12 }, "width": 200, "height": 18 },
+													{ "id": "download-status", "type": "label", "font": "small", "text": "{{t('dl.status', { s: d.status })}}", "textColor": "{{d.status == 'downloading' ? '@color.accent' : '@color.muted'}}", "anchors": { "left": 68, "top": 34 }, "width": 200, "height": 16 },
+													{ "id": "download-size", "style": "muted", "text": "{{t('dl.size', { done: fixed(d.done, 1), size: fixed(d.size, 1) })}}", "anchors": { "left": 68, "top": 52 }, "width": 200, "height": 16 },
+													{
+														"id": "download-track",
+														"anchors": { "left": 280, "right": 160, "top": 34 },
+														"height": 8,
+														"radius": 4,
+														"color": "@color.raised",
+														"role": "progressbar",
+														"label": "{{t('a11y.progress', { title: g.title, p: p })}}",
+														"children": [
+															{ "id": "download-fill", "anchors": { "left": 0, "top": 0, "bottom": 0 }, "width": "{{fixed(p * 100, 2)}}%", "radius": 4, "color": "{{d.status == 'downloading' ? '@color.accent' : '@color.muted'}}" }
+														]
+													},
+													{
+														"id": "download-buttons",
+														"type": "row",
+														"anchors": { "right": 12, "top": 22 },
+														"width": 136,
+														"height": 32,
+														"gap": 4,
+														"justify": "end",
+														"children": [
+															{ "id": "download-up", "when": "{{i > 0}}", "style": "iconButton", "icon": "arrow-up", "tooltip": "{{t('dl.up')}}", "label": "{{t('dl.up')}}", "onClick": [{ "run": "moveUp", "with": { "at": "{{i}}" } }] },
+															{ "id": "download-toggle", "style": "iconButton", "icon": "{{d.status == 'paused' ? 'play' : 'pause'}}", "tooltip": "{{d.status == 'paused' ? t('dl.resume') : t('dl.pause')}}", "label": "{{d.status == 'paused' ? t('dl.resume') : t('dl.pause')}}", "onClick": [{ "if": "{{d.status == 'paused'}}", "then": [{ "run": "resumeDownload", "with": { "id": "{{d.id}}" } }], "else": [{ "run": "pauseDownload", "with": { "id": "{{d.id}}" } }] }] },
+															{ "id": "download-cancel", "style": "iconButton", "icon": "x", "tooltip": "{{t('dl.cancel')}}", "label": "{{t('dl.cancel')}}", "onClick": [{ "run": "cancelDownload", "with": { "id": "{{d.id}}" } }] }
+														]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+
+					{
+						"id": "stats",
+						"when": "{{state.view == 'stats'}}",
+						"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
+						"color": "transparent",
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "stats-column",
+								"type": "column",
+								"anchors": { "left": 32, "right": 32, "top": 24 },
+								"height": 700,
+								"gap": "@space.l",
+								"children": [
+									{
+										"id": "stats-cards",
+										"type": "row",
+										"height": 88,
+										"gap": "@space.l",
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{ "id": "stat-total", "use": "statCard", "with": { "value": "{{t('hours', { hours: round(computed.totalHours) })}}", "caption": "{{t('stat.total')}}", "icon": "clock" } },
+											{ "id": "stat-week", "use": "statCard", "with": { "value": "{{t('hours', { hours: sum(computed.weekHours) })}}", "caption": "{{t('stat.week')}}", "icon": "calendar" } },
+											{ "id": "stat-installed", "use": "statCard", "with": { "value": "{{t('stat.installedValue', { n: computed.installedCount, total: length(state.games) })}}", "caption": "{{t('stat.installed')}}", "icon": "hard-drive" } },
+											{ "id": "stat-top", "use": "statCard", "with": { "value": "{{computed.byHours[0].title}}", "caption": "{{t('stat.top')}}", "icon": "trophy" } }
+										]
+									},
+									{
+										"id": "stats-charts",
+										"type": "row",
+										"height": 280,
+										"gap": "@space.l",
+										"anchors": { "left": 0, "right": 0 },
+										"children": [
+											{
+												"id": "hours-card",
+												"style": "card",
+												"grow": 1,
+												"basis": 0,
+												"height": 280,
+												"children": [
+													{ "id": "hours-heading", "style": "heading", "text": "{{t('stats.perGame')}}", "anchors": { "left": 16, "top": 14 } },
+													{ "id": "hours-chart", "use": "barChart", "with": { "values": "{{map(computed.byHours, it.hours)}}", "color": "@color.chart", "gap": 0.35 }, "anchors": { "left": 16, "right": 16, "top": 44, "bottom": 56 } },
+													{
+														"id": "hours-legend",
+														"type": "row",
+														"anchors": { "left": 16, "right": 16, "bottom": 16 },
+														"height": 32,
+														"children": [
+															{ "id": "hours-legend-item", "repeat": { "for": "g", "in": "computed.byHours" }, "type": "label", "font": "small", "wrap": true, "align": "center", "grow": 1, "basis": 0, "height": 32, "text": "{{g.title}}", "textColor": "@color.muted" }
+														]
+													}
+												]
+											},
+											{
+												"id": "week-card",
+												"style": "card",
+												"grow": 1,
+												"basis": 0,
+												"height": 280,
+												"children": [
+													{ "id": "week-heading", "style": "heading", "text": "{{t('stats.week')}}", "anchors": { "left": 16, "top": 14 } },
+													{ "id": "week-area", "use": "areaChart", "with": { "values": "{{computed.weekHours}}", "color": "@color.chartFill" }, "anchors": { "left": 16, "right": 16, "top": 44, "bottom": 40 } },
+													{ "id": "week-line", "use": "lineChart", "with": { "values": "{{computed.weekHours}}", "color": "@color.chart", "lineWidth": 2.5 }, "anchors": { "left": 16, "right": 16, "top": 44, "bottom": 40 } },
+													{
+														"id": "week-days",
+														"type": "row",
+														"anchors": { "left": 16, "right": 16, "bottom": 14 },
+														"height": 16,
+														"justify": "space-between",
+														"children": [
+															{ "id": "week-day", "repeat": { "for": "day", "in": "state.weekDays" }, "style": "muted", "text": "{{t('day', { d: day })}}", "fitText": true }
+														]
+													}
+												]
+											}
+										]
+									},
+									{ "id": "sessions-heading", "style": "heading", "text": "{{t('stats.sessions')}}", "anchors": { "left": 0, "right": 0 } },
+									{
+										"id": "sessions",
+										"type": "list",
+										"height": 200,
+										"anchors": { "left": 0, "right": 0 },
+										"label": "{{t('stats.sessions')}}",
+										"items": "{{computed.sessionItems}}",
+										"rowHeight": 32,
+										"selection": "none",
+										"color": "@color.surface",
+										"radius": "@radius.s",
+										"textColor": "@color.text",
+										"accentColor": "@color.accent"
+									}
+								]
+							}
+						]
+					},
+
+					{
+						"id": "settings",
+						"when": "{{state.view == 'settings'}}",
+						"anchors": { "left": 0, "right": 0, "top": 57, "bottom": 0 },
+						"color": "@color.bg",
+						"scroll": "vertical",
+						"children": [
+							{
+								"id": "settings-column",
+								"type": "column",
+								"anchors": { "left": 32, "right": 32, "top": 24 },
+								"height": 720,
+								"gap": 4,
+								"children": [
+									{ "id": "settings-appearance", "style": "heading", "text": "{{t('set.appearance')}}" },
+									{ "id": "setting-theme", "use": "settingRow", "with": { "title": "{{t('set.theme')}}", "description": "{{t('set.theme.desc')}}" }, "children": [
+										{ "id": "theme-chips", "type": "row", "width": 180, "justify": "end", "height": 32, "gap": 4, "alignItems": "center", "role": "radiogroup", "label": "{{t('set.theme')}}", "arrows": "horizontal", "children": [
+											{ "id": "theme-{{mode}}", "repeat": { "for": "mode", "in": "state.themes" }, "style": "{{settings.appearance.theme == mode ? 'chipOn' : 'chip'}}", "icon": "{{mode == 'dark' ? 'moon' : 'sun'}}", "text": "{{t('theme.' + mode)}}", "selected": "{{settings.appearance.theme == mode}}", "onClick": [{ "set": "settings.appearance.theme", "to": "{{mode}}" }] }
+										] }
+									] },
+									{ "id": "setting-language", "use": "settingRow", "with": { "title": "{{t('set.language')}}", "description": "{{t('set.language.desc')}}" }, "children": [
+										{ "id": "language-chips", "type": "row", "width": 250, "justify": "end", "height": 32, "gap": 4, "alignItems": "center", "role": "radiogroup", "label": "{{t('set.language')}}", "arrows": "horizontal", "children": [
+											{ "id": "language-{{lang}}", "repeat": { "for": "lang", "in": "state.languages" }, "style": "{{settings.appearance.language == lang ? 'chipOn' : 'chip'}}", "text": "{{t('lang.' + lang)}}", "selected": "{{settings.appearance.language == lang}}", "onClick": [{ "set": "settings.appearance.language", "to": "{{lang}}" }] }
+										] }
+									] },
+									{ "id": "settings-library", "style": "heading", "text": "{{t('set.library')}}" },
+									{ "id": "setting-cover-size", "use": "settingRow", "with": { "title": "{{t('set.coverSize')}}", "description": "{{t('set.coverSize.desc', { n: settings.library.coverSize })}}" }, "children": [
+										{ "id": "cover-size-slider", "type": "slider", "width": 200, "height": 20, "min": 120, "max": 220, "step": 10, "bind": "settings.library.coverSize", "label": "{{t('set.coverSize')}}", "trackColor": "@color.raised", "activeColor": "@color.accent", "knobColor": "#ffffff", "keys": { "left": [{ "set": "settings.library.coverSize", "to": "{{computed.rtl ? min(220, settings.library.coverSize + 10) : max(120, settings.library.coverSize - 10)}}" }], "right": [{ "set": "settings.library.coverSize", "to": "{{computed.rtl ? max(120, settings.library.coverSize - 10) : min(220, settings.library.coverSize + 10)}}" }], "down": [{ "set": "settings.library.coverSize", "to": "{{max(120, settings.library.coverSize - 10)}}" }], "up": [{ "set": "settings.library.coverSize", "to": "{{min(220, settings.library.coverSize + 10)}}" }], "home": [{ "set": "settings.library.coverSize", "to": 120 }], "end": [{ "set": "settings.library.coverSize", "to": 220 }] } }
+									] },
+									{ "id": "setting-sort", "use": "settingRow", "with": { "title": "{{t('set.sortBy')}}", "description": "{{t('set.sortBy.desc')}}" }, "children": [
+										{ "id": "setting-sort-chips", "type": "row", "width": 250, "justify": "end", "height": 32, "gap": 4, "alignItems": "center", "role": "radiogroup", "label": "{{t('set.sortBy')}}", "arrows": "horizontal", "children": [
+											{ "id": "setting-sort-{{by}}", "repeat": { "for": "by", "in": "state.sortModes" }, "style": "{{settings.library.sortBy == by ? 'chipOn' : 'chip'}}", "text": "{{t('sort', { by: by })}}", "selected": "{{settings.library.sortBy == by}}", "onClick": [{ "set": "settings.library.sortBy", "to": "{{by}}" }] }
+										] }
+									] },
+									{ "id": "setting-show-uninstalled", "use": "settingRow", "with": { "title": "{{t('set.showUninstalled')}}", "description": "{{t('set.showUninstalled.desc')}}" }, "children": [
+										{ "id": "show-uninstalled-checkbox", "type": "checkbox", "width": 20, "height": 20, "bind": "settings.library.showUninstalled", "label": "{{t('set.showUninstalled')}}", "activeColor": "@color.accent", "trackColor": "@color.border", "knobColor": "@color.surface" }
+									] },
+									{ "id": "settings-downloads", "style": "heading", "text": "{{t('set.downloads')}}" },
+									{ "id": "setting-speed", "use": "settingRow", "with": { "title": "{{t('set.speed')}}", "description": "{{t('set.speed.desc', { speed: settings.downloads.speed })}}" }, "children": [
+										{ "id": "speed-slider", "type": "slider", "width": 200, "height": 20, "min": 100, "max": 1000, "step": 50, "bind": "settings.downloads.speed", "label": "{{t('set.speed')}}", "trackColor": "@color.raised", "activeColor": "@color.accent", "knobColor": "#ffffff", "keys": { "left": [{ "set": "settings.downloads.speed", "to": "{{computed.rtl ? min(1000, settings.downloads.speed + 50) : max(100, settings.downloads.speed - 50)}}" }], "right": [{ "set": "settings.downloads.speed", "to": "{{computed.rtl ? max(100, settings.downloads.speed - 50) : min(1000, settings.downloads.speed + 50)}}" }], "down": [{ "set": "settings.downloads.speed", "to": "{{max(100, settings.downloads.speed - 50)}}" }], "up": [{ "set": "settings.downloads.speed", "to": "{{min(1000, settings.downloads.speed + 50)}}" }], "home": [{ "set": "settings.downloads.speed", "to": 100 }], "end": [{ "set": "settings.downloads.speed", "to": 1000 }] } }
+									] },
+									{ "id": "settings-launcher", "style": "heading", "text": "{{t('set.launcher')}}" },
+									{ "id": "setting-confirm-uninstall", "use": "settingRow", "with": { "title": "{{t('set.confirmUninstall')}}", "description": "{{t('set.confirmUninstall.desc')}}" }, "children": [
+										{ "id": "confirm-uninstall-checkbox", "type": "checkbox", "width": 20, "height": 20, "bind": "settings.launcher.confirmUninstall", "label": "{{t('set.confirmUninstall')}}", "activeColor": "@color.accent", "trackColor": "@color.border", "knobColor": "@color.surface" }
+									] },
+									{ "id": "settings-reset-row", "type": "row", "height": 48, "anchors": { "left": 0, "right": 0 }, "alignItems": "center", "children": [
+										{ "id": "reset-settings-button", "style": "button", "icon": "rotate-ccw", "text": "{{t('set.reset')}}", "onClick": [{ "set": "state.settings", "to": {} }] }
+									] }
+								]
+							}
+						]
+					},
+
+					{ "id": "download-timer", "when": "{{computed.active}}", "visible": false, "width": 0, "height": 0, "every": { "ms": 250, "do": "tick" } },
+
+					{
+						"id": "game-menu",
+						"use": "contextMenu",
+						"with": { "items": "{{computed.gameMenu}}", "open": "state.ctxOpen", "x": "{{state.ctx.x}}", "y": "{{state.ctx.y}}", "width": 240, "color": "@color.surface", "textColor": "@color.text", "dimColor": "@color.muted", "highlight": "@color.accentSoft" }
+					},
+					{
+						"id": "uninstall-dialog",
+						"use": "dialog",
+						"with": {
+							"open": "state.confirm",
+							"title": "{{t('uninstall.title', { title: computed.game.title })}}",
+							"message": "{{t('uninstall.message', { size: computed.game.sizeGb })}}",
+							"buttons": [{ "title": "{{t('remove')}}", "run": "removeGame" }, { "title": "{{t('cancel')}}" }],
+							"color": "@color.surface",
+							"textColor": "@color.text",
+							"dimColor": "@color.muted",
+							"highlight": "@color.accent"
+						}
+					},
+					{
+						"id": "toast",
+						"use": "toast",
+						"with": { "open": "state.toast.open", "message": "{{state.toast.message}}", "progress": "{{state.toast.progress}}", "color": "@color.raised", "textColor": "@color.text", "accent": "@color.accent" }
+					},
+					{
+						"id": "quick-pick",
+						"use": "quickPick",
+						"with": {
+							"providers": [
+								{ "placeholder": "{{t('qp.games')}}", "items": "{{map(state.games, { id: it.id, title: it.title, detail: t('genre', { g: it.genre }) })}}", "key": "title", "run": "pickGame" },
+								{ "prefix": ">", "placeholder": "{{t('qp.commands')}}", "items": "{{computed.commandItems}}", "key": "title", "run": "runCommand" }
+							],
+							"color": "@color.surface",
+							"textColor": "@color.text",
+							"dimColor": "@color.muted",
+							"accent": "@color.accent",
+							"highlight": "@color.accentSoft"
+						}
 					}
 				]
-			},
-
-			{
-				"id": "game-menu",
-				"use": "contextMenu",
-				"with": { "items": "{{menus.game}}", "open": "state.ctxOpen", "x": "{{state.ctx.x}}", "y": "{{state.ctx.y}}", "width": 220, "color": "@color.surface", "textColor": "@color.text", "dimColor": "@color.muted", "highlight": "@color.accentSoft" }
-			},
-			{
-				"id": "uninstall-dialog",
-				"use": "dialog",
-				"with": {
-					"open": "state.confirm",
-					"title": "Uninstall {{computed.game.title}}?",
-					"message": "This frees {{fixed(computed.game.sizeGb, 1)}} GB. Your saves and play time stay.",
-					"buttons": [{ "title": "Remove", "run": "removeGame" }, { "title": "Cancel" }],
-					"color": "@color.surface",
-					"textColor": "@color.text",
-					"dimColor": "@color.muted",
-					"highlight": "@color.accent"
-				}
-			},
-			{
-				"id": "toast",
-				"use": "toast",
-				"with": { "open": "state.toast.open", "message": "{{state.toast.message}}", "progress": "{{state.toast.progress}}", "color": "@color.raised", "textColor": "@color.text", "accent": "@color.accent" }
-			},
-			{
-				"id": "quick-pick",
-				"use": "quickPick",
-				"with": {
-					"providers": [
-						{ "placeholder": "Go to a game (type > for commands)", "items": "{{map(state.games, { id: it.id, title: it.title, detail: it.genre })}}", "key": "title", "run": "pickGame" },
-						{ "prefix": ">", "placeholder": "Run a command", "items": "{{commands}}", "key": "title", "run": "runCommand" }
-					],
-					"color": "@color.surface",
-					"textColor": "@color.text",
-					"dimColor": "@color.muted",
-					"accent": "@color.accent",
-					"highlight": "@color.accentSoft"
-				}
 			}
 		]
 	}
