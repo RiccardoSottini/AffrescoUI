@@ -1,0 +1,75 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Sinopia's slide objects, drawn from the deck as sinopia.render gives it: a shape (sinopiaShape), its text and its image, and a group's children inside it. The same component draws the canvas, the stage the thumbnails and exports are rendered from, and the presented slides. A hidden build is invisible until its step; a fly-in build comes up from below while state.show.t runs.",
+
+	"components": {
+		"objectBody": {
+			"params": { "o": null, "name": "" },
+			"node": {
+				"id": "{{name + '-body'}}", "color": "transparent", "fill": 0,
+				"children": [
+					{
+						"type": "sinopiaShape", "id": "{{name + '-shape'}}", "fill": 0,
+						"when": "{{!contains(['text', 'image', 'group'], o.kind)}}",
+						"shape": "{{o.kind}}", "sides": "{{o.sides}}", "inner": "{{o.inner}}", "cornerRadius": "{{o.radius}}",
+						"gradient": "{{o.gradient}}", "outlineShadow": "{{o.shadow}}", "fillColor": "{{o.fill}}",
+						"stroke": "{{o.stroke}}", "strokeWidth": "{{o.strokeWidth}}", "viewBox": "{{o.viewBox}}",
+						"d": "{{o.kind == 'path' ? o.d : ''}}"
+					},
+					{
+						"type": "image", "id": "{{name + '-image'}}", "fill": 0, "when": "{{o.kind == 'image' && o.image != ''}}",
+						"file": "{{'decks/' + o.image}}", "fit": "{{o.fit == 'fill' ? 'fill' : o.fit == 'cover' ? 'cover' : 'contain'}}"
+					},
+					{
+						"type": "label", "id": "{{name + '-text'}}", "fill": 0,
+						"when": "{{o.kind != 'image' && o.kind != 'group' && length(join(map(o.runs, it.text), '')) > 0}}",
+						"runs": "{{o.runs}}", "textColor": "{{o.textColor}}", "wrap": true, "padding": 4,
+						"align": { "horizontal": "{{o.align == 'right' ? 'end' : o.align == 'center' ? 'center' : 'start'}}",
+						           "vertical": "{{o.kind == 'text' ? 'start' : 'center'}}" }
+					}
+				]
+			}
+		},
+		"slideObject": {
+			"params": { "o": null, "prefix": "", "at": -1 },
+			"node": {
+				"id": "{{prefix + o.id}}", "color": "transparent",
+				"x": "{{o.x}}", "y": "{{o.y}}", "width": "{{o.w}}", "height": "{{o.h}}", "rotate": "{{o.rotate}}",
+				"let": {
+					"building": "{{state.show.on && state.show.index == at && o.build.kind != 'none'}}"
+				},
+				"visible": "{{!(building && o.build.order > state.show.step)}}",
+				"translate": "{{[0, building && o.build.kind == 'fly' && o.build.order == state.show.step ? (1 - state.show.t) * 600 : 0]}}",
+				"children": [
+					{ "use": "objectBody", "with": { "o": "{{o}}", "name": "{{prefix + o.id}}" } },
+					{
+						"id": "{{prefix + o.id + '-group'}}", "color": "transparent", "fill": 0, "when": "{{o.kind == 'group'}}",
+						"children": [
+							{
+								"repeat": { "for": "c", "in": "{{o.children}}", "key": "{{c.id}}" },
+								"id": "{{prefix + o.id + '-' + c.id}}", "color": "transparent",
+								"x": "{{c.x}}", "y": "{{c.y}}", "width": "{{c.w}}", "height": "{{c.h}}", "rotate": "{{c.rotate}}",
+								"children": [{ "use": "objectBody", "with": { "o": "{{c}}", "name": "{{prefix + o.id + '-' + c.id}}" } }]
+							}
+						]
+					}
+				]
+			}
+		},
+		"slidePage": {
+			"params": { "slide": null, "prefix": "", "at": -1 },
+			"node": {
+				"id": "{{prefix + slide.id}}", "x": 0, "y": 0, "width": "{{state.render.width}}", "height": "{{state.render.height}}",
+				"color": "{{slide.background}}",
+				"children": [
+					{ "repeat": { "for": "u", "in": "{{slide.under}}", "key": "{{u.id}}" },
+					  "use": "slideObject", "with": { "o": "{{u}}", "prefix": "{{prefix + slide.id + '-'}}", "at": "{{at}}" } },
+					{ "repeat": { "for": "o", "in": "{{slide.objects}}", "key": "{{o.id}}" },
+					  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "{{prefix + slide.id + '-'}}", "at": "{{at}}" } }
+				]
+			}
+		}
+	}
+}

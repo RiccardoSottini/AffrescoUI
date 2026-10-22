@@ -1,13 +1,13 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Flexible and grid layout, for the rendering check: justification, alignment across, shrinking within a minimum, wrapping with row and column gaps, grid tracks (pixels, fractions, minmax) with cells and spans, an aspect ratio and a maximum width.",
 
 	"window": { "title": "Layout", "width": 720, "height": 520 },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 }
 	},
 
 	"colors": {

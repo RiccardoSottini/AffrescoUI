@@ -54,6 +54,20 @@ Justify justification(const json& value, const std::string& at) {
 	fail(at, R"(expected "start", "center", "end", "space-between", "space-around" or "space-evenly")");
 }
 
+/// @brief Reads a writing direction: "ltr", "rtl", "auto" (the locale's) or "inherit".
+/// @param value The value.
+/// @param at Its place, for errors.
+/// @return The direction.
+/// @throws DocumentError If it is something else.
+WritingDirection writingDirection(const json& value, const std::string& at) {
+	const std::string name = string(value, at);
+	if(name == "ltr") return WritingDirection::LeftToRight;
+	if(name == "rtl") return WritingDirection::RightToLeft;
+	if(name == "auto") return WritingDirection::Locale;
+	if(name == "inherit") return WritingDirection::Inherit;
+	fail(at, R"(expected "ltr", "rtl", "auto" (the locale's) or "inherit")");
+}
+
 /// @brief Reads a number that ends a text, after its unit was taken off.
 /// @param text The number.
 /// @return It, or std::nullopt if the text isn't exactly a finite number of 0 or more.
@@ -228,7 +242,7 @@ std::vector<PropertySpec> layoutItemProperties() {
 	return {{"maxWidth"},    {"maxHeight"},
 	        {"aspectRatio"}, {"shrink", ValueKind::Number},
 	        {"basis"},       {"alignSelf", ValueKind::Text},
-	        {"cell"}};
+	        {"cell"},        {"dir", ValueKind::Text}};
 }
 
 bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, const std::string& at) {
@@ -239,6 +253,7 @@ bool layoutItemProperty(Panel& panel, std::string_view key, const json& value, c
 	else if(key == "basis") panel.setBasis(optionalLength(value, "auto", at));
 	else if(key == "alignSelf") panel.setAlignSelf(crossAlign(value, at));
 	else if(key == "cell") panel.setGridCell(cell(value, at));
+	else if(key == "dir") panel.setWritingDirection(writingDirection(value, at));
 	else return false;
 	return true;
 }
@@ -250,6 +265,7 @@ void resetLayoutItem(Panel& panel) {
 	panel.setBasis(std::nullopt);
 	panel.setAlignSelf(std::nullopt);
 	panel.setGridCell({});
+	panel.setWritingDirection(WritingDirection::Inherit);
 }
 
 std::shared_ptr<const PropertySet> stackProperties(std::initializer_list<PropertySpec> applied) {

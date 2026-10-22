@@ -28,8 +28,8 @@ folder. Frames don't depend on the machine or on what ran before. The window is 
 steps send, and its clock moves only when a step waits. Pictures are drawn offscreen at the scenario's `scale` (1 by
 default; `kanban-retina` uses 2, the Retina path). Screens load without a state file, and channels find no host.
 
-The templates' own scenarios (`examples/assets/screens/*.scenarios.json`) check behaviour, not pictures: ctest
-`scenarios` plays them headless with the same runner.
+The templates' own scenarios (`examples/<folder>/*.scenarios.json`, the folders of `examples/templates.json`) check
+behaviour, not pictures: ctest `scenarios` plays them headless with the same runner.
 
 ## Scenarios
 
@@ -44,8 +44,8 @@ an optional `scale` and `note`, and the steps. A picture is an expectation, name
 ```json
 {
 	"format": "affrescoui-scenarios",
-	"version": 1,
-	"screens": "../../../examples/assets/screens",
+	"version": 2,
+	"screens": "../../../examples/studio",
 	"scenarios": [
 		{ "name": "studio", "screen": "studio.screen.json", "steps": [{ "expect": { "image": "first-frame" } }] }
 	]

@@ -1,0 +1,51 @@
+{
+	"id": "habit-notes-key",
+	"level": "feature",
+	"screen": "examples/streak/habit-tracker.screen.json",
+	"request": "Add a command \"Go to the notes\" that opens the Notes tab, on the shortcut Cmd+Shift+O (mod+shift+o).",
+	"scenarios": [
+		{
+			"name": "key",
+			"steps": [
+				{
+					"expect": {
+						"state": "tab",
+						"is": "today"
+					}
+				},
+				{
+					"key": "mod+shift+o"
+				},
+				{
+					"expect": {
+						"state": "tab",
+						"is": "notes"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#logo",
+		"#today",
+		"#statusBar"
+	],
+	"reference": [
+		{
+			"message": "Go to the notes",
+			"set": {
+				"/actions/goToNotes": {
+					"title": "Go to the notes",
+					"category": "View",
+					"do": [
+						{
+							"set": "state.tab",
+							"to": "notes"
+						}
+					]
+				},
+				"/keys/mod+shift+o": "goToNotes"
+			}
+		}
+	]
+}

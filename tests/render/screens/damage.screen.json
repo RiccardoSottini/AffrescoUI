@@ -1,13 +1,13 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Changes that redraw only part of the window, for the rendering check: a panel that moves over others and back, with its shadow; one that hides with its children; a column whose first child grows and pushes the others; a list that scrolls under rounded cards with shadows; a text colour. Every capture is also drawn from scratch and must match.",
 
 	"window": { "title": "Damage", "width": 640, "height": 420 },
 
 	"fonts": {
-		"default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 }
+		"default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 }
 	},
 
 	"colors": {

@@ -1,0 +1,33 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "canvas",
+			"screen": "canvas.screen.json",
+			"note": "An infinite canvas: the first frame, a marquee, a card resized with snapping, a guide from a ruler, a pan and a zoom at the pointer",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "note": "A marquee from empty paper over the note and the squiggle", "drag": [600, 360], "to": [200, 150] },
+				{ "expect": { "state": "board.selection.length", "is": 2 } },
+				{ "expect": { "image": "marquee" } },
+				{ "note": "Select the Build card and drag its right handle near x 200, where the grid and Design's edge are",
+				  "click": [110, 220] },
+				{ "drag": [180, 220], "to": [235, 220] },
+				{ "expect": { "state": "cards[2].width", "is": 200 } },
+				{ "expect": { "image": "resized" } },
+				{ "note": "A guide dragged down from the top ruler", "drag": [300, 10], "to": [300, 300] },
+				{ "expect": { "state": "board.guides.horizontal.length", "is": 1 } },
+				{ "expect": { "state": "board.guides.horizontal[0]", "is": 260 } },
+				{ "note": "Two-finger scroll pans", "scroll": [500, 300], "dx": 0, "dy": -3 },
+				{ "expect": { "image": "panned" } },
+				{ "note": "Zoom in at the pointer: what is under it stays", "move": [240, 40] },
+				{ "key": "equal" },
+				{ "expect": { "state": "board.camera.zoom", "is": 1.25 } },
+				{ "note": "World x 200 stays at window x 240: (200 - 8) * 1.25", "expect": { "state": "board.camera.x", "is": 8 } },
+				{ "expect": { "image": "zoomed" } }
+			]
+		}
+	]
+}

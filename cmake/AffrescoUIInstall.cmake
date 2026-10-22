@@ -39,10 +39,16 @@ install(DIRECTORY modules/screen/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR
 # HarfBuzz is built here as one static library (cmake/AffrescoUIText.cmake), so it is installed as one of ours,
 # affrescoui::harfbuzz; FreeType installs its own package, found by AffrescoUIConfig.cmake
 install(TARGETS affrescoui_core affrescoui_render affrescoui_format affrescoui_vcs affrescoui_channel affrescoui_net affrescoui_services affrescoui
-	affrescoui_automation affrescoui_harfbuzz
+	affrescoui_automation affrescoui_harfbuzz affrescoui_regex affrescoui_syntax
 	EXPORT AffrescoUITargets
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+if(TARGET affrescoui_capi) # the C API: affrescoui::capi, affresco/affresco.h
+	set_target_properties(affrescoui_capi PROPERTIES EXPORT_NAME capi)
+	install(DIRECTORY modules/capi/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	install(TARGETS affrescoui_capi EXPORT AffrescoUITargets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
 install(EXPORT AffrescoUITargets NAMESPACE affrescoui:: DESTINATION ${AFFRESCOUI_PACKAGE_DIR})
 
 configure_package_config_file(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIConfig.cmake.in

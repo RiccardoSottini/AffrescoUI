@@ -7,6 +7,7 @@
 #include "PropertyValues.hpp"
 
 #include <algorithm>
+#include <chrono>
 
 namespace affresco::format {
 
@@ -126,8 +127,10 @@ Panel* Reconciler::reusable(Panel& panel, std::size_t index, const Item& item, c
 Panel& Reconciler::make(Panel& panel, std::size_t index, const Item& item, const std::string& type) {
 	if(index < panel.children().size()) {
 		forgetSubtree(*panel.children()[index]);
+		++statistics_.panelsCreated;
 		return panel.replaceChild(index, create(type, item.path));
 	}
+	++statistics_.panelsCreated;
 	return panel.addChild(create(type, item.path));
 }
 
@@ -139,6 +142,7 @@ std::vector<json> Reconciler::valuesOf(const Item& item, ReadSet& reads) const {
 void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std::vector<json> values, ReadSet reads,
                              bool created) {
 	const bool isRoot = engine_.window && &panel == &engine_.window->root();
+	++statistics_.panelsApplied;
 	{
 		const DocumentContext::ReadScope scope(engine_.document, &reads); // the bound value, and what behaviour reads
 		engine_.properties.apply(panel, record, item.node, std::move(values), item.path, isRoot, created);
@@ -326,6 +330,8 @@ void Reconciler::update(bool full) {
 	Window* window = engine_.window;
 	if(!window) return;
 	reconcileQueued_ = false;
+	const auto start = std::chrono::steady_clock::now();
+	statistics_.panelsApplied = statistics_.panelsCreated = 0;
 	DocumentContext& context = engine_.document;
 	const DocumentContext::BudgetScope budget(context); // an update has its own, unless an event runs it
 	const StateChanges changes = context.takeChanges();
@@ -335,6 +341,7 @@ void Reconciler::update(bool full) {
 	context.keepScreen(document);
 	context.globalsChanged(); // window size, history, proposals, screen: refreshed once per update
 	context.updateTheme();
+	context.updateLocale();
 
 	// Revisions can change the fonts: the default one is the window's
 	if(const auto font = context.findFont("default"); font && window->defaultFont() != font.get())
@@ -350,6 +357,10 @@ void Reconciler::update(bool full) {
 	synced_ = true;
 	syncedAppearance_ = context.appearance();
 	syncedScreen_ = context.screen();
+
+	++statistics_.updates;
+	statistics_.milliseconds =
+	    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 
 	if(!engine_.handlersSuspended) watch(root);
 	showMenuBar(engine_);

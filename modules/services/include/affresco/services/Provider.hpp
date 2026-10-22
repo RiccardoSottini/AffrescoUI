@@ -41,12 +41,25 @@ enum class ServiceState {
 	return "stopped";
 }
 
+/// @brief One run of a granted program, as the host's ProcessShaper sees it: what the call may add.
+struct ProcessRun {
+	std::vector<std::string> arguments; ///< Appended after the grant's own; the call's `with.arguments` at first.
+	std::filesystem::path directory;    ///< Where it runs: the declaration's root at first, or empty for the host's.
+};
+
+/// @brief The host's rule for a program's per-call arguments: it checks the call's `with.arguments` (already in
+/// `run.arguments`), may change them and the folder the run starts in, and returns an error to refuse the run. Called
+/// on the main thread, before the run starts.
+using ProcessShaper = std::function<std::optional<std::string>(ProcessRun& run)>;
+
 /// @brief A program the host allows services to start: never a shell command, always an absolute path.
 struct ProcessGrant {
 	std::filesystem::path program;      ///< The program, an absolute path.
 	std::vector<std::string> arguments; ///< Its arguments, fixed by the host.
 	/// @brief Its whole environment ("NAME=value" each), or std::nullopt to pass the host's on.
 	std::optional<std::vector<std::string>> environment;
+	/// @brief Checks each run's own arguments; without one, a call that passes `with.arguments` is refused.
+	ProcessShaper shape;
 };
 
 /// @brief What the host granted one service: the declaration names these (`"root": "workspace"`), never paths.

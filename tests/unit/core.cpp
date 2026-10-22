@@ -1,6 +1,7 @@
 /// @file
 /// @brief Unit tests for the core module: parsing JSON from outside the app.
 
+#include <affresco/core/Executor.hpp>
 #include <affresco/core/Json.hpp>
 #include <affresco/core/Log.hpp>
 #include <affresco/core/Portable.hpp>
@@ -10,6 +11,8 @@
 #include <chrono>
 #include <cstddef>
 #include <ctime>
+#include <functional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -74,6 +77,22 @@ TEST_CASE("core: parseUntrusted refuses text that is not JSON, and skips comment
 	CHECK_THROWS_AS((void)affresco::parseUntrusted("{\"a\": }"), affresco::json::parse_error);
 	CHECK_THROWS_AS((void)affresco::parseUntrusted("// note\n{}"), affresco::json::parse_error);
 	CHECK(affresco::parseUntrusted("// note\n{}", true) == affresco::json::object());
+}
+
+// Found by fuzzing (tests/fuzz, sinopia_deck): macOS's strtod(), which nlohmann::json reads numbers with, stopped the
+// program on this number, 165 characters long
+TEST_CASE("core: parseUntrusted refuses a number longer than maxNumberLength, outside strings and comments") {
+	const std::string stopping = "9066666660" + std::string(85, '0') + "." + std::string(58, '0') + "12297829042";
+	CHECK_THROWS_WITH_AS((void)affresco::parseUntrusted("[[" + stopping + "]]"),
+	                     doctest::Contains("a number longer than 40 characters"), affresco::DocumentError);
+	CHECK_THROWS_AS((void)affresco::parseUntrusted("[" + std::string(41, '1') + "]"), affresco::DocumentError);
+	CHECK_THROWS_AS((void)affresco::parseUntrusted("{\"a\": 1" + std::string(40, '0') + "}"), affresco::DocumentError);
+
+	CHECK(affresco::parseUntrusted("[" + std::string(40, '1') + "]").size() == 1);
+	CHECK(affresco::parseUntrusted("[-1.2345678901234567e-308, 18446744073709551615]")[1] == 18446744073709551615u);
+	const std::string digits(100, '1');
+	CHECK(affresco::parseUntrusted("{\"" + digits + "\": \"\\\"" + digits + "\"}").size() == 1);
+	CHECK(affresco::parseUntrusted("/* " + digits + " */ [1] // " + digits, true) == affresco::json::parse("[1]"));
 }
 
 // Found by fuzzing (tests/fuzz, json): nlohmann::json throws out_of_range for these, which callers let through
@@ -167,4 +186,17 @@ TEST_CASE("core: the portable C library calls read the environment and break dow
 	CHECK(later.tm_min == 1);
 	CHECK(later.tm_sec == 1);
 	CHECK(affresco::localTime(86'400).tm_year == 70); // whatever the time zone, still 1970
+}
+
+TEST_CASE("core: a batch of tasks is emptied even when one throws, so none runs twice") {
+	int runs = 0;
+	std::vector<std::function<void()>> tasks{[&runs] { ++runs; }, [] { throw std::runtime_error("failed"); },
+	                                         [&runs] { runs += 10; }};
+	CHECK_THROWS_AS(affresco::runTasks(tasks), std::runtime_error);
+	CHECK(runs == 1);
+	CHECK(tasks.empty()); // a queue that swaps it back in would otherwise run the first task again
+	tasks.emplace_back([&runs] { ++runs; });
+	affresco::runTasks(tasks);
+	CHECK(runs == 2);
+	CHECK(tasks.empty());
 }

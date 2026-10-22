@@ -13,9 +13,14 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 
 | Header | Offers |
 |---|---|
-| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing) and `reviewLines` (the service steps a change adds, which always need a reviewer); `findings` (the checker's findings as text); `addNativeAction` |
+| `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing), `reviewLines` (the service steps a change adds, which always need a reviewer) and `behaviourLines` (what a change does to behaviour, for review policies and evidence); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated` |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`) |
+| `Usage.hpp` | `Usage` (`Runtime::usage`): usage summaries, off by default: `setEnabled` with the person's `giveConsent`, `ran`, `visited`, `summary`, `clear`; only ids, counts and times, bounded |
+| `Locale.hpp` | `systemLocale()`: the locale the computer's user chose, for `Runtime::setLocale` |
+| `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
+| `Adapters.hpp` | Other formats (SCREEN_FORMAT.md): `detect`, `fromA2ui` (A2UI 0.8), `fromAdaptiveCard` (Adaptive Cards 1.6) and `convertForeign`, pure functions that give a screen document, its warnings and A2UI's later updates as revisions (`src/adapters/`) |
+| `SyntaxHighlighter.hpp` | `SyntaxHighlighter`: a `TextEditor`'s `EditorHighlighter` on the services' syntax engine: follows the model's edits incrementally, colours a block of lines at a time through a palette (style name to colour, a dotted style falling back to its parent), and gives the editor folds and bracket pairs. The `editor` type's `grammar` key installs one, coloured by `@syntax.*` tokens |
 
 Private headers that tests and benchmarks may include: `src/Expression.hpp` (compile and evaluate), `src/Value.hpp`
 (the values expressions compute with), `src/ExpressionFunctions.hpp` (the function registry),
@@ -40,7 +45,7 @@ Each subsystem's header says its role, its invariants and its callers:
 
 | Registry | Registers | From |
 |---|---|---|
-| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
+| `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`, `ColorPickerType.cpp`, `GradientType.cpp`, `CurvesType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
 | `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
@@ -150,8 +155,12 @@ theme, and a name can't be both a colour and a token.
   the `connections` variable is each one's `{online, pending, state, error}`. At most 64 connections, 256
   operations each, 50 requests a second each. The section is a capability: a revision uses declared operations
   only (`checkServiceUses`), and one that writes is reviewed. While a proposal is previewed, only a read without a
-  `mock` reaches the server (`src/ConnectionSpec.*`, `src/Connections.*`, `tests/unit/connections.cpp`). The `auth`
-  key is accepted and not used yet (sign-in comes later).
+  `mock` reaches the server (`src/ConnectionSpec.*`, `src/Connections.*`, `tests/unit/connections.cpp`). A
+  connection's `auth` declares an OAuth provider (or names another connection's): `setIdentity` gives the runtime
+  an `identity::Identity` (the `net` module's `SignIn`, through `Screen`), which adds the bearer header to each
+  request; without one, a request fails with `signedOut`. The `signIn` and `signOut` steps are control steps, and
+  the `auth` variable is each provider's `{state, account, expires, ...}`, never a token (`src/ConnectionAuth.*`,
+  `src/AuthSteps.cpp`, `tests/unit/auth.cpp`).
 - **Image files come only from allowed folders:** the screen's own (its base directory) and those the host allows
   (`allowImageDirectory`). An `image` node's `file` elsewhere is a `DocumentError` naming its place, so a revision
   naming one is refused. A screen loaded from a string without a base directory allows none.
@@ -196,7 +205,7 @@ and shows what it decoded.
 - **Application types:** `registerType(name, factory, properties, apply)`, through the type registry. The type has
   the properties of the built-in widget its panel derives from, plus its own, applied by `apply` whenever they change.
   A name the format already has replaces that type. `resolveColor` and
-  `font` read colours and fonts as the document writes them. `examples/CodeEditor.*` registers `code` this way.
+  `font` read colours and fonts as the document writes them. `examples/shared/CodeEditor.*` registers `code` this way.
 - **Native actions and functions:** `onAction(name, action)` for `"onClick": "name"`, and `onCall(name, call)` for
   `{"call": name, "with": ..., "into": "state.x"}` steps. Tell `Rules::addNativeAction` about the actions, so the
   checker accepts them.
@@ -213,9 +222,16 @@ and shows what it decoded.
 ## Files
 
 ```
-include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp
+include/affresco/format/   Rules.hpp, NodeIds.hpp, Runtime.hpp, Features.hpp, Usage.hpp, Locale.hpp
 src/
+  Features.cpp             features (RFC 0004): trusted publishers, catalogues, the install and upgrade revisions
+  Composition.*            the enabled features merged into the screen the runtime builds, with RFC 0004's checks
+  ComposedVersions.*       the document's version control as the runtime sees it, with the enabled features merged in
+  FeatureManifest.*        a feature's manifest: releases and ranges, its shape, features, exports and imports
+  FeatureCatalog.*         catalogue v0: a signed index and its releases' manifests, with every check
+  FeatureSignatures.*      Ed25519 signatures over canonical JSON (RFC 8785), base64url, SHA-512 digests
   Rules.cpp                validation, findNode, permissions, checkChange (control steps, capability sections)
+  BehaviourLines.cpp       behaviourLines: the actions, handlers, steps and bindings a change adds, removes or changes
   RulesNodes.cpp           Rules for revisions' nodes and paths: ids for the nodes they add, hints for paths
   NodeIds.cpp              where nodes are, their ids, duplicates, and readable ids for nodes without one
   Checker.hpp / .cpp       the static checker: its passes, findings and hints ("did you mean ...")
@@ -226,7 +242,15 @@ src/
   ExpressionParser.*       the parser: an expression's text into its JSON operator tree
   ExpressionLower.cpp      lowering an operator tree once into typed nodes
   ExpressionMachine.*      the typed nodes and the machine that runs them: calls, paths, variables, templates
-  ExpressionFunctions.*    the function registry; ExpressionFunctions<Group>.cpp hold its tables
+  ExpressionFunctions.*    the function registry; ExpressionFunctions<Group>.cpp hold its tables (Color:
+                           curve() and gradientColor())
+  Strings.*                the "strings" section (6.9): translations per locale, the fallback chain (fr-CA, fr,
+                           the default), t() and its checks (unknown keys, missing and extra parameters)
+  StringsMessage.cpp       ICU MessageFormat's subset: {name}, plural (=0, #), select, number, date and time
+  Locale.hpp, Locale*.cpp  the compact CLDR subset (LocaleData.cpp, generated by tools/i18n/): plural rules,
+                           numbers, currencies, dates, relative times, lists, sorting; LocaleSystem.cpp the OS's locale
+  ExpressionFunctionsLocale.cpp  formatNumber, formatPercent, formatCurrency, formatDate, formatTime,
+                           formatRelative, formatList, compareText and sortText
   Value.hpp / .cpp         the values expressions compute with: inline short texts, shared lists and objects
   Runtime.cpp              the public API, forwarding to the engine
   Engine.hpp / .cpp        the composition root: registries and subsystems
@@ -248,6 +272,8 @@ src/
   ServiceRules.*           what revisions may do with services: declared ones only, and reviewed when they write or run
   ConnectionSpec.*         the "connections" section, read and checked: connections, operations, messages
   Connections.*            request and subscribe on connections: requests built from declarations, WebSockets, previews
+  ConnectionAuth.*         a connection's "auth": its provider, and the bearer header the host adds
+  AuthSteps.cpp            the signIn and signOut steps
   Properties.*             a node's values on its panel; PropertyValues.* reads lengths, anchors, radii
   LayoutProperties.*       the flex and grid keys: those every node has (maxWidth, aspectRatio, shrink, basis,
                            alignSelf, cell, applied from layoutProperty()), the property sets of rows, columns,
@@ -257,9 +283,12 @@ src/
                            keybindings and menus variables (built when read, DocumentContext::addVariable), and
                            the window's native menu bar (window.menuBar, shown after each update when it changed)
                            (Reconciler.cpp shows window.focusRing the same way; role, label and description are
-                           properties, in Properties.cpp)
+                           properties, in Properties.cpp; isOpen, selected and live in
+                           AccessibilityProperties.cpp)
   Settings.*               the settings section: defaults, checked writes to settings.x, the settings and
                            settingsList variables
+  Usage.cpp                usage summaries (Usage.hpp): counts per node id and action and per screen, the controls
+                           never used, bounded, over 30 days, in a file beside the "persist" state
   Steps.*                  handlers and actions; StepRegistry.* and the *Steps.cpp groups
   Scheduler.*              timers, animations, debounces, transitions, deferred tasks (instant when
                            window.reducedMotion)
@@ -269,7 +298,14 @@ src/
   TypeRegistry.*           node types; Types.cpp, EditorType.cpp, ToggleType.cpp, SliderType.cpp, ImageType.cpp,
                            SplitType.cpp, TabsType.cpp, ListType.cpp (list and tree; ListItems.* reads their
                            items within limits, without recursion), PathType.cpp ("path": d, viewBox, fill and
-                           stroke, the data parsed only when it changes)
+                           stroke, the data parsed only when it changes), ColorPickerType.cpp, GradientType.cpp,
+                           CurvesType.cpp (the creative controls; CreativeValues.* reads and writes their values),
+                           CanvasType.cpp ("canvas": its items within limits, levels of detail, and its view bound
+                           both ways),
+                           GraphType.cpp ("graph": nodes, ports and links read within limits, the edits as
+                           events for its handlers),
+                           TimelineType.cpp ("timeline": tracks, keyframes, clips and markers read within
+                           limits, scrubs and edits as events for its handlers)
                            register them, IconProperty.cpp the labels' "icon", and RunsProperty.cpp their
                            "runs", "selectable" and "selectionColor" (within limits: 256 runs, 64 Ki characters)
   SectionRegistry.hpp      sections; Sections.cpp, CapabilitySections.cpp register them
@@ -311,4 +347,4 @@ a section that grants a capability goes in `CapabilitySections.cpp` with `capabi
 then guards.
 
 **Add a node type for one application.** Don't add it here: register it from the application with
-`Screen::registerType` (or `Runtime::registerType`), as `examples/CodeEditor.cpp` does.
+`Screen::registerType` (or `Runtime::registerType`), as `examples/shared/CodeEditor.cpp` does.

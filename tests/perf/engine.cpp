@@ -45,7 +45,7 @@ std::vector<json> expressionTable() {
 	                       "{{state.items[5]}}",
 	                       "{{state['my-list']}}",
 	                       "{{state[\"my-list\"][1]}}",
-	                       "{{len(state['my-list'])}}",
+	                       "{{length(state['my-list'])}}",
 	                       "{{window.width / 2}}",
 	                       "{{mode}}",
 	                       "Clicked {{state.count}} times",
@@ -129,7 +129,7 @@ constexpr int fuzzyCount = 100000;
 /// @return The state, with the texts at `files`.
 json fuzzyFiles() {
 	static constexpr std::array<const char*, 6> folders{"src", "include/app", "modules/core", "tests/unit", "docs",
-	                                                    "examples/assets"};
+	                                                    "examples/shared"};
 	static constexpr std::array<const char*, 6> names{"main", "window", "panel", "layout", "render", "screen"};
 	static constexpr std::array<const char*, 4> extensions{".cpp", ".hpp", ".json", ".md"};
 	json files = json::array();
@@ -175,7 +175,8 @@ void commitRenames(vcs::Repository& repository) {
 /// @return The workload.
 std::vector<Workload> commitWorkloads(const Context& context) {
 	const auto rules = std::make_shared<const format::Rules>();
-	const auto document = std::make_shared<const json>(json::parse(readFile(context.screens() / "kanban.screen.json")));
+	const auto document =
+	    std::make_shared<const json>(screenDocument(context.templateFolder("kanban") / "kanban.screen.json"));
 	const auto repository = std::make_shared<std::unique_ptr<vcs::Repository>>();
 	Workload workload{.name = "commits", .runs = 3, .operations = commitCount};
 	workload.prepare = [rules, document, repository] {
@@ -232,7 +233,7 @@ void measureAndWrap(const Font& font, const std::vector<std::u32string>& lines) 
 /// @param context The context.
 /// @return The workload.
 std::vector<Workload> textWorkloads(const Context& context) {
-	const auto font = Font::load(context.screens().parent_path() / "fonts" / "Roboto-Regular.ttf", 15.0f);
+	const auto font = Font::load(context.examples() / "shared" / "fonts" / "Roboto-Regular.ttf", 15.0f);
 	const auto lines = std::make_shared<const std::vector<std::u32string>>(sampleLines());
 	Workload workload{.name = "text", .unit = "ms", .runs = 9};
 	workload.step = [font, lines] { measureAndWrap(*font, *lines); };
@@ -247,7 +248,14 @@ std::vector<Group> engineGroups() {
 	        {"commits", commitWorkloads},
 	        {"text", textWorkloads},
 	        {"history", historyWorkloads},
-	        {"views", viewWorkloads}};
+	        {"views", viewWorkloads},
+	        {"watch", watchWorkloads},
+	        {"buffers", bufferWorkloads},
+	        {"search", searchWorkloads},
+	        {"canvas", canvasWorkloads},
+	        {"graph", graphWorkloads},
+	        {"syntax", syntaxWorkloads},
+	        {"tempera", temperaWorkloads}};
 }
 
 } // namespace affresco::bench

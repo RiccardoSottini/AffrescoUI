@@ -1,0 +1,81 @@
+# The AffrescoUI documentation site (website/README.md). build.sh stages the pages and the generated references
+# into build/docs, then runs `mkdocs build --strict`: a broken link or a missing snippet fails the build.
+site_name: AffrescoUI
+site_description: A C++23 / OpenGL GUI library whose interfaces are JSON screen documents, changed live and reviewed
+repo_url: https://github.com/RiccardoSottini/AffrescoUI
+repo_name: AffrescoUI
+edit_uri: ""
+copyright: AffrescoUI is licensed under the Apache License 2.0.
+
+docs_dir: build/docs
+site_dir: build/site
+strict: true
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: [build/snippets, ..]  # the recipes, then repository files (examples/...)
+      check_paths: true
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Try it in a minute: tutorials/try-it.md
+      - A first screen: tutorials/first-screen.md
+      - State, expressions and actions: tutorials/state-expressions-actions.md
+      - Components and tokens: tutorials/components-tokens.md
+      - An agent changes a running app: tutorials/agent-review.md
+      - Version control and permissions: tutorials/version-control.md
+      - Services and connections: tutorials/services-connections.md
+      - Features as packages: tutorials/features.md
+      - Scenarios and the rendering check: tutorials/scenarios.md
+      - From C++: tutorials/from-cpp.md
+      - The C API and Python: tutorials/bindings.md
+  - Cookbook: cookbook.md
+  - Reference:
+      - reference/index.md
+      - Screen format: reference/screen-format.md
+      - Catalog: reference/catalog.md
+      - JSON Schemas: reference/schemas.md
+      - Command-line tool: reference/cli.md
+      - MCP tools: reference/mcp.md
+      - Version control: reference/version-control.md
+      - C++ API: reference/cpp-api.md
+  - Threat model: security.md
+  - Comparisons: comparisons.md

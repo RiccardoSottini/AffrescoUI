@@ -5,6 +5,7 @@
 /// (detail::PaintRecord), and what that drawing depended on (detail::PaintKey). Plain data: no OpenGL here.
 
 #include "affresco/render/Geometry.hpp"
+#include "affresco/render/Transform.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -15,6 +16,7 @@
 namespace affresco {
 
 class Bitmap;
+class SurfaceView;
 class Font;
 
 namespace detail {
@@ -49,16 +51,18 @@ enum class PaintStep : std::uint8_t {
 	glyphs,     ///< Glyphs of coverage from one atlas page of the text's font.
 	colorGlyph, ///< A colour glyph from one colour page of the text's font.
 	image,      ///< An image: its texture on the colour unit, next to the coverage page in use.
+	surface,    ///< A GPU surface: drawn into its framebuffer if it changed, whose texture is then used as an image's.
 };
 
 /// @brief One step of a recorded drawing, and the quads it adds.
 struct PaintOp {
-	PaintStep step = PaintStep::fill; ///< What it does.
-	std::uint32_t page = 0;           ///< glyphs, colorGlyph: the atlas page.
-	const Font* font = nullptr;       ///< text, glyphs, colorGlyph: the font (alive while the panel holds it).
-	std::uint32_t firstQuad = 0;      ///< Its first quad in the record's vertices.
-	std::uint32_t quads = 0;          ///< Its quads (0 when all were clipped away: the step still changes batches).
-	const Bitmap* bitmap = nullptr;   ///< image: the image (alive while the panel holds it).
+	PaintStep step = PaintStep::fill;     ///< What it does.
+	std::uint32_t page = 0;               ///< glyphs, colorGlyph: the atlas page.
+	const Font* font = nullptr;           ///< text, glyphs, colorGlyph: the font (alive while the panel holds it).
+	std::uint32_t firstQuad = 0;          ///< Its first quad in the record's vertices.
+	std::uint32_t quads = 0;              ///< Its quads (0 when all were clipped away: the step still changes batches).
+	const Bitmap* bitmap = nullptr;       ///< image: the image (alive while the panel holds it).
+	const SurfaceView* surface = nullptr; ///< surface: the panel showing it (alive while the record is).
 };
 
 /// @brief What a panel's paint() and paintOver() drew: the quads, already clipped, and the steps that place them in
@@ -91,6 +95,7 @@ struct PaintKey {
 	Vec2 scroll;                  ///< Its scroll offset (the scroll bar).
 	Vec2 contentMin, contentMax;  ///< Its children's extent (the scroll bar).
 	std::uint64_t generation = 0; ///< The window's paint generation (Window::invalidate() starts a new one).
+	bool smooth = false;          ///< Drawn turned or skewed: its rectangles are shapes, so their edges stay smooth.
 
 	/// @brief Equal when every member is equal.
 	bool operator==(const PaintKey&) const = default;
@@ -106,6 +111,8 @@ struct PanelGeometry {
 	bool cached = false;              ///< It is shown and cached (Panel::setCached()): drawn as one colour quad.
 	std::uint64_t id = 0;             ///< Unique among geometries: names its subtree's texture.
 	std::uint64_t subtreeVersion = 0; ///< For a cached panel: changes when its subtree's drawing may have.
+	Affine2 world;                    ///< Where its drawing goes on screen (Panel::worldTransform()) when refreshed.
+	bool subtreeTransformed = false;  ///< A descendant (not an overlay) has a transform of its own.
 };
 
 /// @brief Whether two rectangles overlap (touching edges don't).

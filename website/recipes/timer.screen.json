@@ -1,0 +1,20 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Timer", "width": 320, "height": 160 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "running": false, "seconds": 0 },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "id": "ticker", "when": "{{state.running}}", "width": 0, "height": 0,
+			  "every": { "ms": 1000, "do": [{ "increment": "state.seconds", "by": 1 }] } },
+			{ "type": "label", "id": "elapsed", "x": 24, "y": 24, "width": 272, "height": 32, "textColor": "#0f172a",
+			  "text": "{{floor(state.seconds / 60)}}:{{pad(state.seconds % 60, 2, '0')}}" },
+			{ "type": "label", "id": "start", "x": 24, "y": 72, "width": 120, "height": 40, "align": "center",
+			  "radius": 8, "color": "#6366f1", "textColor": "#ffffff", "cursor": "hand", "role": "button",
+			  "text": "{{state.running ? 'Pause' : 'Start'}}", "onClick": { "toggle": "state.running" } }
+		]
+	}
+}

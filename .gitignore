@@ -34,4 +34,9 @@ __pycache__/
 
 # Rendering check golden images stay local (recorded on first run of tests/render/check.py)
 tests/render/golden/
+tests/render/golden-gles3/
 dist/
+
+# The VS Code extension's installed devDependencies and its package
+node_modules/
+*.vsix

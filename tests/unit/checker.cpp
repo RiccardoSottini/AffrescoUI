@@ -4,6 +4,7 @@
 
 #include "Checker.hpp"
 #include "Expression.hpp"
+#include "Templates.hpp"
 
 #include <affresco/format/Rules.hpp>
 #include <affresco/vcs/Repository.hpp>
@@ -12,6 +13,7 @@
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <set>
@@ -35,7 +37,7 @@ struct Case {
 /// @brief Makes a screen from its sections.
 /// @param sections JSON text of an object, e.g. `"state": {...}, "root": {...}`.
 /// @return The document.
-json screen(const std::string& sections) { return json::parse("{\"version\": 1, " + sections + "}"); }
+json screen(const std::string& sections) { return json::parse("{\"version\": 2, " + sections + "}"); }
 
 /// @brief Checks a document against its own state.
 /// @param document The document.
@@ -63,18 +65,34 @@ void checkAll(const std::vector<Case>& cases) {
 	}
 }
 
-/// @brief Reads a template from examples/assets/screens.
+/// @brief Reads a template from its folder in examples.
 /// @param name E.g. "kanban".
 /// @return The document.
 json screenTemplate(const std::string& name) {
-	const std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/" + name + ".screen.json");
+	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
+	const std::ifstream file(directory / (name + ".screen.json"));
 	REQUIRE(file);
 	std::stringstream content;
 	content << file.rdbuf();
-	return json::parse(content.str());
+	json document = json::parse(content.str());
+	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning.
+	if(const auto includes = document.find("include"); includes != document.end()) {
+		for(const json& include : *includes) {
+			const std::ifstream part(directory / include.get<std::string>());
+			REQUIRE(part);
+			std::stringstream partContent;
+			partContent << part.rdbuf();
+			for(const auto& [section, entries] : json::parse(partContent.str()).items())
+				if(entries.is_object())
+					for(const auto& [key, entry] : entries.items())
+						if(!document[section].contains(key)) document[section][key] = entry;
+		}
+		document.erase("include");
+	}
+	return document;
 }
 
-/// The templates in examples/assets/screens.
+/// The templates (examples/templates.json).
 constexpr auto templates = std::to_array<const char*>(
     {"kanban", "smart-home", "music-player", "code-editor", "habit-tracker", "sign-in", "studio"});
 
@@ -92,10 +110,11 @@ TEST_CASE("checker: the templates have no findings") {
 TEST_CASE("checker: typos planted in the Kanban template are each found, with their place") {
 	std::string text = screenTemplate("kanban").dump();
 	const std::vector<std::pair<std::string, std::string>> typos = {
-	    {"{{card.title}}", "{{card.titel}}"},
-	    {R"("@accentSoft")", R"("@accentSofty")"},
+	    {"{{state.toast.message}}", "{{state.toast.mesage}}"},
+	    {R"("dragging":{"color":"@color.accentSoft"})", R"("dragging":{"color":"@color.accentSofty"})"},
 	    {R"("onSubmit":"addCard")", R"("onSubmit":"addCrad")"},
-	    {R"({"by":-1})", R"({"bye":-1})"},
+	    {R"("id":"move-button-card","use":"moveButton","with":{"by":-1})",
+	     R"("id":"move-button-card","use":"moveButton","with":{"bye":-1})"},
 	    {"to < 0 ||", "too < 0 ||"},
 	    {"computed.lastColumn}}", "computed.lastColum}}"},
 	    {"{{member.name}}", "{{member.nmae}}"},
@@ -105,19 +124,19 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
-	const std::string card = "root.children[2].children[0].children[0].children[3].children[0]";
-	const std::string header = "root.children[0].children[3].children[0]";
+	const std::string card = "root.children[2].children[0].children[2].children[0].children[0].children[4].children[0]";
+	const std::string drawer = "components.cardDrawer.node.children";
 	CHECK(lines(json::parse(text)) ==
 	      std::vector<std::string>{
-	          "actions.moveCard[1].if: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
 	          "actions.moveCard[1].if: unknown variable 'too' (did you mean 'to'?)",
-	          header + ".children[0].style: unknown style 'captoin' (did you mean 'caption'?)",
-	          header + ".children[1].children[0].children[1].text: 'member.nmae' doesn't exist (did you mean "
-	                   "'member.name'?)",
-	          "root.children[1].children[1].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
-	          card + ".children[2].text: 'card.titel' doesn't exist (did you mean 'card.title'?)",
-	          card + ".children[4].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
-	          card + ".dragging.color: unknown color '@accentSofty' (did you mean '@accentSoft'?)"});
+	          drawer + "[0].children[1].style: unknown style 'captoin' (did you mean 'caption'?)",
+	          drawer + "[12].children[0].label: 'member.nmae' doesn't exist (did you mean 'member.name'?)",
+	          drawer + "[6].children[2].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
+	          "components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].dragging.color: "
+	          "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
+	          "root.children[1].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)",
+	          card + ".children[6].with.bye: unknown parameter 'bye' of component 'moveButton' (did you mean 'by'?)",
+	          "root.children[7].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)"});
 }
 
 TEST_CASE("checker: state paths") {
@@ -133,7 +152,7 @@ TEST_CASE("checker: state paths") {
 		 {"root.text: 'state.cards[state.current].titel' doesn't exist (did you mean "
 		  "'state.cards[state.current].title'?)"}},
 	    {"a list and a single value have no keys, only a length",
-		 R"("state": {"cards": [], "name": ""}, "root": {"text": "{{len(state.cards)}} {{state.cards.length}} {{state.name.length}} {{state.cards.first}} {{state.name.first}}"})",
+		 R"("state": {"cards": [], "name": ""}, "root": {"text": "{{length(state.cards)}} {{state.cards.length}} {{state.name.length}} {{state.cards.first}} {{state.name.first}}"})",
 		 {"root.text: 'state.cards.first' doesn't exist (state.cards is a list)",
 		  "root.text: 'state.name.first' doesn't exist (state.name is a single value)"}},
 	    {"a key a step creates may be read",
@@ -181,12 +200,12 @@ TEST_CASE("checker: variables in scope") {
 		 {"root.children[1].text: unknown variable 'card'"}},
 	    {"check gives value, valid and error",
 		 R"("state": {"email": ""},
-	        "root": {"children": [{"type": "textarea", "bind": "state.email", "check": {"rule": "{{len(value) > 3}}"},
+	        "root": {"children": [{"type": "textarea", "bind": "state.email", "check": {"rule": "{{length(value) > 3}}"},
 	          "children": [{"text": "{{valid ? '' : error}}"}]}]})",
 		 {}},
 	    {"list functions see it and index",
 		 R"("state": {"cards": [{"done": true}]},
-	        "root": {"text": "{{count(state.cards, it.done)}} {{len(filter(state.cards, it.don))}}"})",
+	        "root": {"text": "{{count(state.cards, it.done)}} {{length(filter(state.cards, it.don))}}"})",
 		 {"root.text: 'it.don' doesn't exist (did you mean 'it.done'?)"}},
 	    {"forEach, run with, and an action that reads its caller's variables",
 		 R"("state": {"cards": [{"title": "a"}]}, "actions": {"rename": [{"set": "state.last", "to": "{{card.title}} {{to}}"}]},
@@ -235,7 +254,8 @@ TEST_CASE("checker: references to what a section defines") {
 		 R"("root": {"onClick": [{"sett": "state.x", "to": 1}, {"note": "fine"}]})",
 		 {"root.onClick[0]: unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, "
 		  "call, emit, send, connect, patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, "
-		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe or respond)"}},
+		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, signIn "
+		  "or signOut)"}},
 	    {"expressions that don't parse, and writes outside the state",
 		 R"("root": {"text": "{{1 +}}", "onClick": {"set": "card.title", "to": 1}})",
 		 {"root.onClick.set: can only change values under 'state', not 'card.title'",
@@ -304,17 +324,17 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 		    {"node", {{"children", json::array({{{"use", "c" + std::to_string(i + 1)}}})}}}};
 	components["c1000"] = {{"node", json::object()}};
 	const json chain = {
-	    {"version", 1}, {"components", components}, {"root", {{"children", json::array({{{"use", "c0"}}})}}}};
+	    {"version", 2}, {"components", components}, {"root", {{"children", json::array({{{"use", "c0"}}})}}}};
 	CHECK(affresco::format::check(chain, json::object()));
 
 	// Over a million values: too large to check, so nothing is claimed
-	json wide = {{"version", 1}, {"root", {{"text", json::array()}}}};
+	json wide = {{"version", 2}, {"root", {{"text", json::array()}}}};
 	wide["root"]["text"].get_ref<json::array_t&>().resize(1100000, json::array()); // numbers cost no visit: lists do
 	CHECK_FALSE(affresco::format::check(wide, json::object()));
 
 	// A long name with a typo: hints compare names of a sensible length only, not a square of a hundred thousand
 	const std::string longName(100000, 'a');
-	const json longTypo = {{"version", 1},
+	const json longTypo = {{"version", 2},
 	                       {"state", {{longName, 1}}},
 	                       {"root", {{"text", "{{state." + longName + "b}}"}}}};
 	const auto found = affresco::format::check(longTypo, longTypo["state"]);
@@ -329,7 +349,7 @@ TEST_CASE("checker: only the first findings of a pass get a hint, each against t
 	for(int i = 0; i < 2000; ++i) state["key" + std::to_string(i)] = i;
 	json labels = json::array();
 	for(int i = 0; i < 200; ++i) labels.push_back({{"text", "{{state.kez" + std::to_string(i) + "}}"}});
-	const json document = {{"version", 1}, {"state", state}, {"root", {{"children", labels}}}};
+	const json document = {{"version", 2}, {"state", state}, {"root", {{"children", labels}}}};
 
 	const auto found = affresco::format::check(document, state);
 	REQUIRE(found);
@@ -343,7 +363,7 @@ TEST_CASE("checker: only the first findings of a pass get a hint, each against t
 	json many = json::object();
 	for(int i = 0; i < 1000; ++i) many["k" + std::to_string(i)] = i;
 	many["special"] = 1;
-	const json late = {{"version", 1}, {"state", many}, {"root", {{"text", "{{state.specail}}"}}}};
+	const json late = {{"version", 2}, {"state", many}, {"root", {{"text", "{{state.specail}}"}}}};
 	CHECK(lines(late).front().starts_with("root.text: 'state.specail' doesn't exist (state has k0, k1, k2,"));
 }
 
@@ -366,7 +386,7 @@ TEST_CASE("checker: computed values that read each other are read safely") {
 		const std::string next = "c" + std::to_string(link + 1);
 		computed["c" + std::to_string(link)] = link < 19 ? "{{computed." + next + " + 1}}" : "{{0}}";
 	}
-	CHECK(lines({{"version", 1}, {"computed", computed}, {"root", {{"text", "{{computed.c0}}"}}}}).empty());
+	CHECK(lines({{"version", 2}, {"computed", computed}, {"root", {{"text", "{{computed.c0}}"}}}}).empty());
 }
 
 TEST_CASE("checker: a finding a change moves is not new; one it adds is") {

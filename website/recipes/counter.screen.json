@@ -1,0 +1,18 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Counter", "width": 320, "height": 160 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 16 } },
+	"state": { "count": 0 },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "label", "id": "count", "x": 24, "y": 24, "width": 272, "height": 32, "textColor": "#0f172a",
+			  "text": "Clicked {{state.count}} times" },
+			{ "type": "label", "id": "add", "x": 24, "y": 72, "width": 120, "height": 40, "align": "center",
+			  "radius": 8, "color": "#6366f1", "textColor": "#ffffff", "cursor": "hand", "role": "button",
+			  "text": "Add one", "onClick": [{ "increment": "state.count", "by": 1 }] }
+		]
+	}
+}

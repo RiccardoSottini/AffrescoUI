@@ -3,14 +3,18 @@
 /// together with the services, and adds includes, declared channels and the "persist" state file.
 
 #include "affresco/Screen.hpp"
+#include "FeaturesService.hpp"
 #include "OffscreenImages.hpp"
 
 #include "affresco/channel/Session.hpp"
 #include "affresco/channel/Sockets.hpp"
 #include "affresco/core/Log.hpp"
+#include "affresco/format/Adapters.hpp"
+#include "affresco/format/Migrate.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
 #include "affresco/net/RemotePeers.hpp"
+#include "affresco/vcs/ChangeSetRepair.hpp"
 #include "affresco/vcs/Repository.hpp"
 
 #include <algorithm>
@@ -39,14 +43,24 @@ struct Peer {
 	std::unique_ptr<channel::Session> session; ///< Its protocol session.
 };
 
-/// @brief A channel the file declares: a program the screen talks to over a local socket.
+/// @brief A channel the file declares: a program the screen talks to over a local socket, or a remote peer.
 struct DeclaredChannel {
 	std::string name;                               ///< Its name in the file: actions "<name>:<type>".
 	std::filesystem::path path;                     ///< The socket.
 	double reconnectMs = 0.0;                       ///< Wait before connecting again (0: never).
 	std::unique_ptr<channel::SocketChannel> socket; ///< While connected.
 	std::uint64_t retry = 0;                        ///< The reconnect timer, if waiting.
+	std::string url;                 ///< A remote peer's ws:// or wss:// address instead of the socket, or "".
+	std::string token;               ///< The token for url, from the host (never from the document).
+	std::unique_ptr<Channel> remote; ///< While connected to url.
 };
+
+/// @brief Whether a "channels" address is a remote peer's (net::connectPeer()) rather than a local socket's.
+/// @param address The address.
+/// @return Whether it starts with ws:// or wss://.
+bool isPeerAddress(std::string_view address) noexcept {
+	return address.starts_with("ws://") || address.starts_with("wss://");
+}
 
 } // namespace
 
@@ -73,16 +87,19 @@ public:
 	}
 
 private:
-	std::mutex mutex_;          ///< Guards target_.
+	std::mutex mutex_;           ///< Guards target_.
 	Executor* target_ = nullptr; ///< See set().
 };
 
 struct Screen::Impl {
+	format::Features features;                                   ///< Catalogues and publishers (RFC 0004); outlives the rest.
 	services::ServiceRegistry services;                          ///< What "services" may use (RFC 0002).
 	RelayExecutor relay;                                         ///< The network's executor.
 	std::unique_ptr<net::Client> network;                        ///< See Screen::network(); outlives the runtime.
+	std::unique_ptr<net::SignIn> signIn;                         ///< The connections' "auth"; outlives the runtime.
 	format::Rules rules;                                         ///< The format's rules.
 	vcs::Repository repository;                                  ///< Document, state, history, review.
+	vcs::ChangeSetRepairs repairs{repository, "screen"};         ///< Installed change sets and their repairs.
 	format::Runtime runtime;                                     ///< Panels and actions.
 	detail::OffscreenImages images{repository, runtime};         ///< Pictures for peers ("render").
 	std::vector<std::unique_ptr<Peer>> peers;                    ///< Connected programs.
@@ -114,14 +131,18 @@ struct Screen::Impl {
 		runtime.onSend.connect([this](const std::string& name, const json& message) { send(name, message); });
 		runtime.onConnect.connect([this](const std::string& name) {
 			if(const auto it = channels.find(name); it != channels.end()) {
-				if(!it->second.socket) open(it->second);
+				if(!it->second.socket && !it->second.remote) open(it->second);
 			} else {
 				runtime.onError("AffrescoUI screen: connect: no channel '" + name + "' in \"channels\"");
 			}
 		});
 		runtime.onUpdated.connect([this] { save(); });
+		repairs.onMessage.connect([this](const json& message) {
+			for(const auto& peer : peers) sendRepairs(*peer, message);
+		});
 		rules.setServices(&services);
 		runtime.setServices(&services);
+		services.add(detail::makeFeaturesProvider(features, repository, alive));
 
 		socketDirectory = Screen::defaultSocketDirectory();
 	}
@@ -165,15 +186,28 @@ struct Screen::Impl {
 		if(!executor) return;
 		if(Window* window = runtime.window(); window && channel.retry)
 			window->cancelTimer(std::exchange(channel.retry, 0));
-		try {
-			channel.socket = channel::SocketChannel::connect(*executor, channel.path);
-		} catch(const std::exception& error) {
-			run(channel.name + ":closed", {{"type", "closed"}, {"message", error.what()}});
-			retry(channel);
-			return;
+		if(!channel.url.empty()) {
+			channel.remote = net::connectPeer(*executor, channel.url, channel.token);
+			if(!channel.remote) {
+				run(channel.name + ":closed", {{"type", "closed"},
+				                               {"message", "Can't connect to " + channel.url +
+				                                               ": it takes a wss:// address (ws:// on the loopback) "
+				                                               "and a token from the host"}});
+				retry(channel);
+				return;
+			}
+		} else {
+			try {
+				channel.socket = channel::SocketChannel::connect(*executor, channel.path);
+			} catch(const std::exception& error) {
+				run(channel.name + ":closed", {{"type", "closed"}, {"message", error.what()}});
+				retry(channel);
+				return;
+			}
 		}
+		Channel& connected = channel.remote ? *channel.remote : static_cast<Channel&>(*channel.socket);
 		const std::string name = channel.name;
-		channel.socket->onMessage.connect([this, name](const std::string& line) {
+		connected.onMessage.connect([this, name](const std::string& line) {
 			json message;
 			try {
 				message = parseUntrusted(line);
@@ -183,12 +217,13 @@ struct Screen::Impl {
 			if(message.is_object() && message.contains("type") && message["type"].is_string())
 				run(name + ":" + message["type"].get<std::string>(), message);
 		});
-		channel.socket->onClosed.connect([this, name, guard = alive] {
+		connected.onClosed.connect([this, name, guard = alive] {
 			// Dropped after the signal that says so has finished
 			executor->post([this, name, guard] {
 				if(!*guard) return;
 				DeclaredChannel& c = channels.at(name);
 				c.socket.reset();
+				c.remote.reset();
 				run(name + ":closed", {{"type", "closed"}, {"message", "The other end closed the connection"}});
 				retry(c);
 			});
@@ -204,7 +239,7 @@ struct Screen::Impl {
 		channel.retry = window->setTimer(channel.reconnectMs, [this, name = channel.name] {
 			DeclaredChannel& c = channels.at(name);
 			c.retry = 0;
-			if(!c.socket) open(c);
+			if(!c.socket && !c.remote) open(c);
 		});
 	}
 
@@ -215,6 +250,10 @@ struct Screen::Impl {
 		const auto it = channels.find(name);
 		if(it == channels.end()) {
 			runtime.onError("AffrescoUI screen: send: no channel '" + name + "' in \"channels\"");
+			return;
+		}
+		if(it->second.remote) { // a remote peer's channel: messages wait for its handshake
+			it->second.remote->send(message.dump());
 			return;
 		}
 		if(!it->second.socket || !it->second.socket->isOpen()) {
@@ -300,6 +339,20 @@ struct Screen::Impl {
 			if(peer.get() != except) peer->session->send(message);
 	}
 
+	/// @brief Sends a peer a message about change set repairs. One whose data rules let it read only some paths gets it
+	/// without the revisions, proof and failures, which can show the values hidden from it.
+	/// @param peer The peer.
+	/// @param message A repair request, or the repairs' status.
+	void sendRepairs(const Peer& peer, json message) {
+		if(repository.readable(peer.session->author())) {
+			if(message.contains("repair"))
+				for(const char* key : {"revisions", "proof", "failed"}) message["repair"].erase(key);
+			if(message.contains("changeSets"))
+				for(json& row : message["changeSets"]) row.erase("reason");
+		}
+		peer.session->send(message);
+	}
+
 	/// @brief Adds a peer and relays its "request"/"reply" messages to the others.
 	/// @param channel Its channel.
 	/// @param owned Its channel, if the screen owns it (may be null).
@@ -311,9 +364,16 @@ struct Screen::Impl {
 		peer->channel = &channel;
 		peer->session = std::make_unique<channel::Session>(
 		    channel, repository, std::move(author), [this] { return runtime.catalog(); }, &images);
+		peer->session->setUsage([this](bool clear) -> std::optional<json> {
+			if(!runtime.usage.enabled()) return std::nullopt;
+			if(clear) runtime.usage.clear();
+			return runtime.usage.summary(repository.document(), format::Usage::now());
+		});
 
 		// A request in plain words from one peer (e.g. the user's client) is for the others (e.g. an AI agent)
 		peer->session->onRelay.connect([this, sender = peer.get()](const json& message) {
+			if(message.value("type", std::string()) == "repair")
+				return repairs.handle(message, [this, sender](const json& answer) { sendRepairs(*sender, answer); });
 			if(peers.size() < 2) {
 				sender->session->send({{"type", "error"},
 				                       {"message", "nobody else is connected to receive this " +
@@ -323,6 +383,7 @@ struct Screen::Impl {
 			}
 			broadcast(message, sender);
 		});
+		if(const std::optional<json> open = repairs.openRequest()) sendRepairs(*peer, *open);
 		peers.push_back(std::move(peer));
 		return *peers.back();
 	}
@@ -423,7 +484,7 @@ void mergeInclude(json& document, const json& part) {
 			document[key] = value;
 		} else if(value.is_object() && document[key].is_object()) {
 			json& section = document[key];
-			if(key == "menus")
+			if(key == "menus" || key == "strings") // a locale's keys merge, like a menu's items
 				for(const auto& [menu, items] : value.items())
 					if(items.is_object() && section.contains(menu) && section[menu].is_object())
 						mergeObject(section[menu], items);
@@ -436,9 +497,10 @@ void mergeInclude(json& document, const json& part) {
 /// comes first and the including file's entries win; root and window come from the including file.
 /// @param document The screen.
 /// @param baseDirectory Where its include paths are resolved from.
+/// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
 /// @param depth Includes inside includes so far.
 /// @throws ScreenError If an include can't be read.
-void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, int depth = 0) {
+void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth = 0) {
 	if(!document.is_object() || !document.contains("include")) return;
 	if(depth > 8) throw ScreenError("AffrescoUI screen: include: nested too deeply (a file includes itself?)");
 	const json includes = document["include"].is_string() ? json::array({document["include"]}) : document["include"];
@@ -449,7 +511,8 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
 		json part = readInclude(path);
-		resolveIncludes(part, path.parent_path(), depth + 1);
+		if(!format::migrate(part).empty()) migrated = true;
+		resolveIncludes(part, path.parent_path(), migrated, depth + 1);
 		mergeInclude(document, part);
 	}
 }
@@ -492,6 +555,22 @@ bool succeeded(const std::optional<std::string>& failure, std::string* error) {
 	return !failure;
 }
 
+/// @brief A screen converted from another format (SCREEN_FORMAT.md, "Other formats"): its warnings logged, and its
+/// later updates (A2UI's) applied as revisions.
+/// @param converted The conversion.
+/// @param baseDirectory Where its files are.
+/// @return The screen.
+Screen fromConverted(format::adapters::Converted converted, std::filesystem::path baseDirectory) {
+	for(const std::string& warning : converted.warnings) affresco::log(LogLevel::Warning, "AffrescoUI screen: " + warning);
+	Screen screen = Screen::fromString(converted.screen.dump(), std::move(baseDirectory));
+	for(const json& revision : converted.revisions) {
+		std::string error;
+		if(!screen.applyRevision(revision.dump(), &error))
+			affresco::log(LogLevel::Warning, "AffrescoUI screen: an update left out: " + error);
+	}
+	return screen;
+}
+
 } // namespace
 
 Screen::Screen(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {}
@@ -517,9 +596,11 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
+	screen.impl_->repairs.setTemplateName(path.filename().string());
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
+	screen.setUsageFile(stateLocation(dataDirectory, path, ".usage.json"));
 	return screen;
 }
 
@@ -528,9 +609,18 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 	try {
 		document = parseUntrusted(content); // a ScreenError if it nests too deeply
 	} catch(const json::parse_error& error) {
+		if(auto foreign = format::adapters::convertForeign(content)) // A2UI as JSON Lines
+			return fromConverted(std::move(*foreign), std::move(baseDirectory));
 		throw ScreenError(std::string("AffrescoUI screen: invalid JSON: ") + error.what());
 	}
-	resolveIncludes(document, baseDirectory);
+	if(format::adapters::detect(document) != format::adapters::SourceFormat::Screen)
+		if(auto foreign = format::adapters::convertForeign(content))
+			return fromConverted(std::move(*foreign), std::move(baseDirectory));
+	bool migrated = !format::migrate(document).empty();
+	resolveIncludes(document, baseDirectory, migrated);
+	if(migrated) // one notice for the screen and its parts: they work as they are, in memory
+		affresco::log(LogLevel::Info, "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
+		                    "--write <files>` rewrites the files)");
 	return Screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
 }
 
@@ -543,7 +633,13 @@ void Screen::registerType(std::string name, Factory factory, std::vector<std::st
 	impl_->runtime.registerType(std::move(name), std::move(factory), std::move(properties), std::move(forward));
 }
 
+void Screen::registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options) {
+	impl_->runtime.registerSurface(std::move(name), std::move(factory), options);
+}
+
 void Screen::setPlaceholderTypes(bool enabled) { impl_->runtime.setPlaceholderTypes(enabled); }
+
+void Screen::setLocale(std::string tag) { impl_->runtime.setLocale(std::move(tag)); }
 
 Window& Screen::createWindow(Application& app) {
 	impl_->warnOfFindings();
@@ -560,12 +656,34 @@ std::filesystem::path Screen::defaultSocketDirectory() {
 	return std::filesystem::temp_directory_path() / "affrescoui" / "sockets"; // per user too: %LOCALAPPDATA%\Temp
 #else
 	// In /tmp, so that socket paths stay within their limit of about 100 bytes. The uid keeps users apart, and the
-	// examples refuse the folder if another user made it first (examples/SocketDir.hpp).
+	// examples refuse the folder if another user made it first (examples/shared/SocketDir.hpp).
 	return std::filesystem::path("/tmp") / ("affrescoui-" + std::to_string(getuid()));
 #endif
 }
 
 void Screen::setSocketDirectory(std::filesystem::path directory) { impl_->socketDirectory = std::move(directory); }
+
+bool Screen::connectChannel(const std::string& name, std::string address, std::string token) {
+	Impl& impl = *impl_;
+	const auto it = impl.channels.find(name);
+	if(it == impl.channels.end()) return false;
+	DeclaredChannel& channel = it->second;
+	if(Window* window = impl.runtime.window(); window && channel.retry)
+		window->cancelTimer(std::exchange(channel.retry, 0));
+	channel.socket.reset(); // no handler runs after: the signals go with their channel
+	channel.remote.reset();
+	channel.url.clear();
+	channel.token.clear();
+	if(isPeerAddress(address)) {
+		channel.url = std::move(address);
+		channel.token = std::move(token);
+	} else {
+		const std::filesystem::path socket = address;
+		channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
+	}
+	impl.open(channel);
+	return true;
+}
 
 void Screen::startChannels(Executor& executor) {
 	Impl& impl = *impl_;
@@ -578,8 +696,10 @@ void Screen::startChannels(Executor& executor) {
 		if(impl.channels.contains(name)) continue;
 		DeclaredChannel& channel = impl.channels[name];
 		channel.name = name;
-		const std::filesystem::path socket = spec["socket"].get<std::string>();
-		channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
+		const std::string address = spec["socket"].get<std::string>();
+		const std::filesystem::path socket = address;
+		if(isPeerAddress(address)) channel.url = address;
+		else channel.path = socket.is_absolute() ? socket : impl.socketDirectory / socket;
 		const json& reconnect = spec.value("reconnect", json(false));
 		channel.reconnectMs = reconnect.is_object()   ? reconnect.value("after", 2000.0)
 		                      : reconnect == true     ? 2000.0
@@ -604,6 +724,20 @@ void Screen::setStateFile(std::filesystem::path file) {
 	impl_->stateFile = std::move(file);
 	impl_->load();
 }
+
+void Screen::setUsageFile(std::filesystem::path file) { impl_->runtime.usage.setFile(std::move(file)); }
+
+void Screen::setUsageEnabled(bool on) { impl_->runtime.usage.setEnabled(on); }
+
+bool Screen::usageConsented() const { return impl_->runtime.usage.consented(); }
+
+void Screen::giveUsageConsent() { impl_->runtime.usage.giveConsent(); }
+
+std::string Screen::usageJson() {
+	return impl_->runtime.usage.summary(impl_->repository.document(), format::Usage::now()).dump();
+}
+
+void Screen::clearUsage() { impl_->runtime.usage.clear(); }
 
 std::string Screen::catalogJson() const { return impl_->runtime.catalog().dump(); }
 
@@ -636,13 +770,25 @@ void Screen::setExecutor(Executor* executor) noexcept {
 
 services::ServiceRegistry& Screen::services() noexcept { return impl_->services; }
 
+format::Features& Screen::features() noexcept { return impl_->features; }
+
 net::Client& Screen::network() {
 	Impl& impl = *impl_;
 	if(!impl.network) {
 		impl.network = std::make_unique<net::Client>(impl.relay);
 		impl.runtime.setNetwork(impl.network.get());
+		impl.signIn = std::make_unique<net::SignIn>(impl.relay, *impl.network);
+		impl.runtime.setIdentity(impl.signIn.get());
 	}
 	return *impl.network;
+}
+
+void Screen::setSignInOptions(net::SignInOptions options) {
+	Impl& impl = *impl_;
+	static_cast<void>(network());
+	impl.runtime.setIdentity(nullptr); // the old one is gone before the new one declares
+	impl.signIn = std::make_unique<net::SignIn>(impl.relay, *impl.network, std::move(options));
+	impl.runtime.setIdentity(impl.signIn.get());
 }
 
 void Screen::setModel(std::string name, std::shared_ptr<DataModel> model) {
@@ -729,6 +875,26 @@ void Screen::endPreview() { impl_->repository.endPreview(); }
 
 std::optional<int> Screen::previewedProposal() const noexcept { return impl_->repository.previewing(); }
 
+void Screen::setScenarioCheck(std::function<std::string(const std::string& documentJson)> check) {
+	if(!check) return impl_->images.setScenarioCheck({});
+	impl_->images.setScenarioCheck([check = std::move(check)](const std::string& document) {
+		const json results = json::parse(check(document), nullptr, false);
+		return results.is_array() ? results : json::array();
+	});
+}
+
+bool Screen::setInspector(bool on, bool statistics, std::string* error) {
+	impl_->images.inspector().setShowStatistics(statistics);
+	const std::optional<std::string> failed = impl_->images.inspect(on);
+	if(failed && error) *error = *failed;
+	return !failed;
+}
+
+std::vector<std::string> Screen::inspectorTrace() const {
+	const std::deque<std::string>& trace = impl_->images.inspector().trace();
+	return {trace.begin(), trace.end()};
+}
+
 std::vector<CommitInfo> Screen::log() const { return impl_->repository.log(); }
 
 bool Screen::restore(int revision, std::string* error) {
@@ -771,6 +937,29 @@ bool Screen::importChanges(std::string_view changesJson, std::string* error) {
 	const auto changes = parseJson(changesJson, "changes", error);
 	return changes && succeeded(impl_->repository.importChanges(*changes), error);
 }
+
+std::string Screen::installChanges(std::string_view changesJson, std::string* error) {
+	const auto changes = parseJson(changesJson, "changes", error);
+	if(!changes) return {};
+	try {
+		return std::string(vcs::toString(impl_->repairs.install(*changes)));
+	} catch(const DocumentError& failure) {
+		if(error) *error = failure.what();
+		return {};
+	}
+}
+
+void Screen::setProofCheck(std::function<std::string(const std::string& documentJson, const std::string& proofJson)> check) {
+	if(!check) return impl_->repairs.setProofCheck({});
+	impl_->repairs.setProofCheck(
+	    [check = std::move(check)](const json& document, const json& proof) -> std::optional<std::string> {
+		    std::string failed = check(document.dump(), proof.dump());
+		    if(failed.empty()) return std::nullopt;
+		    return failed;
+	    });
+}
+
+std::string Screen::repairs() const { return impl_->repairs.status().dump(); }
 
 bool Screen::hasImported(std::string_view changesJson) const {
 	const auto changes = parseJson(changesJson, "changes", nullptr);

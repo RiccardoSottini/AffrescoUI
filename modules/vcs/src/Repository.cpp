@@ -8,12 +8,15 @@
 #include "Deltas.hpp"
 #include "HistoryStore.hpp" // complete, for history_ (the constructor destroys it if it throws)
 #include "Permissions.hpp"
+#include "Policy.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
 
+#include "affresco/core/Log.hpp"
 #include "affresco/core/Portable.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <ctime>
 #include <utility>
@@ -147,9 +150,25 @@ bool idPrefix(std::string_view name) {
 	       std::ranges::all_of(name, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
 }
 
+/// @brief A change set as the current format writes it: a version 1 one's patches upgraded (DocumentRules::
+/// upgradeRevision()), a current one as it is.
+/// @param rules The format's rules.
+/// @param changes The change set, checked.
+/// @return It, current.
+json currentChanges(const DocumentRules& rules, const json& changes) {
+	if(changes.value("version", 0) != 1) return changes;
+	json current = changes;
+	current["version"] = 2;
+	for(json& revision : current["revisions"])
+		if(revision.is_object() && revision.contains("patch")) static_cast<void>(rules.upgradeRevision(revision["patch"]));
+	return current;
+}
+
 } // namespace
 
 Repository::Repository(const DocumentRules& rules, json document) : rules_(rules) {
+	if(!rules_.upgrade(document).empty())
+		affresco::log(LogLevel::Info, "AffrescoUI history: the screen was written for an older format version, read as the current one");
 	rules_.validate(document);
 	if(document.contains("state")) state_ = expect::object(document["state"], "state");
 
@@ -380,13 +399,20 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
                                          bool reviewed) const {
 	using Kind = Verdict::Kind;
 	const Permissions permissions = rules_.permissions(mainDocument());
+	const detail::Policy policy = detail::policyOf(mainDocument());
+	const auto covers = [&](const PermissionRule& rule) { return ruleCovers(rule.author, author, roles_); };
 
 	for(const PermissionRule& rule : permissions.deny)
-		if(detail::authorMatches(rule.author, author) && detail::changes(rules_, before, after, rule.pattern))
+		if(covers(rule) && detail::changes(rules_, before, after, rule.pattern))
 			return {Kind::Deny, "permission denied: '" + author + "' may not change " +
 			                        (rule.pattern.empty() ? std::string("this screen") : rule.pattern) + " (rule \"" +
 			                        rule.text + "\")"};
+	if(const auto denied = detail::dataDenial(rules_, policy, before, after, author, roles_))
+		return {Kind::Deny, "permission denied: " + *denied};
 	if(!reviewed) return {Kind::Allow, {}};
+	if(const auto leased = leaseDenial(before, after, author)) return {Kind::Deny, "permission denied: " + *leased};
+	if(const auto over = detail::overBudget(policy, before, after, author, roles_))
+		return {over->deny ? Kind::Deny : Kind::Ask, (over->deny ? "permission denied: " : "") + over->reason, true};
 	if(const std::vector<std::string> lines = rules_.reviewLines(before, after); !lines.empty()) {
 		std::string reason = "always reviewed:";
 		for(std::size_t i = 0; i < lines.size(); ++i) reason += (i ? "; " : " ") + lines[i];
@@ -395,7 +421,7 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 	if(!permissions.configured) return {Kind::Allow, {}};
 
 	for(const PermissionRule& rule : permissions.ask)
-		if(detail::authorMatches(rule.author, author) && detail::changes(rules_, before, after, rule.pattern))
+		if(covers(rule) && detail::changes(rules_, before, after, rule.pattern))
 			return {Kind::Ask, "the rule \"" + rule.text + "\" asks for review", true};
 
 	if(mode_ == Mode::Plan && !mayReview(author))
@@ -403,9 +429,10 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 
 	std::vector<std::string> allowed;
 	for(const PermissionRule& rule : permissions.allow)
-		if(detail::authorMatches(rule.author, author)) allowed.push_back(rule.pattern);
+		if(covers(rule)) allowed.push_back(rule.pattern);
 	for(const Grant& grant : grants_)
-		if(const auto rule = parsePermissionRule(grant.rule); rule && detail::authorMatches(rule->author, author))
+		if(const auto rule = parsePermissionRule(grant.rule);
+		   rule && !expired(grant) && detail::authorMatches(rule->author, author))
 			allowed.push_back(rule->pattern);
 	if(detail::onlyInside(rules_, before, after, allowed)) return {Kind::Allow, {}};
 
@@ -416,6 +443,19 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 /* Changes */
 
 // The observer refusing the new version rolls everything back
+// The files on disk keep what they were written as: the upgrade is one more commit on top
+void Repository::upgradeHead(json upgraded) {
+	Commit commit;
+	commit.author = commit.committer = "format";
+	commit.message = "format version 2";
+	commit.time = utcNow();
+	commit.patch = detail::delta(document_, upgraded);
+	commit.parents.push_back(main_.back());
+	commit.number = mainHead().number + 1;
+	main_.push_back(store(std::move(commit), upgraded, &document_).id);
+	document_ = std::move(upgraded);
+}
+
 const Repository::Commit& Repository::land(Commit commit, json document, json state) {
 	endPreview();
 	commit.parents.insert(commit.parents.begin(), main_.back());
@@ -436,8 +476,10 @@ const Repository::Commit& Repository::land(Commit commit, json document, json st
 		throw;
 	}
 	if(!importing_) {
+		const bool rebased = rebaseProposals();
 		saveHistory(); // before anyone hears of it
 		onCommit(info(stored));
+		if(rebased) proposalsChanged();
 	}
 	return stored;
 }
@@ -464,11 +506,20 @@ std::optional<std::string> Repository::commit(const json& revision) {
 	return std::nullopt;
 }
 
-RevisionResult Repository::submit(const json& revision) {
+RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false); }
+
+RevisionResult Repository::propose(const json& revision) { return submitRevision(revision, true); }
+
+RevisionResult Repository::submitRevision(const json& revision, bool alwaysReview) {
 	const int number = mainHead().number;
 	try {
 		expect::object(revision, "revision");
+		if(alwaysReview && revision.contains("proposal")) fail("revision.proposal", "it opens a proposal of its own");
+		// Evidence is what the host draws and plays itself: an author naming any of it is trying to forge it
+		for(const char* key : {"evidence", "behaviour"})
+			if(revision.contains(key)) fail(std::string("revision.") + key, "the host gathers it itself");
 		const std::string author = authorOf(revision);
+		checkReadable(patchOf(revision), author);
 		if(revision.contains("proposal")) return push(revision, author);
 
 		checkParent(revision);
@@ -477,7 +528,7 @@ RevisionResult Repository::submit(const json& revision) {
 
 		if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
-		if(verdict.kind == Verdict::Kind::Ask) {
+		if(verdict.kind == Verdict::Kind::Ask || alwaysReview) {
 			const std::string channel = detail::channelOf(author);
 			if(std::ranges::count_if(proposals_, [&](const Proposal& p) {
 				   return detail::channelOf(p.author) == channel;
@@ -515,23 +566,30 @@ RevisionResult Repository::submit(const json& revision) {
 	}
 }
 
-// Rebased on main's head: the commits are replayed in order (unchanged ones keep their ids), then the new one
-void Repository::extend(Proposal& proposal, const json& revision) {
+// As submit() judges a new revision, on main's head; one that can't apply is denied, with the reason
+Repository::Judgement Repository::judge(const json& revision) const {
+	try {
+		expect::object(revision, "revision");
+		const std::string author = authorOf(revision);
+		checkReadable(patchOf(revision), author);
+		const Prepared next = prepare(patchOf(revision), mainDocument(), committedState());
+		const Verdict verdict = evaluate(next.before, next.after, author, true);
+		static constexpr std::array<const char*, 3> decisions = {"allow", "ask", "deny"};
+		return {decisions.at(static_cast<std::size_t>(verdict.kind)), verdict.reason};
+	} catch(const DocumentError& error) {
+		return {"deny", error.what()};
+	}
+}
+
+std::vector<Repository::Commit> Repository::branchOf(const Proposal& proposal) const {
 	std::vector<Commit> commits;
 	for(std::string id = proposal.head; id != proposal.base; id = objects_.at(id).parents.front())
 		commits.insert(commits.begin(), objects_.at(id));
+	return commits;
+}
 
-	Commit added;
-	added.author = added.committer = proposal.author;
-	added.message = messageOf(revision);
-	added.time = utcNow();
-	added.patch = patchOf(revision);
-	commits.push_back(std::move(added));
-	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
-	std::size_t operations = 0;
-	for(const Commit& c : commits) operations += c.patch.size();
-	detail::expectFewEnoughOperations(operations);
-
+// The commits are replayed in order on main's head (unchanged ones keep their ids)
+json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	json document = mainDocument(), state = committedState(), patch = json::array();
 	std::string parent = main_.back();
 	int number = mainHead().number;
@@ -560,6 +618,29 @@ void Repository::extend(Proposal& proposal, const json& revision) {
 	proposal.reason = verdict.kind == Verdict::Kind::Ask ? verdict.reason : "proposals are always reviewed";
 	proposal.remember = rememberedRules(proposal.author, touches, verdict.askedByRule);
 	proposal.touches = std::move(touches);
+	proposal.conflicts = json::array();
+	proposal.behaviour = rules_.behaviourLines(before, after);
+	proposal.policy = reviewNeeds(before, after, {}).first;
+	return document;
+}
+
+// Rebased on main's head, with the new commit last; what was approved before no longer is
+void Repository::extend(Proposal& proposal, const json& revision) {
+	std::vector<Commit> commits = branchOf(proposal);
+	Commit added;
+	added.author = added.committer = proposal.author;
+	added.message = messageOf(revision);
+	added.time = utcNow();
+	added.patch = patchOf(revision);
+	commits.push_back(std::move(added));
+	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
+	std::size_t operations = 0;
+	for(const Commit& c : commits) operations += c.patch.size();
+	detail::expectFewEnoughOperations(operations);
+
+	replay(proposal, std::move(commits));
+	proposal.approvals.clear();
+	proposal.reviewedHeads.clear();
 }
 
 std::vector<std::string> Repository::rememberedRules(const std::string& author, const std::vector<std::string>& touches,
@@ -649,8 +730,13 @@ std::vector<ProposalInfo> Repository::proposals() const {
 	for(const Proposal& p : proposals_) {
 		std::vector<std::string> changes;
 		for(const json& op : p.patch) changes.push_back(summary(op));
-		result.push_back({p.id, "proposal/" + std::to_string(p.id), p.author, p.message, p.base, p.head, p.commits,
-		                  p.patch.size(), p.touches, p.remember, std::move(changes), p.reason, p.time});
+		ProposalInfo& info = result.emplace_back(
+		    ProposalInfo{p.id, "proposal/" + std::to_string(p.id), p.author, p.message, p.base, p.head, p.commits,
+			             p.patch.size(), p.touches, p.remember, std::move(changes), p.reason, p.time});
+		info.conflicts = p.conflicts;
+		info.approvals = p.approvals;
+		info.policy = p.policy;
+		info.behaviour = p.behaviour;
 	}
 	return result;
 }
@@ -668,19 +754,13 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 	if(!proposal) return "AffrescoUI screen: no proposal " + std::to_string(id);
 
 	// Refused approvals leave the proposal open
-	if(detail::channelOf(approval.reviewer) == detail::channelOf(proposal->author))
-		return "AffrescoUI screen: permission denied: '" + approval.reviewer + "' may not accept its own proposal";
-	// Every approval names what was reviewed: without it, a branch pushed to after the review would merge unseen
-	if(approval.head.size() < 7)
-		return "AffrescoUI screen: accepting proposal #" + std::to_string(id) +
-		       " needs its head commit, the version you reviewed (at least 7 characters)";
-	if(!proposal->head.starts_with(approval.head))
-		return "AffrescoUI screen: proposal #" + std::to_string(id) + " changed since you reviewed it (it is now at " +
-		       proposal->head.substr(0, 7) + "): review it again";
-	if(approval.dontAskAgain && proposal->remember.empty())
-		return "AffrescoUI screen: proposal #" + std::to_string(id) +
-		       " can't be remembered (it changes parts that always ask, or too much of the screen): accept it "
-		       "without \"don't ask again\"";
+	if(std::optional<std::string> refused = checkApproval(*proposal, approval)) return refused;
+	if(const std::string missing = approve(*proposal, approval.reviewer); !missing.empty()) {
+		proposal->reason = "approved by " + std::to_string(detail::countedApprovals(proposal->approvals)) + ", waiting for " + missing;
+		saveHistory();
+		proposalsChanged();
+		return std::nullopt;
+	}
 
 	const Proposal taken = *proposal;
 	std::erase_if(proposals_, [id](const Proposal& p) { return p.id == id; });
@@ -716,7 +796,7 @@ std::optional<std::string> Repository::accept(int id, const Approval& approval) 
 		if(approval.dontAskAgain) {
 			for(const std::string& rule : taken.remember)
 				if(std::ranges::find(grants_, rule, &Grant::rule) == grants_.end())
-					grants_.push_back({rule, approval.reviewer, id, utcNow()});
+					grants_.push_back({rule, approval.reviewer, id, utcNow(), grantsExpire(approval)});
 			onReviewChanged();
 		}
 	} catch(const DocumentError& failure) {
@@ -823,7 +903,7 @@ json Repository::exportChanges(const json& from, std::string_view name) const {
 		                     {"patch", c.patch}});
 	}
 	return {{"format", "affrescoui-changes"},
-	        {"version", 1},
+	        {"version", 2},
 	        {"name", name.empty() ? "changes" : std::string(name)},
 	        {"from", base.number},
 	        {"to", mainHead().number},
@@ -832,27 +912,32 @@ json Repository::exportChanges(const json& from, std::string_view name) const {
 	        {"revisions", revisions}};
 }
 
+// The checks importChanges() and tryChanges() share
+void Repository::checkChanges(const json& changes) {
+	expect::object(changes, "changes");
+	if(changes.value("format", "") != "affrescoui-changes") fail("changes.format", "expected \"affrescoui-changes\"");
+	if(const int version = changes.value("version", 0); version != 1 && version != 2)
+		fail("changes.version", "unsupported version (expected 1 or 2)");
+	if(!changes.contains("revisions") || !changes["revisions"].is_array()) fail("changes.revisions", "expected a list");
+}
+
 // Applies a change set revision by revision
 std::optional<std::string> Repository::importChanges(const json& changes) {
 	try {
-		expect::object(changes, "changes");
-		if(changes.value("format", "") != "affrescoui-changes")
-			fail("changes.format", "expected \"affrescoui-changes\"");
-		if(changes.value("version", 0) != 1) fail("changes.version", "unsupported version (expected 1)");
-		if(!changes.contains("revisions") || !changes["revisions"].is_array())
-			fail("changes.revisions", "expected a list");
+		checkChanges(changes);
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
+	const json current = currentChanges(rules_, changes);
 
 	endPreview();
 	const json oldState = state_, oldDocument = document_;
 	const std::size_t oldMain = main_.size();
-	const std::string name = changes.value("name", "changes");
+	const std::string name = current.value("name", "changes");
 
 	importing_ = true;
-	for(std::size_t i = 0; i < changes["revisions"].size(); ++i) {
-		json revision = changes["revisions"][i];
+	for(std::size_t i = 0; i < current["revisions"].size(); ++i) {
+		json revision = current["revisions"][i];
 		if(revision.is_object()) {
 			revision.erase("parent"); // a change set applies on top of whatever is there
 			revision["author"] = "plugin:" + name;
@@ -867,14 +952,48 @@ std::optional<std::string> Repository::importChanges(const json& changes) {
 		}
 	}
 	importing_ = false;
+	const bool rebased = rebaseProposals();
 	if(!hasImported(changes)) imported_.push_back(detail::sha256(changes.dump()));
 	saveHistory();
+	if(rebased) proposalsChanged();
 	for(std::size_t i = oldMain; i < main_.size(); ++i) onCommit(info(objects_.at(main_[i])));
 	return std::nullopt;
 }
 
 bool Repository::hasImported(const json& changes) const {
 	return std::ranges::find(imported_, detail::sha256(changes.dump())) != imported_.end();
+}
+
+// What importChanges() does, on copies: the same patches and the same deny rules, nothing committed
+json Repository::tryChanges(const json& changes) const {
+	checkChanges(changes);
+	const json current = currentChanges(rules_, changes);
+	const std::string author = "plugin:" + current.value("name", std::string("changes"));
+	json document = mainDocument(), state = committedState();
+	json view = detail::view(document, state);
+	for(std::size_t i = 0; i < current["revisions"].size(); ++i) {
+		const std::string where = "changes.revisions[" + std::to_string(i) + "]";
+		try {
+			const json& revision = current["revisions"][i];
+			expect::object(revision, "revision");
+			Prepared next = prepare(patchOf(revision), document, state);
+			if(const Verdict verdict = evaluate(next.before, next.after, author, false);
+			   verdict.kind == Verdict::Kind::Deny)
+				fail("revision", verdict.reason);
+			document = std::move(next.document);
+			state = std::move(next.state);
+			view = std::move(next.after);
+		} catch(const DocumentError& error) {
+			fail(where, detail::reasonOf(error));
+		}
+	}
+	return view;
+}
+
+void Repository::recordImported(const json& changes) {
+	if(hasImported(changes)) return;
+	imported_.push_back(detail::sha256(changes.dump()));
+	saveHistory();
 }
 
 } // namespace affresco::vcs

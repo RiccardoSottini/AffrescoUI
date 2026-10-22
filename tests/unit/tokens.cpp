@@ -26,7 +26,7 @@ namespace {
 json tokenScreen() {
 	const std::string roboto = (std::filesystem::path(AFFRESCOUI_FONTS_DIR) / "Roboto-Regular.ttf").string();
 	return {{"format", "affrescoui-screen"},
-	        {"version", 1},
+	        {"version", 2},
 	        {"state", {{"theme", "light"}}},
 	        {"theme", "{{state.theme}}"},
 	        {"colors", {{"brand", "#6366f1"}}},

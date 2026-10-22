@@ -87,19 +87,46 @@ std::optional<std::string> OffscreenImages::show(std::optional<int> proposal) {
 }
 
 std::optional<std::string> OffscreenImages::draw(int scale, Image& image) const {
+	RgbImage pixels;
+	if(std::optional<std::string> error = drawPixels(scale, pixels)) return error;
+	image.png = encodePng(pixels.width, pixels.height, pixels.rgb);
+	image.width = pixels.width;
+	image.height = pixels.height;
+	return std::nullopt;
+}
+
+std::optional<std::string> OffscreenImages::drawPixels(int scale, RgbImage& pixels) const {
 	// saveScreenshot writes a file: the same path the rendering check takes, in a folder of our own
 	const ScratchFolder folder;
 	if(folder.path().empty()) return "AffrescoUI screen: render: could not create a temporary folder";
 	const std::filesystem::path file = folder.path() / "screen.ppm";
 	runtime_.waitForImages(); // a picture shows every image, not those decoded so far
-	if(!runtime_.window()->saveScreenshot(file, scale)) return "AffrescoUI screen: render: could not draw the screen";
+	inspector_.setVisible(false); // a picture shows the screen, not the overlay
+	const bool drawn = runtime_.window()->saveScreenshot(file, scale);
+	inspector_.setVisible(true);
+	if(!drawn) return "AffrescoUI screen: render: could not draw the screen";
 
-	const std::optional<RgbImage> pixels = readPpm(file);
-	if(!pixels) return "AffrescoUI screen: render: could not read the drawn screen back";
-	image.png = encodePng(pixels->width, pixels->height, pixels->rgb);
-	image.width = pixels->width;
-	image.height = pixels->height;
+	std::optional<RgbImage> read = readPpm(file);
+	if(!read) return "AffrescoUI screen: render: could not read the drawn screen back";
+	pixels = std::move(*read);
 	return std::nullopt;
+}
+
+std::optional<std::string> OffscreenImages::drawBoth(int proposal, int scale, RgbImage& before, RgbImage& after,
+                                                     json& main, std::string& document) {
+	if(!runtime_.window()) return "AffrescoUI screen: evidence: the screen has no window yet";
+	if(rendering_) return "AffrescoUI screen: evidence: already drawing a picture";
+	runtime_.window()->runDeferredTasks(); // as render(): main's tasks run on main
+	PutBack putBack{*this, versions_.previewing()};
+	rendering_ = true;
+	runtime_.setHandlersSuspended(true);
+	putBack.switched = true;
+	if(std::optional<std::string> error = show(std::nullopt)) return error;
+	if(std::optional<std::string> error = drawPixels(scale, before)) return error;
+	main = versions_.document();
+	if(std::optional<std::string> error = show(proposal)) return error;
+	document = versions_.document().dump(); // while previewed, the document is the proposal's
+	return drawPixels(scale, after);
 }
 
 } // namespace affresco::detail

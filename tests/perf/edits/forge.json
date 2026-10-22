@@ -1,0 +1,35 @@
+{
+	"word-count": {
+		"message": "Show the active file's word count in the status bar",
+		"add": {
+			"#status-bar/children/-": {
+				"type": "label",
+				"id": "status-words",
+				"padding": 6,
+				"fitText": true,
+				"when": "{{computed.activeDoc && computed.activeDoc.kind == 'file'}}",
+				"text": "{{length(split(trim(computed.activeDoc.text), ' ')) + ' words'}}"
+			}
+		}
+	},
+	"new-command": {
+		"message": "Add a command that closes every notification and the panel",
+		"set": {
+			"/actions/quietWorkbench": {
+				"title": "Quiet the Workbench",
+				"category": "View",
+				"icon": "bell-off",
+				"do": [{ "run": "clearNotifications" }, { "set": "state.layout.panel", "to": false }]
+			}
+		}
+	},
+	"change-theme": { "message": "Start in Forge Light", "set": { "/state/theme": "forge-light" } },
+	"change-colour": {
+		"message": "A bluer status bar",
+		"set": { "/tokens/color.statusBar/forge-dark": "#005fb8" }
+	},
+	"rename-label": {
+		"message": "Name the folder as a project in the status bar",
+		"set": { "#status-folder/text": "{{'Project: ' + computed.folderName}}" }
+	}
+}

@@ -1,8 +1,11 @@
 #include "affresco/format/Rules.hpp"
 
+#include "affresco/format/Migrate.hpp"
 #include "affresco/format/NodeIds.hpp"
 
 #include "Checker.hpp"
+#include "Composition.hpp"
+#include "ContributionPoints.hpp"
 #include "SectionRegistry.hpp"
 #include "ServiceRules.hpp"
 #include "Limits.hpp"
@@ -23,7 +26,7 @@ namespace {
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 constexpr std::string_view controlSteps[] = {"accept", "reject", "preview", "endPreview", "restore", "revert",
                                              "undo",   "patch",  "call",    "send",       "connect",
-                                             "respond"};
+                                             "respond", "signIn", "signOut"};
 
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;
@@ -31,6 +34,16 @@ constexpr std::size_t maxListed = 10;
 /// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
 /// control step.
 constexpr std::size_t maxExpansions = 64;
+
+/// @brief The screen a document builds: itself, or composed with its features (Composition.hpp).
+/// @param document The document.
+/// @param storage Holds the composed screen when there is one.
+/// @return The screen.
+const json& screenOf(const json& document, json& storage) {
+	if(!needsComposition(document)) return document;
+	storage = compose(document).screen;
+	return storage;
+}
 
 /// @brief Whether a key's string value names an action to run: an event handler ("onClick"), "do", "onLoad", "run".
 /// @param key The key.
@@ -178,7 +191,7 @@ private:
 			return controls;
 		}
 		for(const auto& [name, parameter] : runningBuiltIns) {
-			if(*use != name) continue;
+			if(used != name) continue;
 			if(parameter.empty()) return true;
 			const auto value = parameters.is_object() ? parameters.find(parameter) : parameters.end();
 			return parameters.is_object() && value != parameters.end() && computes(*value);
@@ -246,8 +259,9 @@ std::set<std::string> runningComponents(const json& doc, const std::set<std::str
 /// @brief The document's actions that may run control steps: those with one, and those that run one of them, a
 /// native action or a computed one.
 /// @param doc The document.
+/// @param granted The host's actions its points pass on: they don't count (grantedActions()).
 /// @return Their names.
-std::set<std::string> controlActions(const json& doc) {
+std::set<std::string> controlActions(const json& doc, const std::set<std::string, std::less<>>& granted) {
 	std::set<std::string> control;
 	if(!doc.contains("actions") || !doc["actions"].is_object()) return control;
 	const json& actions = doc["actions"];
@@ -256,7 +270,7 @@ std::set<std::string> controlActions(const json& doc) {
 		grew = false;
 		const ControlScan scan(actions, control, runningBuiltInNames(), none);
 		for(const auto& [name, steps] : actions.items()) {
-			if(control.contains(name)) continue;
+			if(control.contains(name) || granted.contains(name)) continue;
 			std::vector<std::string> found;
 			scan.walk(steps, name, Part::Steps, found);
 			if(found.empty()) continue;
@@ -270,12 +284,13 @@ std::set<std::string> controlActions(const json& doc) {
 /// @brief Collects what in a document can control changes or reach the outside world, to compare before and after a
 /// revision: every control step, and every reference to an action that may run one, each with its trigger.
 /// @param doc The document.
+/// @param granted The host's actions its points pass on (grantedActions()).
 /// @return The findings as text, sorted.
-std::vector<std::string> controlsIn(const json& doc) {
+std::vector<std::string> controlsIn(const json& doc, const std::set<std::string, std::less<>>& granted) {
 	std::vector<std::string> found;
 	if(!doc.is_object()) return found;
 	static const json none; // both branches are references: the scan keeps one
-	const std::set<std::string> control = controlActions(doc);
+	const std::set<std::string> control = controlActions(doc, granted);
 	const std::set<std::string> runners = runningComponents(doc, control);
 	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
 	                       doc.contains("components") ? doc["components"] : none);
@@ -370,6 +385,23 @@ void checkTypedState(const json& before, const json& after) {
 
 Rules::Rules() : sections_(builtInSections()) {}
 
+namespace {
+
+/// @brief The lines for people of a migration's rewrites.
+/// @param rewrites The rewrites.
+/// @return Their messages.
+std::vector<std::string> linesOf(const std::vector<Rewrite>& rewrites) {
+	std::vector<std::string> lines;
+	for(const Rewrite& rewrite : rewrites) lines.push_back(rewrite.message);
+	return lines;
+}
+
+} // namespace
+
+std::vector<std::string> Rules::upgrade(json& document) const { return linesOf(migrate(document)); }
+
+std::vector<std::string> Rules::upgradeRevision(json& patch) const { return linesOf(migratePatch(patch)); }
+
 void Rules::checkRevision(const json& patch) const {
 	if(patch.is_array() && patch.size() > maxRevisionOperations)
 		fail("revision.patch", std::to_string(patch.size()) + " operations, more than the " +
@@ -383,14 +415,39 @@ void Rules::checkRevision(const json& patch) const {
 void Rules::validate(const json& doc) const {
 	sections_->validate(doc);
 	checkDocumentSize(doc);
-	const std::vector<Mismatch> mismatches = stateMismatches(doc, stateOf(doc));
+	json composed;
+	if(needsComposition(doc)) { // its features must fit, and what they merge must be valid too
+		composed = composeOrFail(doc);
+		sections_->validate(composed);
+	}
+	const json& screen = composed.is_null() ? doc : composed;
+	const std::vector<Mismatch> mismatches = stateMismatches(screen, stateOf(screen));
 	if(!mismatches.empty()) fail(mismatches.front().place, mismatches.front().problem + typeNote(mismatches.front()));
 }
 
-// In root, then screens, templates and components (NodeIds.hpp)
+// In root, then screens, templates and components (NodeIds.hpp), then the features' views (Composition.hpp)
 std::optional<std::string> Rules::findNode(const json& doc, std::string_view nodeId) const {
-	return findNodeWithId(doc, nodeId);
+	if(auto found = findNodeWithId(doc, nodeId)) return found;
+	return findFeatureNode(doc, nodeId);
 }
+
+namespace {
+
+/// @brief Reads "permissions.review" (checked by the permissions section).
+/// @param review The value, or null.
+/// @return The policy; the defaults where a key is missing.
+ReviewPolicy reviewPolicyOf(const json& review) {
+	ReviewPolicy policy;
+	if(!review.is_object()) return policy;
+	policy.approvals = review.value("approvals", 1);
+	policy.behaviourApprovals = review.value("behaviourApprovals", 0);
+	policy.grantsLast = review.value("grantsLast", std::string());
+	for(const auto& [pattern, names] : review.value("owners", json::object()).items())
+		policy.owners.emplace_back(pattern, names.get<std::vector<std::string>>());
+	return policy;
+}
+
+} // namespace
 
 // "permissions" as rules, plus every node with "locked": true denied to everyone
 Permissions Rules::permissions(const json& doc) const {
@@ -407,6 +464,7 @@ Permissions Rules::permissions(const json& doc) const {
 		read("deny", result.deny);
 		for(const json& name : section.value("reviewers", json::array()))
 			result.reviewers.push_back(name.get<std::string>());
+		result.review = reviewPolicyOf(section.value("review", json()));
 	}
 
 	std::function<void(const json&)> collect = [&](const json& node) {
@@ -424,17 +482,24 @@ Permissions Rules::permissions(const json& doc) const {
 	return result;
 }
 
-void Rules::checkChange(const json& before, const json& after) const {
+// On the composed screens: what a feature brings is checked as if the app had it
+void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 	for(const SectionType& section : sections_->sections()) {
 		if(!section.capability) continue;
-		if(before.value(section.name, json()) != after.value(section.name, json()))
+		if(rawBefore.value(section.name, json()) != rawAfter.value(section.name, json()))
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
+	json composedBefore, composedAfter;
+	const json& before = screenOf(rawBefore, composedBefore);
+	const json& after = screenOf(rawAfter, composedAfter);
 
 	checkTypedState(before, after);
 	checkStateSize(before, after);
 
-	if(controlsIn(before) != controlsIn(after))
+	const auto granted = grantedActions(rawBefore); // the host's: a revision can't change what its points pass on
+	if(granted != grantedActions(rawAfter))
+		fail("revision", "permission denied: revisions can't change the actions a contribution point passes on");
+	if(controlsIn(before, granted) != controlsIn(after, granted))
 		fail("revision",
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
 		     "restore, revert, undo, patch, call, send, connect or respond steps, nor run an action that has them, "
@@ -457,8 +522,15 @@ void Rules::checkChange(const json& before, const json& after) const {
 	fail("revision", message);
 }
 
-std::vector<std::string> Rules::findings(const json& document, const json& state) const {
+std::vector<std::string> Rules::findings(const json& raw, const json& state) const {
 	std::vector<std::string> lines;
+	json composed;
+	if(needsComposition(raw)) { // features that don't fit are left out: say why
+		Composition composition = compose(raw);
+		lines = std::move(composition.problems);
+		composed = std::move(composition.screen);
+	}
+	const json& document = composed.is_null() ? raw : composed;
 	for(const Mismatch& mismatch : stateMismatches(document, state)) // a state kept on disk may predate its types
 		lines.push_back(mismatch.text() + typeNote(mismatch));
 	const auto found = check(document, state, nativeActions_);

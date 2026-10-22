@@ -2,9 +2,12 @@
 /// @brief format::SectionRegistry, and the built-in sections that aren't capabilities.
 
 #include "SectionRegistry.hpp"
+#include "ContributionPoints.hpp"
 #include "Contributions.hpp"
+#include "FeatureManifest.hpp"
 #include "Settings.hpp"
 #include "StateTypes.hpp"
+#include "Strings.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,9 +19,9 @@ namespace affresco::format {
 
 namespace {
 
-/// Format versions this library reads. A future version gets its own entry, and its differences branch on the
-/// document's "version" where they apply.
-constexpr std::array<int, 1> supportedVersions = {1};
+/// Format versions this library reads: version 1 is migrated to version 2 when it is read (Migrate.hpp), and what it
+/// wrote two ways is checked in its version 2 form.
+constexpr std::array<int, 2> supportedVersions = {1, 2};
 
 /// @brief "format": "affrescoui-screen".
 /// @param value The value.
@@ -33,7 +36,7 @@ void checkFormat(const json& value, const std::string& name) {
 void checkVersion(const json& value, const std::string& name) {
 	const int v = expect::integer(value, name);
 	if(std::ranges::find(supportedVersions, v) == supportedVersions.end())
-		expect::fail(name, "unsupported version " + std::to_string(v) + " (this library reads version 1)");
+		expect::fail(name, "unsupported version " + std::to_string(v) + " (this library reads versions 1 and 2)");
 }
 
 /// @brief A section that is an object of named entries ("actions", "styles", ...).
@@ -93,7 +96,7 @@ std::shared_ptr<const SectionRegistry> builtInSections() {
 void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"$schema", nullptr, nullptr, false, false});
 	registry.add({"format", checkFormat, nullptr, false, false});
-	registry.add({"version", checkVersion, "missing \"version\" (this library reads version 1)", false, false});
+	registry.add({"version", checkVersion, "missing \"version\" (this library reads versions 1 and 2)", false, false});
 	registry.add({"note", nullptr, nullptr, false, false});
 	registry.add({"window"}); // checked by the runtime when it opens the window
 	registry.add({"fonts"});  // checked by the runtime, which loads them
@@ -112,6 +115,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"keys", checkObject});
 	registry.add({"menus", checkMenus});       // Contributions.hpp
 	registry.add({"settings", checkSettings}); // Settings.hpp
+	registry.add({"strings", checkStrings});   // translations per locale (Strings.hpp)
 	registry.add({"onLoad"});
 	registry.add(channelsSection());
 	registry.add(servicesSection());
@@ -119,6 +123,10 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add(persistSection());
 	registry.add({.name = "include", .inDocument = false}); // merged when the file is read (Screen)
 	registry.add(permissionsSection());
+	registry.add({"features", checkFeaturesSection}); // installed features, merged by Composition (FeatureManifest.hpp)
+	registry.add({"exports", checkExportsSection});   // what features read as app.<name>
+	registry.add({"imports", checkImportsSection});   // aliases for features' components
+	registry.add({.name = "points", .validate = checkPointsSection, .capability = true}); // ContributionPoints.hpp
 	registry.add({"root", nullptr, "missing \"root\""});
 }
 

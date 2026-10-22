@@ -6,18 +6,23 @@
 #include "affresco/core/CallProgress.hpp"
 #include "affresco/core/DataModel.hpp"
 #include "affresco/core/Executor.hpp"
+#include "affresco/core/Identity.hpp"
 #include "affresco/core/Network.hpp"
 #include "affresco/core/Services.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
+#include "affresco/format/Usage.hpp"
 #include "affresco/render/Application.hpp"
 #include "affresco/render/Bitmap.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -26,6 +31,14 @@
 #include <vector>
 
 namespace affresco::format {
+
+/// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
+struct UpdateStatistics {
+	std::uint64_t updates = 0;     ///< Updates since the runtime started.
+	double milliseconds = 0;       ///< How long the last one took.
+	std::size_t panelsApplied = 0; ///< Panels whose values the last one applied (those it rebuilt among them).
+	std::size_t panelsCreated = 0; ///< Panels it created.
+};
 
 /// @brief Brings a screen document to life: builds it into panels, keeps them in line with it, and runs actions.
 ///
@@ -70,6 +83,13 @@ public:
 	/// @param apply Applies them; may be empty if there are none.
 	void registerType(std::string name, Factory factory, std::vector<std::string> properties = {},
 	                  ApplyProperties apply = {});
+
+	/// @brief Registers a GPU surface that "surface" nodes may name: documents only name the host's surfaces, and never
+	/// supply shader source. Under the name of one already there, it replaces it for panels made from then on.
+	/// @param name Its name.
+	/// @param factory Makes one for each panel that shows it.
+	/// @param options Its framebuffer's options (a depth and stencil buffer).
+	void registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options = {});
 
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
@@ -132,6 +152,15 @@ public:
 	/// @param network The network (outlives the runtime, or is replaced first), or nullptr: every connection is
 	/// refused.
 	void setNetwork(network::Network* network);
+	/// @brief Sets the sign-in the connections' "auth" use (net::SignIn): it is told the providers the document
+	/// declares, adds the bearer token to their requests, and shows its states as the "auth" variable.
+	/// @param identity The sign-in (outlives the runtime, or is replaced first), or nullptr: no connection with "auth"
+	/// is signed in.
+	void setIdentity(identity::Identity* identity);
+	/// @brief Sets the locale the host found on the computer (systemLocale()): the `locale` variable, the language
+	/// `t()` translates to and the formats of numbers and dates, where the "strings" section names no "locale".
+	/// @param tag "fr-CA" or "fr_CA.UTF-8"; "" for the section's "default", else "en".
+	void setLocale(std::string tag);
 
 	/// @brief Registers a data model the document shows with `"repeat": {"in": "models.<name>"}`: its rows are read
 	/// one at a time, and a change of a row updates only what reads that row. Agents see its count, shape and a sample.
@@ -182,6 +211,19 @@ public:
 	/// @brief The window built into, or nullptr before build().
 	[[nodiscard]] Window* window() const noexcept;
 
+	/* Inspection */
+
+	/// @brief What the last update of the panels cost.
+	[[nodiscard]] const UpdateStatistics& lastUpdate() const noexcept;
+
+	/// @brief What the document says about a panel, for an inspector: the node it was built from (the nearest
+	/// ancestor built from one, for a panel a type creates itself) and its bindings as written. Never a value: what
+	/// a binding gives now stays out, so the state never shows.
+	/// @param panel A panel of the window.
+	/// @return `{"node": "#id" or the node's place, "type", "path", "bind"?, "bindings": {key: written}, "handlers":
+	/// [key]}`, or null if no node built it.
+	[[nodiscard]] json inspect(const Panel& panel);
+
 	/* Lookup */
 
 	/// @brief Finds a built panel by id.
@@ -227,6 +269,7 @@ public:
 	Signal<const std::string&, const json&> onSend; ///< "send" steps: a channel's name and the message.
 	Signal<const std::string&> onConnect;           ///< "connect" steps: a channel's name.
 	Signal<> onUpdated;                             ///< The panels were brought in line with the document and state.
+	Usage usage; ///< Usage summaries (VERSION_CONTROL.md, "Usage"): off until the host switches them on, with consent.
 
 private:
 	struct Impl;

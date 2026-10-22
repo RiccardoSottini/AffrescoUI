@@ -45,7 +45,7 @@ json state(const affresco::Screen& screen) { return json::parse(screen.stateJson
 
 /// @brief A screen with a quick pick over files (the default provider) and commands (after ">").
 constexpr const char* pickScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"state": { "quickPick": { "open": true }, "opened": null, "ran": null,
 	           "files": [{ "title": "main.cpp", "detail": "src" }, { "title": "Makefile" },
 	                     { "title": "README.md" }, { "title": "mouse.cpp" }] },
@@ -74,8 +74,10 @@ TEST_CASE("format: fuzzy matches the query's characters in order and gives the r
 	CHECK(evaluate("{{fuzzy('MAIN', 'main.cpp')}}").is_object()); // any case
 	CHECK(evaluate("{{fuzzy('pcm', 'main.cpp')}}").is_null());    // out of order
 	CHECK(evaluate("{{fuzzy('', 'abc').score}}") == 0);
-	CHECK(evaluate("{{fuzzy('é', 'café').ranges}}") == json::parse("[[3, 4]]")); // characters, not bytes
+	CHECK(evaluate("{{fuzzy('é', 'café').ranges}}") == json::parse("[[3, 4]]"));          // characters, not bytes
 	CHECK(evaluate("{{fuzzy('ab', 'xaxb').score < fuzzy('ab', 'xabx').score}}") == true); // together is better
+	// A separator starts a word, in ASCII texts too, wherever char is signed (a regression)
+	CHECK(evaluate("{{fuzzy('ab', 'xa-b').score > fuzzy('ab', 'xacb').score}}") == true);
 }
 
 TEST_CASE("format: fuzzySort keeps the matches, the best first, on a key, up to a limit") {
@@ -84,7 +86,7 @@ TEST_CASE("format: fuzzySort keeps the matches, the best first, on a key, up to 
 	const json sorted = evaluate("{{map(fuzzySort(state.files, 'main', 'name'), it.item.name)}}", files);
 	CHECK(sorted == json::parse(R"(["main.cpp", "src/main.cpp"])")); // a prefix first, then the shorter
 	CHECK(evaluate("{{map(fuzzySort(state.files, '', 'name'), it.index)}}", files) == json::parse("[0, 1, 2, 3]"));
-	CHECK(evaluate("{{len(fuzzySort(state.files, 'm', 'name', 1))}}", files) == 1);
+	CHECK(evaluate("{{length(fuzzySort(state.files, 'm', 'name', 1))}}", files) == 1);
 	CHECK(evaluate("{{fuzzySort(['beta', 'alpha'], 'a')[0].item}}") == "alpha"); // texts: the item itself
 	CHECK(evaluate("{{fuzzySort(null, 'a')}}") == json::array());
 	CHECK_THROWS_AS((void)evaluate("{{fuzzySort(3, 'a')}}"), affresco::DocumentError);

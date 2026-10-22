@@ -2,7 +2,8 @@
 # The benchmarks in CI (.github/workflows/ci.yml, job "Benchmarks (callgrind)"). Builds HEAD and a base commit the same way, measures both on this
 # runner (instructions under callgrind for the workloads that don't draw, the main thread's CPU time for the frames,
 # tokens for the documents), then compare.py writes the tables and fails on a growth in instructions over 3%, and
-# scaling.py fails when an area's cost grows faster with its n than the baseline's (tests/perf/README.md, "Scaling").
+# scaling.py fails when an area's cost grows faster with its n than the baseline's (tests/perf/README.md, "Scaling"),
+# and run.py --budgets fails when a budget of BENCHMARKS.md is above its threshold in tests/perf/budgets.json.
 #
 # Usage, from the repository root, under a display (xvfb-run): tests/perf/ci.sh
 #
@@ -30,9 +31,9 @@ build() {
 }
 
 # Measures a checkout's build into $out/<side>: instructions (not the frames, which callgrind makes very slow with
-# software OpenGL) and the frames' CPU time. Uses this checkout's run.py, which drives any version of the program.
+# software OpenGL, nor the idle second, which is wall clock) and the frames' CPU time. Uses this checkout's run.py, which drives any version of the program.
 measure() {
-	python3 "$here/tests/perf/run.py" --build "$1/build-perf" --callgrind --skip frame --out "$out/$2/callgrind.jsonl" ||
+	python3 "$here/tests/perf/run.py" --build "$1/build-perf" --callgrind --skip frame,budgets/idle --out "$out/$2/callgrind.jsonl" ||
 		return 1
 	python3 "$here/tests/perf/run.py" --build "$1/build-perf" --only frame --out "$out/$2/frame.jsonl" || return 1
 }
@@ -70,4 +71,6 @@ python3 tests/perf/compare.py --base "$out/base" --head "$out/head" --summary "$
 # How each area's cost grows with its n, at the small sizes, against tests/perf/scaling-baseline.json (scaling.py)
 python3 tests/perf/scaling.py --build "$here/build-perf" --size small --callgrind --out "$out/scaling/head.json" \
 	--summary "${GITHUB_STEP_SUMMARY:-/dev/null}" "${allow[@]}" || status=1
+# The budgets with a threshold, head's instructions and tokens against tests/perf/budgets.json (no label waives them)
+python3 tests/perf/run.py --budgets --from "$out/head" || status=1
 exit "$status"

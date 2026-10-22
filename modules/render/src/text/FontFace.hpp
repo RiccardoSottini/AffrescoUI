@@ -15,6 +15,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -111,6 +112,8 @@ public:
 	[[nodiscard]] char32_t codepointNamed(const std::string& name) const noexcept;
 	/// @brief Whether it has colour glyphs (a COLR table, as colour emoji fonts do).
 	[[nodiscard]] bool hasColor() const noexcept { return color_; }
+	/// @brief The file's bytes, as read.
+	[[nodiscard]] std::span<const unsigned char> bytes() const noexcept { return file_->bytes; }
 	/// @brief Pixels per font unit.
 	[[nodiscard]] float scale() const noexcept { return scale_; }
 	/// @brief How large its em square is, in pixels.

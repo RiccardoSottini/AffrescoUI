@@ -4,7 +4,7 @@
 		"message": "Word count in the status bar",
 		"set": {
 			"/state/wordCount": { "characters": false },
-			"/computed/wordCount": "{{ {words: len(filter(split(join(split(state.files[state.active].text, '\\n'), ' '), ' '), len(trim(it)) > 0)), characters: len(state.files[state.active].text)} }}",
+			"/computed/wordCount": "{{ {words: length(filter(split(join(split(state.files[state.active].text, '\\n'), ' '), ' '), length(trim(it)) > 0)), characters: length(state.files[state.active].text)} }}",
 			"/actions/wordCount.toggle": { "toggle": "state.wordCount.characters" }
 		},
 		"add": {

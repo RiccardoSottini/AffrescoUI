@@ -5,6 +5,8 @@
 #include "affresco/automation/Scenarios.hpp"
 
 #include "Internal.hpp"
+#include "affresco/core/Log.hpp"
+#include "affresco/format/Migrate.hpp"
 
 #include <algorithm>
 #include <array>
@@ -334,12 +336,16 @@ std::string inFile(const std::filesystem::path& path, std::string message) {
 
 ScenarioFile ScenarioFile::parse(std::string_view text, const std::filesystem::path& path) {
 	try {
-		const json document = parseUntrusted(text);
+		json document = parseUntrusted(text);
 		if(!document.is_object()) fail("", R"(expected an object with "scenarios")");
 		onlyKeys(document, {"$schema", "format", "version", "note", "screen", "screens", "scenarios"}, "");
 		if(document.contains("format") && document["format"] != "affrescoui-scenarios")
 			fail("format", R"(expected "affrescoui-scenarios")");
-		if(!document.contains("version") || document["version"] != 1) fail("version", "expected 1");
+		if(!document.contains("version") || (document["version"] != 1 && document["version"] != format::formatVersion))
+			fail("version", "expected 1 or 2");
+		if(!format::migrate(document).empty())
+			log(LogLevel::Info, path.filename().string() + ": version 1, read as version 2 (affrescoui migrate --write "
+			                                                "rewrites the file)");
 		return {path, readScenarios(document, path.parent_path())};
 	} catch(const json::exception& error) { // not JSON, or what parseUntrusted didn't turn into a DocumentError
 		throw DocumentError(inFile(path, error.what()));

@@ -1,0 +1,17 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Included parts", "width": 360, "height": 140 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"include": ["parts/palette.json"],
+	"root": {
+		"color": "@surface",
+		"children": [
+			{ "type": "column", "id": "content", "anchors": { "left": 24, "right": 24, "top": 24 }, "height": 80, "gap": 8, "children": [
+				{ "id": "heading", "style": "title", "text": "Colours and styles from parts/palette.json" },
+				{ "id": "accent-bar", "anchors": { "left": 0, "right": 0 }, "height": 6, "radius": 3, "color": "@accent" }
+			] }
+		]
+	}
+}

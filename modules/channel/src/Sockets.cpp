@@ -32,6 +32,7 @@
 #else
 #include <cerrno>
 #include <csignal>
+#include <fcntl.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -65,6 +66,11 @@ void startSockets() {
 /// @brief Describes the last error of this thread (Winsock's and Windows' share one slot).
 /// @return The description.
 std::string lastError() { return std::system_category().message(static_cast<int>(GetLastError())); }
+
+/// @brief Keeps a socket from the programs the host starts: on Windows they get only the handles listed for them.
+/// @param socket The socket.
+/// @return It.
+SocketHandle hostOnly(SocketHandle socket) noexcept { return socket; }
 
 /// @brief Closes a socket.
 /// @param socket The socket.
@@ -252,6 +258,15 @@ void startSockets() {}
 /// @return The description.
 std::string lastError() { return std::strerror(errno); }
 
+/// @brief Keeps a descriptor from the programs the host starts (close-on-exec): a peer's connection or the
+/// listening socket must not reach a shell or a debug adapter.
+/// @param socket The descriptor, or noSocket.
+/// @return It.
+SocketHandle hostOnly(SocketHandle socket) noexcept {
+	if(socket != noSocket) fcntl(socket, F_SETFD, FD_CLOEXEC);
+	return socket;
+}
+
 /// @brief Closes a socket.
 /// @param socket The socket.
 void closeSocket(SocketHandle socket) noexcept { close(socket); }
@@ -297,6 +312,9 @@ bool sameUser(SocketHandle socket) {
 	socklen_t size = sizeof(peer);
 	return getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0 && size == sizeof(peer) &&
 	       peer.uid == geteuid();
+#elif defined(__EMSCRIPTEN__)
+	(void)socket;
+	return false; // a browser can't say, so local connections are refused
 #else
 	uid_t user = 0;
 	gid_t group = 0;
@@ -316,7 +334,7 @@ void removeSocketFile(const std::filesystem::path& path) { unlink(path.c_str());
 /// @brief Accepts a connection that is waiting.
 /// @param listener The listening socket.
 /// @return The connection, or noSocket.
-SocketHandle acceptConnection(SocketHandle listener) { return accept(listener, nullptr, nullptr); }
+SocketHandle acceptConnection(SocketHandle listener) { return hostOnly(accept(listener, nullptr, nullptr)); }
 
 /// @brief Waits on a listening socket for a connection, or for stop() from another thread: poll() and a pipe.
 class AcceptWait {
@@ -335,7 +353,9 @@ public:
 	/// @return false on an error (see lastError()).
 	[[nodiscard]] bool watch(SocketHandle listener) {
 		listener_ = listener;
-		return pipe(wake_.data()) == 0;
+		if(pipe(wake_.data()) != 0) return false;
+		for(const int fd : wake_) hostOnly(fd);
+		return true;
 	}
 
 	/// @brief Blocks until a peer connects, or until stop().
@@ -391,7 +411,7 @@ constexpr auto addressLength = static_cast<AddressLength>(sizeof(sockaddr_un));
 SocketHandle connectTo(const std::filesystem::path& path) {
 	startSockets();
 	const sockaddr_un target = address(path);
-	const SocketHandle connection = socket(AF_UNIX, SOCK_STREAM, 0);
+	const SocketHandle connection = hostOnly(socket(AF_UNIX, SOCK_STREAM, 0));
 	if(connection == noSocket) return noSocket;
 	if(::connect(connection, reinterpret_cast<const sockaddr*>(&target), addressLength) != 0) {
 		closeSocket(connection);
@@ -407,7 +427,7 @@ SocketHandle connectTo(const std::filesystem::path& path) {
 SocketHandle listenAt(const std::filesystem::path& path) {
 	startSockets();
 	const sockaddr_un local = address(path);
-	const SocketHandle listener = socket(AF_UNIX, SOCK_STREAM, 0);
+	const SocketHandle listener = hostOnly(socket(AF_UNIX, SOCK_STREAM, 0));
 	if(listener == noSocket || bind(listener, reinterpret_cast<const sockaddr*>(&local), addressLength) != 0 ||
 	   !restrictToOwner(path) || listen(listener, 8) != 0) {
 		const std::string reason = lastError();

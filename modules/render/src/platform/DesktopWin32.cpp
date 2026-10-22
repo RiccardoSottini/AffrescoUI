@@ -46,7 +46,8 @@ public:
 	/// @brief An empty bar; starts hearing the window's commands.
 	/// @param window The GLFW window.
 	/// @param chosen Runs chosen items.
-	Win32MenuBar(GLFWwindow* window, MenuChosen chosen) : hwnd_(glfwGetWin32Window(window)), chosen_(std::move(chosen)) {
+	Win32MenuBar(GLFWwindow* window, MenuChosen chosen)
+	    : hwnd_(glfwGetWin32Window(window)), chosen_(std::move(chosen)) {
 		SetPropW(hwnd_, propertyName, this);
 		previous_ = reinterpret_cast<WNDPROC>(
 		    SetWindowLongPtrW(hwnd_, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&Win32MenuBar::procedure)));
@@ -139,7 +140,7 @@ ColorScheme colorScheme() {
 	DWORD size = sizeof(light);
 	const LSTATUS status =
 	    RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-	                 L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &light, &size);
+		             L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &light, &size);
 	return status == ERROR_SUCCESS && light == 0 ? ColorScheme::Dark : ColorScheme::Light;
 }
 

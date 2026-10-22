@@ -1,0 +1,72 @@
+{
+	"format": "affrescoui-feature",
+	"version": 2,
+	"name": "todoTree",
+	"release": "1.2.0",
+	"title": "TODO tree",
+	"description": "Lists the TODO and FIXME comments of the open files in the side bar, grouped by file; a click shows the file.",
+	"license": "Apache-2.0",
+	"note": "RFC 0004's worked example, fitted to Forge: it reads the open files through Forge's workspace.files export.",
+	"requires": {
+		"format": 2,
+		"points": ["sidebar.views"],
+		"exports": { "workspace.files": { "type": "array" } },
+		"features": { "wordCount": "^1.0.0" }
+	},
+	"provides": {
+		"state": { "open": true },
+		"computed": {
+			"count": "{{sum(app.workspace.files, count(split(it.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME')))}}"
+		},
+		"actions": {
+			"toggle": { "title": "Show or Hide the TODO Tree", "category": "TODO Tree", "do": { "toggle": "state.todoTree.open" } }
+		},
+		"keys": { "mod+shift+t": "todoTree.toggle" },
+		"views": {
+			"sidebar.views": {
+				"todoTree-view": {
+					"type": "column",
+					"gap": 2,
+					"width": "100%",
+					"children": [
+						{
+							"id": "todoTree-header",
+							"type": "label",
+							"textColor": "@color.muted",
+							"width": "100%",
+							"height": 32,
+							"padding": 12,
+							"cursor": "hand",
+							"text": "TODO TREE ({{computed.todoTree.count}})",
+							"onClick": "todoTree.toggle"
+						},
+						{
+							"id": "todoTree-file",
+							"when": "{{state.todoTree.open}}",
+							"repeat": { "for": "file", "in": "app.workspace.files", "key": "{{file.id}}" },
+							"let": { "todos": "{{filter(split(file.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME'))}}" },
+							"type": "column",
+							"width": "100%",
+							"height": "{{length(todos) == 0 ? 0 : 24 + length(todos) * 22}}",
+							"children": [
+								{ "id": "todoTree-file-name", "type": "label", "fitText": true, "textColor": "@color.text", "padding": 4, "text": "{{file.name}}", "visible": "{{length(todos) > 0}}" },
+								{
+									"id": "todoTree-line",
+									"repeat": { "for": "todo", "in": "todos" },
+									"type": "label",
+									"textColor": "@color.text",
+									"padding": 3,
+									"height": 22,
+									"width": "100%",
+									"cursor": "hand",
+									"text": "{{trim(todo)}}",
+									"onClick": { "run": "showTab", "with": { "id": "{{file.id}}", "label": "{{file.name}}" } }
+								}
+							]
+						}
+					]
+				}
+			}
+		}
+	}
+}

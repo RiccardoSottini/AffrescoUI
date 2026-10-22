@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -45,9 +46,9 @@ struct FontStyle {
 /// **Shaping.** Text is shaped with HarfBuzz: kerning, ligatures, combining marks, and the joining and reordering of
 /// complex scripts (Arabic, Devanagari and the others HarfBuzz knows). Each character is drawn from the first of the
 /// font and its fallbacks that has it (its coverage), and a run of one script and one font file is shaped at a time.
-/// A run of a right-to-left script is laid out right to left, and the runs of a line follow each other left to right:
-/// there is no bidirectional reordering yet. Shaped text is cached by its text: a line from its words (split at
-/// spaces, so a new line of known words is quick), and lines as a whole.
+/// A run of a right-to-left script is laid out right to left, and the runs of a line are put in visual order by their
+/// bidirectional levels (UAX #9, simplified: numbers stay left to right). Shaped text is cached by its text: a line
+/// from its words (split at spaces, so a new line of known words is quick), and lines as a whole.
 ///
 /// **Atlas.** Glyphs are rasterised with FreeType the first time they are drawn, into a page with room (a new page when
 /// they are all full). Latin-1 (U+0020..U+00FF) is rasterised when the font loads, into the first page. Colour glyphs
@@ -201,6 +202,26 @@ public:
 	/// @brief Texture coordinates of a fully covered texel of a coverage page, for solid rectangles.
 	/// @param page The page, below atlasPages().
 	[[nodiscard]] Vec2 whiteTexel(std::size_t page = 0) const noexcept;
+
+	/* Outlines, for vector output (a PDF writer embeds the font files and places glyphs by index) */
+
+	/// @brief A font file of the font or one of its fallbacks, as it was read.
+	struct FaceSource {
+		std::span<const unsigned char> bytes; ///< The whole file (a collection's first font is the one used).
+		float scale = 0.0f;                   ///< Pixels per font unit at this font's size.
+		bool color = false;                   ///< Whether it has colour glyphs (COLR), drawn from the atlas instead.
+	};
+	/// @brief Where a glyph comes from: which face and which of its glyphs.
+	struct GlyphSource {
+		std::size_t face = 0; ///< Index into faceSources().
+		unsigned index = 0;   ///< The glyph's index in that face.
+	};
+	/// @brief The font's files: the font first, then its fallbacks. The bytes stay valid as long as the font.
+	[[nodiscard]] std::vector<FaceSource> faceSources() const;
+	/// @brief Which face and glyph a glyph of this font (from glyph() or shape()) was rasterised from.
+	/// @param glyph A glyph this font returned.
+	/// @return Its source; nullopt for a glyph of another font.
+	[[nodiscard]] std::optional<GlyphSource> glyphSource(const Glyph& glyph) const noexcept;
 
 private:
 	friend class FontCache;

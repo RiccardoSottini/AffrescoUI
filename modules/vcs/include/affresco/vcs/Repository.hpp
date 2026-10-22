@@ -5,6 +5,8 @@
 
 #include "affresco/core/DocumentRules.hpp"
 #include "affresco/core/VersionControl.hpp"
+#include "affresco/vcs/Leases.hpp"
+#include "affresco/vcs/Roles.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -13,6 +15,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace affresco::vcs {
@@ -80,6 +83,12 @@ public:
 
 	/* Changes */
 	RevisionResult submit(const json& revision) override;
+	/// @brief Submits a revision that only a reviewer may land: it opens a proposal even where the rules would apply it
+	/// (deny rules still refuse it). A change set's repair goes this way (VERSION_CONTROL.md, "Self-repairing change
+	/// sets").
+	/// @param revision The revision, as for submit(); it can't push to a proposal.
+	/// @return Proposed or rejected, never applied.
+	RevisionResult propose(const json& revision);
 	std::optional<std::string> commit(const json& revision) override;
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
@@ -102,7 +111,7 @@ public:
 	/// @param mode The mode.
 	void setModeForThisRun(Mode mode);
 	[[nodiscard]] Mode mode() const override { return mode_; }
-	[[nodiscard]] std::vector<Grant> grants() const override { return grants_; }
+	[[nodiscard]] std::vector<Grant> grants() const override;
 	bool revokeGrant(std::string_view rule) override;
 
 	/* History */
@@ -114,8 +123,58 @@ public:
 	/// @param changes The change set.
 	/// @return true if it was.
 	[[nodiscard]] bool hasImported(const json& changes) const;
+	/// @brief What the screen would be after importChanges(), without committing or changing anything: how a change
+	/// set's proof is checked before it is applied.
+	/// @param changes The change set.
+	/// @return The document with the live state in "state", as the permission rules see it.
+	/// @throws DocumentError If the change set is malformed, or a revision doesn't apply or is refused (named).
+	[[nodiscard]] json tryChanges(const json& changes) const;
+	/// @brief Records a change set as applied without applying it (see hasImported()): a repaired change set, whose
+	/// revision is already on main as the merged repair.
+	/// @param changes The change set.
+	void recordImported(const json& changes);
+
+	/* Policy (VERSION_CONTROL.md, "Budgets" and "Data rules") */
+	/// @brief What the rules say about a revision, without applying it.
+	struct Judgement {
+		std::string decision; ///< "allow", "ask" or "deny" (also for a revision that can't apply).
+		std::string reason;   ///< Why it asks or is denied: the rule, budget or data rule that matched.
+	};
+	/// @brief Judges a revision as submit() would, on main's head, and changes nothing: what policy tests run.
+	/// @param revision The revision, with its "author".
+	/// @return The judgement.
+	[[nodiscard]] Judgement judge(const json& revision) const;
+	[[nodiscard]] std::optional<json> readable(std::string_view author) const override;
+	/// @brief Who plays which role ("role:<name>" in rules), for this run.
+	/// @return The roles.
+	[[nodiscard]] Roles& roles() noexcept { return roles_; }
+	/// @brief Who plays which role, for this run.
+	/// @return The roles.
+	[[nodiscard]] const Roles& roles() const noexcept { return roles_; }
+
+	/* Several agents at once (VERSION_CONTROL.md, "Roles" and "Leases"; LeasesRepository.cpp) */
+	/// @brief The most peers kept at once; more join, but can't lease.
+	static constexpr std::size_t maxPeers = 256;
+	void join(const void* connection, std::string_view author) override;
+	void leave(const void* connection) override;
+	RevisionResult submitFrom(const void* connection, const json& revision) override;
+	std::optional<std::string> lease(const void* connection, std::string_view holder, std::string_view target,
+	                                 int seconds) override;
+	bool release(const void* connection, std::string_view target) override;
+	std::optional<std::string> endLease(std::string_view target, std::string_view by) override;
+	std::optional<std::string> setRole(std::string_view author, std::string_view role, std::string_view by) override;
+	[[nodiscard]] json coordination() const override;
 
 private:
+	/// @brief submit() and propose().
+	/// @param revision The revision.
+	/// @param alwaysReview true for propose(): open a proposal even where the rules allow the change.
+	/// @return What happened.
+	RevisionResult submitRevision(const json& revision, bool alwaysReview);
+	/// @brief Checks a change set's envelope: its format, version and list of revisions.
+	/// @param changes The change set.
+	/// @throws DocumentError If it isn't one this version reads.
+	static void checkChanges(const json& changes);
 	/// @brief A commit object. It keeps how its document differs from its first parent's, not the document: every
 	/// snapshotInterval-th commit along first parents (and revision 0) also keeps the whole document, and any other is
 	/// rebuilt from the nearest one (documentOf()), so the history grows with the changes, not with the document.
@@ -148,6 +207,12 @@ private:
 		json patch = json::array();                 ///< Every commit's operations, in order: what accept replays.
 		std::vector<std::string> touches, remember; ///< See ProposalInfo.
 		std::string reason;                         ///< Why it waits.
+		json conflicts = json::array();     ///< Where it conflicts with main (detail::merge()); see ProposalInfo.
+		std::vector<std::string> approvals; ///< The reviewers who approved it so far, each once.
+		/// Heads it had before rebases that replayed its commits unchanged: an approval of one of them still holds.
+		std::vector<std::string> reviewedHeads;
+		std::vector<std::string> behaviour; ///< What it changes in behaviour (DocumentRules::behaviourLines()).
+		std::string policy;                 ///< What the review policy asks of it, for reviewers.
 	};
 
 	/// @brief A revision applied to a copy, not yet committed.
@@ -309,6 +374,45 @@ private:
 	/// @return The verdict.
 	[[nodiscard]] Verdict evaluate(const json& before, const json& after, const std::string& author,
 	                               bool reviewed) const;
+	/// @brief Refuses a patch that names a path its author may not read (a "test" or "copy" would tell its value).
+	/// @param patch The operations, as submitted.
+	/// @param author Who sends it.
+	/// @throws DocumentError If it names one.
+	void checkReadable(const json& patch, const std::string& author) const;
+	/// @brief A connected peer (join()).
+	struct Peer {
+		const void* connection = nullptr; ///< Its connection.
+		int id = 0;                       ///< Its number, which its leases name.
+		std::string author;               ///< The author it last wrote as.
+	};
+	/// @brief The peer on a connection.
+	/// @param connection The connection.
+	/// @return It, or nullptr.
+	[[nodiscard]] const Peer* peerOn(const void* connection) const;
+	/// @brief Whether a change touches a lease someone else holds: by another connection than the one submitting, or
+	/// with none submitting (a merge, a policy test), by another holder than the author.
+	/// @param before The view before.
+	/// @param after The view after.
+	/// @param author The author.
+	/// @return Why it is refused, naming the holder, or std::nullopt.
+	[[nodiscard]] std::optional<std::string> leaseDenial(const json& before, const json& after,
+	                                                     const std::string& author) const;
+	/// @brief Whether an author's rules let it change a part at all, so it may lease it.
+	/// @param target "#id" or a JSON Pointer.
+	/// @param author The author.
+	/// @return Why not, or std::nullopt.
+	[[nodiscard]] std::optional<std::string> leaseBeyondRules(std::string_view target, const std::string& author);
+	/// @brief A proposal's commits, oldest first, copied.
+	/// @param proposal The proposal.
+	/// @return Its branch's commits.
+	[[nodiscard]] std::vector<Commit> branchOf(const Proposal& proposal) const;
+	/// @brief Builds a proposal's branch on main's head from commits, and describes it again: its patch, what it
+	/// touches, why it waits and what its review needs. Keeps its approvals; clears its conflicts.
+	/// @param proposal The proposal.
+	/// @param commits The commits, oldest first; their parents and numbers are set here.
+	/// @return The document its new head has.
+	/// @throws DocumentError If the commits don't apply, or a deny rule refuses them.
+	json replay(Proposal& proposal, std::vector<Commit> commits);
 	/// @brief Builds a proposal's branch again on main's head, with one more commit, and describes it.
 	/// @param proposal The proposal.
 	/// @param revision The new commit's revision.
@@ -328,6 +432,50 @@ private:
 	/// @return What happened.
 	/// @throws DocumentError If there is no such proposal, it isn't the author's, or the result is refused.
 	RevisionResult push(const json& revision, const std::string& author);
+	/* Review at scale (RepositoryReview.cpp) */
+
+	/// @brief Rebases the open proposals that main left behind (VERSION_CONTROL.md, "Rebasing"); one that conflicts
+	/// keeps its branch and gets its conflicts.
+	/// @return true if any proposal changed.
+	bool rebaseProposals();
+	/// @brief Rebases one proposal onto main's head through a three-way merge (detail::merge()).
+	/// @param proposal The proposal.
+	/// @return true if it changed.
+	bool rebase(Proposal& proposal);
+	/// @brief Replaces a proposal's branch with one commit that turns main's head into a merged document, plus its
+	/// operations on the live state. Its approvals are dismissed: what it does is no longer what was reviewed.
+	/// @param proposal The proposal.
+	/// @param merged The merged document.
+	/// @throws DocumentError If the commit doesn't apply, or a rule refuses it.
+	void squash(Proposal& proposal, const json& merged);
+	/// @brief Checks an approval before it counts: never the author's own, pinned to the head reviewed (or one the
+	/// proposal rebased from unchanged), and a "don't ask again" that can be granted for as long as it asks.
+	/// @param proposal The proposal.
+	/// @param approval The approval.
+	/// @return Why it is refused, or std::nullopt.
+	[[nodiscard]] std::optional<std::string> checkApproval(const Proposal& proposal, const Approval& approval) const;
+	/// @brief Records an approval and tells what the review policy still needs before the proposal merges.
+	/// @param proposal The proposal.
+	/// @param reviewer Who approves.
+	/// @return What is missing ("1 more approval"), or "" if it may merge (also when it no longer applies: accept()
+	/// then closes it with the reason).
+	[[nodiscard]] std::string approve(Proposal& proposal, const std::string& reviewer);
+	/// @brief What the review policy asks of a change, and what is still missing.
+	/// @param before The view before.
+	/// @param after The view after.
+	/// @param approvals The reviewers who approved it.
+	/// @return {what it asks, what is missing ("" if nothing)}.
+	[[nodiscard]] std::pair<std::string, std::string> reviewNeeds(const json& before, const json& after,
+	                                                              const std::vector<std::string>& approvals) const;
+	/// @brief When the grants of an approval expire: after its duration or the policy's "grantsLast", the shorter.
+	/// @param approval The approval.
+	/// @return UTC, ISO 8601; empty if they don't.
+	[[nodiscard]] std::string grantsExpire(const Approval& approval) const;
+	/// @brief Tells whether a grant has expired.
+	/// @param grant The grant.
+	/// @return true if it has.
+	[[nodiscard]] static bool expired(const Grant& grant);
+
 	/// @brief Tells the observer that the working copy changed.
 	/// @throws DocumentError If the observer refuses it.
 	void documentChanged();
@@ -417,6 +565,10 @@ private:
 	/// @return false, changing nothing, if it began with another document.
 	/// @throws DocumentError If it is damaged, or its head can't be shown; then nothing changed.
 	bool loadHistory(detail::HistoryStore& store);
+	/// @brief Lands a loaded head upgraded to the current format version (DocumentRules::upgrade()) as one commit
+	/// by "format" on top of it, so the history on disk is never rewritten. The observer hasn't heard of it yet.
+	/// @param upgraded The head's document, upgraded.
+	void upgradeHead(json upgraded);
 	/// @brief The refs file's content: main's head, the open proposals, the grants, the mode and the change sets
 	/// applied.
 	/// @return It, without its checksum.
@@ -452,6 +604,11 @@ private:
 	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
+	Roles roles_;                                   ///< Who plays which role, for this run (never kept in the history).
+	Leases leases_{rules_};                         ///< Parts held by connected peers, for this run.
+	std::vector<Peer> peers_;                       ///< Who is connected, oldest first, at most maxPeers.
+	int nextPeer_ = 1;                              ///< The next peer's number.
+	const void* submitting_ = nullptr;              ///< The connection whose revision is judged now (submitFrom()).
 };
 
 } // namespace affresco::vcs

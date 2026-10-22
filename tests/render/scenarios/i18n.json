@@ -1,0 +1,20 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "i18n",
+			"screen": "i18n.screen.json",
+			"steps": [
+				{ "expect": { "image": "english" } },
+				{ "revision": { "message": "Italian, three files", "set": { "/state/locale": "it", "/state/count": 3 } } },
+				{ "expect": { "image": "italian" } },
+				{ "revision": { "message": "Arabic, right to left", "set": { "/state/locale": "ar" } } },
+				{ "expect": { "image": "arabic" } },
+				{ "revision": { "message": "Back to English, left to right", "set": { "/state/locale": "en-GB", "/state/count": 0 } } },
+				{ "expect": { "image": "english-again" } }
+			]
+		}
+	]
+}

@@ -1,0 +1,14 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 1,
+	"screen": "board.screen.json",
+	"scenarios": [
+		{
+			"name": "count",
+			"steps": [
+				{ "revision": 1e400{ "set": { "#toolbar/from": "end" } } },
+				{ "expect": { "text": "#count", "is": "{{len(state.cards)}} cards" } }
+			]
+		}
+	]
+}

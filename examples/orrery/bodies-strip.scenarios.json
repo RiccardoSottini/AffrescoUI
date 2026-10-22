@@ -1,0 +1,55 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "orrery.screen.json",
+	"note": "The bodies strip, Sinopia's slide sorter installed into Orrery. A file of its own: affrescoui check --compose also plays orrery.scenarios.json against the screen before the install.",
+	"scenarios": [
+		{
+			"name": "bodies-strip-is-installed",
+			"steps": [
+				{
+					"expect": {
+						"node": "#slideSorter-view",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#slideSorter-title",
+						"text": "Pages (5)"
+					}
+				},
+				{
+					"click": "#slideSorter-page-mars"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars"
+					}
+				},
+				{
+					"click": "#slideSorter-duplicate"
+				},
+				{
+					"expect": {
+						"state": "bodies.length",
+						"is": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "bodies[6].name",
+						"is": "Mars 2"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "mars-2"
+					}
+				}
+			]
+		}
+	]
+}

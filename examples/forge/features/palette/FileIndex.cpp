@@ -5,15 +5,23 @@
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <fstream>
 #include <iterator>
 #include <map>
 #include <memory>
+#include <random>
 #include <stdexcept>
 #include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
+
+#ifndef _WIN32
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 namespace forge {
 
@@ -69,12 +77,26 @@ affresco::json treeItems(const Folder& folder, const std::string& prefix) {
 	return items;
 }
 
+/// @brief Whether the walk indexes the entry it is at as a file; it doesn't descend into a folder it skips.
+/// @param entry The walk, at the entry.
+/// @param limits The limits, for the depth.
+/// @param error Set when the entry can't be read.
+/// @return True for a regular file that isn't a link, isn't skipped, and isn't too deep.
+bool indexedFile(fs::recursive_directory_iterator& entry, const IndexLimits& limits, std::error_code& error) {
+	const bool folder = entry->is_directory(error) && !entry->is_symlink(error);
+	if(skipped(entry->path().filename().string(), folder) || entry.depth() >= limits.depth) {
+		if(folder) entry.disable_recursion_pending();
+		return false;
+	}
+	return !folder && entry->is_regular_file(error) && !entry->is_symlink(error);
+}
+
 } // namespace
 
 affresco::json indexFolder(const fs::path& root, const IndexLimits& limits) {
 	std::error_code error;
 	if(!fs::is_directory(root, error)) throw std::runtime_error("not a folder that can be read");
-	auto walk = fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied, error);
+	const auto walk = fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied, error);
 	if(error) throw std::runtime_error("the folder can't be read: " + error.message());
 
 	affresco::json files = affresco::json::array();
@@ -82,22 +104,17 @@ affresco::json indexFolder(const fs::path& root, const IndexLimits& limits) {
 	bool truncated = false;
 	for(auto entry = fs::begin(walk); entry != fs::end(walk); entry.increment(error)) {
 		if(error) break;
-		const bool folder = entry->is_directory(error) && !entry->is_symlink(error);
-		const std::string name = entry->path().filename().string();
-		if(skipped(name, folder) || entry.depth() >= limits.depth) {
-			if(folder) entry.disable_recursion_pending();
-			continue;
-		}
-		if(folder || !entry->is_regular_file(error) || entry->is_symlink(error)) continue;
+		if(!indexedFile(entry, limits, error)) continue;
 		if(files.size() >= limits.files) {
 			truncated = true;
 			break;
 		}
 		const std::string id = entry->path().lexically_relative(root).generic_string();
 		const std::string parent = fs::path(id).parent_path().generic_string();
-		files.push_back({{"id", id}, {"title", name}, {"detail", parent}});
+		files.push_back({{"id", id}, {"title", entry->path().filename().string()}, {"detail", parent}});
 		addToTree(tree, id);
 	}
+	// NOLINTNEXTLINE(modernize-use-ranges): json's iterators don't model the ranges concepts
 	std::sort(files.begin(), files.end(), [](const affresco::json& a, const affresco::json& b) { return a["id"] < b["id"]; });
 	return {{"root", root.filename().string()},
 	        {"files", std::move(files)},
@@ -129,6 +146,65 @@ std::string readInFolder(const fs::path& root, const std::string& relative, std:
 	std::ifstream in(path, std::ios::binary);
 	if(!in) throw std::runtime_error("the file can't be read: " + relative);
 	return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+}
+
+namespace {
+
+/// @brief Creates a new file and writes it; fails rather than open what is already there, a link included.
+/// @param file The new file.
+/// @param text Its bytes.
+/// @param permissions Its permissions.
+/// @return Whether it was created and written; if it was created but not written, it is removed.
+bool createWith(const fs::path& file, const std::string& text, fs::perms permissions) {
+#ifdef _WIN32
+	if(fs::exists(fs::symlink_status(file))) return false;
+	std::ofstream out(file, std::ios::binary | std::ios::trunc);
+	std::error_code error;
+	if(!out || !out.write(text.data(), static_cast<std::streamsize>(text.size())) || !out.flush()) {
+		out.close();
+		fs::remove(file, error);
+		return false;
+	}
+	out.close();
+	fs::permissions(file, permissions, error);
+	return true;
+#else
+	const int descriptor = ::open(file.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+	if(descriptor < 0) return false;
+	bool written = ::fchmod(descriptor, static_cast<mode_t>(permissions) & 07777) == 0;
+	for(std::size_t at = 0; written && at < text.size();) {
+		const ssize_t count = ::write(descriptor, text.data() + at, text.size() - at);
+		if(count > 0) at += static_cast<std::size_t>(count);
+		else written = count < 0 && errno == EINTR;
+	}
+	written = ::close(descriptor) == 0 && written;
+	if(!written) ::unlink(file.c_str());
+	return written;
+#endif
+}
+
+} // namespace
+
+std::optional<std::string> writeInFolder(const fs::path& path, const std::string& text) {
+	std::error_code error;
+	const fs::file_status status = fs::status(path, error);
+	const fs::perms permissions = error ? fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
+	                                          fs::perms::others_read
+	                                    : status.permissions();
+	std::random_device random;
+	for(int attempt = 0; attempt < 8; ++attempt) {
+		fs::path temporary = path;
+		temporary += ".forge-" + std::to_string(random()) + "~";
+		if(!createWith(temporary, text, permissions)) {
+			if(fs::exists(fs::symlink_status(temporary, error))) continue; // a name taken: draw another
+			return "the file can't be written";
+		}
+		fs::rename(temporary, path, error);
+		if(!error) return std::nullopt;
+		fs::remove(temporary, error);
+		return "the file can't be replaced";
+	}
+	return "the file can't be written";
 }
 
 } // namespace forge

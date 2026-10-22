@@ -2,28 +2,43 @@
 /// @brief format::Runtime: the public API, forwarding to the engine's subsystems (Engine.hpp).
 
 #include "Catalog.hpp"
+#include "ComposedVersions.hpp"
 #include "Engine.hpp"
 #include "Reference.hpp"
 
 namespace affresco::format {
 
+/// @brief The document's version control as the engine sees it, a base so it is made before the engine.
+struct ComposedHolder {
+	/// @brief Wraps the document's version control.
+	/// @param versions It.
+	explicit ComposedHolder(VersionControl& versions) : composed(versions) {}
+	ComposedVersions composed; ///< The document with its features merged in (Composition.hpp).
+};
+
 /// @brief The runtime's private parts: the engine, out of the public header.
-struct Runtime::Impl final : Engine {
-	using Engine::Engine;
+struct Runtime::Impl final : ComposedHolder, Engine {
+	/// @brief Builds the engine on the composed document.
+	/// @param runtime The runtime.
+	/// @param versions The document's version control.
+	/// @param baseDirectory Where relative paths start.
+	Impl(Runtime& runtime, VersionControl& versions, std::filesystem::path baseDirectory)
+	    : ComposedHolder(versions), Engine(runtime, composed, std::move(baseDirectory)) {}
 };
 
 Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
     : impl_(std::make_unique<Impl>(*this, versions, std::move(baseDirectory))) {
 	impl_->document.readDerived();
-	versions.setObserver(impl_.get());
+	impl_->composed.setObserver(impl_.get());
 }
 
 Runtime::~Runtime() {
-	impl_->versions.setObserver(nullptr);
+	impl_->composed.setObserver(nullptr);
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
 	impl_->calls.cancelAll();      // and what slow calls return would reach it
-	impl_->serviceCalls.cancelAll(); // and so would what services return
+	impl_->serviceCalls.cancelAll();                        // and so would what services return
+	if(impl_->identity) impl_->identity->onStatus(nullptr); // and so would a sign-in
 }
 
 void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
@@ -42,6 +57,10 @@ void Runtime::registerType(std::string name, Factory factory, std::vector<std::s
 	};
 	impl_->types.add({std::move(name), "Registered by the application", std::move(factory), std::move(own), true});
 	impl_->document.changeAppearance(); // panels of the type apply its new function at the next update
+}
+
+void Runtime::registerSurface(std::string name, SurfaceFactory factory, SurfaceOptions options) {
+	impl_->types.surfaces()->insert_or_assign(std::move(name), RegisteredSurface{std::move(factory), options});
 }
 
 void Runtime::setPlaceholderTypes(bool enabled) { impl_->placeholderTypes = enabled; }
@@ -131,6 +150,26 @@ void Runtime::setNetwork(network::Network* network) {
 	impl_->reconciler.requestReconcile();
 }
 
+void Runtime::setLocale(std::string tag) {
+	impl_->document.setHostLocale(std::move(tag));
+	impl_->document.globalsChanged(); // the "locale" variable
+	impl_->reconciler.requestReconcile();
+}
+
+void Runtime::setIdentity(identity::Identity* identity) {
+	if(impl_->identity) impl_->identity->onStatus(nullptr);
+	impl_->identity = identity;
+	if(identity)
+		identity->onStatus([engine = impl_.get()] {
+			engine->document.globalsChanged(); // the "auth" variable
+			engine->connections.authChanged();
+			engine->reconciler.requestReconcile();
+		});
+	impl_->connections.declareSignIns();
+	impl_->document.globalsChanged();
+	impl_->reconciler.requestReconcile();
+}
+
 void Runtime::setModel(std::string name, std::shared_ptr<DataModel> model) {
 	impl_->models.set(std::move(name), std::move(model));
 }
@@ -151,6 +190,28 @@ bool Runtime::hasAction(std::string_view name) const {
 }
 
 Window* Runtime::window() const noexcept { return impl_->window; }
+
+const UpdateStatistics& Runtime::lastUpdate() const noexcept { return impl_->reconciler.statistics(); }
+
+json Runtime::inspect(const Panel& panel) {
+	const Panel* built = &panel;
+	const Record* record = impl_->reconciler.recordOf(built);
+	for(; !record && built->parent(); record = impl_->reconciler.recordOf(built)) built = built->parent();
+	if(!record) return nullptr;
+
+	json bindings = json::object();
+	for(const CompiledProperty& property : record->node->properties)
+		if(property.value.dynamic()) bindings[property.key] = property.value.written();
+	json handlers = json::array();
+	for(const auto& [key, handler] : record->handlers.items()) handlers.push_back(key);
+	json answer = {{"node", built->id().empty() ? record->path : "#" + built->id()},
+	               {"type", record->type},
+	               {"path", record->path}};
+	if(record->bind) answer["bind"] = *record->bind;
+	answer["bindings"] = std::move(bindings);
+	answer["handlers"] = std::move(handlers);
+	return answer;
+}
 
 json Runtime::catalog() const { return format::catalog(*impl_); }
 

@@ -1,0 +1,17 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "counter.screen.json",
+	"scenarios": [
+		{ "name": "starts-at-zero", "steps": [
+			{ "expect": { "node": "#count", "text": "Clicked 0 times" } }
+		] },
+		{ "name": "adds-one-per-click", "steps": [
+			{ "click": "#add" },
+			{ "click": "#add" },
+			{ "expect": { "state": "count", "is": 2 } },
+			{ "expect": { "node": "#count", "text": "Clicked 2 times" } }
+		] }
+	]
+}

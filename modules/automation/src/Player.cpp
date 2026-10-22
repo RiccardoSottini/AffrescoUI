@@ -174,8 +174,8 @@ Vec2 Player::pointOf(const json& target, int nth) {
 		throw StepError("no shown node " + (target.is_string() ? "'" + target.get<std::string>() + "'" +
 		                                                             (nth ? " (nth " + std::to_string(nth) + ")" : "")
 		                                                       : targetName(target, nth)));
-	const Rect& bounds = panel->bounds();
-	return {(bounds.left + bounds.right) / 2.0f, (bounds.top + bounds.bottom) / 2.0f};
+	const Rect& bounds = panel->bounds(); // its centre, through its transforms
+	return panel->worldTransform().apply({(bounds.left + bounds.right) / 2.0f, (bounds.top + bounds.bottom) / 2.0f});
 }
 
 } // namespace affresco::automation::detail

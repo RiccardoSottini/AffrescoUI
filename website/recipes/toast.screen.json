@@ -1,0 +1,24 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Toast", "width": 480, "height": 280 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "toast": false, "message": "" },
+	"actions": {
+		"notify": [
+			{ "set": "state.message", "to": "{{text}}" },
+			{ "set": "state.toast", "to": true },
+			{ "debounce": 3000, "do": [{ "set": "state.toast", "to": false }] }
+		]
+	},
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "label", "id": "save", "x": 24, "y": 24, "width": 140, "height": 40, "align": "center",
+			  "radius": 8, "color": "#6366f1", "textColor": "#ffffff", "cursor": "hand", "role": "button", "text": "Save",
+			  "onClick": { "run": "notify", "with": { "text": "Saved" } } },
+			{ "use": "toast", "id": "toast", "with": { "open": "state.toast", "message": "{{state.message}}" } }
+		]
+	}
+}

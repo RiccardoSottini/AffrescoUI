@@ -7,6 +7,7 @@
 #include "DesignTokens.hpp"
 #include "NodeKeys.hpp"
 #include "Reads.hpp"
+#include "Strings.hpp"
 
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
@@ -220,6 +221,14 @@ public:
 	                                                      const std::string& at);
 	/// @brief Evaluates "theme" for this update.
 	void updateTheme();
+	/// @brief Chooses the locale for this update: the "strings" section's "locale", else the host's, else the section's
+	/// "default", else "en"; tells the window whether it writes right to left.
+	void updateLocale();
+	/// @brief Sets the locale the host found on the computer (systemLocale()), used where "strings" names none.
+	/// @param tag "fr-CA"; "" for none.
+	void setHostLocale(std::string tag) { hostLocale_ = std::move(tag); }
+	/// @brief The document's translations and the locale chosen.
+	[[nodiscard]] const Strings& strings() const noexcept { return strings_; }
 	/// @brief Counts what changes how the same values look: the theme, the colours, the fonts, the node types. A panel
 	/// applied under another count is applied again even if its values are the same.
 	/// @return The count; never 0.
@@ -292,6 +301,8 @@ private:
 	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
 	ImageCache images_;                      ///< See images().
 	std::string theme_;                      ///< "theme", evaluated at each update.
+	Strings strings_;                        ///< "strings", and the locale chosen at each update.
+	std::string hostLocale_;                 ///< See setHostLocale().
 	std::string screen_;                     ///< The screen an "outlet" shows.
 	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.
 

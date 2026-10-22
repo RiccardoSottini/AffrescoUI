@@ -7,6 +7,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/render/Color.hpp"
 #include "affresco/render/Font.hpp"
+#include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/ImageCache.hpp"
 #include "affresco/render/Panel.hpp"
 
@@ -168,6 +169,14 @@ struct PropertySet {
 /// of. Unused places are null.
 using PropertySets = std::array<std::shared_ptr<const PropertySet>, 3>;
 
+/// @brief A GPU surface the host registered (Screen::registerSurface): what a "surface" node may name.
+struct RegisteredSurface {
+	SurfaceFactory factory; ///< Makes it.
+	SurfaceOptions options; ///< Its framebuffer's options.
+};
+/// @brief The GPU surfaces the host registered, by name.
+using SurfaceRegistry = std::map<std::string, RegisteredSurface, std::less<>>;
+
 /// @brief A node type: how to create its panel, and its own properties.
 struct NodeType {
 	using Factory = std::function<std::unique_ptr<Panel>()>; ///< Creates a panel of the type.
@@ -231,11 +240,14 @@ public:
 	[[nodiscard]] const std::vector<std::shared_ptr<const PropertySet>>& inherited() const noexcept {
 		return inherited_;
 	}
+	/// @brief The GPU surfaces the host registered, which "surface" nodes name (shared with that type's apply).
+	[[nodiscard]] const std::shared_ptr<SurfaceRegistry>& surfaces() const noexcept { return surfaces_; }
 
 private:
 	std::map<std::string, NodeType, std::less<>> types_;        ///< See types().
 	std::vector<std::string> order_;                            ///< Their names, in the order first added.
 	std::vector<std::shared_ptr<const PropertySet>> inherited_; ///< Sets with appliesTo, in the order added.
+	std::shared_ptr<SurfaceRegistry> surfaces_ = std::make_shared<SurfaceRegistry>(); ///< See surfaces().
 };
 
 /// @brief Registers the built-in node types (Types.cpp, and the widgets' own files).
@@ -251,9 +263,15 @@ void registerSliderType(TypeRegistry& registry);
 /// @brief Registers "editor" (EditorType.cpp).
 /// @param registry The registry.
 void registerEditorType(TypeRegistry& registry);
+/// @brief Registers "diff" (DiffType.cpp).
+/// @param registry The registry.
+void registerDiffType(TypeRegistry& registry);
 /// @brief Registers "image" (ImageType.cpp).
 /// @param registry The registry.
 void registerImageType(TypeRegistry& registry);
+/// @brief Registers "surface" (SurfaceType.cpp).
+/// @param registry The registry.
+void registerSurfaceType(TypeRegistry& registry);
 /// @brief Registers "split" (SplitType.cpp).
 /// @param registry The registry.
 void registerSplitType(TypeRegistry& registry);
@@ -266,11 +284,45 @@ void registerListTypes(TypeRegistry& registry);
 /// @brief Registers "icon", a property of labels (IconProperty.cpp).
 /// @param registry The registry.
 void registerIconProperty(TypeRegistry& registry);
+/// @brief Registers "rotate", "scale", "skew", "translate" and "transformOrigin", properties of every panel
+/// (TransformProperties.cpp).
+/// @param registry The registry.
+void registerTransformProperties(TypeRegistry& registry);
 /// @brief Registers "runs", "selectable" and "selectionColor", properties of labels (RunsProperty.cpp).
 /// @param registry The registry.
 void registerRichTextProperties(TypeRegistry& registry);
 /// @brief Registers "path" (PathType.cpp).
 /// @param registry The registry.
 void registerPathType(TypeRegistry& registry);
+/// @brief Registers "colorPicker" (ColorPickerType.cpp).
+/// @param registry The registry.
+void registerColorPickerType(TypeRegistry& registry);
+/// @brief Registers "gradient" (GradientType.cpp).
+/// @param registry The registry.
+void registerGradientType(TypeRegistry& registry);
+/// @brief Registers "curves" (CurvesType.cpp).
+/// @param registry The registry.
+void registerCurvesType(TypeRegistry& registry);
+/// @brief Registers "canvas" (CanvasType.cpp).
+/// @param registry The registry.
+void registerCanvasType(TypeRegistry& registry);
+/// @brief Registers "graph" (GraphType.cpp).
+/// @param registry The registry.
+void registerGraphType(TypeRegistry& registry);
+/// @brief Registers "timeline" (TimelineType.cpp).
+/// @param registry The registry.
+void registerTimelineType(TypeRegistry& registry);
+/// @brief Registers "calendar" (CalendarType.cpp).
+/// @param registry The registry.
+void registerCalendarType(TypeRegistry& registry);
+/// @brief Registers secret, maxLength and accept on text fields (TextFieldProperties.cpp).
+/// @param registry The registry.
+void registerTextFieldProperties(TypeRegistry& registry);
+/// @brief Registers "codeInput" (CodeInputType.cpp).
+/// @param registry The registry.
+void registerCodeInputType(TypeRegistry& registry);
+/// @brief Registers "carousel" (CarouselType.cpp).
+/// @param registry The registry.
+void registerCarouselType(TypeRegistry& registry);
 
 } // namespace affresco::format

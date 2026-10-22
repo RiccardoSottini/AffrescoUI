@@ -1,7 +1,7 @@
 /// @file
 /// @brief The desktop helpers on Linux and the other systems: no native menu bar (it needs D-Bus menus, which most
-/// desktops don't show), and a light colour scheme with full motion (the system's settings need the D-Bus settings portal). Apps draw
-/// a menu bar of their own (Window::setMenuBar() returns false).
+/// desktops don't show), and a light colour scheme with full motion (the system's settings need the D-Bus settings
+/// portal). Apps draw a menu bar of their own (Window::setMenuBar() returns false).
 
 #include "platform/Desktop.hpp"
 

@@ -1,0 +1,2073 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Modello, a 3D application. The scene and its animations are this document's own computed values (computed.scene, computed.animations): every edit is a revision of the document, so undo, history and review cover the scene as they cover the workspace. The natives (modello.*) are in Modello*.cpp and only compute: they return patches, and the steps here commit them. The viewport is the host's 'scene' surface: the document names it and never supplies shader source; a material graph is data the host checks and assembles from fixed snippets.",
+
+	"window": {
+		"title": "Modello",
+		"width": 1440,
+		"height": 900,
+		"minWidth": 1000,
+		"minHeight": 640,
+		"menuBar": [
+			{ "menu": "file", "title": "File" },
+			{ "menu": "edit", "title": "Edit" },
+			{ "menu": "add", "title": "Add" },
+			{ "menu": "view", "title": "View" }
+		]
+	},
+
+	"fonts": {
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 13, "fallback": ["icons"] },
+		"small": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 14 }
+	},
+
+	"tokens": {
+		"color.bg": { "dark": "#15171c", "light": "#eceef2" },
+		"color.panel": { "dark": "#1c1f26", "light": "#f8f9fb" },
+		"color.raised": { "dark": "#262a33", "light": "#e2e5eb" },
+		"color.border": { "dark": "#2d323d", "light": "#d4d8e0" },
+		"color.text": { "dark": "#e6e8ee", "light": "#1a1c21" },
+		"color.muted": { "dark": "#8a92a3", "light": "#646b78" },
+		"color.accent": "#f08a24",
+		"color.accentSoft": { "dark": "#3a2a1a", "light": "#fde6cf" },
+		"color.danger": "#e5484d"
+	},
+
+	"theme": "{{state.theme}}",
+
+	"styles": {
+		"tool": {
+			"type": "label",
+			"height": 26,
+			"padding": 7,
+			"fitText": true,
+			"align": "center",
+			"radius": 5,
+			"color": "transparent",
+			"textColor": "@color.text",
+			"cursor": "hand",
+			"focusable": true,
+			"hover": { "color": "@color.raised" }
+		},
+		"toolOn": {
+			"style": "tool",
+			"color": "@color.accentSoft",
+			"textColor": "@color.accent",
+			"hover": { "color": "@color.accentSoft" }
+		},
+		"heading": { "type": "label", "font": "small", "textColor": "@color.muted", "height": 28, "fitText": true },
+		"fieldLabel": { "type": "label", "font": "small", "textColor": "@color.muted", "width": 78, "height": 26 },
+		"field": {
+			"type": "textarea",
+			"height": 26,
+			"grow": 1,
+			"padding": 6,
+			"radius": 4,
+			"color": "@color.raised",
+			"textColor": "@color.text",
+			"placeholderColor": "@color.muted"
+		},
+		"divider": { "height": 1, "width": "100%", "color": "@color.border" }
+	},
+
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent"],
+		"reviewers": ["studio"]
+	},
+
+	"state": {
+		"theme": "dark",
+		"camera": {
+			"target": [0, 0.5, 0],
+			"yaw": 0.6,
+			"pitch": 0.45,
+			"distance": 8,
+			"orthographic": false,
+			"fieldOfView": 0.8
+		},
+		"selection": ["cube"],
+		"shading": "material",
+		"grid": true,
+		"axes": true,
+		"gizmo": { "mode": "translate", "space": "world" },
+		"navigate": "orbit",
+		"press": { "x": 0, "y": 0, "w": 1, "h": 1 },
+		"cameraStart": null,
+		"axis": "none",
+		"moved": false,
+		"preview": null,
+		"pending": [],
+		"box": null,
+		"modal": null,
+		"snap": { "on": false, "translate": 0.25, "rotate": 15, "scale": 0.1 },
+		"time": 0,
+		"playing": false,
+		"outline": [],
+		"expanded": ["cube"],
+		"tracks": [],
+		"duration": 2,
+		"material": "mat-cube",
+		"graphSelected": [],
+		"panel": "materials",
+		"sizes": { "main": [240, 860], "center": [560] },
+		"fields": {
+			"name": "",
+			"translation": "",
+			"scale": "",
+			"intensity": "",
+			"baseColor": "",
+			"metallic": "",
+			"roughness": "",
+			"graphValue": ""
+		},
+		"parsed": [],
+		"status": "Ready",
+		"importOpen": false,
+		"files": [],
+		"chosen": null,
+		"menuBar": {}
+	},
+
+	"computed": {
+		"scene": {
+			"nodes": [
+				{
+					"id": "floor",
+					"name": "Floor",
+					"mesh": "primitive:plane",
+					"material": "mat-floor",
+					"scale": [6, 1, 6]
+				},
+				{
+					"id": "cube",
+					"name": "Cube",
+					"mesh": "primitive:cube",
+					"material": "mat-cube",
+					"translation": [0, 0.5, 0]
+				},
+				{
+					"id": "orbiter",
+					"name": "Orbiter",
+					"parent": "cube",
+					"mesh": "primitive:sphere",
+					"material": "mat-sphere",
+					"translation": [1.6, 0.3, 0],
+					"scale": [0.35, 0.35, 0.35]
+				},
+				{
+					"id": "torus",
+					"name": "Torus",
+					"mesh": "primitive:torus",
+					"material": "mat-sphere",
+					"translation": [-2, 0.25, 1]
+				},
+				{
+					"id": "sun",
+					"name": "Sun",
+					"translation": [3, 6, 4],
+					"rotation": [-0.4, 0.3, 0.1, 0.86],
+					"light": { "type": "directional", "color": [1, 0.96, 0.9], "intensity": 3, "castsShadow": true }
+				},
+				{
+					"id": "fill",
+					"name": "Fill light",
+					"translation": [-3, 2.5, -2],
+					"light": { "type": "point", "color": [0.6, 0.75, 1], "intensity": 12, "range": 12 }
+				}
+			],
+			"materials": [
+				{
+					"id": "mat-floor",
+					"name": "Floor",
+					"baseColor": [0.5, 0.5, 0.52, 1],
+					"metallic": 0,
+					"roughness": 0.9,
+					"graph": {
+						"nodes": [
+							{
+								"id": "out",
+								"op": "output",
+								"title": "Material output",
+								"x": 520,
+								"y": 40,
+								"inputs": [
+									{ "id": "baseColor", "label": "Base colour", "kind": "color", "links": 1 },
+									{ "id": "metallic", "label": "Metallic", "kind": "float", "links": 1 },
+									{ "id": "roughness", "label": "Roughness", "kind": "float", "links": 1 },
+									{ "id": "emissive", "label": "Emissive", "kind": "color", "links": 1 }
+								],
+								"outputs": []
+							},
+							{
+								"id": "n1",
+								"op": "color",
+								"title": "Colour",
+								"x": 40,
+								"y": 20,
+								"inputs": [],
+								"outputs": [{ "id": "out", "label": "Colour", "kind": "color" }],
+								"value": [0.32, 0.33, 0.36]
+							},
+							{
+								"id": "n2",
+								"op": "color",
+								"title": "Colour",
+								"x": 40,
+								"y": 120,
+								"inputs": [],
+								"outputs": [{ "id": "out", "label": "Colour", "kind": "color" }],
+								"value": [0.62, 0.63, 0.66]
+							},
+							{
+								"id": "n3",
+								"op": "checker",
+								"title": "Checker",
+								"x": 40,
+								"y": 220,
+								"inputs": [{ "id": "scale", "label": "Scale", "kind": "float", "links": 1 }],
+								"outputs": [{ "id": "out", "label": "Value", "kind": "float" }]
+							},
+							{
+								"id": "n4",
+								"op": "mix",
+								"title": "Mix",
+								"x": 280,
+								"y": 80,
+								"inputs": [
+									{ "id": "a", "label": "A", "kind": "color", "links": 1 },
+									{ "id": "b", "label": "B", "kind": "color", "links": 1 },
+									{ "id": "factor", "label": "Factor", "kind": "float", "links": 1 }
+								],
+								"outputs": [{ "id": "out", "label": "Colour", "kind": "color" }]
+							}
+						],
+						"links": [
+							{ "from": "n1", "output": "out", "to": "n4", "input": "a" },
+							{ "from": "n2", "output": "out", "to": "n4", "input": "b" },
+							{ "from": "n3", "output": "out", "to": "n4", "input": "factor" },
+							{ "from": "n4", "output": "out", "to": "out", "input": "baseColor" }
+						]
+					}
+				},
+				{
+					"id": "mat-cube",
+					"name": "Cube",
+					"baseColor": [0.9, 0.42, 0.12, 1],
+					"metallic": 0.1,
+					"roughness": 0.45
+				},
+				{
+					"id": "mat-sphere",
+					"name": "Chrome",
+					"baseColor": [0.85, 0.87, 0.9, 1],
+					"metallic": 1,
+					"roughness": 0.2
+				}
+			]
+		},
+		"animations": [
+			{
+				"name": "Spin",
+				"tracks": [
+					{
+						"node": "cube",
+						"path": "rotation",
+						"interpolation": "linear",
+						"times": [0, 1, 2],
+						"values": [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, -1]
+					}
+				]
+			}
+		],
+		"imports": [],
+		"node": "{{length(state.selection) > 0 ? find(computed.scene.nodes, it.id == state.selection[length(state.selection) - 1]) : null}}",
+		"nodeIndex": "{{computed.node ? indexOf(map(computed.scene.nodes, it.id), computed.node.id) : -1}}",
+		"materialIndex": "{{indexOf(map(computed.scene.materials, it.id), state.material)}}",
+		"materialEntry": "{{find(computed.scene.materials, it.id == state.material)}}",
+		"graph": "{{computed.materialEntry.graph ?? null}}",
+		"graphNode": "{{computed.graph && length(state.graphSelected) == 1 ? find(computed.graph.nodes, it.id == state.graphSelected[0]) : null}}",
+		"snap": "{{state.snap.on ? state.snap : { translate: 0, rotate: 0, scale: 0 } }}",
+		"view": {
+			"camera": "{{state.camera}}",
+			"selection": "{{state.selection}}",
+			"shading": "{{state.shading}}",
+			"time": "{{state.time}}",
+			"gizmo": {
+				"visible": "{{length(state.selection) > 0 && state.navigate != 'pan'}}",
+				"mode": "{{state.gizmo.mode}}",
+				"space": "{{state.gizmo.space}}",
+				"axis": "{{state.modal ? state.modal.axis : state.axis}}"
+			}
+		}
+	},
+
+	"watch": {
+		"computed.scene": "sceneChanged",
+		"computed.animations": "refreshTracks",
+		"computed.node": "loadFields",
+		"computed.graphNode": "loadFields"
+	},
+
+	"onLoad": [
+		{
+			"call": "modello.load",
+			"with": { "imports": "{{computed.imports}}" },
+			"then": [
+				{
+					"if": "{{length(result.warnings) > 0}}",
+					"then": [{ "set": "state.status", "to": "{{join(result.warnings, '; ')}}" }]
+				}
+			],
+			"onError": [{ "set": "state.status", "to": "{{error}}" }]
+		},
+		{ "run": "sceneChanged" },
+		{ "run": "refreshTracks" },
+		{ "run": "loadFields" }
+	],
+
+	"actions": {
+		"commit": [
+			{ "note": "with: patch, message. Applies a native's patch as a revision of the document" },
+			{ "if": "{{length(patch) > 0}}", "then": [{ "patch": "{{patch}}", "message": "{{message}}" }] }
+		],
+		"sceneChanged": [
+			{
+				"call": "modello.outline",
+				"with": { "scene": "{{computed.scene}}" },
+				"then": [{ "set": "state.outline", "to": "{{result.items}}" }],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			},
+			{ "run": "loadFields" }
+		],
+		"refreshTracks": [
+			{
+				"call": "modello.tracks",
+				"with": { "animations": "{{computed.animations}}" },
+				"then": [
+					{ "set": "state.tracks", "to": "{{result.tracks}}" },
+					{ "set": "state.duration", "to": "{{max(result.duration, 1)}}" }
+				],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		],
+		"loadFields": [
+			{ "set": "state.fields.name", "to": "{{computed.node.name ?? ''}}" },
+			{
+				"set": "state.fields.translation",
+				"to": "{{computed.node ? join(map(computed.node.translation ?? [0, 0, 0], fixed(it, 3)), ', ') : ''}}"
+			},
+			{
+				"set": "state.fields.scale",
+				"to": "{{computed.node ? join(map(computed.node.scale ?? [1, 1, 1], fixed(it, 3)), ', ') : ''}}"
+			},
+			{
+				"set": "state.fields.intensity",
+				"to": "{{computed.node.light ? fixed(computed.node.light.intensity ?? 1, 2) : ''}}"
+			},
+			{
+				"if": "{{computed.node.material}}",
+				"then": [{ "set": "state.material", "to": "{{computed.node.material}}" }]
+			},
+			{
+				"set": "state.fields.baseColor",
+				"to": "{{computed.materialEntry ? join(map(computed.materialEntry.baseColor ?? [1, 1, 1, 1], fixed(it, 2)), ', ') : ''}}"
+			},
+			{
+				"set": "state.fields.metallic",
+				"to": "{{computed.materialEntry ? fixed(computed.materialEntry.metallic ?? 1, 2) : ''}}"
+			},
+			{
+				"set": "state.fields.roughness",
+				"to": "{{computed.materialEntry ? fixed(computed.materialEntry.roughness ?? 1, 2) : ''}}"
+			},
+			{
+				"set": "state.fields.graphValue",
+				"to": "{{type(computed.graphNode.value) == 'list' ? join(map(computed.graphNode.value, fixed(it, 2)), ', ') : (computed.graphNode.value != null ? fixed(computed.graphNode.value, 2) : '')}}"
+			}
+		],
+		"setNumbers": [
+			{
+				"note": "with: path, text, count, message. Commits `count` typed numbers (one is a number, more a list) at a path of the scene"
+			},
+			{ "set": "state.parsed", "to": "{{map(split(text, ','), number(trim(it)))}}" },
+			{
+				"if": "{{length(state.parsed) != count || some(state.parsed, it == null)}}",
+				"then": [
+					{
+						"set": "state.status",
+						"to": "Type {{count}} {{count == 1 ? 'number' : 'numbers, separated by commas'}}"
+					}
+				],
+				"else": [
+					{
+						"run": "commit",
+						"with": {
+							"patch": "{{[{ op: 'add', path: path, value: count == 1 ? state.parsed[0] : state.parsed }]}}",
+							"message": "{{message}}"
+						}
+					}
+				]
+			}
+		],
+		"setName": [
+			{
+				"if": "{{computed.nodeIndex >= 0 && length(trim(text)) > 0}}",
+				"then": [
+					{
+						"run": "commit",
+						"with": {
+							"patch": "{{[{ op: 'add', path: '/computed/scene/nodes/' + computed.nodeIndex + '/name', value: trim(text) }]}}",
+							"message": "Rename {{computed.node.id}}"
+						}
+					}
+				]
+			}
+		],
+		"setNodeNumbers": [
+			{ "note": "with: key (translation, scale or light/intensity), text, count" },
+			{
+				"if": "{{computed.nodeIndex >= 0}}",
+				"then": [
+					{
+						"run": "setNumbers",
+						"with": {
+							"path": "{{'/computed/scene/nodes/' + computed.nodeIndex + '/' + key}}",
+							"text": "{{text}}",
+							"count": "{{count}}",
+							"message": "Set {{key}} of {{computed.node.id}}"
+						}
+					}
+				]
+			}
+		],
+		"setMaterialNumbers": [
+			{ "note": "with: key (baseColor, metallic or roughness), text, count" },
+			{
+				"if": "{{computed.materialIndex >= 0}}",
+				"then": [
+					{
+						"run": "setNumbers",
+						"with": {
+							"path": "{{'/computed/scene/materials/' + computed.materialIndex + '/' + key}}",
+							"text": "{{text}}",
+							"count": "{{count}}",
+							"message": "Set {{key}} of {{state.material}}"
+						}
+					}
+				]
+			}
+		],
+
+		"select": [{ "set": "state.selection", "to": "{{ids}}" }],
+		"addNode": [
+			{
+				"note": "with: kind (cube, sphere, cylinder, torus, plane, light:directional, light:point, light:spot, camera, empty)"
+			},
+			{
+				"call": "modello.add",
+				"with": { "scene": "{{computed.scene}}", "kind": "{{kind}}" },
+				"then": [
+					{ "run": "commit", "with": { "patch": "{{result.patch}}", "message": "Add {{result.node}}" } },
+					{ "set": "state.selection", "to": "{{result.selection}}" },
+					{ "set": "state.status", "to": "Added {{result.node}}" }
+				],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		],
+		"deleteSelection": [
+			{
+				"if": "{{length(state.selection) > 0}}",
+				"then": [
+					{
+						"call": "modello.remove",
+						"with": {
+							"scene": "{{computed.scene}}",
+							"animations": "{{computed.animations}}",
+							"selection": "{{state.selection}}"
+						},
+						"then": [
+							{
+								"run": "commit",
+								"with": {
+									"patch": "{{result.patch}}",
+									"message": "Delete {{join(state.selection, ', ')}}"
+								}
+							},
+							{ "set": "state.selection", "to": "{{result.selection}}" }
+						],
+						"onError": [{ "set": "state.status", "to": "{{error}}" }]
+					}
+				]
+			}
+		],
+		"duplicateSelection": [
+			{
+				"if": "{{length(state.selection) > 0}}",
+				"then": [
+					{
+						"call": "modello.duplicate",
+						"with": { "scene": "{{computed.scene}}", "selection": "{{state.selection}}" },
+						"then": [
+							{
+								"run": "commit",
+								"with": {
+									"patch": "{{result.patch}}",
+									"message": "Duplicate {{join(state.selection, ', ')}}"
+								}
+							},
+							{ "set": "state.selection", "to": "{{result.selection}}" }
+						],
+						"onError": [{ "set": "state.status", "to": "{{error}}" }]
+					}
+				]
+			}
+		],
+		"undo": [{ "undo": true }, { "set": "state.status", "to": "Undone" }],
+
+		"camera": [
+			{ "note": "with: action (frame, view, projection), view" },
+			{
+				"call": "modello.camera",
+				"with": {
+					"camera": "{{state.camera}}",
+					"action": "{{action}}",
+					"view": "{{view}}",
+					"scene": "{{computed.scene}}",
+					"selection": "{{state.selection}}"
+				},
+				"then": [{ "set": "state.camera", "to": "{{result.camera}}" }],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		],
+		"frame": [{ "run": "camera", "with": { "action": "frame", "view": "" } }],
+		"setView": [{ "run": "camera", "with": { "action": "view", "view": "{{view}}" } }],
+		"projection": [{ "run": "camera", "with": { "action": "projection", "view": "" } }],
+		"toggleTheme": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }],
+
+		"viewportPress": [
+			{
+				"if": "{{state.modal}}",
+				"then": [{ "run": "modalConfirm" }],
+				"else": [
+					{
+						"set": "state.press",
+						"to": "{{ { x: event.left, y: event.top, w: event.width, h: event.height } }}"
+					},
+					{ "set": "state.moved", "to": false },
+					{ "set": "state.cameraStart", "to": "{{state.camera}}" },
+					{ "set": "state.axis", "to": "none" },
+					{
+						"if": "{{length(state.selection) > 0 && state.navigate != 'pan'}}",
+						"then": [
+							{
+								"call": "modello.gizmoHit",
+								"with": {
+									"scene": "{{computed.scene}}",
+									"animations": "{{computed.animations}}",
+									"view": "{{computed.view}}",
+									"width": "{{event.width}}",
+									"height": "{{event.height}}",
+									"x": "{{event.left}}",
+									"y": "{{event.top}}",
+									"mode": "{{state.gizmo.mode}}"
+								},
+								"then": [{ "set": "state.axis", "to": "{{result.axis}}" }],
+								"onError": [{ "set": "state.status", "to": "{{error}}" }]
+							}
+						]
+					}
+				]
+			}
+		],
+		"viewportDrag": [
+			{ "set": "state.moved", "to": "{{state.moved || abs(event.dx) + abs(event.dy) > 3}}" },
+			{ "if": "{{!state.moved || state.modal}}", "then": [{ "stop": true }] },
+			{
+				"if": "{{state.axis != 'none'}}",
+				"then": [
+					{
+						"call": "modello.gizmoDrag",
+						"with": {
+							"scene": "{{computed.scene}}",
+							"animations": "{{computed.animations}}",
+							"view": "{{computed.view}}",
+							"width": "{{state.press.w}}",
+							"height": "{{state.press.h}}",
+							"mode": "{{state.gizmo.mode}}",
+							"axis": "{{state.axis}}",
+							"start": "{{[state.press.x, state.press.y]}}",
+							"x": "{{state.press.x + event.dx}}",
+							"y": "{{state.press.y + event.dy}}",
+							"snap": "{{computed.snap}}"
+						},
+						"then": [
+							{ "set": "state.preview", "to": "{{result.preview}}" },
+							{ "set": "state.pending", "to": "{{result.patch}}" },
+							{ "set": "state.status", "to": "{{result.text}}" }
+						],
+						"onError": [{ "set": "state.status", "to": "{{error}}" }]
+					}
+				],
+				"else": [
+					{
+						"if": "{{state.navigate == 'select'}}",
+						"then": [
+							{
+								"set": "state.box",
+								"to": "{{[state.press.x, state.press.y, state.press.x + event.dx, state.press.y + event.dy]}}"
+							}
+						],
+						"else": [
+							{
+								"call": "modello.camera",
+								"with": {
+									"camera": "{{state.cameraStart}}",
+									"action": "{{state.navigate == 'pan' ? 'pan' : 'orbit'}}",
+									"dx": "{{event.dx}}",
+									"dy": "{{event.dy}}",
+									"height": "{{state.press.h}}"
+								},
+								"then": [{ "set": "state.camera", "to": "{{result.camera}}" }]
+							}
+						]
+					}
+				]
+			}
+		],
+		"viewportRelease": [
+			{ "if": "{{state.modal}}", "then": [{ "stop": true }] },
+			{
+				"if": "{{state.axis != 'none' && state.moved}}",
+				"then": [
+					{
+						"run": "commit",
+						"with": {
+							"patch": "{{state.pending}}",
+							"message": "{{state.status}}: {{join(state.selection, ', ')}}"
+						}
+					}
+				],
+				"else": [
+					{
+						"if": "{{state.box}}",
+						"then": [
+							{
+								"call": "modello.boxSelect",
+								"with": {
+									"scene": "{{computed.scene}}",
+									"animations": "{{computed.animations}}",
+									"view": "{{computed.view}}",
+									"width": "{{state.press.w}}",
+									"height": "{{state.press.h}}",
+									"box": "{{state.box}}",
+									"shift": "{{event.shift ?? false}}",
+									"selection": "{{state.selection}}"
+								},
+								"then": [{ "set": "state.selection", "to": "{{result.selection}}" }]
+							}
+						],
+						"else": [
+							{
+								"if": "{{!state.moved}}",
+								"then": [
+									{
+										"call": "modello.pick",
+										"with": {
+											"scene": "{{computed.scene}}",
+											"animations": "{{computed.animations}}",
+											"view": "{{computed.view}}",
+											"width": "{{state.press.w}}",
+											"height": "{{state.press.h}}",
+											"x": "{{state.press.x}}",
+											"y": "{{state.press.y}}",
+											"shift": "{{event.shift ?? false}}",
+											"selection": "{{state.selection}}"
+										},
+										"then": [{ "set": "state.selection", "to": "{{result.selection}}" }],
+										"onError": [{ "set": "state.status", "to": "{{error}}" }]
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{ "set": "state.preview", "to": null },
+			{ "set": "state.pending", "to": [] },
+			{ "set": "state.box", "to": null },
+			{ "set": "state.axis", "to": "none" }
+		],
+		"viewportScroll": [
+			{
+				"call": "modello.camera",
+				"with": { "camera": "{{state.camera}}", "action": "zoom", "steps": "{{event.dy}}" },
+				"then": [{ "set": "state.camera", "to": "{{result.camera}}" }]
+			}
+		],
+
+		"startModal": [
+			{ "note": "with: mode, axis. G, R and S: move, turn or scale the selection by a typed number" },
+			{
+				"if": "{{length(state.selection) > 0}}",
+				"then": [
+					{ "set": "state.modal", "to": "{{ { mode: mode, axis: axis, text: '' } }}" },
+					{ "set": "state.gizmo.mode", "to": "{{mode}}" },
+					{ "run": "modalApply" }
+				]
+			}
+		],
+		"modalAxis": [{ "set": "state.modal.axis", "to": "{{axis}}" }, { "run": "modalApply" }],
+		"modalType": [{ "set": "state.modal.text", "to": "{{state.modal.text + char}}" }, { "run": "modalApply" }],
+		"modalErase": [
+			{ "set": "state.modal.text", "to": "{{slice(state.modal.text, 0, max(length(state.modal.text) - 1, 0))}}" },
+			{ "run": "modalApply" }
+		],
+		"modalApply": [
+			{
+				"call": "modello.numeric",
+				"with": {
+					"scene": "{{computed.scene}}",
+					"animations": "{{computed.animations}}",
+					"view": "{{computed.view}}",
+					"mode": "{{state.modal.mode}}",
+					"axis": "{{state.modal.axis}}",
+					"value": "{{number(state.modal.text) ?? (state.modal.mode == 'scale' ? 1 : 0)}}"
+				},
+				"then": [
+					{ "set": "state.preview", "to": "{{result.preview}}" },
+					{ "set": "state.pending", "to": "{{result.patch}}" },
+					{
+						"set": "state.status",
+						"to": "{{result.text}} along {{state.modal.axis}}: type a number, Enter to apply, Escape to cancel"
+					}
+				],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		],
+		"modalConfirm": [
+			{
+				"run": "commit",
+				"with": {
+					"patch": "{{state.pending}}",
+					"message": "{{state.modal.mode}} {{join(state.selection, ', ')}} by {{state.modal.text || 'nothing'}}"
+				}
+			},
+			{ "run": "modalCancel" }
+		],
+		"modalCancel": [
+			{ "set": "state.modal", "to": null },
+			{ "set": "state.preview", "to": null },
+			{ "set": "state.pending", "to": [] },
+			{ "set": "state.status", "to": "Ready" }
+		],
+		"escape": [
+			{
+				"if": "{{state.modal}}",
+				"then": [{ "run": "modalCancel" }],
+				"else": [{ "set": "state.importOpen", "to": false }]
+			}
+		],
+
+		"openImport": [
+			{
+				"call": "modello.samples",
+				"with": {},
+				"then": [{ "set": "state.files", "to": "{{result.files}}" }, { "set": "state.importOpen", "to": true }],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		],
+		"importChosen": [
+			{ "note": "with: id, a file's source and path joined by ':'" },
+			{ "set": "state.chosen", "to": "{{find(state.files, it.source + ':' + it.file == id)}}" },
+			{ "if": "{{!state.chosen}}", "then": [{ "stop": true }] },
+			{
+				"call": "modello.import",
+				"with": {
+					"source": "{{state.chosen.source}}",
+					"file": "{{state.chosen.file}}",
+					"scene": "{{computed.scene}}",
+					"animations": "{{computed.animations}}",
+					"imports": "{{computed.imports}}"
+				},
+				"then": [
+					{
+						"run": "commit",
+						"with": { "patch": "{{result.patch}}", "message": "Import {{state.chosen.file}}" }
+					},
+					{ "set": "state.selection", "to": "{{result.selection}}" },
+					{ "set": "state.importOpen", "to": false },
+					{
+						"set": "state.status",
+						"to": "Imported {{state.chosen.name}}{{length(result.warnings) > 0 ? ': ' + join(result.warnings, '; ') : ''}}"
+					},
+					{ "run": "frame" }
+				],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		],
+		"exportScene": [
+			{
+				"call": "modello.export",
+				"with": { "scene": "{{computed.scene}}", "animations": "{{computed.animations}}", "name": "scene" },
+				"then": [
+					{
+						"set": "state.status",
+						"to": "Exported {{result.file}}{{length(result.warnings) > 0 ? ': ' + join(result.warnings, '; ') : ''}}"
+					}
+				],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		],
+
+		"setGraph": [
+			{ "note": "with: graph, message. Checks a material graph as the renderer will, then commits it" },
+			{
+				"call": "modello.checkGraph",
+				"with": { "graph": "{{graph}}" },
+				"then": [
+					{
+						"if": "{{result.ok}}",
+						"then": [
+							{
+								"run": "commit",
+								"with": {
+									"patch": "{{[{ op: 'add', path: '/computed/scene/materials/' + computed.materialIndex + '/graph', value: graph }]}}",
+									"message": "{{message}}"
+								}
+							}
+						],
+						"else": [{ "set": "state.status", "to": "Material graph: {{join(result.errors, '; ')}}" }]
+					}
+				]
+			}
+		],
+		"useGraph": [
+			{
+				"if": "{{computed.materialIndex >= 0 && !computed.graph}}",
+				"then": [
+					{
+						"call": "modello.materialNode",
+						"with": { "op": "output", "graph": null, "x": 420, "y": 40 },
+						"then": [
+							{
+								"run": "setGraph",
+								"with": {
+									"graph": "{{ { nodes: [result.node], links: [] } }}",
+									"message": "Give {{state.material}} a node graph"
+								}
+							}
+						]
+					}
+				]
+			}
+		],
+		"addGraphNode": [
+			{ "note": "with: op" },
+			{
+				"if": "{{computed.graph}}",
+				"then": [
+					{
+						"call": "modello.materialNode",
+						"with": {
+							"op": "{{op}}",
+							"graph": "{{computed.graph}}",
+							"x": "{{40 + length(computed.graph.nodes) * 24}}",
+							"y": "{{40 + length(computed.graph.nodes) * 16}}"
+						},
+						"then": [
+							{
+								"run": "setGraph",
+								"with": {
+									"graph": "{{merge(computed.graph, { nodes: concat(computed.graph.nodes, [result.node]) })}}",
+									"message": "Add a {{op}} node to {{state.material}}"
+								}
+							},
+							{ "set": "state.graphSelected", "to": "{{[result.node.id]}}" }
+						],
+						"onError": [{ "set": "state.status", "to": "{{error}}" }]
+					}
+				]
+			}
+		],
+		"setGraphValue": [
+			{ "set": "state.parsed", "to": "{{map(split(text, ','), number(trim(it)))}}" },
+			{
+				"if": "{{!computed.graphNode || some(state.parsed, it == null) || length(state.parsed) != (computed.graphNode.op == 'color' ? 3 : 1)}}",
+				"then": [{ "set": "state.status", "to": "A colour takes three numbers from 0 to 1, a number one" }],
+				"else": [
+					{
+						"run": "setGraph",
+						"with": {
+							"graph": "{{merge(computed.graph, { nodes: map(computed.graph.nodes, it.id == computed.graphNode.id ? merge(it, { value: it.op == 'color' ? state.parsed : state.parsed[0] }) : it) })}}",
+							"message": "Set {{computed.graphNode.id}} of {{state.material}}"
+						}
+					}
+				]
+			}
+		],
+
+		"togglePlay": [{ "set": "state.playing", "to": "{{!state.playing}}" }],
+		"keyNode": [
+			{
+				"if": "{{computed.node}}",
+				"then": [
+					{
+						"call": "modello.setKey",
+						"with": {
+							"scene": "{{computed.scene}}",
+							"animations": "{{computed.animations}}",
+							"node": "{{computed.node.id}}",
+							"time": "{{state.time}}"
+						},
+						"then": [
+							{
+								"run": "commit",
+								"with": {
+									"patch": "{{result.patch}}",
+									"message": "Key {{computed.node.id}} at {{fixed(state.time, 2)}} s"
+								}
+							}
+						],
+						"onError": [{ "set": "state.status", "to": "{{error}}" }]
+					}
+				]
+			}
+		],
+		"moveKey": [
+			{
+				"call": "modello.moveKey",
+				"with": {
+					"animations": "{{computed.animations}}",
+					"track": "{{track}}",
+					"index": "{{index}}",
+					"time": "{{time}}"
+				},
+				"then": [
+					{
+						"run": "commit",
+						"with": {
+							"patch": "{{result.patch}}",
+							"message": "Move a key of {{track}} to {{fixed(time, 2)}} s"
+						}
+					}
+				],
+				"onError": [{ "set": "state.status", "to": "{{error}}" }]
+			}
+		]
+	},
+
+	"keys": {
+		"g": { "do": "startModal", "with": { "mode": "translate", "axis": "x" } },
+		"r": { "do": "startModal", "with": { "mode": "rotate", "axis": "view" } },
+		"s": { "do": "startModal", "with": { "mode": "scale", "axis": "view" } },
+		"x": { "when": "{{state.modal != null}}", "do": "modalAxis", "with": { "axis": "x" } },
+		"y": { "when": "{{state.modal != null}}", "do": "modalAxis", "with": { "axis": "y" } },
+		"z": { "when": "{{state.modal != null}}", "do": "modalAxis", "with": { "axis": "z" } },
+		"0": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "0" } },
+		"1": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "1" } },
+		"2": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "2" } },
+		"3": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "3" } },
+		"4": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "4" } },
+		"5": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "5" } },
+		"6": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "6" } },
+		"7": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "7" } },
+		"8": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "8" } },
+		"9": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "9" } },
+		"period": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "." } },
+		"minus": { "when": "{{state.modal != null}}", "do": "modalType", "with": { "char": "-" } },
+		"backspace": [{ "when": "{{state.modal != null}}", "do": "modalErase" }, { "do": "deleteSelection" }],
+		"delete": { "when": "{{state.modal == null}}", "do": "deleteSelection" },
+		"enter": { "when": "{{state.modal != null}}", "do": "modalConfirm" },
+		"escape": "escape",
+		"f": "frame",
+		"mod+z": "undo",
+		"mod+d": "duplicateSelection",
+		"mod+i": "openImport",
+		"mod+e": "exportScene"
+	},
+
+	"menus": {
+		"file": {
+			"import": { "run": "openImport", "title": "Import glTF…", "icon": "file-input", "group": "1" },
+			"export": { "run": "exportScene", "title": "Export glTF", "icon": "file-output", "group": "1" }
+		},
+		"edit": {
+			"undo": { "run": "undo", "title": "Undo", "icon": "undo-2", "group": "1" },
+			"duplicate": {
+				"run": "duplicateSelection",
+				"title": "Duplicate",
+				"icon": "copy",
+				"group": "2",
+				"order": 1
+			},
+			"delete": { "run": "deleteSelection", "title": "Delete", "icon": "trash-2", "group": "2", "order": 2 }
+		},
+		"add": {
+			"cube": {
+				"run": "addNode",
+				"with": { "kind": "cube" },
+				"title": "Cube",
+				"icon": "box",
+				"group": "1",
+				"order": 1
+			},
+			"sphere": {
+				"run": "addNode",
+				"with": { "kind": "sphere" },
+				"title": "Sphere",
+				"icon": "circle",
+				"group": "1",
+				"order": 2
+			},
+			"cylinder": {
+				"run": "addNode",
+				"with": { "kind": "cylinder" },
+				"title": "Cylinder",
+				"icon": "cylinder",
+				"group": "1",
+				"order": 3
+			},
+			"torus": {
+				"run": "addNode",
+				"with": { "kind": "torus" },
+				"title": "Torus",
+				"icon": "torus",
+				"group": "1",
+				"order": 4
+			},
+			"plane": {
+				"run": "addNode",
+				"with": { "kind": "plane" },
+				"title": "Plane",
+				"icon": "square",
+				"group": "1",
+				"order": 5
+			},
+			"sun": {
+				"run": "addNode",
+				"with": { "kind": "light:directional" },
+				"title": "Sun light",
+				"icon": "sun",
+				"group": "2",
+				"order": 1
+			},
+			"point": {
+				"run": "addNode",
+				"with": { "kind": "light:point" },
+				"title": "Point light",
+				"icon": "lightbulb",
+				"group": "2",
+				"order": 2
+			},
+			"spot": {
+				"run": "addNode",
+				"with": { "kind": "light:spot" },
+				"title": "Spot light",
+				"icon": "flashlight",
+				"group": "2",
+				"order": 3
+			},
+			"camera": {
+				"run": "addNode",
+				"with": { "kind": "camera" },
+				"title": "Camera",
+				"icon": "video",
+				"group": "3",
+				"order": 1
+			},
+			"empty": {
+				"run": "addNode",
+				"with": { "kind": "empty" },
+				"title": "Empty",
+				"icon": "move-3-d",
+				"group": "3",
+				"order": 2
+			}
+		},
+		"view": {
+			"frame": { "run": "frame", "title": "Frame selection", "icon": "scan", "group": "1" },
+			"front": { "run": "setView", "with": { "view": "front" }, "title": "Front", "group": "2", "order": 1 },
+			"side": { "run": "setView", "with": { "view": "right" }, "title": "Side", "group": "2", "order": 2 },
+			"top": { "run": "setView", "with": { "view": "top" }, "title": "Top", "group": "2", "order": 3 },
+			"projection": {
+				"run": "projection",
+				"title": "Perspective or orthographic",
+				"icon": "eye",
+				"group": "3",
+				"order": 1
+			},
+			"theme": { "run": "toggleTheme", "title": "Light or dark", "icon": "moon", "group": "3", "order": 2 }
+		}
+	},
+
+	"root": {
+		"id": "root",
+		"color": "@color.bg",
+		"children": [
+			{
+				"type": "column",
+				"id": "workspace",
+				"fill": true,
+				"children": [
+					{
+						"when": "{{!window.nativeMenuBar}}",
+						"type": "row",
+						"id": "menu-row",
+						"width": "100%",
+						"height": 30,
+						"color": "@color.panel",
+						"alignItems": "center",
+						"children": [
+							{
+								"use": "menuBar",
+								"id": "menu-bar",
+								"width": "100%",
+								"with": {
+									"open": "state.menuBar",
+									"menus": "{{[{name: 'file', title: 'File', items: menus.file}, {name: 'edit', title: 'Edit', items: menus.edit}, {name: 'add', title: 'Add', items: menus.add}, {name: 'view', title: 'View', items: menus.view}]}}"
+								}
+							}
+						]
+					},
+					{
+						"type": "split",
+						"id": "main-split",
+						"width": "100%",
+						"grow": 1,
+						"bind": "state.sizes.main",
+						"minSize": [180, 420, 260],
+						"defaultSizes": [240, 860],
+						"sashSize": 3,
+						"sashColor": "@color.border",
+						"sashActiveColor": "@color.accent",
+						"children": [
+							{
+								"type": "column",
+								"id": "outliner",
+								"color": "@color.panel",
+								"alignItems": "stretch",
+								"children": [
+									{
+										"id": "outliner-title",
+										"style": "heading",
+										"text": "Outliner",
+										"icon": "list-tree"
+									},
+									{
+										"type": "tree",
+										"id": "outliner-tree",
+										"grow": 1,
+										"color": "@color.panel",
+										"items": "{{state.outline}}",
+										"expanded": "{{state.expanded}}",
+										"selection": "multiple",
+										"value": "{{state.selection}}",
+										"rowHeight": 24,
+										"textColor": "@color.text",
+										"selectedTextColor": "@color.text",
+										"selectedBackground": "@color.accentSoft",
+										"accentColor": "@color.accent",
+										"onChange": [{ "set": "state.selection", "to": "{{event.value}}" }],
+										"onExpand": [
+											{
+												"set": "state.expanded",
+												"to": "{{event.expanded ? concat(state.expanded, [event.id]) : filter(state.expanded, it != event.id)}}"
+											}
+										],
+										"onOpen": "frame"
+									}
+								]
+							},
+							{
+								"type": "split",
+								"id": "center-split",
+								"direction": "column",
+								"bind": "state.sizes.center",
+								"minSize": [240, 160],
+								"defaultSizes": [560],
+								"sashSize": 3,
+								"sashColor": "@color.border",
+								"sashActiveColor": "@color.accent",
+								"children": [
+									{
+										"type": "column",
+										"id": "viewport-pane",
+										"alignItems": "stretch",
+										"children": [
+											{
+												"type": "row",
+												"id": "viewport-header",
+												"height": 36,
+												"color": "@color.panel",
+												"alignItems": "center",
+												"gap": 2,
+												"children": [
+													{
+														"id": "nav-orbit",
+														"style": "{{state.navigate == 'orbit' ? 'toolOn' : 'tool'}}",
+														"icon": "orbit",
+														"text": "",
+														"tooltip": "Orbit: drag to turn the view",
+														"onClick": [{ "set": "state.navigate", "to": "orbit" }]
+													},
+													{
+														"id": "nav-pan",
+														"style": "{{state.navigate == 'pan' ? 'toolOn' : 'tool'}}",
+														"icon": "hand",
+														"text": "",
+														"tooltip": "Pan: drag to move the view",
+														"onClick": [{ "set": "state.navigate", "to": "pan" }]
+													},
+													{
+														"id": "nav-select",
+														"style": "{{state.navigate == 'select' ? 'toolOn' : 'tool'}}",
+														"icon": "square-dashed",
+														"text": "",
+														"tooltip": "Box select: drag a box",
+														"onClick": [{ "set": "state.navigate", "to": "select" }]
+													},
+													{
+														"id": "sep-1",
+														"width": 1,
+														"height": 18,
+														"color": "@color.border"
+													},
+													{
+														"id": "mode-translate",
+														"style": "{{state.gizmo.mode == 'translate' ? 'toolOn' : 'tool'}}",
+														"icon": "move-3-d",
+														"text": "",
+														"tooltip": "Move (G)",
+														"onClick": [{ "set": "state.gizmo.mode", "to": "translate" }]
+													},
+													{
+														"id": "mode-rotate",
+														"style": "{{state.gizmo.mode == 'rotate' ? 'toolOn' : 'tool'}}",
+														"icon": "rotate-3-d",
+														"text": "",
+														"tooltip": "Rotate (R)",
+														"onClick": [{ "set": "state.gizmo.mode", "to": "rotate" }]
+													},
+													{
+														"id": "mode-scale",
+														"style": "{{state.gizmo.mode == 'scale' ? 'toolOn' : 'tool'}}",
+														"icon": "scale-3-d",
+														"text": "",
+														"tooltip": "Scale (S)",
+														"onClick": [{ "set": "state.gizmo.mode", "to": "scale" }]
+													},
+													{
+														"id": "space",
+														"style": "tool",
+														"icon": "{{state.gizmo.space == 'local' ? 'locate' : 'globe'}}",
+														"text": "{{state.gizmo.space == 'local' ? 'Local' : 'World'}}",
+														"tooltip": "Handles along the object's axes or the world's",
+														"onClick": [
+															{
+																"set": "state.gizmo.space",
+																"to": "{{state.gizmo.space == 'local' ? 'world' : 'local'}}"
+															}
+														]
+													},
+													{
+														"id": "snap",
+														"style": "{{state.snap.on ? 'toolOn' : 'tool'}}",
+														"icon": "magnet",
+														"text": "",
+														"tooltip": "Snap: 0.25 m, 15°, 0.1",
+														"onClick": [{ "toggle": "state.snap.on" }]
+													},
+													{ "id": "header-gap", "grow": 1 },
+													{
+														"id": "shade-solid",
+														"style": "{{state.shading == 'solid' ? 'toolOn' : 'tool'}}",
+														"icon": "box",
+														"text": "",
+														"tooltip": "Solid",
+														"onClick": [{ "set": "state.shading", "to": "solid" }]
+													},
+													{
+														"id": "shade-material",
+														"style": "{{state.shading == 'material' ? 'toolOn' : 'tool'}}",
+														"icon": "palette",
+														"text": "",
+														"tooltip": "Material",
+														"onClick": [{ "set": "state.shading", "to": "material" }]
+													},
+													{
+														"id": "shade-wireframe",
+														"style": "{{state.shading == 'wireframe' ? 'toolOn' : 'tool'}}",
+														"icon": "triangle",
+														"text": "",
+														"tooltip": "Wireframe",
+														"onClick": [{ "set": "state.shading", "to": "wireframe" }]
+													},
+													{
+														"id": "sep-2",
+														"width": 1,
+														"height": 18,
+														"color": "@color.border"
+													},
+													{
+														"id": "toggle-grid",
+														"style": "{{state.grid ? 'toolOn' : 'tool'}}",
+														"icon": "grid-3-x-3",
+														"text": "",
+														"tooltip": "Grid and axes",
+														"onClick": [
+															{ "toggle": "state.grid" },
+															{ "set": "state.axes", "to": "{{state.grid}}" }
+														]
+													},
+													{
+														"id": "projection",
+														"style": "tool",
+														"text": "{{state.camera.orthographic ? 'Ortho' : 'Persp'}}",
+														"tooltip": "Perspective or orthographic",
+														"onClick": "projection"
+													},
+													{
+														"id": "view-front",
+														"style": "tool",
+														"text": "Front",
+														"onClick": { "run": "setView", "with": { "view": "front" } }
+													},
+													{
+														"id": "view-side",
+														"style": "tool",
+														"text": "Side",
+														"onClick": { "run": "setView", "with": { "view": "right" } }
+													},
+													{
+														"id": "view-top",
+														"style": "tool",
+														"text": "Top",
+														"onClick": { "run": "setView", "with": { "view": "top" } }
+													},
+													{
+														"id": "frame",
+														"style": "tool",
+														"icon": "scan",
+														"text": "",
+														"tooltip": "Frame the selection (F)",
+														"onClick": "frame"
+													}
+												]
+											},
+											{
+												"type": "surface",
+												"id": "viewport",
+												"surface": "scene",
+												"grow": 1,
+												"focusable": true,
+												"cursor": "arrow",
+												"params": {
+													"scene": "{{state.preview ?? computed.scene}}",
+													"animations": "{{computed.animations}}",
+													"camera": "{{state.camera}}",
+													"selection": "{{state.selection}}",
+													"shading": "{{state.shading}}",
+													"grid": "{{state.grid}}",
+													"axes": "{{state.axes}}",
+													"time": "{{state.time}}",
+													"gizmo": "{{computed.view.gizmo}}",
+													"box": "{{state.box}}",
+													"background": "{{state.theme == 'dark' ? '#202329' : '#c9cdd5'}}",
+													"gridColor": "{{state.theme == 'dark' ? '#3a3f4a' : '#9aa0ab'}}",
+													"outline": "#f08a24"
+												},
+												"onPress": "viewportPress",
+												"onDrag": "viewportDrag",
+												"onRelease": "viewportRelease",
+												"onScroll": "viewportScroll"
+											}
+										]
+									},
+									{
+										"type": "column",
+										"id": "bottom-pane",
+										"color": "@color.panel",
+										"alignItems": "stretch",
+										"children": [
+											{
+												"type": "tabs",
+												"id": "bottom-tabs",
+												"height": 30,
+												"color": "@color.panel",
+												"bind": "state.panel",
+												"accentColor": "@color.accent",
+												"activeTextColor": "@color.text",
+												"activeBackground": "@color.raised",
+												"textColor": "@color.muted",
+												"tabs": [
+													{ "id": "materials", "label": "Materials", "closable": false },
+													{ "id": "timeline", "label": "Timeline", "closable": false }
+												]
+											},
+											{
+												"when": "{{state.panel == 'materials'}}",
+												"type": "column",
+												"id": "materials",
+												"grow": 1,
+												"alignItems": "stretch",
+												"children": [
+													{
+														"type": "row",
+														"id": "materials-header",
+														"height": 34,
+														"alignItems": "center",
+														"gap": 2,
+														"children": [
+															{
+																"id": "material-name",
+																"type": "label",
+																"text": "{{computed.materialEntry.name ?? state.material}}",
+																"icon": "palette",
+																"fitText": true,
+																"height": 26,
+																"textColor": "@color.text"
+															},
+															{ "id": "material-gap", "width": 12 },
+															{
+																"when": "{{!computed.graph}}",
+																"id": "use-graph",
+																"style": "tool",
+																"icon": "workflow",
+																"text": "Use a node graph",
+																"onClick": "useGraph"
+															},
+															{
+																"when": "{{computed.graph}}",
+																"type": "row",
+																"id": "graph-ops",
+																"grow": 1,
+																"gap": 2,
+																"alignItems": "center",
+																"children": [
+																	{
+																		"id": "op-color",
+																		"style": "tool",
+																		"text": "Colour",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "color" }
+																		}
+																	},
+																	{
+																		"id": "op-number",
+																		"style": "tool",
+																		"text": "Number",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "number" }
+																		}
+																	},
+																	{
+																		"id": "op-mix",
+																		"style": "tool",
+																		"text": "Mix",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "mix" }
+																		}
+																	},
+																	{
+																		"id": "op-multiply",
+																		"style": "tool",
+																		"text": "Multiply",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "multiply" }
+																		}
+																	},
+																	{
+																		"id": "op-add",
+																		"style": "tool",
+																		"text": "Add",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "add" }
+																		}
+																	},
+																	{
+																		"id": "op-scale",
+																		"style": "tool",
+																		"text": "Scale",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "scale" }
+																		}
+																	},
+																	{
+																		"id": "op-invert",
+																		"style": "tool",
+																		"text": "Invert",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "invert" }
+																		}
+																	},
+																	{
+																		"id": "op-fresnel",
+																		"style": "tool",
+																		"text": "Fresnel",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "fresnel" }
+																		}
+																	},
+																	{
+																		"id": "op-checker",
+																		"style": "tool",
+																		"text": "Checker",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "checker" }
+																		}
+																	},
+																	{
+																		"id": "op-noise",
+																		"style": "tool",
+																		"text": "Noise",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "noise" }
+																		}
+																	},
+																	{
+																		"id": "op-height",
+																		"style": "tool",
+																		"text": "Height",
+																		"onClick": {
+																			"run": "addGraphNode",
+																			"with": { "op": "height" }
+																		}
+																	}
+																]
+															},
+															{ "id": "graph-gap", "grow": 1 },
+															{
+																"when": "{{computed.graphNode.op == 'color' || computed.graphNode.op == 'number'}}",
+																"id": "graph-value",
+																"style": "field",
+																"grow": 0,
+																"width": 160,
+																"bind": "state.fields.graphValue",
+																"placeholder": "Value",
+																"onSubmit": {
+																	"run": "setGraphValue",
+																	"with": { "text": "{{event.text}}" }
+																}
+															}
+														]
+													},
+													{
+														"when": "{{computed.graph}}",
+														"type": "graph",
+														"id": "material-graph",
+														"grow": 1,
+														"nodes": "{{computed.graph.nodes}}",
+														"links": "{{computed.graph.links}}",
+														"kindColors": { "color": "#f472b6", "float": "#a3e635" },
+														"nodeColor": "@color.raised",
+														"headerColor": "@color.border",
+														"textColor": "@color.text",
+														"accentColor": "@color.accent",
+														"onConnect": {
+															"run": "setGraph",
+															"with": {
+																"message": "Link {{event.from}} to {{event.to}}.{{event.input}}",
+																"graph": "{{merge(computed.graph, { links: concat(computed.graph.links, [{ from: event.from, output: event.output, to: event.to, input: event.input }]) })}}"
+															}
+														},
+														"onDisconnect": {
+															"run": "setGraph",
+															"with": {
+																"message": "Unlink {{event.to}}.{{event.input}}",
+																"graph": "{{merge(computed.graph, { links: filter(computed.graph.links, index != event.index) })}}"
+															}
+														},
+														"onMove": {
+															"run": "setGraph",
+															"with": {
+																"message": "Move {{join(event.ids, ', ')}} in {{state.material}}",
+																"graph": "{{merge(computed.graph, { nodes: map(computed.graph.nodes, contains(event.ids, it.id) ? merge(it, { x: it.x + event.dx, y: it.y + event.dy }) : it) })}}"
+															}
+														},
+														"onDelete": {
+															"run": "setGraph",
+															"with": {
+																"message": "Remove {{join(event.ids, ', ')}} from {{state.material}}",
+																"graph": "{{merge(computed.graph, { nodes: filter(computed.graph.nodes, it.op == 'output' || !contains(event.ids, it.id)), links: filter(computed.graph.links, !contains(event.ids, it.from) && !contains(event.ids, it.to) || contains(map(filter(computed.graph.nodes, it.op == 'output'), it.id), it.to) && !contains(event.ids, it.from)) })}}"
+															}
+														},
+														"onSelect": [
+															{ "set": "state.graphSelected", "to": "{{event.ids}}" }
+														]
+													},
+													{
+														"when": "{{!computed.graph}}",
+														"id": "no-graph",
+														"type": "label",
+														"font": "small",
+														"textColor": "@color.muted",
+														"padding": 12,
+														"height": 40,
+														"text": "{{computed.materialEntry ? 'This material uses its plain values (Properties). A node graph computes them instead.' : 'Select an object with a material.'}}"
+													}
+												]
+											},
+											{
+												"when": "{{state.panel == 'timeline'}}",
+												"type": "column",
+												"id": "timeline-pane",
+												"grow": 1,
+												"alignItems": "stretch",
+												"children": [
+													{
+														"type": "row",
+														"id": "timeline-header",
+														"height": 34,
+														"alignItems": "center",
+														"gap": 2,
+														"children": [
+															{
+																"id": "play",
+																"style": "{{state.playing ? 'toolOn' : 'tool'}}",
+																"icon": "{{state.playing ? 'pause' : 'play'}}",
+																"text": "",
+																"tooltip": "Play or pause",
+																"onClick": "togglePlay"
+															},
+															{
+																"id": "rewind",
+																"style": "tool",
+																"icon": "skip-back",
+																"text": "",
+																"tooltip": "Back to the start",
+																"onClick": [{ "set": "state.time", "to": 0 }]
+															},
+															{
+																"id": "key",
+																"style": "tool",
+																"icon": "key",
+																"text": "Key",
+																"tooltip": "Key the selection's transform at the playhead",
+																"onClick": "keyNode"
+															},
+															{
+																"id": "time",
+																"type": "label",
+																"font": "small",
+																"textColor": "@color.muted",
+																"fitText": true,
+																"height": 26,
+																"text": "{{fixed(state.time, 2)}} s of {{fixed(state.duration, 2)}} s"
+															}
+														]
+													},
+													{
+														"type": "timeline",
+														"id": "timeline",
+														"grow": 1,
+														"tracks": "{{state.tracks}}",
+														"time": "{{state.time}}",
+														"duration": "{{state.duration}}",
+														"fps": 24,
+														"timeFormat": "seconds",
+														"textColor": "@color.text",
+														"accentColor": "@color.accent",
+														"headerColor": "@color.raised",
+														"onScrub": [{ "set": "state.time", "to": "{{event.time}}" }],
+														"onKeyframeMove": {
+															"run": "moveKey",
+															"with": {
+																"track": "{{event.track}}",
+																"index": "{{event.index}}",
+																"time": "{{event.time}}"
+															}
+														}
+													},
+													{
+														"when": "{{state.playing}}",
+														"id": "player",
+														"width": 0,
+														"height": 0,
+														"every": {
+															"ms": 40,
+															"do": [
+																{
+																	"set": "state.time",
+																	"to": "{{state.duration > 0 ? (state.time + 0.04) % state.duration : 0}}"
+																}
+															]
+														}
+													}
+												]
+											}
+										]
+									}
+								]
+							},
+							{
+								"type": "column",
+								"id": "properties",
+								"color": "@color.panel",
+								"gap": 6,
+								"alignItems": "stretch",
+								"children": [
+									{
+										"id": "properties-title",
+										"style": "heading",
+										"text": "Properties",
+										"icon": "sliders-horizontal"
+									},
+									{
+										"when": "{{!computed.node}}",
+										"id": "nothing-selected",
+										"type": "label",
+										"font": "small",
+										"textColor": "@color.muted",
+										"height": 26,
+										"text": "Nothing selected. Click an object, or add one from Add."
+									},
+									{
+										"when": "{{computed.node}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-name",
+										"alignItems": "center",
+										"children": [
+											{ "id": "label-name", "style": "fieldLabel", "text": "Name" },
+											{
+												"id": "field-name",
+												"style": "field",
+												"bind": "state.fields.name",
+												"onSubmit": { "run": "setName", "with": { "text": "{{event.text}}" } }
+											}
+										]
+									},
+									{
+										"when": "{{computed.node}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-translation",
+										"alignItems": "center",
+										"children": [
+											{ "id": "label-translation", "style": "fieldLabel", "text": "Location" },
+											{
+												"id": "field-translation",
+												"style": "field",
+												"bind": "state.fields.translation",
+												"placeholder": "x, y, z",
+												"onSubmit": {
+													"run": "setNodeNumbers",
+													"with": {
+														"key": "translation",
+														"text": "{{event.text}}",
+														"count": 3
+													}
+												}
+											}
+										]
+									},
+									{
+										"when": "{{computed.node}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-rotation",
+										"alignItems": "center",
+										"children": [
+											{ "id": "label-rotation", "style": "fieldLabel", "text": "Rotation" },
+											{
+												"id": "value-rotation",
+												"type": "label",
+												"font": "small",
+												"textColor": "@color.muted",
+												"height": 26,
+												"grow": 1,
+												"text": "{{join(map(computed.node.rotation ?? [0, 0, 0, 1], fixed(it, 3)), ', ')}} (R to turn)"
+											}
+										]
+									},
+									{
+										"when": "{{computed.node}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-scale",
+										"alignItems": "center",
+										"children": [
+											{ "id": "label-scale", "style": "fieldLabel", "text": "Scale" },
+											{
+												"id": "field-scale",
+												"style": "field",
+												"bind": "state.fields.scale",
+												"placeholder": "x, y, z",
+												"onSubmit": {
+													"run": "setNodeNumbers",
+													"with": { "key": "scale", "text": "{{event.text}}", "count": 3 }
+												}
+											}
+										]
+									},
+									{
+										"when": "{{computed.node.light}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-intensity",
+										"alignItems": "center",
+										"children": [
+											{
+												"id": "label-intensity",
+												"style": "fieldLabel",
+												"text": "{{computed.node.light.type}} light"
+											},
+											{
+												"id": "field-intensity",
+												"style": "field",
+												"bind": "state.fields.intensity",
+												"placeholder": "Intensity",
+												"onSubmit": {
+													"run": "setNodeNumbers",
+													"with": {
+														"key": "light/intensity",
+														"text": "{{event.text}}",
+														"count": 1
+													}
+												}
+											}
+										]
+									},
+									{ "when": "{{computed.node}}", "id": "divider-material", "style": "divider" },
+									{
+										"when": "{{computed.node && computed.materialEntry && computed.node.material}}",
+										"id": "material-title",
+										"style": "heading",
+										"text": "Material: {{computed.materialEntry.name ?? state.material}}",
+										"icon": "palette"
+									},
+									{
+										"when": "{{computed.node && computed.materialEntry && computed.node.material}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-base",
+										"alignItems": "center",
+										"children": [
+											{ "id": "label-base", "style": "fieldLabel", "text": "Base colour" },
+											{
+												"id": "field-base",
+												"style": "field",
+												"bind": "state.fields.baseColor",
+												"placeholder": "r, g, b, a",
+												"onSubmit": {
+													"run": "setMaterialNumbers",
+													"with": { "key": "baseColor", "text": "{{event.text}}", "count": 4 }
+												}
+											}
+										]
+									},
+									{
+										"when": "{{computed.node && computed.materialEntry && computed.node.material}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-metallic",
+										"alignItems": "center",
+										"children": [
+											{ "id": "label-metallic", "style": "fieldLabel", "text": "Metallic" },
+											{
+												"id": "field-metallic",
+												"style": "field",
+												"bind": "state.fields.metallic",
+												"onSubmit": {
+													"run": "setMaterialNumbers",
+													"with": { "key": "metallic", "text": "{{event.text}}", "count": 1 }
+												}
+											}
+										]
+									},
+									{
+										"when": "{{computed.node && computed.materialEntry && computed.node.material}}",
+										"type": "row",
+										"height": 26,
+										"id": "row-roughness",
+										"alignItems": "center",
+										"children": [
+											{ "id": "label-roughness", "style": "fieldLabel", "text": "Roughness" },
+											{
+												"id": "field-roughness",
+												"style": "field",
+												"bind": "state.fields.roughness",
+												"onSubmit": {
+													"run": "setMaterialNumbers",
+													"with": { "key": "roughness", "text": "{{event.text}}", "count": 1 }
+												}
+											}
+										]
+									},
+									{
+										"when": "{{computed.node.material && computed.graph}}",
+										"id": "graph-note",
+										"type": "label",
+										"font": "small",
+										"textColor": "@color.muted",
+										"height": 22,
+										"text": "A node graph sets what it links (Materials)."
+									}
+								]
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "review-bar",
+						"when": "{{length(proposals) > 0}}",
+						"width": "100%",
+						"height": 30,
+						"color": "@color.accentSoft",
+						"alignItems": "center",
+						"gap": 8,
+						"children": [
+							{
+								"id": "review-text",
+								"type": "label",
+								"font": "small",
+								"icon": "git-pull-request",
+								"height": 22,
+								"grow": 1,
+								"text": "{{length(proposals) > 0 ? proposals[0].author + ' proposes: ' + proposals[0].message : ''}}"
+							},
+							{
+								"id": "review-accept",
+								"style": "tool",
+								"height": 22,
+								"icon": "check",
+								"text": "Accept",
+								"tooltip": "Apply the proposed change",
+								"onClick": [{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }]
+							},
+							{
+								"id": "review-reject",
+								"style": "tool",
+								"height": 22,
+								"icon": "x",
+								"text": "Reject",
+								"tooltip": "Turn the proposed change down",
+								"onClick": [{ "reject": "{{proposals[0].id}}", "reason": "Rejected in Modello" }]
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "status-bar",
+						"width": "100%",
+						"height": 26,
+						"color": "@color.panel",
+						"alignItems": "center",
+						"gap": 12,
+						"children": [
+							{
+								"id": "status",
+								"type": "label",
+								"font": "small",
+								"textColor": "{{state.modal ? '@color.accent' : '@color.muted'}}",
+								"height": 22,
+								"grow": 1,
+								"text": "{{state.status}}"
+							},
+							{
+								"id": "counts",
+								"type": "label",
+								"font": "small",
+								"textColor": "@color.muted",
+								"height": 22,
+								"fitText": true,
+								"text": "{{length(computed.scene.nodes)}} objects · {{length(state.selection)}} selected · {{state.gizmo.mode}}, {{state.gizmo.space}}{{state.snap.on ? ', snap' : ''}}"
+							},
+							{
+								"id": "theme",
+								"style": "tool",
+								"height": 22,
+								"icon": "{{state.theme == 'dark' ? 'sun' : 'moon'}}",
+								"text": "",
+								"tooltip": "Light or dark",
+								"onClick": "toggleTheme"
+							}
+						]
+					}
+				]
+			},
+			{
+				"when": "{{state.importOpen}}",
+				"id": "import-scrim",
+				"fill": true,
+				"color": "#00000080",
+				"onClick": [{ "set": "state.importOpen", "to": false }],
+				"children": [
+					{
+						"type": "column",
+						"id": "import-dialog",
+						"x": "{{(window.width - 460) / 2}}",
+						"y": 120,
+						"width": 460,
+						"height": 380,
+						"color": "@color.panel",
+						"radius": 10,
+						"borderWidth": 1,
+						"borderColor": "@color.border",
+						"gap": 8,
+						"alignItems": "stretch",
+						"onClick": [{ "log": "keeps the click from closing the dialog" }],
+						"children": [
+							{
+								"id": "import-title",
+								"type": "label",
+								"text": "Import glTF",
+								"icon": "file-input",
+								"height": 26,
+								"textColor": "@color.text"
+							},
+							{
+								"id": "import-hint",
+								"type": "label",
+								"font": "small",
+								"textColor": "@color.muted",
+								"height": 20,
+								"text": "The bundled samples, and .gltf or .glb files in the data folder's imports/."
+							},
+							{
+								"type": "list",
+								"id": "import-files",
+								"grow": 1,
+								"rowHeight": 26,
+								"textColor": "@color.text",
+								"selectedBackground": "@color.accentSoft",
+								"accentColor": "@color.accent",
+								"items": "{{map(state.files, { id: it.source + ':' + it.file, label: it.name + '   ' + it.source + '/' + it.file, icon: 'box' })}}",
+								"onOpen": { "run": "importChosen", "with": { "id": "{{event.id}}" } }
+							},
+							{
+								"type": "row",
+								"id": "import-buttons",
+								"height": 30,
+								"gap": 8,
+								"justify": "end",
+								"children": [
+									{
+										"id": "import-cancel",
+										"style": "tool",
+										"text": "Cancel",
+										"onClick": [{ "set": "state.importOpen", "to": false }]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+}

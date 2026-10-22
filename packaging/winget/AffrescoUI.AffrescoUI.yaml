@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
+# The version manifest; tools/release/packaging.py fills in the version (packaging/README.md)
+PackageIdentifier: AffrescoUI.AffrescoUI
+PackageVersion: @VERSION@
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.6.0

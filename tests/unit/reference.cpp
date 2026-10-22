@@ -20,7 +20,7 @@ namespace {
 /// @brief A screen with only the built-in registries.
 /// @return The screen.
 affresco::Screen emptyScreen() {
-	return affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 1, "root": {}})");
+	return affresco::Screen::fromString(R"({"format": "affrescoui-screen", "version": 2, "root": {}})");
 }
 
 /// @brief Whether a reference has an entry of a name.
@@ -50,16 +50,15 @@ void checkSameKeys(const json& properties, std::span<const KeyReference> referen
 } // namespace
 
 TEST_CASE("reference: every key the registries have is in the reference, and the reference has no other") {
-	const json v1 = emptyScreen().schema()["$defs"]["v1"];
-	checkSameKeys(v1["node"]["properties"], nodeKeys());
-	checkSameKeys(v1["step"]["properties"], stepKeys());
-	checkSameKeys(v1["screen"]["properties"], sectionKeys());
+	const json v2 = emptyScreen().schema()["$defs"]["v2"];
+	checkSameKeys(v2["node"]["properties"], nodeKeys());
+	checkSameKeys(v2["step"]["properties"], stepKeys());
+	checkSameKeys(v2["screen"]["properties"], sectionKeys());
 }
 
 TEST_CASE("reference: every \"$ref\" in the generated schema names a definition") {
 	const json schema = emptyScreen().schema();
-	const json& v1 = schema["$defs"]["v1"];
-	const std::string prefix = "#/$defs/v1/";
+	const std::string prefix = "#/$defs/";
 	std::vector<const json*> pending{&schema};
 	while(!pending.empty()) {
 		const json* value = pending.back();
@@ -69,7 +68,9 @@ TEST_CASE("reference: every \"$ref\" in the generated schema names a definition"
 			const std::string target = (*value)["$ref"].get<std::string>();
 			INFO("$ref ", target);
 			REQUIRE(target.starts_with(prefix));
-			CHECK(v1.contains(target.substr(prefix.size())));
+			const std::string version = target.substr(prefix.size(), target.find('/', prefix.size()) - prefix.size());
+			CHECK((version == "v1" || version == "v2")); // v1 only for the screen that is read by migrating it
+			CHECK(schema["$defs"][version].contains(target.substr(prefix.size() + version.size() + 1)));
 		}
 		for(const json& child : *value) pending.push_back(&child);
 	}
@@ -86,4 +87,12 @@ TEST_CASE("reference: SCREEN_FORMAT.md's tables are written between their marker
 	CHECK_THROWS_AS((void)screen.referenceTables("<!-- generated: steps -->\nold\n"), std::invalid_argument);
 	CHECK_THROWS_AS((void)screen.referenceTables("<!-- generated: none -->\n<!-- end generated -->"),
 	                std::invalid_argument);
+}
+
+TEST_CASE("reference: a key two types share takes the values of both, and a feature's point is a node key") {
+	const json node = emptyScreen().schema()["$defs"]["v2"]["node"]["properties"];
+	const std::string mode = node["mode"].dump(); // diff's and colorPicker's (a regression: one hid the other)
+	CHECK(mode.find("inline") != std::string::npos);
+	CHECK(mode.find("wheel") != std::string::npos);
+	CHECK(node.contains("point")); // features' contribution points (a regression: the schema refused them)
 }

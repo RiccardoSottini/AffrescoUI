@@ -3,6 +3,7 @@
 /// steps write into the state.
 
 #include "CheckerImpl.hpp"
+#include "Strings.hpp"
 
 #include <cctype>
 #include <charconv>
@@ -15,8 +16,9 @@ namespace {
 /// Variables every expression may read (Expression.cpp, variable()), whose contents the checker doesn't follow.
 /// "window", "revision" and "event" can't be hidden by a local; the others can.
 constexpr auto fixedVariables = std::to_array<std::string_view>({"window", "revision", "event"});
-constexpr auto screenVariables =
-    std::to_array<std::string_view>({"nodes", "proposals", "history", "preview", "mode", "theme", "screen", "context", "commands", "keybindings", "menus", "settings", "settingsList", "services", "connections"});
+constexpr auto screenVariables = std::to_array<std::string_view>(
+    {"nodes", "proposals", "history", "preview", "mode", "theme", "locale", "screen", "context", "commands",
+	 "keybindings", "menus", "settings", "settingsList", "services", "connections", "auth"});
 
 /// List functions whose second argument sees each item as `it` (Expression.cpp, applyToItems()).
 constexpr auto itemOperators =
@@ -232,6 +234,9 @@ Shape Checker::shapeOfOperator(const std::string& name, const json& raw, const S
 	if(name == "$value") return shapeOfData(raw);
 	if(name == "$equals" || name == "$notEquals") checkComparison(raw, place);
 	if(name == "$get") return shapeOfGet(raw, scope, place);
+	if(name == "$t") // a translation: its key and parameters against "strings" (Strings.hpp)
+		if(const std::string problem = checkTranslation(document_.value("strings", json()), raw); !problem.empty())
+			report(place, problem);
 	if(name == "$path") return raw.is_string() ? shapeOfPath(raw.get<std::string>(), scope, place) : anything; // copied
 	if(name == "$object") {
 		if(!raw.is_object() || raw.empty()) return anything;

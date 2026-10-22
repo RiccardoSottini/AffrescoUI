@@ -126,7 +126,7 @@ Workload loadWorkload(const json& document) {
 		vcs::Repository writer(*rules, document);
 		writer.openHistory(directory);
 		const json changes = {
-		    {"format", "affrescoui-changes"}, {"version", 1}, {"name", "renames"}, {"revisions", revisions}};
+		    {"format", "affrescoui-changes"}, {"version", 2}, {"name", "renames"}, {"revisions", revisions}};
 		if(const auto error = writer.importChanges(changes)) throw std::runtime_error("history/load: " + *error);
 	} // releases the folder's lock
 	const auto screen = std::make_shared<const json>(document);
@@ -142,7 +142,7 @@ Workload loadWorkload(const json& document) {
 } // namespace
 
 std::vector<Workload> historyWorkloads(const Context& context) {
-	const json document = json::parse(readFile(context.screens() / "kanban.screen.json"));
+	const json document = screenDocument(context.templateFolder("kanban") / "kanban.screen.json");
 	const auto large = std::make_shared<History>(document, largeHistory); // the commit runs add to it: blame reads all
 	std::vector<Workload> workloads;
 	workloads.push_back(commitWorkload(std::make_shared<History>(document, 100), 100));

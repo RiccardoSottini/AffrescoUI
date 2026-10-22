@@ -19,7 +19,7 @@ namespace {
 
 /// @brief A screen with a button, a toggle, a field, a hidden button and a panel with no role.
 constexpr const char* formScreen = R"json({
-	"format": "affrescoui-screen", "version": 1,
+	"format": "affrescoui-screen", "version": 2,
 	"window": { "focusRing": "#ff0000" },
 	"state": { "dark": false, "draft": "", "saved": 0, "x": 0 },
 	"actions": { "save": [{ "increment": "state.saved" }] },
@@ -115,7 +115,7 @@ TEST_CASE("accessibility: the focus ring shows after Tab, not after a click") {
 
 TEST_CASE("accessibility: window.reducedMotion makes animations instant") {
 	Built built(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "x": 0 },
 		"actions": { "go": [{ "animate": "state.x", "to": 100, "ms": 300 }] },
 		"root": { "id": "root", "children": [

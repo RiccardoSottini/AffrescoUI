@@ -42,7 +42,7 @@ json stateAt(const affresco::Screen& screen, const char* pointer) {
 std::string connectionScreen(const std::string& origin) {
 	const json document = {
 	    {"format", "affrescoui-screen"},
-	    {"version", 1},
+	    {"version", 2},
 	    {"connections",
 	     {{"api",
 	       {{"url", origin},

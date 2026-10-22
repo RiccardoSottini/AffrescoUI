@@ -13,6 +13,10 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | Header | Offers |
 |---|---|
 | `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
+| `Leases.hpp` | `Leases`: a part of a document (an `#id` or a pointer) one person holds for a while, bounded; `LeasedRules`: a document's rules plus a deny rule for everyone else per running lease |
+| `Roles.hpp` | `Roles`: the role each author plays for this run (`design`, `data`, `builder`), set by the host or a reviewer, never by a revision; `ruleCovers`: whether a rule's author (`role:<name>` too) covers an author |
+| `ChangeSetRepair.hpp` | `ChangeSetRepairs`: change sets installed with their request, base and proof, checked on install, and repaired by an agent through review; `RepairStatus`, `InstalledChangeSet` |
+| `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
 `core/DocumentRules.hpp`.
@@ -49,6 +53,15 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   rules, grants or mode say; the reason lists them. The app's own changes and merges aren't reviewed again.
 - **An author never approves its own change,** and an approval names the head the reviewer saw: if the branch moved
   since, the approval is refused.
+- **Proposals follow main** (`rebaseProposals`, `RepositoryReview.cpp`): when main moves, each open proposal rebases
+  through `detail::merge` (`Merge.hpp`), keyed by node id. Approvals survive only an exact rebase (replaying its
+  commits gives the merge); a merged rebase dismisses them; a conflict leaves the branch where it was, listed in
+  `conflicts`, and blocks accepting it.
+- **A review policy is met before a merge** (`DocumentRules::permissions().review`): approvals from distinct reviewers,
+  more for behaviour changes (`DocumentRules::behaviourLines`), and one from an owner of each owned part changed. It
+  is read from main when each approval arrives. Grants may carry `expires`; expired ones no longer allow.
+- **Evidence is never the author's:** a revision carrying `evidence` or `behaviour` is refused; the host gathers both
+  (VERSION_CONTROL.md, "Evidence").
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
 - **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every
@@ -83,15 +96,23 @@ the main thread. File writes happen inside the change that causes them.
 
 ```
 include/affresco/vcs/Repository.hpp   the Repository class
+include/affresco/vcs/ChangeSetRepair.hpp   ChangeSetRepairs
 src/
   Repository.cpp            commits, main, proposals, review, permissions in use, change sets
+  ChangeSetRepair.cpp       installing change sets with a proof, asking for repairs, re-recording them once accepted
+  RepositoryReview.cpp      rebasing proposals onto a newer main, approvals and review policies, expiring grants
+  Merge.hpp / .cpp          the three-way JSON merge, lists of nodes merged by id
   RepositoryHistory.cpp     the history on disk: writing and loading objects and refs
   RepositoryDocuments.cpp   rebuilding a commit's document from a snapshot and deltas; blame; the live state's undo
   Deltas.hpp / .cpp         exact deltas between documents, applying them safely, JSON Pointer segments
   HistoryStore.hpp / .cpp   the history folder: the lock, atomic writes, bounded reads, packs
   Permissions.hpp / .cpp    how a rule sees a change: by its effect on the paths it covers
+  Policy.hpp / .cpp         budgets and data rules: counting nodes by id, paths an author may read, write or never touch
+  PolicyRepository.cpp      what a read-limited author sees, refusing revisions that name what it may not read
+  Roles.cpp                 the roles of this run, and rules naming them
+  LeasesRepository.cpp      who is connected, the parts they lease, and refusing changes to another holder's part
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
-  Sha256.hpp / .cpp         SHA-256
+  Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)
 CMakeLists.txt              the affrescoui_vcs target and its sources
 ```
 

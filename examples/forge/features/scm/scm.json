@@ -1,0 +1,275 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted (Scm.cpp): only Forge's own commands, as arrays, in the open folder's repository, and its output is read strictly in C++ (forge.scm.parseStatus, forge.scm.parseBranches, forge.scm.diff). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository.",
+
+	"services": {
+		"git": { "provider": "process", "process": "git" }
+	},
+
+	"state": {
+		"scm": {
+			"status": { "branch": { "head": "", "upstream": "", "ahead": 0, "behind": 0 }, "files": [], "staged": [],
+				"changes": [], "count": 0 },
+			"branches": { "current": "", "branches": [] },
+			"message": "", "branchName": "", "error": "", "busy": false, "showBranches": false,
+			"selectedStaged": null, "selectedChange": null, "selectedBranch": null,
+			"compare": { "path": "", "original": "", "modified": "" },
+			"gutters": []
+		}
+	},
+
+	"computed": {
+		"scmStagedRows": "{{map(state.scm.status.staged, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#0078d4'})}}",
+		"scmChangeRows": "{{map(state.scm.status.changes, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#0078d4'})}}",
+		"scmBranchRows": "{{map(state.scm.branches.branches, {id: it.id, label: it.label, icon: it.current ? 'check' : 'git-branch'})}}",
+		"scmBranchText": "{{(empty(state.scm.status.branch.head) ? 'No repository' : state.scm.status.branch.head) + (state.scm.status.branch.ahead > 0 ? '  ↑' + state.scm.status.branch.ahead : '') + (state.scm.status.branch.behind > 0 ? '  ↓' + state.scm.status.branch.behind : '')}}"
+	},
+
+	"actions": {
+		"showSourceControl": { "title": "Show Source Control", "category": "View", "icon": "git-branch",
+			"do": [{ "run": "forgeShowView", "with": { "view": "scm" } },
+			       { "if": "{{state.sideView == 'scm' && !empty(state.folder.root)}}", "then": [{ "run": "scmRefresh" }] }] },
+		"scmRefresh": { "title": "Refresh", "category": "Source Control", "icon": "refresh-cw",
+			"description": "Read the open folder's git status again.",
+			"enablement": "{{!empty(state.folder.root)}}",
+			"do": [{ "invoke": "git.run", "id": "scm-status", "loading": "state.scm.busy",
+				"with": { "arguments": ["status", "--porcelain=v2", "-z", "--branch", "--untracked-files=all"], "collect": true },
+				"onError": [{ "set": "state.scm.error", "to": "{{'git did not run: ' + error.message}}" }],
+				"onDone": [
+					{ "if": "{{result.code != 0}}",
+					  "then": [{ "set": "state.scm.error", "to": "The open folder is not a git repository, or git failed." },
+					           { "set": "state.scm.status", "to": { "branch": { "head": "", "upstream": "", "ahead": 0, "behind": 0 },
+						           "files": [], "staged": [], "changes": [], "count": 0 } }],
+					  "else": [{ "call": "forge.scm.parseStatus", "with": { "output": "{{result.output}}" }, "into": "state.scm.status",
+						"onError": [{ "set": "state.scm.error", "to": "{{error}}" }],
+						"then": [{ "set": "state.scm.error", "to": "" }] }] }
+				] }] },
+		"scmApplyStatus": [
+			{ "call": "forge.scm.parseStatus", "with": { "output": "{{event.output}}" }, "into": "state.scm.status",
+			  "onError": [{ "set": "state.scm.error", "to": "{{error}}" }],
+			  "then": [{ "set": "state.scm.error", "to": "" }] }
+		],
+		"scmGit": [
+			{ "invoke": "git.run", "loading": "state.scm.busy",
+			  "with": { "arguments": "{{arguments}}", "input": "{{input}}", "collect": true },
+			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'git did not run: ' + error.message}}" } }],
+			  "onDone": [
+				{ "if": "{{result.code != 0}}",
+				  "then": [{ "run": "notify", "with": { "severity": "error",
+					"message": "{{'git ' + arguments[0] + ' failed' + (empty(trim(result.output)) ? '' : ': ' + slice(trim(result.output), 0, 300))}}" } }],
+				  "else": [{ "if": "{{arguments[0] == 'commit'}}", "then": [{ "set": "state.scm.message", "to": "" },
+					{ "run": "log", "with": { "text": "{{'Committed: ' + slice(trim(result.output), 0, 200)}}" } }] }] },
+				{ "run": "scmRefresh" },
+				{ "if": "{{arguments[0] == 'switch'}}", "then": [{ "run": "scmBranches" }] }
+			  ] }
+		],
+		"scmStage": { "title": "Stage Changes", "category": "Source Control", "icon": "plus",
+			"enablement": "{{!empty(event.id ?? state.scm.selectedChange)}}",
+			"do": [{ "forEach": "{{filter([event.id ?? state.scm.selectedChange], !empty(it))}}", "as": "path", "do": [
+				{ "run": "scmGit", "with": { "arguments": "{{['add', '--', path]}}", "input": "" } }] }] },
+		"scmUnstage": { "title": "Unstage Changes", "category": "Source Control", "icon": "minus",
+			"enablement": "{{!empty(event.id ?? state.scm.selectedStaged)}}",
+			"do": [{ "forEach": "{{filter([event.id ?? state.scm.selectedStaged], !empty(it))}}", "as": "path", "do": [
+				{ "run": "scmGit", "with": { "arguments": "{{['restore', '--staged', '--', path]}}", "input": "" } }] }] },
+		"scmStageAll": { "title": "Stage All Changes", "category": "Source Control", "icon": "list-plus",
+			"enablement": "{{length(state.scm.status.changes) > 0}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["add", "--", "."], "input": "" } }] },
+		"scmUnstageAll": { "title": "Unstage All Changes", "category": "Source Control", "icon": "list-minus",
+			"enablement": "{{length(state.scm.status.staged) > 0}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["restore", "--staged", "--", "."], "input": "" } }] },
+		"scmCommit": { "title": "Commit", "category": "Source Control", "icon": "check",
+			"description": "Commit the staged changes with the message (it goes to git's input, never its arguments).",
+			"enablement": "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0}}",
+			"do": [
+				{ "if": "{{empty(trim(state.scm.message)) || length(state.scm.status.staged) == 0}}",
+				  "then": [{ "run": "notify", "with": { "severity": "info",
+					"message": "{{length(state.scm.status.staged) == 0 ? 'There are no staged changes to commit.' : 'Write a commit message first.'}}" } }],
+				  "else": [{ "run": "scmGit", "with": { "arguments": ["commit", "-F", "-"], "input": "{{trim(state.scm.message) + '\n'}}" } }] }
+			] },
+		"scmBranches": { "title": "Show Branches", "category": "Source Control", "icon": "git-branch",
+			"enablement": "{{!empty(state.folder.root)}}",
+			"do": [
+				{ "set": "state.scm.showBranches", "to": true },
+				{ "invoke": "git.run", "id": "scm-branches",
+				  "with": { "arguments": ["for-each-ref", "--format=%(HEAD)%00%(refname:short)", "refs/heads/"], "collect": true },
+				  "onError": [{ "set": "state.scm.error", "to": "{{'git did not run: ' + error.message}}" }],
+				  "onDone": [{ "if": "{{result.code == 0}}",
+					"then": [{ "call": "forge.scm.parseBranches", "with": { "output": "{{result.output}}" }, "into": "state.scm.branches",
+						"onError": [{ "set": "state.scm.error", "to": "{{error}}" }] }] }] }
+			] },
+		"scmApplyBranches": [
+			{ "set": "state.scm.showBranches", "to": true },
+			{ "call": "forge.scm.parseBranches", "with": { "output": "{{event.output}}" }, "into": "state.scm.branches",
+			  "onError": [{ "set": "state.scm.error", "to": "{{error}}" }] }
+		],
+		"scmSwitch": { "title": "Switch Branch", "category": "Source Control", "icon": "git-branch",
+			"enablement": "{{!empty(event.id ?? state.scm.selectedBranch)}}",
+			"do": [{ "forEach": "{{filter([event.id ?? state.scm.selectedBranch], !empty(it) && it != state.scm.branches.current)}}",
+				"as": "name", "do": [{ "run": "scmGit", "with": { "arguments": "{{['switch', name]}}", "input": "" } }] }] },
+		"scmCreateBranch": { "title": "Create Branch", "category": "Source Control", "icon": "git-branch",
+			"description": "Create a branch with the name typed under Branches and switch to it.",
+			"enablement": "{{!empty(trim(event.text ?? state.scm.branchName))}}",
+			"do": [{ "forEach": "{{filter([trim(event.text ?? state.scm.branchName)], !empty(it))}}", "as": "name", "do": [
+				{ "set": "state.scm.branchName", "to": "" },
+				{ "run": "scmGit", "with": { "arguments": "{{['switch', '-c', name]}}", "input": "" } }] }] },
+		"scmOpenDiff": [
+			{ "forEach": "{{filter([event.id ?? state.scm.selectedChange ?? state.scm.selectedStaged], !empty(it))}}", "as": "path", "do": [
+				{ "set": "state.scm.compare", "to": "{{ {path: path, original: '', modified: ''} }}" },
+				{ "invoke": "git.run", "id": "scm-show",
+				  "with": { "arguments": "{{['show', '--no-textconv', 'HEAD:' + path]}}", "collect": true },
+				  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'git did not run: ' + error.message}}" } }],
+				  "onDone": [
+					{ "set": "state.scm.compare.original", "to": "{{result.code == 0 ? result.output : ''}}" },
+					{ "call": "forge.read", "with": { "id": "{{path}}" },
+					  "onError": [{ "run": "scmShowDiff" }],
+					  "then": [{ "set": "state.scm.compare.modified", "to": "{{result}}" }, { "run": "scmShowDiff" }] }
+				  ] }
+			] }
+		],
+		"scmCompare": [
+			{ "set": "state.scm.compare", "to": "{{ {path: event.path, original: event.original ?? '', modified: event.modified ?? ''} }}" },
+			{ "run": "scmShowDiff" }
+		],
+		"scmShowDiff": [
+			{ "call": "forge.scm.diff", "with": { "original": "{{state.scm.compare.original}}", "modified": "{{state.scm.compare.modified}}" },
+			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot compare ' + state.scm.compare.path + ': ' + error}}" } }],
+			  "then": [
+				{ "set": "state.scm.gutters", "to": "{{concat(filter(state.scm.gutters, it.path != state.scm.compare.path), [{path: state.scm.compare.path, marks: result.gutter}])}}" },
+				{ "forEach": "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(result, {path: state.scm.compare.path, original: state.scm.compare.original, modified: state.scm.compare.modified, items: map(result.rows, {id: text(index), label: (it.kind == 'added' ? '+ ' : it.kind == 'removed' ? '- ' : '  ') + it.text, icon: it.kind == 'added' ? 'plus' : it.kind == 'removed' ? 'minus' : '', iconColor: it.kind == 'added' ? '#2ea043' : '#f85149'})})} ]}}",
+				  "as": "page", "do": [
+					{ "set": "state.docs", "to": "{{filter(state.docs, it.id != page.id)}}" },
+					{ "push": "state.docs", "value": "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}" },
+					{ "run": "showTab", "with": { "id": "{{page.id}}", "label": "{{page.label}}" } }
+				  ] }
+			  ] }
+		]
+	},
+
+	"keys": {
+		"mod+shift+g": "showSourceControl"
+	},
+
+	"menus": {
+		"view": {
+			"scm": { "run": "showSourceControl", "group": "1_views", "order": 2 }
+		}
+	},
+
+	"components": {
+		"forgeScmView": {
+			"node": {
+				"type": "column", "id": "scm-view", "width": "100%", "grow": 1, "color": "@color.sideBar", "gap": 4,
+				"children": [
+					{ "type": "row", "id": "scm-head", "width": "100%", "height": 32, "alignItems": "center",
+					  "children": [
+						{ "type": "label", "id": "scm-title", "text": "SOURCE CONTROL", "textColor": "@color.muted", "grow": 1,
+						  "padding": 12 },
+						{ "type": "label", "id": "scm-refresh", "icon": "refresh-cw", "padding": 6, "fitText": true, "cursor": "hand",
+						  "textColor": "{{state.scm.busy ? '@color.accent' : '@color.muted'}}", "tooltip": "Refresh",
+						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmRefresh" } },
+						{ "type": "label", "id": "scm-branches-toggle", "icon": "git-branch", "padding": 6, "fitText": true,
+						  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Branches",
+						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmBranches" } }
+					  ] },
+					{ "type": "label", "id": "scm-empty", "when": "{{empty(state.folder.root)}}", "wrap": true, "width": "100%",
+					  "padding": 12, "textColor": "@color.text",
+					  "text": "Open a folder that is a git repository to see its changes." },
+					{ "type": "label", "id": "scm-error", "when": "{{!empty(state.scm.error)}}", "icon": "circle-x", "wrap": true,
+					  "width": "100%", "padding": 8, "textColor": "@color.text", "text": "{{state.scm.error}}" },
+					{ "type": "label", "id": "scm-branch", "icon": "git-branch", "text": "{{computed.scmBranchText}}", "width": "100%",
+					  "height": 22, "padding": 8, "textColor": "@color.text", "cursor": "hand", "tooltip": "Branches",
+					  "onClick": { "run": "scmBranches" } },
+					{ "type": "textarea", "id": "scm-message", "width": "100%", "height": 26, "padding": 6, "color": "@color.input",
+					  "textColor": "@color.text", "placeholderColor": "@color.muted", "bind": "state.scm.message",
+					  "placeholder": "{{'Message (Enter to commit on ' + (state.scm.status.branch.head || 'HEAD') + ')'}}",
+					  "onSubmit": { "run": "scmCommit" } },
+					{ "type": "label", "id": "scm-commit", "icon": "check", "text": "Commit", "width": "100%", "height": 28,
+					  "align": "center", "radius": 2, "cursor": "hand", "focusable": true, "textColor": "#ffffff",
+					  "color": "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0 ? '@color.accent' : '@color.border'}}",
+					  "onClick": { "run": "scmCommit" } },
+					{ "type": "row", "id": "scm-staged-head", "width": "100%", "height": 22, "alignItems": "center",
+					  "children": [
+						{ "type": "label", "id": "scm-staged-title", "text": "{{'STAGED CHANGES  ' + length(state.scm.status.staged)}}",
+						  "textColor": "@color.muted", "grow": 1, "padding": 8 },
+						{ "type": "label", "id": "scm-unstage", "icon": "minus", "padding": 4, "fitText": true, "cursor": "hand",
+						  "textColor": "@color.muted", "tooltip": "Unstage the selected change", "hover": { "textColor": "@color.text" },
+						  "onClick": { "run": "scmUnstage" } },
+						{ "type": "label", "id": "scm-unstage-all", "icon": "list-minus", "padding": 4, "fitText": true,
+						  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Unstage All Changes",
+						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmUnstageAll" } }
+					  ] },
+					{ "type": "list", "id": "scm-staged", "width": "100%", "grow": 1, "items": "{{computed.scmStagedRows}}",
+					  "bind": "state.scm.selectedStaged", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
+					  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
+					  "onOpen": { "run": "scmOpenDiff" } },
+					{ "type": "row", "id": "scm-changes-head", "width": "100%", "height": 22, "alignItems": "center",
+					  "children": [
+						{ "type": "label", "id": "scm-changes-title", "text": "{{'CHANGES  ' + length(state.scm.status.changes)}}",
+						  "textColor": "@color.muted", "grow": 1, "padding": 8 },
+						{ "type": "label", "id": "scm-stage", "icon": "plus", "padding": 4, "fitText": true, "cursor": "hand",
+						  "textColor": "@color.muted", "tooltip": "Stage the selected change", "hover": { "textColor": "@color.text" },
+						  "onClick": { "run": "scmStage" } },
+						{ "type": "label", "id": "scm-stage-all", "icon": "list-plus", "padding": 4, "fitText": true, "cursor": "hand",
+						  "textColor": "@color.muted", "tooltip": "Stage All Changes", "hover": { "textColor": "@color.text" },
+						  "onClick": { "run": "scmStageAll" } }
+					  ] },
+					{ "type": "list", "id": "scm-changes", "width": "100%", "grow": 2, "items": "{{computed.scmChangeRows}}",
+					  "bind": "state.scm.selectedChange", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
+					  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent",
+					  "onOpen": { "run": "scmOpenDiff" } },
+					{ "type": "column", "id": "scm-branch-list", "when": "{{state.scm.showBranches}}", "width": "100%", "grow": 1,
+					  "children": [
+						{ "type": "row", "id": "scm-branch-list-head", "width": "100%", "height": 22, "alignItems": "center",
+						  "children": [
+							{ "type": "label", "id": "scm-branch-list-title", "text": "BRANCHES", "textColor": "@color.muted",
+							  "grow": 1, "padding": 8 },
+							{ "type": "label", "id": "scm-branch-list-close", "icon": "x", "padding": 4, "fitText": true,
+							  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Hide Branches",
+							  "hover": { "textColor": "@color.text" }, "onClick": { "set": "state.scm.showBranches", "to": false } }
+						  ] },
+						{ "type": "list", "id": "scm-branch-items", "width": "100%", "grow": 1, "items": "{{computed.scmBranchRows}}",
+						  "bind": "state.scm.selectedBranch", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
+						  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection",
+						  "accentColor": "@color.accent", "onOpen": { "run": "scmSwitch" } },
+						{ "type": "textarea", "id": "scm-new-branch", "width": "100%", "height": 26, "padding": 6,
+						  "color": "@color.input", "textColor": "@color.text", "placeholderColor": "@color.muted",
+						  "bind": "state.scm.branchName", "placeholder": "New branch name (Enter to create and switch)",
+						  "onSubmit": { "run": "scmCreateBranch" } }
+					  ] }
+				]
+			}
+		},
+		"forgeDiffEditor": {
+			"params": { "d": 0 },
+			"node": {
+				"type": "column", "id": "diff-editor", "width": "100%", "grow": 1, "color": "@color.editor",
+				"note": "The working tree against HEAD: a diff node, side by side or inline (diffEditor.renderSideBySide); forge.scm.diff counts the rows.",
+				"children": [
+					{ "type": "row", "id": "diff-head", "width": "100%", "height": 28, "alignItems": "center", "gap": 8,
+					  "children": [
+						{ "type": "label", "id": "diff-path", "icon": "git-compare", "text": "{{state.docs[d].diff.path}}",
+						  "textColor": "@color.text", "padding": 8, "fitText": true },
+						{ "type": "label", "id": "diff-added", "text": "{{'+' + state.docs[d].diff.added}}", "textColor": "#2ea043",
+						  "fitText": true },
+						{ "type": "label", "id": "diff-removed", "text": "{{'-' + state.docs[d].diff.removed}}", "textColor": "#f85149",
+						  "fitText": true },
+						{ "type": "label", "id": "diff-truncated", "when": "{{state.docs[d].diff.truncated}}",
+						  "text": "(too large: the first rows only)", "textColor": "@color.muted", "fitText": true },
+						{ "id": "diff-head-gap", "grow": 1 },
+						{ "type": "label", "id": "diff-mode", "role": "button", "label": "Toggle Inline View",
+						  "text": "{{settings.diffEditor.renderSideBySide ? 'Inline' : 'Side by Side'}}", "icon": "columns",
+						  "padding": 6, "fitText": true, "cursor": "hand", "textColor": "@color.muted",
+						  "hover": { "color": "@color.hover" }, "onClick": { "run": "toggleDiffInline" } }
+					  ] },
+					{ "type": "diff", "id": "diff-view", "font": "code", "width": "100%", "grow": 1,
+					  "original": "{{state.docs[d].diff.original ?? ''}}", "modified": "{{state.docs[d].diff.modified ?? ''}}",
+					  "mode": "{{settings.diffEditor.renderSideBySide ? 'split' : 'inline'}}",
+					  "language": "{{state.docs[d].diff.path}}", "color": "@color.editor", "textColor": "@color.editorText",
+					  "deletedColor": "#f8514933", "insertedColor": "#2ea04333" }
+				]
+			}
+		}
+	}
+}

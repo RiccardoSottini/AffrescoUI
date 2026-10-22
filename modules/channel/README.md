@@ -25,16 +25,22 @@ Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows
 - **Untrusted input has limits:** a line longer than `maxMessageBytes` (64 MiB) closes the channel, on every
   transport and system (they share `Lines.hpp`); every message is parsed with `parseUntrusted` (nesting 256, in time
   in proportion to its text); a malformed or refused message gets an `error` or `rejected` answer and never ends the
-  session; `render` takes a scale from 1 to `ScreenImages::maxScale` (2).
+  session; `render` and `getEvidence` take a scale from 1 to `ScreenImages::maxScale` (2).
+- **Evidence comes from the host:** `getEvidence` answers with `ScreenImages::evidence` (pictures, region, behaviour
+  lines, scenario results, changed texts); nothing in it comes from the proposal's author.
+- **The inspector is a reviewer's:** `inspect` turns on `ScreenImages::inspect` only for a peer that may review; it is
+  off by default.
 - **Rates (`PeerLimits`):** messages of any kind, changes (they rebuild the screen) and pictures (`render` draws it, and
-  builds a proposal's and main's again) each have a token bucket of their own; pictures use the changes' rate.
+  builds a proposal's and main's again; `getEvidence` draws two) each have a token bucket of their own; pictures use the changes' rate.
 - **Only this user can connect.** On POSIX, the socket file is `0600`; on Windows, its access list has one entry, for
   this user. Each connection is checked when it is accepted: a program of another user is refused, closed and
   logged (`SO_PEERCRED`, `getpeereid`, or on Windows the peer's process and its token). (The programs in
-  `examples/` also check that the socket folder belongs to this user: `examples/SocketDir.hpp`.)
+  `examples/` also check that the socket folder belongs to this user: `examples/shared/SocketDir.hpp`.)
 - **A peer is held to `PeerLimits`** (8 MiB a message, refused unparsed; 100 messages a second; 120 changes a
   minute, and as many pictures; see the rates above), and one that reads slower than the app writes to it is
   disconnected once 64 MiB wait for it.
+- **`repair` is relayed to the host only:** `onRelay` gives it to the screen, which answers the sender (see
+  `vcs::ChangeSetRepairs`); it never reaches the other peers as it is.
 - **`request` and `reply` aren't interpreted:** they come out of `onRelay`, stamped with `from`, for whoever connects
   peers to each other (`affresco::Screen` passes them to the other peers).
 - **Closing a `ProcessChannel` ends the child and everything it started** (a process group on POSIX, a job object on

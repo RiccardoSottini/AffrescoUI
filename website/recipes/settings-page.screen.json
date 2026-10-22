@@ -1,0 +1,22 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Settings", "width": 520, "height": 360 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": { "query": "" },
+	"settings": {
+		"editor.fontSize": { "type": "integer", "minimum": 6, "maximum": 40, "default": 14, "title": "Font size",
+		                     "description": "The editor's font size, in points." },
+		"editor.wordWrap": { "type": "boolean", "default": false, "title": "Word wrap",
+		                     "description": "Wrap long lines at the window's edge." }
+	},
+	"actions": { "bigger": [{ "set": "settings.editor.fontSize", "to": "{{settings.editor.fontSize + 1}}" }] },
+	"keys": { "mod+equal": "bigger" },
+	"root": {
+		"color": "#1e1e1e",
+		"children": [
+			{ "use": "settingsPage", "id": "page", "fill": true, "with": { "search": "{{state.query}}" } }
+		]
+	}
+}

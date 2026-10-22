@@ -273,7 +273,7 @@ TEST_CASE("split and tabs nodes: sizes and the active tab bound to state, close 
 	ManualClock clock;
 	const auto window = createHeadlessWindow(300, 200, clock);
 	auto screen = affresco::Screen::fromString(R"({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"state": { "sizes": [100], "open": [{ "id": "a" }, { "id": "b" }, { "id": "c" }], "active": "a", "moves": 0 },
 		"root": { "id": "root", "children": [
 			{ "type": "tabs", "id": "strip", "width": 300, "height": 32, "tabs": "{{state.open}}", "bind": "state.active",

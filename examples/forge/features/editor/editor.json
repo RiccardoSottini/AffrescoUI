@@ -1,0 +1,337 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Forge's editor: each open file's text is a native buffer (Editor.cpp, never in this state), shown by the editors of every group with \"buffer\": id. A click in the explorer opens a preview tab, which the next preview replaces; a double click, an edit or Keep Editor pins it. A dirty file's tab has a marker; Save, Save All and Revert File write or read it through forge.save, forge.saveAll and forge.revert. It owns openPath, closeTab, scanProblems and forgeEditors (the shell and the panels use them).",
+
+	"actions": {
+		"openPath": [{ "run": "openBuffer", "with": { "path": "{{path}}", "label": "{{label}}", "preview": false } }],
+		"openPreview": [{ "run": "openBuffer", "with": { "path": "{{path}}", "label": "{{label}}", "preview": true } }],
+		"openBuffer": [
+			{
+				"if": "{{contains(computed.docIds, path)}}",
+				"then": [
+					{
+						"run": "showFileTab",
+						"with": { "id": "{{path}}", "label": "{{label}}", "preview": "{{preview}}" }
+					}
+				],
+				"else": [
+					{
+						"call": "forge.open",
+						"with": { "id": "{{path}}" },
+						"onError": [
+							{
+								"run": "notify",
+								"with": { "severity": "error", "message": "{{'Cannot open ' + label + ': ' + error}}" }
+							}
+						],
+						"then": [
+							{
+								"push": "state.docs",
+								"value": "{{ {id: path, label: label, kind: 'file', dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"
+							},
+							{
+								"run": "showFileTab",
+								"with": { "id": "{{path}}", "label": "{{label}}", "preview": "{{preview}}" }
+							}
+						]
+					}
+				]
+			}
+		],
+		"showFileTab": [
+			{
+				"if": "{{some(state.groups[state.activeGroup].tabs, it.id == id)}}",
+				"then": [{ "if": "{{!preview}}", "then": [{ "run": "pinTab", "with": { "id": "{{id}}" } }] }],
+				"else": [
+					{
+						"if": "{{preview && some(state.groups[state.activeGroup].tabs, it.preview)}}",
+						"then": [
+							{
+								"run": "replacePreview",
+								"with": {
+									"id": "{{id}}",
+									"label": "{{label}}",
+									"old": "{{find(state.groups[state.activeGroup].tabs, it.preview).id}}"
+								}
+							}
+						],
+						"else": [
+							{
+								"push": "state.groups[state.activeGroup].tabs",
+								"value": "{{ {id: id, label: label, preview: preview} }}"
+							}
+						]
+					}
+				]
+			},
+			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" },
+			{ "run": "rememberRecent", "with": { "id": "{{id}}", "label": "{{label}}" } }
+		],
+		"replacePreview": [
+			{
+				"set": "state.groups[state.activeGroup].tabs",
+				"to": "{{map(state.groups[state.activeGroup].tabs, it.preview ? {id: id, label: label, preview: true} : it)}}"
+			},
+			{ "run": "releaseBuffer", "with": { "id": "{{old}}" } }
+		],
+		"pinTab": [
+			{
+				"set": "state.groups",
+				"to": "{{map(state.groups, merge(it, {tabs: map(it.tabs, it.id == id ? merge(it, {preview: false}) : it)}))}}"
+			}
+		],
+		"releaseBuffer": [
+			{
+				"if": "{{!contains(map(state.groups, contains(map(it.tabs, it.id), id)), true) && some(state.docs, it.id == id && it.kind == 'file' && !it.dirty)}}",
+				"then": [
+					{ "call": "forge.close", "with": { "id": "{{id}}" } },
+					{ "set": "state.docs", "to": "{{filter(state.docs, it.id != id)}}" }
+				]
+			}
+		],
+		"closeTab": [
+			{ "set": "state.groups[gi].tabs", "to": "{{filter(state.groups[gi].tabs, it.id != id)}}" },
+			{
+				"if": "{{state.groups[gi].active == id}}",
+				"then": [
+					{
+						"set": "state.groups[gi].active",
+						"to": "{{length(state.groups[gi].tabs) > 0 ? state.groups[gi].tabs[0].id : null}}"
+					}
+				]
+			},
+			{
+				"if": "{{length(state.groups[gi].tabs) == 0 && length(state.groups) > 1}}",
+				"then": [
+					{ "remove": "state.groups", "at": "{{gi}}" },
+					{ "set": "state.activeGroup", "to": 0 },
+					{ "set": "state.layout.groupSizes", "to": [] }
+				]
+			},
+			{ "run": "releaseBuffer", "with": { "id": "{{id}}" } }
+		],
+		"markDirty": [
+			{ "set": "state.docs", "to": "{{map(state.docs, it.id == id ? merge(it, {dirty: dirty}) : it)}}" },
+			{ "if": "{{dirty}}", "then": [{ "run": "pinTab", "with": { "id": "{{id}}" } }] }
+		],
+		"bufferChanged": [{ "run": "markDirty", "with": { "id": "{{event.id}}", "dirty": "{{event.dirty}}" } }],
+		"save": {
+			"title": "Save",
+			"category": "File",
+			"icon": "save",
+			"enablement": "{{computed.activeDoc.kind == 'file'}}",
+			"do": [
+				{
+					"call": "forge.save",
+					"with": { "id": "{{computed.activeDoc.id}}" },
+					"onError": [
+						{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot save: ' + error}}" } }
+					],
+					"then": [{ "run": "markDirty", "with": { "id": "{{result.id}}", "dirty": false } }]
+				}
+			]
+		},
+		"saveAll": {
+			"title": "Save All",
+			"category": "File",
+			"icon": "save-all",
+			"enablement": "{{length(computed.dirtyIds) > 0}}",
+			"do": [
+				{
+					"call": "forge.saveAll",
+					"onError": [
+						{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot save: ' + error}}" } }
+					],
+					"then": [
+						{
+							"forEach": "{{result.saved}}",
+							"as": "saved",
+							"do": [{ "run": "markDirty", "with": { "id": "{{saved}}", "dirty": false } }]
+						}
+					]
+				}
+			]
+		},
+		"revertFile": {
+			"title": "Revert File",
+			"category": "File",
+			"icon": "undo",
+			"description": "Read the file again, dropping the edits.",
+			"enablement": "{{computed.activeDoc.kind == 'file' && computed.activeDoc.dirty}}",
+			"do": [
+				{
+					"call": "forge.revert",
+					"with": { "id": "{{computed.activeDoc.id}}" },
+					"onError": [
+						{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot revert: ' + error}}" } }
+					],
+					"then": [{ "run": "markDirty", "with": { "id": "{{result.id}}", "dirty": false } }]
+				}
+			]
+		},
+		"keepEditor": {
+			"title": "Keep Editor",
+			"category": "View",
+			"icon": "pin",
+			"description": "Pin the preview tab, so the next preview opens beside it.",
+			"enablement": "{{some(state.groups[state.activeGroup].tabs, it.preview)}}",
+			"do": [{ "run": "pinTab", "with": { "id": "{{state.groups[state.activeGroup].active}}" } }]
+		},
+		"scanProblems": {
+			"title": "Scan Open Files for Problems",
+			"category": "Problems",
+			"icon": "search",
+			"description": "List the TODO and FIXME lines of the open files in Problems.",
+			"do": [
+				{ "call": "forge.todos", "into": "state.problems" },
+				{ "run": "log", "with": { "text": "{{'Problems: ' + plural(length(state.problems), 'item')}}" } }
+			]
+		}
+	},
+
+	"watch": {
+		"state.explorer.selected": [
+			{
+				"if": "{{!empty(event.value) && slice(event.value, length(event.value) - 1) != '/'}}",
+				"then": [
+					{
+						"run": "openPreview",
+						"with": { "path": "{{event.value}}", "label": "{{reverse(split(event.value, '/'))[0]}}" }
+					}
+				]
+			}
+		]
+	},
+
+	"keys": { "mod+s": "save", "mod+alt+s": "saveAll" },
+
+	"menus": {
+		"file": {
+			"save": { "run": "save", "group": "3_save", "order": 1 },
+			"saveAll": { "run": "saveAll", "group": "3_save", "order": 2 },
+			"revertFile": { "run": "revertFile", "group": "3_save", "order": 3 }
+		}
+	},
+
+	"components": {
+		"forgeEditors": {
+			"node": {
+				"type": "split",
+				"id": "editor-groups",
+				"bind": "state.layout.groupSizes",
+				"minSize": 160,
+				"sashSize": 4,
+				"sashColor": "@color.border",
+				"sashActiveColor": "@color.accent",
+				"children": [
+					{
+						"type": "column",
+						"id": "group",
+						"repeat": { "for": "g", "in": "state.groups", "index": "gi" },
+						"color": "@color.editor",
+						"onClick": { "set": "state.activeGroup", "to": "{{gi}}" },
+						"children": [
+							{
+								"type": "tabs",
+								"id": "group-tabs",
+								"width": "100%",
+								"height": 35,
+								"bind": "state.groups[gi].active",
+								"color": "@color.tabs",
+								"textColor": "@color.muted",
+								"activeTextColor": "@color.text",
+								"activeBackground": "@color.tabActive",
+								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
+								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky}))}}",
+								"onClose": { "run": "closeTab", "with": { "gi": "{{gi}}", "id": "{{event.id}}" } },
+								"drag": {},
+								"onDrop": { "run": "moveTabToGroup", "with": { "id": "{{event.data.id}}", "to": "{{gi}}", "at": "{{event.index}}" } },
+								"onMove": { "run": "reorderTab", "with": { "gi": "{{gi}}", "from": "{{event.from}}", "to": "{{event.to}}" } }
+							},
+							{
+								"when": "{{settings.breadcrumbs.enabled && some(state.docs, it.id == g.active && it.kind == 'file')}}",
+								"use": "forgeBreadcrumbs",
+								"with": { "path": "{{g.active}}" }
+							},
+							{
+								"when": "{{empty(g.active) && gi == 0 && settings.workbench.startupEditor == 'welcome'}}",
+								"use": "forgeWelcome"
+							},
+							{
+								"type": "column",
+								"id": "group-body",
+								"repeat": {
+									"for": "d",
+									"in": "{{filter([indexOf(computed.docIds, g.active)], it >= 0)}}",
+									"key": "{{d}}"
+								},
+								"width": "100%",
+								"grow": 1,
+								"children": [
+									{
+										"when": "{{state.findBar.open && gi == state.activeGroup && state.docs[d].kind == 'file'}}",
+										"use": "forgeFindBar"
+									},
+									{
+										"when": "{{state.docs[d].kind == 'file'}}",
+										"id": "editor",
+										"type": "code",
+										"font": "code",
+										"width": "100%",
+										"grow": 1,
+										"buffer": "{{state.docs[d].id}}",
+										"language": "{{state.docs[d].language}}",
+										"lineNumbers": "{{settings.editor.lineNumbers}}",
+										"goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, column: state.goTo.column ?? 1, request: state.goTo.request} : null}}",
+										"caret": "state.caret",
+										"wrap": "{{settings.editor.wordWrap}}",
+										"minimap": "{{settings.editor.minimap.enabled}}",
+										"brackets": "{{settings.editor.bracketMatching}}",
+										"indentGuides": "{{settings.editor.guides.indentation}}",
+										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
+										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark))}}",
+										"tokens": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}",
+										"onHover": "lspHoverAt",
+										"onType": "lspTyped",
+										"popup": "{{gi == state.activeGroup && state.lsp.completion.open}}",
+										"onPopupKey": "lspPopupKey",
+										"insert": "{{gi == state.activeGroup ? state.lsp.insert : null}}",
+										"color": "@color.editor",
+										"textColor": "@color.editorText",
+										"lineNumberColor": "@color.muted",
+										"activeLineNumberColor": "@color.text",
+										"lineColor": "@color.hover",
+										"selectionColor": "@color.selection",
+										"caretColor": "@color.text",
+										"onGutterClick": { "run": "debugGutterClick", "with": { "path": "{{state.docs[d].id}}" } },
+										"onWordHover": { "run": "debugHover", "with": { "path": "{{state.docs[d].id}}" } },
+										"keys": { "f5": "debugContinueOrStart", "shift+f5": "debugStop", "mod+shift+f5": "debugRestart",
+										          "f6": "debugPause", "f9": "debugToggleBreakpointAtCaret", "f10": "debugStepOver",
+										          "f11": "debugStepInto", "shift+f11": "debugStepOut" },
+										"syntax": {
+											"keyword": "@syntax.keyword",
+											"type": "@syntax.type",
+											"string": "@syntax.string",
+											"number": "@syntax.number",
+											"comment": "@syntax.comment",
+											"heading": "@syntax.heading"
+										}
+									},
+									{ "when": "{{state.docs[d].kind == 'settings'}}", "use": "forgeSettingsPage" },
+									{ "when": "{{state.docs[d].kind == 'keybindings'}}", "use": "forgeKeybindingsPage" },
+									{ "when": "{{state.docs[d].kind == 'settingsJson'}}", "use": "forgeSettingsJsonPage" },
+									{ "when": "{{state.docs[d].kind == 'keybindingsJson'}}", "use": "forgeKeybindingsJsonPage" },
+									{ "when": "{{state.docs[d].kind == 'search'}}", "use": "forgeSearchPage" },
+									{ "when": "{{state.docs[d].kind == 'diff'}}", "use": "forgeDiffEditor", "with": { "d": "{{d}}" } },
+									{ "when": "{{state.docs[d].kind == 'debugSource'}}", "use": "forgeDebugSource", "with": { "doc": "{{state.docs[d]}}" } }
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

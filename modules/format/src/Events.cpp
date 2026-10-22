@@ -7,6 +7,9 @@
 #include "Settings.hpp"
 #include "Shortcuts.hpp"
 
+#include "affresco/render/ColorPicker.hpp"
+#include "affresco/render/Controls.hpp"
+#include "affresco/render/ListView.hpp"
 #include "affresco/render/TextEditor.hpp"
 
 #include <algorithm>
@@ -42,6 +45,55 @@ bool runShortForm(Engine& engine, const json& handler, Panel& owner, const json&
 	if(handler.is_string() && !commandEnabled(engine, handler.get<std::string>())) return false;
 	engine.runner.handle(handler, owner, event, locals, where);
 	return true;
+}
+
+/// @brief Runs a handler and counts it for the usage summaries (VERSION_CONTROL.md, "Usage"): the node's id as
+/// written, the handler and the action it names, whether it reported an error, and the screen it led to. Never what
+/// the event or the state hold.
+/// @param engine The runtime; its usage summaries are on.
+/// @param record The panel's record (the handler may rebuild the panel, so it is read first).
+/// @param panel The panel.
+/// @param handler E.g. "onClick".
+/// @param event The event.
+/// @param steps The handler.
+/// @param locals Its variables.
+void runCounted(Engine& engine, const Record& record, Panel& panel, std::string_view handler, const json& event,
+                const json& steps, const Scope& locals) {
+	const json id = record.node ? record.node->own.value("id", json()) : json();
+	const std::string action = std::string(handler) + (steps.is_string() ? ":" + steps.get<std::string>() : "");
+	const std::string screen = engine.document.screen();
+	bool failed = false;
+	const Connection watch = engine.owner.onError.connect([&failed](const std::string&) { failed = true; });
+	engine.runner.handle(steps, panel, event, locals, record.path + "." + std::string(handler));
+	engine.owner.onError.disconnect(watch);
+	const std::int64_t now = Usage::now();
+	if(id.is_string()) engine.owner.usage.ran(id.get<std::string>(), action, failed, now);
+	if(engine.document.screen() != screen) engine.owner.usage.visited(engine.document.screen(), now);
+}
+
+/// @brief Whether a focused list, table, tree or slider, or an item inside an "arrows" node, moves with this key, which
+/// it then keeps from the screen's "keys" (as a text input keeps the keys it types).
+/// @param reconciler The records, to find an "arrows" node above the panel.
+/// @param panel The focused panel, or nullptr.
+/// @param event The key.
+/// @return true if it does.
+bool movesWith(Reconciler& reconciler, const Panel* panel, const KeyEvent& event) {
+	if(event.mods.alt() || event.mods.control() || event.mods.super()) return false;
+	const bool vertical = event.key == Key::Up || event.key == Key::Down || event.key == Key::PageUp ||
+	                      event.key == Key::PageDown || event.key == Key::Home || event.key == Key::End;
+	const bool horizontal = event.key == Key::Left || event.key == Key::Right;
+	if(dynamic_cast<const ListView*>(panel)) return vertical;
+	if(dynamic_cast<const Slider*>(panel)) return vertical || horizontal;
+	for(const Panel* p = panel; p; p = p->parent()) {
+		const Record* record = reconciler.recordOf(p);
+		if(!record || record->arrows.empty()) continue;
+		const bool along = record->arrows == "vertical" ? event.key == Key::Up || event.key == Key::Down
+		                   : record->arrows == "horizontal"
+		                       ? horizontal
+		                       : horizontal || event.key == Key::Up || event.key == Key::Down;
+		return along || event.key == Key::Home || event.key == Key::End;
+	}
+	return false;
 }
 
 } // namespace
@@ -141,8 +193,10 @@ Connection Events::hookCaret(Panel& panel) {
 			const std::string where = record->path + ".caret";
 			const json::json_pointer pointer =
 			    format::statePointer(*record->caret, engine_.document.context(*record->locals, json::object()), where);
-			statePlace(engine_.versions.state(), pointer, where) = {
+			json written = {
 			    {"line", caret.line + 1}, {"column", caret.column + 1}, {"selected", editor->selectedLength()}};
+			if(editor->finding()) written["matches"] = editor->matchCount();
+			statePlace(engine_.versions.state(), pointer, where) = std::move(written);
 			engine_.document.markStateChanged(pointer);
 			engine_.reconciler.requestStateUpdate();
 		} catch(const DocumentError& error) {
@@ -276,7 +330,8 @@ bool Events::resolve(Panel* from, const KeyEvent& event) {
 	const json& document = engine_.versions.document();
 	const bool typing = (dynamic_cast<const TextArea*>(from) || dynamic_cast<const TextEditor*>(from)) && !chording &&
 	                    !event.mods.super() && !event.mods.control() && !event.mods.alt() && name != "escape";
-	if(!typing && document.contains("keys") && document["keys"].is_object() && engine_.window) {
+	if(!typing && !movesWith(engine_.reconciler, from, event) && document.contains("keys") &&
+	   document["keys"].is_object() && engine_.window) {
 		starts(document["keys"], true);
 		for(const auto& [written, handler] : document["keys"].items()) {
 			if(normalizeChord(written) != press) continue;
@@ -331,6 +386,7 @@ void Events::fire(Panel& panel, std::string_view handler, const json& event) {
 	if(!record || record->disabled || !record->handlers.contains(std::string(handler))) return;
 	const json steps = record->handlers[std::string(handler)];
 	const SharedScope locals = record->locals; // the handler may rebuild the panel
+	if(engine_.owner.usage.enabled()) return runCounted(engine_, *record, panel, handler, event, steps, *locals);
 	engine_.runner.handle(steps, panel, event, *locals, record->path + "." + std::string(handler));
 }
 
@@ -400,6 +456,7 @@ void Events::dropped(const Press& ended, Vec2 at) {
 	const Record* target = engine_.reconciler.recordOf(ended.over);
 	if(!target) return;
 	setFlag(ended.over, &Record::dragOver, false);
+	if(engine_.window) at = ended.over->toLocal(engine_.window->pointer()).value_or(at); // in the target's space
 	json drop = pointerEvent("drop", *ended.over, at);
 	if(const DragHooks* hooks = dragHooks(target); hooks && hooks->dropAt) {
 		const bool own = hooks->ownDrops && ended.over == ended.source; // e.g. a tab strip reorders itself
@@ -484,8 +541,10 @@ void Events::dragOver(Vec2 at) {
 		}
 	// A widget target shows where the drop would go (one that handles drops on itself already does)
 	const DragHooks* hooks = dragHooks(engine_.reconciler.recordOf(over));
-	if(hooks && hooks->dropAt && !(hooks->ownDrops && over == press_.source))
-		static_cast<void>(hooks->dropAt(*over, &at));
+	if(hooks && hooks->dropAt && !(hooks->ownDrops && over == press_.source)) {
+		const Vec2 there = over->toLocal(engine_.window->pointer()).value_or(at); // in the target's space
+		static_cast<void>(hooks->dropAt(*over, &there));
+	}
 	if(over == press_.over) return;
 	if(const DragHooks* left = dragHooks(engine_.reconciler.recordOf(press_.over)); left && left->dropAt)
 		static_cast<void>(left->dropAt(*press_.over, nullptr));
@@ -617,6 +676,8 @@ bool Events::navigate(Panel* from, const KeyEvent& event) {
 	const bool plain = !mods.super() && !mods.control() && !mods.alt();
 	Window& window = *engine_.window;
 
+	// a colour picker that took Tab moved to its next part, and keeps the focus
+	if(event.key == Key::Tab && !keyResolved_ && dynamic_cast<const ColorPicker*>(from)) return false;
 	// Tab and Shift+Tab, in the open modal overlay if any (a code editor keeps Tab for indenting)
 	if(event.key == Key::Tab && plain && !dynamic_cast<const TextEditor*>(from)) {
 		const std::vector<Panel*> order = focusables(modalScope(), false);
@@ -682,12 +743,14 @@ bool Events::navigate(Panel* from, const KeyEvent& event) {
 
 	const std::vector<Panel*> items = focusables(*list, true);
 	if(items.empty()) return false;
-	const auto n = static_cast<long>(items.size());
-	long here = -1;
+	const auto n = static_cast<std::ptrdiff_t>(items.size());
+	std::ptrdiff_t here = -1;
 	for(Panel* at = from; at && here < 0; at = at->parent())
 		if(const auto it = std::ranges::find(items, at); it != items.end()) here = it - items.begin();
-	long next = event.key == Key::Home ? 0 : event.key == Key::End ? n - 1 : here < 0 ? (step > 0 ? 0 : n - 1)
-	                                                                        : (here + step + n) % n;
+	const std::ptrdiff_t next = event.key == Key::Home ? 0
+	                            : event.key == Key::End ? n - 1
+	                            : here < 0              ? (step > 0 ? 0 : n - 1)
+	                                                    : (here + step + n) % n;
 	window.setFocus(items[static_cast<std::size_t>(next)]);
 	return true;
 }

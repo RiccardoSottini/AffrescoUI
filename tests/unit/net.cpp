@@ -30,6 +30,13 @@ TEST_CASE("net: URLs are parsed, and only allowed origins are reached") {
 	CHECK(isLoopback("127.0.0.1"));
 	CHECK(isLoopback("localhost"));
 	CHECK_FALSE(isLoopback("example.com"));
+	CHECK(isSignInPage("https://id.example.com/authorize?state=x"));
+	CHECK(isSignInPage("http://127.0.0.1:8080/authorize"));
+	CHECK(isSignInPage("http://localhost/authorize"));
+	CHECK_FALSE(isSignInPage("http://localhost.example.com/authorize")); // only starts like the loopback
+	CHECK_FALSE(isSignInPage("http://127.0.0.1.example.com/"));
+	CHECK_FALSE(isSignInPage("http://id.example.com/authorize"));
+	CHECK_FALSE(isSignInPage("file:///etc/passwd"));
 
 	OriginAllowlist allowlist;
 	CHECK_FALSE(allowlist.allow("https://api.example.com"));

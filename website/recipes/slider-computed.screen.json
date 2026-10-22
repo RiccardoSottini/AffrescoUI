@@ -1,0 +1,20 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Slider", "width": 360, "height": 160 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "celsius": 20 },
+	"stateTypes": { "celsius": { "type": "number", "minimum": -40, "maximum": 60 } },
+	"computed": { "fahrenheit": "{{round(state.celsius * 9 / 5 + 32)}}" },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "slider", "id": "celsius", "x": 24, "y": 32, "width": 312, "height": 24, "min": -40, "max": 60,
+			  "step": 1, "bind": "state.celsius", "trackColor": "#e2e8f0", "activeColor": "#6366f1",
+			  "knobColor": "#ffffff" },
+			{ "type": "label", "id": "reading", "x": 24, "y": 76, "width": 312, "height": 28, "textColor": "#0f172a",
+			  "text": "{{state.celsius}} °C is {{computed.fahrenheit}} °F" }
+		]
+	}
+}

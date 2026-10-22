@@ -159,6 +159,9 @@ public:
 	/// @param context What paths can see; must outlive the machine.
 	explicit Machine(const Context& context) noexcept : context_(context) {}
 
+	/// @brief What paths can see.
+	[[nodiscard]] const Context& context() const noexcept { return context_; }
+
 	/// @brief Evaluates a value written in a document: templates, operators, and objects and lists holding them.
 	/// @param value The value.
 	/// @param place Its place.

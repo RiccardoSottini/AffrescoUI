@@ -92,7 +92,7 @@ void PaintRecorder::beginStep(PaintStep step, const Font* font, std::uint32_t pa
 		return;
 	const auto firstQuad = static_cast<std::uint32_t>(record_.vertices.size() / verticesPerQuad);
 	record_.ops.push_back({step, page, font, firstQuad, 0});
-	if(step == PaintStep::colorGlyph || step == PaintStep::image) record_.color = true;
+	if(step == PaintStep::colorGlyph || step == PaintStep::image || step == PaintStep::surface) record_.color = true;
 }
 
 void PaintRecorder::addQuad(const std::array<Vertex, 4>& corners) {
@@ -101,9 +101,18 @@ void PaintRecorder::addQuad(const std::array<Vertex, 4>& corners) {
 	addTo(record_.extent, boundsOf(corners));
 }
 
+void PaintRecorder::smoothEdges(const Rect& frame) noexcept {
+	smooth_ = true;
+	if(clip_.left == frame.left) shapeClip_.left -= 1.0f;
+	if(clip_.top == frame.top) shapeClip_.top -= 1.0f;
+	if(clip_.right == frame.right) shapeClip_.right += 1.0f;
+	if(clip_.bottom == frame.bottom) shapeClip_.bottom += 1.0f;
+}
+
 void PaintRecorder::fillRect(const Rect& rect, Color color) {
 	beginStep(PaintStep::fill); // even if the quad is dropped: a first fill gives the frame a white texture
-	pushQuad(rect, Rect{}, color);
+	if(smooth_) pushShape(rect, {}, {.color = color}, shapeClip_);
+	else pushQuad(rect, Rect{}, color);
 }
 
 void PaintRecorder::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
@@ -173,6 +182,13 @@ void PaintRecorder::drawImage(const Bitmap& bitmap, const Rect& rect) {
 	pushQuad(rect, {0.0f, 0.0f, 1.0f, 1.0f}, colors::white, QuadKind::colorGlyph);
 }
 
+// The framebuffer's bottom row (v = 0) is the rectangle's bottom
+void PaintRecorder::drawSurface(const SurfaceView& view, const Rect& rect) {
+	beginStep(PaintStep::surface);
+	record_.ops.back().surface = &view;
+	pushQuad(rect, {0.0f, 1.0f, 1.0f, 0.0f}, colors::white, QuadKind::colorGlyph);
+}
+
 // Clips the quad to the panel (adjusting the texture coordinates to match) and adds it
 void PaintRecorder::pushQuad(const Rect& rect, const Rect& uv, Color color, QuadKind kind) {
 	const auto [cr, cg, cb, ca] = color.toBytes();
@@ -200,11 +216,11 @@ void PaintRecorder::pushQuad(const Rect& rect, const Rect& uv, Color color, Quad
 }
 
 void PaintRecorder::fillRoundedRect(const Rect& rect, const CornerRadii& radii, Color color) {
-	pushShape(rect, radii, {.color = color}, clip_);
+	pushShape(rect, radii, {.color = color}, shapeClip_);
 }
 
 void PaintRecorder::strokeRoundedRect(const Rect& rect, const CornerRadii& radii, float width, Color color) {
-	if(width > 0.0f) pushShape(rect, radii, {.color = color, .outline = width}, clip_);
+	if(width > 0.0f) pushShape(rect, radii, {.color = color, .outline = width}, shapeClip_);
 }
 
 // A shadow falls outside its panel, so it is clipped to what clips the panel instead

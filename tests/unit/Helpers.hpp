@@ -22,7 +22,7 @@ namespace affresco::test {
 inline json permissionsScreen() {
 	return json::parse(R"json({
 		"format": "affrescoui-screen",
-		"version": 1,
+		"version": 2,
 		"state": { "count": 0 },
 		"permissions": {
 			"allow": ["studio", "agent(#board)"],

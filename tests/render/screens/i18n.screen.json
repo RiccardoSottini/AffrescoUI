@@ -1,0 +1,160 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Translations and locales, for the rendering check: a strings section in English, Italian and Arabic chosen by state.locale, plurals and parameters through t(), numbers, percents, currencies, dates, relative times and lists in the locale's way, and a layout whose dir follows the locale (Arabic mirrors rows, anchors and alignment, and an icon marked mirror). The Arabic font is the check's subset, so the Arabic text keeps to its letters.",
+
+	"window": { "title": "Locales", "width": 640, "height": 420 },
+
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 16,
+			"fallback": ["arabic", "icons"]
+		},
+		"large": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 26, "fallback": ["arabic"] },
+		"arabic": { "file": "../fonts/NotoSansArabic-Subset.ttf", "size": 16 },
+		"icons": { "file": "../../../examples/shared/fonts/Lucide.ttf", "size": 16 }
+	},
+
+	"colors": {
+		"background": "#f8fafc",
+		"text": "#0f172a",
+		"muted": "#64748b",
+		"card": "#e2e8f0",
+		"accent": "#2563eb"
+	},
+
+	"state": {
+		"locale": "en",
+		"count": 1,
+		"ratio": 0.256,
+		"amount": 1234.5,
+		"when": 1773500966000,
+		"names": ["Anna", "Marco", "Sara"]
+	},
+
+	"strings": {
+		"default": "en",
+		"locale": "{{state.locale}}",
+		"en": {
+			"title": "Hello",
+			"greeting": "How are you, {name}?",
+			"files": "{n, plural, =0 {No files} one {# file} other {# files}}",
+			"back": "Back"
+		},
+		"it": {
+			"title": "Ciao",
+			"greeting": "Come stai, {name}?",
+			"files": "{n, plural, =0 {Nessun file} one {# file} other {# file}}"
+		},
+		"ar": {
+			"title": "السلام عليكم",
+			"greeting": "كيف حالك، {name}؟",
+			"files": "{n, plural, zero {لا ملف} one {ملف} other {# ملف}}",
+			"back": "عملي"
+		}
+	},
+
+	"styles": {
+		"line": {
+			"type": "label",
+			"height": 26,
+			"textColor": "@text",
+			"align": "start",
+			"anchors": { "left": 0, "right": 0 }
+		}
+	},
+
+	"root": {
+		"color": "@background",
+		"children": [
+			{
+				"id": "page",
+				"dir": "auto",
+				"color": "@background",
+				"anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 },
+				"children": [
+					{
+						"type": "label",
+						"id": "title",
+						"font": "large",
+						"x": 24,
+						"y": 18,
+						"width": 400,
+						"height": 40,
+						"textColor": "@text",
+						"align": "start",
+						"text": "{{t('title')}}"
+					},
+					{
+						"type": "label",
+						"id": "localeTag",
+						"anchors": { "right": 24, "top": 26 },
+						"width": 120,
+						"height": 24,
+						"textColor": "@muted",
+						"align": "end",
+						"text": "{{locale}}"
+					},
+					{
+						"type": "column",
+						"id": "lines",
+						"anchors": { "left": 24, "right": 24, "top": 70 },
+						"height": 260,
+						"gap": 4,
+						"children": [
+							{ "style": "line", "id": "greeting", "text": "{{t('greeting', {name: 'Anna'})}}" },
+							{ "style": "line", "id": "files", "text": "{{t('files', {n: state.count})}}" },
+							{
+								"style": "line",
+								"id": "number",
+								"text": "{{formatNumber(state.amount, 2)}} · {{formatPercent(state.ratio, 1)}}"
+							},
+							{
+								"style": "line",
+								"id": "currency",
+								"text": "{{formatCurrency(state.amount, 'EUR')}} · {{formatCurrency(state.amount, 'USD')}}"
+							},
+							{
+								"style": "line",
+								"id": "date",
+								"text": "{{formatDate(state.when, 'short', 'utc')}} {{formatTime(state.when, 'HH:mm', 'utc')}}"
+							},
+							{ "style": "line", "id": "names", "text": "{{formatList(sortText(state.names))}}" },
+							{
+								"style": "line",
+								"id": "missing",
+								"textColor": "@muted",
+								"text": "{{t('missing.' + 'key')}}"
+							}
+						]
+					},
+					{
+						"type": "row",
+						"id": "toolbar",
+						"anchors": { "left": 24, "right": 24, "bottom": 24 },
+						"height": 36,
+						"alignItems": "stretch",
+						"gap": 8,
+						"children": [
+							{
+								"type": "label",
+								"id": "back",
+								"width": 120,
+								"color": "@card",
+								"radius": 6,
+								"textColor": "@text",
+								"icon": "chevron-left",
+								"mirror": true,
+								"text": "{{t('back')}}"
+							},
+							{ "type": "label", "id": "first", "width": 36, "color": "@accent", "radius": 6 },
+							{ "type": "label", "id": "second", "width": 72, "color": "@muted", "radius": 6 }
+						]
+					}
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,64 @@
+# The browser build (web/README.md): emsdk at a pinned release builds the site with tools/web/build.sh, the Kanban's
+# scenarios play under Node on the same WebAssembly, and the site is uploaded as an artifact.
+#
+# Nothing is deployed: the token is read-only, and publishing the artifact is the maintainer's, by hand.
+name: Web
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  EMSDK_VERSION: "6.0.10" # AFFRESCOUI_EMSDK_VERSION in cmake/AffrescoUIWeb.cmake
+  EMSDK_COMMIT: d7b4130688bfa348392b921ab04015aa15c4f154 # emsdk's own scripts, pinned
+
+jobs:
+  web:
+    name: Web (Emscripten, WebGL2)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build
+      - name: Install emsdk
+        run: |
+          git clone --filter=blob:none https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          git -C "$RUNNER_TEMP/emsdk" checkout --detach "$EMSDK_COMMIT"
+          "$RUNNER_TEMP/emsdk/emsdk" install "$EMSDK_VERSION"
+          "$RUNNER_TEMP/emsdk/emsdk" activate "$EMSDK_VERSION"
+      - name: Build the site
+        run: |
+          # shellcheck disable=SC1091 # emsdk's environment
+          . "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          tools/web/build.sh | tee "$RUNNER_TEMP/build.txt"
+          {
+            echo "### The site's sizes"
+            echo
+            echo '```'
+            sed -n '/^Site:/,$p' "$RUNNER_TEMP/build.txt"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+      - name: The Kanban's scenarios, under Node on WebAssembly
+        run: |
+          # shellcheck disable=SC1091
+          . "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          node build-web/affrescoui.js test examples/flow/kanban.scenarios.json
+      - name: Upload the site
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-site
+          path: build-web/site
+          if-no-files-found: error

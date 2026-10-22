@@ -1,5 +1,6 @@
-# render: the rendering engine. Vendored in external/: glad (OpenGL 4.1 core loader). Text: FreeType and HarfBuzz
-# (cmake/AffrescoUIText.cmake). Images: stb_image (cmake/AffrescoUIImages.cmake).
+# render: the rendering engine. Vendored in external/: glad (the OpenGL 4.1 core and OpenGL ES 3.0 loaders, one per
+# backend: cmake/AffrescoUIAngle.cmake). Text: FreeType and HarfBuzz (cmake/AffrescoUIText.cmake). Images: stb_image
+# (cmake/AffrescoUIImages.cmake).
 include(${PROJECT_SOURCE_DIR}/cmake/AffrescoUIImages.cmake)
 affrescoui_module(render
 	src/Accessibility.cpp
@@ -7,11 +8,24 @@ affrescoui_module(render
 	src/Bitmap.cpp
 	src/ImageCache.cpp
 	src/ImageView.cpp
+	src/DiffView.cpp
 	src/TextEditor.cpp
+	src/TextEditorCursors.cpp
+	src/TextEditorFind.cpp
+	src/TextEditorMinimap.cpp
 	src/TextEditorPaint.cpp
+	src/TextEditorPaintView.cpp
+	src/TextEditorView.cpp
 	src/TextModel.cpp
 	src/text/PieceTree.cpp
 	src/Color.cpp
+	src/ColorSpaces.cpp
+	src/ColorPicker.cpp
+	src/ColorPickerPaint.cpp
+	src/CurvesEditor.cpp
+	src/GradientEditor.cpp
+	src/CivilDate.cpp
+	src/Calendar.cpp
 	src/Controls.cpp
 	src/Split.cpp
 	src/Tabs.cpp
@@ -22,6 +36,7 @@ affrescoui_module(render
 	src/Font.cpp
 	src/FontCache.cpp
 	src/text/FontFace.cpp
+	src/text/FontOutlines.cpp
 	src/text/GlyphAtlas.cpp
 	src/text/LookupSpans.cpp
 	src/text/PlainText.cpp
@@ -34,10 +49,15 @@ affrescoui_module(render
 	src/layout/Grid.cpp
 	src/TextArea.cpp
 	src/Window.cpp
+	src/WindowImage.cpp
 	src/Headless.cpp
 	src/GeometryCache.cpp
 	src/PaintRecorder.cpp
 	src/PathView.cpp
+	src/GraphView.cpp
+	src/TimelineView.cpp
+	src/CodeInput.cpp
+	src/Carousel.cpp
 	src/vector/VectorPath.cpp
 	src/vector/PathFill.cpp
 	src/vector/PathStroke.cpp
@@ -45,7 +65,14 @@ affrescoui_module(render
 	src/vector/SvgStyle.cpp
 	src/vector/SvgXml.cpp
 	src/vector/MeshRasterizer.cpp
+	src/CanvasView.cpp
+	src/CanvasViewInput.cpp
+	src/SpatialIndex.cpp
+	src/Snapping.cpp
+	src/Rulers.cpp
 	src/platform/GlfwPlatform.cpp
+	src/platform/EmbeddedPlatform.cpp
+	src/platform/EmbeddedPlatformGl.cpp
 	src/gl/OpenGlRenderer.cpp
 	src/gl/Context.cpp
 	src/gl/ImageTextures.cpp
@@ -53,10 +80,16 @@ affrescoui_module(render
 	src/gl/QuadRendererCache.cpp
 	src/gl/SubtreeTextures.cpp
 	src/gl/Shader.cpp
-	${PROJECT_SOURCE_DIR}/external/glad/src/glad.c)
-target_include_directories(affrescoui_render SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external/glad/include
-	${stb_image_SOURCE_DIR})
-target_link_libraries(affrescoui_render PUBLIC affrescoui::core PRIVATE glfw freetype affrescoui_harfbuzz)
+	src/gl/Stencil.cpp
+	src/gl/SurfaceGuard.cpp
+	src/gl/SurfacePrelude.cpp
+	src/gl/Surfaces.cpp
+	src/gl/SurfaceView.cpp)
+target_include_directories(affrescoui_render SYSTEM PRIVATE ${stb_image_SOURCE_DIR})
+affrescoui_gl_backend(affrescoui_render) # the glad loader of AFFRESCOUI_GL_BACKEND (cmake/AffrescoUIAngle.cmake)
+# nlohmann_json is public: GpuSurface.hpp hands a surface its document parameters as JSON
+target_link_libraries(affrescoui_render PUBLIC affrescoui::core nlohmann_json::nlohmann_json PRIVATE glfw freetype
+	affrescoui_harfbuzz affrescoui_regex)
 target_compile_definitions(affrescoui_render PRIVATE GLFW_INCLUDE_NONE)
 # What GLFW doesn't do (the colour scheme, native menu bars), per OS: Cocoa on macOS, Win32 on Windows, none elsewhere
 if(APPLE)
@@ -68,6 +101,21 @@ elseif(WIN32)
 	target_link_libraries(affrescoui_render PRIVATE user32 advapi32)
 else()
 	target_sources(affrescoui_render PRIVATE src/platform/DesktopOther.cpp)
+endif()
+# The accessibility tree for screen readers, through AccessKit (cmake/AffrescoUIAccessibility.cmake), or none
+if(TARGET affrescoui_accesskit)
+	target_sources(affrescoui_render PRIVATE src/platform/AccessKitTree.cpp)
+	target_link_libraries(affrescoui_render PRIVATE affrescoui_accesskit)
+	if(APPLE)
+		target_sources(affrescoui_render PRIVATE src/platform/AccessibilityMac.mm)
+		set_source_files_properties(src/platform/AccessibilityMac.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+	elseif(WIN32)
+		target_sources(affrescoui_render PRIVATE src/platform/AccessibilityWindows.cpp)
+	else()
+		target_sources(affrescoui_render PRIVATE src/platform/AccessibilityLinux.cpp)
+	endif()
+else()
+	target_sources(affrescoui_render PRIVATE src/platform/AccessibilityNone.cpp)
 endif()
 # stb_image's JPEG decoder lets signed integers overflow on crafted input (found by the image fuzz target): wrapping
 # is what it expects, so the one file that compiles it wraps, and the sanitizers don't stop there

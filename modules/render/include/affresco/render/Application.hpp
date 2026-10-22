@@ -16,6 +16,7 @@
 namespace affresco {
 
 namespace platform {
+class NativeWindow;
 class Platform;
 }
 
@@ -57,6 +58,16 @@ public:
 	/// @return The window, owned by the application.
 	/// @throws std::runtime_error If the window or its context can't be created.
 	Window& createWindow(std::string title, int width, int height);
+	/// @brief Opens a second window whose OpenGL context shares its objects (textures, buffers) with another's, and
+	/// which draws with that window's default font: its glyphs are those already rasterised (SCREEN_FORMAT.md, "Second
+	/// windows"). A presenter's audience view, a detached panel.
+	/// @param title The title.
+	/// @param width Width in window units.
+	/// @param height Height in window units.
+	/// @param sharing A window of this application (a headless one shares nothing).
+	/// @return The window, owned by the application.
+	/// @throws std::runtime_error If the window or its context can't be created.
+	Window& createWindow(std::string title, int width, int height, const Window& sharing);
 
 	/// @brief Runs the event loop until every window is closed or quit() is called.
 	///
@@ -73,6 +84,14 @@ public:
 	void post(std::function<void()> task) override;
 
 private:
+	/// @brief Takes a new native window, with a renderer in its context (current), as a Window.
+	/// @param native The native window.
+	/// @param title Its title.
+	/// @param width Width in window units.
+	/// @param height Height in window units.
+	/// @return The window, owned by the application.
+	Window& adopt(std::unique_ptr<platform::NativeWindow> native, std::string title, int width, int height);
+
 	/// @brief Tells every window the system's colour scheme and motion setting, if they changed.
 	void followSystem();
 

@@ -1,0 +1,145 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"note": "The Studio's Install from another app screen, included by studio.screen.json: pick an app and one of its installable parts, see what the part needs, and ask the agent to read what the host offers (its contribution points and exports), write the adapter that binds the two, prove it and submit it; or paste an adapter of your own for it to check. The agent's reply quotes the proof: each need bound, or unmet and why. The install is a revision on /features/<name>, proposed under the host's permissions: accept it in the Review tab, see it in History and Blame, and undo it like any other. Cmd+6 opens it.",
+
+	"state": {
+		"installOpen": false,
+		"installApp": "sinopia",
+		"installPart": "slideSorter",
+		"installAdapter": "",
+		"installAsked": "",
+		"installApps": [
+			{
+				"app": "sinopia",
+				"title": "Sinopia",
+				"parts": [
+					{
+						"name": "slideSorter",
+						"title": "Slide sorter",
+						"slot": "dock",
+						"needs": "pages: an ordered list of pages, each renderable to an image · reorder, select and duplicate actions"
+					}
+				]
+			}
+		]
+	},
+
+	"computed": {
+		"installChoice": "{{find(find(state.installApps, it.app == state.installApp).parts ?? [], it.name == state.installPart)}}",
+		"installReply": "{{state.installAsked == '' ? null : find(reverse(state.log), it.kind == 'ai' || it.kind == 'error')}}"
+	},
+
+	"actions": {
+		"openInstall": [{ "set": "state.installOpen", "to": true }],
+		"pickInstallPart": [
+			{ "note": "with: app, part" },
+			{ "set": "state.installApp", "to": "{{app}}" },
+			{ "set": "state.installPart", "to": "{{part}}" },
+			{ "set": "state.installAsked", "to": "" }
+		],
+		"askInstallAdapter": [
+			{
+				"set": "state.installAsked",
+				"to": "{{'Install ' + state.installPart + ' from app:' + state.installApp + ' into the ' + (computed.installChoice.slot ?? 'dock') + ': ' + (trim(state.installAdapter) == '' ? 'draft the adapter, prove it and submit it' : 'check this adapter, prove it and submit it: ' + trim(state.installAdapter))}}"
+			},
+			{ "send": "host", "data": { "type": "request", "id": "install-{{length(state.log)}}", "text": "{{state.installAsked}}" } },
+			{ "push": "state.log", "value": { "kind": "you", "text": "You: {{state.installAsked}}" } }
+		]
+	},
+
+	"keys": { "mod+6": "openInstall" },
+
+	"components": {
+		"installDialog": {
+			"params": {},
+			"node": {
+				"use": "dialog",
+				"with": {
+					"open": "state.installOpen",
+					"title": "Install from another app",
+					"message": "The agent binds the part's needs to what this app offers; the install is a proposal to review.",
+					"width": 620,
+					"height": 480,
+					"highlight": "@color.accent",
+					"buttons": [{ "title": "Close" }],
+					"color": "@color.card",
+					"textColor": "@color.text",
+					"dimColor": "@color.muted",
+					"backdrop": "@color.backdrop"
+				},
+				"children": [
+					{
+						"id": "installParts",
+						"type": "column",
+						"anchors": { "left": 20, "right": 20, "top": 72 },
+						"height": 96,
+						"scroll": "vertical",
+						"gap": 6,
+						"children": [
+							{
+								"repeat": { "for": "a", "in": "{{state.installApps}}" },
+								"type": "column",
+								"width": "100%",
+								"gap": 6,
+								"children": [
+									{
+										"repeat": { "for": "p", "in": "{{a.parts}}" },
+										"width": "100%",
+										"height": 44,
+										"style": "card",
+										"color": "{{a.app == state.installApp && p.name == state.installPart ? '@color.accent' : '@color.cardRaised'}}",
+										"onClick": { "run": "pickInstallPart", "with": { "app": "{{a.app}}", "part": "{{p.name}}" } },
+										"children": [
+											{
+												"type": "label",
+												"text": "{{a.title + ' · ' + p.title + '  (' + p.slot + ')'}}",
+												"textColor": "@color.text",
+												"anchors": { "left": 12, "top": 12 },
+												"fitText": true
+											}
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "installNeeds",
+						"style": "caption",
+						"text": "{{'Needs: ' + (computed.installChoice.needs ?? 'pick a part')}}",
+						"anchors": { "left": 20, "right": 20, "top": 178 }
+					},
+					{
+						"id": "installAdapter",
+						"style": "input",
+						"anchors": { "left": 20, "right": 160, "top": 210 },
+						"placeholder": "an adapter of your own (JSON), or leave empty for the agent to draft it",
+						"bind": "state.installAdapter",
+						"onSubmit": "askInstallAdapter"
+					},
+					{
+						"id": "installAsk",
+						"style": "button",
+						"text": "Ask the agent",
+						"anchors": { "right": 20, "top": 210 },
+						"width": 128,
+						"onClick": "askInstallAdapter"
+					},
+					{
+						"id": "installProof",
+						"type": "column",
+						"anchors": { "left": 20, "right": 20, "top": 256, "bottom": 56 },
+						"scroll": "vertical",
+						"children": [
+							{
+								"style": "caption",
+								"width": "100%",
+								"text": "{{state.installAsked == '' ? 'The proof shows here: each need against what this app offers.' : (computed.installReply.text ?? 'Waiting for the agent…')}}"
+							}
+						]
+					}
+				]
+			}
+		}
+	}
+}

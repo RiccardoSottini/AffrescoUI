@@ -1,0 +1,32 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Light and dark", "width": 360, "height": 180 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": "@type.body" } },
+	"state": { "theme": "light" },
+	"theme": "{{state.theme}}",
+	"tokens": {
+		"type.body": 15,
+		"space.m": 16,
+		"radius.card": 10,
+		"color.surface": { "light": "#f8fafc", "dark": "#0f172a" },
+		"color.card": { "light": "#ffffff", "dark": "#1e293b" },
+		"color.text": { "light": "#0f172a", "dark": "#e2e8f0" }
+	},
+	"root": {
+		"color": "@color.surface",
+		"children": [
+			{ "type": "label", "id": "card", "x": 24, "y": 24, "width": 312, "height": 56, "padding": "@space.m",
+			  "radius": "@radius.card", "color": "@color.card", "textColor": "@color.text",
+			  "text": "The {{state.theme}} theme" },
+			{ "type": "row", "id": "switch-row", "x": 24, "y": 104, "width": 312, "height": 28, "gap": 12,
+			  "alignItems": "center", "children": [
+				{ "type": "toggle", "id": "dark", "width": 44, "height": 24, "checked": "{{state.theme == 'dark'}}",
+				  "onChange": [{ "set": "state.theme", "to": "{{event.value ? 'dark' : 'light'}}" }] },
+				{ "type": "label", "id": "dark-label", "width": 200, "height": 24, "textColor": "@color.text",
+				  "text": "Dark mode" }
+			] }
+		]
+	}
+}

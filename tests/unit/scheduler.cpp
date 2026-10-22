@@ -53,7 +53,7 @@ struct Scheduled {
 } // namespace
 
 TEST_CASE("format: an \"every\" timer runs each period on the window's clock, until its node goes") {
-	Scheduled s(R"json({"format": "affrescoui-screen", "version": 1, "state": { "ticks": 0 },
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "ticks": 0 },
 		"root": { "type": "panel", "children": [
 			{ "id": "clock", "every": { "ms": 100, "do": [{ "increment": "state.ticks" }] } }
 		] } })json");
@@ -73,7 +73,7 @@ TEST_CASE("format: an \"every\" timer runs each period on the window's clock, un
 }
 
 TEST_CASE("format: \"after\" runs once, and \"debounce\" only after the last of quick calls") {
-	Scheduled s(R"json({"format": "affrescoui-screen", "version": 1, "state": { "after": 0, "debounced": 0 },
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "after": 0, "debounced": 0 },
 		"actions": {
 			"later": [{ "after": 50, "do": [{ "increment": "state.after" }] }],
 			"typed": [{ "debounce": 50, "do": [{ "increment": "state.debounced" }] }]
@@ -98,7 +98,7 @@ TEST_CASE("format: \"after\" runs once, and \"debounce\" only after the last of 
 }
 
 TEST_CASE("format: an animation started again replaces the one running") {
-	Scheduled s(R"json({"format": "affrescoui-screen", "version": 1, "state": { "x": 0 },
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "x": 0 },
 		"actions": {
 			"up": [{ "animate": "state.x", "to": 100, "ms": 100, "easing": "linear" }],
 			"down": [{ "animate": "state.x", "to": 0, "ms": 100, "easing": "linear" }]
@@ -120,7 +120,7 @@ TEST_CASE("format: an animation started again replaces the one running") {
 }
 
 TEST_CASE("format: a colour transition eases on the window's clock") {
-	Scheduled s(R"json({"format": "affrescoui-screen", "version": 1, "state": { "on": false },
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "on": false },
 		"root": { "type": "panel", "children": [
 			{ "id": "lamp", "color": "{{state.on ? '#ffffff' : '#000000'}}", "transition": { "color": 100 } }
 		] } })json");
@@ -138,7 +138,7 @@ TEST_CASE("format: a colour transition eases on the window's clock") {
 }
 
 TEST_CASE("format: a double click is two clicks closer than 0.4 s on the window's clock") {
-	Scheduled s(R"json({"format": "affrescoui-screen", "version": 1, "state": { "clicks": 0, "doubles": 0 },
+	Scheduled s(R"json({"format": "affrescoui-screen", "version": 2, "state": { "clicks": 0, "doubles": 0 },
 		"root": { "type": "panel", "children": [
 			{ "id": "button", "width": 100, "height": 50,
 			  "onClick": { "increment": "state.clicks" }, "onDoubleClick": { "increment": "state.doubles" } }

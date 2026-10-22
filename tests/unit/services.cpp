@@ -76,7 +76,7 @@ json stateAt(const affresco::Screen& screen, const char* pointer) {
 /// granted folder.
 constexpr const char* serviceScreen = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"services": {
 		"proto": { "provider": "jsonrpc", "process": "proto" },
 		"files": { "provider": "fs", "root": "work", "readOnly": true }
@@ -171,6 +171,17 @@ TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	CHECK_FALSE(lines.feed("ab\r\ncd\n", bodies));
 	CHECK(bodies == std::vector<std::string>{"ab", "cd"});
 	CHECK(lines.feed("toolong", bodies));
+
+	// A line is within the limit without its line break: 4 bytes and "\r\n" pass, 5 bytes and "\n" don't
+	FrameReader exact(Framing::Lines, {64, 4});
+	bodies.clear();
+	CHECK_FALSE(exact.feed("abcd\r", bodies));
+	CHECK_FALSE(exact.feed("\n", bodies));
+	CHECK(bodies == std::vector<std::string>{"abcd"});
+	FrameReader over(Framing::Lines, {64, 4});
+	bodies.clear();
+	CHECK(over.feed("abcde\n", bodies));
+	CHECK(bodies.empty());
 }
 
 TEST_CASE("services: a registry refuses what the host didn't grant") {
@@ -189,6 +200,22 @@ TEST_CASE("services: a registry refuses what the host didn't grant") {
 	CHECK(registry.catalog().contains("jsonrpc"));
 }
 
+// A debug adapter can run code (debugpy's `evaluate`): a screen attached to any program listening on a loopback port
+TEST_CASE("services: a dap service attaches only to a port the host allows") {
+	affresco::services::ServiceRegistry registry;
+	const json section = {{"debug", {{"provider", "dap"}, {"attach", {{"port", 5678}}}}}};
+	const std::vector<std::string> refused = registry.load(section);
+	REQUIRE(refused.size() == 1);
+	CHECK(refused[0] == "services.debug.attach.port: 5678 isn't a port the host allows attaching to");
+	CHECK(registry.status()["debug"]["state"] == "refused");
+
+	registry.allowAttach(5679);
+	CHECK(registry.load(section).size() == 1);
+	registry.allowAttach(5678);
+	CHECK(registry.load(section).empty());
+	CHECK(registry.status()["debug"]["state"] == "stopped");
+}
+
 TEST_CASE("services: revisions use declared, revisable methods only; writes are always reviewed") {
 	const TemporaryFolder folder;
 	affresco::services::ServiceRegistry registry;
@@ -199,7 +226,7 @@ TEST_CASE("services: revisions use declared, revisable methods only; writes are 
 	rules.setServices(&registry);
 	affresco::vcs::Repository repository(
 	    rules, {{"format", "affrescoui-screen"},
-	            {"version", 1},
+	            {"version", 2},
 	            {"services", section},
 	            {"state", {{"text", ""}}},
 	            {"actions", json::object()},

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 
 namespace affresco::vcs::detail {
 
@@ -163,6 +164,12 @@ json view(const json& document, const json& state) {
 }
 
 std::string channelOf(std::string_view author) { return std::string(author.substr(0, author.find('/'))); }
+
+std::size_t countedApprovals(const std::vector<std::string>& approvals) {
+	std::set<std::string> channels;
+	for(const std::string& reviewer : approvals) channels.insert(channelOf(reviewer));
+	return channels.size();
+}
 
 bool authorMatches(std::string_view ruleAuthor, std::string_view author) {
 	return ruleAuthor == "*" || ruleAuthor == author || ruleAuthor == channelOf(author);

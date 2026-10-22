@@ -1,0 +1,39 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "GPU surfaces: native drawing the host registered (examples/surfaces/Surfaces.cpp), placed and transformed like any node. A shader, a depth-tested cube to drag, and a two-pass blur whose radius the slider sets.",
+
+	"window": { "title": "Surfaces", "width": 820, "height": 380 },
+
+	"fonts": {
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15 }
+	},
+
+	"colors": { "background": "#0f172a", "card": "#1e293b", "text": "#e2e8f0" },
+
+	"styles": {
+		"caption": { "type": "label", "width": 240, "height": 24, "textColor": "@text" }
+	},
+
+	"state": { "radius": 6 },
+
+	"root": {
+		"id": "root",
+		"color": "@background",
+		"children": [
+			{ "style": "caption", "x": 20, "y": 20, "text": "Shader" },
+			{ "type": "surface", "id": "plasma", "surface": "plasma", "continuous": true, "params": { "speed": 1.5 },
+				"x": 20, "y": 50, "width": 240, "height": 240 },
+			{ "style": "caption", "x": 290, "y": 20, "text": "Cube (drag it)" },
+			{ "type": "surface", "id": "cube", "surface": "cube", "continuous": true, "params": { "speed": 2 },
+				"x": 290, "y": 50, "width": 240, "height": 240, "color": "@card", "radius": 12 },
+			{ "style": "caption", "x": 560, "y": 20, "text": "Two-pass blur" },
+			{ "type": "surface", "id": "blur", "surface": "blur", "continuous": true,
+				"params": { "radius": "{{state.radius}}" },
+				"x": 560, "y": 50, "width": 240, "height": 240, "rotate": 4 },
+			{ "type": "slider", "id": "radius", "x": 560, "y": 320, "width": 240, "height": 24, "min": 0, "max": 16,
+				"step": 1, "bind": "state.radius" }
+		]
+	}
+}

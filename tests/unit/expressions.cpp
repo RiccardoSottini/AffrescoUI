@@ -140,7 +140,7 @@ const std::vector<Case> cases = {
     {"{{pad(1, 10001)}}", {}, "width too large"},
     // Lists
     {"{{range(3)}}", {0, 1, 2}, {}},
-    {"{{len(range(10000))}}", 10000, {}},
+    {"{{length(range(10000))}}", 10000, {}},
     {"{{range(10001)}}", {}, "range too long"},
     {"{{max(3, 9, 4)}}", 9, {}},
     {"{{min(state.scores)}}", 2, {}},
@@ -161,7 +161,8 @@ const std::vector<Case> cases = {
     // Syntax errors and the nesting limit (100 levels inside the parser: a bracket takes two, a '!' one)
     {"{{1 +}}", {}, "expected a value"},
     {"{{foo(1)}}", {}, "unknown function 'foo'"},
-    {"{{len(1, 2)}}", {}, "'len' takes one argument"},
+    {"{{length(1, 2)}}", {}, "'length' takes one argument"},
+    {"{{len(state.items)}}", {}, "unknown function 'len' ('len' was removed in version 2: use 'length')"},
     // Numbers too large for their type are errors, not exceptions that escape (they used to: std::out_of_range)
     {"{{99999999999999999999}}", {}, "number '99999999999999999999' is too large"},
     {"{{1" + std::string(400, '0') + ".5}}", {}, "is too large (at column 404)"},
@@ -241,6 +242,40 @@ const std::vector<Case> cases = {
     {"{{fuzzySort(state.items, 'z')}}", json::array(), {}},
     {"{{fuzzySort(state.items, 'b')[0].item}}", "b", {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
+    // Dates, "YYYY-MM-DD": tests/unit/date_civil.cpp has the calendar arithmetic
+    {"{{isDate(today())}}", true, {}},
+    {"{{addDays('2024-02-28', 2)}}", "2024-03-01", {}},
+    {"{{addMonths('2025-01-31', 1)}}", "2025-02-28", {}},
+    {"{{daysBetween('2026-10-22', '2026-12-25')}}", 64, {}},
+    {"{{weekday('2026-10-22')}}", 4, {}},
+    {"{{daysInMonth('2024-02-10')}}", 29, {}},
+    {"{{dateOf(86400000)}}", "1970-01-02", {}},
+    {"{{dateMs('1970-01-02')}}", 86400000, {}},
+    {"{{addDays('not a date', 1)}}", nullptr, {}},
+    {"{{isDate('2026-02-30')}}", false, {}},
+    // The creative controls' values: tests/unit/creative_controls.cpp has the curves and the colours
+    {"{{curve([[0, 0], [1, 1]], 0.25, 'linear')}}", 0.25, {}},
+    {"{{curve(1, 0.5)}}", {}, "test.$curve: expected a list of points or a curves value"},
+    {"{{gradientColor({ kind: 'linear', stops: [{ at: 0, color: '#000000ff' }, { at: 1, color: '#ffffffff' }] }, 1)}}",
+     "#ffffffff", {}},
+    {"{{gradientColor('#000000ff', 0)}}", {}, "test.$gradientColor: expected a gradient"},
+    // Forms: tests/unit/form_inputs.cpp has the strengths and the shapes
+    {"{{passwordStrength('').score}}", 0, {}},
+    {"{{isEmail('ada@example.com')}}", true, {}},
+    {"{{isEmail('ada@example')}}", false, {}},
+    // Timelines and the locale's: tests/unit/timeline.cpp and tests/unit/i18n.cpp have their values
+    {"{{keyframeValue([{ time: 0, value: 0 }, { time: 2, value: 10 }], 0.5)}}", 2.5, {}},
+    {"{{keyframeValue(1)}}", {}, "test.$keyframeValue: expected 2 arguments"},
+    {"{{t()}}", {}, "test.$t: expected 1 to 2 arguments"},
+    {"{{formatNumber()}}", {}, "test.$formatNumber: expected 1 to 3 arguments"},
+    {"{{formatPercent()}}", {}, "test.$formatPercent: expected 1 to 2 arguments"},
+    {"{{formatCurrency(1)}}", {}, "test.$formatCurrency: expected 2 arguments"},
+    {"{{formatDate()}}", {}, "test.$formatDate: expected 1 to 3 arguments"},
+    {"{{formatTime()}}", {}, "test.$formatTime: expected 1 to 3 arguments"},
+    {"{{formatRelative(1)}}", {}, "test.$formatRelative: expected 2 arguments"},
+    {"{{formatList()}}", {}, "test.$formatList: expected 1 to 2 arguments"},
+    {"{{compareText('a')}}", {}, "test.$compareText: expected 2 arguments"},
+    {"{{sortText()}}", {}, "test.$sortText: expected 1 arguments"},
     {"{{clamp(1, 2)}}", {}, "test.$clamp: expected 3 arguments"},
     {"{{round(-2.5)}}", -3, {}},
     {"{{floor('x')}}", {}, "test.$floor: expected a number, got \"x\""},
@@ -282,11 +317,11 @@ const std::vector<Case> cases = {
     {"{{parseJson('nope')}}", nullptr, {}},
     {"{{parseJson(state.name)}}", nullptr, {}},
     // Lists and objects; objects keep the order of their keys, as the documents' JSON does
-    {"{{len('é')}}", 2, {}},
-    {"{{len(state.name)}}", 15, {}},
-    {"{{len({a: 1})}}", 1, {}},
-    {"{{len(null)}}", 0, {}},
-    {"{{len(5)}}", {}, "test.$length: expected a string, a list or an object"},
+    {"{{length('é')}}", 2, {}},
+    {"{{length(state.name)}}", 15, {}},
+    {"{{length({a: 1})}}", 1, {}},
+    {"{{length(null)}}", 0, {}},
+    {"{{length(5)}}", {}, "test.$length: expected a string, a list or an object"},
     {"{{length([1])}}", 1, {}},
     {"{{concat([1], [2, 3])}}", J(R"([1,2,3])"), {}},
     {"{{concat('a', 1, null)}}", "a1", {}},
@@ -358,7 +393,7 @@ const std::vector<Case> cases = {
     // The clock: 200 days after 1970 began is in 1970 in every time zone
     {"{{time(17280000000, 'YYYY')}}", "1970", {}},
     {"{{time('x', 'YYYY')}}", {}, "test.$time: expected a number, got \"x\""},
-    {"{{len(text(now())) >= 13}}", true, {}},
+    {"{{length(text(now())) >= 13}}", true, {}},
     // Paths and variables: missing values are null; computed values and nodes are read by name
     {"{{state.missing.x}}", nullptr, {}},
     {"{{state.none.x}}", nullptr, {}},
@@ -398,7 +433,7 @@ const std::vector<Case> cases = {
     {J(R"({"$length": "{{state.items}}"})"), 3, {}},
     {J(R"({"$max": 3})"), {}, "test.$max: expected an array of arguments"},
     {J(R"({"a": "{{state.count}}", "b": ["{{1 + 1}}", "x"]})"), J(R"({"a":3,"b":[2,"x"]})"), {}},
-    {"{{state.count}} of {{len(state.items)}}", "3 of 3", {}},
+    {"{{state.count}} of {{length(state.items)}}", "3 of 3", {}},
     {"  {{state.count}}  ", 3, {}},
     {"{{state.count}}{{", {}, "test: unclosed '{{' in \"{{state.count}}{{\""},
     {"{{ {a: '}}'}.a }}", "}}", {}},
@@ -407,7 +442,7 @@ const std::vector<Case> cases = {
     {"{{(1}}", {}, "test: in {{(1}}: expected ')' (at column 3)"},
     {"{{a.}}", {}, "test: invalid path 'a.'"},
     {"{{f(}}", {}, "test: in {{f(}}: expected a value (at column 3)"},
-    {"{{len()}}", {}, "test: in {{len()}}: 'len' takes one argument (at column 6)"},
+    {"{{length()}}", {}, "test: in {{length()}}: 'length' takes one argument (at column 9)"},
     {"{{9.}}", {}, "test: in {{9.}}: expected a name (at column 3)"},
 };
 
@@ -440,7 +475,7 @@ TEST_CASE("format: every function has a row of the table") {
 	for(const Case& c : cases) table += c.value.dump();
 	for(const auto& function : affresco::format::detail::functions()) {
 		CAPTURE(function.name);
-		const std::string name(function.alias.empty() ? function.name : function.alias);
+		const std::string name(function.name);
 		const bool written = table.contains(name + "(") || table.contains("\"$" + std::string(function.name) + "\"");
 		const bool symbol = function.group == affresco::format::detail::Group::Syntax; // `+`, `&&`, `c ? a : b`
 		CHECK((written || symbol));
@@ -462,7 +497,7 @@ TEST_CASE("format: truthy follows the documented rules") {
 TEST_CASE("format: a name with '-' is read with brackets; after a dot, '-' subtracts") {
 	CHECK(evaluate("{{state['my-list']}}").dump() == "[1,2]");
 	CHECK(evaluate("{{state[\"my-list\"][1]}}").dump() == "2");
-	CHECK(evaluate("{{len(state['my-list'])}}").dump() == "2");
+	CHECK(evaluate("{{length(state['my-list'])}}").dump() == "2");
 	CHECK_THROWS_WITH_AS((void)evaluate("{{state.my-list}}"), doctest::Contains("unknown variable 'list'"),
 	                     affresco::DocumentError);
 }
@@ -477,15 +512,15 @@ TEST_CASE("format: the registry lists every function once, with what the catalog
 		CHECK((function.decide == nullptr || !function.shape.empty()));
 		CHECK(affresco::format::detail::findOperator("$" + std::string(function.name)) == &function);
 	}
-	CHECK(affresco::format::detail::findFunction("len") == affresco::format::detail::findFunction("length"));
-	CHECK(affresco::format::detail::findOperator("$len") == nullptr); // an alias is written in expressions only
+	CHECK(affresco::format::detail::findFunction("len") == nullptr); // removed in version 2 (Migrate.hpp)
+	CHECK(affresco::format::detail::findOperator("$len") == nullptr);
 	CHECK(affresco::format::operatorNames().size() == names.size());
 	CHECK(affresco::format::functionCatalog().size() == names.size());
 	CHECK(affresco::format::functionCatalog()["clamp"] == "value, low, high: The value, kept between low and high");
 }
 
 TEST_CASE("format: SCREEN_FORMAT.md lists the functions of the registry") {
-	std::ifstream file(std::string(AFFRESCOUI_SCREENS_DIRECTORY) + "/../../../SCREEN_FORMAT.md");
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/../SCREEN_FORMAT.md");
 	REQUIRE(file);
 	const std::string guide{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 	const std::string expected = affresco::format::functionGuide();

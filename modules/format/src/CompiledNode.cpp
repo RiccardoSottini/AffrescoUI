@@ -39,6 +39,9 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"role", Slot::Role},
     {"label", Slot::Label},
     {"description", Slot::Description},
+    {"isOpen", Slot::Open},
+    {"selected", Slot::Selected},
+    {"live", Slot::Live},
     {"radius", Slot::Radius},
     {"borderWidth", Slot::BorderWidth},
     {"borderColor", Slot::BorderColor},
@@ -60,6 +63,7 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"basis", Slot::Layout},
     {"alignSelf", Slot::Layout},
     {"cell", Slot::Layout},
+    {"dir", Slot::Layout},
     {"textColor", Slot::TextColor},
     {"padding", Slot::Padding},
     {"wrap", Slot::Wrap},
@@ -69,7 +73,6 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"placeholder", Slot::Placeholder},
     {"placeholderColor", Slot::PlaceholderColor},
     {"gap", Slot::Gap},
-    {"from", Slot::From},
     {"direction", Slot::Direction},
     {"columns", Slot::Columns},
     {"type", Slot::Value},
@@ -91,9 +94,10 @@ constexpr auto namedSlots = std::to_array<NamedSlot>({
     {"every", Slot::Every},
 });
 
-/// The structural keys the builder reads, never a property of the panel.
-constexpr auto scopingKeys =
-    std::to_array<std::string_view>({"children", "repeat", "when", "let", "check", "use", "with", "note", "slot"});
+/// The structural keys the builder reads, never a property of the panel. "point" is composition's: a document with
+/// no feature isn't composed, so its points reach the builder.
+constexpr auto scopingKeys = std::to_array<std::string_view>(
+    {"children", "repeat", "when", "let", "check", "use", "with", "note", "slot", "point"});
 
 /// @brief Tells whether a slot's value is read as written, never evaluated.
 /// @param slot The slot.

@@ -1,0 +1,20 @@
+{
+	"format": "affrescoui-screen",
+	"version": 1,
+	"state": { "cards": ["a", "b"], "from": "kept: data is never rewritten" },
+	"styles": {
+		"toolbar": { "from": "end", "gap": 8 },
+		"bar": { "type": "row", "from": "center" }
+	},
+	"root": {
+		"type": "column",
+		"id": "main",
+		"from": "start",
+		"children": [
+			{ "type": "row", "id": "toolbar", "style": "toolbar", "from": "between", "children": [] },
+			{ "type": "stack", "id": "layers", "align": "center", "children": [] },
+			{ "type": "label", "id": "count", "text": "{{len(state.cards)}} cards, 'len(' stays in quotes: {{'len(x)'}}" },
+			{ "type": "label", "id": "plain", "text": "len(state.cards) outside a placeholder is text" }
+		]
+	}
+}

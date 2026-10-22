@@ -1,0 +1,22 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Dialog", "width": 480, "height": 320 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 15 } },
+	"state": { "confirm": false, "items": ["Draft", "Notes", "Plan"] },
+	"actions": { "deleteAll": [{ "set": "state.items", "to": [] }] },
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "label", "id": "summary", "x": 24, "y": 24, "width": 300, "height": 28, "textColor": "#0f172a",
+			  "text": "{{plural(length(state.items), 'item')}}" },
+			{ "type": "label", "id": "delete", "x": 24, "y": 64, "width": 140, "height": 40, "align": "center",
+			  "radius": 8, "color": "#dc2626", "textColor": "#ffffff", "cursor": "hand", "role": "button",
+			  "text": "Delete all", "onClick": { "set": "state.confirm", "to": true } },
+			{ "use": "dialog", "id": "confirm", "with": { "open": "state.confirm", "title": "Delete every item?",
+			  "message": "This can't be undone.",
+			  "buttons": [{ "title": "Delete", "run": "deleteAll" }, { "title": "Cancel" }] } }
+		]
+	}
+}

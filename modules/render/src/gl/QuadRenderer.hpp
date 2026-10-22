@@ -8,9 +8,12 @@
 #include "RetainedGeometry.hpp"
 #include "gl/GlObjects.hpp"
 #include "gl/ImageTextures.hpp"
+#include "gl/Stencil.hpp"
+#include "gl/Surfaces.hpp"
 #include "gl/SubtreeTextures.hpp"
 
 #include "affresco/render/Font.hpp"
+#include "affresco/render/Transform.hpp"
 
 #include <array>
 #include <cstddef>
@@ -102,6 +105,7 @@ private:
 		GLuint colorTexture = 0; ///< What its colour quads sample: a font's colour page or an image's texture; 0: none.
 		const Font* colorFont = nullptr; ///< The font whose colour page colorTexture is; nullptr for an image.
 		std::uint32_t colorPage = 0;     ///< That colour page.
+		ClipStep clip = ClipStep::none;  ///< push or pop: its one quad is a stencil clip, not colour.
 	};
 
 	/// @brief A font's atlas page on the GPU.
@@ -116,8 +120,10 @@ private:
 		std::array<std::vector<PageTexture>, 2> pages; ///< By AtlasKind, then page.
 	};
 
-	/// @brief Empties the frame's quads and batches, and frees the textures of fonts that are gone.
-	void startFrame();
+	/// @brief Takes the frame's size and its framebuffer's, empties the quads and batches, and frees the textures of
+	/// fonts that are gone.
+	/// @param frame The frame about to be drawn.
+	void startFrame(const detail::Frame& frame);
 	/// @brief Replays a panel's record, then its children's (pre-order: later ones land on top), then the rest of its
 	/// record. Hidden subtrees, and subtrees wholly outside the region, are left out.
 	/// @param panel The subtree's root.
@@ -148,7 +154,17 @@ private:
 	/// @param panel The subtree's root.
 	/// @param outerClip What clips it: its parent's bounds, or the window.
 	/// @param depth Its depth, which picks its scratch record.
-	void scratchTree(const Panel& panel, const Rect& outerClip, std::size_t depth);
+	/// @param parentWorld Where its parent's drawing goes on screen (the identity for roots and overlays).
+	void scratchTree(const Panel& panel, const Rect& outerClip, std::size_t depth, const Affine2& parentWorld);
+	/// @brief Pushes or pops the stencil clip around a child turned or skewed by its own transform: its parent's
+	/// bounds, as they are on screen. Past maxClipDepth, nothing is pushed: the child's record is clipped to the
+	/// bounding box of its parent's bounds.
+	/// @param parent The parent.
+	/// @param child The child.
+	/// @param parentWorld Where the parent's drawing goes on screen.
+	/// @param step push before the child's subtree, pop after it (only if the push returned true).
+	/// @return Whether a clip was added.
+	bool clipChild(const Panel& parent, const Panel& child, const Affine2& parentWorld, ClipStep step);
 	/// @brief Replays steps of a record into the frame's batches.
 	/// @param record The record.
 	/// @param first Its first step to replay.
@@ -228,6 +244,7 @@ private:
 	detail::GeometryCache cache_;                                  ///< The panels' geometry, frame after frame.
 	ImageTextures images_;                                         ///< The images drawn.
 	SubtreeTextures subtrees_;                                     ///< The cached subtrees' textures.
+	Surfaces surfaces_;                                            ///< The GPU surfaces drawn.
 
 	// Per frame, reused so steady-state frames don't allocate
 	std::vector<detail::Vertex> vertices_;    ///< 4 per quad.
@@ -238,6 +255,9 @@ private:
 	bool scratchShapes_ = false;              ///< drawFromScratch() recorded a shape.
 	bool scratchColor_ = false;               ///< drawFromScratch() recorded a colour glyph.
 	std::size_t drawCalls_ = 0;               ///< See drawCalls().
+	Affine2 world_;                           ///< Where the record being replayed goes on screen.
+	std::size_t clipDepth_ = 0;               ///< Stencil clips pushed while replaying.
+	StencilClips stencil_;                    ///< The stencil clips, as the batches are drawn.
 	/// @brief The quads and batches of a frame set aside while a cached subtree is drawn into its texture.
 	struct Pass {
 		std::vector<detail::Vertex> vertices; ///< Its quads.
@@ -249,6 +269,7 @@ private:
 	int framebufferHeight_ = 0; ///< The frame's framebuffer height, in pixels.
 	int frameWidth_ = 0;        ///< The frame's width, in window units.
 	int frameHeight_ = 0;       ///< The frame's height, in window units.
+	float pixelScale_ = 1.0f;   ///< The frame's framebuffer pixels per window unit.
 	/// The paint generation of whole frames drawn by draw(root, ...), counted from the top so it never meets a
 	/// window's.
 	std::uint64_t ownGeneration_ = std::uint64_t{1} << 63;

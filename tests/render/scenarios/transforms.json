@@ -1,0 +1,20 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "transforms",
+			"screen": "transforms.screen.json",
+			"note": "Transforms are drawn after layout: a turned card with its button clicked through the transform, a scaled list clipped by its parent, skewed text, a turned panel clipping its child (the stencil), and a panel moved; then the card is turned further by a revision",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "click": "#button" },
+				{ "expect": { "state": "clicked", "is": "Clicked" } },
+				{ "expect": { "image": "clicked" } },
+				{ "revision": { "message": "Turn the card further", "set": { "#card/rotate": 20 } } },
+				{ "expect": { "image": "turned" } }
+			]
+		}
+	]
+}

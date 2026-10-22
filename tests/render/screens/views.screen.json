@@ -1,12 +1,12 @@
 {
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"note": "Splits and tabs, for the rendering check: a strip of closable tabs (one marked) over a row split whose right pane is a column split, with a narrow strip that overflows and scrolls. The sizes and the active tab live in state; closing and reordering are handled in JSON.",
 
 	"window": { "title": "Splits and tabs", "width": 480, "height": 320 },
 
-	"fonts": { "default": { "file": "../../../examples/assets/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"fonts": { "default": { "file": "../../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
 
 	"colors": { "background": "#f8fafc", "sidebar": "#e2e8f0", "editor": "#ffffff", "panel": "#f1f5f9",
 		"text": "#0f172a", "accent": "#7c3aed" },

@@ -1,7 +1,7 @@
 {
 	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
-	"version": 1,
+	"version": 2,
 	"note": "Images and icons, checked headless (ctest scenarios): where the pictures and icon buttons sit, what hovering an icon button changes, and a picture swapped by a revision, so caching images and glyphs can't change what the tree holds.",
 	"screen": "visuals.screen.json",
 	"scenarios": [

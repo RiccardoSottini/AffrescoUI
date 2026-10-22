@@ -82,6 +82,10 @@ public:
 	void setIcon(std::string name);
 	/// @brief The icon's name, or empty.
 	[[nodiscard]] const std::string& icon() const noexcept { return icon_; }
+	/// @brief Sets whether the icon is mirrored right to left: "left" and "right" swap in its name ("chevron-left"
+	/// draws "chevron-right"), when the font has the swapped one.
+	/// @param mirrored Whether it is.
+	void setIconMirrored(bool mirrored);
 
 	/// @brief Sets the label's own font.
 	/// @param font The font, or nullptr for the window's default.
@@ -177,6 +181,8 @@ private:
 	std::string icon_;                 ///< See icon().
 	std::u32string shown_;             ///< The icon's character, a space and the text: see shown().
 	std::uint64_t shownFont_ = 0;      ///< The Font::id() shown_ was made with (0: to make again).
+	bool iconMirrored_ = false;        ///< See setIconMirrored().
+	bool shownMirrored_ = false;       ///< Whether shown_ has the mirrored icon.
 	std::shared_ptr<const Font> font_; ///< nullptr: the window's default.
 	Color textColor_ = colors::black;  ///< See textColor().
 	float padding_ = 0.0f;             ///< See padding().

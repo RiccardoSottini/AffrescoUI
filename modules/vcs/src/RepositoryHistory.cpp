@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 
@@ -117,6 +118,23 @@ void expectGrantRule(const std::string& rule, const std::string& where) {
 		             "'" + rule + "' is not a rule that \"don't ask again\" grants (<channel>(<one node or area>))");
 }
 
+/// @brief Reads a grant's expiry: a UTC time, "2026-10-22T08:30:00Z" exactly, which sorts as text, so expired() can
+/// compare it with the time now. Anything else ("never", "9999", a local time) would sort after every time and never
+/// expire, so it is refused.
+/// @param value The value.
+/// @param at Its place.
+/// @return The time.
+/// @throws DocumentError If it isn't one.
+std::string expiryOf(const json& value, const std::string& at) {
+	std::string time = expect::string(value, at);
+	constexpr std::string_view shape = "dddd-dd-ddTdd:dd:ddZ";
+	const bool matches = time.size() == shape.size() && std::ranges::equal(time, shape, [](char c, char expected) {
+		return expected == 'd' ? c >= '0' && c <= '9' : c == expected;
+	});
+	if(!matches) expect::fail(at, "a UTC time such as \"2026-10-22T08:30:00Z\"");
+	return time;
+}
+
 /// @brief Reads the "don't ask again" grants of a refs file.
 /// @param grants The list.
 /// @return The grants.
@@ -131,7 +149,8 @@ std::vector<Grant> grantsOf(const json& grants) {
 		expectGrantRule(rule, where + ".rule");
 		result.push_back({std::move(rule), expect::string(grant.at("grantedBy"), where + ".grantedBy"),
 		                  expect::integer(grant.at("proposal"), where + ".proposal"),
-		                  expect::string(grant.at("time"), where + ".time")});
+		                  expect::string(grant.at("time"), where + ".time"),
+		                  grant.contains("expires") ? expiryOf(grant["expires"], where + ".expires") : ""});
 	}
 	return result;
 }
@@ -197,7 +216,10 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		if(commit->parents.empty()) break;
 	}
 	std::ranges::reverse(main);
-	if(*objects.at(main.front()).snapshot != mainDocument()) return false;
+	// A history begun on a version 1 screen began on this one, if the screen file was migrated since
+	json original = *objects.at(main.front()).snapshot;
+	static_cast<void>(rules_.upgrade(original));
+	if(original != mainDocument()) return false;
 
 	for(Proposal& proposal : refs.proposals) {
 		completeProposal(proposal, objects, main, store.refsFile());
@@ -206,10 +228,13 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	}
 	// Hashes catch damage, not a history written by hand: it may not do what no revision can (widen capabilities)
 	const Commit& head = objects.at(main.back());
+	json upgraded;
 	json document = reading(store.objectFile(head.id), [&] {
 		json rebuilt = rebuild(objects, head); // checked against the head's tree
 		rules_.checkChange(*objects.at(main.front()).snapshot, rebuilt);
-		rules_.validate(rebuilt);
+		upgraded = rebuilt;
+		static_cast<void>(rules_.upgrade(upgraded)); // a version 1 head is read as the current version
+		rules_.validate(upgraded);
 		return rebuilt;
 	});
 
@@ -224,6 +249,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	std::swap(document_, document);
 	json state = document_.contains("state") ? document_["state"] : json::object();
 	std::swap(state_, state);
+	if(upgraded != document_) upgradeHead(std::move(upgraded));
 	try {
 		documentChanged();
 	} catch(const DocumentError&) {
@@ -300,6 +326,16 @@ Repository::Proposal Repository::readProposal(const json& entry, const std::stri
 	proposal.remember = strings(entry.at("remember"), where + ".remember");
 	for(const std::string& rule : proposal.remember) expectGrantRule(rule, where + ".remember");
 	proposal.reason = expect::string(entry.at("reason"), where + ".reason");
+	// Review at scale: optional, so histories written before it still load (and older hosts ignore them)
+	if(entry.contains("approvals")) proposal.approvals = strings(entry["approvals"], where + ".approvals");
+	if(entry.contains("reviewedHeads")) {
+		for(const std::string& head : strings(entry["reviewedHeads"], where + ".reviewedHeads"))
+			proposal.reviewedHeads.push_back(commitId(head, where + ".reviewedHeads"));
+	}
+	if(entry.contains("conflicts")) {
+		if(!entry["conflicts"].is_array()) expect::fail(where + ".conflicts", "expected a list");
+		proposal.conflicts = entry["conflicts"];
+	}
 	return proposal;
 }
 
@@ -425,6 +461,8 @@ void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 		                        ? std::vector<std::string>()
 		                        : rememberedRules(proposal.author, next.touches, verdict.askedByRule);
 		proposal.touches = next.touches;
+		proposal.behaviour = rules_.behaviourLines(next.before, next.after);
+		proposal.policy = reviewNeeds(next.before, next.after, {}).first;
 	} catch(const DocumentError&) {
 		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies
 	}
@@ -465,7 +503,10 @@ json Repository::refsJson() const {
 		                     {"head", p.head},
 		                     {"touches", p.touches},
 		                     {"remember", p.remember},
-		                     {"reason", p.reason}});
+		                     {"reason", p.reason},
+		                     {"approvals", p.approvals},
+		                     {"reviewedHeads", p.reviewedHeads},
+		                     {"conflicts", p.conflicts}});
 	json grants = json::array();
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
 	return {{"format", historyFormat},

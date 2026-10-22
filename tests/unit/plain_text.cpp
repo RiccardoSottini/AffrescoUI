@@ -13,6 +13,7 @@
 #include "detail/Utf8.hpp"
 #include "text/FontInspector.hpp"
 #include "text/LookupSpans.hpp"
+#include "Templates.hpp"
 
 #include <doctest/doctest.h>
 
@@ -64,11 +65,13 @@ void collectStrings(const affresco::json& value, std::vector<std::u32string>& li
 /// @brief Every string of the templates, line by line.
 std::vector<std::u32string> templateText() {
 	std::vector<std::u32string> lines;
-	for(const auto& entry : std::filesystem::directory_iterator(AFFRESCOUI_SCREENS_DIRECTORY)) {
-		if(entry.path().extension() != ".json") continue;
-		std::ifstream file(entry.path());
-		collectStrings(affresco::json::parse(file), lines);
-	}
+	for(const std::string& name : templateNames(AFFRESCOUI_EXAMPLES_DIRECTORY))
+		for(const auto& entry :
+		    std::filesystem::directory_iterator(templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name))) {
+			if(entry.path().extension() != ".json") continue;
+			std::ifstream file(entry.path());
+			collectStrings(affresco::json::parse(file), lines);
+		}
 	return lines;
 }
 

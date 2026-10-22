@@ -1,0 +1,26 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": { "title": "Table", "width": 400, "height": 240 },
+	"fonts": { "default": { "file": "../../examples/shared/fonts/Roboto-Regular.ttf", "size": 14 } },
+	"state": {
+		"files": [
+			{ "id": "List.cpp", "cells": ["List.cpp", 412, "source"] },
+			{ "id": "List.hpp", "cells": ["List.hpp", 120, "header"] },
+			{ "id": "README.md", "cells": ["README.md", 230, "text"] }
+		],
+		"sort": null
+	},
+	"root": {
+		"color": "#f8fafc",
+		"children": [
+			{ "type": "table", "id": "files", "fill": 16, "items": "{{state.files}}", "sort": "{{state.sort}}",
+			  "columns": [{ "id": "name", "title": "Name", "width": 160 }, { "id": "lines", "title": "Lines", "width": 80 },
+			              { "id": "kind", "title": "Kind", "width": 100 }],
+			  "textColor": "#0f172a", "selectedTextColor": "#0f172a", "selectedBackground": "#ddd6fe",
+			  "accentColor": "#7c3aed",
+			  "onSort": [{ "set": "state.sort", "to": { "column": "{{event.column}}", "descending": "{{event.descending}}" } }] }
+		]
+	}
+}

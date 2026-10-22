@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- The AppImage's icon: a fresco wall of three panels, one being painted -->
+  <rect x="8" y="8" width="240" height="240" rx="40" fill="#c8553d"/>
+  <rect x="40" y="48" width="80" height="160" rx="12" fill="#f4e9d8"/>
+  <rect x="136" y="48" width="80" height="72" rx="12" fill="#f4e9d8"/>
+  <rect x="136" y="136" width="80" height="72" rx="12" fill="#f4e9d8" opacity="0.55"/>
+  <rect x="56" y="68" width="48" height="12" rx="6" fill="#2d5d7b"/>
+  <rect x="56" y="92" width="36" height="12" rx="6" fill="#2d5d7b" opacity="0.6"/>
+</svg>

@@ -10,6 +10,10 @@
 #include "gl/OpenGlRenderer.hpp"
 #include "platform/Platform.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include <algorithm>
 #include <cstdlib>
 #include <memory>
@@ -43,6 +47,7 @@ bool renderOpenWindows(const Windows& windows) {
 	return anyOpen;
 }
 
+#ifndef __EMSCRIPTEN__ // the browser runs the loop, and takes no screenshots
 /// @brief How long until the first timer of any window is due.
 /// @param windows The windows.
 /// @return Seconds, or nothing if no window has a timer.
@@ -68,6 +73,8 @@ bool saveScreenshots(const Windows& windows, const std::string& path) {
 	return saved;
 }
 
+#endif
+
 } // namespace
 
 Application::Application() : Application(ApplicationOptions{}) {}
@@ -87,6 +94,19 @@ Application::~Application() {
 
 Window& Application::createWindow(std::string title, int width, int height) {
 	std::unique_ptr<platform::NativeWindow> native = platform_->createWindow(title, width, height);
+	return adopt(std::move(native), std::move(title), width, height);
+}
+
+Window& Application::createWindow(std::string title, int width, int height, const Window& sharing) {
+	void* handle = sharing.nativeHandle();
+	std::unique_ptr<platform::NativeWindow> native = handle ? platform_->createSharedWindow(title, width, height, handle)
+	                                                        : platform_->createWindow(title, width, height);
+	Window& window = adopt(std::move(native), std::move(title), width, height);
+	if(const auto& font = sharing.defaultFont_) window.setDefaultFont(font);
+	return window;
+}
+
+Window& Application::adopt(std::unique_ptr<platform::NativeWindow> native, std::string title, int width, int height) {
 	std::unique_ptr<detail::Renderer> renderer =
 	    gl::createRenderer(native->procAddressLoader()); // its context is current
 
@@ -99,6 +119,24 @@ Window& Application::createWindow(std::string title, int width, int height) {
 }
 
 int Application::run() {
+#ifdef __EMSCRIPTEN__
+	// In a browser the page runs the loop: each of its frames renders, follows the system and runs the posted tasks.
+	// run() never returns (the browser keeps main's objects, as it keeps the page), and there are no screenshots
+	running_ = true;
+	emscripten_set_main_loop_arg(
+	    [](void* self) {
+		    auto& application = *static_cast<Application*>(self);
+		    if(!application.running_ || !renderOpenWindows(application.windows_)) {
+			    application.running_ = false;
+			    emscripten_cancel_main_loop();
+			    return;
+		    }
+		    application.followSystem();
+		    application.runPostedTasks();
+	    },
+	    this, 0, true);
+	return EXIT_SUCCESS;
+#else
 	// AFFRESCOUI_SCREENSHOT=<file.ppm>: save a frame of each window and return. AFFRESCOUI_SCREENSHOT_AFTER=<ms>: run
 	// normally for that long first (e.g. so peers can connect and change the screen)
 	const std::optional<std::string> screenshot = environmentVariable("AFFRESCOUI_SCREENSHOT");
@@ -120,6 +158,7 @@ int Application::run() {
 
 	if(!screenshot) return EXIT_SUCCESS;
 	return saveScreenshots(windows_, *screenshot) ? EXIT_SUCCESS : EXIT_FAILURE;
+#endif
 }
 
 void Application::followSystem() {

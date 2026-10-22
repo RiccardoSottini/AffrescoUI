@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "ES2022",
+		"lib": ["ES2022"],
+		"types": ["node", "vscode"],
+		"rootDir": "src",
+		"outDir": "out",
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"sourceMap": false
+	},
+	"include": ["src"]
+}

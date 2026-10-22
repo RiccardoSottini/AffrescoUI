@@ -60,6 +60,10 @@ public:
 	/// @brief Cancels every request (their calls fail with "cancelled"), closes every socket and forgets the
 	/// connections.
 	void closeAll();
+	/// @brief Tells the Identity (Engine::identity) the providers the connections declare.
+	void declareSignIns();
+	/// @brief Opens the WebSockets a sign-in now allows, and closes those it no longer does.
+	void authChanged();
 
 	/* services::Services */
 	/// @brief Reads the "connections" section: requests running are cancelled, sockets close, and each connection's

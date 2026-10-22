@@ -3,8 +3,10 @@
 
     affrescoui-<version>-<platform>/
         affrescoui, affrescoui_host, affrescoui_studio     (.exe on Windows)
-        assets/screens/, assets/fonts/                     the templates and their fonts (the programs look here
-                                                           when the source tree they were built from isn't there)
+        assets/<folder>/, assets/shared/                   the templates' folders (examples/templates.json) and their
+                                                           fonts, as in examples/ without the C++ sources (the
+                                                           programs look here when the source tree they were built
+                                                           from isn't there)
         LICENSE, NOTICE, THIRD_PARTY_NOTICES.md, README.txt
 
     python3 tools/release/package.py --build build --platform macos-universal [--out dist]
@@ -14,6 +16,7 @@ version is the library's (check_version.py). Only the standard library is needed
 """
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -27,7 +30,7 @@ PROGRAMS = ("affrescoui", "affrescoui_host", "affrescoui_studio")
 NOTICES = ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md")
 README = """AffrescoUI {version} for {platform}
 
-  ./affrescoui_host                 the Kanban template; other templates are in assets/screens
+  ./affrescoui_host                 the Kanban template (assets/flow); the other templates have a folder each in assets
   ./affrescoui_studio               the Studio: ask an agent for changes, review them
   ./affrescoui help                 the command-line tool: check, render, fmt, ids, run, export, import
 
@@ -46,6 +49,15 @@ def program(build, name, windows):
         if os.path.isfile(os.path.join(folder, file)):
             return os.path.join(folder, file)
     sys.exit(f"package.py: {file} is not in {build}: build first")
+
+
+def copy_assets(assets):
+    """The templates' folders and examples/shared, as the programs find them in examples/, without the C++ sources."""
+    with open(os.path.join(ROOT, "examples", "templates.json"), encoding="utf-8") as file:
+        folders = sorted(set(json.load(file)["templates"].values()))
+    for each in folders + ["shared"]:
+        shutil.copytree(os.path.join(ROOT, "examples", each), os.path.join(assets, each),
+                        ignore=shutil.ignore_patterns("*.cpp", "*.hpp"))
 
 
 def archive(stage, name, out, windows):
@@ -80,7 +92,7 @@ def main():
         os.makedirs(folder)
         for each in PROGRAMS:
             shutil.copy2(program(args.build, each, windows), folder)
-        shutil.copytree(os.path.join(ROOT, "examples", "assets"), os.path.join(folder, "assets"))
+        copy_assets(os.path.join(folder, "assets"))
         for each in NOTICES:
             shutil.copyfile(os.path.join(ROOT, each), os.path.join(folder, each))
         with open(os.path.join(folder, "README.txt"), "w", encoding="utf-8", newline="\r\n" if windows else "\n") as f:

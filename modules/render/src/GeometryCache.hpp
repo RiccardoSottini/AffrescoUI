@@ -23,6 +23,7 @@ struct Refreshed {
 	std::optional<Rect> damage; ///< What changed on screen, in window units, besides what the window reported.
 	bool shapes = false;        ///< A shown panel draws shapes: the frame needs the shader with shapes.
 	bool color = false;         ///< A shown panel uses colour pages: the frame needs the shader with colour glyphs.
+	bool transformed = false;   ///< A shown panel has a transform: the frame may clip with the stencil.
 };
 
 /// @brief Keeps each panel's recorded drawing up to date, frame after frame.
@@ -45,17 +46,22 @@ public:
 private:
 	/// @brief Refreshes a panel, then the children that need it, and gathers the subtree's shaders.
 	/// @param panel The panel.
-	/// @param outerClip What clips it: its parent's bounds, or the window for roots and overlays.
-	void refreshTree(Panel& panel, const Rect& outerClip);
+	/// @param outerClip What clips it: its parent's bounds, or the window for roots and overlays (in its layout space).
+	/// @param parentWorld Where its parent's drawing goes on screen (the identity for roots and overlays).
+	/// @param moved An ancestor's place on screen changed: every panel below is visited.
+	void refreshTree(Panel& panel, const Rect& outerClip, const Affine2& parentWorld, bool moved);
 	/// @brief Refreshes a shown panel's children that need it, and gathers its subtree's shaders.
 	/// @param panel The panel.
 	/// @param geometry Its geometry, refreshed.
-	void refreshChildren(Panel& panel, PanelGeometry& geometry);
-	/// @brief Records a panel again if it changed, or what its drawing depends on did.
+	/// @param moved Its place on screen changed: every child is visited.
+	void refreshChildren(Panel& panel, PanelGeometry& geometry, bool moved);
+	/// @brief Records a panel again if it changed, or what its drawing depends on did; moves it if only its place on
+	/// screen did.
 	/// @param panel The panel.
 	/// @param outerClip What clips it.
 	/// @param geometry Its geometry.
-	void refreshPanel(Panel& panel, const Rect& outerClip, PanelGeometry& geometry);
+	/// @param world Where its drawing goes on screen now.
+	void refreshPanel(Panel& panel, const Rect& outerClip, PanelGeometry& geometry, const Affine2& world);
 	/// @brief Whether a panel needs a visit: it or a descendant changed, or a layout pass laid it out since the last
 	/// refresh.
 	/// @param panel The panel.
@@ -82,6 +88,12 @@ private:
 /// @param record What it drew.
 /// @return The area.
 [[nodiscard]] Rect reachOf(const Rect& bounds, const PaintRecord& record) noexcept;
+
+/// @brief What a panel can reach on screen, through its transform: the bounding box of reachOf() when it is drawn
+/// turned, scaled or skewed.
+/// @param geometry Its geometry, recorded.
+/// @return The area, in window units.
+[[nodiscard]] Rect screenReachOf(const PanelGeometry& geometry) noexcept;
 
 } // namespace detail
 } // namespace affresco

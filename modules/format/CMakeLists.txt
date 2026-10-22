@@ -12,9 +12,22 @@ affrescoui_module(format
 	src/ExpressionFunctionsLists.cpp
 	src/ExpressionFunctionsItems.cpp
 	src/ExpressionFunctionsTime.cpp
+	src/ExpressionFunctionsDates.cpp
 	src/ExpressionFunctionsFuzzy.cpp
+	src/ExpressionFunctionsColor.cpp
+	src/ExpressionFunctionsKeyframes.cpp
+	src/ExpressionFunctionsLocale.cpp
+	src/ExpressionFunctionsForm.cpp
+	src/LocaleData.cpp
+	src/LocalePlurals.cpp
+	src/LocaleNumbers.cpp
+	src/LocaleDates.cpp
+	src/LocaleSystem.cpp
+	src/Strings.cpp
+	src/StringsMessage.cpp
 	src/Value.cpp
 	src/Rules.cpp
+	src/BehaviourLines.cpp
 	src/Sections.cpp
 	src/StateTypes.cpp
 	src/Limits.cpp
@@ -31,6 +44,7 @@ affrescoui_module(format
 	src/ItemIndex.cpp
 	src/AsyncCalls.cpp
 	src/ServiceCalls.cpp
+	src/ConnectionAuth.cpp
 	src/ConnectionSpec.cpp
 	src/Connections.cpp
 	src/ServiceRules.cpp
@@ -42,25 +56,43 @@ affrescoui_module(format
 	src/BuiltInComponents.cpp
 	src/Reconciler.cpp
 	src/Properties.cpp
+	src/AccessibilityProperties.cpp
 	src/PropertyValues.cpp
 	src/LayoutProperties.cpp
 	src/TypeRegistry.cpp
 	src/Types.cpp
 	src/EditorType.cpp
+	src/SyntaxHighlighter.cpp
+	src/DiffType.cpp
 	src/ToggleType.cpp
 	src/SliderType.cpp
 	src/ImageType.cpp
+	src/SurfaceType.cpp
 	src/SplitType.cpp
 	src/TabsType.cpp
 	src/ListItems.cpp
 	src/ListType.cpp
 	src/IconProperty.cpp
+	src/TransformProperties.cpp
 	src/RunsProperty.cpp
 	src/PathType.cpp
+	src/CreativeValues.cpp
+	src/ColorPickerType.cpp
+	src/GradientType.cpp
+	src/CurvesType.cpp
+	src/CanvasType.cpp
+	src/GraphType.cpp
+	src/TimelineType.cpp
+	src/CalendarType.cpp
+	src/TextFieldProperties.cpp
+	src/CodeInputType.cpp
+	src/CarouselType.cpp
+	src/BuiltInFormComponents.cpp
 	src/Events.cpp
 	src/Shortcuts.cpp
 	src/Contributions.cpp
 	src/Settings.cpp
+	src/Usage.cpp
 	src/Scheduler.cpp
 	src/Steps.cpp
 	src/StepRegistry.cpp
@@ -71,11 +103,34 @@ affrescoui_module(format
 	src/NavigationSteps.cpp
 	src/TimeSteps.cpp
 	src/OtherSteps.cpp
+	src/AuthSteps.cpp
 	src/ServiceSteps.cpp
 	src/Checker.cpp
 	src/CheckerNodes.cpp
 	src/CheckerValues.cpp
 	src/CheckerTypes.cpp
 	src/NodeIds.cpp
-	src/RulesNodes.cpp)
+	src/Migrate.cpp
+	src/RulesNodes.cpp
+	src/FeatureManifest.cpp
+	src/Composition.cpp
+	src/ComposedVersions.cpp
+	src/FeatureSignatures.cpp
+	src/FeatureCatalog.cpp
+	src/Features.cpp
+	src/ContributionPoints.cpp
+	src/AdapterMapping.cpp
+	src/CompositionProof.cpp
+	src/adapters/Layout.cpp
+	src/adapters/A2ui.cpp
+	src/adapters/A2uiComponents.cpp
+	src/adapters/AdaptiveCards.cpp
+	src/adapters/AdaptiveCardActions.cpp
+	src/adapters/Adapters.cpp
+	${AFFRESCOUI_MONOCYPHER_SOURCES})
 target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::render nlohmann_json::nlohmann_json)
+if(APPLE)
+	target_link_libraries(affrescoui_format PRIVATE "-framework CoreFoundation") # systemLocale()
+endif()
+target_link_libraries(affrescoui_format PRIVATE affrescoui::services)
+target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_MONOCYPHER_DIR} ${AFFRESCOUI_MONOCYPHER_DIR}/optional)

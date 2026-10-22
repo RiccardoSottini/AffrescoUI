@@ -37,6 +37,11 @@ struct Url {
 /// @param host The host, in lower case, without brackets.
 [[nodiscard]] bool isLoopback(std::string_view host) noexcept;
 
+/// @brief Whether a URL may be opened in the browser for a sign-in: a well-formed https:// URL, or http:// to the
+/// loopback. The host is compared whole, so "http://localhost.example.com" is not the loopback.
+/// @param url The URL.
+[[nodiscard]] bool isSignInPage(std::string_view url);
+
 /// @brief The origins an app may reach, set by the host in C++.
 ///
 /// An entry is an origin ("https://api.example.com") or a wildcard over subdomains ("https://*.example.com", which

@@ -1,0 +1,8 @@
+{
+	"format": "affrescoui-catalog",
+	"version": 2,
+	"name": "migrate-fixture",
+	"features": {
+		"wordCount": { "title": "Word count", "releases": [{ "release": "1.0.0", "url": "feature.json" }] }
+	}
+}

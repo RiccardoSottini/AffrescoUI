@@ -258,7 +258,7 @@ changes apply as they arrive.
 
 ```sh
 ./build/affrescoui_host --mode acceptEdits                              # agent changes apply unless a rule asks
-./build/affrescoui_host examples/assets/screens/smart-home.screen.json   # any template or screen file, no C++
+./build/affrescoui_host examples/haven/smart-home.screen.json            # any template or screen file, no C++
 ./build/affrescoui_host --plugin my-changes.json                         # start with a change set applied
 ```
 
@@ -272,7 +272,7 @@ every template and compares each frame with a golden image, pixel for pixel
 ## Templates
 
 Seven starting points, each a single `.screen.json` file with its layout, state and behaviour, and each ready to be
-reshaped live by an agent. Open any of them with `./build/affrescoui_host examples/assets/screens/<name>.screen.json`.
+reshaped live by an agent. Open any of them with `./build/affrescoui_host examples/<app>/<name>.screen.json`.
 
 <table>
 <tr>

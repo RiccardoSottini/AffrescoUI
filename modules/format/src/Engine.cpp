@@ -7,6 +7,9 @@
 
 #include "affresco/core/Log.hpp"
 
+#include <algorithm>
+#include <string_view>
+
 namespace affresco::format {
 
 Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path baseDirectory)
@@ -24,6 +27,9 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		return serviceCalls.services() ? serviceCalls.services()->status() : json::object();
 	});
 	document.addVariable("connections", [this] { return connections.status(); }); // {name: {online, pending, ...}}
+	document.addVariable("auth", [this] { // {name: {state, account, expires, ...}}: never a token
+		return identity ? identity->status() : json::object();
+	});
 	connections.onStatus([this] {
 		document.globalsChanged(); // the "connections" variable
 		reconciler.requestReconcile();
@@ -46,6 +52,15 @@ void Engine::proposalsChanged() {
 void Engine::report(const std::string& message) {
 	log(LogLevel::Error, message);
 	owner.onError(message);
+}
+
+void Engine::reportRefused(const std::string& message) {
+	static constexpr std::string_view chosenByTheHost[] = {"the host allows", "the host gives this screen no network",
+	                                                       "isn't a host this app may connect to"};
+	if(std::ranges::any_of(chosenByTheHost, [&](std::string_view part) { return message.contains(part); }))
+		log(LogLevel::Info, message);
+	else
+		report(message);
 }
 
 double Engine::now() const noexcept { return window ? window->clock().seconds() : SteadyClock().seconds(); }

@@ -5,6 +5,7 @@
 #include "Bench.hpp"
 #include "CodeEditor.hpp"
 #include "Headless.hpp"
+#include "Templates.hpp"
 
 #define GLFW_INCLUDE_NONE // only the window hint: no OpenGL header (Linux may have none installed)
 #include <GLFW/glfw3.h>
@@ -25,8 +26,12 @@ namespace affresco::bench {
 
 /* Context */
 
-Context::Context(std::filesystem::path screens, std::filesystem::path edits)
-    : screens_(std::move(screens)), edits_(std::move(edits)) {}
+Context::Context(std::filesystem::path examples, std::filesystem::path edits)
+    : examples_(std::move(examples)), edits_(std::move(edits)) {}
+
+std::filesystem::path Context::templateFolder(const std::string& name) const {
+	return templateDirectory(examples_, name);
+}
 
 Application& Context::application() {
 	if(!application_) application_.emplace();
@@ -83,15 +88,11 @@ std::string readFile(const std::filesystem::path& path) {
 	return text.str();
 }
 
-std::vector<std::string> templateNames(const std::filesystem::path& directory) {
-	constexpr std::string_view suffix = ".screen.json";
-	std::vector<std::string> names;
-	for(const auto& entry : std::filesystem::directory_iterator(directory)) {
-		const std::string file = entry.path().filename().string();
-		if(file.ends_with(suffix)) names.push_back(file.substr(0, file.size() - suffix.size()));
-	}
-	std::ranges::sort(names);
-	return names;
+json screenDocument(const std::filesystem::path& file) {
+	const Screen screen = Screen::fromString(readFile(file), file.parent_path());
+	json document = json::parse(screen.documentJson());
+	document["state"] = json::parse(screen.stateJson());
+	return document;
 }
 
 json kanbanWithCards(const std::filesystem::path& directory, int cards) {
@@ -128,15 +129,14 @@ constexpr std::array<int, 3> cardCounts = {14, 100, 400};
 /// @return One workload per template.
 std::vector<Workload> loadWorkloads(Context& context) {
 	std::vector<Workload> workloads;
-	for(const std::string& name : templateNames(context.screens())) {
-		const auto text = std::make_shared<const std::string>(readFile(context.screens() / (name + ".screen.json")));
+	for(const std::string& name : templateNames(context.examples())) {
+		const std::filesystem::path folder = context.templateFolder(name);
+		const auto text = std::make_shared<const std::string>(readFile(folder / (name + ".screen.json")));
 		const auto document = std::make_shared<const json>(json::parse(*text));
 		const auto window = std::make_shared<Window*>(nullptr);
 		Workload workload{.name = "load/" + name, .unit = "ms", .runs = 5};
 		workload.prepare = [&context, document, window] { *window = &context.openWindow(*document); };
-		workload.step = [&context, text, window] {
-			static_cast<void>(context.build(*text, context.screens(), **window));
-		};
+		workload.step = [&context, text, folder, window] { static_cast<void>(context.build(*text, folder, **window)); };
 		workloads.push_back(std::move(workload));
 	}
 	return workloads;
@@ -148,15 +148,16 @@ std::vector<Workload> loadWorkloads(Context& context) {
 /// @return One workload per template.
 std::vector<Workload> buildWorkloads(Context& context) {
 	std::vector<Workload> workloads;
-	for(const std::string& name : templateNames(context.screens())) {
-		const auto text = std::make_shared<const std::string>(readFile(context.screens() / (name + ".screen.json")));
+	for(const std::string& name : templateNames(context.examples())) {
+		const std::filesystem::path folder = context.templateFolder(name);
+		const auto text = std::make_shared<const std::string>(readFile(folder / (name + ".screen.json")));
 		const auto document = std::make_shared<const json>(json::parse(*text));
 		const auto window = std::make_shared<Window*>(nullptr);
 		const auto screen = std::make_shared<Screen*>(nullptr);
 		Workload workload{.name = "build/" + name, .unit = "ms", .runs = 5};
-		workload.prepare = [&context, text, document, window, screen] {
+		workload.prepare = [&context, text, folder, document, window, screen] {
 			*window = &context.openWindow(*document);
-			*screen = &context.create(*text, context.screens());
+			*screen = &context.create(*text, folder);
 		};
 		workload.step = [window, screen] { (*screen)->build(**window); };
 		workloads.push_back(std::move(workload));
@@ -182,7 +183,7 @@ json fiftyThousandPanels() {
 	json items = json::array();
 	for(int i = 0; i < 25'000; ++i) items.push_back({{"id", i}, {"v", i}});
 	json document = json::parse(R"json({
-		"format": "affrescoui-screen", "version": 1,
+		"format": "affrescoui-screen", "version": 2,
 		"actions": { "touch": [{ "set": "state.items[event.i].v", "to": "{{event.v}}" }] },
 		"root": { "type": "panel", "children": [{ "type": "column", "children": [
 			{ "type": "row", "repeat": { "for": "item", "in": "state.items", "key": "{{item.id}}" }, "children": [
@@ -201,7 +202,7 @@ json fiftyThousandPanels() {
 /// @param layout Whether the window is laid out after the update.
 /// @return The workload.
 Workload fiftyThousandPanelsWorkload(Context& context, bool layout) {
-	const LoadedScreen loaded = context.load(fiftyThousandPanels(), context.screens());
+	const LoadedScreen loaded = context.load(fiftyThousandPanels(), context.templateFolder("kanban"));
 	const auto run = std::make_shared<int>(0);
 	Workload workload{.name = layout ? "update/panels-50000" : "update/panels-50000-without-layout", .runs = 15};
 	workload.step = [loaded, run, layout] {
@@ -221,9 +222,9 @@ Workload fiftyThousandPanelsWorkload(Context& context, bool layout) {
 std::vector<Workload> updateWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const int cards : cardCounts) {
-		json document = kanbanWithCards(context.screens(), cards);
+		json document = kanbanWithCards(context.templateFolder("kanban"), cards);
 		document["actions"]["renameBoard"] = json::parse(R"([{"set": "state.board", "to": "{{event.name}}"}])");
-		const LoadedScreen loaded = context.load(document, context.screens());
+		const LoadedScreen loaded = context.load(document, context.templateFolder("kanban"));
 		const auto renamed = std::make_shared<bool>(false);
 		Workload workload{.name = "update/" + std::to_string(cards), .runs = 15};
 		workload.step = [loaded, renamed] { renameBoard(loaded, *renamed); };
@@ -290,13 +291,14 @@ void applyEdit(EditedScreen& screen) {
 /// @return One workload per edit.
 std::vector<Workload> revisionWorkloads(Context& context) {
 	std::vector<Workload> workloads;
-	for(const std::string& name : templateNames(context.screens())) {
+	for(const std::string& name : templateNames(context.examples())) {
 		const std::filesystem::path file = context.edits() / (name + ".json");
 		if(!std::filesystem::exists(file)) continue;
-		const json document = json::parse(readFile(context.screens() / (name + ".screen.json")));
+		const std::filesystem::path folder = context.templateFolder(name);
+		const json document = json::parse(readFile(folder / (name + ".screen.json")));
 		const json edits = json::parse(readFile(file)); // named: items() refers to it during the loop
 		for(const auto& [editName, edit] : edits.items()) {
-			const LoadedScreen loaded = context.load(document, context.screens());
+			const LoadedScreen loaded = context.load(document, folder);
 			json revision = edit;
 			revision["author"] = "bench";
 			const json reset = {{"author", "bench"},
@@ -341,7 +343,8 @@ constexpr int cardsForFiveThousandPanels = 770;
 std::vector<Workload> layoutWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const int cards : {cardCounts.back(), cardsForFiveThousandPanels}) {
-		const LoadedScreen loaded = context.load(kanbanWithCards(context.screens(), cards), context.screens());
+		const LoadedScreen loaded =
+		    context.load(kanbanWithCards(context.templateFolder("kanban"), cards), context.templateFolder("kanban"));
 		layOut(loaded.window);
 		const std::size_t panels = panelCount(loaded.window.root());
 		if(cards == cardsForFiveThousandPanels && panels < 5000)
@@ -385,7 +388,8 @@ TextArea* firstTextArea(Panel& panel) {
 std::vector<Workload> frameWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	for(const int cards : {cardCounts.front(), cardCounts.back()}) {
-		const LoadedScreen loaded = context.load(kanbanWithCards(context.screens(), cards), context.screens());
+		const LoadedScreen loaded =
+		    context.load(kanbanWithCards(context.templateFolder("kanban"), cards), context.templateFolder("kanban"));
 		Workload workload{.name = "frame/" + std::to_string(cards), .runs = 15, .cpuTime = true};
 		workload.step = [&window = loaded.window] {
 			window.invalidate(); // a full frame: layout and drawing
@@ -395,7 +399,8 @@ std::vector<Workload> frameWorkloads(Context& context) {
 	}
 
 	// The caret of the board's text field appears and disappears, as a blink does: one small region drawn again
-	const LoadedScreen busy = context.load(kanbanWithCards(context.screens(), cardCounts.back()), context.screens());
+	const LoadedScreen busy = context.load(kanbanWithCards(context.templateFolder("kanban"), cardCounts.back()),
+	                                       context.templateFolder("kanban"));
 	TextArea* field = firstTextArea(busy.window.root());
 	if(!field) throw std::logic_error("the Kanban template has no text field");
 	busy.window.render();
@@ -424,7 +429,10 @@ std::vector<Group> screenGroups() {
 	        {"update", updateWorkloads},
 	        {"revision", revisionWorkloads},
 	        {"layout", layoutWorkloads},
-	        {"frame", frameWorkloads}};
+	        {"frame", frameWorkloads},
+	        {"editor", editorWorkloads},
+	        {"forge", forgeWorkloads},
+	        {"budgets", budgetWorkloads}};
 }
 
 } // namespace affresco::bench

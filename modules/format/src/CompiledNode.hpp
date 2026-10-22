@@ -46,6 +46,9 @@ enum class Slot : std::uint8_t {
 	Role,        ///< "role".
 	Label,       ///< "label".
 	Description, ///< "description".
+	Open,        ///< "isOpen": expanded, to assistive technologies.
+	Selected,    ///< "selected".
+	Live,        ///< "live".
 	/* Every panel's shape */
 	Radius,      ///< "radius".
 	BorderWidth, ///< "borderWidth".
@@ -64,7 +67,6 @@ enum class Slot : std::uint8_t {
 	Placeholder,      ///< "placeholder".
 	PlaceholderColor, ///< "placeholderColor".
 	Gap,              ///< "gap": a stack's or a grid's.
-	From,             ///< "from".
 	Direction,        ///< "direction".
 	Columns,          ///< "columns".
 	/* Read with the widget's value or its behaviour, not applied with the look */

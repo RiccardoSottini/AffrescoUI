@@ -77,6 +77,28 @@ gh attestation verify affrescoui-0.2.0-linux-x86_64.tar.gz --repo RiccardoSottin
 The macOS programs are not signed or notarized (that needs an Apple Developer ID). macOS quarantines what a browser
 downloads; `xattr -dr com.apple.quarantine affrescoui-0.2.0-macos-universal` lets it run, as `README.txt` says.
 
+## Packages
+
+`packaging/` has a recipe for each package manager: Homebrew (a formula that builds from source), winget (the Windows
+zip, as a portable install), AppImage (the Linux archive in one file), vcpkg (a port) and Conan 2 (a recipe with a
+`test_package`). They are templates: `tools/release/packaging.py` fills in the version and the hashes of one release.
+The release job adds `affrescoui-<version>-source.tar.gz` (`git archive` of the tag), which Homebrew, vcpkg and Conan
+build from; each installs the same CMake targets that `find_package(AffrescoUI)` exports, and `packaging.py --check`
+keeps the Conan test in step with them.
+
+After the release is published (the URLs in the recipes are its downloads):
+
+```sh
+gh release download v0.2.0 --repo RiccardoSottini/AffrescoUI --pattern SHA256SUMS --pattern '*-source.tar.gz' --dir dist
+python3 tools/release/packaging.py --version 0.2.0 --sums dist/SHA256SUMS    # writes dist/packages/<recipe>/
+```
+
+Then the maintainer submits each one by hand, reviewed first: the formula to a tap or homebrew-core, the winget
+manifests to `microsoft/winget-pkgs`, the port to a vcpkg registry, the recipe to ConanCenter or a Conan remote, and
+the AppImage as a release file. No workflow submits or publishes a package. A dry run (*Run workflow*) fills the
+recipes for its own files, builds and starts the AppImage, runs `winget validate` and keeps them as the `packages`
+artifact; `packaging/README.md` has how to try each recipe on your machine.
+
 ## Permissions the workflow uses
 
 Every job starts with none and asks for what it needs: `contents: read` to check out; `contents: write` only in the

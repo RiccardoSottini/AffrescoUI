@@ -37,6 +37,7 @@ Kinds writtenByWidget(std::string_view type) noexcept {
 	if(type == "toggle" || type == "checkbox") return bit(Kind::Boolean);
 	if(type == "slider") return numberKinds;
 	if(type == "textarea" || type == "editor") return bit(Kind::Text);
+	if(type == "canvas") return bit(Kind::Object); // its view: camera, selection, guides
 	return anyKind;
 }
 

@@ -64,15 +64,24 @@ struct ProposalInfo {
 	std::vector<std::string> changes;  ///< Its operations as lines for a reviewer: "set #statusBar/color to @topBar".
 	std::string reason;                ///< Why it waits for review.
 	std::string time;                  ///< When it was opened (UTC, ISO 8601).
+	/// Where it conflicts with main since main moved on (`[{"path", "reason", "base", "main", "proposal"}]`, see
+	/// VERSION_CONTROL.md, "Rebasing"): it can't be accepted until its author pushes again. Empty if it rebased.
+	json conflicts = json::array();
+	std::vector<std::string> approvals =
+	    {};                  ///< The reviewers who approved its head (or a head it rebased from unchanged).
+	std::string policy = {}; ///< What it needs to merge, e.g. "2 approvals, one from an owner of #board".
+	std::vector<std::string> behaviour =
+	    {}; ///< What it changes in behaviour (actions, steps, events, bindings), as lines.
 };
 
 /// @brief A reviewer's "don't ask again": an allow rule that lasts until a reviewer revokes it. It is kept with the
 /// history: in memory, or on disk for a screen opened from a file.
 struct Grant {
-	std::string rule;      ///< e.g. "agent(#board)".
-	std::string grantedBy; ///< The reviewer.
-	int proposal = 0;      ///< The proposal it was granted with.
-	std::string time;      ///< UTC, ISO 8601.
+	std::string rule;         ///< e.g. "agent(#board)".
+	std::string grantedBy;    ///< The reviewer.
+	int proposal = 0;         ///< The proposal it was granted with.
+	std::string time;         ///< UTC, ISO 8601.
+	std::string expires = {}; ///< When it stops allowing (UTC, ISO 8601); empty: until a reviewer revokes it.
 };
 
 /// @brief A reviewer accepting a proposal.
@@ -80,6 +89,7 @@ struct Approval {
 	std::string reviewer;      ///< Who accepts: the merge commit's committer. Never the proposal's own author.
 	std::string head;          ///< The head commit the reviewer saw (7+ characters); refused if the branch moved since.
 	bool dontAskAgain = false; ///< Also grant ProposalInfo::remember, so changes like it apply without asking.
+	std::string duration = {}; ///< How long the grants last ("30m", "8h", "7d"); empty: as the review policy says.
 };
 
 /// @brief A reviewer's decision on a proposal.
@@ -196,7 +206,8 @@ public:
 	/// @brief Merges a proposal into main; onDecision fires. It stays open if the approval itself is refused.
 	/// @param proposal The proposal's id.
 	/// @param approval Who accepts, what they saw, and whether to stop asking for changes like it.
-	/// @return The error, or std::nullopt if merged.
+	/// @return The error, or std::nullopt if merged, or if the approval was counted and the proposal waits for the
+	/// others its review policy asks (ProposalInfo::approvals and ProposalInfo::reason say which).
 	virtual std::optional<std::string> accept(int proposal, const Approval& approval) = 0;
 
 	/// @brief Closes a proposal without merging it; its author is told why.
@@ -249,6 +260,72 @@ public:
 	/// @return The error, or std::nullopt if every revision applied.
 	virtual std::optional<std::string> importChanges(const json& changes) = 0;
 
+	/* Data rules (VERSION_CONTROL.md, "Data rules") */
+	/// @brief The document as an author may read it, if its data rules limit what it reads.
+	/// @param author The author.
+	/// @return The document with the live state as its "state", the parts it may not read left out; std::nullopt if
+	/// it reads everything (the default).
+	[[nodiscard]] virtual std::optional<json> readable([[maybe_unused]] std::string_view author) const {
+		return std::nullopt;
+	}
+
+	/* Several agents at once (VERSION_CONTROL.md, "Roles" and "Leases"). A connection is any address unique while it
+	 * is connected, e.g. its session's; leases end with it. By default nothing is kept and every request is refused. */
+	/// @brief A peer connected.
+	/// @param connection The connection.
+	/// @param author Who it is authored as (its channel).
+	virtual void join([[maybe_unused]] const void* connection, [[maybe_unused]] std::string_view author) {}
+	/// @brief A peer went away: its leases end.
+	/// @param connection The connection.
+	virtual void leave([[maybe_unused]] const void* connection) {}
+	/// @brief As submit(), for a connected peer: the leases it holds don't stop it, everyone else's do.
+	/// @param connection The connection.
+	/// @param revision The revision.
+	/// @return As submit().
+	virtual RevisionResult submitFrom([[maybe_unused]] const void* connection, const json& revision) {
+		return submit(revision);
+	}
+	/// @brief Takes or renews a lease on a part of the document for a connected peer.
+	/// @param connection The connection.
+	/// @param holder Who holds it (the author the peer writes as).
+	/// @param target "#id" or a JSON Pointer.
+	/// @param seconds How long.
+	/// @return Why it was refused, or std::nullopt.
+	virtual std::optional<std::string> lease([[maybe_unused]] const void* connection,
+	                                         [[maybe_unused]] std::string_view holder,
+	                                         [[maybe_unused]] std::string_view target, [[maybe_unused]] int seconds) {
+		return std::string("leases aren't kept for this document");
+	}
+	/// @brief Ends a lease the connection holds.
+	/// @param connection The connection.
+	/// @param target The target, as leased.
+	/// @return false if it held none there.
+	virtual bool release([[maybe_unused]] const void* connection, [[maybe_unused]] std::string_view target) {
+		return false;
+	}
+	/// @brief A reviewer ends whoever's lease on a target.
+	/// @param target The target, as leased.
+	/// @param by The reviewer.
+	/// @return Why it was refused, or std::nullopt.
+	virtual std::optional<std::string> endLease([[maybe_unused]] std::string_view target,
+	                                            [[maybe_unused]] std::string_view by) {
+		return std::string("leases aren't kept for this document");
+	}
+	/// @brief A reviewer gives an author a role ("role:<name>" in rules) for this run, or takes it away ("").
+	/// @param author The author or channel.
+	/// @param role The role, or "".
+	/// @param by The reviewer, never of the author's own channel.
+	/// @return Why it was refused, or std::nullopt.
+	virtual std::optional<std::string> setRole([[maybe_unused]] std::string_view author,
+	                                           [[maybe_unused]] std::string_view role,
+	                                           [[maybe_unused]] std::string_view by) {
+		return std::string("roles aren't kept for this document");
+	}
+	/// @brief Who is connected and with which role, and the leases running: `{"peers": [{"author", "role"}],
+	/// "leases": [{"target", "holder", "seconds"}], "roles": {author: role}}`. onReviewChanged tells when it changes.
+	/// @return It, or an empty object.
+	[[nodiscard]] virtual json coordination() const { return json::object(); }
+
 	/* Notifications, e.g. for every connected peer (the VersionObserver is for the one that renders) */
 
 	Signal<const Decision&> onDecision; ///< A reviewer accepted or rejected a proposal.
@@ -291,7 +368,7 @@ inline json toJson(const CommitInfo& c) {
 /// @brief Converts a proposal to its live-protocol JSON.
 /// @param p The proposal.
 /// @return `{"id", "branch", "author", "message", "base", "head", "short", "commits", "operations", "touches",
-/// "remember", "changes", "reason", "time"}`.
+/// "remember", "changes", "reason", "time", "conflicts", "approvals", "policy", "behaviour"}`.
 inline json toJson(const ProposalInfo& p) {
 	return {{"id", p.id},
 	        {"branch", p.branch},
@@ -306,14 +383,20 @@ inline json toJson(const ProposalInfo& p) {
 	        {"remember", p.remember},
 	        {"changes", p.changes},
 	        {"reason", p.reason},
-	        {"time", p.time}};
+	        {"time", p.time},
+	        {"conflicts", p.conflicts},
+	        {"approvals", p.approvals},
+	        {"policy", p.policy},
+	        {"behaviour", p.behaviour}};
 }
 
 /// @brief Converts a grant to its live-protocol JSON.
 /// @param g The grant.
-/// @return `{"rule", "grantedBy", "proposal", "time"}`.
+/// @return `{"rule", "grantedBy", "proposal", "time", "expires"}` ("expires" only for a grant that expires).
 inline json toJson(const Grant& g) {
-	return {{"rule", g.rule}, {"grantedBy", g.grantedBy}, {"proposal", g.proposal}, {"time", g.time}};
+	json grant = {{"rule", g.rule}, {"grantedBy", g.grantedBy}, {"proposal", g.proposal}, {"time", g.time}};
+	if(!g.expires.empty()) grant["expires"] = g.expires;
+	return grant;
 }
 
 } // namespace affresco

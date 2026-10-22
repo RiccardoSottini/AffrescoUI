@@ -1,12 +1,12 @@
 {
 	"format": "affrescoui-feature",
-	"version": 1,
+	"version": 2,
 	"name": "broken",
 	"release": "0.1.0",
 	"title": "A feature that can't be installed",
 	"note": "Every requirement or capability here is wrong on purpose: compose.py check lists each with its place.",
 	"requires": {
-		"format": 1,
+		"format": 2,
 		"points": ["toolbar.main"],
 		"exports": { "editor.text": { "type": "number" }, "selection.items": { "type": "array" } },
 		"services": { "git": ["status"] },

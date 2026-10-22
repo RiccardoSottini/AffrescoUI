@@ -26,7 +26,7 @@ namespace {
 /// @brief A list of files from a model, with a count that reads the state and a row that reads both.
 constexpr const char* files = R"json({
 	"format": "affrescoui-screen",
-	"version": 1,
+	"version": 2,
 	"state": { "selected": "b" },
 	"actions": { "select": [{ "set": "state.selected", "to": "{{event.v}}" }] },
 	"root": { "type": "column", "children": [

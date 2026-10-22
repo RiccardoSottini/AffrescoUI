@@ -1,0 +1,19 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "surfaces",
+			"screen": "surfaces.screen.json",
+			"note": "GPU surfaces drawn as quads: the cube turned and clipped by its parent, the shader turned and scaled, the blur's two passes; the broken surface (a GL error) draws nothing, so hiding it leaves every pixel the same; then new params turn the cube",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{ "revision": { "message": "Hide the broken surface", "set": { "#broken/visible": false } } },
+				{ "expect": { "image": "first-frame", "note": "the same pixels as with the broken surface" } },
+				{ "revision": { "message": "Turn the cube", "set": { "#cube/params": { "angle": 75 } } } },
+				{ "expect": { "image": "turned" } }
+			]
+		}
+	]
+}
