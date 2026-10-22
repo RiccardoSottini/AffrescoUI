@@ -179,8 +179,10 @@ class Checker:
                         for problem in report["problems"]), f"check: a long expression: {report}")
 
 
-def main():
-    args, build, headless = sys.argv[1:], os.path.join(ROOT, "build"), False
+def parse_arguments(args):
+    """Reads the command line: (the build folder, whether to leave out what draws). Exits with the usage on anything
+    else."""
+    build, headless = os.path.join(ROOT, "build"), False
     while args:
         arg = args.pop(0)
         if arg == "--build" and args:
@@ -189,22 +191,33 @@ def main():
             headless = True
         else:
             sys.exit(__doc__)
+    return build, headless
 
+
+def check_templates(checker, headless):
+    """Checks, formats, renders and tests every template, and round-trips a history. Returns the screens."""
+    templates = template_files("*.screen.json")
+    for path in templates:
+        name = os.path.basename(path)[:-len(".screen.json")]
+        checker.check(path)
+        checker.format(name, path)
+    for screens, scenario in [] if headless else render_scenarios():
+        path = os.path.normpath(os.path.join(screens, scenario["screen"]))
+        # The templates' first frames: scenarios that expect a picture before any step, on a shipped template
+        if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) in TEMPLATE_FOLDERS:
+            checker.render(screens, scenario, path)
+    for path in template_files("*.scenarios.json"):
+        checker.test(path)
+    checker.history(os.path.join(KANBAN, "kanban.screen.json"))
+    return templates
+
+
+def main():
+    """Runs every check and prints the failures; exits with 1 if there is one."""
+    build, headless = parse_arguments(sys.argv[1:])
     with tempfile.TemporaryDirectory(prefix="affrescoui-cli-") as scratch:
         checker = Checker(build, scratch)
-        templates = template_files("*.screen.json")
-        for path in templates:
-            name = os.path.basename(path)[:-len(".screen.json")]
-            checker.check(path)
-            checker.format(name, path)
-        for screens, scenario in [] if headless else render_scenarios():
-            path = os.path.normpath(os.path.join(screens, scenario["screen"]))
-            # The templates' first frames: scenarios that expect a picture before any step, on a shipped template
-            if "image" in scenario["steps"][0].get("expect", {}) and os.path.dirname(path) in TEMPLATE_FOLDERS:
-                checker.render(screens, scenario, path)
-        for path in template_files("*.scenarios.json"):
-            checker.test(path)
-        checker.history(os.path.join(KANBAN, "kanban.screen.json"))
+        templates = check_templates(checker, headless)
 
         checker.run("check", expect=2)                                  # no file
         checker.run("render", templates[0], expect=2)                  # no -o
