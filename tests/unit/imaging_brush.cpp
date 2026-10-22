@@ -78,6 +78,21 @@ TEST_CASE("imaging brush: stamps are round, soft by their hardness, and spaced a
 	stroke(document, pixels, pressed, {{250.0f, 100.0f, 0.5f}});
 	CHECK(image.pixel(250, 100).alpha == 1.0f);
 	CHECK(image.pixel(258, 100).alpha == 0.0f);
+
+	// Points thrown far off the image cost only the dabs near it, and paint what they cross
+	stroke(document, pixels, hardTip(4.0f), {{10.0f, 20.0f}, {1.0e9f, 20.0f}});
+	CHECK(image.pixel(10, 20).alpha == 1.0f);
+	CHECK(image.pixel(299, 20).alpha == 1.0f);
+	stroke(document, pixels, hardTip(4.0f), {{-1.0e12f, 120.0f}, {1.0e12f, 120.0f}});
+	CHECK(image.pixel(0, 120).alpha == 1.0f);
+	CHECK(image.pixel(150, 120).alpha == 1.0f);
+	CHECK(image.pixel(299, 120).alpha == 1.0f);
+	CHECK(image.pixel(150, 110).alpha == 0.0f);
+	CHECK(stroke(document, pixels, hardTip(4.0f), {{1.0e30f, 1.0e30f}, {1.0e30f, 2.0e30f}}) == 1);
+	stroke(document, pixels, hardTip(4.0f), {{-3.0e38f, 3.0e38f}, {3.0e38f, -3.0e38f}}); // across a corner: it ends
+	Stroke last(document, pixels, hardTip(4.0f), StrokeMode::paint, red, "Brush");
+	CHECK(lay(last, {{-3.0e38f, 60.0f}, {3.0e38f, 60.0f}, {20.0f, 100.0f}, {40.0f, 100.0f}}) > 0);
+	CHECK(image.pixel(30, 100).alpha == 1.0f); // the walk after a vast one is spaced as before
 }
 
 TEST_CASE("imaging brush: flow builds up to the opacity, and never past it") {

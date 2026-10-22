@@ -32,6 +32,59 @@ constexpr std::array<BrushPreset, 7> presets{{
 	return clamped(0.2126f * colour.red + 0.7152f * colour.green + 0.0722f * colour.blue);
 }
 
+/// @brief The most dabs a segment walks one by one. Beyond, a point thrown far off the image would cost billions of
+/// dabs, and float steps that no longer move the position would never end, so only the stretch near it is walked.
+constexpr double longWalk = 1 << 20;
+
+/// @brief Where a dab can touch an image: its size, and how far from it a dab's centre still reaches it.
+struct Area {
+	double width;  ///< The image's width.
+	double height; ///< Its height.
+	double reach;  ///< The largest dab's radius, and a pixel more.
+};
+
+/// @brief Where a walk starts and how it steps, along its segment.
+struct Spacing {
+	double start; ///< The first dab's distance from the segment's start.
+	double step;  ///< The distance between dabs.
+};
+
+/// @brief Walks a long segment's dabs in doubles, only those on the stretch where they can touch the image.
+/// @details Dabs land within a pixel while the points are within about 2^44 of the image; past that, doubles place them
+/// only roughly, and the walk still lays no more dabs than the stretch holds.
+/// @param from The segment's start. @param to Its end. @param area Where a dab can touch the image.
+/// @param spacing Where the dabs are. @param lay Lays a dab at a point and pressure.
+/// @return The distance walked past the last dab, carried to the next segment.
+template <class Lay>
+float walkVisible(const StrokePoint& from, const StrokePoint& to, const Area& area, const Spacing& spacing, Lay&& lay) {
+	const double dx = static_cast<double>(to.x) - from.x, dy = static_cast<double>(to.y) - from.y;
+	const double length = std::hypot(dx, dy);
+	// The share of the segment inside the image grown by the reach, edge by edge (Liang-Barsky)
+	const std::array<std::array<double, 2>, 4> edges{{{-dx, from.x + area.reach},
+	                                                  {dx, area.width + area.reach - from.x},
+	                                                  {-dy, from.y + area.reach},
+	                                                  {dy, area.height + area.reach - from.y}}};
+	double near = 0.0, far = 1.0;
+	for(const auto& [towards, room] : edges) {
+		if(towards == 0.0) far = room < 0.0 ? -1.0 : far;
+		else if(towards < 0.0) near = std::max(near, room / towards);
+		else far = std::min(far, room / towards);
+	}
+	const double end = std::floor((length - spacing.start) / spacing.step);
+	const double first = std::max(0.0, std::ceil((near * length - spacing.start) / spacing.step));
+	const double last = std::min(end, std::floor((far * length - spacing.start) / spacing.step));
+	// Counted from the first, since dab numbers past 2^53 no longer step by one
+	const double count = std::min(last - first, (far - near) * length / spacing.step + 1.0);
+	for(double dab = 0.0; dab <= count; ++dab) {
+		const double share = (spacing.start + (first + dab) * spacing.step) / length;
+		lay(static_cast<float>(from.x + dx * share), static_cast<float>(from.y + dy * share),
+		    static_cast<float>(from.pressure + (static_cast<double>(to.pressure) - from.pressure) * share));
+	}
+	// The remainder past the last dab, exact however far the segment runs
+	if(end < 0.0) return static_cast<float>(length - spacing.start + spacing.step);
+	return static_cast<float>(std::fmod(length - spacing.start, spacing.step));
+}
+
 } // namespace
 
 void BrushTip::normalize(const Limits& limits) noexcept {
@@ -77,6 +130,14 @@ void Stroke::add(const StrokePoint& given) {
 	const float length = std::hypot(point.x - last_.x, point.y - last_.y);
 	const float step = std::max(tip_.spacing * tip_.size, 0.5f);
 	float position = step - travelled_;
+	if(static_cast<double>(length) / step > longWalk) {
+		const Image& image = *document_->image(target_);
+		const Area area{static_cast<double>(image.width()), static_cast<double>(image.height()), tip_.size / 2.0 + 1.0};
+		travelled_ = walkVisible(last_, point, area, {position, step},
+		                         [this](float x, float y, float pressure) { stamp(x, y, pressure); });
+		last_ = point;
+		return;
+	}
 	for(; position <= length; position += step) {
 		const float share = position / length;
 		stamp(last_.x + (point.x - last_.x) * share, last_.y + (point.y - last_.y) * share,
@@ -104,11 +165,16 @@ void Stroke::stamp(float x, float y, float pressure) {
 	const float cap = tip_.opacity * (tip_.pressureOpacity ? pressure : 1.0f);
 	if(cap <= 0.0f) return;
 	const Image& image = *document_->image(target_);
+	if(x + radius < 0.0f || y + radius < 0.0f) return;
+	// Past the right or bottom no tile is touched; the dab still counts, and its far edge is never cast to an int
+	if(x - radius >= static_cast<float>(image.width()) || y - radius >= static_cast<float>(image.height())) {
+		++stamps_;
+		return;
+	}
 	const int left = std::max(0, static_cast<int>(std::floor(x - radius)) / tileSize);
 	const int top = std::max(0, static_cast<int>(std::floor(y - radius)) / tileSize);
 	const int right = std::min(image.columns() - 1, static_cast<int>(std::floor(x + radius)) / tileSize);
 	const int bottom = std::min(image.rows() - 1, static_cast<int>(std::floor(y + radius)) / tileSize);
-	if(x + radius < 0.0f || y + radius < 0.0f) return;
 	for(int row = top; row <= bottom; ++row)
 		for(int column = left; column <= right; ++column) stampTile(column, row, x, y, radius, cap);
 	++stamps_;
