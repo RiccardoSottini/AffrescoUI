@@ -236,6 +236,7 @@ json parseBranches(std::string_view output, const GitLimits& limits) {
 		const std::string_view name = line.substr(2);
 		if(name.size() > 1024 || name.contains('\0')) malformed("a bad branch name");
 		const bool here = line[0] == '*';
+		if(here && !current.empty()) malformed("two current branches"); // git marks only the one HEAD is on
 		if(here) current = name;
 		branches.push_back({{"id", std::string(name)}, {"label", std::string(name)}, {"current", here}});
 	}
