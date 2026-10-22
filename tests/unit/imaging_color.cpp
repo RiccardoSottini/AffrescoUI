@@ -84,6 +84,14 @@ TEST_CASE("imaging color: profiles are parsed under limits, and the malformed re
 	std::vector<std::uint8_t> link = bytes;
 	link[12] = 'l', link[13] = 'i', link[14] = 'n', link[15] = 'k'; // a device link
 	CHECK_THROWS_AS((void)ColorProfile::parse(link, {}), affresco::DocumentError);
+	// Found by fuzzing (tests/fuzz, icc, under UBSan): a class or connection space that no signature names was read
+	// into an enum variable that can't hold it
+	std::vector<std::uint8_t> unnamed = bytes;
+	unnamed[20] = 0xa3, unnamed[21] = 0xac, unnamed[22] = 0xff, unnamed[23] = 0xf5; // its connection space
+	CHECK_THROWS_AS((void)ColorProfile::parse(unnamed, {}), affresco::DocumentError);
+	unnamed = bytes;
+	unnamed[12] = 0xa3, unnamed[13] = 0xac, unnamed[14] = 0xff, unnamed[15] = 0xf5; // its class
+	CHECK_THROWS_AS((void)ColorProfile::parse(unnamed, {}), affresco::DocumentError);
 	std::size_t refused = 0; // every byte of P3 changed in turn: parsed or refused, never a crash
 	const std::vector<std::uint8_t> p3 = ColorProfile::displayP3().bytes();
 	for(std::size_t index = 0; index < p3.size(); ++index) {
