@@ -119,6 +119,46 @@ long long secondsIn(const Json& value, long long least, long long most) {
 	    std::clamp(value.get<double>(), static_cast<double>(least), static_cast<double>(most)));
 }
 
+/// @brief The claims of an id token, a JWT (its signature isn't checked: the token came straight from the provider,
+/// over TLS).
+/// @param idToken The id token.
+/// @return Them, or nullopt if it isn't a JWT or they aren't a JSON object.
+std::optional<Json> readClaims(std::string_view idToken) {
+	const std::size_t first = idToken.find('.');
+	const std::size_t second = first == std::string_view::npos ? first : idToken.find('.', first + 1);
+	if(second == std::string_view::npos) return std::nullopt;
+	const auto payload = decodeBase64Url(idToken.substr(first + 1, second - first - 1));
+	return payload ? parseObject(*payload) : std::nullopt;
+}
+
+/// @brief Whether claims name a client among their audience.
+/// @param claims The claims.
+/// @param clientId The client.
+bool isForClient(const Json& claims, const std::string& clientId) {
+	const auto aud = claims.find("aud");
+	if(aud == claims.end()) return false;
+	if(aud->is_string()) return *aud == clientId;
+	return aud->is_array() && std::ranges::find(*aud, Json(clientId)) != aud->end();
+}
+
+/// @brief Whether claims have expired, allowing a minute for clocks that differ.
+/// @param claims The claims.
+/// @param now The time now.
+bool hasExpired(const Json& claims, std::chrono::system_clock::time_point now) {
+	const auto exp = claims.find("exp");
+	const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+	return exp == claims.end() || !exp->is_number() || exp->get<double>() < static_cast<double>(seconds) - 60;
+}
+
+/// @brief The account claims name: a user name, an email or the subject, whichever comes first.
+/// @param claims The claims.
+/// @return It, or empty.
+std::string accountOf(const Json& claims) {
+	for(const char* name : {"preferred_username", "email", "sub"})
+		if(std::string account = field(claims, name, maxAccountBytes); !account.empty()) return account;
+	return {};
+}
+
 /// @brief Reads and checks an id token's claims (OpenID Connect Core 3.1.3.7, steps 2, 3, 9 and 11).
 /// @param idToken The id token.
 /// @param provider The provider.
@@ -129,27 +169,16 @@ long long secondsIn(const Json& value, long long least, long long most) {
 std::optional<std::string> readIdToken(std::string_view idToken, const identity::Provider& provider,
                                        std::string_view nonce, std::chrono::system_clock::time_point now,
                                        std::string& account) {
-	const std::size_t first = idToken.find('.');
-	const std::size_t second = first == std::string_view::npos ? first : idToken.find('.', first + 1);
-	if(second == std::string_view::npos) return "the id token isn't a JWT";
-	const auto payload = decodeBase64Url(idToken.substr(first + 1, second - first - 1));
-	const auto claims = payload ? parseObject(*payload) : std::nullopt;
+	if(std::ranges::count(idToken, '.') < 2) return "the id token isn't a JWT";
+	const auto claims = readClaims(idToken);
 	if(!claims) return "the id token's claims aren't JSON";
 	if(!equalInConstantTime(field(*claims, "iss", 2048), provider.issuer))
 		return "the id token's issuer isn't the provider";
-	const auto aud = claims->find("aud");
-	const bool audience = aud != claims->end() &&
-	                      ((aud->is_string() && *aud == provider.clientId) ||
-	                       (aud->is_array() && std::ranges::find(*aud, Json(provider.clientId)) != aud->end()));
-	if(!audience) return "the id token isn't for this application";
-	const auto exp = claims->find("exp");
-	const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-	if(exp == claims->end() || !exp->is_number() || exp->get<double>() < static_cast<double>(seconds) - 60)
-		return "the id token expired";
+	if(!isForClient(*claims, provider.clientId)) return "the id token isn't for this application";
+	if(hasExpired(*claims, now)) return "the id token expired";
 	if(!nonce.empty() && !equalInConstantTime(field(*claims, "nonce", 256), nonce))
 		return "the id token's nonce isn't this sign-in's";
-	for(const char* name : {"preferred_username", "email", "sub"})
-		if(account = field(*claims, name, maxAccountBytes); !account.empty()) break;
+	account = accountOf(*claims);
 	return std::nullopt;
 }
 
