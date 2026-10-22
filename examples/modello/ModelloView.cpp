@@ -77,7 +77,7 @@ std::vector<std::string> clicked(std::vector<std::string> selection, const std::
 /// @brief The node under a click: the viewport's id pass if it saw this click, else a ray through the meshes.
 /// @param model The store and the probe. @param with The arguments (`x`, `y`, `shift`).
 /// @return `{ selection, node }`.
-json pick(Model& model, const json& with) {
+json pick(Model& model, const json& with) { // NOLINT(misc-const-correctness): it takes the probe's pick
 	const ViewCall call = readView(with);
 	std::string node;
 	bool shift = with.value("shift", false);
@@ -127,7 +127,8 @@ json applyToSelection(const json& with, ViewCall& call, const Gizmo& gizmo, cons
 	for(const std::string& id : moved) {
 		Node& node = *call.scene.node(id);
 		const auto parent = worlds.find(node.parent);
-		node.transform = applyDelta(node.transform, parent == worlds.end() ? Mat4{} : parent->second.first, gizmo, delta);
+		node.transform =
+		    applyDelta(node.transform, parent == worlds.end() ? Mat4{} : parent->second.first, gizmo, delta);
 		json& entry = preview["nodes"][indexOf(call.scene, id)];
 		entry["translation"] = toJson(node.transform.translation);
 		entry["rotation"] = toJson(node.transform.rotation);
@@ -165,8 +166,8 @@ json gizmoDrag(const json& with) {
 	const json snapJson = with.value("snap", json::object());
 	const GizmoSnap snap{numberIn(snapJson, "translate", 0.0f), radians(numberIn(snapJson, "rotate", 0.0f)),
 	                     numberIn(snapJson, "scale", 0.0f)};
-	const Ray from = call.settings.camera.rayThrough(start[0].get<float>(), start[1].get<float>(), call.width,
-	                                                 call.height);
+	const Ray from =
+	    call.settings.camera.rayThrough(start[0].get<float>(), start[1].get<float>(), call.width, call.height);
 	const auto delta = dragGizmo(*gizmo, *axis, from, rayAt(call, with), snap);
 	json result = applyToSelection(with, call, *gizmo, delta.value_or(GizmoDelta{}));
 	result["text"] = delta ? describe(gizmo->mode, *delta) : "";

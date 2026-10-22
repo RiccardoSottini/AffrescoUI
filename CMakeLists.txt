@@ -18,6 +18,9 @@ option(AFFRESCOUI_BUILD_BENCHMARKS "Build the benchmarks (tests/perf)" OFF)
 option(AFFRESCOUI_BUILD_TOOLS "Build the affrescoui command-line tool (tools/affrescoui)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_CAPI "Build the C API (modules/capi) and its test (tests/capi)" ${PROJECT_IS_TOP_LEVEL})
 option(AFFRESCOUI_BUILD_CAPI_SHARED "Also build the C API as one shared library, libaffresco (bindings/python loads it)" OFF)
+if(AFFRESCOUI_BUILD_TESTS)
+	enable_testing() # before any add_subdirectory: a subdirectory added earlier keeps its tests from ctest
+endif()
 if(AFFRESCOUI_BUILD_CAPI_SHARED)
 	set(AFFRESCOUI_BUILD_CAPI ON CACHE BOOL "" FORCE)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON) # before the dependencies: the static libraries go into the shared one
@@ -197,9 +200,13 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_options(affrescoui_modello PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_modello PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# Sinopia, slides and vector documents: its workspace is examples/sinopia/sinopia.screen.json (examples/sinopia/README.md)
-	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Deck.cpp examples/sinopia/Arrange.cpp
-		examples/sinopia/ShapeGeometry.cpp examples/sinopia/ShapePanel.cpp examples/sinopia/DeckView.cpp
-		examples/sinopia/Edit.cpp examples/sinopia/Transition.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp)
+	add_executable(affrescoui_sinopia examples/sinopia/main.cpp examples/sinopia/Natives.cpp examples/sinopia/Present.cpp
+		# deck/: the deck model, read, checked, edited and arranged without a window
+		examples/sinopia/deck/Deck.cpp examples/sinopia/deck/Write.cpp examples/sinopia/deck/Edit.cpp
+		examples/sinopia/deck/Arrange.cpp
+		# drawing/: slides, shapes and transitions turned into pixels and paths, and the shape panel
+		examples/sinopia/drawing/DeckView.cpp examples/sinopia/drawing/ShapeGeometry.cpp
+		examples/sinopia/drawing/ShapePanel.cpp examples/sinopia/drawing/Transition.cpp)
 	target_include_directories(affrescoui_sinopia PRIVATE examples/sinopia examples/shared modules/screen/src)
 	target_link_libraries(affrescoui_sinopia PRIVATE affrescoui::automation affrescoui::export)
 	target_compile_options(affrescoui_sinopia PRIVATE ${AFFRESCOUI_WARNINGS})
@@ -235,7 +242,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 endif()
 
 if(AFFRESCOUI_BUILD_TESTS)
-	enable_testing() # here, so ctest finds the tests the subdirectories add
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::imaging) # tests/unit/imaging_*.cpp

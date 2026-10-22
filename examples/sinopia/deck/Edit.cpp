@@ -37,7 +37,7 @@ struct Editing {
 	/// @return It.
 	[[nodiscard]] float number(const char* key, float fallback) const {
 		const json& value = edit.contains(key) ? edit[key] : json();
-		return value.is_number() ? value.get<float>() : fallback;
+		return value.is_number() ? floatOf(value) : fallback;
 	}
 	/// @brief A text the edit gives.
 	/// @param key Its key.
@@ -53,19 +53,34 @@ struct Editing {
 	}
 };
 
-/// @brief An id no object of a list (nor a group's child) has yet: the prefix and the first free number.
+/// @brief The ids a list's objects and their groups' children have.
 /// @param objects The objects.
-/// @param prefix The prefix.
-/// @return It.
-[[nodiscard]] std::string freeId(const std::vector<SlideObject>& objects, const std::string& prefix) {
+/// @return They.
+[[nodiscard]] std::set<std::string> takenIds(const std::vector<SlideObject>& objects) {
 	std::set<std::string> taken;
 	for(const SlideObject& object : objects) {
 		taken.insert(object.id);
 		for(const SlideObject& child : object.children) taken.insert(child.id);
 	}
+	return taken;
+}
+
+/// @brief An id not taken yet: the prefix and the first free number.
+/// @param taken The ids taken.
+/// @param prefix The prefix.
+/// @return It.
+[[nodiscard]] std::string freeId(const std::set<std::string>& taken, const std::string& prefix) {
 	std::size_t n = 1;
 	while(taken.contains(prefix + std::to_string(n))) ++n;
 	return prefix + std::to_string(n);
+}
+
+/// @brief An id no object of a list (nor a group's child) has yet.
+/// @param objects The objects.
+/// @param prefix The prefix.
+/// @return It.
+[[nodiscard]] std::string freeId(const std::vector<SlideObject>& objects, const std::string& prefix) {
+	return freeId(takenIds(objects), prefix);
 }
 
 /// @brief An id no slide of the deck has yet.
@@ -75,6 +90,29 @@ struct Editing {
 	std::size_t n = deck.slides.size() + 1;
 	while(std::ranges::contains(deck.slides, "s" + std::to_string(n), &Slide::id)) ++n;
 	return "s" + std::to_string(n);
+}
+
+/// @brief Checks the deck has a slide for an edit of the current one: a deck a document sends may have none.
+/// @param editing The edit.
+/// @throws std::runtime_error If it has none.
+void needSlide(const Editing& editing) {
+	if(editing.deck.slides.empty()) throw std::runtime_error("Sinopia: the deck has no slides");
+}
+
+/// @brief Gives a new object its kind's look: a text's word, the accent's fill or stroke, a path's curve.
+/// @param object The object, its kind set.
+/// @param editing The edit, which may give the text and the curve.
+void styleNewObject(SlideObject& object, const Editing& editing) {
+	const std::string& kind = object.kind;
+	object.image = editing.text("image");
+	object.text = editing.text("text");
+	if(kind == "text" && object.text.empty()) object.text = "Text";
+	if(kind != "text" && kind != "image") object.fill = kind == "line" ? "" : "@accent";
+	if(kind == "line" || kind == "path") {
+		object.stroke = "@accent";
+		object.strokeWidth = 3.0f;
+	}
+	if(kind == "path") object.d = editing.text("d").empty() ? "M0 80C30 0 70 0 100 80" : editing.text("d");
 }
 
 /// @brief Adds an object of a kind, in the middle of the slide unless the edit places it.
@@ -89,15 +127,7 @@ void addObject(Editing& editing) {
 	object.h = editing.number("h", kind == "text" ? 80.0f : kind == "line" ? 1.0f : 120.0f);
 	object.x = editing.number("x", (width - object.w) / 2.0f);
 	object.y = editing.number("y", (height - object.h) / 2.0f);
-	object.image = editing.text("image");
-	object.text = editing.text("text");
-	if(kind == "text" && object.text.empty()) object.text = "Text";
-	if(kind != "text" && kind != "image") object.fill = kind == "line" ? "" : "@accent";
-	if(kind == "line" || kind == "path") {
-		object.stroke = "@accent";
-		object.strokeWidth = 3.0f;
-	}
-	if(kind == "path") object.d = editing.text("d").empty() ? "M0 80C30 0 70 0 100 80" : editing.text("d");
+	styleNewObject(object, editing);
 	editing.selection = {object.id};
 	editing.objects().push_back(std::move(object));
 }
@@ -106,6 +136,7 @@ void addObject(Editing& editing) {
 /// @param editing The edit.
 void duplicateObjects(Editing& editing) {
 	std::vector<SlideObject> copies;
+	std::set<std::string> taken = takenIds(editing.objects()); // and the copies' as they are made
 	editing.selection.clear();
 	for(const SlideObject& object : editing.objects()) {
 		if(!std::ranges::contains(editing.ids, object.id)) continue;
@@ -113,10 +144,12 @@ void duplicateObjects(Editing& editing) {
 		copy.x += 20.0f;
 		copy.y += 20.0f;
 		copy.locked = false;
-		std::vector<SlideObject> taken = editing.objects();
-		taken.insert(taken.end(), copies.begin(), copies.end());
 		copy.id = freeId(taken, object.kind);
-		for(SlideObject& child : copy.children) child.id = copy.id + "-" + child.id;
+		taken.insert(copy.id);
+		for(SlideObject& child : copy.children) {
+			child.id = copy.id + "-" + child.id;
+			taken.insert(child.id);
+		}
 		editing.selection.push_back(copy.id);
 		copies.push_back(std::move(copy));
 	}
@@ -132,11 +165,11 @@ void transformObjects(Editing& editing) {
 		if(!item.is_object()) continue;
 		const auto found = std::ranges::find(editing.objects(), item.value("id", std::string()), &SlideObject::id);
 		if(found == editing.objects().end() || found->locked) continue;
-		found->x = item.value("x", found->x);
-		found->y = item.value("y", found->y);
-		found->w = std::max(1.0f, item.value("width", found->w));
-		found->h = std::max(1.0f, item.value("height", found->h));
-		found->rotate = item.value("rotate", found->rotate);
+		found->x = floatAt(item, "x", found->x);
+		found->y = floatAt(item, "y", found->y);
+		found->w = std::max(1.0f, floatAt(item, "width", found->w));
+		found->h = std::max(1.0f, floatAt(item, "height", found->h));
+		found->rotate = floatAt(item, "rotate", found->rotate);
 	}
 }
 
@@ -173,10 +206,12 @@ void addSlide(Editing& editing) {
 /// @brief Moves a slide from one place to another (both clamped to the deck).
 /// @param editing The edit.
 void moveSlide(Editing& editing) {
+	needSlide(editing);
 	std::vector<Slide>& slides = editing.deck.slides;
-	const auto place = [&](const char* key, std::size_t fallback) {
-		return std::min(static_cast<std::size_t>(std::max(0.0f, editing.number(key, static_cast<float>(fallback)))),
-		                slides.size() - 1);
+	const float last = static_cast<float>(slides.size() - 1);
+	const auto place = [&](const char* key, std::size_t fallback) { // clamped before it is a whole number
+		return static_cast<std::size_t>(
+		    std::min(std::max(0.0f, editing.number(key, static_cast<float>(fallback))), last));
 	};
 	const std::size_t from = place("from", editing.slide);
 	const std::size_t to = place("to", from);
@@ -221,10 +256,13 @@ void addSection(Editing& editing) {
 	editing.deck.sections.push_back(section);
 }
 
+/// @brief Edits by op.
+using Edits = std::vector<std::pair<std::string_view, std::function<void(Editing&)>>>;
+
 /// @brief The edits on the selected objects, by op.
 /// @return They.
-[[nodiscard]] const std::vector<std::pair<std::string_view, std::function<void(Editing&)>>>& objectEdits() {
-	static const std::vector<std::pair<std::string_view, std::function<void(Editing&)>>> edits{
+[[nodiscard]] const Edits& objectEdits() {
+	static const Edits edits{
 	    {"align",
 		 [](Editing& e) { alignObjects(e.objects(), e.ids, e.text("edge"), e.flag("toSlide"), slideSize(e.deck)); }},
 	    {"distribute",
@@ -258,8 +296,8 @@ void addSection(Editing& editing) {
 
 /// @brief The edits on the slides and the deck, by op.
 /// @return They.
-[[nodiscard]] const std::vector<std::pair<std::string_view, std::function<void(Editing&)>>>& slideEdits() {
-	static const std::vector<std::pair<std::string_view, std::function<void(Editing&)>>> edits{
+[[nodiscard]] const Edits& slideEdits() {
+	static const Edits edits{
 	    {"addSlide", addSlide},
 	    {"deleteSlide",
 		 [](Editing& e) {
@@ -269,6 +307,7 @@ void addSection(Editing& editing) {
 	     }},
 	    {"duplicateSlide",
 		 [](Editing& e) {
+		     needSlide(e);
 		     Slide copy = e.deck.slides[e.slide];
 		     copy.id = freeSlideId(e.deck);
 		     e.deck.slides.insert(e.deck.slides.begin() + static_cast<std::ptrdiff_t>(e.slide) + 1, std::move(copy));
@@ -282,32 +321,54 @@ void addSection(Editing& editing) {
 	return edits;
 }
 
+/// @brief Runs an edit if its op is one of a list's.
+/// @param edits The list.
+/// @param op The op.
+/// @param editing The edit.
+/// @return Whether it was.
+[[nodiscard]] bool runEdit(const Edits& edits, std::string_view op, Editing& editing) {
+	const auto found = std::ranges::find(edits, op, &Edits::value_type::first);
+	if(found == edits.end()) return false;
+	found->second(editing);
+	return true;
+}
+
+/// @brief The slide an edit is on: its `slide`, clamped to the deck's (the first for anything but a whole number).
+/// @param edit The edit.
+/// @param count How many slides the deck has.
+/// @return It.
+[[nodiscard]] std::size_t slideOf(const json& edit, std::size_t count) {
+	const json& slide = edit.contains("slide") ? edit["slide"] : json(0);
+	if(!slide.is_number_unsigned() && !slide.is_number_integer()) return 0;
+	return std::min(static_cast<std::size_t>(std::max<std::int64_t>(0, slide.get<std::int64_t>())),
+	                count == 0 ? 0 : count - 1);
+}
+
+/// @brief The objects an edit has selected: its `ids`' texts.
+/// @param edit The edit.
+/// @return Their ids.
+[[nodiscard]] std::vector<std::string> selectedIds(const json& edit) {
+	std::vector<std::string> ids;
+	if(edit.contains("ids") && edit["ids"].is_array())
+		for(const json& id : edit["ids"])
+			if(id.is_string()) ids.push_back(id.get<std::string>());
+	return ids;
+}
+
 } // namespace
 
 json editDeck(const json& edit, const DeckLimits& limits) {
 	if(!edit.is_object()) throw std::runtime_error("Sinopia: an edit is an object");
 	Editing editing{edit, readDeck(edit.contains("deck") ? edit["deck"] : json::object(), limits), 0, {}, {}};
-	const json& slide = edit.contains("slide") ? edit["slide"] : json(0);
 	const std::size_t count = editing.deck.slides.size();
-	editing.slide = slide.is_number_unsigned() || slide.is_number_integer()
-	                    ? std::min(static_cast<std::size_t>(std::max<std::int64_t>(0, slide.get<std::int64_t>())),
-	                               count == 0 ? 0 : count - 1)
-	                    : 0;
-	if(edit.contains("ids") && edit["ids"].is_array())
-		for(const json& id : edit["ids"])
-			if(id.is_string()) editing.ids.push_back(id.get<std::string>());
+	editing.slide = slideOf(edit, count);
+	editing.ids = selectedIds(edit);
 	const std::string op = editing.text("op");
-	const auto run = [&](const auto& edits) {
-		const auto found =
-		    std::ranges::find(edits, std::string_view(op), &std::ranges::range_value_t<decltype(edits)>::first);
-		if(found == edits.end()) return false;
-		found->second(editing);
-		return true;
-	};
-	const bool onSlides = run(slideEdits());
-	if(!onSlides && count == 0) throw std::runtime_error("Sinopia: the deck has no slides");
-	if(!onSlides) editing.selection = editing.ids; // kept unless the edit chooses another
-	if(!onSlides && !run(objectEdits())) throw std::runtime_error("Sinopia: no edit " + op);
+	if(!runEdit(slideEdits(), op, editing)) {
+		if(count == 0) throw std::runtime_error("Sinopia: the deck has no slides");
+		editing.selection = editing.ids; // kept unless the edit chooses another
+		if(!runEdit(objectEdits(), op, editing)) throw std::runtime_error("Sinopia: no edit " + op);
+	}
 	const Deck result = readDeck(writeDeck(editing.deck), limits); // every limit, and the text's fit
 	return {{"deck", writeDeck(result)}, {"slide", editing.slide}, {"selection", editing.selection}};
 }

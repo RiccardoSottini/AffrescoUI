@@ -39,7 +39,8 @@ struct ShapeShadow {
 /// box; its own give the kind and what shapes it. Its meshes are built for its size and kept until either changes.
 class ShapePanel : public affresco::PathView {
 public:
-	/// @brief Applies the type's own properties: "shape", "sides", "inner", "cornerRadius", "gradient", "outlineShadow".
+	/// @brief Applies the type's own properties: "shape", "sides", "inner", "cornerRadius", "gradient",
+	/// "outlineShadow".
 	/// @param screen Resolves colours.
 	/// @param properties The JSON object of them.
 	/// @throws std::exception For a colour that isn't one.
@@ -59,17 +60,27 @@ protected:
 	void paint(affresco::Painter& painter) const override;
 
 private:
+	/// @brief Whether the meshes are built for a size and the look the panel has now.
+	/// @param size The size.
+	/// @return Whether they are.
+	[[nodiscard]] bool isBuiltFor(affresco::Vec2 size) const;
 	/// @brief Builds the meshes for a size, unless they are built for it.
 	/// @param size The size.
 	void build(affresco::Vec2 size) const;
+	/// @brief Builds the shadow and the fill (a colour or a gradient's bands) of a closed shape.
+	/// @param outline The outline.
+	/// @param size The size.
+	void buildFill(const std::vector<affresco::VectorPath::Contour>& outline, affresco::Vec2 size) const;
 	/// @brief The shape's contours at a size.
 	/// @param size The size.
 	/// @return They.
 	[[nodiscard]] std::vector<affresco::VectorPath::Contour> contours(affresco::Vec2 size) const;
 	/// @brief Builds the gradient's bands: the whole fill in the first colour, then each band beyond a line across it.
-	/// @param contours The outline.
+	/// @param gradient The gradient.
+	/// @param outline The outline.
 	/// @param size The size.
-	void buildGradient(const std::vector<affresco::VectorPath::Contour>& contours, affresco::Vec2 size) const;
+	void buildGradient(const ShapeGradient& gradient, const std::vector<affresco::VectorPath::Contour>& outline,
+	                   affresco::Vec2 size) const;
 
 	std::string kind_ = "rect";             ///< rect, ellipse, polygon, star, line, arrow or path.
 	int sides_ = 5;                         ///< A polygon's sides, a star's points.

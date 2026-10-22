@@ -87,6 +87,8 @@ struct Session {
 	/// @brief A session with a blank document.
 	/// @param limits The bounds of everything opened or made.
 	explicit Session(const imaging::Limits& limits);
+	/// @brief Ends the stroke and the preview, and takes back what the canvas holds of the session (its pointer
+	/// callback and the display transform): the canvas is shared with the surface, which may outlive it.
 	~Session();
 	Session(const Session&) = delete;
 	Session& operator=(const Session&) = delete;
@@ -150,6 +152,12 @@ void fitView(Session& session);
 /// @return The snapshot.
 [[nodiscard]] json snapshot(Session& session, affresco::Screen& screen);
 
+/// @brief A document coordinate within reach: at most a billion pixels from the origin, far past any document and near
+/// enough that the pixel coordinates the tools and the canvas compute from it fit an int.
+/// @param coordinate The coordinate, finite.
+/// @return It, clamped.
+[[nodiscard]] double withinReach(double coordinate) noexcept;
+
 /// @brief Plays a pointer event of the canvas with the tool chosen.
 /// @param session The session.
 /// @param event The event, in surface and document pixels.
@@ -183,11 +191,19 @@ void registerTempera(affresco::Screen& screen, const std::shared_ptr<Session>& s
 /// @param session The session, which the natives hold weakly.
 void registerEditing(affresco::Screen& screen, const std::shared_ptr<Session>& session);
 
-/// @brief A number argument.
+/// @brief A number argument, within the range of a float so that it narrows to one safely.
 /// @param arguments The arguments.
 /// @param key Its key.
-/// @param fallback When it is absent or not a number.
+/// @param fallback When it is absent, not a number or not finite.
+/// @return It, between -FLT_MAX and FLT_MAX.
 [[nodiscard]] double numberOf(const json& arguments, std::string_view key, double fallback) noexcept;
+
+/// @brief A whole number argument, rounded toward zero and within the range of an int.
+/// @param arguments The arguments.
+/// @param key Its key.
+/// @param fallback When it is absent, not a number or not finite.
+/// @return It.
+[[nodiscard]] int wholeOf(const json& arguments, std::string_view key, int fallback) noexcept;
 
 /// @brief A text argument.
 /// @param arguments The arguments.

@@ -4,7 +4,7 @@
 /// @brief What the workspace draws of a deck: each slide's objects with the theme's colours resolved, the master and
 /// layout objects under them, and the outline, as JSON for `state.render`.
 
-#include "Deck.hpp"
+#include "deck/Deck.hpp"
 
 #include <affresco/core/Json.hpp>
 

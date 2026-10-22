@@ -30,3 +30,10 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 - **Themes and locales:** light and dark tokens; English, Italian and Arabic string tables, Arabic right to left.
 - **Accessibility:** roles, names, live regions, toolbars and lists with arrow keys, the focus kept in modal overlays.
 - **Layouts** from 1040 × 640 (compact cards, the sidebar's energy card left out) to full screen.
+
+## How it holds together
+
+- **Permissions:** Studio peers change it directly; an agent's change waits for a Studio reviewer (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, the settings and the security mode persist; nothing else.
+- **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
+- **Extension points:** rooms, devices and scenes are entries of `state`; the plan, the automations and the strings are included files, each changed on its own; a language is a table in `strings.json`.
+- **Assets:** the pictures in `images/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence. The fonts' licences are with them in `../shared/fonts`.

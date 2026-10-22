@@ -12,6 +12,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstdio>
+#include <iterator>
 
 namespace tempera {
 
@@ -121,9 +122,12 @@ void updateThumbnails(Session& session, affresco::Screen& screen) {
 /// @param text Two hex digits.
 /// @return The value 0 to 1, or std::nullopt.
 [[nodiscard]] std::optional<float> channelOf(std::string_view text) noexcept {
+	if(text.size() != 2) return std::nullopt;
 	unsigned value = 0;
-	const auto [end, error] = std::from_chars(text.data(), text.data() + 2, value, 16);
-	if(error != std::errc{} || end != text.data() + 2) return std::nullopt;
+	const char* const last = text.data() + text.size();
+	// NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): bounded by last, two characters past data()
+	const auto [end, error] = std::from_chars(text.data(), last, value, 16);
+	if(error != std::errc{} || end != last) return std::nullopt;
 	return imaging::unitFromByte(static_cast<std::uint8_t>(value));
 }
 
@@ -132,9 +136,9 @@ void updateThumbnails(Session& session, affresco::Screen& screen) {
 std::span<const std::string_view> toolNames() noexcept { return toolNameList; }
 
 std::optional<Tool> toolOf(std::string_view name) noexcept {
-	const auto found = std::find(toolNameList.begin(), toolNameList.end(), name);
-	if(found == toolNameList.end()) return std::nullopt;
-	return static_cast<Tool>(found - toolNameList.begin());
+	const auto index = std::ranges::find(toolNameList, name) - toolNameList.begin();
+	if(index == std::ssize(toolNameList)) return std::nullopt;
+	return static_cast<Tool>(index);
 }
 
 std::optional<imaging::Pixel> colorOf(std::string_view text) noexcept {
@@ -142,7 +146,8 @@ std::optional<imaging::Pixel> colorOf(std::string_view text) noexcept {
 	if(text.size() != 6 && text.size() != 8) return std::nullopt;
 	std::array<float, 4> channels{0.0f, 0.0f, 0.0f, 1.0f};
 	for(std::size_t index = 0; index * 2 < text.size(); ++index) {
-		const auto channel = channelOf(text.substr(index * 2, 2));
+		// Not substr, which may throw: index * 2 + 2 is within the text.
+		const auto channel = channelOf(std::string_view(text.data() + index * 2, 2));
 		if(!channel) return std::nullopt;
 		channels[index] = *channel;
 	}

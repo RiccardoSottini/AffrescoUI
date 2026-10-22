@@ -1,7 +1,7 @@
 /// @file
 /// @brief Modello's editing natives (ModelloInternal.hpp): adding, removing and duplicating nodes, material graph
-/// nodes and checks, the outliner's rows, the timeline's tracks and keys, and the viewport's statistics. Each edit returns a JSON patch on
-/// `computed.scene` or `computed.animations`, which the screen applies as a revision.
+/// nodes and checks, the outliner's rows, the timeline's tracks and keys, and the viewport's statistics. Each edit
+/// returns a JSON patch on `computed.scene` or `computed.animations`, which the screen applies as a revision.
 
 #include "ModelloInternal.hpp"
 
@@ -74,7 +74,7 @@ json addNode(const Model& model, const json& with) {
 		if(mesh && !mesh->bounds.empty()) node.transform.translation.y = -mesh->bounds.min.y;
 		Material material;
 		material.id = scene.freshId("material");
-		if(material.id == node.id) material.id += "m";
+		if(material.id == node.id) material.id += 'm';
 		material.name = node.name;
 		material.baseColor = {0.8f, 0.8f, 0.8f, 1.0f};
 		node.material = material.id;
@@ -116,11 +116,10 @@ json removeNodes(const json& with) {
 			if(!clip.is_object() || !clip.contains("tracks") || !clip["tracks"].is_array()) continue;
 			json& tracks = clip["tracks"];
 			const auto before = tracks.size();
-			tracks.erase(std::remove_if(tracks.begin(), tracks.end(),
-			                            [&](const json& track) {
-				                            return track.is_object() && removed.contains(textIn(track, "node"));
-			                            }),
-			             tracks.end());
+			const auto [first, last] = std::ranges::remove_if(tracks, [&](const json& track) {
+				return track.is_object() && removed.contains(textIn(track, "node"));
+			});
+			tracks.erase(first, last);
 			changed = changed || tracks.size() != before;
 		}
 		if(changed) patch.push_back({{"op", "add"}, {"path", std::string(animationsPath)}, {"value", std::move(kept)}});
@@ -256,7 +255,9 @@ json moveKey(const json& with) {
 	std::size_t c = clips.size(), t = 0;
 	try {
 		if(slash != std::string::npos) c = std::stoul(id.substr(0, slash)), t = std::stoul(id.substr(slash + 1));
-	} catch(const std::exception&) { c = clips.size(); }
+	} catch(const std::exception&) {
+		c = clips.size();
+	}
 	const float index = numberIn(with, "index", -1.0f);
 	if(c >= clips.size() || t >= clips[c].tracks.size() || index < 0.0f) return {{"patch", json::array()}};
 	Track& track = clips[c].tracks[t];
@@ -331,9 +332,11 @@ json viewportStats(const Model& model) {
 	std::size_t triangles = 0;
 	for(const auto& [id, mesh] : model.assets->meshes())
 		if(!id.starts_with("primitive:")) triangles += mesh->indices.size() / 3;
-	return {{"drawn", stats.drawn},       {"culled", stats.culled},    {"triangles", stats.triangles},
-	        {"gpuBytes", stats.gpuBytes}, {"evicted", stats.evicted},  {"frames", stats.frames},
-	        {"error", stats.error},       {"meshes", model.assets->meshes().size()}, {"importedTriangles", triangles}};
+	return {{"drawn", stats.drawn},          {"culled", stats.culled},
+	        {"triangles", stats.triangles},  {"gpuBytes", stats.gpuBytes},
+	        {"evicted", stats.evicted},      {"frames", stats.frames},
+	        {"error", stats.error},          {"meshes", model.assets->meshes().size()},
+	        {"importedTriangles", triangles}};
 }
 
 } // namespace
