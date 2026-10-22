@@ -31,6 +31,8 @@
 #include <vector>
 
 #ifndef _WIN32
+#include <csignal>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
@@ -287,6 +289,34 @@ TEST_CASE("channel: the shared line framing drops CRs when asked, and ends the s
 	CHECK(lines == std::vector<std::string>{"before"});
 	CHECK(read < endless.size());
 }
+
+#ifndef _WIN32
+// Before, a signal the process handles without SA_RESTART made the read fail with EINTR, and the channel closed
+TEST_CASE("channel: a signal that interrupts a read doesn't end the stream") {
+	struct sigaction handler{}, before{};
+	handler.sa_handler = [](int) {}; // no SA_RESTART: the read is interrupted
+	sigemptyset(&handler.sa_mask);
+	REQUIRE(sigaction(SIGUSR1, &handler, &before) == 0);
+	std::array<int, 2> ends{};
+	REQUIRE(pipe(ends.data()) == 0);
+
+	std::ptrdiff_t got = 0;
+	std::thread reader([&] {
+		std::array<char, 8> data{};
+		got = affresco::channel::detail::readDescriptor(ends[0], data.data(), data.size());
+	});
+	std::this_thread::sleep_for(100ms); // the reader is waiting in read()
+	pthread_kill(reader.native_handle(), SIGUSR1);
+	std::this_thread::sleep_for(50ms);
+	CHECK(affresco::channel::detail::writeDescriptor(ends[1], "x", 1) == 1);
+	reader.join();
+	CHECK(got == 1);
+
+	close(ends[0]);
+	close(ends[1]);
+	sigaction(SIGUSR1, &before, nullptr);
+}
+#endif
 
 // Found by fuzzing (tests/fuzz, session): the parser's out_of_range got past Session::read and stopped the app
 TEST_CASE("channel: a message with a number too large for a double gets an error") {

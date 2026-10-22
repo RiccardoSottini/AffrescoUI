@@ -22,6 +22,7 @@
 #ifdef _WIN32
 #include <io.h>
 #else
+#include <cerrno>
 #include <unistd.h>
 #endif
 
@@ -129,7 +130,10 @@ inline std::ptrdiff_t readDescriptor(int fd, char* data, std::size_t size) {
 #ifdef _WIN32
 	return _read(fd, data, static_cast<unsigned int>(size)); // size is at most a chunk
 #else
-	return read(fd, data, size);
+	ssize_t n = 0;
+	do n = read(fd, data, size);
+	while(n < 0 && errno == EINTR); // a signal the process handles isn't the end of the stream
+	return n;
 #endif
 }
 
@@ -143,7 +147,10 @@ inline std::ptrdiff_t writeDescriptor(int fd, const char* data, std::size_t size
 	constexpr std::size_t most = 1u << 30; // _write takes an unsigned int; writeAll() writes the rest next
 	return _write(fd, data, static_cast<unsigned int>(size < most ? size : most));
 #else
-	return write(fd, data, size);
+	ssize_t n = 0;
+	do n = write(fd, data, size);
+	while(n < 0 && errno == EINTR); // nothing was written yet: a signal the process handles isn't an error
+	return n;
 #endif
 }
 
