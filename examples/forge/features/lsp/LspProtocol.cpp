@@ -383,7 +383,9 @@ json tokens(const json& result, const std::string& id, const Limits& limits, con
 	for(std::size_t i = 0; i + 5 <= data.size() && runs.size() < limits.tokens; i += 5) {
 		std::array<std::size_t, 4> field{};
 		for(std::size_t k = 0; k < field.size(); ++k)
-			field[k] = data[i + k].is_number_unsigned() ? std::min(data[i + k].get<std::size_t>(), largestPosition) : 0;
+			field[k] = data[i + k].is_number_integer() && data[i + k].get<long long>() >= 0 // whichever way it was read
+			               ? std::min(data[i + k].get<std::size_t>(), largestPosition)
+			               : 0;
 		const auto [deltaLine, deltaStart, length, type] = field;
 		line = std::min(line + deltaLine, largestPosition);
 		start = deltaLine > 0 ? deltaStart : std::min(start + deltaStart, largestPosition);

@@ -156,7 +156,7 @@ TEST_SUITE("lsp") {
 	TEST_CASE("edits apply all or none") {
 		std::string text = "int main() {\n\treturn 0;\n}\n";
 		const json edits = {{{"line", 1}, {"column", 5}, {"endLine", 1}, {"endColumn", 9}, {"text", "start"}},
-		                    {{"line", 2}, {"column", 2}, {"endLine", 2}, {"endColumn", 2}, {"text", "\treturn 0;\n"}}};
+		                    {{"line", 3}, {"column", 2}, {"endLine", 3}, {"endColumn", 2}, {"text", "\treturn 0;\n"}}};
 		CHECK_FALSE(lsp::applyEdits(text, edits));
 		CHECK(text == "int start() {\n\treturn 0;\n}\treturn 0;\n\n");
 		std::string unchanged = "ab\n";
