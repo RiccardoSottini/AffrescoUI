@@ -51,39 +51,33 @@ GLint integer(GLenum name) noexcept {
 
 } // namespace
 
-SavedState::SavedState() noexcept {
-	drawFramebuffer_ = integer(GL_DRAW_FRAMEBUFFER_BINDING);
-	readFramebuffer_ = integer(GL_READ_FRAMEBUFFER_BINDING);
-	renderbuffer_ = integer(GL_RENDERBUFFER_BINDING);
-	glGetIntegerv(GL_VIEWPORT, viewport_);
-	glGetIntegerv(GL_SCISSOR_BOX, scissorBox_);
-	blendSourceRgb_ = integer(GL_BLEND_SRC_RGB);
-	blendDestinationRgb_ = integer(GL_BLEND_DST_RGB);
-	blendSourceAlpha_ = integer(GL_BLEND_SRC_ALPHA);
-	blendDestinationAlpha_ = integer(GL_BLEND_DST_ALPHA);
-	blendEquationRgb_ = integer(GL_BLEND_EQUATION_RGB);
-	blendEquationAlpha_ = integer(GL_BLEND_EQUATION_ALPHA);
-	program_ = integer(GL_CURRENT_PROGRAM);
-	vertexArray_ = integer(GL_VERTEX_ARRAY_BINDING);
-	arrayBuffer_ = integer(GL_ARRAY_BUFFER_BINDING);
-	activeTexture_ = integer(GL_ACTIVE_TEXTURE);
+SavedState::SavedState() noexcept
+    : drawFramebuffer_(integer(GL_DRAW_FRAMEBUFFER_BINDING)), readFramebuffer_(integer(GL_READ_FRAMEBUFFER_BINDING)),
+      renderbuffer_(integer(GL_RENDERBUFFER_BINDING)), blendSourceRgb_(integer(GL_BLEND_SRC_RGB)),
+      blendDestinationRgb_(integer(GL_BLEND_DST_RGB)), blendSourceAlpha_(integer(GL_BLEND_SRC_ALPHA)),
+      blendDestinationAlpha_(integer(GL_BLEND_DST_ALPHA)), blendEquationRgb_(integer(GL_BLEND_EQUATION_RGB)),
+      blendEquationAlpha_(integer(GL_BLEND_EQUATION_ALPHA)), program_(integer(GL_CURRENT_PROGRAM)),
+      vertexArray_(integer(GL_VERTEX_ARRAY_BINDING)), arrayBuffer_(integer(GL_ARRAY_BUFFER_BINDING)),
+      activeTexture_(integer(GL_ACTIVE_TEXTURE)) {
+	glGetIntegerv(GL_VIEWPORT, viewport_.data());
+	glGetIntegerv(GL_SCISSOR_BOX, scissorBox_.data());
 	for(GLint unit = 0; unit < 2; ++unit) {
 		glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + unit));
-		textures_[unit] = integer(GL_TEXTURE_BINDING_2D);
+		textures_[static_cast<std::size_t>(unit)] = integer(GL_TEXTURE_BINDING_2D);
 	}
 	packAlignment_ = integer(GL_PACK_ALIGNMENT);
 	unpackAlignment_ = integer(GL_UNPACK_ALIGNMENT);
 	unpackRowLength_ = integer(GL_UNPACK_ROW_LENGTH);
 	packBuffer_ = integer(GL_PIXEL_PACK_BUFFER_BINDING);
 	unpackBuffer_ = integer(GL_PIXEL_UNPACK_BUFFER_BINDING);
-	glGetFloatv(GL_COLOR_CLEAR_VALUE, clearColor_);
-	glGetBooleanv(GL_COLOR_WRITEMASK, colorMask_);
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, clearColor_.data());
+	glGetBooleanv(GL_COLOR_WRITEMASK, colorMask_.data());
 	blend_ = glIsEnabled(GL_BLEND);
 	scissor_ = glIsEnabled(GL_SCISSOR_TEST);
 	depth_ = glIsEnabled(GL_DEPTH_TEST);
 	stencil_ = glIsEnabled(GL_STENCIL_TEST);
 	cull_ = glIsEnabled(GL_CULL_FACE);
-#if !defined(AFFRESCOUI_GLES3) // OpenGL ES has no switch for sRGB writes
+#ifndef AFFRESCOUI_GLES3 // OpenGL ES has no switch for sRGB writes
 	srgb_ = glIsEnabled(GL_FRAMEBUFFER_SRGB);
 #endif
 
@@ -91,7 +85,7 @@ SavedState::SavedState() noexcept {
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_CULL_FACE);
-#if !defined(AFFRESCOUI_GLES3)
+#ifndef AFFRESCOUI_GLES3
 	glDisable(GL_FRAMEBUFFER_SRGB);
 #endif
 	glDisable(GL_SCISSOR_TEST);
@@ -117,7 +111,7 @@ SavedState::~SavedState() {
 	glBindBuffer(GL_ARRAY_BUFFER, static_cast<GLuint>(arrayBuffer_));
 	for(GLint unit = 0; unit < 2; ++unit) {
 		glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + unit));
-		glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textures_[unit]));
+		glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textures_[static_cast<std::size_t>(unit)]));
 	}
 	glActiveTexture(static_cast<GLenum>(activeTexture_));
 	glPixelStorei(GL_PACK_ALIGNMENT, packAlignment_);
@@ -132,7 +126,7 @@ SavedState::~SavedState() {
 	setEnabled(GL_DEPTH_TEST, depth_);
 	setEnabled(GL_STENCIL_TEST, stencil_);
 	setEnabled(GL_CULL_FACE, cull_);
-#if !defined(AFFRESCOUI_GLES3)
+#ifndef AFFRESCOUI_GLES3
 	setEnabled(GL_FRAMEBUFFER_SRGB, srgb_);
 #else
 	static_cast<void>(srgb_); // kept on both backends, so the class is one layout wherever it is included

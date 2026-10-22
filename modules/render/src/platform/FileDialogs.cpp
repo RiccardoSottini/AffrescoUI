@@ -12,9 +12,9 @@
 #include <vector>
 
 #ifndef AFFRESCOUI_NO_FILE_DIALOGS
-#if defined(_WIN32)
+#ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 #define GLFW_EXPOSE_NATIVE_COCOA
 #endif
 #include <GLFW/glfw3.h>
@@ -38,9 +38,9 @@ namespace {
 /// @param window The GLFW window.
 /// @return Its native handle.
 nfdwindowhandle_t parentOf([[maybe_unused]] GLFWwindow* window) {
-#if defined(_WIN32)
+#ifdef _WIN32
 	return {NFD_WINDOW_HANDLE_TYPE_WINDOWS, glfwGetWin32Window(window)};
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
 	return {NFD_WINDOW_HANDLE_TYPE_COCOA, glfwGetCocoaWindow(window)};
 #else
 	return {NFD_WINDOW_HANDLE_TYPE_UNSET, nullptr};
@@ -129,7 +129,7 @@ std::vector<std::string> show(GLFWwindow* window, const FileDialog& dialog) {
 		break;
 	}
 	case FileDialogKind::Folder: {
-		nfdpickfolderu8args_t args{orNull(dialog.folder), parent, orNull(dialog.title), nullptr, nullptr};
+		const nfdpickfolderu8args_t args{orNull(dialog.folder), parent, orNull(dialog.title), nullptr, nullptr};
 		result = NFD_PickFolderU8_With(&path, &args);
 		break;
 	}

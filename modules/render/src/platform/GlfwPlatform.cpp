@@ -27,7 +27,7 @@ namespace affresco::platform {
 
 namespace {
 
-#if defined(AFFRESCOUI_GLES3)
+#ifdef AFFRESCOUI_GLES3
 constexpr const char* contextName = "OpenGL ES 3.0 context"; ///< What windows ask for, for errors.
 #else
 constexpr const char* contextName = "OpenGL 4.1 core context"; ///< What windows ask for, for errors.
@@ -35,7 +35,7 @@ constexpr const char* contextName = "OpenGL 4.1 core context"; ///< What windows
 
 /// @brief Asks GLFW for the context of this build's backend in the windows created next.
 void hintContext() {
-#if defined(AFFRESCOUI_GLES3)
+#ifdef AFFRESCOUI_GLES3
 	// OpenGL ES 3.0 through EGL: ANGLE (macOS, Windows), Mesa (Linux)
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 	glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
@@ -201,6 +201,7 @@ void GlfwWindow::connect(Window& window) {
 	glfwSetWindowContentScaleCallback(handle_,
 	                                  [](GLFWwindow* native, float x, float) { displayChanged(owner(native), x); });
 	glfwSetWindowFocusCallback(handle_, [](GLFWwindow* native, int focused) {
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast): GlfwPlatform makes only GlfwWindows
 		auto* self = static_cast<GlfwWindow*>(&of(owner(native)));
 		if(focused == GLFW_TRUE && self->menuBar_) self->menuBar_->activate(); // macOS: the bar is the app's
 	});
