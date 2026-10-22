@@ -19,7 +19,7 @@
 	},
 
 	"include": ["features/themes/themes.json", "features/panels/panels.json", "features/palette/palette.json",
-	            "features/shell/shell.json"],
+	            "features/shell/shell.json", "features/accounts/accounts.json"],
 
 	"theme": "{{state.theme}}",
 

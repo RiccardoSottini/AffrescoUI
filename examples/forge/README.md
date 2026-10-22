@@ -22,6 +22,7 @@ its own folder, `features/<name>/`: its JSON, plus any C++ it needs.
 | `shell` | The title bar with the command centre, the activity bar (explorer, go to file, problems, settings), the side bar with the explorer, editor groups with tabs, the panel area, the status bar, zen mode, and the welcome page |
 | `palette` | The command palette (`>`), quick open over the file index, go to line (`:`), and the settings and keybinding pages, generated from the contributions |
 | `themes` | Themes as design tokens (Forge Dark, Forge Light), the VS Code colour theme importer (`ThemeImport.*`), and the file icon theme (`IconTheme.*`) |
+| `accounts` | Signing in to the document server (`examples/server`) with a device code, settings synced through the person's `~settings` document, and who is on a shared document, and where, in the status bar (`Accounts.*` keeps the sign-in in the system's secret store); `accounts.scenarios.json` |
 | `panels` | Problems, output, notifications (toasts and a list), and progress |
 
 There are only four natives (`Forge.hpp`), for what JSON can't do on its own: the file system and the OS's dialogs.

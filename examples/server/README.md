@@ -14,7 +14,8 @@ cmake --build build --target affrescoui_server
 
 Options: `--listen ADDRESS:PORT` (default `127.0.0.1:7420`), `--allow-remote` (accept peers from other machines: only
 behind a proxy that terminates TLS, see [`examples/deploy`](../deploy/README.md)), `--origin URL` (repeatable: the
-browser origins allowed). It stops on SIGINT or SIGTERM. [`Dockerfile`](Dockerfile) builds a container of it.
+browser origins allowed), `--userinfo URL --people FILE` (also admit OAuth access tokens, below). It stops on
+SIGINT or SIGTERM. [`Dockerfile`](Dockerfile) builds a container of it.
 
 ## The folder
 
@@ -27,6 +28,16 @@ browser origins allowed). It stops on SIGINT or SIGTERM. [`Dockerfile`](Dockerfi
 
 A name is 1 to 64 of `A-Z a-z 0-9 _ -`. The token file keeps only hashes, so reading it reveals no token; keep it
 readable by the server's account alone (`--add-token` makes it so).
+
+## Signing in with OAuth
+
+With `--userinfo https://id.example.com/userinfo --people people`, a peer may also connect with an OAuth access token
+from an OpenID Connect provider (what a connection's `auth` signs in to, e.g. Forge's accounts): the server asks the
+provider's userinfo endpoint whose token it is (`GET` with the token as a Bearer) and admits the subject only if the
+people file names it, one line each, `<subject> <name>` (`#` starts a comment); the name is then the author, like a
+token file's. The token file is tried first, and is optional with `--userinfo`. A token that worked is remembered by
+its SHA-256 for five minutes, never the token itself; a refused one isn't remembered. Each question is bounded (4 s,
+64 KiB), and the endpoint must be `https://` (`http://` reaches the loopback only, for tests).
 
 ## The protocol
 

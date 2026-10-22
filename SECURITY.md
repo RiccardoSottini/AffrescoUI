@@ -255,7 +255,11 @@ otherwise, and is meant to sit behind a proxy that terminates TLS (examples/depl
 of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
 that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
 document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,
-never used to decide anything. Leases, presence entries and the server's messages are all bounded (examples/server).
+never used to decide anything. Leases, presence entries and the server's messages are all bounded (examples/server). With `--userinfo` it also admits OAuth access
+tokens: each is checked at the provider's https userinfo endpoint, and only the subjects of the people file the
+operator writes get in, by the name that file gives them; a token that worked is remembered by its hash for five
+minutes (a revoked token keeps working that long at most), a refused one isn't, and each question is bounded in time
+and size. The server never keeps, logs or forwards a token anywhere but to that endpoint.
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in

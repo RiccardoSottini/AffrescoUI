@@ -131,14 +131,16 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	endforeach()
 	# Forge, a demo IDE: its workbench is examples/forge/forge.screen.json, with a few natives (examples/forge/README.md)
 	set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
-		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp)
+		examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
+		examples/forge/features/accounts/Accounts.cpp)
 	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/CodeEditor.cpp)
 	target_include_directories(affrescoui_forge PRIVATE examples examples/forge)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
 	# The document server, headless: documents and their history on disk, shared with people (examples/server/README.md)
-	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp)
+	set(AFFRESCOUI_SERVER_SOURCES examples/server/DocumentServer.cpp examples/server/TokenFile.cpp
+	    examples/server/UserInfoVerifier.cpp)
 	add_executable(affrescoui_server examples/server/main.cpp ${AFFRESCOUI_SERVER_SOURCES})
 	target_link_libraries(affrescoui_server PRIVATE affrescoui::format affrescoui::vcs affrescoui::channel affrescoui::net)
 	target_compile_options(affrescoui_server PRIVATE ${AFFRESCOUI_WARNINGS})

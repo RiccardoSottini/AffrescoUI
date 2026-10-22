@@ -19,8 +19,9 @@
 
 namespace affresco::test {
 
-/// @brief The mock provider. Its endpoints are origin() + "/authorize", "/device", "/token" and "/api/..." (the
-/// resource: 200 with the account for the current access token, else 401).
+/// @brief The mock provider. Its endpoints are origin() + "/authorize", "/device", "/token", "/userinfo" (the subject
+/// of the current access token, else 401) and "/api/..." (the resource: 200 with the account for the current access
+/// token, else 401).
 class MockIdentity {
 public:
 	/// @brief Starts the provider.
@@ -43,6 +44,21 @@ public:
 		        {"clientId", clientId_},
 		        {"issuer", origin()},
 		        {"scopes", json::array({"openid", "profile"})}};
+	}
+
+	/// @brief The subject ("sub") userinfo gives for the current access token.
+	[[nodiscard]] static std::string subject() { return "subject-tester"; }
+	/// @brief Signs in without a client, as if a flow had just finished.
+	/// @return A new access token (the previous one no longer works).
+	[[nodiscard]] std::string signIn() {
+		const std::scoped_lock lock(mutex_);
+		static_cast<void>(tokens(""));
+		return access_;
+	}
+	/// @brief How many times userinfo was asked.
+	[[nodiscard]] int userinfoAsked() const {
+		const std::scoped_lock lock(mutex_);
+		return userinfoAsked_;
 	}
 
 	/// @brief The person approves the device code shown: the next poll gets the tokens.
@@ -196,6 +212,11 @@ private:
 				                                     {"verification_uri", origin() + "/verify"}, {"interval", 1},
 				                                     {"expires_in", 60}}
 				                                    .dump());
+			} else if(path == "/userinfo") {
+				++userinfoAsked_;
+				const bool allowed = !access_.empty() && header(request.head, "Authorization") == "Bearer " + access_;
+				answer = allowed ? httpResponse("200 OK", json{{"sub", subject()}}.dump())
+				                 : httpResponse("401 Unauthorized", R"({"error":"invalid_token"})");
 			} else if(path.starts_with("/api/")) {
 				const bool allowed = !access_.empty() && header(request.head, "Authorization") == "Bearer " + access_;
 				answer = allowed ? httpResponse("200 OK", json{{"account", account()}, {"ok", true}}.dump())
@@ -250,6 +271,7 @@ private:
 	std::string refresh_;               ///< The valid refresh token.
 	std::set<std::string> issued_;      ///< See secrets().
 	int grants_ = 0;                    ///< See grants().
+	int userinfoAsked_ = 0;             ///< See userinfoAsked().
 	LocalServer server_;                ///< Last: it starts once the rest is ready.
 };
 

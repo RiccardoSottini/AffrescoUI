@@ -16,6 +16,7 @@
 #include <affresco/vcs/Repository.hpp>
 
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -46,6 +47,18 @@ public:
 	/// @throws std::runtime_error If a document can't be read or listening fails.
 	DocumentServer(Executor& executor, std::filesystem::path folder, std::shared_ptr<TokenFile> tokens,
 	               std::string_view address, net::PeerServerOptions options = {});
+	/// @brief Loads the documents and listens, admitting whom a verifier admits (e.g. a ChainVerifier of a TokenFile
+	/// and a UserInfoVerifier).
+	/// @param executor The main thread; outlives the server.
+	/// @param folder The folder (documents/, history/, people/).
+	/// @param verifier Who may connect (safe on any thread).
+	/// @param people Everyone the verifier may admit, for the permission rules (called on the executor's thread).
+	/// @param address Where to listen, e.g. "127.0.0.1:7420".
+	/// @param options The listener's limits and origins.
+	/// @throws std::runtime_error If a document can't be read or listening fails.
+	DocumentServer(Executor& executor, std::filesystem::path folder, std::shared_ptr<net::TokenVerifier> verifier,
+	               std::function<std::vector<std::string>()> people, std::string_view address,
+	               net::PeerServerOptions options = {});
 	/// @brief Stops listening and closes every peer.
 	~DocumentServer();
 	DocumentServer(const DocumentServer&) = delete;
@@ -151,7 +164,7 @@ private:
 
 	Executor& executor_;                                      ///< The main thread.
 	std::filesystem::path folder_;                            ///< See the constructor.
-	std::shared_ptr<TokenFile> tokens_;                       ///< Who may connect.
+	std::function<std::vector<std::string>()> people_;        ///< Everyone who may connect.
 	format::Rules rules_;                                     ///< The format's rules.
 	std::map<std::string, std::unique_ptr<Document>> documents_; ///< By key.
 	std::vector<std::unique_ptr<Peer>> peers_;                ///< The connected peers.

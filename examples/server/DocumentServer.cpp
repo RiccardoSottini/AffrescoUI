@@ -57,11 +57,19 @@ json view(const vcs::Repository& repository) {
 
 DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder, std::shared_ptr<TokenFile> tokens,
                                std::string_view address, net::PeerServerOptions options)
-    : executor_(executor), folder_(std::move(folder)), tokens_(std::move(tokens)) {
-	if(!tokens_) throw std::runtime_error("the document server needs a token file");
+    : DocumentServer(executor, std::move(folder), tokens,
+                     [tokens] { return tokens ? tokens->people() : std::vector<std::string>(); }, address,
+                     std::move(options)) {}
+
+DocumentServer::DocumentServer(Executor& executor, std::filesystem::path folder,
+                               std::shared_ptr<net::TokenVerifier> verifier,
+                               std::function<std::vector<std::string>()> people, std::string_view address,
+                               net::PeerServerOptions options)
+    : executor_(executor), folder_(std::move(folder)), people_(std::move(people)) {
+	if(!verifier || !people_) throw std::runtime_error("the document server needs a token verifier");
 	loadDocuments();
 	listener_ = std::make_unique<net::PeerServer>(
-	    executor_, address, tokens_,
+	    executor_, address, std::move(verifier),
 	    [this, alive = alive_](std::unique_ptr<Channel> socket, std::string author) {
 		    if(*alive) adopt(std::move(socket), std::move(author));
 	    },
@@ -98,7 +106,7 @@ DocumentServer::Document& DocumentServer::load(const std::string& key, const std
 	std::ifstream input(file);
 	if(!input) throw std::runtime_error("can't read " + file.string());
 	json content = json::parse(input);
-	auto document = std::make_unique<Document>(rules_, [tokens = tokens_] { return tokens->people(); });
+	auto document = std::make_unique<Document>(rules_, people_);
 	document->repository = std::make_unique<vcs::Repository>(document->rules, std::move(content));
 	const vcs::Repository::OpenedHistory opened = document->repository->openHistory(history);
 	if(!opened.memoryOnly.empty())

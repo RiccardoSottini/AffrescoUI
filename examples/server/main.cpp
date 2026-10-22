@@ -2,12 +2,15 @@
 /// @brief affrescoui_server: the document server, headless (examples/server/README.md).
 ///
 ///   affrescoui_server --folder DIR [--listen 127.0.0.1:7420] [--allow-remote] [--origin URL]...
+///                     [--userinfo URL --people FILE]
 ///   affrescoui_server --folder DIR --add-token NAME
 
 #include "DocumentServer.hpp"
+#include "UserInfoVerifier.hpp"
 
 #include <affresco/core/Executor.hpp>
 
+#include <algorithm>
 #include <condition_variable>
 #include <csignal>
 #include <deque>
@@ -75,6 +78,8 @@ struct Options {
 	std::filesystem::path folder;              ///< --folder.
 	std::string listen = "127.0.0.1:7420";     ///< --listen.
 	std::string addToken;                      ///< --add-token.
+	std::string userinfo;                      ///< --userinfo: OAuth access tokens are checked there.
+	std::filesystem::path people;              ///< --people: who, by OAuth subject, may connect.
 	affresco::net::PeerServerOptions server;   ///< --allow-remote, --origin.
 };
 
@@ -89,6 +94,8 @@ std::optional<Options> parse(const std::vector<std::string>& arguments) {
 		if(argument == "--folder" && hasValue) options.folder = arguments[++i];
 		else if(argument == "--listen" && hasValue) options.listen = arguments[++i];
 		else if(argument == "--add-token" && hasValue) options.addToken = arguments[++i];
+		else if(argument == "--userinfo" && hasValue) options.userinfo = arguments[++i];
+		else if(argument == "--people" && hasValue) options.people = arguments[++i];
 		else if(argument == "--origin" && hasValue) options.server.allowedOrigins.push_back(arguments[++i]);
 		else if(argument == "--allow-remote") options.server.allowRemote = true;
 		else {
@@ -96,8 +103,9 @@ std::optional<Options> parse(const std::vector<std::string>& arguments) {
 			break;
 		}
 	}
-	if(!options.folder.empty()) return options;
+	if(!options.folder.empty() && options.userinfo.empty() == options.people.empty()) return options;
 	std::cerr << "usage: affrescoui_server --folder DIR [--listen 127.0.0.1:7420] [--allow-remote] [--origin URL]...\n"
+	             "                         [--userinfo URL --people FILE]\n"
 	             "       affrescoui_server --folder DIR --add-token NAME\n";
 	return std::nullopt;
 }
@@ -107,8 +115,24 @@ std::optional<Options> parse(const std::vector<std::string>& arguments) {
 /// @return The exit status.
 int serve(const Options& options) {
 	MainLoop loop;
-	auto tokens = std::make_shared<affresco::server::TokenFile>(options.folder / "tokens");
-	affresco::server::DocumentServer server(loop, options.folder, tokens, options.listen, options.server);
+	using namespace affresco::server;
+	const std::filesystem::path tokenPath = options.folder / "tokens";
+	auto tokens = options.userinfo.empty() || std::filesystem::exists(tokenPath)
+	                  ? std::make_shared<TokenFile>(tokenPath)
+	                  : nullptr;
+	auto userinfo = options.userinfo.empty() ? nullptr
+	                                         : std::make_shared<UserInfoVerifier>(options.userinfo, options.people);
+	std::vector<std::shared_ptr<affresco::net::TokenVerifier>> verifiers;
+	if(tokens) verifiers.push_back(tokens);
+	if(userinfo) verifiers.push_back(userinfo);
+	const auto people = [tokens, userinfo] {
+		std::vector<std::string> names = tokens ? tokens->people() : std::vector<std::string>();
+		for(const std::string& name : userinfo ? userinfo->people() : std::vector<std::string>())
+			if(std::ranges::find(names, name) == names.end()) names.push_back(name);
+		return names;
+	};
+	DocumentServer server(loop, options.folder, std::make_shared<ChainVerifier>(std::move(verifiers)), people,
+	                      options.listen, options.server);
 	std::cout << "serving " << server.documents().size() << " documents on port " << server.port() << std::endl;
 #ifndef _WIN32
 	sigset_t signals;
