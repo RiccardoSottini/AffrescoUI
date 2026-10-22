@@ -3,9 +3,17 @@
 
 #include "Providers.hpp"
 
+#include <cerrno>
 #include <fstream>
 #include <iterator>
+#include <random>
 #include <system_error>
+
+#ifndef _WIN32
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 namespace affresco::services {
 
@@ -31,29 +39,77 @@ void readFile(const std::filesystem::path& path, Call& call) {
 	call.finish({{"text", std::move(text)}});
 }
 
-/// @brief Writes a text file, replacing it, through a file beside it so a reader never sees half of it.
+#ifndef _WIN32
+/// @brief Writes all of a text to a file, resuming after a signal.
+/// @param descriptor The file, open for writing.
+/// @param text Its bytes.
+/// @return Whether all of them were written.
+bool writeAll(int descriptor, const std::string& text) {
+	for(std::size_t at = 0; at < text.size();) {
+		const ssize_t count = ::write(descriptor, text.data() + at, text.size() - at);
+		if(count > 0) at += static_cast<std::size_t>(count);
+		else if(count == 0 || errno != EINTR) return false;
+	}
+	return true;
+}
+#endif
+
+/// @brief Creates a new file and writes it; fails rather than open what is already there, a link included.
+/// @param file The new file.
+/// @param text Its bytes.
+/// @param permissions Its permissions.
+/// @return Whether it was created and written; if it was created but not written, it is removed.
+bool createWith(const std::filesystem::path& file, const std::string& text, std::filesystem::perms permissions) {
+	std::error_code error;
+#ifdef _WIN32
+	if(std::filesystem::exists(std::filesystem::symlink_status(file, error))) return false;
+	std::ofstream out(file, std::ios::binary | std::ios::trunc);
+	if(!out || !out.write(text.data(), static_cast<std::streamsize>(text.size())) || !out.flush()) {
+		out.close();
+		std::filesystem::remove(file, error);
+		return false;
+	}
+	out.close();
+	std::filesystem::permissions(file, permissions, error);
+	return true;
+#else
+	const int descriptor = ::open(file.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+	if(descriptor < 0) return false;
+	bool written = ::fchmod(descriptor, static_cast<mode_t>(permissions) & 07777) == 0 && writeAll(descriptor, text);
+	written = ::close(descriptor) == 0 && written;
+	if(!written) std::filesystem::remove(file, error);
+	return written;
+#endif
+}
+
+/// @brief Writes a text file, replacing it, through a new file beside it so a reader never sees half of it. The new
+/// file's name is drawn at random and it is created only if nothing is there: a fixed name let a link planted beside
+/// the file (a cloned repository can hold one) have the text written wherever it pointed, outside the root.
 /// @param path The file (under the root); its folder must exist.
 /// @param text Its text.
 /// @param call Where the result goes.
 void writeFile(const std::filesystem::path& path, const std::string& text, Call& call) {
+	using std::filesystem::perms;
 	std::error_code error;
 	if(std::filesystem::is_directory(path, error)) return call.fail("failed", "the path is a folder");
-	std::filesystem::path temporary = path;
-	temporary += ".affrescoui-writing";
-	{
-		std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
-		file.write(text.data(), static_cast<std::streamsize>(text.size()));
-		if(!file.flush()) {
-			std::filesystem::remove(temporary, error);
-			return call.fail("failed", "the file couldn't be written");
+	// A file replaced keeps its permissions (a private one stays private); a new one is readable, as before
+	const std::filesystem::file_status status = std::filesystem::status(path, error);
+	const perms permissions =
+	    error ? perms::owner_read | perms::owner_write | perms::group_read | perms::others_read : status.permissions();
+	std::random_device random;
+	for(int attempt = 0; attempt < 8; ++attempt) {
+		std::filesystem::path temporary = path;
+		temporary += ".affrescoui-writing-" + std::to_string(random());
+		if(!createWith(temporary, text, permissions)) {
+			if(std::filesystem::exists(std::filesystem::symlink_status(temporary, error))) continue; // name taken
+			break;
 		}
-	}
-	std::filesystem::rename(temporary, path, error);
-	if(error) {
+		std::filesystem::rename(temporary, path, error);
+		if(!error) return call.finish({{"bytes", text.size()}});
 		std::filesystem::remove(temporary, error);
-		return call.fail("failed", "the file couldn't be written");
+		break;
 	}
-	call.finish({{"bytes", text.size()}});
+	call.fail("failed", "the file couldn't be written");
 }
 
 /// @brief Lists a folder: {entries: [{name, kind, size}]}, kind "file", "folder" or "other".
