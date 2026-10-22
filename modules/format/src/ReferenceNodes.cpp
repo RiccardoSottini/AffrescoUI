@@ -636,6 +636,14 @@ constexpr KeyReference nodeTable[] = {
 	 "Canvas items moved, resized, rotated or nudged: `event.items`, each `{ \"id\", \"x\", \"y\", \"width\", "
 	 "\"height\", \"rotate\" }`, where they should go; the document applies them.",
 	 "events"},
+    {"onGutterClick", "handler",
+	 "A press in an editor's gutter: `event.line` (from 0), `shift`, `alt`, `control`, `super`. While a node has "
+	 "one, the press doesn't move the caret.",
+	 "events"},
+    {"onWordHover", "handler",
+	 "The pointer moved onto a word of an editor, or off one: `event.word`, `line`, `column` (where it starts, "
+	 "from 0); off a word, `word` is empty and `line` null.",
+	 "events"},
     {"slot", R"json({"const": true, "description": "In a component: where the use's children go"})json", "", ""},
     {"placeholder", R"json({"description": "Text, or a {{binding}}"})json", "", ""},
     {"placeholderColor", "color", "", ""},

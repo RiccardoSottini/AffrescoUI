@@ -224,6 +224,19 @@ Tabs become 4 spaces. Applications build richer editors on it (syntax colours, c
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
 <!-- end generated -->
 
+Markers, the current line and values beside the code are decorations the document gives and the editor's two events
+report on: `onGutterClick` gets the line pressed in the gutter (with the keys held), so a document can keep a marker
+per line (a `gutter` decoration with an `icon`) and toggle it; a `background` decoration marks a current line; an
+`inline` decoration writes a value after a line. `onWordHover` gets the word under the pointer (and an empty one when
+it leaves it), so a document can look the word up and show what it finds, for example as an `inline` decoration.
+
+```json
+{ "type": "editor", "bind": "file.text", "lineNumbers": true,
+  "decorations": "{{state.markers}}",
+  "onGutterClick": { "run": "toggleMarker", "with": { "line": "{{event.line}}" } },
+  "onWordHover": { "run": "lookUp", "with": { "word": "{{event.word}}", "line": "{{event.line}}" } } }
+```
+
 ### `diff`
 Two texts compared line by line (Myers' algorithm, within a cost limit: past it, a longer but still correct script),
 then character by character on the lines changed, in read-only editors that number each text's lines. `font` and
@@ -644,6 +657,8 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 | `onSort` | A table header clicked: `event.column`, `descending`. |
 | `onColumnResize` | A table column's edge dragged and let go: `event.column`, `width`. |
 | `onTransform` | Canvas items moved, resized, rotated or nudged: `event.items`, each `{ "id", "x", "y", "width", "height", "rotate" }`, where they should go; the document applies them. |
+| `onGutterClick` | A press in an editor's gutter: `event.line` (from 0), `shift`, `alt`, `control`, `super`. While a node has one, the press doesn't move the caret. |
+| `onWordHover` | The pointer moved onto a word of an editor, or off one: `event.word`, `line`, `column` (where it starts, from 0); off a word, `word` is empty and `line` null. |
 <!-- end generated -->
 
 **Bubbling:** click, double click, context menu, press, release, drag, scroll and key events go to the node or, if it

@@ -2299,6 +2299,12 @@
 					"onTransform": {
 						"$ref": "#/$defs/v1/handler"
 					},
+					"onGutterClick": {
+						"$ref": "#/$defs/v1/handler"
+					},
+					"onWordHover": {
+						"$ref": "#/$defs/v1/handler"
+					},
 					"slot": {
 						"const": true,
 						"description": "In a component: where the use's children go"

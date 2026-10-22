@@ -230,6 +230,12 @@ public:
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
 	Signal<Vec2> onScrolled;                  ///< The scroll offset changed (by the wheel, the caret or setScroll()).
+	/// A left press on the gutter (line numbers, gutter decorations) that didn't unfold a line: the line, the keys
+	/// held. Only fired, and the press only kept from moving the caret, while something listens.
+	Signal<std::size_t, Mods> onGutterClicked;
+	/// The pointer, not dragging, moved onto a word or off one: where the word starts and its text (UTF-8), or
+	/// line SIZE_MAX and "" off any word. Only worked out while something listens.
+	Signal<Position, const std::string&> onWordHovered;
 
 protected:
 	/// @brief What an edit was, so consecutive typing can be undone in one step.
@@ -614,6 +620,7 @@ private:
 	float preferredX_ = -1.0f;       ///< The x vertical moves aim for (< 0: the caret's).
 	Vec2 scroll_;                    ///< Pixels scrolled right and down.
 	bool dragging_ = false;          ///< A button press is selecting text.
+	Position hoveredWord_{SIZE_MAX, 0}; ///< Where the word under the pointer starts, for onWordHovered.
 	double lastClickTime_ = -1.0;    ///< When the last press happened, for double clicks.
 	Position lastClickAt_;           ///< Where it happened.
 	int clicks_ = 0;                 ///< Presses in a row at one place (1, 2 or 3).
