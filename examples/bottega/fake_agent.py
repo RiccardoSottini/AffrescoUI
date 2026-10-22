@@ -94,7 +94,7 @@ def main():
     if words[:3] != ["proposed", "as", "proposal"]:
         sys.exit(f"the install should wait for review:\n{installed}")
     mcp.tool("reply", {"request_id": request["request_id"],
-                       "text": f"Proposed the slide sorter in the panels dock with an adapter: {installed.splitlines()[0]}"})
+                       "text": f"Proposed the slide sorter in the panels dock with an adapter:\n{installed}"})
     print(json.dumps({"proposal": int(words[3])}), flush=True)
     mcp.proc.stdin.close()
     mcp.proc.wait(timeout=10)
