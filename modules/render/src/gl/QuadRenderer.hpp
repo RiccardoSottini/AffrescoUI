@@ -3,9 +3,9 @@
 /// @file
 /// @brief gl::QuadRenderer: draws a panel tree as batched, textured quads, from the panels' retained geometry.
 
-#include "GeometryCache.hpp"
-#include "Renderer.hpp"
-#include "RetainedGeometry.hpp"
+#include "paint/GeometryCache.hpp"
+#include "paint/Renderer.hpp"
+#include "paint/RetainedGeometry.hpp"
 #include "gl/GlObjects.hpp"
 #include "gl/ImageTextures.hpp"
 #include "gl/Stencil.hpp"

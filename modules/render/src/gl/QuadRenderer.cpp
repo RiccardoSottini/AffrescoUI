@@ -1,5 +1,5 @@
 #include "gl/QuadRenderer.hpp"
-#include "PaintRecorder.hpp"
+#include "paint/PaintRecorder.hpp"
 #include "gl/Shader.hpp"
 #include "gl/SurfaceState.hpp"
 

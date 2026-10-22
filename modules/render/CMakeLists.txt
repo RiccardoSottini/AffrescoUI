@@ -49,10 +49,10 @@ affrescoui_module(render
 	src/layout/Grid.cpp
 	src/TextArea.cpp
 	src/Window.cpp
-	src/WindowImage.cpp
+	src/paint/WindowImage.cpp
 	src/Headless.cpp
-	src/GeometryCache.cpp
-	src/PaintRecorder.cpp
+	src/paint/GeometryCache.cpp
+	src/paint/PaintRecorder.cpp
 	src/PathView.cpp
 	src/GraphView.cpp
 	src/TimelineView.cpp

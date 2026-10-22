@@ -2,8 +2,8 @@
 /// @brief detail::GeometryCache: the panels that changed or moved recorded again, the damage they make, and the
 /// shaders the frame needs.
 
-#include "GeometryCache.hpp"
-#include "PaintRecorder.hpp"
+#include "paint/GeometryCache.hpp"
+#include "paint/PaintRecorder.hpp"
 
 #include "affresco/render/Panel.hpp"
 

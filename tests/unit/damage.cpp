@@ -2,7 +2,7 @@
 /// @brief Retained geometry and damage (render's detail::GeometryCache), headless: what a change records again, what
 /// it damages, and which shaders the frame needs, with no OpenGL.
 
-#include "GeometryCache.hpp"
+#include "paint/GeometryCache.hpp"
 #include "Headless.hpp"
 
 #include <affresco/render/Panel.hpp>

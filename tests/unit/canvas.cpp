@@ -2,7 +2,7 @@
 /// @brief The canvas (render's CanvasView and its spatial index) in a headless window: culling to the visible
 /// rectangle, the camera bound to what a person does, and selection, moves and guides reported back.
 
-#include "GeometryCache.hpp"
+#include "paint/GeometryCache.hpp"
 #include "Headless.hpp"
 #include "Rulers.hpp"
 #include "SpatialIndex.hpp"

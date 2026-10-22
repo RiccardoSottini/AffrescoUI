@@ -1,7 +1,7 @@
 /// @file
 /// @brief detail::PaintRecorder: clipped quads and batch steps, recorded the way the renderer used to draw them.
 
-#include "PaintRecorder.hpp"
+#include "paint/PaintRecorder.hpp"
 
 #include "affresco/render/Font.hpp"
 

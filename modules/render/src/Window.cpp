@@ -6,9 +6,9 @@
 #include "affresco/render/Window.hpp"
 #include "affresco/render/Label.hpp"
 
-#include "GeometryCache.hpp"
-#include "Renderer.hpp"
-#include "RetainedGeometry.hpp"
+#include "paint/GeometryCache.hpp"
+#include "paint/Renderer.hpp"
+#include "paint/RetainedGeometry.hpp"
 #include "detail/Ppm.hpp"
 #include "platform/Accessibility.hpp"
 #include "platform/Platform.hpp"

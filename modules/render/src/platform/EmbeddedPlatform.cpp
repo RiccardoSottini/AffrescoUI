@@ -4,7 +4,7 @@
 
 #include "platform/EmbeddedPlatform.hpp"
 
-#include "Renderer.hpp"
+#include "paint/Renderer.hpp"
 #include "gl/OpenGlRenderer.hpp"
 
 #include "affresco/core/Executor.hpp"

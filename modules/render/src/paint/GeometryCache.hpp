@@ -4,8 +4,8 @@
 /// @brief detail::GeometryCache: brings the retained geometry of a frame's panels up to date before it is drawn, and
 /// says what that changed on screen (the damage) and which shaders the frame needs.
 
-#include "Renderer.hpp"
-#include "RetainedGeometry.hpp"
+#include "paint/Renderer.hpp"
+#include "paint/RetainedGeometry.hpp"
 
 #include <cstdint>
 #include <optional>
