@@ -3,6 +3,7 @@
 
 #include "oauth/OAuth.hpp"
 
+#include "Random.hpp"
 #include "affresco/core/Sha256.hpp"
 #include "affresco/net/Url.hpp"
 
@@ -11,18 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <stdexcept>
-
-#ifdef _WIN32
-#include <windows.h>
-#include <bcrypt.h>
-#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-#include <cstdlib>
-#elif defined(__EMSCRIPTEN__) // NOLINT(readability-use-concise-preprocessor-directives): #elifdef is C++23
-#include <unistd.h>
-#else
-#include <sys/random.h>
-#endif
+#include <span>
 
 namespace affresco::net::oauth {
 
@@ -32,29 +22,6 @@ using Json = nlohmann::json;
 
 /// The base64url alphabet.
 constexpr std::string_view alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-
-/// @brief Fills bytes from the system's cryptographic generator.
-/// @param into The bytes.
-/// @throws std::runtime_error If the system gives none (never on a working system).
-void fillRandom(std::string& into) {
-#ifdef _WIN32
-	if(BCryptGenRandom(nullptr, reinterpret_cast<PUCHAR>(into.data()), static_cast<ULONG>(into.size()),
-	                   BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0)
-		throw std::runtime_error("the system's random generator failed");
-#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-	arc4random_buf(into.data(), into.size());
-#elif defined(__EMSCRIPTEN__) // the browser's crypto.getRandomValues, at most 256 bytes a call
-	for(std::size_t done = 0; done < into.size(); done += 256)
-		if(getentropy(into.data() + done, std::min<std::size_t>(256, into.size() - done)) != 0)
-			throw std::runtime_error("the system's random generator failed");
-#else
-	for(std::size_t done = 0; done < into.size();) {
-		const ssize_t got = getrandom(into.data() + done, into.size() - done, 0);
-		if(got < 0) throw std::runtime_error("the system's random generator failed");
-		done += static_cast<std::size_t>(got);
-	}
-#endif
-}
 
 /// @brief The value of a hex digit.
 /// @param c The digit.
@@ -186,7 +153,7 @@ std::optional<std::string> readIdToken(std::string_view idToken, const identity:
 
 std::string randomText(std::size_t bytes) {
 	std::string raw(bytes, '\0');
-	fillRandom(raw);
+	fillRandom(std::as_writable_bytes(std::span(raw)));
 	return base64Url(raw);
 }
 

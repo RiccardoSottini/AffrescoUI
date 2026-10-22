@@ -4,6 +4,8 @@
 
 #include "websocket/WebSocketClient.hpp"
 
+#include "Random.hpp"
+
 #include "http/Curl.hpp"
 #include "http/Delivery.hpp"
 #include "http/Http.hpp"
@@ -15,7 +17,7 @@
 #include <deque>
 #include <mutex>
 #include <optional>
-#include <random>
+#include <span>
 #include <string>
 #include <thread>
 #include <utility>
@@ -166,8 +168,9 @@ private:
 	/// @param write Whether to wait for room to write too.
 	/// @param timeout The longest wait.
 	void wait(bool write, std::chrono::milliseconds timeout);
-	/// @brief A random masking key.
-	std::array<std::uint8_t, 4> mask();
+	/// @brief A masking key from the system's generator: RFC 6455 section 10.3 asks that the server can't predict the
+	/// next one, which a seeded engine's keys, all seen on the wire, would let it do.
+	static std::array<std::uint8_t, 4> mask();
 
 	Executor& executor_;                       ///< See the constructor.
 	ClientOptions options_;                    ///< See the constructor.
@@ -179,7 +182,6 @@ private:
 	curl_socket_t socket_ = CURL_SOCKET_BAD;   ///< Its socket (thread only).
 	FrameReader reader_{false, network::defaultMaxBodyBytes}; ///< Reads the server's frames (thread only).
 	std::string output_;                       ///< Bytes encoded and not yet sent (thread only).
-	std::mt19937 random_;                      ///< Masking keys (thread only; seeded on the thread).
 	std::mutex mutex_;                         ///< Guards queue_ and queuedBytes_.
 	std::deque<std::string> queue_;            ///< Messages sent and not yet encoded.
 	std::size_t queuedBytes_ = 0;              ///< Their size.
@@ -188,7 +190,6 @@ private:
 };
 
 void ClientSocket::run(const std::stop_token& stop) {
-	random_.seed(std::random_device{}());
 	std::optional<network::Failure> end = multi_ ? connect(stop) : network::Failure{"network", "Out of memory.", 0, {}};
 	if(!end) end = handshake(stop);
 	if(!end && !stop.stop_requested()) {
@@ -225,9 +226,8 @@ std::optional<network::Failure> ClientSocket::connect(const std::stop_token& sto
 }
 
 std::optional<network::Failure> ClientSocket::handshake(const std::stop_token& stop) {
-	std::random_device device;
 	std::string nonce(16, '\0');
-	for(char& byte : nonce) byte = static_cast<char>(device() & 0xffU);
+	fillRandom(std::as_writable_bytes(std::span(nonce)));
 	const std::string key = base64(nonce);
 	const auto deadline = Clock::now() + openTimeout;
 	if(!sendAll(upgradeRequest(key), deadline))
@@ -382,9 +382,9 @@ void ClientSocket::wait(bool write, std::chrono::milliseconds timeout) {
 }
 
 std::array<std::uint8_t, 4> ClientSocket::mask() {
-	const auto bits = static_cast<std::uint32_t>(random_());
-	return {static_cast<std::uint8_t>(bits), static_cast<std::uint8_t>(bits >> 8), static_cast<std::uint8_t>(bits >> 16),
-	        static_cast<std::uint8_t>(bits >> 24)};
+	std::array<std::uint8_t, 4> key{};
+	fillRandom(std::as_writable_bytes(std::span(key)));
+	return key;
 }
 
 } // namespace

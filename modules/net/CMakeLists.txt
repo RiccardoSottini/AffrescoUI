@@ -1,8 +1,9 @@
 # net: the network (HTTP(S) requests, server-sent events and WebSocket connections over libcurl, and remote peers
 # over WebSocket, RFC 0003)
 affrescoui_module(net
-	# The client, URLs and TCP sockets
+	# The client, URLs, TCP sockets and random bytes
 	src/Client.cpp
+	src/Random.cpp
 	src/Tcp.cpp
 	src/Url.cpp
 	# http/: requests over libcurl, on the worker thread, and the streams they read
