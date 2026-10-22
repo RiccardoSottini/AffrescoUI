@@ -1,7 +1,11 @@
 # screen: affresco::Screen, which puts the other modules together. Its target, affrescoui, is the whole library.
 add_library(affrescoui
-	# The screen itself, and the PNG encoder other modules share
+	# The screen itself (its modules and peers, its channels, its version control), and the PNG encoder other modules
+	# share
 	src/Screen.cpp
+	src/ScreenImpl.cpp
+	src/ScreenChannels.cpp
+	src/ScreenVersions.cpp
 	src/Png.cpp
 	# pictures: drawing off screen, the evidence a proposal carries, and the inspector's picture of a screen
 	src/pictures/OffscreenImages.cpp
