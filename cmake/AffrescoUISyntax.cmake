@@ -49,11 +49,13 @@ target_include_directories(affrescoui_syntax SYSTEM PRIVATE ${tree_sitter_SOURCE
 target_compile_definitions(affrescoui_syntax PRIVATE _POSIX_C_SOURCE=200112L _DEFAULT_SOURCE _BSD_SOURCE
 	_DARWIN_C_SOURCE)
 set_target_properties(affrescoui_syntax PROPERTIES C_STANDARD 11 POSITION_INDEPENDENT_CODE ON)
-# Their warnings are not ours to fix
+# Their warnings are not ours to fix, nor that tree-sitter calls an external scanner's `void* f()` through a
+# `void* (*)(void)`, which clang's sanitizer for function types reports though every ABI calls it the same
 if(MSVC)
 	set_source_files_properties(${syntax_sources} PROPERTIES COMPILE_OPTIONS "/w" SKIP_LINTING ON)
 else()
-	set_source_files_properties(${syntax_sources} PROPERTIES COMPILE_OPTIONS "-w" SKIP_LINTING ON)
+	set_source_files_properties(${syntax_sources} PROPERTIES
+		COMPILE_OPTIONS "-w;$<$<C_COMPILER_ID:Clang,AppleClang>:-fno-sanitize=function>" SKIP_LINTING ON)
 endif()
 set_target_properties(affrescoui_syntax PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 # TypeScript's shared scanner (common/scanner.h) looks for tree_sitter/parser.h beside it
