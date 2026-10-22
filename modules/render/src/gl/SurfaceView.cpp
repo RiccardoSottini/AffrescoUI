@@ -72,18 +72,18 @@ void SurfaceView::paint(Painter& painter) const {
 
 void SurfaceView::mouseMoveEvent(const MouseMoveEvent& event) {
 	Panel::mouseMoveEvent(event);
-	push({PointerKind::move, event.position, MouseButton::Left, {}});
+	push({PointerKind::move, event.position, MouseButton::Left, {}, {}});
 }
 
 void SurfaceView::mouseButtonEvent(const MouseButtonEvent& event) {
 	Panel::mouseButtonEvent(event);
 	const PointerKind kind = event.action == Action::Release ? PointerKind::release : PointerKind::press;
-	push({kind, event.position, event.button, {}});
+	push({kind, event.position, event.button, {}, event.mods});
 }
 
 void SurfaceView::scrollEvent(const ScrollEvent& event) {
 	Panel::scrollEvent(event);
-	push({PointerKind::scroll, event.position, MouseButton::Left, event.offset});
+	push({PointerKind::scroll, event.position, MouseButton::Left, event.offset, {}});
 }
 
 // Window units to pixels from the top-left corner; the oldest events go first when too many wait

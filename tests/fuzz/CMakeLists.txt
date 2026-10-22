@@ -100,3 +100,5 @@ endif()
 # Other formats (SCREEN_FORMAT.md): the A2UI and Adaptive Cards adapters
 affrescoui_fuzzer(adapters affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(syntax affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
+# Modello imports glTF files (examples/modello)
+affrescoui_fuzzer(gltf affrescoui::scene3d nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

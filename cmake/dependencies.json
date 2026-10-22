@@ -682,6 +682,113 @@
         "affrescoui::services"
       ],
       "scope": "runtime"
+    },
+    {
+      "name": "cgltf",
+      "version": "1.15",
+      "purpose": "glTF 2.0 parser and validator",
+      "kind": "downloaded",
+      "url": "https://raw.githubusercontent.com/jkuhlmann/cgltf/360db1a95480fe102ae9c69b27c5d101167ff5ba/cgltf.h",
+      "sha256": "e378a21c084bf1f288bb799de827bb26906efb024255f1ecf1705ea13f11c6ec",
+      "pinnedIn": "cmake/AffrescoUIGltf.cmake",
+      "license": "MIT",
+      "licenseNote": "MIT License, © 2018-2021 Johannes Kuhlmann, its JSON parser jsmn © 2010 Serge A. Zaitsev (in `cgltf.h`); one header compiled into the scene3d module",
+      "usedBy": [
+        "affrescoui::scene3d"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "glTF sample: BoxAnimated",
+      "version": "glTF-Sample-Assets",
+      "purpose": "sample model, Modello's samples and the scene3d tests",
+      "kind": "vendored",
+      "url": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/BoxAnimated",
+      "files": [
+        {
+          "path": "examples/modello/samples/BoxAnimated/BoxAnimated.glb",
+          "sha256": "ad0d18d9a21df0d7c2bd3890e60ce69d60d39a55d9b82bacea7e77ac9e583839"
+        },
+        {
+          "path": "examples/modello/samples/BoxAnimated/LICENSE.md",
+          "sha256": "61f933788315aa5fea2023ff1c8e4350012f8bf57e9161f23291cbddb7b4d355"
+        },
+        {
+          "path": "examples/modello/samples/BoxAnimated/README.md",
+          "sha256": "52304c247888cc8a0acd4b97a3e779a47f23adf04e8b17871fe2b12868604b25"
+        }
+      ],
+      "license": "CC-BY-4.0",
+      "licenseNote": "CC BY 4.0, © 2017 Cesium (`examples/modello/samples/BoxAnimated/LICENSE.md`)",
+      "usedBy": [
+        "examples/modello",
+        "tests/unit"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "glTF sample: AnimatedCube",
+      "version": "glTF-Sample-Assets",
+      "purpose": "sample model, Modello's samples and the scene3d tests",
+      "kind": "vendored",
+      "url": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/AnimatedCube",
+      "files": [
+        {
+          "path": "examples/modello/samples/AnimatedCube/AnimatedCube.gltf",
+          "sha256": "59a3c451a5167b8ac4b59d61d4b94b2b7a215ee827efaed75629677a1217b552"
+        },
+        {
+          "path": "examples/modello/samples/AnimatedCube/AnimatedCube.bin",
+          "sha256": "82de770fc82b48a77a33bb26abd4d7e75620491b36ddf98e8dca69fa73dd798c"
+        },
+        {
+          "path": "examples/modello/samples/AnimatedCube/AnimatedCube_BaseColor.png",
+          "sha256": "0750d5a03c1bebc640571e309f66c6e88efbff2ef4c120619466a7014551bb9a"
+        },
+        {
+          "path": "examples/modello/samples/AnimatedCube/LICENSE.md",
+          "sha256": "9f030687318e81c42dff28604db2df37543e08a0fb5fb98eb24f49f10a5d5595"
+        },
+        {
+          "path": "examples/modello/samples/AnimatedCube/README.md",
+          "sha256": "047307ab57d45cc672771e3ebdb46b98d06efe37d9631ac7e401d36d6cd4e5c2"
+        }
+      ],
+      "license": "CC0-1.0 AND CC-BY-4.0",
+      "licenseNote": "Model: CC0 1.0, © 2017 UX3D; its metadata files: CC BY 4.0 (`examples/modello/samples/AnimatedCube/LICENSE.md`)",
+      "usedBy": [
+        "examples/modello",
+        "tests/unit"
+      ],
+      "scope": "runtime"
+    },
+    {
+      "name": "glTF sample: MetalRoughSpheresNoTextures",
+      "version": "glTF-Sample-Assets",
+      "purpose": "sample model, Modello's samples and the scene3d tests",
+      "kind": "vendored",
+      "url": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/MetalRoughSpheresNoTextures",
+      "files": [
+        {
+          "path": "examples/modello/samples/MetalRoughSpheresNoTextures/MetalRoughSpheresNoTextures.glb",
+          "sha256": "5e677f260ec0f366967a6e9545de2f3dab2a160e307b9bcb9d050cd2028f63f8"
+        },
+        {
+          "path": "examples/modello/samples/MetalRoughSpheresNoTextures/LICENSE.md",
+          "sha256": "2b02058be2b2195bddc15240698961aa9487e6b43709549112ed08113772a54f"
+        },
+        {
+          "path": "examples/modello/samples/MetalRoughSpheresNoTextures/README.md",
+          "sha256": "098845806e1c120cbbdb7c05c0cf4d78d577a1eb62c8eb375cd1218d211bee79"
+        }
+      ],
+      "license": "CC0-1.0 AND CC-BY-4.0",
+      "licenseNote": "Model: CC0 1.0, © 2019 Public; its metadata files: CC BY 4.0 (`examples/modello/samples/MetalRoughSpheresNoTextures/LICENSE.md`)",
+      "usedBy": [
+        "examples/modello",
+        "tests/unit"
+      ],
+      "scope": "runtime"
     }
   ]
 }
