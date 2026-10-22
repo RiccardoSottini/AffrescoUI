@@ -330,20 +330,23 @@ private:
 		if(needs.contains("format") && needs["format"] != document_.value("version", json()))
 			problem(at + ".format", std::format("needs format {}", needs["format"].dump()));
 		for(const auto& point : needs.value("points", json::array())) checkPoint(point.get<std::string>(), at + ".points");
-		for(const auto& [exported, wanted] : needs.value("exports", json::object()).items()) {
+		for(const json entries = needs.value("exports", json::object());
+		    const auto& [exported, wanted] : entries.items()) {
 			if(!exports_.contains(exported)) problem(at + ".exports." + exported, "the app doesn't export it");
 			else if(exports_[exported].value("type", json()) != wanted["type"])
 				problem(at + ".exports." + exported, std::format("needs a {}, the app exports a {}", wanted["type"].dump(),
 				                                                 exports_[exported].value("type", json()).dump()));
 		}
 		for(const char* section : {"services", "connections"})
-			for(const auto& [declared, methods] : needs.value(section, json::object()).items())
+			for(const json entries = needs.value(section, json::object());
+			    const auto& [declared, methods] : entries.items())
 				if(!document_.contains(section) || !document_[section].contains(declared))
 					problem(std::format("{}.{}.{}", at, section, declared),
 					        std::format("the app declares no {} '{}' (a host must grant it: a revision can't)",
 					                    std::string_view(section).substr(0, std::string_view(section).size() - 1),
 					                    declared));
-		for(const auto& [other, range] : needs.value("features", json::object()).items()) {
+		for(const json entries = needs.value("features", json::object());
+		    const auto& [other, range] : entries.items()) {
 			if(!merged_.contains(other))
 				problem(at + ".features." + other, enabled(other) ? "can't be merged" : "not installed, or disabled");
 			else if(!satisfies(merged_.at(other), range.get<std::string>()))
@@ -374,7 +377,8 @@ private:
 		for(const std::string_view section : prefixedSections)
 			if(const auto key = keyStartingWith(screen_.value(section, json()), name + "."))
 				problem(place, std::format("the namespace '{}' is taken: the app's {} has '{}'", name, section, *key));
-		for(const auto& [point, nodes] : provides.value("views", json::object()).items()) {
+		for(const json entries = provides.value("views", json::object());
+		    const auto& [point, nodes] : entries.items()) {
 			if(!points_.contains(point))
 				problem(place + ".views." + point, std::format("the app has no contribution point '{}'", point));
 			for(const auto& [id, node] : nodes.items()) {
@@ -391,10 +395,10 @@ private:
 	/// @param provides What it provides.
 	/// @param place Its place.
 	void checkConflicts(const std::string& name, const json& provides, const std::string& place) {
-		for(const auto& [key, handler] : provides.value("keys", json::object()).items())
+		for(const json entries = provides.value("keys", json::object()); const auto& [key, handler] : entries.items())
 			if(const auto owner = keyOwners_.find(key); owner != keyOwners_.end())
 				problem(place + ".keys." + key, owner->second + " binds it already (give one a \"when\")");
-		for(const auto& [menu, items] : provides.value("menus", json::object()).items()) {
+		for(const json entries = provides.value("menus", json::object()); const auto& [menu, items] : entries.items()) {
 			if(!screen_.contains("menus") || !screen_["menus"].contains(menu)) {
 				problem(place + ".menus." + menu, std::format("the app has no menu '{}'", menu));
 				continue;
@@ -422,21 +426,22 @@ private:
 		if(provides.contains("state")) screen_["state"][name] = provides["state"];
 		if(provides.contains("computed") && !provides["computed"].empty()) mergeComputed(name, provides["computed"]);
 		for(const std::string_view section : prefixedSections)
-			for(const auto& [key, value] : provides.value(section, json::object()).items())
+			for(const json entries = provides.value(section, json::object());
+			    const auto& [key, value] : entries.items())
 				screen_[section][name + "." + key] = value;
-		for(const auto& [key, handler] : provides.value("keys", json::object()).items()) {
+		for(const json entries = provides.value("keys", json::object()); const auto& [key, handler] : entries.items()) {
 			screen_["keys"][key] = handler;
 			keyOwners_.emplace(key, std::format("feature '{}'", name));
 		}
-		for(const auto& [menu, items] : provides.value("menus", json::object()).items())
+		for(const json entries = provides.value("menus", json::object()); const auto& [menu, items] : entries.items())
 			for(const auto& [item, entry] : (items.contains("items") ? items["items"] : items).items()) {
 				json merged = entry;
 				if(!merged.contains("run") && !merged.contains("submenu")) merged["run"] = name + "." + item;
 				screen_["menus"][menu][name + "." + item] = std::move(merged);
 			}
-		for(const auto& [point, nodes] : provides.value("views", json::object()).items())
+		for(const json entries = provides.value("views", json::object()); const auto& [point, nodes] : entries.items())
 			for(const auto& [id, node] : nodes.items()) mergeView(point, id, node);
-		for(const auto& [key, entry] : provides.value("exports", json::object()).items())
+		for(const json entries = provides.value("exports", json::object()); const auto& [key, entry] : entries.items())
 			exports_[name + "." + key] = entry;
 		merged_.emplace(name, record["release"].get<std::string>());
 	}

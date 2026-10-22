@@ -279,19 +279,21 @@ json contributionsOf(const json& document, const json& parts) {
 
 std::string contributionsText(const json& contributions) {
 	std::string text;
-	for(const auto& [name, point] : contributions.value("points", json::object()).items()) {
+	for(const json entries = contributions.value("points", json::object());
+	    const auto& [name, point] : entries.items()) {
 		std::string receives;
 		for(const json& exported : point.value("receives", json::array()))
 			receives += (receives.empty() ? "" : ", ") + exported.get<std::string>();
 		text += std::format("point {} ({}): receives {}\n", name, point.value("slot", ""),
 		                    receives.empty() ? "nothing" : receives);
 	}
-	for(const auto& [name, contract] : contributions.value("exports", json::object()).items())
+	for(const json entries = contributions.value("exports", json::object());
+	    const auto& [name, contract] : entries.items())
 		text += std::format("export {}: {}\n", name, contractText(contract));
 	for(const json& part : contributions.value("parts", json::array())) {
 		text +=
 		    std::format("part {} {}: {}\n", part.value("name", ""), part.value("release", ""), part.value("title", ""));
-		for(const auto& [need, wanted] : part.value("needs", json::object()).items())
+		for(const json entries = part.value("needs", json::object()); const auto& [need, wanted] : entries.items())
 			text += std::format("  needs {}: {}{}\n", need, contractText(wanted),
 			                    wanted.value("optional", false) ? " (optional)" : "");
 	}

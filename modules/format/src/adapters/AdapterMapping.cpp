@@ -152,7 +152,7 @@ std::string contractMismatch(const json& need, const json& entry) {
 	if(need.contains("type") && need["type"] != entry.value("type", json()))
 		return std::format("needs a {}, the host's is a {}", need["type"].dump(), entry.value("type", json()).dump());
 	const json have = entry.value("item", json::object());
-	for(const auto& [field, type] : need.value("item", json::object()).items()) {
+	for(const json entries = need.value("item", json::object()); const auto& [field, type] : entries.items()) {
 		if(!have.contains(field)) return std::format("its items have no field '{}'", field);
 		if(have[field] != type)
 			return std::format("its items' '{}' is a {}, needs a {}", field, have[field].dump(), type.dump());
@@ -183,7 +183,7 @@ std::string actionWhy(const std::string& name, const json& host) {
 /// @return Their names.
 std::vector<std::string> pointsOfSlot(const json& host, const std::string& slot) {
 	std::vector<std::string> found;
-	for(const auto& [point, entry] : host.value("points", json::object()).items())
+	for(const json entries = host.value("points", json::object()); const auto& [point, entry] : entries.items())
 		if(entry.is_object() && entry.value("slot", "") == slot) found.push_back(point);
 	return found;
 }
@@ -232,7 +232,8 @@ std::pair<json, std::string> bindDirectly(const std::string& name, const json& n
 /// @return The names.
 Names rootsFor(const json& need) {
 	Names roots(valueRoots.begin(), valueRoots.end());
-	for(const auto& [argument, type] : need.value("arguments", json::object()).items()) roots.insert(argument);
+	for(const json entries = need.value("arguments", json::object()); const auto& [argument, type] : entries.items())
+		roots.insert(argument);
 	return roots;
 }
 
@@ -307,7 +308,8 @@ std::string adaptAction(const json& need, const json& binding, const json& expor
 	if(target.empty()) return {};
 	json with = binding.value("with", json::object());
 	if(!binding.contains("action"))
-		for(const auto& [argument, type] : need.value("arguments", json::object()).items())
+		for(const json entries = need.value("arguments", json::object());
+		    const auto& [argument, type] : entries.items())
 			with[argument] = "{{" + argument + "}}";
 	json step = {{"run", target}};
 	if(!with.empty()) step["with"] = std::move(with);
@@ -418,7 +420,7 @@ AdaptedFeature adaptFeature(const std::string& name, const json& record, const j
 			if(key.starts_with("adapted."))
 				adapted.problems.push_back("features." + name + ".provides.actions." + key +
 				                           ": \"adapted.\" names are the adapter's");
-	for(const auto& [need, wanted] : record.value("needs", json::object()).items())
+	for(const json entries = record.value("needs", json::object()); const auto& [need, wanted] : entries.items())
 		adaptNeed(name, need, wanted, bindings.contains(need) ? &bindings[need] : nullptr, exports, adapted);
 	std::ranges::stable_sort(adapted.replacements, std::ranges::greater{},
 	                         [](const auto& item) { return item.first.size(); });
