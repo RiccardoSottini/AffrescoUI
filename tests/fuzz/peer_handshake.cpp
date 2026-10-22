@@ -24,7 +24,7 @@ void checkUpgrade(std::string_view head) {
 	const auto end = peer::headEnd(head);
 	if(end && *end > head.size()) affresco::fuzz::broken("the head ends within the bytes");
 	const peer::Upgrade upgrade = peer::parseUpgrade(end ? head.substr(0, *end) : head);
-	constexpr std::array statuses{0, 400, 426, 431};
+	constexpr std::array statuses{0, 400, 401, 426, 431}; // 401: a malformed bearer token
 	if(std::ranges::find(statuses, upgrade.status) == statuses.end()) affresco::fuzz::broken("a known status");
 	if(upgrade.status != 0) {
 		if(upgrade.reason.empty()) affresco::fuzz::broken("a refusal says why");

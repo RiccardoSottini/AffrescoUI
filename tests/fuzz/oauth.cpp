@@ -40,7 +40,11 @@ void readTokens(std::string_view body, bool issuer) {
 	const auto result = oauth::readTokens(body, provider(issuer), issuer ? "n0nce" : "", now);
 	if(const auto* tokens = std::get_if<oauth::Tokens>(&result)) {
 		if(tokens->access.empty()) affresco::fuzz::broken("tokens have an access token");
-		if(tokens->expires <= now) affresco::fuzz::broken("an access token expires after now");
+		if(tokens->access.size() > oauth::maxTokenBytes || tokens->refresh.size() > oauth::maxTokenBytes ||
+		   tokens->account.size() > oauth::maxAccountBytes)
+			affresco::fuzz::broken("tokens are within their limits");
+		if(tokens->expires <= now || tokens->expires > now + std::chrono::seconds(oauth::maxLifetime))
+			affresco::fuzz::broken("a token expires within the longest lifetime");
 	} else {
 		const auto& error = std::get<std::string>(result);
 		if(error.empty()) affresco::fuzz::broken("a refused answer says why");
@@ -61,8 +65,10 @@ void readDeviceCodes(std::string_view body) {
 	const auto result = oauth::readDeviceCodes(body);
 	if(const auto* codes = std::get_if<oauth::DeviceCodes>(&result)) {
 		if(codes->deviceCode.empty() || codes->userCode.empty()) affresco::fuzz::broken("device codes have both codes");
-		if(codes->interval.count() < 1 || codes->lifetime.count() < 1)
-			affresco::fuzz::broken("device codes poll at a positive interval for a positive time");
+		using std::chrono::seconds;
+		if(codes->interval < seconds(1) || codes->interval > seconds(60) || codes->lifetime < seconds(10) ||
+		   codes->lifetime > seconds(3600))
+			affresco::fuzz::broken("device codes poll every 1..60 s and last 10 s..1 h");
 	} else if(std::get<std::string>(result).empty()) {
 		affresco::fuzz::broken("refused device codes say why");
 	}
@@ -76,9 +82,10 @@ void readEncodings(std::string_view text) {
 		const auto again = oauth::decodeBase64Url(oauth::base64Url(*bytes));
 		if(!again || *again != *bytes) affresco::fuzz::broken("base64url read back writes the same bytes");
 	}
-	static_cast<void>(oauth::queryField(text, "code"));
-	static_cast<void>(oauth::queryField(text, "state"));
-	static_cast<void>(oauth::errorCode(text));
+	for(const char* name : {"state", "code", "error"})
+		if(const auto value = oauth::queryField(text, name); value && value->size() > text.size())
+			affresco::fuzz::broken("a field is never longer than its query");
+	if(oauth::errorCode(text).size() > 64) affresco::fuzz::broken("an error code is short");
 }
 
 } // namespace

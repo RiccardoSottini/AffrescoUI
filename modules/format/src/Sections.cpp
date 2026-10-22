@@ -120,10 +120,10 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add(persistSection());
 	registry.add({.name = "include", .inDocument = false}); // merged when the file is read (Screen)
 	registry.add(permissionsSection());
-	registry.add({"root", nullptr, "missing \"root\""});
 	registry.add({"features", checkFeaturesSection}); // installed features, merged by Composition (FeatureManifest.hpp)
 	registry.add({"exports", checkExportsSection});   // what features read as app.<name>
 	registry.add({"imports", checkImportsSection});   // aliases for features' components
+	registry.add({"root", nullptr, "missing \"root\""});
 }
 
 } // namespace affresco::format

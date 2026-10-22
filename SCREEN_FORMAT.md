@@ -77,11 +77,20 @@ Every part of the format follows these, and so should every extension:
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
+| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu). |
+<!-- end generated -->
+
+### Capabilities and features
+
+The sections the host grants and revisions can't widen, and the installed features.
+
+<!-- generated: capabilities -->
+| Key | Meaning |
+|---|---|
 | `channels` | Programs the screen talks to (see Channels). A capability: revisions can't change it. |
 | `services` | `{"files": {"provider": "fs", "root": "workspace"}}`: services that `invoke` and `subscribe` steps talk to, read by the application's providers (`jsonrpc`, `process`, `fs`); their status is the `services` variable. A capability: revisions can't change it. |
 | `connections` | `{"api": {"url": "https://api.example.com/v1", "operations": {"getProject": {"path": "/projects/{id}"}}}}`: servers that `request` and `subscribe` steps talk to, each request built from its declared operation (method, `path` with `{name}` segments from `with`, `query`, `body`, `headers`, `effect`, `stream`, `result`, `timeout`, `mock`); a `ws://`/`wss://` connection has `messages` and runs the actions `name:open`, `name:<type>`, `name:error`, `name:closed`. The host allows the origins (`network.allow`). `connections.<name>` is `{online, pending, state, error}`. `auth` signs its requests in: an object declares an OAuth 2 provider (`flow` `browser` or `device`, `signInUrl` or `deviceUrl`, `tokenUrl`, `clientId`, `scopes`), a string names another connection's; the `signIn` step signs in, the host adds the token, and `auth.<name>` is `{state, account, expires, error}`, never a token. A capability: revisions use its operations, never add them. |
 | `persist` | `["state.habits", ...]`: state paths kept on disk across restarts. A capability: revisions can't change it. |
-| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu). |
 | `permissions` | Who may change the running screen (see [Version control](VERSION_CONTROL.md)). Revisions can't change it. |
 | `features` | `{"wordCount": {"release": "1.0.0", "enabled": true, "order": 10, "requires": {...}, "provides": {...}}}`: installed features, each kept whole in its record (with `title`, `source`, `digest` and `publisher`). The runtime merges the enabled ones in `order`, under their names (`state.wordCount`, `wordCount.toggle`); views join the nodes whose `point` they name. Install, enable, disable and remove are revisions on `/features/<name>`. A feature can't bring a capability or a control step. |
 | `exports` | `{"editor.text": {"type": "string", "value": "{{state.text}}"}}`: values features read as `app.editor.text`. |
@@ -164,6 +173,7 @@ parent, later siblings on top of earlier ones.
 | `when` | Build the node only if the value is truthy. |
 | `let` | `{ "on": "{{tag == state.filter}}" }`: named values for the node and its children, evaluated in order. |
 | `use`, `with` | Build a component: `{ "use": "chip", "with": { "label": "{{tag}}" } }` (see Components). |
+| `point` | `"point": "statusBar.right"`: features' views for that point become the node's last children. |
 | `check` | `{ "rule": "{{len(value) >= 3}}", "message": "Too short", "value": ... }`: `value` defaults to the node's bound value; gives the node and its children `valid` and `error`. |
 | `every` | `{ "ms": 1000, "do": steps }`: runs while the node exists. |
 | `drag` | `{ "data": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`. |
@@ -863,6 +873,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
 <!-- end generated -->
+
+### Control steps and paths
 
 **Control steps** (`call`, `send`, `connect`, `patch` and the review and history steps) can be written in the screen
 file, but no revision may add or change them: an agent can rearrange how the app uses the outside world and its own

@@ -62,7 +62,7 @@ std::vector<std::string_view> fields(std::string_view record, std::size_t count)
 /// @param allowed The set.
 /// @return Whether it is.
 bool only(std::string_view field, std::string_view allowed) noexcept {
-	return std::all_of(field.begin(), field.end(), [allowed](char c) { return allowed.find(c) != std::string_view::npos; });
+	return std::all_of(field.begin(), field.end(), [allowed](char c) { return allowed.contains(c); });
 }
 
 /// @brief Checks a field: a length and a set of characters.
@@ -185,7 +185,7 @@ void readHeader(std::string_view header, json& branch) {
 	const std::size_t space = header.find(' ');
 	if(space == std::string_view::npos) malformed("a header without a value");
 	const std::string_view key = header.substr(0, space), value = header.substr(space + 1);
-	if(value.empty() || value.size() > 1024 || value.find('\n') != std::string_view::npos) malformed("a bad header");
+	if(value.empty() || value.size() > 1024 || value.contains('\n')) malformed("a bad header");
 	if(key == "branch.oid") {
 		if(value != "(initial)") expect(value, {40, 64}, hexadecimal, "commit");
 		branch["oid"] = std::string(value);
@@ -234,7 +234,7 @@ json parseBranches(std::string_view output, const GitLimits& limits) {
 	for(const std::string_view line : records(output, '\n', limits.entries)) {
 		if(line.size() < 3 || (line[0] != '*' && line[0] != ' ') || line[1] != '\0') malformed("a bad branch line");
 		const std::string_view name = line.substr(2);
-		if(name.size() > 1024 || name.find('\0') != std::string_view::npos) malformed("a bad branch name");
+		if(name.size() > 1024 || name.contains('\0')) malformed("a bad branch name");
 		const bool here = line[0] == '*';
 		if(here) current = name;
 		branches.push_back({{"id", std::string(name)}, {"label", std::string(name)}, {"current", here}});

@@ -5,15 +5,23 @@
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <fstream>
 #include <iterator>
 #include <map>
 #include <memory>
+#include <random>
 #include <stdexcept>
 #include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
+
+#ifndef _WIN32
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 namespace forge {
 
@@ -138,6 +146,65 @@ std::string readInFolder(const fs::path& root, const std::string& relative, std:
 	std::ifstream in(path, std::ios::binary);
 	if(!in) throw std::runtime_error("the file can't be read: " + relative);
 	return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+}
+
+namespace {
+
+/// @brief Creates a new file and writes it; fails rather than open what is already there, a link included.
+/// @param file The new file.
+/// @param text Its bytes.
+/// @param permissions Its permissions.
+/// @return Whether it was created and written; if it was created but not written, it is removed.
+bool createWith(const fs::path& file, const std::string& text, fs::perms permissions) {
+#ifdef _WIN32
+	if(fs::exists(fs::symlink_status(file))) return false;
+	std::ofstream out(file, std::ios::binary | std::ios::trunc);
+	std::error_code error;
+	if(!out || !out.write(text.data(), static_cast<std::streamsize>(text.size())) || !out.flush()) {
+		out.close();
+		fs::remove(file, error);
+		return false;
+	}
+	out.close();
+	fs::permissions(file, permissions, error);
+	return true;
+#else
+	const int descriptor = ::open(file.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+	if(descriptor < 0) return false;
+	bool written = ::fchmod(descriptor, static_cast<mode_t>(permissions) & 07777) == 0;
+	for(std::size_t at = 0; written && at < text.size();) {
+		const ssize_t count = ::write(descriptor, text.data() + at, text.size() - at);
+		if(count > 0) at += static_cast<std::size_t>(count);
+		else written = count < 0 && errno == EINTR;
+	}
+	written = ::close(descriptor) == 0 && written;
+	if(!written) ::unlink(file.c_str());
+	return written;
+#endif
+}
+
+} // namespace
+
+std::optional<std::string> writeInFolder(const fs::path& path, const std::string& text) {
+	std::error_code error;
+	const fs::file_status status = fs::status(path, error);
+	const fs::perms permissions = error ? fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
+	                                          fs::perms::others_read
+	                                    : status.permissions();
+	std::random_device random;
+	for(int attempt = 0; attempt < 8; ++attempt) {
+		fs::path temporary = path;
+		temporary += ".forge-" + std::to_string(random()) + "~";
+		if(!createWith(temporary, text, permissions)) {
+			if(fs::exists(fs::symlink_status(temporary, error))) continue; // a name taken: draw another
+			return "the file can't be written";
+		}
+		fs::rename(temporary, path, error);
+		if(!error) return std::nullopt;
+		fs::remove(temporary, error);
+		return "the file can't be replaced";
+	}
+	return "the file can't be written";
 }
 
 } // namespace forge

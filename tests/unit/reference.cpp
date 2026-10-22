@@ -87,3 +87,11 @@ TEST_CASE("reference: SCREEN_FORMAT.md's tables are written between their marker
 	CHECK_THROWS_AS((void)screen.referenceTables("<!-- generated: none -->\n<!-- end generated -->"),
 	                std::invalid_argument);
 }
+
+TEST_CASE("reference: a key two types share takes the values of both, and a feature's point is a node key") {
+	const json node = emptyScreen().schema()["$defs"]["v1"]["node"]["properties"];
+	const std::string mode = node["mode"].dump(); // diff's and colorPicker's (a regression: one hid the other)
+	CHECK(mode.find("inline") != std::string::npos);
+	CHECK(mode.find("wheel") != std::string::npos);
+	CHECK(node.contains("point")); // features' contribution points (a regression: the schema refused them)
+}

@@ -127,25 +127,6 @@ std::vector<affresco::services::SearchFile> sorted(const Gathered& gathered) {
 	return files;
 }
 
-/// @brief Writes a file atomically: into a file beside it, then renamed over it.
-/// @param path The file.
-/// @param text Its new bytes.
-/// @return An error, or std::nullopt.
-std::optional<std::string> writeAtomically(const fs::path& path, const std::string& text) {
-	fs::path temporary = path;
-	temporary += ".forge-replace";
-	{
-		std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-		if(!out || !out.write(text.data(), static_cast<std::streamsize>(text.size())) || !out.flush())
-			return "the file can't be written";
-	}
-	std::error_code error;
-	fs::rename(temporary, path, error);
-	if(!error) return std::nullopt;
-	fs::remove(temporary, error);
-	return "the file can't be replaced";
-}
-
 /// @brief Replaces the matches in one file of the folder.
 /// @param root The folder.
 /// @param file The file, relative to it.
@@ -169,7 +150,7 @@ std::optional<std::string> replaceInFile(const fs::path& root, const std::string
 	affresco::services::Replaced replaced;
 	if(auto failed = affresco::services::replaceAll(text, pattern, replacement, replaced)) return failed;
 	count = replaced.count;
-	return count ? writeAtomically(path, replaced.text) : std::nullopt;
+	return count ? writeInFolder(path, replaced.text) : std::nullopt;
 }
 
 /// @brief A list of paths from the arguments.

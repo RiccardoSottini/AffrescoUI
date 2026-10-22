@@ -252,7 +252,7 @@ TEST_CASE("search: .gitignore rules apply under their folder, the last one that 
 }
 
 TEST_CASE("search: a folder's matches, with lines, columns and previews, filtered") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "one needle\ntwo\nneedle and needle\n");
 	folder.write("src/b.cpp", "// needle\n");
 	folder.write("src/c.log", "needle\n");
@@ -288,7 +288,7 @@ TEST_CASE("search: a folder's matches, with lines, columns and previews, filtere
 }
 
 TEST_CASE("search: the wrong pattern, glob or folder is refused") {
-	TempFolder folder;
+	const TempFolder folder;
 	CHECK(search(folder.path, {.pattern = "(", .options = {.regex = true}}).error.value_or("").starts_with("pattern"));
 	CHECK(search(folder.path, {.pattern = "a", .include = std::string(300, 'x')})
 	          .error.value_or("")
@@ -302,7 +302,7 @@ TEST_CASE("search: the wrong pattern, glob or folder is refused") {
 }
 
 TEST_CASE("search: the caps hold, on one thread or many") {
-	TempFolder folder;
+	const TempFolder folder;
 	for(int file = 0; file < 40; ++file) folder.write("f" + std::to_string(file) + ".txt", "x x x\n");
 	for(const unsigned threads : {1u, 8u}) {
 		const Found all = search(folder.path, {.pattern = "x", .threads = threads});
@@ -318,7 +318,7 @@ TEST_CASE("search: the caps hold, on one thread or many") {
 }
 
 TEST_CASE("search: a stop request ends it, cancelled") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "x\n");
 	std::stop_source stop;
 	stop.request_stop();
@@ -329,7 +329,7 @@ TEST_CASE("search: a stop request ends it, cancelled") {
 }
 
 TEST_CASE("search: a long line's preview is the part around the match, cut at code points") {
-	TempFolder folder;
+	const TempFolder folder;
 	std::string line;
 	for(int index = 0; index < 400; ++index) line += "é";
 	folder.write("long.txt", line + "needle" + line + "\n");
@@ -365,7 +365,7 @@ TEST_CASE("search: replaceAll replaces plain text, groups and empty matches, wit
 }
 
 TEST_CASE("search: a screen finds through the search service, then writes a replaced file through fs") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("work/a.txt", "a needle\n");
 	folder.write("work/b/c.txt", "needle needle\n");
 	PumpedExecutor executor;
@@ -394,7 +394,7 @@ TEST_CASE("search: a screen finds through the search service, then writes a repl
 }
 
 TEST_CASE("search: Forge's search builds a results tree by file, skipping dependencies") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("src/main.cpp", "int main() {\n\treturn 0;\n}\n");
 	folder.write("README.md", "returns nothing\n");
 	folder.write("node_modules/lib.js", "return 1;\n");
@@ -424,7 +424,7 @@ TEST_CASE("search: Forge's search builds a results tree by file, skipping depend
 }
 
 TEST_CASE("search: Forge's search refuses what it can't run, and stops when cancelled") {
-	TempFolder folder;
+	const TempFolder folder;
 	for(int file = 0; file < 64; ++file)
 		folder.write("f" + std::to_string(file) + ".txt", std::string(1000, 'a') + "\n");
 	const auto never = [] { return false; };
@@ -443,7 +443,7 @@ TEST_CASE("search: Forge's search refuses what it can't run, and stops when canc
 }
 
 TEST_CASE("search: Forge's replace writes the listed files, skipping unsaved and outside ones") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "one two one\n");
 	folder.write("b.txt", "one\n");
 	folder.write("c.txt", "none here\n");
@@ -464,9 +464,26 @@ TEST_CASE("search: Forge's replace writes the listed files, skipping unsaved and
 	CHECK(folder.read("a.txt") == "oNE two oNE\n");
 	CHECK(folder.read("b.txt") == "one\n");
 	CHECK(folder.read("c.txt") == "none here\n");
-	CHECK(!std::filesystem::exists(folder.path / "a.txt.forge-replace"));
+	CHECK(std::distance(std::filesystem::directory_iterator(folder.path), {}) == 4); // nothing left beside them
 	CHECK(!std::filesystem::exists(folder.path.parent_path() / "escape.txt"));
 	CHECK_THROWS(forge::replaceInFolder(folder.path, {{"pattern", "o"}, {"files", "a.txt"}}));
 	CHECK_THROWS(forge::replaceInFolder(folder.path, {{"pattern", "o"}, {"replacement", std::string(70000, 'x')}}));
 	CHECK_THROWS(forge::replaceInFolder({}, {{"pattern", "o"}}));
 }
+
+#ifndef _WIN32
+// Found in the security review of wave 6: replace wrote through "<file>.forge-replace", so a link left there by
+// whoever made the folder (a cloned repository) had the replaced text written over the file it pointed to
+TEST_CASE("search: Forge's replace writes nothing through a link planted beside the file") {
+	TempFolder folder, elsewhere;
+	folder.write("a.txt", "one\n");
+	elsewhere.write("target", "untouched");
+	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "a.txt.forge-replace");
+	const json replaced =
+	    forge::replaceInFolder(folder.path, {{"pattern", "one"}, {"replacement", "two"}, {"files", {"a.txt"}}});
+	CHECK(replaced["changed"] == json{"a.txt"});
+	CHECK(folder.read("a.txt") == "two\n");
+	CHECK(elsewhere.read("target") == "untouched");
+	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "a.txt"));
+}
+#endif

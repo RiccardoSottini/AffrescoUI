@@ -132,6 +132,23 @@ TEST_CASE("review policy: an author never approves its own proposal, whatever it
 	CHECK(repository.proposals()[0].approvals.empty());
 }
 
+TEST_CASE("review policy: one channel's approvals count once, whatever names it gives its reviewers") {
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository repository(rules, policyScreen({{"approvals", 2}}));
+	const affresco::RevisionResult proposed =
+	    repository.submit({{"author", "agent"}, {"set", {{"#title/text", "Today"}}}});
+	REQUIRE(proposed.status == RevisionStatus::Proposed);
+
+	CHECK_FALSE(repository.accept(proposed.proposal, {"studio/bob", proposed.commit, false}));
+	CHECK_FALSE(repository.accept(proposed.proposal, {"studio/anna", proposed.commit, false}));
+	CHECK_FALSE(repository.accept(proposed.proposal, {"studio", proposed.commit, false}));
+	REQUIRE(repository.proposals().size() == 1); // the channel names its users: one channel, one approval
+	CHECK(repository.proposals()[0].reason.find("waiting for 1 more approval") != std::string::npos);
+
+	CHECK_FALSE(repository.accept(proposed.proposal, {"human/carol", proposed.commit, false}));
+	CHECK(repository.proposals().empty());
+}
+
 TEST_CASE("review policy: a rebase that changes what a proposal does dismisses its approvals") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, policyScreen({{"approvals", 2}}));

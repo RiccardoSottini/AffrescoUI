@@ -4,10 +4,13 @@
 
 #include "CreativeValues.hpp"
 #include "Expression.hpp"
+#include "Headless.hpp"
 
 #include <affresco/render/ColorPicker.hpp>
 #include <affresco/render/CurvesEditor.hpp>
 #include <affresco/render/GradientEditor.hpp>
+#include <affresco/render/Painter.hpp>
+#include <affresco/render/Window.hpp>
 
 #include <doctest/doctest.h>
 
@@ -40,6 +43,41 @@ json evaluate(const json& value) {
 template <typename Signal> void countChanges(Signal& signal, int& count) {
 	signal.connect([&count](const auto&) { ++count; });
 }
+
+/// @brief A Painter that counts the rectangles it fills, and draws nothing.
+class CountingPainter final : public Painter {
+public:
+	/// @brief Counts a rectangle.
+	/// @param rect Ignored.
+	/// @param color Ignored.
+	void fillRect(const Rect& rect, Color color) override {
+		static_cast<void>(rect);
+		static_cast<void>(color);
+		++rects;
+	}
+
+	/// @brief Draws no text.
+	/// @param font Ignored.
+	/// @param text Ignored.
+	/// @param origin Ignored.
+	/// @param color Ignored.
+	void drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) override {
+		static_cast<void>(font);
+		static_cast<void>(text);
+		static_cast<void>(origin);
+		static_cast<void>(color);
+	}
+
+	std::size_t rects = 0; ///< The rectangles filled.
+};
+
+/// @brief A curves editor whose paint() a test can call.
+class PaintableCurves final : public CurvesEditor {
+public:
+	/// @brief Paints the editor, as the renderer would.
+	/// @param painter The painter.
+	void paintWith(Painter& painter) const { paint(painter); }
+};
 
 } // namespace
 
@@ -157,6 +195,22 @@ TEST_CASE("CurvesEditor: add, move and remove points per channel, within bounds"
 	editor.setHistogram(bins); // kept to maxHistogramBins
 }
 
+TEST_CASE("CurvesEditor: a plot as wide as a screen allows is drawn in at most 4096 columns") {
+	const detail::ManualClock clock;
+	const auto window = detail::createHeadlessWindow(400, 300, clock);
+	auto& editor = window->root().add<PaintableCurves>();
+	editor.setSize(px(1'000'000.0f), px(100.0f));
+	const std::vector<double> bins(256, 1.0);
+	editor.setHistogram(bins);
+	static_cast<void>(detail::takeFrame(*window)); // lays the window out
+	REQUIRE(editor.frame().width() == doctest::Approx(1'000'000.0f));
+
+	CountingPainter painter;
+	editor.paintWith(painter);
+	CHECK(painter.rects > 4096);
+	CHECK(painter.rects < 3 * 4096); // a column of histogram and one of curve each, the grid and the points
+}
+
 TEST_CASE("ColorPicker: fields, value, swatches and recent colours") {
 	ColorPicker picker;
 	int changes = 0;
@@ -184,6 +238,23 @@ TEST_CASE("ColorPicker: fields, value, swatches and recent colours") {
 	CHECK(picker.recentColors().front().r == doctest::Approx(19.0f / 20.0f));
 	const std::vector<Color> swatches(100, colors::black);
 	picker.setSwatches(swatches); // kept to maxSwatches
+}
+
+TEST_CASE("ColorPicker: the swatches part goes away with the last swatch") {
+	struct Picker : ColorPicker {
+		using ColorPicker::keyEvent;
+	} picker;
+	const std::vector<Color> swatches(3, colors::white);
+	picker.setSwatches(swatches);
+	for(int step = 0; step < 16 && picker.activePart() != ColorPicker::Part::Swatches; ++step)
+		picker.keyEvent({Key::Tab, 0, Action::Press, Mods{}});
+	REQUIRE(picker.activePart() == ColorPicker::Part::Swatches);
+
+	picker.setSwatches({}); // no recent colour either: nothing for Enter to pick
+	CHECK(picker.activePart() == ColorPicker::Part::Plane);
+	picker.setValue(colors::black);
+	picker.keyEvent({Key::Enter, 0, Action::Press, Mods{}});
+	CHECK(picker.value().r == doctest::Approx(0.0f));
 }
 
 TEST_CASE("creative values: JSON round trips and lenient reading") {

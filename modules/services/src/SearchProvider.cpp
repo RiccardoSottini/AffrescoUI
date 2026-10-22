@@ -45,7 +45,7 @@ json matchJson(const SearchMatch& match) {
 /// @param call The call.
 void find(const std::filesystem::path& root, const std::stop_token& stop, Call& call) {
 	const json& with = call.arguments();
-	SearchQuery query{.pattern = with.value("pattern", std::string()),
+	const SearchQuery query{.pattern = with.value("pattern", std::string()),
 	                  .options = optionsOf(with),
 	                  .include = with.value("include", std::string()),
 	                  .exclude = with.value("exclude", std::string()),

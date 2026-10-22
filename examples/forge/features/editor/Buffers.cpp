@@ -76,19 +76,7 @@ std::optional<std::string> Buffers::save(const std::string& id) {
 	if(found == buffers_.end()) return "not open: " + id;
 	Buffer& buffer = found->second;
 	const std::string text = buffer.text->text();
-	fs::path temporary = buffer.path;
-	temporary += ".forge-save";
-	{
-		std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-		if(!out || !out.write(text.data(), static_cast<std::streamsize>(text.size())) || !out.flush())
-			return "the file can't be written: " + id;
-	}
-	std::error_code error;
-	fs::rename(temporary, buffer.path, error);
-	if(error) {
-		fs::remove(temporary, error);
-		return "the file can't be replaced: " + id;
-	}
+	if(auto error = writeInFolder(buffer.path, text)) return *error + ": " + id;
 	markSaved(buffer);
 	refreshModel();
 	return std::nullopt;
@@ -151,8 +139,8 @@ affresco::json Buffers::todos() const {
 		while(start <= text.size() && found.size() < limits_.todos) {
 			const std::size_t end = std::min(text.find('\n', start), text.size());
 			const std::string_view row(text.data() + start, end - start);
-			const bool fixme = row.find("FIXME") != std::string_view::npos;
-			if(fixme || row.find("TODO") != std::string_view::npos)
+			const bool fixme = row.contains("FIXME");
+			if(fixme || row.contains("TODO"))
 				found.push_back({{"severity", fixme ? "warning" : "info"},
 				                 {"message", message(row)},
 				                 {"file", id},

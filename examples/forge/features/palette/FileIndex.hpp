@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <optional>
 #include <string>
 
 namespace forge {
@@ -42,5 +43,13 @@ std::filesystem::path insideFolder(const std::filesystem::path& root, const std:
 /// @throws std::runtime_error If the path leaves the folder, or the file is missing, too large or can't be read.
 std::string readInFolder(const std::filesystem::path& root, const std::string& relative,
                          std::size_t maxBytes = std::size_t{2} * 1024 * 1024);
+
+/// @brief Replaces a file of the open folder atomically: writes a new file beside it, then renames it over it. The
+/// new file has a name no one chose and is created, never opened: a link planted beside the file (the folder may be
+/// someone else's) can't send the bytes elsewhere. It keeps the file's permissions.
+/// @param path The file (from insideFolder()).
+/// @param text Its new bytes.
+/// @return An error, or std::nullopt.
+std::optional<std::string> writeInFolder(const std::filesystem::path& path, const std::string& text);
 
 } // namespace forge

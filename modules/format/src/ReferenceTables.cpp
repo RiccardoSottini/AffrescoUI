@@ -26,7 +26,7 @@ std::string_view header(std::string_view table) {
 /// @return {reference, known keys}.
 std::pair<std::span<const KeyReference>, std::vector<std::string>> keysOf(const Engine& engine,
                                                                           std::string_view table) {
-	if(table == "sections") return {sectionKeys(), sectionNames(engine)};
+	if(table == "sections" || table == "capabilities") return {sectionKeys(), sectionNames(engine)};
 	if(table == "steps") return {stepKeys(), stepKeyNames(engine)};
 	return {nodeKeys(), nodeKeyNames(engine)};
 }

@@ -153,7 +153,7 @@ std::optional<Glob> Glob::compile(std::string_view text) {
 	Glob glob;
 	glob.folderOnly_ = text.ends_with('/');
 	while(text.ends_with('/')) text.remove_suffix(1);
-	const bool anchored = text.find('/') != std::string_view::npos;
+	const bool anchored = text.contains('/');
 	while(text.starts_with('/')) text.remove_prefix(1);
 	if(text.empty()) return std::nullopt;
 	if(!anchored) glob.segments_.push_back({.globstar = true});

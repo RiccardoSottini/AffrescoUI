@@ -1,0 +1,8 @@
+GET /live HTTP/1.1
+Host: 127.0.0.1
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Version: 13
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+Authorization: Bear‹r good
+

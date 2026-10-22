@@ -40,7 +40,7 @@ bool matchFrom(std::string_view glob, std::string_view text) noexcept {
 } // namespace
 
 bool globMatches(std::string_view glob, std::string_view path) noexcept {
-	if(glob.find('/') != std::string_view::npos) return matchFrom(glob, path);
+	if(glob.contains('/')) return matchFrom(glob, path);
 	for(std::size_t start = 0; start <= path.size();) {
 		const std::size_t end = std::min(path.find('/', start), path.size());
 		if(matchFrom(glob, path.substr(start, end - start))) return true;

@@ -159,7 +159,7 @@ TEST_CASE("editor view: decorations are clamped, capped per line and move with t
 }
 
 TEST_CASE("editor view: extra cursors type, delete and move together") {
-	ViewWindow test("ab\ncd\nef");
+	const ViewWindow test("ab\ncd\nef");
 	test.press(Key::Down, superKey | altKey);
 	test.press(Key::Down, superKey | altKey);
 	CHECK(test.editor.cursors().size() == 2);
@@ -175,7 +175,7 @@ TEST_CASE("editor view: extra cursors type, delete and move together") {
 }
 
 TEST_CASE("editor view: Cmd+D selects the word, then each next occurrence, wrapping once") {
-	ViewWindow test("cat dog cat\ncat");
+	const ViewWindow test("cat dog cat\ncat");
 	test.press(Key::D, superKey);
 	CHECK(test.editor.cursors().empty());
 	test.press(Key::D, superKey);
@@ -237,7 +237,7 @@ TEST_CASE("editor view: replacing in a read-only editor changes nothing") {
 }
 
 TEST_CASE("editor view: Cmd+Alt+[ folds the caret's block and Cmd+Alt+] unfolds it") {
-	ViewWindow test("a\n  b\nc");
+	const ViewWindow test("a\n  b\nc");
 	test.press(Key::LeftBracket, superKey | altKey);
 	CHECK(test.editor.rowCount() == 2);
 	test.press(Key::RightBracket, superKey | altKey);
@@ -278,6 +278,18 @@ TEST_CASE("text pattern: expansion, errors and the limits that stop runaway patt
 	const auto found = pattern.find(subject);
 	REQUIRE(found.match);
 	CHECK(pattern.expand(subject, *found.match, "$2/${year}") == "05/2024");
+
+	// Found in the security review of wave 6: a replacement repeating a long match had no cap, so a screen's search
+	// replace could ask for gigabytes and end the process
+	TextPattern all;
+	REQUIRE_FALSE(all.compile(".+", {.regex = true}));
+	const std::string line(std::size_t{1} << 20, 'a');
+	const auto whole = all.find(line);
+	REQUIRE(whole.match);
+	CHECK(all.expand(line, *whole.match, "$0$0") == line + line);
+	std::string hundred;
+	for(int i = 0; i < 100; ++i) hundred += "$0"; // 100 MiB
+	CHECK_FALSE(all.expand(line, *whole.match, hundred));
 
 	CHECK(pattern.compile("(", {.regex = true}));
 	CHECK_FALSE(pattern.valid());

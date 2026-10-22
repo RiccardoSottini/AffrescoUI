@@ -349,7 +349,8 @@ constexpr KeyReference nodeTable[] = {
 	 "The text compared from (lines split at `\\n`, a `\\r` before it dropped).", "diff"},
     {"modified", R"json({"type": "string", "description": "diff: the text compared to"})json", "The text compared to.",
 	 "diff"},
-    {"mode", R"json({"enum": ["split", "inline"], "description": "diff: side by side (default) or inline"})json",
+    {"mode", R"json({"anyOf": [{"enum": ["split", "inline", "square", "wheel"]}, {"$ref": "#/$defs/v1/dynamic"}],
+		"description": "diff: split (default) or inline; colorPicker: square (default) or wheel"})json",
 	 "`split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and "
 	 "scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them.",
 	 "diff"},
@@ -576,8 +577,7 @@ constexpr KeyReference nodeTable[] = {
     {"value", "",
 	 "The colour, `\"#rrggbbaa\"` (`bind` keeps it in a state path); picking one runs `onChange` with it.",
 	 "colorPicker"},
-    {"mode", R"json({"anyOf": [{"enum": ["square", "wheel"]}, {"$ref": "#/$defs/v1/dynamic"}],
-		"description": "colorPicker: square (default) or wheel"})json",
+    {"mode", "",
 	 R"(`"square"` (the default: saturation across, value down, a hue strip) or `"wheel"` (hue around, saturation )"
 	 R"(out, a value strip).)",
 	 "colorPicker"},

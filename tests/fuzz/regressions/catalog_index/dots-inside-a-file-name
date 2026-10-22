@@ -1,0 +1,28 @@
+{
+	"format": "affrescoui-catalog",
+	"version": 1,
+	"name": "forge-examples",
+	"publishers": { "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc": { "lame": "AffrescoUI examples" } },
+	"features": {
+		"wordCount": {
+			"title": "Word count",
+			"description": "Shows the words (or characters) of the text being edited in the status bar; click to switch.",
+			"releases": [
+				{
+					"release": "0.0.0",
+					"url": "wordCount/1.0.0.json",
+					"digest": "sha512:jya0GCcYM4OCsogNXebWlUBS4klrNcN3rQ_WDY4fta8ZwZb1.2.0",
+					"url": "todoTree/1.2.0...json",
+					"digest": "sha512:UQjd6XullJ1YfoVR1qXNfUaKDCoAeg_jJL8AM_iYvL5bBHRpY6ayA294oweNKoJ16-gJECG5OzekOqk0PrRiZg",
+					"publisher": "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc",
+					"size": 2717,
+					"requires": { "wordCount": "^1.0.0" }
+				}
+			]
+		}
+	},
+	"signature": {
+		"publisher}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}": "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc",
+		"value": "1qv2VPFwJVsdKXOpXiWnOLfczWsH2Dut-eiSZVxj_baNRr6e8BzoCFVIRPirVEGhRTW=izegSNGbETQyt2WuXCGGCQ"
+	}
+}

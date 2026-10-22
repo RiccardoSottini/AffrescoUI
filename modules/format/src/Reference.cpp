@@ -142,7 +142,8 @@ std::vector<std::string> nodeKeyNames(const Engine& engine) {
 	for(const auto& set : engine.types.inherited())
 		for(const PropertySpec& property : set->properties) addOnce(names, property.name);
 	for(const std::string_view name : handlerNames) addOnce(names, name);
-	addOnce(names, "slot"); // a component's placeholder for a use's children (Builder.cpp)
+	addOnce(names, "slot");  // a component's placeholder for a use's children (Builder.cpp)
+	addOnce(names, "point"); // a contribution point features add views to (Composition.cpp)
 	return names;
 }
 

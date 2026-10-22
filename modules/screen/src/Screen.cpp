@@ -853,7 +853,7 @@ std::optional<int> Screen::previewedProposal() const noexcept { return impl_->re
 void Screen::setScenarioCheck(std::function<std::string(const std::string& documentJson)> check) {
 	if(!check) return impl_->images.setScenarioCheck({});
 	impl_->images.setScenarioCheck([check = std::move(check)](const std::string& document) {
-		json results = json::parse(check(document), nullptr, false);
+		const json results = json::parse(check(document), nullptr, false);
 		return results.is_array() ? results : json::array();
 	});
 }

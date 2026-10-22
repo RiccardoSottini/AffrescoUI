@@ -48,7 +48,7 @@ void applyDiff(Panel& panel, const json& values, const PropertyReader& reader, c
 } // namespace
 
 void registerDiffType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"original", ValueKind::Text},       {"modified", ValueKind::Text},
 	                   {"mode", ValueKind::Text},           {"language", ValueKind::Text},
 	                   {"font", ValueKind::Font},           {"textColor", ValueKind::Color},

@@ -701,7 +701,7 @@ void grantTerminal(affresco::Screen& screen, const fs::path& folder) {
 }
 
 void registerTerminal(affresco::Screen& screen, affresco::Executor* executor) {
-	auto sessions = std::make_shared<TerminalSessions>(screen, executor);
+	const auto sessions = std::make_shared<TerminalSessions>(screen, executor);
 	screen.registerType(
 	    "terminal", [sessions] { return std::make_unique<TerminalView>(sessions); },
 	    {"session", "font", "textColor", "cursorColor", "scrollback", "allowTitle"},

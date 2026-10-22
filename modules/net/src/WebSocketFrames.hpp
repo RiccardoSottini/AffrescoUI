@@ -76,9 +76,9 @@ class FrameReader {
 public:
 	/// @brief Starts empty.
 	/// @param expectMasked true on the server side (frames from a client are masked), false on the client side.
-	/// @param maxMessageBytes The longest message, all its fragments together.
-	FrameReader(bool expectMasked, std::size_t maxMessageBytes) noexcept
-	    : expectMasked_(expectMasked), maxMessageBytes_(maxMessageBytes) {}
+	/// @param messageLimit The longest message, all its fragments together.
+	FrameReader(bool expectMasked, std::size_t messageLimit) noexcept
+	    : expectMasked_(expectMasked), maxMessageBytes_(messageLimit) {}
 
 	/// @brief Adds received bytes.
 	/// @param bytes The bytes.

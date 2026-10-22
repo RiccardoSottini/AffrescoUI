@@ -110,7 +110,7 @@ void stopListeningToCurves(Panel& panel, Connection connection) {
 } // namespace
 
 void registerCurvesType(TypeRegistry& registry) {
-	auto set = std::make_shared<PropertySet>();
+	const auto set = std::make_shared<PropertySet>();
 	set->properties = {{"bind", ValueKind::StatePath},     {"value", ValueKind::Any},
 	                   {"interpolation", ValueKind::Text}, {"channels", ValueKind::Boolean},
 	                   {"histogram", ValueKind::Any},      {"font", ValueKind::Font},

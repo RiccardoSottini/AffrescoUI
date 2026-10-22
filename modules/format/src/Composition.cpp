@@ -66,7 +66,7 @@ std::optional<std::string> soleExpression(const std::string& value) {
 	   value.compare(last - 1, 2, "}}") != 0)
 		return std::nullopt;
 	const std::string inner = value.substr(first + 2, last - 1 - (first + 2));
-	if(inner.find("{{") != std::string::npos || inner.find("}}") != std::string::npos) return std::nullopt;
+	if(inner.contains("{{") || inner.contains("}}")) return std::nullopt;
 	return inner;
 }
 
@@ -81,9 +81,9 @@ void replaceExports(json& value, const std::vector<std::pair<std::string, std::s
 		for(auto& item : value) replaceExports(item, exports, depth + 1);
 		return;
 	}
-	if(!value.is_string() || value.get_ref<const std::string&>().find("app.") == std::string::npos) return;
+	if(!value.is_string() || !value.get_ref<const std::string&>().contains("app.")) return;
 	std::string text = value.get<std::string>();
-	const bool expression = text.find("{{") != std::string::npos;
+	const bool expression = text.contains("{{");
 	for(const auto& [name, replacement] : exports)
 		text = replaceName(std::move(text), name, expression ? "(" + replacement + ")" : replacement);
 	value = std::move(text);

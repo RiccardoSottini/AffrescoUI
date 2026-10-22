@@ -80,7 +80,7 @@
 				{ "expect": { "state": "problems[2].id", "is": "3:508" } },
 				{ "expect": { "state": "problems[6].id", "is": "3:4508" } },
 				{ "click": "#editor" },
-				{ "key": "mod+down" },
+				{ "key": "mod+end", "note": "the end of the file on every platform (Super+Down is macOS only)" },
 				{ "expect": { "state": "caret.line", "is": 5000 } },
 				{ "expect": { "node": "#statusSize", "text": "Ln 5000, Col 2  ·  Spaces: 4  ·  UTF-8  ·  C++" } }
 			]

@@ -46,7 +46,7 @@ std::optional<bool> runAuthStep(const Running& s) {
 	if(!s.step.contains("signOut")) return std::nullopt;
 	const std::string name = string(s.value("signOut"), s.where + ".signOut");
 	s.steps.checkControl(s.where);
-	if(Engine& engine = s.steps.engine(); engine.identity) engine.identity->signOut(name);
+	if(const Engine& engine = s.steps.engine(); engine.identity) engine.identity->signOut(name);
 	return true;
 }
 

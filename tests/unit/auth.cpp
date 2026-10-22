@@ -14,11 +14,13 @@
 
 #include <doctest/doctest.h>
 
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <variant>
 #include <vector>
 
 using affresco::json;
@@ -146,6 +148,8 @@ TEST_CASE("auth: no token ever shows in the document, the state, the history or 
 		identity.revokeAccess();
 		REQUIRE(shown.run("me", "/error"));
 		CHECK(shown.executor.runUntil([&identity] { return identity.grants() == 2; }));
+		// The mock counts the grant before the screen has read it: a request in between finds no token
+		REQUIRE(shown.executor.runUntil([&shown] { return shown.auth()["state"] == "signedIn"; }));
 		shown.screen->runAction("me", shown.window->root());
 		REQUIRE(shown.executor.runUntil([&shown] {
 			return stateAt(*shown.screen, "/error").is_null() && shown.auth()["state"] == "signedIn";
@@ -255,7 +259,7 @@ TEST_CASE("auth: a kept refresh token signs in again at the next run, with no br
 
 TEST_CASE("auth: revisions can't add a sign-in, nor change a provider") {
 	MockIdentity identity;
-	affresco::format::Rules rules;
+	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, authScreen(identity, "device"));
 	CHECK(repository.submit({{"author", "agent"}, {"add", {{"/actions/again", json::array({{{"signIn", "api"}}})}}}})
 	          .status != affresco::RevisionStatus::Applied);
@@ -288,4 +292,24 @@ TEST_CASE("auth: a provider's declaration is checked") {
 		CHECK_THROWS(static_cast<void>(affresco::Screen::fromString(screen(bad))));
 	}
 	CHECK_THROWS(static_cast<void>(affresco::Screen::fromString(screen("other")))); // no such connection
+}
+
+TEST_CASE("auth: a provider's lifetimes and intervals are clamped, however large a number it sends") {
+	namespace oauth = affresco::net::oauth;
+	const auto now = std::chrono::system_clock::now();
+	const auto tokens = oauth::readTokens(R"({"access_token":"a","token_type":"Bearer","expires_in":1e300})",
+	                                      affresco::identity::Provider{}, {}, now);
+	REQUIRE(std::holds_alternative<oauth::Tokens>(tokens));
+	CHECK(std::get<oauth::Tokens>(tokens).expires == now + std::chrono::seconds(oauth::maxLifetime));
+	const auto early = oauth::readTokens(R"({"access_token":"a","token_type":"Bearer","expires_in":-1e300})",
+	                                     affresco::identity::Provider{}, {}, now);
+	REQUIRE(std::holds_alternative<oauth::Tokens>(early));
+	CHECK(std::get<oauth::Tokens>(early).expires == now + std::chrono::seconds(1));
+
+	const auto codes = oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"https://example.test/device","interval":1e300,)"
+	    R"("expires_in":-1e300})");
+	REQUIRE(std::holds_alternative<oauth::DeviceCodes>(codes));
+	CHECK(std::get<oauth::DeviceCodes>(codes).interval == std::chrono::seconds(60));
+	CHECK(std::get<oauth::DeviceCodes>(codes).lifetime == std::chrono::seconds(10));
 }

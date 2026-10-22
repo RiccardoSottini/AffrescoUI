@@ -241,6 +241,9 @@ const std::vector<Case> cases = {
     {"{{fuzzySort(state.items, 'z')}}", json::array(), {}},
     {"{{fuzzySort(state.items, 'b')[0].item}}", "b", {}},
     {"{{clamp(1.5, 0, 1)}}", J(R"(1.0)"), {}},
+    // The creative controls' values: tests/unit/creative_controls.cpp has the curves and the colours
+    {"{{curve(1, 0.5)}}", {}, "test.$curve: expected a list of points or a curves value"},
+    {"{{gradientColor('#000000ff', 0)}}", {}, "test.$gradientColor: expected a gradient"},
     {"{{clamp(1, 2)}}", {}, "test.$clamp: expected 3 arguments"},
     {"{{round(-2.5)}}", -3, {}},
     {"{{floor('x')}}", {}, "test.$floor: expected a number, got \"x\""},

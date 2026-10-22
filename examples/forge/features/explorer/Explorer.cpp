@@ -390,7 +390,7 @@ bool isPlainName(const std::string& name) noexcept {
 }
 
 void registerExplorer(affresco::Screen& screen, std::shared_ptr<Workspace> workspace, affresco::Executor* executor) {
-	auto state = std::make_shared<ExplorerState>();
+	const auto state = std::make_shared<ExplorerState>();
 	state->workspace = std::move(workspace);
 	state->screen = &screen;
 	state->executor = executor;

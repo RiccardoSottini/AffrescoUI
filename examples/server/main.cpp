@@ -117,10 +117,10 @@ int serve(const Options& options) {
 	MainLoop loop;
 	using namespace affresco::server;
 	const std::filesystem::path tokenPath = options.folder / "tokens";
-	auto tokens = options.userinfo.empty() || std::filesystem::exists(tokenPath)
+	const auto tokens = options.userinfo.empty() || std::filesystem::exists(tokenPath)
 	                  ? std::make_shared<TokenFile>(tokenPath)
 	                  : nullptr;
-	auto userinfo = options.userinfo.empty() ? nullptr
+	const auto userinfo = options.userinfo.empty() ? nullptr
 	                                         : std::make_shared<UserInfoVerifier>(options.userinfo, options.people);
 	std::vector<std::shared_ptr<affresco::net::TokenVerifier>> verifiers;
 	if(tokens) verifiers.push_back(tokens);
@@ -131,7 +131,7 @@ int serve(const Options& options) {
 			if(std::ranges::find(names, name) == names.end()) names.push_back(name);
 		return names;
 	};
-	DocumentServer server(loop, options.folder, std::make_shared<ChainVerifier>(std::move(verifiers)), people,
+	const DocumentServer server(loop, options.folder, std::make_shared<ChainVerifier>(std::move(verifiers)), people,
 	                      options.listen, options.server);
 	std::cout << "serving " << server.documents().size() << " documents on port " << server.port() << std::endl;
 #ifndef _WIN32
@@ -139,7 +139,7 @@ int serve(const Options& options) {
 	sigemptyset(&signals);
 	sigaddset(&signals, SIGINT);
 	sigaddset(&signals, SIGTERM);
-	std::jthread waiter([&loop, signals] {
+	const std::jthread waiter([&loop, signals] {
 		int received = 0;
 		sigwait(&signals, &received);
 		loop.post([&loop] { loop.stop(); });

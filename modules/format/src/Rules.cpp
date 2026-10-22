@@ -189,7 +189,7 @@ private:
 			return controls;
 		}
 		for(const auto& [name, parameter] : runningBuiltIns) {
-			if(*use != name) continue;
+			if(used != name) continue;
 			if(parameter.empty()) return true;
 			const auto value = parameters.is_object() ? parameters.find(parameter) : parameters.end();
 			return parameters.is_object() && value != parameters.end() && computes(*value);

@@ -176,6 +176,7 @@ void ColorPicker::setSwatches(std::span<const Color> swatches) {
 	if(std::ranges::equal(kept, swatches_)) return;
 	swatches_.assign(kept.begin(), kept.end());
 	swatch_ = std::min(swatch_, swatchCount() == 0 ? 0 : swatchCount() - 1);
+	if(!hasPart(active_)) active_ = Part::Plane; // no swatch left for Enter to pick
 	invalidatePaint();
 }
 
@@ -435,7 +436,7 @@ void ColorPicker::charEvent(const CharEvent& event) {
 }
 
 void ColorPicker::pickFromWindow(Vec2 position) {
-	Panel* hit = window() ? window()->panelAt(position) : nullptr;
+	const Panel* hit = window() ? window()->panelAt(position) : nullptr;
 	while(hit && hit->color().a <= 0.0f) hit = hit->parent();
 	if(!hit || hit == this) return;
 	changeRgb(detail::toRgb(hit->color()), alpha_);

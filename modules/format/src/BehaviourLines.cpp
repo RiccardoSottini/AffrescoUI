@@ -37,7 +37,7 @@ bool isBehaviourKey(std::string_view key) {
 /// @param into Gets them, in order.
 void collectBindings(const json& value, json& into) {
 	if(value.is_string()) {
-		if(value.get_ref<const std::string&>().find("{{") != std::string::npos) into.push_back(value);
+		if(value.get_ref<const std::string&>().contains("{{")) into.push_back(value);
 	} else if(value.is_structured())
 		for(const json& item : value) collectBindings(item, into);
 }

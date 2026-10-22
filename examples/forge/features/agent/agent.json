@@ -113,7 +113,7 @@
 			] },
 		"featuresStore": [
 			{ "set": "state.features.catalog",
-			  "to": "{{map(filter(slice(type(list) == 'list' ? list : [], 0, 500), type(it) == 'object' && type(it.name) == 'string' && !empty(it.name) && !contains(it.name, '/') && !contains(it.name, '~')), {name: slice(it.name, 0, 100), title: slice(text(it.title ?? it.name), 0, 200), description: slice(text(it.description ?? ''), 0, 1000), release: slice(text(it.release ?? ''), 0, 40), installed: it.installed == true, enabled: it.enabled == true})}}" },
+			  "to": "{{map(filter(slice(type(list) == 'list' ? list : [], 0, 500), type(it) == 'object' && type(it.name) == 'string' && !empty(it.name) && !contains(it.name, '/') && !contains(it.name, '~')), {name: slice(it.name, 0, 100), title: slice(text(it.title ?? it.name), 0, 200), description: slice(text(it.description ?? ''), 0, 1000), release: slice(text(it.release ?? it.version ?? ''), 0, 40), installed: it.installed == true, enabled: it.enabled == true})}}" },
 			{ "set": "state.features.error", "to": "" }
 		],
 		"featuresApplyCatalog": [{ "run": "featuresStore", "with": { "list": "{{event.features}}" } }],
@@ -121,7 +121,7 @@
 			"do": [
 				{ "invoke": "features.catalog", "id": "features-catalog", "loading": "state.features.busy", "with": {},
 				  "onError": [{ "set": "state.features.error", "to": "{{'The feature catalogue is not available: ' + error.message}}" }],
-				  "onDone": [{ "run": "featuresStore", "with": { "list": "{{result.features}}" } }] }
+				  "onDone": [{ "run": "featuresStore", "with": { "list": "{{result}}" } }] }
 			] },
 		"featuresInstall": { "title": "Install Feature", "category": "Features", "icon": "download",
 			"description": "Ask the host to install the chosen feature from its catalogue; the install is a revision to review.",
@@ -129,7 +129,7 @@
 			"do": [
 				{ "forEach": "{{filter([computed.featureCurrent], it != null && !it.installed)}}", "as": "feature", "do": [
 					{ "invoke": "features.install", "loading": "state.features.busy",
-					  "with": { "feature": "{{feature.name}}", "release": "{{feature.release}}" },
+					  "with": { "name": "{{feature.name}}", "version": "{{feature.release}}" },
 					  "onError": [{ "set": "state.features.error", "to": "{{'Not installed: ' + error.message}}" }],
 					  "onDone": [{ "run": "featuresRefresh" }] }
 				] }

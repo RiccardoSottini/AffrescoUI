@@ -187,9 +187,9 @@
 								"placeholder": "Search",
 								"onSubmit": { "run": "runSearch" }
 							},
-							{ "use": "forgeSearchOption", "with": { "id": "search-case", "bind": "state.search.caseSensitive", "text": "Aa" } },
-							{ "use": "forgeSearchOption", "with": { "id": "search-word", "bind": "state.search.wholeWord", "text": "Word" } },
-							{ "use": "forgeSearchOption", "with": { "id": "search-regex", "bind": "state.search.regex", "text": ".*" } }
+							{ "use": "forgeSearchOption", "with": { "option": "case", "bind": "state.search.caseSensitive", "text": "Aa" } },
+							{ "use": "forgeSearchOption", "with": { "option": "word", "bind": "state.search.wholeWord", "text": "Word" } },
+							{ "use": "forgeSearchOption", "with": { "option": "regex", "bind": "state.search.regex", "text": ".*" } }
 						]
 					},
 					{
@@ -300,16 +300,16 @@
 			}
 		},
 		"forgeSearchOption": {
-			"params": { "id": "", "bind": "", "text": "" },
+			"params": { "option": "", "bind": "", "text": "" },
 			"node": {
 				"type": "row",
-				"id": "{{id}}",
+				"id": "search-{{option}}",
 				"height": 30,
 				"width": 72,
 				"gap": 4,
 				"alignItems": "center",
 				"children": [
-					{ "type": "checkbox", "id": "{{id + '-box'}}", "bind": "{{bind}}", "width": 16, "height": 16 },
+					{ "type": "checkbox", "id": "search-{{option}}-box", "bind": "{{bind}}", "width": 16, "height": 16 },
 					{ "type": "label", "text": "{{text}}", "textColor": "@color.text", "fitText": true }
 				]
 			}

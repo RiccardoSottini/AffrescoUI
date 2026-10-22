@@ -16,6 +16,7 @@
 #include <charconv>
 #include <ctime>
 #include <limits>
+#include <set>
 
 namespace affresco::vcs {
 
@@ -179,9 +180,13 @@ std::pair<std::string, std::string> Repository::reviewNeeds(const json& before, 
 		required = static_cast<std::size_t>(policy.behaviourApprovals);
 
 	std::string asks = std::to_string(required) + (required == 1 ? " approval" : " approvals");
+	// A channel names its own users ("studio/anna", "studio/bob"): only the channel is the host's word, so it
+	// counts once
+	std::set<std::string> channels;
+	for(const std::string& reviewer : approvals) channels.insert(detail::channelOf(reviewer));
 	std::string missing;
-	if(approvals.size() < required) {
-		const std::size_t more = required - approvals.size();
+	if(channels.size() < required) {
+		const std::size_t more = required - channels.size();
 		missing = std::to_string(more) + (more == 1 ? " more approval" : " more approvals");
 	}
 	for(const auto& [pattern, owners] : policy.owners) {

@@ -171,6 +171,17 @@ TEST_CASE("services: Content-Length frames are read in pieces, and bounded") {
 	CHECK_FALSE(lines.feed("ab\r\ncd\n", bodies));
 	CHECK(bodies == std::vector<std::string>{"ab", "cd"});
 	CHECK(lines.feed("toolong", bodies));
+
+	// A line is within the limit without its line break: 4 bytes and "\r\n" pass, 5 bytes and "\n" don't
+	FrameReader exact(Framing::Lines, {64, 4});
+	bodies.clear();
+	CHECK_FALSE(exact.feed("abcd\r", bodies));
+	CHECK_FALSE(exact.feed("\n", bodies));
+	CHECK(bodies == std::vector<std::string>{"abcd"});
+	FrameReader over(Framing::Lines, {64, 4});
+	bodies.clear();
+	CHECK(over.feed("abcde\n", bodies));
+	CHECK(bodies.empty());
 }
 
 TEST_CASE("services: a registry refuses what the host didn't grant") {

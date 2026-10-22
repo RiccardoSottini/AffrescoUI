@@ -62,7 +62,7 @@ struct DirtyLog {
 } // namespace
 
 TEST_CASE("forge editor: a buffer opens clean and lists itself") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("src/a.cpp", "int a;\nint b;\n");
 	forge::Buffers buffers;
 	REQUIRE_FALSE(buffers.open(folder.path, "src/a.cpp"));
@@ -77,7 +77,7 @@ TEST_CASE("forge editor: a buffer opens clean and lists itself") {
 }
 
 TEST_CASE("forge editor: an edit makes a buffer dirty, undoing it makes it clean") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "hello");
 	forge::Buffers buffers;
 	DirtyLog log;
@@ -95,7 +95,7 @@ TEST_CASE("forge editor: an edit makes a buffer dirty, undoing it makes it clean
 }
 
 TEST_CASE("forge editor: save writes the file and leaves nothing beside it") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "one");
 	forge::Buffers buffers;
 	REQUIRE_FALSE(buffers.open(folder.path, "a.txt"));
@@ -104,12 +104,32 @@ TEST_CASE("forge editor: save writes the file and leaves nothing beside it") {
 	CHECK_FALSE(buffers.save("a.txt"));
 	CHECK(folder.read("a.txt") == "two");
 	CHECK_FALSE(buffers.dirty("a.txt"));
-	CHECK_FALSE(std::filesystem::exists(folder.path / "a.txt.forge-save"));
+	CHECK(std::distance(std::filesystem::directory_iterator(folder.path), {}) == 1); // nothing left beside it
 	CHECK(buffers.save("b.txt").value_or("").starts_with("not open"));
 }
 
+#ifndef _WIN32
+// Found in the security review of wave 6: save wrote through "<file>.forge-save", so a link left there by whoever
+// made the folder (a cloned repository) had the user's text written over the file it pointed to
+TEST_CASE("forge editor: save writes nothing through a link planted beside the file, and keeps its permissions") {
+	TempFolder folder, elsewhere;
+	folder.write("run.sh", "one");
+	elsewhere.write("target", "untouched");
+	std::filesystem::permissions(folder.path / "run.sh", std::filesystem::perms::owner_all);
+	std::filesystem::create_symlink(elsewhere.path / "target", folder.path / "run.sh.forge-save");
+	forge::Buffers buffers;
+	REQUIRE_FALSE(buffers.open(folder.path, "run.sh"));
+	buffers.find("run.sh")->assign("two");
+	CHECK_FALSE(buffers.save("run.sh"));
+	CHECK(folder.read("run.sh") == "two");
+	CHECK(elsewhere.read("target") == "untouched");
+	CHECK_FALSE(std::filesystem::is_symlink(folder.path / "run.sh"));
+	CHECK(std::filesystem::status(folder.path / "run.sh").permissions() == std::filesystem::perms::owner_all);
+}
+#endif
+
 TEST_CASE("forge editor: save all writes every dirty buffer") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "a");
 	folder.write("b.txt", "b");
 	folder.write("c.txt", "c");
@@ -126,7 +146,7 @@ TEST_CASE("forge editor: save all writes every dirty buffer") {
 }
 
 TEST_CASE("forge editor: revert reads the file again without telling the handler") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "kept");
 	forge::Buffers buffers;
 	DirtyLog log;
@@ -141,7 +161,7 @@ TEST_CASE("forge editor: revert reads the file again without telling the handler
 }
 
 TEST_CASE("forge editor: close forgets a buffer, an editor holding it keeps the text") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "text");
 	forge::Buffers buffers;
 	REQUIRE_FALSE(buffers.open(folder.path, "a.txt"));
@@ -155,7 +175,7 @@ TEST_CASE("forge editor: close forgets a buffer, an editor holding it keeps the 
 }
 
 TEST_CASE("forge editor: paths outside the open folder, and what isn't a file, don't open") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("inside/a.txt", "a");
 	forge::Buffers buffers;
 	CHECK(buffers.open(folder.path / "inside", "../outside.txt").has_value());
@@ -167,7 +187,7 @@ TEST_CASE("forge editor: paths outside the open folder, and what isn't a file, d
 }
 
 TEST_CASE("forge editor: the limits hold") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "a");
 	folder.write("b.txt", "b");
 	folder.write("big.txt", std::string(64, 'x'));
@@ -178,7 +198,7 @@ TEST_CASE("forge editor: the limits hold") {
 }
 
 TEST_CASE("forge editor: a buffer larger than keptBytes stays dirty until saved") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.txt", "abcdef");
 	forge::Buffers buffers({.keptBytes = 2});
 	REQUIRE_FALSE(buffers.open(folder.path, "a.txt"));
@@ -191,7 +211,7 @@ TEST_CASE("forge editor: a buffer larger than keptBytes stays dirty until saved"
 }
 
 TEST_CASE("forge editor: TODO and FIXME lines, trimmed, cut and capped") {
-	TempFolder folder;
+	const TempFolder folder;
 	folder.write("a.cpp", "int a;\n  // TODO tidy  \n// FIXME " + std::string(200, 'y') + "\n");
 	folder.write("b.cpp", "// TODO b\n");
 	forge::Buffers buffers({.todos = 2});

@@ -47,6 +47,7 @@ public:
 	static constexpr std::size_t maxPatternBytes = 4096;  ///< The longest pattern compiled.
 	static constexpr std::uint32_t maxSteps = 1'000'000;  ///< Backtracking steps per match, at most.
 	static constexpr std::uint32_t maxDepth = 10'000;     ///< Backtracking depth per match, at most.
+	static constexpr std::size_t maxExpandedBytes = std::size_t{64} << 20; ///< The longest replacement expand() gives.
 	static constexpr std::uint32_t maxHeapKibibytes = 8192; ///< Heap per match, at most.
 
 	TextPattern();
@@ -77,7 +78,8 @@ public:
 	/// @param subject The text find() matched in.
 	/// @param match What it matched.
 	/// @param replacement The replacement.
-	/// @return The text to put instead of the match, or nothing if the replacement is invalid.
+	/// @return The text to put instead of the match, or nothing if the replacement is invalid or would be over
+	/// maxExpandedBytes (`$0` repeated over a long match).
 	[[nodiscard]] std::optional<std::string> expand(std::string_view subject, PatternMatch match,
 	                                                std::string_view replacement) const;
 

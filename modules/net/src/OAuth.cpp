@@ -108,6 +108,17 @@ std::string field(const Json& object, const char* name, std::size_t limit) {
 	return text.size() <= limit ? text : std::string();
 }
 
+/// @brief A number of seconds an answer gives, within bounds.
+/// @param value The number.
+/// @param least The fewest seconds.
+/// @param most The most seconds.
+/// @return It, clamped.
+long long secondsIn(const Json& value, long long least, long long most) {
+	// Any number may come, 1e300 too: clamped as a double, so it is never cast to an integer out of range
+	return static_cast<long long>(
+	    std::clamp(value.get<double>(), static_cast<double>(least), static_cast<double>(most)));
+}
+
 /// @brief Reads and checks an id token's claims (OpenID Connect Core 3.1.3.7, steps 2, 3, 9 and 11).
 /// @param idToken The id token.
 /// @param provider The provider.
@@ -252,7 +263,7 @@ std::variant<Tokens, std::string> readTokens(std::string_view body, const identi
 	tokens.refresh = field(*answer, "refresh_token", maxTokenBytes);
 	long long lifetime = 3600;
 	if(const auto in = answer->find("expires_in"); in != answer->end() && in->is_number())
-		lifetime = std::clamp(in->get<long long>(), 1LL, maxLifetime);
+		lifetime = secondsIn(*in, 1, maxLifetime);
 	tokens.expires = now + std::chrono::seconds(lifetime);
 	if(provider.issuer.empty()) return tokens;
 	const std::string idToken = field(*answer, "id_token", maxTokenBytes);
@@ -271,9 +282,9 @@ std::variant<DeviceCodes, std::string> readDeviceCodes(std::string_view body) {
 	if(codes.deviceCode.empty() || codes.userCode.empty() || !parseUrl(codes.verificationUrl))
 		return "the provider's device codes are incomplete";
 	if(const auto in = answer->find("interval"); in != answer->end() && in->is_number())
-		codes.interval = std::chrono::seconds(std::clamp(in->get<long long>(), 1LL, 60LL));
+		codes.interval = std::chrono::seconds(secondsIn(*in, 1, 60));
 	if(const auto in = answer->find("expires_in"); in != answer->end() && in->is_number())
-		codes.lifetime = std::chrono::seconds(std::clamp(in->get<long long>(), 10LL, 3600LL));
+		codes.lifetime = std::chrono::seconds(secondsIn(*in, 10, 3600));
 	return codes;
 }
 

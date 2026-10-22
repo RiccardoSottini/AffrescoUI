@@ -46,7 +46,7 @@ std::string answer(const Buffers& buffers, const std::string& id, const std::opt
 /// @param buffers The buffers, which say what the buffer is by then.
 /// @param id The buffer.
 void tellDocument(affresco::Screen& screen, const std::weak_ptr<Buffers>& buffers, const std::string& id) {
-	affresco::Panel* root = screen.find("root");
+	const affresco::Panel* root = screen.find("root");
 	if(!root) return;
 	const auto run = [&screen, buffers, id] {
 		const std::shared_ptr<Buffers> alive = buffers.lock(); // gone with the screen

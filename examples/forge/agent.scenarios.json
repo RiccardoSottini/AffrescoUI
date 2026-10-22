@@ -353,7 +353,7 @@
 		},
 		{
 			"name": "forge-features-show-the-view",
-			"note": "The features entry shows Bottega; with no catalogue service on this host, it says so",
+			"note": "The features entry shows Bottega, which lists the host's signed example catalogue (features.catalog)",
 			"steps": [
 				{
 					"action": "showFeatures"
@@ -375,8 +375,26 @@
 				},
 				{
 					"expect": {
+						"state": "features.catalog.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "features.catalog[1].name",
+						"is": "wordCount"
+					}
+				},
+				{
+					"expect": {
+						"state": "features.catalog[1].release",
+						"is": "1.0.0"
+					}
+				},
+				{
+					"expect": {
 						"node": "#features-error",
-						"exists": true
+						"exists": false
 					}
 				}
 			]
@@ -492,10 +510,16 @@
 		},
 		{
 			"name": "forge-features-install",
-			"note": "An uninstalled feature offers Install; on this host the install is refused and the error shown",
+			"note": "An uninstalled feature offers Install; one the host's catalogues don't have is refused and the error shown",
 			"steps": [
 				{
 					"action": "showAgent"
+				},
+				{
+					"action": "showFeatures"
+				},
+				{
+					"wait": 100
 				},
 				{
 					"action": "featuresApplyCatalog",
@@ -538,9 +562,6 @@
 							}
 						]
 					}
-				},
-				{
-					"action": "showFeatures"
 				},
 				{
 					"revision": {
@@ -582,6 +603,12 @@
 			"note": "A disabled feature offers Enable, and its title says so",
 			"steps": [
 				{
+					"action": "showFeatures"
+				},
+				{
+					"wait": 100
+				},
+				{
 					"action": "featuresApplyCatalog",
 					"event": {
 						"features": [
@@ -622,9 +649,6 @@
 							}
 						]
 					}
-				},
-				{
-					"action": "showFeatures"
 				},
 				{
 					"revision": {
@@ -660,6 +684,12 @@
 			"note": "The search narrows the catalogue",
 			"steps": [
 				{
+					"action": "showFeatures"
+				},
+				{
+					"wait": 100
+				},
+				{
 					"action": "featuresApplyCatalog",
 					"event": {
 						"features": [
@@ -700,9 +730,6 @@
 							}
 						]
 					}
-				},
-				{
-					"action": "showFeatures"
 				},
 				{
 					"revision": {

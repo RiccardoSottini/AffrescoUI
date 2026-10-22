@@ -215,7 +215,7 @@ TEST_CASE("document server: two people and a reviewer, end to end over WebSocket
 	REQUIRE(executor.runUntil([&] { return bo.find("error") != nullptr; }));
 	CHECK(bo.find("error")["message"] == "open a document first");
 
-	for(Client* client : {&ada, &bo, &rev}) client->send({{"type", "open"}, {"document", "team"}});
+	for(const Client* client : {&ada, &bo, &rev}) client->send({{"type", "open"}, {"document", "team"}});
 	REQUIRE(executor.runUntil([&] { return rev.find("hello") != nullptr && bo.find("hello") != nullptr; }));
 
 	// ada leases the board; bo's change there is denied, and bo sees where ada is
@@ -310,8 +310,9 @@ TEST_CASE("document server: an OAuth access token is checked at userinfo, for th
 
 	// Chained after the token file, both kinds of token connect
 	const Team team;
-	auto tokens = std::make_shared<server::TokenFile>(team.folder.path() / "tokens");
-	auto userinfo = std::make_shared<server::UserInfoVerifier>(identity.origin() + "/userinfo", folder.path() / "people");
+	const auto tokens = std::make_shared<server::TokenFile>(team.folder.path() / "tokens");
+	const auto userinfo =
+	    std::make_shared<server::UserInfoVerifier>(identity.origin() + "/userinfo", folder.path() / "people");
 	server::ChainVerifier chain({tokens, userinfo});
 	CHECK(chain.verify(team.bo) == "bo");
 	CHECK(chain.verify(access) == "ada");
